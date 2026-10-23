@@ -560,3 +560,44 @@ describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", (
 		expect(wiki).toMatch(/fern-org:\n\s+description: >\n\s+DEPRECATED/);
 	});
 });
+
+describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notification check", () => {
+	const wf = REUSABLE_WORKFLOWS["platform.notifyCheck"]!;
+
+	it("is registered and reusable", () => {
+		expect(wf).toMatch(/^name: Notify Check/);
+		expect(wf).toContain("workflow_call:");
+	});
+
+	it("declares every channel's webhook secret plus the role secret, since a reusable workflow can only read what it declares", () => {
+		for (const channel of ["SYNC", "ALERTS", "ERRORS", "UPTIME", "RELEASES", "DEPLOYS"]) {
+			expect(wf).toContain(`HOLOCRON_NOTIFY_WEBHOOK_${channel}:`);
+		}
+		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE:");
+	});
+
+	it("posts to each channel with the strict notify action, so one bad channel fails its own job and not the others", () => {
+		expect(wf).toContain("fail-fast: false");
+		expect(wf).toContain("theholocron/.github/.github/actions/notify@main");
+		expect(wf).toContain('strict: "true"');
+		expect(wf).toContain("fromJSON(inputs.channels)");
+		expect(wf).toContain("secrets[format('HOLOCRON_NOTIFY_WEBHOOK_{0}', matrix.channel)]");
+	});
+
+	it("pings the role on the alerts channel only", () => {
+		expect(wf).toMatch(/mention: \$\{\{ matrix\.channel == 'alerts' && secrets\.HOLOCRON_NOTIFY_ALERT_ROLE/);
+	});
+
+	it("runs with no token permissions", () => {
+		expect(wf).toContain("permissions: {}");
+	});
+});
+
+describe("REUSABLE_WORKFLOWS['platform.repoSync'] — the role id comes from a secret", () => {
+	it("mentions the role through secrets, not variables, and declares the secret", () => {
+		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
+		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE:");
+		expect(wf).toContain("mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}");
+		expect(wf).not.toContain("vars.HOLOCRON_NOTIFY_ALERT_ROLE");
+	});
+});

@@ -17,6 +17,7 @@ import dependenciesYml from "../../templates/workflows/dependencies.yml";
 import greetingsYml from "../../templates/workflows/greetings.yml";
 import wikiYml from "../../templates/workflows/knowledge.wiki.yml";
 import commitStandardsYml from "../../templates/workflows/platform.commitStandards.yml";
+import notifyCheckYml from "../../templates/workflows/platform.notifyCheck.yml";
 import repoSyncYml from "../../templates/workflows/platform.repoSync.yml";
 import repoValidationYml from "../../templates/workflows/platform.repoValidation.yml";
 import syncTemplatesYml from "../../templates/workflows/platform.syncTemplates.yml";
@@ -53,6 +54,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"delivery.previewCheck": previewCheckYml,
 	"delivery.previewDeploy": previewDeployYml,
 	"platform.repoSync": repoSyncYml,
+	"platform.notifyCheck": notifyCheckYml,
 	"platform.commitStandards": commitStandardsYml,
 	"platform.repoValidation": repoValidationYml,
 	"platform.syncTemplates": syncTemplatesYml,

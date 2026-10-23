@@ -1,0 +1,64 @@
+name: Notify Check
+
+# Proves the notification path end to end, from a real run: that each channel's
+# webhook secret exists, that its webhook accepts a post, and that the alert
+# role ping resolves. It posts one clearly labelled test message per channel and
+# fails the matching job when any step does not work, so a red job names the
+# channel to fix. Manual (workflow_dispatch) only: it posts real messages.
+#
+# Adding a channel means declaring its secret below as well as listing it in
+# `channels`: a reusable workflow can only read the secrets it declares.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      channels:
+        description: >
+          JSON array of channel names to check. Each one is read from the secret
+          HOLOCRON_NOTIFY_WEBHOOK_<NAME> (uppercased).
+        type: string
+        required: false
+        default: '["sync","alerts","errors","uptime","releases","deploys"]'
+    secrets:
+      HOLOCRON_NOTIFY_WEBHOOK_SYNC:
+        description: Webhook for the sync channel.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_ALERTS:
+        description: Webhook for the alerts channel.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_ERRORS:
+        description: Webhook for the errors channel.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_UPTIME:
+        description: Webhook for the uptime channel.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_RELEASES:
+        description: Webhook for the releases channel.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS:
+        description: Webhook for the deploys channel.
+        required: false
+      HOLOCRON_NOTIFY_ALERT_ROLE:
+        description: Id of the role to mention on the alerts channel's test message. Optional.
+        required: false
+
+jobs:
+  check:
+    name: Check ${{ matrix.channel }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    strategy:
+      # One channel failing must not hide the others: the point is the full picture.
+      fail-fast: false
+      matrix:
+        channel: ${{ fromJSON(inputs.channels) }}
+    steps:
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: Post a test message to ${{ matrix.channel }}
+        with:
+          strict: "true"
+          webhook: ${{ secrets[format('HOLOCRON_NOTIFY_WEBHOOK_{0}', matrix.channel)] }}
+          # Only the alerts channel pings, and only when the role id is set.
+          mention: ${{ matrix.channel == 'alerts' && secrets.HOLOCRON_NOTIFY_ALERT_ROLE || '' }}
+          message: "🧪 notify check — #${{ matrix.channel }} is wired up (${{ github.repository }}, ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"

@@ -38,6 +38,9 @@ export default defineConfig({
 		{ name: "delivery.publish", with: { "sentry-project": "holocron-cli", "deploy-on-release": true } },
 		// Sync: keep generated files (workflows, labels, …) current on push to main.
 		"platform.repoSync",
+		// Notify Check: manual end-to-end test of the notification channels (posts a
+		// labelled message to each). Needs the reusable workflow on theholocron/.github main.
+		"platform.notifyCheck",
 		// Sync Templates: push astromech's own generated reusable workflows +
 		// composite actions to theholocron/.github whenever their source
 		// templates change on main (holocron#1012/#1013/#1014). Holocron-

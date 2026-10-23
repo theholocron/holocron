@@ -1,0 +1,12 @@
+name: Platform
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  notify-check:
+    name: Notify Check
+    uses: theholocron/.github/.github/workflows/platform.notifyCheck.yml@main
+    secrets: inherit

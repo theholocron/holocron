@@ -182,7 +182,7 @@ describe("runNotificationsSetup", () => {
 		const { run } = setup(fakeNotifications(), { org: "" });
 		expect(await run()).toMatchObject({
 			status: "fail",
-			message: expect.stringMatching(/no org to store webhook secrets/),
+			message: expect.stringMatching(/no org to store secrets/),
 		});
 	});
 
@@ -403,5 +403,117 @@ describe("runNotificationsSetup", () => {
 		expect(report.failures[0]?.message).toBe(
 			'Discord PATCH /channels/9 → 403: {"message":"Missing Permissions","code":50013}'
 		);
+	});
+
+	describe("a role's id stored in a secret", () => {
+		const roleLayout: NotificationsLayout = {
+			roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }],
+		};
+
+		it("stores the id so a workflow can ping the role with nothing copied by hand", async () => {
+			const { run, stored, lines } = setup(fakeNotifications({ layout: roleLayout }));
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(stored).toEqual([{ name: "HOLOCRON_NOTIFY_ALERT_ROLE", value: "99" }]);
+			expect(report.roles).toEqual([
+				{ name: "gatekeepers", id: "99", created: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE", stored: true },
+			]);
+			expect(lines.join("\n")).toContain("stored the id of gatekeepers in HOLOCRON_NOTIFY_ALERT_ROLE");
+		});
+
+		it("stores the id of a role that already existed, so the secret is repaired on a re-run", async () => {
+			const n = fakeNotifications({
+				layout: roleLayout,
+				ensureRole: vi.fn(async () => ({ id: "1562979974502424668", created: false })),
+			});
+			const { run, stored } = setup(n);
+			await run();
+			expect(stored).toEqual([{ name: "HOLOCRON_NOTIFY_ALERT_ROLE", value: "1562979974502424668" }]);
+		});
+
+		it("previews it on --dry-run and stores nothing", async () => {
+			const n = fakeNotifications({ layout: roleLayout });
+			const { run, stored, lines } = setup(n, { dryRun: true });
+			const report = await run();
+			expect(report.status).toBe("dry-run");
+			expect(stored).toEqual([]);
+			expect(n.ensureRole).not.toHaveBeenCalled();
+			expect(lines.join("\n")).toContain(
+				"would ensure role gatekeepers and store its id in HOLOCRON_NOTIFY_ALERT_ROLE"
+			);
+			expect(report.roles[0]).toMatchObject({ secret: "HOLOCRON_NOTIFY_ALERT_ROLE" });
+		});
+
+		it("needs a secrets provider even when the layout has no webhooks", async () => {
+			const { run } = setup(fakeNotifications({ layout: roleLayout }), { secrets: false });
+			expect(await run()).toMatchObject({
+				status: "fail",
+				message: expect.stringMatching(/need a `secrets` capability/),
+			});
+		});
+
+		it("needs an org (or a scope) to store it under", async () => {
+			const { run } = setup(fakeNotifications({ layout: roleLayout }), { org: "" });
+			expect(await run()).toMatchObject({
+				status: "fail",
+				message: expect.stringMatching(/no org to store secrets under/),
+			});
+		});
+
+		it("reports a failed store as a failing step and keeps going", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"], secrets: "github" } });
+			const loader = makeLoader(loaded, {
+				"@theholocron/holocron-plugin-discord": makePlugin("discord", {
+					notifications: fakeNotifications({
+						layout: { roles: [{ name: "a", secret: "A_SECRET" }, { name: "b" }] },
+					}),
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					secrets: {
+						providerName: "github",
+						listSecrets: async () => [] as string[],
+						setSecret: async (_s: unknown, name: string) => {
+							if (name === "A_SECRET") throw new Error("403 nope");
+						},
+						deleteSecret: async () => {},
+					},
+				}),
+			});
+			const report = await runNotificationsSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", org: "theholocron" },
+				loader,
+				print: () => {},
+			});
+			expect(report.status).toBe("fail");
+			expect(report.failures).toEqual([{ step: "role a", message: "403 nope" }]);
+			expect(report.roles.map((r) => r.name)).toEqual(["a", "b"]);
+		});
+
+		it("refuses a role secret that a webhook also writes to", async () => {
+			const n = fakeNotifications({
+				layout: {
+					categories: [{ name: "A", channels: [{ name: "alerts", webhook: { secret: "SHARED" } }] }],
+					roles: [{ name: "gatekeepers", secret: "SHARED" }],
+				},
+			});
+			const report = await setup(n).run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/`alerts` and role `gatekeepers` would both store into SHARED/);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+		});
+
+		it("refuses two roles that would share one secret", async () => {
+			const n = fakeNotifications({
+				layout: {
+					roles: [
+						{ name: "a", secret: "SAME" },
+						{ name: "b", secret: "SAME" },
+					],
+				},
+			});
+			const report = await setup(n).run();
+			expect(report.message).toMatch(/`role a` and role `b` would both store into SAME/);
+		});
 	});
 });

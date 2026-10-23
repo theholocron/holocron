@@ -57,16 +57,18 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		);
 	}
 
+	// Anything that writes a secret: a channel's webhook URL, or a role's id.
 	const wantsWebhook = (layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook));
+	const wantsSecrets = wantsWebhook || (layout.roles ?? []).some((r) => r.secret);
 	let secrets: Secrets | undefined;
 	// A dry-run stores nothing, so it needs no credentials for the secrets provider.
-	if (wantsWebhook && !dryRun) {
+	if (wantsSecrets && !dryRun) {
 		if (!loader.has("secrets")) {
 			return refuse(
 				whyMissing(
 					loader,
 					"secrets",
-					"the layout asks for webhooks, which need a `secrets` capability — add a `secrets` provider"
+					"the layout stores webhook URLs or role ids, which need a `secrets` capability — add a `secrets` provider"
 				)
 			);
 		}
@@ -74,8 +76,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 	const org = input.context.org;
 	const scope = input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
-	if (wantsWebhook && !scope && !dryRun) {
-		return refuse("no org to store webhook secrets under — pass --scope or set `org` in holocron.config.ts");
+	if (wantsSecrets && !scope && !dryRun) {
+		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
 
 	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
@@ -104,6 +106,16 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			}
 			taken.set(secret, channel.name);
 		}
+	}
+	for (const role of layout.roles ?? []) {
+		if (!role.secret) continue;
+		const other = taken.get(role.secret);
+		if (other) {
+			return refuse(
+				`\`${other}\` and role \`${role.name}\` would both store into ${role.secret} — give one a distinct secret`
+			);
+		}
+		taken.set(role.secret, `role ${role.name}`);
 	}
 
 	print(`Holocron notifications setup — ${notifications.providerName}${dryRun ? " (dry-run)" : ""}`);
@@ -157,8 +169,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		await attempt(`role ${role.name}`, async () => {
 			if (!notifications.ensureRole) throw new Error(`\`${notifications.providerName}\` cannot manage roles`);
 			if (dryRun) {
-				print(`  … would ensure role ${role.name}`);
-				report.roles.push({ name: role.name, created: false });
+				print(`  … would ensure role ${role.name}${role.secret ? ` and store its id in ${role.secret}` : ""}`);
+				report.roles.push({ name: role.name, created: false, ...(role.secret ? { secret: role.secret } : {}) });
 				return;
 			}
 			const made = await notifications.ensureRole({
@@ -168,6 +180,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			const outcome: RoleOutcome = { name: role.name, id: made.id, created: made.created };
 			report.roles.push(outcome);
 			print(`  ${made.created ? "✓ created" : "· exists "} role ${role.name} (id ${made.id})`);
+			if (role.secret) {
+				// Same store as the webhooks, so the id is there for workflows with nothing to copy by hand.
+				await secrets!.setSecret(scope!, role.secret, made.id); // set: setup refuses to run without both
+				outcome.secret = role.secret;
+				outcome.stored = true;
+				print(`  ✓ stored the id of ${role.name} in ${role.secret}`);
+			}
 		});
 	}
 

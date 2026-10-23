@@ -135,6 +135,10 @@ export const TASKS: Record<string, TaskDef> = {
 
 	// ── platform.* — operating the repo itself ────────────────────────────
 	"platform.repoSync": { local: { command: "sync" } },
+	// No local runner -- it posts real messages through org secrets that only a
+	// workflow can read. Manual (workflow_dispatch) only: the end-to-end check for
+	// `holocron notifications setup`, never part of `holocron run ci`.
+	"platform.notifyCheck": { local: null },
 	// No local equivalent runner distinct from `sync github` itself —
 	// invokes the CLI subcommand directly, same shape as repoSync's `sync`.
 	// Holocron-repo-specific: pushes astromech's own generated reusable

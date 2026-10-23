@@ -156,7 +156,7 @@ export default defineConfig({
 							],
 						},
 					],
-					roles: [{ name: "gatekeepers", mentionable: true }],
+					roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }],
 				},
 			},
 		],
