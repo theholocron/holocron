@@ -184,7 +184,7 @@ export class DiscordNotifications implements Notifications {
 		found.forEach((entry, i) => {
 			entry.access = this.accessOf(text[i]!.permission_overwrites, roleName);
 		});
-		const categoryAccess: Record<string, Required<NotificationsAccess>> = {};
+		const categoryAccess: Record<string, Required<NotificationsAccess> | "custom"> = {};
 		for (const c of channels.filter((c) => c.type === ChannelType.Category)) {
 			categoryAccess[c.name] = this.accessOf(c.permission_overwrites, roleName);
 		}
@@ -234,11 +234,21 @@ export class DiscordNotifications implements Notifications {
 		];
 		if (everyoneDeny.length === 0) return [];
 
-		const roles = await this.bot().guilds.roles(this.guild());
+		// Only look up roles when a role is actually named; a read-only channel needs no lookup.
+		const named = [...(view === "everyone" ? [] : view), ...(post === "everyone" ? [] : post)];
+		const roles = named.length > 0 ? await this.roleList() : [];
 		const idOf = (name: string): string => {
-			const found = roles.find((r) => DiscordNotifications.same(r.name, name));
-			if (!found) throw new Error(`access names the role \`${name}\`, which does not exist on the server yet`);
-			return found.id;
+			const found = roles.filter((r) => DiscordNotifications.same(r.name, name));
+			if (found.length === 0) {
+				throw new Error(`access names the role \`${name}\`, which does not exist on the server yet`);
+			}
+			// Two roles with one name: granting access to "the first" could expose the channel to the wrong members.
+			if (found.length > 1) {
+				throw new Error(
+					`access names the role \`${name}\`, but ${found.length} roles have that name (ids ${found.map((r) => r.id).join(", ")}) -- delete or rename the extras`
+				);
+			}
+			return found[0]!.id;
 		};
 		const allow = new Map<string, PermissionName[]>();
 		const grant = (roleName: string, names: PermissionName[]) => {
@@ -256,22 +266,62 @@ export class DiscordNotifications implements Notifications {
 		return overwrites;
 	}
 
-	/** Read an access back out of a channel's overwrites, naming roles as the layout does. */
+	/**
+	 * Read an access back out of a channel's overwrites, naming roles as the layout does. Only
+	 * overwrites of the shape {@link overwritesFor} writes can be read back; anything else
+	 * (a role-specific deny, a member overwrite, only some of the posting bits) means the
+	 * channel's real access is not something the layout can state, and is reported as `"custom"`
+	 * rather than guessed at.
+	 */
 	private accessOf(
 		overwrites: readonly DiscordPermissionOverwrite[] | undefined,
 		roleName: (id: string) => string
-	): Required<NotificationsAccess> {
+	): Required<NotificationsAccess> | "custom" {
 		const list = overwrites ?? [];
-		const everyone = list.find((o) => o.type === 0 && o.id === this.guild());
-		const denies = (bit: PermissionName) => everyone !== undefined && permissionNames(everyone.deny).includes(bit);
-		const allowed = (bit: PermissionName) =>
-			list
-				.filter((o) => o.type === 0 && o.id !== this.guild() && permissionNames(o.allow).includes(bit))
-				.map((o) => roleName(o.id));
-		return {
-			view: denies("ViewChannel") ? allowed("ViewChannel") : "everyone",
-			post: denies("SendMessages") ? allowed("SendMessages") : "everyone",
+		const managed = permissions(["ViewChannel", ...POST]);
+		const within = (bits: string) => (BigInt(bits) & ~BigInt(managed)) === 0n;
+		const postOf = (bits: string): "all" | "none" | "some" => {
+			const have = POST.filter((b) => permissionNames(bits).includes(b)).length;
+			return have === 0 ? "none" : have === POST.length ? "all" : "some";
 		};
+		const botSignature = permissions(BOT_KEEPS);
+
+		let everyone: DiscordPermissionOverwrite | undefined;
+		const roles: DiscordPermissionOverwrite[] = [];
+		for (const o of list) {
+			if (o.type === 1) {
+				if (o.allow !== botSignature || o.deny !== "0") return "custom";
+			} else if (o.id === this.guild()) {
+				everyone = o;
+			} else {
+				roles.push(o);
+			}
+		}
+		if (everyone && (everyone.allow !== "0" || !within(everyone.deny) || postOf(everyone.deny) === "some")) {
+			return "custom";
+		}
+		for (const o of roles) {
+			if (o.deny !== "0" || !within(o.allow) || postOf(o.allow) === "some") return "custom";
+		}
+		const denied = (bit: PermissionName) => everyone !== undefined && permissionNames(everyone.deny).includes(bit);
+		const names = (bit: PermissionName) =>
+			roles.filter((o) => permissionNames(o.allow).includes(bit)).map((o) => roleName(o.id));
+		return {
+			view: denied("ViewChannel") ? names("ViewChannel") : "everyone",
+			post: denied("SendMessages") ? names("SendMessages") : "everyone",
+		};
+	}
+
+	/** The server's roles, fetched once and forgotten whenever setup changes a role. */
+	private roleLoad?: Promise<Awaited<ReturnType<DiscordBotClient["guilds"]["roles"]>>>;
+
+	private roleList() {
+		return (this.roleLoad ??= this.bot()
+			.guilds.roles(this.guild())
+			.catch((err: unknown) => {
+				this.roleLoad = undefined;
+				throw err;
+			}));
 	}
 
 	private guild(): string {
@@ -348,16 +398,31 @@ export class DiscordNotifications implements Notifications {
 		return { id: made.id, created: true };
 	}
 
-	/** Edit a channel and keep the shared list in step; forget the list if the edit may have half-applied. */
+	/**
+	 * Edit a channel and keep the shared list in step; forget the list if the edit may have half-applied.
+	 * Discord answers with the channel as it now is: if the overwrites that come back are not the ones we
+	 * sent, something else changed it at the same time, so say so instead of reporting success.
+	 */
 	private async modifyChannel(
 		channel: DiscordChannel,
 		patch: Parameters<DiscordBotClient["channels"]["modify"]>[1]
 	): Promise<void> {
+		let after: DiscordChannel;
 		try {
-			await this.bot().channels.modify(channel.id, patch);
+			after = await this.bot().channels.modify(channel.id, patch);
 		} catch (err) {
 			this.channelLoad = undefined; // may have applied; see createChannel
 			throw err;
+		}
+		if (
+			patch.permission_overwrites &&
+			overwriteKey(after.permission_overwrites) !== overwriteKey(patch.permission_overwrites)
+		) {
+			this.channelLoad = undefined;
+			throw new Error(
+				`\`${channel.name}\`: sent its access but the channel came back different -- ` +
+					"another setup run may be changing it at the same time; re-run once it has finished"
+			);
 		}
 		Object.assign(channel, patch);
 	}
@@ -480,6 +545,7 @@ export class DiscordNotifications implements Notifications {
 				updated.push("permissions");
 			}
 			if (updated.length > 0) {
+				this.roleLoad = undefined;
 				const after = await bot.guilds.modifyRole(this.guild(), existing.id, patch);
 				// Discord answers with the role as it now is. If a field we sent is not what comes back, something
 				// else changed the role at the same time (or the server dropped it): say so, do not report success.
@@ -502,6 +568,7 @@ export class DiscordNotifications implements Notifications {
 			}
 			return { id: existing.id, created: false, ...(updated.length > 0 ? { updated } : {}) };
 		}
+		this.roleLoad = undefined;
 		const made = await bot.guilds.createRole(this.guild(), {
 			name: input.name,
 			...(input.mentionable !== undefined ? { mentionable: input.mentionable } : {}),

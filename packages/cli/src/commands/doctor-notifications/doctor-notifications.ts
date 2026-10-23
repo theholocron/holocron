@@ -50,12 +50,7 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 type AccessValue = "everyone" | string[];
 /** `everyone`, or the roles sorted and lower-cased, so order and case do not matter when comparing. */
 const accessKey = (v: AccessValue): string =>
-	v === "everyone"
-		? "everyone"
-		: [...v]
-				.map((r) => r.toLowerCase())
-				.sort()
-				.join(",");
+	v === "everyone" ? "everyone" : JSON.stringify([...new Set(v.map((r) => r.toLowerCase()))].sort());
 const accessText = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
 const shown = (s: string) => sanitizeDetail(s);
@@ -346,9 +341,19 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 
 		// 6c. who can see and post, in the channels and categories the layout (or its category) gives an access
 		const accessProblems: string[] = [];
-		const compare = (label: string, want: NotificationsAccess, have: Required<NotificationsAccess> | undefined) => {
+		const compare = (
+			label: string,
+			want: NotificationsAccess,
+			have: Required<NotificationsAccess> | "custom" | undefined
+		) => {
 			if (!have) {
 				accessProblems.push(`${label}: the provider did not report its access`);
+				return;
+			}
+			if (have === "custom") {
+				accessProblems.push(
+					`${label}: has permission overwrites that are not an access the layout can state; re-run setup to replace them`
+				);
 				return;
 			}
 			for (const field of ["view", "post"] as const) {
@@ -386,7 +391,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		add(
 			"access",
 			ACCESS_TITLE,
-			accessProblems,
+			// Access names roles by id on the server; without the roles read, the names cannot be compared.
+			inspected.rolesError && accessDeclared > 0 ? ["not checked: could not read the roles"] : accessProblems,
 			accessDeclared === 0 ? "none declared" : `${accessDeclared} of ${accessDeclared} as declared`
 		);
 	}

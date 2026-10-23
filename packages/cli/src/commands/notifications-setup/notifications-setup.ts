@@ -56,12 +56,25 @@ export function accessRoleProblem(layout: NotificationsLayout): string | undefin
 		}
 		return undefined;
 	};
+	// A role that may post must be able to see the channel, or the post permission does nothing.
+	const cannotSee = (where: string, access: NotificationsAccess | undefined): string | undefined => {
+		if (!Array.isArray(access?.view) || !Array.isArray(access?.post)) return undefined;
+		const seen = new Set(access.view.map((r) => r.toLowerCase()));
+		const stuck = access.post.find((r) => !seen.has(r.toLowerCase()));
+		return stuck === undefined
+			? undefined
+			: `${where}: the role \`${stuck}\` may post but is not in \`view\`, so it could not see the channel`;
+	};
 	for (const category of layout.categories ?? []) {
 		const problem = check(`category \`${category.name}\``, category.access);
 		if (problem) return problem;
+		const stuckCategory = cannotSee(`category \`${category.name}\``, category.access);
+		if (stuckCategory) return stuckCategory;
 		for (const channel of category.channels ?? []) {
 			const found = check(`channel \`${channel.name}\``, channel.access);
 			if (found) return found;
+			const stuck = cannotSee(`channel \`${channel.name}\``, effectiveAccess(category.access, channel.access));
+			if (stuck) return stuck;
 		}
 	}
 	return undefined;
@@ -140,6 +153,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (secretProblem) return refuse(secretProblem);
 	const accessProblem = accessRoleProblem(layout);
 	if (accessProblem) return refuse(accessProblem);
+	// A category's access cannot be applied by a provider that has no categories: do not report success without it.
+	const needsCategories = (layout.categories ?? []).find((c) => c.access);
+	if (needsCategories && !notifications.ensureCategory) {
+		return refuse(
+			`category \`${needsCategories.name}\` declares \`access\`, but the \`${notifications.providerName}\` provider cannot manage categories`
+		);
+	}
 	const providerProblem = notifications.validateLayout?.(layout);
 	if (providerProblem) return refuse(providerProblem);
 
@@ -147,13 +167,15 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	const tally = { ok: 0, skip: 0 };
 	const made = (created: boolean) => void (created ? tally.ok++ : tally.skip++);
 
-	const attempt = async (step: string, fn: () => Promise<void>) => {
+	const attempt = async (step: string, fn: () => Promise<void>): Promise<boolean> => {
 		try {
 			await fn();
+			return true;
 		} catch (err) {
 			const message = describeProviderError(err);
 			print(`  ${style.fail(`${step}: ${message}`)}`);
 			report.failures.push({ step, message });
+			return false;
 		}
 	};
 
@@ -204,7 +226,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	for (const category of layout.categories ?? []) {
 		print(`\n${style.header(category.name)}`);
 		report.categories.push(category.name);
-		await attempt(`category ${category.name}`, async () => {
+		const categoryOk = await attempt(`category ${category.name}`, async () => {
 			if (!notifications.ensureCategory) return; // the provider has no categories; channels simply go ungrouped
 			if (dryRun) {
 				print(`  ${style.skip(`would ensure category ${category.name}`)}`);
@@ -220,7 +242,16 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			print(`  ${(changed ? style.success : style.skip)(`${verb} category ${category.name}${what}`)}`);
 			made(changed);
 		});
-		for (const channel of category.channels ?? []) {
+		const channels = category.channels ?? [];
+		if (!categoryOk && channels.length > 0) {
+			// Creating its channels now would recreate the category without its access, and expose it.
+			print(
+				`  ${style.skip(`skipped ${channels.length} channel${channels.length === 1 ? "" : "s"}: the category failed`)}`
+			);
+			tally.skip += channels.length;
+			continue;
+		}
+		for (const channel of channels) {
 			await attempt(`channel ${channel.name}`, async () => {
 				const outcome = await provisionChannel(
 					{

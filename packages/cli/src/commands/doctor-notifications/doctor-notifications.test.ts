@@ -822,9 +822,52 @@ describe("runDoctorNotifications — channel and category access", () => {
 		]);
 	});
 
-	it("compares roles without regard to case or order", async () => {
-		const report = await run(server({ staff: { view: ["GATEKEEPERS"], post: "everyone" } }));
-		expect(byId(report, "access").status).toBe("pass");
+	it("compares roles without regard to case, order or repeats", async () => {
+		const two: NotificationsLayout = {
+			roles: [{ name: "a" }, { name: "b" }],
+			categories: [{ name: "STAFF", access: { view: ["A", "b", "a"] } }],
+		};
+		const found = (view: string[]): ServerInspection => ({
+			categories: ["STAFF"],
+			categoryAccess: { STAFF: { view, post: "everyone" } },
+			channels: [],
+			roles: [],
+		});
+		const check = (view: string[]) =>
+			setup(fakeNotifications({ layout: two, found: found(view) }), { secretNames: [] }).run();
+		expect(byId(await check(["b", "a"]), "access").status).toBe("pass");
+		expect(byId(await check(["a", "a", "B"]), "access").status).toBe("pass");
+		expect(byId(await check(["a"]), "access").status).toBe("fail");
+	});
+
+	it("does not mistake one role whose name contains a comma for two roles", async () => {
+		const layout: NotificationsLayout = {
+			roles: [{ name: "a" }],
+			categories: [{ name: "STAFF", access: { view: ["a,b"] } }],
+		};
+		const found: ServerInspection = {
+			categories: ["STAFF"],
+			categoryAccess: { STAFF: { view: ["a", "b"], post: "everyone" } },
+			channels: [],
+			roles: [],
+		};
+		const report = await setup(fakeNotifications({ layout, found }), { secretNames: [] }).run();
+		expect(byId(report, "access").status).toBe("fail");
+	});
+
+	it("says overwrites it cannot express are not an access the layout can state", async () => {
+		const found = server({ alerts: "custom", staff: "custom" });
+		const report = await run(found);
+		expect(byId(report, "access").problems).toEqual([
+			"#alerts: has permission overwrites that are not an access the layout can state; re-run setup to replace them",
+			"STAFF: has permission overwrites that are not an access the layout can state; re-run setup to replace them",
+		]);
+	});
+
+	it("is not checked, not compared against raw ids, when the roles could not be read", async () => {
+		const found = { ...server(), rolesError: "403" };
+		const report = await run(found);
+		expect(byId(report, "access").problems).toEqual(["not checked: could not read the roles"]);
 	});
 
 	it("says so when a channel or category is missing, and when the provider reports no access", async () => {
@@ -868,6 +911,9 @@ describe("runDoctorNotifications — channel and category access", () => {
 				throw new Error("down");
 			}),
 		});
-		expect(byId(await setup(n).run(), "access")).toMatchObject({ status: "fail" });
+		expect(byId(await setup(n).run(), "access")).toMatchObject({
+			status: "fail",
+			detail: "not checked: could not read the server",
+		});
 	});
 });

@@ -158,7 +158,8 @@ export default defineConfig({
 						},
 						{
 							name: "STAFF",
-							// Hidden from everyone but gatekeepers. Discord's own community notices land here.
+							// Hidden from everyone but gatekeepers (and server administrators, whom Discord never hides
+							// anything from). Discord's own community notices land here.
 							access: { view: ["gatekeepers"] },
 							channels: [
 								{

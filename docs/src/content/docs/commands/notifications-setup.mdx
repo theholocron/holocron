@@ -47,7 +47,9 @@ categories: [
 ];
 ```
 
-`view` and `post` are each `"everyone"` (the default) or a list of role names from the layout's `roles`. A channel takes its category's access, and stating `view` or `post` on the channel replaces just that field. `setup` writes the permission overwrites explicitly, so the list is exact and replaces any set by hand; it also keeps the bot able to manage and post in a channel it has locked. A channel or category with no `access` anywhere is left alone. Roles are created first, since access names them; naming a role the layout does not declare is refused before anything is created.
+`view` and `post` are each `"everyone"` (the default) or a list of role names from the layout's `roles`. A channel takes its category's access, and stating `view` or `post` on the channel replaces just that field. `setup` writes the permission overwrites explicitly, so the list is exact and replaces any set by hand; it also keeps the bot able to manage and post in a channel it has locked. A role that may `post` must also be in `view` when `view` is a list, or it could not see the channel; `setup` refuses a layout that says otherwise. A channel or category with no `access` anywhere is left alone.
+
+Discord lets the server owner and anyone with the Administrator permission see and post everywhere, whatever the overwrites say, so "hidden from everyone but gatekeepers" means hidden from everyone who is not an administrator. Keep Administrator for the few people who need it. Roles are created first, since access names them; naming a role the layout does not declare is refused before anything is created.
 
 `webhook: true` stores the URL in `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>`; `webhook: { name, secret }` overrides the webhook name and the secret name. The command prints each role's id, which is what a workflow needs to ping it.
 

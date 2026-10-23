@@ -1006,8 +1006,11 @@ export interface NotificationsLayout {
  */
 export interface ServerInspection {
 	categories: string[];
-	/** Who can see and post in each category, for those the layout gives an `access`. */
-	categoryAccess?: Record<string, Required<NotificationsAccess>>;
+	/**
+	 * Who can see and post in each category. `"custom"` means its overwrites are not an access the layout
+	 * can state (a role-specific deny, a member overwrite, only some of the posting permissions).
+	 */
+	categoryAccess?: Record<string, Required<NotificationsAccess> | "custom">;
 	channels: Array<{
 		name: string;
 		/** The category it sits under, if any. */
@@ -1017,8 +1020,8 @@ export interface ServerInspection {
 		webhooks: string[];
 		/** Set when listing this channel's webhooks failed; `webhooks` is then empty and means nothing. */
 		webhooksError?: string;
-		/** Who can see and post, for channels the layout gives an `access` (or whose category has one). */
-		access?: Required<NotificationsAccess>;
+		/** Who can see and post; `"custom"` as for `categoryAccess`. */
+		access?: Required<NotificationsAccess> | "custom";
 	}>;
 	roles: Array<{
 		name: string;

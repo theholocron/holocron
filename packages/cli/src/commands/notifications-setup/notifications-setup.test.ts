@@ -256,6 +256,94 @@ describe("runNotificationsSetup", () => {
 		expect((await setup(n).run()).status).toBe("ok");
 	});
 
+	it("skips a category's channels when the category itself failed, so none is recreated without its access", async () => {
+		const n = fakeNotifications({
+			layout: {
+				roles: [{ name: "gatekeepers" }],
+				categories: [
+					{ name: "STAFF", access: { view: ["gatekeepers"] }, channels: [{ name: "a" }, { name: "b" }] },
+					{ name: "OPEN", channels: [{ name: "c" }] },
+				],
+			},
+			ensureCategory: vi.fn(async (name: string) => {
+				if (name === "STAFF") throw new Error("Missing Permissions");
+				return { id: "c", created: true };
+			}),
+		});
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.failures).toEqual([{ step: "category STAFF", message: "Missing Permissions" }]);
+		expect(lines.join("\n")).toContain("skipped 2 channels: the category failed");
+		expect((n.ensureChannel as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0].name)).toEqual(["c"]);
+		expect(lines.at(-1)).toBe("3 ok, 1 fail, 2 skipped");
+	});
+
+	it("says 'channel' for a single skipped channel", async () => {
+		const n = fakeNotifications({
+			layout: { categories: [{ name: "X", channels: [{ name: "only" }] }] },
+			ensureCategory: vi.fn(async () => {
+				throw new Error("nope");
+			}),
+		});
+		const { run, lines } = setup(n);
+		await run();
+		expect(lines.join("\n")).toContain("skipped 1 channel: the category failed");
+	});
+
+	it("refuses a category access when the provider cannot manage categories", async () => {
+		const n = fakeNotifications({
+			layout: { roles: [{ name: "g" }], categories: [{ name: "X", access: { view: ["g"] } }] },
+			ensureCategory: undefined,
+		});
+		const report = await setup(n).run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(
+			/category `X` declares `access`, but the `discord` provider cannot manage categories/
+		);
+		expect(n.ensureRole).not.toHaveBeenCalled();
+	});
+
+	it("refuses a role that may post but could not see the channel", async () => {
+		for (const [layout, who] of [
+			[
+				{
+					roles: [{ name: "a" }, { name: "b" }],
+					categories: [{ name: "X", access: { view: ["a"], post: ["a", "b"] } }],
+				},
+				"category `X`",
+			],
+			[
+				{
+					roles: [{ name: "a" }, { name: "b" }],
+					categories: [
+						{ name: "X", access: { view: ["a"] }, channels: [{ name: "c", access: { post: ["B"] } }] },
+					],
+				},
+				"channel `c`",
+			],
+		] as Array<[NotificationsLayout, string]>) {
+			const n = fakeNotifications({ layout });
+			const report = await setup(n).run();
+			expect(report.message).toMatch(new RegExp(`${who}: the role \`b\`|${who}: the role \`B\``, "i"));
+			expect(report.message).toMatch(/may post but is not in `view`/);
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+		}
+	});
+
+	it("accepts post roles that are also in view, and 'everyone' on either side", async () => {
+		const n = fakeNotifications({
+			layout: {
+				roles: [{ name: "a" }],
+				categories: [
+					{ name: "X", access: { view: ["A"], post: ["a"] } },
+					{ name: "Y", access: { view: "everyone", post: ["a"] } },
+					{ name: "Z", access: { view: ["a"], post: "everyone" } },
+				],
+			},
+		});
+		expect((await setup(n).run()).status).toBe("ok");
+	});
+
 	it("ends a refusal with the count too", async () => {
 		const n = fakeNotifications({ layout: undefined });
 		const { run, lines } = setup(n);
