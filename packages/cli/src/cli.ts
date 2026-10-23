@@ -29,6 +29,7 @@ import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/index.js";
 import { runNotificationsChannelAdd } from "./commands/notifications-channel-add/index.js";
 import { runNotificationsSetup } from "./commands/notifications-setup/index.js";
+import { runNotificationsVerify } from "./commands/notifications-verify/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
 import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
@@ -1426,6 +1427,44 @@ try {
 								},
 								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
 								...(argv.provider ? { provider: argv.provider as string } : {}),
+							});
+							if (report.status === "fail") process.exitCode = 1;
+						}
+					)
+					.command(
+						"verify",
+						"Check the layout against the server and the secrets store, step by step (read-only)",
+						(y) =>
+							y
+								.option("scope", {
+									type: "string",
+									describe:
+										'Where the layout\'s secrets live: "repo", "env=<name>" or "org=<name>" (default: the org)',
+								})
+								.option("provider", {
+									type: "string",
+									describe: "Which notifications provider, when several can inspect",
+								})
+								.option("built-only", {
+									type: "boolean",
+									default: false,
+									describe: "Leave out the features that are not built yet (a routine drift check)",
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runNotificationsVerify({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
+								...(argv.provider ? { provider: argv.provider as string } : {}),
+								...(argv.builtOnly ? { builtOnly: true } : {}),
 							});
 							if (report.status === "fail") process.exitCode = 1;
 						}

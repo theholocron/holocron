@@ -1,0 +1,52 @@
+---
+title: "notifications verify"
+description: Check the declared layout against the server and the secrets store, step by step. Read-only.
+---
+
+```bash
+holocron notifications verify [--scope <scope>] [--provider <name>] [--built-only]
+```
+
+Compares the `layout` a `notifications` provider declares in `holocron.config.ts` with what is actually on the server and in the secrets store, and prints one line per step. It changes nothing, so it is safe to run at any time. It exits non-zero while any step fails.
+
+It is the end-to-end check for [`notifications setup`](/holocron/commands/notifications-setup/), and it keeps working afterwards as a drift check: if someone renames a channel, deletes a webhook or removes a secret by hand, the next run says so.
+
+```
+Holocron notifications verify — discord
+
+  ✓ server      Holocron (as Holonet)
+  ✓ categories  4 of 4 exist
+  ✗ channels    8 of 8 as declared
+  ...
+
+Not built yet (each fails until it lands, see #1098):
+  ✗  8  channel and category permissions
+  ...
+```
+
+## What each step checks
+
+| Step         | Passes when                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `server`     | the bot token is valid and the bot can see the configured server                                                    |
+| `categories` | every declared category exists                                                                                      |
+| `channels`   | every declared channel exists under its declared category, with the declared topic                                  |
+| `webhooks`   | every channel that declares a webhook has one, by name                                                              |
+| `roles`      | every declared role exists, and its `mentionable` flag matches when the layout states one                           |
+| `secrets`    | every secret the layout fills (webhook URLs, role ids) exists at the target scope; names compare case-insensitively |
+
+When the server cannot be read, the steps that depend on it are reported as "not checked" and the reason is printed once.
+
+## Features that are not built yet
+
+The command also lists the parts of the plan that do not exist yet, each as a **failing** step numbered as in [#1098](https://github.com/theholocron/holocron/issues/1098), so it stays red until the last one lands and each feature that is built turns exactly one step green. Pass `--built-only` to leave them out and use the command as a routine drift check.
+
+## Options
+
+| Option              | Default | Description                                                            |
+| ------------------- | ------- | ---------------------------------------------------------------------- |
+| `--scope <scope>`   | the org | Where the layout's secrets live: `repo`, `env=<name>`, or `org=<name>` |
+| `--provider <name>` | —       | Which `notifications` provider, when more than one can inspect         |
+| `--built-only`      | `false` | Leave out the features that are not built yet                          |
+
+Terminal control characters in anything read from the server are stripped, and the structured log records only each step's verdict, never what was found.

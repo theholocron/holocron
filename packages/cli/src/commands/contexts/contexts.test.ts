@@ -34,6 +34,7 @@ const EVERY_COMMAND = [
 	"secrets sync",
 	"notifications channel add",
 	"notifications setup",
+	"notifications verify",
 	"deploy",
 	"deploy cleanup-preview",
 	"monitoring check",

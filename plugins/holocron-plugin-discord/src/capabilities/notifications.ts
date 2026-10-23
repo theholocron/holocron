@@ -1,4 +1,10 @@
-import type { EnsuredResource, EnsureWebhookResult, Notifications, NotificationsLayout } from "@theholocron/cli";
+import type {
+	EnsuredResource,
+	EnsureWebhookResult,
+	Notifications,
+	NotificationsLayout,
+	ServerInspection,
+} from "@theholocron/cli";
 
 import {
 	ChannelType,
@@ -69,6 +75,48 @@ export class DiscordNotifications implements Notifications {
 		const me = await bot.users.me();
 		const guild = await bot.guilds.get(this.opts.guildId);
 		return { target: `${guild.name} (as ${me.username})` };
+	}
+
+	/**
+	 * Read-only: what is on the server, for the parts of `layout` we will compare. Webhooks are
+	 * listed only for channels the layout gives one (one request each), so the cost scales with
+	 * the layout, not with the server.
+	 */
+	async inspect(layout: NotificationsLayout): Promise<ServerInspection> {
+		const bot = this.bot();
+		const channels = await this.channelList();
+		const categoryName = new Map(
+			channels.filter((c) => c.type === ChannelType.Category).map((c) => [c.id, c.name] as const)
+		);
+		const wantsWebhook = new Set(
+			(layout.categories ?? []).flatMap((c) =>
+				(c.channels ?? []).filter((ch) => ch.webhook).map((ch) => ch.name.toLowerCase())
+			)
+		);
+		const text = channels.filter((c) => c.type === ChannelType.Text || c.type === ChannelType.Announcement);
+		const found: ServerInspection["channels"] = [];
+		for (const c of text) {
+			const webhooks = wantsWebhook.has(c.name.toLowerCase())
+				? (await bot.channels.webhooks(c.id)).map((w) => w.name ?? "")
+				: [];
+			const category = c.parent_id ? categoryName.get(c.parent_id) : undefined;
+			found.push({
+				name: c.name,
+				...(category ? { category } : {}),
+				...(c.topic ? { topic: c.topic } : {}),
+				webhooks,
+			});
+		}
+		const roles = (await bot.guilds.roles(this.guild())).map((r) => ({
+			name: r.name,
+			id: r.id,
+			mentionable: r.mentionable,
+		}));
+		return {
+			categories: [...categoryName.values()],
+			channels: found,
+			roles,
+		};
 	}
 
 	private guild(): string {
