@@ -40,8 +40,16 @@ function reason(err: unknown): string {
 		: errorMessage(err);
 }
 
-/** What @everyone loses when a channel is read-only: sending, and starting or posting in threads. */
-const POST: PermissionName[] = ["SendMessages", "SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"];
+/**
+ * What @everyone loses when a channel is read-only. Only sending: Discord refuses (403) any change to the
+ * thread permissions on an existing text channel from a bot whose own role lacks them, and Holonet's
+ * does. Members can therefore still start threads in a read-only channel until the bot is given those
+ * permissions; see {@link THREAD_BITS} for how channels that already carry them are read.
+ */
+const POST: PermissionName[] = ["SendMessages"];
+/** Thread permissions an earlier version denied. Ignored when comparing, so such a channel is not "custom". */
+const THREAD_BITS: PermissionName[] = ["SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"];
+const THREAD_MASK = ~BigInt(permissions(THREAD_BITS));
 /** What the bot keeps in a channel it has locked down, so it can still manage it and post. */
 const BOT_KEEPS: PermissionName[] = [
 	"ViewChannel",
@@ -51,12 +59,43 @@ const BOT_KEEPS: PermissionName[] = [
 	"ManageWebhooks",
 ];
 
-/** Overwrites as a comparable set: order and the shape of the array do not matter. */
+/**
+ * Overwrites as a comparable set: order and the shape of the array do not matter, and the thread
+ * permissions are left out (setup does not manage them, so their presence is not a difference).
+ */
 function overwriteKey(list: readonly DiscordPermissionOverwrite[] | undefined): string {
 	return (list ?? [])
+		.map((o) => ({ ...o, allow: BigInt(o.allow) & THREAD_MASK, deny: BigInt(o.deny) & THREAD_MASK }))
+		.filter((o) => o.allow !== 0n || o.deny !== 0n) // an entry that only held thread permissions says nothing we manage
 		.map((o) => `${o.id}:${o.type}:${o.allow}:${o.deny}`)
 		.sort()
 		.join("|");
+}
+
+/**
+ * Desired overwrites with the thread permissions of the existing ones laid back in. Discord refuses
+ * any change to those from this bot, so a replacement list must carry them over untouched or the
+ * whole edit is rejected, even when it changes nothing but what we do manage.
+ */
+function keepThreadBits(
+	desired: DiscordPermissionOverwrite[],
+	existing: readonly DiscordPermissionOverwrite[] | undefined
+): DiscordPermissionOverwrite[] {
+	const threads = ~THREAD_MASK;
+	const merged = desired.map((o) => ({ ...o }));
+	for (const old of existing ?? []) {
+		const allow = BigInt(old.allow) & threads;
+		const deny = BigInt(old.deny) & threads;
+		if (allow === 0n && deny === 0n) continue;
+		const same = merged.find((o) => o.id === old.id && o.type === old.type);
+		if (same) {
+			same.allow = (BigInt(same.allow) | allow).toString();
+			same.deny = (BigInt(same.deny) | deny).toString();
+		} else {
+			merged.push({ id: old.id, type: old.type, allow: allow.toString(), deny: deny.toString() });
+		}
+	}
+	return merged;
 }
 
 export interface DiscordNotificationsOptions {
@@ -279,11 +318,9 @@ export class DiscordNotifications implements Notifications {
 	): Required<NotificationsAccess> | "custom" {
 		const list = overwrites ?? [];
 		const managed = permissions(["ViewChannel", ...POST]);
-		const within = (bits: string) => (BigInt(bits) & ~BigInt(managed)) === 0n;
-		const postOf = (bits: string): "all" | "none" | "some" => {
-			const have = POST.filter((b) => permissionNames(bits).includes(b)).length;
-			return have === 0 ? "none" : have === POST.length ? "all" : "some";
-		};
+		// The thread permissions are not ours to read or write, so they never make an overwrite "custom".
+		const unthreaded = (bits: string) => BigInt(bits) & THREAD_MASK;
+		const within = (bits: string) => (unthreaded(bits) & ~BigInt(managed)) === 0n;
 		const botSignature = permissions(BOT_KEEPS);
 
 		let everyone: DiscordPermissionOverwrite | undefined;
@@ -297,11 +334,9 @@ export class DiscordNotifications implements Notifications {
 				roles.push(o);
 			}
 		}
-		if (everyone && (everyone.allow !== "0" || !within(everyone.deny) || postOf(everyone.deny) === "some")) {
-			return "custom";
-		}
+		if (everyone && (unthreaded(everyone.allow) !== 0n || !within(everyone.deny))) return "custom";
 		for (const o of roles) {
-			if (o.deny !== "0" || !within(o.allow) || postOf(o.allow) === "some") return "custom";
+			if (unthreaded(o.deny) !== 0n || !within(o.allow)) return "custom";
 		}
 		const denied = (bit: PermissionName) => everyone !== undefined && permissionNames(everyone.deny).includes(bit);
 		const names = (bit: PermissionName) =>
@@ -385,7 +420,9 @@ export class DiscordNotifications implements Notifications {
 		const overwrites = opts.access ? await this.overwritesFor(opts.access) : undefined;
 		if (existing) {
 			if (overwrites && overwriteKey(existing.permission_overwrites) !== overwriteKey(overwrites)) {
-				await this.modifyChannel(existing, { permission_overwrites: overwrites });
+				await this.modifyChannel(existing, {
+					permission_overwrites: keepThreadBits(overwrites, existing.permission_overwrites),
+				});
 				return { id: existing.id, created: false, updated: ["access"] };
 			}
 			return { id: existing.id, created: false };
@@ -469,7 +506,7 @@ export class DiscordNotifications implements Notifications {
 				updated.push("topic");
 			}
 			if (overwrites && overwriteKey(existing.permission_overwrites) !== overwriteKey(overwrites)) {
-				patch.permission_overwrites = overwrites;
+				patch.permission_overwrites = keepThreadBits(overwrites, existing.permission_overwrites);
 				updated.push("access");
 			}
 			if (updated.length > 0) await this.modifyChannel(existing, patch);

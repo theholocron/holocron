@@ -862,7 +862,9 @@ describe("DiscordNotifications.validateLayout", () => {
 // ── access (who can see and post) ──────────────────────────────────────
 
 const BOT = "9001";
-const POST_BITS = ["SendMessages", "SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"] as const;
+const POST_BITS = ["SendMessages"] as const;
+/** What an earlier version also denied, and what Discord refuses to let this bot change. */
+const THREAD_BITS = ["SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"] as const;
 const KEEPS = ["ViewChannel", "SendMessages", "ReadMessageHistory", "ManageChannels", "ManageWebhooks"] as const;
 const bot = { body: { id: BOT, username: "holonet", bot: true } };
 const roles = (...names: string[]) => ({
@@ -945,6 +947,107 @@ describe("DiscordNotifications access — read-only", () => {
 		const out = await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: [] } });
 		expect(out).toEqual({ id: "2001", created: false, updated: ["access"] });
 		expect(calls[2]).toMatchObject({ method: "PATCH", body: { permission_overwrites: readOnly } });
+	});
+
+	it("treats thread permissions an earlier version denied as part of the same access, and sends nothing", async () => {
+		const withThreads = [
+			{ id: GUILD, type: 0, allow: "0", deny: permissions([...POST_BITS, ...THREAD_BITS]) },
+			readOnly[1],
+		];
+		const { notifs, calls } = makeProvisioner([
+			{
+				body: [
+					category("1001", "ALERTS"),
+					{ ...text("2001", "rules", "1001"), permission_overwrites: withThreads },
+				],
+			},
+			bot,
+		]);
+		expect(await notifs.ensureChannel({ name: "rules", category: "ALERTS", access: { post: [] } })).toEqual({
+			id: "2001",
+			created: false,
+		});
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+	});
+
+	it("carries an existing channel's thread denies over when it has to change something else", async () => {
+		const threads = permissions([...THREAD_BITS]);
+		const old = [
+			{ id: GUILD, type: 0, allow: "0", deny: threads }, // from the first version: threads denied, sending not
+			{ id: "5555", type: 0, allow: "0", deny: threads }, // an overwrite that only ever held thread denies
+		];
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS"), { ...text("2001", "alerts", "1001"), permission_overwrites: old }] },
+			bot,
+			patched(text("2001", "alerts", "1001"), [
+				{ id: GUILD, type: 0, allow: "0", deny: permissions([...POST_BITS, ...THREAD_BITS]) },
+				{ id: "5555", type: 0, allow: "0", deny: threads },
+				readOnly[1],
+			]),
+		]);
+		const out = await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: [] } });
+		expect(out).toEqual({ id: "2001", created: false, updated: ["access"] });
+		const sent = (calls[2]?.body as { permission_overwrites: Array<{ id: string; deny: string }> })
+			.permission_overwrites;
+		expect(sent.find((o) => o.id === GUILD)?.deny).toBe(permissions([...POST_BITS, ...THREAD_BITS]));
+		expect(sent.find((o) => o.id === "5555")?.deny).toBe(threads);
+	});
+
+	it("does not touch a channel whose only extra overwrite holds nothing but thread permissions", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{
+				body: [
+					category("1001", "ALERTS"),
+					{
+						...text("2001", "alerts", "1001"),
+						permission_overwrites: [
+							...readOnly,
+							{ id: "5555", type: 0, allow: "0", deny: permissions([...THREAD_BITS]) },
+						],
+					},
+				],
+			},
+			bot,
+		]);
+		expect(await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: [] } })).toEqual({
+			id: "2001",
+			created: false,
+		});
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+	});
+
+	it("carries a category's thread denies over too", async () => {
+		const threads = permissions([...THREAD_BITS]);
+		const { notifs, calls } = makeProvisioner([
+			{
+				body: [
+					{
+						...category("1001", "ALERTS"),
+						permission_overwrites: [{ id: GUILD, type: 0, allow: "0", deny: threads }],
+					},
+				],
+			},
+			bot,
+			patched(category("1001", "ALERTS"), [
+				{ id: GUILD, type: 0, allow: "0", deny: permissions([...POST_BITS, ...THREAD_BITS]) },
+				readOnly[1],
+			]),
+		]);
+		await notifs.ensureCategory("ALERTS", { access: { post: [] } });
+		const sent = (calls[2]?.body as { permission_overwrites: Array<{ id: string; deny: string }> })
+			.permission_overwrites;
+		expect(sent.find((o) => o.id === GUILD)?.deny).toBe(permissions([...POST_BITS, ...THREAD_BITS]));
+	});
+
+	it("only ever denies sending, never the thread permissions Discord will not let the bot change", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS")] },
+			bot,
+			{ body: text("2001", "alerts", "1001") },
+		]);
+		await notifs.ensureChannel({ name: "alerts", category: "ALERTS", access: { post: [] } });
+		const sent = (calls[2]?.body as { permission_overwrites: Array<{ deny: string }> }).permission_overwrites;
+		expect(BigInt(sent[0]!.deny) & BigInt(permissions([...THREAD_BITS]))).toBe(0n);
 	});
 
 	it("clears the overwrites when the layout says everyone may see and post", async () => {
@@ -1156,12 +1259,8 @@ describe("DiscordNotifications.inspect — access", () => {
 				{ id: "5000", type: 0, allow: "0", deny: permissions(["ViewChannel"]) },
 			],
 			"a member overwrite": [...readOnly, { id: "777", type: 1, allow: permissions(["ViewChannel"]), deny: "0" }],
-			"only some of the posting bits denied": [
-				{ id: GUILD, type: 0, allow: "0", deny: permissions(["SendMessages"]) },
-			],
-			"only some of the posting bits allowed to a role": [
-				{ id: GUILD, type: 0, allow: "0", deny: all },
-				{ id: "5000", type: 0, allow: permissions(["SendMessages"]), deny: "0" },
+			"something unmanaged denied to @everyone": [
+				{ id: GUILD, type: 0, allow: "0", deny: permissions(["AddReactions"]) },
 			],
 			"@everyone granted something": [{ id: GUILD, type: 0, allow: permissions(["ViewChannel"]), deny: "0" }],
 			"a role allowed something else": [
@@ -1172,6 +1271,27 @@ describe("DiscordNotifications.inspect — access", () => {
 		for (const [name, overwrites] of Object.entries(cases)) {
 			expect({ case: name, access: await inspectWith(overwrites) }).toEqual({ case: name, access: "custom" });
 		}
+	});
+
+	it("does not call a role overwrite custom because it also denies thread permissions", async () => {
+		const { notifs } = makeProvisioner([
+			{
+				body: [
+					{
+						...text("2001", "c"),
+						permission_overwrites: [
+							{ id: GUILD, type: 0, allow: "0", deny: all },
+							{ id: "5000", type: 0, allow: all, deny: permissions([...THREAD_BITS]) },
+						],
+					},
+				],
+			},
+			roles("gatekeepers"),
+		]);
+		expect((await notifs.inspect({ roles: [{ name: "gatekeepers" }] })).channels[0]?.access).toEqual({
+			view: ["gatekeepers"],
+			post: ["gatekeepers"],
+		});
 	});
 
 	it("names a role it can no longer find by its id", async () => {
