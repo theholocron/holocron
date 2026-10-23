@@ -978,6 +978,23 @@ describe("runDoctorNotifications — server settings", () => {
 		]);
 	});
 
+	it("compares a description exactly, but a channel name without regard to case", async () => {
+		const layout: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "Welcome" }] }],
+			server: { systemChannel: "Welcome", description: "Hello There" },
+		};
+		const report = await setup(
+			fakeNotifications({
+				layout,
+				found: found({ systemChannel: "welcome", description: "hello there" }),
+			}),
+			{ secretNames: [] }
+		).run();
+		expect(byId(report, "server-settings").problems).toEqual([
+			"description is hello there but the layout says Hello There",
+		]);
+	});
+
 	it("is not checked when the settings could not be read, or the provider reports none", async () => {
 		const unread = await run(found(undefined, { serverError: "403" }));
 		expect(byId(unread, "server-settings").problems).toEqual([

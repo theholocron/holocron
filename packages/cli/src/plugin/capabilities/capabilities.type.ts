@@ -1110,6 +1110,13 @@ export interface Notifications extends ProviderIdentity {
 	ensureServer?(settings: NotificationsServerLayout): Promise<{ updated: string[] }>;
 
 	/**
+	 * Before anything is created, prove the credentials can do the parts of the layout that need
+	 * more than the rest (for Discord, change the server's settings). Throws with the reason and how
+	 * to fix it, so `setup` stops before it leaves a half-applied layout. Not called on a dry run.
+	 */
+	preflight?(layout: NotificationsLayout): Promise<void>;
+
+	/**
 	 * Check the provider-specific parts of the layout (colours, permission names, …) without
 	 * touching the server, so `setup` can refuse a bad layout before it creates anything.
 	 * Returns the first problem, or `undefined` when the layout is fine.

@@ -1428,6 +1428,8 @@ describe("DiscordNotifications.ensureServer", () => {
 			"ManageRoles",
 			"ManageWebhooks",
 			"CreatePublicThreads",
+			"CreatePrivateThreads",
+			"SendMessagesInThreads",
 		] as const) {
 			expect({ name, held: (bits & BigInt(permissions([name]))) !== 0n }).toEqual({ name, held: true });
 		}
@@ -1550,5 +1552,106 @@ describe("DiscordNotifications.inspect — server settings", () => {
 		const found = await notifs.inspect({});
 		expect(found.server).toBeUndefined();
 		expect(calls).toHaveLength(1);
+	});
+});
+
+describe("DiscordNotifications — server settings, review fixes", () => {
+	const guild = (over: Record<string, unknown> = {}) => ({
+		body: { id: GUILD, name: "x", verification_level: 0, features: [], description: null, ...over },
+	});
+	const chans = { body: [text("2001", "welcome"), text("2002", "welcome", "1001")] };
+
+	it("refuses a server id that is not digits, so it can never carry URL parameters into the invite link", async () => {
+		const { notifs } = makeProvisioner([], { guildId: "123&client_id=999" });
+		await expect(notifs.preflight({ server: { verification: "low" } })).rejects.toThrow(
+			/is not a Discord server id \(digits only\)/
+		);
+	});
+
+	it("builds the invite link with each parameter encoded", async () => {
+		const { notifs } = makeProvisioner([
+			{ status: 403, body: { message: "Missing Permissions", code: 50013 } },
+			bot,
+		]);
+		const err = (await notifs.preflight({ server: { verification: "low" } }).catch((e: Error) => e)) as Error;
+		const url = new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]);
+		expect([...url.searchParams.keys()]).toEqual(["client_id", "scope", "permissions", "guild_id"]);
+	});
+
+	it("preflight: an empty edit proves Manage Server, and does nothing without a server section", async () => {
+		const { notifs, calls } = makeProvisioner([guild()]);
+		await notifs.preflight({ server: { verification: "low" } });
+		expect(calls[0]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: {} });
+		const none = makeProvisioner([]);
+		await none.notifs.preflight({});
+		expect(none.calls).toHaveLength(0);
+	});
+
+	it("preflight: explains a 403 with the invite link, and passes any other error on", async () => {
+		const denied = makeProvisioner([{ status: 403, body: { message: "Missing Permissions" } }, bot]);
+		await expect(denied.notifs.preflight({ server: {} })).rejects.toThrow(
+			/lacks Manage Server.*oauth2\/authorize/s
+		);
+		const broken = makeProvisioner([{ status: 500, body: { message: "boom" } }]);
+		await expect(broken.notifs.preflight({ server: {} })).rejects.toThrow(/500/);
+	});
+
+	it("rejects a value that is not one of the choices, instead of treating it as left out", async () => {
+		const typo = makeProvisioner([guild(), chans]);
+		await expect(typo.notifs.ensureServer({ verification: "medum" as never })).rejects.toThrow(
+			/unknown value "medum"; use one of none, low, medium, high, highest/
+		);
+		const inherited = makeProvisioner([guild(), chans]);
+		await expect(inherited.notifs.ensureServer({ contentFilter: "toString" as never })).rejects.toThrow(
+			/unknown value/
+		);
+		const { notifs } = makeProvisioner([]);
+		expect(notifs.validateLayout({ server: { verification: "medum" as never } })).toMatch(
+			/`verification` is "medum"; use one of/
+		);
+		expect(notifs.validateLayout({ server: { defaultNotifications: "none" as never } })).toMatch(
+			/`defaultNotifications`/
+		);
+		expect(notifs.validateLayout({ server: { contentFilter: "some" as never } })).toMatch(/`contentFilter`/);
+	});
+
+	it("rejects a locale Discord does not accept, and accepts the ones it does", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(notifs.validateLayout({ server: { locale: "english" } })).toMatch(/not a locale Discord accepts/);
+		for (const locale of ["en-US", "en-GB", "de", "pt-BR", "zh-TW"]) {
+			expect(notifs.validateLayout({ server: { locale } })).toBeUndefined();
+		}
+	});
+
+	it("will not pick between two channels with the name a setting uses", async () => {
+		const { notifs } = makeProvisioner([guild(), chans]);
+		await expect(notifs.ensureServer({ systemChannel: "welcome" })).rejects.toThrow(
+			/2 channels have that name \(ids 2001, 2002\)/
+		);
+	});
+
+	it("accepts an announcement channel for a setting, and ignores a category that shares its name", async () => {
+		const channels = {
+			body: [category("1001", "news"), { id: "2005", name: "news", type: ChannelType.Announcement }],
+		};
+		const { notifs, calls } = makeProvisioner([guild(), channels, guild({ system_channel_id: "2005" })]);
+		expect(await notifs.ensureServer({ systemChannel: "news" })).toEqual({ updated: ["systemChannel"] });
+		expect(calls[2]?.body).toEqual({ system_channel_id: "2005" });
+	});
+
+	it("reads an empty description as set to empty, not as missing", async () => {
+		const { notifs } = makeProvisioner([{ body: [text("2001", "a")] }, guild({ description: "" })]);
+		expect((await notifs.inspect({ server: {} })).server).toEqual({
+			verification: "none",
+			community: false,
+			description: "",
+		});
+	});
+
+	it("treats an empty description and none as the same, so clearing it settles", async () => {
+		const settled = makeProvisioner([guild({ description: null }), { body: [] }]);
+		expect(await settled.notifs.ensureServer({ description: "" })).toEqual({ updated: [] });
+		const clearing = makeProvisioner([guild({ description: "old" }), { body: [] }, guild({ description: null })]);
+		expect(await clearing.notifs.ensureServer({ description: "" })).toEqual({ updated: ["description"] });
 	});
 });

@@ -433,6 +433,51 @@ describe("runNotificationsSetup", () => {
 			}
 		});
 
+		it("refuses a server channel that two channels in the layout share", async () => {
+			const layout: NotificationsLayout = {
+				categories: [
+					{ name: "A", channels: [{ name: "rules" }] },
+					{ name: "B", channels: [{ name: "Rules" }] },
+				],
+				server: { rulesChannel: "rules" },
+			};
+			const report = await setup(fakeNotifications({ layout, ensureServer: vi.fn() })).run();
+			expect(report.message).toMatch(
+				/`rulesChannel` names `rules`, but more than one channel in the layout has that name/
+			);
+		});
+
+		it("checks the bot can change the server before creating anything, and stops there if it cannot", async () => {
+			const preflight = vi.fn(async () => {
+				throw new Error("the bot lacks Manage Server: https://example.test/invite");
+			});
+			const n = fakeNotifications({ layout: SERVER_LAYOUT, ensureServer: vi.fn(), preflight });
+			const { run, lines } = setup(n);
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/lacks Manage Server/);
+			expect(n.ensureRole).not.toHaveBeenCalled();
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+			expect(lines.at(-1)).toBe("0 ok, 1 fail, 0 skipped");
+		});
+
+		it("runs the preflight with the layout, and skips it on a dry run", async () => {
+			const preflight = vi.fn(async () => {});
+			await setup(
+				fakeNotifications({
+					layout: SERVER_LAYOUT,
+					ensureServer: vi.fn(async () => ({ updated: [] })),
+					preflight,
+				})
+			).run();
+			expect(preflight).toHaveBeenCalledWith(SERVER_LAYOUT);
+			const dry = vi.fn(async () => {});
+			await setup(fakeNotifications({ layout: SERVER_LAYOUT, ensureServer: vi.fn(), preflight: dry }), {
+				dryRun: true,
+			}).run();
+			expect(dry).not.toHaveBeenCalled();
+		});
+
 		it("does nothing about the server when the layout declares none", async () => {
 			const ensureServer = vi.fn(async () => ({ updated: [] }));
 			await setup(fakeNotifications({ ensureServer })).run();

@@ -423,8 +423,13 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					const want = wantServer[field];
 					if (want === undefined) continue;
 					const actual = have[field];
+					// Channel names are compared without regard to case (Discord lower-cases them); nothing else is.
+					const isChannel =
+						field === "systemChannel" || field === "rulesChannel" || field === "updatesChannel";
 					const equal =
-						typeof want === "string" && typeof actual === "string" ? same(want, actual) : want === actual;
+						isChannel && typeof want === "string" && typeof actual === "string"
+							? same(want, actual)
+							: want === actual;
 					if (!equal) {
 						serverProblems.push(
 							`${field} is ${shown(String(actual ?? "not set"))} but the layout says ${shown(String(want))}`

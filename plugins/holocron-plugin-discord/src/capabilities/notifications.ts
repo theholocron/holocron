@@ -45,9 +45,48 @@ const BOT_NEEDS: PermissionName[] = [
 	"SendMessagesInThreads",
 ];
 
-/** A layout name to Discord's number, or undefined when the layout leaves it out. */
+/** The locales Discord accepts for a server's preferred language. */
+const LOCALES = new Set([
+	"id",
+	"da",
+	"de",
+	"en-GB",
+	"en-US",
+	"es-ES",
+	"es-419",
+	"fr",
+	"hr",
+	"it",
+	"lt",
+	"hu",
+	"nl",
+	"no",
+	"pl",
+	"pt-BR",
+	"ro",
+	"fi",
+	"sv-SE",
+	"vi",
+	"tr",
+	"cs",
+	"el",
+	"bg",
+	"ru",
+	"uk",
+	"hi",
+	"th",
+	"zh-CN",
+	"ja",
+	"zh-TW",
+	"ko",
+]);
+
+/** A layout name to Discord's number, undefined when the layout leaves it out; an unknown name is an error, not an omission. */
 function s_<T extends Record<string, number>>(name: (keyof T & string) | undefined, map: T): number | undefined {
-	return name === undefined ? undefined : map[name];
+	if (name === undefined) return undefined;
+	if (!Object.hasOwn(map, name))
+		throw new Error(`unknown value ${JSON.stringify(name)}; use one of ${Object.keys(map).join(", ")}`);
+	return map[name];
 }
 
 /** `#rrggbb` to Discord's integer colour. */
@@ -268,7 +307,9 @@ export class DiscordNotifications implements Notifications {
 					...(rulesChannel ? { rulesChannel } : {}),
 					...(updatesChannel ? { updatesChannel } : {}),
 					community: (guild.features ?? []).includes("COMMUNITY"),
-					...(guild.description ? { description: guild.description } : {}),
+					...(guild.description !== undefined && guild.description !== null
+						? { description: guild.description }
+						: {}),
 					...(guild.preferred_locale ? { locale: guild.preferred_locale } : {}),
 				};
 			} catch (err) {
@@ -297,7 +338,34 @@ export class DiscordNotifications implements Notifications {
 
 	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */
 	private async inviteUrl(): Promise<string> {
-		return `https://discord.com/oauth2/authorize?client_id=${await this.botId()}&scope=bot&permissions=${permissions(BOT_NEEDS)}&guild_id=${this.guild()}`;
+		const url = new URL("https://discord.com/oauth2/authorize");
+		url.searchParams.set("client_id", await this.botId());
+		url.searchParams.set("scope", "bot");
+		url.searchParams.set("permissions", permissions(BOT_NEEDS));
+		url.searchParams.set("guild_id", this.guild());
+		return url.toString();
+	}
+
+	/** Changing server settings needs Manage Server; an empty edit proves the bot has it without changing anything. */
+	async preflight(layout: NotificationsLayout): Promise<void> {
+		if (!layout.server) return;
+		try {
+			await this.bot().guilds.modify(this.guild(), {});
+		} catch (err) {
+			throw await this.manageServerHint(err);
+		}
+	}
+
+	/** A 403 on a server edit becomes the explanation and the invite link; anything else is passed on as it is. */
+	private async manageServerHint(err: unknown): Promise<unknown> {
+		if (err instanceof ProviderApiError && err.status === 403) {
+			return new Error(
+				"the bot is not allowed to change server settings: its role lacks Manage Server. Re-invite it with the " +
+					`permissions setup needs (this updates its role in place): ${await this.inviteUrl()}`,
+				{ cause: err }
+			);
+		}
+		return err;
 	}
 
 	async ensureServer(settings: NotificationsServerLayout): Promise<{ updated: string[] }> {
@@ -305,10 +373,21 @@ export class DiscordNotifications implements Notifications {
 		const guild = await bot.guilds.get(this.guild());
 		const channels = await this.channelList();
 		const idOf = (name: string): string => {
-			const found = DiscordNotifications.findChannel(channels, name);
-			if (!found)
+			const named = channels.filter(
+				(c) =>
+					(c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
+					DiscordNotifications.same(c.name, name)
+			);
+			if (named.length === 0) {
 				throw new Error(`server settings name the channel \`${name}\`, which does not exist on the server yet`);
-			return found.id;
+			}
+			// Two channels with one name: the setting could land on either, and doctor only compares names.
+			if (named.length > 1) {
+				throw new Error(
+					`server settings name the channel \`${name}\`, but ${named.length} channels have that name (ids ${named.map((c) => c.id).join(", ")}) -- rename one`
+				);
+			}
+			return named[0]!.id;
 		};
 		const patch: ModifyGuildInput = {};
 		const updated: string[] = [];
@@ -354,7 +433,7 @@ export class DiscordNotifications implements Notifications {
 			settings.updatesChannel && idOf(settings.updatesChannel),
 			guild.public_updates_channel_id
 		);
-		set("description", "description", settings.description, guild.description ?? undefined);
+		set("description", "description", settings.description, guild.description ?? "");
 		set("locale", "preferred_locale", settings.locale, guild.preferred_locale);
 
 		const features = guild.features ?? [];
@@ -371,19 +450,15 @@ export class DiscordNotifications implements Notifications {
 		try {
 			after = await bot.guilds.modify(this.guild(), patch);
 		} catch (err) {
-			if (err instanceof ProviderApiError && err.status === 403) {
-				throw new Error(
-					"the bot is not allowed to change server settings: its role lacks Manage Server. Re-invite it with the " +
-						`permissions setup needs (this updates its role in place): ${await this.inviteUrl()}`,
-					{ cause: err }
-				);
-			}
-			throw err;
+			throw await this.manageServerHint(err);
 		}
 		// Discord answers with the server as it now is: say so if a setting did not take.
 		const stuck: string[] = (Object.keys(patch) as Array<keyof ModifyGuildInput>)
 			.filter((k) => k !== "features")
-			.filter((k) => patch[k] !== (after as unknown as Record<string, unknown>)[k]);
+			.filter((k) => {
+				const got = (after as unknown as Record<string, unknown>)[k];
+				return patch[k] !== (k === "description" ? (got ?? "") : got);
+			});
 		if (patch.features && patch.features.includes("COMMUNITY") !== (after.features ?? []).includes("COMMUNITY")) {
 			stuck.push("features");
 		}
@@ -398,6 +473,19 @@ export class DiscordNotifications implements Notifications {
 
 	validateLayout(layout: NotificationsLayout): string | undefined {
 		const server = layout.server;
+		for (const [field, map] of [
+			["verification", VERIFICATION],
+			["defaultNotifications", NOTIFICATIONS],
+			["contentFilter", FILTER],
+		] as const) {
+			const value = server?.[field];
+			if (value !== undefined && !Object.hasOwn(map, value)) {
+				return `server: \`${field}\` is ${JSON.stringify(value)}; use one of ${Object.keys(map).join(", ")}`;
+			}
+		}
+		if (server?.locale !== undefined && !LOCALES.has(server.locale)) {
+			return `server: \`locale\` ${JSON.stringify(server.locale)} is not a locale Discord accepts (for example en-US, en-GB, de, fr)`;
+		}
 		if (server?.community === true && (server.verification === undefined || server.verification === "none")) {
 			return "server: community features need `verification` of at least `low`";
 		}
@@ -530,6 +618,12 @@ export class DiscordNotifications implements Notifications {
 		if (!this.opts.guildId) {
 			throw new Error(
 				"no Discord server id — set `guildId` in the discord provider options in holocron.config.ts"
+			);
+		}
+		// It goes into URLs, so refuse anything that is not a Discord id.
+		if (!/^\d{1,20}$/.test(this.opts.guildId)) {
+			throw new Error(
+				`\`guildId\` ${JSON.stringify(this.opts.guildId)} is not a Discord server id (digits only)`
 			);
 		}
 		return this.opts.guildId;

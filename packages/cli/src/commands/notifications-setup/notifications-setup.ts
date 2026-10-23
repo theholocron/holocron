@@ -84,13 +84,23 @@ export function accessRoleProblem(layout: NotificationsLayout): string | undefin
 export function serverLayoutProblem(layout: NotificationsLayout): string | undefined {
 	const server = layout.server;
 	if (!server) return undefined;
-	const declared = new Set(
-		(layout.categories ?? []).flatMap((c) => (c.channels ?? []).map((ch) => ch.name.toLowerCase()))
-	);
+	// How many channels in the layout have each name: none means the setting names a channel that
+	// will not exist, and more than one means it could mean either, so it would pick one at random.
+	const counts = new Map<string, number>();
+	for (const name of (layout.categories ?? []).flatMap((c) =>
+		(c.channels ?? []).map((ch) => ch.name.toLowerCase())
+	)) {
+		counts.set(name, (counts.get(name) ?? 0) + 1);
+	}
 	for (const field of ["systemChannel", "rulesChannel", "updatesChannel"] as const) {
 		const name = server[field];
-		if (name !== undefined && !declared.has(name.toLowerCase())) {
+		if (name === undefined) continue;
+		const count = counts.get(name.toLowerCase()) ?? 0;
+		if (count === 0) {
 			return `server: \`${field}\` names the channel \`${name}\`, which is not in the layout's channels`;
+		}
+		if (count > 1) {
+			return `server: \`${field}\` names \`${name}\`, but more than one channel in the layout has that name`;
 		}
 	}
 	if (server.community === true && (!server.rulesChannel || !server.updatesChannel)) {
@@ -188,6 +198,15 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 	const providerProblem = notifications.validateLayout?.(layout);
 	if (providerProblem) return refuse(providerProblem);
+	// Then prove the credentials reach the parts of the layout that need more than the rest, so a bot
+	// that lacks a permission fails here, with nothing created, and not after the roles and channels.
+	if (!dryRun && notifications.preflight) {
+		try {
+			await notifications.preflight(layout);
+		} catch (err) {
+			return refuse(describeProviderError(err), logReason(err));
+		}
+	}
 
 	// Tallied for the closing summary: made or stored (ok), already there or only previewed (skip), failed (fail).
 	const tally = { ok: 0, skip: 0 };
