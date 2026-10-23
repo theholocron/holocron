@@ -88,6 +88,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	};
 	const refuse = (message: string, reason: string = message): DoctorNotificationsReport => {
 		print(`  ${style.fail(message)}`);
+		print("");
+		print(style.header("0 ok, 1 fail, 0 skipped"));
 		logger.warn({ reason }, "doctor notifications");
 		return { status: "fail", checks, summary: summarise(), message };
 	};

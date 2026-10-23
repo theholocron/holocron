@@ -42,6 +42,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	// global handler swallows a plain Error, so a bare throw would exit 1 silently.
 	const refuse = (message: string, reason: string = message): NotificationsSetupReport => {
 		print(`  ${style.fail(message)}`);
+		print("");
+		print(style.header("0 ok, 1 fail, 0 skipped"));
 		logger.warn({ reason }, "notifications setup");
 		return { ...report, status: "fail", message };
 	};
@@ -129,7 +131,14 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		for (const channel of category.channels ?? []) {
 			await attempt(`channel ${channel.name}`, async () => {
 				const outcome = await provisionChannel(
-					{ notifications, ...(secrets ? { secrets } : {}), scope: scope ?? { kind: "repo" }, dryRun, print },
+					{
+						notifications,
+						...(secrets ? { secrets } : {}),
+						scope: scope ?? { kind: "repo" },
+						dryRun,
+						print,
+						tally,
+					},
 					{
 						name: channel.name,
 						category: category.name,
@@ -138,8 +147,6 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 					}
 				);
 				report.channels.push(outcome);
-				made(outcome.created);
-				if (outcome.webhook?.stored) tally.ok++;
 				if (outcome.webhook && !outcome.webhook.stored) {
 					report.failures.push({
 						step: `webhook ${outcome.webhook.name}`,
