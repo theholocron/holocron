@@ -350,7 +350,27 @@ export class DiscordNotifications implements Notifications {
 				patch.permissions = wanted;
 				updated.push("permissions");
 			}
-			if (updated.length > 0) await bot.guilds.modifyRole(this.guild(), existing.id, patch);
+			if (updated.length > 0) {
+				const after = await bot.guilds.modifyRole(this.guild(), existing.id, patch);
+				// Discord answers with the role as it now is. If a field we sent is not what comes back, something
+				// else changed the role at the same time (or the server dropped it): say so, do not report success.
+				const stuck = (
+					[
+						["mentionable", patch.mentionable, after.mentionable],
+						["colour", patch.color, after.color],
+						["hoist", patch.hoist, after.hoist],
+						["permissions", patch.permissions, after.permissions],
+					] as const
+				)
+					.filter(([, sent, now]) => sent !== undefined && sent !== now)
+					.map(([name]) => name);
+				if (stuck.length > 0) {
+					throw new Error(
+						`role \`${input.name}\`: sent ${stuck.join(", ")} but the role came back different -- ` +
+							"another setup run may be changing it at the same time; re-run once it has finished"
+					);
+				}
+			}
 			return { id: existing.id, created: false, ...(updated.length > 0 ? { updated } : {}) };
 		}
 		const made = await bot.guilds.createRole(this.guild(), {
@@ -360,6 +380,19 @@ export class DiscordNotifications implements Notifications {
 			...(input.hoist !== undefined ? { hoist: input.hoist } : {}),
 			...(wanted !== undefined ? { permissions: wanted } : {}),
 		});
+		// Discord lets two roles share a name, so a second run that listed the roles before this one created
+		// the role may have created its own. Look again now: if there are two, say so instead of leaving
+		// an unmanaged twin behind for a later run to trip over.
+		const twins = (await bot.guilds.roles(this.guild())).filter((r) =>
+			DiscordNotifications.same(r.name, input.name)
+		);
+		if (twins.length > 1) {
+			throw new Error(
+				`created role \`${input.name}\` (id ${made.id}) but ${twins.length} roles now have that name ` +
+					`(ids ${twins.map((r) => r.id).join(", ")}) -- another setup run probably created it at the same time; ` +
+					"delete the extra one in Discord and re-run"
+			);
+		}
 		return { id: made.id, created: true };
 	}
 

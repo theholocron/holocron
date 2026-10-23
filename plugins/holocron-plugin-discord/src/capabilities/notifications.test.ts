@@ -272,6 +272,7 @@ describe("DiscordNotifications.ensureRole", () => {
 		const { notifs, calls } = makeProvisioner([
 			{ body: [] },
 			{ body: { id: "r2", name: "gatekeepers", color: 0, mentionable: true } },
+			{ body: [{ id: "r2", name: "gatekeepers", color: 0, mentionable: true }] },
 		]);
 		expect(await notifs.ensureRole({ name: "gatekeepers", mentionable: true })).toEqual({
 			id: "r2",
@@ -288,6 +289,7 @@ describe("DiscordNotifications.ensureRole", () => {
 		const { notifs, calls } = makeProvisioner([
 			{ body: [] },
 			{ body: { id: "r3", name: "x", color: 0, mentionable: false } },
+			{ body: [{ id: "r3", name: "x", color: 0, mentionable: false }] },
 		]);
 		await notifs.ensureRole({ name: "x" });
 		expect(calls[1]?.body).toEqual({ name: "x" });
@@ -541,7 +543,10 @@ describe("DiscordNotifications.ensureRole — an existing role that disagrees", 
 	});
 
 	it("fixes colour, hoist and permissions together", async () => {
-		const { notifs, calls } = makeProvisioner([{ body: [role()] }, { body: role() }]);
+		const { notifs, calls } = makeProvisioner([
+			{ body: [role()] },
+			{ body: role({ color: 0xf0b232, hoist: true, permissions: "3072" }) },
+		]);
 		const out = await notifs.ensureRole({
 			name: "gatekeepers",
 			color: "#f0b232",
@@ -597,7 +602,11 @@ describe("DiscordNotifications.ensureRole — an existing role that disagrees", 
 	});
 
 	it("creates a missing role with its colour, hoist and permissions", async () => {
-		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: role({ id: "4002" }) }]);
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] },
+			{ body: role({ id: "4002" }) },
+			{ body: [role({ id: "4002" })] },
+		]);
 		expect(
 			await notifs.ensureRole({
 				name: "gatekeepers",
@@ -607,6 +616,24 @@ describe("DiscordNotifications.ensureRole — an existing role that disagrees", 
 			})
 		).toEqual({ id: "4002", created: true });
 		expect(calls[1]?.body).toMatchObject({ name: "gatekeepers", color: 1, hoist: true, permissions: "1024" });
+	});
+
+	it("says so when a second run created the same role at the same time", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [] },
+			{ body: role({ id: "4002" }) },
+			{ body: [role({ id: "4002" }), role({ id: "4003" })] },
+		]);
+		await expect(notifs.ensureRole({ name: "gatekeepers" })).rejects.toThrow(
+			/created role `gatekeepers` \(id 4002\) but 2 roles now have that name \(ids 4002, 4003\).*delete the extra one/
+		);
+	});
+
+	it("says so when the role that comes back is not what was sent, instead of reporting success", async () => {
+		const { notifs } = makeProvisioner([{ body: [role()] }, { body: role({ mentionable: false, hoist: false }) }]);
+		await expect(notifs.ensureRole({ name: "gatekeepers", mentionable: true, hoist: true })).rejects.toThrow(
+			/sent mentionable, hoist but the role came back different/
+		);
 	});
 
 	it("rejects a bad colour or permission name before touching the server", async () => {
