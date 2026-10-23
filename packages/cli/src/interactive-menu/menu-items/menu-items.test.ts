@@ -12,6 +12,7 @@ describe("menuItems — one level of the nested menu", () => {
 		expect(valueOf("repo ›")).toBe("group:repo");
 		expect(valueOf("auth ›")).toBe("group:auth");
 		expect(valueOf("doctor ›")).toBe("group:doctor");
+		expect(names()).not.toContain("doctor"); // only the group, never a second runnable row
 	});
 
 	it("keeps plain `doctor` runnable, as the first item of its own submenu", () => {
