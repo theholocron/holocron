@@ -12,16 +12,16 @@ Compares the `layout` a `notifications` provider declares in `holocron.config.ts
 It is the end-to-end check for [`notifications setup`](/holocron/commands/notifications-setup/), and it keeps working afterwards as a drift check: if someone renames a channel, deletes a webhook or removes a secret by hand, the next run says so.
 
 ```
-Holocron notifications verify — discord
-
-  ✓ server      Holocron (as Holonet)
-  ✓ categories  4 of 4 exist
-  ✗ channels    8 of 8 as declared
+  ✓ server reachable                                  Holocron (as Holonet)
+  ✓ categories exist                                  4 of 4 exist
+  ✓ channels in their category, with topics           9 of 9 as declared
+  ✓ webhooks on their channels                        6 of 6 exist
+  ✓ roles exist and are mentionable                   1 of 1 as declared
+  ✓ webhook URLs and role id stored as secrets        7 of 7 exist
+  ✗ channel and category permissions set              not built yet (#1098, step 8)
   ...
 
-Not built yet (each fails until it lands, see #1098):
-  ✗  8  channel and category permissions
-  ...
+6 ok, 9 fail, 0 skipped
 ```
 
 ## What each step checks
@@ -39,7 +39,7 @@ When the server cannot be read, the steps that depend on it are reported as "not
 
 ## Features that are not built yet
 
-The command also lists the parts of the plan that do not exist yet, each as a **failing** step numbered as in [#1098](https://github.com/theholocron/holocron/issues/1098), so it stays red until the last one lands and each feature that is built turns exactly one step green. Pass `--built-only` to leave them out and use the command as a routine drift check.
+The command also lists the parts of the plan that do not exist yet, each as a **failing** step numbered as in [#1098](https://github.com/theholocron/holocron/issues/1098), so it stays red until the last one lands and each feature that is built turns exactly one step green. Pass `--built-only` to leave them out (they are counted as skipped) and use the command as a routine drift check.
 
 ## Options
 

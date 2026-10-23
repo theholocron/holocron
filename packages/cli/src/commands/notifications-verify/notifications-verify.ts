@@ -5,14 +5,16 @@
  *
  * It is the end-to-end check for `notifications setup`, and stays useful after
  * as a drift check. Everything the layout and `setup` cannot do yet is listed
- * too, as a failing "not built" step, so the command is red until the last
- * feature lands and each feature built turns exactly one step green. The list
+ * too, as plain failing steps, so the command is red until the last feature
+ * lands and each feature built turns exactly one step green. The list
  * is {@link PLANNED_CHECKS}; the numbers match the table in holocron#1098.
  */
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader, type Secrets } from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
+import { statusRow } from "../../ui/status-row/index.js";
+import { style } from "../../ui/style/index.js";
 import {
 	defaultSecretName,
 	layoutSecretProblem,
@@ -28,19 +30,20 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 8, id: "permissions", title: "channel and category permissions" },
-	{ step: 9, id: "role-appearance", title: "role colour, hoist and permissions" },
-	{ step: 10, id: "server-settings", title: "server settings (verification, notifications, system channels)" },
-	{ step: 11, id: "welcome", title: "welcome and onboarding content" },
-	{ step: 12, id: "webhook-appearance", title: "webhook names and avatars" },
-	{ step: 13, id: "app-settings", title: "bot application settings (description, tags, install, links)" },
+	{ step: 8, id: "permissions", title: "channel and category permissions set" },
+	{ step: 9, id: "role-appearance", title: "role colour, hoist and permissions set" },
+	{ step: 10, id: "server-settings", title: "server verification, notifications and system channels set" },
+	{ step: 11, id: "welcome", title: "welcome screen and onboarding set" },
+	{ step: 12, id: "webhook-appearance", title: "webhook names and avatars set" },
+	{ step: 13, id: "app-settings", title: "bot description, tags, install link and URLs set" },
 	{ step: 14, id: "role-assignment", title: "role assigned to team members" },
-	{ step: 15, id: "post-works", title: "a test post reached every channel (platform.notifyCheck)" },
-	{ step: 16, id: "server-creation", title: "the server itself created from config" },
+	{ step: 15, id: "post-works", title: "test post reached every channel (platform.notifyCheck)" },
+	{ step: 16, id: "server-creation", title: "server created from config" },
 ];
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const shown = (s: string) => sanitizeDetail(s);
+const SECRETS_TITLE = "webhook URLs and role id stored as secrets";
 
 export async function runNotificationsVerify(input: RunNotificationsVerifyInput): Promise<NotificationsVerifyReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -68,12 +71,12 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 	const summarise = () => ({
 		pass: checks.filter((c) => c.status === "pass").length,
 		fail: checks.filter((c) => c.status === "fail").length,
-		planned: checks.filter((c) => c.status === "planned").length,
+		skip: input.builtOnly ? PLANNED_CHECKS.length : 0,
 	});
 	const finish = (): NotificationsVerifyReport => {
 		const summary = summarise();
 		const report: NotificationsVerifyReport = {
-			status: summary.fail + summary.planned > 0 ? "fail" : "ok",
+			status: summary.fail > 0 ? "fail" : "ok",
 			checks,
 			summary,
 		};
@@ -84,7 +87,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		return report;
 	};
 	const refuse = (message: string, reason: string = message): NotificationsVerifyReport => {
-		print(`  ✗ ${message}`);
+		print(`  ${style.fail(message)}`);
 		logger.warn({ reason }, "notifications verify");
 		return { status: "fail", checks, summary: summarise(), message };
 	};
@@ -107,7 +110,6 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 			`the \`${notifications.providerName}\` provider declares no layout — add \`layout\` to its options in holocron.config.ts`
 		);
 	}
-	print(`Holocron notifications verify — ${notifications.providerName}\n`);
 
 	// Read the server first: a provider with no `whoami` is still reachable if it can be read.
 	let found: Awaited<ReturnType<NonNullable<Notifications["inspect"]>>> | undefined;
@@ -123,23 +125,33 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		try {
 			const who = await notifications.whoami();
 			if (who) {
-				checks.push({ id: "server", title: "server", status: "pass", detail: shown(who.target), problems: [] });
+				checks.push({
+					id: "server",
+					title: "server reachable",
+					status: "pass",
+					detail: shown(who.target),
+					problems: [],
+				});
 			} else {
-				failed("server", "server", "no server configured (the provider's whoami has nothing to check)");
+				failed(
+					"server",
+					"server reachable",
+					"no server configured (the provider's whoami has nothing to check)"
+				);
 			}
 		} catch (err) {
-			failed("server", "server", describeProviderError(err));
+			failed("server", "server reachable", describeProviderError(err));
 		}
 	} else if (found) {
 		checks.push({
 			id: "server",
-			title: "server",
+			title: "server reachable",
 			status: "pass",
 			detail: "readable (the provider has no whoami)",
 			problems: [],
 		});
 	} else {
-		failed("server", "server", readError);
+		failed("server", "server reachable", readError);
 	}
 
 	const declaredChannels = (layout.categories ?? []).flatMap((cat) =>
@@ -154,10 +166,10 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		// The reason is shown once: the server step already carries it when the credentials are the problem.
 		if (byId("server")?.status !== "fail") failed("read", "read server", readError);
 		for (const [id, title] of [
-			["categories", "categories"],
-			["channels", "channels"],
-			["webhooks", "webhooks"],
-			["roles", "roles"],
+			["categories", "categories exist"],
+			["channels", "channels in their category, with topics"],
+			["webhooks", "webhooks on their channels"],
+			["roles", "roles exist and are mentionable"],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
 		}
@@ -167,7 +179,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		const categories = layout.categories ?? [];
 		add(
 			"categories",
-			"categories",
+			"categories exist",
 			categories
 				.filter((cat) => !inspected.categories.some((name) => same(name, cat.name)))
 				.map((cat) => `${shown(cat.name)}: missing`),
@@ -198,7 +210,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		}
 		add(
 			"channels",
-			"channels",
+			"channels in their category, with topics",
 			channelProblems,
 			declaredChannels.length === 0
 				? "none declared"
@@ -224,7 +236,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		}
 		add(
 			"webhooks",
-			"webhooks",
+			"webhooks on their channels",
 			webhookProblems,
 			withWebhook.length === 0 ? "none declared" : `${withWebhook.length} of ${withWebhook.length} exist`
 		);
@@ -247,7 +259,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		}
 		add(
 			"roles",
-			"roles",
+			"roles exist and are mentionable",
 			roleProblems,
 			roles.length === 0 ? "none declared" : `${roles.length} of ${roles.length} as declared`
 		);
@@ -265,14 +277,14 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		...(layout.roles ?? []).flatMap((r) => (r.secret ? [r.secret] : [])),
 	];
 	if (wanted.length === 0) {
-		checks.push({ id: "secrets", title: "secrets", status: "pass", detail: "none declared", problems: [] });
+		checks.push({ id: "secrets", title: SECRETS_TITLE, status: "pass", detail: "none declared", problems: [] });
 	} else if (!loader.has("secrets")) {
-		failed("secrets", "secrets", whyMissing(loader, "secrets", "no `secrets` provider to check them with"));
+		failed("secrets", SECRETS_TITLE, whyMissing(loader, "secrets", "no `secrets` provider to check them with"));
 	} else {
 		const org = input.context.org;
 		const scope = input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
 		if (!scope) {
-			failed("secrets", "secrets", "no org to look under — pass --scope or set `org` in holocron.config.ts");
+			failed("secrets", SECRETS_TITLE, "no org to look under — pass --scope or set `org` in holocron.config.ts");
 		} else {
 			try {
 				const have = new Set(
@@ -282,7 +294,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 				const clash = layoutSecretProblem(layout);
 				add(
 					"secrets",
-					"secrets",
+					SECRETS_TITLE,
 					[
 						...(clash ? [shown(clash)] : []),
 						...wanted.filter((n) => !have.has(n.toUpperCase())).map((n) => `${shown(n)}: missing`),
@@ -290,7 +302,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 					`${wanted.length} of ${wanted.length} exist`
 				);
 			} catch (err) {
-				failed("secrets", "secrets", describeProviderError(err));
+				failed("secrets", SECRETS_TITLE, describeProviderError(err));
 			}
 		}
 	}
@@ -301,7 +313,7 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 			checks.push({
 				id: planned.id,
 				title: planned.title,
-				status: "planned",
+				status: "fail",
 				detail: `not built yet (#1098, step ${planned.step})`,
 				problems: [],
 				step: planned.step,
@@ -309,21 +321,14 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		}
 	}
 
-	// Render in one place so the output order is the check order. The features
-	// not built yet go in their own short list: their titles are long, and they
-	// would otherwise push every real result off to the right.
-	const built = checks.filter((c) => c.status !== "planned");
-	const width = Math.max(...built.map((c) => c.title.length));
-	for (const check of built) {
-		print(`  ${check.status === "pass" ? "✓" : "✗"} ${check.title.padEnd(width)}  ${check.detail}`);
+	// Render in one place so the output order is the check order.
+	const width = Math.max(...checks.map((c) => c.title.length));
+	for (const check of checks) {
+		print(statusRow(check.status === "pass" ? "ok" : "fail", [check.title.padEnd(width), check.detail]));
 		for (const problem of check.problems) print(`      - ${problem}`);
 	}
-	const planned = checks.filter((c) => c.status === "planned");
-	if (planned.length > 0) {
-		print("\nNot built yet (each fails until it lands, see #1098):");
-		for (const check of planned) print(`  ✗ ${String(check.step).padStart(2)}  ${check.title}`);
-	}
 	const summary = summarise();
-	print(`\n${summary.pass} passed, ${summary.fail} failed${input.builtOnly ? "" : `, ${summary.planned} not built`}`);
+	print("");
+	print(style.header(`${summary.pass} ok, ${summary.fail} fail, ${summary.skip} skipped`));
 	return finish();
 }

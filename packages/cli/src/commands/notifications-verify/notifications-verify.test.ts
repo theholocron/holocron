@@ -128,11 +128,12 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 6, fail: 0, planned: PLANNED_CHECKS.length });
+		expect(report.summary).toEqual({ pass: 6, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
-		const planned = report.checks.filter((c) => c.status === "planned");
+		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
 		expect(planned[0]?.detail).toBe("not built yet (#1098, step 8)");
+		expect(planned.every((c) => c.status === "fail")).toBe(true);
 	});
 
 	it("is green with --built-only, which leaves the unbuilt features out", async () => {
@@ -140,7 +141,7 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("6 passed, 0 failed");
+		expect(lines.join("\n")).toContain("6 ok, 0 fail, 9 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -148,13 +149,14 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 		const { run, lines } = setup(fakeNotifications());
 		await run();
 		const out = lines.join("\n");
-		expect(out).toContain("Holocron notifications verify — discord");
+		expect(out).not.toContain("Holocron notifications verify");
 		expect(out).toContain("✓ server");
 		expect(out).toContain("Holocron (as Holonet)");
-		expect(out).toContain("Not built yet (each fails until it lands, see #1098):");
-		expect(out).toContain("✗  8  channel and category permissions");
-		expect(out).toContain("✗ 16  the server itself created from config");
-		expect(out).toContain("6 passed, 0 failed, 9 not built");
+		expect(out).not.toContain("Not built yet");
+		expect(out).toContain("✗ channel and category permissions set");
+		expect(out).toContain("not built yet (#1098, step 8)");
+		expect(out).toContain("✗ server created from config");
+		expect(out).toContain("6 ok, 9 fail, 0 skipped");
 	});
 
 	it("changes nothing: no provisioning call and no secret is written", async () => {
@@ -480,7 +482,7 @@ describe("runNotificationsVerify — output and logs", () => {
 			}),
 		});
 		await runNotificationsVerify({ loaded, context: { repoRoot: "/tmp/test" }, loader });
-		expect(log).toHaveBeenCalledWith(expect.stringContaining("notifications verify — discord"));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("server reachable"));
 		log.mockRestore();
 	});
 });
@@ -628,7 +630,7 @@ describe("runNotificationsVerify — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 5, fail: 1, planned: 0 });
+			expect(report.summary).toEqual({ pass: 5, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
