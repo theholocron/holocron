@@ -122,10 +122,17 @@ export default defineConfig({
 					categories: [
 						{
 							name: "START HERE",
-							channels: [{ name: "welcome", topic: "What this server is and how to get help" }],
+							// Read-only for everyone: these channels are posted to by the bot and by owners.
+							access: { post: [] },
+							channels: [
+								{ name: "welcome", topic: "What this server is and how to get help" },
+								{ name: "rules", topic: "How we treat each other here" },
+							],
 						},
 						{
 							name: "ALERTS",
+							// Webhooks and the bot post here; nobody needs to.
+							access: { post: [] },
 							channels: [
 								{
 									name: "alerts",
@@ -138,6 +145,7 @@ export default defineConfig({
 						},
 						{
 							name: "AUTOMATION",
+							access: { post: [] },
 							channels: [
 								{ name: "releases", topic: "Each lockstep release across the org", webhook: true },
 								{
@@ -146,6 +154,18 @@ export default defineConfig({
 									webhook: true,
 								},
 								{ name: "sync", topic: "Repo-sync PRs and template pushes", webhook: true },
+							],
+						},
+						{
+							name: "STAFF",
+							// Hidden from everyone but gatekeepers (and server administrators, whom Discord never hides
+							// anything from). Discord's own community notices land here.
+							access: { view: ["gatekeepers"] },
+							channels: [
+								{
+									name: "community-updates",
+									topic: "Notices from Discord about the server (staff only)",
+								},
 							],
 						},
 						{

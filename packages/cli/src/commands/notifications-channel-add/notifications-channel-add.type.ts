@@ -1,7 +1,14 @@
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
-import type { Notifications, PluginLoader, RuntimeContext, Secrets, SecretScope } from "../../plugin/index.js";
+import type {
+	Notifications,
+	NotificationsAccess,
+	PluginLoader,
+	RuntimeContext,
+	Secrets,
+	SecretScope,
+} from "../../plugin/index.js";
 
 export type NotificationsChannelAddPrint = (line: string) => void;
 
@@ -43,6 +50,8 @@ export interface ChannelOutcome {
 	name: string;
 	category?: string;
 	created: boolean;
+	/** Settings of an existing channel that disagreed with the layout and were changed. */
+	updated?: string[];
 	webhook?: WebhookOutcome;
 }
 
@@ -71,5 +80,7 @@ export interface ChannelSpec {
 	name: string;
 	category?: string;
 	topic?: string;
+	/** The access this channel should end up with (its own, over its category's). */
+	access?: NotificationsAccess;
 	webhook?: false | { name?: string; secret?: string };
 }
