@@ -36,7 +36,6 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 10, id: "server-settings", title: "server verification, notifications and system channels set" },
 	{ step: 11, id: "welcome", title: "welcome screen and onboarding set" },
 	{ step: 12, id: "webhook-appearance", title: "webhook names and avatars set" },
 	{ step: 13, id: "app-settings", title: "bot description, tags, install link and URLs set" },
@@ -54,6 +53,7 @@ const accessKey = (v: AccessValue): string =>
 const accessText = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
 const shown = (s: string) => sanitizeDetail(s);
+const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
 const SECRETS_TITLE = "webhook URLs and role id stored as secrets";
@@ -187,6 +187,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			["roles", "roles exist and are mentionable"],
 			["role-appearance", ROLE_APPEARANCE_TITLE],
 			["access", ACCESS_TITLE],
+			["server-settings", SERVER_TITLE],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
 		}
@@ -394,6 +395,50 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			// Access names roles by id on the server; without the roles read, the names cannot be compared.
 			inspected.rolesError && accessDeclared > 0 ? ["not checked: could not read the roles"] : accessProblems,
 			accessDeclared === 0 ? "none declared" : `${accessDeclared} of ${accessDeclared} as declared`
+		);
+
+		// 6d. the server's own settings, for the fields the layout states
+		const wantServer = layout.server;
+		const serverProblems: string[] = [];
+		if (wantServer) {
+			if (inspected.serverError) {
+				serverProblems.push(
+					`not checked: could not read the server settings (${shown(inspected.serverError)})`
+				);
+			} else if (!inspected.server) {
+				serverProblems.push("the provider did not report the server's settings");
+			} else {
+				const have = inspected.server;
+				for (const field of [
+					"verification",
+					"defaultNotifications",
+					"contentFilter",
+					"systemChannel",
+					"rulesChannel",
+					"updatesChannel",
+					"community",
+					"description",
+					"locale",
+				] as const) {
+					const want = wantServer[field];
+					if (want === undefined) continue;
+					const actual = have[field];
+					const equal =
+						typeof want === "string" && typeof actual === "string" ? same(want, actual) : want === actual;
+					if (!equal) {
+						serverProblems.push(
+							`${field} is ${shown(String(actual ?? "not set"))} but the layout says ${shown(String(want))}`
+						);
+					}
+				}
+			}
+		}
+		const serverFields = wantServer ? Object.values(wantServer).filter((v) => v !== undefined).length : 0;
+		add(
+			"server-settings",
+			SERVER_TITLE,
+			serverProblems,
+			serverFields === 0 ? "none declared" : `${serverFields} of ${serverFields} as declared`
 		);
 	}
 

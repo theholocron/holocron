@@ -1315,3 +1315,240 @@ describe("DiscordNotifications.inspect — access", () => {
 		});
 	});
 });
+
+// ── the server's own settings ──────────────────────────────────────────
+
+describe("DiscordNotifications.ensureServer", () => {
+	const guild = (over: Record<string, unknown> = {}) => ({
+		body: {
+			id: GUILD,
+			name: "The Holocron",
+			verification_level: 0,
+			default_message_notifications: 0,
+			explicit_content_filter: 0,
+			system_channel_id: null,
+			rules_channel_id: null,
+			public_updates_channel_id: null,
+			features: ["NEWS"],
+			preferred_locale: "en-GB",
+			description: null,
+			...over,
+		},
+	});
+	const chans = {
+		body: [text("2001", "welcome"), text("2002", "rules"), text("2003", "community-updates")],
+	};
+	const settings = {
+		verification: "medium",
+		defaultNotifications: "mentions",
+		contentFilter: "all",
+		systemChannel: "Welcome",
+		rulesChannel: "rules",
+		updatesChannel: "community-updates",
+		community: true,
+		description: "Where the Holocron is built",
+		locale: "en-US",
+	} as const;
+	const after = {
+		verification_level: 2,
+		default_message_notifications: 1,
+		explicit_content_filter: 2,
+		system_channel_id: "2001",
+		rules_channel_id: "2002",
+		public_updates_channel_id: "2003",
+		description: "Where the Holocron is built",
+		preferred_locale: "en-US",
+		features: ["NEWS", "COMMUNITY"],
+	};
+
+	it("changes everything that differs in one request, turning community on with the features it already has", async () => {
+		const { notifs, calls } = makeProvisioner([guild(), chans, guild(after)]);
+		const out = await notifs.ensureServer(settings);
+		expect(out.updated).toEqual([
+			"verification",
+			"defaultNotifications",
+			"contentFilter",
+			"systemChannel",
+			"rulesChannel",
+			"updatesChannel",
+			"description",
+			"locale",
+			"community",
+		]);
+		expect(calls[2]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: { ...after } });
+	});
+
+	it("sends nothing when the server already matches", async () => {
+		const { notifs, calls } = makeProvisioner([guild(after), chans]);
+		expect(await notifs.ensureServer(settings)).toEqual({ updated: [] });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+	});
+
+	it("sends only the fields that differ, and leaves out the ones the layout does not state", async () => {
+		const { notifs, calls } = makeProvisioner([guild(after), chans, guild({ ...after, verification_level: 3 })]);
+		expect(await notifs.ensureServer({ verification: "high" })).toEqual({ updated: ["verification"] });
+		expect(calls[2]?.body).toEqual({ verification_level: 3 });
+	});
+
+	it("turns community off by removing it from the features and nothing else", async () => {
+		const { notifs, calls } = makeProvisioner([guild(after), chans, guild({ ...after, features: ["NEWS"] })]);
+		expect(await notifs.ensureServer({ community: false })).toEqual({ updated: ["community"] });
+		expect(calls[2]?.body).toEqual({ features: ["NEWS"] });
+	});
+
+	it("treats a server with no feature list as not community", async () => {
+		const { notifs } = makeProvisioner([guild({ features: undefined }), chans, guild({ features: ["COMMUNITY"] })]);
+		expect(await notifs.ensureServer({ community: true })).toEqual({ updated: ["community"] });
+	});
+
+	it("names a channel that is not on the server yet", async () => {
+		const { notifs } = makeProvisioner([guild(), chans]);
+		await expect(notifs.ensureServer({ rulesChannel: "ghost" })).rejects.toThrow(
+			/name the channel `ghost`, which does not exist on the server yet/
+		);
+	});
+
+	it("explains a 403 and links an invite that grants what setup needs", async () => {
+		const { notifs } = makeProvisioner([
+			guild(),
+			chans,
+			{ status: 403, body: { message: "Missing Permissions", code: 50013 } },
+			bot,
+		]);
+		const err = await notifs.ensureServer({ verification: "high" }).catch((e: Error) => e);
+		expect((err as Error).message).toMatch(/its role lacks Manage Server/);
+		const url = new URL((err as Error).message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]);
+		expect(url.searchParams.get("client_id")).toBe(BOT);
+		expect(url.searchParams.get("guild_id")).toBe(GUILD);
+		expect(url.searchParams.get("scope")).toBe("bot");
+		const bits = BigInt(url.searchParams.get("permissions")!);
+		for (const name of [
+			"ManageGuild",
+			"ManageChannels",
+			"ManageRoles",
+			"ManageWebhooks",
+			"CreatePublicThreads",
+		] as const) {
+			expect({ name, held: (bits & BigInt(permissions([name]))) !== 0n }).toEqual({ name, held: true });
+		}
+	});
+
+	it("lets any other error through", async () => {
+		const { notifs } = makeProvisioner([guild(), chans, { status: 500, body: { message: "boom" } }]);
+		await expect(notifs.ensureServer({ verification: "high" })).rejects.toThrow(/500/);
+	});
+
+	it("fails when a setting does not come back as sent", async () => {
+		const { notifs } = makeProvisioner([guild(), chans, guild({ verification_level: 0 })]);
+		await expect(notifs.ensureServer({ verification: "high" })).rejects.toThrow(
+			/sent verification_level but the server came back different/
+		);
+	});
+
+	it("fails when community did not switch on, saying what it needs", async () => {
+		const { notifs } = makeProvisioner([guild(), chans, guild({ features: ["NEWS"] })]);
+		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(
+			/sent features but the server came back different.*rules channel/s
+		);
+	});
+
+	it("treats a reply with no feature list as community not switched on", async () => {
+		const { notifs } = makeProvisioner([guild(), chans, guild({ features: undefined })]);
+		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(/sent features/);
+	});
+});
+
+describe("DiscordNotifications.validateLayout — server", () => {
+	const { notifs } = makeProvisioner([]);
+
+	it("accepts community with a verification above none and the filter on all members", () => {
+		expect(
+			notifs.validateLayout({ server: { community: true, verification: "low", contentFilter: "all" } })
+		).toBeUndefined();
+		expect(notifs.validateLayout({ server: { verification: "none" } })).toBeUndefined();
+	});
+
+	it("explains what community features need", () => {
+		expect(notifs.validateLayout({ server: { community: true, contentFilter: "all" } })).toMatch(
+			/verification` of at least `low`/
+		);
+		expect(
+			notifs.validateLayout({ server: { community: true, verification: "none", contentFilter: "all" } })
+		).toMatch(/verification` of at least `low`/);
+		expect(
+			notifs.validateLayout({ server: { community: true, verification: "low", contentFilter: "noRoles" } })
+		).toMatch(/contentFilter: "all"/);
+	});
+});
+
+describe("DiscordNotifications.inspect — server settings", () => {
+	const guildBody = {
+		id: GUILD,
+		name: "The Holocron",
+		verification_level: 2,
+		default_message_notifications: 1,
+		explicit_content_filter: 2,
+		system_channel_id: "2001",
+		rules_channel_id: "2002",
+		public_updates_channel_id: "2003",
+		features: ["COMMUNITY"],
+		preferred_locale: "en-US",
+		description: "Hi",
+	};
+	const chans = [text("2001", "welcome"), text("2002", "rules"), text("2003", "community-updates")];
+
+	it("reads the settings back in the layout's terms, naming the channels", async () => {
+		const { notifs } = makeProvisioner([{ body: chans }, { body: guildBody }]);
+		const found = await notifs.inspect({ server: { community: true } });
+		expect(found.server).toEqual({
+			verification: "medium",
+			defaultNotifications: "mentions",
+			contentFilter: "all",
+			systemChannel: "welcome",
+			rulesChannel: "rules",
+			updatesChannel: "community-updates",
+			community: true,
+			description: "Hi",
+			locale: "en-US",
+		});
+	});
+
+	it("leaves out what the server has not set, and names a channel it cannot find by its id", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: chans },
+			{
+				body: {
+					id: GUILD,
+					name: "x",
+					verification_level: 9,
+					system_channel_id: null,
+					rules_channel_id: null,
+					public_updates_channel_id: "9999",
+					features: undefined,
+				},
+			},
+		]);
+		const found = await notifs.inspect({ server: {} });
+		expect(found.server).toEqual({ updatesChannel: "9999", community: false });
+	});
+
+	it("reads a server with nothing set as just 'not community'", async () => {
+		const { notifs } = makeProvisioner([{ body: chans }, { body: { id: GUILD, name: "x", features: [] } }]);
+		expect((await notifs.inspect({ server: {} })).server).toEqual({ community: false });
+	});
+
+	it("reports a failed read as serverError and keeps the rest", async () => {
+		const { notifs } = makeProvisioner([{ body: chans }, { status: 500, body: { message: "boom" } }]);
+		const found = await notifs.inspect({ server: {} });
+		expect(found.server).toBeUndefined();
+		expect(found.serverError).toMatch(/500/);
+		expect(found.channels).toHaveLength(3);
+	});
+
+	it("does not read the server at all when the layout declares no server section", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: chans }]);
+		const found = await notifs.inspect({});
+		expect(found.server).toBeUndefined();
+		expect(calls).toHaveLength(1);
+	});
+});

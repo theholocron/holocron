@@ -974,8 +974,35 @@ export interface NotificationsChannelLayout {
 	webhook?: boolean | { name?: string; secret?: string };
 }
 
+/**
+ * Settings of the server itself. Channels are named as in the layout's `categories`; each field
+ * left out is left alone.
+ */
+export interface NotificationsServerLayout {
+	/** How established an account must be to talk: `none`, `low` (verified email), `medium` (5 minutes old), `high` (10 minutes in the server), `highest` (verified phone). */
+	verification?: "none" | "low" | "medium" | "high" | "highest";
+	/** Whether members are notified for every message or only when mentioned. */
+	defaultNotifications?: "all" | "mentions";
+	/** Which members' media is scanned: `off`, `noRoles` (members without a role) or `all`. */
+	contentFilter?: "off" | "noRoles" | "all";
+	/** Where the provider posts its own notices (member joins, boosts). */
+	systemChannel?: string;
+	/** The channel holding the server rules; required to turn community features on. */
+	rulesChannel?: string;
+	/** Where the provider sends its notices to the owners; required to turn community features on. */
+	updatesChannel?: string;
+	/** Turn community features (welcome screen, onboarding, discovery) on or off. */
+	community?: boolean;
+	/** The server's public description. Only providers that support one for the server's current state accept it. */
+	description?: string;
+	/** Preferred language, as a locale such as `en-US`. */
+	locale?: string;
+}
+
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
+	/** Settings of the server itself, applied after its channels exist. */
+	server?: NotificationsServerLayout;
 	categories?: Array<{ name: string; access?: NotificationsAccess; channels?: NotificationsChannelLayout[] }>;
 	roles?: Array<{
 		name: string;
@@ -1005,6 +1032,10 @@ export interface NotificationsLayout {
  * layout against.
  */
 export interface ServerInspection {
+	/** The server's own settings, in the layout's terms, when the layout declares `server`. */
+	server?: NotificationsServerLayout;
+	/** Set when reading the server's settings failed; `server` is then absent and means nothing. */
+	serverError?: string;
 	categories: string[];
 	/**
 	 * Who can see and post in each category. `"custom"` means its overwrites are not an access the layout
@@ -1071,6 +1102,12 @@ export interface Notifications extends ProviderIdentity {
 		hoist?: boolean;
 		permissions?: string[];
 	}): Promise<EnsuredResource>;
+
+	/**
+	 * Bring the server's own settings in line with the layout, changing only what differs. Returns the
+	 * names of what it changed, empty when the server already matched.
+	 */
+	ensureServer?(settings: NotificationsServerLayout): Promise<{ updated: string[] }>;
 
 	/**
 	 * Check the provider-specific parts of the layout (colours, permission names, …) without

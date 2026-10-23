@@ -4,6 +4,7 @@ import {
 	type Notifications,
 	type NotificationsAccess,
 	type NotificationsLayout,
+	type NotificationsServerLayout,
 	ProviderApiError,
 	type ServerInspection,
 } from "@theholocron/cli";
@@ -15,12 +16,39 @@ import {
 	type DiscordChannel,
 	type DiscordClient,
 	type DiscordPermissionOverwrite,
+	type ModifyGuildInput,
 	type ModifyRoleInput,
 	parseWebhookUrl,
 	type PermissionName,
 	permissionNames,
 	permissions,
 } from "../rest.js";
+
+/** Discord's numeric settings, by the names the layout uses. */
+const VERIFICATION = { none: 0, low: 1, medium: 2, high: 3, highest: 4 } as const;
+const NOTIFICATIONS = { all: 0, mentions: 1 } as const;
+const FILTER = { off: 0, noRoles: 1, all: 2 } as const;
+const nameOf = <T extends Record<string, number>>(map: T, value: number | undefined): keyof T | undefined =>
+	(Object.keys(map) as Array<keyof T>).find((k) => map[k] === value);
+
+/** What the bot needs in the server to do everything `setup` does. The invite link asks for exactly these. */
+const BOT_NEEDS: PermissionName[] = [
+	"ViewChannel",
+	"SendMessages",
+	"ReadMessageHistory",
+	"ManageChannels",
+	"ManageRoles",
+	"ManageWebhooks",
+	"ManageGuild",
+	"CreatePublicThreads",
+	"CreatePrivateThreads",
+	"SendMessagesInThreads",
+];
+
+/** A layout name to Discord's number, or undefined when the layout leaves it out. */
+function s_<T extends Record<string, number>>(name: (keyof T & string) | undefined, map: T): number | undefined {
+	return name === undefined ? undefined : map[name];
+}
 
 /** `#rrggbb` to Discord's integer colour. */
 function colorToInt(hex: string): number {
@@ -218,6 +246,35 @@ export class DiscordNotifications implements Notifications {
 				rolesError = reason(err);
 			}
 		}
+		// The server's own settings, only when the layout declares some.
+		let server: ServerInspection["server"];
+		let serverError: string | undefined;
+		if (layout.server) {
+			try {
+				const guild = await bot.guilds.get(this.guild());
+				const channelName = (id: string | null | undefined) =>
+					id ? (channels.find((c) => c.id === id)?.name ?? id) : undefined;
+				const verification = nameOf(VERIFICATION, guild.verification_level);
+				const defaultNotifications = nameOf(NOTIFICATIONS, guild.default_message_notifications);
+				const contentFilter = nameOf(FILTER, guild.explicit_content_filter);
+				const systemChannel = channelName(guild.system_channel_id);
+				const rulesChannel = channelName(guild.rules_channel_id);
+				const updatesChannel = channelName(guild.public_updates_channel_id);
+				server = {
+					...(verification ? { verification } : {}),
+					...(defaultNotifications ? { defaultNotifications } : {}),
+					...(contentFilter ? { contentFilter } : {}),
+					...(systemChannel ? { systemChannel } : {}),
+					...(rulesChannel ? { rulesChannel } : {}),
+					...(updatesChannel ? { updatesChannel } : {}),
+					community: (guild.features ?? []).includes("COMMUNITY"),
+					...(guild.description ? { description: guild.description } : {}),
+					...(guild.preferred_locale ? { locale: guild.preferred_locale } : {}),
+				};
+			} catch (err) {
+				serverError = reason(err);
+			}
+		}
 		// Who can see and post comes from the overwrites already in the channel list: no extra requests.
 		const roleName = (id: string): string => roles.find((r) => r.id === id)?.name ?? id;
 		found.forEach((entry, i) => {
@@ -230,13 +287,123 @@ export class DiscordNotifications implements Notifications {
 		return {
 			categories: [...categoryName.values()],
 			categoryAccess,
+			...(server ? { server } : {}),
+			...(serverError ? { serverError } : {}),
 			channels: found,
 			roles,
 			...(rolesError ? { rolesError } : {}),
 		};
 	}
 
+	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */
+	private async inviteUrl(): Promise<string> {
+		return `https://discord.com/oauth2/authorize?client_id=${await this.botId()}&scope=bot&permissions=${permissions(BOT_NEEDS)}&guild_id=${this.guild()}`;
+	}
+
+	async ensureServer(settings: NotificationsServerLayout): Promise<{ updated: string[] }> {
+		const bot = this.bot();
+		const guild = await bot.guilds.get(this.guild());
+		const channels = await this.channelList();
+		const idOf = (name: string): string => {
+			const found = DiscordNotifications.findChannel(channels, name);
+			if (!found)
+				throw new Error(`server settings name the channel \`${name}\`, which does not exist on the server yet`);
+			return found.id;
+		};
+		const patch: ModifyGuildInput = {};
+		const updated: string[] = [];
+		const set = <K extends keyof ModifyGuildInput>(
+			label: string,
+			key: K,
+			want: ModifyGuildInput[K],
+			have: unknown
+		) => {
+			if (want !== undefined && want !== have) {
+				patch[key] = want;
+				updated.push(label);
+			}
+		};
+		set("verification", "verification_level", s_(settings.verification, VERIFICATION), guild.verification_level);
+		set(
+			"defaultNotifications",
+			"default_message_notifications",
+			s_(settings.defaultNotifications, NOTIFICATIONS),
+			guild.default_message_notifications
+		);
+		set(
+			"contentFilter",
+			"explicit_content_filter",
+			s_(settings.contentFilter, FILTER),
+			guild.explicit_content_filter
+		);
+		set(
+			"systemChannel",
+			"system_channel_id",
+			settings.systemChannel && idOf(settings.systemChannel),
+			guild.system_channel_id
+		);
+		set(
+			"rulesChannel",
+			"rules_channel_id",
+			settings.rulesChannel && idOf(settings.rulesChannel),
+			guild.rules_channel_id
+		);
+		set(
+			"updatesChannel",
+			"public_updates_channel_id",
+			settings.updatesChannel && idOf(settings.updatesChannel),
+			guild.public_updates_channel_id
+		);
+		set("description", "description", settings.description, guild.description ?? undefined);
+		set("locale", "preferred_locale", settings.locale, guild.preferred_locale);
+
+		const features = guild.features ?? [];
+		const community = features.includes("COMMUNITY");
+		if (settings.community !== undefined && settings.community !== community) {
+			patch.features = settings.community
+				? [...features, "COMMUNITY"]
+				: features.filter((f) => f !== "COMMUNITY");
+			updated.push("community");
+		}
+		if (updated.length === 0) return { updated };
+
+		let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
+		try {
+			after = await bot.guilds.modify(this.guild(), patch);
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 403) {
+				throw new Error(
+					"the bot is not allowed to change server settings: its role lacks Manage Server. Re-invite it with the " +
+						`permissions setup needs (this updates its role in place): ${await this.inviteUrl()}`,
+					{ cause: err }
+				);
+			}
+			throw err;
+		}
+		// Discord answers with the server as it now is: say so if a setting did not take.
+		const stuck: string[] = (Object.keys(patch) as Array<keyof ModifyGuildInput>)
+			.filter((k) => k !== "features")
+			.filter((k) => patch[k] !== (after as unknown as Record<string, unknown>)[k]);
+		if (patch.features && patch.features.includes("COMMUNITY") !== (after.features ?? []).includes("COMMUNITY")) {
+			stuck.push("features");
+		}
+		if (stuck.length > 0) {
+			throw new Error(
+				`sent ${stuck.join(", ")} but the server came back different -- Discord may have refused a part of it ` +
+					"(community features need a rules channel, an updates channel, verification of at least low and the content filter on all members)"
+			);
+		}
+		return { updated };
+	}
+
 	validateLayout(layout: NotificationsLayout): string | undefined {
+		const server = layout.server;
+		if (server?.community === true && (server.verification === undefined || server.verification === "none")) {
+			return "server: community features need `verification` of at least `low`";
+		}
+		if (server?.community === true && server.contentFilter !== "all") {
+			return 'server: community features need `contentFilter: "all"`';
+		}
 		for (const role of layout.roles ?? []) {
 			try {
 				if (role.color !== undefined) colorToInt(role.color);

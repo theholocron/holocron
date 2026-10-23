@@ -80,6 +80,25 @@ export function accessRoleProblem(layout: NotificationsLayout): string | undefin
 	return undefined;
 }
 
+/** The first problem with the layout's `server` section that needs no knowledge of the provider, or undefined. */
+export function serverLayoutProblem(layout: NotificationsLayout): string | undefined {
+	const server = layout.server;
+	if (!server) return undefined;
+	const declared = new Set(
+		(layout.categories ?? []).flatMap((c) => (c.channels ?? []).map((ch) => ch.name.toLowerCase()))
+	);
+	for (const field of ["systemChannel", "rulesChannel", "updatesChannel"] as const) {
+		const name = server[field];
+		if (name !== undefined && !declared.has(name.toLowerCase())) {
+			return `server: \`${field}\` names the channel \`${name}\`, which is not in the layout's channels`;
+		}
+	}
+	if (server.community === true && (!server.rulesChannel || !server.updatesChannel)) {
+		return "server: `community: true` needs both `rulesChannel` and `updatesChannel`";
+	}
+	return undefined;
+}
+
 export async function runNotificationsSetup(input: RunNotificationsSetupInput): Promise<NotificationsSetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
@@ -153,6 +172,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (secretProblem) return refuse(secretProblem);
 	const accessProblem = accessRoleProblem(layout);
 	if (accessProblem) return refuse(accessProblem);
+	const serverProblem = serverLayoutProblem(layout);
+	if (serverProblem) return refuse(serverProblem);
+	if (layout.server && !notifications.ensureServer) {
+		return refuse(
+			`the layout declares \`server\` settings, but the \`${notifications.providerName}\` provider cannot manage them`
+		);
+	}
 	// A category's access cannot be applied by a provider that has no categories: do not report success without it.
 	const needsCategories = (layout.categories ?? []).find((c) => c.access);
 	if (needsCategories && !notifications.ensureCategory) {
@@ -281,6 +307,24 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				}
 			});
 		}
+	}
+
+	// The server's own settings come last: they name channels, which exist by now.
+	if (layout.server) {
+		print(`\n${style.header("Server")}`);
+		await attempt("server settings", async () => {
+			if (dryRun) {
+				print(`  ${style.skip("would ensure server settings")}`);
+				tally.skip++;
+				return;
+			}
+			const result = await notifications.ensureServer!(layout.server!);
+			const changed = result.updated.length > 0;
+			print(
+				`  ${(changed ? style.success : style.skip)(`${changed ? "updated" : "exists "} server settings${changed ? `: ${result.updated.join(", ")}` : ""}`)}`
+			);
+			made(changed);
+		});
 	}
 
 	if (report.failures.length > 0) {
