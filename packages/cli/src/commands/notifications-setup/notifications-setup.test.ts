@@ -150,6 +150,14 @@ describe("runNotificationsSetup", () => {
 		expect(lines.at(-1)).toBe("8 ok, 2 fail, 0 skipped");
 	});
 
+	it("counts channels that already exist as skipped", async () => {
+		const n = fakeNotifications({ ensureChannel: vi.fn(async () => ({ id: "1", created: false })) });
+		const { run, lines } = setup(n);
+		await run();
+		// 3 categories + 2 webhooks + 2 roles made; 3 channels already there
+		expect(lines.at(-1)).toBe("7 ok, 0 fail, 3 skipped");
+	});
+
 	it("ends a refusal with the count too", async () => {
 		const n = fakeNotifications({ layout: undefined });
 		const { run, lines } = setup(n);
