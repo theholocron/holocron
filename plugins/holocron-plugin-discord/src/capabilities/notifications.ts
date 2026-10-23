@@ -40,8 +40,16 @@ function reason(err: unknown): string {
 		: errorMessage(err);
 }
 
-/** What @everyone loses when a channel is read-only: sending, and starting or posting in threads. */
-const POST: PermissionName[] = ["SendMessages", "SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"];
+/**
+ * What @everyone loses when a channel is read-only. Only sending: Discord refuses (403) any change to the
+ * thread permissions on an existing text channel from a bot whose own role lacks them, and Holonet's
+ * does. Members can therefore still start threads in a read-only channel until the bot is given those
+ * permissions; see {@link THREAD_BITS} for how channels that already carry them are read.
+ */
+const POST: PermissionName[] = ["SendMessages"];
+/** Thread permissions an earlier version denied. Ignored when comparing, so such a channel is not "custom". */
+const THREAD_BITS: PermissionName[] = ["SendMessagesInThreads", "CreatePublicThreads", "CreatePrivateThreads"];
+const THREAD_MASK = ~BigInt(permissions(THREAD_BITS));
 /** What the bot keeps in a channel it has locked down, so it can still manage it and post. */
 const BOT_KEEPS: PermissionName[] = [
 	"ViewChannel",
@@ -51,10 +59,13 @@ const BOT_KEEPS: PermissionName[] = [
 	"ManageWebhooks",
 ];
 
-/** Overwrites as a comparable set: order and the shape of the array do not matter. */
+/**
+ * Overwrites as a comparable set: order and the shape of the array do not matter, and the thread
+ * permissions are left out (setup does not manage them, so their presence is not a difference).
+ */
 function overwriteKey(list: readonly DiscordPermissionOverwrite[] | undefined): string {
 	return (list ?? [])
-		.map((o) => `${o.id}:${o.type}:${o.allow}:${o.deny}`)
+		.map((o) => `${o.id}:${o.type}:${BigInt(o.allow) & THREAD_MASK}:${BigInt(o.deny) & THREAD_MASK}`)
 		.sort()
 		.join("|");
 }
@@ -278,12 +289,8 @@ export class DiscordNotifications implements Notifications {
 		roleName: (id: string) => string
 	): Required<NotificationsAccess> | "custom" {
 		const list = overwrites ?? [];
-		const managed = permissions(["ViewChannel", ...POST]);
+		const managed = permissions(["ViewChannel", ...POST, ...THREAD_BITS]);
 		const within = (bits: string) => (BigInt(bits) & ~BigInt(managed)) === 0n;
-		const postOf = (bits: string): "all" | "none" | "some" => {
-			const have = POST.filter((b) => permissionNames(bits).includes(b)).length;
-			return have === 0 ? "none" : have === POST.length ? "all" : "some";
-		};
 		const botSignature = permissions(BOT_KEEPS);
 
 		let everyone: DiscordPermissionOverwrite | undefined;
@@ -297,11 +304,9 @@ export class DiscordNotifications implements Notifications {
 				roles.push(o);
 			}
 		}
-		if (everyone && (everyone.allow !== "0" || !within(everyone.deny) || postOf(everyone.deny) === "some")) {
-			return "custom";
-		}
+		if (everyone && (everyone.allow !== "0" || !within(everyone.deny))) return "custom";
 		for (const o of roles) {
-			if (o.deny !== "0" || !within(o.allow) || postOf(o.allow) === "some") return "custom";
+			if (o.deny !== "0" || !within(o.allow)) return "custom";
 		}
 		const denied = (bit: PermissionName) => everyone !== undefined && permissionNames(everyone.deny).includes(bit);
 		const names = (bit: PermissionName) =>
