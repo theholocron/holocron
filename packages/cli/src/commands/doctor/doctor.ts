@@ -35,7 +35,6 @@ import {
 	type Monitoring,
 	type Notifications,
 	PluginLoader,
-	ProviderApiError,
 	type Secrets,
 	type Source,
 	type Vault,
@@ -43,6 +42,7 @@ import {
 	type Workers,
 } from "../../plugin/index.js";
 import { pad, statusRow, style, withSpinner } from "../../ui/index.js";
+import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { DoctorReport, DoctorRow, DoctorStatus, RunDoctorInput } from "./doctor.type.js";
 
 export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
@@ -159,40 +159,8 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 		// detail; `logMessage` (telemetry) stays the plain vendor-body-free
 		// summary — a provider's raw response text has no business leaving
 		// this machine via the structured logger.
-		return mk(key, provider, "fail", smokeCheckErrorMessage(err), errorMessage(err));
+		return mk(key, provider, "fail", describeProviderError(err), errorMessage(err));
 	}
-}
-
-/** Vendor response bodies land in the terminal — cap their length so one
- *  oversized error can't flood the report, and strip control characters
- *  (newlines and the C1 range, whose 0x9b is an 8-bit CSI) so a crafted body
- *  can't forge extra report lines or inject terminal escape sequences. */
-const MAX_DETAIL_LENGTH = 200;
-
-function sanitizeDetail(text: string): string {
-	const stripped = text
-		// eslint-disable-next-line no-control-regex -- deliberately matching control chars (incl. newlines) to strip them
-		.replace(/[\x00-\x1f\x7f-\x9f]/g, " ")
-		.replace(/\s+/g, " ")
-		.trim();
-	return stripped.length > MAX_DETAIL_LENGTH ? `${stripped.slice(0, MAX_DETAIL_LENGTH)}…` : stripped;
-}
-
-/**
- * `errorMessage(err)` alone is just `"<Vendor> <METHOD> <path> → <status>"` —
- * the actual reason (what the vendor's response body said) lives in
- * `ProviderApiError.details`, a raw response-body string (not parsed JSON —
- * see AGENTS.md), and was being silently dropped. Appending it (sanitized
- * and length-capped — see `sanitizeDetail`) turns e.g. a bare "→ 400" into
- * something that actually explains itself, without the vendor text being
- * able to overwhelm or manipulate the terminal report.
- */
-function smokeCheckErrorMessage(err: unknown): string {
-	if (err instanceof ProviderApiError && err.details) {
-		const detail = sanitizeDetail(String(err.details));
-		if (detail) return `${errorMessage(err)}: ${detail}`;
-	}
-	return errorMessage(err);
 }
 
 async function runSmokeCheck(key: string, provider: string, impl: unknown): Promise<DoctorRow> {

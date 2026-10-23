@@ -57,6 +57,26 @@ describe("createPlugin", () => {
 		expect((issuesErr as Error).message).toMatch(/HOLOCRON_ISSUES_TOKEN/);
 	});
 
+	it("builds the secrets capability from github.secrets alone, with no admin token", () => {
+		const plugin = createPlugin({
+			repo: "theholocron/holocron",
+			env: { HOLOCRON_SECRETS_TOKEN: "org-secrets-pat" },
+			keyring: () => null,
+		});
+		expect(plugin.capabilities.secrets()).toBeInstanceOf(GitHubSecrets);
+		// ...while the capabilities that need the admin token still refuse without it.
+		expect(() => plugin.capabilities.source()).toThrow(AuthError);
+	});
+
+	it("still builds the secrets capability from the admin token when there is no secrets token", () => {
+		const plugin = createPlugin({
+			repo: "theholocron/holocron",
+			env: { HOLOCRON_ADMIN_TOKEN: "admin-pat" },
+			keyring: () => null,
+		});
+		expect(plugin.capabilities.secrets()).toBeInstanceOf(GitHubSecrets);
+	});
+
 	it("wires every capability with the right concrete implementation", () => {
 		const plugin = createPlugin({
 			repo: "theholocron/holocron",

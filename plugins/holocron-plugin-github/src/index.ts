@@ -16,6 +16,7 @@ import {
 	resolveIssuesToken,
 	resolveOrgToken,
 	resolveReadToken,
+	resolveSecretsOrAdminToken,
 	type ResolveTokenInput,
 } from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
@@ -107,7 +108,7 @@ export function createPlugin(options: GitHubPluginOptions) {
 		capabilities: {
 			source: () => source(makeCtx(resolveAdminToken), makeOrgClient()),
 			ci: () => ci(makeCtx(resolveReadToken)),
-			secrets: () => secrets(makeCtx(resolveAdminToken)),
+			secrets: () => secrets(makeCtx(resolveSecretsOrAdminToken)),
 			environments: () => environments(makeCtx(resolveAdminToken)),
 			issues: () => issues(makeCtx(resolveIssuesToken)),
 		},

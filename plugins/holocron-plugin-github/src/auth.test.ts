@@ -6,6 +6,8 @@ import {
 	resolveIssuesToken,
 	resolveReadToken,
 	resolveReleaseToken,
+	resolveSecretsOrAdminToken,
+	resolveSecretsToken,
 	resolveSyncToken,
 } from "./auth.js";
 
@@ -31,6 +33,12 @@ describe.each([
 		resolver: resolveAdminToken,
 		envName: "HOLOCRON_ADMIN_TOKEN",
 		keyringKey: "github.admin",
+	},
+	{
+		name: "resolveSecretsToken",
+		resolver: resolveSecretsToken,
+		envName: "HOLOCRON_SECRETS_TOKEN",
+		keyringKey: "github.secrets",
 	},
 ])("$name", ({ resolver, envName, keyringKey }) => {
 	it("uses the explicit CLI token first", () => {
@@ -62,5 +70,45 @@ describe.each([
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(new RegExp(envName));
 		expect((err as Error).message).toMatch(new RegExp(keyringKey.replace(".", "\\.")));
+	});
+});
+
+describe("resolveSecretsOrAdminToken", () => {
+	it("prefers the dedicated secrets token (env, then keyring) over the admin token", () => {
+		const env = { HOLOCRON_SECRETS_TOKEN: "secrets-env", HOLOCRON_ADMIN_TOKEN: "admin-env" };
+		expect(resolveSecretsOrAdminToken({ env, keyring: noKeyring })).toBe("secrets-env");
+		const keyring = (key: string) =>
+			key === "github.secrets" ? "secrets-kr" : key === "github.admin" ? "admin-kr" : null;
+		expect(resolveSecretsOrAdminToken({ env: {}, keyring })).toBe("secrets-kr");
+	});
+
+	it("falls back to the admin token when no secrets token is set", () => {
+		expect(resolveSecretsOrAdminToken({ env: { HOLOCRON_ADMIN_TOKEN: "admin-env" }, keyring: noKeyring })).toBe(
+			"admin-env"
+		);
+		const keyring = (key: string) => (key === "github.admin" ? "admin-kr" : null);
+		expect(resolveSecretsOrAdminToken({ env: {}, keyring })).toBe("admin-kr");
+	});
+
+	it("lets an explicit token win over both", () => {
+		expect(
+			resolveSecretsOrAdminToken({
+				cliToken: "cli",
+				env: { HOLOCRON_SECRETS_TOKEN: "s", HOLOCRON_ADMIN_TOKEN: "a" },
+				keyring: noKeyring,
+			})
+		).toBe("cli");
+	});
+
+	it("fails naming the admin token when neither is set", () => {
+		expect(() => resolveSecretsOrAdminToken({ env: {}, keyring: noKeyring })).toThrow(AuthError);
+		expect(() => resolveSecretsOrAdminToken({ env: {}, keyring: noKeyring })).toThrow(/HOLOCRON_ADMIN_TOKEN/);
+	});
+
+	it("does not swallow an error that is not a missing token", () => {
+		const boom = () => {
+			throw new TypeError("keyring exploded");
+		};
+		expect(() => resolveSecretsOrAdminToken({ env: {}, keyring: boom })).toThrow(TypeError);
 	});
 });
