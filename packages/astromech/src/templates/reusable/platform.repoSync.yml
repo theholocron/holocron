@@ -45,9 +45,15 @@ on: # yamllint disable-line rule:truthy
       HOLOCRON_NOTIFY_WEBHOOK_ALERTS:
         description: >
           Webhook for the alerts channel: a failed sync run, or a sync
-          PR that needs a manual merge. Unset = no post. An optional
-          HOLOCRON_NOTIFY_ALERT_ROLE variable (a role id) makes
-          these posts mention that role.
+          PR that needs a manual merge. Unset = no post. The optional
+          HOLOCRON_NOTIFY_ALERT_ROLE secret (a role id) makes these posts
+          mention that role.
+        required: false
+      HOLOCRON_NOTIFY_ALERT_ROLE:
+        description: >
+          Id of the role to mention on alerts. Written by `holocron
+          notifications setup`; not sensitive, kept as a secret so the same
+          token that writes the webhook secrets can write it. Optional.
         required: false
       GH_TOKEN:
         description: >
@@ -191,7 +197,7 @@ jobs:
         if: steps.pr.outputs.attention == 'true'
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
-          mention: ${{ vars.HOLOCRON_NOTIFY_ALERT_ROLE }}
+          mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
           message: "⚠️ ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"
 
       - name: Broadcast wiki sync if navbar changed
@@ -226,5 +232,5 @@ jobs:
         name: Notify of a failed sync
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
-          mention: ${{ vars.HOLOCRON_NOTIFY_ALERT_ROLE }}
+          mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
           message: "❌ ${{ github.repository }}: repo sync ${{ needs.sync.result == 'cancelled' && 'timed out or was cancelled' || 'failed' }} — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"

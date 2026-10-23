@@ -19,6 +19,7 @@ import { describeProviderError, logReason } from "../../ui/provider-error/index.
 import {
 	assertSecretsReachable,
 	defaultSecretName,
+	isReservedSecret,
 	pickProvisioner,
 	provisionChannel,
 	whyMissing,
@@ -57,16 +58,18 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		);
 	}
 
+	// Anything that writes a secret: a channel's webhook URL, or a role's id.
 	const wantsWebhook = (layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook));
+	const wantsSecrets = wantsWebhook || (layout.roles ?? []).some((r) => r.secret);
 	let secrets: Secrets | undefined;
 	// A dry-run stores nothing, so it needs no credentials for the secrets provider.
-	if (wantsWebhook && !dryRun) {
+	if (wantsSecrets && !dryRun) {
 		if (!loader.has("secrets")) {
 			return refuse(
 				whyMissing(
 					loader,
 					"secrets",
-					"the layout asks for webhooks, which need a `secrets` capability — add a `secrets` provider"
+					"the layout stores webhook URLs or role ids, which need a `secrets` capability — add a `secrets` provider"
 				)
 			);
 		}
@@ -74,8 +77,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 	const org = input.context.org;
 	const scope = input.scope ?? (org ? ({ kind: "organization", name: org } as const) : undefined);
-	if (wantsWebhook && !scope && !dryRun) {
-		return refuse("no org to store webhook secrets under — pass --scope or set `org` in holocron.config.ts");
+	if (wantsSecrets && !scope && !dryRun) {
+		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
 
 	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
@@ -88,22 +91,34 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
-	// Two webhooks cannot share one secret: the second would overwrite the first and
-	// callers would post to the wrong channel. Normalising punctuation makes that
-	// easy to hit by accident (release-notes vs release_notes), so refuse up front.
+	// Two things cannot share one secret: the second write would overwrite the first
+	// and callers would read the wrong value. Punctuation normalising (release-notes
+	// vs release_notes) makes that easy to hit by accident, and GitHub secret names
+	// are case-insensitive, so compare them that way. The preflight's own prefix is
+	// reserved. Refuse all of it up front, before anything is created.
 	const taken = new Map<string, string>();
+	const claim = (secret: string, owner: string, hint: string): string | undefined => {
+		if (isReservedSecret(secret)) {
+			return `${owner} would store into ${secret}, a name reserved for the setup preflight — choose another`;
+		}
+		const key = secret.toUpperCase();
+		const other = taken.get(key);
+		if (other) return `${other} and ${owner} would both store into ${secret} — ${hint}`;
+		taken.set(key, owner);
+		return undefined;
+	};
 	for (const category of layout.categories ?? []) {
 		for (const channel of category.channels ?? []) {
 			if (!channel.webhook) continue;
 			const secret = (channel.webhook !== true && channel.webhook.secret) || defaultSecretName(channel.name);
-			const other = taken.get(secret);
-			if (other) {
-				return refuse(
-					`channels \`${other}\` and \`${channel.name}\` would both store their webhook in ${secret} — give one a distinct \`webhook.secret\``
-				);
-			}
-			taken.set(secret, channel.name);
+			const clash = claim(secret, `channel \`${channel.name}\``, "give one a distinct `webhook.secret`");
+			if (clash) return refuse(clash);
 		}
+	}
+	for (const role of layout.roles ?? []) {
+		if (!role.secret) continue;
+		const clash = claim(role.secret, `role \`${role.name}\``, "give one a distinct secret");
+		if (clash) return refuse(clash);
 	}
 
 	print(`Holocron notifications setup — ${notifications.providerName}${dryRun ? " (dry-run)" : ""}`);
@@ -157,8 +172,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		await attempt(`role ${role.name}`, async () => {
 			if (!notifications.ensureRole) throw new Error(`\`${notifications.providerName}\` cannot manage roles`);
 			if (dryRun) {
-				print(`  … would ensure role ${role.name}`);
-				report.roles.push({ name: role.name, created: false });
+				print(`  … would ensure role ${role.name}${role.secret ? ` and store its id in ${role.secret}` : ""}`);
+				report.roles.push({ name: role.name, created: false, ...(role.secret ? { secret: role.secret } : {}) });
 				return;
 			}
 			const made = await notifications.ensureRole({
@@ -168,6 +183,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			const outcome: RoleOutcome = { name: role.name, id: made.id, created: made.created };
 			report.roles.push(outcome);
 			print(`  ${made.created ? "✓ created" : "· exists "} role ${role.name} (id ${made.id})`);
+			if (role.secret) {
+				// Same store as the webhooks, so the id is there for workflows with nothing to copy by hand.
+				await secrets!.setSecret(scope!, role.secret, made.id); // set: setup refuses to run without both
+				outcome.secret = role.secret;
+				outcome.stored = true;
+				print(`  ✓ stored the id of ${role.name} in ${role.secret}`);
+			}
 		});
 	}
 

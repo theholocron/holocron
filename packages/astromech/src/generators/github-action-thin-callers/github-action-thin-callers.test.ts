@@ -362,3 +362,18 @@ describe("thin caller permissions must be a superset of the reusable workflow's 
 		}
 	});
 });
+
+describe("WORKFLOW_TEMPLATES['platform.notifyCheck']", () => {
+	it("is a known workflow", () => {
+		expect(KNOWN_WORKFLOWS.has("platform.notifyCheck")).toBe(true);
+	});
+
+	it("is dispatch-only (it posts real messages) and calls the reusable check with the caller's secrets", () => {
+		const yaml = generateThinCallerContent("platform.notifyCheck");
+		expect(yaml).toContain("workflow_dispatch");
+		expect(yaml).not.toMatch(/\n {2}(push|pull_request|schedule):/);
+		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/platform.notifyCheck.yml@main");
+		expect(yaml).toContain("secrets: inherit");
+		expect(yaml).toContain("permissions: {}");
+	});
+});

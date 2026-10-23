@@ -560,3 +560,59 @@ describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", (
 		expect(wiki).toMatch(/fern-org:\n\s+description: >\n\s+DEPRECATED/);
 	});
 });
+
+describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notification check", () => {
+	const wf = REUSABLE_WORKFLOWS["platform.notifyCheck"]!;
+
+	it("is registered and reusable", () => {
+		expect(wf).toMatch(/^name: Notify Check/);
+		expect(wf).toContain("workflow_call:");
+	});
+
+	it("lists the default channels as objects that name their own secret, with only alerts marked to ping", () => {
+		const folded = /default: >-\n([\s\S]*?)\n {4}secrets:/.exec(wf)![1]!.replace(/\s*\n\s*/g, " ");
+		const channels = JSON.parse(folded) as Array<{ name: string; secret: string; mention?: boolean }>;
+		expect(channels.map((c) => c.name)).toEqual(["sync", "alerts", "errors", "uptime", "releases", "deploys"]);
+		for (const c of channels) expect(c.secret).toBe(`HOLOCRON_NOTIFY_WEBHOOK_${c.name.toUpperCase()}`);
+		expect(channels.filter((c) => c.mention).map((c) => c.name)).toEqual(["alerts"]);
+	});
+
+	it("declares every default channel's webhook secret plus the role secret, for callers that pass secrets explicitly", () => {
+		for (const channel of ["SYNC", "ALERTS", "ERRORS", "UPTIME", "RELEASES", "DEPLOYS"]) {
+			expect(wf).toContain(`HOLOCRON_NOTIFY_WEBHOOK_${channel}:`);
+		}
+		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE:");
+	});
+
+	it("posts to each channel with the strict notify action, so one bad channel fails its own job and not the others", () => {
+		expect(wf).toContain("fail-fast: false");
+		expect(wf).toContain("theholocron/.github/.github/actions/notify@main");
+		expect(wf).toContain('strict: "true"');
+		expect(wf).toContain("fromJSON(inputs.channels)");
+	});
+
+	it("reads each channel's webhook from the secret the channel names, not one derived from its name", () => {
+		expect(wf).toContain("webhook: ${{ secrets[matrix.channel.secret] }}");
+		expect(wf).not.toContain("format('HOLOCRON_NOTIFY_WEBHOOK_");
+	});
+
+	it("pings the role only on channels marked mention, and requires the role id there instead of passing quietly", () => {
+		expect(wf).toMatch(/mention: \$\{\{ matrix\.channel\.mention && secrets\.HOLOCRON_NOTIFY_ALERT_ROLE/);
+		expect(wf).toContain("name: Require the alert role id");
+		expect(wf).toContain("if: matrix.channel.mention");
+		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE is not set");
+	});
+
+	it("runs with no token permissions", () => {
+		expect(wf).toContain("permissions: {}");
+	});
+});
+
+describe("REUSABLE_WORKFLOWS['platform.repoSync'] — the role id comes from a secret", () => {
+	it("mentions the role through secrets, not variables, and declares the secret", () => {
+		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
+		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE:");
+		expect(wf).toContain("mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}");
+		expect(wf).not.toContain("vars.HOLOCRON_NOTIFY_ALERT_ROLE");
+	});
+});

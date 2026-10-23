@@ -30,6 +30,7 @@ import greetingsWorkflow from "../../templates/reusable/greetings.yml";
 import wikiWorkflow from "../../templates/reusable/knowledge.wiki.yml";
 import commitStandardsWorkflow from "../../templates/reusable/platform.commitStandards.yml";
 import dispatchedCheckWorkflow from "../../templates/reusable/platform.dispatchedCheck.yml";
+import notifyCheckWorkflow from "../../templates/reusable/platform.notifyCheck.yml";
 import repoSyncWorkflow from "../../templates/reusable/platform.repoSync.yml";
 import repoValidationWorkflow from "../../templates/reusable/platform.repoValidation.yml";
 import syncTemplatesWorkflow from "../../templates/reusable/platform.syncTemplates.yml";
@@ -70,6 +71,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	"delivery.previewCheck": previewCheckWorkflow,
 	"delivery.previewDeploy": previewDeployWorkflow,
 	"platform.repoSync": repoSyncWorkflow,
+	"platform.notifyCheck": notifyCheckWorkflow,
 	"platform.commitStandards": commitStandardsWorkflow,
 	"platform.repoValidation": repoValidationWorkflow,
 	"platform.syncTemplates": syncTemplatesWorkflow,

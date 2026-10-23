@@ -4,7 +4,8 @@ description: >
   body is Discord-compatible (`content`, `username`, `allowed_mentions`), so
   the webhook must accept that shape. Does nothing (and never fails the
   calling job) when no webhook is provided, so repos that haven't set one up
-  are unaffected.
+  are unaffected. Set `strict` for a check whose only purpose is to prove the
+  notification works: it then fails when the webhook is missing or rejects the post.
 
 inputs:
   webhook:
@@ -28,6 +29,12 @@ inputs:
     description: Display name for the post.
     required: false
     default: "Holocron"
+  strict:
+    description: >
+      "true" fails the step when no webhook is set or the post is rejected.
+      Off by default: a notification problem must never fail the job it reports on.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -36,15 +43,25 @@ runs:
       shell: bash
       run: |
         if [ -z "$WEBHOOK" ]; then
+          if [ "$STRICT" = "true" ]; then
+            echo "::error::No notification webhook set."
+            exit 1
+          fi
           echo "::notice::No notification webhook set — skipping notification."
           exit 0
         fi
         echo "::add-mask::$WEBHOOK"
         # allowed_mentions.parse = [] so message text can never ping @everyone
-        # or a role; only the explicit `mention` role id is allowed through. The body is built with jq so quotes/newlines in the
-        # message can't break the JSON.
+        # or a role; only the explicit `mention` role id is allowed through. The
+        # body is built with jq so quotes/newlines in the message can't break the JSON.
         content="$MESSAGE"
         roles='[]'
+        # A mention that is not a role id is dropped, which is right for a real
+        # notification but would let a check pass without ever pinging anyone.
+        if [ "$STRICT" = "true" ] && [ -n "$MENTION" ] && ! [[ "$MENTION" =~ ^[0-9]+$ ]]; then
+          echo "::error::The mention is not a role id (digits only)."
+          exit 1
+        fi
         if [[ "$MENTION" =~ ^[0-9]+$ ]]; then
           content="<@&$MENTION> $MESSAGE"
           roles=$(jq -cn --arg r "$MENTION" '[$r]')
@@ -55,10 +72,17 @@ runs:
           -H 'Content-Type: application/json' -d "$body" "$WEBHOOK" || true)
         case "${status:-000}" in
           2??) echo "Notification posted." ;;
-          *) echo "::warning::Notification failed (HTTP ${status:-000})." ;;
+          *)
+            if [ "$STRICT" = "true" ]; then
+              echo "::error::Notification failed (HTTP ${status:-000})."
+              exit 1
+            fi
+            echo "::warning::Notification failed (HTTP ${status:-000})."
+            ;;
         esac
       env:
         WEBHOOK: ${{ inputs.webhook }}
         MESSAGE: ${{ inputs.message }}
         MENTION: ${{ inputs.mention }}
         USERNAME: ${{ inputs.username }}
+        STRICT: ${{ inputs.strict }}

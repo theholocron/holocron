@@ -334,7 +334,7 @@ export interface HolocronConfig {
 	 *   "sourceQuality.structuredDataValidation" | "sourceQuality.deadCodeAnalysis" |
 	 *   "security.secretDetection" | "security.codeScanning" |
 	 *   "delivery.build" | "delivery.publish" | "delivery.deploy" | "delivery.bundleSize" |
-	 *   "platform.repoSync" | "platform.commitStandards" | "platform.repoValidation" |
+	 *   "platform.repoSync" | "platform.notifyCheck" | "platform.commitStandards" | "platform.repoValidation" |
 	 *   "knowledge.wiki" | "knowledge.docs" | "knowledge.components" |
 	 *   "review" | "tag" | "stale" | "greetings" | "dependencies" | "bookkeeping"
 	 *

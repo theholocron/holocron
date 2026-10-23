@@ -961,7 +961,17 @@ export interface NotificationsChannelLayout {
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
 	categories?: Array<{ name: string; channels?: NotificationsChannelLayout[] }>;
-	roles?: Array<{ name: string; mentionable?: boolean }>;
+	roles?: Array<{
+		name: string;
+		mentionable?: boolean;
+		/**
+		 * Store the role's id in this secret, so a workflow can ping the role
+		 * without anyone copying the id by hand. The id is not sensitive; a secret
+		 * is used because the same token that writes the webhook secrets can write
+		 * it, with no extra permission.
+		 */
+		secret?: string;
+	}>;
 }
 
 export interface Notifications extends ProviderIdentity {

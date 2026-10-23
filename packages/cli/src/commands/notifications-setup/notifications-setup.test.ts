@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
-import { PREFLIGHT_SECRET } from "../notifications-channel-add/index.js";
+import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
 import { runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -70,7 +70,7 @@ function setup(notifications: Notifications, opts: { secrets?: boolean; dryRun?:
 				providerName: "github",
 				listSecrets: async () => [] as string[],
 				setSecret: async (_s: unknown, name: string, value: string) => {
-					if (name !== PREFLIGHT_SECRET) stored.push({ name, value });
+					if (!name.startsWith(PREFLIGHT_PREFIX)) stored.push({ name, value });
 				},
 				deleteSecret: async () => {},
 			},
@@ -182,7 +182,7 @@ describe("runNotificationsSetup", () => {
 		const { run } = setup(fakeNotifications(), { org: "" });
 		expect(await run()).toMatchObject({
 			status: "fail",
-			message: expect.stringMatching(/no org to store webhook secrets/),
+			message: expect.stringMatching(/no org to store secrets/),
 		});
 	});
 
@@ -265,7 +265,9 @@ describe("runNotificationsSetup", () => {
 		const n = fakeNotifications({ layout });
 		const report = await setup(n).run();
 		expect(report.status).toBe("fail");
-		expect(report.message).toMatch(/both store their webhook in HOLOCRON_NOTIFY_WEBHOOK_RELEASE_NOTES/);
+		expect(report.message).toMatch(
+			/channel `release-notes` and channel `release_notes` would both store into HOLOCRON_NOTIFY_WEBHOOK_RELEASE_NOTES/
+		);
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 
@@ -403,5 +405,171 @@ describe("runNotificationsSetup", () => {
 		expect(report.failures[0]?.message).toBe(
 			'Discord PATCH /channels/9 → 403: {"message":"Missing Permissions","code":50013}'
 		);
+	});
+
+	describe("a role's id stored in a secret", () => {
+		const roleLayout: NotificationsLayout = {
+			roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }],
+		};
+
+		it("stores the id so a workflow can ping the role with nothing copied by hand", async () => {
+			const { run, stored, lines } = setup(fakeNotifications({ layout: roleLayout }));
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(stored).toEqual([{ name: "HOLOCRON_NOTIFY_ALERT_ROLE", value: "99" }]);
+			expect(report.roles).toEqual([
+				{ name: "gatekeepers", id: "99", created: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE", stored: true },
+			]);
+			expect(lines.join("\n")).toContain("stored the id of gatekeepers in HOLOCRON_NOTIFY_ALERT_ROLE");
+		});
+
+		it("stores the id of a role that already existed, so the secret is repaired on a re-run", async () => {
+			const n = fakeNotifications({
+				layout: roleLayout,
+				ensureRole: vi.fn(async () => ({ id: "1562979974502424668", created: false })),
+			});
+			const { run, stored } = setup(n);
+			await run();
+			expect(stored).toEqual([{ name: "HOLOCRON_NOTIFY_ALERT_ROLE", value: "1562979974502424668" }]);
+		});
+
+		it("previews it on --dry-run and stores nothing", async () => {
+			const n = fakeNotifications({ layout: roleLayout });
+			const { run, stored, lines } = setup(n, { dryRun: true });
+			const report = await run();
+			expect(report.status).toBe("dry-run");
+			expect(stored).toEqual([]);
+			expect(n.ensureRole).not.toHaveBeenCalled();
+			expect(lines.join("\n")).toContain(
+				"would ensure role gatekeepers and store its id in HOLOCRON_NOTIFY_ALERT_ROLE"
+			);
+			expect(report.roles[0]).toMatchObject({ secret: "HOLOCRON_NOTIFY_ALERT_ROLE" });
+		});
+
+		it("needs a secrets provider even when the layout has no webhooks", async () => {
+			const { run } = setup(fakeNotifications({ layout: roleLayout }), { secrets: false });
+			expect(await run()).toMatchObject({
+				status: "fail",
+				message: expect.stringMatching(/need a `secrets` capability/),
+			});
+		});
+
+		it("needs an org (or a scope) to store it under", async () => {
+			const { run } = setup(fakeNotifications({ layout: roleLayout }), { org: "" });
+			expect(await run()).toMatchObject({
+				status: "fail",
+				message: expect.stringMatching(/no org to store secrets under/),
+			});
+		});
+
+		it("reports a failed store as a failing step and keeps going", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"], secrets: "github" } });
+			const loader = makeLoader(loaded, {
+				"@theholocron/holocron-plugin-discord": makePlugin("discord", {
+					notifications: fakeNotifications({
+						layout: { roles: [{ name: "a", secret: "A_SECRET" }, { name: "b" }] },
+					}),
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					secrets: {
+						providerName: "github",
+						listSecrets: async () => [] as string[],
+						setSecret: async (_s: unknown, name: string) => {
+							if (name === "A_SECRET") throw new Error("403 nope");
+						},
+						deleteSecret: async () => {},
+					},
+				}),
+			});
+			const report = await runNotificationsSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", org: "theholocron" },
+				loader,
+				print: () => {},
+			});
+			expect(report.status).toBe("fail");
+			expect(report.failures).toEqual([{ step: "role a", message: "403 nope" }]);
+			expect(report.roles.map((r) => r.name)).toEqual(["a", "b"]);
+		});
+
+		it("refuses a role secret that a webhook also writes to", async () => {
+			const n = fakeNotifications({
+				layout: {
+					categories: [{ name: "A", channels: [{ name: "alerts", webhook: { secret: "SHARED" } }] }],
+					roles: [{ name: "gatekeepers", secret: "SHARED" }],
+				},
+			});
+			const report = await setup(n).run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/`alerts` and role `gatekeepers` would both store into SHARED/);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+		});
+
+		it("refuses two roles that would share one secret, and provisions and stores nothing", async () => {
+			const n = fakeNotifications({
+				layout: {
+					roles: [
+						{ name: "a", secret: "SAME" },
+						{ name: "b", secret: "SAME" },
+					],
+				},
+			});
+			const { run, stored } = setup(n);
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/role `a` and role `b` would both store into SAME/);
+			expect(n.ensureRole).not.toHaveBeenCalled();
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+			expect(stored).toEqual([]);
+			expect(report.roles).toEqual([]);
+		});
+
+		it("treats secret names as case-insensitive, as GitHub does", async () => {
+			const n = fakeNotifications({
+				layout: {
+					categories: [
+						{
+							name: "A",
+							channels: [{ name: "alerts", webhook: { secret: "Holocron_Notify_Alert_Role" } }],
+						},
+					],
+					roles: [{ name: "gatekeepers", secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }],
+				},
+			});
+			const { run, stored } = setup(n);
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(
+				/channel `alerts` and role `gatekeepers` would both store into HOLOCRON_NOTIFY_ALERT_ROLE/
+			);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+			expect(stored).toEqual([]);
+		});
+
+		it.each(["HOLOCRON_NOTIFY_PREFLIGHT", "holocron_notify_preflight_abc", "HOLOCRON_NOTIFY_PREFLIGHT_1234ABCD"])(
+			"refuses %s as a role secret, since the preflight reserves that name",
+			async (secret) => {
+				const n = fakeNotifications({ layout: { roles: [{ name: "gatekeepers", secret }] } });
+				const { run, stored } = setup(n);
+				const report = await run();
+				expect(report.status).toBe("fail");
+				expect(report.message).toMatch(/reserved for the setup preflight/);
+				expect(n.ensureRole).not.toHaveBeenCalled();
+				expect(stored).toEqual([]);
+			}
+		);
+
+		it("refuses a reserved name as a webhook secret too", async () => {
+			const n = fakeNotifications({
+				layout: {
+					categories: [
+						{ name: "A", channels: [{ name: "x", webhook: { secret: "HOLOCRON_NOTIFY_PREFLIGHT_X" } }] },
+					],
+				},
+			});
+			const report = await setup(n).run();
+			expect(report.message).toMatch(/channel `x` would store into HOLOCRON_NOTIFY_PREFLIGHT_X, a name reserved/);
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+		});
 	});
 });
