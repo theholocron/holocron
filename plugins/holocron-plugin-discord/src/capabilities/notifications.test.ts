@@ -619,3 +619,80 @@ describe("DiscordNotifications.inspect", () => {
 		expect(calls.filter((c) => c.url === `${BASE}/guilds/${GUILD}/channels`)).toHaveLength(1);
 	});
 });
+
+describe("DiscordNotifications.inspect — one failing read does not discard the rest", () => {
+	const layout = {
+		categories: [
+			{
+				name: "ALERTS",
+				channels: [
+					{ name: "alerts", webhook: true },
+					{ name: "sync", webhook: true },
+				],
+			},
+		],
+		roles: [{ name: "gatekeepers" }],
+	};
+	const channels = [category("1001", "ALERTS"), text("2001", "alerts", "1001"), text("2002", "sync", "1001")];
+
+	it("reports a channel whose webhook list failed on that channel only, and still lists the others", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: channels },
+			{ status: 403, text: '{"message":"Missing Access","code":50001}' },
+			{ body: [{ id: "w2", name: "sync", channel_id: "2002" }] },
+			{ body: [{ id: "4001", name: "gatekeepers", color: 0, mentionable: true }] },
+		]);
+		const found = await notifs.inspect(layout);
+		expect(found.channels.map((c) => [c.name, c.webhooks, c.webhooksError !== undefined])).toEqual([
+			["alerts", [], true],
+			["sync", ["sync"], false],
+		]);
+		expect(found.channels[0]?.webhooksError).toContain("Missing Access");
+		expect(found.roles).toHaveLength(1);
+		expect(found.rolesError).toBeUndefined();
+	});
+
+	it("reports a failed roles read as rolesError and keeps the channels it already read", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: channels },
+			{ body: [] },
+			{ body: [] },
+			{ status: 500, text: "boom" },
+		]);
+		const found = await notifs.inspect(layout);
+		expect(found.roles).toEqual([]);
+		expect(found.rolesError).toMatch(/→ 500/);
+		expect(found.channels).toHaveLength(2);
+		expect(found.categories).toEqual(["ALERTS"]);
+	});
+
+	it("does not ask for roles at all when the layout declares none", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: channels }, { body: [] }, { body: [] }]);
+		const found = await notifs.inspect({ categories: layout.categories });
+		expect(calls.some((c) => c.url.endsWith("/roles"))).toBe(false);
+		expect(found.roles).toEqual([]);
+		expect(found.rolesError).toBeUndefined();
+	});
+
+	it("describes a failure that is not a provider error by its message alone", async () => {
+		const stub = stubFetch([{ body: channels }]);
+		const bot = createDiscordBotClient({ botToken: "t", baseUrl: BASE, fetch: stub.fetch });
+		const broken = {
+			...bot,
+			channels: {
+				...bot.channels,
+				webhooks: async () => {
+					throw new Error("socket hang up");
+				},
+			},
+		};
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE, fetch: stub.fetch }),
+			{ guildId: GUILD },
+			() => WEBHOOK,
+			() => broken as typeof bot
+		);
+		const found = await notifs.inspect({ categories: layout.categories });
+		expect(found.channels[0]?.webhooksError).toBe("socket hang up");
+	});
+});

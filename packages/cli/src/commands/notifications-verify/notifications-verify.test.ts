@@ -85,6 +85,7 @@ function setup(
 		providers: { notifications: ["discord"], ...(opts.secrets === false ? {} : { secrets: "github" }) },
 	});
 	const setSecret = vi.fn(async () => {});
+	const deleteSecret = vi.fn(async () => {});
 	const listSecrets = vi.fn(async () => {
 		if (opts.secretNames instanceof Error) throw opts.secretNames;
 		return opts.secretNames ?? SECRETS_GOOD;
@@ -92,7 +93,7 @@ function setup(
 	const loader = makeLoader(loaded, {
 		"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
 		"@theholocron/holocron-plugin-github": makePlugin("gh", {
-			secrets: { providerName: "github", listSecrets, setSecret, deleteSecret: async () => {} },
+			secrets: { providerName: "github", listSecrets, setSecret, deleteSecret },
 		}),
 	});
 	const lines: string[] = [];
@@ -102,6 +103,7 @@ function setup(
 		log,
 		listSecrets,
 		setSecret,
+		deleteSecret,
 		run: () =>
 			runNotificationsVerify({
 				loaded,
@@ -157,13 +159,14 @@ describe("runNotificationsVerify — a server that matches the layout", () => {
 
 	it("changes nothing: no provisioning call and no secret is written", async () => {
 		const n = fakeNotifications();
-		const { run, setSecret } = setup(n);
+		const { run, setSecret, deleteSecret } = setup(n);
 		await run();
 		const calls = (["ensureCategory", "ensureChannel", "ensureWebhook", "ensureRole"] as const).map(
 			(m) => (n[m] as ReturnType<typeof vi.fn>).mock.calls.length
 		);
 		expect(calls).toEqual([0, 0, 0, 0]);
 		expect(setSecret).not.toHaveBeenCalled();
+		expect(deleteSecret).not.toHaveBeenCalled();
 	});
 
 	it("matches names case-insensitively, as Discord and GitHub do", async () => {
@@ -294,13 +297,16 @@ describe("runNotificationsVerify — when a step cannot run", () => {
 				);
 			}),
 		});
-		const report = await setup(n).run();
+		const { run, lines } = setup(n);
+		const report = await run();
 		expect(byId(report, "server").detail).toContain("401: Unauthorized");
 		for (const id of ["categories", "channels", "webhooks", "roles"]) {
 			expect(byId(report, id).status).toBe("fail");
 			expect(byId(report, id).detail).toBe("not checked: could not read the server");
 		}
 		expect(byId(report, "secrets").status).toBe("pass");
+		// Both reads fail for the same reason; it must be printed once, not once per step.
+		expect(lines.join("\n").match(/401: Unauthorized/g)).toHaveLength(1);
 		// The credentials are already blamed on the server step, so the reason is not printed a second time.
 		expect(report.checks.some((c) => c.id === "read")).toBe(false);
 	});
@@ -326,18 +332,39 @@ describe("runNotificationsVerify — when a step cannot run", () => {
 		});
 	});
 
-	it("fails the server step when the provider has no whoami", async () => {
+	it("does not fail the server step just because the provider has no whoami, if the server can be read", async () => {
 		const report = await setup(fakeNotifications({ whoami: undefined })).run();
-		expect(byId(report, "server").status).toBe("fail");
+		expect(byId(report, "server")).toMatchObject({
+			status: "pass",
+			detail: "readable (the provider has no whoami)",
+		});
+		expect(byId(report, "channels").status).toBe("pass");
 	});
 
-	it("says so when the provider cannot inspect a server", async () => {
-		const report = await setup(fakeNotifications({ inspect: undefined })).run();
-		expect(byId(report, "read")).toMatchObject({
-			status: "fail",
-			detail: expect.stringMatching(/cannot inspect a server/),
+	it("fails the server step with the read error, once, when there is no whoami and the server cannot be read", async () => {
+		const n = fakeNotifications({
+			whoami: undefined,
+			inspect: vi.fn(async () => {
+				throw new ProviderApiError(
+					"Discord GET /guilds/1/channels → 401",
+					401,
+					'{"message":"401: Unauthorized"}'
+				);
+			}),
 		});
-		expect(byId(report, "channels").detail).toBe("not checked: could not read the server");
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(byId(report, "server")).toMatchObject({
+			status: "fail",
+			detail: expect.stringContaining("401: Unauthorized"),
+		});
+		expect(report.checks.some((c) => c.id === "read")).toBe(false);
+		expect(lines.join("\n").match(/401: Unauthorized/g)).toHaveLength(1);
+	});
+
+	it("refuses a provider that cannot inspect a server, saying what it needs", async () => {
+		const report = await setup(fakeNotifications({ inspect: undefined })).run();
+		expect(report).toMatchObject({ status: "fail", message: expect.stringMatching(/can inspect a server/) });
 	});
 
 	it("reports an unreachable secrets store with the provider's reason, and still checks the rest", async () => {
@@ -406,7 +433,7 @@ describe("runNotificationsVerify — refusals", () => {
 		const post = { key: "notifications", providerName: "slack", send: async () => {} } as Notifications;
 		expect(await setup(post).run()).toMatchObject({
 			status: "fail",
-			message: expect.stringMatching(/can provision/),
+			message: expect.stringMatching(/can inspect a server/),
 		});
 	});
 });
@@ -479,7 +506,10 @@ describe("runNotificationsVerify — edge cases in what the server holds", () =>
 			loader,
 			print: () => {},
 		});
-		expect(report).toMatchObject({ status: "fail", message: expect.stringMatching(/can provision/) });
+		expect(report).toMatchObject({
+			status: "fail",
+			message: expect.stringMatching(/no `notifications` provider is available/),
+		});
 	});
 
 	it("does not mind a declared category that has no channels", async () => {
@@ -506,5 +536,111 @@ describe("runNotificationsVerify — edge cases in what the server holds", () =>
 		};
 		const c = byId(await setup(fakeNotifications({ found })).run(), "channels");
 		expect(c.problems).toEqual(['#alerts: topic is "" but the layout says "needs a human"']);
+	});
+
+	describe("runNotificationsVerify — review fixes", () => {
+		it("uses a provider that can only read, with no provisioning methods at all", async () => {
+			const readOnly = {
+				key: "notifications",
+				providerName: "readonly",
+				send: async () => {},
+				layout: LAYOUT,
+				whoami: async () => ({ target: "Holocron" }),
+				inspect: async () => GOOD,
+			} as Notifications;
+			const report = await setup(readOnly, { builtOnly: true }).run();
+			expect(report.status).toBe("ok");
+		});
+
+		it("says why a configured notifications plugin failed to load", async () => {
+			const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
+			const loader = makeLoader(loaded, {
+				"@theholocron/holocron-plugin-discord": {
+					createPlugin: () => {
+						throw new Error("no Discord webhook URL found");
+					},
+				},
+			});
+			const report = await runNotificationsVerify({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				print: () => {},
+			});
+			expect(report.message).toMatch(/`discord` failed to load: no Discord webhook URL found/);
+		});
+
+		it("treats an empty topic in the layout as unspecified, as setup does", async () => {
+			const layout: NotificationsLayout = { categories: [{ name: "A", channels: [{ name: "dev", topic: "" }] }] };
+			const found: ServerInspection = {
+				categories: ["A"],
+				channels: [{ name: "dev", category: "A", topic: "whatever it has", webhooks: [] }],
+				roles: [],
+			};
+			const report = await setup(fakeNotifications({ layout, found }), { secrets: false, org: "" }).run();
+			expect(byId(report, "channels").status).toBe("pass");
+		});
+
+		it("reports a channel whose webhooks could not be listed on that channel, not as a missing webhook", async () => {
+			const found: ServerInspection = {
+				...GOOD,
+				channels: GOOD.channels.map((c) =>
+					c.name === "alerts" ? { ...c, webhooks: [], webhooksError: "Discord GET → 403: Missing Access" } : c
+				),
+			};
+			const c = byId(await setup(fakeNotifications({ found })).run(), "webhooks");
+			expect(c.problems).toEqual(["#alerts: could not list its webhooks (Discord GET → 403: Missing Access)"]);
+		});
+
+		it("reports one roles problem, not one per role, when the roles could not be read", async () => {
+			const found: ServerInspection = { ...GOOD, roles: [], rolesError: "Discord GET → 500" };
+			const report = await setup(fakeNotifications({ found })).run();
+			expect(byId(report, "roles").problems).toEqual(["could not read the roles (Discord GET → 500)"]);
+			expect(byId(report, "channels").status).toBe("pass");
+		});
+
+		it("fails the secrets step for a layout whose secret names collide, as setup would refuse it", async () => {
+			const layout: NotificationsLayout = {
+				categories: [
+					{ name: "A", channels: [{ name: "alerts", webhook: { secret: "Holocron_Notify_Alert_Role" } }] },
+				],
+				roles: [{ name: "gatekeepers", secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }],
+			};
+			const found: ServerInspection = {
+				categories: ["A"],
+				channels: [{ name: "alerts", category: "A", webhooks: ["alerts"] }],
+				roles: [{ name: "gatekeepers", id: "1", mentionable: true }],
+			};
+			const c = byId(
+				await setup(fakeNotifications({ layout, found }), {
+					secretNames: ["HOLOCRON_NOTIFY_ALERT_ROLE"],
+				}).run(),
+				"secrets"
+			);
+			expect(c.status).toBe("fail");
+			expect(c.problems[0]).toMatch(
+				/channel `alerts` and role `gatekeepers` would both store into HOLOCRON_NOTIFY_ALERT_ROLE/
+			);
+		});
+
+		it("is still a failing report with --built-only when a real check fails", async () => {
+			const report = await setup(fakeNotifications({ found: { ...GOOD, categories: ["ALERTS"] } }), {
+				builtOnly: true,
+			}).run();
+			expect(report.status).toBe("fail");
+			expect(report.summary).toEqual({ pass: 5, fail: 1, planned: 0 });
+		});
+
+		it("keeps control characters in an ordinary provider error off the screen", async () => {
+			const n = fakeNotifications({
+				whoami: vi.fn(async () => {
+					throw new Error("nope\u001b[2J\nFAKE ROW");
+				}),
+			});
+			const { run, lines } = setup(n);
+			const report = await run();
+			expect(byId(report, "server").detail).toBe("nope [2J FAKE ROW");
+			expect(lines.join("\n").includes("\u001b")).toBe(false);
+		});
 	});
 });

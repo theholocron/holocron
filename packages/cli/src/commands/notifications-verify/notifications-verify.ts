@@ -13,7 +13,13 @@
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader, type Secrets } from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
-import { defaultSecretName, pickProvisioner, whyMissing } from "../notifications-channel-add/index.js";
+import {
+	defaultSecretName,
+	layoutSecretProblem,
+	notificationProviders,
+	pickProvider,
+	whyMissing,
+} from "../notifications-channel-add/index.js";
 import type {
 	NotificationsVerifyReport,
 	RunNotificationsVerifyInput,
@@ -85,7 +91,13 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 
 	let notifications: Notifications;
 	try {
-		notifications = pickProvisioner(loader.has("notifications") ? loader.get("notifications") : [], input.provider);
+		// A provider that can only read is fine here: verify needs `inspect`, not provisioning.
+		notifications = pickProvider(
+			notificationProviders(loader),
+			input.provider,
+			(p) => typeof p.inspect === "function",
+			{ infinitive: "inspect a server", gerund: "inspecting" }
+		);
 	} catch (err) {
 		return refuse(describeProviderError(err));
 	}
@@ -97,27 +109,37 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 	}
 	print(`Holocron notifications verify — ${notifications.providerName}\n`);
 
-	// 1. the server is reachable with the configured credentials
-	try {
-		const who = notifications.whoami ? await notifications.whoami() : null;
-		if (who) {
-			checks.push({ id: "server", title: "server", status: "pass", detail: shown(who.target), problems: [] });
-		} else {
-			failed("server", "server", "no server configured, or the provider cannot be checked");
-		}
-	} catch (err) {
-		failed("server", "server", describeProviderError(err));
-	}
-
-	// Everything below compares against what is actually on the server.
+	// Read the server first: a provider with no `whoami` is still reachable if it can be read.
 	let found: Awaited<ReturnType<NonNullable<Notifications["inspect"]>>> | undefined;
 	let readError = "";
 	try {
-		if (!notifications.inspect)
-			throw new Error(`the \`${notifications.providerName}\` provider cannot inspect a server`);
-		found = await notifications.inspect(layout);
+		found = await notifications.inspect!(layout);
 	} catch (err) {
 		readError = describeProviderError(err);
+	}
+
+	// 1. the server is reachable with the configured credentials
+	if (notifications.whoami) {
+		try {
+			const who = await notifications.whoami();
+			if (who) {
+				checks.push({ id: "server", title: "server", status: "pass", detail: shown(who.target), problems: [] });
+			} else {
+				failed("server", "server", "no server configured (the provider's whoami has nothing to check)");
+			}
+		} catch (err) {
+			failed("server", "server", describeProviderError(err));
+		}
+	} else if (found) {
+		checks.push({
+			id: "server",
+			title: "server",
+			status: "pass",
+			detail: "readable (the provider has no whoami)",
+			problems: [],
+		});
+	} else {
+		failed("server", "server", readError);
 	}
 
 	const declaredChannels = (layout.categories ?? []).flatMap((cat) =>
@@ -167,7 +189,8 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 				);
 				continue;
 			}
-			if (channel.topic !== undefined && (match.topic ?? "") !== channel.topic) {
+			// An empty topic means "unspecified": setup does not send one, so it cannot be made to match.
+			if (channel.topic && (match.topic ?? "") !== channel.topic) {
 				channelProblems.push(
 					`#${shown(channel.name)}: topic is "${shown(match.topic ?? "")}" but the layout says "${shown(channel.topic)}"`
 				);
@@ -191,6 +214,10 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 			const { match } = pick(channel.name, cat);
 			if (!match) {
 				webhookProblems.push(`#${shown(channel.name)}: no channel to hold the webhook`);
+			} else if (match.webhooksError) {
+				webhookProblems.push(
+					`#${shown(channel.name)}: could not list its webhooks (${shown(match.webhooksError)})`
+				);
 			} else if (!match.webhooks.some((w) => same(w, name))) {
 				webhookProblems.push(`#${shown(channel.name)}: no webhook named ${shown(name)}`);
 			}
@@ -205,7 +232,10 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 		// 6. roles exist and are mentionable as declared
 		const roles = layout.roles ?? [];
 		const roleProblems: string[] = [];
-		for (const role of roles) {
+		if (inspected.rolesError) {
+			roleProblems.push(`could not read the roles (${shown(inspected.rolesError)})`);
+		}
+		for (const role of inspected.rolesError ? [] : roles) {
 			const actual = inspected.roles.find((r) => same(r.name, role.name));
 			if (!actual) {
 				roleProblems.push(`${shown(role.name)}: missing`);
@@ -248,10 +278,15 @@ export async function runNotificationsVerify(input: RunNotificationsVerifyInput)
 				const have = new Set(
 					(await (loader.get("secrets") as Secrets).listSecrets(scope)).map((n) => n.toUpperCase())
 				);
+				// A layout whose names collide cannot be provisioned (setup refuses it), so it cannot pass here either.
+				const clash = layoutSecretProblem(layout);
 				add(
 					"secrets",
 					"secrets",
-					wanted.filter((n) => !have.has(n.toUpperCase())).map((n) => `${shown(n)}: missing`),
+					[
+						...(clash ? [shown(clash)] : []),
+						...wanted.filter((n) => !have.has(n.toUpperCase())).map((n) => `${shown(n)}: missing`),
+					],
 					`${wanted.length} of ${wanted.length} exist`
 				);
 			} catch (err) {

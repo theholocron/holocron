@@ -26,16 +26,16 @@ Not built yet (each fails until it lands, see #1098):
 
 ## What each step checks
 
-| Step         | Passes when                                                                                                         |
-| ------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `server`     | the bot token is valid and the bot can see the configured server                                                    |
-| `categories` | every declared category exists                                                                                      |
-| `channels`   | every declared channel exists under its declared category, with the declared topic                                  |
-| `webhooks`   | every channel that declares a webhook has one, by name                                                              |
-| `roles`      | every declared role exists, and its `mentionable` flag matches when the layout states one                           |
-| `secrets`    | every secret the layout fills (webhook URLs, role ids) exists at the target scope; names compare case-insensitively |
+| Step         | Passes when                                                                                                                                                               |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`     | the bot token is valid and the bot can see the configured server (a provider with no `whoami` passes if the server can be read)                                           |
+| `categories` | every declared category exists                                                                                                                                            |
+| `channels`   | every declared channel exists under its declared category, with the declared topic                                                                                        |
+| `webhooks`   | every channel that declares a webhook has one, by name; a channel whose webhooks could not be listed is reported on its own line                                          |
+| `roles`      | every declared role exists, and its `mentionable` flag matches when the layout states one; roles are not read at all when the layout declares none                        |
+| `secrets`    | every secret the layout fills (webhook URLs, role ids) exists at the target scope (names compare case-insensitively) and no two entries collide, the rule `setup` refuses |
 
-When the server cannot be read, the steps that depend on it are reported as "not checked" and the reason is printed once.
+When the server cannot be read, the steps that depend on it are reported as "not checked" and the reason is printed once. One failing read (a channel's webhook list, or the roles) is reported on that step and does not discard what was read elsewhere. A provider only needs to be able to read (`inspect`); it does not have to provision. An empty `topic` in the layout means "unspecified", as it does for `setup`.
 
 ## Features that are not built yet
 
