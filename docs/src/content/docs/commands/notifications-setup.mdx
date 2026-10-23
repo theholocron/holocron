@@ -36,6 +36,8 @@ providers: {
 
 A role can carry a `secret` too (`roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }]`): the command stores the role's id there, so a workflow can ping the role without anyone copying the id by hand. The id is not sensitive; it is a secret only because the token that writes the webhook secrets can write it too.
 
+A role can also declare how it looks and what it may do: `color` (`#rrggbb`), `hoist` (show its members as their own group in the member list) and `permissions` (the provider's own names, for Discord `ViewChannel`, `SendMessages` and so on). The permission list is exact: a permission not named is not granted. Only what the layout states is compared and changed, and the bot can only grant permissions it holds itself.
+
 `webhook: true` stores the URL in `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>`; `webhook: { name, secret }` overrides the webhook name and the secret name. The command prints each role's id, which is what a workflow needs to ping it.
 
 :::caution
@@ -64,4 +66,4 @@ Run [`holocron doctor notifications`](/holocron/commands/doctor-notifications/) 
 
 The `platform.notifyCheck` task is a manual workflow (`workflow_dispatch`) that posts one labelled test message to every notification channel, using the real org secrets, and fails the job for any channel whose webhook is missing or rejects the post. A red job names the channel to fix, and one channel failing does not hide the others. The `alerts` message pings the role from `HOLOCRON_NOTIFY_ALERT_ROLE` when it is set. Run it from the Actions tab once the org's `theholocron/.github` has the reusable workflow. Each channel names its own webhook secret (`channels` is a JSON array of `{ name, secret, mention }`), so layouts with custom secret names are checked correctly, and a channel marked `mention` fails if the role id is missing or malformed. Whether Discord lets that role be mentioned is a server-side fact the workflow cannot see; `holocron doctor notifications` (#1098) checks it.
 
-- **An existing role must match.** If a role in the layout already exists with a different `mentionable` setting, the step fails rather than reporting "exists": an alert role nobody can mention would make every ping silently do nothing. Updating existing roles through the API is tracked in #1098; until then, change it in Discord.
+- **An existing role is brought into line.** If a role already exists with a different `mentionable`, `color`, `hoist` or `permissions`, `setup` changes just the fields that differ and prints `updated role … : colour, hoist`. A role that already matches is left alone. Discord only lets a bot edit roles below its own highest role, so keep the bot's role above the ones it manages.

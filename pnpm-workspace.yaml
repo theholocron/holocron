@@ -51,7 +51,7 @@ catalogs:
     "@theholocron/checkly-client": ^1.43.1
     "@theholocron/clerk-client": ^1.43.1
     "@theholocron/cloudflare-client": ^1.43.1
-    "@theholocron/discord-client": ^1.43.1
+    "@theholocron/discord-client": ^1.44.0
     "@theholocron/doppler-client": ^1.43.1
     "@theholocron/github-client": ^1.43.1
     "@theholocron/http-client": ^1.43.1

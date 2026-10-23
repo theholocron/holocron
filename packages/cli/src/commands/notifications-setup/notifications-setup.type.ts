@@ -21,6 +21,8 @@ export interface RoleOutcome {
 	/** Not a secret; needed e.g. to ping the role from a workflow. */
 	id?: string;
 	created: boolean;
+	/** Settings of an existing role that disagreed with the layout and were changed. */
+	updated?: string[];
 	/** The secret the id was stored in, when the layout asked for one. */
 	secret?: string;
 	stored?: boolean;

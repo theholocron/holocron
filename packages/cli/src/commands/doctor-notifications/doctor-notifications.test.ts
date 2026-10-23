@@ -121,14 +121,14 @@ function setup(
 }
 
 const byId = (r: Awaited<ReturnType<typeof runDoctorNotifications>>, id: string) => r.checks.find((c) => c.id === id)!;
-const REAL = ["server", "categories", "channels", "webhooks", "roles", "secrets"];
+const REAL = ["server", "categories", "channels", "webhooks", "roles", "role-appearance", "secrets"];
 
 describe("runDoctorNotifications — a server that matches the layout", () => {
 	it("passes every built check, and still fails because the unbuilt features are listed as failing", async () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 6, fail: PLANNED_CHECKS.length, skip: 0 });
+		expect(report.summary).toEqual({ pass: 7, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
@@ -141,7 +141,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("6 ok, 0 fail, 9 skipped");
+		expect(lines.join("\n")).toContain("7 ok, 0 fail, 8 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -156,7 +156,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("✗ channel and category permissions set");
 		expect(out).toContain("not built yet (#1098, step 8)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("6 ok, 9 fail, 0 skipped");
+		expect(out).toContain("7 ok, 8 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -491,8 +491,9 @@ describe("runDoctorNotifications — output and logs", () => {
 });
 
 describe("PLANNED_CHECKS", () => {
-	it("numbers the steps 8..16 in order, matching the table in #1098, with no duplicates", () => {
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16]);
+	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
+		// 9 (role colour, hoist and permissions) is built, so it is a real check and not listed here.
+		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([8, 10, 11, 12, 13, 14, 15, 16]);
 		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
 	});
 });
@@ -633,7 +634,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 5, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 6, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -646,6 +647,81 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 			const report = await run();
 			expect(byId(report, "server").detail).toBe("nope [2J FAKE ROW");
 			expect(lines.join("\n").includes("\u001b")).toBe(false);
+		});
+	});
+});
+
+describe("runDoctorNotifications — role colour, hoist and permissions", () => {
+	const STYLED: NotificationsLayout = {
+		roles: [
+			{
+				name: "gatekeepers",
+				color: "#F0B232",
+				hoist: true,
+				permissions: ["ViewChannel", "SendMessages"],
+			},
+		],
+	};
+	const found = (role: Partial<ServerInspection["roles"][number]>): ServerInspection => ({
+		categories: [],
+		channels: [],
+		roles: [{ name: "gatekeepers", id: "99", mentionable: false, ...role }],
+	});
+	const run = (inspection: ServerInspection) =>
+		setup(fakeNotifications({ layout: STYLED, found: inspection }), { secretNames: [] }).run();
+
+	it("passes when colour, hoist and permissions all match (colour case-insensitively, permissions in any order)", async () => {
+		const report = await run(
+			found({ color: "#f0b232", hoist: true, permissions: ["SendMessages", "ViewChannel"] })
+		);
+		expect(byId(report, "role-appearance")).toMatchObject({ status: "pass", detail: "1 of 1 as declared" });
+	});
+
+	it("names each thing that is different", async () => {
+		const report = await run(found({ permissions: ["ViewChannel", "ManageMessages"] }));
+		const check = byId(report, "role-appearance");
+		expect(check.status).toBe("fail");
+		expect(check.problems).toEqual([
+			"gatekeepers: colour is default but the layout says #F0B232",
+			"gatekeepers: hoist is false but the layout says true",
+			"gatekeepers: missing permissions SendMessages",
+			"gatekeepers: has extra permissions ManageMessages",
+		]);
+	});
+
+	it("says what colour and hoist it found when they are set", async () => {
+		const report = await run(found({ color: "#000001", hoist: false, permissions: [] }));
+		expect(byId(report, "role-appearance").problems[0]).toBe(
+			"gatekeepers: colour is #000001 but the layout says #F0B232"
+		);
+	});
+
+	it("does not repeat a missing role: the roles check already says so", async () => {
+		const report = await run({ categories: [], channels: [], roles: [] });
+		expect(byId(report, "roles").status).toBe("fail");
+		expect(byId(report, "role-appearance").status).toBe("pass");
+	});
+
+	it("is not checked when the roles could not be read", async () => {
+		const report = await run({ categories: [], channels: [], roles: [], rolesError: "403" });
+		expect(byId(report, "role-appearance").problems).toEqual(["not checked: could not read the roles"]);
+	});
+
+	it("passes with 'none declared' when the layout states no appearance", async () => {
+		const report = await setup(fakeNotifications()).run();
+		expect(byId(report, "role-appearance")).toMatchObject({ status: "pass", detail: "none declared" });
+	});
+
+	it("fails with the others when the server cannot be read", async () => {
+		const n = fakeNotifications({
+			inspect: vi.fn(async () => {
+				throw new Error("down");
+			}),
+		});
+		const report = await setup(n).run();
+		expect(byId(report, "role-appearance")).toMatchObject({
+			status: "fail",
+			detail: "not checked: could not read the server",
 		});
 	});
 });

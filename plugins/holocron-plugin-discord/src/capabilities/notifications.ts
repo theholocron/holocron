@@ -13,8 +13,23 @@ import {
 	type DiscordBotClient,
 	type DiscordChannel,
 	type DiscordClient,
+	type ModifyRoleInput,
 	parseWebhookUrl,
+	type PermissionName,
+	permissionNames,
+	permissions,
 } from "../rest.js";
+
+/** `#rrggbb` to Discord's integer colour. */
+function colorToInt(hex: string): number {
+	if (!/^#[0-9a-fA-F]{6}$/.test(hex)) throw new Error(`invalid colour ${JSON.stringify(hex)}: use #rrggbb`);
+	return Number.parseInt(hex.slice(1), 16);
+}
+
+/** Discord's integer colour to `#rrggbb`; 0 is the default (no colour). */
+function colorToHex(color: number): string | undefined {
+	return color === 0 ? undefined : `#${color.toString(16).padStart(6, "0")}`;
+}
 
 /** An error as one line: the message, plus Discord's own response body when there is one. */
 function reason(err: unknown): string {
@@ -129,11 +144,17 @@ export class DiscordNotifications implements Notifications {
 		let rolesError: string | undefined;
 		if ((layout.roles ?? []).length > 0) {
 			try {
-				roles = (await bot.guilds.roles(this.guild())).map((r) => ({
-					name: r.name,
-					id: r.id,
-					mentionable: r.mentionable,
-				}));
+				roles = (await bot.guilds.roles(this.guild())).map((r) => {
+					const color = colorToHex(r.color);
+					return {
+						name: r.name,
+						id: r.id,
+						mentionable: r.mentionable,
+						...(color ? { color } : {}),
+						...(r.hoist !== undefined ? { hoist: r.hoist } : {}),
+						...(r.permissions !== undefined ? { permissions: permissionNames(r.permissions) } : {}),
+					};
+				});
 			} catch (err) {
 				rolesError = reason(err);
 			}
@@ -277,26 +298,49 @@ export class DiscordNotifications implements Notifications {
 		return { created: true, ...(made.url ? { url: made.url } : {}) };
 	}
 
-	async ensureRole(input: { name: string; mentionable?: boolean }): Promise<EnsuredResource> {
+	async ensureRole(input: {
+		name: string;
+		mentionable?: boolean;
+		color?: string;
+		hoist?: boolean;
+		permissions?: string[];
+	}): Promise<EnsuredResource> {
 		const bot = this.bot();
+		// Validate the declared values before touching anything.
+		const color = input.color !== undefined ? colorToInt(input.color) : undefined;
+		const wanted = input.permissions !== undefined ? permissions(input.permissions as PermissionName[]) : undefined;
 		const existing = (await bot.guilds.roles(this.guild())).find((r) =>
 			DiscordNotifications.same(r.name, input.name)
 		);
 		if (existing) {
-			// We cannot edit a role yet (no role-modify call in the client, tracked in #1098), so a role
-			// that disagrees with the layout is a failure, not something to report as "exists" and ignore:
-			// an unmentionable alert role makes every ping silently do nothing.
+			// Change only what disagrees, so a run on a server that already matches sends nothing.
+			const patch: ModifyRoleInput = {};
+			const updated: string[] = [];
 			if (input.mentionable !== undefined && existing.mentionable !== input.mentionable) {
-				throw new Error(
-					`role \`${input.name}\` exists with mentionable=${existing.mentionable} but the layout wants ${input.mentionable}; ` +
-						"updating an existing role is not supported yet — change it in Discord (Role → Allow anyone to @mention this role)"
-				);
+				patch.mentionable = input.mentionable;
+				updated.push("mentionable");
 			}
-			return { id: existing.id, created: false };
+			if (color !== undefined && existing.color !== color) {
+				patch.color = color;
+				updated.push("colour");
+			}
+			if (input.hoist !== undefined && (existing.hoist ?? false) !== input.hoist) {
+				patch.hoist = input.hoist;
+				updated.push("hoist");
+			}
+			if (wanted !== undefined && existing.permissions !== wanted) {
+				patch.permissions = wanted;
+				updated.push("permissions");
+			}
+			if (updated.length > 0) await bot.guilds.modifyRole(this.guild(), existing.id, patch);
+			return { id: existing.id, created: false, ...(updated.length > 0 ? { updated } : {}) };
 		}
 		const made = await bot.guilds.createRole(this.guild(), {
 			name: input.name,
 			...(input.mentionable !== undefined ? { mentionable: input.mentionable } : {}),
+			...(color !== undefined ? { color } : {}),
+			...(input.hoist !== undefined ? { hoist: input.hoist } : {}),
+			...(wanted !== undefined ? { permissions: wanted } : {}),
 		});
 		return { id: made.id, created: true };
 	}

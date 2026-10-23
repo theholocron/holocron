@@ -518,31 +518,120 @@ describe("DiscordNotifications — channel list under failure and concurrency", 
 });
 
 describe("DiscordNotifications.ensureRole — an existing role that disagrees", () => {
-	const role = (mentionable: boolean) => ({ id: "4001", name: "gatekeepers", color: 0, mentionable });
-
-	it("fails when the role exists but is not mentionable and the layout wants it mentionable", async () => {
-		const { notifs, calls } = makeProvisioner([{ body: [role(false)] }]);
-		await expect(notifs.ensureRole({ name: "gatekeepers", mentionable: true })).rejects.toThrow(
-			/exists with mentionable=false but the layout wants true.*not supported yet/
-		);
-		expect(calls).toHaveLength(1);
+	const role = (over: Record<string, unknown> = {}) => ({
+		id: "4001",
+		name: "gatekeepers",
+		color: 0,
+		mentionable: false,
+		hoist: false,
+		permissions: "0",
+		...over,
 	});
 
-	it("fails the other way round too", async () => {
-		const { notifs } = makeProvisioner([{ body: [role(true)] }]);
-		await expect(notifs.ensureRole({ name: "gatekeepers", mentionable: false })).rejects.toThrow(
-			/mentionable=true but the layout wants false/
-		);
-	});
-
-	it("accepts an existing role that already matches, or when the layout does not say", async () => {
-		const match = makeProvisioner([{ body: [role(true)] }]);
-		expect(await match.notifs.ensureRole({ name: "gatekeepers", mentionable: true })).toEqual({
+	it("fixes a mentionable flag that disagrees, sending only that field", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [role()] }, { body: role({ mentionable: true }) }]);
+		expect(await notifs.ensureRole({ name: "gatekeepers", mentionable: true })).toEqual({
 			id: "4001",
 			created: false,
+			updated: ["mentionable"],
 		});
-		const silent = makeProvisioner([{ body: [role(false)] }]);
+		expect(calls.map((c) => c.method)).toEqual(["GET", "PATCH"]);
+		expect(calls[1]?.url).toBe(`${BASE}/guilds/${GUILD}/roles/4001`);
+		expect(calls[1]?.body).toEqual({ mentionable: true });
+	});
+
+	it("fixes colour, hoist and permissions together", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [role()] }, { body: role() }]);
+		const out = await notifs.ensureRole({
+			name: "gatekeepers",
+			color: "#f0b232",
+			hoist: true,
+			permissions: ["ViewChannel", "SendMessages"],
+		});
+		expect(out.updated).toEqual(["colour", "hoist", "permissions"]);
+		expect(calls[1]?.body).toEqual({ color: 0xf0b232, hoist: true, permissions: "3072" });
+	});
+
+	it("sends nothing when the role already matches, or when the layout does not say", async () => {
+		const match = makeProvisioner([
+			{ body: [role({ mentionable: true, color: 0xf0b232, hoist: true, permissions: "3072" })] },
+		]);
+		expect(
+			await match.notifs.ensureRole({
+				name: "gatekeepers",
+				mentionable: true,
+				color: "#F0B232",
+				hoist: true,
+				permissions: ["ViewChannel", "SendMessages"],
+			})
+		).toEqual({ id: "4001", created: false });
+		expect(match.calls).toHaveLength(1);
+		const silent = makeProvisioner([{ body: [role()] }]);
 		expect(await silent.notifs.ensureRole({ name: "gatekeepers" })).toEqual({ id: "4001", created: false });
+	});
+
+	it("treats a role with no hoist flag as not hoisted", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [{ id: "4001", name: "gatekeepers", color: 0, mentionable: false }] },
+		]);
+		expect(await notifs.ensureRole({ name: "gatekeepers", hoist: false })).toEqual({ id: "4001", created: false });
+	});
+
+	it("creates a missing role with its colour, hoist and permissions", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: role({ id: "4002" }) }]);
+		expect(
+			await notifs.ensureRole({
+				name: "gatekeepers",
+				color: "#000001",
+				hoist: true,
+				permissions: ["ViewChannel"],
+			})
+		).toEqual({ id: "4002", created: true });
+		expect(calls[1]?.body).toMatchObject({ name: "gatekeepers", color: 1, hoist: true, permissions: "1024" });
+	});
+
+	it("rejects a bad colour or permission name before touching the server", async () => {
+		const colour = makeProvisioner([]);
+		await expect(colour.notifs.ensureRole({ name: "x", color: "red" })).rejects.toThrow(/use #rrggbb/);
+		const perm = makeProvisioner([]);
+		await expect(perm.notifs.ensureRole({ name: "x", permissions: ["Nope"] })).rejects.toThrow(
+			/unknown Discord permission/
+		);
+		expect(colour.calls).toHaveLength(0);
+		expect(perm.calls).toHaveLength(0);
+	});
+});
+
+describe("DiscordNotifications.inspect — role appearance", () => {
+	it("reports a role's colour as #rrggbb, its hoist, and its permissions by name", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [] },
+			{
+				body: [
+					{
+						id: "4001",
+						name: "gatekeepers",
+						color: 0xf0b232,
+						mentionable: true,
+						hoist: true,
+						permissions: "3072",
+					},
+					{ id: "4002", name: "plain", color: 0, mentionable: false },
+				],
+			},
+		]);
+		const found = await notifs.inspect({ roles: [{ name: "gatekeepers" }, { name: "plain" }] });
+		expect(found.roles).toEqual([
+			{
+				name: "gatekeepers",
+				id: "4001",
+				mentionable: true,
+				color: "#f0b232",
+				hoist: true,
+				permissions: ["ViewChannel", "SendMessages"],
+			},
+			{ name: "plain", id: "4002", mentionable: false },
+		]);
 	});
 });
 
