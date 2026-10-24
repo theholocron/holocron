@@ -86,6 +86,21 @@ export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
 /** Shorthand `"slug"` defaults to `push` permission. */
 export type TeamEntry = string | { slug: string; permission: TeamPermission };
 
+/** A member of a team, as {@link Source.teamMembers} reports it. */
+export interface SourceTeamMember {
+	/** The provider's stable id for the person; for GitHub, the numeric user id as a string. */
+	id: string;
+	/** What they are called now. Can change; never use it as a key. */
+	login: string;
+}
+
+/** A file read by {@link Source.readFile}. */
+export interface SourceFile {
+	content: string;
+	/** Opaque; hand it back to {@link Source.writeFile} to replace this exact version. */
+	version: string;
+}
+
 export interface Source extends ProviderIdentity {
 	readonly key: "source";
 
@@ -177,6 +192,32 @@ export interface Source extends ProviderIdentity {
 	 * Optional — providers without a team concept omit this.
 	 */
 	syncTeams?(teams: TeamEntry[]): Promise<string>;
+
+	/**
+	 * The members of a team in `org` (default: the repo's organisation), by the provider's own stable id (for GitHub, the
+	 * numeric user id, which survives a rename) and current login.
+	 * Optional — providers without a team concept omit this.
+	 */
+	teamMembers?(teamSlug: string, org?: string): Promise<SourceTeamMember[]>;
+
+	/**
+	 * Read one file from a repository (default: this one), with the `version` a later {@link writeFile} must
+	 * hand back. `null` when the file does not exist.
+	 * Optional — providers that cannot read file contents omit this.
+	 */
+	readFile?(path: string, repo?: string): Promise<SourceFile | null>;
+
+	/**
+	 * Create or replace one file in a single commit. Pass the `version` {@link readFile} returned when
+	 * replacing, and leave it out when creating: a write on top of a version that has since changed is
+	 * refused (throws a `ProviderApiError` with status 409 or 422), so two writers cannot overwrite each other.
+	 * Optional — providers that cannot write file contents omit this.
+	 */
+	writeFile?(
+		path: string,
+		content: string,
+		opts: { message: string; version?: string; repo?: string }
+	): Promise<void>;
 
 	/**
 	 * Set the repository description.
@@ -1065,6 +1106,16 @@ export interface NotificationsApplicationLayout {
 	privacyUrl?: string;
 	/** `https://` link the provider calls to verify linked roles. */
 	roleConnectionsUrl?: string;
+	/**
+	 * Privileged intents the bot needs. `members` lets it list who is in the server, which `sync-roles` needs to
+	 * find who holds a role. `true` switches it on from code; `false` switches it off.
+	 */
+	intents?: { members?: boolean };
+	/**
+	 * OAuth2 redirect URIs that must be registered, for `notifications link`. The provider's API does not allow
+	 * setting them, so these are only checked: `setup` and the doctor say what to add and where.
+	 */
+	redirectUris?: string[];
 }
 
 /**
@@ -1078,8 +1129,26 @@ export interface NotificationsEveryoneLayout {
 	deny?: string[];
 }
 
+/** Where the person-to-member links live: one file in a repo, written by the sign-in flow and read by `sync-roles`. */
+export interface NotificationsLinksLayout {
+	/**
+	 * The base URL of the hosted sign-in service (Sentinel), for example `https://sentinel.theholocron.dev`.
+	 * `notifications link` asks it for `/api/link`; when it answers, sign-in happens there, and when it does not
+	 * (down, out of quota, no route yet) the command signs in on this machine instead.
+	 */
+	hostedUrl?: string;
+	/** The port the local sign-in listens on, which must be registered as `http://localhost:<port>/callback`. Defaults to 53682. */
+	localPort?: number;
+	/** `owner/name`. Defaults to `<org>/.github-private`. Keep it private: the file pairs two identities. */
+	repo?: string;
+	/** Defaults to `notifications/<provider>-links.json`. */
+	path?: string;
+}
+
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
+	/** Where `sync-roles` finds which server member is which GitHub account. Only used by roles with a `team`. */
+	links?: NotificationsLinksLayout;
 	/** The bot's own application settings, applied with the server's. */
 	application?: NotificationsApplicationLayout;
 	/** What everyone on the server may do, applied with the server's settings. */
@@ -1109,6 +1178,12 @@ export interface NotificationsLayout {
 		 * `SendMessages`, …). The list is exact: a permission not named is not granted.
 		 */
 		permissions?: string[];
+		/**
+		 * Keep this role's members equal to a team of the `source` provider (for GitHub, a team slug in
+		 * the org): `holocron notifications sync-roles` gives the role to every team member who has linked
+		 * their account, and takes it from linked people who have left the team.
+		 */
+		team?: string;
 		/**
 		 * Store the role's id in this secret, so a workflow can ping the role
 		 * without anyone copying the id by hand. The id is not sensitive; a secret
@@ -1178,6 +1253,30 @@ export interface ServerInspection {
 	rolesError?: string;
 }
 
+/** Who a member turned out to be after signing in with the provider. */
+export interface NotificationsSignedIn {
+	/** Their id on the provider; for Discord, the user id. */
+	member: string;
+	name?: string;
+	/** The GitHub account the provider has verified they own; absent when they have none linked. */
+	github?: { id: string; login: string };
+}
+
+/** The provider's "sign in" half: build the page a member opens, then learn who they are from the code it sends back. */
+export interface NotificationsSignIn {
+	authorizeUrl(input: { redirectUri: string; state: string }): Promise<string>;
+	/** Trades the one-use `code` for who they are, and discards the token it was given. */
+	complete(input: { redirectUri: string; code: string }): Promise<NotificationsSignedIn>;
+}
+
+/** A member of the server, as {@link Notifications.roleMembers} reports it. */
+export interface NotificationsMember {
+	/** The provider's id for them; for Discord, the user id. */
+	id: string;
+	/** A display name for reports; absent when the provider does not give one. */
+	name?: string;
+}
+
 export interface Notifications extends ProviderIdentity {
 	readonly key: "notifications";
 
@@ -1212,6 +1311,21 @@ export interface Notifications extends ProviderIdentity {
 		/** An image as a `data:` URI, set when the webhook has none. */
 		avatar?: string;
 	}): Promise<EnsureWebhookResult>;
+	/**
+	 * Who holds a role, by the provider's member id. Needs whatever permission the provider asks for to list
+	 * members (for Discord, the privileged Server Members Intent). Throws if the role does not exist.
+	 */
+	roleMembers?(roleName: string): Promise<NotificationsMember[]>;
+
+	/** Give a member the role; one who has it already is left alone. */
+	addRoleMember?(roleName: string, memberId: string): Promise<void>;
+
+	/** Take the role from a member; one who lacks it is left alone. */
+	removeRoleMember?(roleName: string, memberId: string): Promise<void>;
+
+	/** Sign-in used to learn which GitHub account a member is. Optional; needs an OAuth client secret. */
+	signIn?(): NotificationsSignIn;
+
 	ensureRole?(input: {
 		name: string;
 		mentionable?: boolean;
@@ -1233,7 +1347,7 @@ export interface Notifications extends ProviderIdentity {
 	ensureOnboarding?(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }>;
 
 	/** Bring the bot's application settings in line with the layout, changing only what differs. Returns what it changed. */
-	ensureApplication?(application: NotificationsApplicationLayout): Promise<{ updated: string[] }>;
+	ensureApplication?(application: NotificationsApplicationLayout): Promise<{ updated: string[]; todo?: string[] }>;
 
 	/** Grant or take away the named permissions from everyone, changing only what differs. Returns what it changed. */
 	ensureEveryone?(everyone: NotificationsEveryoneLayout): Promise<{ updated: string[] }>;

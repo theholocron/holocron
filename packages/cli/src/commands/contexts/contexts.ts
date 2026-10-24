@@ -47,6 +47,8 @@ export const COMMAND_CONTEXTS = {
 	"secrets sync": "workspace",
 	"notifications channel add": "workspace",
 	"notifications setup": "workspace",
+	"notifications link": "workspace",
+	"notifications sync-roles": "workspace",
 	"doctor notifications": "workspace",
 	deploy: "workspace",
 	"deploy cleanup-preview": "workspace",

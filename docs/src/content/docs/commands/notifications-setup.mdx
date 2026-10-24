@@ -36,6 +36,8 @@ providers: {
 
 A role can carry a `secret` too (`roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }]`): the command stores the role's id there, so a workflow can ping the role without anyone copying the id by hand. The id is not sensitive; it is a secret only because the token that writes the webhook secrets can write it too.
 
+A role can follow a GitHub team with `team: "<slug>"`: [`holocron notifications sync-roles`](/holocron/commands/notifications-sync-roles/) then gives it to every team member who has linked their account and takes it from linked people who have left. `setup` only creates the role; the membership is that command's job.
+
 A role can also declare how it looks and what it may do: `color` (`#rrggbb`), `hoist` (show its members as their own group in the member list) and `permissions` (the provider's own names, for Discord `ViewChannel`, `SendMessages` and so on). The permission list is exact: a permission not named is not granted. Only what the layout states is compared and changed, and the bot can only grant permissions it holds itself.
 
 A category or channel can declare who may see it and post in it with `access`:
@@ -143,9 +145,13 @@ application: {
   termsUrl: "https://…",
   privacyUrl: "https://…",
   roleConnectionsUrl: "https://…",
+  intents: { members: true },             // the Server Members Intent, switched on from code
+  redirectUris: ["http://localhost:53682/callback"], // checked only: the API cannot set them
 },
 everyone: { deny: ["MentionEveryone"] },  // only the bits named change
 ```
+
+`intents.members` switches the Server Members Intent on or off. It is the toggle the portal shows for an app Discord has not verified (`GATEWAY_GUILD_MEMBERS_LIMITED`), and it is what lets `sync-roles` list who holds a role. `redirectUris` is the opposite case: Discord accepts a write to it and silently ignores it, so `setup` and the doctor only **check** that each one is registered, and say what to add under **OAuth2 → Redirects** in the developer portal. A missing one fails the run until it is added.
 
 A field left out is left alone. After each write the plugin reads the application back and fails, naming the field, if Discord did not keep it, so a field the API silently ignores shows up as a failure and not a false success. `everyone` never replaces the whole permission set: it adds what `allow` names and removes what `deny` names, and refuses a permission that is in both.
 

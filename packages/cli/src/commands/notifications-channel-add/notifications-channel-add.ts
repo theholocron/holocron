@@ -72,7 +72,11 @@ export async function assertSecretsReachable(secrets: Secrets, scope: SecretScop
 }
 
 /** Why a capability is not loaded: the plugin's own load error when there is one (e.g. a missing token). */
-export function whyMissing(loader: PluginLoader, key: "secrets" | "notifications", fallback: string): string {
+export function whyMissing(
+	loader: PluginLoader,
+	key: "secrets" | "notifications" | "source",
+	fallback: string
+): string {
 	const failure = loader.loadFailures().find((f) => f.key === key);
 	return failure
 		? `${fallback} (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})`

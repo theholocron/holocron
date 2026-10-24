@@ -1,8 +1,15 @@
 import type { Notifications } from "@theholocron/cli";
 
-import { resolveBotToken, resolveToken, type ResolveTokenInput } from "./auth.js";
+import { resolveBotToken, resolveClientSecret, resolveToken, type ResolveTokenInput } from "./auth.js";
 import { DiscordNotifications, type DiscordNotificationsOptions } from "./capabilities/notifications.js";
-import { createDiscordBotClient, createDiscordClient, type DiscordBotClient, type DiscordClient } from "./rest.js";
+import {
+	createDiscordBotClient,
+	createDiscordClient,
+	createDiscordOAuthClient,
+	type DiscordBotClient,
+	type DiscordClient,
+	type DiscordOAuthClient,
+} from "./rest.js";
 
 export interface DiscordPluginOptions extends ResolveTokenInput, DiscordNotificationsOptions {
 	/** Override base URL for tests. Default: https://discord.com/api/v10 */
@@ -26,27 +33,48 @@ export interface PluginContext {
 	defaultWebhookUrl: () => string;
 	/** Memoized — resolves the bot token on the first provisioning call, or when `holocron doctor` checks a provider that has a `guildId`; `send()` and `describe()` never touch it. */
 	bot: () => DiscordBotClient;
+	/** Builds the OAuth client for one redirect URI; resolves the application id and the client secret on first use. */
+	oauth: (redirectUri: string) => Promise<DiscordOAuthClient>;
 }
 
 export function createContext(options: DiscordPluginOptions = {}): PluginContext {
 	let url: string | undefined;
 	let bot: DiscordBotClient | undefined;
+	let applicationId: Promise<string> | undefined;
+	const botClient = () =>
+		(bot ??= createDiscordBotClient({
+			// The bot token is a different credential from the webhook URL in `options.cliToken`.
+			botToken: resolveBotToken({ env: options.env, keyring: options.keyring, org: options.org }),
+			...(options.unsafeBotBaseUrl && options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+			...(options.fetch ? { fetch: options.fetch } : {}),
+		}));
 	return {
 		options,
 		client: createDiscordClient({ baseUrl: options.baseUrl, fetch: options.fetch }),
 		defaultWebhookUrl: () => (url ??= resolveToken(options)),
-		bot: () =>
-			(bot ??= createDiscordBotClient({
-				// The bot token is a different credential from the webhook URL in `options.cliToken`.
-				botToken: resolveBotToken({ env: options.env, keyring: options.keyring, org: options.org }),
+		bot: botClient,
+		oauth: async (redirectUri) => {
+			// The application's id is its OAuth client id, so it is read from the bot's own application.
+			applicationId ??= botClient()
+				.application.get()
+				.then((app) => app.id)
+				.catch((err: unknown) => {
+					applicationId = undefined;
+					throw err;
+				});
+			return createDiscordOAuthClient({
+				clientId: await applicationId,
+				clientSecret: resolveClientSecret({ env: options.env, keyring: options.keyring, org: options.org }),
+				redirectUri,
 				...(options.unsafeBotBaseUrl && options.baseUrl ? { baseUrl: options.baseUrl } : {}),
 				...(options.fetch ? { fetch: options.fetch } : {}),
-			})),
+			});
+		},
 	};
 }
 
 export function notifications(ctx: PluginContext): Notifications {
-	return new DiscordNotifications(ctx.client, ctx.options, ctx.defaultWebhookUrl, ctx.bot);
+	return new DiscordNotifications(ctx.client, ctx.options, ctx.defaultWebhookUrl, ctx.bot, ctx.oauth);
 }
 
 export function createPlugin(options: DiscordPluginOptions = {}) {

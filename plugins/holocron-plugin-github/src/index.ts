@@ -19,6 +19,7 @@ import {
 	resolveReadToken,
 	resolveSecretsToken,
 	type ResolveTokenInput,
+	resolveUserSyncToken,
 } from "./auth.js";
 import { GitHubCi } from "./capabilities/ci.js";
 import { GitHubEnvironments } from "./capabilities/environments.js";
@@ -49,11 +50,12 @@ export interface PluginContext {
 
 // ── Capability factories ──────────────────────────────────────────────
 
-export function source(ctx: PluginContext, orgClient?: GitHubClient): Source {
+export function source(ctx: PluginContext, orgClient?: GitHubClient, userSyncClient?: GitHubClient): Source {
 	return new GitHubSource(ctx.client, {
 		repo: ctx.repo,
 		repoRoot: ctx.repoRoot,
 		orgClient,
+		userSyncClient,
 		baseUrl: ctx.options.baseUrl,
 		fetch: ctx.options.fetch,
 	});
@@ -135,10 +137,16 @@ export function createPlugin(options: GitHubPluginOptions) {
 		}
 	}
 
+	/** The token for the user-sync files; undefined when it is not configured, and the org token is used instead. */
+	function makeUserSyncClient(): GitHubClient | undefined {
+		const token = tryResolve(resolveUserSyncToken);
+		return token ? createGitHubClient({ token, baseUrl: options.baseUrl, fetch: options.fetch }) : undefined;
+	}
+
 	return {
 		name: "@theholocron/holocron-plugin-github",
 		capabilities: {
-			source: () => source(makeCtx(resolveAdminToken), makeOrgClient()),
+			source: () => source(makeCtx(resolveAdminToken), makeOrgClient(), makeUserSyncClient()),
 			ci: () => ci(makeCtx(resolveReadToken)),
 			secrets: () => makeSecrets(),
 			environments: () => environments(makeCtx(resolveAdminToken)),

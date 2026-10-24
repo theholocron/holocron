@@ -448,3 +448,137 @@ describe("GitHubSource — workflow files (local fs)", () => {
 		await expect(source.removeWorkflowFile("lint.yml")).rejects.toThrow();
 	});
 });
+
+describe("GitHubSource — team members and files", () => {
+	it("teamMembers maps GitHub's members to string ids and logins", async () => {
+		const { source, calls } = makeSource([{ body: [{ id: 5, login: "luke", type: "User" }] }]);
+		expect(await source.teamMembers("gatekeepers")).toEqual([{ id: "5", login: "luke" }]);
+		expect(calls[0]?.url).toContain("/orgs/theholocron/teams/gatekeepers/members");
+	});
+
+	it("readFile decodes the content and returns the sha as the version", async () => {
+		const { source, calls } = makeSource([
+			{
+				body: {
+					content: Buffer.from("hello ✓").toString("base64"),
+					encoding: "base64",
+					sha: "abc",
+					name: "a",
+					path: "a",
+				},
+			},
+		]);
+		expect(await source.readFile("notifications/x.json", "theholocron/.github-private")).toEqual({
+			content: "hello ✓",
+			version: "abc",
+		});
+		expect(calls[0]?.url).toContain("/repos/theholocron/.github-private/contents/notifications/x.json");
+	});
+
+	it("readFile reads this repo by default and returns null for a file that does not exist", async () => {
+		const { source, calls } = makeSource([
+			{ status: 404, body: { message: "Not Found" } },
+			{ body: { full_name: "theholocron/holocron" } },
+		]);
+		expect(await source.readFile("x.json")).toBeNull();
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/contents/x.json");
+	});
+
+	it("readFile and writeFile use the user-sync client first, then the org client, then the repo client", async () => {
+		const tokens: string[] = [];
+		const client = (token: string) =>
+			createGitHubClient({
+				token,
+				fetch: (async (_url: string, init?: RequestInit) => {
+					tokens.push(new Headers(init?.headers).get("authorization") ?? "");
+					return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+				}) as unknown as typeof fetch,
+			});
+		const make = (over: { org?: boolean; sync?: boolean }) =>
+			new GitHubSource(client("repo"), {
+				repo: REPO,
+				repoRoot: process.cwd(),
+				...(over.org ? { orgClient: client("org") } : {}),
+				...(over.sync ? { userSyncClient: client("sync") } : {}),
+			});
+		for (const [over, expected] of [
+			[{ org: true, sync: true }, "sync"],
+			[{ org: true }, "org"],
+			[{}, "repo"],
+		] as const) {
+			tokens.length = 0;
+			await make(over)
+				.readFile("x.json", "theholocron/.github-private")
+				.catch(() => undefined);
+			await make(over)
+				.writeFile("x.json", "{}", { message: "m", repo: "theholocron/.github-private" })
+				.catch(() => undefined);
+			expect(tokens.length).toBeGreaterThan(0);
+			expect(new Set(tokens)).toEqual(new Set([expect.stringContaining(expected)]));
+		}
+	});
+
+	it("readFile and writeFile say which token permission is missing on a 403", async () => {
+		const read = makeSource([{ status: 403, body: {} }]);
+		await expect(read.source.readFile("x.json", "theholocron/.github-private")).rejects.toThrow(
+			/cannot read files in theholocron\/\.github-private.*Contents: read/
+		);
+		const write = makeSource([{ status: 403, body: {} }]);
+		await expect(
+			write.source.writeFile("x.json", "{}", { message: "m", repo: "theholocron/.github-private" })
+		).rejects.toThrow(/cannot write files.*read and write/);
+		const other = makeSource([{ status: 500, body: {} }]);
+		await expect(other.source.writeFile("x.json", "{}", { message: "m" })).rejects.toMatchObject({ status: 500 });
+	});
+
+	it("readFile does not mistake a repo the token cannot see for a missing file", async () => {
+		const hidden = makeSource([
+			{ status: 404, body: {} },
+			{ status: 404, body: {} },
+		]);
+		await expect(hidden.source.readFile("x.json", "theholocron/.github-private")).rejects.toThrow(
+			/was not found: it does not exist, or the token cannot see it/
+		);
+		const broken = makeSource([
+			{ status: 404, body: {} },
+			{ status: 500, body: {} },
+		]);
+		await expect(broken.source.readFile("x.json")).rejects.toMatchObject({ status: 500 });
+	});
+
+	it("teamMembers asks the organisation it is given, not the repo's owner", async () => {
+		const { source, calls } = makeSource([{ body: [] }]);
+		await source.teamMembers("gatekeepers", "other-org");
+		expect(calls[0]?.url).toContain("/orgs/other-org/teams/gatekeepers/members");
+	});
+
+	it("readFile passes any other failure through, and refuses an encoding it cannot decode", async () => {
+		const failing = makeSource([{ status: 500, body: {} }]);
+		await expect(failing.source.readFile("x.json")).rejects.toMatchObject({ status: 500 });
+		const odd = makeSource([{ body: { content: "x", encoding: "none", sha: "s", name: "a", path: "a" } }]);
+		await expect(odd.source.readFile("x.json")).rejects.toThrow(/unexpected encoding/);
+	});
+
+	it("writeFile sends the text, the message and the version it replaces", async () => {
+		const { source, calls } = makeSource([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		await source.writeFile("notifications/x.json", "data", {
+			message: "m",
+			version: "abc",
+			repo: "theholocron/.github-private",
+		});
+		expect(calls[0]).toMatchObject({ method: "PUT" });
+		expect(calls[0]?.url).toContain("/repos/theholocron/.github-private/contents/notifications/x.json");
+		expect(calls[0]?.body).toEqual({ message: "m", content: Buffer.from("data").toString("base64"), sha: "abc" });
+	});
+
+	it("writeFile creates in this repo when no version or repo is given, and a stale version is refused", async () => {
+		const created = makeSource([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		await created.source.writeFile("x.json", "d", { message: "m" });
+		expect(created.calls[0]?.body).not.toHaveProperty("sha");
+		expect(created.calls[0]?.url).toContain("/repos/theholocron/holocron/contents/x.json");
+		const stale = makeSource([{ status: 409, body: {} }]);
+		await expect(stale.source.writeFile("x.json", "d", { message: "m", version: "old" })).rejects.toMatchObject({
+			status: 409,
+		});
+	});
+});

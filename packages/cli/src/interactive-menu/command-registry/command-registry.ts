@@ -105,6 +105,18 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "notifications link",
+		description: "Link your server account to your GitHub account by signing in with the provider",
+		positionals: [],
+		supportsDryRun: true,
+	},
+	{
+		name: "notifications sync-roles",
+		description: "Make who holds a server role match a team, through the links file",
+		positionals: [],
+		supportsDryRun: true,
+	},
+	{
 		name: "deploy",
 		description: "Trigger a deployment via the configured `deployment` capability",
 		positionals: [{ key: "branch", message: "Branch to deploy:", type: "input" }],
