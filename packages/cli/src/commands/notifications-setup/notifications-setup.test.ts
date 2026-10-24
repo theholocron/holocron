@@ -1171,11 +1171,12 @@ describe("runNotificationsSetup — webhook avatars", () => {
 	it("reads a picture from disk when nothing else reads it", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "avatar-"));
 		const file = join(dir, "a.png");
-		await writeFile(file, "png");
+		const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+		await writeFile(file, png);
 		const n = fakeNotifications({ layout: withAvatar({ webhookAvatar: file }) });
 		await setup(n).run();
 		expect(n.ensureWebhook).toHaveBeenCalledWith(
-			expect.objectContaining({ avatar: `data:image/png;base64,${Buffer.from("png").toString("base64")}` })
+			expect.objectContaining({ avatar: `data:image/png;base64,${png.toString("base64")}` })
 		);
 	});
 });

@@ -564,7 +564,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				avatarProblems.push(
 					`#${shown(channel.name)}: could not list its webhooks (${shown(match.webhooksError)})`
 				);
-			} else if (!(match.webhookAvatars ?? []).some((w) => same(w, name))) {
+			} else if (match.webhookAvatars && !match.webhookAvatars.some((w) => same(w, name))) {
 				avatarProblems.push(`#${shown(channel.name)}: webhook ${shown(name)} has no avatar`);
 			}
 		}

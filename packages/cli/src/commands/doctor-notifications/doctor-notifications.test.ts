@@ -1262,11 +1262,11 @@ describe("runDoctorNotifications — webhook avatars", () => {
 		expect(check(report)).toMatchObject({ detail: "2 of 2 set", problems: [] });
 	});
 
-	it("names a webhook with no avatar, and one the provider did not report on", async () => {
+	it("names a webhook with no avatar, and skips a provider that does not report them", async () => {
 		const some = await setup(fakeNotifications({ layout: withAvatar, found: channelsWith(["alerts"]) })).run();
 		expect(check(some).problems).toEqual(["#sync: webhook sync has no avatar"]);
 		const unknown = await setup(fakeNotifications({ layout: withAvatar, found: channelsWith() })).run();
-		expect(check(unknown).problems).toHaveLength(2);
+		expect(check(unknown).problems).toEqual([]);
 	});
 
 	it("uses a webhook's own avatar, and skips one that has none anywhere", async () => {

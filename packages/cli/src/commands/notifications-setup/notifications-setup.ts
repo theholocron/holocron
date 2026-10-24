@@ -202,6 +202,18 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
 
+	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
+	const avatars = new Map<string, string>();
+	const read = input.loadAvatar ?? loadAvatar;
+	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
+		const source = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
+		if (source === undefined || avatars.has(source)) continue;
+		try {
+			avatars.set(source, await read(source));
+		} catch (err) {
+			return refuse(`webhook avatar \`${source}\`: ${errorMessage(err)}`);
+		}
+	}
 	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
 	// creating any webhook, instead of leaving an orphan per channel on a bad token.
 	if (secrets && scope && !dryRun) {
@@ -241,18 +253,6 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		return refuse(
 			`category \`${needsCategories.name}\` declares \`access\`, but the \`${notifications.providerName}\` provider cannot manage categories`
 		);
-	}
-	// Read every avatar now: one that cannot be read should stop the run before anything is created.
-	const avatars = new Map<string, string>();
-	const read = input.loadAvatar ?? loadAvatar;
-	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
-		const source = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
-		if (source === undefined || avatars.has(source)) continue;
-		try {
-			avatars.set(source, await read(source));
-		} catch (err) {
-			return refuse(`webhook avatar \`${source}\`: ${errorMessage(err)}`);
-		}
 	}
 	const providerProblem = notifications.validateLayout?.(layout);
 	if (providerProblem) return refuse(providerProblem);
