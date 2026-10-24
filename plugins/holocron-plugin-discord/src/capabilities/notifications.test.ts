@@ -1365,7 +1365,7 @@ describe("DiscordNotifications.ensureServer", () => {
 		const { notifs, calls } = makeProvisioner([
 			guild(),
 			chans,
-			guild({ ...after, features: ["NEWS"] }),
+			guild({ ...after, features: ["NEWS"], public_updates_channel_id: null }),
 			guild({ features: ["NEWS"] }), // read again just before the community edit
 			guild(after),
 		]);
@@ -1376,16 +1376,47 @@ describe("DiscordNotifications.ensureServer", () => {
 			"contentFilter",
 			"systemChannel",
 			"rulesChannel",
-			"updatesChannel",
 			"description",
 			"locale",
+			"updatesChannel",
 			"community",
 		]);
-		const { features, ...ordinary } = after;
+		const { features, public_updates_channel_id, ...ordinary } = after;
 		expect(calls[2]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: ordinary });
 		expect(calls[2]?.body).not.toHaveProperty("features");
+		// the updates channel is refused on its own while community is off, so it goes with the community edit
+		expect(calls[2]?.body).not.toHaveProperty("public_updates_channel_id");
 		expect(calls[3]).toMatchObject({ method: "GET", url: `${BASE}/guilds/${GUILD}` });
-		expect(calls[4]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: { features } });
+		expect(calls[4]).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/guilds/${GUILD}`,
+			body: { features, public_updates_channel_id },
+		});
+	});
+
+	it("sets the updates channel with the ordinary settings when community is already on", async () => {
+		const on = { features: ["COMMUNITY"], rules_channel_id: "2002", public_updates_channel_id: null };
+		const { notifs, calls } = makeProvisioner([
+			guild(on),
+			chans,
+			guild({ ...on, public_updates_channel_id: "2003" }),
+		]);
+		expect(await notifs.ensureServer({ community: true, updatesChannel: "community-updates" })).toEqual({
+			updated: ["updatesChannel"],
+		});
+		expect(calls[2]?.body).toEqual({ public_updates_channel_id: "2003" });
+	});
+
+	it("fails when the server does not keep the updates channel it was turned on with", async () => {
+		const { notifs } = makeProvisioner([
+			guild({ features: [] }),
+			chans,
+			guild({ features: [] }),
+			guild({ features: ["COMMUNITY"], public_updates_channel_id: "9999" }),
+		]);
+		await expect(notifs.ensureServer({ community: true, updatesChannel: "community-updates" })).rejects.toThrow(
+			/did not keep community-updates as its updates channel/
+		);
 	});
 
 	it("sends nothing when the server already matches", async () => {

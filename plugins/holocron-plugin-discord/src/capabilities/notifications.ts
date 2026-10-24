@@ -466,18 +466,21 @@ export class DiscordNotifications implements Notifications {
 			settings.rulesChannel && idOf(settings.rulesChannel),
 			guild.rules_channel_id
 		);
-		set(
-			"updatesChannel",
-			"public_updates_channel_id",
-			settings.updatesChannel && idOf(settings.updatesChannel),
-			guild.public_updates_channel_id
-		);
+		// Discord refuses to set the updates channel on its own while community is off (even to a channel the bot
+		// can see and post in), so when community is being turned on it travels with that edit, below.
+		const updatesId = settings.updatesChannel ? idOf(settings.updatesChannel) : undefined;
+		const updatesChanged = updatesId !== undefined && updatesId !== guild.public_updates_channel_id;
 		set("description", "description", settings.description, guild.description ?? "");
 		set("locale", "preferred_locale", settings.locale, guild.preferred_locale);
 
 		const features = guild.features ?? [];
 		const community = features.includes("COMMUNITY");
 		const toggleCommunity = settings.community !== undefined && settings.community !== community;
+		const updatesWithCommunity = updatesChanged && toggleCommunity && settings.community === true;
+		if (updatesChanged && !updatesWithCommunity) {
+			patch.public_updates_channel_id = updatesId;
+			updated.push("updatesChannel");
+		}
 
 		// Two requests, because community needs Administrator and one refused field rejects a whole edit:
 		// sent together, a bot without it would apply nothing. The ordinary settings need only Manage Server.
@@ -510,7 +513,10 @@ export class DiscordNotifications implements Notifications {
 				: fresh.filter((f) => f !== "COMMUNITY");
 			let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
 			try {
-				after = await bot.guilds.modify(this.guild(), { features: wanted });
+				after = await bot.guilds.modify(this.guild(), {
+					features: wanted,
+					...(updatesWithCommunity ? { public_updates_channel_id: updatesId } : {}),
+				});
 			} catch (err) {
 				throw await this.communityHint(err, updated, settings.community === true);
 			}
@@ -532,6 +538,12 @@ export class DiscordNotifications implements Notifications {
 					);
 				}
 			}
+			if (updatesWithCommunity && after.public_updates_channel_id !== updatesId) {
+				throw new Error(
+					`${appliedPrefix(updated)}turned community on, but the server did not keep ${settings.updatesChannel} as its updates channel`
+				);
+			}
+			if (updatesWithCommunity) updated.push("updatesChannel");
 			updated.push("community");
 		};
 		// Turning community off first: Discord refuses a verification below low or a content filter below
