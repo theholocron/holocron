@@ -344,6 +344,147 @@ describe("runNotificationsSetup", () => {
 		expect((await setup(n).run()).status).toBe("ok");
 	});
 
+	describe("server settings", () => {
+		const SERVER_LAYOUT: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "welcome" }, { name: "rules" }, { name: "staff" }] }],
+			server: {
+				verification: "medium",
+				systemChannel: "Welcome",
+				rulesChannel: "rules",
+				updatesChannel: "staff",
+				community: true,
+			},
+		};
+
+		it("applies them last, after the channels exist, and counts a change as ok", async () => {
+			const ensureServer = vi.fn(async () => ({ updated: ["verification", "community"] }));
+			const n = fakeNotifications({ layout: SERVER_LAYOUT, ensureServer });
+			const { run, lines } = setup(n);
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(ensureServer).toHaveBeenCalledWith(SERVER_LAYOUT.server);
+			expect(ensureServer.mock.invocationCallOrder[0]).toBeGreaterThan(
+				(n.ensureChannel as ReturnType<typeof vi.fn>).mock.invocationCallOrder.at(-1)!
+			);
+			expect(lines.join("\n")).toContain("updated server settings: verification, community");
+			expect(lines.at(-1)).toBe("5 ok, 0 fail, 0 skipped");
+		});
+
+		it("shows a server that already matches as skipped", async () => {
+			const n = fakeNotifications({ layout: SERVER_LAYOUT, ensureServer: vi.fn(async () => ({ updated: [] })) });
+			const { run, lines } = setup(n);
+			await run();
+			expect(lines.join("\n")).toContain("exists  server settings");
+			expect(lines.at(-1)).toBe("4 ok, 0 fail, 1 skipped");
+		});
+
+		it("previews them on --dry-run without calling the provider", async () => {
+			const ensureServer = vi.fn(async () => ({ updated: [] }));
+			const n = fakeNotifications({ layout: SERVER_LAYOUT, ensureServer });
+			const { run, lines } = setup(n, { dryRun: true });
+			await run();
+			expect(ensureServer).not.toHaveBeenCalled();
+			expect(lines.join("\n")).toContain("would ensure server settings");
+		});
+
+		it("records a failing server step and goes on", async () => {
+			const n = fakeNotifications({
+				layout: SERVER_LAYOUT,
+				ensureServer: vi.fn(async () => {
+					throw new Error("the bot lacks Manage Server");
+				}),
+			});
+			const { run } = setup(n);
+			const report = await run();
+			expect(report.failures).toEqual([{ step: "server settings", message: "the bot lacks Manage Server" }]);
+		});
+
+		it("refuses a provider that cannot manage server settings", async () => {
+			const n = fakeNotifications({ layout: SERVER_LAYOUT, ensureServer: undefined });
+			const report = await setup(n).run();
+			expect(report.message).toMatch(/declares `server` settings, but the `discord` provider cannot manage them/);
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+		});
+
+		it("refuses a server channel the layout does not declare, and community without both channels", async () => {
+			const missing = fakeNotifications({
+				layout: { categories: [{ name: "A", channels: [{ name: "x" }] }], server: { systemChannel: "ghost" } },
+				ensureServer: vi.fn(),
+			});
+			expect((await setup(missing).run()).message).toMatch(/`systemChannel` names the channel `ghost`/);
+			const community = fakeNotifications({
+				layout: {
+					categories: [{ name: "A", channels: [{ name: "r" }] }],
+					server: { community: true, rulesChannel: "r" },
+				},
+				ensureServer: vi.fn(),
+			});
+			expect((await setup(community).run()).message).toMatch(/community: true` needs both/);
+			expect(missing.ensureCategory).not.toHaveBeenCalled();
+		});
+
+		it("refuses a server channel when the layout has no categories, or categories with no channels", async () => {
+			for (const layout of [
+				{ server: { systemChannel: "x" } },
+				{ categories: [{ name: "Empty" }], server: { systemChannel: "x" } },
+			] as NotificationsLayout[]) {
+				const report = await setup(fakeNotifications({ layout, ensureServer: vi.fn() })).run();
+				expect(report.message).toMatch(/`systemChannel` names the channel `x`/);
+			}
+		});
+
+		it("refuses a server channel that two channels in the layout share", async () => {
+			const layout: NotificationsLayout = {
+				categories: [
+					{ name: "A", channels: [{ name: "rules" }] },
+					{ name: "B", channels: [{ name: "Rules" }] },
+				],
+				server: { rulesChannel: "rules" },
+			};
+			const report = await setup(fakeNotifications({ layout, ensureServer: vi.fn() })).run();
+			expect(report.message).toMatch(
+				/`rulesChannel` names `rules`, but more than one channel in the layout has that name/
+			);
+		});
+
+		it("checks the bot can change the server before creating anything, and stops there if it cannot", async () => {
+			const preflight = vi.fn(async () => {
+				throw new Error("the bot lacks Manage Server: https://example.test/invite");
+			});
+			const n = fakeNotifications({ layout: SERVER_LAYOUT, ensureServer: vi.fn(), preflight });
+			const { run, lines } = setup(n);
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/lacks Manage Server/);
+			expect(n.ensureRole).not.toHaveBeenCalled();
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+			expect(lines.at(-1)).toBe("0 ok, 1 fail, 0 skipped");
+		});
+
+		it("runs the preflight with the layout, and skips it on a dry run", async () => {
+			const preflight = vi.fn(async () => {});
+			await setup(
+				fakeNotifications({
+					layout: SERVER_LAYOUT,
+					ensureServer: vi.fn(async () => ({ updated: [] })),
+					preflight,
+				})
+			).run();
+			expect(preflight).toHaveBeenCalledWith(SERVER_LAYOUT);
+			const dry = vi.fn(async () => {});
+			await setup(fakeNotifications({ layout: SERVER_LAYOUT, ensureServer: vi.fn(), preflight: dry }), {
+				dryRun: true,
+			}).run();
+			expect(dry).not.toHaveBeenCalled();
+		});
+
+		it("does nothing about the server when the layout declares none", async () => {
+			const ensureServer = vi.fn(async () => ({ updated: [] }));
+			await setup(fakeNotifications({ ensureServer })).run();
+			expect(ensureServer).not.toHaveBeenCalled();
+		});
+	});
+
 	it("ends a refusal with the count too", async () => {
 		const n = fakeNotifications({ layout: undefined });
 		const { run, lines } = setup(n);

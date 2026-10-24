@@ -121,18 +121,28 @@ function setup(
 }
 
 const byId = (r: Awaited<ReturnType<typeof runDoctorNotifications>>, id: string) => r.checks.find((c) => c.id === id)!;
-const REAL = ["server", "categories", "channels", "webhooks", "roles", "role-appearance", "access", "secrets"];
+const REAL = [
+	"server",
+	"categories",
+	"channels",
+	"webhooks",
+	"roles",
+	"role-appearance",
+	"access",
+	"server-settings",
+	"secrets",
+];
 
 describe("runDoctorNotifications — a server that matches the layout", () => {
 	it("passes every built check, and still fails because the unbuilt features are listed as failing", async () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 8, fail: PLANNED_CHECKS.length, skip: 0 });
+		expect(report.summary).toEqual({ pass: 9, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
-		expect(planned[0]?.detail).toBe("not built yet (#1098, step 10)");
+		expect(planned[0]?.detail).toBe("not built yet (#1098, step 11)");
 		expect(planned.every((c) => c.status === "fail")).toBe(true);
 	});
 
@@ -141,7 +151,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("8 ok, 0 fail, 7 skipped");
+		expect(lines.join("\n")).toContain("9 ok, 0 fail, 6 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -153,10 +163,10 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("✓ server");
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
-		expect(out).toContain("✗ server verification, notifications and system channels set");
-		expect(out).toContain("not built yet (#1098, step 10)");
+		expect(out).toContain("✗ welcome screen and onboarding set");
+		expect(out).toContain("not built yet (#1098, step 11)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("8 ok, 7 fail, 0 skipped");
+		expect(out).toContain("9 ok, 6 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -492,8 +502,8 @@ describe("runDoctorNotifications — output and logs", () => {
 
 describe("PLANNED_CHECKS", () => {
 	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
-		// 8 (access) and 9 (role colour, hoist and permissions) are built, so they are real checks and not listed here.
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([10, 11, 12, 13, 14, 15, 16]);
+		// 8 (access), 9 (role appearance) and 10 (server settings) are built, so they are real checks and not listed here.
+		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([11, 12, 13, 14, 15, 16]);
 		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
 	});
 });
@@ -634,7 +644,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 7, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 8, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -914,6 +924,105 @@ describe("runDoctorNotifications — channel and category access", () => {
 		expect(byId(await setup(n).run(), "access")).toMatchObject({
 			status: "fail",
 			detail: "not checked: could not read the server",
+		});
+	});
+});
+
+describe("runDoctorNotifications — server settings", () => {
+	const SERVER: NotificationsLayout = {
+		categories: [{ name: "A", channels: [{ name: "welcome" }] }],
+		server: {
+			verification: "medium",
+			defaultNotifications: "mentions",
+			contentFilter: "all",
+			systemChannel: "Welcome",
+			community: true,
+			locale: "en-US",
+		},
+	};
+	const found = (server: ServerInspection["server"], extra: Partial<ServerInspection> = {}): ServerInspection => ({
+		categories: ["A"],
+		channels: [{ name: "welcome", category: "A", webhooks: [] }],
+		roles: [],
+		...(server ? { server } : {}),
+		...extra,
+	});
+	const GOOD_SERVER = {
+		verification: "medium",
+		defaultNotifications: "mentions",
+		contentFilter: "all",
+		systemChannel: "welcome",
+		community: true,
+		locale: "en-US",
+	} as const;
+	const run = (inspection: ServerInspection) =>
+		setup(fakeNotifications({ layout: SERVER, found: inspection }), { secretNames: [] }).run();
+
+	it("passes when every field the layout states matches, channel names ignoring case", async () => {
+		expect(byId(await run(found({ ...GOOD_SERVER })), "server-settings")).toMatchObject({
+			status: "pass",
+			detail: "6 of 6 as declared",
+		});
+	});
+
+	it("names each field that differs, and says 'not set' for one the server lacks", async () => {
+		const report = await run(
+			found({ verification: "low", contentFilter: "off", community: false, locale: "en-US" })
+		);
+		expect(byId(report, "server-settings").problems).toEqual([
+			"verification is low but the layout says medium",
+			"defaultNotifications is not set but the layout says mentions",
+			"contentFilter is off but the layout says all",
+			"systemChannel is not set but the layout says Welcome",
+			"community is false but the layout says true",
+		]);
+	});
+
+	it("compares a description exactly, but a channel name without regard to case", async () => {
+		const layout: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "Welcome" }] }],
+			server: { systemChannel: "Welcome", description: "Hello There" },
+		};
+		const report = await setup(
+			fakeNotifications({
+				layout,
+				found: found({ systemChannel: "welcome", description: "hello there" }),
+			}),
+			{ secretNames: [] }
+		).run();
+		expect(byId(report, "server-settings").problems).toEqual([
+			"description is hello there but the layout says Hello There",
+		]);
+	});
+
+	it("is not checked when the settings could not be read, or the provider reports none", async () => {
+		const unread = await run(found(undefined, { serverError: "403" }));
+		expect(byId(unread, "server-settings").problems).toEqual([
+			"not checked: could not read the server settings (403)",
+		]);
+		const none = await run(found(undefined));
+		expect(byId(none, "server-settings").problems).toEqual(["the provider did not report the server's settings"]);
+	});
+
+	it("compares description and the other channels too, and reports 'none declared' without a server section", async () => {
+		const layout: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "rules" }] }],
+			server: { rulesChannel: "rules", updatesChannel: "updates", description: "Hello" },
+		};
+		const report = await setup(
+			fakeNotifications({
+				layout,
+				found: found({ rulesChannel: "rules", updatesChannel: "other", description: "Bye" }),
+			}),
+			{ secretNames: [] }
+		).run();
+		expect(byId(report, "server-settings").problems).toEqual([
+			"updatesChannel is other but the layout says updates",
+			"description is Bye but the layout says Hello",
+		]);
+		expect(byId(await setup(fakeNotifications()).run(), "server-settings")).toMatchObject({
+			status: "pass",
+			detail: "none declared",
 		});
 	});
 });

@@ -176,6 +176,18 @@ export default defineConfig({
 							],
 						},
 					],
+					// The server itself. Community features need the rules and updates channels, a verification of
+					// at least low, and the content filter on all members.
+					server: {
+						verification: "medium",
+						defaultNotifications: "mentions",
+						contentFilter: "all",
+						systemChannel: "welcome",
+						rulesChannel: "rules",
+						updatesChannel: "community-updates",
+						community: true,
+						locale: "en-US",
+					},
 					roles: [
 						{
 							name: "gatekeepers",
