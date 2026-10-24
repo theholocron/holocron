@@ -444,8 +444,14 @@ describe("server settings", () => {
 
 	it("membersWithRole: refuses to read without end", async () => {
 		const full = Array.from({ length: 1000 }, (_, i) => ({ user: { id: String(i + 1) }, roles: [] }));
-		const { client } = makeClient(Array.from({ length: 50 }, () => ({ body: full })));
+		const { client } = makeClient(Array.from({ length: 51 }, () => ({ body: full })));
 		await expect(client.guilds.membersWithRole("111", "91")).rejects.toThrow(/refusing to read/);
+	});
+
+	it("membersWithRole: exactly the limit of members is read whole", async () => {
+		const full = Array.from({ length: 1000 }, (_, i) => ({ user: { id: String(i + 1) }, roles: ["91"] }));
+		const { client } = makeClient([...Array.from({ length: 50 }, () => ({ body: full })), { body: [] }]);
+		expect(await client.guilds.membersWithRole("111", "91")).toHaveLength(50_000);
 	});
 
 	it("guilds: create, delete (404 counts as done), transfer, emojis", async () => {

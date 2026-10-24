@@ -205,10 +205,12 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 				const wanted = id(roleId);
 				const found: DiscordGuildMember[] = [];
 				let after: string | undefined;
-				for (let page = 0; page < MAX_MEMBER_PAGES; page++) {
+				// One page past the limit is read only to tell "exactly the limit" from "more than it".
+				for (let page = 0; page <= MAX_MEMBER_PAGES; page++) {
 					const batch = await rest.request<DiscordGuildMember[]>(`/guilds/${id(guildId)}/members`, {
 						query: { limit: "1000", ...(after === undefined ? {} : { after }) },
 					});
+					if (page === MAX_MEMBER_PAGES && batch.length > 0) break;
 					for (const m of batch) if (m.roles.includes(wanted)) found.push(m);
 					const last = batch[batch.length - 1]?.user?.id;
 					if (batch.length < 1000 || last === undefined) return found;
