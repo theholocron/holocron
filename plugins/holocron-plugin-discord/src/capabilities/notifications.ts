@@ -381,7 +381,9 @@ export class DiscordNotifications implements Notifications {
 
 	/** Turning community on or off needs Administrator, which is more than the bot should keep. */
 	private async communityHint(err: unknown, applied: string[], turningOn: boolean): Promise<unknown> {
-		if (!DiscordNotifications.missingPermissions(err)) return err;
+		// Any 403 here: without Administrator Discord answers this edit with "Missing Access" (50001) as often as
+		// with "Missing Permissions" (50013), and the edit is the same either way.
+		if (!(err instanceof ProviderApiError && err.status === 403)) return err;
 		const link = await this.inviteOrNothing(["Administrator"]);
 		const byHand = turningOn
 			? "turn them on once in Discord (Server Settings → Enable Community; setup then keeps everything else in line)"

@@ -1641,16 +1641,19 @@ describe("DiscordNotifications.ensureServer", () => {
 		expect(err.message).not.toMatch(/Enable Community/);
 	});
 
-	it("does not blame a missing permission for a 403 that is about access", async () => {
-		const community = makeProvisioner([
-			guild(),
-			chans,
-			guild(),
-			{ status: 403, body: { message: "Missing Access", code: 50001 } },
-		]);
-		const cErr = (await community.notifs.ensureServer({ community: true }).catch((e: unknown) => e)) as Error;
-		expect(cErr).toBeInstanceOf(ProviderApiError);
-		expect(cErr.message).not.toMatch(/Administrator|Manage Server/);
+	it("gives the Administrator explanation for the community edit whichever 403 Discord answers with", async () => {
+		for (const body of [
+			{ message: "Missing Access", code: 50001 },
+			{ message: "Missing Permissions", code: 50013 },
+		]) {
+			const { notifs } = makeProvisioner([guild(), chans, guild(), { status: 403, body }, bot]);
+			await expect(notifs.ensureServer({ community: true })).rejects.toThrow(
+				/turning community features on needs the Administrator permission/
+			);
+		}
+	});
+
+	it("does not blame a missing permission for a 403 about access on the ordinary settings", async () => {
 		const ordinary = makeProvisioner([
 			guild(),
 			chans,
@@ -1659,11 +1662,6 @@ describe("DiscordNotifications.ensureServer", () => {
 		const oErr = (await ordinary.notifs.ensureServer({ verification: "high" }).catch((e: unknown) => e)) as Error;
 		expect(oErr).toBeInstanceOf(ProviderApiError);
 		expect(oErr.message).not.toMatch(/Administrator|Manage Server/);
-	});
-
-	it("still explains a 403 that carries no body at all", async () => {
-		const { notifs } = makeProvisioner([guild(), chans, { status: 403 }, bot]);
-		await expect(notifs.ensureServer({ verification: "high" })).rejects.toThrow(/lacks Manage Server/);
 	});
 
 	it("keeps the explanation when the invite link cannot be built, and still says what was applied", async () => {
