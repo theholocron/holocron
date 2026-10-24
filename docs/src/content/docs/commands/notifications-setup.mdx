@@ -130,3 +130,23 @@ Run [`holocron doctor notifications`](/holocron/commands/doctor-notifications/) 
 The `platform.notifyCheck` task is a manual workflow (`workflow_dispatch`) that posts one labelled test message to every notification channel, using the real org secrets, and fails the job for any channel whose webhook is missing or rejects the post. A red job names the channel to fix, and one channel failing does not hide the others. The `alerts` message pings the role from `HOLOCRON_NOTIFY_ALERT_ROLE` when it is set. Run it from the Actions tab once the org's `theholocron/.github` has the reusable workflow. Each channel names its own webhook secret (`channels` is a JSON array of `{ name, secret, mention }`), so layouts with custom secret names are checked correctly, and a channel marked `mention` fails if the role id is missing or malformed. Whether Discord lets that role be mentioned is a server-side fact the workflow cannot see; `holocron doctor notifications` (#1098) checks it.
 
 - **An existing role is brought into line.** If a role already exists with a different `mentionable`, `color`, `hoist` or `permissions`, `setup` changes just the fields that differ and prints `updated role … : colour, hoist`. A role that already matches is left alone. Discord only lets a bot edit roles below its own highest role, so keep the bot's role above the ones it manages.
+
+## The bot application and @everyone
+
+`application` sets what the bot's page in the developer portal says, and `everyone` changes what ordinary members may do. Both are applied last, with the server's settings.
+
+```ts
+application: {
+  description: "…",                       // up to 400 characters
+  tags: ["automation", "github"],         // up to 5, each up to 20 characters
+  install: { scopes: ["bot"], permissions: ["ViewChannel", "SendMessages"] },
+  termsUrl: "https://…",
+  privacyUrl: "https://…",
+  roleConnectionsUrl: "https://…",
+},
+everyone: { deny: ["MentionEveryone"] },  // only the bits named change
+```
+
+A field left out is left alone. After each write the plugin reads the application back and fails, naming the field, if Discord did not keep it, so a field the API silently ignores shows up as a failure and not a false success. `everyone` never replaces the whole permission set: it adds what `allow` names and removes what `deny` names, and refuses a permission that is in both.
+
+Some things stay in the developer portal because the API does not expose them: whether the bot is public, and the verification review.

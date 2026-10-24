@@ -8,6 +8,7 @@ export {
 	type DiscordClientOptions,
 	type DiscordPermissionOverwrite,
 	type DiscordWebhookInfo,
+	type ModifyApplicationInput,
 	type ModifyGuildInput,
 	type ModifyRoleInput,
 	parseWebhookUrl,

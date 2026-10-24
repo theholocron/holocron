@@ -1180,3 +1180,73 @@ describe("runNotificationsSetup — webhook avatars", () => {
 		);
 	});
 });
+
+describe("runNotificationsSetup — bot application and everyone", () => {
+	const AE_LAYOUT: NotificationsLayout = {
+		categories: [{ name: "A", channels: [{ name: "dev" }] }],
+		everyone: { deny: ["MentionEveryone"] },
+		application: { description: "Posts things", tags: ["a"] },
+	};
+
+	it("applies both after the channels, reporting what changed and what already matched", async () => {
+		const ensureEveryone = vi.fn(async () => ({ updated: ["MentionEveryone"] }));
+		const ensureApplication = vi.fn(async () => ({ updated: [] }));
+		const n = fakeNotifications({ layout: AE_LAYOUT, ensureEveryone, ensureApplication });
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(ensureEveryone).toHaveBeenCalledWith(AE_LAYOUT.everyone);
+		expect(ensureApplication).toHaveBeenCalledWith(AE_LAYOUT.application);
+		const lastChannel = (n.ensureChannel as ReturnType<typeof vi.fn>).mock.invocationCallOrder.at(-1)!;
+		expect(ensureEveryone.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
+		expect(ensureApplication.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
+		const out = lines.join("\n");
+		expect(out).toContain("updated @everyone permissions: MentionEveryone");
+		expect(out).toContain("exists  bot application");
+	});
+
+	it("previews them on --dry-run and records a failure", async () => {
+		const dry = fakeNotifications({ layout: AE_LAYOUT, ensureEveryone: vi.fn(), ensureApplication: vi.fn() });
+		const { run, lines } = setup(dry, { dryRun: true });
+		await run();
+		expect(lines.join("\n")).toContain("would ensure bot application");
+		expect(dry.ensureApplication).not.toHaveBeenCalled();
+		expect(dry.ensureEveryone).not.toHaveBeenCalled();
+		const failing = fakeNotifications({
+			layout: AE_LAYOUT,
+			ensureEveryone: vi.fn(async () => ({ updated: [] })),
+			ensureApplication: vi.fn(async () => {
+				throw new Error("nope");
+			}),
+		});
+		const out = await setup(failing).run();
+		expect(out.status).toBe("fail");
+		expect(out.failures[0]?.step).toBe("bot application");
+	});
+
+	it("refuses a provider that cannot manage them, and a permission in both lists", async () => {
+		const noApp = setup(fakeNotifications({ layout: { application: { tags: ["a"] } } }));
+		expect((await noApp.run()).message).toMatch(
+			/declares `application` settings, but the `discord` provider cannot manage them/
+		);
+		const noEveryone = setup(fakeNotifications({ layout: { everyone: { deny: ["X"] } } }));
+		expect((await noEveryone.run()).message).toMatch(
+			/declares `everyone` permissions, but the `discord` provider cannot/
+		);
+		const clash = setup(
+			fakeNotifications({
+				layout: { everyone: { allow: ["MentionEveryone"], deny: ["mentioneveryone"] } },
+				ensureEveryone: vi.fn(),
+			})
+		);
+		expect((await clash.run()).message).toMatch(/everyone: `MentionEveryone` is in both `allow` and `deny`/);
+	});
+
+	it("accepts a layout that only allows, or only denies", async () => {
+		const only = fakeNotifications({
+			layout: { everyone: { allow: ["ViewChannel"] } },
+			ensureEveryone: vi.fn(async () => ({ updated: [] })),
+		});
+		expect((await setup(only).run()).status).toBe("ok");
+	});
+});

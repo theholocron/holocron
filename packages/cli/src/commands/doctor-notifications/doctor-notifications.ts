@@ -38,7 +38,6 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 13, id: "app-settings", title: "bot description, tags, install link and URLs set" },
 	{ step: 14, id: "role-assignment", title: "role assigned to team members" },
 	{ step: 15, id: "post-works", title: "test post reached every channel (platform.notifyCheck)" },
 	{ step: 16, id: "server-creation", title: "server created from config" },
@@ -67,6 +66,7 @@ const accessText = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
 const shown = (s: string) => sanitizeDetail(s);
 const WELCOME_TITLE = "welcome screen and onboarding set";
+const APP_TITLE = "bot description, tags, install link and URLs set";
 const AVATAR_TITLE = "webhook names and avatars set";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
@@ -199,12 +199,13 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			["categories", "categories exist"],
 			["channels", "channels in their category, with topics"],
 			["webhooks", "webhooks on their channels"],
+			["webhook-appearance", AVATAR_TITLE],
 			["roles", "roles exist and are mentionable"],
 			["role-appearance", ROLE_APPEARANCE_TITLE],
 			["access", ACCESS_TITLE],
 			["server-settings", SERVER_TITLE],
 			["welcome-onboarding", WELCOME_TITLE],
-			["webhook-appearance", AVATAR_TITLE],
+			["app-settings", APP_TITLE],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
 		}
@@ -274,6 +275,33 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			"webhooks on their channels",
 			webhookProblems,
 			withWebhook.length === 0 ? "none declared" : `${withWebhook.length} of ${withWebhook.length} exist`
+		);
+
+		// Webhook avatars: a webhook's name is checked with the webhooks above; its picture here.
+		const avatarOf = (webhook: unknown) =>
+			(typeof webhook === "object" && webhook ? (webhook as { avatar?: string }).avatar : undefined) ??
+			layout.webhookAvatar;
+		const wantAvatar = declaredChannels.filter(({ channel }) => channel.webhook && avatarOf(channel.webhook));
+		const avatarProblems: string[] = [];
+		for (const { cat, channel } of wantAvatar) {
+			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			const name = cfg.name ?? channel.name;
+			const { match } = pick(channel.name, cat);
+			if (!match) {
+				avatarProblems.push(`#${shown(channel.name)}: no channel to hold the webhook`);
+			} else if (match.webhooksError) {
+				avatarProblems.push(
+					`#${shown(channel.name)}: could not list its webhooks (${shown(match.webhooksError)})`
+				);
+			} else if (match.webhookAvatars && !match.webhookAvatars.some((w) => same(w, name))) {
+				avatarProblems.push(`#${shown(channel.name)}: webhook ${shown(name)} has no avatar`);
+			}
+		}
+		add(
+			"webhook-appearance",
+			AVATAR_TITLE,
+			avatarProblems,
+			wantAvatar.length === 0 ? "none declared" : `${wantAvatar.length} of ${wantAvatar.length} set`
 		);
 
 		// 6. roles exist and are mentionable as declared
@@ -347,14 +375,40 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				}
 			}
 		}
+		// What everyone may do is checked here too: it is the permissions of one more role.
+		const everyone = layout.everyone;
+		const everyoneProblems: string[] = [];
+		if (everyone) {
+			if (inspected.everyoneError) {
+				everyoneProblems.push(
+					`@everyone: not checked, could not read its permissions (${shown(inspected.everyoneError)})`
+				);
+			} else if (!inspected.everyone) {
+				everyoneProblems.push("@everyone: the provider did not report its permissions");
+			} else {
+				const have = new Set(inspected.everyone.permissions.map((n) => n.toLowerCase()));
+				const lacking = (everyone.allow ?? []).filter((n) => !have.has(n.toLowerCase()));
+				const keeping = (everyone.deny ?? []).filter((n) => have.has(n.toLowerCase()));
+				if (lacking.length > 0)
+					everyoneProblems.push(`@everyone: missing permissions ${lacking.map(shown).join(", ")}`);
+				if (keeping.length > 0) {
+					everyoneProblems.push(
+						`@everyone: still has permissions the layout takes away: ${keeping.map(shown).join(", ")}`
+					);
+				}
+			}
+		}
 		const styled = roles.filter(
 			(r) => r.color !== undefined || r.hoist !== undefined || r.permissions !== undefined
 		);
+		const styledCount = styled.length + (everyone ? 1 : 0);
 		add(
 			"role-appearance",
 			ROLE_APPEARANCE_TITLE,
-			inspected.rolesError ? [`not checked: could not read the roles`] : appearance,
-			styled.length === 0 ? "none declared" : `${styled.length} of ${styled.length} as declared`
+			inspected.rolesError
+				? [`not checked: could not read the roles`, ...everyoneProblems]
+				: [...appearance, ...everyoneProblems],
+			styledCount === 0 ? "none declared" : `${styledCount} of ${styledCount} as declared`
 		);
 
 		// 6c. who can see and post, in the channels and categories the layout (or its category) gives an access
@@ -545,35 +599,55 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			[...welcomeProblems, ...onboardingProblems],
 			welcomeParts === 0 ? "none declared" : `${welcomeParts} of ${welcomeParts} as declared`
 		);
-	}
 
-	// Webhook avatars: a webhook's name is checked with the webhooks above; its picture here.
-	if (found) {
-		const avatarOf = (webhook: unknown) =>
-			(typeof webhook === "object" && webhook ? (webhook as { avatar?: string }).avatar : undefined) ??
-			layout.webhookAvatar;
-		const wantAvatar = declaredChannels.filter(({ channel }) => channel.webhook && avatarOf(channel.webhook));
-		const avatarProblems: string[] = [];
-		for (const { cat, channel } of wantAvatar) {
-			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
-			const name = cfg.name ?? channel.name;
-			const { match } = pick(channel.name, cat);
-			if (!match) {
-				avatarProblems.push(`#${shown(channel.name)}: no channel to hold the webhook`);
-			} else if (match.webhooksError) {
-				avatarProblems.push(
-					`#${shown(channel.name)}: could not list its webhooks (${shown(match.webhooksError)})`
-				);
-			} else if (match.webhookAvatars && !match.webhookAvatars.some((w) => same(w, name))) {
-				avatarProblems.push(`#${shown(channel.name)}: webhook ${shown(name)} has no avatar`);
+		const wantApp = layout.application;
+		const appProblems: string[] = [];
+		if (wantApp) {
+			if (inspected.applicationError) {
+				appProblems.push(`not checked: could not read the application (${shown(inspected.applicationError)})`);
+			} else if (!inspected.application) {
+				appProblems.push("the provider did not report the application");
+			} else {
+				const have = inspected.application;
+				const set = (list: string[]) => JSON.stringify([...new Set(list.map((n) => n.toLowerCase()))].sort());
+				const exact = (list: string[]) => JSON.stringify([...new Set(list)].sort());
+				if (wantApp.description !== undefined && (have.description ?? "") !== wantApp.description) {
+					appProblems.push("description differs from the layout");
+				}
+				if (wantApp.tags !== undefined && set(have.tags ?? []) !== set(wantApp.tags)) {
+					appProblems.push(
+						`tags are ${(have.tags ?? []).map(shown).join(", ") || "none"} but the layout says ${wantApp.tags.map(shown).join(", ") || "none"}`
+					);
+				}
+				if (wantApp.install !== undefined) {
+					if (!have.install) {
+						appProblems.push("no install link is set");
+					} else {
+						if (exact(have.install.scopes) !== exact(wantApp.install.scopes)) {
+							appProblems.push(
+								`install scopes are ${have.install.scopes.map(shown).join(", ")} but the layout says ${wantApp.install.scopes.map(shown).join(", ")}`
+							);
+						}
+						if (set(have.install.permissions) !== set(wantApp.install.permissions)) {
+							appProblems.push("install permissions differ from the layout");
+						}
+					}
+				}
+				for (const [field, label] of [
+					["termsUrl", "terms URL"],
+					["privacyUrl", "privacy URL"],
+					["roleConnectionsUrl", "role-connections URL"],
+				] as const) {
+					const wanted = wantApp[field];
+					if (wanted !== undefined && (have[field] ?? "") !== wanted) {
+						appProblems.push(
+							`${label} is ${shown(have[field] || "not set")} but the layout says ${shown(wanted)}`
+						);
+					}
+				}
 			}
 		}
-		add(
-			"webhook-appearance",
-			AVATAR_TITLE,
-			avatarProblems,
-			wantAvatar.length === 0 ? "none declared" : `${wantAvatar.length} of ${wantAvatar.length} set`
-		);
+		add("app-settings", APP_TITLE, appProblems, wantApp ? "1 of 1 as declared" : "none declared");
 	}
 
 	// 5. the secrets the layout fills exist in the org

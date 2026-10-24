@@ -109,6 +109,12 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 		return undefined;
 	};
 
+	const everyone = layout.everyone;
+	const both = (everyone?.allow ?? []).find((p) =>
+		(everyone?.deny ?? []).some((d) => d.toLowerCase() === p.toLowerCase())
+	);
+	if (both !== undefined) return `everyone: \`${both}\` is in both \`allow\` and \`deny\``;
+
 	const server = layout.server;
 	if (server) {
 		for (const field of ["systemChannel", "rulesChannel", "updatesChannel"] as const) {
@@ -245,6 +251,16 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (layout.onboarding && !notifications.ensureOnboarding) {
 		return refuse(
 			`the layout declares \`onboarding\`, but the \`${notifications.providerName}\` provider cannot manage it`
+		);
+	}
+	if (layout.application && !notifications.ensureApplication) {
+		return refuse(
+			`the layout declares \`application\` settings, but the \`${notifications.providerName}\` provider cannot manage them`
+		);
+	}
+	if (layout.everyone && !notifications.ensureEveryone) {
+		return refuse(
+			`the layout declares \`everyone\` permissions, but the \`${notifications.providerName}\` provider cannot manage them`
 		);
 	}
 	// A category's access cannot be applied by a provider that has no categories: do not report success without it.
@@ -394,7 +410,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 
 	// The server's own settings come last: they name channels and roles, which exist by now.
-	if (layout.server || layout.welcome || layout.onboarding) {
+	if (layout.server || layout.welcome || layout.onboarding || layout.application || layout.everyone) {
 		print(`\n${style.header("Server")}`);
 		const apply = async (
 			label: string,
@@ -416,9 +432,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				made(changed);
 			});
 		};
+		await apply("@everyone permissions", !!layout.everyone, () => notifications.ensureEveryone!(layout.everyone!));
 		await apply("server settings", !!layout.server, () => notifications.ensureServer!(layout.server!));
 		await apply("welcome screen", !!layout.welcome, () => notifications.ensureWelcome!(layout.welcome!));
 		await apply("onboarding", !!layout.onboarding, () => notifications.ensureOnboarding!(layout.onboarding!));
+		await apply("bot application", !!layout.application, () =>
+			notifications.ensureApplication!(layout.application!)
+		);
 	}
 
 	if (report.failures.length > 0) {

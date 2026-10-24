@@ -3,6 +3,8 @@ import {
 	type EnsureWebhookResult,
 	type Notifications,
 	type NotificationsAccess,
+	type NotificationsApplicationLayout,
+	type NotificationsEveryoneLayout,
 	type NotificationsLayout,
 	type NotificationsOnboardingLayout,
 	type NotificationsServerLayout,
@@ -18,6 +20,7 @@ import {
 	type DiscordChannel,
 	type DiscordClient,
 	type DiscordPermissionOverwrite,
+	type ModifyApplicationInput,
 	type ModifyGuildInput,
 	type ModifyRoleInput,
 	parseWebhookUrl,
@@ -46,6 +49,36 @@ const BOT_NEEDS: PermissionName[] = [
 	"CreatePrivateThreads",
 	"SendMessagesInThreads",
 ];
+
+/** The OAuth2 scopes Discord offers an application, as its own application page lists them. Exact, lower-case. */
+const SCOPES = new Set([
+	"applications.builds.read",
+	"applications.commands",
+	"applications.commands.permissions.update",
+	"applications.entitlements",
+	"applications.store.update",
+	"bot",
+	"connections",
+	"email",
+	"gdm.join",
+	"guilds",
+	"guilds.join",
+	"guilds.members.read",
+	"identify",
+	"messages.read",
+	"openid",
+	"role_connections.write",
+	"rpc",
+	"rpc.activities.write",
+	"rpc.notifications.read",
+	"rpc.screenshare.read",
+	"rpc.screenshare.write",
+	"rpc.video.read",
+	"rpc.video.write",
+	"rpc.voice.read",
+	"rpc.voice.write",
+	"webhook.incoming",
+]);
 
 /** The locales Discord accepts for a server's preferred language. */
 const LOCALES = new Set([
@@ -377,6 +410,40 @@ export class DiscordNotifications implements Notifications {
 				onboardingError = reason(err);
 			}
 		}
+		// The bot's application and what everyone may do, each read only when the layout declares it.
+		let application: ServerInspection["application"];
+		let applicationError: string | undefined;
+		if (layout.application) {
+			try {
+				const app = await bot.application.get();
+				const install = app.install_params;
+				application = {
+					...(app.description ? { description: app.description } : {}),
+					tags: app.tags ?? [],
+					...(install
+						? { install: { scopes: install.scopes, permissions: permissionNames(install.permissions) } }
+						: {}),
+					...(app.terms_of_service_url ? { termsUrl: app.terms_of_service_url } : {}),
+					...(app.privacy_policy_url ? { privacyUrl: app.privacy_policy_url } : {}),
+					...(app.role_connections_verification_url
+						? { roleConnectionsUrl: app.role_connections_verification_url }
+						: {}),
+				};
+			} catch (err) {
+				applicationError = reason(err);
+			}
+		}
+		let everyone: ServerInspection["everyone"];
+		let everyoneError: string | undefined;
+		if (layout.everyone) {
+			try {
+				const role = (await bot.guilds.roles(this.guild())).find((r) => r.id === this.guild());
+				if (role?.permissions === undefined) throw new Error("the server has no @everyone role to read");
+				everyone = { permissions: permissionNames(role.permissions) };
+			} catch (err) {
+				everyoneError = reason(err);
+			}
+		}
 		// Who can see and post comes from the overwrites already in the channel list: no extra requests.
 		const roleName = (id: string): string => roles.find((r) => r.id === id)?.name ?? id;
 		found.forEach((entry, i) => {
@@ -395,6 +462,10 @@ export class DiscordNotifications implements Notifications {
 			...(welcomeError ? { welcomeError } : {}),
 			...(onboarding ? { onboarding } : {}),
 			...(onboardingError ? { onboardingError } : {}),
+			...(application ? { application } : {}),
+			...(applicationError ? { applicationError } : {}),
+			...(everyone ? { everyone } : {}),
+			...(everyoneError ? { everyoneError } : {}),
 			channels: found,
 			roles,
 			...(rolesError ? { rolesError } : {}),
@@ -877,7 +948,136 @@ export class DiscordNotifications implements Notifications {
 		return { updated };
 	}
 
+	async ensureEveryone(everyone: NotificationsEveryoneLayout): Promise<{ updated: string[] }> {
+		const bot = this.bot();
+		const role = (await bot.guilds.roles(this.guild())).find((r) => r.id === this.guild());
+		if (role?.permissions === undefined) throw new Error("the server has no @everyone role to change");
+		const bit = (name: string): bigint => BigInt(permissions([name as PermissionName]));
+		const have = BigInt(role.permissions);
+		const allow = everyone.allow ?? [];
+		const deny = everyone.deny ?? [];
+		const want = allow.reduce((acc, n) => acc | bit(n), have);
+		const final = deny.reduce((acc, n) => acc & ~bit(n), want);
+		if (final === have) return { updated: [] };
+		const updated = [...allow.filter((n) => (have & bit(n)) === 0n), ...deny.filter((n) => (have & bit(n)) !== 0n)];
+		this.roleLoad = undefined;
+		const after = await bot.guilds.modifyRole(this.guild(), role.id, { permissions: String(final) });
+		if (after.permissions !== String(final)) {
+			throw new Error(
+				"sent the @everyone permissions but they came back different -- Discord may have refused a part of it"
+			);
+		}
+		return { updated };
+	}
+
+	async ensureApplication(app: NotificationsApplicationLayout): Promise<{ updated: string[] }> {
+		const bot = this.bot();
+		const current = await bot.application.get();
+		// Tags and permission names are compared ignoring case; scopes are exact identifiers. Lists, not joined text.
+		const set = (list: readonly string[]) => JSON.stringify([...new Set(list.map((n) => n.toLowerCase()))].sort());
+		const exact = (list: readonly string[]) => JSON.stringify([...new Set(list)].sort());
+		const urls = [
+			["termsUrl", "terms_of_service_url"],
+			["privacyUrl", "privacy_policy_url"],
+			["roleConnectionsUrl", "role_connections_verification_url"],
+		] as const;
+		const body: ModifyApplicationInput = {};
+		const updated: string[] = [];
+		if (app.description !== undefined && (current.description ?? "") !== app.description) {
+			body.description = app.description;
+			updated.push("description");
+		}
+		if (app.tags !== undefined && set(current.tags ?? []) !== set(app.tags)) {
+			body.tags = app.tags;
+			updated.push("tags");
+		}
+		const install = app.install && {
+			scopes: app.install.scopes,
+			permissions: permissions(app.install.permissions as PermissionName[]),
+		};
+		const haveInstall = current.install_params;
+		if (
+			install &&
+			(!haveInstall ||
+				exact(haveInstall.scopes) !== exact(install.scopes) ||
+				haveInstall.permissions !== install.permissions)
+		) {
+			body.install_params = install;
+			updated.push("install");
+		}
+		for (const [field, key] of urls) {
+			if (app[field] !== undefined && (current[key] ?? "") !== app[field]) {
+				body[key] = app[field];
+				updated.push(field);
+			}
+		}
+		if (updated.length === 0) return { updated };
+
+		const after = await bot.application.modify(body);
+		// Discord answers with the application as it now is, and ignores a field it does not take: say which.
+		const stuck = updated.filter((name) => {
+			if (name === "description") return (after.description ?? "") !== app.description;
+			if (name === "tags") return set(after.tags ?? []) !== set(app.tags!);
+			if (name === "install") {
+				return (
+					!after.install_params ||
+					exact(after.install_params.scopes) !== exact(install!.scopes) ||
+					after.install_params.permissions !== install!.permissions
+				);
+			}
+			const key = urls.find(([f]) => f === name)![1];
+			return (after[key] ?? "") !== app[name as (typeof urls)[number][0]];
+		});
+		if (stuck.length > 0) {
+			throw new Error(
+				`sent ${stuck.join(", ")} but Discord did not keep ${stuck.length === 1 ? "it" : "them"} -- ` +
+					"it may not accept that field from a bot, so set it in the developer portal"
+			);
+		}
+		return { updated };
+	}
+
 	validateLayout(layout: NotificationsLayout): string | undefined {
+		const app = layout.application;
+		if (app) {
+			if (app.description !== undefined && app.description.length > 400) {
+				return `application: \`description\` is ${app.description.length} characters; Discord allows up to 400`;
+			}
+			if (app.tags !== undefined) {
+				if (app.tags.length > 5) return `application: ${app.tags.length} tags; Discord allows up to 5`;
+				const long = app.tags.find((t) => t.length > 20);
+				if (long !== undefined) return `application: the tag ${JSON.stringify(long)} is over 20 characters`;
+			}
+			for (const [field, url] of [
+				["termsUrl", app.termsUrl],
+				["privacyUrl", app.privacyUrl],
+				["roleConnectionsUrl", app.roleConnectionsUrl],
+			] as const) {
+				if (url !== undefined && !/^https:\/\//.test(url)) {
+					return `application: \`${field}\` ${JSON.stringify(url)} must start with https://`;
+				}
+			}
+			if (app.install) {
+				if (app.install.scopes.length === 0)
+					return "application: `install.scopes` is empty; the link needs at least `bot`";
+				const unknown = app.install.scopes.find((s) => !SCOPES.has(s));
+				if (unknown !== undefined) {
+					return `application: \`install.scopes\` has ${JSON.stringify(unknown)}, which is not an OAuth2 scope Discord offers (scopes are lower-case, for example bot, applications.commands)`;
+				}
+				try {
+					permissions(app.install.permissions as PermissionName[]);
+				} catch (err) {
+					return `application: \`install.permissions\`: ${errorMessage(err)}`;
+				}
+			}
+		}
+		if (layout.everyone) {
+			try {
+				permissions([...(layout.everyone.allow ?? []), ...(layout.everyone.deny ?? [])] as PermissionName[]);
+			} catch (err) {
+				return `everyone: ${errorMessage(err)}`;
+			}
+		}
 		const questions = layout.onboarding?.prompts?.length ?? 0;
 		if (questions > 5) return `onboarding: ${questions} questions; Discord allows up to 5`;
 		const welcome = layout.welcome;

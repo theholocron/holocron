@@ -126,12 +126,13 @@ const REAL = [
 	"categories",
 	"channels",
 	"webhooks",
+	"webhook-appearance",
 	"roles",
 	"role-appearance",
 	"access",
 	"server-settings",
 	"welcome-onboarding",
-	"webhook-appearance",
+	"app-settings",
 	"secrets",
 ];
 
@@ -140,11 +141,11 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 11, fail: PLANNED_CHECKS.length, skip: 0 });
+		expect(report.summary).toEqual({ pass: 12, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
-		expect(planned[0]?.detail).toBe("not built yet (#1098, step 13)");
+		expect(planned[0]?.detail).toBe("not built yet (#1098, step 14)");
 		expect(planned.every((c) => c.status === "fail")).toBe(true);
 	});
 
@@ -153,7 +154,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("11 ok, 0 fail, 4 skipped");
+		expect(lines.join("\n")).toContain("12 ok, 0 fail, 3 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -166,9 +167,9 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
 		expect(out).toContain("✓ webhook names and avatars set");
-		expect(out).toContain("not built yet (#1098, step 13)");
+		expect(out).toContain("not built yet (#1098, step 14)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("11 ok, 4 fail, 0 skipped");
+		expect(out).toContain("12 ok, 3 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -505,7 +506,7 @@ describe("runDoctorNotifications — output and logs", () => {
 describe("PLANNED_CHECKS", () => {
 	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
 		// 8 to 11 (access, role appearance, server settings, welcome and onboarding) are built, so they are real checks.
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([13, 14, 15, 16]);
+		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([14, 15, 16]);
 		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
 	});
 });
@@ -646,7 +647,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 10, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 11, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1297,5 +1298,170 @@ describe("runDoctorNotifications — webhook avatars", () => {
 			"#alerts: could not list its webhooks (boom)",
 			"#sync: no channel to hold the webhook",
 		]);
+	});
+});
+
+describe("runDoctorNotifications — bot application", () => {
+	const app = {
+		description: "Posts things",
+		tags: ["automation", "github"],
+		install: { scopes: ["bot"], permissions: ["ManageRoles", "ViewChannel"] },
+		termsUrl: "https://x.test/terms",
+		privacyUrl: "https://x.test/privacy",
+		roleConnectionsUrl: "https://x.test/roles",
+	};
+	const withApp = (over: Record<string, unknown> = {}): NotificationsLayout => ({
+		...LAYOUT,
+		application: { ...app, ...over },
+	});
+	const check = (report: { checks: Array<{ id: string; problems: string[]; detail: string }> }) =>
+		report.checks.find((c) => c.id === "app-settings")!;
+	const same = {
+		...GOOD,
+		application: {
+			...app,
+			tags: ["GitHub", "automation"],
+			install: { scopes: ["bot"], permissions: ["viewchannel", "ManageRoles"] },
+		},
+	};
+
+	it("says none declared when the layout has no application section", async () => {
+		expect(check(await setup(fakeNotifications()).run())).toMatchObject({ detail: "none declared", problems: [] });
+	});
+
+	it("passes when everything matches, ignoring the order and case of tags and permissions", async () => {
+		const report = await setup(fakeNotifications({ layout: withApp(), found: same })).run();
+		expect(check(report)).toMatchObject({ detail: "1 of 1 as declared", problems: [] });
+	});
+
+	it("names each field that differs", async () => {
+		const found = {
+			...GOOD,
+			application: {
+				description: "Other",
+				tags: ["x"],
+				install: { scopes: ["bot", "applications.commands"], permissions: ["ManageRoles"] },
+				privacyUrl: "https://x.test/privacy",
+			},
+		};
+		const report = await setup(fakeNotifications({ layout: withApp(), found })).run();
+		expect(check(report).problems).toEqual([
+			"description differs from the layout",
+			"tags are x but the layout says automation, github",
+			"install scopes are bot, applications.commands but the layout says bot",
+			"install permissions differ from the layout",
+			"terms URL is not set but the layout says https://x.test/terms",
+			"role-connections URL is not set but the layout says https://x.test/roles",
+		]);
+	});
+
+	it("tells tags apart by their items, not by how they read joined, and scopes by their exact case", async () => {
+		const found = {
+			...GOOD,
+			application: { ...app, tags: ["a,b"], install: { scopes: ["BOT"], permissions: app.install.permissions } },
+		};
+		const report = await setup(fakeNotifications({ layout: withApp({ tags: ["a", "b"] }), found })).run();
+		expect(check(report).problems).toEqual([
+			"tags are a,b but the layout says a, b",
+			"install scopes are BOT but the layout says bot",
+		]);
+	});
+
+	it("does not flag a field the layout leaves out, even when the application has a value for it", async () => {
+		const report = await setup(
+			fakeNotifications({
+				layout: { ...LAYOUT, application: { tags: ["a"] } },
+				found: { ...GOOD, application: { ...app, tags: ["a"], description: "something else entirely" } },
+			})
+		).run();
+		expect(check(report).problems).toEqual([]);
+	});
+
+	it("says none for tags that are missing, and that no install link is set", async () => {
+		const found = { ...GOOD, application: { description: "Posts things" } };
+		const report = await setup(fakeNotifications({ layout: withApp(), found })).run();
+		expect(check(report).problems.slice(0, 2)).toEqual([
+			"tags are none but the layout says automation, github",
+			"no install link is set",
+		]);
+		const noDescription = await setup(
+			fakeNotifications({
+				layout: withApp(),
+				found: { ...GOOD, application: { ...app, description: undefined } },
+			})
+		).run();
+		expect(check(noDescription).problems).toEqual(["description differs from the layout"]);
+	});
+
+	it("says when it could not be read or the provider did not report it", async () => {
+		const failed = await setup(
+			fakeNotifications({ layout: withApp(), found: { ...GOOD, applicationError: "boom" } })
+		).run();
+		expect(check(failed).problems).toEqual(["not checked: could not read the application (boom)"]);
+		const silent = await setup(fakeNotifications({ layout: withApp() })).run();
+		expect(check(silent).problems).toEqual(["the provider did not report the application"]);
+	});
+
+	it("leaves a field the layout does not state out of the comparison", async () => {
+		const report = await setup(
+			fakeNotifications({
+				layout: { ...LAYOUT, application: { tags: ["a"] } },
+				found: { ...GOOD, application: { tags: ["a"] } },
+			})
+		).run();
+		expect(check(report).problems).toEqual([]);
+	});
+});
+
+describe("runDoctorNotifications — @everyone permissions", () => {
+	const layout: NotificationsLayout = { ...LAYOUT, everyone: { allow: ["ViewChannel"], deny: ["MentionEveryone"] } };
+	const check = (report: { checks: Array<{ id: string; problems: string[]; detail: string }> }) =>
+		report.checks.find((c) => c.id === "role-appearance")!;
+
+	it("passes when the denied bit is off and the allowed one is on", async () => {
+		const found = { ...GOOD, everyone: { permissions: ["viewchannel", "SendMessages"] } };
+		expect(check(await setup(fakeNotifications({ layout, found })).run()).problems).toEqual([]);
+	});
+
+	it("names what is missing and what is still there", async () => {
+		const found = { ...GOOD, everyone: { permissions: ["MentionEveryone"] } };
+		expect(check(await setup(fakeNotifications({ layout, found })).run()).problems).toEqual([
+			"@everyone: missing permissions ViewChannel",
+			"@everyone: still has permissions the layout takes away: MentionEveryone",
+		]);
+	});
+
+	it("still reports @everyone when the roles could not be read", async () => {
+		const withRoles = { ...layout, roles: [{ name: "gatekeepers", mentionable: true }] };
+		const found = { ...GOOD, rolesError: "boom", everyone: { permissions: ["MentionEveryone"] } };
+		expect(check(await setup(fakeNotifications({ layout: withRoles, found })).run()).problems).toEqual([
+			"not checked: could not read the roles",
+			"@everyone: missing permissions ViewChannel",
+			"@everyone: still has permissions the layout takes away: MentionEveryone",
+		]);
+	});
+
+	it("allows a layout that only denies, or only allows", async () => {
+		const onlyDeny = { ...LAYOUT, everyone: { deny: ["MentionEveryone"] } };
+		const found = { ...GOOD, everyone: { permissions: [] } };
+		expect(check(await setup(fakeNotifications({ layout: onlyDeny, found })).run()).problems).toEqual([]);
+		const onlyAllow = { ...LAYOUT, everyone: { allow: ["ViewChannel"] } };
+		expect(
+			check(
+				await setup(
+					fakeNotifications({
+						layout: onlyAllow,
+						found: { ...GOOD, everyone: { permissions: ["ViewChannel"] } },
+					})
+				).run()
+			).problems
+		).toEqual([]);
+	});
+
+	it("says when it could not be read or the provider did not report it", async () => {
+		const failed = await setup(fakeNotifications({ layout, found: { ...GOOD, everyoneError: "boom" } })).run();
+		expect(check(failed).problems).toEqual(["@everyone: not checked, could not read its permissions (boom)"]);
+		const silent = await setup(fakeNotifications({ layout })).run();
+		expect(check(silent).problems).toEqual(["@everyone: the provider did not report its permissions"]);
 	});
 });

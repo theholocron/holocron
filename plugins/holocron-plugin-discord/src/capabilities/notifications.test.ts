@@ -2633,3 +2633,312 @@ describe("DiscordNotifications.validateLayout — welcome screen", () => {
 		);
 	});
 });
+
+// ── bot application and @everyone ──────────────────────────────────────
+
+describe("DiscordNotifications.ensureEveryone", () => {
+	const everyoneRole = (names: Parameters<typeof permissions>[0]) => ({
+		body: [{ id: GUILD, name: "@everyone", color: 0, mentionable: false, permissions: permissions(names) }],
+	});
+
+	it("sends nothing when the bits are already as asked", async () => {
+		const { notifs, calls } = makeProvisioner([everyoneRole(["ViewChannel"])]);
+		expect(await notifs.ensureEveryone({ allow: ["ViewChannel"], deny: ["MentionEveryone"] })).toEqual({
+			updated: [],
+		});
+		expect(calls).toHaveLength(1);
+	});
+
+	it("changes only the named bits, and says which", async () => {
+		const have = ["ViewChannel", "MentionEveryone", "SendMessages"] as const;
+		const want = permissions(["ViewChannel", "SendMessages", "AddReactions"]);
+		const { notifs, calls } = makeProvisioner([
+			everyoneRole([...have]),
+			{ body: { id: GUILD, permissions: want } },
+		]);
+		expect(await notifs.ensureEveryone({ allow: ["AddReactions"], deny: ["MentionEveryone"] })).toEqual({
+			updated: ["AddReactions", "MentionEveryone"],
+		});
+		expect(calls[1]).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/guilds/${GUILD}/roles/${GUILD}`,
+			body: { permissions: want },
+		});
+	});
+
+	it("works with only a deny list, and with only an allow list", async () => {
+		const deny = makeProvisioner([everyoneRole(["MentionEveryone"]), { body: { id: GUILD, permissions: "0" } }]);
+		expect(await deny.notifs.ensureEveryone({ deny: ["MentionEveryone"] })).toEqual({
+			updated: ["MentionEveryone"],
+		});
+		const allow = makeProvisioner([
+			everyoneRole([]),
+			{ body: { id: GUILD, permissions: permissions(["ViewChannel"]) } },
+		]);
+		expect(await allow.notifs.ensureEveryone({ allow: ["ViewChannel"] })).toEqual({ updated: ["ViewChannel"] });
+	});
+
+	it("fails when what comes back is not what was sent", async () => {
+		const { notifs } = makeProvisioner([
+			everyoneRole(["MentionEveryone"]),
+			{ body: { id: GUILD, permissions: permissions(["MentionEveryone"]) } },
+		]);
+		await expect(notifs.ensureEveryone({ deny: ["MentionEveryone"] })).rejects.toThrow(/came back different/);
+	});
+
+	it("fails when the server has no @everyone role to change", async () => {
+		const none = makeProvisioner([
+			{ body: [{ id: "1", name: "x", color: 0, mentionable: false, permissions: "0" }] },
+		]);
+		await expect(none.notifs.ensureEveryone({ deny: ["MentionEveryone"] })).rejects.toThrow(/no @everyone role/);
+		const unreported = makeProvisioner([
+			{ body: [{ id: GUILD, name: "@everyone", color: 0, mentionable: false }] },
+		]);
+		await expect(unreported.notifs.ensureEveryone({ deny: ["MentionEveryone"] })).rejects.toThrow(
+			/no @everyone role/
+		);
+	});
+});
+
+describe("DiscordNotifications.ensureApplication", () => {
+	const PERMS = permissions(["ManageRoles", "ViewChannel"]);
+	const app = (over: Record<string, unknown> = {}) => ({
+		body: {
+			id: "9",
+			name: "holonet",
+			description: "Posts things",
+			tags: ["automation", "github"],
+			install_params: { scopes: ["bot"], permissions: PERMS },
+			terms_of_service_url: "https://x.test/terms",
+			privacy_policy_url: "https://x.test/privacy",
+			role_connections_verification_url: "https://x.test/roles",
+			...over,
+		},
+	});
+	const wanted = {
+		description: "Posts things",
+		tags: ["GitHub", "automation"],
+		install: { scopes: ["bot"], permissions: ["ViewChannel", "ManageRoles"] },
+		termsUrl: "https://x.test/terms",
+		privacyUrl: "https://x.test/privacy",
+		roleConnectionsUrl: "https://x.test/roles",
+	};
+
+	it("sends nothing when the application already matches, whatever the order of tags or permissions", async () => {
+		const { notifs, calls } = makeProvisioner([app()]);
+		expect(await notifs.ensureApplication(wanted)).toEqual({ updated: [] });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("sends only what differs and says which", async () => {
+		const { notifs, calls } = makeProvisioner([
+			app({
+				description: null,
+				tags: [],
+				install_params: undefined,
+				terms_of_service_url: null,
+				role_connections_verification_url: undefined,
+			}),
+			app(),
+		]);
+		expect(await notifs.ensureApplication(wanted)).toEqual({
+			updated: ["description", "tags", "install", "termsUrl", "roleConnectionsUrl"],
+		});
+		expect(calls[1]).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/applications/@me`,
+			body: {
+				description: "Posts things",
+				tags: ["GitHub", "automation"],
+				install_params: { scopes: ["bot"], permissions: PERMS },
+				terms_of_service_url: "https://x.test/terms",
+				role_connections_verification_url: "https://x.test/roles",
+			},
+		});
+		expect(calls[1]?.body).not.toHaveProperty("privacy_policy_url");
+	});
+
+	it("changes the install link when its scopes or its permissions differ", async () => {
+		const scopes = makeProvisioner([
+			app({ install_params: { scopes: ["bot", "applications.commands"], permissions: PERMS } }),
+			app(),
+		]);
+		expect((await scopes.notifs.ensureApplication(wanted)).updated).toEqual(["install"]);
+		const perms = makeProvisioner([app({ install_params: { scopes: ["bot"], permissions: "8" } }), app()]);
+		expect((await perms.notifs.ensureApplication(wanted)).updated).toEqual(["install"]);
+	});
+
+	it("tells tags apart by their items, and compares scopes by their exact case", async () => {
+		const tags = makeProvisioner([app({ tags: ["a", "b"] }), app({ tags: ["a,b"] })]);
+		expect((await tags.notifs.ensureApplication({ tags: ["a,b"] })).updated).toEqual(["tags"]);
+		const scopes = makeProvisioner([app({ install_params: { scopes: ["BOT"], permissions: PERMS } }), app()]);
+		expect((await scopes.notifs.ensureApplication({ install: wanted.install })).updated).toEqual(["install"]);
+	});
+
+	it("leaves out what the layout does not state", async () => {
+		const { notifs, calls } = makeProvisioner([app()]);
+		expect(await notifs.ensureApplication({ tags: ["automation", "github"] })).toEqual({ updated: [] });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("fails, naming each field, when Discord does not keep what was sent", async () => {
+		const bare = {
+			description: "old",
+			tags: [],
+			install_params: undefined,
+			terms_of_service_url: null,
+			privacy_policy_url: null,
+			role_connections_verification_url: null,
+		};
+		const { notifs } = makeProvisioner([app(bare), app(bare)]);
+		await expect(notifs.ensureApplication(wanted)).rejects.toThrow(
+			/sent description, tags, install, termsUrl, privacyUrl, roleConnectionsUrl but Discord did not keep them -- it may not accept that field/
+		);
+		const one = makeProvisioner([app({ terms_of_service_url: null }), app({ terms_of_service_url: null })]);
+		await expect(one.notifs.ensureApplication(wanted)).rejects.toThrow(/sent termsUrl but Discord did not keep it/);
+	});
+
+	it("fails when the install link comes back with other scopes or permissions", async () => {
+		const wrongScopes = { install_params: { scopes: ["applications.commands"], permissions: PERMS } };
+		const a = makeProvisioner([app({ install_params: undefined }), app(wrongScopes)]);
+		await expect(a.notifs.ensureApplication(wanted)).rejects.toThrow(/sent install but/);
+		const wrongPerms = { install_params: { scopes: ["bot"], permissions: "8" } };
+		const b = makeProvisioner([app({ install_params: undefined }), app(wrongPerms)]);
+		await expect(b.notifs.ensureApplication(wanted)).rejects.toThrow(/sent install but/);
+	});
+
+	it("treats a description or tags that Discord leaves out as empty", async () => {
+		const { notifs } = makeProvisioner([
+			app({ description: undefined, tags: undefined }),
+			app({ description: undefined, tags: undefined }),
+		]);
+		await expect(notifs.ensureApplication({ description: "x", tags: ["a"] })).rejects.toThrow(
+			/sent description, tags but/
+		);
+	});
+});
+
+describe("DiscordNotifications — reading the application and @everyone back", () => {
+	it("reads the application in the layout's terms", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [] },
+			{
+				body: {
+					id: "9",
+					name: "holonet",
+					description: "Posts things",
+					tags: ["a"],
+					install_params: { scopes: ["bot"], permissions: permissions(["ViewChannel"]) },
+					terms_of_service_url: "https://x.test/terms",
+					privacy_policy_url: "https://x.test/privacy",
+					role_connections_verification_url: "https://x.test/roles",
+				},
+			},
+		]);
+		const found = await notifs.inspect({ application: { tags: ["a"] } });
+		expect(calls.at(-1)).toMatchObject({ method: "GET", url: `${BASE}/applications/@me` });
+		expect(found.application).toEqual({
+			description: "Posts things",
+			tags: ["a"],
+			install: { scopes: ["bot"], permissions: ["ViewChannel"] },
+			termsUrl: "https://x.test/terms",
+			privacyUrl: "https://x.test/privacy",
+			roleConnectionsUrl: "https://x.test/roles",
+		});
+	});
+
+	it("leaves out what the application does not have", async () => {
+		const { notifs } = makeProvisioner([{ body: [] }, { body: { id: "9", name: "holonet" } }]);
+		const found = await notifs.inspect({ application: { tags: ["a"] } });
+		expect(found.application).toEqual({ tags: [] });
+	});
+
+	it("reports a failed read of the application on its own", async () => {
+		const { notifs } = makeProvisioner([{ body: [] }, { status: 500, body: {} }]);
+		const found = await notifs.inspect({ application: { tags: ["a"] } });
+		expect(found.application).toBeUndefined();
+		expect(found.applicationError).toMatch(/500/);
+	});
+
+	it("reads what everyone may do, and says when it cannot", async () => {
+		const ok = makeProvisioner([
+			{ body: [] },
+			{
+				body: [
+					{
+						id: GUILD,
+						name: "@everyone",
+						color: 0,
+						mentionable: false,
+						permissions: permissions(["ViewChannel"]),
+					},
+				],
+			},
+		]);
+		expect((await ok.notifs.inspect({ everyone: { deny: ["MentionEveryone"] } })).everyone).toEqual({
+			permissions: ["ViewChannel"],
+		});
+		expect(ok.calls.at(-1)).toMatchObject({ method: "GET", url: `${BASE}/guilds/${GUILD}/roles` });
+		const missing = makeProvisioner([{ body: [] }, { body: [] }]);
+		expect((await missing.notifs.inspect({ everyone: { deny: ["MentionEveryone"] } })).everyoneError).toMatch(
+			/no @everyone role/
+		);
+		const failed = makeProvisioner([{ body: [] }, { status: 500, body: {} }]);
+		expect((await failed.notifs.inspect({ everyone: { deny: ["MentionEveryone"] } })).everyoneError).toMatch(/500/);
+	});
+});
+
+describe("DiscordNotifications.validateLayout — application and everyone", () => {
+	const { notifs } = makeProvisioner([]);
+	const check = (layout: Record<string, unknown>) => notifs.validateLayout(layout as never);
+
+	it("accepts a layout within Discord's limits", () => {
+		expect(
+			check({
+				application: {
+					description: "x".repeat(400),
+					tags: ["a", "b", "c", "d", "e"],
+					termsUrl: "https://x.test",
+					install: { scopes: ["bot"], permissions: ["ViewChannel"] },
+				},
+				everyone: { allow: ["ViewChannel"], deny: ["MentionEveryone"] },
+			})
+		).toBeUndefined();
+	});
+
+	it("accepts an application with no install link, and an everyone that only allows or only denies", () => {
+		expect(check({ application: { tags: ["a"] } })).toBeUndefined();
+		expect(check({ everyone: { allow: ["ViewChannel"] } })).toBeUndefined();
+		expect(check({ everyone: { deny: ["MentionEveryone"] } })).toBeUndefined();
+	});
+
+	it("names a description, tag list or tag that is too long", () => {
+		expect(check({ application: { description: "x".repeat(401) } })).toMatch(
+			/401 characters; Discord allows up to 400/
+		);
+		expect(check({ application: { tags: ["a", "b", "c", "d", "e", "f"] } })).toMatch(
+			/6 tags; Discord allows up to 5/
+		);
+		expect(check({ application: { tags: ["x".repeat(21)] } })).toMatch(/over 20 characters/);
+	});
+
+	it("refuses a scope Discord does not offer, including one in the wrong case", () => {
+		const install = (scopes: string[]) => ({ application: { install: { scopes, permissions: [] } } });
+		expect(check(install(["botz"]))).toMatch(/"botz", which is not an OAuth2 scope Discord offers/);
+		expect(check(install(["BOT"]))).toMatch(/"BOT"/);
+		expect(check(install(["bot", "applications.commands"]))).toBeUndefined();
+	});
+
+	it("wants https links, a scope for the install link, and real permission names", () => {
+		expect(check({ application: { privacyUrl: "http://x.test" } })).toMatch(
+			/`privacyUrl` "http:\/\/x.test" must start with https/
+		);
+		expect(check({ application: { install: { scopes: [], permissions: [] } } })).toMatch(
+			/`install.scopes` is empty/
+		);
+		expect(check({ application: { install: { scopes: ["bot"], permissions: ["Nope"] } } })).toMatch(
+			/install.permissions/
+		);
+		expect(check({ everyone: { deny: ["Nope"] } })).toMatch(/^everyone: /);
+	});
+});
