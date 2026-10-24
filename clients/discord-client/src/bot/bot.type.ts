@@ -238,6 +238,19 @@ export interface DiscordInstallParams {
 	permissions: string;
 }
 
+/**
+ * Bits of the application's `flags`. The `*Limited` ones are the portal's privileged-intent toggles for an app
+ * that Discord has not verified; once verified, the plain ones take over and the toggle is Discord's to change.
+ */
+export const ApplicationFlag = {
+	GatewayPresence: 1 << 12,
+	GatewayPresenceLimited: 1 << 13,
+	GatewayGuildMembers: 1 << 14,
+	GatewayGuildMembersLimited: 1 << 15,
+	GatewayMessageContent: 1 << 18,
+	GatewayMessageContentLimited: 1 << 19,
+} as const;
+
 /** The bot's own application, as `GET /applications/@me` returns it. Fields Discord leaves out are absent or null. */
 export interface DiscordApplication {
 	id: string;
@@ -257,6 +270,11 @@ export interface DiscordApplication {
 	bot_public?: boolean;
 	bot_require_code_grant?: boolean;
 	flags?: number;
+	/**
+	 * The OAuth2 redirect URIs registered on the application. Read-only here: Discord accepts a write to this
+	 * field and silently ignores it, so add them in the developer portal (OAuth2 → Redirects).
+	 */
+	redirect_uris?: string[];
 }
 
 /** What `PATCH /applications/@me` takes; a field left out is left alone, and `null` clears the ones that can be cleared. */
@@ -269,6 +287,11 @@ export interface ModifyApplicationInput {
 	terms_of_service_url?: string | null;
 	privacy_policy_url?: string | null;
 	interactions_endpoint_url?: string | null;
+	/**
+	 * The whole flags value. Discord keeps only the bits an app may change (the `*Limited` privileged-intent
+	 * toggles among them), so read `flags` first and send it back with your bit set or cleared.
+	 */
+	flags?: number;
 }
 
 export interface ModifyWebhookInput {

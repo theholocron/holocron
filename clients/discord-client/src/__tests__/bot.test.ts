@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ChannelType, createDiscordBotClient } from "../index.js";
+import { ApplicationFlag, ChannelType, createDiscordBotClient } from "../index.js";
 import { stubFetch } from "./helpers.js";
 
 const BASE = "https://discord.test/api/v10";
@@ -528,6 +528,27 @@ describe("server settings", () => {
 			method: "PATCH",
 			body: { description: "new", tags: ["a"], install_params: { scopes: ["bot"], permissions: "8" } },
 		});
+	});
+
+	it("application: reads redirect_uris and flags, and sends a flags value with a privileged-intent bit set", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "9", name: "Holonet", flags: 64, redirect_uris: ["http://localhost:53682/callback"] } },
+			{ body: { id: "9", name: "Holonet", flags: 64 | ApplicationFlag.GatewayGuildMembersLimited } },
+		]);
+		const app = await client.application.get();
+		expect(app.flags).toBe(64);
+		expect(app.redirect_uris).toEqual(["http://localhost:53682/callback"]);
+		const out = await client.application.modify({
+			flags: (app.flags ?? 0) | ApplicationFlag.GatewayGuildMembersLimited,
+		});
+		expect(out.flags).toBe(64 + 32768);
+		expect(calls[1]).toMatchObject({ method: "PATCH", body: { flags: 64 + 32768 } });
+	});
+
+	it("ApplicationFlag holds the privileged-intent bits Discord documents", () => {
+		expect(ApplicationFlag.GatewayGuildMembers).toBe(16384);
+		expect(ApplicationFlag.GatewayGuildMembersLimited).toBe(32768);
+		expect(ApplicationFlag.GatewayMessageContentLimited).toBe(524288);
 	});
 
 	it("welcome screen: GET and PATCH /guilds/:id/welcome-screen", async () => {
