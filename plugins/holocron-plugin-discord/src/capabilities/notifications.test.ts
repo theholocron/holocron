@@ -1457,6 +1457,62 @@ describe("DiscordNotifications.ensureServer", () => {
 		);
 	});
 
+	it("sends the rules and updates channels with the community edit even when they are already set", async () => {
+		const set = { rules_channel_id: "2002", public_updates_channel_id: "2003" };
+		const { notifs, calls } = makeProvisioner([
+			guild({ features: [], ...set }),
+			chans,
+			guild({ features: [], ...set }), // read again just before the edit
+			guild({ features: ["COMMUNITY"], ...set }),
+		]);
+		// the layout says nothing about the channels: the server's own are sent, so Discord does not answer
+		// 400 GUILD_RULES_CHANNEL_REQUIRED
+		expect(await notifs.ensureServer({ community: true })).toEqual({ updated: ["community"] });
+		expect(calls[3]?.body).toEqual({
+			features: ["COMMUNITY"],
+			rules_channel_id: "2002",
+			public_updates_channel_id: "2003",
+		});
+	});
+
+	it("sends the rules channel the layout names with the community edit, and checks it stuck", async () => {
+		const { notifs, calls } = makeProvisioner([
+			guild({ features: [] }),
+			chans,
+			guild({ features: [], rules_channel_id: "2002" }), // the ordinary edit sets the rules channel first...
+			guild({ features: [], rules_channel_id: "2002" }),
+			guild({ features: ["COMMUNITY"], rules_channel_id: "2002" }),
+		]);
+		await notifs.ensureServer({ community: true, rulesChannel: "rules" });
+		// ...and the community edit still names it
+		expect(calls[4]?.body).toMatchObject({ features: ["COMMUNITY"], rules_channel_id: "2002" });
+		const kept = makeProvisioner([
+			guild({ features: [], rules_channel_id: "2002" }),
+			chans,
+			guild({ features: [], rules_channel_id: "2002" }),
+			guild({ features: ["COMMUNITY"], rules_channel_id: "2002" }),
+		]);
+		expect(await kept.notifs.ensureServer({ community: true, rulesChannel: "rules" })).toEqual({
+			updated: ["community"],
+		});
+		const lost = makeProvisioner([
+			guild({ features: [], rules_channel_id: "2002" }),
+			chans,
+			guild({ features: [], rules_channel_id: "2002" }),
+			guild({ features: ["COMMUNITY"], rules_channel_id: "9999" }),
+		]);
+		await expect(lost.notifs.ensureServer({ community: true, rulesChannel: "rules" })).rejects.toThrow(
+			/did not keep rules as its rules channel/
+		);
+	});
+
+	it("sends no rules channel when turning community off", async () => {
+		const set = { rules_channel_id: "2002", features: ["COMMUNITY"] };
+		const { notifs, calls } = makeProvisioner([guild(set), chans, guild(set), guild({ features: [] })]);
+		await notifs.ensureServer({ community: false });
+		expect(calls[3]?.body).toEqual({ features: [] });
+	});
+
 	it("sends nothing when the server already matches", async () => {
 		const { notifs, calls } = makeProvisioner([guild(after), chans]);
 		expect(await notifs.ensureServer(settings)).toEqual({ updated: [] });
@@ -1577,9 +1633,7 @@ describe("DiscordNotifications.ensureServer", () => {
 		const err = (await notifs
 			.ensureServer({ verification: "medium", community: true })
 			.catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(
-			/^applied verification; but turning community features on needs the Administrator permission/
-		);
+		expect(err.message).toMatch(/^applied verification; but turning community features on was refused/);
 		expect(err.message).toMatch(/Enable Community/);
 		const url = new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]);
 		expect(url.searchParams.get("permissions")).toBe("8");
@@ -1594,7 +1648,7 @@ describe("DiscordNotifications.ensureServer", () => {
 			bot,
 		]);
 		const err = (await notifs.ensureServer({ community: true }).catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(/^turning community features on needs the Administrator permission/);
+		expect(err.message).toMatch(/^turning community features on was refused/);
 	});
 
 	it("turns community off before relaxing the settings Discord refuses to relax while it is on", async () => {
@@ -1636,21 +1690,24 @@ describe("DiscordNotifications.ensureServer", () => {
 			bot,
 		]);
 		const err = (await notifs.ensureServer({ community: false }).catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(/turning community features off needs the Administrator permission/);
+		expect(err.message).toMatch(/turning community features off was refused/);
 		expect(err.message).toMatch(/Disable Community/);
 		expect(err.message).not.toMatch(/Enable Community/);
 	});
 
-	it("does not blame a missing permission for a 403 that is about access", async () => {
-		const community = makeProvisioner([
-			guild(),
-			chans,
-			guild(),
-			{ status: 403, body: { message: "Missing Access", code: 50001 } },
-		]);
-		const cErr = (await community.notifs.ensureServer({ community: true }).catch((e: unknown) => e)) as Error;
-		expect(cErr).toBeInstanceOf(ProviderApiError);
-		expect(cErr.message).not.toMatch(/Administrator|Manage Server/);
+	it("gives the Administrator explanation for the community edit whichever 403 Discord answers with", async () => {
+		for (const body of [
+			{ message: "Missing Access", code: 50001 },
+			{ message: "Missing Permissions", code: 50013 },
+		]) {
+			const { notifs } = makeProvisioner([guild(), chans, guild(), { status: 403, body }, bot]);
+			await expect(notifs.ensureServer({ community: true })).rejects.toThrow(
+				/turning community features on was refused/
+			);
+		}
+	});
+
+	it("does not blame a missing permission for a 403 about access on the ordinary settings", async () => {
 		const ordinary = makeProvisioner([
 			guild(),
 			chans,
@@ -1661,9 +1718,17 @@ describe("DiscordNotifications.ensureServer", () => {
 		expect(oErr.message).not.toMatch(/Administrator|Manage Server/);
 	});
 
-	it("still explains a 403 that carries no body at all", async () => {
-		const { notifs } = makeProvisioner([guild(), chans, { status: 403 }, bot]);
-		await expect(notifs.ensureServer({ verification: "high" })).rejects.toThrow(/lacks Manage Server/);
+	it("quotes what Discord said and suggests checking membership if Holonet already has Administrator", async () => {
+		const { notifs } = makeProvisioner([
+			guild(),
+			chans,
+			guild(),
+			{ status: 403, body: { message: "Missing Access", code: 50001 } },
+			bot,
+		]);
+		const err = (await notifs.ensureServer({ community: true }).catch((e: Error) => e)) as Error;
+		expect(err.message).toMatch(/\(Discord said: .*Missing Access.*50001.*\)/);
+		expect(err.message).toMatch(/If Holonet already has Administrator, check that it is still in the server/);
 	});
 
 	it("keeps the explanation when the invite link cannot be built, and still says what was applied", async () => {
@@ -1678,7 +1743,7 @@ describe("DiscordNotifications.ensureServer", () => {
 		const err = (await community.notifs
 			.ensureServer({ verification: "medium", community: true })
 			.catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(/^applied verification; but turning community features on needs the Administrator/);
+		expect(err.message).toMatch(/^applied verification; but turning community features on was refused/);
 		expect(err.message).toMatch(/re-invite Holonet with the Administrator permission/);
 		expect(err.message).not.toMatch(/oauth2/);
 		const ordinary = makeProvisioner([
