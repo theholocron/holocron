@@ -5,7 +5,7 @@ import type { GitHubClient } from "@theholocron/github-client";
 /** A fine-grained token only reaches the repositories and permissions it was given; say which one is missing. */
 function noAccess(repo: string, action: "read" | "write", cause: unknown): Error {
 	return new Error(
-		`the token cannot ${action} files in ${repo} (403): give it access to that repository with Contents: ${action === "read" ? "read" : "read and write"}`,
+		`the token cannot ${action} files in ${repo} (403): give the user-sync token (HOLOCRON_USER_SYNC_TOKEN, or holocron auth set github.user-sync) access to that repository with Contents: ${action === "read" ? "read" : "read and write"}`,
 		{ cause }
 	);
 }

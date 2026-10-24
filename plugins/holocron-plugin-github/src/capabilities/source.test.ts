@@ -484,6 +484,40 @@ describe("GitHubSource — team members and files", () => {
 		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/contents/x.json");
 	});
 
+	it("readFile and writeFile use the user-sync client first, then the org client, then the repo client", async () => {
+		const tokens: string[] = [];
+		const client = (token: string) =>
+			createGitHubClient({
+				token,
+				fetch: (async (_url: string, init?: RequestInit) => {
+					tokens.push(new Headers(init?.headers).get("authorization") ?? "");
+					return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+				}) as unknown as typeof fetch,
+			});
+		const make = (over: { org?: boolean; sync?: boolean }) =>
+			new GitHubSource(client("repo"), {
+				repo: REPO,
+				repoRoot: process.cwd(),
+				...(over.org ? { orgClient: client("org") } : {}),
+				...(over.sync ? { userSyncClient: client("sync") } : {}),
+			});
+		for (const [over, expected] of [
+			[{ org: true, sync: true }, "sync"],
+			[{ org: true }, "org"],
+			[{}, "repo"],
+		] as const) {
+			tokens.length = 0;
+			await make(over)
+				.readFile("x.json", "theholocron/.github-private")
+				.catch(() => undefined);
+			await make(over)
+				.writeFile("x.json", "{}", { message: "m", repo: "theholocron/.github-private" })
+				.catch(() => undefined);
+			expect(tokens.length).toBeGreaterThan(0);
+			expect(new Set(tokens)).toEqual(new Set([expect.stringContaining(expected)]));
+		}
+	});
+
 	it("readFile and writeFile say which token permission is missing on a 403", async () => {
 		const read = makeSource([{ status: 403, body: {} }]);
 		await expect(read.source.readFile("x.json", "theholocron/.github-private")).rejects.toThrow(

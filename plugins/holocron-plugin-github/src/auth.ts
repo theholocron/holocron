@@ -40,6 +40,13 @@ export const resolveDeployToken = createFeatureResolver({
 	keyringKey: "github.deploy",
 });
 
+// Reads and writes the files that map GitHub accounts to members of other services (Discord, Slack, ...) in the
+// org's private config repo. Kept apart from `github.org` so that token never needs Contents on every repo.
+export const resolveUserSyncToken = createFeatureResolver({
+	envName: "HOLOCRON_USER_SYNC_TOKEN",
+	keyringKey: "github.user-sync",
+});
+
 export const resolveOrgToken = createFeatureResolver({
 	envName: "HOLOCRON_ORG_TOKEN",
 	keyringKey: "github.org",

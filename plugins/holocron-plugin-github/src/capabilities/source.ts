@@ -32,6 +32,8 @@ export interface SourceOptions {
 	repoRoot: string;
 	/** Secondary client authenticated with HOLOCRON_ORG_TOKEN for org-scoped operations (teams, custom properties). */
 	orgClient?: GitHubClient;
+	/** Client for the files that link GitHub accounts to other services (HOLOCRON_USER_SYNC_TOKEN); falls back to the org client. */
+	userSyncClient?: GitHubClient;
 	/** Forwarded to a secondary client created for Pages calls (HOLOCRON_DEPLOY_TOKEN). */
 	baseUrl?: string;
 	fetch?: typeof fetch;
@@ -47,6 +49,7 @@ export class GitHubSource implements Source {
 	private readonly repoRoot: string;
 	private readonly workflowDir: string;
 	private readonly orgClient?: GitHubClient;
+	private readonly userSyncClient?: GitHubClient;
 	private readonly baseUrl?: string;
 	private readonly fetchImpl?: typeof fetch;
 
@@ -70,6 +73,7 @@ export class GitHubSource implements Source {
 		this.repoRoot = findRootSync(opts.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
 		this.workflowDir = join(this.repoRoot, ".github", "workflows");
 		this.orgClient = opts.orgClient;
+		this.userSyncClient = opts.userSyncClient;
 		this.baseUrl = opts.baseUrl;
 		this.fetchImpl = opts.fetch;
 	}
@@ -193,9 +197,9 @@ export class GitHubSource implements Source {
 		return members.map((m) => ({ id: String(m.id), login: m.login }));
 	}
 
-	// Files outside this repo (the links file lives in `.github-private`) need the org token, like teams.
+	// Files outside this repo (the links file lives in `.github-private`) use the user-sync token, then the org token.
 	async readFile(path: string, repo: string = this.repo): Promise<SourceFile | null> {
-		return readRepoFile(this.orgClient ?? this.client, repo, path);
+		return readRepoFile(this.userSyncClient ?? this.orgClient ?? this.client, repo, path);
 	}
 
 	async writeFile(
@@ -203,7 +207,13 @@ export class GitHubSource implements Source {
 		content: string,
 		opts: { message: string; version?: string; repo?: string }
 	): Promise<void> {
-		return writeRepoFile(this.orgClient ?? this.client, opts.repo ?? this.repo, path, content, opts);
+		return writeRepoFile(
+			this.userSyncClient ?? this.orgClient ?? this.client,
+			opts.repo ?? this.repo,
+			path,
+			content,
+			opts
+		);
 	}
 
 	async syncTopics(topics: string[]): Promise<string> {

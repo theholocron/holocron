@@ -46,6 +46,10 @@ The local listener binds the loopback address only, accepts only a `/callback` c
 2. **Store the client secret.** Under **OAuth2 → Reset Secret**, copy the secret and store it where the bot token is kept: `holocron auth set discord.holonet.secret <secret>`, or set `HOLOCRON_DISCORD_CLIENT_SECRET`. The API never returns it.
 3. **Connect GitHub to Discord.** In Discord, **User Settings → Connections → GitHub**. Without a verified GitHub connection the command stops and tells you so.
 
+## The GitHub token for the links file
+
+The links file lives in the org's private config repo, so it has its own token, `HOLOCRON_USER_SYNC_TOKEN` (`holocron auth set github.user-sync <PAT>`): a fine-grained PAT for the org, with **only** `.github-private` selected and `Contents: read and write`. `notifications sync-roles` reads the same file with it. Nothing else uses it, so `github.org` and `github.admin` never need Contents on other repositories. The file is per provider (`notifications/<provider>-links.json`), so the same token serves any other service whose members are matched to GitHub accounts. Without it the org token is tried, then the admin token; a 403 names the missing permission.
+
 ## Options
 
 | Option              | Default | Description                                                              |
