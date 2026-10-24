@@ -52,3 +52,25 @@ export function splitRepo(repo: string): [owner: string, name: string] {
 	const [owner, name] = repo.split("/", 2);
 	return [owner ?? "", name ?? ""];
 }
+
+/**
+ * One URL path segment from a caller-supplied name (an org, a team slug). `.` and `..` are refused because
+ * `new URL` would resolve them, sending the authenticated request to a different resource.
+ */
+export function segment(value: string): string {
+	if (value === "" || value === "." || value === "..")
+		throw new Error(`invalid path segment: ${JSON.stringify(value)}`);
+	return encodeURIComponent(value);
+}
+
+/** A repo file path with each segment encoded, so `?` and `#` stay part of the name and `..` cannot climb out. */
+export function filePath(path: string): string {
+	return path.split("/").map(segment).join("/");
+}
+
+/** UTF-8 text as base64 without `Buffer`, so it runs in Workers and browsers as well as Node. */
+export function toBase64(text: string): string {
+	let binary = "";
+	for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte);
+	return btoa(binary);
+}

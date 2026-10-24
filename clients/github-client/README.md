@@ -50,7 +50,7 @@ const blob = await client.git.createBlob("owner/name", "file contents");
 | `labels`       | `listLabels`, `createLabel`, `updateLabel`, `deleteLabel`                                                                                                                                               |
 | `topics`       | `setTopics`                                                                                                                                                                                             |
 | `properties`   | `setProperties`                                                                                                                                                                                         |
-| `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                                                     |
+| `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `putContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                                      |
 | `checks`       | `createCheckRun`                                                                                                                                                                                        |
 
 GitHub accepts at most 50 annotations per check-run request. Slice with the

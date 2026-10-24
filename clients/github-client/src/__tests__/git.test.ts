@@ -1,3 +1,4 @@
+import { ProviderApiError } from "@theholocron/http-client";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../index.js";
@@ -130,5 +131,63 @@ describe("git", () => {
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain("/pulls");
 		expect(result.html_url).toBe("https://github.com/pr/1");
+	});
+});
+
+describe("git.putContents", () => {
+	it("PUT /contents/:path with base64 text, the sha and the branch", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "a.json" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const out = await client.git.putContents(REPO, "a.json", {
+			message: "m",
+			content: "héllo",
+			sha: "old",
+			branch: "b",
+		});
+		expect(out.content.sha).toBe("n");
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain(`/repos/${REPO}/contents/a.json`);
+		expect(calls[0]?.body).toEqual({
+			message: "m",
+			content: Buffer.from("héllo").toString("base64"),
+			sha: "old",
+			branch: "b",
+		});
+	});
+
+	it("leaves sha and branch out when creating a file", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "a.json" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.putContents(REPO, "a.json", { message: "m", content: "x" });
+		expect(calls[0]?.body).toEqual({ message: "m", content: "eA==" });
+	});
+
+	it("a stale sha is refused by GitHub and comes through as a ProviderApiError", async () => {
+		const { fetch } = stubFetch([{ status: 409, body: { message: "does not match" } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const err = await client.git
+			.putContents(REPO, "a.json", { message: "m", content: "x", sha: "stale" })
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect(err).toMatchObject({ status: 409 });
+	});
+
+	it("encodes each path segment and refuses ones that climb out", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.putContents(REPO, "dir/a b?c#d.json", { message: "m", content: "x" });
+		expect(calls[0]?.url).toContain("/contents/dir/a%20b%3Fc%23d.json");
+		expect(() => client.git.putContents(REPO, "../other/x", { message: "m", content: "x" })).toThrow(
+			/invalid path segment/
+		);
+	});
+
+	it("encodes non-ASCII text without Buffer", async () => {
+		const { fetch, calls } = stubFetch([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.putContents(REPO, "a.json", { message: "m", content: "héllo ✓" });
+		expect(Buffer.from((calls[0]!.body as { content: string }).content, "base64").toString("utf-8")).toBe(
+			"héllo ✓"
+		);
 	});
 });

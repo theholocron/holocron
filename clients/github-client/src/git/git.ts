@@ -1,5 +1,5 @@
 import type { RestClient } from "../utils.js";
-import { repoBase } from "../utils.js";
+import { filePath, repoBase, toBase64 } from "../utils.js";
 
 export interface GitRef {
 	object: { sha: string; type: string; url: string };
@@ -32,6 +32,26 @@ export interface GitContents {
 	sha: string;
 	name: string;
 	path: string;
+}
+
+/** What `git.putContents` returns: the file's new blob sha (the `sha` to pass next time) and the commit it made. */
+export interface PutContentsResult {
+	content: { sha: string; path: string };
+	commit: { sha: string };
+}
+
+export interface PutContentsInput {
+	message: string;
+	/** The new file text (UTF-8); the client encodes it. */
+	content: string;
+	/**
+	 * The blob `sha` of the file being replaced, from `getContents`. Required to update an existing file,
+	 * and omitted to create one. This is what makes the write safe: if someone changed the file since it was
+	 * read, GitHub refuses (409) instead of overwriting, so the caller can read again and retry.
+	 */
+	sha?: string;
+	/** Defaults to the repo's default branch. */
+	branch?: string;
 }
 
 export interface GitBlob {
@@ -73,6 +93,21 @@ export function git(rest: RestClient) {
 		 */
 		getContents: (repo: string, path: string, ref?: string): Promise<GitContents> =>
 			rest.request<GitContents>(`${repoBase(repo)}/contents/${path}`, ref ? { query: { ref } } : undefined),
+
+		/**
+		 * `PUT /repos/:repo/contents/:path` — creates or updates one file in a single commit. Pass `sha` when
+		 * updating so a concurrent change is refused (409) and not silently overwritten.
+		 */
+		putContents: (repo: string, path: string, input: PutContentsInput): Promise<PutContentsResult> =>
+			rest.request<PutContentsResult>(`${repoBase(repo)}/contents/${filePath(path)}`, {
+				method: "PUT",
+				body: {
+					message: input.message,
+					content: toBase64(input.content),
+					...(input.sha ? { sha: input.sha } : {}),
+					...(input.branch ? { branch: input.branch } : {}),
+				},
+			}),
 
 		createBlob: (repo: string, content: string, encoding = "utf-8"): Promise<GitBlob> =>
 			rest.request<GitBlob>(`${repoBase(repo)}/git/blobs`, {
