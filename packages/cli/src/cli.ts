@@ -29,6 +29,7 @@ import { runMonitoringResolveChecks } from "./commands/monitoring-resolve-checks
 import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands/monitoring-run-resolved/index.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/index.js";
 import { runNotificationsChannelAdd } from "./commands/notifications-channel-add/index.js";
+import { runNotificationsLink } from "./commands/notifications-link/index.js";
 import { runNotificationsSetup } from "./commands/notifications-setup/index.js";
 import { runNotificationsSyncRoles } from "./commands/notifications-sync-roles/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
@@ -1466,6 +1467,32 @@ try {
 									org: resolveOrg(argv, loaded.resolved),
 								},
 								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
+								...(argv.provider ? { provider: argv.provider as string } : {}),
+							});
+							if (report.status === "fail") process.exitCode = 1;
+						}
+					)
+					.command(
+						"link",
+						"Link your server account to your GitHub account by signing in with the provider",
+						(y) =>
+							y.option("provider", {
+								type: "string",
+								describe: "Which notifications provider, when several can sign members in",
+							}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runNotificationsLink({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
 								...(argv.provider ? { provider: argv.provider as string } : {}),
 							});
 							if (report.status === "fail") process.exitCode = 1;

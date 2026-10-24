@@ -25,6 +25,7 @@ export default defineConfig({
 					{ label: "new plugin", slug: "commands/new-plugin" },
 					{ label: "new repo", slug: "commands/new-repo" },
 					{ label: "notifications channel add", slug: "commands/notifications-channel-add" },
+					{ label: "notifications link", slug: "commands/notifications-link" },
 					{ label: "notifications setup", slug: "commands/notifications-setup" },
 					{ label: "notifications sync-roles", slug: "commands/notifications-sync-roles" },
 					{ label: "package bump-versions", slug: "commands/package-bump-versions" },

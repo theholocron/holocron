@@ -25,7 +25,7 @@ gatekeepers ← team gatekeepers
 
 ## Who is who
 
-A team member and a server member are matched through a **links file**: one entry per person, holding their GitHub user id and their server id. A person is added to it by signing in with Discord, which reports the GitHub account Discord has verified they own, so nobody can claim someone else's account. The file holds two public ids and no secrets, but the pairing is something a member did not necessarily want published, so keep it in a private repo. By default that is `<org>/.github-private`, at `notifications/<provider>-links.json`; the layout can say otherwise:
+A team member and a server member are matched through a **links file**: one entry per person, holding their GitHub user id and their server id. A person is added to it by running [`holocron notifications link`](/holocron/commands/notifications-link/), which has them sign in with Discord, which reports the GitHub account Discord has verified they own, so nobody can claim someone else's account. The file holds two public ids and no secrets, but the pairing is something a member did not necessarily want published, so keep it in a private repo. By default that is `<org>/.github-private`, at `notifications/<provider>-links.json`; the layout can say otherwise:
 
 ```ts
 layout: {

@@ -9,6 +9,7 @@ import {
 	type NotificationsMember,
 	type NotificationsOnboardingLayout,
 	type NotificationsServerLayout,
+	type NotificationsSignIn,
 	type NotificationsWelcomeLayout,
 	ProviderApiError,
 	type ServerInspection,
@@ -20,7 +21,9 @@ import {
 	type DiscordBotClient,
 	type DiscordChannel,
 	type DiscordClient,
+	type DiscordOAuthClient,
 	type DiscordPermissionOverwrite,
+	findVerifiedConnection,
 	type ModifyApplicationInput,
 	type ModifyGuildInput,
 	type ModifyRoleInput,
@@ -239,8 +242,42 @@ export class DiscordNotifications implements Notifications {
 		/** Memoized thunk — resolves the bot token on first provisioning call, never on `send()`. */
 		private readonly bot: () => DiscordBotClient = () => {
 			throw new Error("no Discord bot client configured");
+		},
+		/** Builds the OAuth client for one redirect URI; needs the application's client secret. */
+		private readonly oauth: (redirectUri: string) => Promise<DiscordOAuthClient> = () => {
+			throw new Error("no Discord OAuth client configured");
 		}
 	) {}
+
+	/**
+	 * Sign a member in with Discord to learn which GitHub account they own. Asks only for `identify` and
+	 * `connections`, reads the account Discord has verified, and revokes the token before returning: nothing
+	 * about the sign-in is kept.
+	 */
+	signIn(): NotificationsSignIn {
+		return {
+			authorizeUrl: async ({ redirectUri, state }) => (await this.oauth(redirectUri)).authorizeUrl({ state }),
+			complete: async ({ redirectUri, code }) => {
+				const client = await this.oauth(redirectUri);
+				const token = await client.exchangeCode(code);
+				try {
+					const [user, connections] = await Promise.all([
+						client.user(token.access_token),
+						client.connections(token.access_token),
+					]);
+					const github = findVerifiedConnection(connections, "github");
+					return {
+						member: user.id,
+						name: user.global_name ?? user.username,
+						...(github ? { github: { id: github.id, login: github.name } } : {}),
+					};
+				} finally {
+					// Best effort: a failed revoke must not hide who signed in, and the token expires on its own.
+					await client.revoke(token.access_token).catch(() => {});
+				}
+			},
+		};
+	}
 
 	get layout(): NotificationsLayout | undefined {
 		return this.opts.layout;

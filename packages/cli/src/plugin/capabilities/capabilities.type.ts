@@ -1119,15 +1119,23 @@ export interface NotificationsEveryoneLayout {
 	deny?: string[];
 }
 
-/** A declared server layout, applied idempotently by `holocron notifications setup`. */
 /** Where the person-to-member links live: one file in a repo, written by the sign-in flow and read by `sync-roles`. */
 export interface NotificationsLinksLayout {
+	/**
+	 * The base URL of the hosted sign-in service (Sentinel), for example `https://sentinel.theholocron.dev`.
+	 * `notifications link` asks it for `/api/link`; when it answers, sign-in happens there, and when it does not
+	 * (down, out of quota, no route yet) the command signs in on this machine instead.
+	 */
+	hostedUrl?: string;
+	/** The port the local sign-in listens on, which must be registered as `http://localhost:<port>/callback`. Defaults to 53682. */
+	localPort?: number;
 	/** `owner/name`. Defaults to `<org>/.github-private`. Keep it private: the file pairs two identities. */
 	repo?: string;
 	/** Defaults to `notifications/<provider>-links.json`. */
 	path?: string;
 }
 
+/** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
 	/** Where `sync-roles` finds which server member is which GitHub account. Only used by roles with a `team`. */
 	links?: NotificationsLinksLayout;
@@ -1235,6 +1243,22 @@ export interface ServerInspection {
 	rolesError?: string;
 }
 
+/** Who a member turned out to be after signing in with the provider. */
+export interface NotificationsSignedIn {
+	/** Their id on the provider; for Discord, the user id. */
+	member: string;
+	name?: string;
+	/** The GitHub account the provider has verified they own; absent when they have none linked. */
+	github?: { id: string; login: string };
+}
+
+/** The provider's "sign in" half: build the page a member opens, then learn who they are from the code it sends back. */
+export interface NotificationsSignIn {
+	authorizeUrl(input: { redirectUri: string; state: string }): Promise<string>;
+	/** Trades the one-use `code` for who they are, and discards the token it was given. */
+	complete(input: { redirectUri: string; code: string }): Promise<NotificationsSignedIn>;
+}
+
 /** A member of the server, as {@link Notifications.roleMembers} reports it. */
 export interface NotificationsMember {
 	/** The provider's id for them; for Discord, the user id. */
@@ -1288,6 +1312,9 @@ export interface Notifications extends ProviderIdentity {
 
 	/** Take the role from a member; one who lacks it is left alone. */
 	removeRoleMember?(roleName: string, memberId: string): Promise<void>;
+
+	/** Sign-in used to learn which GitHub account a member is. Optional; needs an OAuth client secret. */
+	signIn?(): NotificationsSignIn;
 
 	ensureRole?(input: {
 		name: string;

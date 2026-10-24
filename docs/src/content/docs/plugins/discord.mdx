@@ -100,12 +100,13 @@ await notif.send("", "Deploy complete");
 
 Posting needs only a webhook URL. Setting a server up (creating channels, roles and webhooks) needs the **Holonet bot** instead:
 
-| What               | Value                                                                                                          |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Bot token          | `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`) — Developer Portal → Bot → Reset Token                   |
-| Bot permissions    | Manage Channels, Manage Roles, Manage Webhooks, View Channels                                                  |
-| `guildId` (config) | The server id — right-click the server with Developer Mode on. Not a secret.                                   |
-| `layout` (config)  | Categories, channels and roles to create; see [`notifications setup`](/holocron/commands/notifications-setup/) |
+| What               | Value                                                                                                                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bot token          | `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`) — Developer Portal → Bot → Reset Token                                                                                           |
+| Client secret      | `HOLOCRON_DISCORD_CLIENT_SECRET` (or `DISCORD_CLIENT_SECRET`) — Developer Portal → OAuth2 → Reset Secret. Only [`notifications link`](/holocron/commands/notifications-link/) reads it |
+| Bot permissions    | Manage Channels, Manage Roles, Manage Webhooks, View Channels                                                                                                                          |
+| `guildId` (config) | The server id — right-click the server with Developer Mode on. Not a secret.                                                                                                           |
+| `layout` (config)  | Categories, channels and roles to create; see [`notifications setup`](/holocron/commands/notifications-setup/)                                                                         |
 
 The bot token is read only when a provisioning command runs; `send()` never needs it. Discord returns a webhook's URL only to the application that created it, so an existing webhook cannot be read back.
 
