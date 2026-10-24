@@ -36,6 +36,8 @@ providers: {
 
 A role can carry a `secret` too (`roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE" }]`): the command stores the role's id there, so a workflow can ping the role without anyone copying the id by hand. The id is not sensitive; it is a secret only because the token that writes the webhook secrets can write it too.
 
+A role can follow a GitHub team with `team: "<slug>"`: [`holocron notifications sync-roles`](/holocron/commands/notifications-sync-roles/) then gives it to every team member who has linked their account and takes it from linked people who have left. `setup` only creates the role; the membership is that command's job.
+
 A role can also declare how it looks and what it may do: `color` (`#rrggbb`), `hoist` (show its members as their own group in the member list) and `permissions` (the provider's own names, for Discord `ViewChannel`, `SendMessages` and so on). The permission list is exact: a permission not named is not granted. Only what the layout states is compared and changed, and the bot can only grant permissions it holds itself.
 
 A category or channel can declare who may see it and post in it with `access`:

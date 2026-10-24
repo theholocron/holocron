@@ -448,3 +448,66 @@ describe("GitHubSource — workflow files (local fs)", () => {
 		await expect(source.removeWorkflowFile("lint.yml")).rejects.toThrow();
 	});
 });
+
+describe("GitHubSource — team members and files", () => {
+	it("teamMembers maps GitHub's members to string ids and logins", async () => {
+		const { source, calls } = makeSource([{ body: [{ id: 5, login: "luke", type: "User" }] }]);
+		expect(await source.teamMembers("gatekeepers")).toEqual([{ id: "5", login: "luke" }]);
+		expect(calls[0]?.url).toContain("/orgs/theholocron/teams/gatekeepers/members");
+	});
+
+	it("readFile decodes the content and returns the sha as the version", async () => {
+		const { source, calls } = makeSource([
+			{
+				body: {
+					content: Buffer.from("hello ✓").toString("base64"),
+					encoding: "base64",
+					sha: "abc",
+					name: "a",
+					path: "a",
+				},
+			},
+		]);
+		expect(await source.readFile("notifications/x.json", "theholocron/.github-private")).toEqual({
+			content: "hello ✓",
+			version: "abc",
+		});
+		expect(calls[0]?.url).toContain("/repos/theholocron/.github-private/contents/notifications/x.json");
+	});
+
+	it("readFile reads this repo by default and returns null for a file that does not exist", async () => {
+		const { source, calls } = makeSource([{ status: 404, body: { message: "Not Found" } }]);
+		expect(await source.readFile("x.json")).toBeNull();
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/contents/x.json");
+	});
+
+	it("readFile passes any other failure through, and refuses an encoding it cannot decode", async () => {
+		const failing = makeSource([{ status: 500, body: {} }]);
+		await expect(failing.source.readFile("x.json")).rejects.toMatchObject({ status: 500 });
+		const odd = makeSource([{ body: { content: "x", encoding: "none", sha: "s", name: "a", path: "a" } }]);
+		await expect(odd.source.readFile("x.json")).rejects.toThrow(/unexpected encoding/);
+	});
+
+	it("writeFile sends the text, the message and the version it replaces", async () => {
+		const { source, calls } = makeSource([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		await source.writeFile("notifications/x.json", "data", {
+			message: "m",
+			version: "abc",
+			repo: "theholocron/.github-private",
+		});
+		expect(calls[0]).toMatchObject({ method: "PUT" });
+		expect(calls[0]?.url).toContain("/repos/theholocron/.github-private/contents/notifications/x.json");
+		expect(calls[0]?.body).toEqual({ message: "m", content: Buffer.from("data").toString("base64"), sha: "abc" });
+	});
+
+	it("writeFile creates in this repo when no version or repo is given, and a stale version is refused", async () => {
+		const created = makeSource([{ body: { content: { sha: "n", path: "p" }, commit: { sha: "c" } } }]);
+		await created.source.writeFile("x.json", "d", { message: "m" });
+		expect(created.calls[0]?.body).not.toHaveProperty("sha");
+		expect(created.calls[0]?.url).toContain("/repos/theholocron/holocron/contents/x.json");
+		const stale = makeSource([{ status: 409, body: {} }]);
+		await expect(stale.source.writeFile("x.json", "d", { message: "m", version: "old" })).rejects.toMatchObject({
+			status: 409,
+		});
+	});
+});

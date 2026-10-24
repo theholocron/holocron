@@ -1240,6 +1240,8 @@ describe("runNotificationsSetup — bot application and everyone", () => {
 			})
 		);
 		expect((await clash.run()).message).toMatch(/everyone: `MentionEveryone` is in both `allow` and `deny`/);
+		const emptyTeam = setup(fakeNotifications({ layout: { roles: [{ name: "gatekeepers", team: " " }] } }));
+		expect((await emptyTeam.run()).message).toMatch(/role `gatekeepers` has an empty `team`/);
 	});
 
 	it("accepts a layout that only allows, or only denies", async () => {

@@ -242,6 +242,8 @@ export default defineConfig({
 							mentionable: true,
 							color: "#f0b232",
 							hoist: true,
+							// Kept equal to the GitHub team of the same name by `holocron notifications sync-roles`.
+							team: "gatekeepers",
 							// Everything a member can do, and nothing more: the bot can only grant what it holds itself.
 							permissions: [
 								"ViewChannel",

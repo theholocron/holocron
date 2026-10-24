@@ -1,0 +1,62 @@
+---
+title: "notifications sync-roles"
+description: Make who holds a server role match a team, through the file that links each member to their GitHub account.
+---
+
+```bash
+holocron notifications sync-roles [--provider <name>] [--keep] [--dry-run]
+```
+
+For every role in the layout that declares a `team`, compares the members of that team with the people who hold the role on the server, and gives or takes the role so they match.
+
+```ts
+roles: [{ name: "gatekeepers", mentionable: true, team: "gatekeepers" }],
+```
+
+```
+gatekeepers ← team gatekeepers
+  2 already have it
+  gave gatekeepers to luke (333)
+  took gatekeepers from leia (444)
+  newbie is on the team but has not linked their account
+
+2 ok, 0 fail, 3 skipped
+```
+
+## Who is who
+
+A team member and a server member are matched through a **links file**: one entry per person, holding their GitHub user id and their server id. A person is added to it by signing in with Discord, which reports the GitHub account Discord has verified they own, so nobody can claim someone else's account. The file holds two public ids and no secrets, but the pairing is something a member did not necessarily want published, so keep it in a private repo. By default that is `<org>/.github-private`, at `notifications/<provider>-links.json`; the layout can say otherwise:
+
+```ts
+layout: {
+  links: { repo: "theholocron/.github-private", path: "notifications/discord-links.json" },
+}
+```
+
+People are matched by the GitHub user id, never the login, so renaming an account does not break the link.
+
+## What it changes
+
+| Situation                                     | What happens                                                                   |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| On the team, linked, lacks the role           | the role is given                                                              |
+| Holds the role, linked, no longer on the team | the role is taken away (`--keep` reports it and leaves it)                     |
+| On the team, not linked                       | listed; the role cannot reach them until they link their account               |
+| Holds the role, linked to nobody              | listed and left alone, so an empty or missing links file cannot strip everyone |
+
+Re-running changes nothing that already matches. `--dry-run` shows what would change without changing it.
+
+## Options
+
+| Option              | Default | Description                                                                |
+| ------------------- | ------- | -------------------------------------------------------------------------- |
+| `--provider <name>` | —       | Which `notifications` provider, when more than one can manage role members |
+| `--keep`            | `false` | Give the role to new team members but do not take it from people who left  |
+| `--dry-run`         | `false` | Print what would change without changing it                                |
+
+## Requirements
+
+- A `source` provider that can list team members and read files (`github`), with a token that can read the org's teams and the links repo.
+- For Discord, the bot needs **Manage Roles**, and its role must sit above the role it assigns. Listing who holds a role needs the privileged **Server Members Intent**, switched on in the developer portal under Bot → Privileged Gateway Intents; without it the command says so.
+
+[`holocron doctor notifications`](/holocron/commands/doctor-notifications/) checks the same thing read-only (the `role-members` step).

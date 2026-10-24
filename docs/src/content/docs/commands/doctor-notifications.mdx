@@ -24,10 +24,11 @@ It is the end-to-end check for [`notifications setup`](/holocron/commands/notifi
   ✓ welcome screen and onboarding set                  2 of 2 as declared
   ✓ bot description, tags, install link and URLs set  1 of 1 as declared
   ✓ webhook URLs and role id stored as secrets        7 of 7 exist
-  ✗ role assigned to team members                     not built yet (#1098, step 14)
-  ...
+  ✓ role assigned to team members                     1 of 1 in sync
+  ✗ test post reached every channel (platform.notifyCheck)  not built yet (#1098, step 15)
+  ✗ server created from config                        not built yet (#1098, step 16)
 
-12 ok, 3 fail, 0 skipped
+13 ok, 2 fail, 0 skipped
 ```
 
 ## What each step checks
@@ -45,6 +46,7 @@ It is the end-to-end check for [`notifications setup`](/holocron/commands/notifi
 | `server-settings`    | every field of the layout's `server` section matches the server (channels compared by name, ignoring case); a field the layout leaves out is not compared                                                                                                                                                                                                                               |
 | `welcome-onboarding` | the welcome screen (on or off, text, and its channels in order, with their texts and emoji) and onboarding (its switch, default channels and each question by title) match the layout; whatever the layout leaves out is not compared                                                                                                                                                   |
 | `app-settings`       | every field of the layout's `application` matches the bot's application (tags and install permissions compared ignoring order and case); a field the layout leaves out is not compared                                                                                                                                                                                                  |
+| `role-members`       | every role that declares a `team` is held by exactly the linked members of that team: nobody on the team lacks it, nobody linked who left the team still holds it, and every team member has linked their account. A role with no `team` is not checked, and neither are holders nobody has linked                                                                                      |
 | `secrets`            | every secret the layout fills (webhook URLs, role ids) exists at the target scope (names compare case-insensitively) and no two entries collide, the rule `setup` refuses                                                                                                                                                                                                               |
 
 When the server cannot be read, the steps that depend on it are reported as "not checked" and the reason is printed once. One failing read (a channel's webhook list, or the roles) is reported on that step and does not discard what was read elsewhere. A provider only needs to be able to read (`inspect`); it does not have to provision. An empty `topic` in the layout means "unspecified", as it does for `setup`.

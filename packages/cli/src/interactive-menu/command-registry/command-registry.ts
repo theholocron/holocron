@@ -105,6 +105,12 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "notifications sync-roles",
+		description: "Make who holds a server role match a team, through the links file",
+		positionals: [],
+		supportsDryRun: true,
+	},
+	{
 		name: "deploy",
 		description: "Trigger a deployment via the configured `deployment` capability",
 		positionals: [{ key: "branch", message: "Branch to deploy:", type: "input" }],

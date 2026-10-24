@@ -2963,3 +2963,49 @@ describe("DiscordNotifications.validateLayout — application and everyone", () 
 		expect(check({ everyone: { deny: ["Nope"] } })).toMatch(/^everyone: /);
 	});
 });
+
+describe("role members", () => {
+	const roles = [{ id: "91", name: "Gatekeepers", color: 0, mentionable: true }];
+
+	it("roleMembers lists who holds the role, by id and username", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: roles },
+			{
+				body: [
+					{ user: { id: "333", username: "luke" }, roles: ["91"] },
+					{ user: { id: "444" }, roles: ["91"] },
+					{ roles: ["91"] },
+				],
+			},
+		]);
+		expect(await notifs.roleMembers("gatekeepers")).toEqual([{ id: "333", name: "luke" }, { id: "444" }]);
+		expect(calls[1]?.url).toContain(`/guilds/${GUILD}/members?limit=1000`);
+	});
+
+	it("explains the Server Members Intent when Discord answers 403", async () => {
+		const { notifs } = makeProvisioner([{ body: roles }, { status: 403, body: { code: 50001 } }]);
+		await expect(notifs.roleMembers("gatekeepers")).rejects.toThrow(/Server Members Intent/);
+	});
+
+	it("passes any other listing failure through", async () => {
+		const { notifs } = makeProvisioner([{ body: roles }, { status: 500, body: {} }]);
+		await expect(notifs.roleMembers("gatekeepers")).rejects.toMatchObject({ status: 500 });
+	});
+
+	it("addRoleMember and removeRoleMember use the role's id", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: roles }, { status: 204 }, { body: roles }, { status: 204 }]);
+		await notifs.addRoleMember("gatekeepers", "333");
+		await notifs.removeRoleMember("gatekeepers", "333");
+		expect(calls[1]).toMatchObject({ method: "PUT", url: `${BASE}/guilds/${GUILD}/members/333/roles/91` });
+		expect(calls[3]).toMatchObject({ method: "DELETE", url: `${BASE}/guilds/${GUILD}/members/333/roles/91` });
+	});
+
+	it("a role that is missing, or named twice, is an error that says what to do", async () => {
+		const missing = makeProvisioner([{ body: [] }]);
+		await expect(missing.notifs.roleMembers("gatekeepers")).rejects.toThrow(/no role named .*notifications setup/);
+		const twice = makeProvisioner([
+			{ body: [...roles, { id: "92", name: "gatekeepers", color: 0, mentionable: false }] },
+		]);
+		await expect(twice.notifs.roleMembers("gatekeepers")).rejects.toThrow(/2 roles are named/);
+	});
+});

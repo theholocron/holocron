@@ -19,6 +19,7 @@ import {
 	type NotificationsWelcomeLayout,
 	PluginLoader,
 	type Secrets,
+	type Source,
 } from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import { statusRow } from "../../ui/status-row/index.js";
@@ -30,6 +31,7 @@ import {
 	pickProvider,
 	whyMissing,
 } from "../notifications-channel-add/index.js";
+import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
 import type {
 	DoctorNotificationsReport,
 	NotificationsCheck,
@@ -38,7 +40,6 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 14, id: "role-assignment", title: "role assigned to team members" },
 	{ step: 15, id: "post-works", title: "test post reached every channel (platform.notifyCheck)" },
 	{ step: 16, id: "server-creation", title: "server created from config" },
 ];
@@ -71,6 +72,7 @@ const AVATAR_TITLE = "webhook names and avatars set";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
+const ROLE_MEMBERS_TITLE = "role assigned to team members";
 const SECRETS_TITLE = "webhook URLs and role id stored as secrets";
 
 export async function runDoctorNotifications(input: RunDoctorNotificationsInput): Promise<DoctorNotificationsReport> {
@@ -688,6 +690,59 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				);
 			} catch (err) {
 				failed("secrets", SECRETS_TITLE, describeProviderError(err));
+			}
+		}
+	}
+
+	// 14. a role that follows a team is held by exactly its linked members
+	const teamRoles = (layout.roles ?? []).filter((r) => r.team);
+	if (teamRoles.length === 0) {
+		checks.push({
+			id: "role-members",
+			title: ROLE_MEMBERS_TITLE,
+			status: "pass",
+			detail: "none declared",
+			problems: [],
+		});
+	} else {
+		const source = loader.has("source") ? (loader.get("source") as Source) : undefined;
+		const problem = !notifications.roleMembers
+			? `the \`${notifications.providerName}\` provider cannot list who holds a role`
+			: sourceProblem(source);
+		if (problem) {
+			failed(
+				"role-members",
+				ROLE_MEMBERS_TITLE,
+				shown(loader.has("source") ? problem : whyMissing(loader, "source", problem))
+			);
+		} else {
+			try {
+				const links = await readLinks(source!, layout, input.context.org, notifications.providerName);
+				const problems: string[] = [];
+				for (const role of teamRoles) {
+					const plan = await planForRole({
+						notifications,
+						source: source!,
+						role: role.name,
+						team: role.team!,
+						links,
+					});
+					for (const who of plan.add)
+						problems.push(
+							`${shown(who.login)}: on team ${shown(role.team!)} but lacks ${shown(role.name)}`
+						);
+					for (const who of plan.remove)
+						problems.push(
+							`${shown(who.login)}: holds ${shown(role.name)} but left team ${shown(role.team!)}`
+						);
+					for (const who of plan.unlinked)
+						problems.push(
+							`${shown(who.login)}: on team ${shown(role.team!)} but has not linked their account`
+						);
+				}
+				add("role-members", ROLE_MEMBERS_TITLE, problems, `${teamRoles.length} of ${teamRoles.length} in sync`);
+			} catch (err) {
+				failed("role-members", ROLE_MEMBERS_TITLE, shown(describeProviderError(err)));
 			}
 		}
 	}

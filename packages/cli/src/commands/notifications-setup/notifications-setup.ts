@@ -109,6 +109,9 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 		return undefined;
 	};
 
+	const emptyTeam = (layout.roles ?? []).find((r) => r.team !== undefined && r.team.trim() === "");
+	if (emptyTeam) return `role \`${emptyTeam.name}\` has an empty \`team\``;
+
 	const everyone = layout.everyone;
 	const both = (everyone?.allow ?? []).find((p) =>
 		(everyone?.deny ?? []).some((d) => d.toLowerCase() === p.toLowerCase())

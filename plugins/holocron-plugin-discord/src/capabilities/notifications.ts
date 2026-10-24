@@ -6,6 +6,7 @@ import {
 	type NotificationsApplicationLayout,
 	type NotificationsEveryoneLayout,
 	type NotificationsLayout,
+	type NotificationsMember,
 	type NotificationsOnboardingLayout,
 	type NotificationsServerLayout,
 	type NotificationsWelcomeLayout,
@@ -1446,6 +1447,47 @@ export class DiscordNotifications implements Notifications {
 			}
 		}
 		return result;
+	}
+
+	/** The one role with this name, or an error that says what to fix: none, or more than one. */
+	private async roleNamed(name: string): Promise<{ id: string; name: string }> {
+		const matches = (await this.bot().guilds.roles(this.guild())).filter((r) =>
+			DiscordNotifications.same(r.name, name)
+		);
+		if (matches.length === 0)
+			throw new Error(`no role named \`${name}\` — run \`holocron notifications setup\` to create it`);
+		if (matches.length > 1) {
+			throw new Error(
+				`${matches.length} roles are named \`${name}\` (ids ${matches.map((r) => r.id).join(", ")}) — delete or rename the extras so it is clear which one to manage`
+			);
+		}
+		return matches[0]!;
+	}
+
+	async roleMembers(roleName: string): Promise<NotificationsMember[]> {
+		const role = await this.roleNamed(roleName);
+		try {
+			const members = await this.bot().guilds.membersWithRole(this.guild(), role.id);
+			return members.flatMap((m) =>
+				m.user ? [{ id: m.user.id, ...(m.user.username ? { name: m.user.username } : {}) }] : []
+			);
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 403) {
+				throw new Error(
+					"Discord refused to list the server's members: switch on the **Server Members Intent** for the bot in the developer portal (Bot → Privileged Gateway Intents), then run this again",
+					{ cause: err }
+				);
+			}
+			throw err;
+		}
+	}
+
+	async addRoleMember(roleName: string, memberId: string): Promise<void> {
+		await this.bot().guilds.addMemberRole(this.guild(), memberId, (await this.roleNamed(roleName)).id);
+	}
+
+	async removeRoleMember(roleName: string, memberId: string): Promise<void> {
+		await this.bot().guilds.removeMemberRole(this.guild(), memberId, (await this.roleNamed(roleName)).id);
 	}
 
 	async ensureRole(input: {
