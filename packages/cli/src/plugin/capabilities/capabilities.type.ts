@@ -1048,8 +1048,42 @@ export interface NotificationsOnboardingLayout {
 	}>;
 }
 
+/**
+ * Settings of the bot's own application (for Discord, what the developer portal shows). A field left
+ * out is left alone.
+ */
+export interface NotificationsApplicationLayout {
+	/** What the application's page says it is (Discord allows up to 400 characters). */
+	description?: string;
+	/** Short labels, up to five of up to twenty characters each. */
+	tags?: string[];
+	/** The default install link: what the bot is added with. Permissions are named, as in a role's. */
+	install?: { scopes: string[]; permissions: string[] };
+	/** `https://` link to the terms of service. */
+	termsUrl?: string;
+	/** `https://` link to the privacy policy. */
+	privacyUrl?: string;
+	/** `https://` link the provider calls to verify linked roles. */
+	roleConnectionsUrl?: string;
+}
+
+/**
+ * Permissions of everyone on the server (for Discord, the @everyone role). Unlike a role's `permissions`,
+ * these name only what to change: the rest of the set is left as it is.
+ */
+export interface NotificationsEveryoneLayout {
+	/** Permissions to grant. */
+	allow?: string[];
+	/** Permissions to take away. */
+	deny?: string[];
+}
+
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
+	/** The bot's own application settings, applied with the server's. */
+	application?: NotificationsApplicationLayout;
+	/** What everyone on the server may do, applied with the server's settings. */
+	everyone?: NotificationsEveryoneLayout;
 	/**
 	 * The picture every webhook gets unless its own `webhook.avatar` says otherwise: a path to a PNG,
 	 * JPEG or GIF (from where the CLI runs) or an `https://` URL. It is set only on a webhook that has
@@ -1091,6 +1125,14 @@ export interface NotificationsLayout {
  * layout against.
  */
 export interface ServerInspection {
+	/** The bot's application as the provider has it, in the layout's terms, when the layout declares `application`. */
+	application?: NotificationsApplicationLayout;
+	/** Set when reading the application failed; `application` is then absent and means nothing. */
+	applicationError?: string;
+	/** What everyone may do, by permission name, when the layout declares `everyone`. */
+	everyone?: { permissions: string[] };
+	/** Set when reading everyone's permissions failed; `everyone` is then absent and means nothing. */
+	everyoneError?: string;
 	/** The welcome screen as the server has it, in the layout's terms, when the layout declares `welcome`. */
 	welcome?: NotificationsWelcomeLayout;
 	/** Set when reading the welcome screen failed; `welcome` is then absent and means nothing. */
@@ -1189,6 +1231,12 @@ export interface Notifications extends ProviderIdentity {
 
 	/** Bring onboarding in line with the layout, changing only what differs. Returns what it changed. */
 	ensureOnboarding?(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }>;
+
+	/** Bring the bot's application settings in line with the layout, changing only what differs. Returns what it changed. */
+	ensureApplication?(application: NotificationsApplicationLayout): Promise<{ updated: string[] }>;
+
+	/** Grant or take away the named permissions from everyone, changing only what differs. Returns what it changed. */
+	ensureEveryone?(everyone: NotificationsEveryoneLayout): Promise<{ updated: string[] }>;
 
 	/**
 	 * Before anything is created, prove the credentials can do the parts of the layout that need

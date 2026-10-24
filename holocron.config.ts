@@ -121,6 +121,32 @@ export default defineConfig({
 				layout: {
 					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 					webhookAvatar: "media/webhook-avatar.png",
+					// Keep ordinary members from pinging the whole server.
+					everyone: { deny: ["MentionEveryone"] },
+					// The bot's own page in the developer portal. These match what is set there today; the install
+					// link is what the bot needs to run `setup`, so a re-invite from the portal never drifts from it.
+					application: {
+						description:
+							"The messenger for The Holocron. It posts releases, deploys, repo syncs and alerts from GitHub Actions into the right channel. It also sets up the server's channels, webhooks and roles so a new community starts from a known layout, and keeps maintainer roles in step with the GitHub team.",
+						tags: ["automation", "notifications", "devops", "developer tools", "github"],
+						install: {
+							scopes: ["bot"],
+							permissions: [
+								"ViewChannel",
+								"SendMessages",
+								"ReadMessageHistory",
+								"ManageChannels",
+								"ManageRoles",
+								"ManageWebhooks",
+								"ManageGuild",
+								"CreatePublicThreads",
+								"CreatePrivateThreads",
+								"SendMessagesInThreads",
+							],
+						},
+						termsUrl: "https://docs.theholocron.dev/holocron/legal/terms/",
+						privacyUrl: "https://docs.theholocron.dev/holocron/legal/privacy/",
+					},
 					categories: [
 						{
 							name: "START HERE",
