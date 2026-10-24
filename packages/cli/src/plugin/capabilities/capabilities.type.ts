@@ -999,8 +999,53 @@ export interface NotificationsServerLayout {
 	locale?: string;
 }
 
+/** The screen a new member sees on joining: a short text and the channels worth visiting first. */
+export interface NotificationsWelcomeLayout {
+	/** Whether the screen is shown. Defaults to `true`. */
+	enabled?: boolean;
+	/** A sentence or two about the server (Discord allows up to 140 characters). */
+	description: string;
+	/** The channels it points to, in order (Discord allows up to five). */
+	channels: Array<{
+		/** A channel in the layout. */
+		channel: string;
+		/** Why to visit it (Discord allows up to 50 characters). */
+		description: string;
+		/** A single emoji shown beside it. */
+		emoji?: string;
+	}>;
+}
+
+/** The questions a new member answers to be shown the channels that fit them. */
+export interface NotificationsOnboardingLayout {
+	/** Turn onboarding on or off. Left out, it is left as it is (Discord has requirements for turning it on). */
+	enabled?: boolean;
+	/** Channels every member starts with, by name. */
+	defaultChannels?: string[];
+	prompts?: Array<{
+		title: string;
+		/** One answer only (`true`) or any number. Defaults to `false`. */
+		singleSelect?: boolean;
+		/** The member must answer. Defaults to `false`. */
+		required?: boolean;
+		options: Array<{
+			title: string;
+			description?: string;
+			emoji?: string;
+			/** Channels this answer shows, by name. */
+			channels?: string[];
+			/** Roles this answer gives, by name from the layout's `roles`. */
+			roles?: string[];
+		}>;
+	}>;
+}
+
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
+	/** What a new member sees on joining, applied after the channels exist. */
+	welcome?: NotificationsWelcomeLayout;
+	/** The questions a new member answers, applied after the channels and roles exist. */
+	onboarding?: NotificationsOnboardingLayout;
 	/** Settings of the server itself, applied after its channels exist. */
 	server?: NotificationsServerLayout;
 	categories?: Array<{ name: string; access?: NotificationsAccess; channels?: NotificationsChannelLayout[] }>;
@@ -1032,6 +1077,14 @@ export interface NotificationsLayout {
  * layout against.
  */
 export interface ServerInspection {
+	/** The welcome screen as the server has it, in the layout's terms, when the layout declares `welcome`. */
+	welcome?: NotificationsWelcomeLayout;
+	/** Set when reading the welcome screen failed; `welcome` is then absent and means nothing. */
+	welcomeError?: string;
+	/** Onboarding as the server has it, in the layout's terms, when the layout declares `onboarding`. */
+	onboarding?: NotificationsOnboardingLayout;
+	/** Set when reading onboarding failed; `onboarding` is then absent and means nothing. */
+	onboardingError?: string;
 	/** The server's own settings, in the layout's terms, when the layout declares `server`. */
 	server?: NotificationsServerLayout;
 	/** Set when reading the server's settings failed; `server` is then absent and means nothing. */
@@ -1108,6 +1161,12 @@ export interface Notifications extends ProviderIdentity {
 	 * names of what it changed, empty when the server already matched.
 	 */
 	ensureServer?(settings: NotificationsServerLayout): Promise<{ updated: string[] }>;
+
+	/** Bring the welcome screen in line with the layout, changing only what differs. Returns what it changed. */
+	ensureWelcome?(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }>;
+
+	/** Bring onboarding in line with the layout, changing only what differs. Returns what it changed. */
+	ensureOnboarding?(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }>;
 
 	/**
 	 * Before anything is created, prove the credentials can do the parts of the layout that need

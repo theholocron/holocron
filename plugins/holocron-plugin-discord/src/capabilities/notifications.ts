@@ -4,7 +4,9 @@ import {
 	type Notifications,
 	type NotificationsAccess,
 	type NotificationsLayout,
+	type NotificationsOnboardingLayout,
 	type NotificationsServerLayout,
+	type NotificationsWelcomeLayout,
 	ProviderApiError,
 	type ServerInspection,
 } from "@theholocron/cli";
@@ -290,14 +292,14 @@ export class DiscordNotifications implements Notifications {
 				rolesError = reason(err);
 			}
 		}
+		const nameOfChannel = (id: string): string => channels.find((c) => c.id === id)?.name ?? id;
+		const channelName = (id: string | null | undefined) => (id ? nameOfChannel(id) : undefined);
 		// The server's own settings, only when the layout declares some.
 		let server: ServerInspection["server"];
 		let serverError: string | undefined;
 		if (layout.server) {
 			try {
 				const guild = await bot.guilds.get(this.guild());
-				const channelName = (id: string | null | undefined) =>
-					id ? (channels.find((c) => c.id === id)?.name ?? id) : undefined;
 				const verification = nameOf(VERIFICATION, guild.verification_level);
 				const defaultNotifications = nameOf(NOTIFICATIONS, guild.default_message_notifications);
 				const contentFilter = nameOf(FILTER, guild.explicit_content_filter);
@@ -321,6 +323,52 @@ export class DiscordNotifications implements Notifications {
 				serverError = reason(err);
 			}
 		}
+		// The welcome screen and onboarding, each read only when the layout declares it.
+		let welcome: ServerInspection["welcome"];
+		let welcomeError: string | undefined;
+		if (layout.welcome) {
+			try {
+				const guild = await bot.guilds.get(this.guild());
+				const screen = await bot.guilds.welcomeScreen(this.guild());
+				welcome = {
+					enabled: (guild.features ?? []).includes("WELCOME_SCREEN_ENABLED"),
+					description: screen.description ?? "",
+					channels: (screen.welcome_channels ?? []).map((c) => ({
+						channel: nameOfChannel(c.channel_id),
+						description: c.description,
+						...(c.emoji_name ? { emoji: c.emoji_name } : {}),
+					})),
+				};
+			} catch (err) {
+				welcomeError = reason(err);
+			}
+		}
+		let onboarding: ServerInspection["onboarding"];
+		let onboardingError: string | undefined;
+		if (layout.onboarding) {
+			try {
+				const found = await bot.guilds.onboarding(this.guild());
+				const roleOf = (id: string) => roles.find((r) => r.id === id)?.name ?? id;
+				onboarding = {
+					enabled: found.enabled,
+					defaultChannels: found.default_channel_ids.map(nameOfChannel),
+					prompts: found.prompts.map((p) => ({
+						title: p.title,
+						singleSelect: p.single_select,
+						required: p.required,
+						options: p.options.map((o) => ({
+							title: o.title,
+							...(o.description ? { description: o.description } : {}),
+							...((o.emoji?.name ?? o.emoji_name) ? { emoji: (o.emoji?.name ?? o.emoji_name)! } : {}),
+							channels: (o.channel_ids ?? []).map(nameOfChannel),
+							roles: (o.role_ids ?? []).map(roleOf),
+						})),
+					})),
+				};
+			} catch (err) {
+				onboardingError = reason(err);
+			}
+		}
 		// Who can see and post comes from the overwrites already in the channel list: no extra requests.
 		const roleName = (id: string): string => roles.find((r) => r.id === id)?.name ?? id;
 		found.forEach((entry, i) => {
@@ -335,6 +383,10 @@ export class DiscordNotifications implements Notifications {
 			categoryAccess,
 			...(server ? { server } : {}),
 			...(serverError ? { serverError } : {}),
+			...(welcome ? { welcome } : {}),
+			...(welcomeError ? { welcomeError } : {}),
+			...(onboarding ? { onboarding } : {}),
+			...(onboardingError ? { onboardingError } : {}),
 			channels: found,
 			roles,
 			...(rolesError ? { rolesError } : {}),
@@ -359,6 +411,41 @@ export class DiscordNotifications implements Notifications {
 		} catch (err) {
 			throw await this.manageServerHint(err);
 		}
+	}
+
+	/** The one role with this name, or an error saying why not: two would mean granting something to the wrong members. */
+	private static pickRole<R extends { id: string; name: string }>(
+		roles: readonly R[],
+		name: string,
+		who: string
+	): string {
+		const found = roles.filter((r) => DiscordNotifications.same(r.name, name));
+		if (found.length === 0)
+			throw new Error(`${who} names the role \`${name}\`, which does not exist on the server yet`);
+		if (found.length > 1) {
+			throw new Error(
+				`${who} names the role \`${name}\`, but ${found.length} roles have that name (ids ${found.map((r) => r.id).join(", ")}) -- delete or rename the extras`
+			);
+		}
+		return found[0]!.id;
+	}
+
+	/** The one text or announcement channel with this name, or an error saying why not. */
+	private static pickChannelId(channels: readonly DiscordChannel[], name: string, who: string): string {
+		const named = channels.filter(
+			(c) =>
+				(c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
+				DiscordNotifications.same(c.name, name)
+		);
+		if (named.length === 0)
+			throw new Error(`${who} name the channel \`${name}\`, which does not exist on the server yet`);
+		// Two channels with one name: the setting could land on either, and doctor only compares names.
+		if (named.length > 1) {
+			throw new Error(
+				`${who} name the channel \`${name}\`, but ${named.length} channels have that name (ids ${named.map((c) => c.id).join(", ")}) -- rename one`
+			);
+		}
+		return named[0]!.id;
 	}
 
 	/** True for a 403 that is about permissions, not about the bot being unable to see the server at all. */
@@ -416,23 +503,7 @@ export class DiscordNotifications implements Notifications {
 		const bot = this.bot();
 		const guild = await bot.guilds.get(this.guild());
 		const channels = await this.channelList();
-		const idOf = (name: string): string => {
-			const named = channels.filter(
-				(c) =>
-					(c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
-					DiscordNotifications.same(c.name, name)
-			);
-			if (named.length === 0) {
-				throw new Error(`server settings name the channel \`${name}\`, which does not exist on the server yet`);
-			}
-			// Two channels with one name: the setting could land on either, and doctor only compares names.
-			if (named.length > 1) {
-				throw new Error(
-					`server settings name the channel \`${name}\`, but ${named.length} channels have that name (ids ${named.map((c) => c.id).join(", ")}) -- rename one`
-				);
-			}
-			return named[0]!.id;
-		};
+		const idOf = (name: string): string => DiscordNotifications.pickChannelId(channels, name, "server settings");
 		const patch: ModifyGuildInput = {};
 		const updated: string[] = [];
 		const set = <K extends keyof ModifyGuildInput>(
@@ -589,7 +660,178 @@ export class DiscordNotifications implements Notifications {
 		return { updated };
 	}
 
+	/** A 403 on the welcome screen or onboarding becomes the likely reason; anything else is passed on. */
+	private static communityFeatureHint(err: unknown, what: string): unknown {
+		if (!(err instanceof ProviderApiError && err.status === 403)) return err;
+		return new Error(
+			`the bot is not allowed to change ${what} (Discord said: ${String(err.details).slice(0, 120)}). ` +
+				"It needs Manage Server, and the server needs community features on",
+			{ cause: err }
+		);
+	}
+
+	async ensureWelcome(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }> {
+		const bot = this.bot();
+		const channels = await this.channelList();
+		const idOf = (name: string): string => DiscordNotifications.pickChannelId(channels, name, "the welcome screen");
+		const wanted = {
+			enabled: welcome.enabled ?? true,
+			description: welcome.description,
+			welcome_channels: welcome.channels.map((c) => ({
+				channel_id: idOf(c.channel),
+				description: c.description,
+				emoji_name: c.emoji ?? null,
+				emoji_id: null,
+			})),
+		};
+		const normalise = (
+			list: ReadonlyArray<{ channel_id: string; description: string; emoji_name?: string | null }>
+		) => JSON.stringify(list.map((c) => [c.channel_id, c.description, c.emoji_name ?? null]));
+
+		let guild: Awaited<ReturnType<DiscordBotClient["guilds"]["get"]>>;
+		let screen: Awaited<ReturnType<DiscordBotClient["guilds"]["welcomeScreen"]>>;
+		try {
+			guild = await bot.guilds.get(this.guild());
+			screen = await bot.guilds.welcomeScreen(this.guild());
+		} catch (err) {
+			throw DiscordNotifications.communityFeatureHint(err, "the welcome screen");
+		}
+		const updated: string[] = [];
+		if ((guild.features ?? []).includes("WELCOME_SCREEN_ENABLED") !== wanted.enabled) updated.push("enabled");
+		if ((screen.description ?? "") !== wanted.description) updated.push("description");
+		if (normalise(screen.welcome_channels ?? []) !== normalise(wanted.welcome_channels)) updated.push("channels");
+		if (updated.length === 0) return { updated };
+
+		let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modifyWelcomeScreen"]>>;
+		try {
+			after = await bot.guilds.modifyWelcomeScreen(this.guild(), wanted);
+		} catch (err) {
+			throw DiscordNotifications.communityFeatureHint(err, "the welcome screen");
+		}
+		// Discord answers with the screen as it now is: say so if it did not take.
+		if (
+			(after.description ?? "") !== wanted.description ||
+			normalise(after.welcome_channels ?? []) !== normalise(wanted.welcome_channels)
+		) {
+			throw new Error(
+				"sent the welcome screen but it came back different -- Discord may have refused a part of it"
+			);
+		}
+		return { updated };
+	}
+
+	/** An onboarding prompt reduced to what the layout can state, so the server's and the layout's can be compared. */
+	private static onboardingKey(
+		prompts: ReadonlyArray<{
+			title: string;
+			single_select: boolean;
+			required: boolean;
+			options: ReadonlyArray<{
+				title: string;
+				description?: string | null;
+				channel_ids?: string[];
+				role_ids?: string[];
+				emoji?: { name?: string | null } | null;
+				emoji_name?: string | null;
+			}>;
+		}>
+	): string {
+		return JSON.stringify(
+			prompts.map((p) => [
+				p.title,
+				p.single_select,
+				p.required,
+				p.options.map((o) => [
+					o.title,
+					o.description ?? "",
+					[...(o.channel_ids ?? [])].sort(),
+					[...(o.role_ids ?? [])].sort(),
+					o.emoji?.name ?? o.emoji_name ?? null,
+				]),
+			])
+		);
+	}
+
+	async ensureOnboarding(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }> {
+		const bot = this.bot();
+		const channels = await this.channelList();
+		const channelId = (name: string): string => DiscordNotifications.pickChannelId(channels, name, "onboarding");
+		const needsRoles = (onboarding.prompts ?? []).some((p) => p.options.some((o) => (o.roles ?? []).length > 0));
+		const roles = needsRoles ? await this.roleList() : [];
+		const roleId = (name: string): string => DiscordNotifications.pickRole(roles, name, "onboarding");
+
+		let current: Awaited<ReturnType<DiscordBotClient["guilds"]["onboarding"]>>;
+		try {
+			current = await bot.guilds.onboarding(this.guild());
+		} catch (err) {
+			throw DiscordNotifications.communityFeatureHint(err, "onboarding");
+		}
+		// What the layout leaves out stays as the server has it: the PUT replaces everything, so it must be sent back.
+		const prompts =
+			onboarding.prompts === undefined
+				? current.prompts
+				: onboarding.prompts.map((p) => ({
+						type: 0,
+						title: p.title,
+						single_select: p.singleSelect ?? false,
+						required: p.required ?? false,
+						in_onboarding: true,
+						options: p.options.map((o) => ({
+							title: o.title,
+							description: o.description ?? null,
+							channel_ids: (o.channels ?? []).map(channelId),
+							role_ids: (o.roles ?? []).map(roleId),
+							emoji_name: o.emoji ?? null,
+						})),
+					}));
+		const defaultChannels =
+			onboarding.defaultChannels === undefined
+				? current.default_channel_ids
+				: onboarding.defaultChannels.map(channelId);
+		const enabled = onboarding.enabled ?? current.enabled;
+
+		const updated: string[] = [];
+		if (enabled !== current.enabled) updated.push("enabled");
+		if (JSON.stringify([...defaultChannels].sort()) !== JSON.stringify([...current.default_channel_ids].sort())) {
+			updated.push("defaultChannels");
+		}
+		if (DiscordNotifications.onboardingKey(prompts) !== DiscordNotifications.onboardingKey(current.prompts)) {
+			updated.push("prompts");
+		}
+		if (updated.length === 0) return { updated };
+
+		const body = { prompts, default_channel_ids: defaultChannels, enabled, mode: current.mode ?? 0 };
+		let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modifyOnboarding"]>>;
+		try {
+			after = await bot.guilds.modifyOnboarding(this.guild(), body);
+		} catch (err) {
+			throw DiscordNotifications.communityFeatureHint(err, "onboarding");
+		}
+		// Discord answers with onboarding as it now is: say so if it did not take.
+		if (
+			after.enabled !== enabled ||
+			JSON.stringify([...after.default_channel_ids].sort()) !== JSON.stringify([...defaultChannels].sort()) ||
+			DiscordNotifications.onboardingKey(after.prompts) !== DiscordNotifications.onboardingKey(prompts)
+		) {
+			throw new Error("sent onboarding but it came back different -- Discord may have refused a part of it");
+		}
+		return { updated };
+	}
+
 	validateLayout(layout: NotificationsLayout): string | undefined {
+		const welcome = layout.welcome;
+		if (welcome) {
+			if (welcome.description.length > 140) {
+				return `welcome: \`description\` is ${welcome.description.length} characters; Discord allows up to 140`;
+			}
+			if (welcome.channels.length > 5) {
+				return `welcome: ${welcome.channels.length} channels; Discord allows up to 5`;
+			}
+			const long = welcome.channels.find((c) => c.description.length > 50);
+			if (long) {
+				return `welcome: the description of \`${long.channel}\` is ${long.description.length} characters; Discord allows up to 50`;
+			}
+		}
 		const server = layout.server;
 		for (const [field, map] of [
 			["verification", VERIFICATION],
@@ -652,19 +894,7 @@ export class DiscordNotifications implements Notifications {
 		// Only look up roles when a role is actually named; a read-only channel needs no lookup.
 		const named = [...(view === "everyone" ? [] : view), ...(post === "everyone" ? [] : post)];
 		const roles = named.length > 0 ? await this.roleList() : [];
-		const idOf = (name: string): string => {
-			const found = roles.filter((r) => DiscordNotifications.same(r.name, name));
-			if (found.length === 0) {
-				throw new Error(`access names the role \`${name}\`, which does not exist on the server yet`);
-			}
-			// Two roles with one name: granting access to "the first" could expose the channel to the wrong members.
-			if (found.length > 1) {
-				throw new Error(
-					`access names the role \`${name}\`, but ${found.length} roles have that name (ids ${found.map((r) => r.id).join(", ")}) -- delete or rename the extras`
-				);
-			}
-			return found[0]!.id;
-		};
+		const idOf = (name: string): string => DiscordNotifications.pickRole(roles, name, "access");
 		const allow = new Map<string, PermissionName[]>();
 		const grant = (roleName: string, names: PermissionName[]) => {
 			const id = idOf(roleName);

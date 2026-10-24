@@ -1971,3 +1971,466 @@ describe("DiscordNotifications — server settings, review fixes", () => {
 		expect(await clearing.notifs.ensureServer({ description: "" })).toEqual({ updated: ["description"] });
 	});
 });
+
+// ── welcome screen and onboarding ──────────────────────────────────────
+
+describe("DiscordNotifications.ensureWelcome", () => {
+	const chans = { body: [text("2001", "rules"), text("2002", "dev")] };
+	const guild = (features: string[] = ["COMMUNITY", "WELCOME_SCREEN_ENABLED"]) => ({
+		body: { id: GUILD, name: "x", features },
+	});
+	const screen = (over: Record<string, unknown> = {}) => ({
+		body: {
+			description: "Hello",
+			welcome_channels: [
+				{ channel_id: "2001", description: "Be kind", emoji_id: null, emoji_name: "📜" },
+				{ channel_id: "2002", description: "Build", emoji_id: null, emoji_name: null },
+			],
+			...over,
+		},
+	});
+	const wanted = {
+		description: "Hello",
+		channels: [
+			{ channel: "Rules", description: "Be kind", emoji: "📜" },
+			{ channel: "dev", description: "Build" },
+		],
+	};
+
+	it("sends nothing when the screen already matches", async () => {
+		const { notifs, calls } = makeProvisioner([chans, guild(), screen()]);
+		expect(await notifs.ensureWelcome(wanted)).toEqual({ updated: [] });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+	});
+
+	it("sets the text, the channels and the switch, and says which changed", async () => {
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			guild(["COMMUNITY"]),
+			screen({ description: null, welcome_channels: [] }),
+			screen(),
+		]);
+		expect(await notifs.ensureWelcome(wanted)).toEqual({ updated: ["enabled", "description", "channels"] });
+		expect(calls[3]).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/guilds/${GUILD}/welcome-screen`,
+			body: {
+				enabled: true,
+				description: "Hello",
+				welcome_channels: [
+					{ channel_id: "2001", description: "Be kind", emoji_name: "📜", emoji_id: null },
+					{ channel_id: "2002", description: "Build", emoji_name: null, emoji_id: null },
+				],
+			},
+		});
+	});
+
+	it("treats a server with no feature list as having the screen off, and accepts a reply with no description", async () => {
+		const noFeatures = makeProvisioner([
+			chans,
+			{ body: { id: GUILD, name: "x" } },
+			screen({ description: "Hello" }),
+		]);
+		expect(await noFeatures.notifs.ensureWelcome({ ...wanted, enabled: false })).toEqual({ updated: [] });
+		const cleared = makeProvisioner([
+			chans,
+			guild(),
+			screen({ description: "Old" }),
+			screen({ description: null }),
+		]);
+		expect(await cleared.notifs.ensureWelcome({ ...wanted, description: "" })).toEqual({
+			updated: ["description"],
+		});
+	});
+
+	it("turns the screen off when the layout says so", async () => {
+		const { notifs, calls } = makeProvisioner([chans, guild(), screen(), screen()]);
+		expect(await notifs.ensureWelcome({ ...wanted, enabled: false })).toEqual({ updated: ["enabled"] });
+		expect(calls[3]?.body).toMatchObject({ enabled: false });
+	});
+
+	it("treats a screen with no channel list as having none", async () => {
+		const { notifs } = makeProvisioner([chans, guild(), screen({ welcome_channels: undefined }), screen()]);
+		expect(await notifs.ensureWelcome(wanted)).toEqual({ updated: ["channels"] });
+	});
+
+	it("fails when the screen that comes back is not what was sent", async () => {
+		const different = makeProvisioner([
+			chans,
+			guild(),
+			screen({ description: "Old" }),
+			screen({ description: "Old" }),
+		]);
+		await expect(different.notifs.ensureWelcome(wanted)).rejects.toThrow(/came back different/);
+		const channelsOnly = makeProvisioner([
+			chans,
+			guild(),
+			screen({ welcome_channels: [] }),
+			screen({ welcome_channels: [] }),
+		]);
+		await expect(channelsOnly.notifs.ensureWelcome(wanted)).rejects.toThrow(/came back different/);
+		const noList = makeProvisioner([
+			chans,
+			guild(),
+			screen({ description: null }),
+			screen({ welcome_channels: undefined }),
+		]);
+		await expect(noList.notifs.ensureWelcome(wanted)).rejects.toThrow(/came back different/);
+	});
+
+	it("explains a 403 on reading or writing, and passes other errors on", async () => {
+		const read = makeProvisioner([
+			chans,
+			guild(),
+			{ status: 403, body: { message: "Missing Access", code: 50001 } },
+		]);
+		await expect(read.notifs.ensureWelcome(wanted)).rejects.toThrow(
+			/not allowed to change the welcome screen \(Discord said: .*50001.*\)\. It needs Manage Server, and the server needs community/
+		);
+		const write = makeProvisioner([
+			chans,
+			guild(),
+			screen({ description: "Old" }),
+			{ status: 403, body: { message: "Missing Permissions" } },
+		]);
+		await expect(write.notifs.ensureWelcome(wanted)).rejects.toThrow(/not allowed to change the welcome screen/);
+		const other = makeProvisioner([chans, guild(), screen({ description: "Old" }), { status: 500, body: {} }]);
+		await expect(other.notifs.ensureWelcome(wanted)).rejects.toThrow(/500/);
+	});
+
+	it("names a channel that is not on the server", async () => {
+		const { notifs } = makeProvisioner([chans]);
+		await expect(
+			notifs.ensureWelcome({ description: "x", channels: [{ channel: "ghost", description: "y" }] })
+		).rejects.toThrow(/the welcome screen name the channel `ghost`, which does not exist/);
+	});
+});
+
+describe("DiscordNotifications.ensureOnboarding", () => {
+	const chans = { body: [text("2001", "rules"), text("2002", "dev"), text("2003", "ideas")] };
+	const prompt = (over: Record<string, unknown> = {}) => ({
+		id: "p1",
+		type: 0,
+		title: "What brings you here?",
+		single_select: false,
+		required: false,
+		in_onboarding: true,
+		options: [
+			{
+				id: "o1",
+				title: "Building",
+				description: null,
+				channel_ids: ["2003", "2002"],
+				role_ids: ["5000"],
+				emoji: { id: null, name: "🛠️" },
+			},
+		],
+		...over,
+	});
+	const onboarding = (over: Record<string, unknown> = {}) => ({
+		body: {
+			guild_id: GUILD,
+			enabled: false,
+			mode: 0,
+			default_channel_ids: ["2001", "2002"],
+			prompts: [prompt()],
+			...over,
+		},
+	});
+	const wanted = {
+		defaultChannels: ["dev", "Rules"],
+		prompts: [
+			{
+				title: "What brings you here?",
+				options: [{ title: "Building", emoji: "🛠️", channels: ["ideas", "DEV"], roles: ["readers"] }],
+			},
+		],
+	};
+
+	it("sends nothing when onboarding already matches, whatever the order or the ids", async () => {
+		const { notifs, calls } = makeProvisioner([chans, roles("Readers"), onboarding()]);
+		expect(await notifs.ensureOnboarding(wanted)).toEqual({ updated: [] });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+	});
+
+	it("replaces the questions and says so, sending the options with their channel and role ids", async () => {
+		const changed = prompt({ title: "Something else" });
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			roles("Readers"),
+			onboarding({ prompts: [changed] }),
+			onboarding(),
+		]);
+		expect(await notifs.ensureOnboarding(wanted)).toEqual({ updated: ["prompts"] });
+		expect(calls[3]).toMatchObject({
+			method: "PUT",
+			url: `${BASE}/guilds/${GUILD}/onboarding`,
+			body: {
+				enabled: false,
+				mode: 0,
+				default_channel_ids: ["2002", "2001"],
+				prompts: [
+					{
+						type: 0,
+						title: "What brings you here?",
+						single_select: false,
+						required: false,
+						in_onboarding: true,
+						options: [
+							{
+								title: "Building",
+								description: null,
+								channel_ids: ["2003", "2002"],
+								role_ids: ["5000"],
+								emoji_name: "🛠️",
+							},
+						],
+					},
+				],
+			},
+		});
+	});
+
+	it("changes the default channels and the switch without touching the questions it was not given", async () => {
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			onboarding({ default_channel_ids: ["2001"] }),
+			onboarding({ enabled: true, default_channel_ids: ["2002", "2001"] }),
+		]);
+		expect(await notifs.ensureOnboarding({ enabled: true, defaultChannels: ["dev", "rules"] })).toEqual({
+			updated: ["enabled", "defaultChannels"],
+		});
+		expect(calls[2]?.body).toMatchObject({
+			enabled: true,
+			prompts: [{ id: "p1", title: "What brings you here?" }],
+		});
+	});
+
+	it("leaves everything alone that the layout does not state", async () => {
+		const { notifs, calls } = makeProvisioner([chans, onboarding()]);
+		expect(await notifs.ensureOnboarding({})).toEqual({ updated: [] });
+		expect(calls).toHaveLength(2);
+	});
+
+	it("keeps the mode the server has, and uses 0 when it reports none", async () => {
+		const withMode = makeProvisioner([chans, onboarding({ mode: 1 }), onboarding({ mode: 1, enabled: true })]);
+		await withMode.notifs.ensureOnboarding({ enabled: true });
+		expect(withMode.calls[2]?.body).toMatchObject({ mode: 1 });
+		const noMode = makeProvisioner([chans, onboarding({ mode: undefined }), onboarding({ enabled: true })]);
+		await noMode.notifs.ensureOnboarding({ enabled: true });
+		expect(noMode.calls[2]?.body).toMatchObject({ mode: 0 });
+	});
+
+	it("compares a missing description with an empty one, and an emoji given either way", async () => {
+		const server = onboarding({
+			prompts: [
+				prompt({
+					options: [
+						{ title: "A", description: "", channel_ids: [], role_ids: [], emoji_name: "🛠️" },
+						{ title: "B", channel_ids: undefined, role_ids: undefined },
+					],
+				}),
+			],
+		});
+		const { notifs } = makeProvisioner([chans, server]);
+		expect(
+			await notifs.ensureOnboarding({
+				prompts: [
+					{
+						title: "What brings you here?",
+						options: [{ title: "A", emoji: "🛠️" }, { title: "B" }],
+					},
+				],
+			})
+		).toEqual({ updated: [] });
+	});
+
+	it("fails when onboarding that comes back is not what was sent", async () => {
+		for (const back of [
+			onboarding({ enabled: false }),
+			onboarding({ default_channel_ids: ["2003"], enabled: true }),
+			onboarding({ prompts: [], enabled: true }),
+		]) {
+			const { notifs } = makeProvisioner([chans, onboarding({ default_channel_ids: [] }), back]);
+			await expect(
+				notifs.ensureOnboarding({
+					enabled: true,
+					defaultChannels: ["dev", "rules"],
+				})
+			).rejects.toThrow(/sent onboarding but it came back different/);
+		}
+	});
+
+	it("explains a 403, and passes other errors on", async () => {
+		const read = makeProvisioner([chans, { status: 403, body: { message: "Missing Access", code: 50001 } }]);
+		await expect(read.notifs.ensureOnboarding({ enabled: true })).rejects.toThrow(
+			/not allowed to change onboarding.*It needs Manage Server, and the server needs community/s
+		);
+		const write = makeProvisioner([chans, onboarding(), { status: 403, body: { message: "Missing Permissions" } }]);
+		await expect(write.notifs.ensureOnboarding({ enabled: true })).rejects.toThrow(
+			/not allowed to change onboarding/
+		);
+		const other = makeProvisioner([chans, onboarding(), { status: 500, body: {} }]);
+		await expect(other.notifs.ensureOnboarding({ enabled: true })).rejects.toThrow(/500/);
+	});
+
+	it("names a channel or a role that is not on the server, or that two share", async () => {
+		const ghostChannel = makeProvisioner([chans]);
+		await expect(ghostChannel.notifs.ensureOnboarding({ defaultChannels: ["ghost"] })).rejects.toThrow(
+			/onboarding name the channel `ghost`/
+		);
+		const ghostRole = makeProvisioner([chans, roles("Other")]);
+		await expect(
+			ghostRole.notifs.ensureOnboarding({
+				prompts: [{ title: "Q", options: [{ title: "O", roles: ["readers"] }] }],
+			})
+		).rejects.toThrow(/onboarding names the role `readers`, which does not exist/);
+		const twice = makeProvisioner([chans, roles("Readers", "readers")]);
+		await expect(
+			twice.notifs.ensureOnboarding({ prompts: [{ title: "Q", options: [{ title: "O", roles: ["readers"] }] }] })
+		).rejects.toThrow(/2 roles have that name/);
+	});
+});
+
+describe("DiscordNotifications — reading the welcome screen and onboarding back", () => {
+	const chans = { body: [text("2001", "rules"), text("2002", "dev")] };
+
+	it("reads the welcome screen in the layout's terms", async () => {
+		const { notifs } = makeProvisioner([
+			chans,
+			{ body: { id: GUILD, name: "x", features: ["WELCOME_SCREEN_ENABLED"] } },
+			{
+				body: {
+					description: null,
+					welcome_channels: [
+						{ channel_id: "2001", description: "Be kind", emoji_name: "📜" },
+						{ channel_id: "9999", description: "Gone", emoji_name: null },
+					],
+				},
+			},
+		]);
+		const found = await notifs.inspect({ welcome: { description: "x", channels: [] } });
+		expect(found.welcome).toEqual({
+			enabled: true,
+			description: "",
+			channels: [
+				{ channel: "rules", description: "Be kind", emoji: "📜" },
+				{ channel: "9999", description: "Gone" },
+			],
+		});
+	});
+
+	it("reads a welcome screen with no channel list, on a server with no features, as off and empty", async () => {
+		const { notifs } = makeProvisioner([
+			chans,
+			{ body: { id: GUILD, name: "x" } },
+			{ body: { description: "Hi" } },
+		]);
+		const found = await notifs.inspect({ welcome: { description: "x", channels: [] } });
+		expect(found.welcome).toEqual({ enabled: false, description: "Hi", channels: [] });
+	});
+
+	it("reads onboarding in the layout's terms, naming channels and roles", async () => {
+		const { notifs } = makeProvisioner([
+			chans,
+			roles("Readers"),
+			{
+				body: {
+					enabled: true,
+					default_channel_ids: ["2001", "7777"],
+					prompts: [
+						{
+							title: "Q",
+							single_select: true,
+							required: true,
+							options: [
+								{
+									title: "A",
+									description: "About A",
+									emoji: { name: "🛠️" },
+									channel_ids: ["2002"],
+									role_ids: ["5000", "8888"],
+								},
+								{ title: "B", emoji_name: "🚀" },
+								{ title: "C" },
+							],
+						},
+					],
+				},
+			},
+		]);
+		const found = await notifs.inspect({
+			roles: [{ name: "Readers" }],
+			onboarding: { prompts: [] },
+		});
+		expect(found.onboarding).toEqual({
+			enabled: true,
+			defaultChannels: ["rules", "7777"],
+			prompts: [
+				{
+					title: "Q",
+					singleSelect: true,
+					required: true,
+					options: [
+						{
+							title: "A",
+							description: "About A",
+							emoji: "🛠️",
+							channels: ["dev"],
+							roles: ["Readers", "8888"],
+						},
+						{ title: "B", emoji: "🚀", channels: [], roles: [] },
+						{ title: "C", channels: [], roles: [] },
+					],
+				},
+			],
+		});
+	});
+
+	it("reports a failed read of either on its own, and keeps the rest", async () => {
+		const { notifs } = makeProvisioner([
+			chans,
+			{ status: 500, body: { message: "boom" } },
+			{ status: 500, body: { message: "boom" } },
+		]);
+		const found = await notifs.inspect({
+			welcome: { description: "x", channels: [] },
+			onboarding: {},
+		});
+		expect(found.welcome).toBeUndefined();
+		expect(found.welcomeError).toMatch(/500/);
+		expect(found.onboarding).toBeUndefined();
+		expect(found.onboardingError).toMatch(/500/);
+		expect(found.channels).toHaveLength(2);
+	});
+
+	it("reads neither unless the layout declares it", async () => {
+		const { notifs, calls } = makeProvisioner([chans]);
+		const found = await notifs.inspect({});
+		expect(found.welcome).toBeUndefined();
+		expect(found.onboarding).toBeUndefined();
+		expect(calls).toHaveLength(1);
+	});
+});
+
+describe("DiscordNotifications.validateLayout — welcome screen", () => {
+	const { notifs } = makeProvisioner([]);
+	const w = (over: Record<string, unknown>) => ({
+		welcome: { description: "ok", channels: [{ channel: "a", description: "ok" }], ...over },
+	});
+
+	it("accepts a screen within Discord's limits", () => {
+		expect(notifs.validateLayout(w({ description: "x".repeat(140) }) as never)).toBeUndefined();
+	});
+
+	it("names a text that is too long, too many channels, or a channel text that is too long", () => {
+		expect(notifs.validateLayout(w({ description: "x".repeat(141) }) as never)).toMatch(
+			/welcome: `description` is 141 characters; Discord allows up to 140/
+		);
+		const six = Array.from({ length: 6 }, (_, i) => ({ channel: `c${i}`, description: "ok" }));
+		expect(notifs.validateLayout(w({ channels: six }) as never)).toMatch(/6 channels; Discord allows up to 5/);
+		expect(
+			notifs.validateLayout(w({ channels: [{ channel: "a", description: "y".repeat(51) }] }) as never)
+		).toMatch(/the description of `a` is 51 characters; Discord allows up to 50/);
+	});
+});

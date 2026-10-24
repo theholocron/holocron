@@ -130,6 +130,7 @@ const REAL = [
 	"role-appearance",
 	"access",
 	"server-settings",
+	"welcome-onboarding",
 	"secrets",
 ];
 
@@ -138,11 +139,11 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 9, fail: PLANNED_CHECKS.length, skip: 0 });
+		expect(report.summary).toEqual({ pass: 10, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
-		expect(planned[0]?.detail).toBe("not built yet (#1098, step 11)");
+		expect(planned[0]?.detail).toBe("not built yet (#1098, step 12)");
 		expect(planned.every((c) => c.status === "fail")).toBe(true);
 	});
 
@@ -151,7 +152,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("9 ok, 0 fail, 6 skipped");
+		expect(lines.join("\n")).toContain("10 ok, 0 fail, 5 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -163,10 +164,10 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("✓ server");
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
-		expect(out).toContain("✗ welcome screen and onboarding set");
-		expect(out).toContain("not built yet (#1098, step 11)");
+		expect(out).toContain("✗ webhook names and avatars set");
+		expect(out).toContain("not built yet (#1098, step 12)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("9 ok, 6 fail, 0 skipped");
+		expect(out).toContain("10 ok, 5 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -502,8 +503,8 @@ describe("runDoctorNotifications — output and logs", () => {
 
 describe("PLANNED_CHECKS", () => {
 	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
-		// 8 (access), 9 (role appearance) and 10 (server settings) are built, so they are real checks and not listed here.
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([11, 12, 13, 14, 15, 16]);
+		// 8 to 11 (access, role appearance, server settings, welcome and onboarding) are built, so they are real checks.
+		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([12, 13, 14, 15, 16]);
 		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
 	});
 });
@@ -644,7 +645,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 8, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 9, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1021,6 +1022,203 @@ describe("runDoctorNotifications — server settings", () => {
 			"description is Bye but the layout says Hello",
 		]);
 		expect(byId(await setup(fakeNotifications()).run(), "server-settings")).toMatchObject({
+			status: "pass",
+			detail: "none declared",
+		});
+	});
+});
+
+describe("runDoctorNotifications — welcome screen and onboarding", () => {
+	const LAYOUT_WO: NotificationsLayout = {
+		categories: [{ name: "A", channels: [{ name: "rules" }, { name: "dev" }] }],
+		welcome: {
+			description: "Hello",
+			channels: [
+				{ channel: "rules", description: "Be kind", emoji: "📜" },
+				{ channel: "dev", description: "Build" },
+			],
+		},
+		onboarding: {
+			defaultChannels: ["rules", "dev"],
+			prompts: [
+				{
+					title: "What brings you here?",
+					options: [
+						{ title: "Building", channels: ["dev"] },
+						{ title: "Reading", description: "Just reading", channels: ["rules"], roles: ["Readers"] },
+					],
+				},
+			],
+		},
+	};
+	const HAVE: Pick<ServerInspection, "welcome" | "onboarding"> = {
+		welcome: {
+			enabled: true,
+			description: "Hello",
+			channels: [
+				{ channel: "Rules", description: "Be kind", emoji: "📜" },
+				{ channel: "dev", description: "Build" },
+			],
+		},
+		onboarding: {
+			enabled: false,
+			defaultChannels: ["dev", "rules"],
+			prompts: [
+				{
+					title: "What brings you here?",
+					singleSelect: false,
+					required: false,
+					options: [
+						{ title: "Building", channels: ["dev"], roles: [] },
+						{ title: "Reading", description: "Just reading", channels: ["RULES"], roles: ["readers"] },
+					],
+				},
+			],
+		},
+	};
+	const found = (over: Partial<ServerInspection> = {}): ServerInspection => ({
+		categories: [],
+		channels: [],
+		roles: [],
+		...HAVE,
+		...over,
+	});
+	const run = (inspection: ServerInspection, layout = LAYOUT_WO) =>
+		setup(fakeNotifications({ layout, found: inspection }), { secretNames: [] }).run();
+	const check = (report: Awaited<ReturnType<typeof run>>) => byId(report, "welcome-onboarding");
+
+	it("passes when both match, ignoring case, order of channels and of answers", async () => {
+		expect(check(await run(found()))).toMatchObject({ status: "pass", detail: "2 of 2 as declared" });
+	});
+
+	it("names what differs on the welcome screen", async () => {
+		const report = await run(
+			found({
+				welcome: {
+					enabled: false,
+					description: "Other",
+					channels: [{ channel: "dev", description: "Build" }],
+				},
+			})
+		);
+		expect(check(report).problems).toEqual([
+			"welcome screen is off but the layout says on",
+			'welcome description is "Other" but the layout says "Hello"',
+			"welcome channels are dev but the layout says rules, dev (or their descriptions or emoji differ)",
+		]);
+	});
+
+	it("says 'none' when the server's welcome screen points nowhere", async () => {
+		const report = await run(found({ welcome: { enabled: true, description: "Hello", channels: [] } }));
+		expect(check(report).problems[0]).toMatch(/welcome channels are none but the layout says/);
+	});
+
+	it("names what differs in onboarding: switch, default channels and questions", async () => {
+		const wanted: NotificationsLayout = {
+			...LAYOUT_WO,
+			onboarding: { ...LAYOUT_WO.onboarding!, enabled: true },
+		};
+		const report = await run(
+			found({
+				onboarding: {
+					enabled: false,
+					defaultChannels: ["dev"],
+					prompts: [
+						{ title: "What brings you here?", options: [{ title: "Building", channels: ["rules"] }] },
+						{ title: "Extra question", options: [] },
+					],
+				},
+			}),
+			wanted
+		);
+		expect(check(report).problems).toEqual([
+			"onboarding is off but the layout says on",
+			"default channels are dev but the layout says rules, dev",
+			'question "What brings you here?" differs from the layout',
+			'question "Extra question" is not in the layout',
+		]);
+	});
+
+	it("says a layout question missing on the server is missing, and 'none' for no default channels", async () => {
+		const report = await run(found({ onboarding: { enabled: false, defaultChannels: [], prompts: [] } }));
+		expect(check(report).problems).toEqual([
+			"default channels are none but the layout says rules, dev",
+			'question "What brings you here?" is missing',
+		]);
+	});
+
+	it("leaves out what the layout does not state, and treats a missing list on the server as empty", async () => {
+		const layout: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "dev" }] }],
+			onboarding: { defaultChannels: ["dev"], prompts: [] },
+		};
+		const none = await run(found({ onboarding: { enabled: true } }), layout);
+		expect(check(none).problems).toEqual(["default channels are none but the layout says dev"]);
+		const bare: NotificationsLayout = { onboarding: {} };
+		expect(check(await run(found({ onboarding: { enabled: true } }), bare)).status).toBe("pass");
+	});
+
+	it("reads the options of a prompt that states none as empty", async () => {
+		const layout: NotificationsLayout = {
+			categories: [],
+			onboarding: { prompts: [{ title: "Q", options: [] }] },
+		};
+		const report = await run(found({ onboarding: { prompts: [{ title: "Q" } as never] } }), layout);
+		expect(check(report).status).toBe("pass");
+	});
+
+	it("names the switches the other way round too, and an empty or missing list of default channels", async () => {
+		const layout: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "dev" }] }],
+			welcome: { enabled: false, description: "Hello", channels: [] },
+			onboarding: { enabled: false, defaultChannels: [] },
+		};
+		const on = await run(
+			found({
+				welcome: { enabled: true, description: "Hello", channels: [] },
+				onboarding: { enabled: true, defaultChannels: ["dev"] },
+			}),
+			layout
+		);
+		expect(check(on).problems).toEqual([
+			"welcome screen is on but the layout says off",
+			"onboarding is on but the layout says off",
+			"default channels are dev but the layout says none",
+		]);
+		const missing = await run(found({ onboarding: { enabled: false } }), {
+			...layout,
+			welcome: undefined,
+			onboarding: { defaultChannels: ["dev"] },
+		});
+		expect(check(missing).problems).toEqual(["default channels are none but the layout says dev"]);
+	});
+
+	it("compares questions whose answers state no channels or roles", async () => {
+		const layout: NotificationsLayout = {
+			categories: [],
+			onboarding: { prompts: [{ title: "Q", options: [{ title: "A" }] }] },
+		};
+		const bare = found({ onboarding: { prompts: [{ title: "Q", options: [{ title: "A" }] }] } });
+		expect(check(await run(bare, layout)).status).toBe("pass");
+	});
+
+	it("is not checked when either could not be read, or the provider reports neither", async () => {
+		const errors = await run(
+			found({ welcome: undefined, onboarding: undefined, welcomeError: "403", onboardingError: "500" })
+		);
+		expect(check(errors).problems).toEqual([
+			"not checked: could not read the welcome screen (403)",
+			"not checked: could not read onboarding (500)",
+		]);
+		const none = await run(found({ welcome: undefined, onboarding: undefined }));
+		expect(check(none).problems).toEqual([
+			"the provider did not report the welcome screen",
+			"the provider did not report onboarding",
+		]);
+	});
+
+	it("reports 'none declared' without either section", async () => {
+		expect(check(await setup(fakeNotifications()).run())).toMatchObject({
 			status: "pass",
 			detail: "none declared",
 		});

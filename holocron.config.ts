@@ -176,6 +176,41 @@ export default defineConfig({
 							],
 						},
 					],
+					// What a new member sees on joining.
+					welcome: {
+						description: "Where the Holocron is built: tools, automation and the people who ship them.",
+						channels: [
+							{ channel: "rules", description: "How we treat each other", emoji: "📜" },
+							{ channel: "dev", description: "Day-to-day building talk", emoji: "🛠️" },
+							{ channel: "ideas", description: "Half-formed ideas and things to spec", emoji: "💡" },
+							{ channel: "releases", description: "Each release, as it ships", emoji: "🚀" },
+							{ channel: "deploys", description: "Deploys and preview checks", emoji: "📦" },
+						],
+					},
+					// The questions a new member answers. Not switched on: Discord needs at least 7 default channels,
+					// 5 of them open for members to post in, and the server has fewer discussion channels than that.
+					onboarding: {
+						defaultChannels: ["welcome", "rules", "dev", "ideas", "releases", "deploys"],
+						prompts: [
+							{
+								title: "What brings you here?",
+								options: [
+									{
+										title: "Building with Holocron",
+										description: "Shows the dev and ideas channels",
+										emoji: "🛠️",
+										channels: ["dev", "ideas"],
+									},
+									{
+										title: "Following releases",
+										description: "Shows the releases and deploys channels",
+										emoji: "🚀",
+										channels: ["releases", "deploys"],
+									},
+								],
+							},
+						],
+					},
 					// The server itself. Community features need the rules and updates channels, a verification of
 					// at least low, and the content filter on all members.
 					server: {

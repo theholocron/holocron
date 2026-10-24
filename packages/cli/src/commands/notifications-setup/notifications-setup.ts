@@ -80,31 +80,58 @@ export function accessRoleProblem(layout: NotificationsLayout): string | undefin
 	return undefined;
 }
 
-/** The first problem with the layout's `server` section that needs no knowledge of the provider, or undefined. */
+/**
+ * The first problem with the layout's `server`, `welcome` and `onboarding` sections that needs no knowledge of
+ * the provider, or undefined: every channel or role they name must be in the layout, and a channel name must
+ * not be used twice (it could mean either, so they would pick one at random).
+ */
 export function serverLayoutProblem(layout: NotificationsLayout): string | undefined {
-	const server = layout.server;
-	if (!server) return undefined;
-	// How many channels in the layout have each name: none means the setting names a channel that
-	// will not exist, and more than one means it could mean either, so it would pick one at random.
 	const counts = new Map<string, number>();
 	for (const name of (layout.categories ?? []).flatMap((c) =>
 		(c.channels ?? []).map((ch) => ch.name.toLowerCase())
 	)) {
 		counts.set(name, (counts.get(name) ?? 0) + 1);
 	}
-	for (const field of ["systemChannel", "rulesChannel", "updatesChannel"] as const) {
-		const name = server[field];
-		if (name === undefined) continue;
+	const roles = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
+	const channel = (where: string, name: string): string | undefined => {
 		const count = counts.get(name.toLowerCase()) ?? 0;
-		if (count === 0) {
-			return `server: \`${field}\` names the channel \`${name}\`, which is not in the layout's channels`;
+		if (count === 0) return `${where} names the channel \`${name}\`, which is not in the layout's channels`;
+		if (count > 1) return `${where} names \`${name}\`, but more than one channel in the layout has that name`;
+		return undefined;
+	};
+
+	const server = layout.server;
+	if (server) {
+		for (const field of ["systemChannel", "rulesChannel", "updatesChannel"] as const) {
+			const name = server[field];
+			const problem = name === undefined ? undefined : channel(`server: \`${field}\``, name);
+			if (problem) return problem;
 		}
-		if (count > 1) {
-			return `server: \`${field}\` names \`${name}\`, but more than one channel in the layout has that name`;
+		if (server.community === true && (!server.rulesChannel || !server.updatesChannel)) {
+			return "server: `community: true` needs both `rulesChannel` and `updatesChannel`";
 		}
 	}
-	if (server.community === true && (!server.rulesChannel || !server.updatesChannel)) {
-		return "server: `community: true` needs both `rulesChannel` and `updatesChannel`";
+	for (const entry of layout.welcome?.channels ?? []) {
+		const problem = channel("welcome:", entry.channel);
+		if (problem) return problem;
+	}
+	const onboarding = layout.onboarding;
+	for (const name of onboarding?.defaultChannels ?? []) {
+		const problem = channel("onboarding: `defaultChannels`", name);
+		if (problem) return problem;
+	}
+	for (const prompt of onboarding?.prompts ?? []) {
+		for (const option of prompt.options) {
+			for (const name of option.channels ?? []) {
+				const problem = channel(`onboarding: the option \`${option.title}\``, name);
+				if (problem) return problem;
+			}
+			for (const role of option.roles ?? []) {
+				if (!roles.has(role.toLowerCase())) {
+					return `onboarding: the option \`${option.title}\` gives the role \`${role}\`, which is not in the layout's roles`;
+				}
+			}
+		}
 	}
 	return undefined;
 }
@@ -187,6 +214,16 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (layout.server && !notifications.ensureServer) {
 		return refuse(
 			`the layout declares \`server\` settings, but the \`${notifications.providerName}\` provider cannot manage them`
+		);
+	}
+	if (layout.welcome && !notifications.ensureWelcome) {
+		return refuse(
+			`the layout declares a \`welcome\` screen, but the \`${notifications.providerName}\` provider cannot manage one`
+		);
+	}
+	if (layout.onboarding && !notifications.ensureOnboarding) {
+		return refuse(
+			`the layout declares \`onboarding\`, but the \`${notifications.providerName}\` provider cannot manage it`
 		);
 	}
 	// A category's access cannot be applied by a provider that has no categories: do not report success without it.
@@ -328,22 +365,32 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 	}
 
-	// The server's own settings come last: they name channels, which exist by now.
-	if (layout.server) {
+	// The server's own settings come last: they name channels and roles, which exist by now.
+	if (layout.server || layout.welcome || layout.onboarding) {
 		print(`\n${style.header("Server")}`);
-		await attempt("server settings", async () => {
-			if (dryRun) {
-				print(`  ${style.skip("would ensure server settings")}`);
-				tally.skip++;
-				return;
-			}
-			const result = await notifications.ensureServer!(layout.server!);
-			const changed = result.updated.length > 0;
-			print(
-				`  ${(changed ? style.success : style.skip)(`${changed ? "updated" : "exists "} server settings${changed ? `: ${result.updated.join(", ")}` : ""}`)}`
-			);
-			made(changed);
-		});
+		const apply = async (
+			label: string,
+			declared: boolean,
+			run: () => Promise<{ updated: string[] }>
+		): Promise<void> => {
+			if (!declared) return;
+			await attempt(label, async () => {
+				if (dryRun) {
+					print(`  ${style.skip(`would ensure ${label}`)}`);
+					tally.skip++;
+					return;
+				}
+				const result = await run();
+				const changed = result.updated.length > 0;
+				print(
+					`  ${(changed ? style.success : style.skip)(`${changed ? "updated" : "exists "} ${label}${changed ? `: ${result.updated.join(", ")}` : ""}`)}`
+				);
+				made(changed);
+			});
+		};
+		await apply("server settings", !!layout.server, () => notifications.ensureServer!(layout.server!));
+		await apply("welcome screen", !!layout.welcome, () => notifications.ensureWelcome!(layout.welcome!));
+		await apply("onboarding", !!layout.onboarding, () => notifications.ensureOnboarding!(layout.onboarding!));
 	}
 
 	if (report.failures.length > 0) {
