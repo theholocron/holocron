@@ -189,6 +189,10 @@ export interface DiscordNotificationsOptions {
 	layout?: NotificationsLayout;
 }
 
+let idCounter = 0;
+/** A snowflake-shaped id for a new onboarding question or answer, which Discord asks the sender to make. */
+const newId = (): string => String(((BigInt(Date.now()) - 1420070400000n) << 22n) + BigInt(idCounter++ % 4096));
+
 export class DiscordNotifications implements Notifications {
 	readonly key = "notifications" as const;
 	readonly providerName = "discord";
@@ -329,7 +333,7 @@ export class DiscordNotifications implements Notifications {
 		if (layout.welcome) {
 			try {
 				const guild = await bot.guilds.get(this.guild());
-				const screen = await bot.guilds.welcomeScreen(this.guild());
+				const screen = await this.welcomeScreenOf();
 				welcome = {
 					enabled: (guild.features ?? []).includes("WELCOME_SCREEN_ENABLED"),
 					description: screen.description ?? "",
@@ -670,6 +674,27 @@ export class DiscordNotifications implements Notifications {
 		);
 	}
 
+	/** The numeric code Discord puts in the JSON body of an error, or undefined when the body is not that. */
+	private static codeOf(err: ProviderApiError): unknown {
+		try {
+			return (JSON.parse(String(err.details)) as { code?: unknown }).code;
+		} catch {
+			return undefined;
+		}
+	}
+
+	/** The welcome screen; a server that never had one answers 404 (10069), which is an empty screen. */
+	private async welcomeScreenOf(): Promise<Awaited<ReturnType<DiscordBotClient["guilds"]["welcomeScreen"]>>> {
+		try {
+			return await this.bot().guilds.welcomeScreen(this.guild());
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 404 && DiscordNotifications.codeOf(err) === 10069) {
+				return { description: null, welcome_channels: [] };
+			}
+			throw err;
+		}
+	}
+
 	async ensureWelcome(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }> {
 		const bot = this.bot();
 		const channels = await this.channelList();
@@ -697,7 +722,7 @@ export class DiscordNotifications implements Notifications {
 		let screen: Awaited<ReturnType<DiscordBotClient["guilds"]["welcomeScreen"]>>;
 		try {
 			guild = await bot.guilds.get(this.guild());
-			screen = await bot.guilds.welcomeScreen(this.guild());
+			screen = await this.welcomeScreenOf();
 		} catch (err) {
 			throw DiscordNotifications.communityFeatureHint(err, "the welcome screen");
 		}
@@ -782,24 +807,38 @@ export class DiscordNotifications implements Notifications {
 		} catch (err) {
 			throw DiscordNotifications.communityFeatureHint(err, "onboarding");
 		}
+		const usedIds = new Set<string | undefined>();
 		// What the layout leaves out stays as the server has it: the PUT replaces everything, so it must be sent back.
 		const prompts =
 			onboarding.prompts === undefined
 				? current.prompts
-				: onboarding.prompts.map((p) => ({
-						type: 0,
-						title: p.title,
-						single_select: p.singleSelect ?? false,
-						required: p.required ?? false,
-						in_onboarding: true,
-						options: p.options.map((o) => ({
-							title: o.title,
-							description: o.description ?? null,
-							channel_ids: (o.channels ?? []).map(channelId),
-							role_ids: (o.roles ?? []).map(roleId),
-							emoji_name: o.emoji ?? null,
-						})),
-					}));
+				: onboarding.prompts.map((p) => {
+						// Discord wants an id on every question and answer: keep the one it has, or make a new one.
+						// Each id goes to one item only: a title that repeats gets a new id, not a second copy.
+						const had = current.prompts.find((c) => c.title === p.title && !usedIds.has(c.id));
+						if (had) usedIds.add(had.id);
+						const hadOptions = new Set<string | undefined>();
+						return {
+							id: had?.id ?? newId(),
+							type: 0,
+							title: p.title,
+							single_select: p.singleSelect ?? false,
+							required: p.required ?? false,
+							in_onboarding: true,
+							options: p.options.map((o) => ({
+								id: ((): string => {
+									const old = had?.options.find((c) => c.title === o.title && !hadOptions.has(c.id));
+									if (old) hadOptions.add(old.id);
+									return old?.id ?? newId();
+								})(),
+								title: o.title,
+								description: o.description ?? null,
+								channel_ids: (o.channels ?? []).map(channelId),
+								role_ids: (o.roles ?? []).map(roleId),
+								emoji_name: o.emoji ?? null,
+							})),
+						};
+					});
 		const defaultChannels =
 			onboarding.defaultChannels === undefined
 				? current.default_channel_ids
