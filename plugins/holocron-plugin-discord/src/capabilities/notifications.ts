@@ -361,29 +361,50 @@ export class DiscordNotifications implements Notifications {
 		}
 	}
 
-	/** Turning community on or off needs Administrator, which is more than the bot should keep. */
-	private async communityHint(err: unknown, applied: string[]): Promise<unknown> {
-		if (err instanceof ProviderApiError && err.status === 403) {
-			return new Error(
-				`${appliedPrefix(applied)}turning community features on or off needs the Administrator permission, which Holonet does not have. ` +
-					"Either turn them on once in Discord (Server Settings → Enable Community; setup then keeps everything else in line), " +
-					`or give Holonet Administrator for one run and take it away again afterwards: ${await this.inviteUrl(["Administrator"])}`,
-				{ cause: err }
-			);
+	/** True for a 403 that is about permissions, not about the bot being unable to see the server at all. */
+	private static missingPermissions(err: unknown): err is ProviderApiError {
+		return (
+			err instanceof ProviderApiError &&
+			err.status === 403 &&
+			!/Missing Access|\b50001\b/.test(String(err.details))
+		);
+	}
+
+	/** An invite link, or nothing when building it needs a request that fails: the advice must not depend on one. */
+	private async inviteOrNothing(names?: PermissionName[]): Promise<string | undefined> {
+		try {
+			return await this.inviteUrl(names);
+		} catch {
+			return undefined;
 		}
-		return err;
+	}
+
+	/** Turning community on or off needs Administrator, which is more than the bot should keep. */
+	private async communityHint(err: unknown, applied: string[], turningOn: boolean): Promise<unknown> {
+		if (!DiscordNotifications.missingPermissions(err)) return err;
+		const link = await this.inviteOrNothing(["Administrator"]);
+		const byHand = turningOn
+			? "turn them on once in Discord (Server Settings → Enable Community; setup then keeps everything else in line)"
+			: "turn them off once in Discord (Server Settings → Community Settings → Disable Community)";
+		const viaBot = link
+			? `give Holonet Administrator for one run and take it away again afterwards: ${link}`
+			: "re-invite Holonet with the Administrator permission for one run, and take it away again afterwards";
+		return new Error(
+			`${appliedPrefix(applied)}turning community features ${turningOn ? "on" : "off"} needs the Administrator permission, which Holonet does not have. ` +
+				`Either ${byHand}, or ${viaBot}`,
+			{ cause: err }
+		);
 	}
 
 	/** A 403 on a server edit becomes the explanation and the invite link; anything else is passed on as it is. */
 	private async manageServerHint(err: unknown): Promise<unknown> {
-		if (err instanceof ProviderApiError && err.status === 403) {
-			return new Error(
-				"the bot is not allowed to change server settings: its role lacks Manage Server. Re-invite it with the " +
-					`permissions setup needs (this updates its role in place): ${await this.inviteUrl()}`,
-				{ cause: err }
-			);
-		}
-		return err;
+		if (!DiscordNotifications.missingPermissions(err)) return err;
+		const link = await this.inviteOrNothing();
+		return new Error(
+			"the bot is not allowed to change server settings: its role lacks Manage Server. Re-invite it with the " +
+				`permissions setup needs${link ? ` (this updates its role in place): ${link}` : " (this updates its role in place)"}`,
+			{ cause: err }
+		);
 	}
 
 	async ensureServer(settings: NotificationsServerLayout): Promise<{ updated: string[] }> {
@@ -458,8 +479,10 @@ export class DiscordNotifications implements Notifications {
 		const community = features.includes("COMMUNITY");
 		const toggleCommunity = settings.community !== undefined && settings.community !== community;
 
-		// Phase 1: everything that needs only Manage Server.
-		if (Object.keys(patch).length > 0) {
+		// Two requests, because community needs Administrator and one refused field rejects a whole edit:
+		// sent together, a bot without it would apply nothing. The ordinary settings need only Manage Server.
+		const ordinary = async (): Promise<void> => {
+			if (Object.keys(patch).length === 0) return;
 			let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
 			try {
 				after = await bot.guilds.modify(this.guild(), patch);
@@ -476,18 +499,20 @@ export class DiscordNotifications implements Notifications {
 					`sent ${stuck.join(", ")} but the server came back different -- Discord may have refused a part of it`
 				);
 			}
-		}
-
-		// Phase 2: community features on their own. Discord requires Administrator to add or remove
-		// them, whatever else is in the request, and one refused field rejects the whole edit -- so
-		// sending it with the rest would stop every other setting from being applied.
-		if (toggleCommunity) {
-			const wanted = settings.community ? [...features, "COMMUNITY"] : features.filter((f) => f !== "COMMUNITY");
+		};
+		const toggle = async (): Promise<void> => {
+			if (!toggleCommunity) return;
+			// Read the features again now: Discord can only replace the whole list, so a stale one would undo
+			// whatever another admin changed since the first read.
+			const fresh = (await bot.guilds.get(this.guild())).features ?? [];
+			const wanted = settings.community
+				? [...new Set([...fresh, "COMMUNITY"])]
+				: fresh.filter((f) => f !== "COMMUNITY");
 			let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
 			try {
 				after = await bot.guilds.modify(this.guild(), { features: wanted });
 			} catch (err) {
-				throw await this.communityHint(err, updated);
+				throw await this.communityHint(err, updated, settings.community === true);
 			}
 			const nowFeatures = after.features ?? [];
 			if (wanted.includes("COMMUNITY") !== nowFeatures.includes("COMMUNITY")) {
@@ -496,11 +521,10 @@ export class DiscordNotifications implements Notifications {
 						"features need a rules channel, an updates channel, verification of at least low and the content filter on all members"
 				);
 			}
-			// Discord has no way to add one feature, so this sends the whole list read a moment ago. If someone
-			// else changed the list in between, a feature they added is gone: say so, do not report success.
+			// A feature that was there when we asked and is gone now was lost to someone else's change in between.
 			// (Turning it off is left out: Discord drops the features that depend on community by itself.)
 			if (settings.community) {
-				const lost = features.filter((f) => f !== "COMMUNITY" && !nowFeatures.includes(f));
+				const lost = fresh.filter((f) => f !== "COMMUNITY" && !nowFeatures.includes(f));
 				if (lost.length > 0) {
 					throw new Error(
 						`turned community on, but the server no longer has ${lost.join(", ")} -- another admin may have changed ` +
@@ -509,6 +533,15 @@ export class DiscordNotifications implements Notifications {
 				}
 			}
 			updated.push("community");
+		};
+		// Turning community off first: Discord refuses a verification below low or a content filter below
+		// all members while it is on, so the settings that relax those can only follow it.
+		if (toggleCommunity && settings.community === false) {
+			await toggle();
+			await ordinary();
+		} else {
+			await ordinary();
+			await toggle();
 		}
 		return { updated };
 	}
