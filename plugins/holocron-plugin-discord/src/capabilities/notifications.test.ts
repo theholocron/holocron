@@ -2768,6 +2768,25 @@ describe("DiscordNotifications.ensureApplication", () => {
 		expect((await perms.notifs.ensureApplication(wanted)).updated).toEqual(["install"]);
 	});
 
+	it("explains a private application that cannot have an install link, and passes other errors on", async () => {
+		const refused = makeProvisioner([
+			app({ install_params: undefined }),
+			{
+				status: 400,
+				body: {
+					message: "Invalid Form Body",
+					code: 50035,
+					errors: { _errors: [{ code: "APPLICATION_INSTALL_NEEDS_PUBLIC_INTEGRATION" }] },
+				},
+			},
+		]);
+		await expect(refused.notifs.ensureApplication(wanted)).rejects.toThrow(
+			/only allows an install link on a public application, and this one is private.*Remove `install`/
+		);
+		const other = makeProvisioner([app({ install_params: undefined }), { status: 500, body: {} }]);
+		await expect(other.notifs.ensureApplication(wanted)).rejects.toThrow(/500/);
+	});
+
 	it("tells tags apart by their items, and compares scopes by their exact case", async () => {
 		const tags = makeProvisioner([app({ tags: ["a", "b"] }), app({ tags: ["a,b"] })]);
 		expect((await tags.notifs.ensureApplication({ tags: ["a,b"] })).updated).toEqual(["tags"]);

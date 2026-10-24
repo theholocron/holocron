@@ -149,4 +149,6 @@ everyone: { deny: ["MentionEveryone"] },  // only the bits named change
 
 A field left out is left alone. After each write the plugin reads the application back and fails, naming the field, if Discord did not keep it, so a field the API silently ignores shows up as a failure and not a false success. `everyone` never replaces the whole permission set: it adds what `allow` names and removes what `deny` names, and refuses a permission that is in both.
 
+`install` sets the default install link, and Discord only allows one on a **public** bot. On a private bot the write is refused (`APPLICATION_INSTALL_NEEDS_PUBLIC_INTEGRATION`) and `setup` says so; leave `install` out, and invite the bot with a link you build (`setup` prints one when a permission is missing). Turning on Public Bot lets anyone add the bot to their server, so it is not something `setup` does.
+
 Some things stay in the developer portal because the API does not expose them: whether the bot is public, and the verification review.
