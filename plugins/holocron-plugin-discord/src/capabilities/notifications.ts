@@ -1013,7 +1013,24 @@ export class DiscordNotifications implements Notifications {
 		}
 		if (updated.length === 0) return { updated };
 
-		const after = await bot.application.modify(body);
+		let after: Awaited<ReturnType<DiscordBotClient["application"]["modify"]>>;
+		try {
+			after = await bot.application.modify(body);
+		} catch (err) {
+			// Discord refuses the whole request, so nothing else in it was applied either.
+			if (
+				err instanceof ProviderApiError &&
+				String(err.details).includes("APPLICATION_INSTALL_NEEDS_PUBLIC_INTEGRATION")
+			) {
+				throw new Error(
+					"Discord only allows an install link on a public application, and this one is private (Public Bot is off). " +
+						"Remove `install` from the layout -- a private bot is invited with a link you build, which `setup` prints when a permission is missing -- " +
+						"or turn on Public Bot in the developer portal, which lets anyone add the bot",
+					{ cause: err }
+				);
+			}
+			throw err;
+		}
 		// Discord answers with the application as it now is, and ignores a field it does not take: say which.
 		const stuck = updated.filter((name) => {
 			if (name === "description") return (after.description ?? "") !== app.description;
