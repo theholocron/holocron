@@ -119,6 +119,8 @@ export default defineConfig({
 			{
 				guildId: "1303969001822486568",
 				layout: {
+					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
+					webhookAvatar: "media/webhook-avatar.png",
 					categories: [
 						{
 							name: "START HERE",

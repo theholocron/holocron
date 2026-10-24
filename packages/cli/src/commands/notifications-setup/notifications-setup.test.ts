@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -57,7 +61,10 @@ function fakeNotifications(over: Partial<Notifications> = {}): Notifications {
 	} as Notifications;
 }
 
-function setup(notifications: Notifications, opts: { secrets?: boolean; dryRun?: boolean; org?: string } = {}) {
+function setup(
+	notifications: Notifications,
+	opts: { secrets?: boolean; dryRun?: boolean; org?: string; loadAvatar?: (source: string) => Promise<string> } = {}
+) {
 	const loaded = loadedFrom({
 		name: "demo",
 		providers: { notifications: ["discord"], ...(opts.secrets === false ? {} : { secrets: "github" }) },
@@ -91,6 +98,7 @@ function setup(notifications: Notifications, opts: { secrets?: boolean; dryRun?:
 					...(opts.dryRun ? { dryRun: true } : {}),
 				},
 				loader,
+				...(opts.loadAvatar ? { loadAvatar: opts.loadAvatar } : {}),
 				print: (l) => lines.push(l),
 				logger: log,
 			}),
@@ -1091,5 +1099,83 @@ describe("runNotificationsSetup", () => {
 			expect(report.message).toMatch(/channel `x` would store into HOLOCRON_NOTIFY_PREFLIGHT_X, a name reserved/);
 			expect(n.ensureChannel).not.toHaveBeenCalled();
 		});
+	});
+});
+
+describe("runNotificationsSetup — webhook avatars", () => {
+	const withAvatar = (extra: Partial<NotificationsLayout> = {}): NotificationsLayout => ({
+		...LAYOUT,
+		webhookAvatar: "media/a.png",
+		...extra,
+	});
+
+	it("reads the picture once and gives it to every webhook that has none of its own", async () => {
+		const load = vi.fn(async (source: string) => `data:image/png;base64,${source}`);
+		const n = fakeNotifications({ layout: withAvatar() });
+		await setup(n, { loadAvatar: load }).run();
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(n.ensureWebhook).toHaveBeenCalledTimes(2);
+		// the webhook with its own settings keeps them, and gets the picture too
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "alerts", avatar: "data:image/png;base64,media/a.png" })
+		);
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "sync", avatar: "data:image/png;base64,media/a.png" })
+		);
+	});
+
+	it("lets a webhook name a picture of its own", async () => {
+		const load = vi.fn(async (source: string) => `data:image/png;base64,${source}`);
+		const layout = withAvatar({
+			categories: [
+				{
+					name: "A",
+					channels: [
+						{ name: "x", webhook: { avatar: "own.png" } },
+						{ name: "y", webhook: true },
+					],
+				},
+			],
+		});
+		const n = fakeNotifications({ layout });
+		await setup(n, { loadAvatar: load }).run();
+		expect(load).toHaveBeenCalledTimes(2);
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "x", avatar: "data:image/png;base64,own.png" })
+		);
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "y", avatar: "data:image/png;base64,media/a.png" })
+		);
+	});
+
+	it("sends no picture when none is declared", async () => {
+		const n = fakeNotifications();
+		await setup(n).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "alerts", name: "alerts", category: "ALERTS" });
+	});
+
+	it("stops before creating anything when a picture cannot be read", async () => {
+		const n = fakeNotifications({ layout: withAvatar() });
+		const { run, lines } = setup(n, {
+			loadAvatar: async () => {
+				throw new Error("ENOENT");
+			},
+		});
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(lines.join("\n")).toContain("webhook avatar `media/a.png`: ENOENT");
+		expect(n.ensureRole).not.toHaveBeenCalled();
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("reads a picture from disk when nothing else reads it", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "avatar-"));
+		const file = join(dir, "a.png");
+		await writeFile(file, "png");
+		const n = fakeNotifications({ layout: withAvatar({ webhookAvatar: file }) });
+		await setup(n).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ avatar: `data:image/png;base64,${Buffer.from("png").toString("base64")}` })
+		);
 	});
 });

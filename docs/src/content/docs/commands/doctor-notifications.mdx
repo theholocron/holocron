@@ -21,11 +21,12 @@ It is the end-to-end check for [`notifications setup`](/holocron/commands/notifi
   ✓ channel and category access set                   7 of 7 as declared
   ✓ server verification, notifications and community set  6 of 6 as declared
   ✓ welcome screen and onboarding set                  2 of 2 as declared
+  ✓ webhook names and avatars set                      6 of 6 set
   ✓ webhook URLs and role id stored as secrets        7 of 7 exist
-  ✗ webhook names and avatars set  not built yet (#1098, step 12)
+  ✗ bot description, tags, install link and URLs set  not built yet (#1098, step 13)
   ...
 
-10 ok, 5 fail, 0 skipped
+11 ok, 4 fail, 0 skipped
 ```
 
 ## What each step checks
@@ -41,6 +42,7 @@ It is the end-to-end check for [`notifications setup`](/holocron/commands/notifi
 | `access`             | every category and channel with an `access` (its own, or its category's) has the same `view` and `post` as the layout; roles are compared by name, ignoring case, order and repeats. A channel whose overwrites are not something an `access` can state (a role-specific deny, a member overwrite, only some of the posting permissions) is reported as such, and `setup` replaces them |
 | `server-settings`    | every field of the layout's `server` section matches the server (channels compared by name, ignoring case); a field the layout leaves out is not compared                                                                                                                                                                                                                               |
 | `welcome-onboarding` | the welcome screen (on or off, text, and its channels in order, with their texts and emoji) and onboarding (its switch, default channels and each question by title) match the layout; whatever the layout leaves out is not compared                                                                                                                                                   |
+| `webhook-appearance` | every webhook that should wear a picture (its own `webhook.avatar`, else the layout's `webhookAvatar`) has one; a webhook with none declared is not checked, and the picture itself is not compared (the provider only holds a hash)                                                                                                                                                    |
 | `secrets`            | every secret the layout fills (webhook URLs, role ids) exists at the target scope (names compare case-insensitively) and no two entries collide, the rule `setup` refuses                                                                                                                                                                                                               |
 
 When the server cannot be read, the steps that depend on it are reported as "not checked" and the reason is printed once. One failing read (a channel's webhook list, or the roles) is reported on that step and does not discard what was read elsewhere. A provider only needs to be able to read (`inspect`); it does not have to provision. An empty `topic` in the layout means "unspecified", as it does for `setup`.

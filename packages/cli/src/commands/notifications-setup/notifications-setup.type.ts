@@ -12,6 +12,8 @@ export interface RunNotificationsSetupInput {
 	/** Which `notifications` provider, when several can provision. */
 	provider?: string;
 	loader?: PluginLoader;
+	/** Reads a webhook avatar as a `data:` URI. Defaults to {@link loadAvatar}; tests pass their own. */
+	loadAvatar?: (source: string) => Promise<string>;
 	print?: NotificationsChannelAddPrint;
 	logger?: Logger;
 }

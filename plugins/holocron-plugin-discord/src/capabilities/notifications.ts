@@ -259,11 +259,14 @@ export class DiscordNotifications implements Notifications {
 		const found: ServerInspection["channels"] = [];
 		for (const c of text) {
 			let webhooks: string[] = [];
+			let webhookAvatars: string[] = [];
 			let webhooksError: string | undefined;
 			if (wantsWebhook.has(c.name.toLowerCase())) {
 				// One channel's webhook list failing must not discard everything else that was read.
 				try {
-					webhooks = (await bot.channels.webhooks(c.id)).map((w) => w.name ?? "");
+					const hooks = await bot.channels.webhooks(c.id);
+					webhooks = hooks.map((w) => w.name ?? "");
+					webhookAvatars = hooks.filter((w) => w.avatar).map((w) => w.name ?? "");
 				} catch (err) {
 					webhooksError = reason(err);
 				}
@@ -274,6 +277,7 @@ export class DiscordNotifications implements Notifications {
 				...(category ? { category } : {}),
 				...(c.topic ? { topic: c.topic } : {}),
 				webhooks,
+				webhookAvatars,
 				...(webhooksError ? { webhooksError } : {}),
 			});
 		}
@@ -1191,7 +1195,12 @@ export class DiscordNotifications implements Notifications {
 		return { id: made.id, created: true };
 	}
 
-	async ensureWebhook(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult> {
+	async ensureWebhook(input: {
+		channel: string;
+		name: string;
+		category?: string;
+		avatar?: string;
+	}): Promise<EnsureWebhookResult> {
 		const bot = this.bot();
 		const parent = input.category
 			? (await this.channelList()).find(
@@ -1203,10 +1212,23 @@ export class DiscordNotifications implements Notifications {
 		const existing = (await bot.channels.webhooks(channel.id)).find((w) =>
 			DiscordNotifications.same(w.name ?? "", input.name)
 		);
-		// `url` is only present for webhooks this bot created; otherwise Discord will not say it again.
-		if (existing) return { created: false, ...(existing.url ? { url: existing.url } : {}) };
-		const made = await bot.channels.createWebhook(channel.id, { name: input.name });
-		return { created: true, ...(made.url ? { url: made.url } : {}) };
+		const hook = existing ?? (await bot.channels.createWebhook(channel.id, { name: input.name }));
+		// Discord holds a hash, not the image, so a picture cannot be compared: set it only where there is none.
+		const result: EnsureWebhookResult = {
+			created: !existing,
+			// `url` is only present for webhooks this bot created; otherwise Discord will not say it again.
+			...(hook.url ? { url: hook.url } : {}),
+		};
+		if (input.avatar !== undefined && !hook.avatar) {
+			// A failure here must not hide `url`: it is shown once, and the caller still has to store it.
+			try {
+				await bot.webhooks.modify(hook.id, { avatar: input.avatar });
+				result.updated = ["avatar"];
+			} catch (err) {
+				result.avatarError = reason(err);
+			}
+		}
+		return result;
 	}
 
 	async ensureRole(input: {

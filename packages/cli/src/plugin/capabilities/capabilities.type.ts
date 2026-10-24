@@ -946,6 +946,10 @@ export interface EnsureWebhookResult {
 	 * the application that created the webhook, and only on creation).
 	 */
 	url?: string;
+	/** For a webhook that already existed, or was just made: the settings that were set (`"avatar"`). */
+	updated?: string[];
+	/** Set when the webhook is fine but setting its avatar failed; the webhook and its `url` are still good. */
+	avatarError?: string;
 }
 
 /**
@@ -971,7 +975,7 @@ export interface NotificationsChannelLayout {
 	 * `true` uses the defaults; the object form overrides the webhook's display
 	 * name and the secret's name.
 	 */
-	webhook?: boolean | { name?: string; secret?: string };
+	webhook?: boolean | { name?: string; secret?: string; avatar?: string };
 }
 
 /**
@@ -1046,6 +1050,12 @@ export interface NotificationsOnboardingLayout {
 
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
+	/**
+	 * The picture every webhook gets unless its own `webhook.avatar` says otherwise: a path to a PNG,
+	 * JPEG or GIF (from where the CLI runs) or an `https://` URL. It is set only on a webhook that has
+	 * no picture yet -- a provider cannot say whether the one it holds is the same image.
+	 */
+	webhookAvatar?: string;
 	/** What a new member sees on joining, applied after the channels exist. */
 	welcome?: NotificationsWelcomeLayout;
 	/** The questions a new member answers, applied after the channels and roles exist. */
@@ -1106,6 +1116,8 @@ export interface ServerInspection {
 		topic?: string;
 		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook. */
 		webhooks: string[];
+		/** Which of those webhooks have a picture of their own. */
+		webhookAvatars?: string[];
 		/** Set when listing this channel's webhooks failed; `webhooks` is then empty and means nothing. */
 		webhooksError?: string;
 		/** Who can see and post; `"custom"` as for `categoryAccess`. */
@@ -1151,7 +1163,13 @@ export interface Notifications extends ProviderIdentity {
 		topic?: string;
 		access?: NotificationsAccess;
 	}): Promise<EnsuredResource>;
-	ensureWebhook?(input: { channel: string; name: string; category?: string }): Promise<EnsureWebhookResult>;
+	ensureWebhook?(input: {
+		channel: string;
+		name: string;
+		category?: string;
+		/** An image as a `data:` URI, set when the webhook has none. */
+		avatar?: string;
+	}): Promise<EnsureWebhookResult>;
 	ensureRole?(input: {
 		name: string;
 		mentionable?: boolean;

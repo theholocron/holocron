@@ -234,7 +234,9 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		channel: spec.name,
 		name: webhookName,
 		...(spec.category ? { category: spec.category } : {}),
+		...(webhookCfg.avatar ? { avatar: webhookCfg.avatar } : {}),
 	});
+	const avatarSet = hook.updated?.includes("avatar") ?? false;
 	if (hook.url) {
 		// The URL is a credential: it goes to the secret store and nowhere else.
 		try {
@@ -251,13 +253,34 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 			`  ${style.success(`${hook.created ? "created" : "found  "} webhook ${webhookName}; URL stored in ${secretName}`)}`
 		);
 		if (tally) tally.ok++;
-		outcome.webhook = { name: webhookName, created: hook.created, secret: secretName, stored: true };
+		outcome.webhook = {
+			name: webhookName,
+			created: hook.created,
+			secret: secretName,
+			stored: true,
+			...(avatarSet ? { updated: ["avatar"] } : {}),
+		};
 	} else {
 		const note =
 			`webhook ${webhookName} already exists and its URL cannot be read back — ` +
 			`delete it in the provider and re-run, or set ${secretName} yourself`;
 		print(`  ${style.warn(note)}`);
-		outcome.webhook = { name: webhookName, created: hook.created, secret: secretName, stored: false, note };
+		outcome.webhook = {
+			name: webhookName,
+			created: hook.created,
+			secret: secretName,
+			stored: false,
+			note,
+			...(avatarSet ? { updated: ["avatar"] } : {}),
+		};
+	}
+	if (avatarSet) {
+		print(`  ${style.success(`set     avatar on webhook ${webhookName}`)}`);
+		if (tally) tally.ok++;
+	}
+	// After the URL is stored: the webhook is good, so its URL must not be lost to this.
+	if (hook.avatarError) {
+		throw new Error(`webhook ${webhookName} is ready but setting its avatar failed (${hook.avatarError})`);
 	}
 	return outcome;
 }

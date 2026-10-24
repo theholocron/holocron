@@ -42,6 +42,8 @@ export interface WebhookOutcome {
 	/** The secret the URL was stored in, when it was. */
 	secret?: string;
 	stored: boolean;
+	/** Settings of the webhook that were set (`"avatar"`). */
+	updated?: string[];
 	/** Why nothing was stored, when nothing was. */
 	note?: string;
 }
@@ -82,5 +84,6 @@ export interface ChannelSpec {
 	topic?: string;
 	/** The access this channel should end up with (its own, over its category's). */
 	access?: NotificationsAccess;
-	webhook?: false | { name?: string; secret?: string };
+	/** `avatar` is the image itself, as a `data:` URI. */
+	webhook?: false | { name?: string; secret?: string; avatar?: string };
 }
