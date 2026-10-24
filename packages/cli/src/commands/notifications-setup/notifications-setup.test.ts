@@ -500,6 +500,8 @@ describe("runNotificationsSetup", () => {
 				const lastChannel = (n.ensureChannel as ReturnType<typeof vi.fn>).mock.invocationCallOrder.at(-1)!;
 				expect(ensureWelcome.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
 				expect(ensureOnboarding.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
+				const lastRole = (n.ensureRole as ReturnType<typeof vi.fn>).mock.invocationCallOrder.at(-1)!;
+				expect(ensureOnboarding.mock.invocationCallOrder[0]).toBeGreaterThan(lastRole);
 				const out = lines.join("\n");
 				expect(out).toContain("updated welcome screen: description, channels");
 				expect(out).toContain("updated onboarding: prompts");

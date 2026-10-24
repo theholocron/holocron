@@ -1139,6 +1139,19 @@ describe("runDoctorNotifications — welcome screen and onboarding", () => {
 		]);
 	});
 
+	it("reports questions that are on the server in a different order from the layout", async () => {
+		const q = (title: string) => ({ title, options: [] });
+		const wanted: NotificationsLayout = {
+			...LAYOUT_WO,
+			onboarding: { prompts: [q("First"), q("Second")] },
+		};
+		const report = await run(
+			found({ onboarding: { enabled: false, defaultChannels: [], prompts: [q("Second"), q("First")] } }),
+			wanted
+		);
+		expect(check(report).problems).toEqual(["the questions are in a different order from the layout"]);
+	});
+
 	it("says a layout question missing on the server is missing, and 'none' for no default channels", async () => {
 		const report = await run(found({ onboarding: { enabled: false, defaultChannels: [], prompts: [] } }));
 		expect(check(report).problems).toEqual([

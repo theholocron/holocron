@@ -2009,6 +2009,7 @@ describe("DiscordNotifications.ensureWelcome", () => {
 			guild(["COMMUNITY"]),
 			screen({ description: null, welcome_channels: [] }),
 			screen(),
+			guild(),
 		]);
 		expect(await notifs.ensureWelcome(wanted)).toEqual({ updated: ["enabled", "description", "channels"] });
 		expect(calls[3]).toMatchObject({
@@ -2037,6 +2038,7 @@ describe("DiscordNotifications.ensureWelcome", () => {
 			guild(),
 			screen({ description: "Old" }),
 			screen({ description: null }),
+			guild(),
 		]);
 		expect(await cleared.notifs.ensureWelcome({ ...wanted, description: "" })).toEqual({
 			updated: ["description"],
@@ -2044,13 +2046,57 @@ describe("DiscordNotifications.ensureWelcome", () => {
 	});
 
 	it("turns the screen off when the layout says so", async () => {
-		const { notifs, calls } = makeProvisioner([chans, guild(), screen(), screen()]);
+		const { notifs, calls } = makeProvisioner([chans, guild(), screen(), screen(), guild(["COMMUNITY"])]);
 		expect(await notifs.ensureWelcome({ ...wanted, enabled: false })).toEqual({ updated: ["enabled"] });
 		expect(calls[3]?.body).toMatchObject({ enabled: false });
 	});
 
+	it("fails when the switch did not take, whichever way it was meant to go", async () => {
+		const stillOn = makeProvisioner([chans, guild(), screen(), screen(), guild()]);
+		await expect(stillOn.notifs.ensureWelcome({ ...wanted, enabled: false })).rejects.toThrow(
+			/still on -- Discord may have refused the switch/
+		);
+		const stillOff = makeProvisioner([
+			chans,
+			guild(["COMMUNITY"]),
+			screen(),
+			screen(),
+			{ body: { id: GUILD, name: "x" } },
+		]);
+		await expect(stillOff.notifs.ensureWelcome(wanted)).rejects.toThrow(/still off/);
+	});
+
+	it("sees a custom emoji the layout does not name, and replaces it", async () => {
+		const custom = screen({
+			welcome_channels: [
+				{ channel_id: "2001", description: "Be kind", emoji_id: "99", emoji_name: null },
+				{ channel_id: "2002", description: "Build", emoji_id: null, emoji_name: null },
+			],
+		});
+		const noEmoji = { ...wanted, channels: [{ channel: "Rules", description: "Be kind" }, wanted.channels[1]!] };
+		const { notifs } = makeProvisioner([
+			chans,
+			guild(),
+			custom,
+			screen({
+				welcome_channels: [
+					{ channel_id: "2001", description: "Be kind", emoji_id: null, emoji_name: null },
+					{ channel_id: "2002", description: "Build", emoji_id: null, emoji_name: null },
+				],
+			}),
+			guild(),
+		]);
+		expect(await notifs.ensureWelcome(noEmoji)).toEqual({ updated: ["channels"] });
+	});
+
 	it("treats a screen with no channel list as having none", async () => {
-		const { notifs } = makeProvisioner([chans, guild(), screen({ welcome_channels: undefined }), screen()]);
+		const { notifs } = makeProvisioner([
+			chans,
+			guild(),
+			screen({ welcome_channels: undefined }),
+			screen(),
+			guild(),
+		]);
 		expect(await notifs.ensureWelcome(wanted)).toEqual({ updated: ["channels"] });
 	});
 
@@ -2151,6 +2197,18 @@ describe("DiscordNotifications.ensureOnboarding", () => {
 		const { notifs, calls } = makeProvisioner([chans, roles("Readers"), onboarding()]);
 		expect(await notifs.ensureOnboarding(wanted)).toEqual({ updated: [] });
 		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+	});
+
+	it("replaces a question that is hidden or of another type, though its text matches", async () => {
+		for (const over of [{ in_onboarding: false }, { type: 1 }]) {
+			const { notifs } = makeProvisioner([
+				chans,
+				roles("Readers"),
+				onboarding({ prompts: [prompt(over)] }),
+				onboarding(),
+			]);
+			expect(await notifs.ensureOnboarding(wanted)).toEqual({ updated: ["prompts"] });
+		}
 	});
 
 	it("replaces the questions and says so, sending the options with their channel and role ids", async () => {
@@ -2432,5 +2490,14 @@ describe("DiscordNotifications.validateLayout — welcome screen", () => {
 		expect(
 			notifs.validateLayout(w({ channels: [{ channel: "a", description: "y".repeat(51) }] }) as never)
 		).toMatch(/the description of `a` is 51 characters; Discord allows up to 50/);
+	});
+
+	it("names more onboarding questions than Discord allows", () => {
+		const q = (i: number) => ({ title: `Q${i}`, options: [] });
+		const five = { onboarding: { prompts: [1, 2, 3, 4, 5].map(q) } };
+		expect(notifs.validateLayout(five as never)).toBeUndefined();
+		expect(notifs.validateLayout({ onboarding: { prompts: [1, 2, 3, 4, 5, 6].map(q) } } as never)).toMatch(
+			/onboarding: 6 questions; Discord allows up to 5/
+		);
 	});
 });

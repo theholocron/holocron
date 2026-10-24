@@ -51,7 +51,7 @@ type AccessValue = "everyone" | string[];
 /** `everyone`, or the roles sorted and lower-cased, so order and case do not matter when comparing. */
 const accessKey = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : JSON.stringify([...new Set(v.map((r) => r.toLowerCase()))].sort());
-/** The prompts of an onboarding in a form two of them can be compared in: order of answers and case do not matter. */
+/** The prompts of an onboarding in a form two of them can be compared in: the order of the channels and roles an answer gives, and case, do not matter. */
 const promptKey = (p: NonNullable<NotificationsOnboardingLayout["prompts"]>[number]) =>
 	JSON.stringify([
 		p.singleSelect ?? false,
@@ -529,6 +529,11 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					}
 					for (const title of found.keys())
 						onboardingProblems.push(`question "${shown(title)}" is not in the layout`);
+					const order = (titles: string[]) => titles.join("\u0000");
+					const wantedTitles = wantOnboarding.prompts.map((p) => p.title);
+					const haveTitles = (have.prompts ?? []).map((p) => p.title).filter((t) => wantedTitles.includes(t));
+					if (haveTitles.length === wantedTitles.length && order(haveTitles) !== order(wantedTitles))
+						onboardingProblems.push("the questions are in a different order from the layout");
 				}
 			}
 		}

@@ -999,7 +999,11 @@ export interface NotificationsServerLayout {
 	locale?: string;
 }
 
-/** The screen a new member sees on joining: a short text and the channels worth visiting first. */
+/**
+ * The screen a new member sees on joining: a short text and the channels worth visiting first.
+ * Declaring it describes the whole screen: the text and the channels are set to exactly this, so to
+ * switch it off, state them as well.
+ */
 export interface NotificationsWelcomeLayout {
 	/** Whether the screen is shown. Defaults to `true`. */
 	enabled?: boolean;

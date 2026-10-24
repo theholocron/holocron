@@ -685,8 +685,13 @@ export class DiscordNotifications implements Notifications {
 			})),
 		};
 		const normalise = (
-			list: ReadonlyArray<{ channel_id: string; description: string; emoji_name?: string | null }>
-		) => JSON.stringify(list.map((c) => [c.channel_id, c.description, c.emoji_name ?? null]));
+			list: ReadonlyArray<{
+				channel_id: string;
+				description: string;
+				emoji_name?: string | null;
+				emoji_id?: string | null;
+			}>
+		) => JSON.stringify(list.map((c) => [c.channel_id, c.description, c.emoji_name ?? null, c.emoji_id ?? null]));
 
 		let guild: Awaited<ReturnType<DiscordBotClient["guilds"]["get"]>>;
 		let screen: Awaited<ReturnType<DiscordBotClient["guilds"]["welcomeScreen"]>>;
@@ -717,12 +722,21 @@ export class DiscordNotifications implements Notifications {
 				"sent the welcome screen but it came back different -- Discord may have refused a part of it"
 			);
 		}
+		// The switch is a guild feature, not part of the screen: read it back too.
+		const now = await bot.guilds.get(this.guild());
+		if ((now.features ?? []).includes("WELCOME_SCREEN_ENABLED") !== wanted.enabled) {
+			throw new Error(
+				`sent the welcome screen but it is still ${wanted.enabled ? "off" : "on"} -- Discord may have refused the switch`
+			);
+		}
 		return { updated };
 	}
 
 	/** An onboarding prompt reduced to what the layout can state, so the server's and the layout's can be compared. */
 	private static onboardingKey(
 		prompts: ReadonlyArray<{
+			type: number;
+			in_onboarding: boolean;
 			title: string;
 			single_select: boolean;
 			required: boolean;
@@ -738,6 +752,8 @@ export class DiscordNotifications implements Notifications {
 	): string {
 		return JSON.stringify(
 			prompts.map((p) => [
+				p.type,
+				p.in_onboarding,
 				p.title,
 				p.single_select,
 				p.required,
@@ -819,6 +835,8 @@ export class DiscordNotifications implements Notifications {
 	}
 
 	validateLayout(layout: NotificationsLayout): string | undefined {
+		const questions = layout.onboarding?.prompts?.length ?? 0;
+		if (questions > 5) return `onboarding: ${questions} questions; Discord allows up to 5`;
 		const welcome = layout.welcome;
 		if (welcome) {
 			if (welcome.description.length > 140) {
