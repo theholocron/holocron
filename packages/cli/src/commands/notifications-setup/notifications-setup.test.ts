@@ -478,6 +478,153 @@ describe("runNotificationsSetup", () => {
 			expect(dry).not.toHaveBeenCalled();
 		});
 
+		describe("welcome screen and onboarding", () => {
+			const WO_LAYOUT: NotificationsLayout = {
+				roles: [{ name: "Readers" }],
+				categories: [{ name: "A", channels: [{ name: "rules" }, { name: "dev" }] }],
+				welcome: { description: "Hello", channels: [{ channel: "rules", description: "Be kind" }] },
+				onboarding: {
+					defaultChannels: ["dev"],
+					prompts: [{ title: "Q", options: [{ title: "Dev", channels: ["DEV"], roles: ["readers"] }] }],
+				},
+			};
+
+			it("applies each after the channels and roles exist, and counts a change as ok", async () => {
+				const ensureWelcome = vi.fn(async () => ({ updated: ["description", "channels"] }));
+				const ensureOnboarding = vi.fn(async () => ({ updated: ["prompts"] }));
+				const n = fakeNotifications({ layout: WO_LAYOUT, ensureWelcome, ensureOnboarding });
+				const { run, lines } = setup(n);
+				await run();
+				expect(ensureWelcome).toHaveBeenCalledWith(WO_LAYOUT.welcome);
+				expect(ensureOnboarding).toHaveBeenCalledWith(WO_LAYOUT.onboarding);
+				const lastChannel = (n.ensureChannel as ReturnType<typeof vi.fn>).mock.invocationCallOrder.at(-1)!;
+				expect(ensureWelcome.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
+				expect(ensureOnboarding.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
+				const lastRole = (n.ensureRole as ReturnType<typeof vi.fn>).mock.invocationCallOrder.at(-1)!;
+				expect(ensureOnboarding.mock.invocationCallOrder[0]).toBeGreaterThan(lastRole);
+				const out = lines.join("\n");
+				expect(out).toContain("updated welcome screen: description, channels");
+				expect(out).toContain("updated onboarding: prompts");
+			});
+
+			it("shows ones that already match as skipped, previews them on --dry-run, and records a failure", async () => {
+				const same = fakeNotifications({
+					layout: WO_LAYOUT,
+					ensureWelcome: vi.fn(async () => ({ updated: [] })),
+					ensureOnboarding: vi.fn(async () => ({ updated: [] })),
+				});
+				const { run, lines } = setup(same);
+				await run();
+				expect(lines.join("\n")).toContain("exists  welcome screen");
+				expect(lines.join("\n")).toContain("exists  onboarding");
+				const welcome = vi.fn(async () => ({ updated: [] }));
+				const dry = setup(
+					fakeNotifications({ layout: WO_LAYOUT, ensureWelcome: welcome, ensureOnboarding: vi.fn() }),
+					{
+						dryRun: true,
+					}
+				);
+				await dry.run();
+				expect(welcome).not.toHaveBeenCalled();
+				expect(dry.lines.join("\n")).toContain("would ensure welcome screen");
+				expect(dry.lines.join("\n")).toContain("would ensure onboarding");
+				const failing = setup(
+					fakeNotifications({
+						layout: WO_LAYOUT,
+						ensureWelcome: vi.fn(async () => {
+							throw new Error("needs community");
+						}),
+						ensureOnboarding: vi.fn(async () => ({ updated: [] })),
+					})
+				);
+				const report = await failing.run();
+				expect(report.failures).toEqual([{ step: "welcome screen", message: "needs community" }]);
+			});
+
+			it("leaves out whichever section the layout does not declare", async () => {
+				const ensureOnboarding = vi.fn(async () => ({ updated: [] }));
+				const n = fakeNotifications({
+					layout: { welcome: WO_LAYOUT.welcome, categories: WO_LAYOUT.categories },
+					ensureWelcome: vi.fn(async () => ({ updated: [] })),
+					ensureOnboarding,
+				});
+				await setup(n).run();
+				expect(ensureOnboarding).not.toHaveBeenCalled();
+			});
+
+			it("refuses a provider that cannot manage them", async () => {
+				const noWelcome = await setup(
+					fakeNotifications({ layout: WO_LAYOUT, ensureWelcome: undefined, ensureOnboarding: vi.fn() })
+				).run();
+				expect(noWelcome.message).toMatch(
+					/declares a `welcome` screen, but the `discord` provider cannot manage one/
+				);
+				const noOnboarding = await setup(
+					fakeNotifications({ layout: WO_LAYOUT, ensureWelcome: vi.fn(), ensureOnboarding: undefined })
+				).run();
+				expect(noOnboarding.message).toMatch(
+					/declares `onboarding`, but the `discord` provider cannot manage it/
+				);
+			});
+
+			it("refuses names the layout does not have, or has twice, before creating anything", async () => {
+				const cases: Array<[NotificationsLayout, RegExp]> = [
+					[
+						{
+							...WO_LAYOUT,
+							welcome: { description: "x", channels: [{ channel: "ghost", description: "y" }] },
+						},
+						/welcome: names the channel `ghost`, which is not in the layout's channels/,
+					],
+					[
+						{ ...WO_LAYOUT, onboarding: { defaultChannels: ["ghost"] } },
+						/onboarding: `defaultChannels` names the channel `ghost`/,
+					],
+					[
+						{
+							...WO_LAYOUT,
+							onboarding: { prompts: [{ title: "Q", options: [{ title: "O", channels: ["ghost"] }] }] },
+						},
+						/onboarding: the option `O` names the channel `ghost`/,
+					],
+					[
+						{
+							...WO_LAYOUT,
+							onboarding: { prompts: [{ title: "Q", options: [{ title: "O", roles: ["Ghosts"] }] }] },
+						},
+						/the option `O` gives the role `Ghosts`, which is not in the layout's roles/,
+					],
+					[
+						{
+							...WO_LAYOUT,
+							categories: [
+								{ name: "A", channels: [{ name: "dev" }] },
+								{ name: "B", channels: [{ name: "Dev" }] },
+							],
+							welcome: { description: "x", channels: [{ channel: "dev", description: "y" }] },
+						},
+						/welcome: names `dev`, but more than one channel in the layout has that name/,
+					],
+				];
+				for (const [layout, message] of cases) {
+					const n = fakeNotifications({ layout, ensureWelcome: vi.fn(), ensureOnboarding: vi.fn() });
+					const report = await setup(n).run();
+					expect(report.message).toMatch(message);
+					expect(n.ensureCategory).not.toHaveBeenCalled();
+				}
+			});
+
+			it("accepts a layout whose onboarding states neither channels nor roles, and one with no categories", async () => {
+				const n = fakeNotifications({
+					layout: {
+						onboarding: { prompts: [{ title: "Q", options: [{ title: "O" }] }] },
+					},
+					ensureOnboarding: vi.fn(async () => ({ updated: [] })),
+				});
+				expect((await setup(n).run()).status).toBe("ok");
+			});
+		});
+
 		it("does nothing about the server when the layout declares none", async () => {
 			const ensureServer = vi.fn(async () => ({ updated: [] }));
 			await setup(fakeNotifications({ ensureServer })).run();

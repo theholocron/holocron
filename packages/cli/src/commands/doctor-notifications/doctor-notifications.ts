@@ -15,6 +15,8 @@ import {
 	assertPluginsResolvable,
 	type Notifications,
 	type NotificationsAccess,
+	type NotificationsOnboardingLayout,
+	type NotificationsWelcomeLayout,
 	PluginLoader,
 	type Secrets,
 } from "../../plugin/index.js";
@@ -36,7 +38,6 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 11, id: "welcome", title: "welcome screen and onboarding set" },
 	{ step: 12, id: "webhook-appearance", title: "webhook names and avatars set" },
 	{ step: 13, id: "app-settings", title: "bot description, tags, install link and URLs set" },
 	{ step: 14, id: "role-assignment", title: "role assigned to team members" },
@@ -50,9 +51,23 @@ type AccessValue = "everyone" | string[];
 /** `everyone`, or the roles sorted and lower-cased, so order and case do not matter when comparing. */
 const accessKey = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : JSON.stringify([...new Set(v.map((r) => r.toLowerCase()))].sort());
+/** The prompts of an onboarding in a form two of them can be compared in: the order of the channels and roles an answer gives, and case, do not matter. */
+const promptKey = (p: NonNullable<NotificationsOnboardingLayout["prompts"]>[number]) =>
+	JSON.stringify([
+		p.singleSelect ?? false,
+		p.required ?? false,
+		(p.options ?? []).map((o) => [
+			o.title,
+			o.description ?? "",
+			o.emoji ?? "",
+			[...new Set((o.channels ?? []).map((c) => c.toLowerCase()))].sort(),
+			[...new Set((o.roles ?? []).map((r) => r.toLowerCase()))].sort(),
+		]),
+	]);
 const accessText = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
 const shown = (s: string) => sanitizeDetail(s);
+const WELCOME_TITLE = "welcome screen and onboarding set";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
@@ -188,6 +203,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			["role-appearance", ROLE_APPEARANCE_TITLE],
 			["access", ACCESS_TITLE],
 			["server-settings", SERVER_TITLE],
+			["welcome-onboarding", WELCOME_TITLE],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
 		}
@@ -444,6 +460,89 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			SERVER_TITLE,
 			serverProblems,
 			serverFields === 0 ? "none declared" : `${serverFields} of ${serverFields} as declared`
+		);
+
+		// 6e. the welcome screen and onboarding, for the parts the layout declares
+		const wantWelcome = layout.welcome;
+		const wantOnboarding = layout.onboarding;
+		const welcomeProblems: string[] = [];
+		if (wantWelcome) {
+			if (inspected.welcomeError) {
+				welcomeProblems.push(
+					`not checked: could not read the welcome screen (${shown(inspected.welcomeError)})`
+				);
+			} else if (!inspected.welcome) {
+				welcomeProblems.push("the provider did not report the welcome screen");
+			} else {
+				const have = inspected.welcome;
+				const enabled = wantWelcome.enabled ?? true;
+				if (have.enabled !== enabled) {
+					welcomeProblems.push(
+						`welcome screen is ${have.enabled ? "on" : "off"} but the layout says ${enabled ? "on" : "off"}`
+					);
+				}
+				if (have.description !== wantWelcome.description) {
+					welcomeProblems.push(
+						`welcome description is "${shown(have.description)}" but the layout says "${shown(wantWelcome.description)}"`
+					);
+				}
+				const key = (list: NotificationsWelcomeLayout["channels"]) =>
+					JSON.stringify(list.map((c) => [c.channel.toLowerCase(), c.description, c.emoji ?? ""]));
+				if (key(have.channels) !== key(wantWelcome.channels)) {
+					const names = (list: NotificationsWelcomeLayout["channels"]) =>
+						list.length === 0 ? "none" : list.map((c) => shown(c.channel)).join(", ");
+					welcomeProblems.push(
+						`welcome channels are ${names(have.channels)} but the layout says ${names(wantWelcome.channels)} (or their descriptions or emoji differ)`
+					);
+				}
+			}
+		}
+		const onboardingProblems: string[] = [];
+		if (wantOnboarding) {
+			if (inspected.onboardingError) {
+				onboardingProblems.push(`not checked: could not read onboarding (${shown(inspected.onboardingError)})`);
+			} else if (!inspected.onboarding) {
+				onboardingProblems.push("the provider did not report onboarding");
+			} else {
+				const have = inspected.onboarding;
+				if (wantOnboarding.enabled !== undefined && have.enabled !== wantOnboarding.enabled) {
+					onboardingProblems.push(
+						`onboarding is ${have.enabled ? "on" : "off"} but the layout says ${wantOnboarding.enabled ? "on" : "off"}`
+					);
+				}
+				if (wantOnboarding.defaultChannels !== undefined) {
+					const set = (list: string[]) => [...new Set(list.map((c) => c.toLowerCase()))].sort().join(",");
+					if (set(have.defaultChannels ?? []) !== set(wantOnboarding.defaultChannels)) {
+						onboardingProblems.push(
+							`default channels are ${(have.defaultChannels ?? []).map(shown).join(", ") || "none"} but the layout says ${wantOnboarding.defaultChannels.map(shown).join(", ") || "none"}`
+						);
+					}
+				}
+				if (wantOnboarding.prompts !== undefined) {
+					const found = new Map((have.prompts ?? []).map((p) => [p.title, p] as const));
+					for (const p of wantOnboarding.prompts) {
+						const actual = found.get(p.title);
+						if (!actual) onboardingProblems.push(`question "${shown(p.title)}" is missing`);
+						else if (promptKey(actual) !== promptKey(p))
+							onboardingProblems.push(`question "${shown(p.title)}" differs from the layout`);
+						found.delete(p.title);
+					}
+					for (const title of found.keys())
+						onboardingProblems.push(`question "${shown(title)}" is not in the layout`);
+					const order = (titles: string[]) => titles.join("\u0000");
+					const wantedTitles = wantOnboarding.prompts.map((p) => p.title);
+					const haveTitles = (have.prompts ?? []).map((p) => p.title).filter((t) => wantedTitles.includes(t));
+					if (haveTitles.length === wantedTitles.length && order(haveTitles) !== order(wantedTitles))
+						onboardingProblems.push("the questions are in a different order from the layout");
+				}
+			}
+		}
+		const welcomeParts = (wantWelcome ? 1 : 0) + (wantOnboarding ? 1 : 0);
+		add(
+			"welcome-onboarding",
+			WELCOME_TITLE,
+			[...welcomeProblems, ...onboardingProblems],
+			welcomeParts === 0 ? "none declared" : `${welcomeParts} of ${welcomeParts} as declared`
 		);
 	}
 
