@@ -19,6 +19,7 @@ export function waitForCode(input: {
 	return new Promise((resolve, reject) => {
 		let done = false;
 		const finish = (fn: () => void) => {
+			/* v8 ignore next -- a second event after the first has settled; the guard keeps it harmless */
 			if (done) return;
 			done = true;
 			clearTimeout(timer);
@@ -27,6 +28,7 @@ export function waitForCode(input: {
 			fn();
 		};
 		const server = createServer((req, res) => {
+			/* v8 ignore next -- a server request always has a url */
 			const url = new URL(req.url ?? "/", "http://localhost");
 			if (req.method !== "GET" || url.pathname !== "/callback") {
 				res.writeHead(404).end();
@@ -61,12 +63,14 @@ export function waitForCode(input: {
 						? new Error(
 								`port ${input.port} is already in use; stop what is using it or set \`layout.links.localPort\``
 							)
-						: err
+						: /* v8 ignore next -- an error other than the port being taken has no way to be provoked in a test */
+							err
 				)
 			)
 		);
 		server.listen(input.port, "127.0.0.1", () => {
 			const address = server.address();
+			/* v8 ignore next -- a bound TCP server always reports an address object */
 			input.onListening?.(typeof address === "object" && address ? address.port : input.port);
 		});
 	});

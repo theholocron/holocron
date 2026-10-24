@@ -278,6 +278,29 @@ describe("runNotificationsLink", () => {
 		).toContain("read and write files");
 	});
 
+	it("names a member by id when the provider gave no display name", async () => {
+		const files = { current: null as { content: string; version: string } | null };
+		const source = fakeSource(files);
+		const noName = { member: "333", github: { id: "55", login: "luke-gh" } };
+		const { run, lines } = setup(fakeNotifications({}, noName), source);
+		await run();
+		expect(lines.join("\n")).toContain("to 333 (333)");
+		const refused = await setup(fakeNotifications({}, { member: "333" }), fakeSource({ current: null })).run();
+		expect(refused.message).toContain("333 has no verified GitHub account");
+	});
+
+	it("uses the default links repo when the provider declares no layout", async () => {
+		const { layout: _layout, ...bare } = fakeNotifications() as unknown as Record<string, unknown>;
+		const source = fakeSource({ current: null });
+		const report = await setup(bare as unknown as Notifications, source).run();
+		expect(report.status).toBe("ok");
+		expect(source.writeFile).toHaveBeenCalledWith(
+			"notifications/discord-links.json",
+			expect.any(String),
+			expect.objectContaining({ repo: "theholocron/.github-private" })
+		);
+	});
+
 	it("refuses without an org or links repo to put the file in", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"], source: "github" } });
 		const modules: Record<string, unknown> = {

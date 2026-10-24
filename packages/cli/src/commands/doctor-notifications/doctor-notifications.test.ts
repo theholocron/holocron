@@ -1384,6 +1384,24 @@ describe("runDoctorNotifications — bot application", () => {
 		).toEqual([]);
 	});
 
+	it("expects the default local redirect when roles follow a team and no hosted service or port is declared", async () => {
+		const layout: NotificationsLayout = { ...withApp(), roles: [{ name: "gatekeepers", team: "gatekeepers" }] };
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		expect(check(await setup(fakeNotifications({ layout, found: none })).run()).problems[0]).toContain(
+			"add http://localhost:53682/callback"
+		);
+		const ported = { ...layout, links: { localPort: 4001 } };
+		expect(check(await setup(fakeNotifications({ layout: ported, found: none })).run()).problems[0]).toContain(
+			"add http://localhost:4001/callback"
+		);
+	});
+
+	it("treats a missing description as empty when the layout declares one", async () => {
+		const found = { ...same, application: { ...same.application, description: undefined } };
+		const report = await setup(fakeNotifications({ layout: withApp(), found: found as typeof same })).run();
+		expect(check(report).problems).toContain("description differs from the layout");
+	});
+
 	it("says none declared when the layout has no application section", async () => {
 		expect(check(await setup(fakeNotifications()).run())).toMatchObject({ detail: "none declared", problems: [] });
 	});

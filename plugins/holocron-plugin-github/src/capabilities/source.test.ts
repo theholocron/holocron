@@ -484,6 +484,19 @@ describe("GitHubSource — team members and files", () => {
 		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/contents/x.json");
 	});
 
+	it("readFile and writeFile say which token permission is missing on a 403", async () => {
+		const read = makeSource([{ status: 403, body: {} }]);
+		await expect(read.source.readFile("x.json", "theholocron/.github-private")).rejects.toThrow(
+			/cannot read files in theholocron\/\.github-private.*Contents: read/
+		);
+		const write = makeSource([{ status: 403, body: {} }]);
+		await expect(
+			write.source.writeFile("x.json", "{}", { message: "m", repo: "theholocron/.github-private" })
+		).rejects.toThrow(/cannot write files.*read and write/);
+		const other = makeSource([{ status: 500, body: {} }]);
+		await expect(other.source.writeFile("x.json", "{}", { message: "m" })).rejects.toMatchObject({ status: 500 });
+	});
+
 	it("readFile does not mistake a repo the token cannot see for a missing file", async () => {
 		const hidden = makeSource([
 			{ status: 404, body: {} },

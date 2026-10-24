@@ -46,6 +46,7 @@ async function openInBrowser(url: string): Promise<void> {
 /* v8 ignore stop */
 
 export async function runNotificationsLink(input: RunNotificationsLinkInput): Promise<NotificationsLinkReport> {
+	/* v8 ignore next 2 -- the real console and logger are only used outside tests, which inject both */
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
@@ -120,10 +121,13 @@ export async function runNotificationsLink(input: RunNotificationsLinkInput): Pr
 	}
 
 	const signIn = notifications.signIn!();
+	/* v8 ignore next -- tests inject a fixed state */
 	const state = (input.newState ?? (() => randomBytes(16).toString("hex")))();
 	try {
+		/* v8 ignore next 3 -- the real listener and browser are only used outside tests, which inject both */
 		const wait =
 			input.waitForCode ?? ((i) => waitForCode({ port: i.port, state: i.state, onListening: i.onListening }));
+		/* v8 ignore next -- see above */
 		const open = input.openBrowser ?? openInBrowser;
 		const url = await signIn.authorizeUrl({ redirectUri: choice.redirectUri, state });
 		print(`  if your browser does not open, go to: ${url}`);

@@ -55,7 +55,7 @@ function fakeSource(over: Partial<Source> = {}): Source {
 function setup(
 	notifications: Notifications,
 	source: Source | undefined,
-	opts: { dryRun?: boolean; keep?: boolean; provider?: string } = {}
+	opts: { dryRun?: boolean; keep?: boolean; provider?: string; noOrg?: boolean } = {}
 ) {
 	const loaded = loadedFrom({
 		name: "demo",
@@ -76,7 +76,11 @@ function setup(
 		run: () =>
 			runNotificationsSyncRoles({
 				loaded,
-				context: { repoRoot: "/tmp/test", org: "theholocron", ...(opts.dryRun ? { dryRun: true } : {}) },
+				context: {
+					repoRoot: "/tmp/test",
+					...(opts.noOrg ? {} : { org: "theholocron" }),
+					...(opts.dryRun ? { dryRun: true } : {}),
+				},
 				loader,
 				print: (l) => lines.push(l),
 				logger: fakeLogger(),
@@ -185,6 +189,16 @@ describe("runNotificationsSyncRoles", () => {
 		});
 		expect(log).toHaveBeenCalled();
 		log.mockRestore();
+	});
+
+	it("works without an org when the layout names the links repo", async () => {
+		const source = fakeSource();
+		const notifications = fakeNotifications({
+			layout: { roles: [{ name: "gatekeepers", team: "gatekeepers" }], links: { repo: "me/links" } },
+		});
+		const report = await setup(notifications, source, { noOrg: true }).run();
+		expect(report.status).not.toBe("fail");
+		expect(source.teamMembers).toHaveBeenCalledWith("gatekeepers", undefined);
 	});
 
 	it("refuses a role declared for two teams, and asks the team in the resolved org", async () => {
