@@ -2093,7 +2093,22 @@ describe("DiscordNotifications.ensureWelcome", () => {
 		const never = { status: 404, body: { message: "Unknown Guild Welcome Screen", code: 10069 } };
 		const { notifs, calls } = makeProvisioner([chans, guild(), never, screen(), guild()]);
 		expect(await notifs.ensureWelcome(wanted)).toEqual({ updated: ["description", "channels"] });
-		expect(calls[3]?.method).toBe("PATCH");
+		expect(calls[3]).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/guilds/${GUILD}/welcome-screen`,
+			body: { description: "Hello", welcome_channels: [{ channel_id: "2001" }, { channel_id: "2002" }] },
+		});
+	});
+
+	it("does not take a 404 that only mentions the number, or has no JSON body, for the missing screen", async () => {
+		const mentions = makeProvisioner([
+			chans,
+			guild(),
+			{ status: 404, body: { message: "see 10069", code: 10004 } },
+		]);
+		await expect(mentions.notifs.ensureWelcome(wanted)).rejects.toThrow(/404/);
+		const plain = makeProvisioner([chans, guild(), { status: 404, text: "<html>not json 10069</html>" }]);
+		await expect(plain.notifs.ensureWelcome(wanted)).rejects.toThrow(/404/);
 	});
 
 	it("passes on a 404 that is not the missing screen", async () => {
@@ -2246,6 +2261,28 @@ describe("DiscordNotifications.ensureOnboarding", () => {
 			.prompts[0]!;
 		expect(again.id).toBe("p1");
 		expect(again.options[0]!.id).toBe("o1");
+	});
+
+	it("gives a repeated question or answer title a new id rather than a second copy of the old one", async () => {
+		const twice = {
+			title: "What brings you here?",
+			options: [
+				{ title: "Building", roles: ["readers"] },
+				{ title: "Building", roles: ["readers"] },
+			],
+		};
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			roles("Readers"),
+			onboarding({ prompts: [prompt({ required: true })] }),
+			onboarding(),
+		]);
+		await notifs.ensureOnboarding({ prompts: [twice, twice] }).catch(() => undefined);
+		const sent = (calls[3]?.body as { prompts: Array<{ id: string; options: Array<{ id: string }> }> }).prompts;
+		const ids = sent.flatMap((p) => [p.id, ...p.options.map((o) => o.id)]);
+		expect(new Set(ids).size).toBe(ids.length);
+		expect(sent[0]!.id).toBe("p1");
+		expect(sent[0]!.options[0]!.id).toBe("o1");
 	});
 
 	it("replaces the questions and says so, sending the options with their channel and role ids", async () => {

@@ -674,12 +674,21 @@ export class DiscordNotifications implements Notifications {
 		);
 	}
 
+	/** The numeric code Discord puts in the JSON body of an error, or undefined when the body is not that. */
+	private static codeOf(err: ProviderApiError): unknown {
+		try {
+			return (JSON.parse(String(err.details)) as { code?: unknown }).code;
+		} catch {
+			return undefined;
+		}
+	}
+
 	/** The welcome screen; a server that never had one answers 404 (10069), which is an empty screen. */
 	private async welcomeScreenOf(): Promise<Awaited<ReturnType<DiscordBotClient["guilds"]["welcomeScreen"]>>> {
 		try {
 			return await this.bot().guilds.welcomeScreen(this.guild());
 		} catch (err) {
-			if (err instanceof ProviderApiError && err.status === 404 && String(err.details).includes("10069")) {
+			if (err instanceof ProviderApiError && err.status === 404 && DiscordNotifications.codeOf(err) === 10069) {
 				return { description: null, welcome_channels: [] };
 			}
 			throw err;
@@ -798,13 +807,17 @@ export class DiscordNotifications implements Notifications {
 		} catch (err) {
 			throw DiscordNotifications.communityFeatureHint(err, "onboarding");
 		}
+		const usedIds = new Set<string | undefined>();
 		// What the layout leaves out stays as the server has it: the PUT replaces everything, so it must be sent back.
 		const prompts =
 			onboarding.prompts === undefined
 				? current.prompts
 				: onboarding.prompts.map((p) => {
 						// Discord wants an id on every question and answer: keep the one it has, or make a new one.
-						const had = current.prompts.find((c) => c.title === p.title);
+						// Each id goes to one item only: a title that repeats gets a new id, not a second copy.
+						const had = current.prompts.find((c) => c.title === p.title && !usedIds.has(c.id));
+						if (had) usedIds.add(had.id);
+						const hadOptions = new Set<string | undefined>();
 						return {
 							id: had?.id ?? newId(),
 							type: 0,
@@ -813,7 +826,11 @@ export class DiscordNotifications implements Notifications {
 							required: p.required ?? false,
 							in_onboarding: true,
 							options: p.options.map((o) => ({
-								id: had?.options.find((c) => c.title === o.title)?.id ?? newId(),
+								id: ((): string => {
+									const old = had?.options.find((c) => c.title === o.title && !hadOptions.has(c.id));
+									if (old) hadOptions.add(old.id);
+									return old?.id ?? newId();
+								})(),
 								title: o.title,
 								description: o.description ?? null,
 								channel_ids: (o.channels ?? []).map(channelId),
