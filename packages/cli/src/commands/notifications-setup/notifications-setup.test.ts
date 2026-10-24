@@ -1199,6 +1199,7 @@ describe("runNotificationsSetup — bot application and everyone", () => {
 		expect(ensureApplication).toHaveBeenCalledWith(AE_LAYOUT.application);
 		const lastChannel = (n.ensureChannel as ReturnType<typeof vi.fn>).mock.invocationCallOrder.at(-1)!;
 		expect(ensureEveryone.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
+		expect(ensureApplication.mock.invocationCallOrder[0]).toBeGreaterThan(lastChannel);
 		const out = lines.join("\n");
 		expect(out).toContain("updated @everyone permissions: MentionEveryone");
 		expect(out).toContain("exists  bot application");
@@ -1210,6 +1211,7 @@ describe("runNotificationsSetup — bot application and everyone", () => {
 		await run();
 		expect(lines.join("\n")).toContain("would ensure bot application");
 		expect(dry.ensureApplication).not.toHaveBeenCalled();
+		expect(dry.ensureEveryone).not.toHaveBeenCalled();
 		const failing = fakeNotifications({
 			layout: AE_LAYOUT,
 			ensureEveryone: vi.fn(async () => ({ updated: [] })),

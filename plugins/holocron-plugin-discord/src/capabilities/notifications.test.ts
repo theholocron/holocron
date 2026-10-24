@@ -2768,6 +2768,13 @@ describe("DiscordNotifications.ensureApplication", () => {
 		expect((await perms.notifs.ensureApplication(wanted)).updated).toEqual(["install"]);
 	});
 
+	it("tells tags apart by their items, and compares scopes by their exact case", async () => {
+		const tags = makeProvisioner([app({ tags: ["a", "b"] }), app({ tags: ["a,b"] })]);
+		expect((await tags.notifs.ensureApplication({ tags: ["a,b"] })).updated).toEqual(["tags"]);
+		const scopes = makeProvisioner([app({ install_params: { scopes: ["BOT"], permissions: PERMS } }), app()]);
+		expect((await scopes.notifs.ensureApplication({ install: wanted.install })).updated).toEqual(["install"]);
+	});
+
 	it("leaves out what the layout does not state", async () => {
 		const { notifs, calls } = makeProvisioner([app()]);
 		expect(await notifs.ensureApplication({ tags: ["automation", "github"] })).toEqual({ updated: [] });
@@ -2813,7 +2820,7 @@ describe("DiscordNotifications.ensureApplication", () => {
 
 describe("DiscordNotifications — reading the application and @everyone back", () => {
 	it("reads the application in the layout's terms", async () => {
-		const { notifs } = makeProvisioner([
+		const { notifs, calls } = makeProvisioner([
 			{ body: [] },
 			{
 				body: {
@@ -2829,6 +2836,7 @@ describe("DiscordNotifications — reading the application and @everyone back", 
 			},
 		]);
 		const found = await notifs.inspect({ application: { tags: ["a"] } });
+		expect(calls.at(-1)).toMatchObject({ method: "GET", url: `${BASE}/applications/@me` });
 		expect(found.application).toEqual({
 			description: "Posts things",
 			tags: ["a"],
@@ -2870,6 +2878,7 @@ describe("DiscordNotifications — reading the application and @everyone back", 
 		expect((await ok.notifs.inspect({ everyone: { deny: ["MentionEveryone"] } })).everyone).toEqual({
 			permissions: ["ViewChannel"],
 		});
+		expect(ok.calls.at(-1)).toMatchObject({ method: "GET", url: `${BASE}/guilds/${GUILD}/roles` });
 		const missing = makeProvisioner([{ body: [] }, { body: [] }]);
 		expect((await missing.notifs.inspect({ everyone: { deny: ["MentionEveryone"] } })).everyoneError).toMatch(
 			/no @everyone role/
@@ -2911,6 +2920,13 @@ describe("DiscordNotifications.validateLayout — application and everyone", () 
 			/6 tags; Discord allows up to 5/
 		);
 		expect(check({ application: { tags: ["x".repeat(21)] } })).toMatch(/over 20 characters/);
+	});
+
+	it("refuses a scope Discord does not offer, including one in the wrong case", () => {
+		const install = (scopes: string[]) => ({ application: { install: { scopes, permissions: [] } } });
+		expect(check(install(["botz"]))).toMatch(/"botz", which is not an OAuth2 scope Discord offers/);
+		expect(check(install(["BOT"]))).toMatch(/"BOT"/);
+		expect(check(install(["bot", "applications.commands"]))).toBeUndefined();
 	});
 
 	it("wants https links, a scope for the install link, and real permission names", () => {

@@ -377,21 +377,22 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		}
 		// What everyone may do is checked here too: it is the permissions of one more role.
 		const everyone = layout.everyone;
+		const everyoneProblems: string[] = [];
 		if (everyone) {
 			if (inspected.everyoneError) {
-				appearance.push(
+				everyoneProblems.push(
 					`@everyone: not checked, could not read its permissions (${shown(inspected.everyoneError)})`
 				);
 			} else if (!inspected.everyone) {
-				appearance.push("@everyone: the provider did not report its permissions");
+				everyoneProblems.push("@everyone: the provider did not report its permissions");
 			} else {
 				const have = new Set(inspected.everyone.permissions.map((n) => n.toLowerCase()));
 				const lacking = (everyone.allow ?? []).filter((n) => !have.has(n.toLowerCase()));
 				const keeping = (everyone.deny ?? []).filter((n) => have.has(n.toLowerCase()));
 				if (lacking.length > 0)
-					appearance.push(`@everyone: missing permissions ${lacking.map(shown).join(", ")}`);
+					everyoneProblems.push(`@everyone: missing permissions ${lacking.map(shown).join(", ")}`);
 				if (keeping.length > 0) {
-					appearance.push(
+					everyoneProblems.push(
 						`@everyone: still has permissions the layout takes away: ${keeping.map(shown).join(", ")}`
 					);
 				}
@@ -404,7 +405,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		add(
 			"role-appearance",
 			ROLE_APPEARANCE_TITLE,
-			inspected.rolesError ? [`not checked: could not read the roles`] : appearance,
+			inspected.rolesError
+				? [`not checked: could not read the roles`, ...everyoneProblems]
+				: [...appearance, ...everyoneProblems],
 			styledCount === 0 ? "none declared" : `${styledCount} of ${styledCount} as declared`
 		);
 
@@ -606,7 +609,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				appProblems.push("the provider did not report the application");
 			} else {
 				const have = inspected.application;
-				const set = (list: string[]) => [...new Set(list.map((n) => n.toLowerCase()))].sort().join(",");
+				const set = (list: string[]) => JSON.stringify([...new Set(list.map((n) => n.toLowerCase()))].sort());
+				const exact = (list: string[]) => JSON.stringify([...new Set(list)].sort());
 				if (wantApp.description !== undefined && (have.description ?? "") !== wantApp.description) {
 					appProblems.push("description differs from the layout");
 				}
@@ -619,7 +623,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					if (!have.install) {
 						appProblems.push("no install link is set");
 					} else {
-						if (set(have.install.scopes) !== set(wantApp.install.scopes)) {
+						if (exact(have.install.scopes) !== exact(wantApp.install.scopes)) {
 							appProblems.push(
 								`install scopes are ${have.install.scopes.map(shown).join(", ")} but the layout says ${wantApp.install.scopes.map(shown).join(", ")}`
 							);

@@ -50,6 +50,36 @@ const BOT_NEEDS: PermissionName[] = [
 	"SendMessagesInThreads",
 ];
 
+/** The OAuth2 scopes Discord offers an application, as its own application page lists them. Exact, lower-case. */
+const SCOPES = new Set([
+	"applications.builds.read",
+	"applications.commands",
+	"applications.commands.permissions.update",
+	"applications.entitlements",
+	"applications.store.update",
+	"bot",
+	"connections",
+	"email",
+	"gdm.join",
+	"guilds",
+	"guilds.join",
+	"guilds.members.read",
+	"identify",
+	"messages.read",
+	"openid",
+	"role_connections.write",
+	"rpc",
+	"rpc.activities.write",
+	"rpc.notifications.read",
+	"rpc.screenshare.read",
+	"rpc.screenshare.write",
+	"rpc.video.read",
+	"rpc.video.write",
+	"rpc.voice.read",
+	"rpc.voice.write",
+	"webhook.incoming",
+]);
+
 /** The locales Discord accepts for a server's preferred language. */
 const LOCALES = new Set([
 	"id",
@@ -943,7 +973,9 @@ export class DiscordNotifications implements Notifications {
 	async ensureApplication(app: NotificationsApplicationLayout): Promise<{ updated: string[] }> {
 		const bot = this.bot();
 		const current = await bot.application.get();
-		const set = (list: readonly string[]) => [...new Set(list.map((n) => n.toLowerCase()))].sort().join(",");
+		// Tags and permission names are compared ignoring case; scopes are exact identifiers. Lists, not joined text.
+		const set = (list: readonly string[]) => JSON.stringify([...new Set(list.map((n) => n.toLowerCase()))].sort());
+		const exact = (list: readonly string[]) => JSON.stringify([...new Set(list)].sort());
 		const urls = [
 			["termsUrl", "terms_of_service_url"],
 			["privacyUrl", "privacy_policy_url"],
@@ -967,7 +999,7 @@ export class DiscordNotifications implements Notifications {
 		if (
 			install &&
 			(!haveInstall ||
-				set(haveInstall.scopes) !== set(install.scopes) ||
+				exact(haveInstall.scopes) !== exact(install.scopes) ||
 				haveInstall.permissions !== install.permissions)
 		) {
 			body.install_params = install;
@@ -989,7 +1021,7 @@ export class DiscordNotifications implements Notifications {
 			if (name === "install") {
 				return (
 					!after.install_params ||
-					set(after.install_params.scopes) !== set(install!.scopes) ||
+					exact(after.install_params.scopes) !== exact(install!.scopes) ||
 					after.install_params.permissions !== install!.permissions
 				);
 			}
@@ -1028,6 +1060,10 @@ export class DiscordNotifications implements Notifications {
 			if (app.install) {
 				if (app.install.scopes.length === 0)
 					return "application: `install.scopes` is empty; the link needs at least `bot`";
+				const unknown = app.install.scopes.find((s) => !SCOPES.has(s));
+				if (unknown !== undefined) {
+					return `application: \`install.scopes\` has ${JSON.stringify(unknown)}, which is not an OAuth2 scope Discord offers (scopes are lower-case, for example bot, applications.commands)`;
+				}
 				try {
 					permissions(app.install.permissions as PermissionName[]);
 				} catch (err) {

@@ -1355,6 +1355,28 @@ describe("runDoctorNotifications — bot application", () => {
 		]);
 	});
 
+	it("tells tags apart by their items, not by how they read joined, and scopes by their exact case", async () => {
+		const found = {
+			...GOOD,
+			application: { ...app, tags: ["a,b"], install: { scopes: ["BOT"], permissions: app.install.permissions } },
+		};
+		const report = await setup(fakeNotifications({ layout: withApp({ tags: ["a", "b"] }), found })).run();
+		expect(check(report).problems).toEqual([
+			"tags are a,b but the layout says a, b",
+			"install scopes are BOT but the layout says bot",
+		]);
+	});
+
+	it("does not flag a field the layout leaves out, even when the application has a value for it", async () => {
+		const report = await setup(
+			fakeNotifications({
+				layout: { ...LAYOUT, application: { tags: ["a"] } },
+				found: { ...GOOD, application: { ...app, tags: ["a"], description: "something else entirely" } },
+			})
+		).run();
+		expect(check(report).problems).toEqual([]);
+	});
+
 	it("says none for tags that are missing, and that no install link is set", async () => {
 		const found = { ...GOOD, application: { description: "Posts things" } };
 		const report = await setup(fakeNotifications({ layout: withApp(), found })).run();
@@ -1404,6 +1426,16 @@ describe("runDoctorNotifications — @everyone permissions", () => {
 	it("names what is missing and what is still there", async () => {
 		const found = { ...GOOD, everyone: { permissions: ["MentionEveryone"] } };
 		expect(check(await setup(fakeNotifications({ layout, found })).run()).problems).toEqual([
+			"@everyone: missing permissions ViewChannel",
+			"@everyone: still has permissions the layout takes away: MentionEveryone",
+		]);
+	});
+
+	it("still reports @everyone when the roles could not be read", async () => {
+		const withRoles = { ...layout, roles: [{ name: "gatekeepers", mentionable: true }] };
+		const found = { ...GOOD, rolesError: "boom", everyone: { permissions: ["MentionEveryone"] } };
+		expect(check(await setup(fakeNotifications({ layout: withRoles, found })).run()).problems).toEqual([
+			"not checked: could not read the roles",
 			"@everyone: missing permissions ViewChannel",
 			"@everyone: still has permissions the layout takes away: MentionEveryone",
 		]);
