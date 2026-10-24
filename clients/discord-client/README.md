@@ -99,12 +99,13 @@ the resource, look it up by name before creating it again. A webhook created
 that way cannot have its URL read back, since Discord returns the token only on
 the create response.
 
-| Resource          | Methods                                                                                                                                                     |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.users`    | `me()` — `GET /users/@me`, a cheap token check                                                                                                              |
-| `client.guilds`   | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding` |
-| `client.channels` | `modify`, `webhooks`, `createWebhook`, `createMessage`                                                                                                      |
-| `client.webhooks` | `modify` (name, avatar), `delete`                                                                                                                           |
+| Resource             | Methods                                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.users`       | `me()` — `GET /users/@me`, a cheap token check                                                                                                              |
+| `client.application` | `get`, `modify` (the bot's own application: description, tags, install settings, URLs)                                                                      |
+| `client.guilds`      | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding` |
+| `client.channels`    | `modify`, `webhooks`, `createWebhook`, `createMessage`                                                                                                      |
+| `client.webhooks`    | `modify` (name, avatar), `delete`                                                                                                                           |
 
 `permissions([...names])` builds the decimal-string bitfield Discord expects, and
 `permissionNames(bitfield)` reads one back; `Permission` holds the bits themselves.

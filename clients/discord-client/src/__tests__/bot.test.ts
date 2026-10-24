@@ -389,6 +389,26 @@ describe("server settings", () => {
 		});
 	});
 
+	it("application: GET and PATCH /applications/@me", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "9", name: "Holonet", description: "old", tags: [] } },
+			{ body: { id: "9", name: "Holonet", description: "new", tags: ["a"] } },
+		]);
+		expect((await client.application.get()).description).toBe("old");
+		const out = await client.application.modify({
+			description: "new",
+			tags: ["a"],
+			install_params: { scopes: ["bot"], permissions: "8" },
+		});
+		expect(out.tags).toEqual(["a"]);
+		expect(calls[0]).toMatchObject({ url: `${BASE}/applications/@me`, method: "GET" });
+		expect(calls[1]).toMatchObject({
+			url: `${BASE}/applications/@me`,
+			method: "PATCH",
+			body: { description: "new", tags: ["a"], install_params: { scopes: ["bot"], permissions: "8" } },
+		});
+	});
+
 	it("welcome screen: GET and PATCH /guilds/:id/welcome-screen", async () => {
 		const { client, calls } = makeClient([
 			{ body: { description: "hi", welcome_channels: [] } },

@@ -5,6 +5,7 @@ import type {
 	CreateChannelInput,
 	CreateMessageInput,
 	CreateRoleInput,
+	DiscordApplication,
 	DiscordBotClientOptions,
 	DiscordChannel,
 	DiscordChannelWebhook,
@@ -14,6 +15,7 @@ import type {
 	DiscordRole,
 	DiscordUser,
 	DiscordWelcomeScreen,
+	ModifyApplicationInput,
 	ModifyChannelInput,
 	ModifyGuildInput,
 	ModifyRoleInput,
@@ -189,6 +191,13 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 						body,
 					})
 				),
+		},
+		application: {
+			/** `GET /applications/@me` — the bot's own application: description, tags, install settings, URLs. */
+			get: () => rest.request<DiscordApplication>("/applications/@me"),
+			/** `PATCH /applications/@me` — only what is in the body changes. */
+			modify: (body: ModifyApplicationInput) =>
+				rest.request<DiscordApplication>("/applications/@me", { method: "PATCH", body }),
 		},
 		webhooks: {
 			/** `PATCH /webhooks/:id` — name and avatar of a webhook this bot manages. */

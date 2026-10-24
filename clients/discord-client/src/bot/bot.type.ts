@@ -220,6 +220,47 @@ export interface DiscordMessage {
 	content: string;
 }
 
+/** How the bot is added to a server or an account. */
+export interface DiscordInstallParams {
+	/** OAuth scopes, e.g. `bot`, `applications.commands`. */
+	scopes: string[];
+	/** Permission bitfield the default install link asks for, as a string. */
+	permissions: string;
+}
+
+/** The bot's own application, as `GET /applications/@me` returns it. Fields Discord leaves out are absent or null. */
+export interface DiscordApplication {
+	id: string;
+	name: string;
+	description?: string | null;
+	/** Up to five short labels shown on the application's page. */
+	tags?: string[];
+	/** The default install link's scopes and permissions. */
+	install_params?: DiscordInstallParams;
+	/** Used instead of the default install link when set. */
+	custom_install_url?: string | null;
+	role_connections_verification_url?: string | null;
+	terms_of_service_url?: string | null;
+	privacy_policy_url?: string | null;
+	interactions_endpoint_url?: string | null;
+	/** Whether anyone can add the bot (`true`) or only its owner. */
+	bot_public?: boolean;
+	bot_require_code_grant?: boolean;
+	flags?: number;
+}
+
+/** What `PATCH /applications/@me` takes; a field left out is left alone, and `null` clears the ones that can be cleared. */
+export interface ModifyApplicationInput {
+	description?: string;
+	tags?: string[];
+	install_params?: DiscordInstallParams;
+	custom_install_url?: string | null;
+	role_connections_verification_url?: string | null;
+	terms_of_service_url?: string | null;
+	privacy_policy_url?: string | null;
+	interactions_endpoint_url?: string | null;
+}
+
 export interface ModifyWebhookInput {
 	name?: string;
 	/** A data URI (`data:image/png;base64,...`); `null` clears it. */
