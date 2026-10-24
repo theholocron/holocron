@@ -2089,6 +2089,22 @@ describe("DiscordNotifications.ensureWelcome", () => {
 		expect(await notifs.ensureWelcome(noEmoji)).toEqual({ updated: ["channels"] });
 	});
 
+	it("treats a server that never had a welcome screen as having an empty one, and sets it", async () => {
+		const never = { status: 404, body: { message: "Unknown Guild Welcome Screen", code: 10069 } };
+		const { notifs, calls } = makeProvisioner([chans, guild(), never, screen(), guild()]);
+		expect(await notifs.ensureWelcome(wanted)).toEqual({ updated: ["description", "channels"] });
+		expect(calls[3]?.method).toBe("PATCH");
+	});
+
+	it("passes on a 404 that is not the missing screen", async () => {
+		const other = makeProvisioner([
+			chans,
+			guild(),
+			{ status: 404, body: { message: "Unknown Guild", code: 10004 } },
+		]);
+		await expect(other.notifs.ensureWelcome(wanted)).rejects.toThrow(/404/);
+	});
+
 	it("treats a screen with no channel list as having none", async () => {
 		const { notifs } = makeProvisioner([
 			chans,
@@ -2209,6 +2225,27 @@ describe("DiscordNotifications.ensureOnboarding", () => {
 			]);
 			expect(await notifs.ensureOnboarding(wanted)).toEqual({ updated: ["prompts"] });
 		}
+	});
+
+	it("gives a new question and answer an id, and keeps the ones the server has", async () => {
+		const fresh = makeProvisioner([chans, roles("Readers"), onboarding({ prompts: [] }), onboarding()]);
+		await fresh.notifs.ensureOnboarding(wanted);
+		const sent = (fresh.calls[3]?.body as { prompts: Array<{ id: string; options: Array<{ id: string }> }> })
+			.prompts[0]!;
+		expect(sent.id).toMatch(/^\d{15,}$/);
+		expect(sent.options[0]!.id).toMatch(/^\d{15,}$/);
+		expect(sent.options[0]!.id).not.toBe(sent.id);
+		const kept = makeProvisioner([
+			chans,
+			roles("Readers"),
+			onboarding({ prompts: [prompt({ required: true })] }),
+			onboarding(),
+		]);
+		await kept.notifs.ensureOnboarding(wanted);
+		const again = (kept.calls[3]?.body as { prompts: Array<{ id: string; options: Array<{ id: string }> }> })
+			.prompts[0]!;
+		expect(again.id).toBe("p1");
+		expect(again.options[0]!.id).toBe("o1");
 	});
 
 	it("replaces the questions and says so, sending the options with their channel and role ids", async () => {
@@ -2337,13 +2374,13 @@ describe("DiscordNotifications.ensureOnboarding", () => {
 		await expect(ghostChannel.notifs.ensureOnboarding({ defaultChannels: ["ghost"] })).rejects.toThrow(
 			/onboarding name the channel `ghost`/
 		);
-		const ghostRole = makeProvisioner([chans, roles("Other")]);
+		const ghostRole = makeProvisioner([chans, roles("Other"), onboarding()]);
 		await expect(
 			ghostRole.notifs.ensureOnboarding({
 				prompts: [{ title: "Q", options: [{ title: "O", roles: ["readers"] }] }],
 			})
 		).rejects.toThrow(/onboarding names the role `readers`, which does not exist/);
-		const twice = makeProvisioner([chans, roles("Readers", "readers")]);
+		const twice = makeProvisioner([chans, roles("Readers", "readers"), onboarding()]);
 		await expect(
 			twice.notifs.ensureOnboarding({ prompts: [{ title: "Q", options: [{ title: "O", roles: ["readers"] }] }] })
 		).rejects.toThrow(/2 roles have that name/);
