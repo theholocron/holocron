@@ -50,6 +50,8 @@ export interface DiscordGuild {
 
 export interface ModifyGuildInput {
 	name?: string;
+	/** Hands the server to another user; only the current owner (never a bot that does not own it) may. */
+	owner_id?: string;
 	verification_level?: number;
 	default_message_notifications?: number;
 	explicit_content_filter?: number;
@@ -159,6 +161,14 @@ export interface ModifyChannelInput {
 	permission_overwrites?: DiscordPermissionOverwrite[];
 }
 
+/** A member of a server. Only what provisioning needs: who they are and which roles they hold. */
+export interface DiscordGuildMember {
+	user?: { id: string; username?: string };
+	/** Ids of the roles the member holds. */
+	roles: string[];
+	nick?: string | null;
+}
+
 export interface DiscordRole {
 	id: string;
 	name: string;
@@ -265,4 +275,50 @@ export interface ModifyWebhookInput {
 	name?: string;
 	/** A data URI (`data:image/png;base64,...`); `null` clears it. */
 	avatar?: string | null;
+}
+
+/** What `POST /guilds` takes. Only a bot in fewer than ten servers may create one, and it becomes the owner. */
+export interface CreateGuildInput {
+	name: string;
+	/** A data URI (`data:image/png;base64,...`). */
+	icon?: string;
+	verification_level?: number;
+	default_message_notifications?: number;
+	explicit_content_filter?: number;
+}
+
+/** Page options for `guilds.members`; Discord caps `limit` at 1000. */
+export interface ListMembersInput {
+	limit?: number;
+	/** Return members after this user id. */
+	after?: string;
+}
+
+export interface DiscordEmoji {
+	id: string | null;
+	name: string | null;
+	animated?: boolean;
+	available?: boolean;
+}
+
+export interface CreateInviteInput {
+	/** Seconds until it expires; `0` never. Discord's default is 86400. */
+	max_age?: number;
+	/** Uses before it is revoked; `0` unlimited. */
+	max_uses?: number;
+	temporary?: boolean;
+	unique?: boolean;
+}
+
+export interface DiscordInvite {
+	code: string;
+	channel_id?: string;
+	uses?: number;
+}
+
+/** A message listed back from a channel, with who wrote it. */
+export interface DiscordChannelMessage extends DiscordMessage {
+	author?: { id: string; username?: string; bot?: boolean };
+	webhook_id?: string;
+	pinned?: boolean;
 }

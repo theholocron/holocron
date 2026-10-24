@@ -389,6 +389,121 @@ describe("server settings", () => {
 		});
 	});
 
+	it("member roles: read a member, add a role, remove a role", async () => {
+		const { client, calls } = makeClient([
+			{ body: { user: { id: "333" }, roles: ["91"] } },
+			{ status: 204 },
+			{ status: 204 },
+		]);
+		expect((await client.guilds.member("111", "333")).roles).toEqual(["91"]);
+		await client.guilds.addMemberRole("111", "333", "92");
+		await client.guilds.removeMemberRole("111", "333", "91");
+		expect(calls[0]).toMatchObject({ url: `${BASE}/guilds/111/members/333`, method: "GET" });
+		expect(calls[1]).toMatchObject({ url: `${BASE}/guilds/111/members/333/roles/92`, method: "PUT" });
+		expect(calls[2]).toMatchObject({ url: `${BASE}/guilds/111/members/333/roles/91`, method: "DELETE" });
+	});
+
+	it("member roles: an id that is not a snowflake is refused before any request", async () => {
+		const { client, calls } = makeClient([]);
+		expect(() => client.guilds.addMemberRole("111", "../x", "92")).toThrow(/invalid Discord id/);
+		// `$` in a JavaScript regex matches only at the very end, so a trailing line feed is refused too.
+		expect(() => client.guilds.addMemberRole("111", "333\n", "92")).toThrow(/invalid Discord id/);
+		expect(calls).toHaveLength(0);
+	});
+
+	it("members: one page, with a cursor, and a bad cursor is refused", async () => {
+		const { client, calls } = makeClient([{ body: [] }, { body: [] }]);
+		await client.guilds.members("111");
+		await client.guilds.members("111", { limit: 5, after: "42" });
+		expect(calls[0]?.url).toBe(`${BASE}/guilds/111/members?limit=1000`);
+		expect(calls[1]?.url).toBe(`${BASE}/guilds/111/members?limit=5&after=42`);
+		expect(() => client.guilds.members("111", { after: "../x" })).toThrow(/invalid Discord id/);
+	});
+
+	it("membersWithRole: keeps those holding the role and follows the cursor", async () => {
+		const page = (from: number, role: string) =>
+			Array.from({ length: 1000 }, (_, i) => ({ user: { id: String(from + i) }, roles: i === 0 ? [role] : [] }));
+		const { client, calls } = makeClient([
+			{ body: page(1, "91") },
+			{
+				body: [
+					{ user: { id: "5000" }, roles: ["91", "92"] },
+					{ user: { id: "5001" }, roles: [] },
+				],
+			},
+		]);
+		const found = await client.guilds.membersWithRole("111", "91");
+		expect(found.map((m) => m.user?.id)).toEqual(["1", "5000"]);
+		expect(calls[1]?.url).toBe(`${BASE}/guilds/111/members?limit=1000&after=1000`);
+	});
+
+	it("membersWithRole: a page of members without users ends the read", async () => {
+		const { client } = makeClient([{ body: Array.from({ length: 1000 }, () => ({ roles: ["91"] })) }]);
+		expect(await client.guilds.membersWithRole("111", "91")).toHaveLength(1000);
+	});
+
+	it("membersWithRole: refuses to read without end", async () => {
+		const full = Array.from({ length: 1000 }, (_, i) => ({ user: { id: String(i + 1) }, roles: [] }));
+		const { client } = makeClient(Array.from({ length: 50 }, () => ({ body: full })));
+		await expect(client.guilds.membersWithRole("111", "91")).rejects.toThrow(/refusing to read/);
+	});
+
+	it("guilds: create, delete (404 counts as done), transfer, emojis", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "777", name: "New" } },
+			{ status: 204 },
+			{ status: 404, body: {} },
+			{ body: { id: "777", name: "New" } },
+			{ body: [{ id: "5", name: "wave" }] },
+		]);
+		expect((await client.guilds.create({ name: "New" })).id).toBe("777");
+		await client.guilds.delete("777");
+		await client.guilds.delete("777");
+		await client.guilds.modify("777", { owner_id: "333" });
+		expect((await client.guilds.emojis("777"))[0]?.name).toBe("wave");
+		expect(calls[0]).toMatchObject({ url: `${BASE}/guilds`, method: "POST", body: { name: "New" } });
+		expect(calls[1]).toMatchObject({ url: `${BASE}/guilds/777`, method: "DELETE" });
+		expect(calls[3]).toMatchObject({ method: "PATCH", body: { owner_id: "333" } });
+		expect(calls[4]?.url).toBe(`${BASE}/guilds/777/emojis`);
+	});
+
+	it("guilds.delete: another failure comes through", async () => {
+		const { client } = makeClient([{ status: 403, body: {} }]);
+		await expect(client.guilds.delete("777")).rejects.toMatchObject({ status: 403 });
+	});
+
+	it("users.get, invites, listing, pinning and deleting messages", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "333", username: "luke" } },
+			{ body: { code: "abc" } },
+			{ body: [{ id: "8", channel_id: "5", content: "hi", webhook_id: "7" }] },
+			{ status: 204 },
+			{ status: 204 },
+		]);
+		expect((await client.users.get("333")).username).toBe("luke");
+		expect((await client.channels.createInvite("5", { max_age: 0, max_uses: 1 })).code).toBe("abc");
+		expect((await client.channels.messages("5", 10))[0]?.webhook_id).toBe("7");
+		await client.channels.pin("5", "8");
+		await client.channels.deleteMessage("5", "8");
+		expect(calls[0]?.url).toBe(`${BASE}/users/333`);
+		expect(calls[1]).toMatchObject({
+			url: `${BASE}/channels/5/invites`,
+			method: "POST",
+			body: { max_age: 0, max_uses: 1 },
+		});
+		expect(calls[2]?.url).toBe(`${BASE}/channels/5/messages?limit=10`);
+		expect(calls[3]).toMatchObject({ url: `${BASE}/channels/5/pins/8`, method: "PUT" });
+		expect(calls[4]).toMatchObject({ url: `${BASE}/channels/5/messages/8`, method: "DELETE" });
+	});
+
+	it("channels.createInvite and messages default their options", async () => {
+		const { client, calls } = makeClient([{ body: { code: "a" } }, { body: [] }]);
+		await client.channels.createInvite("5");
+		await client.channels.messages("5");
+		expect(calls[0]?.body).toEqual({});
+		expect(calls[1]?.url).toBe(`${BASE}/channels/5/messages?limit=50`);
+	});
+
 	it("application: GET and PATCH /applications/@me", async () => {
 		const { client, calls } = makeClient([
 			{ body: { id: "9", name: "Holonet", description: "old", tags: [] } },

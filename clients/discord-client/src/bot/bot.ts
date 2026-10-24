@@ -3,18 +3,25 @@ import { createRestClient, ProviderApiError, type RestClient } from "@theholocro
 import { DEFAULT_BASE_URL } from "../utils.js";
 import type {
 	CreateChannelInput,
+	CreateGuildInput,
+	CreateInviteInput,
 	CreateMessageInput,
 	CreateRoleInput,
 	DiscordApplication,
 	DiscordBotClientOptions,
 	DiscordChannel,
+	DiscordChannelMessage,
 	DiscordChannelWebhook,
+	DiscordEmoji,
 	DiscordGuild,
+	DiscordGuildMember,
+	DiscordInvite,
 	DiscordMessage,
 	DiscordOnboarding,
 	DiscordRole,
 	DiscordUser,
 	DiscordWelcomeScreen,
+	ListMembersInput,
 	ModifyApplicationInput,
 	ModifyChannelInput,
 	ModifyGuildInput,
@@ -27,6 +34,8 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_RETRIES = 3;
 /** A rate-limit wait longer than this fails fast instead of stalling the caller. */
 const MAX_RETRY_WAIT_MS = 10_000;
+/** A guard on `membersWithRole`, so a runaway cursor cannot loop forever. */
+const MAX_MEMBER_PAGES = 50;
 
 /** Discord ids are snowflakes; anything else would be spliced into a URL path. */
 function id(value: string): string {
@@ -122,12 +131,25 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 		users: {
 			/** `GET /users/@me` — the bot's own user; a cheap token check. */
 			me: () => rest.request<DiscordUser>("/users/@me"),
+			/** `GET /users/:id` — a user's name, for reports that would otherwise show a bare id. */
+			get: (userId: string) => rest.request<DiscordUser>(`/users/${id(userId)}`),
 		},
 		guilds: {
 			get: (guildId: string) => rest.request<DiscordGuild>(`/guilds/${id(guildId)}`),
+			/** `POST /guilds` — a new server the bot owns. Not idempotent: look one up by name before retrying. */
+			create: (body: CreateGuildInput) => rest.request<DiscordGuild>("/guilds", { method: "POST", body }),
+			/** `DELETE /guilds/:id` — only the owner may; a 404 counts as done. */
+			delete: async (guildId: string): Promise<void> => {
+				try {
+					await rest.request<void>(`/guilds/${id(guildId)}`, { method: "DELETE", expectNoContent: true });
+				} catch (err) {
+					if (err instanceof ProviderApiError && err.status === 404) return;
+					throw err;
+				}
+			},
 			/** `PATCH /guilds/:id` — verification, notification defaults, content filter, system channels. */
 			modify: (guildId: string, body: ModifyGuildInput) => {
-				bodyIds(body.system_channel_id, body.rules_channel_id, body.public_updates_channel_id);
+				bodyIds(body.owner_id, body.system_channel_id, body.rules_channel_id, body.public_updates_channel_id);
 				return rest.request<DiscordGuild>(`/guilds/${id(guildId)}`, {
 					method: "PATCH",
 					body,
@@ -166,6 +188,48 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 				}),
 			modifyRole: (guildId: string, roleId: string, body: ModifyRoleInput) =>
 				rest.request<DiscordRole>(`/guilds/${id(guildId)}/roles/${id(roleId)}`, { method: "PATCH", body }),
+			/** `GET /guilds/:id/members/:id` — one member and the roles they hold. A 404 means either they are not in the server or the guild id is unknown; read the error body to tell them apart. */
+			member: (guildId: string, userId: string) =>
+				rest.request<DiscordGuildMember>(`/guilds/${id(guildId)}/members/${id(userId)}`),
+			/**
+			 * `GET /guilds/:id/members` — one page. Needs the privileged Server Members Intent, switched on in the
+			 * developer portal; without it Discord answers 403.
+			 */
+			members: (guildId: string, opts: ListMembersInput = {}) => {
+				const query: Record<string, string> = { limit: String(opts.limit ?? 1000) };
+				if (opts.after !== undefined) query.after = id(opts.after);
+				return rest.request<DiscordGuildMember[]>(`/guilds/${id(guildId)}/members`, { query });
+			},
+			/** Every member holding the role, read page by page; needs the same intent as `members`. */
+			membersWithRole: async (guildId: string, roleId: string): Promise<DiscordGuildMember[]> => {
+				const wanted = id(roleId);
+				const found: DiscordGuildMember[] = [];
+				let after: string | undefined;
+				for (let page = 0; page < MAX_MEMBER_PAGES; page++) {
+					const batch = await rest.request<DiscordGuildMember[]>(`/guilds/${id(guildId)}/members`, {
+						query: { limit: "1000", ...(after === undefined ? {} : { after }) },
+					});
+					for (const m of batch) if (m.roles.includes(wanted)) found.push(m);
+					const last = batch[batch.length - 1]?.user?.id;
+					if (batch.length < 1000 || last === undefined) return found;
+					after = last;
+				}
+				throw new Error(`more than ${MAX_MEMBER_PAGES * 1000} members; refusing to read them all`);
+			},
+			/** `GET /guilds/:id/emojis` — custom emoji, for welcome screen and onboarding ids. */
+			emojis: (guildId: string) => rest.request<DiscordEmoji[]>(`/guilds/${id(guildId)}/emojis`),
+			/** `PUT /guilds/:id/members/:id/roles/:id` — gives the member the role; giving one they have is a no-op. */
+			addMemberRole: (guildId: string, userId: string, roleId: string): Promise<void> =>
+				rest.request<void>(`/guilds/${id(guildId)}/members/${id(userId)}/roles/${id(roleId)}`, {
+					method: "PUT",
+					expectNoContent: true,
+				}),
+			/** `DELETE /guilds/:id/members/:id/roles/:id` — takes the role away; taking one they lack is a no-op. */
+			removeMemberRole: (guildId: string, userId: string, roleId: string): Promise<void> =>
+				rest.request<void>(`/guilds/${id(guildId)}/members/${id(userId)}/roles/${id(roleId)}`, {
+					method: "DELETE",
+					expectNoContent: true,
+				}),
 		},
 		channels: {
 			modify: (channelId: string, body: ModifyChannelInput) =>
@@ -184,6 +248,25 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 					body: { ...body, allowed_mentions: body.allowed_mentions ?? { parse: [] } },
 				});
 			},
+			/** `POST /channels/:id/invites` — a join link for the server, e.g. to hand over a newly created one. */
+			createInvite: (channelId: string, body: CreateInviteInput = {}) =>
+				rest.request<DiscordInvite>(`/channels/${id(channelId)}/invites`, { method: "POST", body }),
+			/** `GET /channels/:id/messages` — the newest messages first, to read a post back. */
+			messages: (channelId: string, limit = 50) =>
+				rest.request<DiscordChannelMessage[]>(`/channels/${id(channelId)}/messages`, {
+					query: { limit: String(limit) },
+				}),
+			/** `PUT /channels/:id/pins/:id` — pins a message; one already pinned is a no-op. */
+			pin: (channelId: string, messageId: string): Promise<void> =>
+				rest.request<void>(`/channels/${id(channelId)}/pins/${id(messageId)}`, {
+					method: "PUT",
+					expectNoContent: true,
+				}),
+			deleteMessage: (channelId: string, messageId: string): Promise<void> =>
+				rest.request<void>(`/channels/${id(channelId)}/messages/${id(messageId)}`, {
+					method: "DELETE",
+					expectNoContent: true,
+				}),
 			createWebhook: async (channelId: string, body: { name: string }) =>
 				withUrl(
 					await rest.request<DiscordChannelWebhook>(`/channels/${id(channelId)}/webhooks`, {

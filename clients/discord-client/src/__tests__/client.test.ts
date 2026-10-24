@@ -106,3 +106,51 @@ describe("parseWebhookUrl", () => {
 		expect(() => parseWebhookUrl("https://discord.com/not-a-webhook")).toThrow(/Invalid Discord webhook URL/);
 	});
 });
+
+describe("webhooks.executeAndWait and deleteMessage", () => {
+	it("posts with wait=true, no mentions, and returns the message id", async () => {
+		const { fetch, calls } = stubFetch([{ body: { id: "88" } }]);
+		const client = createDiscordClient({ baseUrl: "https://d.test/api", fetch });
+		expect(await client.webhooks.executeAndWait("1", "tok", "hi")).toEqual({ id: "88" });
+		expect(calls[0]).toMatchObject({
+			url: "https://d.test/api/webhooks/1/tok?wait=true",
+			method: "POST",
+			body: { content: "hi", allowed_mentions: { parse: [] } },
+		});
+	});
+
+	it("executeAndWait: a refusal and a transport failure are ProviderApiErrors", async () => {
+		const refused = createDiscordClient({ fetch: stubFetch([{ status: 404 }]).fetch });
+		await expect(refused.webhooks.executeAndWait("1", "t", "x")).rejects.toMatchObject({ status: 404 });
+		const down = createDiscordClient({ fetch: (() => Promise.reject(new Error("offline"))) as typeof fetch });
+		await expect(down.webhooks.executeAndWait("1", "t", "x")).rejects.toMatchObject({ status: 0 });
+		const odd = createDiscordClient({ fetch: (() => Promise.reject("nope")) as typeof fetch });
+		await expect(odd.webhooks.executeAndWait("1", "t", "x")).rejects.toMatchObject({ status: 0 });
+	});
+
+	it("deleteMessage: DELETE, 404 counts as done, other failures throw", async () => {
+		const { fetch, calls } = stubFetch([{ status: 204 }, { status: 404 }, { status: 403 }]);
+		const client = createDiscordClient({ baseUrl: "https://d.test/api", fetch });
+		await client.webhooks.deleteMessage("1", "tok", "88");
+		await client.webhooks.deleteMessage("1", "tok", "88");
+		await expect(client.webhooks.deleteMessage("1", "tok", "88")).rejects.toMatchObject({ status: 403 });
+		expect(calls[0]).toMatchObject({ url: "https://d.test/api/webhooks/1/tok/messages/88", method: "DELETE" });
+	});
+
+	it("deleteMessage: a transport failure is a ProviderApiError", async () => {
+		const down = createDiscordClient({ fetch: (() => Promise.reject(new Error("offline"))) as typeof fetch });
+		await expect(down.webhooks.deleteMessage("1", "t", "9")).rejects.toMatchObject({ status: 0 });
+		const odd = createDiscordClient({ fetch: (() => Promise.reject("nope")) as typeof fetch });
+		await expect(odd.webhooks.deleteMessage("1", "t", "9")).rejects.toMatchObject({ status: 0 });
+	});
+});
+
+describe("createDiscordClient defaults", () => {
+	it("uses the global fetch when none is injected", async () => {
+		const { fetch, calls } = stubFetch([{ body: { id: "1", name: "n" } }]);
+		vi.stubGlobal("fetch", fetch);
+		await createDiscordClient().webhooks.get("1", "tok");
+		vi.unstubAllGlobals();
+		expect(calls[0]?.url).toBe("https://discord.com/api/v10/webhooks/1/tok");
+	});
+});

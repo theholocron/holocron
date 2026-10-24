@@ -48,6 +48,39 @@ export function webhooks(base: string, f: typeof fetch) {
 				throw new ProviderApiError(`Discord webhook POST failed (${res.status})`, res.status, undefined);
 			}
 		},
+
+		/** Posts and waits for Discord to answer with the message, so a check can read it back or delete it. */
+		executeAndWait: async (id: string, token: string, content: string): Promise<{ id: string }> => {
+			let res: Response;
+			try {
+				res = await f(`${base}/webhooks/${id}/${token}?wait=true`, {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
+				});
+			} catch (err) {
+				const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+				throw new ProviderApiError(`Discord POST /webhooks failed: ${detail}`, 0, undefined);
+			}
+			if (!res.ok) {
+				throw new ProviderApiError(`Discord webhook POST failed (${res.status})`, res.status, undefined);
+			}
+			return res.json() as Promise<{ id: string }>;
+		},
+
+		/** Removes a message this webhook posted, e.g. a smoke-test line. A 404 counts as done. */
+		deleteMessage: async (id: string, token: string, messageId: string): Promise<void> => {
+			let res: Response;
+			try {
+				res = await f(`${base}/webhooks/${id}/${token}/messages/${messageId}`, { method: "DELETE" });
+			} catch (err) {
+				const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+				throw new ProviderApiError(`Discord DELETE /webhooks failed: ${detail}`, 0, undefined);
+			}
+			if (!res.ok && res.status !== 404) {
+				throw new ProviderApiError(`Discord webhook DELETE failed (${res.status})`, res.status, undefined);
+			}
+		},
 	};
 }
 

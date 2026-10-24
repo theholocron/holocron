@@ -2,6 +2,7 @@ import { DEFAULT_BASE_URL, type DiscordClientOptions } from "./utils.js";
 import { webhooks } from "./webhooks/webhooks.js";
 
 export * from "./bot/index.js";
+export * from "./oauth/index.js";
 export type { DiscordClientOptions } from "./utils.js";
 export type { DiscordWebhookInfo } from "./webhooks/webhooks.js";
 export { parseWebhookUrl } from "./webhooks/webhooks.js";

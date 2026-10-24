@@ -99,13 +99,13 @@ the resource, look it up by name before creating it again. A webhook created
 that way cannot have its URL read back, since Discord returns the token only on
 the create response.
 
-| Resource             | Methods                                                                                                                                                     |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.users`       | `me()` — `GET /users/@me`, a cheap token check                                                                                                              |
-| `client.application` | `get`, `modify` (the bot's own application: description, tags, install settings, URLs)                                                                      |
-| `client.guilds`      | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding` |
-| `client.channels`    | `modify`, `webhooks`, `createWebhook`, `createMessage`                                                                                                      |
-| `client.webhooks`    | `modify` (name, avatar), `delete`                                                                                                                           |
+| Resource             | Methods                                                                                                                                                                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.users`       | `me()` — `GET /users/@me`, a cheap token check; `get(id)` — a user's name                                                                                                                                                                                              |
+| `client.application` | `get`, `modify` (the bot's own application: description, tags, install settings, URLs)                                                                                                                                                                                 |
+| `client.guilds`      | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `create`, `delete`, `emojis`, `member`, `members`, `membersWithRole`, `addMemberRole`, `removeMemberRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding` |
+| `client.channels`    | `modify`, `webhooks`, `createWebhook`, `createMessage`, `createInvite`, `messages`, `pin`, `deleteMessage`                                                                                                                                                             |
+| `client.webhooks`    | `modify` (name, avatar), `delete`                                                                                                                                                                                                                                      |
 
 `permissions([...names])` builds the decimal-string bitfield Discord expects, and
 `permissionNames(bitfield)` reads one back; `Permission` holds the bits themselves.
@@ -115,6 +115,26 @@ features on, and `modifyOnboarding` is a `PUT` that replaces the whole config.
 otherwise.
 
 The bot needs Manage Channels, Manage Roles, Manage Webhooks and (for server settings, welcome screen and onboarding) Manage Server in the server, plus View Channel and Send Messages in any channel it posts to with `channels.createMessage`.
+
+### Linking members to the role
+
+`createDiscordOAuthClient({ clientId, clientSecret, redirectUri })` is "sign in with Discord": `authorizeUrl({ state })`
+builds the link a member opens, `exchangeCode(code)` trades what Discord sends back for a token, and `user(token)` and
+`connections(token)` read who they are and which accounts they have linked. `findVerifiedConnection(connections, "github")`
+picks the GitHub account Discord has confirmed they own (an unverified name proves nothing). `revoke(token)` discards the
+token once it has been read; nothing needs to keep it. `signOAuthState(secret)` and `verifyOAuthState(secret, state)` make
+and check a `state` that expires and cannot be forged, so a server with no storage can still refuse a forged callback.
+
+`guilds.membersWithRole(guildId, roleId)` lists who holds a role; like `guilds.members` it needs the privileged **Server
+Members Intent**, switched on in the developer portal. `guilds.member(guildId, userId)` reads one member and needs no intent.
+
+### Servers and checks
+
+`guilds.create` makes a server the bot owns (only a bot in fewer than ten servers may), `guilds.modify(id, { owner_id })`
+hands it over, `channels.createInvite` makes the link to join it, and `guilds.delete` removes it. On the webhook resource,
+`executeAndWait` posts and returns the message id and `deleteMessage` removes it, so a check can post a line, read it back
+with `channels.messages`, and clean up. `channels.pin` pins a message.
+
 Discord only returns a webhook's `token`/`url` for webhooks the same
 application created, so a pre-existing webhook can be found by name but its URL
 cannot be read back.
