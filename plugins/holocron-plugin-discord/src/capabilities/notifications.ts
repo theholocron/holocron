@@ -391,9 +391,12 @@ export class DiscordNotifications implements Notifications {
 		const viaBot = link
 			? `give Holonet Administrator for one run and take it away again afterwards: ${link}`
 			: "re-invite Holonet with the Administrator permission for one run, and take it away again afterwards";
+		// Discord's own words stay in the message: a refusal because access to the server was lost looks the same as
+		// one for a missing permission, so the operator can tell them apart when Holonet already has Administrator.
 		return new Error(
-			`${appliedPrefix(applied)}turning community features ${turningOn ? "on" : "off"} needs the Administrator permission, which Holonet does not have. ` +
-				`Either ${byHand}, or ${viaBot}`,
+			`${appliedPrefix(applied)}turning community features ${turningOn ? "on" : "off"} was refused (Discord said: ${String(err.details).slice(0, 120)}), ` +
+				"which means Holonet lacks the Administrator permission it needs for that. " +
+				`Either ${byHand}, or ${viaBot}. If Holonet already has Administrator, check that it is still in the server`,
 			{ cause: err }
 		);
 	}

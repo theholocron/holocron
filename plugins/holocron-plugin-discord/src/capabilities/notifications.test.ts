@@ -1633,9 +1633,7 @@ describe("DiscordNotifications.ensureServer", () => {
 		const err = (await notifs
 			.ensureServer({ verification: "medium", community: true })
 			.catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(
-			/^applied verification; but turning community features on needs the Administrator permission/
-		);
+		expect(err.message).toMatch(/^applied verification; but turning community features on was refused/);
 		expect(err.message).toMatch(/Enable Community/);
 		const url = new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]);
 		expect(url.searchParams.get("permissions")).toBe("8");
@@ -1650,7 +1648,7 @@ describe("DiscordNotifications.ensureServer", () => {
 			bot,
 		]);
 		const err = (await notifs.ensureServer({ community: true }).catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(/^turning community features on needs the Administrator permission/);
+		expect(err.message).toMatch(/^turning community features on was refused/);
 	});
 
 	it("turns community off before relaxing the settings Discord refuses to relax while it is on", async () => {
@@ -1692,7 +1690,7 @@ describe("DiscordNotifications.ensureServer", () => {
 			bot,
 		]);
 		const err = (await notifs.ensureServer({ community: false }).catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(/turning community features off needs the Administrator permission/);
+		expect(err.message).toMatch(/turning community features off was refused/);
 		expect(err.message).toMatch(/Disable Community/);
 		expect(err.message).not.toMatch(/Enable Community/);
 	});
@@ -1704,7 +1702,7 @@ describe("DiscordNotifications.ensureServer", () => {
 		]) {
 			const { notifs } = makeProvisioner([guild(), chans, guild(), { status: 403, body }, bot]);
 			await expect(notifs.ensureServer({ community: true })).rejects.toThrow(
-				/turning community features on needs the Administrator permission/
+				/turning community features on was refused/
 			);
 		}
 	});
@@ -1720,6 +1718,19 @@ describe("DiscordNotifications.ensureServer", () => {
 		expect(oErr.message).not.toMatch(/Administrator|Manage Server/);
 	});
 
+	it("quotes what Discord said and suggests checking membership if Holonet already has Administrator", async () => {
+		const { notifs } = makeProvisioner([
+			guild(),
+			chans,
+			guild(),
+			{ status: 403, body: { message: "Missing Access", code: 50001 } },
+			bot,
+		]);
+		const err = (await notifs.ensureServer({ community: true }).catch((e: Error) => e)) as Error;
+		expect(err.message).toMatch(/\(Discord said: .*Missing Access.*50001.*\)/);
+		expect(err.message).toMatch(/If Holonet already has Administrator, check that it is still in the server/);
+	});
+
 	it("keeps the explanation when the invite link cannot be built, and still says what was applied", async () => {
 		const community = makeProvisioner([
 			guild(),
@@ -1732,7 +1743,7 @@ describe("DiscordNotifications.ensureServer", () => {
 		const err = (await community.notifs
 			.ensureServer({ verification: "medium", community: true })
 			.catch((e: Error) => e)) as Error;
-		expect(err.message).toMatch(/^applied verification; but turning community features on needs the Administrator/);
+		expect(err.message).toMatch(/^applied verification; but turning community features on was refused/);
 		expect(err.message).toMatch(/re-invite Holonet with the Administrator permission/);
 		expect(err.message).not.toMatch(/oauth2/);
 		const ordinary = makeProvisioner([
