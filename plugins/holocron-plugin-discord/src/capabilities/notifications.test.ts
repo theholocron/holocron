@@ -1457,6 +1457,62 @@ describe("DiscordNotifications.ensureServer", () => {
 		);
 	});
 
+	it("sends the rules and updates channels with the community edit even when they are already set", async () => {
+		const set = { rules_channel_id: "2002", public_updates_channel_id: "2003" };
+		const { notifs, calls } = makeProvisioner([
+			guild({ features: [], ...set }),
+			chans,
+			guild({ features: [], ...set }), // read again just before the edit
+			guild({ features: ["COMMUNITY"], ...set }),
+		]);
+		// the layout says nothing about the channels: the server's own are sent, so Discord does not answer
+		// 400 GUILD_RULES_CHANNEL_REQUIRED
+		expect(await notifs.ensureServer({ community: true })).toEqual({ updated: ["community"] });
+		expect(calls[3]?.body).toEqual({
+			features: ["COMMUNITY"],
+			rules_channel_id: "2002",
+			public_updates_channel_id: "2003",
+		});
+	});
+
+	it("sends the rules channel the layout names with the community edit, and checks it stuck", async () => {
+		const { notifs, calls } = makeProvisioner([
+			guild({ features: [] }),
+			chans,
+			guild({ features: [], rules_channel_id: "2002" }), // the ordinary edit sets the rules channel first...
+			guild({ features: [], rules_channel_id: "2002" }),
+			guild({ features: ["COMMUNITY"], rules_channel_id: "2002" }),
+		]);
+		await notifs.ensureServer({ community: true, rulesChannel: "rules" });
+		// ...and the community edit still names it
+		expect(calls[4]?.body).toMatchObject({ features: ["COMMUNITY"], rules_channel_id: "2002" });
+		const kept = makeProvisioner([
+			guild({ features: [], rules_channel_id: "2002" }),
+			chans,
+			guild({ features: [], rules_channel_id: "2002" }),
+			guild({ features: ["COMMUNITY"], rules_channel_id: "2002" }),
+		]);
+		expect(await kept.notifs.ensureServer({ community: true, rulesChannel: "rules" })).toEqual({
+			updated: ["community"],
+		});
+		const lost = makeProvisioner([
+			guild({ features: [], rules_channel_id: "2002" }),
+			chans,
+			guild({ features: [], rules_channel_id: "2002" }),
+			guild({ features: ["COMMUNITY"], rules_channel_id: "9999" }),
+		]);
+		await expect(lost.notifs.ensureServer({ community: true, rulesChannel: "rules" })).rejects.toThrow(
+			/did not keep rules as its rules channel/
+		);
+	});
+
+	it("sends no rules channel when turning community off", async () => {
+		const set = { rules_channel_id: "2002", features: ["COMMUNITY"] };
+		const { notifs, calls } = makeProvisioner([guild(set), chans, guild(set), guild({ features: [] })]);
+		await notifs.ensureServer({ community: false });
+		expect(calls[3]?.body).toEqual({ features: [] });
+	});
+
 	it("sends nothing when the server already matches", async () => {
 		const { notifs, calls } = makeProvisioner([guild(after), chans]);
 		expect(await notifs.ensureServer(settings)).toEqual({ updated: [] });

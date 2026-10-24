@@ -518,15 +518,27 @@ export class DiscordNotifications implements Notifications {
 			if (!toggleCommunity) return;
 			// Read the features again now: Discord can only replace the whole list, so a stale one would undo
 			// whatever another admin changed since the first read.
-			const fresh = (await bot.guilds.get(this.guild())).features ?? [];
+			const freshGuild = await bot.guilds.get(this.guild());
+			const fresh = freshGuild.features ?? [];
 			const wanted = settings.community
 				? [...new Set([...fresh, "COMMUNITY"])]
 				: fresh.filter((f) => f !== "COMMUNITY");
+			// Discord validates a community edit as a whole: it wants the rules and updates channels in the very
+			// request that turns it on, even when they are already set (answering 400 GUILD_RULES_CHANNEL_REQUIRED
+			// otherwise). So send what the layout names, or what the server has now.
+			const turningOn = settings.community === true;
+			const rulesSent = turningOn
+				? (settings.rulesChannel ? idOf(settings.rulesChannel) : freshGuild.rules_channel_id) || undefined
+				: undefined;
+			const updatesSent = turningOn
+				? (updatesWithCommunity ? updatesId : freshGuild.public_updates_channel_id) || undefined
+				: undefined;
 			let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
 			try {
 				after = await bot.guilds.modify(this.guild(), {
 					features: wanted,
-					...(updatesWithCommunity ? { public_updates_channel_id: updatesId } : {}),
+					...(rulesSent ? { rules_channel_id: rulesSent } : {}),
+					...(updatesSent ? { public_updates_channel_id: updatesSent } : {}),
 				});
 			} catch (err) {
 				throw await this.communityHint(err, updated, settings.community === true);
@@ -548,6 +560,11 @@ export class DiscordNotifications implements Notifications {
 							"its features at the same time; check Server Settings and re-run"
 					);
 				}
+			}
+			if (settings.rulesChannel && rulesSent && after.rules_channel_id !== rulesSent) {
+				throw new Error(
+					`${appliedPrefix(updated)}turned community on, but the server did not keep ${settings.rulesChannel} as its rules channel`
+				);
 			}
 			if (updatesWithCommunity && after.public_updates_channel_id !== updatesId) {
 				throw new Error(
