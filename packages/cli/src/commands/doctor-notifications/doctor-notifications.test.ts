@@ -1398,7 +1398,9 @@ describe("runDoctorNotifications — bot application", () => {
 
 	it("treats a missing description as empty when the layout declares one", async () => {
 		const found = { ...same, application: { ...same.application, description: undefined } };
-		const report = await setup(fakeNotifications({ layout: withApp(), found: found as typeof same })).run();
+		const report = await setup(
+			fakeNotifications({ layout: withApp(), found: found as unknown as typeof same })
+		).run();
 		expect(check(report).problems).toContain("description differs from the layout");
 	});
 
