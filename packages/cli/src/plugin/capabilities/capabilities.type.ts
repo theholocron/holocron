@@ -194,11 +194,11 @@ export interface Source extends ProviderIdentity {
 	syncTeams?(teams: TeamEntry[]): Promise<string>;
 
 	/**
-	 * The members of a team in the repo's organisation, by the provider's own stable id (for GitHub, the
+	 * The members of a team in `org` (default: the repo's organisation), by the provider's own stable id (for GitHub, the
 	 * numeric user id, which survives a rename) and current login.
 	 * Optional — providers without a team concept omit this.
 	 */
-	teamMembers?(teamSlug: string): Promise<SourceTeamMember[]>;
+	teamMembers?(teamSlug: string, org?: string): Promise<SourceTeamMember[]>;
 
 	/**
 	 * Read one file from a repository (default: this one), with the `version` a later {@link writeFile} must
@@ -1106,6 +1106,16 @@ export interface NotificationsApplicationLayout {
 	privacyUrl?: string;
 	/** `https://` link the provider calls to verify linked roles. */
 	roleConnectionsUrl?: string;
+	/**
+	 * Privileged intents the bot needs. `members` lets it list who is in the server, which `sync-roles` needs to
+	 * find who holds a role. `true` switches it on from code; `false` switches it off.
+	 */
+	intents?: { members?: boolean };
+	/**
+	 * OAuth2 redirect URIs that must be registered, for `notifications link`. The provider's API does not allow
+	 * setting them, so these are only checked: `setup` and the doctor say what to add and where.
+	 */
+	redirectUris?: string[];
 }
 
 /**
@@ -1337,7 +1347,7 @@ export interface Notifications extends ProviderIdentity {
 	ensureOnboarding?(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }>;
 
 	/** Bring the bot's application settings in line with the layout, changing only what differs. Returns what it changed. */
-	ensureApplication?(application: NotificationsApplicationLayout): Promise<{ updated: string[] }>;
+	ensureApplication?(application: NotificationsApplicationLayout): Promise<{ updated: string[]; todo?: string[] }>;
 
 	/** Grant or take away the named permissions from everyone, changing only what differs. Returns what it changed. */
 	ensureEveryone?(everyone: NotificationsEveryoneLayout): Promise<{ updated: string[] }>;

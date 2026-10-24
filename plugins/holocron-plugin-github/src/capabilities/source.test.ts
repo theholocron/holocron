@@ -476,9 +476,33 @@ describe("GitHubSource — team members and files", () => {
 	});
 
 	it("readFile reads this repo by default and returns null for a file that does not exist", async () => {
-		const { source, calls } = makeSource([{ status: 404, body: { message: "Not Found" } }]);
+		const { source, calls } = makeSource([
+			{ status: 404, body: { message: "Not Found" } },
+			{ body: { full_name: "theholocron/holocron" } },
+		]);
 		expect(await source.readFile("x.json")).toBeNull();
 		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/contents/x.json");
+	});
+
+	it("readFile does not mistake a repo the token cannot see for a missing file", async () => {
+		const hidden = makeSource([
+			{ status: 404, body: {} },
+			{ status: 404, body: {} },
+		]);
+		await expect(hidden.source.readFile("x.json", "theholocron/.github-private")).rejects.toThrow(
+			/was not found: it does not exist, or the token cannot see it/
+		);
+		const broken = makeSource([
+			{ status: 404, body: {} },
+			{ status: 500, body: {} },
+		]);
+		await expect(broken.source.readFile("x.json")).rejects.toMatchObject({ status: 500 });
+	});
+
+	it("teamMembers asks the organisation it is given, not the repo's owner", async () => {
+		const { source, calls } = makeSource([{ body: [] }]);
+		await source.teamMembers("gatekeepers", "other-org");
+		expect(calls[0]?.url).toContain("/orgs/other-org/teams/gatekeepers/members");
 	});
 
 	it("readFile passes any other failure through, and refuses an encoding it cannot decode", async () => {

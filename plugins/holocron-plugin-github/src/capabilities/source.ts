@@ -188,8 +188,8 @@ export class GitHubSource implements Source {
 		return syncTeams(this.orgClient ?? this.client, this.repo, teams);
 	}
 
-	async teamMembers(teamSlug: string): Promise<SourceTeamMember[]> {
-		const members = await (this.orgClient ?? this.client).teams.members(this.owner, teamSlug);
+	async teamMembers(teamSlug: string, org: string = this.owner): Promise<SourceTeamMember[]> {
+		const members = await (this.orgClient ?? this.client).teams.members(org, teamSlug);
 		return members.map((m) => ({ id: String(m.id), login: m.login }));
 	}
 

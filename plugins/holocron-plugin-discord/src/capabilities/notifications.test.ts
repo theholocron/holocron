@@ -2730,6 +2730,54 @@ describe("DiscordNotifications.ensureApplication", () => {
 		expect(calls).toHaveLength(1);
 	});
 
+	it("switches the Server Members Intent on through the flags, keeping the other bits, and verifies it stuck", async () => {
+		const { notifs, calls } = makeProvisioner([app({ flags: 64 }), app({ flags: 64 | 32768 })]);
+		expect(await notifs.ensureApplication({ intents: { members: true } })).toEqual({ updated: ["intents"] });
+		expect(calls[1]).toMatchObject({ method: "PATCH", body: { flags: 64 | 32768 } });
+	});
+
+	it("switches it off by clearing the toggle bit only, and leaves it alone when it already matches", async () => {
+		const off = makeProvisioner([app({ flags: 64 | 32768 }), app({ flags: 64 })]);
+		expect((await off.notifs.ensureApplication({ intents: { members: false } })).updated).toEqual(["intents"]);
+		expect(off.calls[1]).toMatchObject({ body: { flags: 64 } });
+		const already = makeProvisioner([app({ flags: 32768 })]);
+		expect(await already.notifs.ensureApplication({ intents: { members: true } })).toEqual({ updated: [] });
+		const verified = makeProvisioner([app({ flags: 16384 })]);
+		expect(await verified.notifs.ensureApplication({ intents: { members: true } })).toEqual({ updated: [] });
+		expect(already.calls).toHaveLength(1);
+	});
+
+	it("says so when Discord does not keep the intent", async () => {
+		const { notifs } = makeProvisioner([app({ flags: 0 }), app({ flags: 0 })]);
+		await expect(notifs.ensureApplication({ intents: { members: true } })).rejects.toThrow(/did not keep it/);
+	});
+
+	it("reports redirect URIs that are not registered as things to do by hand, and writes nothing for them", async () => {
+		const { notifs, calls } = makeProvisioner([app({ redirect_uris: ["http://localhost:1/callback"] })]);
+		const out = await notifs.ensureApplication({
+			redirectUris: ["http://localhost:1/callback", "http://localhost:53682/callback"],
+		});
+		expect(out.updated).toEqual([]);
+		expect(out.todo).toEqual([
+			"add http://localhost:53682/callback under OAuth2 → Redirects in the Discord developer portal (the API does not allow setting it)",
+		]);
+		expect(calls).toHaveLength(1);
+		const done = makeProvisioner([app()]);
+		expect(
+			await done.notifs.ensureApplication({ redirectUris: ["http://localhost:53682/callback"] })
+		).toMatchObject({ updated: [], todo: expect.any(Array) });
+	});
+
+	it("returns the todo alongside what it updated", async () => {
+		const { notifs } = makeProvisioner([app({ description: "old" }), app()]);
+		const out = await notifs.ensureApplication({
+			description: "Posts things",
+			redirectUris: ["http://localhost:53682/callback"],
+		});
+		expect(out.updated).toEqual(["description"]);
+		expect(out.todo).toHaveLength(1);
+	});
+
 	it("sends only what differs and says which", async () => {
 		const { notifs, calls } = makeProvisioner([
 			app({
@@ -2865,13 +2913,15 @@ describe("DiscordNotifications — reading the application and @everyone back", 
 			termsUrl: "https://x.test/terms",
 			privacyUrl: "https://x.test/privacy",
 			roleConnectionsUrl: "https://x.test/roles",
+			intents: { members: false },
+			redirectUris: [],
 		});
 	});
 
 	it("leaves out what the application does not have", async () => {
 		const { notifs } = makeProvisioner([{ body: [] }, { body: { id: "9", name: "holonet" } }]);
 		const found = await notifs.inspect({ application: { tags: ["a"] } });
-		expect(found.application).toEqual({ tags: [] });
+		expect(found.application).toEqual({ tags: [], intents: { members: false }, redirectUris: [] });
 	});
 
 	it("reports a failed read of the application on its own", async () => {
@@ -3007,5 +3057,37 @@ describe("role members", () => {
 			{ body: [...roles, { id: "92", name: "gatekeepers", color: 0, mentionable: false }] },
 		]);
 		await expect(twice.notifs.roleMembers("gatekeepers")).rejects.toThrow(/2 roles are named/);
+	});
+});
+
+describe("application intents and redirect URIs in inspect and validateLayout", () => {
+	it("inspect reports the intent and the registered redirect URIs", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [] },
+			{ body: { id: "9", name: "h", flags: 32768, redirect_uris: ["http://localhost:53682/callback"] } },
+		]);
+		const found = await notifs.inspect({ application: { intents: { members: true } } });
+		expect(found.application).toMatchObject({
+			intents: { members: true },
+			redirectUris: ["http://localhost:53682/callback"],
+		});
+	});
+
+	it("inspect reports the intent off and no redirects when the application has none", async () => {
+		const { notifs } = makeProvisioner([{ body: [] }, { body: { id: "9", name: "h" } }]);
+		const found = await notifs.inspect({ application: { intents: { members: true } } });
+		expect(found.application).toMatchObject({ intents: { members: false }, redirectUris: [] });
+	});
+
+	it("validateLayout refuses a redirect URI that is neither https nor local", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(notifs.validateLayout({ application: { redirectUris: ["http://example.com/cb"] } })).toMatch(
+			/redirectUris/
+		);
+		expect(
+			notifs.validateLayout({
+				application: { redirectUris: ["https://a.example/cb", "http://localhost:53682/callback"] },
+			})
+		).toBeUndefined();
 	});
 });

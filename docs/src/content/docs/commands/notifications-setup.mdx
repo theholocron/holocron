@@ -145,9 +145,13 @@ application: {
   termsUrl: "https://…",
   privacyUrl: "https://…",
   roleConnectionsUrl: "https://…",
+  intents: { members: true },             // the Server Members Intent, switched on from code
+  redirectUris: ["http://localhost:53682/callback"], // checked only: the API cannot set them
 },
 everyone: { deny: ["MentionEveryone"] },  // only the bits named change
 ```
+
+`intents.members` switches the Server Members Intent on or off. It is the toggle the portal shows for an app Discord has not verified (`GATEWAY_GUILD_MEMBERS_LIMITED`), and it is what lets `sync-roles` list who holds a role. `redirectUris` is the opposite case: Discord accepts a write to it and silently ignores it, so `setup` and the doctor only **check** that each one is registered, and say what to add under **OAuth2 → Redirects** in the developer portal. A missing one fails the run until it is added.
 
 A field left out is left alone. After each write the plugin reads the application back and fails, naming the field, if Discord did not keep it, so a field the API silently ignores shows up as a failure and not a false success. `everyone` never replaces the whole permission set: it adds what `allow` names and removes what `deny` names, and refuses a permission that is in both.
 

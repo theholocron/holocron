@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { planRoleSync } from "./plan.js";
+import { planRoleSync, roleTeamProblem } from "./plan.js";
 
 const links = [
 	{ github: "1", login: "luke", member: "333" },
@@ -58,5 +58,26 @@ describe("planRoleSync", () => {
 
 	it("leaves a holder without a name unnamed", () => {
 		expect(planRoleSync({ team: [], links: [], holders: [{ id: "9" }] }).unknownHolders).toEqual([{ member: "9" }]);
+	});
+});
+
+describe("roleTeamProblem", () => {
+	it("refuses one role name declared for two teams, ignoring case", () => {
+		expect(
+			roleTeamProblem({
+				roles: [
+					{ name: "Gatekeepers", team: "a" },
+					{ name: "gatekeepers", team: "b" },
+				],
+			})
+		).toMatch(/declared for two teams/);
+	});
+	it("accepts the same team twice, roles without a team, and different roles", () => {
+		expect(
+			roleTeamProblem({
+				roles: [{ name: "x", team: "a" }, { name: "X", team: "A" }, { name: "y" }, { name: "z", team: "b" }],
+			})
+		).toBeUndefined();
+		expect(roleTeamProblem({})).toBeUndefined();
 	});
 });

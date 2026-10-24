@@ -19,8 +19,8 @@ catalogs:
       specifier: ^1.43.1
       version: 1.43.1
     '@theholocron/discord-client':
-      specifier: ^1.47.1
-      version: 1.47.1
+      specifier: ^1.48.0
+      version: 1.48.0
     '@theholocron/doppler-client':
       specifier: ^1.43.1
       version: 1.43.1
@@ -278,7 +278,7 @@ importers:
         version: 8.8.2(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.11.0)(typescript-eslint@8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
       '@theholocron/holocron-config':
         specifier: catalog:configs
-        version: 8.8.2(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)
+        version: 8.8.2(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)
       '@theholocron/holocron-plugin-1password':
         specifier: workspace:*
         version: link:plugins/holocron-plugin-1password
@@ -1055,7 +1055,7 @@ importers:
         version: link:../../packages/cli
       '@theholocron/discord-client':
         specifier: catalog:clients
-        version: 1.47.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+        version: 1.48.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/eslint-config':
         specifier: catalog:configs
         version: 8.8.2(@eslint/js@10.0.1(eslint@10.8.1(jiti@2.7.0)))(@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@4.1.11))(eslint-plugin-n@18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint-plugin-react@7.37.5(eslint@10.8.1(jiti@2.7.0)))(eslint-plugin-simple-import-sort@14.0.0(eslint@10.8.1(jiti@2.7.0)))(eslint@10.8.1(jiti@2.7.0))(globals@17.11.0)(typescript-eslint@8.72.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))
@@ -3882,8 +3882,8 @@ packages:
     resolution: {integrity: sha512-Wq5OOoPIK0JEaFNILVeCwhqmKYlyqnfcIVXfKVdymbQD+4oZSbcqO4BU87+jkDtIcp01s8AR5OUulaDEeQ+K/A==}
     engines: {node: '>=22.0.0'}
 
-  '@theholocron/discord-client@1.47.1':
-    resolution: {integrity: sha512-jcjAbwV00fI2CFaXlrE5m1BHQpn+gLzjwW298mLDAF0WN3AAlzj/I6C4nJP+KujSsZk9mnfBMBmo+7Mu8fIOeg==}
+  '@theholocron/discord-client@1.48.0':
+    resolution: {integrity: sha512-b0zex4Ggi8zhjKI0C6tOaYm3WnKjZ65o3/VLaT//1G2VacIjHXe7cvITzp9tX0O8F1fTspLsYhTugPB1f8KmyA==}
     engines: {node: '>=22.0.0'}
 
   '@theholocron/docs-theme@1.10.3':
@@ -11817,7 +11817,7 @@ snapshots:
       - typescript
       - vitest
 
-  '@theholocron/cli@5.0.0-alpha.163(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)':
+  '@theholocron/cli@5.0.0-alpha.163(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)':
     dependencies:
       '@axiomhq/pino': 2.0.0
       '@inquirer/prompts': 8.7.2(@types/node@26.4.1)
@@ -11830,11 +11830,11 @@ snapshots:
       '@theholocron/env-utils': 1.16.0(dotenv@17.4.2)
       '@theholocron/fs-utils': 1.16.0
       '@theholocron/git-utils': 1.16.0
-      '@theholocron/github-client': 1.47.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
-      '@theholocron/http-client': 1.42.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/github-client': 1.47.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/http-client': 1.42.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/json-utils': 1.16.0
       '@theholocron/misc-utils': 1.16.0
-      '@theholocron/observability': 0.6.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
+      '@theholocron/observability': 0.6.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
       '@theholocron/pkg-utils': 1.16.0
       '@theholocron/registry-doc': 1.17.0
       chalk: 6.0.0
@@ -11932,7 +11932,7 @@ snapshots:
 
   '@theholocron/devmoji-config@8.8.2': {}
 
-  '@theholocron/discord-client@1.47.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
+  '@theholocron/discord-client@1.48.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
     dependencies:
       '@theholocron/http-client': 1.42.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
     transitivePeerDependencies:
@@ -12012,19 +12012,6 @@ snapshots:
       - posthog-node
       - vitest
 
-  '@theholocron/github-client@1.47.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
-    dependencies:
-      '@theholocron/http-client': 1.42.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
-      '@theholocron/observability': 0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
-    transitivePeerDependencies:
-      - '@axiomhq/pino'
-      - '@sentry/node'
-      - dotenv
-      - pino
-      - pino-pretty
-      - posthog-node
-      - vitest
-
   '@theholocron/holocron-config@8.8.2(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.0))(@astrojs/starlight@0.41.11(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(typescript@5.9.3))(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)':
     dependencies:
       '@theholocron/cli': 5.0.0-alpha.163(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.0))(@astrojs/starlight@0.41.11(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(typescript@5.9.3))(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)
@@ -12042,9 +12029,9 @@ snapshots:
       - typescript
       - vitest
 
-  '@theholocron/holocron-config@8.8.2(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)':
+  '@theholocron/holocron-config@8.8.2(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)':
     dependencies:
-      '@theholocron/cli': 5.0.0-alpha.163(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)
+      '@theholocron/cli': 5.0.0-alpha.163(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.7(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@types/node@26.4.1)(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)(vitest@4.1.11)
     transitivePeerDependencies:
       - '@astrojs/react'
       - '@astrojs/starlight'
@@ -12065,20 +12052,6 @@ snapshots:
       '@theholocron/observability': 0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
     optionalDependencies:
       vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
-    transitivePeerDependencies:
-      - '@axiomhq/pino'
-      - '@sentry/node'
-      - dotenv
-      - pino
-      - pino-pretty
-      - posthog-node
-
-  '@theholocron/http-client@1.42.1(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(dotenv@17.4.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
-    dependencies:
-      '@theholocron/env-utils': 1.16.0(dotenv@17.4.2)
-      '@theholocron/observability': 0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)
-    optionalDependencies:
-      vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
     transitivePeerDependencies:
       - '@axiomhq/pino'
       - '@sentry/node'
@@ -12152,15 +12125,6 @@ snapshots:
       posthog-node: 5.52.5
       vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
 
-  '@theholocron/observability@0.3.2(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
-    optionalDependencies:
-      '@axiomhq/pino': 2.0.0
-      '@sentry/node': 10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))
-      pino: 10.3.1
-      pino-pretty: 13.1.3
-      posthog-node: 5.52.5
-      vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
-
   '@theholocron/observability@0.6.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1)))(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
     optionalDependencies:
       '@axiomhq/pino': 2.0.0
@@ -12169,15 +12133,6 @@ snapshots:
       pino-pretty: 13.1.3
       posthog-node: 5.52.5
       vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.0))
-
-  '@theholocron/observability@0.6.0(@axiomhq/pino@2.0.0)(@sentry/node@10.75.2)(pino-pretty@13.1.3)(pino@10.3.1)(posthog-node@5.52.5)(vitest@4.1.11)':
-    optionalDependencies:
-      '@axiomhq/pino': 2.0.0
-      '@sentry/node': 10.75.2(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))
-      pino: 10.3.1
-      pino-pretty: 13.1.3
-      posthog-node: 5.52.5
-      vitest: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@4.1.11)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   '@theholocron/pkg-utils@1.16.0': {}
 

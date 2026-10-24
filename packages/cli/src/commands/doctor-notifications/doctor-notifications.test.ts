@@ -78,6 +78,7 @@ function setup(
 		org?: string;
 		builtOnly?: boolean;
 		scope?: { kind: "repo" };
+		fetch?: typeof fetch;
 	} = {}
 ) {
 	const loaded = loadedFrom({
@@ -116,6 +117,7 @@ function setup(
 				logger: log,
 				...(opts.builtOnly ? { builtOnly: true } : {}),
 				...(opts.scope ? { scope: opts.scope } : {}),
+				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			}),
 	};
 }
@@ -1325,6 +1327,62 @@ describe("runDoctorNotifications — bot application", () => {
 			install: { scopes: ["bot"], permissions: ["viewchannel", "ManageRoles"] },
 		},
 	};
+
+	it("checks the Server Members Intent when the layout declares it", async () => {
+		const on = { ...same, application: { ...same.application, intents: { members: true } } };
+		const off = { ...same, application: { ...same.application, intents: { members: false } } };
+		const layout = withApp({ intents: { members: true } });
+		expect(check(await setup(fakeNotifications({ layout, found: on })).run()).problems).toEqual([]);
+		expect(check(await setup(fakeNotifications({ layout, found: off })).run()).problems).toEqual([
+			"the Server Members Intent is off but the layout says on (`holocron notifications setup` changes it)",
+		]);
+		const missing = { ...same, application: { ...same.application, intents: undefined } };
+		expect(
+			check(await setup(fakeNotifications({ layout, found: missing as typeof same })).run()).problems[0]
+		).toContain("is off but");
+		const wantOff = withApp({ intents: { members: false } });
+		expect(check(await setup(fakeNotifications({ layout: wantOff, found: on })).run()).problems[0]).toContain(
+			"is on but the layout says off"
+		);
+	});
+
+	it("checks the redirect URIs the layout names, saying what to add and where", async () => {
+		const layout = withApp({ redirectUris: ["http://localhost:53682/callback"] });
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		const has = {
+			...same,
+			application: { ...same.application, redirectUris: ["http://localhost:53682/callback"] },
+		};
+		expect(check(await setup(fakeNotifications({ layout, found: has })).run()).problems).toEqual([]);
+		const problems = check(await setup(fakeNotifications({ layout, found: none })).run()).problems;
+		expect(problems[0]).toContain("add http://localhost:53682/callback under OAuth2 → Redirects");
+		const unreported = { ...same, application: { ...same.application, redirectUris: undefined } };
+		expect(
+			check(await setup(fakeNotifications({ layout, found: unreported as typeof same })).run()).problems
+		).toHaveLength(1);
+	});
+
+	it("when roles follow a team, expects the redirect the link flow would use now: local while Sentinel is down", async () => {
+		const down = (async () => new Response("{}", { status: 402 })) as unknown as typeof fetch;
+		const layout: NotificationsLayout = {
+			...withApp(),
+			roles: [{ name: "gatekeepers", team: "gatekeepers" }],
+			links: { hostedUrl: "https://sentinel.example", localPort: 4000 },
+		};
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		const report = await setup(fakeNotifications({ layout, found: none }), { fetch: down }).run();
+		expect(check(report).problems[0]).toContain("add http://localhost:4000/callback");
+		const up = (async () => Response.json({ service: "link" })) as unknown as typeof fetch;
+		const hosted = await setup(fakeNotifications({ layout, found: none }), { fetch: up }).run();
+		expect(check(hosted).problems[0]).toContain("add https://sentinel.example/api/link/callback");
+		const registered = {
+			...same,
+			application: { ...same.application, redirectUris: ["https://sentinel.example/api/link/callback"] },
+		};
+		expect(
+			check(await setup(fakeNotifications({ layout, found: registered }), { fetch: up }).run()).problems
+		).toEqual([]);
+	});
 
 	it("says none declared when the layout has no application section", async () => {
 		expect(check(await setup(fakeNotifications()).run())).toMatchObject({ detail: "none declared", problems: [] });

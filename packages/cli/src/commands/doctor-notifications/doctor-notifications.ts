@@ -31,6 +31,7 @@ import {
 	pickProvider,
 	whyMissing,
 } from "../notifications-channel-add/index.js";
+import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
 import type {
 	DoctorNotificationsReport,
@@ -621,6 +622,32 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 						`tags are ${(have.tags ?? []).map(shown).join(", ") || "none"} but the layout says ${wantApp.tags.map(shown).join(", ") || "none"}`
 					);
 				}
+				if (
+					wantApp.intents?.members !== undefined &&
+					(have.intents?.members ?? false) !== wantApp.intents.members
+				) {
+					appProblems.push(
+						`the Server Members Intent is ${have.intents?.members ? "on" : "off"} but the layout says ${wantApp.intents.members ? "on" : "off"} (\`holocron notifications setup\` changes it)`
+					);
+				}
+				// Sign-in needs a registered redirect: what the layout names, else where the link flow would come back to now.
+				const needsLink = (layout.roles ?? []).some((r) => r.team);
+				const wantRedirects =
+					wantApp.redirectUris ??
+					(needsLink
+						? [
+								(
+									await resolveCallback({
+										...(layout.links?.hostedUrl ? { hostedUrl: layout.links.hostedUrl } : {}),
+										...(layout.links?.localPort ? { port: layout.links.localPort } : {}),
+										...(input.fetch ? { fetch: input.fetch } : {}),
+									})
+								).redirectUri,
+							]
+						: []);
+				for (const uri of wantRedirects) {
+					if (!(have.redirectUris ?? []).includes(uri)) appProblems.push(shown(redirectInstruction(uri)));
+				}
 				if (wantApp.install !== undefined) {
 					if (!have.install) {
 						appProblems.push("no install link is set");
@@ -725,6 +752,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 						source: source!,
 						role: role.name,
 						team: role.team!,
+						...(input.context.org ? { org: input.context.org } : {}),
 						links,
 					});
 					for (const who of plan.add)

@@ -25,6 +25,18 @@ describe("parseLinks", () => {
 	});
 });
 
+describe("parseLinks duplicates", () => {
+	const two = (a: object, b: object) => JSON.stringify({ version: 1, links: [a, b] });
+	it("refuses a GitHub id or a member id that appears twice", () => {
+		expect(() => parseLinks(two(LUKE, { ...LEIA, github: "1" }))).toThrow(
+			/links\[1\]: `github` 1 appears more than once/
+		);
+		expect(() => parseLinks(two(LUKE, { ...LEIA, member: "333" }))).toThrow(
+			/links\[1\]: `member` 333 appears more than once/
+		);
+	});
+});
+
 describe("serializeLinks", () => {
 	it("sorts by GitHub id numerically, indents two spaces and ends with a newline", () => {
 		const out = serializeLinks({

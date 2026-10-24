@@ -44,3 +44,23 @@ export function planRoleSync(input: {
 	}
 	return plan;
 }
+
+/**
+ * The first role the layout declares for two different teams, or undefined. Names compare ignoring case, as
+ * the server does; the role would be synced against one team and then the other, so the last would win.
+ */
+export function roleTeamProblem(layout: {
+	roles?: ReadonlyArray<{ name: string; team?: string }>;
+}): string | undefined {
+	const seen = new Map<string, string>();
+	for (const role of layout.roles ?? []) {
+		if (!role.team) continue;
+		const key = role.name.toLowerCase();
+		const earlier = seen.get(key);
+		if (earlier !== undefined && earlier.toLowerCase() !== role.team.toLowerCase()) {
+			return `role \`${role.name}\` is declared for two teams (\`${earlier}\` and \`${role.team}\`); a role follows one team`;
+		}
+		seen.set(key, role.team);
+	}
+	return undefined;
+}

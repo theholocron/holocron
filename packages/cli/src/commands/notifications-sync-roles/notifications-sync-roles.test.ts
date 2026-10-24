@@ -187,6 +187,21 @@ describe("runNotificationsSyncRoles", () => {
 		log.mockRestore();
 	});
 
+	it("refuses a role declared for two teams, and asks the team in the resolved org", async () => {
+		const twice = fakeNotifications({
+			layout: {
+				roles: [
+					{ name: "gatekeepers", team: "a" },
+					{ name: "Gatekeepers", team: "b" },
+				],
+			},
+		});
+		expect((await setup(twice, fakeSource()).run()).message).toContain("declared for two teams");
+		const source = fakeSource();
+		await setup(fakeNotifications(), source).run();
+		expect(source.teamMembers).toHaveBeenCalledWith("gatekeepers", "theholocron");
+	});
+
 	it("refuses when no role declares a team", async () => {
 		const n = fakeNotifications({ layout: { roles: [{ name: "gatekeepers" }] } });
 		const report = await setup(n, fakeSource()).run();

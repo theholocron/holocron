@@ -1,4 +1,5 @@
 export {
+	ApplicationFlag,
 	ChannelType,
 	createDiscordBotClient,
 	createDiscordClient,

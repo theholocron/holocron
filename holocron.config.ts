@@ -131,7 +131,11 @@ export default defineConfig({
 						tags: ["automation", "notifications", "devops", "developer tools", "github"],
 						termsUrl: "https://docs.theholocron.dev/holocron/legal/terms/",
 						privacyUrl: "https://docs.theholocron.dev/holocron/legal/privacy/",
+						// Lists who is in the server, which `sync-roles` needs to find who holds a role.
+						intents: { members: true },
 					},
+					// Where `notifications link` signs members in: Sentinel when it answers, otherwise this machine.
+					links: { hostedUrl: "https://sentinel.theholocron.dev" },
 					categories: [
 						{
 							name: "START HERE",

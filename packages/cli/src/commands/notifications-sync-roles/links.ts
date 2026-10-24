@@ -47,6 +47,14 @@ export function parseLinks(text: string): LinksFile {
 		if (typeof e.login !== "string") throw new Error(`links[${i}]: \`login\` must be a string`);
 		return { github: e.github, login: e.login, member: e.member };
 	});
+	// One person per GitHub account and one account per member: a repeat would make the sync pick one at random.
+	for (const key of ["github", "member"] as const) {
+		const seen = new Set<string>();
+		for (const [i, link] of links.entries()) {
+			if (seen.has(link[key])) throw new Error(`links[${i}]: \`${key}\` ${link[key]} appears more than once`);
+			seen.add(link[key]);
+		}
+	}
 	return { version: 1, links };
 }
 

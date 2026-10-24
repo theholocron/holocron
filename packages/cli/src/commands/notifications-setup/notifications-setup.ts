@@ -32,6 +32,7 @@ import {
 	provisionChannel,
 	whyMissing,
 } from "../notifications-channel-add/index.js";
+import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
 
 /** A channel's access: its category's, with any field the channel states itself laid over it. */
@@ -109,6 +110,8 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 		return undefined;
 	};
 
+	const roleTeams = roleTeamProblem(layout);
+	if (roleTeams) return roleTeams;
 	const emptyTeam = (layout.roles ?? []).find((r) => r.team !== undefined && r.team.trim() === "");
 	if (emptyTeam) return `role \`${emptyTeam.name}\` has an empty \`team\``;
 
@@ -418,7 +421,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		const apply = async (
 			label: string,
 			declared: boolean,
-			run: () => Promise<{ updated: string[] }>
+			run: () => Promise<{ updated: string[]; todo?: string[] }>
 		): Promise<void> => {
 			if (!declared) return;
 			await attempt(label, async () => {
@@ -433,6 +436,11 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 					`  ${(changed ? style.success : style.skip)(`${changed ? "updated" : "exists "} ${label}${changed ? `: ${result.updated.join(", ")}` : ""}`)}`
 				);
 				made(changed);
+				// What only a person can do: shown, and counted as a failure so the run does not look finished.
+				for (const todo of result.todo ?? []) {
+					print(`  ${style.fail(`${label}: ${todo}`)}`);
+					report.failures.push({ step: label, message: todo });
+				}
 			});
 		};
 		await apply("@everyone permissions", !!layout.everyone, () => notifications.ensureEveryone!(layout.everyone!));

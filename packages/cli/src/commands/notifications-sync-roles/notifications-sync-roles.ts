@@ -29,7 +29,7 @@ import type {
 	RoleSyncOutcome,
 	RunNotificationsSyncRolesInput,
 } from "./notifications-sync-roles.type.js";
-import { planRoleSync, type RoleSyncPlan } from "./plan.js";
+import { planRoleSync, type RoleSyncPlan, roleTeamProblem } from "./plan.js";
 
 /** The provider that can list and change who holds a role. */
 export function pickRoleManager(providers: Notifications[], wanted?: string): Notifications {
@@ -75,10 +75,12 @@ export async function planForRole(args: {
 	source: Source;
 	role: string;
 	team: string;
+	/** The organisation the team is in; defaults to the source's own. */
+	org?: string;
 	links: LinksFile;
 }): Promise<RoleSyncPlan> {
 	const [team, holders] = await Promise.all([
-		args.source.teamMembers!(args.team),
+		args.source.teamMembers!(args.team, args.org),
 		args.notifications.roleMembers!(args.role),
 	]);
 	return planRoleSync({ team, links: args.links.links, holders });
@@ -117,6 +119,8 @@ export async function runNotificationsSyncRoles(
 			`no role in the \`${notifications.providerName}\` layout declares a \`team\` — add \`team: "<slug>"\` to a role in holocron.config.ts`
 		);
 	}
+	const conflict = roleTeamProblem(layout);
+	if (conflict) return refuse(conflict);
 	const source = loader.has("source") ? (loader.get("source") as Source) : undefined;
 	const problem = sourceProblem(source);
 	if (problem) return refuse(loader.has("source") ? problem : whyMissing(loader, "source", problem));
@@ -136,7 +140,14 @@ export async function runNotificationsSyncRoles(
 		const step = `role ${role.name}`;
 		let plan: RoleSyncPlan;
 		try {
-			plan = await planForRole({ notifications, source: source!, role: role.name, team: role.team!, links });
+			plan = await planForRole({
+				notifications,
+				source: source!,
+				role: role.name,
+				team: role.team!,
+				...(input.context.org ? { org: input.context.org } : {}),
+				links,
+			});
 		} catch (err) {
 			const message = describeProviderError(err);
 			print(`  ${style.fail(`${step}: ${message}`)}`);
