@@ -81,6 +81,11 @@ const LOCALES = new Set([
 	"ko",
 ]);
 
+/** "applied a, b; " for the start of a message about a step that stopped part-way, or nothing. */
+function appliedPrefix(applied: string[]): string {
+	return applied.length > 0 ? `applied ${applied.join(", ")}; but ` : "";
+}
+
 /** A layout name to Discord's number, undefined when the layout leaves it out; an unknown name is an error, not an omission. */
 function s_<T extends Record<string, number>>(name: (keyof T & string) | undefined, map: T): number | undefined {
 	if (name === undefined) return undefined;
@@ -337,11 +342,11 @@ export class DiscordNotifications implements Notifications {
 	}
 
 	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */
-	private async inviteUrl(): Promise<string> {
+	private async inviteUrl(names: PermissionName[] = BOT_NEEDS): Promise<string> {
 		const url = new URL("https://discord.com/oauth2/authorize");
 		url.searchParams.set("client_id", await this.botId());
 		url.searchParams.set("scope", "bot");
-		url.searchParams.set("permissions", permissions(BOT_NEEDS));
+		url.searchParams.set("permissions", permissions(names));
 		url.searchParams.set("guild_id", this.guild());
 		return url.toString();
 	}
@@ -354,6 +359,19 @@ export class DiscordNotifications implements Notifications {
 		} catch (err) {
 			throw await this.manageServerHint(err);
 		}
+	}
+
+	/** Turning community on or off needs Administrator, which is more than the bot should keep. */
+	private async communityHint(err: unknown, applied: string[]): Promise<unknown> {
+		if (err instanceof ProviderApiError && err.status === 403) {
+			return new Error(
+				`${appliedPrefix(applied)}turning community features on or off needs the Administrator permission, which Holonet does not have. ` +
+					"Either turn them on once in Discord (Server Settings → Enable Community; setup then keeps everything else in line), " +
+					`or give Holonet Administrator for one run and take it away again afterwards: ${await this.inviteUrl(["Administrator"])}`,
+				{ cause: err }
+			);
+		}
+		return err;
 	}
 
 	/** A 403 on a server edit becomes the explanation and the invite link; anything else is passed on as it is. */
@@ -438,48 +456,59 @@ export class DiscordNotifications implements Notifications {
 
 		const features = guild.features ?? [];
 		const community = features.includes("COMMUNITY");
-		if (settings.community !== undefined && settings.community !== community) {
-			patch.features = settings.community
-				? [...features, "COMMUNITY"]
-				: features.filter((f) => f !== "COMMUNITY");
-			updated.push("community");
-		}
-		if (updated.length === 0) return { updated };
+		const toggleCommunity = settings.community !== undefined && settings.community !== community;
 
-		let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
-		try {
-			after = await bot.guilds.modify(this.guild(), patch);
-		} catch (err) {
-			throw await this.manageServerHint(err);
-		}
-		// Discord answers with the server as it now is: say so if a setting did not take.
-		const stuck: string[] = (Object.keys(patch) as Array<keyof ModifyGuildInput>)
-			.filter((k) => k !== "features")
-			.filter((k) => {
+		// Phase 1: everything that needs only Manage Server.
+		if (Object.keys(patch).length > 0) {
+			let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
+			try {
+				after = await bot.guilds.modify(this.guild(), patch);
+			} catch (err) {
+				throw await this.manageServerHint(err);
+			}
+			// Discord answers with the server as it now is: say so if a setting did not take.
+			const stuck: string[] = (Object.keys(patch) as Array<keyof ModifyGuildInput>).filter((k) => {
 				const got = (after as unknown as Record<string, unknown>)[k];
 				return patch[k] !== (k === "description" ? (got ?? "") : got);
 			});
-		const nowFeatures = after.features ?? [];
-		if (patch.features && patch.features.includes("COMMUNITY") !== nowFeatures.includes("COMMUNITY")) {
-			stuck.push("features");
-		}
-		if (stuck.length > 0) {
-			throw new Error(
-				`sent ${stuck.join(", ")} but the server came back different -- Discord may have refused a part of it ` +
-					"(community features need a rules channel, an updates channel, verification of at least low and the content filter on all members)"
-			);
-		}
-		// Discord has no way to add one feature, so turning community on sends the whole list read a moment ago.
-		// If someone else changed the list in between, a feature they added is gone: say so, do not report success.
-		// (Turning it off is left out: Discord drops the features that depend on community by itself.)
-		if (patch.features?.includes("COMMUNITY")) {
-			const lost = features.filter((f) => f !== "COMMUNITY" && !nowFeatures.includes(f));
-			if (lost.length > 0) {
+			if (stuck.length > 0) {
 				throw new Error(
-					`turned community on, but the server no longer has ${lost.join(", ")} -- another admin may have changed ` +
-						"its features at the same time; check Server Settings and re-run"
+					`sent ${stuck.join(", ")} but the server came back different -- Discord may have refused a part of it`
 				);
 			}
+		}
+
+		// Phase 2: community features on their own. Discord requires Administrator to add or remove
+		// them, whatever else is in the request, and one refused field rejects the whole edit -- so
+		// sending it with the rest would stop every other setting from being applied.
+		if (toggleCommunity) {
+			const wanted = settings.community ? [...features, "COMMUNITY"] : features.filter((f) => f !== "COMMUNITY");
+			let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
+			try {
+				after = await bot.guilds.modify(this.guild(), { features: wanted });
+			} catch (err) {
+				throw await this.communityHint(err, updated);
+			}
+			const nowFeatures = after.features ?? [];
+			if (wanted.includes("COMMUNITY") !== nowFeatures.includes("COMMUNITY")) {
+				throw new Error(
+					`${appliedPrefix(updated)}sent the community feature but the server came back different -- community ` +
+						"features need a rules channel, an updates channel, verification of at least low and the content filter on all members"
+				);
+			}
+			// Discord has no way to add one feature, so this sends the whole list read a moment ago. If someone
+			// else changed the list in between, a feature they added is gone: say so, do not report success.
+			// (Turning it off is left out: Discord drops the features that depend on community by itself.)
+			if (settings.community) {
+				const lost = features.filter((f) => f !== "COMMUNITY" && !nowFeatures.includes(f));
+				if (lost.length > 0) {
+					throw new Error(
+						`turned community on, but the server no longer has ${lost.join(", ")} -- another admin may have changed ` +
+							"its features at the same time; check Server Settings and re-run"
+					);
+				}
+			}
+			updated.push("community");
 		}
 		return { updated };
 	}

@@ -1361,8 +1361,13 @@ describe("DiscordNotifications.ensureServer", () => {
 		features: ["NEWS", "COMMUNITY"],
 	};
 
-	it("changes everything that differs in one request, turning community on with the features it already has", async () => {
-		const { notifs, calls } = makeProvisioner([guild(), chans, guild(after)]);
+	it("changes the ordinary settings in one request and turns community on in a second, keeping its existing features", async () => {
+		const { notifs, calls } = makeProvisioner([
+			guild(),
+			chans,
+			guild({ ...after, features: ["NEWS"] }),
+			guild(after),
+		]);
 		const out = await notifs.ensureServer(settings);
 		expect(out.updated).toEqual([
 			"verification",
@@ -1375,7 +1380,10 @@ describe("DiscordNotifications.ensureServer", () => {
 			"locale",
 			"community",
 		]);
-		expect(calls[2]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: { ...after } });
+		const { features, ...ordinary } = after;
+		expect(calls[2]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: ordinary });
+		expect(calls[2]?.body).not.toHaveProperty("features");
+		expect(calls[3]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: { features } });
 	});
 
 	it("sends nothing when the server already matches", async () => {
@@ -1450,7 +1458,7 @@ describe("DiscordNotifications.ensureServer", () => {
 	it("fails when community did not switch on, saying what it needs", async () => {
 		const { notifs } = makeProvisioner([guild(), chans, guild({ features: ["NEWS"] })]);
 		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(
-			/sent features but the server came back different.*rules channel/s
+			/sent the community feature but the server came back different.*rules channel/s
 		);
 	});
 
@@ -1474,9 +1482,44 @@ describe("DiscordNotifications.ensureServer", () => {
 		expect(await notifs.ensureServer({ community: false })).toEqual({ updated: ["community"] });
 	});
 
+	it("explains that community needs Administrator, saying what was already applied, and links an invite for it", async () => {
+		const { notifs } = makeProvisioner([
+			guild(),
+			chans,
+			guild({ verification_level: 2 }),
+			{ status: 403, body: { message: "Missing Permissions", code: 50013 } },
+			bot,
+		]);
+		const err = (await notifs
+			.ensureServer({ verification: "medium", community: true })
+			.catch((e: Error) => e)) as Error;
+		expect(err.message).toMatch(
+			/^applied verification; but turning community features on or off needs the Administrator permission/
+		);
+		expect(err.message).toMatch(/Enable Community/);
+		const url = new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]);
+		expect(url.searchParams.get("permissions")).toBe("8");
+	});
+
+	it("says nothing was applied when community was the only thing to change", async () => {
+		const { notifs } = makeProvisioner([
+			guild(),
+			chans,
+			{ status: 403, body: { message: "Missing Permissions" } },
+			bot,
+		]);
+		const err = (await notifs.ensureServer({ community: true }).catch((e: Error) => e)) as Error;
+		expect(err.message).toMatch(/^turning community features on or off needs the Administrator permission/);
+	});
+
+	it("passes any other error from the community edit on as it is", async () => {
+		const { notifs } = makeProvisioner([guild(), chans, { status: 500, body: { message: "boom" } }]);
+		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(/500/);
+	});
+
 	it("treats a reply with no feature list as community not switched on", async () => {
 		const { notifs } = makeProvisioner([guild(), chans, guild({ features: undefined })]);
-		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(/sent features/);
+		await expect(notifs.ensureServer({ community: true })).rejects.toThrow(/sent the community feature/);
 	});
 });
 
