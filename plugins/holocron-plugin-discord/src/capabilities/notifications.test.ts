@@ -215,7 +215,7 @@ describe("DiscordNotifications.ensureChannel", () => {
 });
 
 describe("DiscordNotifications.ensureWebhook", () => {
-	const hook = { id: "w1", channel_id: "2001", name: "repo-sync" };
+	const hook = { id: "7001", channel_id: "2001", name: "repo-sync" };
 
 	it("fails clearly when the channel does not exist", async () => {
 		const { notifs } = makeProvisioner([{ body: [] }]);
@@ -247,11 +247,62 @@ describe("DiscordNotifications.ensureWebhook", () => {
 		expect(calls).toHaveLength(2);
 	});
 
+	it("sets the picture on a webhook it creates, and says so", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [] },
+			{ body: { ...hook, token: "tk", url: "https://discord.com/api/webhooks/w1/tk" } },
+			{ body: { ...hook, avatar: "h" } },
+		]);
+		expect(
+			await notifs.ensureWebhook({ channel: "sync", name: "repo-sync", avatar: "data:image/png;base64,AA" })
+		).toEqual({
+			created: true,
+			url: "https://discord.com/api/webhooks/w1/tk",
+			updated: ["avatar"],
+		});
+		expect(calls[3]).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/webhooks/7001`,
+			body: { avatar: "data:image/png;base64,AA" },
+		});
+	});
+
+	it("sets the picture on an existing webhook that has none, but leaves one that has", async () => {
+		const bare = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: { ...hook, avatar: "h" } },
+		]);
+		expect(await bare.notifs.ensureWebhook({ channel: "sync", name: "repo-sync", avatar: "data:x" })).toEqual({
+			created: false,
+			updated: ["avatar"],
+		});
+		const has = makeProvisioner([{ body: [text("2001", "sync")] }, { body: [{ ...hook, avatar: "h" }] }]);
+		expect(await has.notifs.ensureWebhook({ channel: "sync", name: "repo-sync", avatar: "data:x" })).toEqual({
+			created: false,
+		});
+		expect(has.calls).toHaveLength(2);
+	});
+
+	it("keeps the url when setting the picture fails, and says why", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [] },
+			{ body: { ...hook, token: "tk", url: "https://discord.com/api/webhooks/w1/tk" } },
+			{ status: 400, body: { message: "Invalid Form Body" } },
+		]);
+		const out = await notifs.ensureWebhook({ channel: "sync", name: "repo-sync", avatar: "data:x" });
+		expect(out).toMatchObject({ created: true, url: "https://discord.com/api/webhooks/w1/tk" });
+		expect(out.avatarError).toMatch(/400/);
+		expect(out.updated).toBeUndefined();
+	});
+
 	it("returns the url of an existing webhook this bot created", async () => {
 		const { notifs } = makeProvisioner([{ body: [text("2001", "sync")] }, { body: [{ ...hook, token: "tk" }] }]);
 		expect(await notifs.ensureWebhook({ channel: "sync", name: "repo-sync" })).toEqual({
 			created: false,
-			url: "https://discord.com/api/webhooks/w1/tk",
+			url: "https://discord.com/api/webhooks/7001/tk",
 		});
 	});
 
@@ -709,9 +760,16 @@ describe("DiscordNotifications.inspect", () => {
 		const found = await notifs.inspect(layout);
 		expect(found.categories).toEqual(["ALERTS"]);
 		expect(found.channels).toEqual([
-			{ name: "alerts", category: "ALERTS", topic: "needs a human", webhooks: ["alerts"], access: OPEN },
-			{ name: "errors", category: "ALERTS", webhooks: [], access: OPEN },
-			{ name: "general", webhooks: [], access: OPEN },
+			{
+				name: "alerts",
+				category: "ALERTS",
+				topic: "needs a human",
+				webhooks: ["alerts"],
+				webhookAvatars: [],
+				access: OPEN,
+			},
+			{ name: "errors", category: "ALERTS", webhooks: [], webhookAvatars: [], access: OPEN },
+			{ name: "general", webhooks: [], webhookAvatars: [], access: OPEN },
 		]);
 		expect(found.categoryAccess).toEqual({ ALERTS: OPEN });
 		expect(found.roles).toEqual([{ name: "gatekeepers", id: "4001", mentionable: true, color: "#000000" }]);
@@ -747,11 +805,11 @@ describe("DiscordNotifications.inspect", () => {
 	it("includes announcement channels, and tolerates a webhook with no name", async () => {
 		const { notifs } = makeProvisioner([
 			{ body: [{ id: "2005", name: "alerts", type: ChannelType.Announcement }] },
-			{ body: [{ id: "w1", name: null, channel_id: "2005" }] },
+			{ body: [{ id: "7001", name: null, avatar: "h", channel_id: "2005" }] },
 			{ body: [] },
 		]);
 		const found = await notifs.inspect(layout);
-		expect(found.channels[0]).toMatchObject({ name: "alerts", webhooks: [""] });
+		expect(found.channels[0]).toMatchObject({ name: "alerts", webhooks: [""], webhookAvatars: [""] });
 	});
 
 	it("shares the channel list with the ensure* methods instead of fetching it twice", async () => {

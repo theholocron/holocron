@@ -101,6 +101,8 @@ Discord lets the server owner and anyone with the Administrator permission see a
 
 `webhook: true` stores the URL in `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>`; `webhook: { name, secret }` overrides the webhook name and the secret name. The command prints each role's id, which is what a workflow needs to ping it.
 
+A webhook's picture comes from `webhookAvatar` on the layout (every webhook), or `webhook: { avatar }` (one). Either is a path to a PNG, JPEG or GIF, read from where the CLI runs, or an `https://` URL. WebP is refused, because providers do not take it; convert it first. A picture that cannot be read stops the run before anything is created. The picture is set on a webhook that has none, and an existing one is left alone: Discord stores a hash, not the image, so there is no way to tell whether the one it holds is the same. To change it, remove the picture in Discord and run `setup` again.
+
 :::caution
 A layout belongs to the server, not to a repo. Put it in **one** repo's config (the one that owns the server), never in a shared preset, or every repo would apply it.
 :::

@@ -2,7 +2,7 @@ import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
-import type { Notifications } from "../../plugin/index.js";
+import type { Notifications, Secrets } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import {
 	defaultSecretName,
@@ -658,5 +658,79 @@ describe("isReservedSecret", () => {
 		expect(report.message).toMatch(
 			/no `notifications` provider is available.*`discord` failed to load: no Discord webhook URL found/
 		);
+	});
+});
+
+describe("provisionChannel — webhook avatar", () => {
+	const secrets = () => {
+		const stored: Array<{ name: string; value: string }> = [];
+		return {
+			stored,
+			impl: {
+				providerName: "github",
+				listSecrets: async () => [] as string[],
+				setSecret: async (_s: unknown, name: string, value: string) => void stored.push({ name, value }),
+				deleteSecret: async () => {},
+			},
+		};
+	};
+	const deps = (n: Notifications, lines: string[], tally?: { ok: number; skip: number }) => {
+		const s = secrets();
+		return {
+			s,
+			deps: {
+				notifications: n,
+				secrets: s.impl as unknown as Secrets,
+				scope: { kind: "repo" as const },
+				dryRun: false,
+				print: (l: string) => void lines.push(l),
+				...(tally ? { tally } : {}),
+			},
+		};
+	};
+
+	it("passes the picture on, says it was set and counts it", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", updated: ["avatar"] })),
+		});
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		const { deps: d } = deps(n, lines, tally);
+		const out = await provisionChannel(d, { name: "alerts", webhook: { avatar: "data:image/png;base64,AA" } });
+		expect(n.ensureWebhook).toHaveBeenCalledWith({
+			channel: "alerts",
+			name: "alerts",
+			avatar: "data:image/png;base64,AA",
+		});
+		expect(lines.join("\n")).toContain("set     avatar on webhook alerts");
+		expect(out.webhook?.updated).toEqual(["avatar"]);
+		expect(tally.ok).toBe(3);
+	});
+
+	it("also reports a picture set on a webhook whose URL cannot be read back", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false, updated: ["avatar"] })) });
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, lines).deps, { name: "alerts", webhook: { avatar: "data:x" } });
+		expect(out.webhook).toMatchObject({ stored: false, updated: ["avatar"] });
+		expect(lines.join("\n")).toContain("set     avatar on webhook alerts");
+	});
+
+	it("stores the URL first and then fails when the picture could not be set", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", avatarError: "too big" })),
+		});
+		const { deps: d, s } = deps(n, []);
+		await expect(provisionChannel(d, { name: "alerts", webhook: { avatar: "data:x" } })).rejects.toThrow(
+			/webhook alerts is ready but setting its avatar failed \(too big\)/
+		);
+		expect(s.stored).toEqual([{ name: "HOLOCRON_NOTIFY_WEBHOOK_ALERTS", value: "https://h" }]);
+	});
+
+	it("says nothing about a picture that was already there", async () => {
+		const n = fakeNotifications();
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, lines).deps, { name: "alerts", webhook: { avatar: "data:x" } });
+		expect(lines.join("\n")).not.toContain("avatar");
+		expect(out.webhook?.updated).toBeUndefined();
 	});
 });

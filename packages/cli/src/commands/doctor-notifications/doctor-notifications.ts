@@ -38,7 +38,6 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 12, id: "webhook-appearance", title: "webhook names and avatars set" },
 	{ step: 13, id: "app-settings", title: "bot description, tags, install link and URLs set" },
 	{ step: 14, id: "role-assignment", title: "role assigned to team members" },
 	{ step: 15, id: "post-works", title: "test post reached every channel (platform.notifyCheck)" },
@@ -68,6 +67,7 @@ const accessText = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
 const shown = (s: string) => sanitizeDetail(s);
 const WELCOME_TITLE = "welcome screen and onboarding set";
+const AVATAR_TITLE = "webhook names and avatars set";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
@@ -204,6 +204,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			["access", ACCESS_TITLE],
 			["server-settings", SERVER_TITLE],
 			["welcome-onboarding", WELCOME_TITLE],
+			["webhook-appearance", AVATAR_TITLE],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
 		}
@@ -543,6 +544,35 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			WELCOME_TITLE,
 			[...welcomeProblems, ...onboardingProblems],
 			welcomeParts === 0 ? "none declared" : `${welcomeParts} of ${welcomeParts} as declared`
+		);
+	}
+
+	// Webhook avatars: a webhook's name is checked with the webhooks above; its picture here.
+	if (found) {
+		const avatarOf = (webhook: unknown) =>
+			(typeof webhook === "object" && webhook ? (webhook as { avatar?: string }).avatar : undefined) ??
+			layout.webhookAvatar;
+		const wantAvatar = declaredChannels.filter(({ channel }) => channel.webhook && avatarOf(channel.webhook));
+		const avatarProblems: string[] = [];
+		for (const { cat, channel } of wantAvatar) {
+			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			const name = cfg.name ?? channel.name;
+			const { match } = pick(channel.name, cat);
+			if (!match) {
+				avatarProblems.push(`#${shown(channel.name)}: no channel to hold the webhook`);
+			} else if (match.webhooksError) {
+				avatarProblems.push(
+					`#${shown(channel.name)}: could not list its webhooks (${shown(match.webhooksError)})`
+				);
+			} else if (match.webhookAvatars && !match.webhookAvatars.some((w) => same(w, name))) {
+				avatarProblems.push(`#${shown(channel.name)}: webhook ${shown(name)} has no avatar`);
+			}
+		}
+		add(
+			"webhook-appearance",
+			AVATAR_TITLE,
+			avatarProblems,
+			wantAvatar.length === 0 ? "none declared" : `${wantAvatar.length} of ${wantAvatar.length} set`
 		);
 	}
 

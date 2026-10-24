@@ -26,6 +26,7 @@ import { style } from "../../ui/style/index.js";
 import {
 	assertSecretsReachable,
 	layoutSecretProblem,
+	loadAvatar,
 	notificationProviders,
 	pickProvisioner,
 	provisionChannel,
@@ -34,6 +35,14 @@ import {
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
 
 /** A channel's access: its category's, with any field the channel states itself laid over it. */
+/** The picture a channel's webhook should have: its own, else the layout's, else none. */
+export function webhookAvatarOf(
+	layout: NotificationsLayout,
+	webhook: boolean | { avatar?: string } | undefined
+): string | undefined {
+	return (typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar;
+}
+
 export function effectiveAccess(
 	category: NotificationsAccess | undefined,
 	channel: NotificationsAccess | undefined
@@ -193,6 +202,18 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
 
+	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
+	const avatars = new Map<string, string>();
+	const read = input.loadAvatar ?? loadAvatar;
+	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
+		const source = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
+		if (source === undefined || avatars.has(source)) continue;
+		try {
+			avatars.set(source, await read(source));
+		} catch (err) {
+			return refuse(`webhook avatar \`${source}\`: ${errorMessage(err)}`);
+		}
+	}
 	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
 	// creating any webhook, instead of leaving an orphan per channel on a bad token.
 	if (secrets && scope && !dryRun) {
@@ -335,6 +356,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 		for (const channel of channels) {
 			await attempt(`channel ${channel.name}`, async () => {
+				const source = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
+				const webhook = channel.webhook
+					? {
+							...(channel.webhook === true ? {} : channel.webhook),
+							...(source ? { avatar: avatars.get(source)! } : {}),
+						}
+					: undefined;
 				const outcome = await provisionChannel(
 					{
 						notifications,
@@ -351,7 +379,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						...(effectiveAccess(category.access, channel.access)
 							? { access: effectiveAccess(category.access, channel.access)! }
 							: {}),
-						...(channel.webhook ? { webhook: channel.webhook === true ? {} : channel.webhook } : {}),
+						...(webhook ? { webhook } : {}),
 					}
 				);
 				report.channels.push(outcome);

@@ -131,6 +131,7 @@ const REAL = [
 	"access",
 	"server-settings",
 	"welcome-onboarding",
+	"webhook-appearance",
 	"secrets",
 ];
 
@@ -139,11 +140,11 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 10, fail: PLANNED_CHECKS.length, skip: 0 });
+		expect(report.summary).toEqual({ pass: 11, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
-		expect(planned[0]?.detail).toBe("not built yet (#1098, step 12)");
+		expect(planned[0]?.detail).toBe("not built yet (#1098, step 13)");
 		expect(planned.every((c) => c.status === "fail")).toBe(true);
 	});
 
@@ -152,7 +153,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("10 ok, 0 fail, 5 skipped");
+		expect(lines.join("\n")).toContain("11 ok, 0 fail, 4 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -164,10 +165,10 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("✓ server");
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
-		expect(out).toContain("✗ webhook names and avatars set");
-		expect(out).toContain("not built yet (#1098, step 12)");
+		expect(out).toContain("✓ webhook names and avatars set");
+		expect(out).toContain("not built yet (#1098, step 13)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("10 ok, 5 fail, 0 skipped");
+		expect(out).toContain("11 ok, 4 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -504,7 +505,7 @@ describe("runDoctorNotifications — output and logs", () => {
 describe("PLANNED_CHECKS", () => {
 	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
 		// 8 to 11 (access, role appearance, server settings, welcome and onboarding) are built, so they are real checks.
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([12, 13, 14, 15, 16]);
+		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([13, 14, 15, 16]);
 		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
 	});
 });
@@ -645,7 +646,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 9, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 10, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1235,5 +1236,66 @@ describe("runDoctorNotifications — welcome screen and onboarding", () => {
 			status: "pass",
 			detail: "none declared",
 		});
+	});
+});
+
+describe("runDoctorNotifications — webhook avatars", () => {
+	const withAvatar: NotificationsLayout = { ...LAYOUT, webhookAvatar: "media/a.png" };
+	const check = (report: { checks: Array<{ id: string; problems: string[]; detail: string }> }) =>
+		report.checks.find((c) => c.id === "webhook-appearance")!;
+	const channelsWith = (webhookAvatars?: string[]): ServerInspection => ({
+		...GOOD,
+		channels: GOOD.channels.map((c) =>
+			c.webhooks.length > 0 ? { ...c, ...(webhookAvatars ? { webhookAvatars } : {}) } : c
+		),
+	});
+
+	it("says none declared when no webhook has an avatar to set", async () => {
+		const report = await setup(fakeNotifications()).run();
+		expect(check(report)).toMatchObject({ detail: "none declared", problems: [] });
+	});
+
+	it("passes when every webhook that should have one has it", async () => {
+		const report = await setup(
+			fakeNotifications({ layout: withAvatar, found: channelsWith(["alerts", "sync"]) })
+		).run();
+		expect(check(report)).toMatchObject({ detail: "2 of 2 set", problems: [] });
+	});
+
+	it("names a webhook with no avatar, and skips a provider that does not report them", async () => {
+		const some = await setup(fakeNotifications({ layout: withAvatar, found: channelsWith(["alerts"]) })).run();
+		expect(check(some).problems).toEqual(["#sync: webhook sync has no avatar"]);
+		const unknown = await setup(fakeNotifications({ layout: withAvatar, found: channelsWith() })).run();
+		expect(check(unknown).problems).toEqual([]);
+	});
+
+	it("uses a webhook's own avatar, and skips one that has none anywhere", async () => {
+		const own: NotificationsLayout = {
+			...LAYOUT,
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [{ name: "alerts", webhook: { avatar: "x.png" } }, { name: "errors" }],
+				},
+				{ name: "AUTOMATION", channels: [{ name: "sync", webhook: true }] },
+			],
+		};
+		const report = await setup(fakeNotifications({ layout: own, found: channelsWith(["alerts"]) })).run();
+		expect(check(report)).toMatchObject({ detail: "1 of 1 set", problems: [] });
+	});
+
+	it("reports a channel that is missing, and one whose webhooks could not be listed", async () => {
+		const found: ServerInspection = {
+			...GOOD,
+			channels: [
+				{ name: "alerts", category: "ALERTS", webhooks: [], webhooksError: "boom" },
+				{ name: "errors", category: "ALERTS", webhooks: [] },
+			],
+		};
+		const report = await setup(fakeNotifications({ layout: withAvatar, found })).run();
+		expect(check(report).problems).toEqual([
+			"#alerts: could not list its webhooks (boom)",
+			"#sync: no channel to hold the webhook",
+		]);
 	});
 });
