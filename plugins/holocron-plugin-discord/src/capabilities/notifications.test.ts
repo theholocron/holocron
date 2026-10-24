@@ -1419,6 +1419,44 @@ describe("DiscordNotifications.ensureServer", () => {
 		);
 	});
 
+	it("refuses, before changing anything, an updates channel while community is off and not being turned on", async () => {
+		const { notifs, calls } = makeProvisioner([guild(), chans]);
+		await expect(
+			notifs.ensureServer({ updatesChannel: "community-updates", verification: "medium" })
+		).rejects.toThrow(/`updatesChannel` can only be set while community features are on/);
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET"]);
+		const turningOff = makeProvisioner([guild({ features: ["COMMUNITY"] }), chans]);
+		await expect(
+			turningOff.notifs.ensureServer({ community: false, updatesChannel: "community-updates" })
+		).rejects.toThrow(/can only be set while community features are on/);
+	});
+
+	it("sends the configured updates channel with the community edit even when it matched at the first look", async () => {
+		const { notifs, calls } = makeProvisioner([
+			guild({ features: [], public_updates_channel_id: "2003" }), // matches now...
+			chans,
+			guild({ features: [], public_updates_channel_id: "2003" }),
+			guild({ features: ["COMMUNITY"], public_updates_channel_id: "2003" }),
+		]);
+		expect(await notifs.ensureServer({ community: true, updatesChannel: "community-updates" })).toEqual({
+			updated: ["community"],
+		});
+		// ...but an admin may change it before the edit, so the edit carries it
+		expect(calls[3]?.body).toEqual({ features: ["COMMUNITY"], public_updates_channel_id: "2003" });
+	});
+
+	it("fails when the server keeps a different updates channel than the one sent, even if it matched before", async () => {
+		const { notifs } = makeProvisioner([
+			guild({ features: [], public_updates_channel_id: "2003" }),
+			chans,
+			guild({ features: [] }),
+			guild({ features: ["COMMUNITY"], public_updates_channel_id: "9999" }),
+		]);
+		await expect(notifs.ensureServer({ community: true, updatesChannel: "community-updates" })).rejects.toThrow(
+			/did not keep community-updates as its updates channel/
+		);
+	});
+
 	it("sends nothing when the server already matches", async () => {
 		const { notifs, calls } = makeProvisioner([guild(after), chans]);
 		expect(await notifs.ensureServer(settings)).toEqual({ updated: [] });
@@ -1674,6 +1712,13 @@ describe("DiscordNotifications.validateLayout — server", () => {
 			notifs.validateLayout({ server: { community: true, verification: "low", contentFilter: "all" } })
 		).toBeUndefined();
 		expect(notifs.validateLayout({ server: { verification: "none" } })).toBeUndefined();
+	});
+
+	it("refuses an updates channel together with community: false", () => {
+		expect(notifs.validateLayout({ server: { community: false, updatesChannel: "u" } })).toMatch(
+			/`updatesChannel` can only be set while community features are on/
+		);
+		expect(notifs.validateLayout({ server: { updatesChannel: "u" } })).toBeUndefined();
 	});
 
 	it("explains what community features need", () => {

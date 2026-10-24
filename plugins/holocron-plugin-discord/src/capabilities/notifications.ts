@@ -476,8 +476,17 @@ export class DiscordNotifications implements Notifications {
 		const features = guild.features ?? [];
 		const community = features.includes("COMMUNITY");
 		const toggleCommunity = settings.community !== undefined && settings.community !== community;
-		const updatesWithCommunity = updatesChanged && toggleCommunity && settings.community === true;
+		// Sent with the community edit whenever community is being turned on and a channel is configured, even if it
+		// matched when we first looked: an admin may have changed it since, and the edit is what makes it stick.
+		const updatesWithCommunity = updatesId !== undefined && toggleCommunity && settings.community === true;
+		const communityAfter = toggleCommunity ? settings.community === true : community;
 		if (updatesChanged && !updatesWithCommunity) {
+			// Refused by Discord while community is off, whatever the channel: say so before applying anything.
+			if (!communityAfter) {
+				throw new Error(
+					`\`updatesChannel\` can only be set while community features are on, but they are off and the layout does not turn them on -- add \`community: true\` or remove \`updatesChannel\``
+				);
+			}
 			patch.public_updates_channel_id = updatesId;
 			updated.push("updatesChannel");
 		}
@@ -543,7 +552,7 @@ export class DiscordNotifications implements Notifications {
 					`${appliedPrefix(updated)}turned community on, but the server did not keep ${settings.updatesChannel} as its updates channel`
 				);
 			}
-			if (updatesWithCommunity) updated.push("updatesChannel");
+			if (updatesWithCommunity && updatesChanged) updated.push("updatesChannel");
 			updated.push("community");
 		};
 		// Turning community off first: Discord refuses a verification below low or a content filter below
@@ -569,6 +578,9 @@ export class DiscordNotifications implements Notifications {
 			if (value !== undefined && !Object.hasOwn(map, value)) {
 				return `server: \`${field}\` is ${JSON.stringify(value)}; use one of ${Object.keys(map).join(", ")}`;
 			}
+		}
+		if (server?.community === false && server.updatesChannel !== undefined) {
+			return "server: `updatesChannel` can only be set while community features are on; remove it or set `community: true`";
 		}
 		if (server?.locale !== undefined && !LOCALES.has(server.locale)) {
 			return `server: \`locale\` ${JSON.stringify(server.locale)} is not a locale Discord accepts (for example en-US, en-GB, de, fr)`;
