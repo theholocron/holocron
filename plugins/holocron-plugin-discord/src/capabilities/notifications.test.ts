@@ -2784,7 +2784,9 @@ describe("DiscordNotifications.ensureApplication", () => {
 			/only allows an install link on a public application, and this one is private.*Remove `install`/
 		);
 		const other = makeProvisioner([app({ install_params: undefined }), { status: 500, body: {} }]);
-		await expect(other.notifs.ensureApplication(wanted)).rejects.toThrow(/500/);
+		const err = await other.notifs.ensureApplication(wanted).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
 	});
 
 	it("tells tags apart by their items, and compares scopes by their exact case", async () => {
