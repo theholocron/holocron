@@ -466,18 +466,30 @@ export class DiscordNotifications implements Notifications {
 			settings.rulesChannel && idOf(settings.rulesChannel),
 			guild.rules_channel_id
 		);
-		set(
-			"updatesChannel",
-			"public_updates_channel_id",
-			settings.updatesChannel && idOf(settings.updatesChannel),
-			guild.public_updates_channel_id
-		);
+		// Discord refuses to set the updates channel on its own while community is off (even to a channel the bot
+		// can see and post in), so when community is being turned on it travels with that edit, below.
+		const updatesId = settings.updatesChannel ? idOf(settings.updatesChannel) : undefined;
+		const updatesChanged = updatesId !== undefined && updatesId !== guild.public_updates_channel_id;
 		set("description", "description", settings.description, guild.description ?? "");
 		set("locale", "preferred_locale", settings.locale, guild.preferred_locale);
 
 		const features = guild.features ?? [];
 		const community = features.includes("COMMUNITY");
 		const toggleCommunity = settings.community !== undefined && settings.community !== community;
+		// Sent with the community edit whenever community is being turned on and a channel is configured, even if it
+		// matched when we first looked: an admin may have changed it since, and the edit is what makes it stick.
+		const updatesWithCommunity = updatesId !== undefined && toggleCommunity && settings.community === true;
+		const communityAfter = toggleCommunity ? settings.community === true : community;
+		if (updatesChanged && !updatesWithCommunity) {
+			// Refused by Discord while community is off, whatever the channel: say so before applying anything.
+			if (!communityAfter) {
+				throw new Error(
+					`\`updatesChannel\` can only be set while community features are on, but they are off and the layout does not turn them on -- add \`community: true\` or remove \`updatesChannel\``
+				);
+			}
+			patch.public_updates_channel_id = updatesId;
+			updated.push("updatesChannel");
+		}
 
 		// Two requests, because community needs Administrator and one refused field rejects a whole edit:
 		// sent together, a bot without it would apply nothing. The ordinary settings need only Manage Server.
@@ -510,7 +522,10 @@ export class DiscordNotifications implements Notifications {
 				: fresh.filter((f) => f !== "COMMUNITY");
 			let after: Awaited<ReturnType<DiscordBotClient["guilds"]["modify"]>>;
 			try {
-				after = await bot.guilds.modify(this.guild(), { features: wanted });
+				after = await bot.guilds.modify(this.guild(), {
+					features: wanted,
+					...(updatesWithCommunity ? { public_updates_channel_id: updatesId } : {}),
+				});
 			} catch (err) {
 				throw await this.communityHint(err, updated, settings.community === true);
 			}
@@ -532,6 +547,12 @@ export class DiscordNotifications implements Notifications {
 					);
 				}
 			}
+			if (updatesWithCommunity && after.public_updates_channel_id !== updatesId) {
+				throw new Error(
+					`${appliedPrefix(updated)}turned community on, but the server did not keep ${settings.updatesChannel} as its updates channel`
+				);
+			}
+			if (updatesWithCommunity && updatesChanged) updated.push("updatesChannel");
 			updated.push("community");
 		};
 		// Turning community off first: Discord refuses a verification below low or a content filter below
@@ -557,6 +578,9 @@ export class DiscordNotifications implements Notifications {
 			if (value !== undefined && !Object.hasOwn(map, value)) {
 				return `server: \`${field}\` is ${JSON.stringify(value)}; use one of ${Object.keys(map).join(", ")}`;
 			}
+		}
+		if (server?.community === false && server.updatesChannel !== undefined) {
+			return "server: `updatesChannel` can only be set while community features are on; remove it or set `community: true`";
 		}
 		if (server?.locale !== undefined && !LOCALES.has(server.locale)) {
 			return `server: \`locale\` ${JSON.stringify(server.locale)} is not a locale Discord accepts (for example en-US, en-GB, de, fr)`;
