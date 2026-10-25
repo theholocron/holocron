@@ -1337,6 +1337,7 @@ export interface Notifications extends ProviderIdentity {
 		channel: string;
 		name: string;
 		category?: string;
+		/** The message. The provider may format it (Discord renders markdown) and replaces `{channel}` with its link to the channel. */
 		text: string;
 		/** Leave the message in the channel instead of removing it, so a person can see it. */
 		keep?: boolean;

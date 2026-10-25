@@ -257,6 +257,18 @@ describe("DiscordNotifications.checkDelivery", () => {
 		});
 	});
 
+	it("turns {channel} into a mention of the channel itself, both when posting and when looking for a stray", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: { id: "9001" } },
+			{ body: [{ id: "9001", content: "", webhook_id: "7001" }] },
+			{ status: 204, body: {} },
+		]);
+		await notifs.checkDelivery({ ...input, text: "check for {channel}" });
+		expect(calls[2]?.body).toMatchObject({ content: "check for <#2001>" });
+	});
+
 	it("leaves the message in the channel when asked to keep it", async () => {
 		const { notifs, calls } = makeProvisioner([
 			{ body: [text("2001", "sync")] },

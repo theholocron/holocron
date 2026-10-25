@@ -1340,7 +1340,9 @@ describe("runDoctorNotifications — delivery check", () => {
 		const sent = checkDelivery.mock.calls[0]![0];
 		expect(sent).toMatchObject({ channel: "sync", keep: true });
 		expect(sent.text.startsWith("🧪 test: ")).toBe(true);
-		expect(sent.text).toContain("left here on purpose");
+		expect(sent.text).toContain("it is safe to delete");
+		expect(sent.text).toContain("`holocron doctor notifications`");
+		expect(sent.text).toContain("{channel}");
 	});
 
 	it("fails a kept post the provider removed anyway, and a removable post the provider kept", async () => {
@@ -1376,7 +1378,8 @@ describe("runDoctorNotifications — delivery check", () => {
 		]);
 		for (const c of calls) {
 			expect(c.text.startsWith("🧪 test: ")).toBe(true);
-			expect(c.text).toContain("removes itself");
+			expect(c.text).toContain("it removes itself");
+			expect(c.text).toContain("{channel}");
 		}
 	});
 

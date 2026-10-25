@@ -831,9 +831,10 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					channel: channel.name,
 					name: cfg.name ?? channel.name,
 					category: cat.name,
+					// `{channel}` becomes the provider's own link to the channel (a mention, for Discord).
 					text: keep
-						? `🧪 test: holocron doctor delivery check for #${channel.name}. This post was left here on purpose so you can see it; safe to delete.`
-						: `🧪 test: holocron doctor delivery check for #${channel.name}. Safe to ignore; this message removes itself.`,
+						? "🧪 test: `holocron doctor notifications` check for {channel}. This post was a test of the delivery system; it is safe to delete."
+						: "🧪 test: `holocron doctor notifications --deliver` check for {channel}. This post was a test of the delivery system; it removes itself.",
 					...(keep ? { keep: true } : {}),
 				});
 				for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
