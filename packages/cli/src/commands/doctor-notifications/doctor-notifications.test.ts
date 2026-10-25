@@ -78,9 +78,7 @@ function setup(
 		secrets?: boolean;
 		org?: string;
 		builtOnly?: boolean;
-		delivery?: boolean;
-		allChannels?: boolean;
-		keep?: boolean;
+		deliver?: boolean;
 		scope?: { kind: "repo" };
 		fetch?: typeof fetch;
 	} = {}
@@ -120,9 +118,7 @@ function setup(
 				print: (l) => lines.push(l),
 				logger: log,
 				...(opts.builtOnly ? { builtOnly: true } : {}),
-				...(opts.delivery === false ? { delivery: false } : {}),
-				...(opts.allChannels ? { allChannels: true } : {}),
-				...(opts.keep ? { keep: true } : {}),
+				...(opts.deliver ? { deliver: true } : {}),
 				...(opts.scope ? { scope: opts.scope } : {}),
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			}),
@@ -1315,86 +1311,70 @@ describe("runDoctorNotifications — delivery check", () => {
 	const TITLE = "test message delivered through a webhook";
 	const WITH_TEST: NotificationsLayout = { ...LAYOUT, testChannel: "sync" };
 	const ok = { posted: true, readBack: true, removed: true, problems: [] };
+	const kept = { posted: true, readBack: true, removed: false, kept: true, problems: [] };
 	const withTest = (over: Partial<Notifications> = {}) => fakeNotifications({ layout: WITH_TEST, ...over });
+	type Sent = { channel: string; text: string; keep?: boolean };
 
-	it("posts one test message through the test channel by default, and nowhere else", async () => {
+	it("--built-only posts nothing and says so in a note below the steps, which is not a step", async () => {
 		const n = withTest();
-		const report = await setup(n, { builtOnly: true }).run();
-		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "delivered through #sync" });
-		expect(n.checkDelivery).toHaveBeenCalledTimes(1);
-		expect(n.checkDelivery).toHaveBeenCalledWith(
-			expect.objectContaining({ channel: "sync", name: "sync", category: "AUTOMATION" })
-		);
-		const text = vi.mocked(n.checkDelivery!).mock.calls[0]![0].text;
-		expect(text.startsWith("🧪 test: ")).toBe(true);
-		expect(text).toContain("removes itself");
-	});
-
-	it("leaves the message in the test channel with --keep, and says it is a test and was left on purpose", async () => {
-		const checkDelivery = vi.fn(async (_input: { keep?: boolean; text: string }) => ({
-			posted: true,
-			readBack: true,
-			removed: false,
-			kept: true,
-			problems: [],
-		}));
-		const report = await setup(withTest({ checkDelivery }), { builtOnly: true, keep: true }).run();
-		expect(byId(report, "post-works")).toMatchObject({
-			status: "pass",
-			detail: "delivered through #sync (left there)",
-		});
-		const sent = checkDelivery.mock.calls[0]![0];
-		expect(sent.keep).toBe(true);
-		expect(sent.text.startsWith("🧪 test: ")).toBe(true);
-		expect(sent.text).toContain("left here on purpose");
-	});
-
-	it("checks every channel with a webhook with --all-channels, keeping a post only in the test channel", async () => {
-		const checkDelivery = vi.fn(async (i: { keep?: boolean }) =>
-			i.keep ? { ...ok, removed: false, kept: true } : ok
-		);
-		const report = await setup(withTest({ checkDelivery }), {
-			builtOnly: true,
-			allChannels: true,
-			keep: true,
-		}).run();
-		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "2 of 2 delivered" });
-		const calls = checkDelivery.mock.calls.map(([i]) => i as { channel: string; keep?: boolean });
-		expect(calls.map((c) => [c.channel, c.keep ?? false])).toEqual([
-			["alerts", false],
-			["sync", true],
-		]);
-	});
-
-	it("does not post with --no-delivery, and says why in a note below the steps, not as a step", async () => {
-		const n = withTest();
-		const { run, lines } = setup(n, { builtOnly: true, delivery: false });
+		const { run, lines } = setup(n, { builtOnly: true });
 		const report = await run();
 		expect(n.checkDelivery).not.toHaveBeenCalled();
 		expect(report.checks.find((c) => c.title === TITLE)).toBeUndefined();
-		const noteAt = lines.findIndex((l) => l.includes("note: the delivery check was not run"));
+		const noteAt = lines.findIndex((l) => l.includes("note: the delivery check posts test messages"));
 		expect(noteAt).toBeGreaterThan(0);
 		expect(lines[noteAt - 1]).toBe(""); // set apart from the steps above
+		expect(lines[noteAt]).toContain("--deliver");
 		expect(lines.slice(0, noteAt).some((l) => l.includes("delivered through"))).toBe(false);
 		expect(report.summary.skip).toBe(1); // only step 16; the note is not a step
 	});
 
-	it("asks for a test channel when the layout declares none, instead of posting to a real one", async () => {
+	it("a full run leaves one labelled test post in the test channel, and posts nowhere else", async () => {
+		const checkDelivery = vi.fn(async (_input: Sent) => kept);
+		const report = await setup(withTest({ checkDelivery })).run();
+		expect(byId(report, "post-works")).toMatchObject({
+			status: "pass",
+			detail: "delivered through #sync (left there)",
+		});
+		expect(checkDelivery).toHaveBeenCalledTimes(1);
+		const sent = checkDelivery.mock.calls[0]![0];
+		expect(sent).toMatchObject({ channel: "sync", keep: true });
+		expect(sent.text.startsWith("🧪 test: ")).toBe(true);
+		expect(sent.text).toContain("left here on purpose");
+	});
+
+	it("--deliver checks every channel with a webhook and removes each post, even under --built-only", async () => {
+		const checkDelivery = vi.fn(async (_input: Sent) => ok);
+		const report = await setup(withTest({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "2 of 2 delivered" });
+		const calls = checkDelivery.mock.calls.map(([i]) => i);
+		expect(calls.map((c) => [c.channel, c.keep ?? false])).toEqual([
+			["alerts", false],
+			["sync", false],
+		]);
+		for (const c of calls) {
+			expect(c.text.startsWith("🧪 test: ")).toBe(true);
+			expect(c.text).toContain("removes itself");
+		}
+	});
+
+	it("a full run with no test channel declared posts nothing and asks for one in a note", async () => {
 		const n = fakeNotifications();
-		const { run, lines } = setup(n, { builtOnly: true });
-		await run();
+		const { run, lines } = setup(n);
+		const report = await run();
 		expect(n.checkDelivery).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toContain("`testChannel`");
+		expect(report.checks.find((c) => c.title === TITLE)).toBeUndefined();
 	});
 
 	it("names the channel and the step that failed", async () => {
 		const checkDelivery = vi.fn(async () => ({
 			posted: true,
 			readBack: false,
-			removed: true,
+			removed: false,
 			problems: ["the post was accepted but is not in the channel"],
 		}));
-		const report = await setup(withTest({ checkDelivery }), { builtOnly: true }).run();
+		const report = await setup(withTest({ checkDelivery })).run();
 		const step = byId(report, "post-works");
 		expect(step.status).toBe("fail");
 		expect(step.problems).toEqual(["#sync: the post was accepted but is not in the channel"]);
@@ -1402,13 +1382,13 @@ describe("runDoctorNotifications — delivery check", () => {
 
 	it("fails a check that came back incomplete without saying why", async () => {
 		const checkDelivery = vi.fn(async () => ({ posted: true, readBack: false, removed: true, problems: [] }));
-		const report = await setup(withTest({ checkDelivery }), { builtOnly: true }).run();
+		const report = await setup(withTest({ checkDelivery })).run();
 		expect(byId(report, "post-works").problems[0]).toContain("did not complete");
 	});
 
 	it("records a provider error against its channel and carries on with the rest", async () => {
 		const checkDelivery = vi.fn().mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce(ok);
-		const report = await setup(withTest({ checkDelivery }), { builtOnly: true, allChannels: true }).run();
+		const report = await setup(withTest({ checkDelivery }), { builtOnly: true, deliver: true }).run();
 		expect(checkDelivery).toHaveBeenCalledTimes(2);
 		expect(byId(report, "post-works").problems).toEqual(["#alerts: boom"]);
 	});
@@ -1418,12 +1398,12 @@ describe("runDoctorNotifications — delivery check", () => {
 			categories: [{ name: "A", channels: [{ name: "x" }] }],
 			testChannel: "x",
 		};
-		const report = await setup(fakeNotifications({ layout, checkDelivery: undefined }), { builtOnly: true }).run();
+		const report = await setup(fakeNotifications({ layout, checkDelivery: undefined })).run();
 		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "none declared" });
 	});
 
 	it("fails when the provider cannot check delivery", async () => {
-		const report = await setup(withTest({ checkDelivery: undefined }), { builtOnly: true }).run();
+		const report = await setup(withTest({ checkDelivery: undefined })).run();
 		expect(byId(report, "post-works").detail).toContain("cannot check delivery");
 	});
 });

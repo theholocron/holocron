@@ -95,30 +95,15 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	{
 		name: "doctor notifications",
 		description:
-			"Check the layout against the server and the secrets store, step by step (posts one self-removing test message to the test channel unless --no-delivery)",
+			"Check the layout against the server and the secrets store, step by step (a full run leaves one test post in the test channel; --built-only posts nothing unless --deliver)",
 		positionals: [],
 		options: [
 			{
-				key: "delivery",
-				flag: "--delivery",
-				type: "confirm",
-				default: true,
-				negatable: true,
-				message: "Post one test message through the layout's test channel (it removes itself)? (on by default)",
-			},
-			{
-				key: "allChannels",
-				flag: "--all-channels",
+				key: "deliver",
+				flag: "--deliver",
 				type: "confirm",
 				default: false,
-				message: "Run the delivery check through every channel with a webhook, not only the test channel?",
-			},
-			{
-				key: "keep",
-				flag: "--keep",
-				type: "confirm",
-				default: false,
-				message: "Leave the test message in the test channel to see it?",
+				message: "Post a test message through every channel's webhook (each removes itself)?",
 			},
 		],
 		supportsDryRun: false,

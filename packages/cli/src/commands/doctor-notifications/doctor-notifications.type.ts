@@ -27,14 +27,10 @@ export interface RunDoctorNotificationsInput {
 	/** Report only the checks that exist; leave out the not-built ones (for use as a routine drift check). */
 	builtOnly?: boolean;
 	/**
-	 * Post the labelled test message through the layout's `testChannel` (default on; `false` skips it and
-	 * leaves the doctor read-only).
+	 * Post a labelled test message through every channel that declares a webhook and remove each one again.
+	 * Without it, a full run leaves one test post in the layout's `testChannel`, and `builtOnly` posts nothing.
 	 */
-	delivery?: boolean;
-	/** Also check every channel that declares a webhook, not only the test channel. */
-	allChannels?: boolean;
-	/** Leave the test message in the test channel instead of removing it. */
-	keep?: boolean;
+	deliver?: boolean;
 	/** Test seam for the check that asks the hosted sign-in service whether it is up. */
 	fetch?: typeof fetch;
 	loader?: PluginLoader;

@@ -1149,8 +1149,8 @@ export interface NotificationsLinksLayout {
 export interface NotificationsLayout {
 	/**
 	 * The channel set aside for test posts, by name. It must declare a webhook. `holocron doctor notifications`
-	 * posts one labelled test message through it, reads it back and removes it, which is its proof that
-	 * delivery works; `--keep` leaves the message there to look at.
+	 * leaves one labelled test message there through its webhook (read back to prove delivery works) for a
+	 * person to look at; the real channels are never given one unless `--deliver` posts and removes it.
 	 */
 	testChannel?: string;
 	/** Where `sync-roles` finds which server member is which GitHub account. Only used by roles with a `team`. */

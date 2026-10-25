@@ -789,15 +789,25 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		(cat.channels ?? []).filter((c) => c.webhook).map((channel) => ({ cat, channel }))
 	);
 	const testName = layout.testChannel;
-	const targets = input.allChannels
-		? withHook
-		: withHook.filter(({ channel }) => testName !== undefined && same(channel.name, testName));
+	// Which channels get a test post: every one with `--deliver` (each post removed); otherwise, outside
+	// `--built-only`, just the test channel (its post left there to look at); under `--built-only`, none.
+	const mode: "all" | "test" | "none" = input.deliver
+		? "all"
+		: !input.builtOnly && testName !== undefined
+			? "test"
+			: "none";
+	const targets =
+		mode === "all"
+			? withHook
+			: mode === "test"
+				? withHook.filter(({ channel }) => same(channel.name, testName!))
+				: [];
 	let deliveryNote: string | undefined;
-	if (input.delivery === false) {
-		deliveryNote = "the delivery check was not run (--no-delivery)";
-	} else if (!input.allChannels && testName === undefined) {
+	if (mode === "none") {
 		deliveryNote =
-			"the delivery check needs a test channel: name one in the layout's `testChannel` (a channel with a webhook)";
+			!input.builtOnly && testName === undefined
+				? "the delivery check needs a test channel: name one in the layout's `testChannel` (a channel with a webhook)"
+				: "the delivery check posts test messages, so --built-only skips it; add --deliver to post to every channel";
 	} else if (targets.length === 0) {
 		checks.push({
 			id: "post-works",
@@ -813,8 +823,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		const problems: string[] = [];
 		for (const { cat, channel } of targets) {
 			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
-			// Only the test channel is ever kept: the real channels are never left with a test post in them.
-			const keep = input.keep === true && testName !== undefined && same(channel.name, testName);
+			// Only the test channel's post is ever left behind: the real channels are never given one.
+			const keep = mode === "test";
 			try {
 				const result = await notifications.checkDelivery({
 					channel: channel.name,
@@ -840,9 +850,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			"post-works",
 			DELIVERY_TITLE,
 			problems,
-			input.allChannels
+			mode === "all"
 				? `${targets.length} of ${targets.length} delivered`
-				: `delivered through #${shown(targets[0]!.channel.name)}${input.keep ? " (left there)" : ""}`
+				: `delivered through #${shown(targets[0]!.channel.name)} (left there)`
 		);
 	}
 
