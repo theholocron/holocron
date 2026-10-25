@@ -791,8 +791,6 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	);
 	if (!input.deliver) {
 		deliverSkipped = true;
-	} else if (!notifications.checkDelivery) {
-		failed("post-works", DELIVERY_TITLE, `the \`${notifications.providerName}\` provider cannot check delivery`);
 	} else if (withHook.length === 0) {
 		checks.push({
 			id: "post-works",
@@ -802,19 +800,25 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			problems: [],
 			step: 15,
 		});
+	} else if (!notifications.checkDelivery) {
+		failed("post-works", DELIVERY_TITLE, `the \`${notifications.providerName}\` provider cannot check delivery`);
 	} else {
 		const problems: string[] = [];
 		for (const { cat, channel } of withHook) {
 			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
-			const result = await notifications.checkDelivery({
-				channel: channel.name,
-				name: cfg.name ?? channel.name,
-				category: cat.name,
-				text: `holocron doctor delivery check for #${channel.name}: safe to ignore, this message removes itself`,
-			});
-			for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
-			if (result.problems.length === 0 && !(result.posted && result.readBack && result.removed)) {
-				problems.push(`#${shown(channel.name)}: the check did not complete`);
+			try {
+				const result = await notifications.checkDelivery({
+					channel: channel.name,
+					name: cfg.name ?? channel.name,
+					category: cat.name,
+					text: `holocron doctor delivery check for #${channel.name}: safe to ignore, this message removes itself`,
+				});
+				for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
+				if (result.problems.length === 0 && !(result.posted && result.readBack && result.removed)) {
+					problems.push(`#${shown(channel.name)}: the check did not complete`);
+				}
+			} catch (err) {
+				problems.push(`#${shown(channel.name)}: ${shown(describeProviderError(err))}`);
 			}
 		}
 		add("post-works", DELIVERY_TITLE, problems, `${withHook.length} of ${withHook.length} delivered`);

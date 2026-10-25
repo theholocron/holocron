@@ -3,7 +3,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { ChannelType, createDiscordBotClient, createDiscordClient, permissions } from "../rest.js";
-import { DiscordNotifications } from "./notifications.js";
+import { DiscordNotifications, type DiscordNotificationsOptions } from "./notifications.js";
 
 const BASE = "https://discord.test/api/v10";
 const WEBHOOK = "https://discord.com/api/webhooks/111/abc123";
@@ -91,7 +91,10 @@ describe("DiscordNotifications.send — defaultChannel", () => {
 
 const GUILD = "1303969001822486568";
 
-function makeProvisioner(responses: Parameters<typeof stubFetch>[0], opts: { guildId?: string } = { guildId: GUILD }) {
+function makeProvisioner(
+	responses: Parameters<typeof stubFetch>[0],
+	opts: DiscordNotificationsOptions = { guildId: GUILD }
+) {
 	const { fetch, calls } = stubFetch(responses);
 	const bot = createDiscordBotClient({ botToken: "bot-tok", baseUrl: BASE, fetch });
 	const client = createDiscordClient({ baseUrl: BASE, fetch });
@@ -251,6 +254,88 @@ describe("DiscordNotifications.checkDelivery", () => {
 			posted: true,
 			readBack: true,
 			removed: true,
+		});
+	});
+
+	it("never falls back to a same-named channel outside the configured category", async () => {
+		const elsewhere = makeProvisioner([{ body: [category("1001", "AUTOMATION"), text("2999", "sync", "1002")] }]);
+		expect((await elsewhere.notifs.checkDelivery({ ...input, category: "AUTOMATION" })).problems[0]).toContain(
+			"no channel named `sync` under `AUTOMATION`"
+		);
+		const noCategory = makeProvisioner([{ body: [text("2001", "sync")] }]);
+		expect((await noCategory.notifs.checkDelivery({ ...input, category: "AUTOMATION" })).problems[0]).toContain(
+			"no category named `AUTOMATION`"
+		);
+		// With both present, the one under the category is used (the other, in 1002, is never asked for webhooks).
+		const both = makeProvisioner([
+			{ body: [category("1001", "AUTOMATION"), text("2999", "sync", "1002"), text("2001", "sync", "1001")] },
+			{ body: [hook] },
+			{ body: { id: "m1" } },
+			{ body: [{ id: "m1", content: "ping" }] },
+			{ status: 204, body: {} },
+		]);
+		await both.notifs.checkDelivery({ ...input, category: "AUTOMATION" });
+		expect(both.calls[1]?.url).toContain("/channels/2001/webhooks");
+	});
+
+	it("uses a same-named webhook it can read when an earlier one belongs to another application", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [{ ...hook, id: "8000", token: undefined }, hook] },
+			{ body: { id: "m1" } },
+			{ body: [{ id: "m1", content: "ping" }] },
+			{ status: 204, body: {} },
+		]);
+		expect((await notifs.checkDelivery(input)).removed).toBe(true);
+		expect(calls[2]?.url).toContain("/webhooks/7001/tk");
+	});
+
+	it("does not send a webhook token to a custom host unless that was opted in", async () => {
+		const guarded = makeProvisioner([{ body: [] }], { guildId: GUILD, baseUrl: "https://evil.test" });
+		expect((await guarded.notifs.checkDelivery(input)).problems[0]).toContain("custom `baseUrl`");
+		expect(guarded.calls).toHaveLength(0);
+		const allowed = makeProvisioner([{ body: [] }], { guildId: GUILD, baseUrl: BASE, unsafeBotBaseUrl: true });
+		expect((await allowed.notifs.checkDelivery(input)).problems[0]).toContain("no channel named");
+	});
+
+	it("returns a problem when the bot client cannot be built", async () => {
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE }),
+			{ guildId: GUILD },
+			() => WEBHOOK,
+			() => {
+				throw new Error("no Discord bot token found");
+			}
+		);
+		expect((await notifs.checkDelivery(input)).problems).toEqual(["no Discord bot token found"]);
+	});
+
+	it("removes a post whose response was lost, and still reports the failure", async () => {
+		const { fetch: inner, calls } = stubFetch([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: [{ id: "9001", content: "ping", webhook_id: "7001" }] },
+			{ status: 204, body: {} },
+		]);
+		// The webhook post is accepted by Discord but the response never makes it back.
+		const lossy = (async (url: string, init?: RequestInit) => {
+			if (String(url).includes("/webhooks/7001/tk")) throw new TypeError("socket hang up");
+			return inner(url, init);
+		}) as unknown as typeof fetch;
+		const bot = createDiscordBotClient({ botToken: "bot-tok", baseUrl: BASE, fetch: lossy });
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE, fetch: lossy }),
+			{ guildId: GUILD },
+			() => WEBHOOK,
+			() => bot
+		);
+		const r = await notifs.checkDelivery(input);
+		expect(r.posted).toBe(false);
+		expect(r.problems.join(" ")).toContain("the post was refused");
+		expect(r.problems.join(" ")).toContain("9001 had been posted, and was removed");
+		expect(calls[3]).toMatchObject({
+			method: "DELETE",
+			url: expect.stringContaining("/channels/2001/messages/9001"),
 		});
 	});
 

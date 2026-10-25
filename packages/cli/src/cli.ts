@@ -339,7 +339,7 @@ try {
 					})
 					.command(
 						"notifications",
-						"Check the layout against the server and the secrets store, step by step (read-only)",
+						"Check the layout against the server and the secrets store, step by step (read-only unless --deliver posts test messages)",
 						(y) =>
 							y
 								.option("scope", {

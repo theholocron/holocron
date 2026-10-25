@@ -1325,9 +1325,11 @@ describe("runDoctorNotifications — delivery check", () => {
 		const report = await setup(n, { builtOnly: true, deliver: true }).run();
 		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "2 of 2 delivered" });
 		expect(n.checkDelivery).toHaveBeenCalledTimes(2);
-		expect(n.checkDelivery).toHaveBeenCalledWith(
-			expect.objectContaining({ channel: "alerts", name: "alerts", category: "ALERTS" })
-		);
+		const asked = vi.mocked(n.checkDelivery!).mock.calls.map(([c]) => [c.channel, c.name, c.category]);
+		expect(asked).toEqual([
+			["alerts", "alerts", "ALERTS"],
+			["sync", "sync", "AUTOMATION"],
+		]);
 	});
 
 	it("names the channel and the step that failed", async () => {
@@ -1350,6 +1352,25 @@ describe("runDoctorNotifications — delivery check", () => {
 		const checkDelivery = vi.fn(async () => ({ posted: true, readBack: false, removed: true, problems: [] }));
 		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
 		expect(byId(report, "post-works").problems[0]).toContain("did not complete");
+	});
+
+	it("records a provider error against its channel and carries on with the rest", async () => {
+		const checkDelivery = vi
+			.fn()
+			.mockRejectedValueOnce(new Error("boom"))
+			.mockResolvedValueOnce({ posted: true, readBack: true, removed: true, problems: [] });
+		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		expect(checkDelivery).toHaveBeenCalledTimes(2);
+		expect(byId(report, "post-works").problems).toEqual(["#alerts: boom"]);
+	});
+
+	it("reports none declared before asking whether the provider can check delivery", async () => {
+		const bare = fakeNotifications({
+			layout: { categories: [{ name: "A", channels: [{ name: "x" }] }] },
+			checkDelivery: undefined,
+		});
+		const report = await setup(bare, { builtOnly: true, deliver: true }).run();
+		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "none declared" });
 	});
 
 	it("fails when the provider cannot check delivery, and passes when no channel has a webhook", async () => {

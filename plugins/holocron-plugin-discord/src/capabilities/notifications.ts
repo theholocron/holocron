@@ -226,6 +226,9 @@ export interface DiscordNotificationsOptions {
 	guildId?: string;
 	/** The server layout `notifications setup` applies. */
 	layout?: NotificationsLayout;
+	/** A custom API host, for tests. Webhook tokens are only sent to it when `unsafeBotBaseUrl` is also set. */
+	baseUrl?: string;
+	unsafeBotBaseUrl?: boolean;
 }
 
 let idCounter = 0;
@@ -1525,40 +1528,69 @@ export class DiscordNotifications implements Notifications {
 		text: string;
 	}): Promise<NotificationsDelivery> {
 		const result: NotificationsDelivery = { posted: false, readBack: false, removed: false, problems: [] };
-		const bot = this.bot();
+		const fail = (problem: string): NotificationsDelivery => ({ ...result, problems: [problem] });
+		// The webhook token comes from Discord's own API, so it must only go back to Discord. A custom `baseUrl`
+		// is for tests; it gets the token only when the operator also opted in to sending the bot token there.
+		if (this.opts.baseUrl && !this.opts.unsafeBotBaseUrl) {
+			return fail(
+				"refusing to send a webhook token to a custom `baseUrl`; remove it, or set `unsafeBotBaseUrl` for a test server"
+			);
+		}
+		let bot: DiscordBotClient;
 		let hook: { id: string; token: string; channelId: string };
 		try {
-			const parent = input.category
-				? (await this.channelList()).find(
-						(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, input.category!)
-					)?.id
-				: undefined;
-			const channel = DiscordNotifications.findChannel(await this.channelList(), input.channel, parent);
-			if (!channel) return { ...result, problems: [`no channel named \`${input.channel}\``] };
-			const found = (await bot.channels.webhooks(channel.id)).find((w) =>
+			bot = this.bot();
+			const channels = await this.channelList();
+			let parent: string | undefined;
+			if (input.category) {
+				parent = channels.find(
+					(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, input.category!)
+				)?.id;
+				if (!parent) return fail(`no category named \`${input.category}\``);
+			}
+			// With a category the channel must be under it: a same-named channel elsewhere is not this one.
+			const channel = DiscordNotifications.findChannel(channels, input.channel, parent);
+			if (!channel || (parent && channel.parent_id !== parent)) {
+				return fail(
+					`no channel named \`${input.channel}\`${input.category ? ` under \`${input.category}\`` : ""}`
+				);
+			}
+			const named = (await bot.channels.webhooks(channel.id)).filter((w) =>
 				DiscordNotifications.same(w.name ?? "", input.name)
 			);
-			if (!found) return { ...result, problems: [`no webhook named \`${input.name}\``] };
-			// Discord only hands the token to the application that created the webhook.
-			if (!found.token) {
-				return {
-					...result,
-					problems: [`webhook \`${input.name}\` was not created by this bot, so its token is hidden`],
-				};
+			if (named.length === 0) return fail(`no webhook named \`${input.name}\``);
+			// Discord only hands the token to the application that created the webhook; use one that did.
+			const usable = named.find((w) => w.token);
+			if (!usable?.token) {
+				return fail(`webhook \`${input.name}\` was not created by this bot, so its token is hidden`);
 			}
-			hook = { id: found.id, token: found.token, channelId: channel.id };
+			hook = { id: usable.id, token: usable.token, channelId: channel.id };
 		} catch (err) {
-			return { ...result, problems: [reason(err)] };
+			return fail(reason(err));
 		}
 		let messageId: string;
 		try {
 			messageId = (await this.client.webhooks.executeAndWait(hook.id, hook.token, input.text)).id;
 			result.posted = true;
 		} catch (err) {
-			return { ...result, problems: [`the post was refused (${reason(err)})`] };
+			result.problems.push(`the post was refused (${reason(err)})`);
+			// A lost response can still leave the message behind: look for it, and take it away if it is there.
+			try {
+				const stray = (await bot.channels.messages(hook.channelId, 100)).find(
+					(m) => m.webhook_id === hook.id && m.content === input.text
+				);
+				if (stray) {
+					await bot.channels.deleteMessage(hook.channelId, stray.id);
+					result.problems.push(`the test message ${stray.id} had been posted, and was removed`);
+				}
+			} catch {
+				// Nothing more can be done; the refusal above is the finding.
+			}
+			return result;
 		}
 		try {
-			const seen = await bot.channels.messages(hook.channelId, 25);
+			// A busy channel can push the post out of a short window; ask for the most Discord allows.
+			const seen = await bot.channels.messages(hook.channelId, 100);
 			result.readBack = seen.some((m) => m.id === messageId && m.content === input.text);
 			if (!result.readBack) result.problems.push("the post was accepted but is not in the channel");
 		} catch (err) {
