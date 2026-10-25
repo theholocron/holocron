@@ -102,6 +102,7 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 	)) {
 		counts.set(name, (counts.get(name) ?? 0) + 1);
 	}
+	const declared = (layout.categories ?? []).flatMap((c) => c.channels ?? []);
 	const roles = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
 	const channel = (where: string, name: string): string | undefined => {
 		const count = counts.get(name.toLowerCase()) ?? 0;
@@ -113,8 +114,8 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 	if (layout.testChannel !== undefined) {
 		const problem = channel("`testChannel`", layout.testChannel);
 		if (problem) return problem;
-		const hasWebhook = (layout.categories ?? []).some((c) =>
-			(c.channels ?? []).some((ch) => ch.name.toLowerCase() === layout.testChannel!.toLowerCase() && ch.webhook)
+		const hasWebhook = declared.some(
+			(ch) => ch.name.toLowerCase() === layout.testChannel!.toLowerCase() && ch.webhook
 		);
 		if (!hasWebhook) return `\`testChannel\` names \`${layout.testChannel}\`, which declares no webhook`;
 	}
