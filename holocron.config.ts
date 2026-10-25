@@ -121,8 +121,9 @@ export default defineConfig({
 				layout: {
 					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 					webhookAvatar: "media/webhook-avatar.png",
-					// Keep ordinary members from pinging the whole server.
-					everyone: { deny: ["MentionEveryone"] },
+					// Keep ordinary members from pinging the whole server, and from adding emoji, stickers, sounds or
+					// events (the permissions Discord's "disable risky permissions for @everyone" prompt flags).
+					everyone: { deny: ["MentionEveryone", "CreateGuildExpressions", "CreateEvents"] },
 					// The bot's own page in the developer portal. These match what is set there today. There is no
 					// `install`: Discord only allows an install link on a public bot, and this one is private.
 					application: {
