@@ -6,8 +6,10 @@ import {
 	type NotificationsApplicationLayout,
 	type NotificationsEveryoneLayout,
 	type NotificationsLayout,
+	type NotificationsMember,
 	type NotificationsOnboardingLayout,
 	type NotificationsServerLayout,
+	type NotificationsSignIn,
 	type NotificationsWelcomeLayout,
 	ProviderApiError,
 	type ServerInspection,
@@ -15,11 +17,14 @@ import {
 import { errorMessage } from "@theholocron/misc-utils";
 
 import {
+	ApplicationFlag,
 	ChannelType,
 	type DiscordBotClient,
 	type DiscordChannel,
 	type DiscordClient,
+	type DiscordOAuthClient,
 	type DiscordPermissionOverwrite,
+	findVerifiedConnection,
 	type ModifyApplicationInput,
 	type ModifyGuildInput,
 	type ModifyRoleInput,
@@ -238,8 +243,42 @@ export class DiscordNotifications implements Notifications {
 		/** Memoized thunk — resolves the bot token on first provisioning call, never on `send()`. */
 		private readonly bot: () => DiscordBotClient = () => {
 			throw new Error("no Discord bot client configured");
+		},
+		/** Builds the OAuth client for one redirect URI; needs the application's client secret. */
+		private readonly oauth: (redirectUri: string) => Promise<DiscordOAuthClient> = () => {
+			throw new Error("no Discord OAuth client configured");
 		}
 	) {}
+
+	/**
+	 * Sign a member in with Discord to learn which GitHub account they own. Asks only for `identify` and
+	 * `connections`, reads the account Discord has verified, and revokes the token before returning: nothing
+	 * about the sign-in is kept.
+	 */
+	signIn(): NotificationsSignIn {
+		return {
+			authorizeUrl: async ({ redirectUri, state }) => (await this.oauth(redirectUri)).authorizeUrl({ state }),
+			complete: async ({ redirectUri, code }) => {
+				const client = await this.oauth(redirectUri);
+				const token = await client.exchangeCode(code);
+				try {
+					const [user, connections] = await Promise.all([
+						client.user(token.access_token),
+						client.connections(token.access_token),
+					]);
+					const github = findVerifiedConnection(connections, "github");
+					return {
+						member: user.id,
+						name: user.global_name ?? user.username,
+						...(github ? { github: { id: github.id, login: github.name } } : {}),
+					};
+				} finally {
+					// Best effort: a failed revoke must not hide who signed in, and the token expires on its own.
+					await client.revoke(token.access_token).catch(() => {});
+				}
+			},
+		};
+	}
 
 	get layout(): NotificationsLayout | undefined {
 		return this.opts.layout;
@@ -428,6 +467,8 @@ export class DiscordNotifications implements Notifications {
 					...(app.role_connections_verification_url
 						? { roleConnectionsUrl: app.role_connections_verification_url }
 						: {}),
+					intents: { members: DiscordNotifications.membersIntentOn(app.flags ?? 0) },
+					redirectUris: app.redirect_uris ?? [],
 				};
 			} catch (err) {
 				applicationError = reason(err);
@@ -970,7 +1011,7 @@ export class DiscordNotifications implements Notifications {
 		return { updated };
 	}
 
-	async ensureApplication(app: NotificationsApplicationLayout): Promise<{ updated: string[] }> {
+	async ensureApplication(app: NotificationsApplicationLayout): Promise<{ updated: string[]; todo?: string[] }> {
 		const bot = this.bot();
 		const current = await bot.application.get();
 		// Tags and permission names are compared ignoring case; scopes are exact identifiers. Lists, not joined text.
@@ -1011,7 +1052,22 @@ export class DiscordNotifications implements Notifications {
 				updated.push(field);
 			}
 		}
-		if (updated.length === 0) return { updated };
+		const flagsNow = current.flags ?? 0;
+		const membersWanted = app.intents?.members;
+		if (membersWanted !== undefined && membersWanted !== DiscordNotifications.membersIntentOn(flagsNow)) {
+			// The `Limited` bit is the portal toggle of an unverified app; a verified app's plain bit is Discord's to change.
+			body.flags = membersWanted
+				? flagsNow | ApplicationFlag.GatewayGuildMembersLimited
+				: flagsNow & ~ApplicationFlag.GatewayGuildMembersLimited;
+			updated.push("intents");
+		}
+		// The API accepts a write to the redirect URIs and ignores it, so they can only be reported.
+		const missing = (app.redirectUris ?? []).filter((uri) => !(current.redirect_uris ?? []).includes(uri));
+		const todo = missing.map(
+			(uri) =>
+				`add ${uri} under OAuth2 → Redirects in the Discord developer portal (the API does not allow setting it)`
+		);
+		if (updated.length === 0) return { updated, ...(todo.length ? { todo } : {}) };
 
 		let after: Awaited<ReturnType<DiscordBotClient["application"]["modify"]>>;
 		try {
@@ -1035,6 +1091,8 @@ export class DiscordNotifications implements Notifications {
 		const stuck = updated.filter((name) => {
 			if (name === "description") return (after.description ?? "") !== app.description;
 			if (name === "tags") return set(after.tags ?? []) !== set(app.tags!);
+			if (name === "intents")
+				return DiscordNotifications.membersIntentOn(after.flags ?? 0) !== app.intents!.members;
 			if (name === "install") {
 				return (
 					!after.install_params ||
@@ -1051,7 +1109,12 @@ export class DiscordNotifications implements Notifications {
 					"it may not accept that field from a bot, so set it in the developer portal"
 			);
 		}
-		return { updated };
+		return { updated, ...(todo.length ? { todo } : {}) };
+	}
+
+	/** Whether the Server Members Intent is on: the unverified app's toggle, or the verified app's own bit. */
+	private static membersIntentOn(flags: number): boolean {
+		return (flags & (ApplicationFlag.GatewayGuildMembers | ApplicationFlag.GatewayGuildMembersLimited)) !== 0;
 	}
 
 	validateLayout(layout: NotificationsLayout): string | undefined {
@@ -1064,6 +1127,12 @@ export class DiscordNotifications implements Notifications {
 				if (app.tags.length > 5) return `application: ${app.tags.length} tags; Discord allows up to 5`;
 				const long = app.tags.find((t) => t.length > 20);
 				if (long !== undefined) return `application: the tag ${JSON.stringify(long)} is over 20 characters`;
+			}
+			const badRedirect = (app.redirectUris ?? []).find(
+				(u) => !/^https:\/\/|^http:\/\/localhost(:\d+)?\//.test(u)
+			);
+			if (badRedirect !== undefined) {
+				return `application: \`redirectUris\` ${JSON.stringify(badRedirect)} must start with https:// (or http://localhost for a local sign-in)`;
 			}
 			for (const [field, url] of [
 				["termsUrl", app.termsUrl],
@@ -1446,6 +1515,47 @@ export class DiscordNotifications implements Notifications {
 			}
 		}
 		return result;
+	}
+
+	/** The one role with this name, or an error that says what to fix: none, or more than one. */
+	private async roleNamed(name: string): Promise<{ id: string; name: string }> {
+		const matches = (await this.bot().guilds.roles(this.guild())).filter((r) =>
+			DiscordNotifications.same(r.name, name)
+		);
+		if (matches.length === 0)
+			throw new Error(`no role named \`${name}\` — run \`holocron notifications setup\` to create it`);
+		if (matches.length > 1) {
+			throw new Error(
+				`${matches.length} roles are named \`${name}\` (ids ${matches.map((r) => r.id).join(", ")}) — delete or rename the extras so it is clear which one to manage`
+			);
+		}
+		return matches[0]!;
+	}
+
+	async roleMembers(roleName: string): Promise<NotificationsMember[]> {
+		const role = await this.roleNamed(roleName);
+		try {
+			const members = await this.bot().guilds.membersWithRole(this.guild(), role.id);
+			return members.flatMap((m) =>
+				m.user ? [{ id: m.user.id, ...(m.user.username ? { name: m.user.username } : {}) }] : []
+			);
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 403) {
+				throw new Error(
+					"Discord refused to list the server's members: switch on the **Server Members Intent** for the bot in the developer portal (Bot → Privileged Gateway Intents), then run this again",
+					{ cause: err }
+				);
+			}
+			throw err;
+		}
+	}
+
+	async addRoleMember(roleName: string, memberId: string): Promise<void> {
+		await this.bot().guilds.addMemberRole(this.guild(), memberId, (await this.roleNamed(roleName)).id);
+	}
+
+	async removeRoleMember(roleName: string, memberId: string): Promise<void> {
+		await this.bot().guilds.removeMemberRole(this.guild(), memberId, (await this.roleNamed(roleName)).id);
 	}
 
 	async ensureRole(input: {

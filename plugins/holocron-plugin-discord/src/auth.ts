@@ -24,3 +24,14 @@ export const resolveBotToken = createResolveToken({
 		"holocron auth set discord.holonet <token> — it is the bot token from the Discord developer portal " +
 		"(Bot → Reset Token), not a webhook URL.",
 });
+
+// Signing members in (`notifications link`) needs the application's OAuth client secret, a third credential.
+export const resolveClientSecret = createResolveToken({
+	envName: "HOLOCRON_DISCORD_CLIENT_SECRET",
+	vendorEnvName: "DISCORD_CLIENT_SECRET",
+	keyringService: "discord.holonet.oauth",
+	errorMessage:
+		"no Discord client secret found. Set HOLOCRON_DISCORD_CLIENT_SECRET (or DISCORD_CLIENT_SECRET), or run: " +
+		"holocron auth set discord.holonet.oauth <secret> — it is the client secret from the developer portal " +
+		"(OAuth2 → Reset Secret), which the API cannot create or read.",
+});

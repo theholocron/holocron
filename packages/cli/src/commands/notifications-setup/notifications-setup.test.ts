@@ -1240,6 +1240,36 @@ describe("runNotificationsSetup — bot application and everyone", () => {
 			})
 		);
 		expect((await clash.run()).message).toMatch(/everyone: `MentionEveryone` is in both `allow` and `deny`/);
+		const emptyTeam = setup(fakeNotifications({ layout: { roles: [{ name: "gatekeepers", team: " " }] } }));
+		expect((await emptyTeam.run()).message).toMatch(/role `gatekeepers` has an empty `team`/);
+		const twoTeams = setup(
+			fakeNotifications({
+				layout: {
+					roles: [
+						{ name: "g", team: "a" },
+						{ name: "G", team: "b" },
+					],
+				},
+			})
+		);
+		expect((await twoTeams.run()).message).toMatch(/declared for two teams/);
+	});
+
+	it("shows what only a person can do as a failure, and still counts what it changed", async () => {
+		const n = fakeNotifications({
+			layout: { application: { redirectUris: ["http://localhost:53682/callback"] } },
+			ensureApplication: vi.fn(async () => ({
+				updated: [],
+				todo: ["add http://localhost:53682/callback under OAuth2 → Redirects"],
+			})),
+		});
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(report.failures).toEqual([
+			{ step: "bot application", message: "add http://localhost:53682/callback under OAuth2 → Redirects" },
+		]);
+		expect(lines.join("\n")).toContain("bot application: add http://localhost:53682/callback");
 	});
 
 	it("accepts a layout that only allows, or only denies", async () => {

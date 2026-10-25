@@ -1,0 +1,60 @@
+---
+title: "notifications link"
+description: Link your server account to your GitHub account by signing in with the provider.
+---
+
+```bash
+holocron notifications link [--provider <name>] [--dry-run]
+```
+
+Records which server member is which GitHub account, in the links file that [`notifications sync-roles`](/holocron/commands/notifications-sync-roles/) reads. You sign in with the provider; it reports the GitHub account it has **verified** you own, so a link cannot be claimed for someone else's account. Nothing is stored but your two public ids: the token the provider hands over is revoked as soon as it has been read.
+
+```
+  sign-in runs on this machine: https://sentinel.theholocron.dev answered 402 (the plan's quota is used up)
+  if your browser does not open, go to: https://discord.com/oauth2/authorize?…
+  (it must be allowed to come back to http://localhost:53682/callback: add … under OAuth2 → Redirects in the Discord developer portal …)
+  linked luke-gh (github 55) to Luke (333)
+```
+
+## Where the sign-in comes back to
+
+The command asks the hosted service (Sentinel) whether it can serve sign-in, by requesting `<hostedUrl>/api/link`, and then does whichever works:
+
+| Sentinel answers                                         | The sign-in happens                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `200` with `{ "service": "link" }`                       | on Sentinel; the command prints the address to open                       |
+| `402` (the plan's quota), any other status, or no answer | on this machine: a one-shot listener on `http://localhost:53682/callback` |
+| no `hostedUrl` configured                                | on this machine                                                           |
+
+The reason is printed each time, so you can see why. Moving to the hosted service later changes nothing about how you run the command. Configure both in the layout:
+
+```ts
+layout: {
+  links: {
+    hostedUrl: "https://sentinel.theholocron.dev", // optional; asked first
+    localPort: 53682,                              // optional; the local fallback
+    // repo: "theholocron/.github-private", path: "notifications/discord-links.json"
+  },
+}
+```
+
+The local listener binds the loopback address only, accepts only a `/callback` carrying the one-use `state` it handed out, and stops after the first good answer or five minutes.
+
+## One-time setup (the API cannot do these)
+
+1. **Add the redirect.** In the [Discord developer portal](https://discord.com/developers/applications), open the application → **OAuth2 → Redirects** and add the address the command prints (`http://localhost:53682/callback` for the local sign-in; the Sentinel one when it is serving). Discord accepts an API write to this field and silently ignores it, so it has to be done by hand. When you move from one to the other, add the new address; the old one can stay.
+2. **Store the client secret.** Under **OAuth2 → Reset Secret**, copy the secret and store it where the bot token is kept: `holocron auth set discord.holonet.oauth <secret>`, or set `HOLOCRON_DISCORD_CLIENT_SECRET`. The API never returns it.
+3. **Connect GitHub to Discord.** In Discord, **User Settings → Connections → GitHub**. Without a verified GitHub connection the command stops and tells you so.
+
+## The GitHub token for the links file
+
+The links file lives in the org's private config repo, so it has its own token, `HOLOCRON_USER_SYNC_TOKEN` (`holocron auth set github.user-sync <PAT>`): a fine-grained PAT for the org, with **only** `.github-private` selected and `Contents: read and write`. `notifications sync-roles` reads the same file with it. Nothing else uses it, so `github.org` and `github.admin` never need Contents on other repositories. The file is per provider (`notifications/<provider>-links.json`), so the same token serves any other service whose members are matched to GitHub accounts. Without it the org token is tried, then the admin token; a 403 names the missing permission.
+
+## Options
+
+| Option              | Default | Description                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------ |
+| `--provider <name>` | —       | Which `notifications` provider, when more than one can sign members in   |
+| `--dry-run`         | `false` | Show where the sign-in would happen and the links file it would write to |
+
+Re-running changes nothing if you are already linked. If you link a different GitHub account, or a different server account, the earlier entry for either is replaced: a GitHub account has one member and a member one GitHub account. The links file is written with the version that was read, so a concurrent write is refused and retried once instead of overwriting.

@@ -131,7 +131,11 @@ export default defineConfig({
 						tags: ["automation", "notifications", "devops", "developer tools", "github"],
 						termsUrl: "https://docs.theholocron.dev/holocron/legal/terms/",
 						privacyUrl: "https://docs.theholocron.dev/holocron/legal/privacy/",
+						// Lists who is in the server, which `sync-roles` needs to find who holds a role.
+						intents: { members: true },
 					},
+					// Where `notifications link` signs members in: Sentinel when it answers, otherwise this machine.
+					links: { hostedUrl: "https://sentinel.theholocron.dev" },
 					categories: [
 						{
 							name: "START HERE",
@@ -242,6 +246,8 @@ export default defineConfig({
 							mentionable: true,
 							color: "#f0b232",
 							hoist: true,
+							// Kept equal to the GitHub team of the same name by `holocron notifications sync-roles`.
+							team: "gatekeepers",
 							// Everything a member can do, and nothing more: the bot can only grant what it holds itself.
 							permissions: [
 								"ViewChannel",

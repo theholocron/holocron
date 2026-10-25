@@ -72,6 +72,10 @@ methods. They use the **Holonet bot**, not a webhook URL:
   `discord.holonet` (`holocron auth set discord.holonet <token>`) — the bot token
   from the Developer Portal. Only read when a provisioning command runs, or when
   `holocron doctor` checks a provider that has a `guildId`; posting never needs it.
+- `HOLOCRON_DISCORD_CLIENT_SECRET` (or `DISCORD_CLIENT_SECRET`), or the keyring entry
+  `discord.holonet.oauth` — the application's OAuth client secret (Developer Portal →
+  OAuth2 → Reset Secret). Only `holocron notifications link` reads it, to learn which
+  GitHub account a member owns; the API can neither create nor read it.
 - `guildId` — the server id (not a secret), set in the provider options.
 - `layout` — categories, channels (each optionally with a `webhook`) and roles.
 

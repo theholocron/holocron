@@ -105,6 +105,41 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "notifications link",
+		description: "Link your server account to your GitHub account by signing in with the provider",
+		positionals: [],
+		options: [
+			{
+				key: "provider",
+				flag: "--provider",
+				type: "input",
+				message: "Which notifications provider (blank = the only one that can sign members in):",
+			},
+		],
+		supportsDryRun: true,
+	},
+	{
+		name: "notifications sync-roles",
+		description: "Make who holds a server role match a team, through the links file",
+		positionals: [],
+		options: [
+			{
+				key: "provider",
+				flag: "--provider",
+				type: "input",
+				message: "Which notifications provider (blank = the only one that can manage roles):",
+			},
+			{
+				key: "keep",
+				flag: "--keep",
+				type: "confirm",
+				default: false,
+				message: "Keep the role on linked people who left the team (only add, never remove)?",
+			},
+		],
+		supportsDryRun: true,
+	},
+	{
 		name: "deploy",
 		description: "Trigger a deployment via the configured `deployment` capability",
 		positionals: [{ key: "branch", message: "Branch to deploy:", type: "input" }],

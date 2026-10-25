@@ -26,6 +26,8 @@ export interface RunDoctorNotificationsInput {
 	provider?: string;
 	/** Report only the checks that exist; leave out the not-built ones (for use as a routine drift check). */
 	builtOnly?: boolean;
+	/** Test seam for the check that asks the hosted sign-in service whether it is up. */
+	fetch?: typeof fetch;
 	loader?: PluginLoader;
 	print?: (line: string) => void;
 	logger?: Logger;

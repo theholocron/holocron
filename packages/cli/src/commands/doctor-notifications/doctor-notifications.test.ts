@@ -78,6 +78,7 @@ function setup(
 		org?: string;
 		builtOnly?: boolean;
 		scope?: { kind: "repo" };
+		fetch?: typeof fetch;
 	} = {}
 ) {
 	const loaded = loadedFrom({
@@ -116,6 +117,7 @@ function setup(
 				logger: log,
 				...(opts.builtOnly ? { builtOnly: true } : {}),
 				...(opts.scope ? { scope: opts.scope } : {}),
+				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			}),
 	};
 }
@@ -134,6 +136,7 @@ const REAL = [
 	"welcome-onboarding",
 	"app-settings",
 	"secrets",
+	"role-members",
 ];
 
 describe("runDoctorNotifications — a server that matches the layout", () => {
@@ -141,11 +144,11 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 12, fail: PLANNED_CHECKS.length, skip: 0 });
+		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
-		expect(planned[0]?.detail).toBe("not built yet (#1098, step 14)");
+		expect(planned[0]?.detail).toBe("not built yet (#1098, step 15)");
 		expect(planned.every((c) => c.status === "fail")).toBe(true);
 	});
 
@@ -154,7 +157,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("12 ok, 0 fail, 3 skipped");
+		expect(lines.join("\n")).toContain("13 ok, 0 fail, 2 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -167,9 +170,9 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
 		expect(out).toContain("✓ webhook names and avatars set");
-		expect(out).toContain("not built yet (#1098, step 14)");
+		expect(out).toContain("not built yet (#1098, step 15)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("12 ok, 3 fail, 0 skipped");
+		expect(out).toContain("13 ok, 2 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -505,8 +508,8 @@ describe("runDoctorNotifications — output and logs", () => {
 
 describe("PLANNED_CHECKS", () => {
 	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
-		// 8 to 11 (access, role appearance, server settings, welcome and onboarding) are built, so they are real checks.
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([14, 15, 16]);
+		// 8 to 14 (access, role appearance, server settings, welcome and onboarding, the app, role members) are built, so they are real checks.
+		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([15, 16]);
 		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
 	});
 });
@@ -647,7 +650,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 11, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1301,6 +1304,16 @@ describe("runDoctorNotifications — webhook avatars", () => {
 	});
 });
 
+describe("runDoctorNotifications — role members, bad declarations", () => {
+	it("fails a role that declares an empty team, instead of calling it undeclared", async () => {
+		const layout: NotificationsLayout = { ...LAYOUT, roles: [{ name: "gatekeepers", team: "" }] };
+		const report = await setup(fakeNotifications({ layout })).run();
+		const step = report.checks.find((c) => c.id === "role-members")!;
+		expect(step.status).toBe("fail");
+		expect(step.detail).toContain("empty");
+	});
+});
+
 describe("runDoctorNotifications — bot application", () => {
 	const app = {
 		description: "Posts things",
@@ -1324,6 +1337,94 @@ describe("runDoctorNotifications — bot application", () => {
 			install: { scopes: ["bot"], permissions: ["viewchannel", "ManageRoles"] },
 		},
 	};
+
+	it("checks the Server Members Intent when the layout declares it", async () => {
+		const on = { ...same, application: { ...same.application, intents: { members: true } } };
+		const off = { ...same, application: { ...same.application, intents: { members: false } } };
+		const layout = withApp({ intents: { members: true } });
+		expect(check(await setup(fakeNotifications({ layout, found: on })).run()).problems).toEqual([]);
+		expect(check(await setup(fakeNotifications({ layout, found: off })).run()).problems).toEqual([
+			"the Server Members Intent is off but the layout says on (`holocron notifications setup` changes it)",
+		]);
+		const missing = { ...same, application: { ...same.application, intents: undefined } };
+		expect(
+			check(await setup(fakeNotifications({ layout, found: missing as typeof same })).run()).problems[0]
+		).toContain("is off but");
+		const wantOff = withApp({ intents: { members: false } });
+		expect(check(await setup(fakeNotifications({ layout: wantOff, found: on })).run()).problems[0]).toContain(
+			"is on but the layout says off"
+		);
+	});
+
+	it("checks the redirect URIs the layout names, saying what to add and where", async () => {
+		const layout = withApp({ redirectUris: ["http://localhost:53682/callback"] });
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		const has = {
+			...same,
+			application: { ...same.application, redirectUris: ["http://localhost:53682/callback"] },
+		};
+		expect(check(await setup(fakeNotifications({ layout, found: has })).run()).problems).toEqual([]);
+		const problems = check(await setup(fakeNotifications({ layout, found: none })).run()).problems;
+		expect(problems[0]).toContain("add http://localhost:53682/callback under OAuth2 → Redirects");
+		const unreported = { ...same, application: { ...same.application, redirectUris: undefined } };
+		expect(
+			check(await setup(fakeNotifications({ layout, found: unreported as typeof same })).run()).problems
+		).toHaveLength(1);
+	});
+
+	it("when roles follow a team, expects the redirect the link flow would use now: local while Sentinel is down", async () => {
+		const down = (async () => new Response("{}", { status: 402 })) as unknown as typeof fetch;
+		const layout: NotificationsLayout = {
+			...withApp(),
+			roles: [{ name: "gatekeepers", team: "gatekeepers" }],
+			links: { hostedUrl: "https://sentinel.example", localPort: 4000 },
+		};
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		const report = await setup(fakeNotifications({ layout, found: none }), { fetch: down }).run();
+		expect(check(report).problems[0]).toContain("add http://localhost:4000/callback");
+		const up = (async () => Response.json({ service: "link" })) as unknown as typeof fetch;
+		const hosted = await setup(fakeNotifications({ layout, found: none }), { fetch: up }).run();
+		expect(check(hosted).problems[0]).toContain("add https://sentinel.example/api/link/callback");
+		const registered = {
+			...same,
+			application: { ...same.application, redirectUris: ["https://sentinel.example/api/link/callback"] },
+		};
+		expect(
+			check(await setup(fakeNotifications({ layout, found: registered }), { fetch: up }).run()).problems
+		).toEqual([]);
+	});
+
+	it("expects the default local redirect when roles follow a team and no hosted service or port is declared", async () => {
+		const layout: NotificationsLayout = { ...withApp(), roles: [{ name: "gatekeepers", team: "gatekeepers" }] };
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		expect(check(await setup(fakeNotifications({ layout, found: none })).run()).problems[0]).toContain(
+			"add http://localhost:53682/callback"
+		);
+		const ported = { ...layout, links: { localPort: 4001 } };
+		expect(check(await setup(fakeNotifications({ layout: ported, found: none })).run()).problems[0]).toContain(
+			"add http://localhost:4001/callback"
+		);
+	});
+
+	it("says none when the layout declares an empty tag list but the app has tags", async () => {
+		const report = await setup(fakeNotifications({ layout: withApp({ tags: [] }), found: same })).run();
+		expect(check(report).problems.join(" ")).toContain("but the layout says none");
+	});
+
+	it("needs no redirect when the layout declares no roles at all", async () => {
+		const { roles: _roles, ...noRoles } = withApp();
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		const report = await setup(fakeNotifications({ layout: noRoles as NotificationsLayout, found: none })).run();
+		expect(check(report).problems.join(" ")).not.toContain("Redirects");
+	});
+
+	it("treats a missing description as empty when the layout declares one", async () => {
+		const found = { ...same, application: { ...same.application, description: undefined } };
+		const report = await setup(
+			fakeNotifications({ layout: withApp(), found: found as unknown as typeof same })
+		).run();
+		expect(check(report).problems).toContain("description differs from the layout");
+	});
 
 	it("says none declared when the layout has no application section", async () => {
 		expect(check(await setup(fakeNotifications()).run())).toMatchObject({ detail: "none declared", problems: [] });
@@ -1463,5 +1564,118 @@ describe("runDoctorNotifications — @everyone permissions", () => {
 		expect(check(failed).problems).toEqual(["@everyone: not checked, could not read its permissions (boom)"]);
 		const silent = await setup(fakeNotifications({ layout })).run();
 		expect(check(silent).problems).toEqual(["@everyone: the provider did not report its permissions"]);
+	});
+});
+
+describe("runDoctorNotifications — role-members (step 14)", () => {
+	const TEAM_LAYOUT: NotificationsLayout = {
+		...LAYOUT,
+		roles: [{ name: "gatekeepers", mentionable: true, secret: "HOLOCRON_NOTIFY_ALERT_ROLE", team: "gatekeepers" }],
+	};
+	const LINKS = JSON.stringify({
+		version: 1,
+		links: [
+			{ github: "1", login: "luke", member: "333" },
+			{ github: "2", login: "leia", member: "444" },
+		],
+	});
+
+	function run(
+		over: Partial<Notifications>,
+		source: Record<string, unknown> | undefined,
+		secretsOnly = false,
+		org: string | undefined = "theholocron"
+	): Promise<Awaited<ReturnType<typeof runDoctorNotifications>>> {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { notifications: ["discord"], secrets: "github", ...(source ? { source: "github" } : {}) },
+		});
+		const notifications = fakeNotifications({ layout: TEAM_LAYOUT, ...over });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: { providerName: "github", listSecrets: async () => SECRETS_GOOD },
+				...(source && !secretsOnly ? { source } : {}),
+			}),
+		});
+		return runDoctorNotifications({
+			loaded,
+			context: { repoRoot: "/tmp/test", ...(org ? { org } : {}) },
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+			builtOnly: true,
+		});
+	}
+
+	const src = (over: Record<string, unknown> = {}) => ({
+		providerName: "github",
+		teamMembers: async () => [{ id: "1", login: "luke" }],
+		readFile: async () => ({ content: LINKS, version: "v" }),
+		...over,
+	});
+
+	it("works without an org when the layout names the links repo", async () => {
+		const layout = { ...TEAM_LAYOUT, links: { repo: "me/links" } };
+		const report = await run({ layout, roleMembers: async () => [{ id: "333" }] }, src(), false, "");
+		expect(byId(report, "role-members")).toMatchObject({ status: "pass" });
+	});
+
+	it("passes when the holders are exactly the linked team members", async () => {
+		const report = await run({ roleMembers: async () => [{ id: "333" }] }, src());
+		expect(byId(report, "role-members")).toMatchObject({ status: "pass", detail: "1 of 1 in sync" });
+	});
+
+	it("names who lacks the role, who should lose it, and who has not linked", async () => {
+		const report = await run(
+			{ roleMembers: async () => [{ id: "444" }] },
+			src({
+				teamMembers: async () => [
+					{ id: "1", login: "luke" },
+					{ id: "7", login: "newbie" },
+				],
+			})
+		);
+		const check = byId(report, "role-members");
+		expect(check.status).toBe("fail");
+		expect(check.problems).toEqual([
+			"luke: on team gatekeepers but lacks gatekeepers",
+			"leia: holds gatekeepers but left team gatekeepers",
+			"newbie: on team gatekeepers but has not linked their account",
+		]);
+	});
+
+	it("passes as none declared when no role follows a team", async () => {
+		const report = await run({ layout: LAYOUT }, src());
+		expect(byId(report, "role-members")).toMatchObject({ status: "pass", detail: "none declared" });
+	});
+
+	it("fails with the reason when the provider cannot list holders, or there is no usable source", async () => {
+		expect(byId(await run({ roleMembers: undefined }, src()), "role-members").detail).toContain(
+			"cannot list who holds"
+		);
+		expect(byId(await run({ roleMembers: async () => [] }, undefined), "role-members").detail).toContain(
+			"`source`"
+		);
+		expect(
+			byId(await run({ roleMembers: async () => [] }, src({ teamMembers: undefined })), "role-members").detail
+		).toContain("cannot list team members");
+	});
+
+	it("fails with the reason when reading the links or the holders fails", async () => {
+		const badLinks = await run(
+			{ roleMembers: async () => [] },
+			src({ readFile: async () => ({ content: "{x", version: "v" }) })
+		);
+		expect(byId(badLinks, "role-members").detail).toContain("not valid JSON");
+		const denied = await run(
+			{
+				roleMembers: async () => {
+					throw new Error("intent off");
+				},
+			},
+			src()
+		);
+		expect(byId(denied, "role-members").detail).toContain("intent off");
 	});
 });
