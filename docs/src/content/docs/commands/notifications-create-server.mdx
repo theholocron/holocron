@@ -15,6 +15,8 @@ Builds the server from nothing. A bot can create a server (Discord allows it whi
 4. **invites the owner**: a single-use link into the system channel (else the rules channel, else the first channel), valid for a day;
 5. **waits for the owner to join** (up to 15 minutes, looking every few seconds), then **hands the server over** to them.
 
+The whole flow, including how to find your owner id and how to update the server afterwards, is in [Server as Code](/holocron/server-as-code/).
+
 Ownership can only go to someone who is already in the server, which is why the owner joins first. Until then the bot owns it and [`doctor notifications`](/holocron/commands/doctor-notifications/) says so (step 16).
 
 ## Options

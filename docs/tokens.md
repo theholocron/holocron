@@ -55,7 +55,7 @@ The bot token and the client secret look alike and are not interchangeable.
 | `sync-roles` reading a team                            | `github.org` (org)     | `members: read` on the organization                                                       |
 | `link` and `sync-roles` reading/writing the links file | `github.user-sync`     | `contents: read/write` on `.github-private` only; separate so it cannot touch other repos |
 
-Setup order for a new machine is in [Server as Code](https://theholocron.github.io/holocron/server-as-code/).
+Setup order for a new machine is in the Server as Code guide (`docs/src/content/docs/server-as-code.mdx`).
 
 ## Setting tokens via env vars
 
