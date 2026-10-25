@@ -4,7 +4,7 @@ description: Check the declared layout against the server and the secrets store,
 ---
 
 ```bash
-holocron doctor notifications [--scope <scope>] [--provider <name>] [--built-only] [--deliver]
+holocron doctor notifications [--scope <scope>] [--provider <name>] [--built-only] [--deliver [--keep-in <channel>]]
 ```
 
 Compares the `layout` a `notifications` provider declares in `holocron.config.ts` with what is actually on the server and in the secrets store, and prints one line per step. It changes nothing unless you pass `--deliver`, so it is safe to run at any time. It exits non-zero while any step fails.
@@ -58,11 +58,12 @@ The command also lists the parts of the plan that do not exist yet, each as a **
 
 ## Options
 
-| Option              | Default | Description                                                                                                            |
-| ------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `--scope <scope>`   | the org | Where the layout's secrets live: `repo`, `env=<name>`, or `org=<name>`                                                 |
-| `--provider <name>` | —       | Which `notifications` provider, when more than one can inspect                                                         |
-| `--built-only`      | `false` | Leave out the features that are not built yet                                                                          |
-| `--deliver`         | `false` | Post a test message through every channel's webhook, read it back and remove it (the only option that writes anything) |
+| Option                | Default | Description                                                                                                                                                                       |
+| --------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--scope <scope>`     | the org | Where the layout's secrets live: `repo`, `env=<name>`, or `org=<name>`                                                                                                            |
+| `--provider <name>`   | —       | Which `notifications` provider, when more than one can inspect                                                                                                                    |
+| `--built-only`        | `false` | Leave out the features that are not built yet                                                                                                                                     |
+| `--keep-in <channel>` | —       | With `--deliver`: leave the test message in this one channel instead of removing it, so you can see how a webhook post looks (this repo's layout has a `#holonet` channel for it) |
+| `--deliver`           | `false` | Post a test message through every channel's webhook, read it back and remove it (the only option that writes anything)                                                            |
 
 Terminal control characters in anything read from the server are stripped, and the structured log records only each step's verdict, never what was found.

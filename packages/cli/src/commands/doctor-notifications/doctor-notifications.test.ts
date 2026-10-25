@@ -79,6 +79,7 @@ function setup(
 		org?: string;
 		builtOnly?: boolean;
 		deliver?: boolean;
+		keepIn?: string;
 		scope?: { kind: "repo" };
 		fetch?: typeof fetch;
 	} = {}
@@ -119,6 +120,7 @@ function setup(
 				logger: log,
 				...(opts.builtOnly ? { builtOnly: true } : {}),
 				...(opts.deliver ? { deliver: true } : {}),
+				...(opts.keepIn ? { keepIn: opts.keepIn } : {}),
 				...(opts.scope ? { scope: opts.scope } : {}),
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			}),
@@ -1352,6 +1354,35 @@ describe("runDoctorNotifications — delivery check", () => {
 		const checkDelivery = vi.fn(async () => ({ posted: true, readBack: false, removed: true, problems: [] }));
 		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
 		expect(byId(report, "post-works").problems[0]).toContain("did not complete");
+	});
+
+	it("keeps the test message in the one channel named, and removes it from the rest", async () => {
+		const checkDelivery = vi.fn(async (i: { channel: string; text: string; keep?: boolean }) =>
+			i.keep
+				? { posted: true, readBack: true, removed: false, kept: true, problems: [] }
+				: { posted: true, readBack: true, removed: true, problems: [] }
+		);
+		const report = await setup(fakeNotifications({ checkDelivery }), {
+			builtOnly: true,
+			deliver: true,
+			keepIn: "SYNC",
+		}).run();
+		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "2 of 2 delivered" });
+		const kept = checkDelivery.mock.calls.map(([i]) => [i.channel, i.keep ?? false]);
+		expect(kept).toEqual([
+			["alerts", false],
+			["sync", true],
+		]);
+		expect(String(checkDelivery.mock.calls[1]?.[0].text)).toContain("left here on purpose");
+		// Every message says it is a test, whether it stays or not.
+		for (const [i] of checkDelivery.mock.calls) expect(i.text.startsWith("🧪 test: ")).toBe(true);
+	});
+
+	it("fails when --keep-in names a channel that has no webhook in the layout", async () => {
+		const report = await setup(fakeNotifications(), { builtOnly: true, deliver: true, keepIn: "nowhere" }).run();
+		const step = byId(report, "post-works");
+		expect(step.status).toBe("fail");
+		expect(step.problems[0]).toContain("--keep-in nowhere");
 	});
 
 	it("records a provider error against its channel and carries on with the rest", async () => {

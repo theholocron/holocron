@@ -804,17 +804,27 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		failed("post-works", DELIVERY_TITLE, `the \`${notifications.providerName}\` provider cannot check delivery`);
 	} else {
 		const problems: string[] = [];
+		if (input.keepIn && !withHook.some(({ channel }) => same(channel.name, input.keepIn!))) {
+			problems.push(`--keep-in ${shown(input.keepIn)}: no channel with a webhook is called that in the layout`);
+		}
 		for (const { cat, channel } of withHook) {
 			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			const keep = input.keepIn !== undefined && same(channel.name, input.keepIn);
 			try {
 				const result = await notifications.checkDelivery({
 					channel: channel.name,
 					name: cfg.name ?? channel.name,
 					category: cat.name,
-					text: `holocron doctor delivery check for #${channel.name}: safe to ignore, this message removes itself`,
+					text: keep
+						? `🧪 test: holocron doctor delivery check for #${channel.name}. This post was left here on purpose so you can see it; safe to delete.`
+						: `🧪 test: holocron doctor delivery check for #${channel.name}. Safe to ignore; this message removes itself.`,
+					...(keep ? { keep: true } : {}),
 				});
 				for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
-				if (result.problems.length === 0 && !(result.posted && result.readBack && result.removed)) {
+				if (
+					result.problems.length === 0 &&
+					!(result.posted && result.readBack && (result.removed || result.kept))
+				) {
 					problems.push(`#${shown(channel.name)}: the check did not complete`);
 				}
 			} catch (err) {

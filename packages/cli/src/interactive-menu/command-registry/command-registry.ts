@@ -105,6 +105,13 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 				default: false,
 				message: "Also post a test message through every channel's webhook (it removes itself)?",
 			},
+			{
+				key: "keepIn",
+				flag: "--keep-in",
+				type: "input",
+				message: "Leave the test message in one channel to see it (channel name, blank = remove all):",
+				when: (answers) => answers.deliver === true,
+			},
 		],
 		supportsDryRun: false,
 	},

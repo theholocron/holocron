@@ -257,6 +257,23 @@ describe("DiscordNotifications.checkDelivery", () => {
 		});
 	});
 
+	it("leaves the message in the channel when asked to keep it", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: { id: "9001" } },
+			{ body: [{ id: "9001", content: "", webhook_id: "7001" }] },
+		]);
+		expect(await notifs.checkDelivery({ ...input, keep: true })).toEqual({
+			posted: true,
+			readBack: true,
+			removed: false,
+			kept: true,
+			problems: [],
+		});
+		expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+	});
+
 	it("never falls back to a same-named channel outside the configured category", async () => {
 		const elsewhere = makeProvisioner([{ body: [category("1001", "AUTOMATION"), text("2999", "sync", "1002")] }]);
 		expect((await elsewhere.notifs.checkDelivery({ ...input, category: "AUTOMATION" })).problems[0]).toContain(

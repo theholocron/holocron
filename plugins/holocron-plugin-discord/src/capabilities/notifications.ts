@@ -1526,6 +1526,7 @@ export class DiscordNotifications implements Notifications {
 		name: string;
 		category?: string;
 		text: string;
+		keep?: boolean;
 	}): Promise<NotificationsDelivery> {
 		const result: NotificationsDelivery = { posted: false, readBack: false, removed: false, problems: [] };
 		const fail = (problem: string): NotificationsDelivery => ({ ...result, problems: [problem] });
@@ -1599,6 +1600,10 @@ export class DiscordNotifications implements Notifications {
 			if (!result.readBack) result.problems.push("the post was accepted but is not in the channel");
 		} catch (err) {
 			result.problems.push(`could not read the channel back (${reason(err)})`);
+		}
+		if (input.keep) {
+			result.kept = true;
+			return result;
 		}
 		try {
 			await this.client.webhooks.deleteMessage(hook.id, hook.token, messageId);

@@ -191,6 +191,12 @@ export default defineConfig({
 							channels: [
 								{ name: "dev", topic: "Day-to-day building talk" },
 								{ name: "ideas", topic: "Half-formed ideas and things to spec later" },
+								// Where `holocron doctor notifications --deliver --keep-in holonet` leaves its one visible test post.
+								{
+									name: "holonet",
+									topic: "Test posts from Holonet; safe to ignore or delete",
+									webhook: true,
+								},
 							],
 						},
 					],

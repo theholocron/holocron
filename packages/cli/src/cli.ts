@@ -361,6 +361,11 @@ try {
 									default: false,
 									describe:
 										"Also post a test message through every channel's webhook, read it back and remove it",
+								})
+								.option("keep-in", {
+									type: "string",
+									describe: "With --deliver: leave the test message in this one channel, to see it",
+									implies: "deliver",
 								}),
 						async (argv) => {
 							const tokens = tokenContext(argv.token);
@@ -378,6 +383,7 @@ try {
 								...(argv.provider ? { provider: argv.provider as string } : {}),
 								...(argv.builtOnly ? { builtOnly: true } : {}),
 								...(argv.deliver ? { deliver: true } : {}),
+								...(argv.keepIn ? { keepIn: argv.keepIn as string } : {}),
 							});
 							if (report.status === "fail") process.exitCode = 1;
 						}

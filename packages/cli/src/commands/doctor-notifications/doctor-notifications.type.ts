@@ -28,6 +28,8 @@ export interface RunDoctorNotificationsInput {
 	builtOnly?: boolean;
 	/** Also post a labelled test message through every channel's webhook, read it back and remove it. */
 	deliver?: boolean;
+	/** With `deliver`: leave the test message in this one channel (by name) instead of removing it. */
+	keepIn?: string;
 	/** Test seam for the check that asks the hosted sign-in service whether it is up. */
 	fetch?: typeof fetch;
 	loader?: PluginLoader;

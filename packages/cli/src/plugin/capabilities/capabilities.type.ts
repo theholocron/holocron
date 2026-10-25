@@ -1275,6 +1275,8 @@ export interface NotificationsDelivery {
 	posted: boolean;
 	readBack: boolean;
 	removed: boolean;
+	/** Set when the message was deliberately left in the channel (`keep`), so `removed` is false on purpose. */
+	kept?: boolean;
 	problems: string[];
 }
 
@@ -1329,6 +1331,8 @@ export interface Notifications extends ProviderIdentity {
 		name: string;
 		category?: string;
 		text: string;
+		/** Leave the message in the channel instead of removing it, so a person can see it. */
+		keep?: boolean;
 	}): Promise<NotificationsDelivery>;
 
 	/**
