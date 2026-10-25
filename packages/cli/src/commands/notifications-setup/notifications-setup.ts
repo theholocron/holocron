@@ -102,6 +102,7 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 	)) {
 		counts.set(name, (counts.get(name) ?? 0) + 1);
 	}
+	const declared = (layout.categories ?? []).flatMap((c) => c.channels ?? []);
 	const roles = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
 	const channel = (where: string, name: string): string | undefined => {
 		const count = counts.get(name.toLowerCase()) ?? 0;
@@ -109,6 +110,15 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 		if (count > 1) return `${where} names \`${name}\`, but more than one channel in the layout has that name`;
 		return undefined;
 	};
+
+	if (layout.testChannel !== undefined) {
+		const problem = channel("`testChannel`", layout.testChannel);
+		if (problem) return problem;
+		const hasWebhook = declared.some(
+			(ch) => ch.name.toLowerCase() === layout.testChannel!.toLowerCase() && ch.webhook
+		);
+		if (!hasWebhook) return `\`testChannel\` names \`${layout.testChannel}\`, which declares no webhook`;
+	}
 
 	const roleTeams = roleTeamProblem(layout);
 	if (roleTeams) return roleTeams;

@@ -121,6 +121,8 @@ export default defineConfig({
 				layout: {
 					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 					webhookAvatar: "media/webhook-avatar.png",
+					// Where a full `holocron doctor notifications` run leaves its one visible test post.
+					testChannel: "holonet",
 					// Keep ordinary members from pinging the whole server, and from adding emoji, stickers, sounds or
 					// events (the permissions Discord's "disable risky permissions for @everyone" prompt flags).
 					everyone: { deny: ["MentionEveryone", "CreateGuildExpressions", "CreateEvents"] },
@@ -191,6 +193,12 @@ export default defineConfig({
 							channels: [
 								{ name: "dev", topic: "Day-to-day building talk" },
 								{ name: "ideas", topic: "Half-formed ideas and things to spec later" },
+								// The test channel: the doctor's own test post is left here, never in a real channel.
+								{
+									name: "holonet",
+									topic: "Test posts from Holonet; safe to ignore or delete",
+									webhook: true,
+								},
 							],
 						},
 					],

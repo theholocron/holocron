@@ -147,7 +147,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 1 });
+		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
@@ -160,7 +160,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("13 ok, 0 fail, 2 skipped");
+		expect(lines.join("\n")).toContain("13 ok, 0 fail, 1 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -175,7 +175,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("✓ webhook names and avatars set");
 		expect(out).toContain("not built yet (#1098, step 16)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("13 ok, 1 fail, 1 skipped");
+		expect(out).toContain("13 ok, 1 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -653,7 +653,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length + 1 });
+			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1308,41 +1308,98 @@ describe("runDoctorNotifications — webhook avatars", () => {
 });
 
 describe("runDoctorNotifications — delivery check", () => {
-	const TITLE = "test message delivered through every webhook";
+	const TITLE = "test message delivered through a webhook";
+	const WITH_TEST: NotificationsLayout = { ...LAYOUT, testChannel: "sync" };
+	const ok = { posted: true, readBack: true, removed: true, problems: [] };
+	const kept = { posted: true, readBack: true, removed: false, kept: true, problems: [] };
+	const withTest = (over: Partial<Notifications> = {}) => fakeNotifications({ layout: WITH_TEST, ...over });
+	type Sent = { channel: string; text: string; keep?: boolean };
 
-	it("posts nothing unless asked, and says how to ask", async () => {
-		const n = fakeNotifications();
+	it("--built-only posts nothing and says so in a note below the steps, which is not a step", async () => {
+		const n = withTest();
 		const { run, lines } = setup(n, { builtOnly: true });
 		const report = await run();
 		expect(n.checkDelivery).not.toHaveBeenCalled();
 		expect(report.checks.find((c) => c.title === TITLE)).toBeUndefined();
-		expect(lines.join("\n")).toContain("add --deliver");
-		expect(report.summary.skip).toBe(2); // step 16 is not built; the delivery check was not asked for
+		const noteAt = lines.findIndex((l) => l.includes("note: the delivery check posts test messages"));
+		expect(noteAt).toBeGreaterThan(0);
+		expect(lines[noteAt - 1]).toBe(""); // set apart from the steps above
+		expect(lines[noteAt]).toContain("--deliver");
+		expect(lines.slice(0, noteAt).some((l) => l.includes("delivered through"))).toBe(false);
+		expect(report.summary.skip).toBe(1); // only step 16; the note is not a step
 	});
 
-	it("checks every channel that has a webhook when asked", async () => {
-		const n = fakeNotifications();
-		const report = await setup(n, { builtOnly: true, deliver: true }).run();
+	it("a full run leaves one labelled test post in the test channel, and posts nowhere else", async () => {
+		const checkDelivery = vi.fn(async (_input: Sent) => kept);
+		const report = await setup(withTest({ checkDelivery })).run();
+		expect(byId(report, "post-works")).toMatchObject({
+			status: "pass",
+			detail: "delivered through #sync (left there)",
+		});
+		expect(checkDelivery).toHaveBeenCalledTimes(1);
+		const sent = checkDelivery.mock.calls[0]![0];
+		expect(sent).toMatchObject({ channel: "sync", keep: true });
+		expect(sent.text.startsWith("🧪 test: ")).toBe(true);
+		expect(sent.text).toContain("it is safe to delete");
+		expect(sent.text).toContain("`holocron doctor notifications`");
+		expect(sent.text).toContain("{channel}");
+	});
+
+	it("fails a kept post the provider removed anyway, and a removable post the provider kept", async () => {
+		const removedAnyway = vi.fn(async (_input: Sent) => ok);
+		const a = await setup(withTest({ checkDelivery: removedAnyway })).run();
+		expect(byId(a, "post-works").problems[0]).toContain("did not complete");
+		const keptAnyway = vi.fn(async (_input: Sent) => kept);
+		const b = await setup(withTest({ checkDelivery: keptAnyway }), { builtOnly: true, deliver: true }).run();
+		expect(byId(b, "post-works").problems).toHaveLength(2);
+	});
+
+	it("posts to only one channel when the layout repeats the test channel's name", async () => {
+		const layout: NotificationsLayout = {
+			testChannel: "sync",
+			categories: [
+				{ name: "A", channels: [{ name: "sync", webhook: true }] },
+				{ name: "B", channels: [{ name: "sync", webhook: true }] },
+			],
+		};
+		const checkDelivery = vi.fn(async (_input: Sent) => kept);
+		await setup(fakeNotifications({ layout, checkDelivery })).run();
+		expect(checkDelivery).toHaveBeenCalledTimes(1);
+	});
+
+	it("--deliver checks every channel with a webhook and removes each post, even under --built-only", async () => {
+		const checkDelivery = vi.fn(async (_input: Sent) => ok);
+		const report = await setup(withTest({ checkDelivery }), { builtOnly: true, deliver: true }).run();
 		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "2 of 2 delivered" });
-		expect(n.checkDelivery).toHaveBeenCalledTimes(2);
-		const asked = vi.mocked(n.checkDelivery!).mock.calls.map(([c]) => [c.channel, c.name, c.category]);
-		expect(asked).toEqual([
-			["alerts", "alerts", "ALERTS"],
-			["sync", "sync", "AUTOMATION"],
+		const calls = checkDelivery.mock.calls.map(([i]) => i);
+		expect(calls.map((c) => [c.channel, c.keep ?? false])).toEqual([
+			["alerts", false],
+			["sync", false],
 		]);
+		for (const c of calls) {
+			expect(c.text.startsWith("🧪 test: ")).toBe(true);
+			expect(c.text).toContain("it removes itself");
+			expect(c.text).toContain("{channel}");
+		}
+	});
+
+	it("a full run with no test channel declared posts nothing and asks for one in a note", async () => {
+		const n = fakeNotifications();
+		const { run, lines } = setup(n);
+		const report = await run();
+		expect(n.checkDelivery).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain("`testChannel`");
+		expect(report.checks.find((c) => c.title === TITLE)).toBeUndefined();
 	});
 
 	it("names the channel and the step that failed", async () => {
-		const checkDelivery = vi
-			.fn()
-			.mockResolvedValueOnce({ posted: true, readBack: true, removed: true, problems: [] })
-			.mockResolvedValueOnce({
-				posted: true,
-				readBack: false,
-				removed: true,
-				problems: ["the post was accepted but is not in the channel"],
-			});
-		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		const checkDelivery = vi.fn(async () => ({
+			posted: true,
+			readBack: false,
+			removed: false,
+			problems: ["the post was accepted but is not in the channel"],
+		}));
+		const report = await setup(withTest({ checkDelivery })).run();
 		const step = byId(report, "post-works");
 		expect(step.status).toBe("fail");
 		expect(step.problems).toEqual(["#sync: the post was accepted but is not in the channel"]);
@@ -1350,36 +1407,29 @@ describe("runDoctorNotifications — delivery check", () => {
 
 	it("fails a check that came back incomplete without saying why", async () => {
 		const checkDelivery = vi.fn(async () => ({ posted: true, readBack: false, removed: true, problems: [] }));
-		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		const report = await setup(withTest({ checkDelivery })).run();
 		expect(byId(report, "post-works").problems[0]).toContain("did not complete");
 	});
 
 	it("records a provider error against its channel and carries on with the rest", async () => {
-		const checkDelivery = vi
-			.fn()
-			.mockRejectedValueOnce(new Error("boom"))
-			.mockResolvedValueOnce({ posted: true, readBack: true, removed: true, problems: [] });
-		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		const checkDelivery = vi.fn().mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce(ok);
+		const report = await setup(withTest({ checkDelivery }), { builtOnly: true, deliver: true }).run();
 		expect(checkDelivery).toHaveBeenCalledTimes(2);
 		expect(byId(report, "post-works").problems).toEqual(["#alerts: boom"]);
 	});
 
 	it("reports none declared before asking whether the provider can check delivery", async () => {
-		const bare = fakeNotifications({
-			layout: { categories: [{ name: "A", channels: [{ name: "x" }] }] },
-			checkDelivery: undefined,
-		});
-		const report = await setup(bare, { builtOnly: true, deliver: true }).run();
+		const layout: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "x" }] }],
+			testChannel: "x",
+		};
+		const report = await setup(fakeNotifications({ layout, checkDelivery: undefined })).run();
 		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "none declared" });
 	});
 
-	it("fails when the provider cannot check delivery, and passes when no channel has a webhook", async () => {
-		const none = fakeNotifications({ checkDelivery: undefined });
-		const report = await setup(none, { builtOnly: true, deliver: true }).run();
+	it("fails when the provider cannot check delivery", async () => {
+		const report = await setup(withTest({ checkDelivery: undefined })).run();
 		expect(byId(report, "post-works").detail).toContain("cannot check delivery");
-		const noHooks = fakeNotifications({ layout: { categories: [{ name: "A", channels: [{ name: "x" }] }] } });
-		const empty = await setup(noHooks, { builtOnly: true, deliver: true }).run();
-		expect(byId(empty, "post-works")).toMatchObject({ status: "pass", detail: "none declared" });
 	});
 });
 

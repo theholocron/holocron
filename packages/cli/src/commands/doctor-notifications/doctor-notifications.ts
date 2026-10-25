@@ -69,7 +69,7 @@ const shown = (s: string) => sanitizeDetail(s);
 const WELCOME_TITLE = "welcome screen and onboarding set";
 const APP_TITLE = "bot description, tags, install link and URLs set";
 const AVATAR_TITLE = "webhook names and avatars set";
-const DELIVERY_TITLE = "test message delivered through every webhook";
+const DELIVERY_TITLE = "test message delivered through a webhook";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
@@ -99,11 +99,10 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		checks.push({ id, title, status: "fail", detail: reason, problems: [] });
 	};
 
-	let deliverSkipped = false;
 	const summarise = () => ({
 		pass: checks.filter((c) => c.status === "pass").length,
 		fail: checks.filter((c) => c.status === "fail").length,
-		skip: (input.builtOnly ? PLANNED_CHECKS.length : 0) + (deliverSkipped ? 1 : 0),
+		skip: input.builtOnly ? PLANNED_CHECKS.length : 0,
 	});
 	const finish = (): DoctorNotificationsReport => {
 		const summary = summarise();
@@ -785,13 +784,32 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		}
 	}
 
-	// 15. a test message gets through every channel's webhook (posts, so only on request)
+	// 15. a test message gets through a webhook: the layout's test channel by default, every channel on request
 	const withHook = (layout.categories ?? []).flatMap((cat) =>
 		(cat.channels ?? []).filter((c) => c.webhook).map((channel) => ({ cat, channel }))
 	);
-	if (!input.deliver) {
-		deliverSkipped = true;
-	} else if (withHook.length === 0) {
+	const testName = layout.testChannel;
+	// Which channels get a test post: every one with `--deliver` (each post removed); otherwise, outside
+	// `--built-only`, just the test channel (its post left there to look at); under `--built-only`, none.
+	const mode: "all" | "test" | "none" = input.deliver
+		? "all"
+		: !input.builtOnly && testName !== undefined
+			? "test"
+			: "none";
+	const targets =
+		mode === "all"
+			? withHook
+			: mode === "test"
+				? // One channel only, even if a layout that never went through `setup` repeats the name.
+					withHook.filter(({ channel }) => same(channel.name, testName!)).slice(0, 1)
+				: [];
+	let deliveryNote: string | undefined;
+	if (mode === "none") {
+		deliveryNote =
+			!input.builtOnly && testName === undefined
+				? "the delivery check needs a test channel: name one in the layout's `testChannel` (a channel with a webhook)"
+				: "the delivery check posts test messages, so --built-only skips it; add --deliver to post to every channel";
+	} else if (targets.length === 0) {
 		checks.push({
 			id: "post-works",
 			title: DELIVERY_TITLE,
@@ -804,24 +822,41 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		failed("post-works", DELIVERY_TITLE, `the \`${notifications.providerName}\` provider cannot check delivery`);
 	} else {
 		const problems: string[] = [];
-		for (const { cat, channel } of withHook) {
+		for (const { cat, channel } of targets) {
 			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			// Only the test channel's post is ever left behind: the real channels are never given one.
+			const keep = mode === "test";
 			try {
 				const result = await notifications.checkDelivery({
 					channel: channel.name,
 					name: cfg.name ?? channel.name,
 					category: cat.name,
-					text: `holocron doctor delivery check for #${channel.name}: safe to ignore, this message removes itself`,
+					// `{channel}` becomes the provider's own link to the channel (a mention, for Discord).
+					text: keep
+						? "🧪 test: `holocron doctor notifications` check for {channel}. This post was a test of the delivery system; it is safe to delete."
+						: "🧪 test: `holocron doctor notifications --deliver` check for {channel}. This post was a test of the delivery system; it removes itself.",
+					...(keep ? { keep: true } : {}),
 				});
 				for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
-				if (result.problems.length === 0 && !(result.posted && result.readBack && result.removed)) {
+				if (
+					result.problems.length === 0 &&
+					// A kept post must be kept and a removable one removed: one that came back the other way is not what was asked.
+					!(result.posted && result.readBack && (keep ? result.kept : result.removed))
+				) {
 					problems.push(`#${shown(channel.name)}: the check did not complete`);
 				}
 			} catch (err) {
 				problems.push(`#${shown(channel.name)}: ${shown(describeProviderError(err))}`);
 			}
 		}
-		add("post-works", DELIVERY_TITLE, problems, `${withHook.length} of ${withHook.length} delivered`);
+		add(
+			"post-works",
+			DELIVERY_TITLE,
+			problems,
+			mode === "all"
+				? `${targets.length} of ${targets.length} delivered`
+				: `delivered through #${shown(targets[0]!.channel.name)} (left there)`
+		);
 	}
 
 	// Features not built yet: each fails until it lands.
@@ -844,8 +879,11 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		print(statusRow(check.status === "pass" ? "ok" : "fail", [check.title.padEnd(width), check.detail]));
 		for (const problem of check.problems) print(`      - ${problem}`);
 	}
-	if (deliverSkipped)
-		print(`  ${style.skip(`${DELIVERY_TITLE}: not run; add --deliver to post a test message to each channel`)}`);
+	// Not a step and not counted: why the delivery check did not run, set apart below the steps.
+	if (deliveryNote) {
+		print("");
+		print(`  ${style.skip(`note: ${deliveryNote}`)}`);
+	}
 	const summary = summarise();
 	print("");
 	print(style.header(`${summary.pass} ok, ${summary.fail} fail, ${summary.skip} skipped`));

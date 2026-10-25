@@ -339,7 +339,7 @@ try {
 					})
 					.command(
 						"notifications",
-						"Check the layout against the server and the secrets store, step by step (read-only unless --deliver posts test messages)",
+						"Check the layout against the server and the secrets store, step by step (a full run leaves one test post in the test channel; --built-only posts nothing unless --deliver)",
 						(y) =>
 							y
 								.option("scope", {
@@ -360,7 +360,7 @@ try {
 									type: "boolean",
 									default: false,
 									describe:
-										"Also post a test message through every channel's webhook, read it back and remove it",
+										"Post a test message through every channel's webhook, read it back and remove it (works with --built-only)",
 								}),
 						async (argv) => {
 							const tokens = tokenContext(argv.token);

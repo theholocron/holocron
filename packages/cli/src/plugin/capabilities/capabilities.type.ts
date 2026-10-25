@@ -1147,6 +1147,12 @@ export interface NotificationsLinksLayout {
 
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
+	/**
+	 * The channel set aside for test posts, by name. It must declare a webhook. `holocron doctor notifications`
+	 * leaves one labelled test message there through its webhook (read back to prove delivery works) for a
+	 * person to look at; the real channels are never given one unless `--deliver` posts and removes it.
+	 */
+	testChannel?: string;
 	/** Where `sync-roles` finds which server member is which GitHub account. Only used by roles with a `team`. */
 	links?: NotificationsLinksLayout;
 	/** The bot's own application settings, applied with the server's. */
@@ -1275,6 +1281,8 @@ export interface NotificationsDelivery {
 	posted: boolean;
 	readBack: boolean;
 	removed: boolean;
+	/** Set when the message was deliberately left in the channel (`keep`), so `removed` is false on purpose. */
+	kept?: boolean;
 	problems: string[];
 }
 
@@ -1321,14 +1329,18 @@ export interface Notifications extends ProviderIdentity {
 	}): Promise<EnsureWebhookResult>;
 	/**
 	 * Proves a channel's webhook delivers: posts `text` through it, reads the post back from the channel and
-	 * removes it again. Never throws for a failed step; the result says which one failed. Posts a visible
-	 * message for a moment, so callers ask before using it.
+	 * removes it again, unless `keep` is true, in which case the post is left in the channel (and the result
+	 * has `kept` instead of `removed`). Never throws for a failed step; the result says which one failed.
+	 * Posts a visible message, so callers choose the channel with care.
 	 */
 	checkDelivery?(input: {
 		channel: string;
 		name: string;
 		category?: string;
+		/** The message. The provider may format it (Discord renders markdown) and replaces `{channel}` with its link to the channel. */
 		text: string;
+		/** Leave the message in the channel instead of removing it, so a person can see it. */
+		keep?: boolean;
 	}): Promise<NotificationsDelivery>;
 
 	/**

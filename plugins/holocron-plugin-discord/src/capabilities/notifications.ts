@@ -1526,6 +1526,7 @@ export class DiscordNotifications implements Notifications {
 		name: string;
 		category?: string;
 		text: string;
+		keep?: boolean;
 	}): Promise<NotificationsDelivery> {
 		const result: NotificationsDelivery = { posted: false, readBack: false, removed: false, problems: [] };
 		const fail = (problem: string): NotificationsDelivery => ({ ...result, problems: [problem] });
@@ -1538,6 +1539,7 @@ export class DiscordNotifications implements Notifications {
 		}
 		let bot: DiscordBotClient;
 		let hook: { id: string; token: string; channelId: string };
+		let text = input.text;
 		try {
 			bot = this.bot();
 			const channels = await this.channelList();
@@ -1565,12 +1567,14 @@ export class DiscordNotifications implements Notifications {
 				return fail(`webhook \`${input.name}\` was not created by this bot, so its token is hidden`);
 			}
 			hook = { id: usable.id, token: usable.token, channelId: channel.id };
+			// A channel mention renders as a link to the channel itself.
+			text = input.text.replaceAll("{channel}", `<#${channel.id}>`);
 		} catch (err) {
 			return fail(reason(err));
 		}
 		let messageId: string;
 		try {
-			messageId = (await this.client.webhooks.executeAndWait(hook.id, hook.token, input.text)).id;
+			messageId = (await this.client.webhooks.executeAndWait(hook.id, hook.token, text)).id;
 			result.posted = true;
 		} catch (err) {
 			result.problems.push(`the post was refused (${reason(err)})`);
@@ -1579,9 +1583,16 @@ export class DiscordNotifications implements Notifications {
 				// Only a message whose text is visible and identical is taken for ours; never one with hidden
 				// content, which could be a real alert from the same webhook.
 				const stray = (await bot.channels.messages(hook.channelId, 100)).find(
-					(m) => m.webhook_id === hook.id && m.content === input.text
+					(m) => m.webhook_id === hook.id && m.content === text
 				);
-				if (stray) {
+				if (stray && input.keep) {
+					// The post was meant to stay: it arrived, so leave it, and say the response was lost.
+					result.posted = true;
+					result.kept = true;
+					result.problems.push(
+						`the test message ${stray.id} arrived but its response was lost; it was left in place`
+					);
+				} else if (stray) {
 					await bot.channels.deleteMessage(hook.channelId, stray.id);
 					result.problems.push(`the test message ${stray.id} had been posted, and was removed`);
 				}
@@ -1599,6 +1610,10 @@ export class DiscordNotifications implements Notifications {
 			if (!result.readBack) result.problems.push("the post was accepted but is not in the channel");
 		} catch (err) {
 			result.problems.push(`could not read the channel back (${reason(err)})`);
+		}
+		if (input.keep) {
+			result.kept = true;
+			return result;
 		}
 		try {
 			await this.client.webhooks.deleteMessage(hook.id, hook.token, messageId);
