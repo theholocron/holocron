@@ -94,8 +94,18 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	},
 	{
 		name: "doctor notifications",
-		description: "Check the layout against the server and the secrets store, step by step (read-only)",
+		description:
+			"Check the layout against the server and the secrets store, step by step (read-only unless --deliver posts test messages)",
 		positionals: [],
+		options: [
+			{
+				key: "deliver",
+				flag: "--deliver",
+				type: "confirm",
+				default: false,
+				message: "Also post a test message through every channel's webhook (it removes itself)?",
+			},
+		],
 		supportsDryRun: false,
 	},
 	{

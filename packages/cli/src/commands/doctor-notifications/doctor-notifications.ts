@@ -41,7 +41,6 @@ import type {
 
 /** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
 export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 15, id: "post-works", title: "test post reached every channel (platform.notifyCheck)" },
 	{ step: 16, id: "server-creation", title: "server created from config" },
 ];
 
@@ -70,6 +69,7 @@ const shown = (s: string) => sanitizeDetail(s);
 const WELCOME_TITLE = "welcome screen and onboarding set";
 const APP_TITLE = "bot description, tags, install link and URLs set";
 const AVATAR_TITLE = "webhook names and avatars set";
+const DELIVERY_TITLE = "test message delivered through every webhook";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
@@ -99,10 +99,11 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		checks.push({ id, title, status: "fail", detail: reason, problems: [] });
 	};
 
+	let deliverSkipped = false;
 	const summarise = () => ({
 		pass: checks.filter((c) => c.status === "pass").length,
 		fail: checks.filter((c) => c.status === "fail").length,
-		skip: input.builtOnly ? PLANNED_CHECKS.length : 0,
+		skip: (input.builtOnly ? PLANNED_CHECKS.length : 0) + (deliverSkipped ? 1 : 0),
 	});
 	const finish = (): DoctorNotificationsReport => {
 		const summary = summarise();
@@ -784,6 +785,45 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		}
 	}
 
+	// 15. a test message gets through every channel's webhook (posts, so only on request)
+	const withHook = (layout.categories ?? []).flatMap((cat) =>
+		(cat.channels ?? []).filter((c) => c.webhook).map((channel) => ({ cat, channel }))
+	);
+	if (!input.deliver) {
+		deliverSkipped = true;
+	} else if (withHook.length === 0) {
+		checks.push({
+			id: "post-works",
+			title: DELIVERY_TITLE,
+			status: "pass",
+			detail: "none declared",
+			problems: [],
+			step: 15,
+		});
+	} else if (!notifications.checkDelivery) {
+		failed("post-works", DELIVERY_TITLE, `the \`${notifications.providerName}\` provider cannot check delivery`);
+	} else {
+		const problems: string[] = [];
+		for (const { cat, channel } of withHook) {
+			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
+			try {
+				const result = await notifications.checkDelivery({
+					channel: channel.name,
+					name: cfg.name ?? channel.name,
+					category: cat.name,
+					text: `holocron doctor delivery check for #${channel.name}: safe to ignore, this message removes itself`,
+				});
+				for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
+				if (result.problems.length === 0 && !(result.posted && result.readBack && result.removed)) {
+					problems.push(`#${shown(channel.name)}: the check did not complete`);
+				}
+			} catch (err) {
+				problems.push(`#${shown(channel.name)}: ${shown(describeProviderError(err))}`);
+			}
+		}
+		add("post-works", DELIVERY_TITLE, problems, `${withHook.length} of ${withHook.length} delivered`);
+	}
+
 	// Features not built yet: each fails until it lands.
 	if (!input.builtOnly) {
 		for (const planned of PLANNED_CHECKS) {
@@ -804,6 +844,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		print(statusRow(check.status === "pass" ? "ok" : "fail", [check.title.padEnd(width), check.detail]));
 		for (const problem of check.problems) print(`      - ${problem}`);
 	}
+	if (deliverSkipped)
+		print(`  ${style.skip(`${DELIVERY_TITLE}: not run; add --deliver to post a test message to each channel`)}`);
 	const summary = summarise();
 	print("");
 	print(style.header(`${summary.pass} ok, ${summary.fail} fail, ${summary.skip} skipped`));

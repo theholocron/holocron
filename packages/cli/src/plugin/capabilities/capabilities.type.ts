@@ -1270,6 +1270,14 @@ export interface NotificationsSignIn {
 }
 
 /** A member of the server, as {@link Notifications.roleMembers} reports it. */
+/** What {@link Notifications.checkDelivery} saw: each step that went wrong is named in `problems`. */
+export interface NotificationsDelivery {
+	posted: boolean;
+	readBack: boolean;
+	removed: boolean;
+	problems: string[];
+}
+
 export interface NotificationsMember {
 	/** The provider's id for them; for Discord, the user id. */
 	id: string;
@@ -1311,6 +1319,18 @@ export interface Notifications extends ProviderIdentity {
 		/** An image as a `data:` URI, set when the webhook has none. */
 		avatar?: string;
 	}): Promise<EnsureWebhookResult>;
+	/**
+	 * Proves a channel's webhook delivers: posts `text` through it, reads the post back from the channel and
+	 * removes it again. Never throws for a failed step; the result says which one failed. Posts a visible
+	 * message for a moment, so callers ask before using it.
+	 */
+	checkDelivery?(input: {
+		channel: string;
+		name: string;
+		category?: string;
+		text: string;
+	}): Promise<NotificationsDelivery>;
+
 	/**
 	 * Who holds a role, by the provider's member id. Needs whatever permission the provider asks for to list
 	 * members (for Discord, the privileged Server Members Intent). Throws if the role does not exist.

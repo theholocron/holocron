@@ -66,6 +66,7 @@ function fakeNotifications(over: Partial<Notifications> & { found?: ServerInspec
 		ensureChannel: vi.fn(async () => ({ id: "1", created: true })),
 		ensureWebhook: vi.fn(async () => ({ created: true, url: "https://hook/x" })),
 		ensureRole: vi.fn(async () => ({ id: "99", created: true })),
+		checkDelivery: vi.fn(async () => ({ posted: true, readBack: true, removed: true, problems: [] })),
 		...rest,
 	} as Notifications;
 }
@@ -77,6 +78,7 @@ function setup(
 		secrets?: boolean;
 		org?: string;
 		builtOnly?: boolean;
+		deliver?: boolean;
 		scope?: { kind: "repo" };
 		fetch?: typeof fetch;
 	} = {}
@@ -116,6 +118,7 @@ function setup(
 				print: (l) => lines.push(l),
 				logger: log,
 				...(opts.builtOnly ? { builtOnly: true } : {}),
+				...(opts.deliver ? { deliver: true } : {}),
 				...(opts.scope ? { scope: opts.scope } : {}),
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			}),
@@ -144,11 +147,11 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 0 });
+		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 1 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
-		expect(planned[0]?.detail).toBe("not built yet (#1098, step 15)");
+		expect(planned[0]?.detail).toBe("not built yet (#1098, step 16)");
 		expect(planned.every((c) => c.status === "fail")).toBe(true);
 	});
 
@@ -170,9 +173,9 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
 		expect(out).toContain("✓ webhook names and avatars set");
-		expect(out).toContain("not built yet (#1098, step 15)");
+		expect(out).toContain("not built yet (#1098, step 16)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("13 ok, 2 fail, 0 skipped");
+		expect(out).toContain("13 ok, 1 fail, 1 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -509,7 +512,7 @@ describe("runDoctorNotifications — output and logs", () => {
 describe("PLANNED_CHECKS", () => {
 	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
 		// 8 to 14 (access, role appearance, server settings, welcome and onboarding, the app, role members) are built, so they are real checks.
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([15, 16]);
+		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([16]);
 		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
 	});
 });
@@ -650,7 +653,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length + 1 });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1301,6 +1304,82 @@ describe("runDoctorNotifications — webhook avatars", () => {
 			"#alerts: could not list its webhooks (boom)",
 			"#sync: no channel to hold the webhook",
 		]);
+	});
+});
+
+describe("runDoctorNotifications — delivery check", () => {
+	const TITLE = "test message delivered through every webhook";
+
+	it("posts nothing unless asked, and says how to ask", async () => {
+		const n = fakeNotifications();
+		const { run, lines } = setup(n, { builtOnly: true });
+		const report = await run();
+		expect(n.checkDelivery).not.toHaveBeenCalled();
+		expect(report.checks.find((c) => c.title === TITLE)).toBeUndefined();
+		expect(lines.join("\n")).toContain("add --deliver");
+		expect(report.summary.skip).toBe(2); // step 16 is not built; the delivery check was not asked for
+	});
+
+	it("checks every channel that has a webhook when asked", async () => {
+		const n = fakeNotifications();
+		const report = await setup(n, { builtOnly: true, deliver: true }).run();
+		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "2 of 2 delivered" });
+		expect(n.checkDelivery).toHaveBeenCalledTimes(2);
+		const asked = vi.mocked(n.checkDelivery!).mock.calls.map(([c]) => [c.channel, c.name, c.category]);
+		expect(asked).toEqual([
+			["alerts", "alerts", "ALERTS"],
+			["sync", "sync", "AUTOMATION"],
+		]);
+	});
+
+	it("names the channel and the step that failed", async () => {
+		const checkDelivery = vi
+			.fn()
+			.mockResolvedValueOnce({ posted: true, readBack: true, removed: true, problems: [] })
+			.mockResolvedValueOnce({
+				posted: true,
+				readBack: false,
+				removed: true,
+				problems: ["the post was accepted but is not in the channel"],
+			});
+		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		const step = byId(report, "post-works");
+		expect(step.status).toBe("fail");
+		expect(step.problems).toEqual(["#sync: the post was accepted but is not in the channel"]);
+	});
+
+	it("fails a check that came back incomplete without saying why", async () => {
+		const checkDelivery = vi.fn(async () => ({ posted: true, readBack: false, removed: true, problems: [] }));
+		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		expect(byId(report, "post-works").problems[0]).toContain("did not complete");
+	});
+
+	it("records a provider error against its channel and carries on with the rest", async () => {
+		const checkDelivery = vi
+			.fn()
+			.mockRejectedValueOnce(new Error("boom"))
+			.mockResolvedValueOnce({ posted: true, readBack: true, removed: true, problems: [] });
+		const report = await setup(fakeNotifications({ checkDelivery }), { builtOnly: true, deliver: true }).run();
+		expect(checkDelivery).toHaveBeenCalledTimes(2);
+		expect(byId(report, "post-works").problems).toEqual(["#alerts: boom"]);
+	});
+
+	it("reports none declared before asking whether the provider can check delivery", async () => {
+		const bare = fakeNotifications({
+			layout: { categories: [{ name: "A", channels: [{ name: "x" }] }] },
+			checkDelivery: undefined,
+		});
+		const report = await setup(bare, { builtOnly: true, deliver: true }).run();
+		expect(byId(report, "post-works")).toMatchObject({ status: "pass", detail: "none declared" });
+	});
+
+	it("fails when the provider cannot check delivery, and passes when no channel has a webhook", async () => {
+		const none = fakeNotifications({ checkDelivery: undefined });
+		const report = await setup(none, { builtOnly: true, deliver: true }).run();
+		expect(byId(report, "post-works").detail).toContain("cannot check delivery");
+		const noHooks = fakeNotifications({ layout: { categories: [{ name: "A", channels: [{ name: "x" }] }] } });
+		const empty = await setup(noHooks, { builtOnly: true, deliver: true }).run();
+		expect(byId(empty, "post-works")).toMatchObject({ status: "pass", detail: "none declared" });
 	});
 });
 
