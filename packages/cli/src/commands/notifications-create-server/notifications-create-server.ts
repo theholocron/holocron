@@ -15,6 +15,7 @@ import { describeProviderError, logReason } from "../../ui/provider-error/index.
 import { style } from "../../ui/style/index.js";
 import { notificationProviders } from "../notifications-channel-add/index.js";
 import { runNotificationsSetup } from "../notifications-setup/index.js";
+import { lockConfig } from "./lock-config.js";
 import type {
 	NotificationsCreateServerReport,
 	RunNotificationsCreateServerInput,
@@ -101,6 +102,13 @@ export async function runNotificationsCreateServer(
 		return { status: "dry-run" };
 	}
 
+	const lock = await lockConfig(input.loaded.filepath);
+	if (!lock) {
+		return refuse(
+			`another create-server run holds ${input.loaded.filepath}.create-server.lock; wait for it, or delete that file if no run is in progress`
+		);
+	}
+
 	const report: NotificationsCreateServerReport = { status: "ok" };
 	let ok = 0;
 	const step = (line: string) => {
@@ -133,6 +141,12 @@ export async function runNotificationsCreateServer(
 			if (!owner.isBot) {
 				return refuse(
 					"the server in the config is not owned by the bot, so there is nothing to hand over; check `guildId` names the server this run created"
+				);
+			}
+			// With the name given, the config must point at the server of that name, not an older one the bot also owns.
+			if (input.name && owner.name !== undefined && owner.name !== input.name) {
+				return refuse(
+					`the server in the config is called "${owner.name}", not "${input.name}"; set \`guildId\` to the server this run created`
 				);
 			}
 		}
@@ -187,6 +201,8 @@ export async function runNotificationsCreateServer(
 		step(`handed the server to member ${input.owner}`);
 	} catch (err) {
 		return refuse(describeProviderError(err), logReason(err));
+	} finally {
+		await lock.release();
 	}
 
 	print("");

@@ -231,6 +231,20 @@ describe("DiscordNotifications server creation and ownership", () => {
 		expect(calls[1]?.url).toBe(`${BASE}/guilds/${NEW}`);
 	});
 
+	it("makes no second server when asked again in the same run", async () => {
+		const { notifs, calls } = makeProvisioner(
+			[{ body: { id: NEW, name: "The Holocron" } }, { body: { id: NEW, name: "The Holocron" } }],
+			{}
+		);
+		await notifs.createServer({ name: "The Holocron" });
+		expect(await notifs.createServer({ name: "The Holocron", force: true })).toEqual({
+			id: NEW,
+			name: "The Holocron",
+		});
+		expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
+		expect(calls[1]).toMatchObject({ method: "GET", url: `${BASE}/guilds/${NEW}` });
+	});
+
 	it("refuses to create a second server over a config that names one, unless forced", async () => {
 		const { notifs, calls } = makeProvisioner([{ body: { id: NEW, name: "Again" } }]);
 		await expect(notifs.createServer({ name: "Again" })).rejects.toThrow(/already names a server/);
@@ -267,10 +281,10 @@ describe("DiscordNotifications server creation and ownership", () => {
 
 	it("says who owns the server and whether that is the bot", async () => {
 		const bot = makeProvisioner([
-			{ body: { id: GUILD, owner_id: "7" } },
+			{ body: { id: GUILD, owner_id: "7", name: "The Holocron" } },
 			{ body: { id: "7", username: "Holonet" } },
 		]);
-		expect(await bot.notifs.serverOwner()).toEqual({ id: "7", isBot: true });
+		expect(await bot.notifs.serverOwner()).toEqual({ id: "7", isBot: true, name: "The Holocron" });
 		const person = makeProvisioner([{ body: { id: GUILD, owner_id: "42" } }, { body: { id: "7" } }]);
 		expect(await person.notifs.serverOwner()).toEqual({ id: "42", isBot: false });
 		const unknown = makeProvisioner([{ body: { id: GUILD } }]);

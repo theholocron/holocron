@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -147,6 +147,38 @@ describe("runNotificationsCreateServer", () => {
 		const { run } = await setup(n);
 		expect((await run({ resume: true })).status).toBe("ok");
 		expect(n.transferServer).toHaveBeenCalled();
+	});
+
+	it("--resume refuses a server whose name is not the one asked for", async () => {
+		const n = fakeNotifications({ serverOwner: vi.fn(async () => ({ id: "1", isBot: true, name: "Old Server" })) });
+		const { run, runSetup } = await setup(n);
+		const report = await run({ resume: true, name: "The Holocron" });
+		expect(report.message).toContain('called "Old Server", not "The Holocron"');
+		expect(runSetup).not.toHaveBeenCalled();
+		// Same name, or no name given, goes ahead.
+		const same = fakeNotifications({
+			serverOwner: vi.fn(async () => ({ id: "1", isBot: true, name: "The Holocron" })),
+		});
+		expect((await (await setup(same)).run({ resume: true, name: "The Holocron" })).status).toBe("ok");
+		const unnamed = fakeNotifications({ serverOwner: vi.fn(async () => ({ id: "1", isBot: true })) });
+		expect((await (await setup(unnamed)).run({ resume: true, name: "The Holocron" })).status).toBe("ok");
+	});
+
+	it("refuses to run twice at once, and lets go of the lock afterwards", async () => {
+		const n = fakeNotifications();
+		const { run, filepath } = await setup(n);
+		await writeFile(`${filepath}.create-server.lock`, "123\n");
+		const blocked = await run();
+		expect(blocked.status).toBe("fail");
+		expect(blocked.message).toContain("another create-server run holds");
+		expect(n.createServer).not.toHaveBeenCalled();
+		await unlink(`${filepath}.create-server.lock`);
+		expect((await run()).status).toBe("ok");
+		await expect(access(`${filepath}.create-server.lock`)).rejects.toThrow();
+		// Failing runs let go of it too.
+		const failing = await setup(fakeNotifications({ hasMember: vi.fn(async () => false) }));
+		expect((await failing.run()).status).toBe("fail");
+		await expect(access(`${failing.filepath}.create-server.lock`)).rejects.toThrow();
 	});
 
 	it("--resume refuses a server the bot does not own (the config may name another one)", async () => {

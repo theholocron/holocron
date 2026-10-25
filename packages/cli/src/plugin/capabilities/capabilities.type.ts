@@ -1359,7 +1359,7 @@ export interface Notifications extends ProviderIdentity {
 	transferServer?(memberId: string): Promise<void>;
 
 	/** Who owns the server, and whether that is the provider's own bot. */
-	serverOwner?(): Promise<{ id: string; isBot: boolean }>;
+	serverOwner?(): Promise<{ id: string; isBot: boolean; name?: string }>;
 
 	/**
 	 * Who holds a role, by the provider's member id. Needs whatever permission the provider asks for to list

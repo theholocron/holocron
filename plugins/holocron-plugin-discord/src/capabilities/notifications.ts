@@ -1629,6 +1629,11 @@ export class DiscordNotifications implements Notifications {
 	}
 
 	async createServer(input: { name: string; force?: boolean }): Promise<{ id: string; name: string }> {
+		// Asked again in the same run (a retry after an answer was lost): the server is already there, make no second.
+		if (this.createdGuild) {
+			const existing = await this.bot().guilds.get(this.createdGuild);
+			return { id: existing.id, name: existing.name };
+		}
 		if (this.opts.guildId && !input.force) {
 			throw new Error(
 				`this config already names a server (\`guildId\` ${this.opts.guildId}); pass --force to create another one`
@@ -1668,11 +1673,15 @@ export class DiscordNotifications implements Notifications {
 		await this.bot().guilds.modify(this.guild(), { owner_id: memberId });
 	}
 
-	async serverOwner(): Promise<{ id: string; isBot: boolean }> {
+	async serverOwner(): Promise<{ id: string; isBot: boolean; name?: string }> {
 		// `owner_id` is in Discord's answer but not yet in the client's type.
-		const guild = (await this.bot().guilds.get(this.guild())) as { owner_id?: string };
+		const guild = (await this.bot().guilds.get(this.guild())) as { owner_id?: string; name?: string };
 		if (!guild.owner_id) throw new Error("Discord did not say who owns the server");
-		return { id: guild.owner_id, isBot: guild.owner_id === (await this.botId()) };
+		return {
+			id: guild.owner_id,
+			isBot: guild.owner_id === (await this.botId()),
+			...(guild.name ? { name: guild.name } : {}),
+		};
 	}
 
 	/** The one role with this name, or an error that says what to fix: none, or more than one. */
