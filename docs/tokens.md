@@ -24,12 +24,38 @@ No broad-token fallback. If none of the above is set, the command exits with an 
 | `HOLOCRON_RELEASE_TOKEN`   | `github.release`   | Fine-grained       | holocron CLI — semantic-release: create tags, releases, and changelogs                                                  | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                                      |
 | `HOLOCRON_ADMIN_TOKEN`     | `github.admin`     | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties                                        | `administration: read/write`, `secrets: read/write`, `environments: read/write`                                |
 | `HOLOCRON_DEPLOY_TOKEN`    | `github.deploy`    | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                                                               | `pages: read/write`, `metadata: read`                                                                          |
-| `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync and org-level custom property values                                                                | Resource owner: org · `administration: write` · `members: read` · `organization_custom_properties: read/write` |
+| `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync and org-level custom property values; `sync-roles` — read a team's members                          | Resource owner: org · `administration: write` · `members: read` · `organization_custom_properties: read/write` |
 | `HOLOCRON_USER_SYNC_TOKEN` | `github.user-sync` | Fine-grained       | `notifications link` and `sync-roles` — read and write the files that link GitHub accounts to members of other services | Repository: **only** `.github-private` · `contents: read/write`                                                |
 
 ### Why a separate org token?
 
 Fine-grained PATs have two resource owner modes: **personal** (scoped to repos you own) and **organization** (scoped to repos within the org). Team management and org-level custom properties both require a PAT whose resource owner is the org. `HOLOCRON_ORG_TOKEN` covers these; `HOLOCRON_ADMIN_TOKEN` covers all repo-scoped operations.
+
+### Discord
+
+Discord has three separate credentials, each used by a different step, so a leak of one reaches only that step. None is a GitHub token.
+
+| Env var                                                         | Keyring key             | What it is                                             | Used by                                                                      | Get it from                                  |
+| --------------------------------------------------------------- | ----------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------- |
+| `HOLOCRON_DISCORD_BOT_TOKEN` (also `DISCORD_BOT_TOKEN`)         | `discord.holonet`       | The bot's token                                        | `notifications setup`, `create-server`, `sync-roles`, `doctor notifications` | Developer portal → Bot → **Reset Token**     |
+| `HOLOCRON_DISCORD_CLIENT_SECRET` (also `DISCORD_CLIENT_SECRET`) | `discord.holonet.oauth` | The application's OAuth2 client secret                 | `notifications link` (signing people in)                                     | Developer portal → OAuth2 → **Reset Secret** |
+| `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` (a GitHub secret)           | _(none)_                | A channel's webhook URL; anyone with it can post there | Workflows posting to a channel; the delivery check in `doctor notifications` | Created and stored by `notifications setup`  |
+
+The bot token and the client secret look alike and are not interchangeable.
+
+**What the bot needs in the server.** `setup` and `create-server` need View Channels, Send Messages, Read Message History, Manage Channels, Manage Roles, Manage Webhooks, Manage Server, Create Public Threads, Create Private Threads and Send Messages in Threads. When one is missing, the command prints an invite link that asks for exactly these and updates the bot's role in place. A server the bot creates itself needs none of this while it owns the server.
+
+**What the application needs in the developer portal.** The **Server Members Intent** (switched on by `application.intents.members` in the layout) for `sync-roles`, and the redirect `http://localhost:53682/callback` under OAuth2 → Redirects for `notifications link`. Making the bot public, and the verification review, stay manual.
+
+**GitHub tokens the Discord steps also use**
+
+| Step                                                   | Token                  | Why                                                                                       |
+| ------------------------------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------- |
+| `setup` storing webhook URLs and role ids              | `github.secrets` (org) | Writes organization secrets (`HOLOCRON_NOTIFY_*`)                                         |
+| `sync-roles` reading a team                            | `github.org` (org)     | `members: read` on the organization                                                       |
+| `link` and `sync-roles` reading/writing the links file | `github.user-sync`     | `contents: read/write` on `.github-private` only; separate so it cannot touch other repos |
+
+Setup order for a new machine is in [Server as Code](https://theholocron.github.io/holocron/server-as-code/).
 
 ## Setting tokens via env vars
 
