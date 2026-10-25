@@ -62,6 +62,34 @@ export async function runNotificationsCreateServer(
 		layout?.categories?.flatMap((c) => c.channels ?? [])[0]?.name;
 	if (!inviteChannel) return refuse("the layout has no channel to invite the owner through");
 
+	// Prove the layout can be applied BEFORE a server exists: setup's own checks, run as a preview, so a layout
+	// the provider cannot apply (or a missing secrets store) leaves no server behind with nothing in it.
+	if (!input.resume) {
+		const wantsSecrets =
+			(layout?.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook)) ||
+			(layout?.roles ?? []).some((r) => r.secret);
+		if (wantsSecrets && !loader.has("secrets")) {
+			return refuse(
+				"no server was created: the layout stores webhook URLs or role ids, which need a `secrets` capability — add a `secrets` provider"
+			);
+		}
+		/* v8 ignore next -- tests inject setup */
+		const preview = await (input.runSetup ?? runNotificationsSetup)({
+			loaded: input.loaded,
+			context: { ...input.context, dryRun: true },
+			loader,
+			preloaded: true,
+			print: () => {},
+			logger,
+			provider: notifications.providerName,
+		});
+		if (preview.status === "fail") {
+			return refuse(
+				`no server was created: the layout cannot be applied (${preview.message ?? preview.failures[0]?.message ?? "see `holocron notifications setup --dry-run`"})`
+			);
+		}
+	}
+
 	if (dryRun) {
 		const plan = input.resume
 			? `would check the layout is applied to the server in the config, invite member ${input.owner} through #${inviteChannel}, wait for them to join, and hand the server over`

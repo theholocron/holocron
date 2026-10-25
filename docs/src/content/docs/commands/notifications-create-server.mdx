@@ -9,8 +9,9 @@ holocron notifications create-server --name <name> --owner <member id> [--provid
 
 Builds the server from nothing. A bot can create a server (Discord allows it while the bot is in fewer than ten), and a server it creates already has the bot in it, so there is no invite step for the bot. The command then:
 
+0. **checks the layout can be applied**, the way `notifications setup --dry-run` does, and that a `secrets` provider exists if the layout stores webhook URLs or role ids. If not, it stops before a server exists.
 1. **creates** the server, owned by the bot at first;
-2. **writes the new server id** into your `holocron.config.ts` (`guildId`), so every other command finds it. If the file has no single `guildId: "…"` to replace it leaves the file alone and tells you what to set;
+2. **writes the new server id** into your `holocron.config.ts` (`guildId`), so every other command finds it. If the file has no single live `guildId: "…"` property to replace (a comment or string that mentions one does not count) it leaves the file alone and tells you what to set;
 3. **applies the whole layout**, exactly as [`notifications setup`](/holocron/commands/notifications-setup/) does (the bot owns the server, so it may do everything, including turning community features on, with no elevation step);
 4. **invites the owner**: a single-use link into the system channel (else the rules channel, else the first channel), valid for a day;
 5. **waits for the owner to join** (up to 15 minutes, looking every few seconds), then **hands the server over** to them.

@@ -94,7 +94,14 @@ describe("runNotificationsCreateServer", () => {
 		});
 		expect(n.createServer).toHaveBeenCalledWith({ name: "The Holocron", force: true });
 		expect(await readFile(filepath, "utf8")).toBe('guildId: "9000000000000000001",\n');
-		expect(runSetup).toHaveBeenCalledTimes(1);
+		// Once as a preview before the server exists, once for real after it.
+		expect(runSetup).toHaveBeenCalledTimes(2);
+		expect((runSetup.mock.calls as unknown as Array<[{ context: { dryRun?: boolean } }]>)[0]![0]).toMatchObject({
+			context: { dryRun: true },
+		});
+		expect(
+			(runSetup.mock.calls as unknown as Array<[{ context: { dryRun?: boolean } }]>)[1]![0].context.dryRun
+		).toBeUndefined();
 		expect(n.inviteLink).toHaveBeenCalledWith("welcome");
 		expect(n.transferServer).toHaveBeenCalledWith("709617107741966407");
 		// Nothing is handed over before the layout is applied.
@@ -166,12 +173,47 @@ describe("runNotificationsCreateServer", () => {
 		expect((await blind.run()).status).toBe("fail");
 	});
 
+	it("creates nothing when the layout cannot be applied", async () => {
+		const n = fakeNotifications();
+		const { run, runSetup } = await setup(n);
+		runSetup.mockResolvedValueOnce({ status: "fail", message: "cannot manage roles", failures: [] } as never);
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("no server was created");
+		expect(report.message).toContain("cannot manage roles");
+		expect(n.createServer).not.toHaveBeenCalled();
+		runSetup.mockResolvedValueOnce({ status: "fail", failures: [{ step: "x", message: "boom" }] } as never);
+		expect((await run()).message).toContain("boom");
+		runSetup.mockResolvedValueOnce({ status: "fail", failures: [] } as never);
+		expect((await run()).message).toContain("setup --dry-run");
+	});
+
+	it("creates nothing when the layout stores secrets and there is no secrets provider", async () => {
+		const n = fakeNotifications({
+			layout: { categories: [{ name: "A", channels: [{ name: "welcome", webhook: true }] }] },
+		});
+		const { run } = await setup(n);
+		const report = await run();
+		expect(report.message).toContain("`secrets` capability");
+		expect(n.createServer).not.toHaveBeenCalled();
+		const roles = await setup(
+			fakeNotifications({
+				layout: { categories: [{ name: "A", channels: [{ name: "w" }] }], roles: [{ name: "r", secret: "S" }] },
+			})
+		);
+		expect((await roles.run()).message).toContain("`secrets` capability");
+	});
+
 	it("does not hand over a server whose layout failed to apply", async () => {
 		const n = fakeNotifications();
-		const { run } = await setup(n, { setupStatus: "fail" });
+		const { run, runSetup } = await setup(n);
+		// The preview passes (nothing in the way before the server exists); the real run then fails.
+		const ok = { status: "ok", categories: [], channels: [], roles: [], failures: [] };
+		runSetup.mockResolvedValueOnce(ok as never).mockResolvedValueOnce({ ...ok, status: "fail" } as never);
 		const report = await run();
 		expect(report.status).toBe("fail");
 		expect(report.message).toContain("failed; fix it");
+		expect(n.createServer).toHaveBeenCalled();
 		expect(n.transferServer).not.toHaveBeenCalled();
 		expect(n.inviteLink).not.toHaveBeenCalled();
 	});

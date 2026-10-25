@@ -68,4 +68,14 @@ describe("writeGuildId", () => {
 			reason: expect.stringContaining("could not write"),
 		});
 	});
+
+	it("does not take a guildId that only appears inside a string or after other code on a line", async () => {
+		const text =
+			'const note = \'guildId: "111"\';\nconst x = 1; /* guildId: "222" */\nexport default { guildId: "333" };\n';
+		const path = await fileWith(text);
+		expect(await writeGuildId(path, "456")).toEqual({ written: true });
+		expect(await readFile(path, "utf8")).toBe(text.replace('"333"', '"456"'));
+		const decoys = await fileWith('const note = `guildId: "111"`;\nconst t = "guildId", u = "9";\n');
+		expect(await writeGuildId(decoys, "456")).toMatchObject({ written: false });
+	});
 });
