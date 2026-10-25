@@ -69,7 +69,7 @@ const shown = (s: string) => sanitizeDetail(s);
 const WELCOME_TITLE = "welcome screen and onboarding set";
 const APP_TITLE = "bot description, tags, install link and URLs set";
 const AVATAR_TITLE = "webhook names and avatars set";
-const DELIVERY_TITLE = "test message delivered through every webhook";
+const DELIVERY_TITLE = "test message delivered through a webhook";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
@@ -99,7 +99,6 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		checks.push({ id, title, status: "fail", detail: reason, problems: [] });
 	};
 
-	let deliverSkipped = false;
 	const summarise = () => ({
 		pass: checks.filter((c) => c.status === "pass").length,
 		fail: checks.filter((c) => c.status === "fail").length,
@@ -785,13 +784,21 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		}
 	}
 
-	// 15. a test message gets through every channel's webhook (posts, so only on request)
+	// 15. a test message gets through a webhook: the layout's test channel by default, every channel on request
 	const withHook = (layout.categories ?? []).flatMap((cat) =>
 		(cat.channels ?? []).filter((c) => c.webhook).map((channel) => ({ cat, channel }))
 	);
-	if (!input.deliver) {
-		deliverSkipped = true;
-	} else if (withHook.length === 0) {
+	const testName = layout.testChannel;
+	const targets = input.allChannels
+		? withHook
+		: withHook.filter(({ channel }) => testName !== undefined && same(channel.name, testName));
+	let deliveryNote: string | undefined;
+	if (input.delivery === false) {
+		deliveryNote = "the delivery check was not run (--no-delivery)";
+	} else if (!input.allChannels && testName === undefined) {
+		deliveryNote =
+			"the delivery check needs a test channel: name one in the layout's `testChannel` (a channel with a webhook)";
+	} else if (targets.length === 0) {
 		checks.push({
 			id: "post-works",
 			title: DELIVERY_TITLE,
@@ -804,12 +811,10 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		failed("post-works", DELIVERY_TITLE, `the \`${notifications.providerName}\` provider cannot check delivery`);
 	} else {
 		const problems: string[] = [];
-		if (input.keepIn && !withHook.some(({ channel }) => same(channel.name, input.keepIn!))) {
-			problems.push(`--keep-in ${shown(input.keepIn)}: no channel with a webhook is called that in the layout`);
-		}
-		for (const { cat, channel } of withHook) {
+		for (const { cat, channel } of targets) {
 			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });
-			const keep = input.keepIn !== undefined && same(channel.name, input.keepIn);
+			// Only the test channel is ever kept: the real channels are never left with a test post in them.
+			const keep = input.keep === true && testName !== undefined && same(channel.name, testName);
 			try {
 				const result = await notifications.checkDelivery({
 					channel: channel.name,
@@ -831,7 +836,14 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				problems.push(`#${shown(channel.name)}: ${shown(describeProviderError(err))}`);
 			}
 		}
-		add("post-works", DELIVERY_TITLE, problems, `${withHook.length} of ${withHook.length} delivered`);
+		add(
+			"post-works",
+			DELIVERY_TITLE,
+			problems,
+			input.allChannels
+				? `${targets.length} of ${targets.length} delivered`
+				: `delivered through #${shown(targets[0]!.channel.name)}${input.keep ? " (left there)" : ""}`
+		);
 	}
 
 	// Features not built yet: each fails until it lands.
@@ -854,12 +866,10 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		print(statusRow(check.status === "pass" ? "ok" : "fail", [check.title.padEnd(width), check.detail]));
 		for (const problem of check.problems) print(`      - ${problem}`);
 	}
-	// Not a step and not counted: the delivery check posts, so it only runs when asked.
-	if (deliverSkipped) {
+	// Not a step and not counted: why the delivery check did not run, set apart below the steps.
+	if (deliveryNote) {
 		print("");
-		print(
-			`  ${style.skip("note: the delivery check posts test messages, so it runs only with --deliver (add --keep-in <channel> to leave one visible)")}`
-		);
+		print(`  ${style.skip(`note: ${deliveryNote}`)}`);
 	}
 	const summary = summarise();
 	print("");

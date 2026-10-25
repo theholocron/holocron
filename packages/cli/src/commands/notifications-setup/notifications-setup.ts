@@ -110,6 +110,15 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 		return undefined;
 	};
 
+	if (layout.testChannel !== undefined) {
+		const problem = channel("`testChannel`", layout.testChannel);
+		if (problem) return problem;
+		const hasWebhook = (layout.categories ?? []).some((c) =>
+			(c.channels ?? []).some((ch) => ch.name.toLowerCase() === layout.testChannel!.toLowerCase() && ch.webhook)
+		);
+		if (!hasWebhook) return `\`testChannel\` names \`${layout.testChannel}\`, which declares no webhook`;
+	}
+
 	const roleTeams = roleTeamProblem(layout);
 	if (roleTeams) return roleTeams;
 	const emptyTeam = (layout.roles ?? []).find((r) => r.team !== undefined && r.team.trim() === "");

@@ -1147,6 +1147,12 @@ export interface NotificationsLinksLayout {
 
 /** A declared server layout, applied idempotently by `holocron notifications setup`. */
 export interface NotificationsLayout {
+	/**
+	 * The channel set aside for test posts, by name. It must declare a webhook. `holocron doctor notifications`
+	 * posts one labelled test message through it, reads it back and removes it, which is its proof that
+	 * delivery works; `--keep` leaves the message there to look at.
+	 */
+	testChannel?: string;
 	/** Where `sync-roles` finds which server member is which GitHub account. Only used by roles with a `team`. */
 	links?: NotificationsLinksLayout;
 	/** The bot's own application settings, applied with the server's. */

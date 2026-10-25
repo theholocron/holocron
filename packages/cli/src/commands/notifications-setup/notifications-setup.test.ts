@@ -414,6 +414,24 @@ describe("runNotificationsSetup", () => {
 			expect(n.ensureCategory).not.toHaveBeenCalled();
 		});
 
+		it("refuses a test channel that is not in the layout or declares no webhook", async () => {
+			const ghost = fakeNotifications({
+				layout: { categories: [{ name: "A", channels: [{ name: "x", webhook: true }] }], testChannel: "ghost" },
+			});
+			expect((await setup(ghost).run()).message).toMatch(/`testChannel` names the channel `ghost`/);
+			const bare = fakeNotifications({
+				layout: {
+					categories: [{ name: "Empty" }, { name: "A", channels: [{ name: "x" }] }],
+					testChannel: "x",
+				},
+			});
+			expect((await setup(bare).run()).message).toMatch(/`testChannel` names `x`, which declares no webhook/);
+			const fine = fakeNotifications({
+				layout: { categories: [{ name: "A", channels: [{ name: "x", webhook: true }] }], testChannel: "X" },
+			});
+			expect((await setup(fine).run()).message ?? "").not.toMatch(/testChannel/);
+		});
+
 		it("refuses a server channel the layout does not declare, and community without both channels", async () => {
 			const missing = fakeNotifications({
 				layout: { categories: [{ name: "A", channels: [{ name: "x" }] }], server: { systemChannel: "ghost" } },

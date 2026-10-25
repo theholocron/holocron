@@ -101,6 +101,8 @@ A role that may `post` must also be in `view` when `view` is a list, or it could
 
 Discord lets the server owner and anyone with the Administrator permission see and post everywhere, whatever the overwrites say, so "hidden from everyone but gatekeepers" means hidden from everyone who is not an administrator. Keep Administrator for the few people who need it. Roles are created first, since access names them; naming a role the layout does not declare is refused before anything is created.
 
+`testChannel: "<channel>"` names the channel set aside for test posts (it must declare a webhook): [`holocron doctor notifications`](/holocron/commands/doctor-notifications/) posts one `🧪 test:` message there to prove delivery works, and removes it again.
+
 `webhook: true` stores the URL in `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>`; `webhook: { name, secret }` overrides the webhook name and the secret name. The command prints each role's id, which is what a workflow needs to ping it.
 
 A webhook's picture comes from `webhookAvatar` on the layout (every webhook), or `webhook: { avatar }` (one). Either is a path to a PNG, JPEG or GIF, read from where the CLI runs, or an `https://` URL. WebP is refused, because providers do not take it; convert it first. A picture that cannot be read stops the run before anything is created. The picture is set on a webhook that has none, and an existing one is left alone: Discord stores a hash, not the image, so there is no way to tell whether the one it holds is the same. To change it, remove the picture in Discord and run `setup` again.

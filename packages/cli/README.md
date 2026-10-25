@@ -538,18 +538,19 @@ A `notifications` provider can declare a whole server in `holocron.config.ts`
 onboarding, the bot application) and the CLI applies and checks it. The
 commands and the config are provider-neutral; Discord is the first provider.
 
-| Command                                                                          | What it does                                                                                                                                                    |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `holocron notifications setup`                                                   | Applies the layout; looks everything up by name first, so a re-run changes nothing that matches                                                                 |
-| `holocron notifications channel add <name>`                                      | Creates one channel (optionally with a webhook whose URL is stored as a secret)                                                                                 |
-| `holocron notifications link`                                                    | Links your account on the provider to your GitHub account by signing in with the provider (OAuth, nothing secret kept)                                          |
-| `holocron notifications sync-roles`                                              | Makes who holds a role match a GitHub team, through the links file (`--keep` only adds; `--provider` picks one)                                                 |
-| `holocron doctor notifications [--built-only] [--deliver [--keep-in <channel>]]` | Read-only, step by step: does the server match the layout, and do the secrets exist (`--deliver` also posts a test message through each webhook and removes it) |
+| Command                                                                                  | What it does                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `holocron notifications setup`                                                           | Applies the layout; looks everything up by name first, so a re-run changes nothing that matches                                                                                                              |
+| `holocron notifications channel add <name>`                                              | Creates one channel (optionally with a webhook whose URL is stored as a secret)                                                                                                                              |
+| `holocron notifications link`                                                            | Links your account on the provider to your GitHub account by signing in with the provider (OAuth, nothing secret kept)                                                                                       |
+| `holocron notifications sync-roles`                                                      | Makes who holds a role match a GitHub team, through the links file (`--keep` only adds; `--provider` picks one)                                                                                              |
+| `holocron doctor notifications [--built-only] [--no-delivery] [--all-channels] [--keep]` | Step by step: does the server match the layout, and do the secrets exist. Also posts one `🧪 test:` message through the layout's `testChannel` and removes it (`--keep` leaves it; `--no-delivery` skips it) |
 
 Config shape added for role sync and sign-in (all under the provider's `layout`):
 
 | Field                         | Meaning                                                                                                                                                     |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `testChannel`                 | The channel (it must declare a webhook) the doctor posts its one self-removing test message to.                                                             |
 | `roles[].team`                | A GitHub team slug. The role follows that team: given to linked members, taken from linked people who left. Never touches holders nobody has linked.        |
 | `links.hostedUrl`             | A hosted sign-in service (Sentinel). `link` asks `<hostedUrl>/api/link` and uses it when it answers `{ "service": "link" }`; otherwise it signs in locally. |
 | `links.localPort`             | The port of the local sign-in listener (default `53682`, bound to `127.0.0.1` only).                                                                        |

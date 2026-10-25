@@ -339,7 +339,7 @@ try {
 					})
 					.command(
 						"notifications",
-						"Check the layout against the server and the secrets store, step by step (read-only unless --deliver posts test messages)",
+						"Check the layout against the server and the secrets store, step by step (posts one self-removing test message to the test channel unless --no-delivery)",
 						(y) =>
 							y
 								.option("scope", {
@@ -356,16 +356,22 @@ try {
 									default: false,
 									describe: "Leave out the features that are not built yet (a routine drift check)",
 								})
-								.option("deliver", {
+								.option("delivery", {
+									type: "boolean",
+									default: true,
+									describe:
+										"Post one labelled test message through the layout's testChannel webhook, read it back and remove it (--no-delivery keeps the doctor read-only)",
+								})
+								.option("all-channels", {
 									type: "boolean",
 									default: false,
 									describe:
-										"Also post a test message through every channel's webhook, read it back and remove it",
+										"Run the delivery check through every channel that has a webhook, not only the test channel",
 								})
-								.option("keep-in", {
-									type: "string",
-									describe: "With --deliver: leave the test message in this one channel, to see it",
-									implies: "deliver",
+								.option("keep", {
+									type: "boolean",
+									default: false,
+									describe: "Leave the test message in the test channel, to see it",
 								}),
 						async (argv) => {
 							const tokens = tokenContext(argv.token);
@@ -382,8 +388,9 @@ try {
 								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
 								...(argv.provider ? { provider: argv.provider as string } : {}),
 								...(argv.builtOnly ? { builtOnly: true } : {}),
-								...(argv.deliver ? { deliver: true } : {}),
-								...(argv.keepIn ? { keepIn: argv.keepIn as string } : {}),
+								...(argv.delivery === false ? { delivery: false } : {}),
+								...(argv.allChannels ? { allChannels: true } : {}),
+								...(argv.keep ? { keep: true } : {}),
 							});
 							if (report.status === "fail") process.exitCode = 1;
 						}
