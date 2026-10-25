@@ -217,6 +217,67 @@ describe("DiscordNotifications.ensureChannel", () => {
 	});
 });
 
+describe("DiscordNotifications server creation and ownership", () => {
+	const NEW = "9000000000000000001";
+
+	it("creates the server, and makes it the one every later call works on", async () => {
+		const { notifs, calls } = makeProvisioner(
+			[{ body: { id: NEW, name: "The Holocron" } }, { body: { id: NEW, owner_id: "42" } }],
+			{}
+		);
+		expect(await notifs.createServer({ name: "The Holocron" })).toEqual({ id: NEW, name: "The Holocron" });
+		expect(calls[0]).toMatchObject({ method: "POST", url: `${BASE}/guilds`, body: { name: "The Holocron" } });
+		await notifs.serverOwner().catch(() => undefined);
+		expect(calls[1]?.url).toBe(`${BASE}/guilds/${NEW}`);
+	});
+
+	it("refuses to create a second server over a config that names one, unless forced", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: { id: NEW, name: "Again" } }]);
+		await expect(notifs.createServer({ name: "Again" })).rejects.toThrow(/already names a server/);
+		expect(calls).toHaveLength(0);
+		expect(await notifs.createServer({ name: "Again", force: true })).toEqual({ id: NEW, name: "Again" });
+	});
+
+	it("makes a single-use, day-long invite into a named channel", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [text("2001", "welcome")] }, { body: { code: "abc123" } }]);
+		expect(await notifs.inviteLink("welcome")).toBe("https://discord.gg/abc123");
+		expect(calls[1]).toMatchObject({
+			method: "POST",
+			url: `${BASE}/channels/2001/invites`,
+			body: { max_age: 86400, max_uses: 1, unique: true },
+		});
+		const none = makeProvisioner([{ body: [] }]);
+		await expect(none.notifs.inviteLink("welcome")).rejects.toThrow(/no channel named `welcome`/);
+	});
+
+	it("says whether a person is in the server, and lets any other error through", async () => {
+		const yes = makeProvisioner([{ body: { user: { id: "42" }, roles: [] } }]);
+		expect(await yes.notifs.hasMember("42")).toBe(true);
+		const no = makeProvisioner([{ status: 404, body: { message: "Unknown Member" } }]);
+		expect(await no.notifs.hasMember("42")).toBe(false);
+		const broken = makeProvisioner([{ status: 500, body: {} }]);
+		await expect(broken.notifs.hasMember("42")).rejects.toBeDefined();
+	});
+
+	it("hands the server to a member", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: { id: GUILD, owner_id: "42" } }]);
+		await notifs.transferServer("42");
+		expect(calls[0]).toMatchObject({ method: "PATCH", url: `${BASE}/guilds/${GUILD}`, body: { owner_id: "42" } });
+	});
+
+	it("says who owns the server and whether that is the bot", async () => {
+		const bot = makeProvisioner([
+			{ body: { id: GUILD, owner_id: "7" } },
+			{ body: { id: "7", username: "Holonet" } },
+		]);
+		expect(await bot.notifs.serverOwner()).toEqual({ id: "7", isBot: true });
+		const person = makeProvisioner([{ body: { id: GUILD, owner_id: "42" } }, { body: { id: "7" } }]);
+		expect(await person.notifs.serverOwner()).toEqual({ id: "42", isBot: false });
+		const unknown = makeProvisioner([{ body: { id: GUILD } }]);
+		await expect(unknown.notifs.serverOwner()).rejects.toThrow(/did not say who owns/);
+	});
+});
+
 describe("DiscordNotifications.checkDelivery", () => {
 	const input = { channel: "sync", name: "repo-sync", text: "ping" };
 	const hook = { id: "7001", channel_id: "2001", name: "repo-sync", token: "tk" };

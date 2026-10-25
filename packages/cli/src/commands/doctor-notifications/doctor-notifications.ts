@@ -1,13 +1,10 @@
 /**
- * `holocron doctor notifications` -- read-only: compare the layout a provider
+ * `holocron doctor notifications` -- compare the layout a provider
  * declares in `holocron.config.ts` with what is actually on the server and in the
  * secrets store, step by step.
  *
  * It is the end-to-end check for `notifications setup`, and stays useful after
- * as a drift check. Everything the layout and `setup` cannot do yet is listed
- * too, as plain failing steps, so the command is red until the last feature
- * lands and each feature built turns exactly one step green. The list
- * is {@link PLANNED_CHECKS}; the numbers match the table in holocron#1098.
+ * as a drift check. The step numbers match the table in holocron#1098.
  */
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -39,11 +36,6 @@ import type {
 	RunDoctorNotificationsInput,
 } from "./doctor-notifications.type.js";
 
-/** Features not built yet, in the order of the table in holocron#1098. Move an entry into a real check when it lands. */
-export const PLANNED_CHECKS: ReadonlyArray<{ step: number; id: string; title: string }> = [
-	{ step: 16, id: "server-creation", title: "server created from config" },
-];
-
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 type AccessValue = "everyone" | string[];
@@ -70,6 +62,7 @@ const WELCOME_TITLE = "welcome screen and onboarding set";
 const APP_TITLE = "bot description, tags, install link and URLs set";
 const AVATAR_TITLE = "webhook names and avatars set";
 const DELIVERY_TITLE = "test message delivered through a webhook";
+const OWNER_TITLE = "server owned by a person, not the bot";
 const SERVER_TITLE = "server verification, notifications and community set";
 const ACCESS_TITLE = "channel and category access set";
 const ROLE_APPEARANCE_TITLE = "role colour, hoist and permissions set";
@@ -102,7 +95,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	const summarise = () => ({
 		pass: checks.filter((c) => c.status === "pass").length,
 		fail: checks.filter((c) => c.status === "fail").length,
-		skip: input.builtOnly ? PLANNED_CHECKS.length : 0,
+		skip: 0,
 	});
 	const finish = (): DoctorNotificationsReport => {
 		const summary = summarise();
@@ -859,17 +852,22 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		);
 	}
 
-	// Features not built yet: each fails until it lands.
-	if (!input.builtOnly) {
-		for (const planned of PLANNED_CHECKS) {
-			checks.push({
-				id: planned.id,
-				title: planned.title,
-				status: "fail",
-				detail: `not built yet (#1098, step ${planned.step})`,
-				problems: [],
-				step: planned.step,
-			});
+	// 16. the server belongs to a person: a bot that created it owns it until it is handed over
+	if (notifications.serverOwner) {
+		try {
+			const owner = await notifications.serverOwner();
+			add(
+				"server-owner",
+				OWNER_TITLE,
+				owner.isBot
+					? [
+							"the bot owns the server; hand it to a person with `holocron notifications create-server --resume --owner <member id>`",
+						]
+					: [],
+				`owned by member ${shown(owner.id)}`
+			);
+		} catch (err) {
+			failed("server-owner", OWNER_TITLE, shown(describeProviderError(err)));
 		}
 	}
 

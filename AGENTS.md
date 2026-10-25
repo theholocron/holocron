@@ -33,7 +33,7 @@ Three repos, one rule per concern:
   is reported as a `todo` that fails the run until done. Role membership
   follows a GitHub team through a per-provider links file in the org's private
   config repo, read and written with its own `github.user-sync` token. The
-  capability methods behind it are optional on `Source` and `Notifications`.
+  capability methods behind it are optional on `Source` and `Notifications`. A server can also be created from the layout (`notifications create-server`): the bot makes it and applies the layout as owner, writes the new id into the config, invites a person and hands the server over; the doctor fails while the bot still owns it.
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting

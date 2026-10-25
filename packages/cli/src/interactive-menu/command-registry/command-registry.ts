@@ -115,6 +115,29 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "notifications create-server",
+		description: "Create the server the layout describes, apply it, invite its owner and hand it over",
+		positionals: [],
+		options: [
+			{ key: "name", flag: "--name", type: "input", required: true, message: "What the new server is called:" },
+			{
+				key: "owner",
+				flag: "--owner",
+				type: "input",
+				required: true,
+				message: "Member id of the person who will own it:",
+			},
+			{
+				key: "force",
+				flag: "--force",
+				type: "confirm",
+				default: false,
+				message: "The config already names a server: create another and replace its id?",
+			},
+		],
+		supportsDryRun: true,
+	},
+	{
 		name: "notifications link",
 		description: "Link your server account to your GitHub account by signing in with the provider",
 		positionals: [],

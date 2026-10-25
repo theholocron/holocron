@@ -29,6 +29,7 @@ import { runMonitoringResolveChecks } from "./commands/monitoring-resolve-checks
 import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands/monitoring-run-resolved/index.js";
 import { NewError, parseTopics, runNew, validateRepoName } from "./commands/new/index.js";
 import { runNotificationsChannelAdd } from "./commands/notifications-channel-add/index.js";
+import { runNotificationsCreateServer } from "./commands/notifications-create-server/index.js";
 import { runNotificationsLink } from "./commands/notifications-link/index.js";
 import { runNotificationsSetup } from "./commands/notifications-setup/index.js";
 import { runNotificationsSyncRoles } from "./commands/notifications-sync-roles/index.js";
@@ -1475,6 +1476,58 @@ try {
 								},
 								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
 								...(argv.provider ? { provider: argv.provider as string } : {}),
+							});
+							if (report.status === "fail") process.exitCode = 1;
+						}
+					)
+					.command(
+						"create-server",
+						"Create the server the layout describes, apply it, invite its owner and hand it over",
+						(y) =>
+							y
+								.option("name", {
+									type: "string",
+									describe: "What the new server is called (not needed with --resume)",
+								})
+								.option("owner", {
+									type: "string",
+									demandOption: true,
+									describe:
+										"The member id (on the provider) who will own the server once they have joined",
+								})
+								.option("provider", {
+									type: "string",
+									describe: "Which notifications provider, when several can create a server",
+								})
+								.option("force", {
+									type: "boolean",
+									default: false,
+									describe:
+										"Create another server although the config already names one, and replace its id",
+								})
+								.option("resume", {
+									type: "boolean",
+									default: false,
+									describe: "The server exists: skip creating and applying, and finish the hand-over",
+								}),
+						async (argv) => {
+							const tokens = tokenContext(argv.token);
+							if (!tokens) return;
+							const loaded = await loadConfig(argv.cwd);
+							applyResolvedConfig(argv, loaded.resolved);
+							const report = await runNotificationsCreateServer({
+								loaded,
+								context: {
+									repoRoot: argv.cwd,
+									dryRun: argv.dryRun,
+									...tokens,
+									org: resolveOrg(argv, loaded.resolved),
+								},
+								owner: argv.owner as string,
+								...(argv.name ? { name: argv.name as string } : {}),
+								...(argv.provider ? { provider: argv.provider as string } : {}),
+								...(argv.force ? { force: true } : {}),
+								...(argv.resume ? { resume: true } : {}),
 							});
 							if (report.status === "fail") process.exitCode = 1;
 						}
