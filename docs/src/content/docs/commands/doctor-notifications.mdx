@@ -26,9 +26,10 @@ It is the end-to-end check for [`notifications setup`](/holocron/commands/notifi
   ✓ webhook URLs and role id stored as secrets        7 of 7 exist
   ✓ role assigned to team members                     1 of 1 in sync
   ✗ server created from config                        not built yet (#1098, step 16)
-  test message delivered through every webhook: not run; add --deliver to post a test message to each channel
 
-13 ok, 1 fail, 1 skipped
+  note: the delivery check posts test messages, so it runs only with --deliver (add --keep-in <channel> to leave one visible)
+
+13 ok, 1 fail, 0 skipped
 ```
 
 ## What each step checks

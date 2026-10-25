@@ -149,7 +149,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 1 });
+		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 0 });
 		expect(report.status).toBe("fail");
 		const planned = report.checks.filter((c) => c.step !== undefined);
 		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
@@ -162,7 +162,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("13 ok, 0 fail, 2 skipped");
+		expect(lines.join("\n")).toContain("13 ok, 0 fail, 1 skipped");
 		expect(lines.join("\n")).not.toContain("not built");
 	});
 
@@ -177,7 +177,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("✓ webhook names and avatars set");
 		expect(out).toContain("not built yet (#1098, step 16)");
 		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("13 ok, 1 fail, 1 skipped");
+		expect(out).toContain("13 ok, 1 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -655,7 +655,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length + 1 });
+			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1312,14 +1312,18 @@ describe("runDoctorNotifications — webhook avatars", () => {
 describe("runDoctorNotifications — delivery check", () => {
 	const TITLE = "test message delivered through every webhook";
 
-	it("posts nothing unless asked, and says how to ask", async () => {
+	it("posts nothing unless asked, and says how to ask in a note below the steps, not as a step", async () => {
 		const n = fakeNotifications();
 		const { run, lines } = setup(n, { builtOnly: true });
 		const report = await run();
 		expect(n.checkDelivery).not.toHaveBeenCalled();
 		expect(report.checks.find((c) => c.title === TITLE)).toBeUndefined();
-		expect(lines.join("\n")).toContain("add --deliver");
-		expect(report.summary.skip).toBe(2); // step 16 is not built; the delivery check was not asked for
+		const noteAt = lines.findIndex((l) => l.includes("note: the delivery check"));
+		expect(noteAt).toBeGreaterThan(0);
+		expect(lines[noteAt - 1]).toBe(""); // a blank line sets it apart from the steps above
+		expect(lines[noteAt]).toContain("--deliver");
+		expect(lines.slice(0, noteAt).some((l) => l.includes("test message delivered"))).toBe(false);
+		expect(report.summary.skip).toBe(1); // only step 16, which is not built; the note is not a step
 	});
 
 	it("checks every channel that has a webhook when asked", async () => {

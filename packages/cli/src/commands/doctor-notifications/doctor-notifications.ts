@@ -103,7 +103,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	const summarise = () => ({
 		pass: checks.filter((c) => c.status === "pass").length,
 		fail: checks.filter((c) => c.status === "fail").length,
-		skip: (input.builtOnly ? PLANNED_CHECKS.length : 0) + (deliverSkipped ? 1 : 0),
+		skip: input.builtOnly ? PLANNED_CHECKS.length : 0,
 	});
 	const finish = (): DoctorNotificationsReport => {
 		const summary = summarise();
@@ -854,8 +854,13 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		print(statusRow(check.status === "pass" ? "ok" : "fail", [check.title.padEnd(width), check.detail]));
 		for (const problem of check.problems) print(`      - ${problem}`);
 	}
-	if (deliverSkipped)
-		print(`  ${style.skip(`${DELIVERY_TITLE}: not run; add --deliver to post a test message to each channel`)}`);
+	// Not a step and not counted: the delivery check posts, so it only runs when asked.
+	if (deliverSkipped) {
+		print("");
+		print(
+			`  ${style.skip("note: the delivery check posts test messages, so it runs only with --deliver (add --keep-in <channel> to leave one visible)")}`
+		);
+	}
 	const summary = summarise();
 	print("");
 	print(style.header(`${summary.pass} ok, ${summary.fail} fail, ${summary.skip} skipped`));
