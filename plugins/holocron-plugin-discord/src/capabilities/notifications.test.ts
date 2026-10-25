@@ -214,6 +214,95 @@ describe("DiscordNotifications.ensureChannel", () => {
 	});
 });
 
+describe("DiscordNotifications.checkDelivery", () => {
+	const input = { channel: "sync", name: "repo-sync", text: "ping" };
+	const hook = { id: "7001", channel_id: "2001", name: "repo-sync", token: "tk" };
+
+	it("posts through the webhook, reads the post back and removes it", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: { id: "m1", content: "ping" } },
+			{ body: [{ id: "m1", content: "ping" }] },
+			{ status: 204, body: {} },
+		]);
+		expect(await notifs.checkDelivery(input)).toEqual({
+			posted: true,
+			readBack: true,
+			removed: true,
+			problems: [],
+		});
+		expect(calls[2]).toMatchObject({ method: "POST", url: expect.stringContaining("/webhooks/7001/tk") });
+		expect(calls[4]).toMatchObject({
+			method: "DELETE",
+			url: expect.stringContaining("/webhooks/7001/tk/messages/m1"),
+		});
+	});
+
+	it("finds the channel under its category, skipping webhooks with no name", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [category("1001", "AUTOMATION"), text("2001", "sync", "1001")] },
+			{ body: [{ id: "9", channel_id: "2001", name: null, token: "x" }, hook] },
+			{ body: { id: "m1" } },
+			{ body: [{ id: "m1", content: "ping" }] },
+			{ status: 204, body: {} },
+		]);
+		expect(await notifs.checkDelivery({ ...input, category: "AUTOMATION" })).toMatchObject({
+			posted: true,
+			readBack: true,
+			removed: true,
+		});
+	});
+
+	it("names what is missing instead of throwing", async () => {
+		expect((await makeProvisioner([{ body: [] }]).notifs.checkDelivery(input)).problems[0]).toContain(
+			"no channel named"
+		);
+		expect(
+			(await makeProvisioner([{ body: [text("2001", "sync")] }, { body: [] }]).notifs.checkDelivery(input))
+				.problems[0]
+		).toContain("no webhook named");
+		const hidden = makeProvisioner([{ body: [text("2001", "sync")] }, { body: [{ ...hook, token: undefined }] }]);
+		expect((await hidden.notifs.checkDelivery(input)).problems[0]).toContain("token is hidden");
+		const broken = makeProvisioner([{ status: 500, body: { message: "boom" } }]);
+		expect((await broken.notifs.checkDelivery(input)).posted).toBe(false);
+	});
+
+	it("reports a refused post, a post that is not in the channel, and a message it could not remove", async () => {
+		const refused = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ status: 404, body: { message: "Unknown Webhook" } },
+		]);
+		const r = await refused.notifs.checkDelivery(input);
+		expect(r.posted).toBe(false);
+		expect(r.problems[0]).toContain("the post was refused");
+
+		const missing = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: { id: "m1" } },
+			{ body: [] },
+			{ status: 204, body: {} },
+		]);
+		const m = await missing.notifs.checkDelivery(input);
+		expect(m).toMatchObject({ posted: true, readBack: false, removed: true });
+		expect(m.problems[0]).toContain("is not in the channel");
+
+		const stuck = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: { id: "m1" } },
+			{ status: 500, body: {} },
+			{ status: 403, body: { message: "Missing Permissions" } },
+		]);
+		const s = await stuck.notifs.checkDelivery(input);
+		expect(s.removed).toBe(false);
+		expect(s.problems.join(" ")).toContain("could not read the channel back");
+		expect(s.problems.join(" ")).toContain("could not remove the test message m1");
+	});
+});
+
 describe("DiscordNotifications.ensureWebhook", () => {
 	const hook = { id: "7001", channel_id: "2001", name: "repo-sync" };
 

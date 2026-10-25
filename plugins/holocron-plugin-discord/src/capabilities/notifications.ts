@@ -4,6 +4,7 @@ import {
 	type Notifications,
 	type NotificationsAccess,
 	type NotificationsApplicationLayout,
+	type NotificationsDelivery,
 	type NotificationsEveryoneLayout,
 	type NotificationsLayout,
 	type NotificationsMember,
@@ -1513,6 +1514,61 @@ export class DiscordNotifications implements Notifications {
 			} catch (err) {
 				result.avatarError = reason(err);
 			}
+		}
+		return result;
+	}
+
+	async checkDelivery(input: {
+		channel: string;
+		name: string;
+		category?: string;
+		text: string;
+	}): Promise<NotificationsDelivery> {
+		const result: NotificationsDelivery = { posted: false, readBack: false, removed: false, problems: [] };
+		const bot = this.bot();
+		let hook: { id: string; token: string; channelId: string };
+		try {
+			const parent = input.category
+				? (await this.channelList()).find(
+						(c) => c.type === ChannelType.Category && DiscordNotifications.same(c.name, input.category!)
+					)?.id
+				: undefined;
+			const channel = DiscordNotifications.findChannel(await this.channelList(), input.channel, parent);
+			if (!channel) return { ...result, problems: [`no channel named \`${input.channel}\``] };
+			const found = (await bot.channels.webhooks(channel.id)).find((w) =>
+				DiscordNotifications.same(w.name ?? "", input.name)
+			);
+			if (!found) return { ...result, problems: [`no webhook named \`${input.name}\``] };
+			// Discord only hands the token to the application that created the webhook.
+			if (!found.token) {
+				return {
+					...result,
+					problems: [`webhook \`${input.name}\` was not created by this bot, so its token is hidden`],
+				};
+			}
+			hook = { id: found.id, token: found.token, channelId: channel.id };
+		} catch (err) {
+			return { ...result, problems: [reason(err)] };
+		}
+		let messageId: string;
+		try {
+			messageId = (await this.client.webhooks.executeAndWait(hook.id, hook.token, input.text)).id;
+			result.posted = true;
+		} catch (err) {
+			return { ...result, problems: [`the post was refused (${reason(err)})`] };
+		}
+		try {
+			const seen = await bot.channels.messages(hook.channelId, 25);
+			result.readBack = seen.some((m) => m.id === messageId && m.content === input.text);
+			if (!result.readBack) result.problems.push("the post was accepted but is not in the channel");
+		} catch (err) {
+			result.problems.push(`could not read the channel back (${reason(err)})`);
+		}
+		try {
+			await this.client.webhooks.deleteMessage(hook.id, hook.token, messageId);
+			result.removed = true;
+		} catch (err) {
+			result.problems.push(`could not remove the test message ${messageId} (${reason(err)})`);
 		}
 		return result;
 	}

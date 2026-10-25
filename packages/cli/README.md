@@ -538,13 +538,13 @@ A `notifications` provider can declare a whole server in `holocron.config.ts`
 onboarding, the bot application) and the CLI applies and checks it. The
 commands and the config are provider-neutral; Discord is the first provider.
 
-| Command                                        | What it does                                                                                                           |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `holocron notifications setup`                 | Applies the layout; looks everything up by name first, so a re-run changes nothing that matches                        |
-| `holocron notifications channel add <name>`    | Creates one channel (optionally with a webhook whose URL is stored as a secret)                                        |
-| `holocron notifications link`                  | Links your account on the provider to your GitHub account by signing in with the provider (OAuth, nothing secret kept) |
-| `holocron notifications sync-roles`            | Makes who holds a role match a GitHub team, through the links file (`--keep` only adds; `--provider` picks one)        |
-| `holocron doctor notifications [--built-only]` | Read-only, step by step: does the server match the layout, and do the secrets exist                                    |
+| Command                                                    | What it does                                                                                                                                                    |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron notifications setup`                             | Applies the layout; looks everything up by name first, so a re-run changes nothing that matches                                                                 |
+| `holocron notifications channel add <name>`                | Creates one channel (optionally with a webhook whose URL is stored as a secret)                                                                                 |
+| `holocron notifications link`                              | Links your account on the provider to your GitHub account by signing in with the provider (OAuth, nothing secret kept)                                          |
+| `holocron notifications sync-roles`                        | Makes who holds a role match a GitHub team, through the links file (`--keep` only adds; `--provider` picks one)                                                 |
+| `holocron doctor notifications [--built-only] [--deliver]` | Read-only, step by step: does the server match the layout, and do the secrets exist (`--deliver` also posts a test message through each webhook and removes it) |
 
 Config shape added for role sync and sign-in (all under the provider's `layout`):
 
@@ -566,6 +566,7 @@ Capability surface behind it (all optional, so providers without the concept omi
 - `Source.teamMembers(teamSlug, org?)`, `Source.readFile(path, repo?)` (returns the `version` a later write must present),
   `Source.writeFile(path, content, { message, version?, repo? })` (a changed `version` is refused: a real conflict check).
 - `Notifications.roleMembers(role)`, `addRoleMember(role, memberId)`, `removeRoleMember(role, memberId)`.
+- `Notifications.checkDelivery({ channel, name, category?, text })`: posts through a channel's webhook, reads the post back and removes it, and says which step failed.
 - `Notifications.signIn()` returning `{ authorizeUrl, complete }`: the provider-neutral shape of "prove which account you own".
 - `Notifications.ensureApplication` returns `{ updated, todo? }`; each `todo` is a step only a person can do (a portal setting
   the API ignores) and is reported as a failure until done.

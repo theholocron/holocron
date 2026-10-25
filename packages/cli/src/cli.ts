@@ -355,6 +355,12 @@ try {
 									type: "boolean",
 									default: false,
 									describe: "Leave out the features that are not built yet (a routine drift check)",
+								})
+								.option("deliver", {
+									type: "boolean",
+									default: false,
+									describe:
+										"Also post a test message through every channel's webhook, read it back and remove it",
 								}),
 						async (argv) => {
 							const tokens = tokenContext(argv.token);
@@ -371,6 +377,7 @@ try {
 								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
 								...(argv.provider ? { provider: argv.provider as string } : {}),
 								...(argv.builtOnly ? { builtOnly: true } : {}),
+								...(argv.deliver ? { deliver: true } : {}),
 							});
 							if (report.status === "fail") process.exitCode = 1;
 						}
