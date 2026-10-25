@@ -356,6 +356,29 @@ describe("DiscordNotifications.checkDelivery", () => {
 		});
 	});
 
+	it("does not delete a post it was asked to keep when the response is lost", async () => {
+		const { fetch: inner, calls } = stubFetch([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: [{ id: "9001", content: "ping", webhook_id: "7001" }] },
+		]);
+		const lossy = (async (url: string, init?: RequestInit) => {
+			if (String(url).includes("/webhooks/7001/tk")) throw new TypeError("socket hang up");
+			return inner(url, init);
+		}) as unknown as typeof fetch;
+		const bot = createDiscordBotClient({ botToken: "bot-tok", baseUrl: BASE, fetch: lossy });
+		const notifs = new DiscordNotifications(
+			createDiscordClient({ baseUrl: BASE, fetch: lossy }),
+			{ guildId: GUILD },
+			() => WEBHOOK,
+			() => bot
+		);
+		const r = await notifs.checkDelivery({ ...input, keep: true });
+		expect(r).toMatchObject({ posted: true, kept: true, removed: false });
+		expect(r.problems.join(" ")).toContain("left in place");
+		expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+	});
+
 	it("names what is missing instead of throwing", async () => {
 		expect((await makeProvisioner([{ body: [] }]).notifs.checkDelivery(input)).problems[0]).toContain(
 			"no channel named"
@@ -2956,6 +2979,11 @@ describe("DiscordNotifications.ensureApplication", () => {
 
 	it("says so when Discord does not keep the intent", async () => {
 		const { notifs } = makeProvisioner([app({ flags: 0 }), app({ flags: 0 })]);
+		await expect(notifs.ensureApplication({ intents: { members: true } })).rejects.toThrow(/did not keep it/);
+	});
+
+	it("treats an answer with no flags at all as not having kept the intent", async () => {
+		const { notifs } = makeProvisioner([app({ flags: 0 }), app({ flags: undefined })]);
 		await expect(notifs.ensureApplication({ intents: { members: true } })).rejects.toThrow(/did not keep it/);
 	});
 

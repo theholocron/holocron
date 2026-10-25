@@ -1582,7 +1582,14 @@ export class DiscordNotifications implements Notifications {
 				const stray = (await bot.channels.messages(hook.channelId, 100)).find(
 					(m) => m.webhook_id === hook.id && m.content === input.text
 				);
-				if (stray) {
+				if (stray && input.keep) {
+					// The post was meant to stay: it arrived, so leave it, and say the response was lost.
+					result.posted = true;
+					result.kept = true;
+					result.problems.push(
+						`the test message ${stray.id} arrived but its response was lost; it was left in place`
+					);
+				} else if (stray) {
 					await bot.channels.deleteMessage(hook.channelId, stray.id);
 					result.problems.push(`the test message ${stray.id} had been posted, and was removed`);
 				}

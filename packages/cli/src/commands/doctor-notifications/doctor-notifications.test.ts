@@ -1343,6 +1343,28 @@ describe("runDoctorNotifications — delivery check", () => {
 		expect(sent.text).toContain("left here on purpose");
 	});
 
+	it("fails a kept post the provider removed anyway, and a removable post the provider kept", async () => {
+		const removedAnyway = vi.fn(async (_input: Sent) => ok);
+		const a = await setup(withTest({ checkDelivery: removedAnyway })).run();
+		expect(byId(a, "post-works").problems[0]).toContain("did not complete");
+		const keptAnyway = vi.fn(async (_input: Sent) => kept);
+		const b = await setup(withTest({ checkDelivery: keptAnyway }), { builtOnly: true, deliver: true }).run();
+		expect(byId(b, "post-works").problems).toHaveLength(2);
+	});
+
+	it("posts to only one channel when the layout repeats the test channel's name", async () => {
+		const layout: NotificationsLayout = {
+			testChannel: "sync",
+			categories: [
+				{ name: "A", channels: [{ name: "sync", webhook: true }] },
+				{ name: "B", channels: [{ name: "sync", webhook: true }] },
+			],
+		};
+		const checkDelivery = vi.fn(async (_input: Sent) => kept);
+		await setup(fakeNotifications({ layout, checkDelivery })).run();
+		expect(checkDelivery).toHaveBeenCalledTimes(1);
+	});
+
 	it("--deliver checks every channel with a webhook and removes each post, even under --built-only", async () => {
 		const checkDelivery = vi.fn(async (_input: Sent) => ok);
 		const report = await setup(withTest({ checkDelivery }), { builtOnly: true, deliver: true }).run();

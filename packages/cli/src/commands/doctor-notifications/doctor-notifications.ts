@@ -800,7 +800,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		mode === "all"
 			? withHook
 			: mode === "test"
-				? withHook.filter(({ channel }) => same(channel.name, testName!))
+				? // One channel only, even if a layout that never went through `setup` repeats the name.
+					withHook.filter(({ channel }) => same(channel.name, testName!)).slice(0, 1)
 				: [];
 	let deliveryNote: string | undefined;
 	if (mode === "none") {
@@ -838,7 +839,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				for (const problem of result.problems) problems.push(`#${shown(channel.name)}: ${shown(problem)}`);
 				if (
 					result.problems.length === 0 &&
-					!(result.posted && result.readBack && (result.removed || result.kept))
+					// A kept post must be kept and a removable one removed: one that came back the other way is not what was asked.
+					!(result.posted && result.readBack && (keep ? result.kept : result.removed))
 				) {
 					problems.push(`#${shown(channel.name)}: the check did not complete`);
 				}

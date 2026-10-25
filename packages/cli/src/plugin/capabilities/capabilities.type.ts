@@ -1329,8 +1329,9 @@ export interface Notifications extends ProviderIdentity {
 	}): Promise<EnsureWebhookResult>;
 	/**
 	 * Proves a channel's webhook delivers: posts `text` through it, reads the post back from the channel and
-	 * removes it again. Never throws for a failed step; the result says which one failed. Posts a visible
-	 * message for a moment, so callers ask before using it.
+	 * removes it again, unless `keep` is true, in which case the post is left in the channel (and the result
+	 * has `kept` instead of `removed`). Never throws for a failed step; the result says which one failed.
+	 * Posts a visible message, so callers choose the channel with care.
 	 */
 	checkDelivery?(input: {
 		channel: string;
