@@ -885,6 +885,27 @@ describe("runNotificationsSetup", () => {
 		expect(lines.at(-1)).toBe("5 ok, 0 fail, 5 skipped");
 	});
 
+	it("does not load the providers again when the caller already did", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", {
+				notifications: fakeNotifications({ layout: { roles: [{ name: "x" }] } }),
+			}),
+		});
+		await loader.load();
+		const reload = vi.spyOn(loader, "load");
+		const report = await runNotificationsSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			preloaded: true,
+			print: () => {},
+			logger: fakeLogger(),
+		});
+		expect(report.status).toBe("ok");
+		expect(reload).not.toHaveBeenCalled();
+	});
+
 	it("prints to the console when no print function is given", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"] } });
