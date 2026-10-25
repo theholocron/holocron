@@ -531,6 +531,50 @@ export default acmeConfig;
 
 ```
 
+## Notifications — server as code
+
+A `notifications` provider can declare a whole server in `holocron.config.ts`
+(`layout`: categories, channels, roles, access, server settings, welcome screen,
+onboarding, the bot application) and the CLI applies and checks it. The
+commands and the config are provider-neutral; Discord is the first provider.
+
+| Command                                        | What it does                                                                                                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `holocron notifications setup`                 | Applies the layout; looks everything up by name first, so a re-run changes nothing that matches                        |
+| `holocron notifications channel add <name>`    | Creates one channel (optionally with a webhook whose URL is stored as a secret)                                        |
+| `holocron notifications link`                  | Links your account on the provider to your GitHub account by signing in with the provider (OAuth, nothing secret kept) |
+| `holocron notifications sync-roles`            | Makes who holds a role match a GitHub team, through the links file (`--keep` only adds; `--provider` picks one)        |
+| `holocron doctor notifications [--built-only]` | Read-only, step by step: does the server match the layout, and do the secrets exist                                    |
+
+Config shape added for role sync and sign-in (all under the provider's `layout`):
+
+| Field                         | Meaning                                                                                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `roles[].team`                | A GitHub team slug. The role follows that team: given to linked members, taken from linked people who left. Never touches holders nobody has linked.        |
+| `links.hostedUrl`             | A hosted sign-in service (Sentinel). `link` asks `<hostedUrl>/api/link` and uses it when it answers `{ "service": "link" }`; otherwise it signs in locally. |
+| `links.localPort`             | The port of the local sign-in listener (default `53682`, bound to `127.0.0.1` only).                                                                        |
+| `links.repo` / `links.path`   | Where the links file lives (default `<org>/.github-private` and `notifications/<provider>-links.json`).                                                     |
+| `application.intents.members` | Switches the Server Members Intent on or off (needed to list who holds a role).                                                                             |
+| `application.redirectUris`    | Redirect URIs that must be registered. Check-only: the API cannot set them, so `setup` and the doctor say what to add in the developer portal.              |
+
+The links file is `{ "version": 1, "links": [{ "github": "<id>", "login": "<login>", "member": "<id>" }] }`: two public ids per person.
+It is read and written through the `source` capability with the `github.user-sync` token (fine-grained, **only** the
+private config repo, Contents read and write), so no other token needs Contents on other repositories.
+
+Capability surface behind it (all optional, so providers without the concept omit them):
+
+- `Source.teamMembers(teamSlug, org?)`, `Source.readFile(path, repo?)` (returns the `version` a later write must present),
+  `Source.writeFile(path, content, { message, version?, repo? })` (a changed `version` is refused: a real conflict check).
+- `Notifications.roleMembers(role)`, `addRoleMember(role, memberId)`, `removeRoleMember(role, memberId)`.
+- `Notifications.signIn()` returning `{ authorizeUrl, complete }`: the provider-neutral shape of "prove which account you own".
+- `Notifications.ensureApplication` returns `{ updated, todo? }`; each `todo` is a step only a person can do (a portal setting
+  the API ignores) and is reported as a failure until done.
+
+Provider credentials for Discord: `discord.holonet` is the **bot token** (Bot → Reset Token), `discord.holonet.oauth` is the
+**OAuth client secret** (OAuth2 → Reset Secret). They are different values; the API can create or read neither.
+
+See the [command pages](https://theholocron.dev/holocron/commands/notifications-setup/) for each command's options.
+
 ## Upgrading
 
 - **`holocron repo upgrade node <to>`** — patches every Node.js version pin
@@ -557,6 +601,7 @@ holocron auth set github.issues   ghp_xxx  # issue management
 holocron auth set github.sync     ghp_xxx  # sync-github workflow templates
 holocron auth set github.release  ghp_xxx  # semantic-release
 holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
+holocron auth set github.user-sync ghp_xxx # the files that link GitHub accounts to other services' members
 ```
 
 The resolution chain per capability is:
@@ -695,7 +740,9 @@ the local override exists to exempt.
 - `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`,
   `monitoring check`, `secrets set`, `secrets sync`, `package publish`,
   `package bump-versions`, `sync github`, `repo upgrade node`,
-  `repo upgrade deps`, `new plugin`, `auth`
+  `repo upgrade deps`, `new plugin`, `auth`, `notifications setup`,
+  `notifications channel add`, `notifications link`,
+  `notifications sync-roles`, `doctor notifications`
 - `src/interactive-menu/` — the interactive fallback: `command-registry`
   (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `launch-menu`
   (Layers 1–2, picks + spawns a fresh `holocron <command>`), `child-argv`

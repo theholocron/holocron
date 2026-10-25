@@ -24,6 +24,16 @@ Three repos, one rule per concern:
   capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
   up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
   typed autocomplete. `vault` is no longer required (removed constraint).
+- **Server as code** (`notifications`, holocron#1098). A provider's `layout`
+  in `holocron.config.ts` declares the server; `notifications setup` applies
+  it and `doctor notifications` checks it. Names stay provider-neutral and no
+  hosting is assumed (the hosted sign-in route is one web-standard handler,
+  Vercel-specific only in its thin entry file). Anything the provider's API
+  can do is automated; what it cannot (OAuth redirects, the client secret)
+  is reported as a `todo` that fails the run until done. Role membership
+  follows a GitHub team through a per-provider links file in the org's private
+  config repo, read and written with its own `github.user-sync` token. The
+  capability methods behind it are optional on `Source` and `Notifications`.
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting
