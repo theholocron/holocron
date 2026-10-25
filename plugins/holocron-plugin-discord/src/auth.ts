@@ -29,9 +29,9 @@ export const resolveBotToken = createResolveToken({
 export const resolveClientSecret = createResolveToken({
 	envName: "HOLOCRON_DISCORD_CLIENT_SECRET",
 	vendorEnvName: "DISCORD_CLIENT_SECRET",
-	keyringService: "discord.holonet.secret",
+	keyringService: "discord.holonet.oauth",
 	errorMessage:
 		"no Discord client secret found. Set HOLOCRON_DISCORD_CLIENT_SECRET (or DISCORD_CLIENT_SECRET), or run: " +
-		"holocron auth set discord.holonet.secret <secret> — it is the client secret from the developer portal " +
+		"holocron auth set discord.holonet.oauth <secret> — it is the client secret from the developer portal " +
 		"(OAuth2 → Reset Secret), which the API cannot create or read.",
 });
