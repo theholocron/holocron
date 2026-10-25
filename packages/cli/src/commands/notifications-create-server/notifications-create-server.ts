@@ -25,8 +25,9 @@ import { writeGuildId } from "./write-guild-id.js";
 export async function runNotificationsCreateServer(
 	input: RunNotificationsCreateServerInput
 ): Promise<NotificationsCreateServerReport> {
-	/* v8 ignore next 2 -- the real console and logger are only used outside tests, which inject both */
+	/* v8 ignore next -- the real console is only used outside tests, which inject a printer */
 	const print = input.print ?? ((line: string) => console.log(line));
+	/* v8 ignore next -- the real logger is only used outside tests */
 	const logger = input.logger ?? getLogger();
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
@@ -66,8 +67,8 @@ export async function runNotificationsCreateServer(
 	// the provider cannot apply (or a missing secrets store) leaves no server behind with nothing in it.
 	if (!input.resume) {
 		const wantsSecrets =
-			(layout?.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook)) ||
-			(layout?.roles ?? []).some((r) => r.secret);
+			(layout!.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook)) ||
+			(layout!.roles ?? []).some((r) => r.secret);
 		if (wantsSecrets && !loader.has("secrets")) {
 			return refuse(
 				"no server was created: the layout stores webhook URLs or role ids, which need a `secrets` capability — add a `secrets` provider"

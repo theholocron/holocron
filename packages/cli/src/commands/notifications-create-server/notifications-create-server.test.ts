@@ -142,6 +142,13 @@ describe("runNotificationsCreateServer", () => {
 		expect(n.transferServer).toHaveBeenCalledWith("709617107741966407");
 	});
 
+	it("--resume carries on with a provider that cannot say who owns the server", async () => {
+		const n = fakeNotifications();
+		const { run } = await setup(n);
+		expect((await run({ resume: true })).status).toBe("ok");
+		expect(n.transferServer).toHaveBeenCalled();
+	});
+
 	it("--resume refuses a server the bot does not own (the config may name another one)", async () => {
 		const n = fakeNotifications({ serverOwner: vi.fn(async () => ({ id: "709617107741966407", isBot: false })) });
 		const { run, runSetup } = await setup(n);
@@ -252,6 +259,11 @@ describe("runNotificationsCreateServer", () => {
 		const { run } = await setup(n);
 		await run();
 		expect(n.inviteLink).toHaveBeenCalledWith("chat");
+	});
+
+	it("accepts a layout that only names its welcome channel in the server settings", async () => {
+		const { run } = await setup(fakeNotifications({ layout: { server: { systemChannel: "welcome" } } }));
+		expect((await run()).status).toBe("ok");
 	});
 
 	it("fails a lost transfer when asking who owns the server fails too", async () => {
