@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -48,6 +48,24 @@ describe("writeGuildId", () => {
 		expect(await writeGuildId("/nonexistent/holocron.config.ts", "456")).toMatchObject({
 			written: false,
 			reason: expect.stringContaining("could not read"),
+		});
+	});
+
+	it("ignores a commented-out guildId and edits the live one", async () => {
+		const text = '// guildId: "111"\n/*\n * guildId: "222"\n */\nguildId: "333",\n';
+		const path = await fileWith(text);
+		expect(await writeGuildId(path, "456")).toEqual({ written: true });
+		expect(await readFile(path, "utf8")).toBe('// guildId: "111"\n/*\n * guildId: "222"\n */\nguildId: "456",\n');
+		const onlyComment = await fileWith('// guildId: "111"\nexport default {};\n');
+		expect(await writeGuildId(onlyComment, "456")).toMatchObject({ written: false });
+	});
+
+	it("reports a file it can read but not write, instead of throwing", async () => {
+		const path = await fileWith('guildId: "1"');
+		await chmod(path, 0o444);
+		expect(await writeGuildId(path, "456")).toMatchObject({
+			written: false,
+			reason: expect.stringContaining("could not write"),
 		});
 	});
 });

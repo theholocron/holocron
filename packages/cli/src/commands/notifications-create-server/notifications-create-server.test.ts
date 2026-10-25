@@ -8,7 +8,8 @@ import { describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
-import { pickServerCreator, runNotificationsCreateServer } from "./notifications-create-server.js";
+import { runNotificationsCreateServer } from "./notifications-create-server.js";
+import { pickServerCreator } from "./pick-server-creator.js";
 
 const LAYOUT: NotificationsLayout = {
 	categories: [{ name: "START HERE", channels: [{ name: "welcome" }, { name: "rules" }] }],
@@ -120,16 +121,49 @@ describe("runNotificationsCreateServer", () => {
 		expect(report.status).toBe("fail");
 		expect(report.message).toContain("--resume");
 		expect(n.transferServer).not.toHaveBeenCalled();
+		// It looked all the way through the configured window (5 ms at 1 ms a look), not just a couple of times.
+		expect(n.hasMember).toHaveBeenCalledTimes(6);
 	});
 
-	it("--resume skips creating and applying, and only finishes the hand-over", async () => {
-		const n = fakeNotifications();
+	it("--resume skips creating, reruns the idempotent setup, and finishes the hand-over", async () => {
+		const n = fakeNotifications({ serverOwner: vi.fn(async () => ({ id: "1", isBot: true })) });
 		const { run, runSetup } = await setup(n);
 		const report = await run({ resume: true });
 		expect(report.status).toBe("ok");
 		expect(n.createServer).not.toHaveBeenCalled();
-		expect(runSetup).not.toHaveBeenCalled();
+		expect(runSetup).toHaveBeenCalledTimes(1);
 		expect(n.transferServer).toHaveBeenCalledWith("709617107741966407");
+	});
+
+	it("--resume refuses a server the bot does not own (the config may name another one)", async () => {
+		const n = fakeNotifications({ serverOwner: vi.fn(async () => ({ id: "709617107741966407", isBot: false })) });
+		const { run, runSetup } = await setup(n);
+		const report = await run({ resume: true });
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("not owned by the bot");
+		expect(runSetup).not.toHaveBeenCalled();
+		expect(n.transferServer).not.toHaveBeenCalled();
+	});
+
+	it("hands the layout setup the provider it picked and tells it not to load again", async () => {
+		const { run, runSetup } = await setup(fakeNotifications());
+		await run();
+		expect(runSetup).toHaveBeenCalledWith(expect.objectContaining({ provider: "discord", preloaded: true }));
+	});
+
+	it("counts a transfer whose answer was lost as done when the owner now holds the server", async () => {
+		const transferServer = vi.fn(async () => {
+			throw new Error("timeout");
+		});
+		const serverOwner = vi.fn(async () => ({ id: "709617107741966407", isBot: false }));
+		const { run } = await setup(fakeNotifications({ transferServer, serverOwner }));
+		expect((await run()).status).toBe("ok");
+		const failing = await setup(
+			fakeNotifications({ transferServer, serverOwner: vi.fn(async () => ({ id: "1", isBot: true })) })
+		);
+		expect((await failing.run()).status).toBe("fail");
+		const blind = await setup(fakeNotifications({ transferServer }));
+		expect((await blind.run()).status).toBe("fail");
 	});
 
 	it("does not hand over a server whose layout failed to apply", async () => {
@@ -137,7 +171,7 @@ describe("runNotificationsCreateServer", () => {
 		const { run } = await setup(n, { setupStatus: "fail" });
 		const report = await run();
 		expect(report.status).toBe("fail");
-		expect(report.message).toContain("applying the layout failed");
+		expect(report.message).toContain("failed; fix it");
 		expect(n.transferServer).not.toHaveBeenCalled();
 		expect(n.inviteLink).not.toHaveBeenCalled();
 	});
@@ -159,10 +193,49 @@ describe("runNotificationsCreateServer", () => {
 		expect(lines.join("\n")).toContain("would create the server");
 	});
 
+	it("uses its own waiting defaults when none are given", async () => {
+		// One missed look, then the owner is in: the real sleep runs once, for the 5 s default's worth of 1 ms.
+		const hasMember = vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true);
+		const { run } = await setup(fakeNotifications({ hasMember }));
+		const report = await run({ sleep: undefined, waitMs: undefined, pollMs: 1, force: false });
+		expect(report.status).toBe("ok");
+		const quick = await setup(fakeNotifications());
+		expect((await quick.run({ pollMs: undefined, waitMs: undefined })).status).toBe("ok");
+	});
+
+	it("invites through the first channel of the first category that has any", async () => {
+		const n = fakeNotifications({
+			layout: { categories: [{ name: "EMPTY" }, { name: "B", channels: [{ name: "chat" }] }] },
+		});
+		const { run } = await setup(n);
+		await run();
+		expect(n.inviteLink).toHaveBeenCalledWith("chat");
+	});
+
+	it("fails a lost transfer when asking who owns the server fails too", async () => {
+		const n = fakeNotifications({
+			transferServer: vi.fn(async () => {
+				throw new Error("timeout");
+			}),
+			serverOwner: vi.fn(async () => {
+				throw new Error("down");
+			}),
+		});
+		const { run } = await setup(n);
+		expect((await run()).status).toBe("fail");
+	});
+
+	it("previews a resume without promising to create anything", async () => {
+		const { run, lines } = await setup(fakeNotifications(), { dryRun: true });
+		await run({ resume: true });
+		expect(lines.join("\n")).not.toContain("would create");
+		expect(lines.join("\n")).toContain("would check the layout is applied");
+	});
+
 	it("refuses a missing name, a bad owner id, and a layout with no channel to invite through", async () => {
 		const { run } = await setup(fakeNotifications());
 		expect((await run({ name: "  " })).message).toContain("--name");
-		expect((await run({ owner: "luke" })).message).toContain("--owner");
+		expect((await run({ owner: "luke skywalker" })).message).toContain("--owner");
 		const bare = await setup(fakeNotifications({ layout: {} }));
 		expect((await bare.run()).message).toContain("no channel to invite");
 	});

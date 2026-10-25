@@ -119,7 +119,12 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		description: "Create the server the layout describes, apply it, invite its owner and hand it over",
 		positionals: [],
 		options: [
-			{ key: "name", flag: "--name", type: "input", required: true, message: "What the new server is called:" },
+			{
+				key: "name",
+				flag: "--name",
+				type: "input",
+				message: "What the new server is called (blank when resuming):",
+			},
 			{
 				key: "owner",
 				flag: "--owner",
@@ -133,6 +138,13 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 				type: "confirm",
 				default: false,
 				message: "The config already names a server: create another and replace its id?",
+			},
+			{
+				key: "resume",
+				flag: "--resume",
+				type: "confirm",
+				default: false,
+				message: "Finish an earlier run (the server exists): invite the owner and hand it over?",
 			},
 		],
 		supportsDryRun: true,

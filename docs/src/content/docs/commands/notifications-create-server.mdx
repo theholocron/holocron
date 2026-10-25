@@ -21,20 +21,21 @@ Ownership can only go to someone who is already in the server, which is why the 
 
 ## Options
 
-| Option              | Default | Description                                                                                                                                                                                            |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--name <name>`     | —       | What the new server is called (not needed with `--resume`)                                                                                                                                             |
-| `--owner <id>`      | —       | The member id, on the provider, of the person who will own it. For Discord, the user id: Developer Mode → right-click yourself → Copy User ID. After `notifications link` it is also in the links file |
-| `--provider <name>` | —       | Which `notifications` provider, when more than one can create a server                                                                                                                                 |
-| `--force`           | `false` | The config already names a server (`guildId`): create another anyway and replace the id. Without it the command refuses, so it can never make a second server by accident                              |
-| `--resume`          | `false` | The server exists and is set up (an earlier run stopped at the invite): skip creating and applying, make a fresh invite and finish the hand-over                                                       |
-| `--dry-run`         | `false` | Say what would happen without calling the provider                                                                                                                                                     |
+| Option              | Default | Description                                                                                                                                                                                                                                                              |
+| ------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--name <name>`     | —       | What the new server is called (not needed with `--resume`)                                                                                                                                                                                                               |
+| `--owner <id>`      | —       | The member id, on the provider, of the person who will own it. For Discord, the user id: Developer Mode → right-click yourself → Copy User ID. After `notifications link` it is also in the links file                                                                   |
+| `--provider <name>` | —       | Which `notifications` provider, when more than one can create a server                                                                                                                                                                                                   |
+| `--force`           | `false` | The config already names a server (`guildId`): create another anyway and replace the id. Without it the command refuses, so it can never make a second server by accident                                                                                                |
+| `--resume`          | `false` | The server exists and is set up (an earlier run stopped at the invite): skip creating, run `setup` again (it only fills in what is missing), make a fresh invite and finish the hand-over. It works on the server `guildId` names and refuses one the bot no longer owns |
+| `--dry-run`         | `false` | Say what would happen without calling the provider                                                                                                                                                                                                                       |
 
 ## When something stops halfway
 
 - **The layout fails to apply.** The server exists and the bot owns it. Nothing is handed over. Fix what failed and run `notifications setup`, then `create-server --resume --owner <id>`.
 - **The owner does not join in time.** Same state. Open the invite (or run `--resume` for a new one) and run `create-server --resume --owner <id>`.
-- **The config file could not be edited.** The command carries on and prints the id to set by hand.
+- **The config file could not be edited** (unreadable, unwritable, or no single live `guildId`; a commented-out one is ignored). The command carries on and prints the id to set by hand. Set it before `--resume`, which uses the server the config names.
+- **The hand-over answer is lost.** If the request went through, the command asks who owns the server and counts it as done when that is the owner.
 
 ## Limits
 
