@@ -353,6 +353,22 @@ describe("DiscordNotifications.checkDelivery", () => {
 		expect((await broken.notifs.checkDelivery(input)).posted).toBe(false);
 	});
 
+	it("reads the post back by id, because Discord hides the text of messages the bot did not write", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: [text("2001", "sync")] },
+			{ body: [hook] },
+			{ body: { id: "9001" } },
+			{ body: [{ id: "9001", content: "", webhook_id: "7001" }] },
+			{ status: 204, body: {} },
+		]);
+		expect(await notifs.checkDelivery(input)).toEqual({
+			posted: true,
+			readBack: true,
+			removed: true,
+			problems: [],
+		});
+	});
+
 	it("reports a refused post, a post that is not in the channel, and a message it could not remove", async () => {
 		const refused = makeProvisioner([
 			{ body: [text("2001", "sync")] },
