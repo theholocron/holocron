@@ -6,20 +6,7 @@
  */
 
 import type { NotificationsLayout } from "../../plugin/index.js";
-
-export interface MemberLink {
-	/** The GitHub user id, as a string. It survives a rename; the login does not. */
-	github: string;
-	/** The GitHub login when the link was made; for reports only. */
-	login: string;
-	/** The member's id on the notifications provider (for Discord, the user id). */
-	member: string;
-}
-
-export interface LinksFile {
-	version: 1;
-	links: MemberLink[];
-}
+import type { LinksFile, MemberLink } from "./notifications-sync-roles.type.js";
 
 export const EMPTY_LINKS: LinksFile = { version: 1, links: [] };
 

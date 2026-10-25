@@ -1,18 +1,5 @@
 import type { SourceTeamMember } from "../../plugin/index.js";
-import type { MemberLink } from "./links.js";
-
-export interface RoleSyncPlan {
-	/** Team members who are linked and do not hold the role: give it to them. */
-	add: Array<{ member: string; login: string }>;
-	/** Holders linked to a GitHub account that is no longer on the team: take it away. */
-	remove: Array<{ member: string; login: string }>;
-	/** Team members with no link: the role cannot reach them until they link their account. */
-	unlinked: SourceTeamMember[];
-	/** Holders with no link at all. Left alone, because nothing says they should not have it. */
-	unknownHolders: Array<{ member: string; name?: string }>;
-	/** Linked team members who already hold the role. */
-	inSync: number;
-}
+import type { MemberLink, RoleSyncPlan } from "./notifications-sync-roles.type.js";
 
 /**
  * What it takes to make a role's holders equal a team, given who is linked to whom. Pure: it decides, the

@@ -28,3 +28,6 @@ export interface NotificationsLinkReport {
 	linked?: { github: string; login: string; member: string; changed: boolean };
 	message?: string;
 }
+
+export type CallbackChoice =
+	{ kind: "hosted"; redirectUri: string; reason: string } | { kind: "local"; redirectUri: string; reason: string };

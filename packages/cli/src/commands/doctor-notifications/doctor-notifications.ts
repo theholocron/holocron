@@ -723,7 +723,16 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 
 	// 14. a role that follows a team is held by exactly its linked members
 	const teamRoles = (layout.roles ?? []).filter((r) => r.team);
-	if (teamRoles.length === 0) {
+	const blankTeams = (layout.roles ?? []).filter((r) => r.team !== undefined && r.team.trim() === "");
+	if (blankTeams.length > 0) {
+		failed(
+			"role-members",
+			ROLE_MEMBERS_TITLE,
+			shown(
+				`${blankTeams.map((r) => r.name).join(", ")}: declares an empty \`team\`; name a team or remove the field`
+			)
+		);
+	} else if (teamRoles.length === 0) {
 		checks.push({
 			id: "role-members",
 			title: ROLE_MEMBERS_TITLE,

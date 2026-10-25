@@ -46,9 +46,10 @@ async function openInBrowser(url: string): Promise<void> {
 /* v8 ignore stop */
 
 export async function runNotificationsLink(input: RunNotificationsLinkInput): Promise<NotificationsLinkReport> {
-	/* v8 ignore next 2 -- the real console and logger are only used outside tests, which inject both */
+	/* v8 ignore start -- the real console and logger are only used outside tests, which inject both */
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
+	/* v8 ignore stop */
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
@@ -96,6 +97,7 @@ export async function runNotificationsLink(input: RunNotificationsLinkInput): Pr
 	const choice = await resolveCallback({
 		...(layout.links?.hostedUrl ? { hostedUrl: layout.links.hostedUrl } : {}),
 		port,
+		/* v8 ignore next -- the real fetch is only used outside tests, which inject one */
 		...(input.fetch ? { fetch: input.fetch } : {}),
 	});
 	print(

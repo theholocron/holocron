@@ -23,23 +23,26 @@ import {
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { style } from "../../ui/style/index.js";
 import { notificationProviders, pickProvider, whyMissing } from "../notifications-channel-add/index.js";
-import { EMPTY_LINKS, type LinksFile, linksLocation, parseLinks } from "./links.js";
+import { EMPTY_LINKS, linksLocation, parseLinks } from "./links.js";
 import type {
+	LinksFile,
 	NotificationsSyncRolesReport,
 	RoleSyncOutcome,
+	RoleSyncPlan,
 	RunNotificationsSyncRolesInput,
 } from "./notifications-sync-roles.type.js";
-import { planRoleSync, type RoleSyncPlan, roleTeamProblem } from "./plan.js";
+import { planRoleSync, roleTeamProblem } from "./plan.js";
 
 /** The provider that can list and change who holds a role. */
-export function pickRoleManager(providers: Notifications[], wanted?: string): Notifications {
+export function pickRoleManager(providers: Notifications[], wanted?: string, keep = false): Notifications {
 	return pickProvider(
 		providers,
 		wanted,
 		(p) =>
 			typeof p.roleMembers === "function" &&
 			typeof p.addRoleMember === "function" &&
-			typeof p.removeRoleMember === "function",
+			// Taking the role away is only needed when this run will do it.
+			(keep || typeof p.removeRoleMember === "function"),
 		{ infinitive: "manage role members", gerund: "managing role members" }
 	);
 }
@@ -108,7 +111,7 @@ export async function runNotificationsSyncRoles(
 
 	let notifications: Notifications;
 	try {
-		notifications = pickRoleManager(notificationProviders(loader), input.provider);
+		notifications = pickRoleManager(notificationProviders(loader), input.provider, input.keep);
 	} catch (err) {
 		return refuse(errorMessage(err));
 	}

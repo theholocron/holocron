@@ -63,8 +63,7 @@ export function waitForCode(input: {
 						? new Error(
 								`port ${input.port} is already in use; stop what is using it or set \`layout.links.localPort\``
 							)
-						: /* v8 ignore next -- an error other than the port being taken has no way to be provoked in a test */
-							err
+						: /* v8 ignore start -- an error other than the port being taken cannot be provoked in a test */ err /* v8 ignore stop */
 				)
 			)
 		);

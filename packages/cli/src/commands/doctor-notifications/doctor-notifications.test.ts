@@ -1304,6 +1304,16 @@ describe("runDoctorNotifications — webhook avatars", () => {
 	});
 });
 
+describe("runDoctorNotifications — role members, bad declarations", () => {
+	it("fails a role that declares an empty team, instead of calling it undeclared", async () => {
+		const layout: NotificationsLayout = { ...LAYOUT, roles: [{ name: "gatekeepers", team: "" }] };
+		const report = await setup(fakeNotifications({ layout })).run();
+		const step = report.checks.find((c) => c.id === "role-members")!;
+		expect(step.status).toBe("fail");
+		expect(step.detail).toContain("empty");
+	});
+});
+
 describe("runDoctorNotifications — bot application", () => {
 	const app = {
 		description: "Posts things",
@@ -1394,6 +1404,18 @@ describe("runDoctorNotifications — bot application", () => {
 		expect(check(await setup(fakeNotifications({ layout: ported, found: none })).run()).problems[0]).toContain(
 			"add http://localhost:4001/callback"
 		);
+	});
+
+	it("says none when the layout declares an empty tag list but the app has tags", async () => {
+		const report = await setup(fakeNotifications({ layout: withApp({ tags: [] }), found: same })).run();
+		expect(check(report).problems.join(" ")).toContain("but the layout says none");
+	});
+
+	it("needs no redirect when the layout declares no roles at all", async () => {
+		const { roles: _roles, ...noRoles } = withApp();
+		const none = { ...same, application: { ...same.application, redirectUris: [] } };
+		const report = await setup(fakeNotifications({ layout: noRoles as NotificationsLayout, found: none })).run();
+		expect(check(report).problems.join(" ")).not.toContain("Redirects");
 	});
 
 	it("treats a missing description as empty when the layout declares one", async () => {
@@ -1561,7 +1583,8 @@ describe("runDoctorNotifications — role-members (step 14)", () => {
 	function run(
 		over: Partial<Notifications>,
 		source: Record<string, unknown> | undefined,
-		secretsOnly = false
+		secretsOnly = false,
+		org: string | undefined = "theholocron"
 	): Promise<Awaited<ReturnType<typeof runDoctorNotifications>>> {
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1577,7 +1600,7 @@ describe("runDoctorNotifications — role-members (step 14)", () => {
 		});
 		return runDoctorNotifications({
 			loaded,
-			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			context: { repoRoot: "/tmp/test", ...(org ? { org } : {}) },
 			loader,
 			print: () => {},
 			logger: fakeLogger(),
@@ -1590,6 +1613,12 @@ describe("runDoctorNotifications — role-members (step 14)", () => {
 		teamMembers: async () => [{ id: "1", login: "luke" }],
 		readFile: async () => ({ content: LINKS, version: "v" }),
 		...over,
+	});
+
+	it("works without an org when the layout names the links repo", async () => {
+		const layout = { ...TEAM_LAYOUT, links: { repo: "me/links" } };
+		const report = await run({ layout, roleMembers: async () => [{ id: "333" }] }, src(), false, "");
+		expect(byId(report, "role-members")).toMatchObject({ status: "pass" });
 	});
 
 	it("passes when the holders are exactly the linked team members", async () => {

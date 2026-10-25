@@ -4,10 +4,9 @@
  * command keeps working whichever way it is deployed, and moving to the hosted one is nothing to reconfigure.
  */
 
-export const DEFAULT_LOCAL_PORT = 53682;
+import type { CallbackChoice } from "./notifications-link.type.js";
 
-export type CallbackChoice =
-	{ kind: "hosted"; redirectUri: string; reason: string } | { kind: "local"; redirectUri: string; reason: string };
+export const DEFAULT_LOCAL_PORT = 53682;
 
 export const localRedirectUri = (port: number): string => `http://localhost:${port}/callback`;
 

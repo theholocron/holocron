@@ -164,6 +164,9 @@ describe("runNotificationsSyncRoles", () => {
 		expect(out).toContain("stranger holds gatekeepers but is not linked to anyone: left alone");
 		expect(out).toContain("888 holds gatekeepers but is not linked to anyone");
 		expect(n.removeRoleMember).not.toHaveBeenCalled();
+		// The only add is for the linked member; nobody unlinked receives the role.
+		expect(n.addRoleMember).toHaveBeenCalledTimes(1);
+		expect(n.addRoleMember).toHaveBeenCalledWith("gatekeepers", "333");
 	});
 
 	it("says so when there are no links yet", async () => {
@@ -287,6 +290,10 @@ describe("runNotificationsSyncRoles", () => {
 	it("names no provider that can be picked when several cannot", () => {
 		expect(() => pickRoleManager([fakeNotifications({ addRoleMember: undefined })])).toThrow();
 		expect(pickRoleManager([fakeNotifications()]).providerName).toBe("discord");
+		// Taking the role away is not needed in keep mode, so an add-only provider will do there.
+		const addOnly = fakeNotifications({ removeRoleMember: undefined });
+		expect(() => pickRoleManager([addOnly])).toThrow();
+		expect(pickRoleManager([addOnly], undefined, true).providerName).toBe("discord");
 	});
 
 	it("sourceProblem accepts a complete source", () => {
