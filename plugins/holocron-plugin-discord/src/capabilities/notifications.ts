@@ -1576,6 +1576,8 @@ export class DiscordNotifications implements Notifications {
 			result.problems.push(`the post was refused (${reason(err)})`);
 			// A lost response can still leave the message behind: look for it, and take it away if it is there.
 			try {
+				// Only a message whose text is visible and identical is taken for ours; never one with hidden
+				// content, which could be a real alert from the same webhook.
 				const stray = (await bot.channels.messages(hook.channelId, 100)).find(
 					(m) => m.webhook_id === hook.id && m.content === input.text
 				);
@@ -1591,7 +1593,9 @@ export class DiscordNotifications implements Notifications {
 		try {
 			// A busy channel can push the post out of a short window; ask for the most Discord allows.
 			const seen = await bot.channels.messages(hook.channelId, 100);
-			result.readBack = seen.some((m) => m.id === messageId && m.content === input.text);
+			// By id, not by text: without the privileged Message Content intent Discord returns an empty `content`
+			// for messages the bot did not write, and a webhook's posts count as someone else's.
+			result.readBack = seen.some((m) => m.id === messageId);
 			if (!result.readBack) result.problems.push("the post was accepted but is not in the channel");
 		} catch (err) {
 			result.problems.push(`could not read the channel back (${reason(err)})`);
