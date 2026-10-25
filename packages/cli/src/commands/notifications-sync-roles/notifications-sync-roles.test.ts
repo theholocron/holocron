@@ -91,6 +91,30 @@ function setup(
 }
 
 describe("runNotificationsSyncRoles", () => {
+	it("calls the provider's methods on the provider, which keeps its client on `this`", async () => {
+		class Stateful {
+			key = "notifications";
+			providerName = "discord";
+			layout = LAYOUT;
+			held = new Set<string>();
+			send = async () => {};
+			async roleMembers() {
+				return [...this.held].map((id) => ({ id }));
+			}
+			async addRoleMember(_role: string, id: string) {
+				this.held.add(id);
+			}
+			async removeRoleMember(_role: string, id: string) {
+				this.held.delete(id);
+			}
+		}
+		const provider = new Stateful();
+		provider.held.add("444"); // a linked holder who has left the team
+		const report = await setup(provider as unknown as Notifications, fakeSource()).run();
+		expect(report.status).toBe("ok");
+		expect([...provider.held].sort()).toEqual(["333"]);
+	});
+
 	it("gives the role to a linked team member and takes it from a linked person who left", async () => {
 		const n = fakeNotifications();
 		const { run, lines } = setup(n, fakeSource());

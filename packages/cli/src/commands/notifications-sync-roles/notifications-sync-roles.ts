@@ -169,10 +169,9 @@ export async function runNotificationsSyncRoles(
 				return;
 			}
 			try {
-				await (verb === "add" ? notifications.addRoleMember! : notifications.removeRoleMember!)(
-					role.name,
-					who.member
-				);
+				// Called on the provider, not pulled off it: real providers keep their client on `this`.
+				if (verb === "add") await notifications.addRoleMember!(role.name, who.member);
+				else await notifications.removeRoleMember!(role.name, who.member);
 				(verb === "add" ? outcome.added : outcome.removed).push(who.member);
 				print(`  ${style.success(label)}`);
 				tally.ok++;
