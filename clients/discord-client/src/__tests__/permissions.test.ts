@@ -14,6 +14,14 @@ describe("permissions", () => {
 		expect(permissions(["ModerateMembers"])).toBe((1n << 40n).toString());
 	});
 
+	it("names Pin Messages, the bit that pinning needs since it left Manage Messages", () => {
+		expect(permissions(["PinMessages"])).toBe((1n << 51n).toString());
+		expect(permissionNames(permissions(["ManageMessages", "PinMessages"]))).toEqual([
+			"ManageMessages",
+			"PinMessages",
+		]);
+	});
+
 	it("ignores a repeated name", () => {
 		expect(permissions(["ViewChannel", "ViewChannel"])).toBe("1024");
 	});
