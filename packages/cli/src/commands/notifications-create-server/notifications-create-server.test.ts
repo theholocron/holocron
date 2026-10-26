@@ -1,6 +1,7 @@
 import { access, mkdtemp, readFile, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
@@ -271,7 +272,15 @@ describe("runNotificationsCreateServer", () => {
 		const report = await run();
 		expect(report.status).toBe("dry-run");
 		expect(n.createServer).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toContain("create the server");
+		const plan = lines.map((l) => stripVTControlCharacters(l).trimEnd());
+		expect(plan.filter((l) => l.startsWith("  ")).map((l) => l.trim())).toEqual([
+			'· create the server "The Holocron"',
+			"· apply the layout",
+			expect.stringMatching(/^· invite member \d+ through #\S+$/),
+			"· wait for them to join",
+			"· hand the server over",
+			expect.stringMatching(/^· write its id into .+holocron\.config\.ts$/),
+		]);
 	});
 
 	it("uses its own waiting defaults when none are given", async () => {
@@ -314,8 +323,13 @@ describe("runNotificationsCreateServer", () => {
 	it("previews a resume without promising to create anything", async () => {
 		const { run, lines } = await setup(fakeNotifications(), { dryRun: true });
 		await run({ resume: true });
-		expect(lines.join("\n")).not.toContain("create the server");
-		expect(lines.join("\n")).toContain("check the layout is applied");
+		const plan = lines.map((l) => stripVTControlCharacters(l).trimEnd());
+		expect(plan.filter((l) => l.startsWith("  ")).map((l) => l.trim())).toEqual([
+			"· check the layout is applied to the server in the config",
+			expect.stringMatching(/^· invite member \d+ through #\S+$/),
+			"· wait for them to join",
+			"· hand the server over",
+		]);
 	});
 
 	it("refuses a missing name, a bad owner id, and a layout with no channel to invite through", async () => {
