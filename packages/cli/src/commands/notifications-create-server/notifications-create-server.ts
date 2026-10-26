@@ -93,10 +93,23 @@ export async function runNotificationsCreateServer(
 	}
 
 	if (dryRun) {
-		const plan = input.resume
-			? `would check the layout is applied to the server in the config, invite member ${input.owner} through #${inviteChannel}, wait for them to join, and hand the server over`
-			: `would create the server "${input.name}", apply the layout, invite member ${input.owner} through #${inviteChannel}, wait for them to join, hand the server over, and write its id into ${input.loaded.filepath}`;
-		print(`  ${style.skip(plan)}`);
+		const steps = input.resume
+			? [
+					"check the layout is applied to the server in the config",
+					`invite member ${input.owner} through #${inviteChannel}`,
+					"wait for them to join",
+					"hand the server over",
+				]
+			: [
+					`create the server "${input.name}"`,
+					"apply the layout",
+					`invite member ${input.owner} through #${inviteChannel}`,
+					"wait for them to join",
+					"hand the server over",
+					`write its id into ${input.loaded.filepath}`,
+				];
+		print("");
+		for (const step of steps) print(`  ${style.skip(step)}`);
 		print("");
 		print(style.header("0 ok, 0 fail, 1 skipped"));
 		return { status: "dry-run" };
