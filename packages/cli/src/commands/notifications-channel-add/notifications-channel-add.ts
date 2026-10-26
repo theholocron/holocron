@@ -321,7 +321,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 async function provisionFeed(
 	deps: ProvisionDeps,
 	spec: ChannelSpec,
-	feed: { name: string; webhook: string },
+	feed: { name: string; webhook: string; avatar?: string },
 	outcome: ChannelOutcome
 ): Promise<void> {
 	const { notifications, monitoring, print, tally } = deps;
@@ -329,7 +329,19 @@ async function provisionFeed(
 		channel: spec.name,
 		name: feed.webhook,
 		...(spec.category ? { category: spec.category } : {}),
+		...(feed.avatar ? { avatar: feed.avatar } : {}),
 	});
+	const avatarSet = hook.updated?.includes("avatar") ?? false;
+	const hookChanged = hook.created || avatarSet;
+	print(
+		`  ${(hookChanged ? style.success : style.skip)(`${hook.created ? "created" : "found  "} webhook ${feed.webhook}${avatarSet ? " (avatar set)" : ""}`)}`
+	);
+	// Counted like a channel's own webhook: making it and setting its picture are one success each.
+	if (tally) {
+		const done = Number(hook.created) + Number(avatarSet);
+		if (done > 0) tally.ok += done;
+		else tally.skip++;
+	}
 	let result;
 	try {
 		result = await monitoring!.ensureAlertChannel!({
@@ -359,6 +371,10 @@ async function provisionFeed(
 		updated: result.updated,
 		subscribed: result.subscribed,
 	};
+	// After the URL is handed over: the webhook is good, so its URL must not be lost to this.
+	if (hook.avatarError) {
+		throw new Error(`webhook ${feed.webhook} is ready but setting its avatar failed (${hook.avatarError})`);
+	}
 }
 
 export async function runNotificationsChannelAdd(

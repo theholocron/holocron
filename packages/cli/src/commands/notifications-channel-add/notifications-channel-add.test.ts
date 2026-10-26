@@ -780,6 +780,80 @@ describe("provisionChannel — monitoring feed", () => {
 		expect(text).not.toContain("secret");
 	});
 
+	it("says whether the feed's webhook was made or found, and counts it", async () => {
+		const made = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h" })) });
+		const found = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false, url: "https://h" })) });
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel({ ...deps(made, fakeMonitoring(), lines), tally }, { name: "uptime", feeds: feed });
+		expect(lines.join("\n")).toContain("created webhook Checkly");
+		// The channel, the webhook and the alert channel were all made.
+		expect(tally).toEqual({ ok: 3, skip: 0 });
+
+		const again: string[] = [];
+		const second = { ok: 0, skip: 0 };
+		await provisionChannel(
+			{
+				...deps(
+					found,
+					fakeMonitoring({
+						ensureAlertChannel: vi.fn(async () => ({ created: false, updated: [], subscribed: 2 })),
+					}),
+					again
+				),
+				tally: second,
+			},
+			{ name: "uptime", feeds: feed }
+		);
+		expect(again.join("\n")).toContain("found   webhook Checkly");
+		// Channel (the fake always reports it made), then the webhook and the alert channel found unchanged.
+		expect(second).toEqual({ ok: 1, skip: 2 });
+	});
+
+	it("counts a webhook made and given its picture as two successes", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", updated: ["avatar"] })),
+		});
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel(
+			{ ...deps(n, fakeMonitoring(), []), tally },
+			{
+				name: "uptime",
+				feeds: {
+					monitoring: { name: "Discord #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" },
+				},
+			}
+		);
+		// The channel, the webhook, its picture and the alert channel.
+		expect(tally).toEqual({ ok: 4, skip: 0 });
+	});
+
+	it("gives the feed's webhook its picture, and says so", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: "https://h", updated: ["avatar"] })),
+		});
+		const lines: string[] = [];
+		await provisionChannel(deps(n, fakeMonitoring(), lines), {
+			name: "uptime",
+			feeds: { monitoring: { name: "Discord #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" } },
+		});
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,AA" })
+		);
+		expect(lines.join("\n")).toContain("found   webhook Checkly (avatar set)");
+	});
+
+	it("hands the URL over first, then fails if the picture could not be set", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", avatarError: "too big" })),
+		});
+		const m = fakeMonitoring();
+		await expect(provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			/webhook Checkly is ready but setting its avatar failed \(too big\)/
+		);
+		expect(m.ensureAlertChannel).toHaveBeenCalled();
+	});
+
 	it("runs next to the channel's own webhook without sharing it", async () => {
 		const ensureWebhook = vi
 			.fn()

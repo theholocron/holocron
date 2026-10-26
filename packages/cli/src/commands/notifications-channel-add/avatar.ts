@@ -21,6 +21,20 @@ const SIGNATURES: Array<[type: string, bytes: number[]]> = [
 
 const tooBig = () => new Error(`it is larger than ${MAX_AVATAR_BYTES / 1024 / 1024} MB`);
 
+/**
+ * A source safe to print: an `https://` URL loses its credentials (userinfo), query and fragment, which is where signed
+ * links keep their tokens. A file path is returned as written.
+ */
+export function describeAvatarSource(source: string): string {
+	if (!/^https:\/\//i.test(source)) return source;
+	try {
+		const url = new URL(source);
+		return `${url.protocol}//${url.host}${url.pathname}`;
+	} catch {
+		return "an unreadable https URL";
+	}
+}
+
 export async function loadAvatar(
 	source: string,
 	baseDir: string = process.cwd(),

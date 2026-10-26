@@ -27,6 +27,7 @@ import { describeProviderError, logReason } from "../../ui/provider-error/index.
 import { style } from "../../ui/style/index.js";
 import {
 	assertSecretsReachable,
+	describeAvatarSource,
 	layoutSecretProblem,
 	loadAvatar,
 	notificationProviders,
@@ -47,10 +48,15 @@ export function webhookAvatarOf(
 	return (typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar;
 }
 
+/** The picture a feed's webhook should have: its own, else the layout's, else none. */
+export function feedAvatarOf(layout: NotificationsLayout, feed: true | { avatar?: string }): string | undefined {
+	return (typeof feed === "object" ? feed.avatar : undefined) ?? layout.webhookAvatar;
+}
+
 /** The names a channel's monitoring feed uses: the alert channel (`Discord #uptime`) and its dedicated webhook (`Checkly`). */
 export function monitoringFeed(
 	channel: string,
-	feed: true | { name?: string; webhook?: string },
+	feed: true | { name?: string; webhook?: string; avatar?: string },
 	monitoring: Pick<Monitoring, "providerName">
 ): { name: string; webhook: string } {
 	const own = typeof feed === "object" ? feed : {};
@@ -297,12 +303,18 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	const avatars = new Map<string, string>();
 	const read = input.loadAvatar ?? loadAvatar;
 	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
-		const source = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
-		if (source === undefined || avatars.has(source)) continue;
-		try {
-			avatars.set(source, await read(source));
-		} catch (err) {
-			return refuse(`webhook avatar \`${source}\`: ${errorMessage(err)}`);
+		const feed = channel.feeds?.monitoring;
+		const sources = [
+			channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined,
+			feed ? feedAvatarOf(layout, feed) : undefined,
+		];
+		for (const source of sources) {
+			if (source === undefined || avatars.has(source)) continue;
+			try {
+				avatars.set(source, await read(source));
+			} catch (err) {
+				return refuse(`webhook avatar \`${describeAvatarSource(source)}\`: ${errorMessage(err)}`);
+			}
 		}
 	}
 	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
@@ -490,7 +502,16 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						...(channel.feeds?.monitoring
 							? {
 									feeds: {
-										monitoring: monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
+										monitoring: {
+											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
+											...(feedAvatarOf(layout, channel.feeds.monitoring)
+												? {
+														avatar: avatars.get(
+															feedAvatarOf(layout, channel.feeds.monitoring)!
+														)!,
+													}
+												: {}),
+										},
 									},
 								}
 							: {}),

@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { loadAvatar, MAX_AVATAR_BYTES } from "./avatar.js";
+import { describeAvatarSource, loadAvatar, MAX_AVATAR_BYTES } from "./avatar.js";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1]);
@@ -66,5 +66,22 @@ describe("loadAvatar", () => {
 			loadAvatar("https://x.test/a.png", undefined, reply(Buffer.alloc(MAX_AVATAR_BYTES + 1)))
 		).rejects.toThrow(/larger than 8 MB/);
 		await expect(loadAvatar("https://x.test/a.png", undefined, reply("<html>"))).rejects.toThrow(/not a PNG/);
+	});
+});
+
+describe("describeAvatarSource", () => {
+	it("leaves a file path as written", () => {
+		expect(describeAvatarSource("media/webhook-avatar.png")).toBe("media/webhook-avatar.png");
+	});
+
+	it("keeps an https URL's host and path but drops credentials, query and fragment", () => {
+		expect(describeAvatarSource("https://user:pass@cdn.example.com/a/b.png?X-Signature=abc&token=1#frag")).toBe(
+			"https://cdn.example.com/a/b.png"
+		);
+		expect(describeAvatarSource("https://cdn.example.com/a.png")).toBe("https://cdn.example.com/a.png");
+	});
+
+	it("does not echo a URL it cannot parse", () => {
+		expect(describeAvatarSource("https://exa mple.com/?token=secret")).toBe("an unreadable https URL");
 	});
 });

@@ -180,7 +180,12 @@ export default defineConfig({
 									name: "uptime",
 									topic: "Monitoring up/down",
 									webhook: true,
-									feeds: { monitoring: true },
+									feeds: {
+										monitoring: {
+											// Checkly's own icon for its webhook in Discord's Integrations list (its posts carry the same one).
+											avatar: "https://s3.eu-central-1.amazonaws.com/cdn.checklyhq.com/slack/checkly-slack-icon.png",
+										},
+									},
 								},
 							],
 						},
