@@ -121,7 +121,7 @@ repo: {
 },
 ```
 
-`holocron repo setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: CI_BRANCH_BASE, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it still reads what exists and prints the plan, such as `would create 1, would update 1, 5 unchanged`, and changes nothing.
+`holocron repo setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: LEGACY_FLAG, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it still reads what exists and prints the plan, such as `would create 1, would update 1, 5 unchanged`, and changes nothing.
 
 Values are stored in plain text and shown in the UI. Never declare a secret here; use the `secrets` capability for those. Names follow GitHub's rules: letters, digits and underscores, not starting with a digit or `GITHUB_`.
 

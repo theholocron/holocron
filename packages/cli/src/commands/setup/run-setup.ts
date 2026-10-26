@@ -439,6 +439,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				logger,
 			});
 			const content = astromechTurbo.turboConfig();
+			const firstStep = steps.length;
 
 			if (content === null) {
 				steps.push({
@@ -453,7 +454,6 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						await source.writeRepoFile("turbo.json", content);
 					})
 				);
-				print(formatStep(steps[steps.length - 1]!));
 
 				// #692: a root that's genuinely a directly-buildable package (not
 				// just an orchestrator) silently vanishes from `turbo run <task>`
@@ -495,7 +495,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					}
 				}
 			}
-			print(formatStep(steps[steps.length - 1]!));
+			// Everything this block pushed, once each: the turbo.json step and any follow-up fixes.
+			for (const step of steps.slice(firstStep)) print(formatStep(step));
 		}
 
 		if (source.syncLabels) {
@@ -1077,21 +1078,42 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(style.hint("       · Administration          — read and write"));
 		print(style.hint("       · Code scanning alerts    — read and write"));
 		print(style.hint("       · Contents                — read and write"));
+		print(style.hint("       · Custom properties       — read and write"));
+		print(style.hint("       · Environments            — read and write"));
+		print(style.hint("       · Issues                  — read and write (labels)"));
 		print(style.hint("       · Secret scanning alerts  — read and write"));
+		print(style.hint("       · Secrets                 — read and write"));
+		print(style.hint("       · Variables               — read and write (Actions variables)"));
 		print(style.hint("       · Workflows               — read and write"));
 		print(style.hint("       · Metadata                — read (added automatically)"));
 		print("");
-		print(style.hint("     Org-scoped operations (teams, custom properties) require"));
+		print(style.hint("     Org-scoped operations (teams, organization Actions variables) require"));
 		print(style.hint("     HOLOCRON_ORG_TOKEN — a fine-grained PAT with resource owner set to the org:"));
 		print("");
 		print(style.hint("       · Administration          — read and write (repository permission)"));
 		print(style.hint("       · Members                 — read (organization permission)"));
-		print(style.hint("       · Organization custom properties — read and write (organization permission)"));
+		print(style.hint("       · Variables               — read and write (organization permission)"));
 		print(style.hint("       · Metadata                — read (repository permission, auto-included)"));
 		print("");
+		if (steps.some((s) => s.reason === "permissions" && /GitHub Pages/.test(s.step))) {
+			print("");
+			print(style.hint("     GitHub Pages uses HOLOCRON_DEPLOY_TOKEN (keyring key github.deploy):"));
+			print("");
+			print(style.hint("       · Pages                   — read and write"));
+			print(style.hint("       · Administration          — read and write"));
+			print(style.hint("       · Metadata                — read (added automatically)"));
+		}
+		print("");
 		print(style.hint("     Create tokens at: https://github.com/settings/personal-access-tokens/new"));
-		print(style.hint("     Then re-run:      holocron repo setup --token <your-admin-pat>"));
-		print(style.hint("     Store org token:  HOLOCRON_ORG_TOKEN env var or keyring key github.org"));
+		print(
+			style.hint(
+				"     Store them:       HOLOCRON_ADMIN_TOKEN / HOLOCRON_ORG_TOKEN / HOLOCRON_DEPLOY_TOKEN env vars,"
+			)
+		);
+		print(style.hint("                       or keyring keys github.admin / github.org / github.deploy"));
+		print(style.hint("     Then re-run:      holocron repo setup"));
+		print(style.hint("     (--token <pat> overrides every token, the org one included; use it only when one"));
+		print(style.hint("      token covers everything.)"));
 	}
 
 	return { steps, summary };
