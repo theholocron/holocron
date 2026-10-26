@@ -943,12 +943,18 @@ export class DiscordNotifications implements Notifications {
 		return { updated };
 	}
 
-	/** A 403 on pinning becomes the missing permission and a link that grants it. */
+	/** A 403 on pinning becomes the missing permission and a link that grants it, which `setup` can walk a person through. */
 	private async pinHint(err: unknown, channel: string): Promise<unknown> {
 		if (!DiscordNotifications.missingPermissions(err)) return err;
 		const link = await this.inviteOrNothing([...BOT_NEEDS, "ManageMessages"]);
-		return new Error(
+		return new ElevationRequiredError(
 			`the bot could not pin the message in #${channel}: its role lacks Manage Messages. Re-invite it with that permission${link ? ` (this updates its role in place): ${link}` : ""}`,
+			{
+				permission: "ManageMessages",
+				label: "Manage Messages",
+				keep: true,
+				...(link ? { grantUrl: link } : {}),
+			},
 			{ cause: err }
 		);
 	}

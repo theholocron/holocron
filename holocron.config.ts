@@ -213,6 +213,32 @@ export default defineConfig({
 							{ channel: "deploys", description: "Deploys and preview checks", emoji: "📦" },
 						],
 					},
+					// Pinned at the top of #welcome. The layout is the whole set of messages the bot has pinned there, so
+					// editing this text replaces the pinned message on the next `holocron notifications setup`.
+					pinned: [
+						{
+							channel: "welcome",
+							content: [
+								"**Welcome to The Holocron** 🌌",
+								"",
+								"This is where the Holocron is built: tools, automation and the people who ship them. It is all open source at <https://github.com/theholocron>.",
+								"",
+								"**Where to start**",
+								"📜 #rules: how we treat each other. Read this first.",
+								"🛠️ #dev: day-to-day building talk",
+								"💡 #ideas: half-formed ideas and things to spec later",
+								"🚀 #releases and 📦 #deploys: what shipped, as it ships",
+								"",
+								"**Getting help**",
+								"Ask in #dev. For a bug or a feature request, open an issue at <https://github.com/theholocron/holocron/issues> so it does not get lost. The docs are at <https://docs.theholocron.dev/holocron/>.",
+								"",
+								"**About the bot**",
+								"Holonet posts releases, deploys and repo syncs from GitHub Actions into the channels above. It does not read or store your messages: <https://docs.theholocron.dev/holocron/legal/privacy/>",
+								"",
+								"The maintainers hold the gatekeepers role.",
+							].join("\n"),
+						},
+					],
 					// The questions a new member answers. Not switched on: Discord needs at least 7 default channels,
 					// 5 of them open for members to post in, and the server has fewer discussion channels than that.
 					onboarding: {

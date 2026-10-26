@@ -491,8 +491,14 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			})
 		);
 		await apply("welcome screen", !!layout.welcome, () => notifications.ensureWelcome!(layout.welcome!));
+		// Pinning needs Manage Messages, which the bot may not hold yet: a person at a terminal is walked through it.
 		await apply("pinned messages", (layout.pinned?.length ?? 0) > 0, () =>
-			notifications.ensurePinned!(layout.pinned!)
+			withElevation(() => notifications.ensurePinned!(layout.pinned!), {
+				label: "pinned messages",
+				notifications,
+				...(pause ? { pause } : {}),
+				print,
+			})
 		);
 		await apply("onboarding", !!layout.onboarding, () => notifications.ensureOnboarding!(layout.onboarding!));
 		await apply("bot application", !!layout.application, () =>
