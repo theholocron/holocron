@@ -200,7 +200,7 @@ describe("ChecklyMonitoring", () => {
 			id: 397642,
 			type: "WEBHOOK",
 			config: {
-				name: "Discord #uptime",
+				name: "Message to #uptime",
 				url: "https://discord.com/api/webhooks/1/old",
 				method: "POST",
 				headers: [],
@@ -230,7 +230,7 @@ describe("ChecklyMonitoring", () => {
 				{ status: 201, body: webhook() },
 			]);
 			const result = await capability.ensureAlertChannel({
-				name: "Discord #uptime",
+				name: "Message to #uptime",
 				format: "discord",
 				url: URL_NEW,
 			});
@@ -238,7 +238,7 @@ describe("ChecklyMonitoring", () => {
 			const created = stub.calls.find((c) => c.method === "POST")!;
 			expect(created.body).toMatchObject({
 				type: "WEBHOOK",
-				config: { name: "Discord #uptime", url: URL_NEW, method: "POST", webhookType: "WEBHOOK_DISCORD" },
+				config: { name: "Message to #uptime", url: URL_NEW, method: "POST", webhookType: "WEBHOOK_DISCORD" },
 				sendFailure: true,
 				sendRecovery: true,
 				sendDegraded: true,
@@ -252,9 +252,9 @@ describe("ChecklyMonitoring", () => {
 
 		it("refuses to create one with no URL, and says why", async () => {
 			const { capability } = makeCapability([{ body: [] }, { body: [check("a")] }]);
-			await expect(capability.ensureAlertChannel({ name: "Discord #uptime", format: "discord" })).rejects.toThrow(
-				/Discord shows a webhook URL only once/
-			);
+			await expect(
+				capability.ensureAlertChannel({ name: "Message to #uptime", format: "discord" })
+			).rejects.toThrow(/Discord shows a webhook URL only once/);
 		});
 
 		it("adopts a channel with the same name and replaces its URL, keeping its template, settings and subscriptions", async () => {
@@ -264,7 +264,7 @@ describe("ChecklyMonitoring", () => {
 				{ body: webhook() },
 			]);
 			const result = await capability.ensureAlertChannel({
-				name: "Discord #uptime",
+				name: "Message to #uptime",
 				format: "discord",
 				url: URL_NEW,
 			});
@@ -272,7 +272,7 @@ describe("ChecklyMonitoring", () => {
 			const put = stub.calls.find((c) => c.method === "PUT")!;
 			expect(put.url).toContain("/alert-channels/397642");
 			expect(put.body).toMatchObject({
-				config: { url: URL_NEW, template: "custom template", name: "Discord #uptime" },
+				config: { url: URL_NEW, template: "custom template", name: "Message to #uptime" },
 				sendDegraded: false,
 				autoSubscribe: true,
 			});
@@ -289,7 +289,7 @@ describe("ChecklyMonitoring", () => {
 				{ body: [check("a"), check("b")] },
 				{ body: webhook() },
 			]);
-			const result = await capability.ensureAlertChannel({ name: "Discord #uptime", format: "discord" });
+			const result = await capability.ensureAlertChannel({ name: "Message to #uptime", format: "discord" });
 			expect(result.updated).toEqual(["subscriptions"]);
 			expect(bodyOf(stub, 2)["config"]).toMatchObject({ url: "https://discord.com/api/webhooks/1/old" });
 		});
@@ -301,7 +301,7 @@ describe("ChecklyMonitoring", () => {
 				{ body: [check("a"), check("b")] },
 			]);
 			const result = await capability.ensureAlertChannel({
-				name: "Discord #uptime",
+				name: "Message to #uptime",
 				format: "discord",
 				url: URL_NEW,
 			});
@@ -313,7 +313,7 @@ describe("ChecklyMonitoring", () => {
 			const teams = webhook({ webhookType: "WEBHOOK_MSTEAMS", template: "teams card" }, [sub("a")]);
 			const { capability, stub } = makeCapability([{ body: [teams] }, { body: [check("a")] }, { body: teams }]);
 			const result = await capability.ensureAlertChannel({
-				name: "Discord #uptime",
+				name: "Message to #uptime",
 				format: "discord",
 				url: URL_NEW,
 			});
@@ -330,7 +330,7 @@ describe("ChecklyMonitoring", () => {
 				{ body: [check("a")] },
 			]);
 			const result = await capability.ensureAlertChannel({
-				name: "Discord #uptime",
+				name: "Message to #uptime",
 				format: "discord",
 				url: URL_NEW,
 			});
@@ -346,12 +346,12 @@ describe("ChecklyMonitoring", () => {
 				{ body: [] },
 				{ status: 201, body: webhook() },
 			]);
-			await capability.ensureAlertChannel({ name: "Discord #uptime", format: "discord", url: URL_NEW });
+			await capability.ensureAlertChannel({ name: "Message to #uptime", format: "discord", url: URL_NEW });
 			expect(stub.calls.map((c) => c.method)).toEqual(["GET", "GET", "POST"]);
 
 			const grouped = webhook({}, [{ id: 9, checkId: null, groupId: 4, activated: true }]);
 			const second = makeCapability([{ body: [grouped] }, { body: [check("a")] }, { body: grouped }]);
-			await second.capability.ensureAlertChannel({ name: "Discord #uptime", format: "discord" });
+			await second.capability.ensureAlertChannel({ name: "Message to #uptime", format: "discord" });
 			expect(bodyOf(second.stub, 2)["subscriptions"]).toEqual([
 				{ groupId: 4, activated: true },
 				{ checkId: "a", activated: true },
@@ -367,7 +367,7 @@ describe("ChecklyMonitoring", () => {
 				{ status: 201, body: webhook() },
 			]);
 			const result = await capability.ensureAlertChannel({
-				name: "Discord #uptime",
+				name: "Message to #uptime",
 				format: "discord",
 				url: URL_NEW,
 			});
