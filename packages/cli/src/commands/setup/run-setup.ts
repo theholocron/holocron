@@ -582,7 +582,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 		if (declares(variables?.org)) {
-			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0] ?? "";
+			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0]!;
 			if (!source.syncOrgVariables) {
 				steps.push({
 					capability: "source",

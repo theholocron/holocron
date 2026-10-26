@@ -110,6 +110,10 @@ describe("compose()", () => {
 			prune: true,
 		});
 		expect(compose(a).repo.variables).toEqual({ repo: { A: "1", SAME: "a" }, org: { X: "x" } });
+		// A fragment with only a flag adds no empty scope.
+		const c: Capability = { id: "c", repo: { variables: { prune: true } } };
+		expect(compose(c).repo.variables).toEqual({ prune: true });
+		expect(compose(a, c).repo.variables).toEqual({ repo: { A: "1", SAME: "a" }, org: { X: "x" }, prune: true });
 	});
 
 	it("merges repo.properties with Object.assign semantics", () => {
