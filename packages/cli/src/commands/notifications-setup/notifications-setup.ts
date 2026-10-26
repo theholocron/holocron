@@ -11,6 +11,7 @@
  * shared preset would apply it from every repo.
  */
 
+import { input as prompt } from "@inquirer/prompts";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -34,6 +35,7 @@ import {
 } from "../notifications-channel-add/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
+import { withElevation } from "./with-elevation.js";
 
 /** A channel's access: its category's, with any field the channel states itself laid over it. */
 /** The picture a channel's webhook should have: its own, else the layout's, else none. */
@@ -145,6 +147,11 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 	for (const entry of layout.welcome?.channels ?? []) {
 		const problem = channel("welcome:", entry.channel);
 		if (problem) return problem;
+	}
+	for (const pin of layout.pinned ?? []) {
+		const problem = channel("pinned:", pin.channel);
+		if (problem) return problem;
+		if (pin.content.trim() === "") return `pinned: the message for \`${pin.channel}\` is empty`;
 	}
 	const onboarding = layout.onboarding;
 	for (const name of onboarding?.defaultChannels ?? []) {
@@ -267,6 +274,11 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (layout.onboarding && !notifications.ensureOnboarding) {
 		return refuse(
 			`the layout declares \`onboarding\`, but the \`${notifications.providerName}\` provider cannot manage it`
+		);
+	}
+	if ((layout.pinned?.length ?? 0) > 0 && !notifications.ensurePinned) {
+		return refuse(
+			`the layout declares \`pinned\` messages, but the \`${notifications.providerName}\` provider cannot manage them`
 		);
 	}
 	if (layout.application && !notifications.ensureApplication) {
@@ -426,7 +438,14 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 
 	// The server's own settings come last: they name channels and roles, which exist by now.
-	if (layout.server || layout.welcome || layout.onboarding || layout.application || layout.everyone) {
+	if (
+		layout.server ||
+		layout.welcome ||
+		layout.onboarding ||
+		(layout.pinned?.length ?? 0) > 0 ||
+		layout.application ||
+		layout.everyone
+	) {
 		print(`\n${style.header("Server")}`);
 		const apply = async (
 			label: string,
@@ -454,8 +473,27 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			});
 		};
 		await apply("@everyone permissions", !!layout.everyone, () => notifications.ensureEveryone!(layout.everyone!));
-		await apply("server settings", !!layout.server, () => notifications.ensureServer!(layout.server!));
+		// A person at a terminal can be walked through the one-off Administrator step; a script gets the explanation.
+		/* v8 ignore next 4 -- the real prompt only runs with a terminal attached; tests pass their own */
+		const pause =
+			input.pause === false
+				? undefined
+				: (input.pause ??
+					(process.stdin.isTTY && process.stdout.isTTY
+						? async (message: string) => void (await prompt({ message }))
+						: undefined));
+		await apply("server settings", !!layout.server, () =>
+			withElevation(() => notifications.ensureServer!(layout.server!), {
+				label: "server settings",
+				notifications,
+				...(pause ? { pause } : {}),
+				print,
+			})
+		);
 		await apply("welcome screen", !!layout.welcome, () => notifications.ensureWelcome!(layout.welcome!));
+		await apply("pinned messages", (layout.pinned?.length ?? 0) > 0, () =>
+			notifications.ensurePinned!(layout.pinned!)
+		);
 		await apply("onboarding", !!layout.onboarding, () => notifications.ensureOnboarding!(layout.onboarding!));
 		await apply("bot application", !!layout.application, () =>
 			notifications.ensureApplication!(layout.application!)

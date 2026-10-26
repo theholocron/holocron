@@ -59,6 +59,7 @@ const accessText = (v: AccessValue): string =>
 	v === "everyone" ? "everyone" : v.length === 0 ? "nobody (bots and webhooks only)" : v.join(", ");
 const shown = (s: string) => sanitizeDetail(s);
 const WELCOME_TITLE = "welcome screen and onboarding set";
+const PINNED_TITLE = "pinned messages in place";
 const APP_TITLE = "bot description, tags, install link and URLs set";
 const AVATAR_TITLE = "webhook names and avatars set";
 const DELIVERY_TITLE = "test message delivered through a webhook";
@@ -201,6 +202,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			["access", ACCESS_TITLE],
 			["server-settings", SERVER_TITLE],
 			["welcome-onboarding", WELCOME_TITLE],
+			["pinned", PINNED_TITLE],
 			["app-settings", APP_TITLE],
 		] as const) {
 			failed(id, title, "not checked: could not read the server");
@@ -594,6 +596,36 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			WELCOME_TITLE,
 			[...welcomeProblems, ...onboardingProblems],
 			welcomeParts === 0 ? "none declared" : `${welcomeParts} of ${welcomeParts} as declared`
+		);
+
+		const wantPinned = layout.pinned ?? [];
+		const pinnedProblems: string[] = [];
+		if (wantPinned.length > 0) {
+			if (inspected.pinnedError) {
+				pinnedProblems.push(
+					`not checked: could not read the pinned messages (${shown(inspected.pinnedError)})`
+				);
+			} else if (!inspected.pinned) {
+				pinnedProblems.push("the provider did not report the pinned messages");
+			} else {
+				// Every declared message needs an answer: a short list from the provider is not a clean bill.
+				wantPinned.forEach((want, i) => {
+					const have = inspected.pinned![i];
+					if (!have)
+						pinnedProblems.push(`#${shown(want.channel)}: not checked (the provider gave no answer)`);
+					else if (have.state === "missing") {
+						pinnedProblems.push(`#${shown(have.channel)}: no pinned message from the bot`);
+					} else if (have.state === "different") {
+						pinnedProblems.push(`#${shown(have.channel)}: the pinned messages differ from the layout`);
+					}
+				});
+			}
+		}
+		add(
+			"pinned",
+			PINNED_TITLE,
+			pinnedProblems,
+			wantPinned.length === 0 ? "none declared" : `${wantPinned.length} of ${wantPinned.length} in place`
 		);
 
 		const wantApp = layout.application;
