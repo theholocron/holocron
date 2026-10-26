@@ -3452,7 +3452,7 @@ describe("DiscordNotifications pinned messages", () => {
 	const mine = (id: string, content: string, pinned = true) => ({ id, content, pinned, author: { id: BOT } });
 	const posted = { body: { id: "5002", channel_id: "2001", content: "Hello" } };
 	const pins = [{ channel: "welcome", content: "Hello" }];
-	const writes = (calls: Array<{ method: string }>) => calls.filter((c) => c.method !== "GET");
+	const writes = (calls: Array<{ method: string; url: string }>) => calls.filter((c) => c.method !== "GET");
 
 	it("posts a message that is not there yet without letting it mention anyone, and pins it", async () => {
 		const { notifs, calls } = makeProvisioner([
