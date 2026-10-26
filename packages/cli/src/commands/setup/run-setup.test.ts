@@ -3894,7 +3894,12 @@ describe("runSetup — 403 handling", () => {
 		expect(output).toContain("⚠");
 		expect(output).toContain("insufficient token permissions");
 		expect(output).toContain("personal-access-tokens/new");
-		expect(output).toContain("--token <your-admin-pat>");
+		// Separate tokens are re-run as stored: --token would override the org token too.
+		expect(output).toContain("Then re-run:      holocron repo setup");
+		expect(output).not.toContain("<your-admin-pat>");
+		expect(output).toContain("--token <pat> overrides every token");
+		// No Pages failure, so no deploy-token block.
+		expect(output).not.toContain("GitHub Pages uses HOLOCRON_DEPLOY_TOKEN");
 	});
 
 	it("does not emit the hint when all failures are plan restrictions", async () => {
@@ -4557,6 +4562,21 @@ describe("setup: Pages step", () => {
 		});
 		return { loaded, loader };
 	}
+
+	it("points a Pages 403 at the deploy token's permissions", async () => {
+		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat-xyz";
+		const { loaded, loader } = makePagedLoader({ build: "workflow" }, async () => {
+			throw new ProviderApiError("Resource not accessible by personal access token", 403);
+		});
+		const lines: string[] = [];
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: (l) => lines.push(l) });
+
+		const output = lines.join("\n");
+		expect(output).toContain("GitHub Pages uses HOLOCRON_DEPLOY_TOKEN (keyring key github.deploy)");
+		expect(output).toContain("Pages                   — read and write");
+		expect(output).toContain("Administration          — read and write");
+	});
 
 	it("calls configurePages and records ok when HOLOCRON_DEPLOY_TOKEN is set", async () => {
 		process.env.HOLOCRON_DEPLOY_TOKEN = "deploy-pat-xyz";

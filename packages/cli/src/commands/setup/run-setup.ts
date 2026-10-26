@@ -1095,9 +1095,25 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		print(style.hint("       · Variables               — read and write (organization permission)"));
 		print(style.hint("       · Metadata                — read (repository permission, auto-included)"));
 		print("");
+		if (steps.some((s) => s.reason === "permissions" && /GitHub Pages/.test(s.step))) {
+			print("");
+			print(style.hint("     GitHub Pages uses HOLOCRON_DEPLOY_TOKEN (keyring key github.deploy):"));
+			print("");
+			print(style.hint("       · Pages                   — read and write"));
+			print(style.hint("       · Administration          — read and write"));
+			print(style.hint("       · Metadata                — read (added automatically)"));
+		}
+		print("");
 		print(style.hint("     Create tokens at: https://github.com/settings/personal-access-tokens/new"));
-		print(style.hint("     Then re-run:      holocron repo setup --token <your-admin-pat>"));
-		print(style.hint("     Store org token:  HOLOCRON_ORG_TOKEN env var or keyring key github.org"));
+		print(
+			style.hint(
+				"     Store them:       HOLOCRON_ADMIN_TOKEN / HOLOCRON_ORG_TOKEN / HOLOCRON_DEPLOY_TOKEN env vars,"
+			)
+		);
+		print(style.hint("                       or keyring keys github.admin / github.org / github.deploy"));
+		print(style.hint("     Then re-run:      holocron repo setup"));
+		print(style.hint("     (--token <pat> overrides every token, the org one included; use it only when one"));
+		print(style.hint("      token covers everything.)"));
 	}
 
 	return { steps, summary };
