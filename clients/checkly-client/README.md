@@ -75,8 +75,40 @@ account id (visible at `https://app.checklyhq.com/settings/account/general`)
 The token is passed directly or read from `CHECKLY_API_KEY`; the account id
 from `CHECKLY_ACCOUNT_ID`. Neither has a default — both are required.
 
-> **Note:** This client only covers API checks (`checks.*`, the
-> `/v1/checks/api` and `/v1/checks` endpoints) — the subset this org
-> currently provisions programmatically. Checkly's full surface (browser
-> checks, check groups, alert channels, dashboards) is out of scope until a
-> real consumer needs it.
+## Alert channels
+
+```ts
+import { DISCORD_TEMPLATE } from "@theholocron/checkly-client";
+
+// A Discord channel is a WEBHOOK marked WEBHOOK_DISCORD. The template is not filled in for you when you create one
+// through the API, so pass DISCORD_TEMPLATE (Checkly's own Discord message body).
+const channel = await checkly.alertChannels.create({
+  type: "WEBHOOK",
+  config: {
+    name: "Discord #uptime",
+    url: "https://discord.com/api/webhooks/…", // a secret: anyone holding it can post
+    method: "POST",
+    headers: [],
+    queryParameters: [],
+    template: DISCORD_TEMPLATE,
+    webhookType: "WEBHOOK_DISCORD",
+  },
+  sendFailure: true,
+  sendRecovery: true,
+  sendDegraded: true,
+  // Checks made through the API are never auto-subscribed: list each one.
+  subscriptions: [{ checkId: check.id, activated: true }],
+});
+
+const all = await checkly.alertChannels.list(); // every page
+const one = await checkly.alertChannels.get(channel.id);
+await checkly.alertChannels.update(channel.id, {/* the complete channel */});
+await checkly.alertChannels.delete(channel.id);
+```
+
+`update` replaces the whole channel (settings and subscriptions), so send everything you want to keep. Checkly offers
+no version check, so do not update one channel from two places at once.
+
+> **Note:** This client covers API checks (`checks.*`) and alert channels (`alertChannels.*`) — the subset this org
+> currently provisions programmatically. Checkly's full surface (browser checks, check groups, dashboards) is out of
+> scope until a real consumer needs it.
