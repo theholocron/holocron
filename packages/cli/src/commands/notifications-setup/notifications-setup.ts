@@ -17,6 +17,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type Monitoring,
 	type NotificationsAccess,
 	type NotificationsLayout,
 	PluginLoader,
@@ -44,6 +45,51 @@ export function webhookAvatarOf(
 	webhook: boolean | { avatar?: string } | undefined
 ): string | undefined {
 	return (typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar;
+}
+
+/** The names a channel's monitoring feed uses: the alert channel (`Discord #uptime`) and its dedicated webhook (`Checkly`). */
+export function monitoringFeed(
+	channel: string,
+	feed: true | { name?: string; webhook?: string },
+	monitoring: Pick<Monitoring, "providerName">
+): { name: string; webhook: string } {
+	const own = typeof feed === "object" ? feed : {};
+	const provider = monitoring.providerName;
+	return {
+		name: own.name ?? `Discord #${channel}`,
+		webhook: own.webhook ?? provider.charAt(0).toUpperCase() + provider.slice(1),
+	};
+}
+
+/**
+ * The first reason the layout's monitoring feeds cannot work, or undefined. Checked before anything is created: two feeds
+ * sharing an alert channel name would redirect each other's alerts, and a feed webhook named like the channel's own
+ * (Discord matches names without regard to case) would share its URL, so revoking one revokes the other.
+ */
+export function feedProblem(
+	layout: NotificationsLayout,
+	monitoring: Pick<Monitoring, "providerName" | "ensureAlertChannel">
+): string | undefined {
+	const alertNames = new Map<string, string>();
+	for (const category of layout.categories ?? []) {
+		for (const channel of category.channels ?? []) {
+			if (!channel.feeds?.monitoring) continue;
+			if (!monitoring.ensureAlertChannel) {
+				return `channel \`${channel.name}\` is fed by monitoring, but the \`${monitoring.providerName}\` provider cannot manage alert channels`;
+			}
+			const feed = monitoringFeed(channel.name, channel.feeds.monitoring, monitoring);
+			const own = (typeof channel.webhook === "object" ? channel.webhook.name : undefined) ?? channel.name;
+			if (channel.webhook && feed.webhook.toLowerCase() === own.toLowerCase()) {
+				return `channel \`${channel.name}\`: the monitoring webhook and the channel's own webhook are both named ${own} — rename one`;
+			}
+			const other = alertNames.get(feed.name.toLowerCase());
+			if (other) {
+				return `channels \`${other}\` and \`${channel.name}\` would both use the alert channel ${feed.name} — give one a distinct \`feeds.monitoring.name\``;
+			}
+			alertNames.set(feed.name.toLowerCase(), channel.name);
+		}
+	}
+	return undefined;
 }
 
 export function effectiveAccess(
@@ -230,6 +276,22 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (wantsSecrets && !scope && !dryRun) {
 		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
+	// Channels fed by the monitoring provider hand it a dedicated webhook as an alert channel.
+	let monitoring: Monitoring | undefined;
+	if ((layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.feeds?.monitoring))) {
+		if (!loader.has("monitoring")) {
+			return refuse(
+				whyMissing(
+					loader,
+					"monitoring",
+					"a channel is fed by monitoring, which needs a `monitoring` capability — add a `monitoring` provider"
+				)
+			);
+		}
+		monitoring = loader.get("monitoring") as Monitoring;
+		const problem = feedProblem(layout, monitoring);
+		if (problem) return refuse(problem);
+	}
 
 	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
 	const avatars = new Map<string, string>();
@@ -411,6 +473,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 					{
 						notifications,
 						...(secrets ? { secrets } : {}),
+						...(monitoring ? { monitoring } : {}),
 						scope: scope ?? { kind: "repo" },
 						dryRun,
 						print,
@@ -424,6 +487,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 							? { access: effectiveAccess(category.access, channel.access)! }
 							: {}),
 						...(webhook ? { webhook } : {}),
+						...(channel.feeds?.monitoring
+							? {
+									feeds: {
+										monitoring: monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
+									},
+								}
+							: {}),
 					}
 				);
 				report.channels.push(outcome);

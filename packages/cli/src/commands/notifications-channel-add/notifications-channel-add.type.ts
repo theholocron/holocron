@@ -2,6 +2,7 @@ import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type {
+	Monitoring,
 	Notifications,
 	NotificationsAccess,
 	PluginLoader,
@@ -55,6 +56,8 @@ export interface ChannelOutcome {
 	/** Settings of an existing channel that disagreed with the layout and were changed. */
 	updated?: string[];
 	webhook?: WebhookOutcome;
+	/** The monitoring provider's alert channel for this channel, when it is fed by one. */
+	alertChannel?: { name: string; created: boolean; updated: string[]; subscribed: number };
 }
 
 export interface NotificationsChannelAddReport {
@@ -68,6 +71,8 @@ export interface ProvisionDeps {
 	notifications: Notifications;
 	/** Only needed for channels that ask for a webhook. */
 	secrets?: Secrets;
+	/** Only needed for channels fed by the monitoring provider. */
+	monitoring?: Monitoring;
 	scope: SecretScope;
 	dryRun: boolean;
 	print: NotificationsChannelAddPrint;
@@ -86,4 +91,6 @@ export interface ChannelSpec {
 	access?: NotificationsAccess;
 	/** `avatar` is the image itself, as a `data:` URI. */
 	webhook?: false | { name?: string; secret?: string; avatar?: string };
+	/** The monitoring provider's alerts, already resolved to the names to use. */
+	feeds?: { monitoring?: { name: string; webhook: string } };
 }

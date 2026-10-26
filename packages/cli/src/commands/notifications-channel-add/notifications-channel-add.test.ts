@@ -2,7 +2,7 @@ import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
-import type { Notifications, Secrets } from "../../plugin/index.js";
+import type { Monitoring, Notifications, Secrets } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import {
 	defaultSecretName,
@@ -732,5 +732,184 @@ describe("provisionChannel — webhook avatar", () => {
 		const out = await provisionChannel(deps(n, lines).deps, { name: "alerts", webhook: { avatar: "data:x" } });
 		expect(lines.join("\n")).not.toContain("avatar");
 		expect(out.webhook?.updated).toBeUndefined();
+	});
+});
+
+describe("provisionChannel — monitoring feed", () => {
+	const feed = { monitoring: { name: "Discord #uptime", webhook: "Checkly" } };
+	const fakeMonitoring = (over: Partial<Monitoring> = {}): Monitoring =>
+		({
+			key: "monitoring",
+			providerName: "checkly",
+			checks: [],
+			ensureCheck: vi.fn(),
+			ensureAlertChannel: vi.fn(async () => ({ created: true, updated: [], subscribed: 2 })),
+			...over,
+		}) as unknown as Monitoring;
+	const deps = (
+		notifications: Notifications,
+		monitoring: Monitoring | undefined,
+		lines: string[],
+		dryRun = false
+	) => ({
+		notifications,
+		...(monitoring ? { monitoring } : {}),
+		scope: { kind: "repo" as const },
+		dryRun,
+		print: (l: string) => void lines.push(l),
+	});
+
+	it("gives monitoring a dedicated webhook, whose URL is stored nowhere else", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://discord.com/api/webhooks/1/secret" })),
+		});
+		const m = fakeMonitoring();
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, m, lines), { name: "uptime", category: "ALERTS", feeds: feed });
+		expect(n.ensureWebhook).toHaveBeenCalledTimes(1);
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "uptime", name: "Checkly", category: "ALERTS" });
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith({
+			name: "Discord #uptime",
+			format: "discord",
+			url: "https://discord.com/api/webhooks/1/secret",
+		});
+		expect(out.alertChannel).toEqual({ name: "Discord #uptime", created: true, updated: [], subscribed: 2 });
+		const text = lines.join("\n");
+		expect(text).toContain("created alert channel Discord #uptime via webhook Checkly (2 checks)");
+		// The URL is a credential and is never printed.
+		expect(text).not.toContain("secret");
+	});
+
+	it("runs next to the channel's own webhook without sharing it", async () => {
+		const ensureWebhook = vi
+			.fn()
+			.mockResolvedValueOnce({ created: true, url: "https://own" })
+			.mockResolvedValueOnce({ created: true, url: "https://feed" });
+		const n = fakeNotifications({ ensureWebhook });
+		const m = fakeMonitoring();
+		const stored: string[] = [];
+		const secrets = {
+			providerName: "github",
+			listSecrets: async () => [],
+			setSecret: async (_s: unknown, _n: string, value: string) => void stored.push(value),
+			deleteSecret: async () => {},
+		};
+		const lines: string[] = [];
+		const out = await provisionChannel(
+			{ ...deps(n, m, lines), secrets: secrets as unknown as Secrets },
+			{ name: "uptime", webhook: { name: "uptime" }, feeds: feed }
+		);
+		expect(ensureWebhook.mock.calls.map((c) => c[0].name)).toEqual(["uptime", "Checkly"]);
+		expect(stored).toEqual(["https://own"]);
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith(expect.objectContaining({ url: "https://feed" }));
+		expect(out.webhook?.stored).toBe(true);
+	});
+
+	it("passes no URL when the webhook already exists, and reports an unchanged channel", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => ({ created: false, updated: [], subscribed: 2 })),
+		});
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel({ ...deps(n, m, lines), tally }, { name: "uptime", feeds: feed });
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith({ name: "Discord #uptime", format: "discord" });
+		expect(lines.join("\n")).toContain("exists  alert channel Discord #uptime");
+		expect(tally.skip).toBeGreaterThan(0);
+	});
+
+	it("says what changed on an existing alert channel", async () => {
+		const n = fakeNotifications();
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => ({
+				created: false,
+				updated: ["url", "subscriptions"],
+				subscribed: 3,
+			})),
+		});
+		const lines: string[] = [];
+		await provisionChannel(deps(n, m, lines), { name: "uptime", feeds: feed });
+		expect(lines.join("\n")).toContain(
+			"updated alert channel Discord #uptime via webhook Checkly: url, subscriptions (3 checks)"
+		);
+	});
+
+	it("previews without touching anything in a dry run", async () => {
+		const n = fakeNotifications();
+		const m = fakeMonitoring();
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel({ ...deps(n, m, lines, true), tally }, { name: "uptime", feeds: feed });
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(m.ensureAlertChannel).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain(
+			"would ensure webhook Checkly and alert channel Discord #uptime (monitoring)"
+		);
+		expect(tally.skip).toBe(3);
+		// And without a tally to count into.
+		await provisionChannel(deps(n, m, [], true), { name: "uptime", feeds: feed });
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("refuses before changing anything when monitoring cannot manage alert channels", async () => {
+		const n = fakeNotifications();
+		await expect(provisionChannel(deps(n, undefined, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			/fed by monitoring, which needs a `monitoring` provider/
+		);
+		const bare = fakeMonitoring({ ensureAlertChannel: undefined });
+		await expect(provisionChannel(deps(n, bare, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			/fed by monitoring/
+		);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("tells you how to recover when the one-time URL is lost to a failed hand-over", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://discord.com/api/webhooks/1/secret" })),
+		});
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => {
+				throw new Error("Checkly said no");
+			}),
+		});
+		const failure = await provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed }).catch((e: Error) => e);
+		expect((failure as Error).message).toMatch(
+			/webhook Checkly was created but handing its URL to checkly failed \(.*Checkly said no.*\) — delete the webhook in discord and re-run/
+		);
+		expect((failure as Error).message).not.toContain("secret");
+	});
+
+	it("passes a failure through unchanged when there was no new URL to lose", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => {
+				throw new Error("Checkly said no");
+			}),
+		});
+		await expect(provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			"Checkly said no"
+		);
+	});
+
+	it("refuses when the notifications provider cannot create webhooks, or the two webhooks share a name", async () => {
+		const noHooks = fakeNotifications({ ensureWebhook: undefined });
+		await expect(
+			provisionChannel(deps(noHooks, fakeMonitoring(), []), { name: "uptime", feeds: feed })
+		).rejects.toThrow(/cannot create webhooks/);
+		const n = fakeNotifications();
+		await expect(
+			provisionChannel(
+				{ ...deps(n, fakeMonitoring(), []), secrets: { providerName: "github" } as unknown as Secrets },
+				{ name: "uptime", webhook: { name: "Checkly" }, feeds: feed }
+			)
+		).rejects.toThrow(/both named Checkly/);
+		// Discord matches names without regard to case.
+		await expect(
+			provisionChannel(
+				{ ...deps(n, fakeMonitoring(), []), secrets: { providerName: "github" } as unknown as Secrets },
+				{ name: "uptime", webhook: { name: "CHECKLY" }, feeds: feed }
+			)
+		).rejects.toThrow(/both named CHECKLY/);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 });

@@ -1,4 +1,6 @@
 export {
+	type AlertChannel,
+	type AlertChannelInput,
 	type ApiCheck,
 	type ApiCheckInput,
 	type ApiCheckRequest,
@@ -8,6 +10,7 @@ export {
 	type ChecklyClient,
 	type ChecklyClientOptions,
 	createChecklyClient,
+	DISCORD_TEMPLATE,
 	type HttpMethod,
 	type ListChecksParams,
 } from "@theholocron/checkly-client";
