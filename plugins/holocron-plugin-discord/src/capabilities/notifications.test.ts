@@ -3613,7 +3613,7 @@ describe("DiscordNotifications pinned messages", () => {
 				.catch((e: Error) => e);
 
 		it("points at the channel's override instead of offering a link that cannot help", async () => {
-			const err = await run([{ id: GUILD, type: 0, allow: "0", deny: PIN }]);
+			const err = (await run([{ id: GUILD, type: 0, allow: "0", deny: PIN }])) as Error;
 			expect(err).not.toBeInstanceOf(ElevationRequiredError);
 			expect(err.message).toMatch(/its role has Pin Messages, but the channel's permissions take it away/);
 		});
