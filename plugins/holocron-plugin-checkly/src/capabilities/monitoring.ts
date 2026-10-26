@@ -109,6 +109,10 @@ export class ChecklyMonitoring implements Monitoring {
 	 * kept up to date, not duplicated. Every check on the account is subscribed, since a check made through the API is
 	 * never subscribed on its own; subscriptions already there (including ones to checks outside Holocron) are kept.
 	 * An existing channel keeps its own message template and send settings.
+	 *
+	 * Subscriptions go through Checkly's subscriptions call and are then read back: its create and update accept a
+	 * `subscriptions` list but were seen not to apply it, so the count returned is what Checkly holds, and a check that
+	 * could not be subscribed is an error and not a number.
 	 */
 	async ensureAlertChannel(input: MonitoringAlertChannelInput): Promise<MonitoringAlertChannelResult> {
 		const client = this.client();
@@ -123,7 +127,7 @@ export class ChecklyMonitoring implements Monitoring {
 					`cannot create alert channel "${input.name}": its webhook already exists and Discord shows a webhook URL only once, so delete that webhook and run setup again`
 				);
 			}
-			await client.alertChannels.create({
+			const created = await client.alertChannels.create({
 				type: "WEBHOOK",
 				config: {
 					name: input.name,
@@ -138,52 +142,74 @@ export class ChecklyMonitoring implements Monitoring {
 				sendRecovery: true,
 				sendDegraded: true,
 				autoSubscribe: false,
-				subscriptions: checkIds.map((checkId) => ({ checkId, activated: true })),
 			});
-			return { created: true, updated: [], subscribed: checkIds.length };
+			const { active } = await this.subscribeMissing(created.id, input.name, checkIds);
+			return { created: true, updated: [], subscribed: active };
 		}
 
-		// A subscription someone switched off is a choice, so it is left off (and not added a second time), and not counted.
-		const known = new Set(existing.subscriptions.flatMap((s) => (s.checkId ? [s.checkId] : [])));
-		const active = new Set(existing.subscriptions.flatMap((s) => (s.checkId && s.activated ? [s.checkId] : [])));
-		const missing = checkIds.filter((id) => !known.has(id));
 		const urlChanged = input.url !== undefined && existing.config.url !== input.url;
 		// Discord needs its own message shape: a channel left in another format would post nonsense there.
 		const formatChanged = existing.config.webhookType !== "WEBHOOK_DISCORD";
-		const updated = [
-			...(urlChanged ? ["url"] : []),
-			...(formatChanged ? ["format"] : []),
-			...(missing.length > 0 ? ["subscriptions"] : []),
-		];
-		const total = active.size + missing.length;
-		if (updated.length === 0) return { created: false, updated, subscribed: total };
-
-		const replacement: AlertChannelInput = {
-			type: "WEBHOOK",
-			config: {
-				...existing.config,
-				...(urlChanged ? { url: input.url! } : {}),
-				...(formatChanged ? { webhookType: "WEBHOOK_DISCORD" as const, template: DISCORD_TEMPLATE } : {}),
-			},
-			sendRecovery: existing.sendRecovery,
-			sendFailure: existing.sendFailure,
-			sendDegraded: existing.sendDegraded,
-			sslExpiry: existing.sslExpiry,
-			sslExpiryThreshold: existing.sslExpiryThreshold,
-			autoSubscribe: existing.autoSubscribe,
-			// Sent back without their ids, as Checkly's own tooling sends them: with the ids Checkly answered 409 (a
-			// uniqueness violation), as if each were a new row for a check that already has one.
-			subscriptions: [
-				...existing.subscriptions.map((s) =>
+		if (urlChanged || formatChanged) {
+			const replacement: AlertChannelInput = {
+				type: "WEBHOOK",
+				config: {
+					...existing.config,
+					...(urlChanged ? { url: input.url! } : {}),
+					...(formatChanged ? { webhookType: "WEBHOOK_DISCORD" as const, template: DISCORD_TEMPLATE } : {}),
+				},
+				sendRecovery: existing.sendRecovery,
+				sendFailure: existing.sendFailure,
+				sendDegraded: existing.sendDegraded,
+				sslExpiry: existing.sslExpiry,
+				sslExpiryThreshold: existing.sslExpiryThreshold,
+				autoSubscribe: existing.autoSubscribe,
+				// An update replaces the whole channel, so what it already has goes back. Sent without the ids, as Checkly's own
+				// tooling sends them: with the ids Checkly answered 409 (a uniqueness violation).
+				subscriptions: existing.subscriptions.map((s) =>
 					s.checkId
 						? { checkId: s.checkId, activated: s.activated }
 						: { groupId: s.groupId!, activated: s.activated }
 				),
-				...missing.map((checkId) => ({ checkId, activated: true })),
-			],
-		};
-		await client.alertChannels.update(existing.id, replacement);
-		return { created: false, updated, subscribed: total };
+			};
+			await client.alertChannels.update(existing.id, replacement);
+		}
+		const { added, active } = await this.subscribeMissing(existing.id, input.name, checkIds);
+		const updated = [
+			...(urlChanged ? ["url"] : []),
+			...(formatChanged ? ["format"] : []),
+			...(added > 0 ? ["subscriptions"] : []),
+		];
+		return { created: false, updated, subscribed: active };
+	}
+
+	/**
+	 * Subscribe the checks a channel lacks, then read it back. A subscription someone switched off is a choice: it is left
+	 * off, not added a second time, and not counted. Returns how many were added and how many checks now alert.
+	 */
+	private async subscribeMissing(
+		channelId: number,
+		name: string,
+		checkIds: string[]
+	): Promise<{ added: number; active: number }> {
+		const client = this.client();
+		const checkIdsOf = (channel: AlertChannel, onlyActive: boolean) =>
+			new Set(
+				channel.subscriptions.flatMap((s) => (s.checkId && (!onlyActive || s.activated) ? [s.checkId] : []))
+			);
+		const before = await client.alertChannels.get(channelId);
+		const known = checkIdsOf(before, false);
+		const missing = checkIds.filter((id) => !known.has(id));
+		for (const checkId of missing) await client.alertChannels.subscribe(channelId, { checkId, activated: true });
+		const after = missing.length > 0 ? await client.alertChannels.get(channelId) : before;
+		const present = checkIdsOf(after, false);
+		const lacking = checkIds.filter((id) => !present.has(id));
+		if (lacking.length > 0) {
+			throw new Error(
+				`Checkly did not subscribe ${lacking.length} of ${checkIds.length} checks to alert channel "${name}" (it holds ${present.size}); subscribe them in Checkly's alert settings and run setup again`
+			);
+		}
+		return { added: missing.length, active: checkIdsOf(after, true).size };
 	}
 
 	/** The id of every check on the account, read a page at a time. */

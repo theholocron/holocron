@@ -48,7 +48,7 @@ catalogs:
   # Shared clients — release in lockstep; bump all entries together.
   clients:
     "@theholocron/axiom-client": ^1.43.1
-    "@theholocron/checkly-client": ^1.52.0
+    "@theholocron/checkly-client": ^1.53.0
     "@theholocron/clerk-client": ^1.43.1
     "@theholocron/cloudflare-client": ^1.43.1
     "@theholocron/discord-client": ^1.50.0
