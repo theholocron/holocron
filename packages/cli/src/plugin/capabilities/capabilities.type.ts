@@ -1070,7 +1070,7 @@ export interface NotificationsChannelLayout {
 	feeds?: {
 		/**
 		 * The monitoring provider's alerts. `true` uses the defaults; the object form overrides the alert channel's name
-		 * (default `Discord #<channel>`) and the dedicated webhook's name (default the provider's name, capitalised), and
+		 * (default `Message to #<channel>`) and the dedicated webhook's name (default the provider's name, capitalised), and
 		 * `avatar` gives that webhook a picture (a file path or an `https://` URL, PNG, JPEG or GIF) in the provider's list of
 		 * integrations. Left out, it wears the layout's `webhookAvatar`, as every webhook does. A picture is set only on a
 		 * webhook that has none; the posts carry the service's own name and icon either way.

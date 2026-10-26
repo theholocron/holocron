@@ -1630,12 +1630,12 @@ describe("monitoring feeds", () => {
 		expect(report.status).toBe("ok");
 		expect(n.ensureWebhook).toHaveBeenCalledWith(expect.objectContaining({ channel: "uptime", name: "Checkly" }));
 		expect(m.ensureAlertChannel).toHaveBeenCalledWith({
-			name: "Discord #uptime",
+			name: "Message to #uptime",
 			format: "discord",
 			url: "https://hook/x",
 		});
 		expect(report.channels[0]?.alertChannel).toMatchObject({
-			name: "Discord #uptime",
+			name: "Message to #uptime",
 			created: true,
 			subscribed: 2,
 		});
@@ -1759,7 +1759,7 @@ describe("monitoring feeds", () => {
 		expect(report.status).toBe("dry-run");
 		expect(m.ensureAlertChannel).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toContain(
-			"would ensure webhook Checkly and alert channel Discord #uptime (monitoring)"
+			"would ensure webhook Checkly and alert channel Message to #uptime (monitoring)"
 		);
 	});
 

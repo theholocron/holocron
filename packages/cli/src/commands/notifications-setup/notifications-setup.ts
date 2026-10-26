@@ -53,7 +53,7 @@ export function feedAvatarOf(layout: NotificationsLayout, feed: true | { avatar?
 	return (typeof feed === "object" ? feed.avatar : undefined) ?? layout.webhookAvatar;
 }
 
-/** The names a channel's monitoring feed uses: the alert channel (`Discord #uptime`) and its dedicated webhook (`Checkly`). */
+/** The names a channel's monitoring feed uses: the alert channel (`Message to #uptime`) and its dedicated webhook (`Checkly`). */
 export function monitoringFeed(
 	channel: string,
 	feed: true | { name?: string; webhook?: string; avatar?: string },
@@ -62,7 +62,7 @@ export function monitoringFeed(
 	const own = typeof feed === "object" ? feed : {};
 	const provider = monitoring.providerName;
 	return {
-		name: own.name ?? `Discord #${channel}`,
+		name: own.name ?? `Message to #${channel}`,
 		webhook: own.webhook ?? provider.charAt(0).toUpperCase() + provider.slice(1),
 	};
 }
