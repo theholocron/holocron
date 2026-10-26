@@ -3581,7 +3581,88 @@ describe("DiscordNotifications pinned messages", () => {
 			)!
 		);
 		expect(bits & (1n << 51n)).toBe(1n << 51n);
+		// Manage Messages no longer covers pinning, so it is not asked for.
+		expect(bits & (1n << 13n)).toBe(0n);
 		expect(calls[5]).toMatchObject({ method: "DELETE", url: `${BASE}/channels/2001/messages/5002` });
+	});
+
+	describe("when the role holds Pin Messages but the refusal stays", () => {
+		const PIN = (1n << 51n).toString();
+		const refused = { status: 403, body: { message: "Missing Permissions", code: 50013 } };
+		const server = [
+			{ body: { id: GUILD, name: "The Holocron", owner_id: "someone" } },
+			{ body: { user: { id: BOT }, roles: ["r1"] } },
+			{
+				body: [
+					{ id: GUILD, name: "@everyone", color: 0, mentionable: false, permissions: "1024" },
+					{ id: "r1", name: "Holonet", color: 0, mentionable: false, permissions: PIN },
+				],
+			},
+		];
+		const welcomeWith = (overwrites: Array<{ id: string; type: 0 | 1; allow: string; deny: string }>) => ({
+			body: [{ ...text("2001", "welcome"), permission_overwrites: overwrites }, text("2002", "rules")],
+		});
+		const run = (overwrites: Array<{ id: string; type: 0 | 1; allow: string; deny: string }>) =>
+			makeProvisioner(
+				[chans, me, { body: [] }, posted, refused, { status: 204 }, ...server, welcomeWith(overwrites)],
+				{
+					guildId: GUILD,
+				}
+			)
+				.notifs.ensurePinned(pins)
+				.catch((e: Error) => e);
+
+		it("points at the channel's override instead of offering a link that cannot help", async () => {
+			const err = await run([{ id: GUILD, type: 0, allow: "0", deny: PIN }]);
+			expect(err).not.toBeInstanceOf(ElevationRequiredError);
+			expect(err.message).toMatch(/its role has Pin Messages, but the channel's permissions take it away/);
+		});
+
+		it("applies the overrides in Discord's order: a role's allow beats @everyone's deny, and a member's beats both", async () => {
+			const byRole = await run([
+				{ id: GUILD, type: 0, allow: "0", deny: PIN },
+				{ id: "r1", type: 0, allow: PIN, deny: "0" },
+			]);
+			expect(byRole).toBeInstanceOf(ElevationRequiredError);
+			const byMember = await run([
+				{ id: "r1", type: 0, allow: "0", deny: PIN },
+				{ id: BOT, type: 1, allow: PIN, deny: "0" },
+			]);
+			expect(byMember).toBeInstanceOf(ElevationRequiredError);
+			const otherMember = await run([{ id: "9999", type: 1, allow: "0", deny: PIN }]);
+			expect(otherMember).toBeInstanceOf(ElevationRequiredError);
+		});
+	});
+
+	describe("when the channel's overrides do not matter", () => {
+		const refused = { status: 403, body: { message: "Missing Permissions", code: 50013 } };
+		const start = [chans, me, { body: [] }, posted, refused, { status: 204 }];
+		const roleWith = (permissions: string) => [
+			{ body: { id: GUILD, name: "The Holocron", owner_id: "someone" } },
+			{ body: { user: { id: BOT }, roles: ["r1"] } },
+			{
+				body: [
+					{ id: GUILD, name: "@everyone", color: 0, mentionable: false, permissions: "0" },
+					{ id: "r1", name: "Holonet", color: 0, mentionable: false, permissions },
+				],
+			},
+		];
+		const fail = (rest: Array<Record<string, unknown>>) =>
+			makeProvisioner([...start, ...rest], { guildId: GUILD })
+				.notifs.ensurePinned(pins)
+				.catch((e: Error) => e);
+
+		it("still offers the link when the role lacks Pin Messages, and when the owner's own check cannot be made", async () => {
+			expect(await fail(roleWith("1024"))).toBeInstanceOf(ElevationRequiredError);
+			expect(await fail([])).toBeInstanceOf(ElevationRequiredError);
+		});
+
+		it("never blames an override for an Administrator or the owner", async () => {
+			expect(await fail(roleWith("8"))).toBeInstanceOf(ElevationRequiredError);
+			expect(await fail([{ body: { id: GUILD, name: "The Holocron", owner_id: BOT } }])).toBeInstanceOf(
+				ElevationRequiredError
+			);
+		});
 	});
 
 	it("passes any other pinning failure on as it is, even when the cleanup fails too, and leaves an orphan it did not post", async () => {
@@ -3699,6 +3780,8 @@ describe("DiscordNotifications elevation", () => {
 		const err = (await notifs.ensureServer({ community: true }).catch((e: unknown) => e)) as ElevationRequiredError;
 		const bits = BigInt(new URL(err.elevation.revokeUrl!).searchParams.get("permissions")!);
 		expect(bits & (1n << 51n)).toBe(1n << 51n);
+		// Manage Messages no longer covers pinning, so it is not asked for.
+		expect(bits & (1n << 13n)).toBe(0n);
 		expect(bits & 8n).toBe(0n);
 	});
 
