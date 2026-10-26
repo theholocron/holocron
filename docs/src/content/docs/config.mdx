@@ -39,6 +39,8 @@ export default defineConfig({
 
     // GitHub repository topics.
     topics: ["typescript", "node", "cli"],
+    // GitHub Actions variables (workflows read them as `vars.NAME`).
+    variables: { org: { TURBO_TEAM: "my-team" } },
 
     // GitHub org-level custom properties synced by `holocron repo setup`.
     properties: {

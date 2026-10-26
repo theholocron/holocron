@@ -53,7 +53,7 @@ catalogs:
     "@theholocron/cloudflare-client": ^1.43.1
     "@theholocron/discord-client": ^1.50.0
     "@theholocron/doppler-client": ^1.43.1
-    "@theholocron/github-client": ^1.47.1
+    "@theholocron/github-client": ^1.51.0
     "@theholocron/http-client": ^1.43.1
     "@theholocron/infisical-client": ^1.43.1
     "@theholocron/neon-client": ^1.43.1

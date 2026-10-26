@@ -32,6 +32,17 @@ export default defineConfig({
 		// Revert to "main" (or drop this field) once alpha merges to main for
 		// the v2.0.0 stable cut and stops being the active branch.
 		defaultBranch: "alpha",
+		// Organization Actions variables the reusable workflows read as `vars.NAME`. `holocron repo setup` creates and
+		// updates these; anything else already set in the org is reported and left alone (no `prune`). Values are plain
+		// text, so identifiers only, never a secret. Still to add once their values are settled: CLOUDFLARE_ACCOUNT_ID,
+		// CLOUDFLARE_PAGES_PROJECT, HOLOCRON_AXIOM_DATASET, POSTHOG_PROJECT_TOKEN.
+		variables: {
+			org: {
+				AXIOM_DATASET: "holocron-ci",
+				CI_BRANCH_BASE: "main",
+				TURBO_TEAM: "iamnewton",
+			},
+		},
 	},
 	// Required status checks not backed by a `{ required: true }` task.
 	// `holocron repo setup` appends these to the task-derived contexts from

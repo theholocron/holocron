@@ -554,6 +554,49 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
+		const variables = repo?.variables;
+		if (variables?.repo && Object.keys(variables.repo).length > 0 && source.syncVariables) {
+			steps.push(
+				await runStep("source", "sync variables", dryRun, () =>
+					source.syncVariables!(variables.repo!, { prune: variables.prune === true })
+				)
+			);
+			print(formatStep(steps[steps.length - 1]!));
+		}
+		if (variables?.org && Object.keys(variables.org).length > 0) {
+			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0] ?? "";
+			if (!source.syncOrgVariables) {
+				steps.push({
+					capability: "source",
+					step: "sync org variables",
+					status: "skip",
+					message: "provider does not implement syncOrgVariables",
+				});
+			} else if (!org) {
+				steps.push({
+					capability: "source",
+					step: "sync org variables",
+					status: "fail",
+					message: "no organization: set `org` in the config or run inside a repository",
+				});
+			} else {
+				const declared = Object.fromEntries(
+					Object.entries(variables.org).map(([name, v]) => [
+						name,
+						typeof v === "string"
+							? { value: v, visibility: "all" as const }
+							: { value: v.value, visibility: v.visibility ?? ("all" as const) },
+					])
+				);
+				steps.push(
+					await runStep("source", "sync org variables", dryRun, () =>
+						source.syncOrgVariables!(org, declared, { prune: variables.prune === true })
+					)
+				);
+			}
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
 		if (config.description && source.syncDescription) {
 			steps.push(
 				await runStep("source", "sync description", dryRun, () => source.syncDescription!(config.description!))

@@ -108,6 +108,22 @@ export interface RepoProperties {
 	uses_external_packages?: boolean;
 }
 
+/**
+ * GitHub Actions variables, declared so a workflow that reads `vars.NAME` finds it. Values are plain text, so
+ * never put a secret here; secrets go through the `secrets` capability.
+ */
+export interface RepoVariables {
+	/** Repository-level variables. */
+	repo?: Record<string, string>;
+	/**
+	 * Organization-level variables. A bare string is visible to every repository; `visibility: "private"` limits it
+	 * to private ones. Declare these in one repo only (the one that owns the org's configuration).
+	 */
+	org?: Record<string, string | { value: string; visibility?: "all" | "private" }>;
+	/** Delete variables that exist but are not declared here. Off by default: they are left alone. */
+	prune?: boolean;
+}
+
 export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
 	name?: string;
@@ -144,6 +160,8 @@ export interface RepoConfig {
 	topics?: string[];
 	/** GitHub custom properties synced to the org dashboard. */
 	properties?: RepoProperties;
+	/** GitHub Actions variables reconciled by `holocron repo setup`. */
+	variables?: RepoVariables;
 }
 
 export interface AppConfig {

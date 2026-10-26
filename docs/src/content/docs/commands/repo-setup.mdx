@@ -26,22 +26,23 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 
 ### `source` capability (GitHub plugin)
 
-| Action                                 | Notes                                                                  |
-| -------------------------------------- | ---------------------------------------------------------------------- |
-| Update repo settings                   | Squash-merge only, delete branch on merge, allow auto-merge            |
-| Apply branch protection                | `balanced` = ruleset; `strict` = ruleset + required checks (see below) |
-| Enable vulnerability alerts            | Dependabot alerts                                                      |
-| Enable automated security fixes        | Dependabot auto-PRs                                                    |
-| Enable secret scanning                 | Secret scanning alerts                                                 |
-| Enable private vulnerability reporting | Private advisories                                                     |
-| Enable dependency graph                | Dependency graph + snapshot submission                                 |
-| Enable CodeQL                          | Default setup with extended query suite                                |
-| Configure Dependabot                   | Writes `.github/dependabot.yml`                                        |
-| Sync labels                            | Upserts canonical labels; removes stale ones                           |
-| Sync properties                        | Sets org-level custom properties from `repo.properties`                |
-| Sync topics                            | Sets GitHub topics from `repo.topics`                                  |
-| Sync teams                             | Grants team access from `repo.teams`                                   |
-| Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                    |
+| Action                                 | Notes                                                                   |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| Update repo settings                   | Squash-merge only, delete branch on merge, allow auto-merge             |
+| Apply branch protection                | `balanced` = ruleset; `strict` = ruleset + required checks (see below)  |
+| Enable vulnerability alerts            | Dependabot alerts                                                       |
+| Enable automated security fixes        | Dependabot auto-PRs                                                     |
+| Enable secret scanning                 | Secret scanning alerts                                                  |
+| Enable private vulnerability reporting | Private advisories                                                      |
+| Enable dependency graph                | Dependency graph + snapshot submission                                  |
+| Enable CodeQL                          | Default setup with extended query suite                                 |
+| Configure Dependabot                   | Writes `.github/dependabot.yml`                                         |
+| Sync labels                            | Upserts canonical labels; removes stale ones                            |
+| Sync properties                        | Sets org-level custom properties from `repo.properties`                 |
+| Sync topics                            | Sets GitHub topics from `repo.topics`                                   |
+| Sync variables                         | Creates and updates Actions variables from `repo.variables` (see below) |
+| Sync teams                             | Grants team access from `repo.teams`                                    |
+| Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                     |
 
 **Required checks** (`protection: "strict"`) are derived from the task manifest —
 `"DCO"` (hard-prepended), then every `{ required: true }` task's workflow check
@@ -99,3 +100,31 @@ holocron repo setup --repo my-org/my-project
 - Workflow files written by `setup` are **generated artifacts** — overwritten on each run. Do not edit them manually; edit the workflow templates in `theholocron/holocron` and run `holocron sync github` instead.
 - Skills are gitignored and re-installed on each `setup` run. Running `setup` on a fresh clone restores them.
 - `setup` is idempotent — running it again on the same repo produces the same result and does not create duplicate labels, environments, or teams.
+
+## Actions variables
+
+Workflows read `vars.NAME`, and a missing one fails quietly, so declare them where the rest of the repository's settings live:
+
+```ts
+repo: {
+  variables: {
+    // This repository's variables.
+    repo: { DEPLOY_REGION: "eu-west-1" },
+    // The organization's. A string is visible to every repository.
+    org: {
+      TURBO_TEAM: "iamnewton",
+      INTERNAL_ONLY: { value: "x", visibility: "private" },
+    },
+    // Delete variables that exist but are not declared above. Off unless you say so.
+    prune: false,
+  },
+},
+```
+
+`holocron repo setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: CI_BRANCH_BASE, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it prints the plan and changes nothing.
+
+Values are stored in plain text and shown in the UI. Never declare a secret here; use the `secrets` capability for those. Names follow GitHub's rules: letters, digits and underscores, not starting with a digit or `GITHUB_`.
+
+Declare organization variables in one repository only (the one that owns the organization's configuration), or two repositories will keep overwriting each other. `visibility: "selected"` (a hand-picked list of repositories) is not managed: use `all` or `private`.
+
+Tokens: repository variables use `HOLOCRON_ADMIN_TOKEN` (**Variables: read/write**), organization variables use `HOLOCRON_ORG_TOKEN` (organization **Variables: read/write**). See the [Token Reference](/holocron/tokens/).
