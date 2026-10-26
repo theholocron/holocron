@@ -17,6 +17,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type Monitoring,
 	type NotificationsAccess,
 	type NotificationsLayout,
 	PluginLoader,
@@ -44,6 +45,20 @@ export function webhookAvatarOf(
 	webhook: boolean | { avatar?: string } | undefined
 ): string | undefined {
 	return (typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar;
+}
+
+/** The names a channel's monitoring feed uses: the alert channel (`Discord #uptime`) and its dedicated webhook (`Checkly`). */
+export function monitoringFeed(
+	channel: string,
+	feed: true | { name?: string; webhook?: string },
+	monitoring: Pick<Monitoring, "providerName">
+): { name: string; webhook: string } {
+	const own = typeof feed === "object" ? feed : {};
+	const provider = monitoring.providerName;
+	return {
+		name: own.name ?? `Discord #${channel}`,
+		webhook: own.webhook ?? provider.charAt(0).toUpperCase() + provider.slice(1),
+	};
 }
 
 export function effectiveAccess(
@@ -230,6 +245,20 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (wantsSecrets && !scope && !dryRun) {
 		return refuse("no org to store secrets under — pass --scope or set `org` in holocron.config.ts");
 	}
+	// Channels fed by the monitoring provider hand it a dedicated webhook as an alert channel.
+	let monitoring: Monitoring | undefined;
+	if ((layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.feeds?.monitoring))) {
+		if (!loader.has("monitoring")) {
+			return refuse(
+				whyMissing(
+					loader,
+					"monitoring",
+					"a channel is fed by monitoring, which needs a `monitoring` capability — add a `monitoring` provider"
+				)
+			);
+		}
+		monitoring = loader.get("monitoring") as Monitoring;
+	}
 
 	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
 	const avatars = new Map<string, string>();
@@ -411,6 +440,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 					{
 						notifications,
 						...(secrets ? { secrets } : {}),
+						...(monitoring ? { monitoring } : {}),
 						scope: scope ?? { kind: "repo" },
 						dryRun,
 						print,
@@ -424,6 +454,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 							? { access: effectiveAccess(category.access, channel.access)! }
 							: {}),
 						...(webhook ? { webhook } : {}),
+						...(channel.feeds?.monitoring
+							? {
+									feeds: {
+										monitoring: monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
+									},
+								}
+							: {}),
 					}
 				);
 				report.channels.push(outcome);

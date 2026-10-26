@@ -10,9 +10,24 @@
  * to loop over generically.
  */
 
-import type { Monitoring, MonitoringCheck, MonitoringCheckInput } from "@theholocron/cli";
+import type {
+	Monitoring,
+	MonitoringAlertChannelInput,
+	MonitoringAlertChannelResult,
+	MonitoringCheck,
+	MonitoringCheckInput,
+} from "@theholocron/cli";
 
-import type { ApiCheck, ApiCheckInput, AssertionComparison, AssertionSource, ChecklyClient } from "../rest.js";
+import type {
+	AlertChannel,
+	AlertChannelInput,
+	ApiCheck,
+	ApiCheckInput,
+	AssertionComparison,
+	AssertionSource,
+	ChecklyClient,
+} from "../rest.js";
+import { DISCORD_TEMPLATE } from "../rest.js";
 
 const SOURCE_MAP: Record<string, AssertionSource> = {
 	status_code: "STATUS_CODE",
@@ -87,6 +102,78 @@ export class ChecklyMonitoring implements Monitoring {
 
 		const created = await this.client().checks.create(payload);
 		return { check: { id: created.id, name: created.name }, alreadyExists: false };
+	}
+
+	/**
+	 * A Discord alert channel: a `WEBHOOK` Checkly formats for Discord. Found by name, so one made by hand is adopted and
+	 * kept up to date, not duplicated. Every check on the account is subscribed, since a check made through the API is
+	 * never subscribed on its own; subscriptions already there (including ones to checks outside Holocron) are kept.
+	 * An existing channel keeps its own message template and send settings.
+	 */
+	async ensureAlertChannel(input: MonitoringAlertChannelInput): Promise<MonitoringAlertChannelResult> {
+		const client = this.client();
+		const [channels, checkIds] = await Promise.all([client.alertChannels.list(), this.allCheckIds()]);
+		const existing = channels.find(
+			(c): c is Extract<AlertChannel, { type: "WEBHOOK" }> => c.type === "WEBHOOK" && c.config.name === input.name
+		);
+
+		if (!existing) {
+			if (!input.url) {
+				throw new Error(
+					`cannot create alert channel "${input.name}": its webhook already exists and Discord shows a webhook URL only once, so delete that webhook and run setup again`
+				);
+			}
+			await client.alertChannels.create({
+				type: "WEBHOOK",
+				config: {
+					name: input.name,
+					url: input.url,
+					method: "POST",
+					headers: [],
+					queryParameters: [],
+					template: DISCORD_TEMPLATE,
+					webhookType: "WEBHOOK_DISCORD",
+				},
+				sendFailure: true,
+				sendRecovery: true,
+				sendDegraded: true,
+				autoSubscribe: false,
+				subscriptions: checkIds.map((checkId) => ({ checkId, activated: true })),
+			});
+			return { created: true, updated: [], subscribed: checkIds.length };
+		}
+
+		const subscribed = new Set(existing.subscriptions.flatMap((s) => (s.checkId ? [s.checkId] : [])));
+		const missing = checkIds.filter((id) => !subscribed.has(id));
+		const urlChanged = input.url !== undefined && existing.config.url !== input.url;
+		const updated = [...(urlChanged ? ["url"] : []), ...(missing.length > 0 ? ["subscriptions"] : [])];
+		const total = subscribed.size + missing.length;
+		if (updated.length === 0) return { created: false, updated, subscribed: total };
+
+		const replacement: AlertChannelInput = {
+			type: "WEBHOOK",
+			config: { ...existing.config, ...(urlChanged ? { url: input.url! } : {}) },
+			sendRecovery: existing.sendRecovery,
+			sendFailure: existing.sendFailure,
+			sendDegraded: existing.sendDegraded,
+			sslExpiry: existing.sslExpiry,
+			sslExpiryThreshold: existing.sslExpiryThreshold,
+			autoSubscribe: existing.autoSubscribe,
+			subscriptions: [...existing.subscriptions, ...missing.map((checkId) => ({ checkId, activated: true }))],
+		};
+		await client.alertChannels.update(existing.id, replacement);
+		return { created: false, updated, subscribed: total };
+	}
+
+	/** The id of every check on the account, read a page at a time. */
+	private async allCheckIds(): Promise<string[]> {
+		const PAGE = 100;
+		const ids: string[] = [];
+		for (let page = 1; ; page++) {
+			const batch = await this.client().checks.list({ limit: PAGE, page });
+			ids.push(...batch.map((c) => c.id));
+			if (batch.length < PAGE) return ids;
+		}
 	}
 
 	/** Checkly's `search` param is a case-insensitive partial match — narrow to the exact name ourselves. */

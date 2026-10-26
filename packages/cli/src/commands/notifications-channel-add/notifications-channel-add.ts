@@ -74,7 +74,7 @@ export async function assertSecretsReachable(secrets: Secrets, scope: SecretScop
 /** Why a capability is not loaded: the plugin's own load error when there is one (e.g. a missing token). */
 export function whyMissing(
 	loader: PluginLoader,
-	key: "secrets" | "notifications" | "source",
+	key: "secrets" | "notifications" | "source" | "monitoring",
 	fallback: string
 ): string {
 	const failure = loader.loadFailures().find((f) => f.key === key);
@@ -206,12 +206,32 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	if (webhookCfg && !dryRun && !secrets) {
 		throw new Error("storing a webhook URL needs a `secrets` provider — add one to holocron.config.ts");
 	}
+	const feed = spec.feeds?.monitoring;
+	if (feed) {
+		if (!deps.monitoring?.ensureAlertChannel) {
+			throw new Error(
+				`channel ${spec.name} is fed by monitoring, which needs a \`monitoring\` provider that manages alert channels — add one to holocron.config.ts`
+			);
+		}
+		if (!notifications.ensureWebhook) throw new Error(`\`${notifications.providerName}\` cannot create webhooks`);
+		if (webhookCfg && feed.webhook === webhookName) {
+			throw new Error(
+				`channel ${spec.name}: the monitoring webhook and the channel's own webhook are both named ${webhookName} — rename one`
+			);
+		}
+	}
 
 	if (dryRun) {
 		print(`  ${style.skip(`would ensure channel ${spec.name}${where}`)}`);
 		if (tally) tally.skip += webhookCfg ? 2 : 1;
 		if (webhookCfg)
 			print(`  ${style.skip(`would ensure webhook ${webhookName} and store its URL in ${secretName}`)}`);
+		if (feed) {
+			print(
+				`  ${style.skip(`would ensure webhook ${feed.webhook} and alert channel ${feed.name} (monitoring)`)}`
+			);
+			if (tally) tally.skip += 2;
+		}
 		return { name: spec.name, ...(spec.category ? { category: spec.category } : {}), created: false };
 	}
 
@@ -232,7 +252,10 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		created: channel.created,
 		...(channel.updated?.length ? { updated: channel.updated } : {}),
 	};
-	if (!webhookCfg) return outcome;
+	if (!webhookCfg) {
+		if (feed) await provisionFeed(deps, spec, feed, outcome);
+		return outcome;
+	}
 
 	const hook = await notifications.ensureWebhook!({
 		channel: spec.name,
@@ -286,7 +309,45 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	if (hook.avatarError) {
 		throw new Error(`webhook ${webhookName} is ready but setting its avatar failed (${hook.avatarError})`);
 	}
+	if (feed) await provisionFeed(deps, spec, feed, outcome);
 	return outcome;
+}
+
+/**
+ * A dedicated webhook for the monitoring provider, handed to it as an alert channel. Its URL goes to the provider and
+ * nowhere else: it is shown once and no secret holds it. When the webhook already exists the URL cannot be read back, so
+ * an existing alert channel keeps the one it has and only its subscriptions are brought in line.
+ */
+async function provisionFeed(
+	deps: ProvisionDeps,
+	spec: ChannelSpec,
+	feed: { name: string; webhook: string },
+	outcome: ChannelOutcome
+): Promise<void> {
+	const { notifications, monitoring, print, tally } = deps;
+	const hook = await notifications.ensureWebhook!({
+		channel: spec.name,
+		name: feed.webhook,
+		...(spec.category ? { category: spec.category } : {}),
+	});
+	const result = await monitoring!.ensureAlertChannel!({
+		name: feed.name,
+		format: "discord",
+		...(hook.url ? { url: hook.url } : {}),
+	});
+	const changed = result.created || result.updated.length > 0;
+	const verb = result.created ? "created" : changed ? "updated" : "exists ";
+	const what = result.updated.length > 0 ? `: ${result.updated.join(", ")}` : "";
+	print(
+		`  ${(changed ? style.success : style.skip)(`${verb} alert channel ${feed.name} via webhook ${feed.webhook}${what} (${result.subscribed} checks)`)}`
+	);
+	if (tally) tally[changed ? "ok" : "skip"]++;
+	outcome.alertChannel = {
+		name: feed.name,
+		created: result.created,
+		updated: result.updated,
+		subscribed: result.subscribed,
+	};
 }
 
 export async function runNotificationsChannelAdd(

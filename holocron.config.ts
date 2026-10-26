@@ -117,6 +117,9 @@ export default defineConfig({
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: ["sentry", { org: "theholocron" }],
+		// Monitoring: Checkly. Only the alert channel is managed from here (the uptime channel's feed below); the checks
+		// themselves are declared next to the service they watch, in apps/sentinel/holocron.config.ts.
+		monitoring: ["checkly", { accountId: "fb82859a-4f62-4773-8404-db0f29f9262c" }],
 		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets
 		logs: "axiom",
 		// Notifications: the Holocron Discord server. `holocron notifications setup`
@@ -171,7 +174,14 @@ export default defineConfig({
 									webhook: true,
 								},
 								{ name: "errors", topic: "Errors from Sentinel and Sentry", webhook: true },
-								{ name: "uptime", topic: "Monitoring up/down", webhook: true },
+								// Checkly posts here through a webhook of its own ("Checkly"), whose URL goes straight to Checkly. It
+								// adopts the alert channel named "Discord #uptime" and subscribes every check on the account.
+								{
+									name: "uptime",
+									topic: "Monitoring up/down",
+									webhook: true,
+									feeds: { monitoring: true },
+								},
 							],
 						},
 						{

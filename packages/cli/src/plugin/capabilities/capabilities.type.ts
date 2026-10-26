@@ -954,6 +954,28 @@ export interface MonitoringCheck {
 	name: string;
 }
 
+/** A place the monitoring provider sends its alerts: a webhook that posts into a chat channel. */
+export interface MonitoringAlertChannelInput {
+	/** Also the idempotency key: an existing channel with this name is adopted and brought in line. */
+	name: string;
+	/** The chat service the message is formatted for. */
+	format: "discord";
+	/**
+	 * Where alerts post: a credential, because anyone holding it can post to the channel. Absent when the webhook already
+	 * existed and cannot be read back, in which case an existing alert channel keeps the URL it has and a missing one
+	 * cannot be created.
+	 */
+	url?: string;
+}
+
+export interface MonitoringAlertChannelResult {
+	created: boolean;
+	/** For an existing channel, what was brought in line (`"url"`, `"subscriptions"`). */
+	updated: string[];
+	/** How many checks the channel is subscribed to afterwards. */
+	subscribed: number;
+}
+
 export interface Monitoring extends ProviderIdentity {
 	readonly key: "monitoring";
 	/**
@@ -968,6 +990,12 @@ export interface Monitoring extends ProviderIdentity {
 	whoami?(): Promise<{ ok: boolean }>;
 	/** Idempotent find-or-create-or-update by `input.name`. */
 	ensureCheck(input: MonitoringCheckInput): Promise<{ check: MonitoringCheck; alreadyExists: boolean }>;
+	/**
+	 * Find-or-create-or-update an alert channel by name and subscribe every check the provider has to it. Checks made
+	 * through an API are never subscribed automatically, so a later run subscribes the ones added since.
+	 * Optional — a provider with no alert channels omits it.
+	 */
+	ensureAlertChannel?(input: MonitoringAlertChannelInput): Promise<MonitoringAlertChannelResult>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -1035,6 +1063,17 @@ export interface NotificationsChannelLayout {
 	 * name and the secret's name.
 	 */
 	webhook?: boolean | { name?: string; secret?: string; avatar?: string };
+	/**
+	 * Other services that post into this channel through a webhook of their own. Each gets a dedicated webhook, whose
+	 * URL goes straight to that service and is never stored as a secret, so revoking one service leaves the rest alone.
+	 */
+	feeds?: {
+		/**
+		 * The monitoring provider's alerts. `true` uses the defaults; the object form overrides the alert channel's name
+		 * (default `Discord #<channel>`) and the dedicated webhook's name (default the provider's name, capitalised).
+		 */
+		monitoring?: boolean | { name?: string; webhook?: string };
+	};
 }
 
 /**

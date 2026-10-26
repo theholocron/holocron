@@ -6,7 +6,7 @@ import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
-import type { Notifications, NotificationsLayout } from "../../plugin/index.js";
+import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
 import { runNotificationsSetup } from "./notifications-setup.js";
@@ -67,17 +67,29 @@ function setup(
 		secrets?: boolean;
 		dryRun?: boolean;
 		org?: string;
+		monitoring?: Partial<Monitoring>;
 		loadAvatar?: (source: string) => Promise<string>;
 		pause?: ((message: string) => Promise<void>) | false;
 	} = {}
 ) {
 	const loaded = loadedFrom({
 		name: "demo",
-		providers: { notifications: ["discord"], ...(opts.secrets === false ? {} : { secrets: "github" }) },
+		providers: {
+			notifications: ["discord"],
+			...(opts.secrets === false ? {} : { secrets: "github" }),
+			...(opts.monitoring ? { monitoring: "checkly" } : {}),
+		},
 	});
 	const stored: Array<{ name: string; value: string }> = [];
 	const loader = makeLoader(loaded, {
 		"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
+		...(opts.monitoring
+			? {
+					"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+						monitoring: { key: "monitoring", providerName: "checkly", checks: [], ...opts.monitoring },
+					}),
+				}
+			: {}),
 		"@theholocron/holocron-plugin-github": makePlugin("gh", {
 			secrets: {
 				providerName: "github",
@@ -1595,5 +1607,88 @@ describe("Pin Messages for pinning", () => {
 		expect((await run()).status).toBe("ok");
 		expect(pause).toHaveBeenCalledTimes(1);
 		expect(holdsPermission).toHaveBeenCalledWith("PinMessages");
+	});
+});
+
+describe("monitoring feeds", () => {
+	const FED: NotificationsLayout = {
+		categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
+	};
+	const monitoring = () => ({
+		ensureCheck: vi.fn(),
+		ensureAlertChannel: vi.fn(async () => ({ created: true, updated: [], subscribed: 2 })),
+	});
+
+	it("hands the channel a dedicated webhook named after the provider, as an alert channel named after the channel", async () => {
+		const m = monitoring();
+		const n = fakeNotifications({
+			layout: FED,
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://hook/x" })),
+		});
+		const { run, stored } = setup(n, { monitoring: m });
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureWebhook).toHaveBeenCalledWith(expect.objectContaining({ channel: "uptime", name: "Checkly" }));
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith({
+			name: "Discord #uptime",
+			format: "discord",
+			url: "https://hook/x",
+		});
+		expect(report.channels[0]?.alertChannel).toMatchObject({
+			name: "Discord #uptime",
+			created: true,
+			subscribed: 2,
+		});
+		// The URL went to Checkly only: no secret holds it.
+		expect(stored).toEqual([]);
+	});
+
+	it("takes the names from the layout when it gives them", async () => {
+		const m = monitoring();
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [{ name: "uptime", feeds: { monitoring: { name: "Uptime", webhook: "Probe" } } }],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		await setup(n, { monitoring: m }).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith(expect.objectContaining({ name: "Probe" }));
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "Uptime" }));
+	});
+
+	it("refuses, before changing anything, when no monitoring provider is configured", async () => {
+		const n = fakeNotifications({ layout: FED });
+		const report = await setup(n).run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/fed by monitoring, which needs a `monitoring` capability/);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("previews in a dry run without calling the monitoring provider", async () => {
+		const m = monitoring();
+		const n = fakeNotifications({ layout: FED });
+		const { run, lines } = setup(n, { monitoring: m, dryRun: true });
+		const report = await run();
+		expect(report.status).toBe("dry-run");
+		expect(m.ensureAlertChannel).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain(
+			"would ensure webhook Checkly and alert channel Discord #uptime (monitoring)"
+		);
+	});
+
+	it("reports a failed alert channel and goes on", async () => {
+		const m = {
+			...monitoring(),
+			ensureAlertChannel: vi.fn(async () => {
+				throw new Error("Checkly said no");
+			}),
+		};
+		const n = fakeNotifications({ layout: FED });
+		const report = await setup(n, { monitoring: m }).run();
+		expect(report.status).toBe("fail");
+		expect(report.failures.map((f) => f.message).join(" ")).toContain("Checkly said no");
 	});
 });
