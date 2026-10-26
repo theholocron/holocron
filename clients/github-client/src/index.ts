@@ -15,6 +15,7 @@ import { teams } from "./teams/teams.js";
 import { topics } from "./topics/topics.js";
 import { user } from "./user/user.js";
 import { createGitHubGraphQLApiClient, createGitHubRestClient, type GitHubClientOptions } from "./utils.js";
+import { variables } from "./variables/variables.js";
 import { workflows } from "./workflows/workflows.js";
 
 export {
@@ -73,6 +74,7 @@ export type { CodeScanningSetupResult } from "./security/security.js";
 export type { TeamMember, TeamPermission } from "./teams/teams.js";
 export type { GitHubUser } from "./user/user.js";
 export type { GitHubClientOptions } from "./utils.js";
+export type { GitHubVariable, VariableScope, VariableVisibility } from "./variables/variables.js";
 export {
 	type GitHubInstallationWebhookPayload,
 	type GitHubPullRequestWebhookPayload,
@@ -102,6 +104,7 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		security: security(rest),
 		teams: teams(rest),
 		topics: topics(rest),
+		variables: variables(rest),
 		user: user(rest),
 		workflows: workflows(rest),
 	};
