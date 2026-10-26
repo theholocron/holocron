@@ -15,7 +15,7 @@ For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.),
 → keyring("github.<feature>") (stored via `holocron auth set`)
 ```
 
-No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command is looser: `sync-wiki` also accepts `GH_TOKEN` and `GITHUB_TOKEN` after `HOLOCRON_READ_TOKEN`, so it works in a GitHub Actions job with no extra setup.
+No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command differs: `sync-wiki` reads only the environment (`HOLOCRON_READ_TOKEN`, then `GH_TOKEN`, then `GITHUB_TOKEN`) and does not look in the keyring, so it works in a GitHub Actions job with no extra setup but not from a token stored with `holocron auth set github.read`.
 
 ## Provider token resolution
 
@@ -68,7 +68,7 @@ holocron repo setup --org client-co
 | `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync, organization Actions variables; `sync-roles` — read a team's members                                                                  | Resource owner: org · `administration: write` · `members: read` · organization `variables: read/write`                                                                                                                                                                               |
 | `HOLOCRON_USER_SYNC_TOKEN` | `github.user-sync` | Fine-grained       | `notifications link` and `sync-roles` — read and write the files that link GitHub accounts to members of other services                                    | Resource owner: org · Repository: **only** `.github-private` · `contents: read/write`                                                                                                                                                                                                |
 
-Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, the links files are read and written with `HOLOCRON_ORG_TOKEN`, then `HOLOCRON_ADMIN_TOKEN`; and `sync-roles` reads a team with `HOLOCRON_ORG_TOKEN`, falling back to `HOLOCRON_ADMIN_TOKEN`. The separate tokens exist so that neither has to be that broad.
+Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, the links files are read and written with `HOLOCRON_ORG_TOKEN`, then `HOLOCRON_ADMIN_TOKEN`; and `sync-roles` reads a team with `HOLOCRON_ORG_TOKEN`, falling back to `HOLOCRON_ADMIN_TOKEN`. The separate tokens exist so that neither has to be that broad. A fallback token needs the same access the dedicated one would: **Contents: read/write** on `.github-private` for the links files, and the org or admin token as documented above will not have it unless you add it, so `notifications link` and `sync-roles` fail with a 403 or 404 until you either set `HOLOCRON_USER_SYNC_TOKEN` or grant that permission.
 
 ### Why a separate org token?
 

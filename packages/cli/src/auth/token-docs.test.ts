@@ -29,6 +29,12 @@ describe("the token reference", () => {
 		expect(authFiles.length).toBeGreaterThan(10);
 	});
 
+	// The Discord and GitHub plugins have several credentials with their own tables; every other plugin has one row in
+	// the provider table, and its names must be in that row, not merely somewhere on the page.
+	const ownTables = new Set(["holocron-plugin-discord", "holocron-plugin-github"]);
+	const rowFor = (plugin: string): string | undefined =>
+		page.split("\n").find((line) => line.startsWith(`| \`${plugin.replace("holocron-plugin-", "")}\``));
+
 	// A resolver nobody documented is a token nobody knows to set, or knows is read from the environment.
 	for (const file of authFiles) {
 		const plugin = file.split("/").at(-3)!;
@@ -39,8 +45,15 @@ describe("the token reference", () => {
 				...declared(file, "keyringService"),
 				...declared(file, "keyringKey"),
 			];
-			const missing = names.filter((name) => !page.includes(`\`${name}\``));
-			expect(missing, `not in docs/src/content/docs/tokens.mdx: ${missing.join(", ")}`).toEqual([]);
+			const row = ownTables.has(plugin) ? page : rowFor(plugin);
+			// A plugin with nothing to resolve (1Password uses the `op` CLI's own auth) has no row to check.
+			const hasRow = names.length === 0 || row !== undefined;
+			expect(hasRow, `no provider-table row for ${plugin}`).toBe(true);
+			const missing = names.filter((name) => !row?.includes(`\`${name}\``));
+			expect(
+				missing,
+				`not in ${plugin}'s row of docs/src/content/docs/tokens.mdx: ${missing.join(", ")}`
+			).toEqual([]);
 		});
 	}
 

@@ -504,8 +504,8 @@ runs the same invocation via `gh workflow run sentinel.secretsSync.yml`
 registration, again only when a secret rotates" below). Uses a dedicated
 `HOLOCRON_SECRETS_TOKEN` repo secret in place of `gh auth token`, since CI
 has no equivalent of a human's already-authenticated session — see
-`docs/tokens.md`'s "CI-only exception: org-scoped secret writes" (repo
-root) for why a new, narrowly-scoped token rather than widening an existing
+the token reference's "Organization secrets" section
+(`docs/src/content/docs/tokens.mdx`) for why a new, narrowly-scoped token rather than widening an existing
 one.
 
 - **`--target production` only, deliberately still one target.**
