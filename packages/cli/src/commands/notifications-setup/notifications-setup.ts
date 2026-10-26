@@ -27,6 +27,7 @@ import { describeProviderError, logReason } from "../../ui/provider-error/index.
 import { style } from "../../ui/style/index.js";
 import {
 	assertSecretsReachable,
+	describeAvatarSource,
 	layoutSecretProblem,
 	loadAvatar,
 	notificationProviders,
@@ -45,6 +46,11 @@ export function webhookAvatarOf(
 	webhook: boolean | { avatar?: string } | undefined
 ): string | undefined {
 	return (typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar;
+}
+
+/** The picture a feed's webhook should have: its own, else the layout's, else none. */
+export function feedAvatarOf(layout: NotificationsLayout, feed: true | { avatar?: string }): string | undefined {
+	return (typeof feed === "object" ? feed.avatar : undefined) ?? layout.webhookAvatar;
 }
 
 /** The names a channel's monitoring feed uses: the alert channel (`Discord #uptime`) and its dedicated webhook (`Checkly`). */
@@ -300,14 +306,14 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		const feed = channel.feeds?.monitoring;
 		const sources = [
 			channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined,
-			typeof feed === "object" ? feed.avatar : undefined,
+			feed ? feedAvatarOf(layout, feed) : undefined,
 		];
 		for (const source of sources) {
 			if (source === undefined || avatars.has(source)) continue;
 			try {
 				avatars.set(source, await read(source));
 			} catch (err) {
-				return refuse(`webhook avatar \`${source}\`: ${errorMessage(err)}`);
+				return refuse(`webhook avatar \`${describeAvatarSource(source)}\`: ${errorMessage(err)}`);
 			}
 		}
 	}
@@ -498,9 +504,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 									feeds: {
 										monitoring: {
 											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
-											...(typeof channel.feeds.monitoring === "object" &&
-											channel.feeds.monitoring.avatar
-												? { avatar: avatars.get(channel.feeds.monitoring.avatar)! }
+											...(feedAvatarOf(layout, channel.feeds.monitoring)
+												? {
+														avatar: avatars.get(
+															feedAvatarOf(layout, channel.feeds.monitoring)!
+														)!,
+													}
 												: {}),
 										},
 									},

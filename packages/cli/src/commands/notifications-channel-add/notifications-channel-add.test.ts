@@ -787,7 +787,8 @@ describe("provisionChannel — monitoring feed", () => {
 		const tally = { ok: 0, skip: 0 };
 		await provisionChannel({ ...deps(made, fakeMonitoring(), lines), tally }, { name: "uptime", feeds: feed });
 		expect(lines.join("\n")).toContain("created webhook Checkly");
-		expect(tally.ok).toBeGreaterThanOrEqual(2);
+		// The channel, the webhook and the alert channel were all made.
+		expect(tally).toEqual({ ok: 3, skip: 0 });
 
 		const again: string[] = [];
 		const second = { ok: 0, skip: 0 };
@@ -805,7 +806,26 @@ describe("provisionChannel — monitoring feed", () => {
 			{ name: "uptime", feeds: feed }
 		);
 		expect(again.join("\n")).toContain("found   webhook Checkly");
-		expect(second.skip).toBeGreaterThanOrEqual(2);
+		// Channel (the fake always reports it made), then the webhook and the alert channel found unchanged.
+		expect(second).toEqual({ ok: 1, skip: 2 });
+	});
+
+	it("counts a webhook made and given its picture as two successes", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://h", updated: ["avatar"] })),
+		});
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel(
+			{ ...deps(n, fakeMonitoring(), []), tally },
+			{
+				name: "uptime",
+				feeds: {
+					monitoring: { name: "Discord #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" },
+				},
+			}
+		);
+		// The channel, the webhook, its picture and the alert channel.
+		expect(tally).toEqual({ ok: 4, skip: 0 });
 	});
 
 	it("gives the feed's webhook its picture, and says so", async () => {

@@ -336,7 +336,12 @@ async function provisionFeed(
 	print(
 		`  ${(hookChanged ? style.success : style.skip)(`${hook.created ? "created" : "found  "} webhook ${feed.webhook}${avatarSet ? " (avatar set)" : ""}`)}`
 	);
-	if (tally) tally[hookChanged ? "ok" : "skip"]++;
+	// Counted like a channel's own webhook: making it and setting its picture are one success each.
+	if (tally) {
+		const done = Number(hook.created) + Number(avatarSet);
+		if (done > 0) tally.ok += done;
+		else tally.skip++;
+	}
 	let result;
 	try {
 		result = await monitoring!.ensureAlertChannel!({

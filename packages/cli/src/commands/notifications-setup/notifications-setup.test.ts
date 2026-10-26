@@ -1671,6 +1671,61 @@ describe("monitoring feeds", () => {
 		expect(bad.ensureChannel).not.toHaveBeenCalled();
 	});
 
+	it("falls back to the layout's webhook picture for a feed, and an explicit one wins", async () => {
+		const layout: NotificationsLayout = {
+			webhookAvatar: "media/all.png",
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{ name: "uptime", feeds: { monitoring: true } },
+						{
+							name: "errors",
+							feeds: { monitoring: { name: "Errors", webhook: "Probe", avatar: "media/own.png" } },
+						},
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const m = { ...monitoring(), providerName: "checkly" };
+		await setup(n, {
+			monitoring: m,
+			loadAvatar: async (source) => `data:image/png;base64,${source}`,
+		}).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "uptime", avatar: "data:image/png;base64,media/all.png" })
+		);
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "errors", avatar: "data:image/png;base64,media/own.png" })
+		);
+	});
+
+	it("does not print the query or credentials of an avatar URL it could not read", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{
+							name: "uptime",
+							feeds: { monitoring: { avatar: "https://u:p@cdn.example.com/a.png?sig=SECRET" } },
+						},
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const report = await setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async () => {
+				throw new Error("fetching it answered 403");
+			},
+		}).run();
+		expect(report.message).toBe("webhook avatar `https://cdn.example.com/a.png`: fetching it answered 403");
+		expect(report.message).not.toContain("SECRET");
+	});
+
 	it("takes the names from the layout when it gives them", async () => {
 		const m = monitoring();
 		const layout: NotificationsLayout = {
