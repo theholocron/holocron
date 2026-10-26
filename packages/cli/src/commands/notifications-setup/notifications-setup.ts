@@ -491,7 +491,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			})
 		);
 		await apply("welcome screen", !!layout.welcome, () => notifications.ensureWelcome!(layout.welcome!));
-		// Pinning needs Manage Messages, which the bot may not hold yet: a person at a terminal is walked through it.
+		// Pinning needs Pin Messages, which the bot may not hold yet: a person at a terminal is walked through it.
 		await apply("pinned messages", (layout.pinned?.length ?? 0) > 0, () =>
 			withElevation(() => notifications.ensurePinned!(layout.pinned!), {
 				label: "pinned messages",

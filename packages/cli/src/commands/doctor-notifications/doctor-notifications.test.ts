@@ -719,14 +719,14 @@ describe("runDoctorNotifications — role colour, hoist and permissions", () => 
 	});
 
 	it("names each thing that is different", async () => {
-		const report = await run(found({ permissions: ["ViewChannel", "ManageMessages"] }));
+		const report = await run(found({ permissions: ["ViewChannel", "PinMessages"] }));
 		const check = byId(report, "role-appearance");
 		expect(check.status).toBe("fail");
 		expect(check.problems).toEqual([
 			"gatekeepers: colour is default but the layout says #F0B232",
 			"gatekeepers: hoist is false but the layout says true",
 			"gatekeepers: missing permissions SendMessages",
-			"gatekeepers: has extra permissions ManageMessages",
+			"gatekeepers: has extra permissions PinMessages",
 		]);
 	});
 

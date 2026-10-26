@@ -530,9 +530,9 @@ export class DiscordNotifications implements Notifications {
 		};
 	}
 
-	/** What the bot keeps: the usual set, and Manage Messages when the layout pins messages. */
+	/** What the bot keeps: the usual set, and Pin Messages when the layout pins messages. */
 	private needs(): PermissionName[] {
-		return this.opts.layout?.pinned?.length ? [...BOT_NEEDS, "ManageMessages"] : BOT_NEEDS;
+		return this.opts.layout?.pinned?.length ? [...BOT_NEEDS, "PinMessages"] : BOT_NEEDS;
 	}
 
 	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */
@@ -810,22 +810,59 @@ export class DiscordNotifications implements Notifications {
 		return { updated };
 	}
 
-	async holdsPermission(permission: string): Promise<boolean> {
+	/** What the bot's roles give it server-wide (the owner holds every permission), before any channel overwrite. */
+	private async serverPermissions(): Promise<{ owner: boolean; bits: bigint; held: Set<string>; me: string }> {
 		const bot = this.bot();
 		const me = await this.botId();
-		if ((await this.serverOwner()).isBot) return true;
+		if ((await this.serverOwner()).isBot) return { owner: true, bits: 0n, held: new Set(), me };
 		const [member, roles] = await Promise.all([
 			bot.guilds.member(this.guild(), me),
 			bot.guilds.roles(this.guild()),
 		]);
 		const held = new Set([this.guild(), ...member.roles]);
 		const bits = roles.filter((r) => held.has(r.id)).reduce((all, r) => all | BigInt(r.permissions ?? "0"), 0n);
+		return { owner: false, bits, held, me };
+	}
+
+	async holdsPermission(permission: string): Promise<boolean> {
+		const { owner, bits } = await this.serverPermissions();
+		if (owner) return true;
 		const has = (name: PermissionName): boolean => {
 			const bit = BigInt(permissions([name]));
 			return (bits & bit) === bit;
 		};
 		// Administrator is every permission at once.
 		return has("Administrator") || has(permission as PermissionName);
+	}
+
+	/**
+	 * Whether a channel's own overwrites take a permission away from a bot whose roles grant it, in the order Discord
+	 * applies them: @everyone, then the bot's roles, then the bot itself. Read fresh, since a person may have just edited them.
+	 */
+	private async channelDenies(permission: PermissionName, channelId: string): Promise<boolean> {
+		const { owner, bits, held, me } = await this.serverPermissions();
+		const bit = BigInt(permissions([permission]));
+		if (owner || (bits & BigInt(permissions(["Administrator"]))) !== 0n || (bits & bit) !== bit) return false;
+		const channel = (await this.bot().guilds.channels(this.guild())).find((c) => c.id === channelId);
+		const list = channel?.permission_overwrites ?? [];
+		const apply = (now: bigint, found: readonly DiscordPermissionOverwrite[]): bigint => {
+			const deny = found.reduce((all, o) => all | BigInt(o.deny), 0n);
+			const allow = found.reduce((all, o) => all | BigInt(o.allow), 0n);
+			return (now & ~deny) | allow;
+		};
+		let now = apply(
+			bits,
+			list.filter((o) => o.id === this.guild())
+		);
+		now = apply(
+			now,
+			list.filter((o) => o.type === 0 && o.id !== this.guild() && held.has(o.id))
+		);
+		now = apply(
+			now,
+			list.filter((o) => o.type === 1 && o.id === me)
+		);
+		return (now & bit) !== bit;
 	}
 
 	/** The messages this bot posted in a channel, pinned or not, among the channel's last hundred. */
@@ -946,12 +983,23 @@ export class DiscordNotifications implements Notifications {
 	/** A 403 on pinning becomes the missing permission and a link that grants it, which `setup` can walk a person through. */
 	private async pinHint(err: unknown, channel: string): Promise<unknown> {
 		if (!DiscordNotifications.missingPermissions(err)) return err;
-		const link = await this.inviteOrNothing([...BOT_NEEDS, "ManageMessages"]);
+		// The role may hold it while this channel takes it away: a link cannot fix that, so say where to look.
+		const denied = await this.channelDenies(
+			"PinMessages",
+			DiscordNotifications.pickChannelId(await this.channelList(), channel, "pinned messages")
+		).catch(() => false);
+		if (denied) {
+			return new Error(
+				`the bot could not pin the message in #${channel}: its role has Pin Messages, but the channel's permissions take it away. Remove that override under Edit Channel → Permissions, then run setup again`,
+				{ cause: err }
+			);
+		}
+		const link = await this.inviteOrNothing([...BOT_NEEDS, "PinMessages"]);
 		return new ElevationRequiredError(
-			`the bot could not pin the message in #${channel}: its role lacks Manage Messages. Re-invite it with that permission${link ? ` (this updates its role in place): ${link}` : ""}`,
+			`the bot could not pin the message in #${channel}: its role lacks Pin Messages. Re-invite it with that permission${link ? ` (this updates its role in place): ${link}` : ""}`,
 			{
-				permission: "ManageMessages",
-				label: "Manage Messages",
+				permission: "PinMessages",
+				label: "Pin Messages",
 				keep: true,
 				...(link ? { grantUrl: link } : {}),
 			},

@@ -1534,15 +1534,15 @@ describe("a permission given for one edit", () => {
 	});
 });
 
-describe("Manage Messages for pinning", () => {
+describe("Pin Messages for pinning", () => {
 	const LAYOUT_P: NotificationsLayout = {
 		categories: [{ name: "A", channels: [{ name: "welcome" }] }],
 		pinned: [{ channel: "welcome", content: "Hello" }],
 	};
 	const refused = () =>
 		new ElevationRequiredError("could not pin", {
-			permission: "ManageMessages",
-			label: "Manage Messages",
+			permission: "PinMessages",
+			label: "Pin Messages",
 			keep: true,
 			grantUrl: "https://grant",
 		});
@@ -1561,7 +1561,7 @@ describe("Manage Messages for pinning", () => {
 		expect(report.status).toBe("ok");
 		expect(pause).toHaveBeenCalledTimes(1);
 		const out = lines.join("\n");
-		expect(out).toContain("pinned messages needs Manage Messages");
+		expect(out).toContain("pinned messages needs Pin Messages");
 		expect(out).not.toContain("for this one edit");
 		expect(out).not.toContain("take it away");
 		expect(out).toContain("updated pinned messages: #welcome");
@@ -1573,10 +1573,27 @@ describe("Manage Messages for pinning", () => {
 		});
 		const nobody = await setup(fakeNotifications({ layout: LAYOUT_P, ensurePinned }), { pause: false }).run();
 		expect(nobody.failures[0]?.message).toBe("could not pin");
-		const holds = await setup(
-			fakeNotifications({ layout: LAYOUT_P, ensurePinned, holdsPermission: vi.fn(async () => true) }),
-			{ pause: async () => {} }
-		).run();
+		// Only Pin Messages counts: holding the old Manage Messages must not stop the walkthrough.
+		const holdsPermission = vi.fn(async (permission: string) => permission === "PinMessages");
+		const holds = await setup(fakeNotifications({ layout: LAYOUT_P, ensurePinned, holdsPermission }), {
+			pause: async () => {},
+		}).run();
 		expect(holds.failures[0]?.message).toBe("could not pin");
+		expect(holdsPermission).toHaveBeenCalledWith("PinMessages");
+		expect(holdsPermission).not.toHaveBeenCalledWith("ManageMessages");
+	});
+
+	it("walks through it when only the old Manage Messages is held", async () => {
+		let calls = 0;
+		const ensurePinned = vi.fn(async () => {
+			if (calls++ === 0) throw refused();
+			return { updated: ["#welcome"] };
+		});
+		const pause = vi.fn(async () => {});
+		const holdsPermission = vi.fn(async (permission: string) => permission === "ManageMessages");
+		const { run } = setup(fakeNotifications({ layout: LAYOUT_P, ensurePinned, holdsPermission }), { pause });
+		expect((await run()).status).toBe("ok");
+		expect(pause).toHaveBeenCalledTimes(1);
+		expect(holdsPermission).toHaveBeenCalledWith("PinMessages");
 	});
 });
