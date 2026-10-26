@@ -3,7 +3,7 @@ title: Privacy Policy
 description: What data Holonet, The Holocron's Discord bot, handles, and what it doesn't.
 ---
 
-_Effective 22 October 2026._
+_Effective 25 October 2026._
 
 This policy covers **Holonet**, the Discord bot operated by The Holocron
 maintainers. It is written to say what actually happens, which is very little.
@@ -27,18 +27,24 @@ and roles, and receives nothing from a server it has not been added to.
   changes the server's channels, webhooks and roles using a bot token. The token
   is kept as a secret by the maintainers and is never published.
 
-## Role sync (not yet released)
+## Role sync
 
-If role sync is enabled for a server, Holonet will process, for members who
-choose to connect their accounts:
+Members can choose to connect their Discord and GitHub accounts, so that a
+server role follows membership of a GitHub team. Connecting is optional and
+starts when the member signs in with Discord (`holocron notifications link`).
+For a member who does, Holonet processes:
 
 - the member's **Discord user id** and the **verified GitHub account** linked to
   it (obtained through Discord's OAuth `identify` and `connections` scopes), and
 - a stored pairing of that Discord id and GitHub id, so a role can be added or
-  removed when GitHub team membership changes.
+  removed when GitHub team membership changes. The pairing is kept in a file in
+  a private repository of The Holocron's GitHub organization, readable by its
+  maintainers.
 
-OAuth access tokens are not stored. Nothing else about a member is kept. A
-member can revoke access at any time from Discord's **Authorized Apps**
+The sign-in runs on a maintainer's machine or on the hosted service at
+`sentinel.theholocron.dev`. OAuth access tokens are used once to read the two
+ids and are then revoked; they are not stored. Nothing else about a member is
+kept. A member can revoke access at any time from Discord's **Authorized Apps**
 settings, and can ask for their pairing to be deleted (see Contact).
 
 ## Retention
@@ -63,11 +69,13 @@ If this policy changes, the effective date above changes with it.
 
 ## Contact
 
+For privacy requests, including deletion of a stored pairing, email
+[privacy@theholocron.dev](mailto:privacy@theholocron.dev). Say which Discord
+account and GitHub account the pairing is for; we may ask you to show you
+control them before we delete it, and we confirm the deletion by reply. Revoking
+Holonet in Discord's **Authorized Apps** settings is immediate and needs no
+contact at all.
+
 For general questions, open an issue at
 [github.com/theholocron/holocron](https://github.com/theholocron/holocron/issues).
-
-To request deletion of a stored pairing, open an issue titled "Privacy request"
-**without** your Discord details. We look the pairing up from the GitHub account
-that opened the issue, so nothing identifying has to be posted publicly, and we
-confirm the deletion on the issue. Revoking Holonet in Discord's **Authorized
-Apps** settings is immediate and needs no contact at all.
+Don't include personal details in a public issue.
