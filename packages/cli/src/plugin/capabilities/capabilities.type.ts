@@ -188,6 +188,24 @@ export interface Source extends ProviderIdentity {
 	syncTopics?(topics: string[]): Promise<string>;
 
 	/**
+	 * Bring the repository's Actions variables in line with the declared ones: create what is missing, update what
+	 * differs, leave the rest. With `prune`, also delete the ones the declaration does not name. With `dryRun`, read the current
+	 * state and report what would change without writing. Returns a summary.
+	 * Optional — providers without Actions variables omit this.
+	 */
+	syncVariables?(variables: Record<string, string>, opts?: { prune?: boolean; dryRun?: boolean }): Promise<string>;
+
+	/**
+	 * The same for the organization's variables, each with the repositories that can read it (`all` or `private`).
+	 * Optional — providers without organization variables omit this.
+	 */
+	syncOrgVariables?(
+		org: string,
+		variables: Record<string, { value: string; visibility: "all" | "private" }>,
+		opts?: { prune?: boolean; dryRun?: boolean }
+	): Promise<string>;
+
+	/**
 	 * Sync GitHub team repository access. String shorthand defaults to `push`.
 	 * Optional — providers without a team concept omit this.
 	 */

@@ -3128,6 +3128,187 @@ describe("runSetup", () => {
 		expect(step?.message).toBe("3 topics set");
 	});
 
+	describe("Actions variables", () => {
+		const sourceWith = (extra: Record<string, unknown>) => ({
+			enableVulnerabilityAlerts: async () => {},
+			enableAutomatedSecurityFixes: async () => {},
+			enableSecretScanning: async () => {},
+			enablePrivateVulnerabilityReporting: async () => {},
+			writeRepoFile: async () => {},
+			...extra,
+		});
+		const run = (
+			repo: Record<string, unknown>,
+			source: Record<string, unknown>,
+			opts: { org?: string; dryRun?: boolean } = {}
+		) => {
+			const loaded = loadedFrom({
+				name: "demo",
+				...(opts.org ? { org: opts.org } : {}),
+				repo: { name: "theholocron/demo", ...repo },
+				providers: { vault: "1password", source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", { source: sourceWith(source) }),
+			});
+			return runSetup({
+				loaded,
+				context: { repoRoot: "/tmp/test", ...(opts.dryRun ? { dryRun: true } : {}) },
+				loader,
+				print: () => {},
+			});
+		};
+
+		it("syncs the repository's variables, pruning only when asked", async () => {
+			const seen: Array<[Record<string, string>, unknown]> = [];
+			const syncVariables = async (v: Record<string, string>, o?: unknown) => {
+				seen.push([v, o]);
+				return "1 created, 0 updated, 0 unchanged";
+			};
+			const plain = await run({ variables: { repo: { A: "1" } } }, { syncVariables });
+			expect(plain.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "ok",
+				message: "1 created, 0 updated, 0 unchanged",
+			});
+			await run({ variables: { repo: { A: "1" }, prune: true } }, { syncVariables });
+			expect(seen).toEqual([
+				[{ A: "1" }, { prune: false, dryRun: false }],
+				[{ A: "1" }, { prune: true, dryRun: false }],
+			]);
+		});
+
+		it("normalises the organization's variables and takes the org from the config", async () => {
+			let got: unknown;
+			const report = await run(
+				{
+					variables: {
+						org: {
+							TURBO_TEAM: "iamnewton",
+							HIDDEN: { value: "x", visibility: "private" },
+							DEFAULT: { value: "y" },
+						},
+					},
+				},
+				{
+					syncOrgVariables: async (org: string, vars: unknown, o: unknown) => {
+						got = [org, vars, o];
+						return "3 created, 0 updated, 0 unchanged";
+					},
+				},
+				{ org: "acme" }
+			);
+			expect(got).toEqual([
+				"acme",
+				{
+					TURBO_TEAM: { value: "iamnewton", visibility: "all" },
+					HIDDEN: { value: "x", visibility: "private" },
+					DEFAULT: { value: "y", visibility: "all" },
+				},
+				{ prune: false, dryRun: false },
+			]);
+			expect(report.steps.find((s) => s.step === "sync org variables")?.status).toBe("ok");
+		});
+
+		it("falls back to the repository's owner for the organization", async () => {
+			let org: string | undefined;
+			await run(
+				{ variables: { org: { A: "1" } } },
+				{
+					syncOrgVariables: async (o: string) => {
+						org = o;
+						return "ok";
+					},
+				}
+			);
+			expect(org).toBe("theholocron");
+		});
+
+		it("does nothing without variables, and says so when the provider cannot", async () => {
+			let called = false;
+			const none = await run({}, { syncVariables: async () => ((called = true), "x") });
+			expect(called).toBe(false);
+			expect(none.steps.some((s) => s.step.includes("variables"))).toBe(false);
+
+			const cannot = await run({ variables: { org: { A: "1" } } }, {});
+			expect(cannot.steps.find((s) => s.step === "sync org variables")).toMatchObject({
+				status: "skip",
+				message: "provider does not implement syncOrgVariables",
+			});
+		});
+
+		it("reads and reports the plan in a dry run, and writes nothing", async () => {
+			const seen: unknown[] = [];
+			const report = await run(
+				{ variables: { repo: { A: "1" } } },
+				{
+					syncVariables: async (_v: unknown, o: unknown) => {
+						seen.push(o);
+						return "would create 1, would update 0, 0 unchanged";
+					},
+				},
+				{ dryRun: true }
+			);
+			expect(seen).toEqual([{ prune: false, dryRun: true }]);
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "dry-run",
+				message: "would create 1, would update 0, 0 unchanged",
+			});
+		});
+
+		it("reports a failure to read in a dry run as a failure", async () => {
+			const report = await run(
+				{ variables: { repo: { A: "1" } } },
+				{
+					syncVariables: async () => {
+						throw new Error("boom");
+					},
+				},
+				{ dryRun: true }
+			);
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "fail",
+				message: "boom",
+			});
+		});
+
+		it("still reconciles a scope declared empty when pruning, and ignores it otherwise", async () => {
+			const seen: Array<Record<string, string>> = [];
+			const syncVariables = async (v: Record<string, string>) => (seen.push(v), "ok");
+			await run({ variables: { repo: {} } }, { syncVariables });
+			expect(seen).toEqual([]);
+			await run({ variables: { repo: {}, prune: true } }, { syncVariables });
+			expect(seen).toEqual([{}]);
+		});
+
+		it("says when the provider cannot sync repository variables", async () => {
+			const report = await run({ variables: { repo: { A: "1" } } }, {});
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "skip",
+				message: "provider does not implement syncVariables",
+			});
+		});
+
+		it("fails the org step when there is no organization to name", async () => {
+			const loaded = loadedFrom({
+				name: "demo",
+				repo: { variables: { org: { A: "1" } } },
+				providers: { vault: "1password", source: "github" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", {
+					source: sourceWith({ syncOrgVariables: async () => "x" }),
+				}),
+			});
+			const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+			expect(report.steps.find((s) => s.step === "sync org variables")).toMatchObject({
+				status: "fail",
+				message: expect.stringMatching(/no organization/),
+			});
+		});
+	});
+
 	it("skips syncTopics when topics list is empty", async () => {
 		let called = false;
 		const loaded = loadedFrom({

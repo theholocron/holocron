@@ -194,6 +194,7 @@ Additional `repo` fields recognised by `holocron repo setup`:
 | `repo.topics`     | `string[]`                              | GitHub topics set on the repository.                                                                                                                                            |
 | `repo.protection` | `"balanced" \| "strict" \| "none"`      | Branch-protection preset applied by `holocron repo setup`. For `"strict"`, the required status checks are derived from the task manifest — see below.                           |
 | `repo.properties` | `RepoProperties`                        | Org-level custom property values synced to the GitHub dashboard.                                                                                                                |
+| `repo.variables`  | `{ repo?, org?, prune? }`               | GitHub Actions variables created and updated by `holocron repo setup`. Undeclared ones are left alone unless `prune` is on.                                                     |
 
 ### Custom properties synced to GitHub
 

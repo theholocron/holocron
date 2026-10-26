@@ -206,6 +206,32 @@ describe("GitHubSource — REST methods", () => {
 		expect(typeof result).toBe("string");
 	});
 
+	it("syncVariables → reconciles the repository's variables", async () => {
+		const { source, calls } = makeSource([
+			{ status: 200, body: { total_count: 0, variables: [] } },
+			{ status: 201 },
+		]);
+		expect(await source.syncVariables({ TURBO_TEAM: "iamnewton" })).toBe("1 created, 0 updated, 0 unchanged");
+		expect(calls[1]?.url).toBe(`https://api.github.com/repos/${REPO}/actions/variables`);
+	});
+
+	it("syncOrgVariables → uses the org client, and says so when there is none", async () => {
+		const { fetch, calls } = stubFetch([{ status: 200, body: { total_count: 0, variables: [] } }, { status: 201 }]);
+		const orgClient = createGitHubClient({ token: "org-pat", fetch });
+		const withOrg = new GitHubSource(createGitHubClient({ token: "pat", fetch: stubFetch([]).fetch }), {
+			repo: REPO,
+			repoRoot: process.cwd(),
+			orgClient,
+		});
+		await withOrg.syncOrgVariables("theholocron", { A: { value: "1", visibility: "all" } });
+		expect(calls[1]?.url).toBe("https://api.github.com/orgs/theholocron/actions/variables");
+
+		const { source } = makeSource([]);
+		await expect(source.syncOrgVariables("theholocron", { A: { value: "1", visibility: "all" } })).rejects.toThrow(
+			/HOLOCRON_ORG_TOKEN/
+		);
+	});
+
 	it("syncLabels → syncs canonical labels against the repo", async () => {
 		// GET labels, then POST a new one
 		const { source, calls } = makeSource([

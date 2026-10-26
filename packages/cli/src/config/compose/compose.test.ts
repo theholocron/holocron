@@ -101,6 +101,21 @@ describe("compose()", () => {
 		expect(compose(strict, balanced).repo.protection).toBe("balanced");
 	});
 
+	it("merges repo.variables across capabilities instead of replacing them", () => {
+		const a: Capability = { id: "a", repo: { variables: { repo: { A: "1", SAME: "a" }, org: { X: "x" } } } };
+		const b: Capability = { id: "b", repo: { variables: { repo: { B: "2", SAME: "b" }, prune: true } } };
+		expect(compose(a, b).repo.variables).toEqual({
+			repo: { A: "1", B: "2", SAME: "b" },
+			org: { X: "x" },
+			prune: true,
+		});
+		expect(compose(a).repo.variables).toEqual({ repo: { A: "1", SAME: "a" }, org: { X: "x" } });
+		// A fragment with only a flag adds no empty scope.
+		const c: Capability = { id: "c", repo: { variables: { prune: true } } };
+		expect(compose(c).repo.variables).toEqual({ prune: true });
+		expect(compose(a, c).repo.variables).toEqual({ repo: { A: "1", SAME: "a" }, org: { X: "x" }, prune: true });
+	});
+
 	it("merges repo.properties with Object.assign semantics", () => {
 		const a: Capability = { id: "a", repo: { properties: { lifecycle: "active", open_source: true } } };
 		const b: Capability = { id: "b", repo: { properties: { lifecycle: "deprecated" } } };

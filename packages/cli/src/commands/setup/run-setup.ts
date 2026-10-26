@@ -554,6 +554,67 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			print(formatStep(steps[steps.length - 1]!));
 		}
 
+		const variables = repo?.variables;
+		const prune = variables?.prune === true;
+		// A scope that is declared empty still matters with `prune`: it deletes everything in it.
+		const declares = (scope: object | undefined): boolean =>
+			scope !== undefined && (Object.keys(scope).length > 0 || prune);
+		// A dry run still reads what exists, so the step can say what would change; it writes nothing.
+		const variableStep = async (step: string, body: (dryRun: boolean) => Promise<string>) => {
+			const result = await runStep("source", step, false, () => body(dryRun));
+			return dryRun && result.status === "ok" ? { ...result, status: "dry-run" as const } : result;
+		};
+		if (declares(variables?.repo)) {
+			if (!source.syncVariables) {
+				steps.push({
+					capability: "source",
+					step: "sync variables",
+					status: "skip",
+					message: "provider does not implement syncVariables",
+				});
+			} else {
+				steps.push(
+					await variableStep("sync variables", (dry) =>
+						source.syncVariables!(variables!.repo!, { prune, dryRun: dry })
+					)
+				);
+			}
+			print(formatStep(steps[steps.length - 1]!));
+		}
+		if (declares(variables?.org)) {
+			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0]!;
+			if (!source.syncOrgVariables) {
+				steps.push({
+					capability: "source",
+					step: "sync org variables",
+					status: "skip",
+					message: "provider does not implement syncOrgVariables",
+				});
+			} else if (!org) {
+				steps.push({
+					capability: "source",
+					step: "sync org variables",
+					status: "fail",
+					message: "no organization: set `org` in the config or run inside a repository",
+				});
+			} else {
+				const declared = Object.fromEntries(
+					Object.entries(variables!.org!).map(([name, v]) => [
+						name,
+						typeof v === "string"
+							? { value: v, visibility: "all" as const }
+							: { value: v.value, visibility: v.visibility ?? ("all" as const) },
+					])
+				);
+				steps.push(
+					await variableStep("sync org variables", (dry) =>
+						source.syncOrgVariables!(org, declared, { prune, dryRun: dry })
+					)
+				);
+			}
+			print(formatStep(steps[steps.length - 1]!));
+		}
+
 		if (config.description && source.syncDescription) {
 			steps.push(
 				await runStep("source", "sync description", dryRun, () => source.syncDescription!(config.description!))

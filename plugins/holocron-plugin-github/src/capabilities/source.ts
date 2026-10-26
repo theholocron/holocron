@@ -26,6 +26,7 @@ import { syncLabels } from "./labels.js";
 import { syncProperties } from "./properties.js";
 import { syncTeams } from "./teams.js";
 import { syncTopics } from "./topics.js";
+import { syncOrgVariables, syncVariables } from "./variables.js";
 
 export interface SourceOptions {
 	repo: string;
@@ -218,6 +219,26 @@ export class GitHubSource implements Source {
 
 	async syncTopics(topics: string[]): Promise<string> {
 		return syncTopics(this.client, this.repo, topics);
+	}
+
+	async syncVariables(
+		variables: Record<string, string>,
+		opts?: { prune?: boolean; dryRun?: boolean }
+	): Promise<string> {
+		return syncVariables(this.client, this.repo, variables, opts);
+	}
+
+	async syncOrgVariables(
+		org: string,
+		variables: Record<string, { value: string; visibility: "all" | "private" }>,
+		opts?: { prune?: boolean; dryRun?: boolean }
+	): Promise<string> {
+		if (!this.orgClient) {
+			throw new Error(
+				"organization variables need the org token: set HOLOCRON_ORG_TOKEN or run `holocron auth set github.org <token>`"
+			);
+		}
+		return syncOrgVariables(this.orgClient, this.repo, org, variables, opts);
 	}
 
 	async syncDescription(description: string): Promise<string> {
