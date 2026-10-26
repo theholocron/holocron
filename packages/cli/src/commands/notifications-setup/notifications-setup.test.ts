@@ -1453,6 +1453,22 @@ describe("a permission given for one edit", () => {
 		expect(lines.join("\n")).toMatch(/still holds Administrator/);
 	});
 
+	it("reports just the retry's error when it fails and the permission was taken away cleanly", async () => {
+		let calls = 0;
+		const ensureServer = vi.fn(async () => {
+			if (calls++ === 0) throw needsIt();
+			throw new Error("still refused");
+		});
+		const { run, lines } = setup(
+			fakeNotifications({ layout: LAYOUT_S, ensureServer, holdsPermission: vi.fn(async () => false) }),
+			{ pause: async () => {} }
+		);
+		const report = await run();
+		expect(report.failures[0]?.message).toBe("still refused");
+		expect(lines.join("\n")).toContain("Administrator is gone again");
+		expect(lines.join("\n")).not.toMatch(/still holds|could not check/);
+	});
+
 	it("does not offer to grant what the bot already holds, so a lost-access refusal is shown as it is", async () => {
 		const pause = vi.fn(async () => {});
 		const { run } = setup(
