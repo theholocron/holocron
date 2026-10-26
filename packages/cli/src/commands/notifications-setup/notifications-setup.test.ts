@@ -1534,15 +1534,15 @@ describe("a permission given for one edit", () => {
 	});
 });
 
-describe("Manage Messages for pinning", () => {
+describe("Pin Messages for pinning", () => {
 	const LAYOUT_P: NotificationsLayout = {
 		categories: [{ name: "A", channels: [{ name: "welcome" }] }],
 		pinned: [{ channel: "welcome", content: "Hello" }],
 	};
 	const refused = () =>
 		new ElevationRequiredError("could not pin", {
-			permission: "ManageMessages",
-			label: "Manage Messages",
+			permission: "PinMessages",
+			label: "Pin Messages",
 			keep: true,
 			grantUrl: "https://grant",
 		});
@@ -1561,7 +1561,7 @@ describe("Manage Messages for pinning", () => {
 		expect(report.status).toBe("ok");
 		expect(pause).toHaveBeenCalledTimes(1);
 		const out = lines.join("\n");
-		expect(out).toContain("pinned messages needs Manage Messages");
+		expect(out).toContain("pinned messages needs Pin Messages");
 		expect(out).not.toContain("for this one edit");
 		expect(out).not.toContain("take it away");
 		expect(out).toContain("updated pinned messages: #welcome");

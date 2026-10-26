@@ -530,9 +530,9 @@ export class DiscordNotifications implements Notifications {
 		};
 	}
 
-	/** What the bot keeps: the usual set, and Manage Messages when the layout pins messages. */
+	/** What the bot keeps: the usual set, and Pin Messages when the layout pins messages. */
 	private needs(): PermissionName[] {
-		return this.opts.layout?.pinned?.length ? [...BOT_NEEDS, "ManageMessages"] : BOT_NEEDS;
+		return this.opts.layout?.pinned?.length ? [...BOT_NEEDS, "PinMessages"] : BOT_NEEDS;
 	}
 
 	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */
@@ -946,12 +946,12 @@ export class DiscordNotifications implements Notifications {
 	/** A 403 on pinning becomes the missing permission and a link that grants it, which `setup` can walk a person through. */
 	private async pinHint(err: unknown, channel: string): Promise<unknown> {
 		if (!DiscordNotifications.missingPermissions(err)) return err;
-		const link = await this.inviteOrNothing([...BOT_NEEDS, "ManageMessages"]);
+		const link = await this.inviteOrNothing([...BOT_NEEDS, "PinMessages"]);
 		return new ElevationRequiredError(
-			`the bot could not pin the message in #${channel}: its role lacks Manage Messages. Re-invite it with that permission${link ? ` (this updates its role in place): ${link}` : ""}`,
+			`the bot could not pin the message in #${channel}: its role lacks Pin Messages. Re-invite it with that permission${link ? ` (this updates its role in place): ${link}` : ""}`,
 			{
-				permission: "ManageMessages",
-				label: "Manage Messages",
+				permission: "PinMessages",
+				label: "Pin Messages",
 				keep: true,
 				...(link ? { grantUrl: link } : {}),
 			},

@@ -1672,7 +1672,7 @@ describe("DiscordNotifications.inspect — access", () => {
 			"@everyone granted something": [{ id: GUILD, type: 0, allow: permissions(["ViewChannel"]), deny: "0" }],
 			"a role allowed something else": [
 				{ id: GUILD, type: 0, allow: "0", deny: all },
-				{ id: "5000", type: 0, allow: permissions(["ManageMessages"]), deny: "0" },
+				{ id: "5000", type: 0, allow: permissions(["PinMessages"]), deny: "0" },
 			],
 		};
 		for (const [name, overwrites] of Object.entries(cases)) {
@@ -3573,14 +3573,14 @@ describe("DiscordNotifications pinned messages", () => {
 		]);
 		const err = (await notifs.ensurePinned(pins).catch((e: Error) => e)) as ElevationRequiredError;
 		expect(err).toBeInstanceOf(ElevationRequiredError);
-		expect(err.elevation).toMatchObject({ permission: "ManageMessages", label: "Manage Messages", keep: true });
-		expect(err.message).toMatch(/could not pin the message in #welcome: its role lacks Manage Messages/);
+		expect(err.elevation).toMatchObject({ permission: "PinMessages", label: "Pin Messages", keep: true });
+		expect(err.message).toMatch(/could not pin the message in #welcome: its role lacks Pin Messages/);
 		const bits = BigInt(
 			new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]).searchParams.get(
 				"permissions"
 			)!
 		);
-		expect(bits & (1n << 13n)).toBe(1n << 13n);
+		expect(bits & (1n << 51n)).toBe(1n << 51n);
 		expect(calls[5]).toMatchObject({ method: "DELETE", url: `${BASE}/channels/2001/messages/5002` });
 	});
 
@@ -3685,7 +3685,7 @@ describe("DiscordNotifications elevation", () => {
 		expect(BigInt(new URL(err.elevation.revokeUrl!).searchParams.get("permissions")!) & 8n).toBe(0n);
 	});
 
-	it("keeps Manage Messages in the link that takes Administrator away when the layout pins messages, and says what was applied", async () => {
+	it("keeps Pin Messages in the link that takes Administrator away when the layout pins messages, and says what was applied", async () => {
 		const { notifs } = makeProvisioner(
 			[
 				{ body: { id: GUILD, name: "x", verification_level: 0, features: ["NEWS"] } },
@@ -3698,7 +3698,7 @@ describe("DiscordNotifications elevation", () => {
 		);
 		const err = (await notifs.ensureServer({ community: true }).catch((e: unknown) => e)) as ElevationRequiredError;
 		const bits = BigInt(new URL(err.elevation.revokeUrl!).searchParams.get("permissions")!);
-		expect(bits & (1n << 13n)).toBe(1n << 13n);
+		expect(bits & (1n << 51n)).toBe(1n << 51n);
 		expect(bits & 8n).toBe(0n);
 	});
 
