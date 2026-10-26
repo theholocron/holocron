@@ -3571,7 +3571,9 @@ describe("DiscordNotifications pinned messages", () => {
 			{ status: 403, body: { message: "Missing Permissions", code: 50013 } },
 			{ status: 204 },
 		]);
-		const err = (await notifs.ensurePinned(pins).catch((e: Error) => e)) as Error;
+		const err = (await notifs.ensurePinned(pins).catch((e: Error) => e)) as ElevationRequiredError;
+		expect(err).toBeInstanceOf(ElevationRequiredError);
+		expect(err.elevation).toMatchObject({ permission: "ManageMessages", label: "Manage Messages", keep: true });
 		expect(err.message).toMatch(/could not pin the message in #welcome: its role lacks Manage Messages/);
 		const bits = BigInt(
 			new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]).searchParams.get(

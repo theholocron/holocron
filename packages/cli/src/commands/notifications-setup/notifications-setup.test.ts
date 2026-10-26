@@ -1533,3 +1533,50 @@ describe("a permission given for one edit", () => {
 		expect(pause).not.toHaveBeenCalled();
 	});
 });
+
+describe("Manage Messages for pinning", () => {
+	const LAYOUT_P: NotificationsLayout = {
+		categories: [{ name: "A", channels: [{ name: "welcome" }] }],
+		pinned: [{ channel: "welcome", content: "Hello" }],
+	};
+	const refused = () =>
+		new ElevationRequiredError("could not pin", {
+			permission: "ManageMessages",
+			label: "Manage Messages",
+			keep: true,
+			grantUrl: "https://grant",
+		});
+
+	it("asks for it, retries, and takes nothing away afterwards", async () => {
+		let calls = 0;
+		const ensurePinned = vi.fn(async () => {
+			if (calls++ === 0) throw refused();
+			return { updated: ["#welcome"] };
+		});
+		const pause = vi.fn(async () => {});
+		const holdsPermission = vi.fn(async () => false);
+		const { run, lines } = setup(fakeNotifications({ layout: LAYOUT_P, ensurePinned, holdsPermission }), { pause });
+		const report = await run();
+		expect(report.failures).toEqual([]);
+		expect(report.status).toBe("ok");
+		expect(pause).toHaveBeenCalledTimes(1);
+		const out = lines.join("\n");
+		expect(out).toContain("pinned messages needs Manage Messages");
+		expect(out).not.toContain("for this one edit");
+		expect(out).not.toContain("take it away");
+		expect(out).toContain("updated pinned messages: #welcome");
+	});
+
+	it("shows the plain explanation when nobody is there, or the bot already has it", async () => {
+		const ensurePinned = vi.fn(async () => {
+			throw refused();
+		});
+		const nobody = await setup(fakeNotifications({ layout: LAYOUT_P, ensurePinned }), { pause: false }).run();
+		expect(nobody.failures[0]?.message).toBe("could not pin");
+		const holds = await setup(
+			fakeNotifications({ layout: LAYOUT_P, ensurePinned, holdsPermission: vi.fn(async () => true) }),
+			{ pause: async () => {} }
+		).run();
+		expect(holds.failures[0]?.message).toBe("could not pin");
+	});
+});

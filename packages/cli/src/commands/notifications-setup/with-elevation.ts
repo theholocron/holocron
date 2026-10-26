@@ -8,7 +8,8 @@ import type { ElevationDeps } from "./with-elevation.type.js";
  * permission, then a retry; and afterwards the link that takes it away, then a check that it really is gone. The
  * consent clicks stay theirs; the ordering and the "forgot to take it away" mistake do not.
  *
- * Taking it away is attempted whatever the retry does, and anything that stops it being done or proven is a `todo`
+ * A permission the bot is meant to keep ({@link ElevationRequiredError} `keep`) is only given: there is no take-away.
+ * Otherwise taking it away is attempted whatever the retry does, and anything that stops it being done or proven is a `todo`
  * (reported as a failure) or, when the retry itself failed, a printed failure beside the error.
  *
  * Without someone to answer (`pause` absent) the error is passed on unchanged, so a script still gets the
@@ -23,15 +24,16 @@ export async function withElevation<T extends { updated: string[]; todo?: string
 	} catch (err) {
 		const { notifications, pause, print } = deps;
 		if (!(err instanceof ElevationRequiredError) || !pause || !err.elevation.grantUrl) throw err;
-		const { permission, grantUrl, revokeUrl, applied } = err.elevation;
+		const { permission, grantUrl, revokeUrl, applied, keep } = err.elevation;
+		const name = err.elevation.label ?? permission;
 		// A refusal for lost access reads the same as one for a missing permission: if the bot already holds it,
 		// granting it again would fix nothing, so say what the provider said.
 		const holds = await notifications.holdsPermission?.(permission).catch(() => false);
 		if (holds) throw err;
 
-		print(`  ${style.skip(`${deps.label} needs ${permission} for this one edit`)}`);
+		print(`  ${style.skip(`${deps.label} needs ${name}${keep ? "" : " for this one edit"}`)}`);
 		print(`    1. approve it: ${grantUrl}`);
-		await pause(`Press Enter once ${permission} is approved to try again`);
+		await pause(`Press Enter once ${name} is approved to try again`);
 		let result: T | undefined;
 		let failure: unknown;
 		try {
@@ -42,7 +44,9 @@ export async function withElevation<T extends { updated: string[]; todo?: string
 
 		// Whatever happened, the permission must not be left behind unnoticed.
 		let leftover: string | undefined;
-		if (!revokeUrl) {
+		if (keep) {
+			// Nothing to take away.
+		} else if (!revokeUrl) {
 			leftover = `no link could be built to take ${permission} away; remove it from ${notifications.providerName}'s role by hand, then run \`holocron doctor notifications\``;
 		} else {
 			print(`    2. take it away again: ${revokeUrl}`);

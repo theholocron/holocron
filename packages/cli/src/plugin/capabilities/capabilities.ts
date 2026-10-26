@@ -45,6 +45,10 @@ export class ElevationRequiredError extends Error {
 			grantUrl?: string;
 			/** Where to approve taking it away again; absent when the provider could not build one. */
 			revokeUrl?: string;
+			/** A name for the permission a person would recognise, when {@link permission} is the provider's code for it. */
+			label?: string;
+			/** The permission is meant to stay once given: there is nothing to take away afterwards. */
+			keep?: boolean;
 			/** What the edit had already changed before it was refused, so a retry does not hide it from the summary. */
 			applied?: string[];
 		},
