@@ -137,6 +137,12 @@ jobs:
         working-directory: /tmp
         run: npm install -g wrangler@4
 
+      - name: Warn when the Cloudflare account id is missing
+        # The deploy below needs it. It is an organization variable that `holocron repo setup` writes from
+        # `repo.variables.org.CLOUDFLARE_ACCOUNT_ID` in holocron.config.ts.
+        if: ${{ (inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '') && vars.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The Pages deploy needs it. Declare it under repo.variables.org in holocron.config.ts and run holocron repo setup."
+
       - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
         id: deploy
         name: Deploy to Cloudflare Pages
@@ -178,6 +184,11 @@ jobs:
       deployments: write
       pull-requests: write
     steps:
+      - name: Warn when the Cloudflare account id is missing
+        # Without it the request below cannot find the preview deployments, so closing the PR leaves them behind.
+        if: ${{ (inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '') && vars.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The preview deployments cannot be deleted without it. Declare it under repo.variables.org in holocron.config.ts and run holocron repo setup."
+
       - name: Delete Cloudflare Pages deployments for branch
         if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
         env:

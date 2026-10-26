@@ -49,3 +49,14 @@ runs:
         key: turbo-${{ runner.os }}-${{ github.sha }}
         restore-keys: |
           turbo-${{ runner.os }}-
+
+    # A Turbo token with no team turns the remote cache off without a word: every task just runs cold. `TURBO_TEAM` is
+    # an organization variable that `holocron repo setup` writes from `repo.variables.org.TURBO_TEAM` in
+    # holocron.config.ts. Quiet when there is no token, because then the cache is meant to be off.
+    - name: Warn when the Turbo remote cache is off
+      if: ${{ hashFiles('turbo.json') != '' }}
+      shell: bash
+      run: |
+        if [ -n "$TURBO_TOKEN" ] && [ -z "$TURBO_TEAM" ]; then
+          echo "::warning title=Turbo remote cache is off::TURBO_TOKEN is set but TURBO_TEAM is not. Declare it under repo.variables.org in holocron.config.ts and run holocron repo setup."
+        fi
