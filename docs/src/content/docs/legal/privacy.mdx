@@ -14,8 +14,10 @@ maintainers. It is written to say what actually happens, which is very little.
 - It does not read direct messages.
 - It does not sell, share for advertising, or profile anyone.
 
-Holonet only calls Discord's HTTP API to create and manage channels, webhooks
-and roles, and receives nothing from a server it has not been added to.
+Holonet calls Discord's HTTP API to create and manage channels, webhooks and
+roles, and receives nothing from a server it has not been added to. For role
+sync it also reads a member's Discord user and connections at sign-in, the
+current holders of a role, and the members of a GitHub team (see Role sync).
 
 ## What passes through it
 
@@ -30,22 +32,34 @@ and roles, and receives nothing from a server it has not been added to.
 ## Role sync
 
 Members can choose to connect their Discord and GitHub accounts, so that a
-server role follows membership of a GitHub team. Connecting is optional and
-starts when the member signs in with Discord (`holocron notifications link`).
-For a member who does, Holonet processes:
+server role can follow membership of a GitHub team. Connecting is optional and
+starts when the member signs in with Discord (`holocron notifications link`),
+which a maintainer runs on their own machine. For a member who does connect,
+Holonet processes:
 
 - the member's **Discord user id** and the **verified GitHub account** linked to
-  it (obtained through Discord's OAuth `identify` and `connections` scopes), and
-- a stored pairing of that Discord id and GitHub id, so a role can be added or
-  removed when GitHub team membership changes. The pairing is kept in a file in
-  a private repository of The Holocron's GitHub organization, readable by its
-  maintainers.
+  it (obtained through Discord's OAuth `identify` and `connections` scopes),
+- the member's **GitHub login** (their public username), and
+- a stored pairing of those, so a role can be added or removed when GitHub team
+  membership changes. The pairing is kept in a file in a private repository of
+  The Holocron's GitHub organization, readable by its maintainers. Earlier
+  versions of the file stay in that repository's history.
 
-The sign-in runs on a maintainer's machine or on the hosted service at
-`sentinel.theholocron.dev`. OAuth access tokens are used once to read the two
-ids and are then revoked; they are not stored. Nothing else about a member is
-kept. A member can revoke access at any time from Discord's **Authorized Apps**
-settings, and can ask for their pairing to be deleted (see Contact).
+Roles are changed only when a maintainer runs `holocron notifications
+sync-roles`, not automatically: between runs a role can lag behind the team. To
+do that, the command reads the team's members from GitHub and the current
+holders of the role from Discord, and adds or removes the role for linked
+members.
+
+The sign-in's OAuth access token is used once to read the two ids and Holonet
+then asks Discord to revoke it. That request is best effort: if it fails, the
+token stays valid until it expires on its own. The token is never stored.
+Nothing else about a member is kept.
+
+Revoking Holonet in Discord's **Authorized Apps** settings withdraws Discord's
+permission but does not remove the stored pairing, and `sync-roles` keeps using
+the pairing until it is deleted. To unlink, ask for the pairing to be deleted
+(see Contact).
 
 ## Retention
 
@@ -71,10 +85,12 @@ If this policy changes, the effective date above changes with it.
 
 For privacy requests, including deletion of a stored pairing, email
 [privacy@theholocron.dev](mailto:privacy@theholocron.dev). Say which Discord
-account and GitHub account the pairing is for; we may ask you to show you
-control them before we delete it, and we confirm the deletion by reply. Revoking
-Holonet in Discord's **Authorized Apps** settings is immediate and needs no
-contact at all.
+account and GitHub account the pairing is for. We delete a pairing only after
+you show you control at least one of those two accounts, and we confirm the
+deletion by reply. Deleting removes it from the file; if you also want its
+earlier versions removed from the repository's history, say so in your request.
+Revoking Holonet in Discord's **Authorized Apps** settings is immediate but does
+not delete the pairing.
 
 For general questions, open an issue at
 [github.com/theholocron/holocron](https://github.com/theholocron/holocron/issues).
