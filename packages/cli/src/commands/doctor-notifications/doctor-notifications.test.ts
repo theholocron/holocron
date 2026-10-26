@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Notifications, NotificationsLayout, ServerInspection } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
-import { PLANNED_CHECKS, runDoctorNotifications } from "./doctor-notifications.js";
+import { runDoctorNotifications } from "./doctor-notifications.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -67,6 +67,7 @@ function fakeNotifications(over: Partial<Notifications> & { found?: ServerInspec
 		ensureWebhook: vi.fn(async () => ({ created: true, url: "https://hook/x" })),
 		ensureRole: vi.fn(async () => ({ id: "99", created: true })),
 		checkDelivery: vi.fn(async () => ({ posted: true, readBack: true, removed: true, problems: [] })),
+		serverOwner: vi.fn(async () => ({ id: "709617107741966407", isBot: false })),
 		...rest,
 	} as Notifications;
 }
@@ -140,28 +141,24 @@ const REAL = [
 	"app-settings",
 	"secrets",
 	"role-members",
+	"server-owner",
 ];
 
 describe("runDoctorNotifications — a server that matches the layout", () => {
-	it("passes every built check, and still fails because the unbuilt features are listed as failing", async () => {
+	it("passes every check", async () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 13, fail: PLANNED_CHECKS.length, skip: 0 });
-		expect(report.status).toBe("fail");
-		const planned = report.checks.filter((c) => c.step !== undefined);
-		expect(planned.map((c) => c.id)).toEqual(PLANNED_CHECKS.map((p) => p.id));
-		expect(planned[0]?.detail).toBe("not built yet (#1098, step 16)");
-		expect(planned.every((c) => c.status === "fail")).toBe(true);
+		expect(report.summary).toEqual({ pass: 14, fail: 0, skip: 0 });
+		expect(report.status).toBe("ok");
 	});
 
-	it("is green with --built-only, which leaves the unbuilt features out", async () => {
+	it("is green with --built-only too", async () => {
 		const { run, lines } = setup(fakeNotifications(), { builtOnly: true });
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("13 ok, 0 fail, 1 skipped");
-		expect(lines.join("\n")).not.toContain("not built");
+		expect(lines.join("\n")).toContain("14 ok, 0 fail, 0 skipped");
 	});
 
 	it("renders one line per check and ends with a count", async () => {
@@ -173,9 +170,8 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).toContain("Holocron (as Holonet)");
 		expect(out).not.toContain("Not built yet");
 		expect(out).toContain("✓ webhook names and avatars set");
-		expect(out).toContain("not built yet (#1098, step 16)");
-		expect(out).toContain("✗ server created from config");
-		expect(out).toContain("13 ok, 1 fail, 0 skipped");
+		expect(out).toContain("✓ server owned by a person, not the bot");
+		expect(out).toContain("14 ok, 0 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -509,11 +505,36 @@ describe("runDoctorNotifications — output and logs", () => {
 	});
 });
 
-describe("PLANNED_CHECKS", () => {
-	it("numbers the steps still to build in order, matching the table in #1098, with no duplicates", () => {
-		// 8 to 14 (access, role appearance, server settings, welcome and onboarding, the app, role members) are built, so they are real checks.
-		expect(PLANNED_CHECKS.map((p) => p.step)).toEqual([16]);
-		expect(new Set(PLANNED_CHECKS.map((p) => p.id)).size).toBe(PLANNED_CHECKS.length);
+describe("runDoctorNotifications — who owns the server", () => {
+	const owner = (id: string) => (report: Awaited<ReturnType<typeof runDoctorNotifications>>) => byId(report, id);
+
+	it("fails while the bot owns the server, and says how to hand it over", async () => {
+		const serverOwner = vi.fn(async () => ({ id: "1519751641493012480", isBot: true }));
+		const report = await setup(fakeNotifications({ serverOwner }), { builtOnly: true }).run();
+		const step = owner("server-owner")(report);
+		expect(step.status).toBe("fail");
+		expect(step.problems[0]).toContain("create-server --resume --owner");
+	});
+
+	it("reports who owns it when a person does", async () => {
+		const report = await setup(fakeNotifications(), { builtOnly: true }).run();
+		expect(owner("server-owner")(report)).toMatchObject({
+			status: "pass",
+			detail: "owned by member 709617107741966407",
+		});
+	});
+
+	it("records a provider error instead of aborting", async () => {
+		const serverOwner = vi.fn(async () => {
+			throw new Error("boom");
+		});
+		const report = await setup(fakeNotifications({ serverOwner }), { builtOnly: true }).run();
+		expect(owner("server-owner")(report)).toMatchObject({ status: "fail", detail: "boom" });
+	});
+
+	it("leaves the check out for a provider that cannot say who owns the server", async () => {
+		const report = await setup(fakeNotifications({ serverOwner: undefined }), { builtOnly: true }).run();
+		expect(report.checks.find((c) => c.id === "server-owner")).toBeUndefined();
 	});
 });
 
@@ -653,7 +674,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 12, fail: 1, skip: PLANNED_CHECKS.length });
+			expect(report.summary).toEqual({ pass: 13, fail: 1, skip: 0 });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1326,7 +1347,7 @@ describe("runDoctorNotifications — delivery check", () => {
 		expect(lines[noteAt - 1]).toBe(""); // set apart from the steps above
 		expect(lines[noteAt]).toContain("--deliver");
 		expect(lines.slice(0, noteAt).some((l) => l.includes("delivered through"))).toBe(false);
-		expect(report.summary.skip).toBe(1); // only step 16; the note is not a step
+		expect(report.summary.skip).toBe(0); // the note is not a step
 	});
 
 	it("a full run leaves one labelled test post in the test channel, and posts nowhere else", async () => {

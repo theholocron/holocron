@@ -1344,6 +1344,24 @@ export interface Notifications extends ProviderIdentity {
 	}): Promise<NotificationsDelivery>;
 
 	/**
+	 * Creates the server the layout describes, empty, owned by the provider's own bot, and makes it the server
+	 * every other call in this run works on. Refuses when the config already names a server unless `force`.
+	 */
+	createServer?(input: { name: string; force?: boolean }): Promise<{ id: string; name: string }>;
+
+	/** A single-use link, valid for a day, that lets one person join the server through the named channel. */
+	inviteLink?(channel: string): Promise<string>;
+
+	/** Whether a person is in the server. */
+	hasMember?(memberId: string): Promise<boolean>;
+
+	/** Hands the server to a member who has joined, so the bot no longer owns it. */
+	transferServer?(memberId: string): Promise<void>;
+
+	/** Who owns the server, and whether that is the provider's own bot. */
+	serverOwner?(): Promise<{ id: string; isBot: boolean; name?: string }>;
+
+	/**
 	 * Who holds a role, by the provider's member id. Needs whatever permission the provider asks for to list
 	 * members (for Discord, the privileged Server Members Intent). Throws if the role does not exist.
 	 */

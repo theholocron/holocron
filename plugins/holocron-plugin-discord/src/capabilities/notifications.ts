@@ -1316,7 +1316,11 @@ export class DiscordNotifications implements Notifications {
 			}));
 	}
 
+	/** The server this run created, which takes over from `guildId` for the rest of the run. */
+	private createdGuild?: string;
+
 	private guild(): string {
+		if (this.createdGuild) return this.createdGuild;
 		if (!this.opts.guildId) {
 			throw new Error(
 				"no Discord server id — set `guildId` in the discord provider options in holocron.config.ts"
@@ -1622,6 +1626,77 @@ export class DiscordNotifications implements Notifications {
 			result.problems.push(`could not remove the test message ${messageId} (${reason(err)})`);
 		}
 		return result;
+	}
+
+	async createServer(input: { name: string; force?: boolean }): Promise<{ id: string; name: string }> {
+		// Asked again in the same run (a retry after an answer was lost): the server is already there, make no second.
+		if (this.createdGuild) {
+			const existing = await this.bot().guilds.get(this.createdGuild);
+			return { id: existing.id, name: existing.name };
+		}
+		if (this.opts.guildId && !input.force) {
+			throw new Error(
+				`this config already names a server (\`guildId\` ${this.opts.guildId}); pass --force to create another one`
+			);
+		}
+		// A create whose answer was lost left a server the bot owns: find it by name and reuse it, not make another.
+		const found = await this.botOwnedServer(input.name);
+		const guild = found ?? (await this.bot().guilds.create({ name: input.name }));
+		this.createdGuild = guild.id;
+		// The new server has its own channels: nothing read from another one may be reused.
+		this.channelLoad = undefined;
+		return { id: guild.id, name: guild.name };
+	}
+
+	/** A server this bot owns (not one it only belongs to) with exactly this name, read across every page. */
+	private async botOwnedServer(name: string): Promise<{ id: string; name: string } | undefined> {
+		let after: string | undefined;
+		for (;;) {
+			const page = await this.bot().users.guilds(after ? { after } : {});
+			const hit = page.find((g) => g.owner && g.name === name);
+			if (hit) return hit;
+			const last = page[page.length - 1];
+			if (page.length < 200 || !last) return undefined;
+			after = last.id;
+		}
+	}
+
+	async inviteLink(channelName: string): Promise<string> {
+		const channel = DiscordNotifications.findChannel(await this.channelList(), channelName);
+		if (!channel) throw new Error(`no channel named \`${channelName}\` to invite into`);
+		// One use, one day: it is for the person who is about to own the server.
+		const invite = await this.bot().channels.createInvite(channel.id, {
+			max_age: 86400,
+			max_uses: 1,
+			unique: true,
+		});
+		return `https://discord.gg/${invite.code}`;
+	}
+
+	async hasMember(memberId: string): Promise<boolean> {
+		try {
+			await this.bot().guilds.member(this.guild(), memberId);
+			return true;
+		} catch (err) {
+			// A 404 here means they are not in the server (or the id is wrong), which is the answer.
+			if (err instanceof ProviderApiError && err.status === 404) return false;
+			throw err;
+		}
+	}
+
+	async transferServer(memberId: string): Promise<void> {
+		await this.bot().guilds.modify(this.guild(), { owner_id: memberId });
+	}
+
+	async serverOwner(): Promise<{ id: string; isBot: boolean; name?: string }> {
+		// `owner_id` is in Discord's answer but not yet in the client's type.
+		const guild = (await this.bot().guilds.get(this.guild())) as { owner_id?: string; name?: string };
+		if (!guild.owner_id) throw new Error("Discord did not say who owns the server");
+		return {
+			id: guild.owner_id,
+			isBot: guild.owner_id === (await this.botId()),
+			...(guild.name ? { name: guild.name } : {}),
+		};
 	}
 
 	/** The one role with this name, or an error that says what to fix: none, or more than one. */

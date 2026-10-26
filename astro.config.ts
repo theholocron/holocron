@@ -12,6 +12,7 @@ export default defineConfig({
 			{ label: "Configuration", slug: "config" },
 			{ label: "Capabilities", slug: "capabilities" },
 			{ label: "Token Reference", slug: "tokens" },
+			{ label: "Server as Code", slug: "server-as-code" },
 			{ label: "Self-hosting", slug: "self-hosting" },
 			{
 				label: "Commands",
@@ -27,6 +28,7 @@ export default defineConfig({
 					{ label: "notifications channel add", slug: "commands/notifications-channel-add" },
 					{ label: "notifications link", slug: "commands/notifications-link" },
 					{ label: "notifications setup", slug: "commands/notifications-setup" },
+					{ label: "notifications create-server", slug: "commands/notifications-create-server" },
 					{ label: "notifications sync-roles", slug: "commands/notifications-sync-roles" },
 					{ label: "package bump-versions", slug: "commands/package-bump-versions" },
 					{ label: "package publish", slug: "commands/package-publish" },

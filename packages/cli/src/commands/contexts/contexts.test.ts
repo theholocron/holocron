@@ -35,6 +35,7 @@ const EVERY_COMMAND = [
 	"notifications channel add",
 	"notifications setup",
 	"notifications link",
+	"notifications create-server",
 	"notifications sync-roles",
 	"doctor notifications",
 	"deploy",
@@ -81,6 +82,7 @@ describe("COMMAND_CONTEXTS", () => {
 			"notifications channel add",
 			"notifications setup",
 			"notifications link",
+			"notifications create-server",
 			"notifications sync-roles",
 			"doctor notifications",
 		]) {

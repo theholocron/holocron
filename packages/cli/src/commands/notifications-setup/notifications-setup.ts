@@ -172,7 +172,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	const logger = input.logger ?? getLogger();
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
-	await loader.load();
+	if (!input.preloaded) await loader.load();
 	assertPluginsResolvable(loader, "notifications setup");
 
 	const dryRun = input.context.dryRun ?? false;

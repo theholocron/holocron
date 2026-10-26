@@ -1,0 +1,71 @@
+---
+title: Server as Code
+description: Create a chat server from holocron.config.ts, hand it to its owner, and keep it matching the config.
+---
+
+The layout of your community server (categories, channels, webhooks, roles, who sees what, the welcome screen) lives in `holocron.config.ts`. Two commands apply it, and one checks it. This page is the order to run them in. The examples use Discord, the provider that implements all of it today.
+
+## What you need first
+
+| Credential                                          | Where it comes from                          | Stored as                                          |
+| --------------------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
+| Bot token                                           | Developer portal → Bot → Reset Token         | `holocron auth set discord.holonet <token>`        |
+| OAuth client secret (only for `notifications link`) | Developer portal → OAuth2 → Reset Secret     | `holocron auth set discord.holonet.oauth <secret>` |
+| GitHub tokens                                       | See the [Token Reference](/holocron/tokens/) | `github.secrets`, `github.org`, `github.user-sync` |
+
+The bot token and the client secret are two different values that look alike; the portal shows neither again once you leave the page. The full list, with the exact GitHub scopes, is in the [Token Reference](/holocron/tokens/).
+
+## Your owner id
+
+`--owner` is **your Discord user id**, the long number (17 to 20 digits) that identifies your account. It is not your username and not the server id. To copy it:
+
+1. Discord → User Settings → Advanced → turn on **Developer Mode**.
+2. Right-click your name or avatar → **Copy User ID**.
+
+After [`notifications link`](/holocron/commands/notifications-link/) it is also the `member` value next to your GitHub login in `notifications/discord-links.json` in the org's `.github-private` repo.
+
+## Create a new server
+
+```bash
+# See the plan first; nothing is called
+holocron notifications create-server --dry-run --name "The Holocron" --owner 123456789012345678
+
+# Then for real (add --force if holocron.config.ts already has a guildId)
+holocron notifications create-server --name "The Holocron" --owner 123456789012345678
+```
+
+`--name` is what the server is called. The command creates the server, writes its id into `holocron.config.ts` as `guildId`, applies the whole layout, sends you a single-use invite, waits for you to join, and then makes you the owner. The steps, the failure states and `--resume` are in [`notifications create-server`](/holocron/commands/notifications-create-server/).
+
+Things to know before you run it:
+
+- A bot can create a server only while it is in fewer than ten.
+- A new server keeps Discord's default channels; the layout is added to them.
+- The bot owns the server until you join and the hand-over happens. [`doctor notifications`](/holocron/commands/doctor-notifications/) fails step 16 until then.
+
+## Update an existing server
+
+Edit `layout` (or `server`, `welcome`, `onboarding`, `application`, `everyone`) in `holocron.config.ts`, then:
+
+```bash
+holocron notifications setup --dry-run   # what would change
+holocron notifications setup             # change it
+```
+
+`setup` looks everything up by name and changes only what differs, so running it again is safe. It never deletes a channel, category or role that the layout no longer mentions. The fields are described in [`notifications setup`](/holocron/commands/notifications-setup/).
+
+## Connect people to their roles
+
+```bash
+holocron notifications link        # each person signs in once to tie their Discord account to their GitHub login
+holocron notifications sync-roles  # give roles to the members of the GitHub team a role follows
+```
+
+See [`notifications link`](/holocron/commands/notifications-link/) and [`notifications sync-roles`](/holocron/commands/notifications-sync-roles/).
+
+## Check it
+
+```bash
+holocron doctor notifications
+```
+
+It compares the live server with the layout step by step, posts one `🧪 test:` message in the test channel (`--built-only` skips that, `--deliver` posts to every channel and removes the posts), and names the command that fixes each failure. See [`doctor notifications`](/holocron/commands/doctor-notifications/).
