@@ -45,6 +45,6 @@ A run takes a lock file next to the config (`holocron.config.ts.create-server.lo
 ## Limits
 
 - Discord lets a bot create a server only while it is in fewer than ten. Past that, `POST /guilds` is refused and the command says so.
-- If Discord creates the server but the answer is lost, the command cannot learn its id: the server exists, owned by the bot, but is not in your config. Find it in Discord (the bot is in it), set `guildId` by hand and run `--resume`. Do not retry with `--force`, which makes another one. Looking such a server up automatically needs the Discord client to list the bot's servers (tracked in the issue linked from the PR).
+- If Discord creates the server but the answer is lost, the next run finds it: before creating, the bot lists the servers it is in and reuses one it owns with the same name, so no second one is made. This needs two runs to ask one after the other; two machines asking at the same instant can still each create one, so run it from one place.
 - A new server starts with Discord's own default channels (such as `general`). The layout is added to them; nothing is deleted.
 - Anything the API cannot do stays manual, as for [`setup`](/holocron/commands/notifications-setup/): the developer-portal settings of the bot itself belong to the application, not to a server, so they carry over.

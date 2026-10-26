@@ -1639,11 +1639,26 @@ export class DiscordNotifications implements Notifications {
 				`this config already names a server (\`guildId\` ${this.opts.guildId}); pass --force to create another one`
 			);
 		}
-		const guild = await this.bot().guilds.create({ name: input.name });
+		// A create whose answer was lost left a server the bot owns: find it by name and reuse it, not make another.
+		const found = await this.botOwnedServer(input.name);
+		const guild = found ?? (await this.bot().guilds.create({ name: input.name }));
 		this.createdGuild = guild.id;
 		// The new server has its own channels: nothing read from another one may be reused.
 		this.channelLoad = undefined;
 		return { id: guild.id, name: guild.name };
+	}
+
+	/** A server this bot owns (not one it only belongs to) with exactly this name, read across every page. */
+	private async botOwnedServer(name: string): Promise<{ id: string; name: string } | undefined> {
+		let after: string | undefined;
+		for (;;) {
+			const page = await this.bot().users.guilds(after ? { after } : {});
+			const hit = page.find((g) => g.owner && g.name === name);
+			if (hit) return hit;
+			const last = page[page.length - 1];
+			if (page.length < 200 || !last) return undefined;
+			after = last.id;
+		}
 	}
 
 	async inviteLink(channelName: string): Promise<string> {

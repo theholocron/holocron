@@ -222,18 +222,18 @@ describe("DiscordNotifications server creation and ownership", () => {
 
 	it("creates the server, and makes it the one every later call works on", async () => {
 		const { notifs, calls } = makeProvisioner(
-			[{ body: { id: NEW, name: "The Holocron" } }, { body: { id: NEW, owner_id: "42" } }],
+			[{ body: [] }, { body: { id: NEW, name: "The Holocron" } }, { body: { id: NEW, owner_id: "42" } }],
 			{}
 		);
 		expect(await notifs.createServer({ name: "The Holocron" })).toEqual({ id: NEW, name: "The Holocron" });
-		expect(calls[0]).toMatchObject({ method: "POST", url: `${BASE}/guilds`, body: { name: "The Holocron" } });
+		expect(calls[1]).toMatchObject({ method: "POST", url: `${BASE}/guilds`, body: { name: "The Holocron" } });
 		await notifs.serverOwner().catch(() => undefined);
-		expect(calls[1]?.url).toBe(`${BASE}/guilds/${NEW}`);
+		expect(calls[2]?.url).toBe(`${BASE}/guilds/${NEW}`);
 	});
 
 	it("makes no second server when asked again in the same run", async () => {
 		const { notifs, calls } = makeProvisioner(
-			[{ body: { id: NEW, name: "The Holocron" } }, { body: { id: NEW, name: "The Holocron" } }],
+			[{ body: [] }, { body: { id: NEW, name: "The Holocron" } }, { body: { id: NEW, name: "The Holocron" } }],
 			{}
 		);
 		await notifs.createServer({ name: "The Holocron" });
@@ -242,11 +242,43 @@ describe("DiscordNotifications server creation and ownership", () => {
 			name: "The Holocron",
 		});
 		expect(calls.filter((c) => c.method === "POST")).toHaveLength(1);
-		expect(calls[1]).toMatchObject({ method: "GET", url: `${BASE}/guilds/${NEW}` });
+		expect(calls[2]).toMatchObject({ method: "GET", url: `${BASE}/guilds/${NEW}` });
+	});
+
+	it("reuses a server the bot already owns under that name, so a lost answer makes no second one", async () => {
+		const { notifs, calls } = makeProvisioner(
+			[
+				{
+					body: [
+						{ id: "1", name: "The Holocron", owner: false, permissions: "0" },
+						{ id: NEW, name: "The Holocron", owner: true, permissions: "8" },
+					],
+				},
+			],
+			{}
+		);
+		expect(await notifs.createServer({ name: "The Holocron" })).toEqual({ id: NEW, name: "The Holocron" });
+		expect(calls.filter((c) => c.method === "POST")).toHaveLength(0);
+	});
+
+	it("looks through every page of servers before deciding there is none", async () => {
+		const full = Array.from({ length: 200 }, (_, i) => ({
+			id: String(100 + i),
+			name: "other",
+			owner: true,
+			permissions: "0",
+		}));
+		const { notifs, calls } = makeProvisioner(
+			[{ body: full }, { body: [] }, { body: { id: NEW, name: "The Holocron" } }],
+			{}
+		);
+		expect(await notifs.createServer({ name: "The Holocron" })).toEqual({ id: NEW, name: "The Holocron" });
+		expect(calls[1]?.url).toBe(`${BASE}/users/@me/guilds?limit=200&after=299`);
+		expect(calls[2]).toMatchObject({ method: "POST" });
 	});
 
 	it("refuses to create a second server over a config that names one, unless forced", async () => {
-		const { notifs, calls } = makeProvisioner([{ body: { id: NEW, name: "Again" } }]);
+		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: { id: NEW, name: "Again" } }]);
 		await expect(notifs.createServer({ name: "Again" })).rejects.toThrow(/already names a server/);
 		expect(calls).toHaveLength(0);
 		expect(await notifs.createServer({ name: "Again", force: true })).toEqual({ id: NEW, name: "Again" });
