@@ -884,10 +884,18 @@ export class DiscordNotifications implements Notifications {
 			if (c.type === ChannelType.Category) continue;
 			idsByName.set(c.name.toLowerCase(), [...(idsByName.get(c.name.toLowerCase()) ?? []), c.id]);
 		}
-		return content.replace(/(?<=^|[\s([])#([a-z0-9_-]+)/gi, (whole, name: string) => {
-			const ids = idsByName.get(name.toLowerCase());
-			return ids?.length === 1 ? `<#${ids[0]}>` : whole;
-		});
+		// A URL is split out whole, so a fragment inside one is never read as a channel.
+		return content
+			.split(/(https?:\/\/\S+)/)
+			.map((part, i) =>
+				i % 2 === 1
+					? part
+					: part.replace(/(?<=^|[\s([{"'*_~>])#([\p{L}\p{N}_-]+)/giu, (whole, name: string) => {
+							const ids = idsByName.get(name.toLowerCase());
+							return ids?.length === 1 ? `<#${ids[0]}>` : whole;
+						})
+			)
+			.join("");
 	}
 
 	/** The layout's messages grouped by channel, in the order the channels first appear, with channel names linked. */
@@ -958,7 +966,17 @@ export class DiscordNotifications implements Notifications {
 		const bot = this.bot();
 		const channels = await this.channelList();
 		const updated: string[] = [];
-		for (const [channel, wanted] of DiscordNotifications.pinsByChannel(pinned, channels)) {
+		const byChannel = DiscordNotifications.pinsByChannel(pinned, channels);
+		// Linking lengthens a message; refuse one Discord would reject before anything is posted.
+		for (const [channel, wanted] of byChannel) {
+			const long = wanted.find((content) => content.length > 2000);
+			if (long) {
+				throw new Error(
+					`the pinned message for #${channel} is ${long.length} characters once its channel names are linked; Discord allows up to 2000`
+				);
+			}
+		}
+		for (const [channel, wanted] of byChannel) {
 			const channelId = DiscordNotifications.pickChannelId(channels, channel, "pinned messages");
 			const own = await this.ownMessages(channelId);
 			const drift = DiscordNotifications.pinDrift(own, wanted);
