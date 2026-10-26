@@ -184,6 +184,17 @@ export function alertChannels(rest: RestClient) {
 				body: { ...input },
 			}),
 
+		/**
+		 * Subscribe one check (or group) to a channel, or switch that subscription on or off. This is the call that makes
+		 * a subscription take effect: Checkly's create and update accept a `subscriptions` list but have been seen not to
+		 * apply it, so read the channel back after writing it and use this for whatever is missing.
+		 */
+		subscribe: (id: number, subscription: AlertChannelSubscription): Promise<AlertChannelSubscription> =>
+			rest.request<AlertChannelSubscription>(`/alert-channels/${id}/subscriptions`, {
+				method: "PUT",
+				body: { ...subscription },
+			}),
+
 		delete: (id: number): Promise<void> => rest.request<void>(`/alert-channels/${id}`, { method: "DELETE" }),
 	};
 }

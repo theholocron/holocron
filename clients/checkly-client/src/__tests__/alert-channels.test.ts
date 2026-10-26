@@ -123,6 +123,29 @@ describe("alertChannels", () => {
 		expect(calls[0]?.body).toEqual(replacement);
 	});
 
+	it("subscribes one check to a channel through the subscriptions endpoint", async () => {
+		const { alertChannels, calls } = client([
+			{
+				body: {
+					id: 5,
+					checkId: "chk-1",
+					groupId: null,
+					activated: true,
+				},
+			},
+		]);
+		const result = await alertChannels.subscribe(9, {
+			checkId: "chk-1",
+			activated: true,
+		});
+		expect(result).toMatchObject({ checkId: "chk-1", activated: true });
+		expect(calls[0]).toMatchObject({
+			method: "PUT",
+			url: `${BASE}/alert-channels/9/subscriptions`,
+		});
+		expect(calls[0]?.body).toEqual({ checkId: "chk-1", activated: true });
+	});
+
 	it("ships the Discord template Checkly's own setup uses, with its Handlebars blocks balanced", () => {
 		expect(DISCORD_TEMPLATE).toContain('"username": "Checkly"');
 		expect(DISCORD_TEMPLATE).toContain("{{ALERT_TITLE}}");

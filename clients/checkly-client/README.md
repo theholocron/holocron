@@ -96,9 +96,15 @@ const channel = await checkly.alertChannels.create({
   sendFailure: true,
   sendRecovery: true,
   sendDegraded: true,
-  // Checks made through the API are never auto-subscribed: list each one.
-  subscriptions: [{ checkId: check.id, activated: true }],
 });
+
+// Checks made through the API are never auto-subscribed. Subscribe each one with `subscribe`, then read the channel
+// back: Checkly's create and update accept a `subscriptions` list but have been seen not to apply it.
+await checkly.alertChannels.subscribe(channel.id, {
+  checkId: check.id,
+  activated: true,
+});
+const subscribed = (await checkly.alertChannels.get(channel.id)).subscriptions;
 
 const all = await checkly.alertChannels.list(); // every page
 const one = await checkly.alertChannels.get(channel.id);
@@ -106,7 +112,7 @@ await checkly.alertChannels.update(channel.id, {/* the complete channel */});
 await checkly.alertChannels.delete(channel.id);
 ```
 
-`update` replaces the whole channel (settings and subscriptions), so send everything you want to keep. Checkly offers
+`update` replaces the whole channel (settings and subscriptions), so send everything you want to keep, and re-read the channel before updating it if anything may have subscribed a check since you last did. Checkly offers
 no version check, so do not update one channel from two places at once.
 
 > **Note:** This client covers API checks (`checks.*`) and alert channels (`alertChannels.*`) — the subset this org
