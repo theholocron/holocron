@@ -1,4 +1,5 @@
 import {
+	ElevationRequiredError,
 	type EnsuredResource,
 	type EnsureWebhookResult,
 	type Notifications,
@@ -9,6 +10,7 @@ import {
 	type NotificationsLayout,
 	type NotificationsMember,
 	type NotificationsOnboardingLayout,
+	type NotificationsPinnedLayout,
 	type NotificationsServerLayout,
 	type NotificationsSignIn,
 	type NotificationsWelcomeLayout,
@@ -407,6 +409,15 @@ export class DiscordNotifications implements Notifications {
 				serverError = reason(err);
 			}
 		}
+		let pinned: ServerInspection["pinned"];
+		let pinnedError: string | undefined;
+		if (layout.pinned) {
+			try {
+				pinned = await this.pinnedStates(layout.pinned);
+			} catch (err) {
+				pinnedError = reason(err);
+			}
+		}
 		// The welcome screen and onboarding, each read only when the layout declares it.
 		let welcome: ServerInspection["welcome"];
 		let welcomeError: string | undefined;
@@ -505,6 +516,8 @@ export class DiscordNotifications implements Notifications {
 			...(serverError ? { serverError } : {}),
 			...(welcome ? { welcome } : {}),
 			...(welcomeError ? { welcomeError } : {}),
+			...(pinned ? { pinned } : {}),
+			...(pinnedError ? { pinnedError } : {}),
 			...(onboarding ? { onboarding } : {}),
 			...(onboardingError ? { onboardingError } : {}),
 			...(application ? { application } : {}),
@@ -604,10 +617,17 @@ export class DiscordNotifications implements Notifications {
 			: "re-invite Holonet with the Administrator permission for one run, and take it away again afterwards";
 		// Discord's own words stay in the message: a refusal because access to the server was lost looks the same as
 		// one for a missing permission, so the operator can tell them apart when Holonet already has Administrator.
-		return new Error(
+		// `setup` reads the links from the error to walk a person through it; the message is for everyone else.
+		const revoke = await this.inviteOrNothing();
+		return new ElevationRequiredError(
 			`${appliedPrefix(applied)}turning community features ${turningOn ? "on" : "off"} was refused (Discord said: ${String(err.details).slice(0, 120)}), ` +
 				"which means Holonet lacks the Administrator permission it needs for that. " +
 				`Either ${byHand}, or ${viaBot}. If Holonet already has Administrator, check that it is still in the server`,
+			{
+				permission: "Administrator",
+				...(link ? { grantUrl: link } : {}),
+				...(revoke ? { revokeUrl: revoke } : {}),
+			},
 			{ cause: err }
 		);
 	}
@@ -782,6 +802,80 @@ export class DiscordNotifications implements Notifications {
 			await toggle();
 		}
 		return { updated };
+	}
+
+	async holdsPermission(permission: string): Promise<boolean> {
+		const bot = this.bot();
+		const me = await this.botId();
+		if ((await this.serverOwner()).isBot) return true;
+		const [member, roles] = await Promise.all([
+			bot.guilds.member(this.guild(), me),
+			bot.guilds.roles(this.guild()),
+		]);
+		const held = new Set([this.guild(), ...member.roles]);
+		const bits = roles.filter((r) => held.has(r.id)).reduce((all, r) => all | BigInt(r.permissions ?? "0"), 0n);
+		const has = (name: PermissionName): boolean => {
+			const bit = BigInt(permissions([name]));
+			return (bits & bit) === bit;
+		};
+		// Administrator is every permission at once.
+		return has("Administrator") || has(permission as PermissionName);
+	}
+
+	/** The messages this bot has pinned in a channel, newest first, among the channel's last hundred. */
+	private async ownPins(channelId: string): Promise<Array<{ id: string; content: string }>> {
+		const me = await this.botId();
+		const recent = await this.bot().channels.messages(channelId, 100);
+		return recent.filter((m) => m.pinned && m.author?.id === me).map((m) => ({ id: m.id, content: m.content }));
+	}
+
+	/** Whether each pinned message is in place: posted by this bot, pinned, and saying exactly what the layout says. */
+	private async pinnedStates(
+		pinned: NotificationsPinnedLayout[]
+	): Promise<Array<{ channel: string; state: "ok" | "missing" | "different" }>> {
+		const channels = await this.channelList();
+		const states: Array<{ channel: string; state: "ok" | "missing" | "different" }> = [];
+		for (const pin of pinned) {
+			const own = await this.ownPins(
+				DiscordNotifications.pickChannelId(channels, pin.channel, "pinned messages")
+			);
+			const state = own.some((m) => m.content === pin.content) ? "ok" : own.length > 0 ? "different" : "missing";
+			states.push({ channel: pin.channel, state });
+		}
+		return states;
+	}
+
+	async ensurePinned(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }> {
+		const bot = this.bot();
+		const channels = await this.channelList();
+		const updated: string[] = [];
+		for (const pin of pinned) {
+			const channelId = DiscordNotifications.pickChannelId(channels, pin.channel, "pinned messages");
+			const own = await this.ownPins(channelId);
+			if (own.some((m) => m.content === pin.content)) continue;
+			const posted = await bot.channels.createMessage(channelId, { content: pin.content });
+			try {
+				await bot.channels.pin(channelId, posted.id);
+			} catch (err) {
+				// Leave no unpinned copy behind to be posted again on the next run.
+				await bot.channels.deleteMessage(channelId, posted.id).catch(() => undefined);
+				throw await this.pinHint(err, pin.channel);
+			}
+			// The old one goes only once the new one is in place: a failure above leaves the old message pinned.
+			for (const old of own) await bot.channels.deleteMessage(channelId, old.id);
+			updated.push(`#${pin.channel}`);
+		}
+		return { updated };
+	}
+
+	/** A 403 on pinning becomes the missing permission and a link that grants it. */
+	private async pinHint(err: unknown, channel: string): Promise<unknown> {
+		if (!DiscordNotifications.missingPermissions(err)) return err;
+		const link = await this.inviteOrNothing([...BOT_NEEDS, "ManageMessages"]);
+		return new Error(
+			`the bot could not pin the message in #${channel}: its role lacks Manage Messages. Re-invite it with that permission${link ? ` (this updates its role in place): ${link}` : ""}`,
+			{ cause: err }
+		);
 	}
 
 	/** A 403 on the welcome screen or onboarding becomes the likely reason; anything else is passed on. */
@@ -1182,6 +1276,10 @@ export class DiscordNotifications implements Notifications {
 			if (long) {
 				return `welcome: the description of \`${long.channel}\` is ${long.description.length} characters; Discord allows up to 50`;
 			}
+		}
+		const long2000 = layout.pinned?.find((p) => p.content.length > 2000);
+		if (long2000) {
+			return `pinned: the message for \`${long2000.channel}\` is ${long2000.content.length} characters; Discord allows up to 2000`;
 		}
 		const server = layout.server;
 		for (const [field, map] of [

@@ -1,4 +1,4 @@
-import { AuthError, ProviderApiError } from "@theholocron/cli";
+import { AuthError, ElevationRequiredError, ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
@@ -3443,5 +3443,178 @@ describe("application intents and redirect URIs in inspect and validateLayout", 
 				application: { redirectUris: ["https://a.example/cb", "http://localhost:53682/callback"] },
 			})
 		).toBeUndefined();
+	});
+});
+
+describe("DiscordNotifications pinned messages", () => {
+	const chans = { body: [text("2001", "welcome"), text("2002", "rules")] };
+	const me = { body: { id: BOT, username: "holonet" } };
+	const mine = (id: string, content: string, pinned = true) => ({ id, content, pinned, author: { id: BOT } });
+	const pins = [{ channel: "welcome", content: "Hello" }];
+
+	it("posts and pins a message that is not there yet", async () => {
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			me,
+			{ body: [] },
+			{ body: { id: "5001", channel_id: "2001", content: "Hello" } },
+			{ status: 204 },
+		]);
+		expect(await notifs.ensurePinned(pins)).toEqual({ updated: ["#welcome"] });
+		expect(calls[3]).toMatchObject({
+			method: "POST",
+			url: `${BASE}/channels/2001/messages`,
+			body: { content: "Hello" },
+		});
+		expect(calls[4]).toMatchObject({ method: "PUT", url: `${BASE}/channels/2001/pins/5001` });
+	});
+
+	it("leaves a message that already says exactly this, ignoring other people's and unpinned ones", async () => {
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			me,
+			{
+				body: [
+					{ id: "x", content: "Hello", pinned: true, author: { id: "someone" } },
+					mine("5000", "Hello", false),
+					mine("5001", "Hello"),
+				],
+			},
+		]);
+		// the unpinned copy by the bot does not count, but the pinned one does
+		expect(await notifs.ensurePinned(pins)).toEqual({ updated: [] });
+		expect(calls.filter((c) => c.method !== "GET")).toHaveLength(0);
+	});
+
+	it("replaces a pinned message that says something else, once the new one is pinned", async () => {
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			me,
+			{ body: [mine("5000", "Old words")] },
+			{ body: { id: "5002", channel_id: "2001", content: "Hello" } },
+			{ status: 204 },
+			{ status: 204 },
+		]);
+		expect(await notifs.ensurePinned(pins)).toEqual({ updated: ["#welcome"] });
+		expect(calls[5]).toMatchObject({ method: "DELETE", url: `${BASE}/channels/2001/messages/5000` });
+	});
+
+	it("takes its unpinned copy back and says which permission is missing when pinning is refused", async () => {
+		const { notifs, calls } = makeProvisioner([
+			chans,
+			me,
+			{ body: [] },
+			{ body: { id: "5001", channel_id: "2001", content: "Hello" } },
+			{ status: 403, body: { message: "Missing Permissions", code: 50013 } },
+			{ status: 204 },
+			me,
+		]);
+		const err = (await notifs.ensurePinned(pins).catch((e: Error) => e)) as Error;
+		expect(err.message).toMatch(/could not pin the message in #welcome: its role lacks Manage Messages/);
+		expect(
+			new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]).searchParams.get(
+				"permissions"
+			)
+		).toBeTruthy();
+		expect(calls[5]).toMatchObject({ method: "DELETE", url: `${BASE}/channels/2001/messages/5001` });
+	});
+
+	it("passes any other pinning failure on as it is, even when the cleanup fails too", async () => {
+		const { notifs } = makeProvisioner([
+			chans,
+			me,
+			{ body: [] },
+			{ body: { id: "5001", channel_id: "2001", content: "Hello" } },
+			{ status: 500, body: { message: "boom" } },
+			{ status: 500, body: { message: "boom" } },
+		]);
+		await expect(notifs.ensurePinned(pins)).rejects.toBeInstanceOf(ProviderApiError);
+	});
+
+	it("names a channel the server does not have", async () => {
+		const { notifs } = makeProvisioner([chans]);
+		await expect(notifs.ensurePinned([{ channel: "nope", content: "x" }])).rejects.toThrow(
+			/pinned messages name the channel `nope`/
+		);
+	});
+
+	it("reports in inspect whether each is in place, missing or different", async () => {
+		const { notifs } = makeProvisioner([
+			chans,
+			me,
+			{ body: [mine("5001", "Hello")] },
+			{ body: [] },
+			{ body: [mine("5002", "Other")] },
+		]);
+		const found = await notifs.inspect({
+			categories: [],
+			pinned: [
+				{ channel: "welcome", content: "Hello" },
+				{ channel: "rules", content: "Hello" },
+				{ channel: "welcome", content: "More" },
+			],
+		});
+		expect(found.pinned).toEqual([
+			{ channel: "welcome", state: "ok" },
+			{ channel: "rules", state: "missing" },
+			{ channel: "welcome", state: "different" },
+		]);
+	});
+
+	it("says why the pinned messages could not be read", async () => {
+		const { notifs } = makeProvisioner([chans, me, { status: 500, body: { message: "boom" } }]);
+		const found = await notifs.inspect({ categories: [], pinned: pins });
+		expect(found.pinnedError).toBeTruthy();
+		expect(found.pinned).toBeUndefined();
+	});
+
+	it("refuses a message longer than Discord allows", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(notifs.validateLayout({ pinned: [{ channel: "welcome", content: "x".repeat(2001) }] })).toMatch(
+			/2001 characters; Discord allows up to 2000/
+		);
+		expect(notifs.validateLayout({ pinned: pins })).toBeUndefined();
+	});
+});
+
+describe("DiscordNotifications elevation", () => {
+	const me = { body: { id: BOT, username: "holonet" } };
+	const guildBody = (owner: string) => ({ body: { id: GUILD, name: "The Holocron", owner_id: owner } });
+	const roles = {
+		body: [
+			{ id: GUILD, name: "@everyone", color: 0, mentionable: false, permissions: "1024" },
+			{ id: "r1", name: "Holonet", color: 0, mentionable: false, permissions: "8" },
+			{ id: "r2", name: "other", color: 0, mentionable: false, permissions: "2048" },
+		],
+	};
+	const member = (rolesHeld: string[]) => ({ body: { user: { id: BOT }, roles: rolesHeld } });
+
+	it("carries both links on the error, so setup can walk a person through it", async () => {
+		const { notifs } = makeProvisioner([
+			{ body: { id: GUILD, name: "x", verification_level: 0, features: ["NEWS"] } },
+			{ body: [text("2001", "rules")] },
+			{ body: { id: GUILD, name: "x", verification_level: 0, features: ["NEWS"] } },
+			{ status: 403, body: { message: "Missing Permissions", code: 50013 } },
+			me,
+		]);
+		const err = (await notifs.ensureServer({ community: true }).catch((e: unknown) => e)) as ElevationRequiredError;
+		expect(err).toBeInstanceOf(ElevationRequiredError);
+		expect(err.elevation.permission).toBe("Administrator");
+		expect(new URL(err.elevation.grantUrl!).searchParams.get("permissions")).toBe("8");
+		expect(new URL(err.elevation.revokeUrl!).searchParams.get("permissions")).not.toBe("8");
+	});
+
+	it("says the bot holds Administrator when its role has it, and when it owns the server", async () => {
+		const held = makeProvisioner([me, guildBody("someone"), member(["r1"]), roles]);
+		expect(await held.notifs.holdsPermission("Administrator")).toBe(true);
+		const owner = makeProvisioner([me, guildBody(BOT)]);
+		expect(await owner.notifs.holdsPermission("Administrator")).toBe(true);
+	});
+
+	it("says it does not once the role is gone, but still sees a named permission it has", async () => {
+		const none = makeProvisioner([me, guildBody("someone"), member(["r2"]), roles]);
+		expect(await none.notifs.holdsPermission("Administrator")).toBe(false);
+		const named = makeProvisioner([me, guildBody("someone"), member(["r2"]), roles]);
+		expect(await named.notifs.holdsPermission("SendMessages")).toBe(true);
 	});
 });

@@ -138,6 +138,7 @@ const REAL = [
 	"access",
 	"server-settings",
 	"welcome-onboarding",
+	"pinned",
 	"app-settings",
 	"secrets",
 	"role-members",
@@ -149,7 +150,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 14, fail: 0, skip: 0 });
+		expect(report.summary).toEqual({ pass: 15, fail: 0, skip: 0 });
 		expect(report.status).toBe("ok");
 	});
 
@@ -158,7 +159,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("14 ok, 0 fail, 0 skipped");
+		expect(lines.join("\n")).toContain("15 ok, 0 fail, 0 skipped");
 	});
 
 	it("renders one line per check and ends with a count", async () => {
@@ -171,7 +172,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).not.toContain("Not built yet");
 		expect(out).toContain("✓ webhook names and avatars set");
 		expect(out).toContain("✓ server owned by a person, not the bot");
-		expect(out).toContain("14 ok, 0 fail, 0 skipped");
+		expect(out).toContain("15 ok, 0 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -674,7 +675,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 13, fail: 1, skip: 0 });
+			expect(report.summary).toEqual({ pass: 14, fail: 1, skip: 0 });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -1827,5 +1828,40 @@ describe("runDoctorNotifications — role-members (step 14)", () => {
 			src()
 		);
 		expect(byId(denied, "role-members").detail).toContain("intent off");
+	});
+});
+
+describe("runDoctorNotifications — pinned messages", () => {
+	const LAYOUT_P: NotificationsLayout = {
+		categories: [{ name: "A", channels: [{ name: "welcome" }] }],
+		pinned: [{ channel: "welcome", content: "Hello" }],
+	};
+	const run = (inspection: Partial<ServerInspection>) =>
+		setup(
+			fakeNotifications({ layout: LAYOUT_P, found: { categories: [], channels: [], roles: [], ...inspection } }),
+			{
+				secretNames: [],
+			}
+		).run();
+
+	it("passes when the message is in place", async () => {
+		const report = await run({ pinned: [{ channel: "welcome", state: "ok" }] });
+		expect(byId(report, "pinned")).toMatchObject({ status: "pass", detail: "1 of 1 in place" });
+	});
+
+	it("says a message is missing, or says something else", async () => {
+		expect(byId(await run({ pinned: [{ channel: "welcome", state: "missing" }] }), "pinned").problems).toEqual([
+			"#welcome: no pinned message from the bot",
+		]);
+		expect(byId(await run({ pinned: [{ channel: "welcome", state: "different" }] }), "pinned").problems).toEqual([
+			"#welcome: the pinned message differs from the layout",
+		]);
+	});
+
+	it("says so when the messages could not be read, or the provider did not report them", async () => {
+		expect(byId(await run({ pinnedError: "boom" }), "pinned").problems).toEqual([
+			"not checked: could not read the pinned messages (boom)",
+		]);
+		expect(byId(await run({}), "pinned").problems).toEqual(["the provider did not report the pinned messages"]);
 	});
 });
