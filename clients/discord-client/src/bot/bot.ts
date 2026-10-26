@@ -20,8 +20,10 @@ import type {
 	DiscordOnboarding,
 	DiscordRole,
 	DiscordUser,
+	DiscordUserGuild,
 	DiscordWelcomeScreen,
 	ListMembersInput,
+	ListUserGuildsInput,
 	ModifyApplicationInput,
 	ModifyChannelInput,
 	ModifyGuildInput,
@@ -133,10 +135,19 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 			me: () => rest.request<DiscordUser>("/users/@me"),
 			/** `GET /users/:id` — a user's name, for reports that would otherwise show a bare id. */
 			get: (userId: string) => rest.request<DiscordUser>(`/users/${id(userId)}`),
+			/**
+			 * `GET /users/@me/guilds` — one page of the servers the bot is in, each with whether it owns it. This is
+			 * how a retry finds a server `guilds.create` already made, since that call is not idempotent.
+			 */
+			guilds: (opts: ListUserGuildsInput = {}) => {
+				const query: Record<string, string> = { limit: String(Math.min(Math.max(opts.limit ?? 200, 1), 200)) };
+				if (opts.after !== undefined) query.after = id(opts.after);
+				return rest.request<DiscordUserGuild[]>("/users/@me/guilds", { query });
+			},
 		},
 		guilds: {
 			get: (guildId: string) => rest.request<DiscordGuild>(`/guilds/${id(guildId)}`),
-			/** `POST /guilds` — a new server the bot owns. Not idempotent: look one up by name before retrying. */
+			/** `POST /guilds` — a new server the bot owns. Not idempotent: look one up by name (`users.guilds`) before retrying. */
 			create: (body: CreateGuildInput) => rest.request<DiscordGuild>("/guilds", { method: "POST", body }),
 			/** `DELETE /guilds/:id` — only the owner may; a 404 counts as done. */
 			delete: async (guildId: string): Promise<void> => {

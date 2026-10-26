@@ -478,6 +478,25 @@ describe("server settings", () => {
 		await expect(client.guilds.delete("777")).rejects.toMatchObject({ status: 403 });
 	});
 
+	it("users.guilds: lists the servers the bot is in, with who owns each, and pages by id", async () => {
+		const { client, calls } = makeClient([
+			{ body: [{ id: "777", name: "The Holocron", owner: true, permissions: "8" }] },
+			{ body: [] },
+			{ body: [] },
+			{ body: [] },
+		]);
+		const [first] = await client.users.guilds();
+		expect(first).toMatchObject({ id: "777", name: "The Holocron", owner: true });
+		expect(calls[0]).toMatchObject({ method: "GET", url: `${BASE}/users/@me/guilds?limit=200` });
+		await client.users.guilds({ limit: 5, after: "777" });
+		expect(calls[1]?.url).toBe(`${BASE}/users/@me/guilds?limit=5&after=777`);
+		await client.users.guilds({ limit: 500 });
+		expect(calls[2]?.url).toBe(`${BASE}/users/@me/guilds?limit=200`);
+		await client.users.guilds({ limit: 0 });
+		expect(calls[3]?.url).toBe(`${BASE}/users/@me/guilds?limit=1`);
+		expect(() => client.users.guilds({ after: "not-an-id" })).toThrow(/invalid Discord id/);
+	});
+
 	it("users.get, invites, listing, pinning and deleting messages", async () => {
 		const { client, calls } = makeClient([
 			{ body: { id: "333", username: "luke" } },

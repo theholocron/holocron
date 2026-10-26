@@ -27,6 +27,23 @@ export interface DiscordUser {
 	bot?: boolean;
 }
 
+/** A server as `GET /users/@me/guilds` lists it: a summary, not the full guild. */
+export interface DiscordUserGuild {
+	id: string;
+	name: string;
+	/** Whether the caller (here, the bot) owns the server. */
+	owner: boolean;
+	/** The caller's permission bitfield in the server, as a decimal string. */
+	permissions?: string;
+}
+
+/** Page options for `users.guilds`; Discord allows a `limit` of 1–200; values outside that are clamped. */
+export interface ListUserGuildsInput {
+	limit?: number;
+	/** Return servers after this server id. */
+	after?: string;
+}
+
 /** Guild fields `guilds.modify` can change; the numeric enums are Discord's own. */
 export interface DiscordGuild {
 	id: string;
