@@ -252,7 +252,7 @@ export default defineConfig({
 								"**5. Follow Discord's rules.** The [Terms of Service](<https://discord.com/terms>) and [Community Guidelines](<https://discord.com/guidelines>) apply here too.",
 								"",
 								"**Problems**",
-								"If something is wrong, or someone is making you uncomfortable, message anyone with the gatekeepers role. They can warn, mute, or remove people, and they will keep your report private.",
+								"If something is wrong, or someone is making you uncomfortable, message anyone with the gatekeepers role. They will keep your report private and see that it is dealt with.",
 								"",
 								"Rules may change as the community grows; changes are announced here.",
 							].join("\n"),
