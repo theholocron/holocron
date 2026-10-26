@@ -3991,6 +3991,44 @@ describe("setup: write codecov.yml", () => {
 		expect(report.steps.find((s) => s.step === "write turbo.json")?.status).toBe("ok");
 	});
 
+	it("prints the turbo.json step once, and the follow-up fixes it triggers", async () => {
+		await writeFile(
+			join(tmpDir, "package.json"),
+			JSON.stringify({ name: "demo", scripts: { "delivery.build": "tsdown" } })
+		);
+		await writeFile(join(tmpDir, "pnpm-workspace.yaml"), 'packages:\n  - "docs"\n');
+		const loader = makeLoaderWithSource(tmpDir, { writeRepoFile: async () => {} });
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({ name: "demo", tasks: ["delivery.build"], providers: { source: "github" } }),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const lines: string[] = [];
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: (line) => lines.push(line) });
+
+		const count = (needle: string) => lines.filter((l) => l.includes(needle)).length;
+		expect(count("write turbo.json")).toBe(1);
+		expect(count("fix pnpm-workspace.yaml")).toBe(1);
+		expect(count("add turbo devDependency")).toBe(1);
+	});
+
+	it("prints a lone turbo.json step once", async () => {
+		const loader = makeLoaderWithSource(tmpDir, { writeRepoFile: async () => {} });
+		const loaded: LoadedConfig = {
+			resolved: resolveConfig({
+				name: "demo",
+				tasks: ["verification.typeSafety"],
+				providers: { source: "github" },
+			}),
+			filepath: join(tmpDir, "holocron.config.json"),
+		};
+		const lines: string[] = [];
+
+		await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: (line) => lines.push(line) });
+
+		expect(lines.filter((l) => l.includes("write turbo.json"))).toHaveLength(1);
+	});
+
 	it("skips writing turbo.json when the manifest has no fan-out-eligible task", async () => {
 		const written: Record<string, string> = {};
 		const loader = makeLoaderWithSource(tmpDir, {

@@ -439,6 +439,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				logger,
 			});
 			const content = astromechTurbo.turboConfig();
+			const firstStep = steps.length;
 
 			if (content === null) {
 				steps.push({
@@ -453,7 +454,6 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 						await source.writeRepoFile("turbo.json", content);
 					})
 				);
-				print(formatStep(steps[steps.length - 1]!));
 
 				// #692: a root that's genuinely a directly-buildable package (not
 				// just an orchestrator) silently vanishes from `turbo run <task>`
@@ -495,7 +495,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					}
 				}
 			}
-			print(formatStep(steps[steps.length - 1]!));
+			// Everything this block pushed, once each: the turbo.json step and any follow-up fixes.
+			for (const step of steps.slice(firstStep)) print(formatStep(step));
 		}
 
 		if (source.syncLabels) {
