@@ -1854,7 +1854,7 @@ describe("runDoctorNotifications — pinned messages", () => {
 			"#welcome: no pinned message from the bot",
 		]);
 		expect(byId(await run({ pinned: [{ channel: "welcome", state: "different" }] }), "pinned").problems).toEqual([
-			"#welcome: the pinned message differs from the layout",
+			"#welcome: the pinned messages differ from the layout",
 		]);
 	});
 
@@ -1863,5 +1863,8 @@ describe("runDoctorNotifications — pinned messages", () => {
 			"not checked: could not read the pinned messages (boom)",
 		]);
 		expect(byId(await run({}), "pinned").problems).toEqual(["the provider did not report the pinned messages"]);
+		expect(byId(await run({ pinned: [] }), "pinned").problems).toEqual([
+			"#welcome: not checked (the provider gave no answer)",
+		]);
 	});
 });

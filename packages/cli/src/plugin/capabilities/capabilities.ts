@@ -45,6 +45,8 @@ export class ElevationRequiredError extends Error {
 			grantUrl?: string;
 			/** Where to approve taking it away again; absent when the provider could not build one. */
 			revokeUrl?: string;
+			/** What the edit had already changed before it was refused, so a retry does not hide it from the summary. */
+			applied?: string[];
 		},
 		options?: ErrorOptions
 	) {

@@ -68,7 +68,7 @@ function setup(
 		dryRun?: boolean;
 		org?: string;
 		loadAvatar?: (source: string) => Promise<string>;
-		pause?: (message: string) => Promise<void>;
+		pause?: ((message: string) => Promise<void>) | false;
 	} = {}
 ) {
 	const loaded = loadedFrom({
@@ -1354,6 +1354,11 @@ describe("pinned messages", () => {
 		expect(lines.join("\n")).toContain("would ensure pinned messages");
 	});
 
+	it("needs no support from the provider for an empty list", async () => {
+		const report = await setup(fakeNotifications({ layout: { ...PINNED_LAYOUT, pinned: [] } })).run();
+		expect(report.status).toBe("ok");
+	});
+
 	it("refuses a message for a channel not in the layout, an empty one, or a provider that cannot pin", async () => {
 		const unknown = await setup(
 			fakeNotifications({
@@ -1413,7 +1418,11 @@ describe("a permission given for one edit", () => {
 
 	it("fails the run when the permission is still held afterwards", async () => {
 		const { run } = setup(
-			fakeNotifications({ layout: LAYOUT_S, ensureServer: flaky(), holdsPermission: vi.fn(async () => true) }),
+			fakeNotifications({
+				layout: LAYOUT_S,
+				ensureServer: flaky(),
+				holdsPermission: vi.fn().mockResolvedValueOnce(false).mockResolvedValue(true),
+			}),
 			{ pause: async () => {} }
 		);
 		const report = await run();
@@ -1421,26 +1430,83 @@ describe("a permission given for one edit", () => {
 		expect(report.failures[0]?.message).toMatch(/still holds Administrator/);
 	});
 
-	it("skips the check when the provider cannot answer it, or has no link to take it away", async () => {
-		const noCheck = setup(fakeNotifications({ layout: LAYOUT_S, ensureServer: flaky() }), {
+	it("fails the run when the provider cannot answer whether the permission is gone", async () => {
+		const report = await setup(fakeNotifications({ layout: LAYOUT_S, ensureServer: flaky() }), {
 			pause: async () => {},
+		}).run();
+		expect(report.status).toBe("fail");
+		expect(report.failures[0]?.message).toMatch(/could not check that Administrator is gone/);
+	});
+
+	it("takes the permission away and checks it even when the retry fails, and says what it could not do", async () => {
+		const pause = vi.fn(async () => {});
+		const holdsPermission = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+		let calls = 0;
+		const ensureServer = vi.fn(async () => {
+			if (calls++ === 0) throw needsIt();
+			throw new Error("still refused");
 		});
-		expect((await noCheck.run()).status).toBe("ok");
+		const { run, lines } = setup(fakeNotifications({ layout: LAYOUT_S, ensureServer, holdsPermission }), { pause });
+		const report = await run();
+		expect(report.failures[0]?.message).toBe("still refused");
+		expect(pause).toHaveBeenCalledTimes(2);
+		expect(lines.join("\n")).toMatch(/still holds Administrator/);
+	});
+
+	it("does not offer to grant what the bot already holds, so a lost-access refusal is shown as it is", async () => {
+		const pause = vi.fn(async () => {});
+		const { run } = setup(
+			fakeNotifications({ layout: LAYOUT_S, ensureServer: flaky(), holdsPermission: vi.fn(async () => true) }),
+			{ pause }
+		);
+		const report = await run();
+		expect(report.failures[0]?.message).toBe("community was refused");
+		expect(pause).not.toHaveBeenCalled();
+	});
+
+	it("fails the run when it could not build a link to take the permission away, or cannot check it", async () => {
 		let calls = 0;
 		const noRevoke = vi.fn(async () => {
 			if (calls++ === 0)
 				throw new ElevationRequiredError("refused", { permission: "Administrator", grantUrl: "https://g" });
 			return { updated: ["community"] };
 		});
-		const pause = vi.fn(async () => {});
-		expect(
-			(await setup(fakeNotifications({ layout: LAYOUT_S, ensureServer: noRevoke }), { pause }).run()).status
-		).toBe("ok");
-		expect(pause).toHaveBeenCalledTimes(1);
+		const a = await setup(fakeNotifications({ layout: LAYOUT_S, ensureServer: noRevoke }), {
+			pause: async () => {},
+		}).run();
+		expect(a.failures[0]?.message).toMatch(/no link could be built to take Administrator away/);
+		const b = await setup(
+			fakeNotifications({
+				layout: LAYOUT_S,
+				ensureServer: flaky(),
+				holdsPermission: vi.fn().mockResolvedValueOnce(false).mockRejectedValueOnce(new Error("down")),
+			}),
+			{ pause: async () => {} }
+		).run();
+		expect(b.failures[0]?.message).toMatch(/could not check that Administrator is gone/);
+	});
+
+	it("keeps what the first attempt had already changed in the summary", async () => {
+		let calls = 0;
+		const ensureServer = vi.fn(async () => {
+			if (calls++ === 0) {
+				throw new ElevationRequiredError("refused", {
+					permission: "Administrator",
+					grantUrl: "https://g",
+					applied: ["verification"],
+				});
+			}
+			return { updated: ["community"] };
+		});
+		const { run, lines } = setup(fakeNotifications({ layout: LAYOUT_S, ensureServer }), { pause: async () => {} });
+		await run();
+		expect(lines.join("\n")).toContain("updated server settings: verification, community");
 	});
 
 	it("reports the explanation as it always did when nobody is there to answer, or no link could be built", async () => {
-		const nobody = await setup(fakeNotifications({ layout: LAYOUT_S, ensureServer: flaky() })).run();
+		const nobody = await setup(fakeNotifications({ layout: LAYOUT_S, ensureServer: flaky() }), {
+			pause: false,
+		}).run();
 		expect(nobody.failures[0]?.message).toBe("community was refused");
 		const noLink = vi.fn(async () => {
 			throw new ElevationRequiredError("refused", { permission: "Administrator" });

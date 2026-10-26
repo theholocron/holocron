@@ -530,8 +530,13 @@ export class DiscordNotifications implements Notifications {
 		};
 	}
 
+	/** What the bot keeps: the usual set, and Manage Messages when the layout pins messages. */
+	private needs(): PermissionName[] {
+		return this.opts.layout?.pinned?.length ? [...BOT_NEEDS, "ManageMessages"] : BOT_NEEDS;
+	}
+
 	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */
-	private async inviteUrl(names: PermissionName[] = BOT_NEEDS): Promise<string> {
+	private async inviteUrl(names: PermissionName[] = this.needs()): Promise<string> {
 		const url = new URL("https://discord.com/oauth2/authorize");
 		url.searchParams.set("client_id", await this.botId());
 		url.searchParams.set("scope", "bot");
@@ -627,6 +632,7 @@ export class DiscordNotifications implements Notifications {
 				permission: "Administrator",
 				...(link ? { grantUrl: link } : {}),
 				...(revoke ? { revokeUrl: revoke } : {}),
+				...(applied.length > 0 ? { applied } : {}),
 			},
 			{ cause: err }
 		);
@@ -822,48 +828,117 @@ export class DiscordNotifications implements Notifications {
 		return has("Administrator") || has(permission as PermissionName);
 	}
 
-	/** The messages this bot has pinned in a channel, newest first, among the channel's last hundred. */
-	private async ownPins(channelId: string): Promise<Array<{ id: string; content: string }>> {
+	/** The messages this bot posted in a channel, pinned or not, among the channel's last hundred. */
+	private async ownMessages(channelId: string): Promise<Array<{ id: string; content: string; pinned: boolean }>> {
 		const me = await this.botId();
 		const recent = await this.bot().channels.messages(channelId, 100);
-		return recent.filter((m) => m.pinned && m.author?.id === me).map((m) => ({ id: m.id, content: m.content }));
+		return recent
+			.filter((m) => m.author?.id === me)
+			.map((m) => ({ id: m.id, content: m.content, pinned: m.pinned === true }));
 	}
 
-	/** Whether each pinned message is in place: posted by this bot, pinned, and saying exactly what the layout says. */
+	/** The layout's messages grouped by channel, in the order the channels first appear. */
+	private static pinsByChannel(pinned: NotificationsPinnedLayout[]): Map<string, string[]> {
+		const byChannel = new Map<string, string[]>();
+		for (const pin of pinned) {
+			const key = pin.channel.toLowerCase();
+			byChannel.set(key, [...new Set([...(byChannel.get(key) ?? []), pin.content])]);
+		}
+		return byChannel;
+	}
+
+	/**
+	 * What differs in one channel: the declared messages that are not pinned yet, and the bot's pinned messages the
+	 * layout does not declare (or declares once and the bot pinned twice). The layout is the whole set of the bot's
+	 * pins in a channel it names.
+	 */
+	private static pinDrift(
+		own: Array<{ id: string; content: string; pinned: boolean }>,
+		wanted: string[]
+	): { missing: string[]; extras: Array<{ id: string }> } {
+		// Oldest first, so when a message is pinned twice it is the later copy that goes.
+		const pinned = own.filter((m) => m.pinned).sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
+		const kept = new Set<string>();
+		const extras = pinned.filter((m) => {
+			if (!wanted.includes(m.content) || kept.has(m.content)) return true;
+			kept.add(m.content);
+			return false;
+		});
+		return { missing: wanted.filter((c) => !kept.has(c)), extras };
+	}
+
+	/** Whether each pinned message is in place: pinned by this bot with exactly the layout's text, and nothing else of the bot's pinned beside it. */
 	private async pinnedStates(
 		pinned: NotificationsPinnedLayout[]
 	): Promise<Array<{ channel: string; state: "ok" | "missing" | "different" }>> {
 		const channels = await this.channelList();
-		const states: Array<{ channel: string; state: "ok" | "missing" | "different" }> = [];
-		for (const pin of pinned) {
-			const own = await this.ownPins(
-				DiscordNotifications.pickChannelId(channels, pin.channel, "pinned messages")
+		const verdicts = new Map<string, { missing: Set<string>; extras: number; anyPinned: boolean }>();
+		for (const [channel, wanted] of DiscordNotifications.pinsByChannel(pinned)) {
+			const own = await this.ownMessages(
+				DiscordNotifications.pickChannelId(channels, channel, "pinned messages")
 			);
-			const state = own.some((m) => m.content === pin.content) ? "ok" : own.length > 0 ? "different" : "missing";
-			states.push({ channel: pin.channel, state });
+			const drift = DiscordNotifications.pinDrift(own, wanted);
+			verdicts.set(channel, {
+				missing: new Set(drift.missing),
+				extras: drift.extras.length,
+				anyPinned: own.some((m) => m.pinned),
+			});
 		}
-		return states;
+		return pinned.map((pin) => {
+			const v = verdicts.get(pin.channel.toLowerCase())!;
+			const state = v.missing.has(pin.content)
+				? v.anyPinned
+					? "different"
+					: "missing"
+				: v.extras > 0
+					? "different"
+					: "ok";
+			return { channel: pin.channel, state };
+		});
 	}
 
 	async ensurePinned(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }> {
 		const bot = this.bot();
 		const channels = await this.channelList();
 		const updated: string[] = [];
-		for (const pin of pinned) {
-			const channelId = DiscordNotifications.pickChannelId(channels, pin.channel, "pinned messages");
-			const own = await this.ownPins(channelId);
-			if (own.some((m) => m.content === pin.content)) continue;
-			const posted = await bot.channels.createMessage(channelId, { content: pin.content });
-			try {
-				await bot.channels.pin(channelId, posted.id);
-			} catch (err) {
-				// Leave no unpinned copy behind to be posted again on the next run.
-				await bot.channels.deleteMessage(channelId, posted.id).catch(() => undefined);
-				throw await this.pinHint(err, pin.channel);
+		for (const [channel, wanted] of DiscordNotifications.pinsByChannel(pinned)) {
+			const channelId = DiscordNotifications.pickChannelId(channels, channel, "pinned messages");
+			const own = await this.ownMessages(channelId);
+			const drift = DiscordNotifications.pinDrift(own, wanted);
+			if (drift.missing.length === 0 && drift.extras.length === 0) continue;
+			let extras = drift.extras;
+			for (const content of drift.missing) {
+				// A copy a lost answer or a failed pin left unpinned is pinned, not posted a second time.
+				const orphan = own.find((m) => !m.pinned && m.content === content);
+				const posted = orphan ?? (await bot.channels.createMessage(channelId, { content }));
+				try {
+					try {
+						await bot.channels.pin(channelId, posted.id);
+					} catch (err) {
+						// A channel at Discord's pin limit has no room for the new one until an obsolete one goes.
+						if (
+							!(err instanceof ProviderApiError && /\b30003\b/.test(String(err.details))) ||
+							extras.length === 0
+						)
+							throw err;
+						for (const old of extras) await bot.channels.deleteMessage(channelId, old.id);
+						extras = [];
+						await bot.channels.pin(channelId, posted.id);
+					}
+				} catch (err) {
+					// Leave no new unpinned copy behind to be pinned or posted again.
+					if (!orphan) await bot.channels.deleteMessage(channelId, posted.id).catch(() => undefined);
+					throw await this.pinHint(err, channel);
+				}
 			}
-			// The old one goes only once the new one is in place: a failure above leaves the old message pinned.
-			for (const old of own) await bot.channels.deleteMessage(channelId, old.id);
-			updated.push(`#${pin.channel}`);
+			// The obsolete ones go only once the new ones are in place: a failure above leaves them pinned.
+			for (const old of extras) await bot.channels.deleteMessage(channelId, old.id);
+			// Two runs at once can each post the same message: keep the oldest pin of each and drop the rest.
+			if (drift.missing.length > 0) {
+				const after = DiscordNotifications.pinDrift(await this.ownMessages(channelId), wanted);
+				for (const dup of after.extras) await bot.channels.deleteMessage(channelId, dup.id);
+			}
+			updated.push(`#${channel}`);
 		}
 		return { updated };
 	}

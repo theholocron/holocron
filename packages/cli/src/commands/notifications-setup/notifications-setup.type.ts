@@ -19,9 +19,9 @@ export interface RunNotificationsSetupInput {
 	/**
 	 * Waits for a person to press Enter, for a step that needs a permission given for one edit and taken away
 	 * afterwards. Defaults to a prompt when a terminal is attached, and to nothing (the step fails with the
-	 * explanation) when not.
+	 * explanation) when not. `false` never prompts, whatever the terminal.
 	 */
-	pause?: (message: string) => Promise<void>;
+	pause?: ((message: string) => Promise<void>) | false;
 	print?: NotificationsChannelAddPrint;
 	logger?: Logger;
 }

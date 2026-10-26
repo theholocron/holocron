@@ -608,13 +608,17 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			} else if (!inspected.pinned) {
 				pinnedProblems.push("the provider did not report the pinned messages");
 			} else {
-				for (const have of inspected.pinned) {
-					if (have.state === "missing")
+				// Every declared message needs an answer: a short list from the provider is not a clean bill.
+				wantPinned.forEach((want, i) => {
+					const have = inspected.pinned![i];
+					if (!have)
+						pinnedProblems.push(`#${shown(want.channel)}: not checked (the provider gave no answer)`);
+					else if (have.state === "missing") {
 						pinnedProblems.push(`#${shown(have.channel)}: no pinned message from the bot`);
-					if (have.state === "different") {
-						pinnedProblems.push(`#${shown(have.channel)}: the pinned message differs from the layout`);
+					} else if (have.state === "different") {
+						pinnedProblems.push(`#${shown(have.channel)}: the pinned messages differ from the layout`);
 					}
-				}
+				});
 			}
 		}
 		add(

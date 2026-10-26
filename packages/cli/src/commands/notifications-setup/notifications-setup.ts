@@ -276,7 +276,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			`the layout declares \`onboarding\`, but the \`${notifications.providerName}\` provider cannot manage it`
 		);
 	}
-	if (layout.pinned && !notifications.ensurePinned) {
+	if ((layout.pinned?.length ?? 0) > 0 && !notifications.ensurePinned) {
 		return refuse(
 			`the layout declares \`pinned\` messages, but the \`${notifications.providerName}\` provider cannot manage them`
 		);
@@ -442,7 +442,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		layout.server ||
 		layout.welcome ||
 		layout.onboarding ||
-		layout.pinned ||
+		(layout.pinned?.length ?? 0) > 0 ||
 		layout.application ||
 		layout.everyone
 	) {
@@ -476,10 +476,12 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		// A person at a terminal can be walked through the one-off Administrator step; a script gets the explanation.
 		/* v8 ignore next 4 -- the real prompt only runs with a terminal attached; tests pass their own */
 		const pause =
-			input.pause ??
-			(process.stdin.isTTY && process.stdout.isTTY
-				? async (message: string) => void (await prompt({ message }))
-				: undefined);
+			input.pause === false
+				? undefined
+				: (input.pause ??
+					(process.stdin.isTTY && process.stdout.isTTY
+						? async (message: string) => void (await prompt({ message }))
+						: undefined));
 		await apply("server settings", !!layout.server, () =>
 			withElevation(() => notifications.ensureServer!(layout.server!), {
 				label: "server settings",
@@ -489,7 +491,9 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			})
 		);
 		await apply("welcome screen", !!layout.welcome, () => notifications.ensureWelcome!(layout.welcome!));
-		await apply("pinned messages", !!layout.pinned, () => notifications.ensurePinned!(layout.pinned!));
+		await apply("pinned messages", (layout.pinned?.length ?? 0) > 0, () =>
+			notifications.ensurePinned!(layout.pinned!)
+		);
 		await apply("onboarding", !!layout.onboarding, () => notifications.ensureOnboarding!(layout.onboarding!));
 		await apply("bot application", !!layout.application, () =>
 			notifications.ensureApplication!(layout.application!)
