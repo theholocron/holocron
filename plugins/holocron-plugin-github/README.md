@@ -45,7 +45,7 @@ holocron auth set github.release  ghp_xxx  # semantic-release
 holocron auth set github.admin    ghp_xxx  # setup, secrets, environments
 ```
 
-See [docs/tokens.md](../../docs/tokens.md) for full scope requirements and CI setup.
+See the [token reference](https://docs.theholocron.dev/holocron/tokens/) for full scope requirements and CI setup.
 
 ## Config
 

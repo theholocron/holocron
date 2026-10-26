@@ -15,7 +15,7 @@ For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.),
 → keyring("github.<feature>") (stored via `holocron auth set`)
 ```
 
-No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure.
+No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command differs: `sync-wiki` reads only the environment (`HOLOCRON_READ_TOKEN`, then `GH_TOKEN`, then `GITHUB_TOKEN`) and does not look in the keyring, so it works in a GitHub Actions job with no extra setup but not from a token stored with `holocron auth set github.read`.
 
 ## Provider token resolution
 
@@ -23,11 +23,13 @@ For every other provider plugin (Axiom, Cloudflare, Sentry, Slack, Vercel, etc.)
 
 ```text
 --token flag
-  → HOLOCRON_<PROVIDER>_TOKEN   (e.g. HOLOCRON_CLOUDFLARE_TOKEN)
-  → <VENDOR>_TOKEN              (e.g. CLOUDFLARE_API_TOKEN)
+  → the plugin's own env var    (e.g. HOLOCRON_CLOUDFLARE_TOKEN)
+  → the vendor's native env var (e.g. CLOUDFLARE_API_TOKEN)
   → keyring("<provider>.<org>") (org-scoped — only when an org is active)
   → keyring("<provider>")       (unnamespaced fallback)
 ```
+
+Both env var names for every plugin are in the [provider table](#provider-tokens). Not every plugin follows the `HOLOCRON_<PROVIDER>_TOKEN` pattern: Neon and Postman use `_API_KEY`, and Clerk uses `_SECRET_KEY`.
 
 The org-scoped keyring step fires when an org name is active. Org resolution order:
 
@@ -54,33 +56,46 @@ holocron repo setup --org client-co
 
 ## GitHub tokens
 
-| Env var                    | Keyring key        | Type               | Used by                                                                                                                 | Required scopes                                                                                                |
-| -------------------------- | ------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `HOLOCRON_READ_TOKEN`      | `github.read`      | Fine-grained       | `clone`, CI run listing                                                                                                 | `contents: read`, `actions: read`, `metadata: read`                                                            |
-| `HOLOCRON_ISSUES_TOKEN`    | `github.issues`    | Fine-grained       | `issues` capability (create, transition, comment)                                                                       | `issues: read/write`, `metadata: read`                                                                         |
-| `HOLOCRON_SYNC_TOKEN`      | `github.sync`      | Fine-grained       | `sync github` — push workflow templates, open PRs                                                                       | `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                                   |
-| `HOLOCRON_RELEASE_TOKEN`   | `github.release`   | Fine-grained       | semantic-release: tags, releases, changelogs                                                                            | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                                      |
-| `HOLOCRON_ADMIN_TOKEN`     | `github.admin`     | Fine-grained       | `setup` — branch protection, rulesets, secrets, environments, labels, properties                                        | `administration: read/write`, `secrets: read/write`, `environments: read/write`                                |
-| `HOLOCRON_SECRETS_TOKEN`   | `github.secrets`   | Fine-grained (org) | the `secrets` capability — **organization**-scoped secret writes (repo and environment scopes prefer `github.admin`)    | Resource owner: org · Organization `secrets: read/write`                                                       |
-| `HOLOCRON_DEPLOY_TOKEN`    | `github.deploy`    | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                                                               | `pages: read/write`, `metadata: read`                                                                          |
-| `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync and org-level custom property values; `sync-roles` — read a team's members                          | Resource owner: org · `administration: write` · `members: read` · `organization_custom_properties: read/write` |
-| `HOLOCRON_USER_SYNC_TOKEN` | `github.user-sync` | Fine-grained       | `notifications link` and `sync-roles` — read and write the files that link GitHub accounts to members of other services | Repository: **only** `.github-private` · `contents: read/write`                                                |
+| Env var                    | Keyring key        | Type               | Used by                                                                                                                                                    | Required scopes                                                                                                                                                                                                                                                                      |
+| -------------------------- | ------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `HOLOCRON_READ_TOKEN`      | `github.read`      | Fine-grained       | `clone` (lists the org's repos, so the resource owner is the org), `sync-wiki`, CI run listing                                                             | `contents: read`, `actions: read`, `metadata: read`                                                                                                                                                                                                                                  |
+| `HOLOCRON_ISSUES_TOKEN`    | `github.issues`    | Fine-grained       | `issues` capability (create, transition, comment)                                                                                                          | `issues: read/write`, `metadata: read`                                                                                                                                                                                                                                               |
+| `HOLOCRON_SYNC_TOKEN`      | `github.sync`      | Fine-grained       | `sync github` — push workflow templates, open PRs; the release workflow's dispatch of `sync-dispatch.yml` on `.github`                                     | `actions: read/write`, `contents: read/write`, `pull_requests: read/write`, `workflows: read/write`                                                                                                                                                                                  |
+| `HOLOCRON_RELEASE_TOKEN`   | `github.release`   | Fine-grained       | semantic-release: tags, releases, changelogs                                                                                                               | `contents: read/write`, `issues: read/write`, `pull_requests: read/write`                                                                                                                                                                                                            |
+| `HOLOCRON_ADMIN_TOKEN`     | `github.admin`     | Fine-grained       | `setup` — repo settings, topics, branch protection, rulesets, security toggles, labels, custom property values, environments, repo and environment secrets | `administration: read/write`, `secrets: read/write`, `environments: read/write`, `issues: read/write` (labels), `custom_properties: write` (property values), `actions_variables: read/write` (Actions variables), `pull_requests: read` (only `cleanup-preview`, on a private repo) |
+| `HOLOCRON_SECRETS_TOKEN`   | `github.secrets`   | Fine-grained (org) | the `secrets` capability — **organization**-scoped secret writes (repo and environment scopes prefer `github.admin`)                                       | Resource owner: org · Organization `secrets: read/write`                                                                                                                                                                                                                             |
+| `HOLOCRON_DEPLOY_TOKEN`    | `github.deploy`    | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                                                                                                  | `pages: read/write`, `administration: read/write` (GitHub refuses the Pages settings calls without it), `metadata: read`                                                                                                                                                             |
+| `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync, organization Actions variables; `sync-roles` — read a team's members                                                                  | Resource owner: org · `administration: write` · `members: read` · organization `variables: read/write`                                                                                                                                                                               |
+| `HOLOCRON_USER_SYNC_TOKEN` | `github.user-sync` | Fine-grained       | `notifications link` and `sync-roles` — read and write the files that link GitHub accounts to members of other services                                    | Resource owner: org · Repository: **only** `.github-private` · `contents: read/write`                                                                                                                                                                                                |
+
+Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, the links files are read and written with `HOLOCRON_ORG_TOKEN`, then `HOLOCRON_ADMIN_TOKEN`; and `sync-roles` reads a team with `HOLOCRON_ORG_TOKEN`, falling back to `HOLOCRON_ADMIN_TOKEN`. The separate tokens exist so that neither has to be that broad. A fallback token needs the same access the dedicated one would: **Contents: read/write** on `.github-private` for the links files, and the org or admin token as documented above will not have it unless you add it, so `notifications link` and `sync-roles` fail with a 403 or 404 until you either set `HOLOCRON_USER_SYNC_TOKEN` or grant that permission.
 
 ### Why a separate org token?
 
-Fine-grained PATs have two resource owner modes: **personal** (your repos) and **organization** (org repos). Team management and org-level custom properties both require a PAT whose resource owner is the org. `HOLOCRON_ORG_TOKEN` covers these; `HOLOCRON_ADMIN_TOKEN` covers all repo-scoped operations.
+Fine-grained PATs have two resource owner modes: **personal** (your repos) and **organization** (org repos). Team management and reading a team's members require a PAT whose resource owner is the org. `HOLOCRON_ORG_TOKEN` covers these; `HOLOCRON_ADMIN_TOKEN` covers the repo-scoped operations, including a repo's custom property values.
 
 ## Provider tokens
 
-| Plugin      | Env var                       | Description                                             |
-| ----------- | ----------------------------- | ------------------------------------------------------- |
-| `vercel`    | `HOLOCRON_VERCEL_TOKEN`       | Vercel Personal Access Token                            |
-| `1password` | _(none — uses `op` CLI auth)_ | `op signin` on laptop; `OP_SERVICE_ACCOUNT_TOKEN` in CI |
-| `doppler`   | `HOLOCRON_DOPPLER_TOKEN`      | Doppler service token                                   |
-| `infisical` | `HOLOCRON_INFISICAL_TOKEN`    | Infisical Universal Auth client secret                  |
-| `clerk`     | `HOLOCRON_CLERK_SECRET_KEY`   | Clerk Backend Secret Key (`sk_live_…`)                  |
-| `neon`      | `HOLOCRON_NEON_API_KEY`       | Neon API key                                            |
-| `postman`   | `HOLOCRON_POSTMAN_API_KEY`    | Postman API key                                         |
+A test fails when a plugin resolves a token that has no row here. Each token resolves as described [above](#provider-token-resolution): the plugin's env var, then the vendor's, then the keyring.
+
+| Plugin       | Used for                       | Env var                     | Vendor env var             | Keyring key  | What to create                                                                                                           |
+| ------------ | ------------------------------ | --------------------------- | -------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `axiom`      | logs                           | `HOLOCRON_AXIOM_TOKEN`      | `AXIOM_TOKEN`              | `axiom`      | API token with dataset read and create ([settings](https://app.axiom.co/settings/api-tokens))                            |
+| `checkly`    | monitoring                     | `HOLOCRON_CHECKLY_TOKEN`    | `CHECKLY_API_KEY`          | `checkly`    | Checkly API key                                                                                                          |
+| `clerk`      | auth                           | `HOLOCRON_CLERK_SECRET_KEY` | `CLERK_SECRET_KEY`         | `clerk`      | The **secret** key (`sk_test_…` / `sk_live_…`), not the publishable key                                                  |
+| `cloudflare` | DNS, Pages deployment, Workers | `HOLOCRON_CLOUDFLARE_TOKEN` | `CLOUDFLARE_API_TOKEN`     | `cloudflare` | API token with Zone:Read, DNS:Edit, Cloudflare Pages:Edit, Workers Scripts:Edit (account) and Workers Routes:Edit (zone) |
+| `discord`    | posting through one webhook    | `HOLOCRON_DISCORD_WEBHOOK`  | `DISCORD_WEBHOOK_URL`      | `discord`    | The full webhook URL (`https://discord.com/api/webhooks/…`); the bot and OAuth credentials are in [Discord](#discord)    |
+| `doppler`    | secrets vault                  | `HOLOCRON_DOPPLER_TOKEN`    | `DOPPLER_TOKEN`            | `doppler`    | Personal token locally; a read-only service token in CI                                                                  |
+| `fern`       | docs site (wiki)               | `HOLOCRON_FERN_TOKEN`       | `FERN_TOKEN`               | `fern`       | Token from the Fern dashboard → Settings → API tokens                                                                    |
+| `infisical`  | secrets vault                  | `HOLOCRON_INFISICAL_TOKEN`  | `INFISICAL_TOKEN`          | `infisical`  | An access token that is itself a bearer; a client id and secret exchange is not supported yet (#100)                     |
+| `neon`       | storage                        | `HOLOCRON_NEON_API_KEY`     | `NEON_API_KEY`             | `neon`       | Neon API key                                                                                                             |
+| `netlify`    | deployment                     | `HOLOCRON_NETLIFY_TOKEN`    | `NETLIFY_AUTH_TOKEN`       | `netlify`    | Netlify personal access token                                                                                            |
+| `posthog`    | analytics                      | `HOLOCRON_POSTHOG_TOKEN`    | `POSTHOG_PERSONAL_API_KEY` | `posthog`    | A **personal** API key (`phx_…`), not the project key (`phc_…`)                                                          |
+| `postman`    | tooling                        | `HOLOCRON_POSTMAN_API_KEY`  | `POSTMAN_API_KEY`          | `postman`    | Postman API key                                                                                                          |
+| `sentry`     | error tracking                 | `HOLOCRON_SENTRY_TOKEN`     | `SENTRY_AUTH_TOKEN`        | `sentry`     | Auth token with `project:read`, `project:write` and `org:read`                                                           |
+| `slack`      | notifications                  | `HOLOCRON_SLACK_TOKEN`      | `SLACK_BOT_TOKEN`          | `slack`      | Bot User OAuth Token (`xoxb-…`) with the `chat:write` scope                                                              |
+| `vercel`     | deployment                     | `HOLOCRON_VERCEL_TOKEN`     | `VERCEL_TOKEN`             | `vercel`     | Personal access token; **Full Account** scope for team operations                                                        |
+| `1password`  | secrets vault                  | _(none)_                    | `OP_SERVICE_ACCOUNT_TOKEN` | _(none)_     | Uses the `op` CLI's own auth: `op signin` on a laptop, a service account token in CI. Holocron never stores it           |
 
 ### Discord
 
@@ -94,7 +109,7 @@ Discord has three separate credentials, each used by a different step, so a leak
 
 The bot token and the client secret look alike and are not interchangeable.
 
-**What the bot needs in the server.** `setup` and `create-server` need View Channels, Send Messages, Read Message History, Manage Channels, Manage Roles, Manage Webhooks, Manage Server, Create Public Threads, Create Private Threads and Send Messages in Threads. When one is missing, the command prints an invite link that asks for exactly these and updates the bot's role in place. A server the bot creates itself needs none of this while it owns the server.
+**What the bot needs in the server.** `setup` and `create-server` need View Channels, Send Messages, Read Message History, Manage Channels, Manage Roles, Manage Webhooks, Manage Server, Create Public Threads, Create Private Threads and Send Messages in Threads, plus Pin Messages when the layout pins messages. When one is missing, the command prints an invite link that asks for exactly these and updates the bot's role in place. A server the bot creates itself needs none of this while it owns the server.
 
 **What the application needs in the developer portal.** The **Server Members Intent** (switched on by `application.intents.members` in the layout) for `sync-roles`, and the redirect `http://localhost:53682/callback` under OAuth2 → Redirects for `notifications link`. Making the bot public, and the verification review, stay manual.
 
@@ -142,11 +157,60 @@ holocron auth list
 
 ## CI secrets
 
+In GitHub Actions, map your repository or org secrets to the expected env var names in each workflow's `env:` block:
+
 ```yaml
 env:
   HOLOCRON_SYNC_TOKEN: ${{ secrets.SYNC_TOKEN }}
   HOLOCRON_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 ```
+
+### CI-only tokens
+
+These are repository secrets that a workflow reads. Storing one locally is optional. Two should stay out of the keyring: `SENTINEL_DOPPLER_TOKEN`, because the `doppler` key holds your personal login and a read-only service token would overwrite it, and `HOLOCRON_DEPLOYMENTS_TOKEN`, because nothing in the CLI reads it.
+
+| Secret                       | Read by                                                                                           | What it is                                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `HOLOCRON_RELEASE_TOKEN`     | `delivery.publish` (the CLI never resolves it)                                                    | Fine-grained PAT for tags, releases and changelogs. The workflow falls back to `HOLOCRON_SYNC_TOKEN`, then to `github.token` |
+| `HOLOCRON_SECRETS_TOKEN`     | `sentinel.secretsSync.yml`, passed with `--token github=…`; also the `secrets` capability locally | Organization-owned PAT with only organization **Secrets: read/write**                                                        |
+| `HOLOCRON_DEPLOYMENTS_TOKEN` | `delivery.previewDeploy`, through `secrets: inherit`                                              | PAT with only **Deployments: read/write**; creates the GitHub Deployment and posts its status for a PR preview               |
+| `VERCEL_TOKEN`               | `sentinel.deploy.yml`, `sentinel.secretsSync.yml`, the preview workflows                          | A Vercel personal access token (Vercel has no separate service token). The same one `holocron auth set vercel` stores        |
+| `SENTINEL_DOPPLER_TOKEN`     | `sentinel.secretsSync.yml`, exposed to the CLI as `DOPPLER_TOKEN`                                 | A Doppler **service token** for the `sentinel` project's `prd` config, **read** access only                                  |
+| `HOLOCRON_FERN_TOKEN`        | the `wiki` reusable workflow, which passes it to the Fern CLI as `FERN_TOKEN`                     | The Fern API token. Password protection is set in the Fern dashboard and needs no token here                                 |
+
+The release workflow is the one place a broader token is used as a fallback. The CLI never falls back from one GitHub feature token to another, except that the `secrets` capability tries `github.secrets` or `github.admin` depending on the scope it writes (see [Organization secrets](#organization-secrets)).
+
+#### Creating a fine-grained PAT for CI
+
+For `HOLOCRON_SECRETS_TOKEN` and `HOLOCRON_DEPLOYMENTS_TOKEN`:
+
+1. Open `github.com/settings/tokens?type=beta` and choose **Generate new token**.
+2. **Resource owner**: `theholocron` (the organization, not your account).
+3. **Name** it after the secret and say in the description that it is CI-only and what it grants.
+4. **Repository access**: irrelevant for `HOLOCRON_SECRETS_TOKEN` (organization secrets are not per repository), so pick "Public repositories". For `HOLOCRON_DEPLOYMENTS_TOKEN` choose the repositories that opt into `delivery.previewDeploy`, because that permission is per repository.
+5. **Permissions**: only the one in the table (organization Secrets, or repository Deployments), read and write. Leave everything else at "No access".
+6. Generate it and store it: `gh secret set <NAME> --repo theholocron/holocron`.
+
+For `VERCEL_TOKEN`, reuse the stored local token without ever printing it:
+
+```bash
+security find-generic-password -s "com.theholocron.cli" -a "vercel" -w | gh secret set VERCEL_TOKEN --repo theholocron/holocron
+```
+
+macOS asks once to allow the keychain access. A separate CI-only token from `vercel.com/account/tokens` works too.
+
+For `SENTINEL_DOPPLER_TOKEN`: in Doppler open the `sentinel` project → `prd` config → **Access** → **Service Tokens**, generate one named for CI with **Read** access, then `gh secret set SENTINEL_DOPPLER_TOKEN --repo theholocron/holocron`.
+
+### Organization secrets
+
+The `secrets` capability (what `secrets sync`, `secret-set` and `notifications setup` write through) picks its token by the scope it writes:
+
+| Scope written                   | Token tried first                                   | Falls back to                                   |
+| ------------------------------- | --------------------------------------------------- | ----------------------------------------------- |
+| **organization** (`org=<name>`) | `HOLOCRON_SECRETS_TOKEN` / keyring `github.secrets` | `HOLOCRON_ADMIN_TOKEN` / keyring `github.admin` |
+| repository, environment         | `HOLOCRON_ADMIN_TOKEN` / keyring `github.admin`     | `HOLOCRON_SECRETS_TOKEN` / `github.secrets`     |
+
+An explicit `--token` serves every scope, and a setup with only one of the two tokens keeps working. They are separate because `github.admin` is a repository-scoped PAT, while an organization secret needs an organization-owned credential with organization **Secrets: read/write**, which no other token carries. Keeping that permission off `github.admin` keeps its blast radius small.
 
 ## Explicit override
 
