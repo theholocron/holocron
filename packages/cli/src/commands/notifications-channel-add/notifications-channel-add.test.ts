@@ -863,7 +863,7 @@ describe("provisionChannel — monitoring feed", () => {
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 
-	it("tells you how to recover when the one-time URL is lost to a failed hand-over", async () => {
+	it("says the webhook is kept and a re-run retries, when the hand-over fails", async () => {
 		const n = fakeNotifications({
 			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://discord.com/api/webhooks/1/secret" })),
 		});
@@ -874,7 +874,7 @@ describe("provisionChannel — monitoring feed", () => {
 		});
 		const failure = await provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed }).catch((e: Error) => e);
 		expect((failure as Error).message).toMatch(
-			/webhook Checkly was created but handing its URL to checkly failed \(.*Checkly said no.*\) — delete the webhook in discord and re-run/
+			/webhook Checkly was created but handing its URL to checkly failed \(.*Checkly said no.*\) — the webhook is kept, so re-run once that is fixed/
 		);
 		expect((failure as Error).message).not.toContain("secret");
 	});
