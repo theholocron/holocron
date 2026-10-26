@@ -133,7 +133,7 @@ A service that has its own alerting can post into a channel directly, without a 
 
 With Checkly, the alert channel is a webhook formatted for Discord, sending failures, recoveries and degraded notices, and it is subscribed to every check on the account. Checks made through an API are never subscribed on their own, so a check added later is picked up by the next `setup` run. Checkly already labels a channel with its type ("Discord …"), which is why the default name is `Message to #uptime` and does not repeat it. An alert channel with the same name that already exists is adopted and brought in line (a new URL, the missing subscriptions) and keeps its own message template and send settings; nothing is duplicated.
 
-A channel named differently (for example `Discord #uptime` from an earlier version) is not found by name: rename it in Checkly to the new name first, or `setup` makes a second one and both alert.
+A channel named differently (for example `Discord #uptime` from an earlier version) is not found by name. **Rename it in Checkly to the new default name before running `setup`**; otherwise `setup` makes a second channel for the same webhook and both alert, or, if the webhook's URL cannot be read back, fails because it can neither find a channel to update nor create one. Once renamed, do not run `setup` from an older release: it looks for the old name and will not find the renamed channel.
 
 If the dedicated webhook already exists, its URL cannot be read back, so an existing alert channel keeps the URL it has and only its subscriptions are reconciled. Creating an alert channel that does not exist yet needs a fresh webhook: delete the old webhook in Discord and run `setup` again.
 
