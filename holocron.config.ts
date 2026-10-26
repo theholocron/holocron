@@ -175,7 +175,7 @@ export default defineConfig({
 								},
 								{ name: "errors", topic: "Errors from Sentinel and Sentry", webhook: true },
 								// Checkly posts here through a webhook of its own ("Checkly"), whose URL goes straight to Checkly. It
-								// adopts the alert channel named "Discord #uptime" and subscribes every check on the account.
+								// adopts the alert channel named "Message to #uptime" and subscribes every check on the account.
 								{
 									name: "uptime",
 									topic: "Monitoring up/down",

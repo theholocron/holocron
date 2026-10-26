@@ -736,7 +736,7 @@ describe("provisionChannel — webhook avatar", () => {
 });
 
 describe("provisionChannel — monitoring feed", () => {
-	const feed = { monitoring: { name: "Discord #uptime", webhook: "Checkly" } };
+	const feed = { monitoring: { name: "Message to #uptime", webhook: "Checkly" } };
 	const fakeMonitoring = (over: Partial<Monitoring> = {}): Monitoring =>
 		({
 			key: "monitoring",
@@ -769,13 +769,13 @@ describe("provisionChannel — monitoring feed", () => {
 		expect(n.ensureWebhook).toHaveBeenCalledTimes(1);
 		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "uptime", name: "Checkly", category: "ALERTS" });
 		expect(m.ensureAlertChannel).toHaveBeenCalledWith({
-			name: "Discord #uptime",
+			name: "Message to #uptime",
 			format: "discord",
 			url: "https://discord.com/api/webhooks/1/secret",
 		});
-		expect(out.alertChannel).toEqual({ name: "Discord #uptime", created: true, updated: [], subscribed: 2 });
+		expect(out.alertChannel).toEqual({ name: "Message to #uptime", created: true, updated: [], subscribed: 2 });
 		const text = lines.join("\n");
-		expect(text).toContain("created alert channel Discord #uptime via webhook Checkly (2 checks)");
+		expect(text).toContain("created alert channel Message to #uptime via webhook Checkly (2 checks)");
 		// The URL is a credential and is never printed.
 		expect(text).not.toContain("secret");
 	});
@@ -820,7 +820,7 @@ describe("provisionChannel — monitoring feed", () => {
 			{
 				name: "uptime",
 				feeds: {
-					monitoring: { name: "Discord #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" },
+					monitoring: { name: "Message to #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" },
 				},
 			}
 		);
@@ -835,7 +835,9 @@ describe("provisionChannel — monitoring feed", () => {
 		const lines: string[] = [];
 		await provisionChannel(deps(n, fakeMonitoring(), lines), {
 			name: "uptime",
-			feeds: { monitoring: { name: "Discord #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" } },
+			feeds: {
+				monitoring: { name: "Message to #uptime", webhook: "Checkly", avatar: "data:image/png;base64,AA" },
+			},
 		});
 		expect(n.ensureWebhook).toHaveBeenCalledWith(
 			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,AA" })
@@ -887,8 +889,8 @@ describe("provisionChannel — monitoring feed", () => {
 		const lines: string[] = [];
 		const tally = { ok: 0, skip: 0 };
 		await provisionChannel({ ...deps(n, m, lines), tally }, { name: "uptime", feeds: feed });
-		expect(m.ensureAlertChannel).toHaveBeenCalledWith({ name: "Discord #uptime", format: "discord" });
-		expect(lines.join("\n")).toContain("exists  alert channel Discord #uptime");
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith({ name: "Message to #uptime", format: "discord" });
+		expect(lines.join("\n")).toContain("exists  alert channel Message to #uptime");
 		expect(tally.skip).toBeGreaterThan(0);
 	});
 
@@ -904,7 +906,7 @@ describe("provisionChannel — monitoring feed", () => {
 		const lines: string[] = [];
 		await provisionChannel(deps(n, m, lines), { name: "uptime", feeds: feed });
 		expect(lines.join("\n")).toContain(
-			"updated alert channel Discord #uptime via webhook Checkly: url, subscriptions (3 checks)"
+			"updated alert channel Message to #uptime via webhook Checkly: url, subscriptions (3 checks)"
 		);
 	});
 
@@ -917,7 +919,7 @@ describe("provisionChannel — monitoring feed", () => {
 		expect(n.ensureWebhook).not.toHaveBeenCalled();
 		expect(m.ensureAlertChannel).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toContain(
-			"would ensure webhook Checkly and alert channel Discord #uptime (monitoring)"
+			"would ensure webhook Checkly and alert channel Message to #uptime (monitoring)"
 		);
 		expect(tally.skip).toBe(3);
 		// And without a tally to count into.
