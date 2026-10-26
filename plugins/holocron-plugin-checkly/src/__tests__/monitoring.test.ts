@@ -355,6 +355,21 @@ describe("ChecklyMonitoring", () => {
 			});
 		});
 
+		it("changes only the format, keeping the URL it has, when no new URL comes with it", async () => {
+			const teams = webhook({ webhookType: "WEBHOOK_MSTEAMS" }, [sub("a")]);
+			const { capability, stub } = makeCapability([
+				{ body: [teams] },
+				{ body: [check("a")] },
+				{ body: teams },
+				{ body: teams },
+			]);
+			const result = await capability.ensureAlertChannel({ name: "Message to #uptime", format: "discord" });
+			expect(result.updated).toEqual(["format"]);
+			expect(writes(stub)[0]?.body).toMatchObject({
+				config: { url: "https://discord.com/api/webhooks/1/old", webhookType: "WEBHOOK_DISCORD" },
+			});
+		});
+
 		it("ignores a channel of another type or name, and keeps subscriptions to groups on an update", async () => {
 			const email = { ...webhook(), id: 1, type: "EMAIL", config: { address: "a@b.c" } };
 			const other = webhook({ name: "Slack-ish" }, [], 2);
