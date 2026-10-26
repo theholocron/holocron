@@ -555,15 +555,33 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 
 		const variables = repo?.variables;
-		if (variables?.repo && Object.keys(variables.repo).length > 0 && source.syncVariables) {
-			steps.push(
-				await runStep("source", "sync variables", dryRun, () =>
-					source.syncVariables!(variables.repo!, { prune: variables.prune === true })
-				)
-			);
+		const prune = variables?.prune === true;
+		// A scope that is declared empty still matters with `prune`: it deletes everything in it.
+		const declares = (scope: object | undefined): boolean =>
+			scope !== undefined && (Object.keys(scope).length > 0 || prune);
+		// A dry run still reads what exists, so the step can say what would change; it writes nothing.
+		const variableStep = async (step: string, body: (dryRun: boolean) => Promise<string>) => {
+			const result = await runStep("source", step, false, () => body(dryRun));
+			return dryRun && result.status === "ok" ? { ...result, status: "dry-run" as const } : result;
+		};
+		if (declares(variables?.repo)) {
+			if (!source.syncVariables) {
+				steps.push({
+					capability: "source",
+					step: "sync variables",
+					status: "skip",
+					message: "provider does not implement syncVariables",
+				});
+			} else {
+				steps.push(
+					await variableStep("sync variables", (dry) =>
+						source.syncVariables!(variables!.repo!, { prune, dryRun: dry })
+					)
+				);
+			}
 			print(formatStep(steps[steps.length - 1]!));
 		}
-		if (variables?.org && Object.keys(variables.org).length > 0) {
+		if (declares(variables?.org)) {
 			const org = config.org ?? (input.context.repo ?? repo?.name ?? "").split("/")[0] ?? "";
 			if (!source.syncOrgVariables) {
 				steps.push({
@@ -581,7 +599,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				});
 			} else {
 				const declared = Object.fromEntries(
-					Object.entries(variables.org).map(([name, v]) => [
+					Object.entries(variables!.org!).map(([name, v]) => [
 						name,
 						typeof v === "string"
 							? { value: v, visibility: "all" as const }
@@ -589,8 +607,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					])
 				);
 				steps.push(
-					await runStep("source", "sync org variables", dryRun, () =>
-						source.syncOrgVariables!(org, declared, { prune: variables.prune === true })
+					await variableStep("sync org variables", (dry) =>
+						source.syncOrgVariables!(org, declared, { prune, dryRun: dry })
 					)
 				);
 			}

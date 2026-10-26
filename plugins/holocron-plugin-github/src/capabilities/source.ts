@@ -221,14 +221,17 @@ export class GitHubSource implements Source {
 		return syncTopics(this.client, this.repo, topics);
 	}
 
-	async syncVariables(variables: Record<string, string>, opts?: { prune?: boolean }): Promise<string> {
+	async syncVariables(
+		variables: Record<string, string>,
+		opts?: { prune?: boolean; dryRun?: boolean }
+	): Promise<string> {
 		return syncVariables(this.client, this.repo, variables, opts);
 	}
 
 	async syncOrgVariables(
 		org: string,
 		variables: Record<string, { value: string; visibility: "all" | "private" }>,
-		opts?: { prune?: boolean }
+		opts?: { prune?: boolean; dryRun?: boolean }
 	): Promise<string> {
 		if (!this.orgClient) {
 			throw new Error(

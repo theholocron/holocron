@@ -3173,8 +3173,8 @@ describe("runSetup", () => {
 			});
 			await run({ variables: { repo: { A: "1" }, prune: true } }, { syncVariables });
 			expect(seen).toEqual([
-				[{ A: "1" }, { prune: false }],
-				[{ A: "1" }, { prune: true }],
+				[{ A: "1" }, { prune: false, dryRun: false }],
+				[{ A: "1" }, { prune: true, dryRun: false }],
 			]);
 		});
 
@@ -3205,7 +3205,7 @@ describe("runSetup", () => {
 					HIDDEN: { value: "x", visibility: "private" },
 					DEFAULT: { value: "y", visibility: "all" },
 				},
-				{ prune: false },
+				{ prune: false, dryRun: false },
 			]);
 			expect(report.steps.find((s) => s.step === "sync org variables")?.status).toBe("ok");
 		});
@@ -3237,15 +3237,56 @@ describe("runSetup", () => {
 			});
 		});
 
-		it("only plans in a dry run", async () => {
-			let called = false;
+		it("reads and reports the plan in a dry run, and writes nothing", async () => {
+			const seen: unknown[] = [];
 			const report = await run(
 				{ variables: { repo: { A: "1" } } },
-				{ syncVariables: async () => ((called = true), "x") },
+				{
+					syncVariables: async (_v: unknown, o: unknown) => {
+						seen.push(o);
+						return "would create 1, would update 0, 0 unchanged";
+					},
+				},
 				{ dryRun: true }
 			);
-			expect(called).toBe(false);
-			expect(report.steps.find((s) => s.step === "sync variables")?.status).toBe("dry-run");
+			expect(seen).toEqual([{ prune: false, dryRun: true }]);
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "dry-run",
+				message: "would create 1, would update 0, 0 unchanged",
+			});
+		});
+
+		it("reports a failure to read in a dry run as a failure", async () => {
+			const report = await run(
+				{ variables: { repo: { A: "1" } } },
+				{
+					syncVariables: async () => {
+						throw new Error("boom");
+					},
+				},
+				{ dryRun: true }
+			);
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "fail",
+				message: "boom",
+			});
+		});
+
+		it("still reconciles a scope declared empty when pruning, and ignores it otherwise", async () => {
+			const seen: Array<Record<string, string>> = [];
+			const syncVariables = async (v: Record<string, string>) => (seen.push(v), "ok");
+			await run({ variables: { repo: {} } }, { syncVariables });
+			expect(seen).toEqual([]);
+			await run({ variables: { repo: {}, prune: true } }, { syncVariables });
+			expect(seen).toEqual([{}]);
+		});
+
+		it("says when the provider cannot sync repository variables", async () => {
+			const report = await run({ variables: { repo: { A: "1" } } }, {});
+			expect(report.steps.find((s) => s.step === "sync variables")).toMatchObject({
+				status: "skip",
+				message: "provider does not implement syncVariables",
+			});
 		});
 
 		it("fails the org step when there is no organization to name", async () => {

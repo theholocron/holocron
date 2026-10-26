@@ -121,10 +121,10 @@ repo: {
 },
 ```
 
-`holocron repo setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: CI_BRANCH_BASE, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it prints the plan and changes nothing.
+`holocron repo setup` creates what is missing, updates what differs and leaves what matches, then prints a summary such as `1 created, 1 updated, 5 unchanged, 2 not declared, left alone: CI_BRANCH_BASE, OLD_ONE`. Variables it does not declare are only listed, never deleted, unless `prune` is on. With `--dry-run` it still reads what exists and prints the plan, such as `would create 1, would update 1, 5 unchanged`, and changes nothing.
 
 Values are stored in plain text and shown in the UI. Never declare a secret here; use the `secrets` capability for those. Names follow GitHub's rules: letters, digits and underscores, not starting with a digit or `GITHUB_`.
 
-Declare organization variables in one repository only (the one that owns the organization's configuration), or two repositories will keep overwriting each other. `visibility: "selected"` (a hand-picked list of repositories) is not managed: use `all` or `private`.
+Declare organization variables in one repository only (the one that owns the organization's configuration), or two repositories will keep overwriting each other. `visibility: "selected"` (a hand-picked list of repositories) is not managed: use `all` or `private`. An existing variable limited to selected repositories is never deleted, even with `prune`; it is listed as not managed. Names are compared without regard to case, as GitHub does, and a scope declared empty (`repo: {}`) with `prune` deletes everything in it.
 
 Tokens: repository variables use `HOLOCRON_ADMIN_TOKEN` (**Variables: read/write**), organization variables use `HOLOCRON_ORG_TOKEN` (organization **Variables: read/write**). See the [Token Reference](/holocron/tokens/).

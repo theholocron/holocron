@@ -70,8 +70,53 @@ describe("syncVariables", () => {
 		await expect(syncVariables(client, REPO, { A: "1" })).rejects.toThrow();
 	});
 
+	it("never deletes an organization variable limited to selected repositories, even with prune", async () => {
+		const { client, calls } = make([
+			listing(
+				{ name: "SEL", value: "z", visibility: "selected" },
+				{ name: "GONE", value: "z", visibility: "all" }
+			),
+			{ status: 204 },
+		]);
+		const summary = await syncOrgVariables(client, REPO, "theholocron", {}, { prune: true });
+		expect(summary).toBe(
+			"0 created, 0 updated, 0 unchanged, 1 deleted, 1 limited to selected repositories, not managed: SEL"
+		);
+		expect(writes(calls).map((c) => c.url)).toEqual([expect.stringContaining("/actions/variables/GONE")]);
+	});
+
+	it("matches names without regard to case, so a pruned run never deletes what it just updated", async () => {
+		const { client, calls } = make([listing({ name: "TURBO_TEAM", value: "old" }), { status: 204 }]);
+		const summary = await syncVariables(client, REPO, { turbo_team: "new" }, { prune: true });
+		expect(summary).toBe("0 created, 1 updated, 0 unchanged");
+		expect(writes(calls).map((c) => [c.method, new URL(c.url).pathname])).toEqual([
+			["PATCH", "/repos/theholocron/holocron/actions/variables/TURBO_TEAM"],
+		]);
+	});
+
+	it("describes the changes in a dry run and writes nothing", async () => {
+		const { client, calls } = make([
+			listing({ name: "SAME", value: "1" }, { name: "CHANGED", value: "old" }, { name: "STRAY", value: "z" }),
+		]);
+		const summary = await syncVariables(
+			client,
+			REPO,
+			{ SAME: "1", CHANGED: "new", FRESH: "x" },
+			{ prune: true, dryRun: true }
+		);
+		expect(summary).toBe("would create 1, would update 1, 1 unchanged, 1 would be deleted");
+		expect(writes(calls)).toEqual([]);
+	});
+
+	it("says what a dry run leaves alone without prune", async () => {
+		const { client } = make([listing({ name: "STRAY", value: "z" })]);
+		expect(await syncVariables(client, REPO, {}, { dryRun: true })).toBe(
+			"would create 0, would update 0, 0 unchanged, 1 not declared, left alone: STRAY"
+		);
+	});
+
 	it("refuses a name GitHub would reject, before touching anything", async () => {
-		for (const name of ["1ABC", "HAS-DASH", "GITHUB_TOKEN", "github_x", "with space"]) {
+		for (const name of ["1ABC", "HAS-DASH", "GITHUB_TOKEN", "github_x", "with space", "A".repeat(257)]) {
 			const { client, calls } = make([]);
 			await expect(syncVariables(client, REPO, { [name]: "x" })).rejects.toThrow(/invalid variable name/);
 			expect(calls).toEqual([]);

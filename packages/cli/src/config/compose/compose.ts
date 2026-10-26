@@ -76,13 +76,23 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 		}
 	}
 
-	// Merge repo — scalars last-wins; properties Object.assign; topics/teams union
+	// Merge repo — scalars last-wins; properties and variables Object.assign; topics/teams union
 	let repo: Partial<Omit<RepoConfig, "name">> = {};
 	for (const cap of caps) {
 		if (!cap.repo) continue;
-		const { properties, topics, teams, ...scalars } = cap.repo;
+		const { properties, topics, teams, variables, ...scalars } = cap.repo;
 		repo = { ...repo, ...scalars };
 		if (properties) repo.properties = { ...repo.properties, ...properties };
+		if (variables) {
+			repo.variables = {
+				...repo.variables,
+				...variables,
+				...(repo.variables?.repo || variables.repo
+					? { repo: { ...repo.variables?.repo, ...variables.repo } }
+					: {}),
+				...(repo.variables?.org || variables.org ? { org: { ...repo.variables?.org, ...variables.org } } : {}),
+			};
+		}
 		if (topics) {
 			const merged = new Set([...(repo.topics ?? []), ...topics]);
 			repo.topics = [...merged];

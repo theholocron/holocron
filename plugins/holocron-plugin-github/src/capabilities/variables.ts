@@ -9,46 +9,54 @@ export interface OrgVariable {
 
 /** GitHub's rule for a variable name: letters, digits and underscores, not starting with a digit or `GITHUB_`. */
 const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+/** Longest name GitHub accepts. */
+const MAX_NAME = 256;
 
 function assertNames(names: string[]): void {
 	for (const name of names) {
-		if (!NAME.test(name) || name.toUpperCase().startsWith("GITHUB_")) {
+		if (!NAME.test(name) || name.length > MAX_NAME || name.toUpperCase().startsWith("GITHUB_")) {
 			throw new Error(
-				`invalid variable name ${JSON.stringify(name)}: use letters, digits and underscores, not starting with a digit or GITHUB_`
+				`invalid variable name ${JSON.stringify(name)}: use letters, digits and underscores (at most ${MAX_NAME}), not starting with a digit or GITHUB_`
 			);
 		}
 	}
 }
 
-interface Change {
-	name: string;
-	/** The body that creates it or brings it in line. */
-	body: Record<string, unknown>;
-	/** Whether it has to be changed at all. */
-	differs: boolean;
+/** GitHub treats variable names as case-insensitive, so every comparison goes through this. */
+const key = (name: string): string => name.toUpperCase();
+
+interface Options {
+	prune: boolean;
+	/** Read the current state and describe what would change; write nothing. */
+	dryRun: boolean;
 }
 
 /**
  * Bring one scope's variables in line with the declaration: create what is missing, update what differs, leave what
- * already matches. Variables that exist but are not declared are left alone, or deleted with `prune`. Returns a
- * one-line summary, naming the undeclared ones that were left so drift is visible.
+ * already matches. Variables that exist but are not declared are left alone, or deleted with `prune`, except an
+ * organization variable limited to selected repositories, which this client cannot manage and so is never deleted.
+ * Returns a one-line summary, naming the ones left so drift is visible. In a dry run it only describes the changes.
  */
 async function reconcile(
 	client: GitHubClient,
 	repo: string,
 	scope: VariableScope,
 	wanted: Array<{ name: string; value: string; visibility?: "all" | "private" }>,
-	prune: boolean
+	opts: Options
 ): Promise<string> {
 	assertNames(wanted.map((w) => w.name));
-	const existing = new Map((await client.variables.listVariables(repo, scope)).map((v) => [v.name, v]));
+	const existing = new Map((await client.variables.listVariables(repo, scope)).map((v) => [key(v.name), v]));
 	const counts = { created: 0, updated: 0, unchanged: 0, deleted: 0 };
 
 	for (const want of wanted) {
-		const have = existing.get(want.name);
-		const body: Change["body"] = { name: want.name, value: want.value };
+		const have = existing.get(key(want.name));
+		const body: Record<string, unknown> = { name: want.name, value: want.value };
 		if (want.visibility) body["visibility"] = want.visibility;
 		if (!have) {
+			if (opts.dryRun) {
+				counts.created++;
+				continue;
+			}
 			try {
 				await client.variables.createVariable(repo, scope, body);
 				counts.created++;
@@ -61,23 +69,30 @@ async function reconcile(
 			counts.unchanged++;
 			continue;
 		}
-		await client.variables.updateVariable(repo, scope, want.name, body);
+		// Address it by the name GitHub holds it under when that is spelled differently.
+		if (!opts.dryRun) await client.variables.updateVariable(repo, scope, have?.name ?? want.name, body);
 		counts.updated++;
 	}
 
-	const declared = new Set(wanted.map((w) => w.name));
-	const undeclared = [...existing.keys()].filter((name) => !declared.has(name));
-	if (prune) {
-		for (const name of undeclared) {
-			await client.variables.deleteVariable(repo, scope, name);
+	const declared = new Set(wanted.map((w) => key(w.name)));
+	const undeclared = [...existing.entries()].filter(([k]) => !declared.has(k)).map(([, v]) => v);
+	const unmanaged = undeclared.filter((v) => v.visibility === "selected");
+	if (opts.prune) {
+		for (const v of undeclared.filter((u) => u.visibility !== "selected")) {
+			if (!opts.dryRun) await client.variables.deleteVariable(repo, scope, v.name);
 			counts.deleted++;
 		}
 	}
 
-	const parts = [`${counts.created} created`, `${counts.updated} updated`, `${counts.unchanged} unchanged`];
-	if (counts.deleted > 0) parts.push(`${counts.deleted} deleted`);
-	if (!prune && undeclared.length > 0)
-		parts.push(`${undeclared.length} not declared, left alone: ${undeclared.join(", ")}`);
+	const parts = opts.dryRun
+		? [`would create ${counts.created}`, `would update ${counts.updated}`, `${counts.unchanged} unchanged`]
+		: [`${counts.created} created`, `${counts.updated} updated`, `${counts.unchanged} unchanged`];
+	if (counts.deleted > 0) parts.push(`${counts.deleted} ${opts.dryRun ? "would be deleted" : "deleted"}`);
+	const left = opts.prune ? unmanaged : undeclared;
+	if (left.length > 0) {
+		const why = opts.prune ? "limited to selected repositories, not managed" : "not declared, left alone";
+		parts.push(`${left.length} ${why}: ${left.map((v) => v.name).join(", ")}`);
+	}
 	return parts.join(", ");
 }
 
@@ -86,10 +101,13 @@ export function syncVariables(
 	client: GitHubClient,
 	repo: string,
 	variables: Record<string, string>,
-	opts: { prune?: boolean } = {}
+	opts: { prune?: boolean; dryRun?: boolean } = {}
 ): Promise<string> {
 	const wanted = Object.entries(variables).map(([name, value]) => ({ name, value }));
-	return reconcile(client, repo, { kind: "repo" }, wanted, opts.prune === true);
+	return reconcile(client, repo, { kind: "repo" }, wanted, {
+		prune: opts.prune === true,
+		dryRun: opts.dryRun === true,
+	});
 }
 
 /** Reconcile an organization's Actions variables. `repo` is only the coordinate the client is bound to. */
@@ -98,8 +116,11 @@ export function syncOrgVariables(
 	repo: string,
 	org: string,
 	variables: Record<string, OrgVariable>,
-	opts: { prune?: boolean } = {}
+	opts: { prune?: boolean; dryRun?: boolean } = {}
 ): Promise<string> {
 	const wanted = Object.entries(variables).map(([name, v]) => ({ name, value: v.value, visibility: v.visibility }));
-	return reconcile(client, repo, { kind: "organization", org }, wanted, opts.prune === true);
+	return reconcile(client, repo, { kind: "organization", org }, wanted, {
+		prune: opts.prune === true,
+		dryRun: opts.dryRun === true,
+	});
 }
