@@ -184,6 +184,11 @@ jobs:
       deployments: write
       pull-requests: write
     steps:
+      - name: Warn when the Cloudflare account id is missing
+        # Without it the request below cannot find the preview deployments, so closing the PR leaves them behind.
+        if: ${{ (inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '') && vars.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The preview deployments cannot be deleted without it. Declare it under repo.variables.org in holocron.config.ts and run holocron repo setup."
+
       - name: Delete Cloudflare Pages deployments for branch
         if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
         env:

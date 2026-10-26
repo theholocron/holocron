@@ -55,6 +55,11 @@ Three repos, one rule per concern:
   `delivery.publish` workflow's separate `deploy` job runs `holocron
 deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   and it generates no workflow of its own.
+  The workflows read a few organization Actions variables (`vars.TURBO_TEAM`, `vars.CLOUDFLARE_ACCOUNT_ID`, …). They
+  are declared in `holocron.config.ts` under `repo.variables` and written by `holocron repo setup`, never set by hand. A
+  missing one fails quietly, so the templates warn and say where it is declared: the shared `setup` composite action
+  when `TURBO_TOKEN` is set without `TURBO_TEAM`, and `preview.yml` (deploy and cleanup) when a Pages project is
+  configured without `CLOUDFLARE_ACCOUNT_ID`. Account-specific values deliberately have no default in the templates.
   **`theholocron/.github` and `.github-private` are pure sync targets** —
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
   are generated from `packages/astromech/src/templates/` and pushed by
