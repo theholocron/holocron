@@ -874,12 +874,40 @@ export class DiscordNotifications implements Notifications {
 			.map((m) => ({ id: m.id, content: m.content, pinned: m.pinned === true }));
 	}
 
-	/** The layout's messages grouped by channel, in the order the channels first appear. */
-	private static pinsByChannel(pinned: NotificationsPinnedLayout[]): Map<string, string[]> {
+	/**
+	 * The layout's text with each `#name` that is one of the server's channels turned into Discord's own link to it
+	 * (`<#id>`), so the message shows clickable channels. A name that matches no channel, or more than one, is left as written.
+	 */
+	private static linkChannels(content: string, channels: readonly DiscordChannel[]): string {
+		const idsByName = new Map<string, string[]>();
+		for (const c of channels) {
+			if (c.type === ChannelType.Category) continue;
+			idsByName.set(c.name.toLowerCase(), [...(idsByName.get(c.name.toLowerCase()) ?? []), c.id]);
+		}
+		// A URL is split out whole, so a fragment inside one is never read as a channel.
+		return content
+			.split(/(https?:\/\/\S+)/)
+			.map((part, i) =>
+				i % 2 === 1
+					? part
+					: part.replace(/(?<=^|[\s([{"'*_~>])#([\p{L}\p{N}_-]+)/giu, (whole, name: string) => {
+							const ids = idsByName.get(name.toLowerCase());
+							return ids?.length === 1 ? `<#${ids[0]}>` : whole;
+						})
+			)
+			.join("");
+	}
+
+	/** The layout's messages grouped by channel, in the order the channels first appear, with channel names linked. */
+	private static pinsByChannel(
+		pinned: NotificationsPinnedLayout[],
+		channels: readonly DiscordChannel[]
+	): Map<string, string[]> {
 		const byChannel = new Map<string, string[]>();
 		for (const pin of pinned) {
 			const key = pin.channel.toLowerCase();
-			byChannel.set(key, [...new Set([...(byChannel.get(key) ?? []), pin.content])]);
+			const content = DiscordNotifications.linkChannels(pin.content, channels);
+			byChannel.set(key, [...new Set([...(byChannel.get(key) ?? []), content])]);
 		}
 		return byChannel;
 	}
@@ -910,7 +938,7 @@ export class DiscordNotifications implements Notifications {
 	): Promise<Array<{ channel: string; state: "ok" | "missing" | "different" }>> {
 		const channels = await this.channelList();
 		const verdicts = new Map<string, { missing: Set<string>; extras: number; anyPinned: boolean }>();
-		for (const [channel, wanted] of DiscordNotifications.pinsByChannel(pinned)) {
+		for (const [channel, wanted] of DiscordNotifications.pinsByChannel(pinned, channels)) {
 			const own = await this.ownMessages(
 				DiscordNotifications.pickChannelId(channels, channel, "pinned messages")
 			);
@@ -923,7 +951,7 @@ export class DiscordNotifications implements Notifications {
 		}
 		return pinned.map((pin) => {
 			const v = verdicts.get(pin.channel.toLowerCase())!;
-			const state = v.missing.has(pin.content)
+			const state = v.missing.has(DiscordNotifications.linkChannels(pin.content, channels))
 				? v.anyPinned
 					? "different"
 					: "missing"
@@ -938,7 +966,17 @@ export class DiscordNotifications implements Notifications {
 		const bot = this.bot();
 		const channels = await this.channelList();
 		const updated: string[] = [];
-		for (const [channel, wanted] of DiscordNotifications.pinsByChannel(pinned)) {
+		const byChannel = DiscordNotifications.pinsByChannel(pinned, channels);
+		// Linking lengthens a message; refuse one Discord would reject before anything is posted.
+		for (const [channel, wanted] of byChannel) {
+			const long = wanted.find((content) => content.length > 2000);
+			if (long) {
+				throw new Error(
+					`the pinned message for #${channel} is ${long.length} characters once its channel names are linked; Discord allows up to 2000`
+				);
+			}
+		}
+		for (const [channel, wanted] of byChannel) {
 			const channelId = DiscordNotifications.pickChannelId(channels, channel, "pinned messages");
 			const own = await this.ownMessages(channelId);
 			const drift = DiscordNotifications.pinDrift(own, wanted);

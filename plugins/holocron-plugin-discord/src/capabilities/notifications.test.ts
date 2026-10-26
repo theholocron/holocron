@@ -3586,6 +3586,57 @@ describe("DiscordNotifications pinned messages", () => {
 		expect(calls[5]).toMatchObject({ method: "DELETE", url: `${BASE}/channels/2001/messages/5002` });
 	});
 
+	describe("channel links", () => {
+		const said = "See #rules, #welcome and #nope, https://x.dev/#rules, a#rules (#rules)\n#dev";
+		const linked = "See <#2002>, <#2001> and #nope, https://x.dev/#rules, a#rules (<#2002>)\n#dev";
+		const list = {
+			body: [text("2001", "welcome"), text("2002", "rules"), text("2003", "dev"), text("2004", "dev")],
+		};
+
+		it("turns the channel names it can place into links, and leaves the rest as written", async () => {
+			const { notifs, calls } = makeProvisioner([
+				list,
+				me,
+				{ body: [] },
+				{ body: { id: "5002", channel_id: "2001", content: linked } },
+				{ status: 204 },
+				{ body: [mine("5002", linked)] },
+			]);
+			await notifs.ensurePinned([{ channel: "welcome", content: said }]);
+			expect(calls[3]).toMatchObject({ body: { content: linked } });
+		});
+
+		it("links names with non-ASCII letters, after quotes and markdown, and never inside a URL", async () => {
+			const said2 = '"#rules" **#café** (#rules) https://x.dev/a(#rules) <https://x.dev/#welcome>';
+			const linked2 = '"<#2002>" **<#2005>** (<#2002>) https://x.dev/a(#rules) <https://x.dev/#welcome>';
+			const { notifs, calls } = makeProvisioner([
+				{ body: [text("2001", "welcome"), text("2002", "rules"), text("2005", "café")] },
+				me,
+				{ body: [] },
+				{ body: { id: "5002", channel_id: "2001", content: linked2 } },
+				{ status: 204 },
+				{ body: [mine("5002", linked2)] },
+			]);
+			await notifs.ensurePinned([{ channel: "welcome", content: said2 }]);
+			expect(calls[3]).toMatchObject({ body: { content: linked2 } });
+		});
+
+		it("refuses, before posting anything, a message that the links make longer than Discord allows", async () => {
+			const long = "#rules ".repeat(280); // 1960 as written, 2240 once linked
+			const { notifs, calls } = makeProvisioner([list]);
+			await expect(notifs.ensurePinned([{ channel: "welcome", content: long }])).rejects.toThrow(
+				/is 2\d{3} characters once its channel names are linked; Discord allows up to 2000/
+			);
+			expect(writes(calls)).toEqual([]);
+		});
+
+		it("counts a pin that already shows the links as in place", async () => {
+			const { notifs, calls } = makeProvisioner([list, me, { body: [mine("5002", linked)] }]);
+			expect(await notifs.ensurePinned([{ channel: "welcome", content: said }])).toEqual({ updated: [] });
+			expect(writes(calls)).toEqual([]);
+		});
+	});
+
 	describe("when the role holds Pin Messages but the refusal stays", () => {
 		const PIN = (1n << 51n).toString();
 		const refused = { status: 403, body: { message: "Missing Permissions", code: 50013 } };
