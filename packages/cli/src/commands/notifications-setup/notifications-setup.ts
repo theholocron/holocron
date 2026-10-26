@@ -50,7 +50,7 @@ export function webhookAvatarOf(
 /** The names a channel's monitoring feed uses: the alert channel (`Discord #uptime`) and its dedicated webhook (`Checkly`). */
 export function monitoringFeed(
 	channel: string,
-	feed: true | { name?: string; webhook?: string },
+	feed: true | { name?: string; webhook?: string; avatar?: string },
 	monitoring: Pick<Monitoring, "providerName">
 ): { name: string; webhook: string } {
 	const own = typeof feed === "object" ? feed : {};
@@ -297,12 +297,18 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	const avatars = new Map<string, string>();
 	const read = input.loadAvatar ?? loadAvatar;
 	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
-		const source = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
-		if (source === undefined || avatars.has(source)) continue;
-		try {
-			avatars.set(source, await read(source));
-		} catch (err) {
-			return refuse(`webhook avatar \`${source}\`: ${errorMessage(err)}`);
+		const feed = channel.feeds?.monitoring;
+		const sources = [
+			channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined,
+			typeof feed === "object" ? feed.avatar : undefined,
+		];
+		for (const source of sources) {
+			if (source === undefined || avatars.has(source)) continue;
+			try {
+				avatars.set(source, await read(source));
+			} catch (err) {
+				return refuse(`webhook avatar \`${source}\`: ${errorMessage(err)}`);
+			}
 		}
 	}
 	// Webhook URLs are shown once, so prove the secrets store is reachable BEFORE
@@ -490,7 +496,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						...(channel.feeds?.monitoring
 							? {
 									feeds: {
-										monitoring: monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
+										monitoring: {
+											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
+											...(typeof channel.feeds.monitoring === "object" &&
+											channel.feeds.monitoring.avatar
+												? { avatar: avatars.get(channel.feeds.monitoring.avatar)! }
+												: {}),
+										},
 									},
 								}
 							: {}),

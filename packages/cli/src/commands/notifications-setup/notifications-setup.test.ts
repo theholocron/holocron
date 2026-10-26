@@ -1643,6 +1643,34 @@ describe("monitoring feeds", () => {
 		expect(stored).toEqual([]);
 	});
 
+	it("reads the feed's avatar, gives it to the webhook, and refuses before changing anything when it cannot be read", async () => {
+		const AVATAR = "https://example.com/checkly.png";
+		const layout: NotificationsLayout = {
+			categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: { avatar: AVATAR } } }] }],
+		};
+		const n = fakeNotifications({ layout });
+		const loaded: string[] = [];
+		await setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async (source) => (loaded.push(source), "data:image/png;base64,AA"),
+		}).run();
+		expect(loaded).toEqual([AVATAR]);
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,AA" })
+		);
+
+		const bad = fakeNotifications({ layout });
+		const report = await setup(bad, {
+			monitoring: monitoring(),
+			loadAvatar: async () => {
+				throw new Error("it is not a PNG");
+			},
+		}).run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain(`webhook avatar \`${AVATAR}\`: it is not a PNG`);
+		expect(bad.ensureChannel).not.toHaveBeenCalled();
+	});
+
 	it("takes the names from the layout when it gives them", async () => {
 		const m = monitoring();
 		const layout: NotificationsLayout = {

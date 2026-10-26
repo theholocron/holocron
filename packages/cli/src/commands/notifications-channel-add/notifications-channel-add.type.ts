@@ -92,5 +92,5 @@ export interface ChannelSpec {
 	/** `avatar` is the image itself, as a `data:` URI. */
 	webhook?: false | { name?: string; secret?: string; avatar?: string };
 	/** The monitoring provider's alerts, already resolved to the names to use. */
-	feeds?: { monitoring?: { name: string; webhook: string } };
+	feeds?: { monitoring?: { name: string; webhook: string; avatar?: string } };
 }
