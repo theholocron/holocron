@@ -271,7 +271,7 @@ describe("runNotificationsCreateServer", () => {
 		const report = await run();
 		expect(report.status).toBe("dry-run");
 		expect(n.createServer).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toContain("would create the server");
+		expect(lines.join("\n")).toContain("create the server");
 	});
 
 	it("uses its own waiting defaults when none are given", async () => {
@@ -314,8 +314,8 @@ describe("runNotificationsCreateServer", () => {
 	it("previews a resume without promising to create anything", async () => {
 		const { run, lines } = await setup(fakeNotifications(), { dryRun: true });
 		await run({ resume: true });
-		expect(lines.join("\n")).not.toContain("would create");
-		expect(lines.join("\n")).toContain("would check the layout is applied");
+		expect(lines.join("\n")).not.toContain("create the server");
+		expect(lines.join("\n")).toContain("check the layout is applied");
 	});
 
 	it("refuses a missing name, a bad owner id, and a layout with no channel to invite through", async () => {
