@@ -61,6 +61,37 @@ export function monitoringFeed(
 	};
 }
 
+/**
+ * The first reason the layout's monitoring feeds cannot work, or undefined. Checked before anything is created: two feeds
+ * sharing an alert channel name would redirect each other's alerts, and a feed webhook named like the channel's own
+ * (Discord matches names without regard to case) would share its URL, so revoking one revokes the other.
+ */
+export function feedProblem(
+	layout: NotificationsLayout,
+	monitoring: Pick<Monitoring, "providerName" | "ensureAlertChannel">
+): string | undefined {
+	const alertNames = new Map<string, string>();
+	for (const category of layout.categories ?? []) {
+		for (const channel of category.channels ?? []) {
+			if (!channel.feeds?.monitoring) continue;
+			if (!monitoring.ensureAlertChannel) {
+				return `channel \`${channel.name}\` is fed by monitoring, but the \`${monitoring.providerName}\` provider cannot manage alert channels`;
+			}
+			const feed = monitoringFeed(channel.name, channel.feeds.monitoring, monitoring);
+			const own = (typeof channel.webhook === "object" ? channel.webhook.name : undefined) ?? channel.name;
+			if (channel.webhook && feed.webhook.toLowerCase() === own.toLowerCase()) {
+				return `channel \`${channel.name}\`: the monitoring webhook and the channel's own webhook are both named ${own} — rename one`;
+			}
+			const other = alertNames.get(feed.name.toLowerCase());
+			if (other) {
+				return `channels \`${other}\` and \`${channel.name}\` would both use the alert channel ${feed.name} — give one a distinct \`feeds.monitoring.name\``;
+			}
+			alertNames.set(feed.name.toLowerCase(), channel.name);
+		}
+	}
+	return undefined;
+}
+
 export function effectiveAccess(
 	category: NotificationsAccess | undefined,
 	channel: NotificationsAccess | undefined
@@ -258,6 +289,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			);
 		}
 		monitoring = loader.get("monitoring") as Monitoring;
+		const problem = feedProblem(layout, monitoring);
+		if (problem) return refuse(problem);
 	}
 
 	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.

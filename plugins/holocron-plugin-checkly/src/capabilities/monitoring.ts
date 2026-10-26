@@ -143,16 +143,28 @@ export class ChecklyMonitoring implements Monitoring {
 			return { created: true, updated: [], subscribed: checkIds.length };
 		}
 
-		const subscribed = new Set(existing.subscriptions.flatMap((s) => (s.checkId ? [s.checkId] : [])));
-		const missing = checkIds.filter((id) => !subscribed.has(id));
+		// A subscription someone switched off is a choice, so it is left off (and not added a second time), and not counted.
+		const known = new Set(existing.subscriptions.flatMap((s) => (s.checkId ? [s.checkId] : [])));
+		const active = new Set(existing.subscriptions.flatMap((s) => (s.checkId && s.activated ? [s.checkId] : [])));
+		const missing = checkIds.filter((id) => !known.has(id));
 		const urlChanged = input.url !== undefined && existing.config.url !== input.url;
-		const updated = [...(urlChanged ? ["url"] : []), ...(missing.length > 0 ? ["subscriptions"] : [])];
-		const total = subscribed.size + missing.length;
+		// Discord needs its own message shape: a channel left in another format would post nonsense there.
+		const formatChanged = existing.config.webhookType !== "WEBHOOK_DISCORD";
+		const updated = [
+			...(urlChanged ? ["url"] : []),
+			...(formatChanged ? ["format"] : []),
+			...(missing.length > 0 ? ["subscriptions"] : []),
+		];
+		const total = active.size + missing.length;
 		if (updated.length === 0) return { created: false, updated, subscribed: total };
 
 		const replacement: AlertChannelInput = {
 			type: "WEBHOOK",
-			config: { ...existing.config, ...(urlChanged ? { url: input.url! } : {}) },
+			config: {
+				...existing.config,
+				...(urlChanged ? { url: input.url! } : {}),
+				...(formatChanged ? { webhookType: "WEBHOOK_DISCORD" as const, template: DISCORD_TEMPLATE } : {}),
+			},
 			sendRecovery: existing.sendRecovery,
 			sendFailure: existing.sendFailure,
 			sendDegraded: existing.sendDegraded,

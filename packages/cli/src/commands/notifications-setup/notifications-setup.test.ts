@@ -9,7 +9,7 @@ import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
-import { runNotificationsSetup } from "./notifications-setup.js";
+import { feedProblem, runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -1664,6 +1664,7 @@ describe("monitoring feeds", () => {
 		const report = await setup(n).run();
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/fed by monitoring, which needs a `monitoring` capability/);
+		expect(n.ensureCategory).not.toHaveBeenCalled();
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 
@@ -1679,16 +1680,69 @@ describe("monitoring feeds", () => {
 		);
 	});
 
-	it("reports a failed alert channel and goes on", async () => {
+	it("reports a failed alert channel and goes on to the channels after it", async () => {
 		const m = {
 			...monitoring(),
 			ensureAlertChannel: vi.fn(async () => {
 				throw new Error("Checkly said no");
 			}),
 		};
-		const n = fakeNotifications({ layout: FED });
+		const layout: NotificationsLayout = {
+			categories: [
+				{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }, { name: "errors" }] },
+			],
+		};
+		const n = fakeNotifications({ layout });
 		const report = await setup(n, { monitoring: m }).run();
 		expect(report.status).toBe("fail");
 		expect(report.failures.map((f) => f.message).join(" ")).toContain("Checkly said no");
+		expect(n.ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "errors" }));
+		expect(report.channels.map((c) => c.name)).toContain("errors");
+	});
+
+	it("has no feed problem for a layout with no categories, or categories with no channels", () => {
+		const ok = { providerName: "checkly", ensureAlertChannel: vi.fn() };
+		expect(feedProblem({}, ok)).toBeUndefined();
+		expect(feedProblem({ categories: [{ name: "EMPTY" }] }, ok)).toBeUndefined();
+	});
+
+	it("refuses a bad feed before creating anything: a provider that cannot manage alert channels, or a name used twice", async () => {
+		const bare = { ensureCheck: vi.fn() };
+		const n = fakeNotifications({ layout: FED });
+		const noMethod = await setup(n, { monitoring: bare }).run();
+		expect(noMethod.message).toMatch(/cannot manage alert channels/);
+
+		const twice: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{ name: "errors" },
+						{ name: "uptime", feeds: { monitoring: { name: "Shared" } } },
+						{ name: "alerts", feeds: { monitoring: { name: "SHARED" } } },
+					],
+				},
+			],
+		};
+		const n2 = fakeNotifications({ layout: twice });
+		const dup = await setup(n2, { monitoring: monitoring() }).run();
+		expect(dup.status).toBe("fail");
+		expect(dup.message).toMatch(/channels `uptime` and `alerts` would both use the alert channel SHARED/);
+
+		const clash: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [{ name: "uptime", webhook: { name: "checkly" }, feeds: { monitoring: true } }],
+				},
+			],
+		};
+		const n3 = fakeNotifications({ layout: clash });
+		const same = await setup(n3, { monitoring: monitoring() }).run();
+		expect(same.message).toMatch(/both named checkly/);
+		for (const notifier of [n, n2, n3]) {
+			expect(notifier.ensureCategory).not.toHaveBeenCalled();
+			expect(notifier.ensureChannel).not.toHaveBeenCalled();
+		}
 	});
 });

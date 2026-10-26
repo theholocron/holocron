@@ -2,7 +2,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { ChecklyMonitoring } from "../capabilities/monitoring.js";
-import { createChecklyClient } from "../rest.js";
+import { createChecklyClient, DISCORD_TEMPLATE } from "../rest.js";
 
 function makeCapability(
 	responses: Array<{ status?: number; body?: unknown }>,
@@ -247,7 +247,7 @@ describe("ChecklyMonitoring", () => {
 					{ checkId: "b", activated: true },
 				],
 			});
-			expect((created.body as { config: { template: string } }).config.template).toContain("{{ALERT_TITLE}}");
+			expect((created.body as { config: { template: string } }).config.template).toBe(DISCORD_TEMPLATE);
 		});
 
 		it("refuses to create one with no URL, and says why", async () => {
@@ -288,6 +288,36 @@ describe("ChecklyMonitoring", () => {
 			const result = await capability.ensureAlertChannel({ name: "Discord #uptime", format: "discord" });
 			expect(result.updated).toEqual(["subscriptions"]);
 			expect(bodyOf(stub, 2)["config"]).toMatchObject({ url: "https://discord.com/api/webhooks/1/old" });
+		});
+
+		it("leaves a subscription someone switched off alone, and does not count it", async () => {
+			const muted = { id: 2, checkId: "b", groupId: null, activated: false };
+			const { capability, stub } = makeCapability([
+				{ body: [webhook({ url: URL_NEW }, [sub("a"), muted])] },
+				{ body: [check("a"), check("b")] },
+			]);
+			const result = await capability.ensureAlertChannel({
+				name: "Discord #uptime",
+				format: "discord",
+				url: URL_NEW,
+			});
+			expect(result).toEqual({ created: false, updated: [], subscribed: 1 });
+			expect(stub.calls.filter((c) => c.method !== "GET")).toEqual([]);
+		});
+
+		it("turns a channel in another format into a Discord one, template included", async () => {
+			const teams = webhook({ webhookType: "WEBHOOK_MSTEAMS", template: "teams card" }, [sub("a")]);
+			const { capability, stub } = makeCapability([{ body: [teams] }, { body: [check("a")] }, { body: teams }]);
+			const result = await capability.ensureAlertChannel({
+				name: "Discord #uptime",
+				format: "discord",
+				url: URL_NEW,
+			});
+			expect(result.updated).toEqual(["url", "format"]);
+			expect(bodyOf(stub, 2)["config"]).toMatchObject({
+				webhookType: "WEBHOOK_DISCORD",
+				template: DISCORD_TEMPLATE,
+			});
 		});
 
 		it("writes nothing when the URL and subscriptions already match", async () => {

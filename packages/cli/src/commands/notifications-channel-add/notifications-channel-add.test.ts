@@ -863,6 +863,34 @@ describe("provisionChannel — monitoring feed", () => {
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 
+	it("tells you how to recover when the one-time URL is lost to a failed hand-over", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: "https://discord.com/api/webhooks/1/secret" })),
+		});
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => {
+				throw new Error("Checkly said no");
+			}),
+		});
+		const failure = await provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed }).catch((e: Error) => e);
+		expect((failure as Error).message).toMatch(
+			/webhook Checkly was created but handing its URL to checkly failed \(.*Checkly said no.*\) — delete the webhook in discord and re-run/
+		);
+		expect((failure as Error).message).not.toContain("secret");
+	});
+
+	it("passes a failure through unchanged when there was no new URL to lose", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const m = fakeMonitoring({
+			ensureAlertChannel: vi.fn(async () => {
+				throw new Error("Checkly said no");
+			}),
+		});
+		await expect(provisionChannel(deps(n, m, []), { name: "uptime", feeds: feed })).rejects.toThrow(
+			"Checkly said no"
+		);
+	});
+
 	it("refuses when the notifications provider cannot create webhooks, or the two webhooks share a name", async () => {
 		const noHooks = fakeNotifications({ ensureWebhook: undefined });
 		await expect(
@@ -875,6 +903,13 @@ describe("provisionChannel — monitoring feed", () => {
 				{ name: "uptime", webhook: { name: "Checkly" }, feeds: feed }
 			)
 		).rejects.toThrow(/both named Checkly/);
+		// Discord matches names without regard to case.
+		await expect(
+			provisionChannel(
+				{ ...deps(n, fakeMonitoring(), []), secrets: { providerName: "github" } as unknown as Secrets },
+				{ name: "uptime", webhook: { name: "CHECKLY" }, feeds: feed }
+			)
+		).rejects.toThrow(/both named CHECKLY/);
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 });

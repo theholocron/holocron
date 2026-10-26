@@ -214,7 +214,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 			);
 		}
 		if (!notifications.ensureWebhook) throw new Error(`\`${notifications.providerName}\` cannot create webhooks`);
-		if (webhookCfg && feed.webhook === webhookName) {
+		if (webhookCfg && feed.webhook.toLowerCase() === webhookName.toLowerCase()) {
 			throw new Error(
 				`channel ${spec.name}: the monitoring webhook and the channel's own webhook are both named ${webhookName} — rename one`
 			);
@@ -330,11 +330,22 @@ async function provisionFeed(
 		name: feed.webhook,
 		...(spec.category ? { category: spec.category } : {}),
 	});
-	const result = await monitoring!.ensureAlertChannel!({
-		name: feed.name,
-		format: "discord",
-		...(hook.url ? { url: hook.url } : {}),
-	});
+	let result;
+	try {
+		result = await monitoring!.ensureAlertChannel!({
+			name: feed.name,
+			format: "discord",
+			...(hook.url ? { url: hook.url } : {}),
+		});
+	} catch (err) {
+		// The URL was shown once and is now lost, as with a secret that failed to store; say how to get unstuck.
+		if (!hook.url) throw err;
+		throw new Error(
+			`webhook ${feed.webhook} was created but handing its URL to ${monitoring!.providerName} failed ` +
+				`(${describeProviderError(err)}) — delete the webhook in ${notifications.providerName} and re-run to get a fresh URL`,
+			{ cause: err }
+		);
+	}
 	const changed = result.created || result.updated.length > 0;
 	const verb = result.created ? "created" : changed ? "updated" : "exists ";
 	const what = result.updated.length > 0 ? `: ${result.updated.join(", ")}` : "";
