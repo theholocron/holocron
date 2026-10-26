@@ -1044,6 +1044,14 @@ export interface NotificationsServerLayout {
 	locale?: string;
 }
 
+/** A message the provider posts in a channel and pins, so it stays at the top. */
+export interface NotificationsPinnedLayout {
+	/** A channel in the layout. */
+	channel: string;
+	/** The message text (Discord allows up to 2000 characters). */
+	content: string;
+}
+
 /**
  * The screen a new member sees on joining: a short text and the channels worth visiting first.
  * Declaring it describes the whole screen: the text and the channels are set to exactly this, so to
@@ -1169,6 +1177,11 @@ export interface NotificationsLayout {
 	welcome?: NotificationsWelcomeLayout;
 	/** The questions a new member answers, applied after the channels and roles exist. */
 	onboarding?: NotificationsOnboardingLayout;
+	/**
+	 * Messages the provider posts and pins, applied after the channels exist. One that already says exactly this
+	 * (posted by the provider and still pinned) is left alone; one that says something else is replaced.
+	 */
+	pinned?: NotificationsPinnedLayout[];
 	/** Settings of the server itself, applied after its channels exist. */
 	server?: NotificationsServerLayout;
 	categories?: Array<{ name: string; access?: NotificationsAccess; channels?: NotificationsChannelLayout[] }>;
@@ -1218,6 +1231,10 @@ export interface ServerInspection {
 	welcome?: NotificationsWelcomeLayout;
 	/** Set when reading the welcome screen failed; `welcome` is then absent and means nothing. */
 	welcomeError?: string;
+	/** Whether each pinned message the layout declares is in place, in the layout's order. */
+	pinned?: Array<{ channel: string; state: "ok" | "missing" | "different" }>;
+	/** Set when reading the pinned messages failed; `pinned` is then absent and means nothing. */
+	pinnedError?: string;
 	/** Onboarding as the server has it, in the layout's terms, when the layout declares `onboarding`. */
 	onboarding?: NotificationsOnboardingLayout;
 	/** Set when reading onboarding failed; `onboarding` is then absent and means nothing. */
@@ -1392,6 +1409,12 @@ export interface Notifications extends ProviderIdentity {
 
 	/** Bring the welcome screen in line with the layout, changing only what differs. Returns what it changed. */
 	ensureWelcome?(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }>;
+
+	/** Post and pin the layout's messages, replacing any that differ. Returns the channels it changed. */
+	ensurePinned?(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }>;
+
+	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */
+	holdsPermission?(permission: string): Promise<boolean>;
 
 	/** Bring onboarding in line with the layout, changing only what differs. Returns what it changed. */
 	ensureOnboarding?(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }>;

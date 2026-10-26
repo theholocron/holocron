@@ -535,7 +535,7 @@ export default acmeConfig;
 
 A `notifications` provider can declare a whole server in `holocron.config.ts`
 (`layout`: categories, channels, roles, access, server settings, welcome screen,
-onboarding, the bot application) and the CLI applies and checks it. The
+pinned messages, onboarding, the bot application) and the CLI applies and checks it. The
 commands and the config are provider-neutral; Discord is the first provider.
 
 | Command                                                        | What it does                                                                                                                                                                                                                                                                   |
@@ -546,6 +546,8 @@ commands and the config are provider-neutral; Discord is the first provider.
 | `holocron notifications link`                                  | Links your account on the provider to your GitHub account by signing in with the provider (OAuth, nothing secret kept)                                                                                                                                                         |
 | `holocron notifications sync-roles`                            | Makes who holds a role match a GitHub team, through the links file (`--keep` only adds; `--provider` picks one)                                                                                                                                                                |
 | `holocron doctor notifications [--built-only] [--deliver]`     | Step by step: does the server match the layout, do the secrets exist, and does a person (not the bot) own it. A full run also leaves one `🧪 test:` post in the layout's `testChannel`; `--built-only` posts nothing; `--deliver` posts to every channel and removes each post |
+
+Pinned messages are declared under the provider's `layout` as `pinned: [{ channel, content }]` (`channel` is a channel in the layout, `content` up to 2000 characters); the layout is the whole set of messages the bot has pinned in those channels.
 
 Config shape added for role sync and sign-in (all under the provider's `layout`):
 
