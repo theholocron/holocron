@@ -275,8 +275,12 @@ describe("ChecklyMonitoring", () => {
 				config: { url: URL_NEW, template: "custom template", name: "Discord #uptime" },
 				sendDegraded: false,
 				autoSubscribe: true,
-				subscriptions: [{ checkId: "a" }, { checkId: "b", activated: true }],
 			});
+			// Existing subscriptions go back without their ids: with them Checkly answered 409.
+			expect((put.body as { subscriptions: unknown[] }).subscriptions).toEqual([
+				{ checkId: "a", activated: true },
+				{ checkId: "b", activated: true },
+			]);
 		});
 
 		it("subscribes only what is missing when there is no new URL, and keeps the one it has", async () => {
@@ -349,7 +353,7 @@ describe("ChecklyMonitoring", () => {
 			const second = makeCapability([{ body: [grouped] }, { body: [check("a")] }, { body: grouped }]);
 			await second.capability.ensureAlertChannel({ name: "Discord #uptime", format: "discord" });
 			expect(bodyOf(second.stub, 2)["subscriptions"]).toEqual([
-				{ id: 9, checkId: null, groupId: 4, activated: true },
+				{ groupId: 4, activated: true },
 				{ checkId: "a", activated: true },
 			]);
 		});

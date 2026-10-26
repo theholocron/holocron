@@ -338,11 +338,11 @@ async function provisionFeed(
 			...(hook.url ? { url: hook.url } : {}),
 		});
 	} catch (err) {
-		// The URL was shown once and is now lost, as with a secret that failed to store; say how to get unstuck.
+		// Nothing is lost: the webhook exists and, being the bot's own, hands its URL out again, so a re-run retries.
 		if (!hook.url) throw err;
 		throw new Error(
 			`webhook ${feed.webhook} was created but handing its URL to ${monitoring!.providerName} failed ` +
-				`(${describeProviderError(err)}) — delete the webhook in ${notifications.providerName} and re-run to get a fresh URL`,
+				`(${describeProviderError(err)}) — the webhook is kept, so re-run once that is fixed`,
 			{ cause: err }
 		);
 	}

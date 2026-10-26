@@ -171,7 +171,16 @@ export class ChecklyMonitoring implements Monitoring {
 			sslExpiry: existing.sslExpiry,
 			sslExpiryThreshold: existing.sslExpiryThreshold,
 			autoSubscribe: existing.autoSubscribe,
-			subscriptions: [...existing.subscriptions, ...missing.map((checkId) => ({ checkId, activated: true }))],
+			// Sent back without their ids, as Checkly's own tooling sends them: with the ids Checkly answered 409 (a
+			// uniqueness violation), as if each were a new row for a check that already has one.
+			subscriptions: [
+				...existing.subscriptions.map((s) =>
+					s.checkId
+						? { checkId: s.checkId, activated: s.activated }
+						: { groupId: s.groupId!, activated: s.activated }
+				),
+				...missing.map((checkId) => ({ checkId, activated: true })),
+			],
 		};
 		await client.alertChannels.update(existing.id, replacement);
 		return { created: false, updated, subscribed: total };
