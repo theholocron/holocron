@@ -10,12 +10,13 @@
  * to loop over generically.
  */
 
-import type {
-	Monitoring,
-	MonitoringAlertChannelInput,
-	MonitoringAlertChannelResult,
-	MonitoringCheck,
-	MonitoringCheckInput,
+import {
+	type Monitoring,
+	type MonitoringAlertChannelInput,
+	type MonitoringAlertChannelResult,
+	type MonitoringCheck,
+	type MonitoringCheckInput,
+	ProviderApiError,
 } from "@theholocron/cli";
 
 import type {
@@ -150,7 +151,10 @@ export class ChecklyMonitoring implements Monitoring {
 		const urlChanged = input.url !== undefined && existing.config.url !== input.url;
 		// Discord needs its own message shape: a channel left in another format would post nonsense there.
 		const formatChanged = existing.config.webhookType !== "WEBHOOK_DISCORD";
+		let current: AlertChannel | undefined;
 		if (urlChanged || formatChanged) {
+			// Read it again just before replacing it, so a subscription added since the listing is not replaced away.
+			const fresh = await client.alertChannels.get(existing.id);
 			const replacement: AlertChannelInput = {
 				type: "WEBHOOK",
 				config: {
@@ -166,15 +170,16 @@ export class ChecklyMonitoring implements Monitoring {
 				autoSubscribe: existing.autoSubscribe,
 				// An update replaces the whole channel, so what it already has goes back. Sent without the ids, as Checkly's own
 				// tooling sends them: with the ids Checkly answered 409 (a uniqueness violation).
-				subscriptions: existing.subscriptions.map((s) =>
+				subscriptions: fresh.subscriptions.map((s) =>
 					s.checkId
 						? { checkId: s.checkId, activated: s.activated }
 						: { groupId: s.groupId!, activated: s.activated }
 				),
 			};
 			await client.alertChannels.update(existing.id, replacement);
+			current = await this.restoreSubscriptions(existing.id, fresh.subscriptions);
 		}
-		const { added, active } = await this.subscribeMissing(existing.id, input.name, checkIds);
+		const { added, active } = await this.subscribeMissing(existing.id, input.name, checkIds, current);
 		const updated = [
 			...(urlChanged ? ["url"] : []),
 			...(formatChanged ? ["format"] : []),
@@ -184,32 +189,74 @@ export class ChecklyMonitoring implements Monitoring {
 	}
 
 	/**
+	 * After an update replaced the channel: read it back and put back any subscription it had that did not survive, of
+	 * every kind (a group, a check outside this account) and in the state it had (a deactivated one stays deactivated).
+	 */
+	private async restoreSubscriptions(channelId: number, had: AlertChannel["subscriptions"]): Promise<AlertChannel> {
+		const client = this.client();
+		const after = await client.alertChannels.get(channelId);
+		const held = (s: AlertChannel["subscriptions"][number]) =>
+			after.subscriptions.some((a) => (s.checkId ? a.checkId === s.checkId : a.groupId === s.groupId));
+		const lost = had.filter((s) => !held(s));
+		for (const s of lost) await this.subscribeTolerating(channelId, s);
+		return lost.length > 0 ? await client.alertChannels.get(channelId) : after;
+	}
+
+	/** One subscribe call; Checkly's 409 means the subscription is already there, which is what was wanted. */
+	private async subscribeTolerating(
+		channelId: number,
+		subscription: AlertChannel["subscriptions"][number]
+	): Promise<unknown> {
+		try {
+			await this.client().alertChannels.subscribe(
+				channelId,
+				subscription.checkId
+					? { checkId: subscription.checkId, activated: subscription.activated }
+					: { groupId: subscription.groupId!, activated: subscription.activated }
+			);
+			return undefined;
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 409) return undefined;
+			return err;
+		}
+	}
+
+	/**
 	 * Subscribe the checks a channel lacks, then read it back. A subscription someone switched off is a choice: it is left
-	 * off, not added a second time, and not counted. Returns how many were added and how many checks now alert.
+	 * off, not added a second time, and not counted. A call that fails does not stop the others: the channel is read back
+	 * and the shortfall reported, with the first failure's reason. Returns how many were added and how many checks now alert.
 	 */
 	private async subscribeMissing(
 		channelId: number,
 		name: string,
-		checkIds: string[]
+		checkIds: string[],
+		current?: AlertChannel
 	): Promise<{ added: number; active: number }> {
 		const client = this.client();
 		const checkIdsOf = (channel: AlertChannel, onlyActive: boolean) =>
 			new Set(
 				channel.subscriptions.flatMap((s) => (s.checkId && (!onlyActive || s.activated) ? [s.checkId] : []))
 			);
-		const before = await client.alertChannels.get(channelId);
+		const before = current ?? (await client.alertChannels.get(channelId));
 		const known = checkIdsOf(before, false);
 		const missing = checkIds.filter((id) => !known.has(id));
-		for (const checkId of missing) await client.alertChannels.subscribe(channelId, { checkId, activated: true });
+		const failures: unknown[] = [];
+		for (const checkId of missing) {
+			const failure = await this.subscribeTolerating(channelId, { checkId, activated: true });
+			if (failure) failures.push(failure);
+		}
 		const after = missing.length > 0 ? await client.alertChannels.get(channelId) : before;
 		const present = checkIdsOf(after, false);
-		const lacking = checkIds.filter((id) => !present.has(id));
+		const active = checkIdsOf(after, true);
+		// Everything must be on the channel, and what was just requested must also be switched on.
+		const lacking = checkIds.filter((id) => !present.has(id) || (missing.includes(id) && !active.has(id)));
 		if (lacking.length > 0) {
+			const cause = failures[0] instanceof Error ? `: ${failures[0].message}` : "";
 			throw new Error(
-				`Checkly did not subscribe ${lacking.length} of ${checkIds.length} checks to alert channel "${name}" (it holds ${present.size}); subscribe them in Checkly's alert settings and run setup again`
+				`Checkly did not subscribe ${lacking.length} of ${checkIds.length} checks to alert channel "${name}" (it holds ${active.size})${cause}; subscribe them in Checkly's alert settings and run setup again`
 			);
 		}
-		return { added: missing.length, active: checkIdsOf(after, true).size };
+		return { added: missing.length, active: active.size };
 	}
 
 	/** The id of every check on the account, read a page at a time. */

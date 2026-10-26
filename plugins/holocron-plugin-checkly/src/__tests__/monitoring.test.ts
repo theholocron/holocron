@@ -286,6 +286,7 @@ describe("ChecklyMonitoring", () => {
 			const { capability, stub } = makeCapability([
 				{ body: [existing] },
 				{ body: [check("a")] },
+				{ body: existing }, // read again just before replacing
 				{ body: existing }, // update
 				{ body: existing }, // read back
 			]);
@@ -347,6 +348,7 @@ describe("ChecklyMonitoring", () => {
 				{ body: [check("a")] },
 				{ body: teams },
 				{ body: teams },
+				{ body: teams },
 			]);
 			const result = await capability.ensureAlertChannel(input);
 			expect(result.updated).toEqual(["url", "format"]);
@@ -360,6 +362,7 @@ describe("ChecklyMonitoring", () => {
 			const { capability, stub } = makeCapability([
 				{ body: [teams] },
 				{ body: [check("a")] },
+				{ body: teams },
 				{ body: teams },
 				{ body: teams },
 			]);
@@ -381,11 +384,100 @@ describe("ChecklyMonitoring", () => {
 				{ body: [] },
 				{ body: mine },
 				{ body: mine },
+				{ body: mine },
 			]);
 			await capability.ensureAlertChannel(input);
 			expect((writes(stub)[0]?.body as { subscriptions: unknown[] }).subscriptions).toEqual([
 				{ groupId: 4, activated: true },
 			]);
+		});
+
+		it("reads the channel again just before replacing it, so a subscription added since the listing survives", async () => {
+			const listed = webhook({}, [sub("a")]);
+			const fresh = webhook({}, [sub("a"), sub("b")]);
+			const { capability, stub } = makeCapability([
+				{ body: [listed] },
+				{ body: [check("a"), check("b")] },
+				{ body: fresh },
+				{ body: fresh },
+				{ body: fresh },
+			]);
+			await capability.ensureAlertChannel(input);
+			expect((writes(stub)[0]?.body as { subscriptions: unknown[] }).subscriptions).toEqual([
+				{ checkId: "a", activated: true },
+				{ checkId: "b", activated: true },
+			]);
+		});
+
+		it("puts back, in their own state, every kind of subscription an update dropped", async () => {
+			const group = { id: 9, checkId: null, groupId: 4, activated: true };
+			const had = webhook({}, [sub("a"), sub("outside", false), group]);
+			const dropped = webhook({}, [sub("a")]);
+			const restored = webhook({}, [sub("a"), sub("outside", false), group]);
+			const { capability, stub } = makeCapability([
+				{ body: [had] },
+				{ body: [check("a")] },
+				{ body: had }, // read again
+				{ body: dropped }, // update
+				{ body: dropped }, // read back: two were lost
+				{ body: subscribed("outside") },
+				{ body: subscribed("x") },
+				{ body: restored },
+			]);
+			await capability.ensureAlertChannel(input);
+			expect(
+				writes(stub)
+					.slice(1)
+					.map((c) => c.body)
+			).toEqual([
+				{ checkId: "outside", activated: false },
+				{ groupId: 4, activated: true },
+			]);
+		});
+
+		it("treats a 409 on a subscription as already there, and goes on", async () => {
+			const before = webhook({ url: URL_NEW }, []);
+			const { capability } = makeCapability([
+				{ body: [before] },
+				{ body: [check("a"), check("b")] },
+				{ body: before },
+				{ status: 409, body: { message: "Conflict" } },
+				{ body: subscribed("b") },
+				{ body: webhook({ url: URL_NEW }, [sub("a"), sub("b")]) },
+			]);
+			expect(await capability.ensureAlertChannel(input)).toEqual({
+				created: false,
+				updated: ["subscriptions"],
+				subscribed: 2,
+			});
+		});
+
+		it("keeps going when one subscription is refused, reads back, and reports the shortfall with the reason", async () => {
+			const before = webhook({ url: URL_NEW }, []);
+			const { capability, stub } = makeCapability([
+				{ body: [before] },
+				{ body: [check("a"), check("b")] },
+				{ body: before },
+				{ status: 403, body: { message: "Forbidden" } },
+				{ body: subscribed("b") },
+				{ body: webhook({ url: URL_NEW }, [sub("b")]) },
+			]);
+			await expect(capability.ensureAlertChannel(input)).rejects.toThrow(
+				/did not subscribe 1 of 2 checks to alert channel "Message to #uptime" \(it holds 1\): .*403/
+			);
+			expect(writes(stub)).toHaveLength(2);
+		});
+
+		it("fails when a requested subscription came back switched off", async () => {
+			const before = webhook({ url: URL_NEW }, []);
+			const { capability } = makeCapability([
+				{ body: [before] },
+				{ body: [check("a")] },
+				{ body: before },
+				{ body: subscribed("a") },
+				{ body: webhook({ url: URL_NEW }, [sub("a", false)]) },
+			]);
+			await expect(capability.ensureAlertChannel(input)).rejects.toThrow(/did not subscribe 1 of 1 checks/);
 		});
 
 		it("reads every page of checks", async () => {
