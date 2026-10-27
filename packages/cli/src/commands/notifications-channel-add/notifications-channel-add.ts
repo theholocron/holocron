@@ -74,7 +74,7 @@ export async function assertSecretsReachable(secrets: Secrets, scope: SecretScop
 /** Why a capability is not loaded: the plugin's own load error when there is one (e.g. a missing token). */
 export function whyMissing(
 	loader: PluginLoader,
-	key: "secrets" | "notifications" | "source" | "monitoring",
+	key: "secrets" | "notifications" | "source" | "monitoring" | "errors" | "workers" | "dns",
 	fallback: string
 ): string {
 	const failure = loader.loadFailures().find((f) => f.key === key);
@@ -221,6 +221,11 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		}
 	}
 
+	const relay = spec.feeds?.errors;
+	if (relay && !notifications.ensureWebhook) {
+		throw new Error(`\`${notifications.providerName}\` cannot create webhooks`);
+	}
+
 	if (dryRun) {
 		print(`  ${style.skip(`would ensure channel ${spec.name}${where}`)}`);
 		if (tally) tally.skip += webhookCfg ? 2 : 1;
@@ -231,6 +236,10 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 				`  ${style.skip(`would ensure webhook ${feed.webhook} and alert channel ${feed.name} (monitoring)`)}`
 			);
 			if (tally) tally.skip += 2;
+		}
+		if (relay) {
+			print(`  ${style.skip(`would ensure webhook ${relay.webhook} for the relay Worker (errors)`)}`);
+			if (tally) tally.skip++;
 		}
 		return { name: spec.name, ...(spec.category ? { category: spec.category } : {}), created: false };
 	}
@@ -254,6 +263,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 	};
 	if (!webhookCfg) {
 		if (feed) await provisionFeed(deps, spec, feed, outcome);
+		if (relay) await provisionRelayFeed(deps, spec, relay, outcome);
 		return outcome;
 	}
 
@@ -310,7 +320,48 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		throw new Error(`webhook ${webhookName} is ready but setting its avatar failed (${hook.avatarError})`);
 	}
 	if (feed) await provisionFeed(deps, spec, feed, outcome);
+	if (relay) await provisionRelayFeed(deps, spec, relay, outcome);
 	return outcome;
+}
+
+/**
+ * A dedicated webhook for the relay Worker. Its URL goes to the caller (which hands it to the Worker as a secret) and
+ * nowhere else. The bot's own webhook hands its URL out on every read, so a re-run gets it again; one made by a
+ * person does not, and is reported rather than guessed at.
+ */
+async function provisionRelayFeed(
+	deps: ProvisionDeps,
+	spec: ChannelSpec,
+	feed: { webhook: string; avatar?: string },
+	outcome: ChannelOutcome
+): Promise<void> {
+	const { notifications, print, tally } = deps;
+	const hook = await notifications.ensureWebhook!({
+		channel: spec.name,
+		name: feed.webhook,
+		...(spec.category ? { category: spec.category } : {}),
+		...(feed.avatar ? { avatar: feed.avatar } : {}),
+	});
+	const avatarSet = hook.updated?.includes("avatar") ?? false;
+	const changed = hook.created || avatarSet;
+	print(
+		`  ${(changed ? style.success : style.skip)(`${hook.created ? "created" : "found  "} webhook ${feed.webhook} for the relay${avatarSet ? " (avatar set)" : ""}`)}`
+	);
+	if (tally) {
+		const done = Number(hook.created) + Number(avatarSet);
+		if (done > 0) tally.ok += done;
+		else tally.skip++;
+	}
+	outcome.relayWebhook = { name: feed.webhook, created: hook.created, ...(avatarSet ? { updated: ["avatar"] } : {}) };
+	if (!hook.url) {
+		throw new Error(
+			`webhook ${feed.webhook} already exists and its URL cannot be read back, so the relay cannot post through it — delete it in the provider and re-run`
+		);
+	}
+	deps.onRelayWebhook?.(hook.url);
+	if (hook.avatarError) {
+		throw new Error(`webhook ${feed.webhook} is ready but setting its avatar failed (${hook.avatarError})`);
+	}
 }
 
 /**

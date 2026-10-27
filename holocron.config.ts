@@ -133,6 +133,8 @@ export default defineConfig({
 			{
 				guildId: "1303969001822486568",
 				layout: {
+					// Build apps/comlink first (`pnpm --filter @theholocron/comlink build`); setup deploys it here.
+					relay: { host: "comlink.theholocron.dev" },
 					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 					webhookAvatar: "media/webhook-avatar.png",
 					// Where a full `holocron doctor notifications` run leaves its one visible test post.
@@ -173,7 +175,14 @@ export default defineConfig({
 									topic: "Anything that needs a human: failed runs, PRs to merge by hand",
 									webhook: true,
 								},
-								{ name: "errors", topic: "Errors from Sentinel and Sentry", webhook: true },
+								// Sentry's alerts arrive through the Comlink relay (the `relay` below), which posts through a webhook of
+								// its own ("Sentry") whose URL goes straight to the Worker.
+								{
+									name: "errors",
+									topic: "Errors from Sentinel and Sentry",
+									webhook: true,
+									feeds: { errors: true },
+								},
 								// Checkly posts here through a webhook of its own ("Checkly"), whose URL goes straight to Checkly. It
 								// adopts the alert channel named "Message to #uptime" and subscribes every check on the account.
 								{

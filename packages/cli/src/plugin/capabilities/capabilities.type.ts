@@ -1081,6 +1081,12 @@ export interface NotificationsChannelLayout {
 		 * webhook that has none; the posts carry the service's own name and icon either way.
 		 */
 		monitoring?: boolean | { name?: string; webhook?: string; avatar?: string | { url?: string; image?: string } };
+		/**
+		 * The error tracker's alerts, carried in by the relay Worker (see `relay`). The channel gets a dedicated webhook
+		 * (default the `errors` provider's name, capitalised) whose URL goes to the Worker as a secret and nowhere else.
+		 * `avatar` is as for `monitoring`.
+		 */
+		errors?: boolean | { webhook?: string; avatar?: string | { url?: string; image?: string } };
 	};
 }
 
@@ -1238,6 +1244,21 @@ export interface NotificationsLayout {
 	 * no picture yet -- a provider cannot say whether the one it holds is the same image.
 	 */
 	webhookAvatar?: string;
+	/**
+	 * The Worker that carries other services' alerts into the channels with a `feeds.errors`: built beforehand
+	 * (`apps/comlink`), deployed by `notifications setup` with each channel's webhook URL as a secret, and served at
+	 * `host`. Secrets set some other way (the service's signing secret) are kept across deploys.
+	 */
+	relay?: {
+		/** Where the Worker answers, e.g. `comlink.theholocron.dev`. Its DNS record and route are managed. */
+		host: string;
+		/** The DNS zone the host is in. Default: the host's last two labels. */
+		zone?: string;
+		/** The Worker's name at the provider. Default `comlink`. */
+		script?: string;
+		/** The built Worker, relative to the repo root. Default `apps/comlink/dist/worker.js`. */
+		code?: string;
+	};
 	/** What a new member sees on joining, applied after the channels exist. */
 	welcome?: NotificationsWelcomeLayout;
 	/** The questions a new member answers, applied after the channels and roles exist. */
