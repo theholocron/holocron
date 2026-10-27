@@ -56,3 +56,15 @@ setup` provisioning (`ensureProject` + pushing `SENTRY_DSN` /
 `NEXT_PUBLIC_SENTRY_DSN` to Secrets) and `holocron doctor` connectivity
 checks — not for runtime error reporting, which the CLI activates directly
 from `HOLOCRON_SENTRY_DSN` (fallback `SENTRY_DSN`).
+
+## Sending alerts to Discord
+
+Sentry's free plan has no Discord integration, and what an internal integration sends is Sentry's own JSON. The plugin
+ships `SENTRY_RELAY_WORKER_SOURCE`, the source of a Cloudflare Worker that sits between the two: it checks the
+`Sentry-Hook-Signature` header (a hex HMAC-SHA256 of the body under the integration's client secret), turns an issue
+alert (`Sentry-Hook-Resource: event_alert`) into a Discord embed (title, culprit, level colour, environment, the rule that
+fired, a link to the event) and posts it to the channel's webhook, with pings disabled. Any other resource is
+acknowledged and dropped.
+
+It is deployed with the `workers` capability (`deployScript`), with two secret bindings that are never echoed:
+`SENTRY_CLIENT_SECRET` (the integration's client secret) and `DISCORD_WEBHOOK_URL` (a dedicated webhook for the channel).
