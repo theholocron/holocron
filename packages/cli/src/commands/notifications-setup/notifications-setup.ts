@@ -50,19 +50,23 @@ export function webhookAvatarOf(
 }
 
 /**
- * The pictures a feed's webhook may wear, in order of preference: its own (one source, or a list whose first readable one
- * wins), else the layout's, else none.
+ * The pictures a feed's webhook may wear, in order of preference: its own (a single source, or `{ url, image }`, the URL
+ * first and the file in the repo as its fallback), else the layout's, else none.
  */
-export function feedAvatarOf(layout: NotificationsLayout, feed: true | { avatar?: string | string[] }): string[] {
+export function feedAvatarOf(
+	layout: NotificationsLayout,
+	feed: true | { avatar?: string | { url?: string; image?: string } }
+): string[] {
 	const own = typeof feed === "object" ? feed.avatar : undefined;
-	const sources = own === undefined ? (layout.webhookAvatar ? [layout.webhookAvatar] : []) : [own].flat();
-	return sources;
+	if (own === undefined) return layout.webhookAvatar ? [layout.webhookAvatar] : [];
+	if (typeof own === "string") return [own];
+	return [own.url, own.image].filter((source): source is string => Boolean(source));
 }
 
 /** The names a channel's monitoring feed uses: the alert channel (`Message to #uptime`) and its dedicated webhook (`Checkly`). */
 export function monitoringFeed(
 	channel: string,
-	feed: true | { name?: string; webhook?: string; avatar?: string | string[] },
+	feed: true | { name?: string; webhook?: string; avatar?: string | { url?: string; image?: string } },
 	monitoring: Pick<Monitoring, "providerName">
 ): { name: string; webhook: string } {
 	const own = typeof feed === "object" ? feed : {};
@@ -88,6 +92,18 @@ export function feedProblem(
 			if (!channel.feeds?.monitoring) continue;
 			if (!monitoring.ensureAlertChannel) {
 				return `channel \`${channel.name}\` is fed by monitoring, but the \`${monitoring.providerName}\` provider cannot manage alert channels`;
+			}
+			const picture = typeof channel.feeds.monitoring === "object" ? channel.feeds.monitoring.avatar : undefined;
+			if (typeof picture === "object") {
+				if (!picture.url && !picture.image) {
+					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar\` needs a \`url\`, an \`image\`, or both`;
+				}
+				if (picture.url && !/^https:\/\//i.test(picture.url)) {
+					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.url\` must be an https:// URL`;
+				}
+				if (picture.image && /^https?:\/\//i.test(picture.image)) {
+					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.image\` must be a file in the repo, not a URL`;
+				}
 			}
 			const feed = monitoringFeed(channel.name, channel.feeds.monitoring, monitoring);
 			const own = (typeof channel.webhook === "object" ? channel.webhook.name : undefined) ?? channel.name;

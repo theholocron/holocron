@@ -184,10 +184,10 @@ export default defineConfig({
 										monitoring: {
 											// Checkly's own icon for its webhook in Discord's Integrations list (its posts carry the same one). The
 											// CDN is tried first; if it cannot be reached, the copy kept in the repo is used.
-											avatar: [
-												"https://s3.eu-central-1.amazonaws.com/cdn.checklyhq.com/slack/checkly-slack-icon.png",
-												"media/checkly-avatar.png",
-											],
+											avatar: {
+												url: "https://s3.eu-central-1.amazonaws.com/cdn.checklyhq.com/slack/checkly-slack-icon.png",
+												image: "media/checkly-avatar.png",
+											},
 										},
 									},
 								},

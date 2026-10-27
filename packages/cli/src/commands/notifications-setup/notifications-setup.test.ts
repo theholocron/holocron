@@ -1709,7 +1709,9 @@ describe("monitoring feeds", () => {
 					channels: [
 						{
 							name: "uptime",
-							feeds: { monitoring: { avatar: ["https://cdn.example.com/a.png", "media/a.png"] } },
+							feeds: {
+								monitoring: { avatar: { url: "https://cdn.example.com/a.png", image: "media/a.png" } },
+							},
 						},
 					],
 				},
@@ -1738,7 +1740,7 @@ describe("monitoring feeds", () => {
 			categories: [
 				{
 					name: "ALERTS",
-					channels: [{ name: "uptime", feeds: { monitoring: { avatar: ["media/gone.png"] } } }],
+					channels: [{ name: "uptime", feeds: { monitoring: { avatar: { image: "media/gone.png" } } } }],
 				},
 			],
 		};
@@ -1764,7 +1766,9 @@ describe("monitoring feeds", () => {
 					channels: [
 						{
 							name: "uptime",
-							feeds: { monitoring: { avatar: ["https://cdn.example.com/a.png", "media/a.png"] } },
+							feeds: {
+								monitoring: { avatar: { url: "https://cdn.example.com/a.png", image: "media/a.png" } },
+							},
 						},
 					],
 				},
@@ -1863,6 +1867,36 @@ describe("monitoring feeds", () => {
 		expect(report.failures.map((f) => f.message).join(" ")).toContain("Checkly said no");
 		expect(n.ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "errors" }));
 		expect(report.channels.map((c) => c.name)).toContain("errors");
+	});
+
+	it("accepts a feed picture given as one source, as a url, as an image, or as both", () => {
+		const ok = { providerName: "checkly", ensureAlertChannel: vi.fn() };
+		const feedWith = (avatar: unknown): NotificationsLayout => ({
+			categories: [{ name: "A", channels: [{ name: "uptime", feeds: { monitoring: { avatar } } } as never] }],
+		});
+		for (const avatar of [
+			"media/a.png",
+			{ url: "https://cdn.example.com/a.png" },
+			{ image: "media/a.png" },
+			{ url: "https://cdn.example.com/a.png", image: "media/a.png" },
+		]) {
+			expect(feedProblem(feedWith(avatar), ok)).toBeUndefined();
+		}
+	});
+
+	it("refuses a feed picture that is empty, whose url is not https, or whose image is a URL", () => {
+		const ok = { providerName: "checkly", ensureAlertChannel: vi.fn() };
+		const feedWith = (avatar: unknown): NotificationsLayout => ({
+			categories: [{ name: "A", channels: [{ name: "uptime", feeds: { monitoring: { avatar } } } as never] }],
+		});
+		expect(feedProblem(feedWith({}), ok)).toMatch(/needs a `url`, an `image`, or both/);
+		expect(feedProblem(feedWith({ url: "http://cdn.example.com/a.png" }), ok)).toMatch(
+			/avatar\.url` must be an https:\/\/ URL/
+		);
+		expect(feedProblem(feedWith({ url: "media/a.png" }), ok)).toMatch(/avatar\.url` must be an https/);
+		expect(feedProblem(feedWith({ image: "https://cdn.example.com/a.png" }), ok)).toMatch(
+			/avatar\.image` must be a file in the repo, not a URL/
+		);
 	});
 
 	it("has no feed problem for a layout with no categories, or categories with no channels", () => {

@@ -1071,11 +1071,11 @@ export interface NotificationsChannelLayout {
 		/**
 		 * The monitoring provider's alerts. `true` uses the defaults; the object form overrides the alert channel's name
 		 * (default `Message to #<channel>`) and the dedicated webhook's name (default the provider's name, capitalised), and
-		 * `avatar` gives that webhook a picture (a file path or an `https://` URL, PNG, JPEG or GIF; a list is tried in order and the first readable one wins, so a URL can be backed by a file) in the provider's list of
+		 * `avatar` gives that webhook a picture (PNG, JPEG or GIF): a file path or `https://` URL, or `{ url, image }`, where the `url` is tried first and the `image`, a file in the repo, is the fallback) in the provider's list of
 		 * integrations. Left out, it wears the layout's `webhookAvatar`, as every webhook does. A picture is set only on a
 		 * webhook that has none; the posts carry the service's own name and icon either way.
 		 */
-		monitoring?: boolean | { name?: string; webhook?: string; avatar?: string | string[] };
+		monitoring?: boolean | { name?: string; webhook?: string; avatar?: string | { url?: string; image?: string } };
 	};
 }
 
