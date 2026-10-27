@@ -2288,7 +2288,7 @@ describe("the relay Worker", () => {
 			expect(out).toContain("exists  sentry alert rule To Discord");
 		});
 
-		it("deploys without a signing secret when the tracker would not show it, and says so", async () => {
+		it("deploys without a signing secret when the tracker did not give it, and says so", async () => {
 			const relay = { ...collaborators(), errors: { ensureRelay: ensureRelay({ clientSecret: undefined }) } };
 			const { run, lines } = setup(withTracker(), { relay });
 			const report = await run();
@@ -2297,7 +2297,7 @@ describe("the relay Worker", () => {
 				"comlink",
 				expect.objectContaining({ secrets: { COMLINK_SENTRY_WEBHOOK: HOOK } })
 			);
-			expect(lines.join("\n")).toContain("would not show the integration's signing secret");
+			expect(lines.join("\n")).toContain("did not give the integration's signing secret");
 		});
 
 		it("reports a failure at the tracker but still deploys the Worker with its webhook", async () => {
