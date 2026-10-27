@@ -19,7 +19,8 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	groups.set(CORE_PROVIDER, coreProbes(loader));
 
 	if (!input.provider) {
-		for (const line of listProbes(groups)) print(line);
+		if (input.pick) await input.pick(groups);
+		else for (const line of listProbes(groups)) print(line);
 		return { status: "listed" };
 	}
 	const probes = groups.get(input.provider);

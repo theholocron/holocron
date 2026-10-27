@@ -41,6 +41,11 @@ export interface RunProbeCommandInput {
 	interactive?: boolean;
 	confirm?: RunProbeInput["confirm"];
 	onInterrupt?: RunProbeInput["onInterrupt"];
+	/**
+	 * Opens a menu of the probes instead of printing the list, when no provider is named. Given only on a terminal, so
+	 * a pipe or CI still gets the plain list.
+	 */
+	pick?: (groups: ReadonlyMap<string, PluginProbes>) => Promise<void>;
 }
 
 export interface ProbeCommandReport {

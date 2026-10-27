@@ -37,4 +37,5 @@ export * from "./child-argv/index.js";
 export * from "./command-registry/index.js";
 export * from "./launch-menu/index.js";
 export * from "./menu-items/index.js";
+export * from "./probe-menu-entries/index.js";
 export * from "./run-menu-entries/index.js";

@@ -143,4 +143,20 @@ describe("runProbeCommand", () => {
 		expect(process.listenerCount("SIGINT")).toBe(before);
 		log.mockRestore();
 	});
+
+	it("hands the probes to a menu instead of printing the list, when given one", async () => {
+		const pick = vi.fn(async (_groups: ReadonlyMap<string, PluginProbes>) => {});
+		const { promise, text } = run({ pick });
+		expect((await promise).status).toBe("listed");
+		expect([...pick.mock.calls[0]![0].keys()].sort()).toEqual(["core", "demo"]);
+		expect(text()).toBe("");
+	});
+
+	it("still names a provider when it is given one, menu or not", async () => {
+		const pick = vi.fn(async (_groups: ReadonlyMap<string, PluginProbes>) => {});
+		const { promise, text } = run({ pick, provider: "demo" });
+		await promise;
+		expect(pick).not.toHaveBeenCalled();
+		expect(text()).toContain("look");
+	});
 });
