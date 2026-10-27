@@ -70,11 +70,10 @@ export function relayProblem(
 }
 
 /**
- * The DNS zone of a host: the layout's, else the last two labels. A host under a multi-label suffix (`example.co.uk`)
- * must say its `relay.zone`, since the registered zone cannot be told from the name alone.
+ * What to hand the `dns` capability as the zone: the layout's, else the host itself. The provider looks a name up from
+ * the full name towards the apex until it finds a zone it holds, so this is right for any suffix (`example.co.uk`).
  */
-export const relayZone = (relay: { host: string; zone?: string }): string =>
-	relay.zone ?? relay.host.split(".").slice(-2).join(".");
+export const relayZone = (relay: { host: string; zone?: string }): string => relay.zone ?? relay.host;
 
 /**
  * Deploy the Worker with its webhook secret and its route, then point the host at it with a proxied placeholder record

@@ -1252,7 +1252,7 @@ export interface NotificationsLayout {
 	relay?: {
 		/** Where the Worker answers, e.g. `comlink.theholocron.dev`. Its DNS record and route are managed. */
 		host: string;
-		/** The DNS zone the host is in. Default: the host's last two labels. */
+		/** The DNS zone the host is in. Default: found by the `dns` provider from the host itself, so rarely needed. */
 		zone?: string;
 		/** The Worker's name at the provider. Default `comlink`. */
 		script?: string;

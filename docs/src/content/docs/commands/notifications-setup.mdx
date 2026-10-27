@@ -152,7 +152,7 @@ layout: {
 
 Build the Worker first (`pnpm --filter @theholocron/comlink run delivery.build`). `setup` then makes a dedicated webhook for the channel (named after the `errors` provider, `Sentry` here, or `feeds.errors.webhook`; the picture is `feeds.errors.avatar`, else the layout's `webhookAvatar`), points `relay.host` at the Worker with a proxied DNS record, and deploys the Worker with the webhook's URL as its `COMLINK_<SOURCE>_WEBHOOK` secret and a route for the host. The URL goes to the Worker and nowhere else: it is not printed, reported or stored as a secret. Secrets set another way, such as the tracker's signing secret `COMLINK_<SOURCE>_SECRET`, are kept when the Worker is deployed again.
 
-Needs an `errors`, a `workers` and a `dns` provider. The relay posts to one channel, so only one channel may have `feeds.errors`. `relay.zone` (default the host's last two labels, so a host under a suffix such as `.co.uk` must set it), `relay.script` (default `comlink`) and `relay.code` (default `apps/comlink/dist/worker.js`) override the defaults. A `--dry-run` previews all of it and calls nothing. If the webhook already exists but was made by a person, its URL cannot be read back: delete it and run `setup` again.
+Needs an `errors`, a `workers` and a `dns` provider. The relay posts to one channel, so only one channel may have `feeds.errors`. `relay.zone` (default: the `dns` provider finds the host's zone itself, so it is rarely needed), `relay.script` (default `comlink`) and `relay.code` (default `apps/comlink/dist/worker.js`) override the defaults. A `--dry-run` previews all of it and calls nothing. If the webhook already exists but was made by a person, its URL cannot be read back: delete it and run `setup` again.
 
 ## Options
 

@@ -989,3 +989,103 @@ describe("provisionChannel — monitoring feed", () => {
 		expect(n.ensureChannel).not.toHaveBeenCalled();
 	});
 });
+
+describe("provisionChannel — relay feed", () => {
+	const HOOK = "https://discord.com/api/webhooks/9/relay-token";
+	const relay = { errors: { webhook: "Sentry" } };
+	const deps = (notifications: Notifications, lines: string[], extra: object = {}) => ({
+		notifications,
+		scope: { kind: "repo" as const },
+		dryRun: false,
+		print: (l: string) => void lines.push(l),
+		...extra,
+	});
+
+	it("hands the webhook's URL to the caller and shows it nowhere", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })) });
+		const lines: string[] = [];
+		const urls: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		const out = await provisionChannel(
+			deps(n, lines, { onRelayWebhook: (u: string) => void urls.push(u), tally }),
+			{ name: "errors", category: "ALERTS", feeds: relay }
+		);
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "errors", name: "Sentry", category: "ALERTS" });
+		expect(urls).toEqual([HOOK]);
+		expect(out.relayWebhook).toEqual({ name: "Sentry", created: true });
+		expect(JSON.stringify(out)).not.toContain("relay-token");
+		expect(lines.join("\n")).not.toContain("relay-token");
+		expect(lines.join("\n")).toContain("created webhook Sentry for the relay");
+		expect(tally).toEqual({ ok: 2, skip: 0 });
+	});
+
+	it("passes a picture on, says it was set, and counts a webhook that already existed as skipped", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: false, url: HOOK, updated: ["avatar"] })),
+		});
+		const lines: string[] = [];
+		const out = await provisionChannel(deps(n, lines), {
+			name: "errors",
+			feeds: { errors: { webhook: "Sentry", avatar: "data:image/png;base64,AA" } },
+		});
+		expect(n.ensureWebhook).toHaveBeenCalledWith({
+			channel: "errors",
+			name: "Sentry",
+			avatar: "data:image/png;base64,AA",
+		});
+		expect(out.relayWebhook).toEqual({ name: "Sentry", created: false, updated: ["avatar"] });
+		expect(lines.join("\n")).toContain("found   webhook Sentry for the relay (avatar set)");
+
+		const tally = { ok: 0, skip: 0 };
+		const again = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false, url: HOOK })) });
+		await provisionChannel(deps(again, [], { tally }), { name: "errors", feeds: relay });
+		// The channel was made (ok); the webhook was already there (skip).
+		expect(tally).toEqual({ ok: 1, skip: 1 });
+	});
+
+	it("works without anyone listening for the URL", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })) });
+		await expect(provisionChannel(deps(n, []), { name: "errors", feeds: relay })).resolves.toBeDefined();
+	});
+
+	it("fails, naming the fix, for a webhook whose URL cannot be read back", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const urls: string[] = [];
+		await expect(
+			provisionChannel(deps(n, [], { onRelayWebhook: (u: string) => void urls.push(u) }), {
+				name: "errors",
+				feeds: relay,
+			})
+		).rejects.toThrow(/URL cannot be read back/);
+		expect(urls).toEqual([]);
+	});
+
+	it("keeps the URL, then reports a picture that could not be set", async () => {
+		const n = fakeNotifications({
+			ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK, avatarError: "too big" })),
+		});
+		const urls: string[] = [];
+		await expect(
+			provisionChannel(deps(n, [], { onRelayWebhook: (u: string) => void urls.push(u) }), {
+				name: "errors",
+				feeds: relay,
+			})
+		).rejects.toThrow(/setting its avatar failed \(too big\)/);
+		expect(urls).toEqual([HOOK]);
+	});
+
+	it("refuses a provider that cannot create webhooks, and previews without calling it", async () => {
+		const none = fakeNotifications({ ensureWebhook: undefined });
+		await expect(provisionChannel(deps(none, []), { name: "errors", feeds: relay })).rejects.toThrow(
+			/cannot create webhooks/
+		);
+
+		const n = fakeNotifications();
+		const lines: string[] = [];
+		const tally = { ok: 0, skip: 0 };
+		await provisionChannel(deps(n, lines, { dryRun: true, tally }), { name: "errors", feeds: relay });
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain("would ensure webhook Sentry for the relay Worker (errors)");
+		expect(tally).toEqual({ ok: 0, skip: 2 });
+	});
+});

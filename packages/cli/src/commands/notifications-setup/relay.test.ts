@@ -18,8 +18,8 @@ describe("relay helpers", () => {
 		expect(relayWebhookBinding("sentry")).toBe("COMLINK_SENTRY_WEBHOOK");
 	});
 
-	it("takes the zone from the layout, else the host's last two labels", () => {
-		expect(relayZone({ host: "comlink.theholocron.dev" })).toBe("theholocron.dev");
+	it("takes the zone from the layout, else leaves the provider to find it from the host", () => {
+		expect(relayZone({ host: "relay.example.co.uk" })).toBe("relay.example.co.uk");
 		expect(relayZone({ host: "a.b.example.dev", zone: "b.example.dev" })).toBe("b.example.dev");
 	});
 

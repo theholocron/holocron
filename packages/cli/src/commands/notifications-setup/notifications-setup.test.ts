@@ -2068,7 +2068,7 @@ describe("the relay Worker", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "errors", name: "Sentry", category: "ALERTS" });
-		expect(relay.dns.upsertRecord).toHaveBeenCalledWith("example.dev", {
+		expect(relay.dns.upsertRecord).toHaveBeenCalledWith("comlink.example.dev", {
 			type: "AAAA",
 			name: "comlink.example.dev",
 			content: "100::",
