@@ -523,4 +523,27 @@ describe("runSecretsSync", () => {
 		expect(lines.join("\n")).toMatch(/could not read vault environment prd: .*403/);
 		expect(setSecret).not.toHaveBeenCalled();
 	});
+
+	it("says why the workers provider is missing when its plugin failed to load", async () => {
+		const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { providerName: "doppler", readEnvironment: async () => ({ K: "v" }) },
+			}),
+			"@theholocron/holocron-plugin-cloudflare": {
+				createPlugin: () => {
+					throw new Error("Cloudflare accountId is required");
+				},
+			},
+		});
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "prd",
+			workerScript: "comlink",
+			loader,
+			print: () => {},
+		});
+		expect(report.rows[0]!.message).toMatch(/needs a `workers` provider.*failed to load.*accountId is required/);
+	});
 });

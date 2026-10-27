@@ -16,8 +16,9 @@ import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
 	providers: {
-		// Only `sync` needs this one: it sets the Worker's secrets.
-		workers: "cloudflare",
+		// Only `sync` needs this one: it sets the Worker's secrets. The account id is not a credential (it is also the
+		// org variable CLOUDFLARE_ACCOUNT_ID in the root config).
+		workers: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }],
 		vault: ["doppler", { project: "comlink", config: "prd" }],
 	},
 });

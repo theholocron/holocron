@@ -48,6 +48,13 @@ import { style, withSpinner } from "../../ui/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import type { RunSecretsSyncInput, SyncReport, SyncRow } from "./secrets-sync.type.js";
 
+/** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
+function workersMissing(loader: PluginLoader): string {
+	const base = "--worker needs a `workers` provider in holocron.config.ts";
+	const failure = loader.loadFailures().find((f) => f.key === "workers");
+	return failure ? `${base} (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})` : base;
+}
+
 export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
@@ -166,7 +173,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 				status: "fail",
 				message: workers
 					? `workers provider (${workers.providerName}) cannot set secrets`
-					: "--worker needs a `workers` provider in holocron.config.ts",
+					: workersMissing(loader),
 			};
 			rows.push(row);
 			print(formatRow(row));
