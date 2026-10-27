@@ -8,10 +8,18 @@ const ORG = "my-org";
 
 function client(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	return { projects: createSentryClient({ token: "tok", baseUrl: BASE, fetch }).projects, calls };
+	return {
+		projects: createSentryClient({ token: "tok", baseUrl: BASE, fetch }).projects,
+		calls,
+	};
 }
 
-const project = { id: "p1", slug: "my-project", name: "My Project", platform: "node" };
+const project = {
+	id: "p1",
+	slug: "my-project",
+	name: "My Project",
+	platform: "node",
+};
 const key = {
 	id: "k1",
 	label: "Default",
@@ -44,10 +52,16 @@ describe("projects.get", () => {
 describe("projects.create", () => {
 	it("POSTs to /teams/{org}/{team}/projects/ with name and platform", async () => {
 		const { projects, calls } = client([{ body: project }]);
-		await projects.create(ORG, "backend", { name: "My Project", platform: "node" });
+		await projects.create(ORG, "backend", {
+			name: "My Project",
+			platform: "node",
+		});
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain(`${BASE}/teams/${ORG}/backend/projects/`);
-		expect(calls[0]?.body).toEqual({ name: "My Project", platform: "node" });
+		expect(calls[0]?.body).toEqual({
+			name: "My Project",
+			platform: "node",
+		});
 	});
 
 	it("omits platform when not provided", async () => {

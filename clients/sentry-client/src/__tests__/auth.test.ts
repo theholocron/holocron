@@ -7,7 +7,10 @@ const BASE = "https://sentry.test/api/0";
 
 function client(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	return { auth: createSentryClient({ token: "tok", baseUrl: BASE, fetch }).auth, calls };
+	return {
+		auth: createSentryClient({ token: "tok", baseUrl: BASE, fetch }).auth,
+		calls,
+	};
 }
 
 describe("auth.organizations", () => {

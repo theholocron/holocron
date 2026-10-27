@@ -88,54 +88,54 @@ export type AlertChannel = AlertChannelRecord &
  * a channel made through the API reads like one made in the UI.
  */
 export const DISCORD_TEMPLATE = `{
-  "content": null,
-  "username": "Checkly",
-  "avatar_url": "https://s3.eu-central-1.amazonaws.com/cdn.checklyhq.com/slack/checkly-slack-icon.png",
-  {{! Embeds for the SSL expiry notifications}}
-  {{#eq ALERT_TYPE "ALERT_SSL" }}
-  "embeds": [
-    {
-      "title": "{{ALERT_TITLE}}",
-      "url": "{{RESULT_LINK}}",
-      "color": 16762924
-    }
-  ]
-  {{else}}
-  {{! Embeds for the standard failure, recovery and degraded notifications}}
-  "embeds": [
-    {
-      "title": "{{ALERT_TITLE}}",
-      "url": "{{RESULT_LINK}}",
-      "fields": [
-        {{#eq ALERT_TYPE "API" }}
-        {
-          "name": "Status code",
-          "value": "{{API_CHECK_RESPONSE_STATUS_CODE}}"
-        },
-        {{/eq}}
-        {{#if GROUP_NAME}}
-        {
-          "name": "Group",
-          "value": "{{GROUP_NAME}}"
-        },
-        {{/if}}
-        {
-          "name": "Response Time",
-          "value": "{{RESPONSE_TIME}}ms"
-        },
-        {
-          "name": "Location",
-          "value": "{{RUN_LOCATION}}"
-        },
-        {
-          "name": "Tags",
-          "value": "[{{#each TAGS}} {{this}} {{#unless @last}},{{/unless}} {{/each}}]"
-        }
-      ],
-      "timestamp": "{{STARTED_AT}}"
-    }
-  ]
-  {{/eq}}
+	"content": null,
+	"username": "Checkly",
+	"avatar_url": "https://s3.eu-central-1.amazonaws.com/cdn.checklyhq.com/slack/checkly-slack-icon.png",
+	{{! Embeds for the SSL expiry notifications}}
+	{{#eq ALERT_TYPE "ALERT_SSL" }}
+	"embeds": [
+		{
+			"title": "{{ALERT_TITLE}}",
+			"url": "{{RESULT_LINK}}",
+			"color": 16762924
+		}
+	]
+	{{else}}
+	{{! Embeds for the standard failure, recovery and degraded notifications}}
+	"embeds": [
+		{
+			"title": "{{ALERT_TITLE}}",
+			"url": "{{RESULT_LINK}}",
+			"fields": [
+				{{#eq ALERT_TYPE "API" }}
+				{
+					"name": "Status code",
+					"value": "{{API_CHECK_RESPONSE_STATUS_CODE}}"
+				},
+				{{/eq}}
+				{{#if GROUP_NAME}}
+				{
+					"name": "Group",
+					"value": "{{GROUP_NAME}}"
+				},
+				{{/if}}
+				{
+					"name": "Response Time",
+					"value": "{{RESPONSE_TIME}}ms"
+				},
+				{
+					"name": "Location",
+					"value": "{{RUN_LOCATION}}"
+				},
+				{
+					"name": "Tags",
+					"value": "[{{#each TAGS}} {{this}} {{#unless @last}},{{/unless}} {{/each}}]"
+				}
+			],
+			"timestamp": "{{STARTED_AT}}"
+		}
+	]
+	{{/eq}}
 }
 `;
 

@@ -22,7 +22,11 @@ describe("createSentryClient", () => {
 
 	it("respects baseUrl override", async () => {
 		const { fetch, calls } = stubFetch([{ body: [] }]);
-		const client = createSentryClient({ token: TOKEN, baseUrl: "https://sentry.test/api/0", fetch });
+		const client = createSentryClient({
+			token: TOKEN,
+			baseUrl: "https://sentry.test/api/0",
+			fetch,
+		});
 		await client.auth.organizations();
 		expect(calls[0]?.url).toContain("https://sentry.test/api/0");
 	});
