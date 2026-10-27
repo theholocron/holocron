@@ -32,6 +32,7 @@
  */
 
 import { errorMessage } from "@theholocron/misc-utils";
+import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../../observability/logger/index.js";
 import {
@@ -45,7 +46,15 @@ import {
 	type Workers,
 } from "../../plugin/index.js";
 import { style, withSpinner } from "../../ui/index.js";
-import type { RunSecretsSyncInput, SyncReport, SyncRow } from "./secrets-sync.type.js";
+import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
+import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow } from "./secrets-sync.type.js";
+
+/** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
+function workersMissing(loader: PluginLoader): string {
+	const base = "--worker needs a `workers` provider in holocron.config.ts";
+	const failure = loader.loadFailures().find((f) => f.key === "workers");
+	return failure ? `${base} (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})` : base;
+}
 
 export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -73,9 +82,31 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 			`vault provider (${vault.providerName}) does not implement readEnvironment — sync needs bulk env reads`
 		);
 	}
-	const envVars = await withSpinner(`Reading vault environment ${input.environmentId}…`, () =>
-		vault.readEnvironment!(input.environmentId)
-	);
+	let envVars: Record<string, string>;
+	try {
+		envVars = await withSpinner(`Reading vault environment ${input.environmentId}…`, () =>
+			vault.readEnvironment!(input.environmentId)
+		);
+	} catch (err) {
+		// Printed, not just thrown: the CLI's global handler swallows a plain Error, so a bare throw exits 1 with no message.
+		const message = describeProviderError(err);
+		print(`  ${style.fail(`could not read vault environment ${input.environmentId}: ${message}`)}`);
+		logger.warn({ environment: input.environmentId, reason: logReason(err) }, "secrets sync: vault read failed");
+		return summarise(
+			[
+				{
+					destination: `vault:${vault.providerName}`,
+					scope: `environment=${input.environmentId}`,
+					key: "(all)",
+					status: "fail",
+					message,
+				},
+			],
+			logger,
+			print,
+			dryRun
+		);
+	}
 	const keys = Object.keys(envVars).sort();
 	print(style.step(`read ${keys.length} keys from vault`));
 	print("");
@@ -145,7 +176,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 				status: "fail",
 				message: workers
 					? `workers provider (${workers.providerName}) cannot set secrets`
-					: "--worker needs a `workers` provider in holocron.config.ts",
+					: workersMissing(loader),
 			};
 			rows.push(row);
 			print(formatRow(row));
@@ -161,6 +192,13 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		}
 	}
 
+	return summarise(rows, logger, print, dryRun);
+}
+
+// ── helpers ──────────────────────────────────────────────────────────
+
+/** Log every row, then print and log the summary. Shared by a finished run and one that stopped at the vault. */
+function summarise(rows: SyncRow[], logger: Logger, print: SyncPrintLine, dryRun: boolean): SyncReport {
 	for (const r of rows) {
 		// `key` is a secret NAME, never a value — safe to log. The logger also
 		// redacts `secrets[*].value` shapes as defence in depth.
@@ -197,8 +235,6 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 
 	return { rows, summary };
 }
-
-// ── helpers ──────────────────────────────────────────────────────────
 
 async function runRow(
 	destination: string,
