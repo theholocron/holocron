@@ -43,7 +43,7 @@ const workflow = (over: Partial<SentryWorkflow> = {}): SentryWorkflow => ({
 			logicType: "all",
 			conditions: [],
 			actions: [
-				{ id: "a", type: "sentry_app", config: { targetType: "sentry_app", targetIdentifier: "42" }, data: {} },
+				{ id: "a", type: "webhook", config: { targetType: null, targetIdentifier: "comlink-1" }, data: {} },
 			],
 		},
 	],
@@ -108,8 +108,8 @@ describe("ensureSentryRelay", () => {
 		const body = client.workflows.create.mock.calls[0]![1];
 		expect(body.detectorIds).toEqual(["d1"]);
 		expect(body.actionFilters[0]!.actions[0]).toMatchObject({
-			type: "sentry_app",
-			config: { targetIdentifier: "42" },
+			type: "webhook",
+			config: { targetIdentifier: "comlink-1" },
 		});
 	});
 
@@ -204,7 +204,7 @@ describe("ensureSentryRelay", () => {
 		const filters = client.workflows.update.mock.calls[0]![2].actionFilters;
 		expect(filters).toHaveLength(2);
 		expect(filters[0]!.actions).toHaveLength(0);
-		expect(filters[1]).toMatchObject({ conditions: [], actions: [{ type: "sentry_app" }] });
+		expect(filters[1]).toMatchObject({ conditions: [], actions: [{ type: "webhook" }] });
 	});
 
 	it("reuses a filter without conditions for the action", async () => {
@@ -214,6 +214,28 @@ describe("ensureSentryRelay", () => {
 		const filters = client.workflows.update.mock.calls[0]![2].actionFilters;
 		expect(filters).toHaveLength(1);
 		expect(filters[0]!.actions).toHaveLength(1);
+	});
+
+	it("replaces the sentry_app action an earlier version wrote, which the page shows as unknown", async () => {
+		const old = {
+			id: "a",
+			type: "sentry_app",
+			config: { targetType: "sentry_app", targetIdentifier: "42" },
+			data: {},
+		};
+		const { client, as } = world({
+			apps: [app()],
+			workflows: [workflow({ actionFilters: [{ id: "f", logicType: "all", conditions: [], actions: [old] }] })],
+		});
+		const result = await ensureSentryRelay(as, ORG, input);
+		expect(result.rule.updated).toEqual(["action"]);
+		expect(client.workflows.update.mock.calls[0]![2].actionFilters[0]!.actions).toEqual([
+			{
+				type: "webhook",
+				config: { targetType: null, targetDisplay: null, targetIdentifier: "comlink-1" },
+				data: {},
+			},
+		]);
 	});
 
 	it("changes nothing when a project is wrong", async () => {

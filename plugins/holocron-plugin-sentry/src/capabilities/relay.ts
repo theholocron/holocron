@@ -7,14 +7,22 @@ import type { SentryClient } from "../rest.js";
 const INTEGRATION_SCOPES = ["event:read"];
 const DEFAULT_FREQUENCY = 5;
 
-/** The alert action that sends through an integration: it points at the integration's numeric app id. */
-const sentryAppAction = (appId: number) => ({
-	type: "sentry_app",
-	config: { targetType: "sentry_app", targetIdentifier: String(appId) },
+/**
+ * The alert action that sends through an integration, in the shape Sentry's own page writes when "Send a notification via
+ * an integration" is picked: a `webhook` action named by the integration's slug. (A `sentry_app` action with the numeric
+ * id is accepted too, but the page shows it as an unknown integration.)
+ */
+const integrationAction = (slug: string) => ({
+	type: "webhook",
+	config: { targetType: null, targetDisplay: null, targetIdentifier: slug },
 	data: {},
 });
 
-const targetsApp = (action: { type: string; config: Record<string, unknown> }, appId: number): boolean =>
+const sendsThrough = (action: { type: string; config: Record<string, unknown> }, slug: string): boolean =>
+	action.type === "webhook" && action.config["targetIdentifier"] === slug;
+
+/** The `sentry_app` form an earlier version wrote for this integration, which the page cannot name. */
+const isLegacyAction = (action: { type: string; config: Record<string, unknown> }, appId: number): boolean =>
 	action.type === "sentry_app" && String(action.config["targetIdentifier"]) === String(appId);
 
 /** A workflow as Sentry returned it, as the body to send back (the nested ids are not part of an update). */
@@ -46,7 +54,7 @@ function toInput(wf: SentryWorkflow): SentryWorkflowInput {
 }
 
 /** Sentry's own "high priority issues" rule, which is the default for a new alert. */
-function newWorkflow(name: string, frequency: number, detectorIds: string[], appId: number): SentryWorkflowInput {
+function newWorkflow(name: string, frequency: number, detectorIds: string[], slug: string): SentryWorkflowInput {
 	return {
 		name,
 		enabled: true,
@@ -60,7 +68,7 @@ function newWorkflow(name: string, frequency: number, detectorIds: string[], app
 				{ type: "existing_high_priority_issue", comparison: true, conditionResult: true },
 			],
 		},
-		actionFilters: [{ logicType: "all", conditions: [], actions: [sentryAppAction(appId)] }],
+		actionFilters: [{ logicType: "all", conditions: [], actions: [integrationAction(slug)] }],
 	};
 }
 
@@ -115,14 +123,14 @@ async function ensureRule(
 	client: SentryClient,
 	org: string,
 	input: EnsureRelayInput,
-	appId: number,
+	install: { slug: string; appId: number },
 	detectorIds: string[]
 ): Promise<{ created: boolean; updated: string[] }> {
 	const workflows = await client.workflows.list(org);
 	const frequency = input.rule.frequency ?? DEFAULT_FREQUENCY;
 	const existing = workflows.find((w) => w.name === input.rule.name);
 	if (!existing) {
-		await client.workflows.create(org, newWorkflow(input.rule.name, frequency, detectorIds, appId));
+		await client.workflows.create(org, newWorkflow(input.rule.name, frequency, detectorIds, install.slug));
 		return { created: true, updated: [] };
 	}
 
@@ -142,14 +150,18 @@ async function ensureRule(
 		next.detectorIds = [...existing.detectorIds, ...missing];
 		updated.push("projects");
 	}
-	const sends = existing.actionFilters.some((f) => f.actions.some((a) => targetsApp(a, appId)));
+	const sends = existing.actionFilters.some((f) => f.actions.some((a) => sendsThrough(a, install.slug)));
+	const legacy = existing.actionFilters.some((f) => f.actions.some((a) => isLegacyAction(a, install.appId)));
+	if (legacy) {
+		for (const f of next.actionFilters) f.actions = f.actions.filter((a) => !isLegacyAction(a, install.appId));
+	}
 	if (!sends) {
 		// On a filter with no conditions, so a person's narrower filters do not narrow what is relayed.
 		const open = next.actionFilters.find((f) => f.conditions.length === 0);
-		if (open) open.actions.push(sentryAppAction(appId));
-		else next.actionFilters.push({ logicType: "all", conditions: [], actions: [sentryAppAction(appId)] });
-		updated.push("action");
+		if (open) open.actions.push(integrationAction(install.slug));
+		else next.actionFilters.push({ logicType: "all", conditions: [], actions: [integrationAction(install.slug)] });
 	}
+	if (legacy || !sends) updated.push("action");
 	if (updated.length === 0) return { created: false, updated };
 	await client.workflows.update(org, existing.id, next);
 	return { created: false, updated };
@@ -172,7 +184,13 @@ export async function ensureSentryRelay(
 	const installs = await client.sentryApps.installations(org);
 	const install = installs.find((i) => i.app.slug === integration.app.slug);
 	if (!install) throw new Error(`the integration \`${integration.app.name}\` is not installed on ${org}`);
-	const rule = await ensureRule(client, org, input, install.app.sentryAppId, detectorIds);
+	const rule = await ensureRule(
+		client,
+		org,
+		input,
+		{ slug: install.app.slug, appId: install.app.sentryAppId },
+		detectorIds
+	);
 	const clientSecret = await secretOf(client, integration.app);
 	return {
 		integration: { created: integration.created, updated: integration.updated },
