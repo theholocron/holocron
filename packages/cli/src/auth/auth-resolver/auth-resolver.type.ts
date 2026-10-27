@@ -7,4 +7,6 @@ export interface FeatureResolverConfig {
 	envName: string;
 	/** Keyring account key, e.g. `"github.issues"`. */
 	keyringKey: string;
+	/** The vendor named in the "no token" message. Default `GitHub`. */
+	vendor?: string;
 }

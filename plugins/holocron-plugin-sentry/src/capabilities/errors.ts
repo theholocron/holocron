@@ -1,7 +1,8 @@
-import type { Errors } from "@theholocron/cli";
+import type { EnsureRelayInput, EnsureRelayResult, Errors } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
 import type { SentryClient } from "../rest.js";
+import { ensureSentryRelay } from "./relay.js";
 
 export interface SentryErrorsOptions {
 	/** Sentry organization slug. Required for `whoami` and `ensureProject`. */
@@ -16,8 +17,14 @@ export class SentryErrors implements Errors {
 
 	constructor(
 		private readonly client: () => SentryClient,
-		private readonly opts: SentryErrorsOptions
+		private readonly opts: SentryErrorsOptions,
+		/** The client for the relay, made with the Comlink token (see `resolveRelayToken`). */
+		private readonly relayClient: () => SentryClient = client
 	) {}
+
+	async ensureRelay(input: EnsureRelayInput): Promise<EnsureRelayResult> {
+		return ensureSentryRelay(this.relayClient(), this.requireOrg(), input);
+	}
 
 	async describe() {
 		return {

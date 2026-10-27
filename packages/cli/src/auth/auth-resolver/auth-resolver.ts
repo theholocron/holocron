@@ -29,8 +29,8 @@ export function createFeatureResolver(config: FeatureResolverConfig): (input?: R
 		const token = input.cliToken || env.get(config.envName) || keyring(config.keyringKey);
 		if (!token) {
 			throw new AuthError(
-				`no GitHub token found for this operation. Pass --token <PAT>, ` +
-					`set ${config.envName}, or run: holocron auth set ${config.keyringKey} <PAT>`
+				`no ${config.vendor ?? "GitHub"} token found for this operation. Pass --token <token>, ` +
+					`set ${config.envName}, or run: holocron auth set ${config.keyringKey} <token>`
 			);
 		}
 		return token;

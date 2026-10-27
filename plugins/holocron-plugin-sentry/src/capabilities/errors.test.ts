@@ -104,3 +104,58 @@ describe("SentryErrors.ensureProject — create", () => {
 		expect(calls[1]?.url).toContain(`/teams/${ORG}/backend/projects/`);
 	});
 });
+
+describe("SentryErrors.ensureRelay", () => {
+	const app = {
+		name: "Comlink",
+		slug: "comlink-1",
+		uuid: "u",
+		status: "internal",
+		scopes: ["event:read"],
+		webhookUrl: "https://hook",
+		isAlertable: true,
+		clientSecret: "shh",
+	};
+	const input = { name: "Comlink", webhookUrl: "https://hook", projects: ["my-project"], rule: { name: "Rule" } };
+	const rule = {
+		id: "w1",
+		name: "Rule",
+		enabled: true,
+		environment: null,
+		config: { frequency: 5 },
+		detectorIds: ["d1"],
+		triggers: { logicType: "any-short", conditions: [] },
+		actionFilters: [
+			{
+				logicType: "all",
+				conditions: [],
+				actions: [{ type: "sentry_app", config: { targetIdentifier: "42" }, data: {} }],
+			},
+		],
+	};
+
+	it("works through the relay client, not the general one", async () => {
+		const main = stubFetch([]);
+		const relay = stubFetch([
+			{ body: [project] },
+			{ body: [{ id: "d1", projectId: "p1", name: "x", type: "issue_stream", workflowIds: [] }] },
+			{ body: [app] },
+			{ body: [{ uuid: "i", status: "installed", app: { uuid: "u", slug: "comlink-1", sentryAppId: 42 } }] },
+			{ body: [rule] },
+		]);
+		const make = (fetch: typeof main.fetch) => createSentryClient({ token: "t", baseUrl: BASE, fetch });
+		const errors = new SentryErrors(
+			() => make(main.fetch),
+			{ org: ORG },
+			() => make(relay.fetch)
+		);
+		expect((await errors.ensureRelay(input)).clientSecret).toBe("shh");
+		expect(main.calls).toHaveLength(0);
+		expect(relay.calls).toHaveLength(5);
+	});
+
+	it("needs an org", async () => {
+		const { errors } = makeErrors([], {});
+		await expect(errors.ensureRelay(input)).rejects.toThrow(/requires `org`/);
+	});
+});

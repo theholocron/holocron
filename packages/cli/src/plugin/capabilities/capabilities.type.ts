@@ -872,6 +872,31 @@ export interface Errors extends ProviderIdentity {
 	 */
 	whoami?(): Promise<{ org: string } | null>;
 	ensureProject?(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }>;
+	/**
+	 * Make the tracker send its alerts to a relay (the Comlink Worker): an integration that posts to `webhookUrl`, and
+	 * an alert rule on each project that uses it. Idempotent: an integration or rule with the same name is adopted and
+	 * only what differs is changed. `clientSecret` is the integration's signing secret, handed to the caller to give
+	 * the relay; it is a credential and must not be printed or stored anywhere but there. It is absent when the
+	 * provider would not show it to the caller's token.
+	 */
+	ensureRelay?(input: EnsureRelayInput): Promise<EnsureRelayResult>;
+}
+
+export interface EnsureRelayInput {
+	/** The integration's name at the provider (also how an existing one is found). */
+	name: string;
+	/** Where the provider posts its alerts, e.g. `https://comlink.theholocron.dev/sentry`. */
+	webhookUrl: string;
+	/** The projects whose issues are sent. */
+	projects: string[];
+	/** The alert rule: its name, and the minutes between two notifications for one issue (default 5). */
+	rule: { name: string; frequency?: number };
+}
+
+export interface EnsureRelayResult {
+	integration: { created: boolean; updated: string[] };
+	rule: { created: boolean; updated: string[] };
+	clientSecret?: string;
 }
 
 export interface Logs extends ProviderIdentity {
@@ -1258,6 +1283,12 @@ export interface NotificationsLayout {
 		script?: string;
 		/** The built Worker, relative to the repo root. Default `apps/comlink/dist/worker.js`. */
 		code?: string;
+		/**
+		 * The error tracker's side, when its provider can manage it (`Errors.ensureRelay`): the projects whose issues
+		 * are sent, the integration's name (default `Comlink`) and the alert rule's name (default
+		 * `Errors to Discord (Comlink)`) and throttle in minutes (default 5). Left out, nothing is done at the tracker.
+		 */
+		errors?: { projects: string[]; integration?: string; rule?: string; frequency?: number };
 	};
 	/** What a new member sees on joining, applied after the channels exist. */
 	welcome?: NotificationsWelcomeLayout;

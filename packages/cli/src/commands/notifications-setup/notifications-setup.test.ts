@@ -69,7 +69,12 @@ function setup(
 		org?: string;
 		monitoring?: Partial<Monitoring>;
 		/** The relay's three collaborators; each can be left out to see the refusal. */
-		relay?: { errors?: boolean; workers?: unknown; dns?: unknown; readCode?: (path: string) => Promise<string> };
+		relay?: {
+			errors?: boolean | object;
+			workers?: unknown;
+			dns?: unknown;
+			readCode?: (path: string) => Promise<string>;
+		};
 		repoRoot?: string;
 		loadAvatar?: (source: string) => Promise<string>;
 		pause?: ((message: string) => Promise<void>) | false;
@@ -99,7 +104,11 @@ function setup(
 		...(opts.relay?.errors
 			? {
 					"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
-						errors: { key: "errors", providerName: "sentry" },
+						errors: {
+							key: "errors",
+							providerName: "sentry",
+							...(typeof opts.relay.errors === "object" ? opts.relay.errors : {}),
+						},
 					}),
 				}
 			: {}),
@@ -2217,5 +2226,117 @@ describe("the relay Worker", () => {
 		const n = fakeNotifications();
 		const report = await setup(n).run();
 		expect(report.status).toBe("ok");
+	});
+
+	describe("the tracker's side (errors.ensureRelay)", () => {
+		const tracker = {
+			projects: ["holocron-cli"],
+		};
+		const withTracker = (extra: object = {}) =>
+			hooked({ layout: layout({ relay: { host: "comlink.example.dev", errors: { ...tracker, ...extra } } }) });
+		const ensureRelay = (over: object = {}) =>
+			vi.fn(async () => ({
+				integration: { created: true, updated: [] as string[] },
+				rule: { created: true, updated: [] as string[] },
+				clientSecret: "SIGNING-SECRET",
+				...over,
+			}));
+
+		it("ensures the integration and rule, then gives the Worker the signing secret with the webhook", async () => {
+			const relay = { ...collaborators(), errors: { ensureRelay: ensureRelay() } };
+			const { run, lines } = setup(withTracker(), { relay });
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(relay.errors.ensureRelay).toHaveBeenCalledWith({
+				name: "Comlink",
+				webhookUrl: "https://comlink.example.dev/sentry",
+				projects: ["holocron-cli"],
+				rule: { name: "Errors to Discord (Comlink)" },
+			});
+			expect(relay.workers.deployScript).toHaveBeenCalledWith(
+				"comlink",
+				expect.objectContaining({
+					secrets: { COMLINK_SENTRY_WEBHOOK: HOOK, COMLINK_SENTRY_SECRET: "SIGNING-SECRET" },
+				})
+			);
+			const out = lines.join("\n");
+			expect(out).toContain("created sentry integration Comlink");
+			expect(out).toContain("created sentry alert rule Errors to Discord (Comlink)");
+			expect(out).not.toContain("SIGNING-SECRET");
+			expect(JSON.stringify(report)).not.toContain("SIGNING-SECRET");
+		});
+
+		it("uses the layout's names and throttle, and reports what it changed", async () => {
+			const relay = {
+				...collaborators(),
+				errors: {
+					ensureRelay: ensureRelay({
+						integration: { created: false, updated: ["webhook URL"] },
+						rule: { created: false, updated: [] },
+					}),
+				},
+			};
+			const { run, lines } = setup(withTracker({ integration: "Relay", rule: "To Discord", frequency: 15 }), {
+				relay,
+			});
+			await run();
+			expect(relay.errors.ensureRelay).toHaveBeenCalledWith(
+				expect.objectContaining({ name: "Relay", rule: { name: "To Discord", frequency: 15 } })
+			);
+			const out = lines.join("\n");
+			expect(out).toContain("updated sentry integration Relay: webhook URL");
+			expect(out).toContain("exists  sentry alert rule To Discord");
+		});
+
+		it("deploys without a signing secret when the tracker would not show it, and says so", async () => {
+			const relay = { ...collaborators(), errors: { ensureRelay: ensureRelay({ clientSecret: undefined }) } };
+			const { run, lines } = setup(withTracker(), { relay });
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(relay.workers.deployScript).toHaveBeenCalledWith(
+				"comlink",
+				expect.objectContaining({ secrets: { COMLINK_SENTRY_WEBHOOK: HOOK } })
+			);
+			expect(lines.join("\n")).toContain("would not show the integration's signing secret");
+		});
+
+		it("reports a failure at the tracker but still deploys the Worker with its webhook", async () => {
+			const relay = {
+				...collaborators(),
+				errors: {
+					ensureRelay: vi.fn(async () => {
+						throw new Error("403 forbidden");
+					}),
+				},
+			};
+			const { run } = setup(withTracker(), { relay });
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.failures.map((f) => f.step)).toEqual(["sentry alert relay"]);
+			expect(relay.workers.deployScript).toHaveBeenCalledWith(
+				"comlink",
+				expect.objectContaining({ secrets: { COMLINK_SENTRY_WEBHOOK: HOOK } })
+			);
+		});
+
+		it("previews in a dry run without calling the tracker", async () => {
+			const relay = { ...collaborators(), errors: { ensureRelay: ensureRelay() } };
+			const { run, lines } = setup(withTracker(), { relay, dryRun: true });
+			await run();
+			expect(relay.errors.ensureRelay).not.toHaveBeenCalled();
+			expect(lines.join("\n")).toContain(
+				"would ensure the sentry integration Comlink and the alert rule Errors to Discord (Comlink) on holocron-cli"
+			);
+		});
+
+		it("does nothing at the tracker when the layout names no tracker side, or the provider cannot", async () => {
+			const manage = { ...collaborators(), errors: { ensureRelay: ensureRelay() } };
+			await setup(hooked(), { relay: manage }).run();
+			expect(manage.errors.ensureRelay).not.toHaveBeenCalled();
+
+			const cannot = collaborators();
+			const report = await setup(withTracker(), { relay: cannot }).run();
+			expect(report.status).toBe("ok");
+		});
 	});
 });
