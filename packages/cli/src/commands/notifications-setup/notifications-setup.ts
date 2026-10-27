@@ -19,6 +19,7 @@ import {
 	assertPluginsResolvable,
 	type Monitoring,
 	type NotificationsAccess,
+	type NotificationsChannelLayout,
 	type NotificationsLayout,
 	PluginLoader,
 	type Secrets,
@@ -329,9 +330,13 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		if (problem) return refuse(problem);
 	}
 
+	// The pictures a channel's feed may wear, in order (none when it has no feed).
+	const feedAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
+		channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
 	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
 	const avatars = new Map<string, string>();
-	const read = input.loadAvatar ?? loadAvatar;
+	// A relative path is the repository's, wherever the command is run from.
+	const read = input.loadAvatar ?? ((source: string) => loadAvatar(source, input.context.repoRoot));
 	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
 		const own = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
 		if (own !== undefined && !avatars.has(own)) {
@@ -342,15 +347,15 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			}
 		}
 		// A feed's picture may list fallbacks (a URL, then a file in the repo): the first that can be read is used.
-		const feedSources = channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
-		const feedKey = feedSources.join("\n");
+		const feedSources = feedAvatarsOf(channel);
+		const feedKey = JSON.stringify(feedSources);
 		if (feedSources.length > 0 && !avatars.has(feedKey)) {
 			try {
 				avatars.set(
 					feedKey,
-					await loadFirstAvatar(feedSources, read, (source, reason) =>
+					await loadFirstAvatar(feedSources, read, (source, reason, moreToTry) =>
 						print(
-							`  ${style.skip(`avatar ${describeAvatarSource(source)} could not be read (${reason})${feedSources.length > 1 ? "; trying the next" : ""}`)}`
+							`  ${style.skip(`avatar ${describeAvatarSource(source)} could not be read (${reason})${moreToTry ? "; trying the next" : ""}`)}`
 						)
 					)
 				);
@@ -546,16 +551,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 									feeds: {
 										monitoring: {
 											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
-											...(feedAvatarOf(layout, channel.feeds.monitoring, monitoring).length > 0
-												? {
-														avatar: avatars.get(
-															feedAvatarOf(
-																layout,
-																channel.feeds.monitoring,
-																monitoring
-															).join("\n")
-														)!,
-													}
+											...(feedAvatarsOf(channel).length > 0
+												? { avatar: avatars.get(JSON.stringify(feedAvatarsOf(channel)))! }
 												: {}),
 										},
 									},

@@ -88,16 +88,18 @@ describe("describeAvatarSource", () => {
 
 describe("loadFirstAvatar", () => {
 	it("uses the first source that can be read, and says which it skipped", async () => {
-		const skipped: Array<[string, string]> = [];
+		const skipped: Array<[string, string, boolean]> = [];
 		const read = async (source: string) => {
 			if (source.startsWith("https://")) throw new Error("fetch failed");
 			return `data:image/png;base64,${source}`;
 		};
-		const uri = await loadFirstAvatar(["https://cdn.example.com/a.png?sig=SECRET", "media/a.png"], read, (s, r) =>
-			skipped.push([s, r])
+		const uri = await loadFirstAvatar(
+			["https://cdn.example.com/a.png?sig=SECRET", "media/a.png"],
+			read,
+			(s, r, more) => skipped.push([s, r, more])
 		);
 		expect(uri).toBe("data:image/png;base64,media/a.png");
-		expect(skipped).toEqual([["https://cdn.example.com/a.png?sig=SECRET", "fetch failed"]]);
+		expect(skipped).toEqual([["https://cdn.example.com/a.png?sig=SECRET", "fetch failed", true]]);
 	});
 
 	it("stops at the first that works and does not read the rest", async () => {
@@ -143,5 +145,35 @@ describe("a data: URI the provider carries", () => {
 
 	it("is described as the built-in icon, not echoed", () => {
 		expect(describeAvatarSource(`data:image/png;base64,${png}`)).toBe("the built-in icon");
+	});
+
+	it("says nothing more is left to try on the last source", async () => {
+		const flags: boolean[] = [];
+		await expect(
+			loadFirstAvatar(
+				["a", "b"],
+				async () => {
+					throw new Error("no");
+				},
+				(_s, _r, more) => flags.push(more)
+			)
+		).rejects.toThrow();
+		expect(flags).toEqual([true, false]);
+	});
+
+	it("scrubs an address that a read error quotes, in what it reports and in the refusal", async () => {
+		const source = "https://u:p@cdn.example.com/a.png?sig=SECRET";
+		const reasons: string[] = [];
+		const read = async () => {
+			throw new Error(`request to ${source} failed`);
+		};
+		const failure = await loadFirstAvatar([source], read, (_s, reason) => reasons.push(reason)).catch(
+			(e: Error) => e
+		);
+		expect(reasons).toEqual(["request to https://cdn.example.com/a.png failed"]);
+		expect((failure as Error).message).toBe(
+			"`https://cdn.example.com/a.png`: request to https://cdn.example.com/a.png failed"
+		);
+		expect((failure as Error).message).not.toContain("SECRET");
 	});
 });

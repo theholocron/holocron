@@ -43,16 +43,18 @@ export function describeAvatarSource(source: string): string {
 export async function loadFirstAvatar(
 	sources: string[],
 	read: (source: string) => Promise<string>,
-	onSkip: (source: string, reason: string) => void = () => {}
+	onSkip: (source: string, reason: string, moreToTry: boolean) => void = () => {}
 ): Promise<string> {
 	const failures: string[] = [];
-	for (const source of sources) {
+	for (const [i, source] of sources.entries()) {
 		try {
 			return await read(source);
 		} catch (err) {
-			const reason = err instanceof Error ? err.message : String(err);
+			// A read error may quote the address it was given; what is printed names the safe form of it.
+			const raw = err instanceof Error ? err.message : String(err);
+			const reason = raw.split(source).join(describeAvatarSource(source));
 			failures.push(`\`${describeAvatarSource(source)}\`: ${reason}`);
-			onSkip(source, reason);
+			onSkip(source, reason, i < sources.length - 1);
 		}
 	}
 	throw new Error(failures.join("; "));
