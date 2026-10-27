@@ -44,6 +44,7 @@ import {
 	type CardinalityFor,
 	type ResolvedCapability,
 } from "../capabilities/index.js";
+import type { PluginProbes } from "../probe/index.js";
 import type { PluginImporter, PluginLoadFailure, PluginModule, RuntimeContext } from "./loader.type.js";
 
 export class LoaderError extends Error {
@@ -53,6 +54,8 @@ export class LoaderError extends Error {
 export class PluginLoader {
 	private readonly registry = new Map<CapabilityKey, unknown>();
 	private readonly failures: PluginLoadFailure[] = [];
+	/** The probes of each provider that was imported, by provider name (`sentry`). */
+	private readonly probeSets = new Map<string, PluginProbes>();
 
 	constructor(
 		private readonly config: ResolvedHolocronConfig,
@@ -137,6 +140,11 @@ export class PluginLoader {
 	}
 
 	/** All capability keys currently loaded. Useful for the doctor command. */
+	/** The probes each loaded provider offers, by provider name. Empty for a provider that offers none. */
+	probes(): ReadonlyMap<string, PluginProbes> {
+		return this.probeSets;
+	}
+
 	loadedKeys(): CapabilityKey[] {
 		return Array.from(this.registry.keys());
 	}
@@ -166,6 +174,8 @@ export class PluginLoader {
 				cliTokens: undefined,
 				...tuple.options,
 			});
+			if (plugin.probes && Object.keys(plugin.probes).length > 0)
+				this.probeSets.set(tuple.provider, plugin.probes);
 			const factory = plugin.capabilities[key];
 			if (typeof factory !== "function") {
 				throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);

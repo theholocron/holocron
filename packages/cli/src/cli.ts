@@ -35,6 +35,7 @@ import { runNotificationsSetup } from "./commands/notifications-setup/index.js";
 import { runNotificationsSyncRoles } from "./commands/notifications-sync-roles/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
+import { runProbeCommand } from "./commands/probe/index.js";
 import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
 import { runSecretSet } from "./commands/secret-set/index.js";
 import { runSecretsSync } from "./commands/secrets-sync/index.js";
@@ -1217,6 +1218,45 @@ try {
 						}
 					),
 			() => {}
+		)
+		.command(
+			"probe [provider] [probe]",
+			"Poke a live provider on purpose: inspect it, or run a proof that cleans up after itself",
+			(y) =>
+				y
+					.positional("provider", {
+						type: "string",
+						describe: "Which provider's probes (omit to list them all)",
+					})
+					.positional("probe", {
+						type: "string",
+						describe: "Which probe to run (omit to list the provider's)",
+					})
+					.option("yes", {
+						type: "boolean",
+						default: false,
+						describe: "Run a probe that changes things without asking first (required without a terminal)",
+					}),
+			async (argv) => {
+				const tokens = tokenContext(argv.token);
+				if (!tokens) return;
+				const loaded = await loadConfig(argv.cwd);
+				applyResolvedConfig(argv, loaded.resolved);
+				const report = await runProbeCommand({
+					loaded,
+					context: {
+						repoRoot: argv.cwd,
+						dryRun: argv.dryRun,
+						...tokens,
+						org: resolveOrg(argv, loaded.resolved),
+					},
+					...(argv.provider ? { provider: argv.provider as string } : {}),
+					...(argv.probe ? { probe: argv.probe as string } : {}),
+					dryRun: argv.dryRun,
+					yes: argv.yes,
+				});
+				if (report.status === "fail") process.exitCode = 1;
+			}
 		)
 		.command(
 			"secrets",

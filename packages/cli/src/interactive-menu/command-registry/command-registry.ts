@@ -69,6 +69,12 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 		supportsDryRun: true,
 	},
 	{
+		name: "probe",
+		description: "Poke a live provider on purpose: inspect it, or run a proof that cleans up after itself",
+		positionals: [],
+		supportsDryRun: true,
+	},
+	{
 		name: "repo setup",
 		description: "Apply infra setup actions across every configured capability",
 		positionals: [],
