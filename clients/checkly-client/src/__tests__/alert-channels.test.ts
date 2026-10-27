@@ -150,6 +150,11 @@ describe("alertChannels", () => {
 		expect(DISCORD_TEMPLATE).toContain('"username": "Checkly"');
 		expect(DISCORD_TEMPLATE).toContain("{{ALERT_TITLE}}");
 		expect(DISCORD_TEMPLATE).toContain("{{RESULT_LINK}}");
+		// A colour for each outcome, and the status code for an API check (the check's type is CHECK_TYPE, not ALERT_TYPE).
+		for (const type of ["ALERT_FAILURE", "ALERT_RECOVERY", "ALERT_DEGRADED_RECOVERY"]) {
+			expect(DISCORD_TEMPLATE).toContain(`{{#eq ALERT_TYPE "${type}"}}`);
+		}
+		expect(DISCORD_TEMPLATE).toContain('{{#eq CHECK_TYPE "API" }}');
 		// Every opened block ({{#eq}}, {{#if}}, {{#each}}, {{#unless}}) is closed, and the open/close order nests.
 		const stack: string[] = [];
 		const mismatched: string[] = [];

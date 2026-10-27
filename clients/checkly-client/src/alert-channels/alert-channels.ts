@@ -106,8 +106,10 @@ export const DISCORD_TEMPLATE = `{
 		{
 			"title": "{{ALERT_TITLE}}",
 			"url": "{{RESULT_LINK}}",
+			{{! Green for a recovery, red for a failure, amber for anything degraded}}
+			"color": {{#eq ALERT_TYPE "ALERT_RECOVERY"}}3187820{{else}}{{#eq ALERT_TYPE "ALERT_DEGRADED_RECOVERY"}}3187820{{else}}{{#eq ALERT_TYPE "ALERT_FAILURE"}}15033421{{else}}16098596{{/eq}}{{/eq}}{{/eq}},
 			"fields": [
-				{{#eq ALERT_TYPE "API" }}
+				{{#eq CHECK_TYPE "API" }}
 				{
 					"name": "Status code",
 					"value": "{{API_CHECK_RESPONSE_STATUS_CODE}}"
