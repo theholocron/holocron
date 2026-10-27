@@ -49,6 +49,7 @@ import { runUpgradeNode } from "./commands/upgrade-node/index.js";
 import { loadConfig, type TelemetryConfig } from "./config/index.js";
 import { env } from "./env/index.js";
 import {
+	buildProbeMenuEntries,
 	buildRunMenuEntries,
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
@@ -1254,6 +1255,19 @@ try {
 					...(argv.probe ? { probe: argv.probe as string } : {}),
 					dryRun: argv.dryRun,
 					yes: argv.yes,
+					// On a terminal, `holocron probe` opens a menu of every provider and probe instead of printing them.
+					...(process.stdin.isTTY
+						? {
+								pick: (groups) =>
+									launchMenu(
+										buildProbeMenuEntries(groups),
+										argv,
+										"probe — choose a provider:",
+										"Run `holocron probe` to list the probes.",
+										["probe"]
+									),
+							}
+						: {}),
 				});
 				if (report.status === "fail") process.exitCode = 1;
 			}

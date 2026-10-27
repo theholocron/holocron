@@ -4,12 +4,14 @@ description: Poke a live provider on purpose, to inspect it or to prove somethin
 ---
 
 ```bash
-holocron probe                          # list every provider and probe
+holocron probe                          # on a terminal: a menu of every provider and probe; otherwise the list
 holocron probe <provider>               # list one provider's probes
 holocron probe <provider> <probe> [--dry-run] [--yes]
 ```
 
 A probe is a small, named check that talks to a real provider: _which integrations does Sentry have, and what do they allow?_ or _does a failing check reach #uptime?_ It is for the questions you would otherwise answer with a throwaway script. It is not [`doctor`](/holocron/commands/doctor/), which compares what `holocron.config.ts` declares with what exists; a probe has no layout to compare against.
+
+On a terminal, `holocron probe` opens a menu: pick a provider, then a probe (a probe that changes things is marked, and offers a dry-run preview first). From the top-level `holocron` menu, choose `probe`. In a pipe or CI it prints the same list as plain text.
 
 Probes come from the plugins your config names (a plugin offers them next to its capabilities), plus the CLI's own `core` group. `holocron probe core providers` shows which configured providers loaded and, for any that did not, why. Other commands skip a provider that fails to load without saying so.
 
