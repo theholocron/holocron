@@ -40,6 +40,17 @@ These use the same token as the Comlink relay (`sentry.comlink`, the general Sen
 | `holocron probe sentry rules`        | no             | Each alert rule: enabled or not, how many projects it covers and what each action sends to. A rule using the old `sentry_app` action, or naming something that is not an alertable integration, fails                                                                           |
 | `holocron probe sentry send-error`   | yes            | Sends one labelled test error (`HolocronProbeError`) so you can follow it through the rule to #errors. The target is `SENTRY_DSN`, or the first client key of the project named in `HOLOCRON_SENTRY_PROBE_PROJECT`. A probe cannot delete a Sentry issue, so resolve it by hand |
 
+## Checkly
+
+These use the `checkly` provider's token and `accountId`, and the Discord alert channel `notifications setup` makes (`Message to #uptime`; set `HOLOCRON_CHECKLY_PROBE_CHANNEL` to use another).
+
+| Probe                            | Changes things | What it does                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe checkly channel` | no             | Where the channel posts (host only), whether its template is the shipped one, and how many of the account's checks use it. Fails with the command that fixes it                                                                                                                                                                             |
+| `holocron probe checkly deliver` | yes            | Makes a throwaway API check (`https://example.com`, every 5 minutes) that must fail, subscribes it to the channel, waits until Checkly sees it fail, tells you to look for the red embed in #uptime, then makes it pass and waits for the recovery and the green embed. Takes 10 to 20 minutes. The check is always deleted, also on Ctrl-C |
+
+`deliver` removes a check of its own that an earlier run left behind (it is found by name and the `delivery-proof` tag), and refuses to touch a check with that name that lacks the tag. It reports what Checkly sees; whether the embed arrived in Discord is for you to check, since the probe cannot read the channel.
+
 ## Writing a probe
 
 A plugin returns `probes` from `createPlugin`, next to `capabilities`. The probe closes over the plugin's own token and client.

@@ -30,6 +30,7 @@ import type {
 	ChecklyClient,
 } from "../rest.js";
 import { DISCORD_TEMPLATE } from "../rest.js";
+import { sameTemplate } from "../same-template.js";
 
 const SOURCE_MAP: Record<string, AssertionSource> = {
 	status_code: "STATUS_CODE",
@@ -71,10 +72,6 @@ function toChecklyPayload(input: MonitoringCheckInput): ApiCheckInput {
 export interface ChecklyMonitoringOptions {
 	checks?: MonitoringCheckInput[];
 }
-
-/** Whether two templates are the same message, whatever the whitespace between the lines. */
-const sameTemplate = (a: string | undefined, b: string): boolean =>
-	(a ?? "").replace(/\s+/g, "") === b.replace(/\s+/g, "");
 
 export class ChecklyMonitoring implements Monitoring {
 	readonly key = "monitoring" as const;
