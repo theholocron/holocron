@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
+import { MalformedDelivery } from "../source.type.js";
 import { sentry } from "./sentry.js";
 
 const SECRET = "client-secret";
@@ -48,9 +49,14 @@ describe("sentry.verify", () => {
 		}
 	});
 
-	it("accepts a body a proxy re-spaced, when its compact form is what was signed", async () => {
+	it("refuses a re-spaced body, and one whose re-serialised form was signed", async () => {
 		const pretty = JSON.stringify(alert(), null, 2);
-		expect(await sentry.verify(headers({ "sentry-hook-signature": sign(body) }), pretty, SECRET)).toBe(true);
+		expect(await sentry.verify(headers({ "sentry-hook-signature": sign(body) }), pretty, SECRET)).toBe(false);
+		// 1e400 re-serialises as null, so a signed null must not vouch for it.
+		const signed = '{"a":null}';
+		expect(await sentry.verify(headers({ "sentry-hook-signature": sign(signed) }), '{"a":1e400}', SECRET)).toBe(
+			false
+		);
 	});
 
 	it("refuses a body that is not JSON and does not match", async () => {
@@ -139,9 +145,40 @@ describe("sentry.format", () => {
 		expect(embed.fields!.at(-1)!.value).toHaveLength(1024);
 	});
 
-	it("drops a resource it does not carry, and an alert with no event", () => {
+	it("reads tags given as { key, value } objects too", () => {
+		const m = sentry.format(
+			headers(),
+			alert({
+				tags: [{ key: "environment", value: "prod" }, { key: "project", value: "web" }, { key: "x" }, null],
+			})
+		)!;
+		expect(m.embeds[0]!.fields).toContainEqual({ name: "Environment", value: "prod", inline: true });
+		expect(m.embeds[0]!.fields).toContainEqual({ name: "Project", value: "web", inline: true });
+	});
+
+	it("keeps the whole embed inside Discord's combined text limit", () => {
+		const embed = sentry.format(
+			headers(),
+			alert(
+				{
+					title: "t".repeat(300),
+					culprit: "c".repeat(5000),
+					environment: "e".repeat(2000),
+					project_name: "p".repeat(2000),
+				},
+				"r".repeat(2000)
+			)
+		)!.embeds[0]!;
+		const total =
+			embed.title!.length +
+			(embed.description?.length ?? 0) +
+			embed.fields!.reduce((n, f) => n + f.name.length + f.value.length, 0);
+		expect(total).toBeLessThanOrEqual(6000);
+	});
+
+	it("drops a resource it does not carry, and rejects an event_alert it cannot read", () => {
 		expect(sentry.format(headers({ "sentry-hook-resource": "issue" }), alert())).toBeNull();
-		expect(sentry.format(headers(), { action: "triggered", data: {} })).toBeNull();
-		expect(sentry.format(headers(), null)).toBeNull();
+		expect(() => sentry.format(headers(), { action: "triggered", data: {} })).toThrow(MalformedDelivery);
+		expect(() => sentry.format(headers(), null)).toThrow(MalformedDelivery);
 	});
 });

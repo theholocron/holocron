@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Source } from "../sources/source.type.js";
-import { bindingNames, createRelay } from "./relay.js";
+import { MalformedDelivery, type Source } from "../sources/source.type.js";
+import { bindingNames, createRelay, MAX_BODY_BYTES } from "./relay.js";
 
 const HOOK = "https://discord.com/api/webhooks/1/token";
 
@@ -11,6 +11,8 @@ const fake: Source = {
 	verify: async (headers) => headers.get("x-ok") === "yes",
 	format: (_headers, payload) => {
 		const text = (payload as { text?: string } | null)?.text;
+		if (text === "broken") throw new MalformedDelivery("broken");
+		if (text === "crash") throw new Error("crash");
 		return text ? { username: "Fake", allowed_mentions: { parse: [] }, embeds: [{ title: text }] } : null;
 	},
 };
@@ -87,6 +89,26 @@ describe("the relay", () => {
 	it("acknowledges, without posting, a delivery the source does not carry", async () => {
 		const spy = discord();
 		expect((await relay(post("/fake", JSON.stringify({})), env)).status).toBe(202);
+		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it("answers 422 for a delivery the source cannot read, and lets any other failure through", async () => {
+		const spy = discord();
+		expect((await relay(post("/fake", JSON.stringify({ text: "broken" })), env)).status).toBe(422);
+		await expect(relay(post("/fake", JSON.stringify({ text: "crash" })), env)).rejects.toThrow("crash");
+		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it("refuses an oversized body before the source sees it, by its declared length or its actual length", async () => {
+		const spy = discord();
+		const verify = vi.fn(async () => true);
+		const guarded = createRelay([{ ...fake, verify }]);
+		const big = "x".repeat(MAX_BODY_BYTES + 1);
+		expect((await guarded(post("/fake", "{}", { "content-length": String(MAX_BODY_BYTES + 1) }), env)).status).toBe(
+			413
+		);
+		expect((await guarded(post("/fake", big), env)).status).toBe(413);
+		expect(verify).not.toHaveBeenCalled();
 		expect(spy).not.toHaveBeenCalled();
 	});
 

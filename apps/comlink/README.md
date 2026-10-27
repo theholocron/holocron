@@ -13,10 +13,11 @@ Other services that post a webhook in their own shape can use the same Worker.
 One route per source: `https://comlink.theholocron.dev/<source>`.
 
 1. The path picks the **source** (`/sentry`). An unknown path is a 404.
-2. The source **verifies** the request, with the secret bound for it, before anything in the body is trusted (401 if not).
+2. A body over 256 KB is refused (413) before it is hashed. The source **verifies** the request, with the secret bound
+   for it, before anything in the body is trusted (401 if not).
 3. The source **formats** the delivery as a Discord embed with pings disabled, or says it does not carry it (202: it is
-   acknowledged and dropped so the service does not retry).
-4. The message is posted to the source's own **webhook** (502 if Discord refuses, 500 if none is bound).
+   acknowledged and dropped so the service does not retry), or says it cannot read one it should carry (422).
+4. The message is posted to the source's own **webhook** (502 if Discord refuses, fails or takes over 8 seconds, 500 if none is bound).
 
 Each source has two secret bindings, never echoed: `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK` (a dedicated
 Discord webhook for the channel it feeds).

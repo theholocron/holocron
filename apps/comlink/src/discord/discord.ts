@@ -20,17 +20,38 @@ export function clip(text: unknown, max: number): string {
 	return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
-/** A message Discord takes from a service: pings off, one or more embeds. */
-export function message(username: string, embed: DiscordEmbed): DiscordMessage {
-	return { username, allowed_mentions: { parse: [] }, embeds: [embed] };
+/** Discord rejects an embed whose title, description and field names and values add up to more than this. */
+const EMBED_TEXT_LIMIT = 6000;
+
+/** The embed with its description cut so the whole fits Discord's combined limit; the description is the long part. */
+function fit(embed: DiscordEmbed): DiscordEmbed {
+	const others =
+		(embed.title?.length ?? 0) + (embed.fields ?? []).reduce((n, f) => n + f.name.length + f.value.length, 0);
+	const room = Math.max(0, EMBED_TEXT_LIMIT - others);
+	if (!embed.description || embed.description.length <= room) return embed;
+	const { description: _cut, ...rest } = embed;
+	return room > 0 ? { ...rest, description: clip(embed.description, room) } : rest;
 }
 
-/** Post a message to a channel's webhook. True when Discord took it. */
+/** A message Discord takes from a service: pings off, one or more embeds. */
+export function message(username: string, embed: DiscordEmbed): DiscordMessage {
+	return { username, allowed_mentions: { parse: [] }, embeds: [fit(embed)] };
+}
+
+/** How long Discord has to answer before the post counts as failed. */
+const POST_TIMEOUT_MS = 8000;
+
+/** Post a message to a channel's webhook. True when Discord took it; false when it refused, failed or timed out. */
 export async function postToDiscord(webhookUrl: string, body: DiscordMessage): Promise<boolean> {
-	const res = await fetch(webhookUrl, {
-		method: "POST",
-		headers: { "content-type": "application/json" },
-		body: JSON.stringify(body),
-	});
-	return res.ok;
+	try {
+		const res = await fetch(webhookUrl, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(POST_TIMEOUT_MS),
+		});
+		return res.ok;
+	} catch {
+		return false;
+	}
 }

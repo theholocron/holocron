@@ -29,6 +29,36 @@ describe("message", () => {
 	});
 });
 
+describe("message, combined limit", () => {
+	it("cuts the description so title, description and fields fit 6000 together", () => {
+		const embed = message("S", {
+			title: "t".repeat(256),
+			description: "d".repeat(4096),
+			fields: [
+				{ name: "n".repeat(100), value: "v".repeat(1024) },
+				{ name: "n", value: "v".repeat(1024) },
+				{ name: "n", value: "v".repeat(1024) },
+			],
+		}).embeds[0]!;
+		const total =
+			embed.title!.length +
+			embed.description!.length +
+			embed.fields!.reduce((n, f) => n + f.name.length + f.value.length, 0);
+		expect(total).toBe(6000);
+	});
+
+	it("drops the description when nothing is left for it, and leaves a small embed alone", () => {
+		const big = {
+			title: "t",
+			description: "d",
+			fields: Array.from({ length: 6 }, () => ({ name: "n", value: "v".repeat(1024) })),
+		};
+		expect(message("S", big).embeds[0]).not.toHaveProperty("description");
+		const small = { title: "t", description: "d" };
+		expect(message("S", small).embeds[0]).toEqual(small);
+	});
+});
+
 describe("postToDiscord", () => {
 	it("posts the message as JSON and says whether Discord took it", async () => {
 		const spy = vi.fn(async () => new Response(null, { status: 204 }));
@@ -44,5 +74,23 @@ describe("postToDiscord", () => {
 			vi.fn(async () => new Response(null, { status: 429 }))
 		);
 		expect(await postToDiscord("https://discord.com/api/webhooks/1/t", message("S", {}))).toBe(false);
+	});
+
+	it("says false, rather than throwing, when the request fails or times out", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn(async () => {
+				throw new Error("boom");
+			})
+		);
+		expect(await postToDiscord("https://discord.com/api/webhooks/1/t", message("S", {}))).toBe(false);
+	});
+
+	it("gives the request a timeout signal", async () => {
+		const spy = vi.fn(async () => new Response(null, { status: 204 }));
+		vi.stubGlobal("fetch", spy);
+		await postToDiscord("https://discord.com/api/webhooks/1/t", message("S", {}));
+		const [, init] = spy.mock.calls[0] as unknown as [string, RequestInit];
+		expect(init.signal).toBeInstanceOf(AbortSignal);
 	});
 });
