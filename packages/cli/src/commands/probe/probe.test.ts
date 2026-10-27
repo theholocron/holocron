@@ -127,4 +127,20 @@ describe("runProbeCommand", () => {
 			expect(text()).toContain("no configured provider");
 		});
 	});
+
+	it("prints to the console when given nothing to print to, and listens for Ctrl-C itself when not told how", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const before = process.listenerCount("SIGINT");
+		const report = await runProbeCommand({
+			loaded: {} as LoadedConfig,
+			context: { repoRoot: "/tmp" },
+			loader: fakeLoader(),
+			provider: "demo",
+			probe: "look",
+		});
+		expect(report.status).toBe("ok");
+		expect(log.mock.calls.flat().join("\n")).toContain("looked");
+		expect(process.listenerCount("SIGINT")).toBe(before);
+		log.mockRestore();
+	});
 });

@@ -2,6 +2,9 @@ import { stripVTControlCharacters } from "node:util";
 
 import { describe, expect, it, vi } from "vitest";
 
+const promptConfirm = vi.hoisted(() => vi.fn(async (_options: { message: string; default: boolean }) => true));
+vi.mock("@inquirer/prompts", () => ({ confirm: promptConfirm }));
+
 import type { Probe } from "../../plugin/index.js";
 import { NonInteractiveError } from "../../ui/non-interactive-error/index.js";
 import { runProbe } from "./run-probe.js";
@@ -134,6 +137,42 @@ describe("runProbe", () => {
 			).promise;
 			expect(got).toBe("id-1");
 		});
+	});
+
+	it("decides for itself whether a person can answer, and prints to the console when given nothing to print to", async () => {
+		// Under test stdin is not a terminal, so a probe that writes is refused rather than asked about.
+		await expect(
+			runProbe({
+				name: "t w",
+				provider: "t",
+				probeName: "w",
+				probe: writer(async () => {}),
+				dryRun: false,
+				yes: false,
+			})
+		).rejects.toThrow(NonInteractiveError);
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		await runProbe({
+			name: "t r",
+			provider: "t",
+			probeName: "r",
+			probe: reader(async (ctx) => ctx.say({ status: "ok", label: "to the console" })),
+			dryRun: false,
+			yes: false,
+			onInterrupt: () => () => {},
+		});
+		expect(log.mock.calls.flat().join("\n")).toContain("to the console");
+		log.mockRestore();
+	});
+
+	it("asks with a real confirm prompt, defaulting to no, when none is injected", async () => {
+		const fn = vi.fn(async () => {});
+		promptConfirm.mockClear();
+		await run(writer(fn), { interactive: true }).promise;
+		expect(promptConfirm).toHaveBeenCalledTimes(1);
+		expect(promptConfirm.mock.calls[0]![0]).toMatchObject({ default: false });
+		expect(promptConfirm.mock.calls[0]![0].message).toContain("makes a thing");
+		expect(fn).toHaveBeenCalledTimes(1);
 	});
 
 	it("will not let a read-only probe write", async () => {
