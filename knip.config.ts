@@ -37,6 +37,11 @@ const config: KnipConfig = {
 			// system tool on every CI runner and dev machine, not an npm dependency.
 			ignoreBinaries: ["jq"],
 		},
+		"apps/comlink": {
+			// The Worker (src/worker.ts) is found through the tsdown config.
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
 		"apps/sentinel": {
 			// src/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
