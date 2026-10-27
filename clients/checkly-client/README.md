@@ -65,6 +65,14 @@ const signatureCheck = await checkly.checks.create({
 await checkly.checks.delete(check.id);
 ```
 
+## Check status
+
+```ts
+// Has the latest run failed? A check that has not run yet has no status (404) or no `lastCheckRunId`.
+const status = await checkly.checkStatuses.get(check.id);
+if (status.lastCheckRunId && status.hasFailures) console.log("failing");
+```
+
 ## Auth
 
 Generate an [API key](https://www.checklyhq.com/docs/accounts-and-users/creating-api-key/)
