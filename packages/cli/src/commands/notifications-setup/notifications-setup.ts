@@ -43,7 +43,14 @@ import {
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
 import { avatarProblem } from "./avatar-problem.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
-import { deployRelay, errorsFeedWebhook, relayProblem, wantsRelay } from "./relay.js";
+import {
+	DEFAULT_RELAY_INTEGRATION,
+	DEFAULT_RELAY_RULE,
+	deployRelay,
+	errorsFeedWebhook,
+	relayProblem,
+	wantsRelay,
+} from "./relay.js";
 import { withElevation } from "./with-elevation.js";
 
 /** A channel's access: its category's, with any field the channel states itself laid over it. */
@@ -628,6 +635,47 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	// The relay Worker, once its channel's webhook exists: its URL is the Worker's secret.
 	if (errors && workers && dns && wantsRelay(layout)) {
 		print(`\n${style.header("Relay")}`);
+		// The tracker's side first: its integration, its alert rule, and the secret that signs its requests. A failure
+		// here is reported but does not stop the Worker from being deployed with its webhook.
+		const tracker = layout.relay!.errors;
+		let signingSecret: string | undefined;
+		if (tracker && errors.ensureRelay) {
+			await attempt(`${errors.providerName} alert relay`, async () => {
+				const integration = tracker.integration ?? DEFAULT_RELAY_INTEGRATION;
+				const rule = tracker.rule ?? DEFAULT_RELAY_RULE;
+				if (dryRun) {
+					print(
+						`  ${style.skip(`would ensure the ${errors!.providerName} integration ${integration} and the alert rule ${rule} on ${tracker.projects.join(", ")}`)}`
+					);
+					tally.skip += 2;
+					return;
+				}
+				const result = await errors!.ensureRelay!({
+					name: integration,
+					webhookUrl: `https://${layout.relay!.host}/${errors!.providerName}`,
+					projects: tracker.projects,
+					rule: { name: rule, ...(tracker.frequency ? { frequency: tracker.frequency } : {}) },
+				});
+				signingSecret = result.clientSecret;
+				for (const [what, name, outcome] of [
+					["integration", integration, result.integration],
+					["alert rule", rule, result.rule],
+				] as const) {
+					const changed = outcome.created || outcome.updated.length > 0;
+					const verb = outcome.created ? "created" : changed ? "updated" : "exists ";
+					const detail = outcome.updated.length > 0 ? `: ${outcome.updated.join(", ")}` : "";
+					print(
+						`  ${(changed ? style.success : style.skip)(`${verb} ${errors!.providerName} ${what} ${name}${detail}`)}`
+					);
+					made(changed);
+				}
+				if (!signingSecret) {
+					print(
+						`  ${style.warn(`${errors!.providerName} would not show the integration's signing secret to this token, so the Worker keeps the one it has (it needs a token with every scope the integration has)`)}`
+					);
+				}
+			});
+		}
 		await attempt(`relay ${layout.relay!.host}`, async () => {
 			if (dryRun) {
 				print(`  ${style.skip(`would deploy the relay Worker at ${layout.relay!.host}`)}`);
@@ -641,6 +689,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				relay: layout.relay!,
 				source: errors!.providerName,
 				webhook: relayWebhook,
+				...(signingSecret ? { signingSecret } : {}),
 				repoRoot: input.context.repoRoot,
 				workers: workers!,
 				dns: dns!,

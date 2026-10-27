@@ -36,8 +36,7 @@ in `src/worker.ts`. Nothing else changes.
 `pnpm --filter @theholocron/comlink delivery.build` writes `dist/worker.js`: a single ES module with no imports, which is
 what `Workers.deployScript` uploads as it stands.
 
-Not built yet: deploying it. That is `holocron notifications setup`'s job, through the `workers` capability, with the
-secrets above.
+Deploying it is `holocron notifications setup`'s job, through the `workers` capability, with the secrets above.
 
 ## Secrets
 
@@ -50,5 +49,7 @@ holocron repo setup --cwd apps/comlink
 # add COMLINK_SENTRY_SECRET (the Sentry integration's client secret) to the `prd` config in Doppler, then:
 holocron secrets sync prd --cwd apps/comlink --worker comlink
 ```
+
+With `relay.errors` in the root `holocron.config.ts`, `holocron notifications setup` creates the Sentry integration and alert rule itself and deploys the Worker with the integration's client secret, so the Doppler step above is only needed to keep the secret somewhere else too (or for a source `setup` does not create).
 
 `COMLINK_<SOURCE>_WEBHOOK` is not kept in Doppler: `holocron notifications setup` makes each channel's webhook and sets its URL on the Worker directly. Run `setup` before `secrets sync`, since a secret can only be set on a Worker that exists.

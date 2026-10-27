@@ -134,7 +134,7 @@ export default defineConfig({
 				guildId: "1303969001822486568",
 				layout: {
 					// Build apps/comlink first (`pnpm --filter @theholocron/comlink run delivery.build`); setup deploys it here.
-					relay: { host: "comlink.theholocron.dev" },
+					relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli"] } },
 					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 					webhookAvatar: "media/webhook-avatar.png",
 					// Where a full `holocron doctor notifications` run leaves its one visible test post.

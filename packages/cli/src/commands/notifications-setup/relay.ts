@@ -22,6 +22,13 @@ const capitalised = (name: string): string => name.charAt(0).toUpperCase() + nam
 /** The Worker binding that holds the webhook URL for a source (the contract `apps/comlink` reads). */
 export const relayWebhookBinding = (source: string): string => `COMLINK_${source.toUpperCase()}_WEBHOOK`;
 
+/** The Worker binding that holds a source's signing secret (the contract `apps/comlink` reads). */
+export const relaySecretBinding = (source: string): string => `COMLINK_${source.toUpperCase()}_SECRET`;
+
+/** The names the tracker's side of the relay uses unless the layout says otherwise. */
+export const DEFAULT_RELAY_INTEGRATION = "Comlink";
+export const DEFAULT_RELAY_RULE = "Errors to Discord (Comlink)";
+
 /** Whether any channel in the layout is fed by the error tracker. */
 export function wantsRelay(layout: NotificationsLayout): boolean {
 	return (layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.feeds?.errors));
@@ -94,7 +101,10 @@ export async function deployRelay(input: DeployRelayInput): Promise<{ host: stri
 	const script = relay.script ?? DEFAULT_RELAY_SCRIPT;
 	await workers.deployScript(script, {
 		code,
-		secrets: { [relayWebhookBinding(input.source)]: input.webhook },
+		secrets: {
+			[relayWebhookBinding(input.source)]: input.webhook,
+			...(input.signingSecret ? { [relaySecretBinding(input.source)]: input.signingSecret } : {}),
+		},
 		routes: [`${relay.host}/*`],
 	});
 	await dns.upsertRecord(relayZone(relay), {

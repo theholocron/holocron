@@ -60,7 +60,7 @@ catalogs:
     "@theholocron/netlify-client": ^1.43.0
     "@theholocron/posthog-client": ^1.43.1
     "@theholocron/postman-client": ^1.43.1
-    "@theholocron/sentry-client": ^1.43.1
+    "@theholocron/sentry-client": ^1.54.0
     "@theholocron/slack-client": ^1.43.1
     "@theholocron/vercel-client": ^1.43.1
 

@@ -144,3 +144,18 @@ describe("createFeatureResolver", () => {
 		expect((err as Error).name).toBe("AuthError");
 	});
 });
+
+describe("createFeatureResolver, vendor in the message", () => {
+	it("names the vendor given, and GitHub when none is", () => {
+		const sentry = createFeatureResolver({
+			envName: "HOLOCRON_SENTRY_COMLINK_TOKEN",
+			keyringKey: "sentry.comlink",
+			vendor: "Sentry",
+		});
+		expect(() => sentry({ env: {}, keyring: () => null })).toThrow(
+			/no Sentry token found.*HOLOCRON_SENTRY_COMLINK_TOKEN.*sentry\.comlink/
+		);
+		const github = createFeatureResolver({ envName: "HOLOCRON_X_TOKEN", keyringKey: "github.x" });
+		expect(() => github({ env: {}, keyring: () => null })).toThrow(/no GitHub token found/);
+	});
+});

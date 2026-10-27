@@ -1,6 +1,6 @@
 import type { Errors } from "@theholocron/cli";
 
-import { resolveToken, type ResolveTokenInput } from "./auth.js";
+import { resolveRelayToken, resolveToken, type ResolveTokenInput } from "./auth.js";
 import { SentryErrors, type SentryErrorsOptions } from "./capabilities/errors.js";
 import { createSentryClient, type SentryClient } from "./rest.js";
 
@@ -19,10 +19,13 @@ export interface SentryPluginOptions extends ResolveTokenInput, SentryErrorsOpti
 export interface PluginContext {
 	options: SentryPluginOptions;
 	client: () => SentryClient;
+	/** The client for the Comlink relay: its own token (`sentry.comlink`), the general one only as a last resort. */
+	relayClient: () => SentryClient;
 }
 
 export function createContext(options: SentryPluginOptions): PluginContext {
 	let client: SentryClient | undefined;
+	let relayClient: SentryClient | undefined;
 	return {
 		options,
 		client: () =>
@@ -31,11 +34,17 @@ export function createContext(options: SentryPluginOptions): PluginContext {
 				baseUrl: options.baseUrl,
 				fetch: options.fetch,
 			})),
+		relayClient: () =>
+			(relayClient ??= createSentryClient({
+				token: resolveRelayToken(options),
+				baseUrl: options.baseUrl,
+				fetch: options.fetch,
+			})),
 	};
 }
 
 export function errors(ctx: PluginContext): Errors {
-	return new SentryErrors(ctx.client, { org: ctx.options.org, team: ctx.options.team });
+	return new SentryErrors(ctx.client, { org: ctx.options.org, team: ctx.options.team }, ctx.relayClient);
 }
 
 export function createPlugin(options: SentryPluginOptions) {

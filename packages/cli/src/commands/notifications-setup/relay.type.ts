@@ -6,6 +6,8 @@ export interface DeployRelayInput {
 	source: string;
 	/** The channel's relay webhook URL. A credential: it goes to the Worker and nowhere else. */
 	webhook: string;
+	/** The tracker's signing secret for its requests, when setup could read it. A credential, like the webhook URL. */
+	signingSecret?: string;
 	repoRoot: string;
 	workers: Workers;
 	dns: Dns;
