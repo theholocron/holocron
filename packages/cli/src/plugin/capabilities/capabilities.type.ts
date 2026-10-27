@@ -877,7 +877,7 @@ export interface Errors extends ProviderIdentity {
 	 * an alert rule on each project that uses it. Idempotent: an integration or rule with the same name is adopted and
 	 * only what differs is changed. `clientSecret` is the integration's signing secret, handed to the caller to give
 	 * the relay; it is a credential and must not be printed or stored anywhere but there. It is absent when the
-	 * provider would not show it to the caller's token.
+	 * provider did not give it (some show it only when the integration is made).
 	 */
 	ensureRelay?(input: EnsureRelayInput): Promise<EnsureRelayResult>;
 }

@@ -129,7 +129,7 @@ describe("SentryErrors.ensureRelay", () => {
 			{
 				logicType: "all",
 				conditions: [],
-				actions: [{ type: "sentry_app", config: { targetIdentifier: "42" }, data: {} }],
+				actions: [{ type: "webhook", config: { targetIdentifier: "comlink-1" }, data: {} }],
 			},
 		],
 	};
