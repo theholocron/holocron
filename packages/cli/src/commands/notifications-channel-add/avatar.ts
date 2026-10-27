@@ -35,6 +35,28 @@ export function describeAvatarSource(source: string): string {
 	}
 }
 
+/**
+ * Read a picture from the first of several sources that works, so a URL can be backed by a file in the repo. Says which
+ * were skipped through `onSkip`; throws, naming every source and why, when none can be read.
+ */
+export async function loadFirstAvatar(
+	sources: string[],
+	read: (source: string) => Promise<string>,
+	onSkip: (source: string, reason: string) => void = () => {}
+): Promise<string> {
+	const failures: string[] = [];
+	for (const source of sources) {
+		try {
+			return await read(source);
+		} catch (err) {
+			const reason = err instanceof Error ? err.message : String(err);
+			failures.push(`\`${describeAvatarSource(source)}\`: ${reason}`);
+			onSkip(source, reason);
+		}
+	}
+	throw new Error(failures.join("; "));
+}
+
 export async function loadAvatar(
 	source: string,
 	baseDir: string = process.cwd(),

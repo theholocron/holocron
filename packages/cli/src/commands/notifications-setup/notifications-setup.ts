@@ -30,6 +30,7 @@ import {
 	describeAvatarSource,
 	layoutSecretProblem,
 	loadAvatar,
+	loadFirstAvatar,
 	notificationProviders,
 	pickProvisioner,
 	provisionChannel,
@@ -48,15 +49,20 @@ export function webhookAvatarOf(
 	return (typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar;
 }
 
-/** The picture a feed's webhook should have: its own, else the layout's, else none. */
-export function feedAvatarOf(layout: NotificationsLayout, feed: true | { avatar?: string }): string | undefined {
-	return (typeof feed === "object" ? feed.avatar : undefined) ?? layout.webhookAvatar;
+/**
+ * The pictures a feed's webhook may wear, in order of preference: its own (one source, or a list whose first readable one
+ * wins), else the layout's, else none.
+ */
+export function feedAvatarOf(layout: NotificationsLayout, feed: true | { avatar?: string | string[] }): string[] {
+	const own = typeof feed === "object" ? feed.avatar : undefined;
+	const sources = own === undefined ? (layout.webhookAvatar ? [layout.webhookAvatar] : []) : [own].flat();
+	return sources;
 }
 
 /** The names a channel's monitoring feed uses: the alert channel (`Message to #uptime`) and its dedicated webhook (`Checkly`). */
 export function monitoringFeed(
 	channel: string,
-	feed: true | { name?: string; webhook?: string; avatar?: string },
+	feed: true | { name?: string; webhook?: string; avatar?: string | string[] },
 	monitoring: Pick<Monitoring, "providerName">
 ): { name: string; webhook: string } {
 	const own = typeof feed === "object" ? feed : {};
@@ -303,17 +309,29 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	const avatars = new Map<string, string>();
 	const read = input.loadAvatar ?? loadAvatar;
 	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
-		const feed = channel.feeds?.monitoring;
-		const sources = [
-			channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined,
-			feed ? feedAvatarOf(layout, feed) : undefined,
-		];
-		for (const source of sources) {
-			if (source === undefined || avatars.has(source)) continue;
+		const own = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
+		if (own !== undefined && !avatars.has(own)) {
 			try {
-				avatars.set(source, await read(source));
+				avatars.set(own, await read(own));
 			} catch (err) {
-				return refuse(`webhook avatar \`${describeAvatarSource(source)}\`: ${errorMessage(err)}`);
+				return refuse(`webhook avatar \`${describeAvatarSource(own)}\`: ${errorMessage(err)}`);
+			}
+		}
+		// A feed's picture may list fallbacks (a URL, then a file in the repo): the first that can be read is used.
+		const feedSources = channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring) : [];
+		const feedKey = feedSources.join("\n");
+		if (feedSources.length > 0 && !avatars.has(feedKey)) {
+			try {
+				avatars.set(
+					feedKey,
+					await loadFirstAvatar(feedSources, read, (source, reason) =>
+						print(
+							`  ${style.skip(`avatar ${describeAvatarSource(source)} could not be read (${reason})${feedSources.length > 1 ? "; trying the next" : ""}`)}`
+						)
+					)
+				);
+			} catch (err) {
+				return refuse(`webhook avatar ${errorMessage(err)}`);
 			}
 		}
 	}
@@ -504,10 +522,10 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 									feeds: {
 										monitoring: {
 											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
-											...(feedAvatarOf(layout, channel.feeds.monitoring)
+											...(feedAvatarOf(layout, channel.feeds.monitoring).length > 0
 												? {
 														avatar: avatars.get(
-															feedAvatarOf(layout, channel.feeds.monitoring)!
+															feedAvatarOf(layout, channel.feeds.monitoring).join("\n")
 														)!,
 													}
 												: {}),

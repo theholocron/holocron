@@ -1701,6 +1701,88 @@ describe("monitoring feeds", () => {
 		);
 	});
 
+	it("falls back to the next source of a feed's picture, and says it did", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{
+							name: "uptime",
+							feeds: { monitoring: { avatar: ["https://cdn.example.com/a.png", "media/a.png"] } },
+						},
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const { run, lines } = setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async (source) => {
+				if (source.startsWith("https://")) throw new Error("fetch failed");
+				return "data:image/png;base64,LOCAL";
+			},
+		});
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,LOCAL" })
+		);
+		expect(lines.join("\n")).toContain(
+			"avatar https://cdn.example.com/a.png could not be read (fetch failed); trying the next"
+		);
+	});
+
+	it("uses a single feed picture that cannot be read as before: the run is refused, naming it", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [{ name: "uptime", feeds: { monitoring: { avatar: ["media/gone.png"] } } }],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const { run, lines } = setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async () => {
+				throw new Error("ENOENT");
+			},
+		});
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("webhook avatar `media/gone.png`: ENOENT");
+		expect(lines.join("\n")).not.toContain("trying the next");
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("refuses naming every source when none of a feed's pictures can be read", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{
+							name: "uptime",
+							feeds: { monitoring: { avatar: ["https://cdn.example.com/a.png", "media/a.png"] } },
+						},
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const report = await setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async (source) => {
+				throw new Error(source.startsWith("https") ? "fetch failed" : "ENOENT");
+			},
+		}).run();
+		expect(report.message).toBe(
+			"webhook avatar `https://cdn.example.com/a.png`: fetch failed; `media/a.png`: ENOENT"
+		);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
 	it("does not print the query or credentials of an avatar URL it could not read", async () => {
 		const layout: NotificationsLayout = {
 			categories: [

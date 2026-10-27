@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { describeAvatarSource, loadAvatar, MAX_AVATAR_BYTES } from "./avatar.js";
+import { describeAvatarSource, loadAvatar, loadFirstAvatar, MAX_AVATAR_BYTES } from "./avatar.js";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1]);
@@ -83,5 +83,43 @@ describe("describeAvatarSource", () => {
 
 	it("does not echo a URL it cannot parse", () => {
 		expect(describeAvatarSource("https://exa mple.com/?token=secret")).toBe("an unreadable https URL");
+	});
+});
+
+describe("loadFirstAvatar", () => {
+	it("uses the first source that can be read, and says which it skipped", async () => {
+		const skipped: Array<[string, string]> = [];
+		const read = async (source: string) => {
+			if (source.startsWith("https://")) throw new Error("fetch failed");
+			return `data:image/png;base64,${source}`;
+		};
+		const uri = await loadFirstAvatar(["https://cdn.example.com/a.png?sig=SECRET", "media/a.png"], read, (s, r) =>
+			skipped.push([s, r])
+		);
+		expect(uri).toBe("data:image/png;base64,media/a.png");
+		expect(skipped).toEqual([["https://cdn.example.com/a.png?sig=SECRET", "fetch failed"]]);
+	});
+
+	it("stops at the first that works and does not read the rest", async () => {
+		const read = vi.fn(async (source: string) => `uri:${source}`);
+		expect(await loadFirstAvatar(["a", "b"], read)).toBe("uri:a");
+		expect(read).toHaveBeenCalledTimes(1);
+	});
+
+	it("names every source and why when none can be read, without leaking a URL's secrets", async () => {
+		const read = async (source: string) => {
+			throw new Error(source.startsWith("https") ? "fetch failed" : "ENOENT");
+		};
+		await expect(
+			loadFirstAvatar(["https://u:p@cdn.example.com/a.png?sig=SECRET", "media/a.png"], read)
+		).rejects.toThrow("`https://cdn.example.com/a.png`: fetch failed; `media/a.png`: ENOENT");
+	});
+
+	it("reports a thrown non-error by its text", async () => {
+		await expect(
+			loadFirstAvatar(["x"], async () => {
+				throw "plain";
+			})
+		).rejects.toThrow("`x`: plain");
 	});
 });
