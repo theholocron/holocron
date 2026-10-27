@@ -235,7 +235,13 @@ describe("createRestClient — non-Error thrown by fetch", () => {
 describe("createRestClient — logger seam", () => {
 	it("logs a debug line for the request and the response when a logger is provided", async () => {
 		const { fetch } = stubFetch([{ body: {} }]);
-		const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() };
+		const logger = {
+			debug: vi.fn(),
+			info: vi.fn(),
+			warn: vi.fn(),
+			error: vi.fn(),
+			child: vi.fn(),
+		};
 		await createRestClient({
 			baseUrl: "https://api.example.com",
 			token: TOKEN,
@@ -253,7 +259,11 @@ describe("createRestClient — logger seam", () => {
 	it("does not throw when no logger is provided — the default is a silent no-op", async () => {
 		const { fetch } = stubFetch([{ body: {} }]);
 		await expect(
-			createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch }).request("/ping")
+			createRestClient({
+				baseUrl: "https://api.example.com",
+				token: TOKEN,
+				fetch,
+			}).request("/ping")
 		).resolves.toBeDefined();
 	});
 });
@@ -270,7 +280,12 @@ describe("createRestClient — errors seam", () => {
 			endSession: vi.fn(),
 			flush: vi.fn(),
 		};
-		await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch, errors })
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			fetch,
+			errors,
+		})
 			.request("/ping")
 			.catch(() => {});
 		expect(errors.captureException).toHaveBeenCalledWith(expect.any(ProviderApiError));
@@ -286,7 +301,12 @@ describe("createRestClient — errors seam", () => {
 			endSession: vi.fn(),
 			flush: vi.fn(),
 		};
-		await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch, errors })
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			fetch,
+			errors,
+		})
 			.request("/ping")
 			.catch(() => {});
 		expect(errors.captureException).toHaveBeenCalledTimes(1);
@@ -302,7 +322,12 @@ describe("createRestClient — errors seam", () => {
 			endSession: vi.fn(),
 			flush: vi.fn(),
 		};
-		await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch, errors })
+		await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			fetch,
+			errors,
+		})
 			.request("/ping")
 			.catch(() => {});
 		expect(errors.captureException).not.toHaveBeenCalled();
@@ -310,7 +335,11 @@ describe("createRestClient — errors seam", () => {
 
 	it("does not throw when no ErrorSink is provided — the default is a silent no-op", async () => {
 		const { fetch } = stubFetch([{ status: 500 }]);
-		const err = await createRestClient({ baseUrl: "https://api.example.com", token: TOKEN, fetch })
+		const err = await createRestClient({
+			baseUrl: "https://api.example.com",
+			token: TOKEN,
+			fetch,
+		})
 			.request("/ping")
 			.catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
@@ -327,5 +356,74 @@ describe("createRestClient — apikey with default header name", () => {
 			fetch,
 		}).request("/ping");
 		expect(calls[0]?.headers["x-api-key"]).toBe(TOKEN);
+	});
+});
+
+describe("createRestClient — transport retries", () => {
+	const failing = (code: string) => Object.assign(new TypeError("fetch failed"), { cause: { code } });
+	const flaky = (failures: unknown[]) => {
+		let calls = 0;
+		const fetch = vi.fn(async () => {
+			if (calls < failures.length) throw failures[calls++];
+			calls++;
+			return new Response("{}", { status: 200 });
+		});
+		return {
+			fetch: fetch as unknown as typeof globalThis.fetch,
+			count: () => fetch.mock.calls.length,
+		};
+	};
+	const client = (f: typeof globalThis.fetch, extra: { retries?: number } = {}) =>
+		createRestClient({
+			baseUrl: "https://api.test",
+			token: "t",
+			vendor: "Test",
+			fetch: f,
+			retryDelayMs: 0,
+			...extra,
+		});
+
+	it("sends a request again after a connect timeout and succeeds", async () => {
+		const f = flaky([failing("UND_ERR_CONNECT_TIMEOUT")]);
+		await expect(client(f.fetch).request("/x")).resolves.toEqual({});
+		expect(f.count()).toBe(2);
+	});
+
+	it("repeats a write that never left, but not one that may have arrived", async () => {
+		const never = flaky([failing("ENOTFOUND")]);
+		await client(never.fetch).request("/x", { method: "POST", body: {} });
+		expect(never.count()).toBe(2);
+		const dropped = flaky([failing("ECONNRESET")]);
+		await expect(client(dropped.fetch).request("/x", { method: "POST", body: {} })).rejects.toThrow(/ECONNRESET/);
+		expect(dropped.count()).toBe(1);
+	});
+
+	it("repeats a read whose connection dropped", async () => {
+		const f = flaky([failing("ECONNRESET")]);
+		await client(f.fetch).request("/x");
+		expect(f.count()).toBe(2);
+	});
+
+	it("gives up after the retries and names the cause", async () => {
+		const f = flaky([
+			failing("UND_ERR_CONNECT_TIMEOUT"),
+			failing("UND_ERR_CONNECT_TIMEOUT"),
+			failing("UND_ERR_CONNECT_TIMEOUT"),
+		]);
+		const err = await client(f.fetch)
+			.request("/x")
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as Error).message).toBe("Test GET /x failed: TypeError: fetch failed (UND_ERR_CONNECT_TIMEOUT)");
+		expect(f.count()).toBe(3);
+	});
+
+	it("can be turned off, and leaves a failure with no known cause alone", async () => {
+		const off = flaky([failing("ENOTFOUND")]);
+		await expect(client(off.fetch, { retries: 0 }).request("/x")).rejects.toThrow(ProviderApiError);
+		expect(off.count()).toBe(1);
+		const bare = flaky([new TypeError("fetch failed")]);
+		await expect(client(bare.fetch).request("/x")).rejects.toThrow(/fetch failed/);
+		expect(bare.count()).toBe(1);
 	});
 });

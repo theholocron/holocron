@@ -1,6 +1,7 @@
 import { type ErrorSink, type Logger, NoopErrorSink, NoopLogger } from "@theholocron/observability/core";
 
 import { ProviderApiError } from "./errors.js";
+import { transportCode, worthRetrying } from "./transport.js";
 
 export interface RestClientConfig {
 	/** Default base URL (e.g. "https://api.github.com"). */
@@ -41,6 +42,14 @@ export interface RestClientConfig {
 	 * Defaults to a no-op.
 	 */
 	errors?: ErrorSink;
+	/**
+	 * How many times to send a request again after a transport failure that is safe to repeat (see `worthRetrying`):
+	 * the connection never opened, or a read was dropped. HTTP error statuses are never retried. Defaults to 2; 0
+	 * turns it off.
+	 */
+	retries?: number;
+	/** Milliseconds before the first retry; each later one waits three times as long. Defaults to 300. */
+	retryDelayMs?: number;
 }
 
 export interface RequestOptions {
@@ -62,6 +71,8 @@ export function createRestClient(config: RestClientConfig): RestClient {
 	const vendor = config.vendor ?? "";
 	const logger = config.logger ?? new NoopLogger();
 	const errors = config.errors ?? new NoopErrorSink();
+	const maxRetries = config.retries ?? 2;
+	const retryDelay = config.retryDelayMs ?? 300;
 
 	// Manual trailing-slash trim — CodeQL flags regex on library input as
 	// polynomial ReDoS. O(n) loop, no backtracking risk.
@@ -102,13 +113,35 @@ export function createRestClient(config: RestClientConfig): RestClient {
 			logger.debug({ vendor, method: init.method, path }, "request");
 
 			let res: Response;
-			try {
-				res = await fetchImpl(url.toString(), init);
-			} catch (err) {
-				const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-				const apiErr = new ProviderApiError(`${tag} failed: ${detail}`, 0, undefined);
-				errors.captureException(apiErr);
-				throw apiErr;
+			for (let attempt = 0; ; attempt++) {
+				try {
+					res = await fetchImpl(url.toString(), init);
+					break;
+				} catch (err) {
+					const code = transportCode(err);
+					if (attempt < maxRetries && worthRetrying(code, init.method!)) {
+						logger.debug(
+							{
+								vendor,
+								method: init.method,
+								path,
+								code,
+								attempt: attempt + 1,
+							},
+							"retrying"
+						);
+						await new Promise((resolve) => setTimeout(resolve, retryDelay * 3 ** attempt));
+						continue;
+					}
+					const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+					const apiErr = new ProviderApiError(
+						`${tag} failed: ${detail}${code ? ` (${code})` : ""}`,
+						0,
+						undefined
+					);
+					errors.captureException(apiErr);
+					throw apiErr;
+				}
 			}
 
 			if (!res.ok) {
