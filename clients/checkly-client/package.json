@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/checkly-client",
-  "version": "1.54.2",
+  "version": "1.55.0",
   "description": "A TypeScript client for the Checkly monitoring API",
   "keywords": [
     "checkly",
