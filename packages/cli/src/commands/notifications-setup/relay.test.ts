@@ -27,6 +27,9 @@ describe("relay helpers", () => {
 		const none: NotificationsLayout = { categories: [{ name: "A", channels: [{ name: "x" }] }] };
 		expect(wantsRelay(none)).toBe(false);
 		expect(wantsRelay({})).toBe(false);
+		expect(wantsRelay({ categories: [{ name: "Empty" }] })).toBe(false);
+		expect(relayProblem({})).toBeUndefined();
+		expect(relayProblem({ categories: [{ name: "Empty" }] })).toBeUndefined();
 		expect(relayProblem(none)).toBeUndefined();
 		const fed: NotificationsLayout = {
 			relay: { host: "h.example.dev" },

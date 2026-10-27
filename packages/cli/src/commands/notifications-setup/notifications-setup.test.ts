@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -2127,6 +2127,20 @@ describe("the relay Worker", () => {
 		expect(relay.workers.deployScript).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toContain("would ensure webhook Sentry for the relay Worker (errors)");
 		expect(lines.join("\n")).toContain("would deploy the relay Worker at comlink.example.dev");
+	});
+
+	it("reads the built Worker from the repo when no reader is given", async () => {
+		const root = await mkdtemp(join(tmpdir(), "relay-setup-"));
+		await mkdir(join(root, "apps/comlink/dist"), { recursive: true });
+		await writeFile(join(root, "apps/comlink/dist/worker.js"), "export default { real: true }");
+		const relay = collaborators();
+		const { readCode: _unused, ...withoutReader } = relay;
+		const report = await setup(hooked(), { relay: withoutReader, repoRoot: root }).run();
+		expect(report.status).toBe("ok");
+		expect(relay.workers.deployScript).toHaveBeenCalledWith(
+			"comlink",
+			expect.objectContaining({ code: "export default { real: true }" })
+		);
 	});
 
 	it("fails, before touching DNS, when the Worker has not been built", async () => {

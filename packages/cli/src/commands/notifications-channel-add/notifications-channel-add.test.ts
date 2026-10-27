@@ -1088,4 +1088,31 @@ describe("provisionChannel — relay feed", () => {
 		expect(lines.join("\n")).toContain("would ensure webhook Sentry for the relay Worker (errors)");
 		expect(tally).toEqual({ ok: 0, skip: 2 });
 	});
+
+	it("also feeds the relay for a channel with a webhook of its own, and previews without a tally", async () => {
+		const n = fakeNotifications({ ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })) });
+		const urls: string[] = [];
+		const stored: string[] = [];
+		const out = await provisionChannel(
+			{
+				...deps(n, [], { onRelayWebhook: (u: string) => void urls.push(u) }),
+				secrets: {
+					providerName: "github",
+					setSecret: async (_s: unknown, name: string) => void stored.push(name),
+				} as unknown as Secrets,
+			},
+			{ name: "errors", webhook: { name: "errors" }, feeds: relay }
+		);
+		expect(n.ensureWebhook).toHaveBeenCalledTimes(2);
+		expect(stored).toEqual(["HOLOCRON_NOTIFY_WEBHOOK_ERRORS"]);
+		expect(urls).toEqual([HOOK]);
+		expect(out.webhook?.stored).toBe(true);
+		expect(out.relayWebhook?.name).toBe("Sentry");
+
+		const dry = await provisionChannel(deps(fakeNotifications(), [], { dryRun: true }), {
+			name: "errors",
+			feeds: relay,
+		});
+		expect(dry.created).toBe(false);
+	});
 });
