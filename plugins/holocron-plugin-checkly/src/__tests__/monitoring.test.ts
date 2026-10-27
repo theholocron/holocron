@@ -218,7 +218,7 @@ describe("ChecklyMonitoring", () => {
 				method: "POST",
 				headers: [],
 				queryParameters: [],
-				template: "custom template",
+				template: DISCORD_TEMPLATE,
 				webhookType: "WEBHOOK_DISCORD",
 				...over,
 			},
@@ -294,7 +294,7 @@ describe("ChecklyMonitoring", () => {
 			).rejects.toThrow(/Discord shows a webhook URL only once/);
 		});
 
-		it("adopts a channel of the same name, replaces its URL and keeps its template, settings and subscriptions", async () => {
+		it("adopts a channel of the same name, replaces its URL and keeps its settings and subscriptions", async () => {
 			const existing = webhook({}, [sub("a")]);
 			const { capability, stub } = makeCapability([
 				{ body: [existing] },
@@ -308,7 +308,7 @@ describe("ChecklyMonitoring", () => {
 			const [put] = writes(stub);
 			expect(put?.url).toContain("/alert-channels/397642");
 			expect(put?.body).toMatchObject({
-				config: { url: URL_NEW, template: "custom template" },
+				config: { url: URL_NEW, template: DISCORD_TEMPLATE },
 				sendDegraded: false,
 				autoSubscribe: true,
 			});
@@ -316,6 +316,42 @@ describe("ChecklyMonitoring", () => {
 			expect((put?.body as { subscriptions: unknown[] }).subscriptions).toEqual([
 				{ checkId: "a", activated: true },
 			]);
+		});
+
+		it("puts the shipped template back on a channel whose template was edited, and keeps the rest", async () => {
+			const edited = webhook({ url: URL_NEW, template: "custom template" }, [sub("a")]);
+			const { capability, stub } = makeCapability([
+				{ body: [edited] },
+				{ body: [check("a")] },
+				{ body: edited },
+				{ body: edited },
+				{ body: edited },
+			]);
+			const result = await capability.ensureAlertChannel(input);
+			expect(result.updated).toEqual(["template"]);
+			expect(writes(stub)[0]?.body).toMatchObject({
+				config: { url: URL_NEW, webhookType: "WEBHOOK_DISCORD", template: DISCORD_TEMPLATE },
+				subscriptions: [{ checkId: "a", activated: true }],
+			});
+		});
+
+		it("sets the template on a channel that has none", async () => {
+			const bare = webhook({ url: URL_NEW, template: undefined }, [sub("a")]);
+			const { capability } = makeCapability([
+				{ body: [bare] },
+				{ body: [check("a")] },
+				{ body: bare },
+				{ body: bare },
+				{ body: bare },
+			]);
+			expect((await capability.ensureAlertChannel(input)).updated).toEqual(["template"]);
+		});
+
+		it("does not call a template changed when only its whitespace differs", async () => {
+			const same = webhook({ url: URL_NEW, template: DISCORD_TEMPLATE.replace(/\t/g, "  ") }, [sub("a")]);
+			const { capability, stub } = makeCapability([{ body: [same] }, { body: [check("a")] }, { body: same }]);
+			expect((await capability.ensureAlertChannel(input)).updated).toEqual([]);
+			expect(writes(stub)).toEqual([]);
 		});
 
 		it("subscribes only what is missing through the subscriptions call, and leaves the channel itself alone", async () => {

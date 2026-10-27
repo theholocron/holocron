@@ -72,6 +72,10 @@ export interface ChecklyMonitoringOptions {
 	checks?: MonitoringCheckInput[];
 }
 
+/** Whether two templates are the same message, whatever the whitespace between the lines. */
+const sameTemplate = (a: string | undefined, b: string): boolean =>
+	(a ?? "").replace(/\s+/g, "") === b.replace(/\s+/g, "");
+
 export class ChecklyMonitoring implements Monitoring {
 	readonly key = "monitoring" as const;
 	readonly providerName = "checkly";
@@ -153,8 +157,10 @@ export class ChecklyMonitoring implements Monitoring {
 		const urlChanged = input.url !== undefined && existing.config.url !== input.url;
 		// Discord needs its own message shape: a channel left in another format would post nonsense there.
 		const formatChanged = existing.config.webhookType !== "WEBHOOK_DISCORD";
+		// The template is code like the rest of the channel: a hand edit is put back, so every run leaves the shipped one.
+		const templateChanged = !formatChanged && !sameTemplate(existing.config.template, DISCORD_TEMPLATE);
 		let current: AlertChannel | undefined;
-		if (urlChanged || formatChanged) {
+		if (urlChanged || formatChanged || templateChanged) {
 			// Read it again just before replacing it, so a subscription added since the listing is not replaced away.
 			const fresh = await client.alertChannels.get(existing.id);
 			const replacement: AlertChannelInput = {
@@ -162,7 +168,9 @@ export class ChecklyMonitoring implements Monitoring {
 				config: {
 					...existing.config,
 					...(urlChanged ? { url: input.url! } : {}),
-					...(formatChanged ? { webhookType: "WEBHOOK_DISCORD" as const, template: DISCORD_TEMPLATE } : {}),
+					...(formatChanged || templateChanged
+						? { webhookType: "WEBHOOK_DISCORD" as const, template: DISCORD_TEMPLATE }
+						: {}),
 				},
 				sendRecovery: existing.sendRecovery,
 				sendFailure: existing.sendFailure,
@@ -185,6 +193,7 @@ export class ChecklyMonitoring implements Monitoring {
 		const updated = [
 			...(urlChanged ? ["url"] : []),
 			...(formatChanged ? ["format"] : []),
+			...(templateChanged ? ["template"] : []),
 			...(added > 0 ? ["subscriptions"] : []),
 		];
 		return { created: false, updated, subscribed: active };
