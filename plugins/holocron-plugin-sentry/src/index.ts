@@ -57,7 +57,6 @@ export const AUTH_HINT =
 
 export * from "./auth.js";
 export { SentryErrors, type SentryErrorsOptions } from "./capabilities/errors.js";
-export { SENTRY_RELAY_WORKER_SOURCE } from "./relay/worker-source.js";
 export { createSentryClient, type SentryClient, type SentryClientOptions } from "./rest.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
