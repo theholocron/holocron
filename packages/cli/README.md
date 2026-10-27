@@ -552,6 +552,8 @@ Channels fed by another service are declared with `feeds` on the channel: `{ nam
 
 Channels fed by the error tracker add `feeds: { errors: true }` and a layout `relay: { host, zone?, script?, code? }`: `setup` makes a dedicated webhook, points `host` at the Comlink Worker (a proxied DNS record via `dns`), and deploys it via `workers.deployScript` with the webhook URL as `COMLINK_<SOURCE>_WEBHOOK`. The URL never leaves the Worker's secret; other secrets on the script are kept. Needs `errors`, `workers` and `dns`; only one channel may be fed.
 
+`holocron secrets sync <env> --worker <script>` also sets every key of the vault environment on a deployed Worker as a secret, through the optional `Workers.setSecret(script, name, value)` (write-only; the Cloudflare plugin implements it). The Worker must already exist. Sync only adds and updates: it never removes a binding, because a Worker also holds secrets that are not in the vault (for Comlink, the `COMLINK_<SOURCE>_WEBHOOK` that `notifications setup` sets), so a key deleted from the vault must be deleted from the Worker separately. Keys are written one at a time and each is reported; if one fails, the exit code is 1 and re-running finishes the rest, since every write is idempotent.
+
 Pinned messages are declared under the provider's `layout` as `pinned: [{ channel, content }]` (`channel` is a channel in the layout, `content` up to 2000 characters); the layout is the whole set of messages the bot has pinned in those channels.
 
 Config shape added for role sync and sign-in (all under the provider's `layout`):

@@ -38,3 +38,17 @@ what `Workers.deployScript` uploads as it stands.
 
 Not built yet: deploying it. That is `holocron notifications setup`'s job, through the `workers` capability, with the
 secrets above.
+
+## Secrets
+
+`apps/comlink/holocron.config.ts` keeps the signing secrets in Doppler (project `comlink`, config `prd`), the same way Sentinel does, so there is one place to rotate them and nothing is pasted into a shell.
+
+```bash
+# once: create the Doppler project and its dev/stg/prd configs
+holocron repo setup --cwd apps/comlink
+
+# add COMLINK_SENTRY_SECRET (the Sentry integration's client secret) to the `prd` config in Doppler, then:
+holocron secrets sync prd --cwd apps/comlink --worker comlink
+```
+
+`COMLINK_<SOURCE>_WEBHOOK` is not kept in Doppler: `holocron notifications setup` makes each channel's webhook and sets its URL on the Worker directly. Run `setup` before `secrets sync`, since a secret can only be set on a Worker that exists.

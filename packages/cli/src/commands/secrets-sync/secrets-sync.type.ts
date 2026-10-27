@@ -30,6 +30,8 @@ export interface RunSecretsSyncInput {
 	targets?: DeploymentTarget[];
 	/** Vercel project id (or equivalent). Required if `deployment` is loaded. */
 	projectId?: string;
+	/** A deployed Worker to set every vault key on as a secret (needs a `workers` provider that can). */
+	workerScript?: string;
 	/**
 	 * Allowlist restricting which vault keys reach `secrets`. Omit to push
 	 * every key (the default). See this module's own docstring.

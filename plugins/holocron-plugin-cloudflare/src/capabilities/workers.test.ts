@@ -144,6 +144,17 @@ describe("CloudflareWorkers.whoami", () => {
 	});
 });
 
+describe("CloudflareWorkers.setSecret", () => {
+	it("sets one secret on an existing script, without uploading code", async () => {
+		const { workers, calls } = makeWorkers([cfOk({ name: "COMLINK_SENTRY_SECRET", type: "secret_text" })]);
+		await workers.setSecret("comlink", "COMLINK_SENTRY_SECRET", "shh");
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/workers/scripts/comlink/secrets`);
+		expect(calls[0]?.body).toEqual({ name: "COMLINK_SENTRY_SECRET", text: "shh", type: "secret_text" });
+	});
+});
+
 describe("CloudflareWorkers.deployScript", () => {
 	it("deploys the given code and returns the script name", async () => {
 		const { workers, calls } = makeWorkers([{ status: 200 }]);

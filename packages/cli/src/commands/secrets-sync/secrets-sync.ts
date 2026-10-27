@@ -42,6 +42,7 @@ import {
 	type Secrets,
 	type SecretScope,
 	type Vault,
+	type Workers,
 } from "../../plugin/index.js";
 import { style, withSpinner } from "../../ui/index.js";
 import type { RunSecretsSyncInput, SyncReport, SyncRow } from "./secrets-sync.type.js";
@@ -127,6 +128,35 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 					);
 					print(formatRow(rows[rows.length - 1]!));
 				}
+			}
+		}
+	}
+
+	// ── Push to a Worker's secret bindings ─────────────────────────────
+	if (input.workerScript) {
+		const script = input.workerScript;
+		print(style.step(`workers (script=${script})`));
+		const workers = loader.has("workers") ? (loader.get("workers") as Workers) : undefined;
+		if (!workers?.setSecret) {
+			const row: SyncRow = {
+				destination: "workers",
+				scope: `script=${script}`,
+				key: "(all)",
+				status: "fail",
+				message: workers
+					? `workers provider (${workers.providerName}) cannot set secrets`
+					: "--worker needs a `workers` provider in holocron.config.ts",
+			};
+			rows.push(row);
+			print(formatRow(row));
+		} else {
+			for (const key of keys) {
+				rows.push(
+					await runRow(`workers:${workers.providerName}`, `script=${script}`, key, dryRun, async () => {
+						await workers.setSecret!(script, key, envVars[key]!);
+					})
+				);
+				print(formatRow(rows[rows.length - 1]!));
 			}
 		}
 	}

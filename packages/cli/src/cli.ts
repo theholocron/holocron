@@ -1308,6 +1308,11 @@ try {
 									>,
 									describe: "Deployment targets to sync to. Defaults to production + preview.",
 								})
+								.option("worker", {
+									type: "string",
+									describe:
+										"A deployed Worker (script name) to set every vault key on as a secret, e.g. comlink.",
+								})
 								.option("github-secret", {
 									type: "array",
 									describe:
@@ -1339,6 +1344,7 @@ try {
 								},
 								environmentId: environmentId!,
 								...(argv.projectId ? { projectId: argv.projectId } : {}),
+								...(argv.worker ? { workerScript: argv.worker } : {}),
 								...(argv.githubSecret?.length
 									? { githubSecretKeys: argv.githubSecret as string[] }
 									: {}),

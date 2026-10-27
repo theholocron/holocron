@@ -30,6 +30,7 @@
     "verification.unitTests": "vitest run"
   },
   "devDependencies": {
+    "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",

@@ -1647,6 +1647,11 @@ export interface Workers extends ProviderIdentity {
 	/** Deploy (or update) an arbitrary Worker script, optionally with secrets and routes. */
 	deployScript(name: string, config: DeployScriptConfig): Promise<DeployScriptResult>;
 	/**
+	 * Set one secret binding on a script that is already deployed, leaving its code and every other binding alone.
+	 * The value is write-only. `holocron secrets sync --worker` uses it to fan a vault out to a Worker.
+	 */
+	setSecret?(script: string, name: string, value: string): Promise<void>;
+	/**
 	 * A `holocron doctor` smoke check — every other method either mutates or
 	 * needs a specific script/zone doctor has no way to supply up front.
 	 * Reports how many Worker scripts the token can see.
