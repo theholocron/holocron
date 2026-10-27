@@ -1682,6 +1682,8 @@ export interface Workers extends ProviderIdentity {
 	 * The value is write-only. `holocron secrets sync --worker` uses it to fan a vault out to a Worker.
 	 */
 	setSecret?(script: string, name: string, value: string): Promise<void>;
+	/** The names (never the values) of the secrets bound to a deployed script. `holocron probe` uses it to see what a Worker has. */
+	secretNames?(script: string): Promise<string[]>;
 	/**
 	 * A `holocron doctor` smoke check — every other method either mutates or
 	 * needs a specific script/zone doctor has no way to supply up front.

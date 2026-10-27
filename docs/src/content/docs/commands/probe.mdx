@@ -51,6 +51,16 @@ These use the `checkly` provider's token and `accountId`, and the Discord alert 
 
 `deliver` removes a check of its own that an earlier run left behind (it is found by name and the `delivery-proof` tag), and refuses to touch a check with that name that lacks the tag. It reports what Checkly sees; whether the embed arrived in Discord is for you to check, since the probe cannot read the channel.
 
+## Comlink
+
+The relay Worker (`apps/comlink`) is an app, not a provider, so these are the CLI's own. They find the relay in the notifications layout (`relay.host`) and the source from the `errors` provider (`sentry`).
+
+| Probe                             | Changes things | What it does                                                                                                                                                                                                                                                                                                              |
+| --------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe comlink unsigned` | no             | Sends the relay requests it must refuse and checks the answers: a `GET` is 405, an unsigned `POST` is 401 and an unknown source is 404. A 404 on the real source means the Worker is not deployed on that host                                                                                                            |
+| `holocron probe comlink bindings` | no             | Whether the Worker has `COMLINK_SENTRY_WEBHOOK` and `COMLINK_SENTRY_SECRET`, by name, and which other secrets it holds. Never the values. Needs a `workers` provider that can list secrets (Cloudflare can)                                                                                                               |
+| `holocron probe comlink deliver`  | yes            | Sends the relay a correctly signed test alert, so an embed titled `Holocron probe: Comlink delivery check` lands in #errors. It needs the signing secret: set `COMLINK_SENTRY_SECRET` (for example `doppler run -- holocron probe comlink deliver`) or run where the vault holds it. The message stays; delete it by hand |
+
 ## Writing a probe
 
 A plugin returns `probes` from `createPlugin`, next to `capabilities`. The probe closes over the plugin's own token and client.

@@ -148,7 +148,7 @@ describe("runProbeCommand", () => {
 		const pick = vi.fn(async (_groups: ReadonlyMap<string, PluginProbes>) => {});
 		const { promise, text } = run({ pick });
 		expect((await promise).status).toBe("listed");
-		expect([...pick.mock.calls[0]![0].keys()].sort()).toEqual(["core", "demo"]);
+		expect([...pick.mock.calls[0]![0].keys()].sort()).toEqual(["comlink", "core", "demo"]);
 		expect(text()).toBe("");
 	});
 
