@@ -84,15 +84,30 @@ async function ensureIntegration(
 	const updated: string[] = [];
 	if (existing.webhookUrl !== input.webhookUrl) updated.push("webhook URL");
 	if (!existing.isAlertable) updated.push("alert action");
+	// Without event:read Sentry sends no event with the alert; any other scope a person gave it stays.
+	const scopes = [...new Set([...existing.scopes, ...INTEGRATION_SCOPES])];
+	if (scopes.length !== existing.scopes.length) updated.push("scopes");
 	if (updated.length === 0) return { app: existing, created: false, updated };
-	// Sentry wants the name and scopes on every update; the scopes stay as they are.
+	// Sentry wants the name and scopes on every update.
 	const app = await client.sentryApps.update(existing.slug, {
 		name: existing.name,
-		scopes: existing.scopes,
+		scopes,
 		webhookUrl: input.webhookUrl,
 		isAlertable: true,
 	});
 	return { app, created: false, updated };
+}
+
+/** The issue stream detector of each project, so a wrong project fails before anything is changed. */
+async function detectorsFor(client: SentryClient, org: string, slugs: string[]): Promise<string[]> {
+	const [projects, detectors] = await Promise.all([client.projects.list(org), client.workflows.detectors(org)]);
+	return slugs.map((slug) => {
+		const project = projects.find((p) => p.slug === slug);
+		if (!project) throw new Error(`Sentry project \`${slug}\` was not found in ${org}`);
+		const detector = detectors.find((d) => d.projectId === project.id && d.type === "issue_stream");
+		if (!detector) throw new Error(`Sentry project \`${slug}\` has no issue stream detector to attach an alert to`);
+		return detector.id;
+	});
 }
 
 /** The alert rule: one workflow for every project, found by name, made if missing, reconciled if not. */
@@ -100,20 +115,10 @@ async function ensureRule(
 	client: SentryClient,
 	org: string,
 	input: EnsureRelayInput,
-	appId: number
+	appId: number,
+	detectorIds: string[]
 ): Promise<{ created: boolean; updated: string[] }> {
-	const [projects, detectors, workflows] = await Promise.all([
-		client.projects.list(org),
-		client.workflows.detectors(org),
-		client.workflows.list(org),
-	]);
-	const detectorIds = input.projects.map((slug) => {
-		const project = projects.find((p) => p.slug === slug);
-		if (!project) throw new Error(`Sentry project \`${slug}\` was not found in ${org}`);
-		const detector = detectors.find((d) => d.projectId === project.id && d.type === "issue_stream");
-		if (!detector) throw new Error(`Sentry project \`${slug}\` has no issue stream detector to attach an alert to`);
-		return detector.id;
-	});
+	const workflows = await client.workflows.list(org);
 	const frequency = input.rule.frequency ?? DEFAULT_FREQUENCY;
 	const existing = workflows.find((w) => w.name === input.rule.name);
 	if (!existing) {
@@ -128,6 +133,10 @@ async function ensureRule(
 		next.enabled = true;
 		updated.push("enabled");
 	}
+	if (input.rule.frequency !== undefined && existing.config.frequency !== input.rule.frequency) {
+		next.config = { ...existing.config, frequency: input.rule.frequency };
+		updated.push("frequency");
+	}
 	const missing = detectorIds.filter((id) => !existing.detectorIds.includes(id));
 	if (missing.length > 0) {
 		next.detectorIds = [...existing.detectorIds, ...missing];
@@ -135,8 +144,9 @@ async function ensureRule(
 	}
 	const sends = existing.actionFilters.some((f) => f.actions.some((a) => targetsApp(a, appId)));
 	if (!sends) {
-		const first = next.actionFilters[0];
-		if (first) first.actions.push(sentryAppAction(appId));
+		// On a filter with no conditions, so a person's narrower filters do not narrow what is relayed.
+		const open = next.actionFilters.find((f) => f.conditions.length === 0);
+		if (open) open.actions.push(sentryAppAction(appId));
 		else next.actionFilters.push({ logicType: "all", conditions: [], actions: [sentryAppAction(appId)] });
 		updated.push("action");
 	}
@@ -157,11 +167,12 @@ export async function ensureSentryRelay(
 	input: EnsureRelayInput
 ): Promise<EnsureRelayResult> {
 	if (input.projects.length === 0) throw new Error("relay needs at least one Sentry project to alert on");
+	const detectorIds = await detectorsFor(client, org, input.projects);
 	const integration = await ensureIntegration(client, org, input);
 	const installs = await client.sentryApps.installations(org);
 	const install = installs.find((i) => i.app.slug === integration.app.slug);
 	if (!install) throw new Error(`the integration \`${integration.app.name}\` is not installed on ${org}`);
-	const rule = await ensureRule(client, org, input, install.app.sentryAppId);
+	const rule = await ensureRule(client, org, input, install.app.sentryAppId, detectorIds);
 	const clientSecret = await secretOf(client, integration.app);
 	return {
 		integration: { created: integration.created, updated: integration.updated },

@@ -137,10 +137,10 @@ describe("SentryErrors.ensureRelay", () => {
 	it("works through the relay client, not the general one", async () => {
 		const main = stubFetch([]);
 		const relay = stubFetch([
-			{ body: [app] },
-			{ body: [{ uuid: "i", status: "installed", app: { uuid: "u", slug: "comlink-1", sentryAppId: 42 } }] },
 			{ body: [project] },
 			{ body: [{ id: "d1", projectId: "p1", name: "x", type: "issue_stream", workflowIds: [] }] },
+			{ body: [app] },
+			{ body: [{ uuid: "i", status: "installed", app: { uuid: "u", slug: "comlink-1", sentryAppId: 42 } }] },
 			{ body: [rule] },
 		]);
 		const make = (fetch: typeof main.fetch) => createSentryClient({ token: "t", baseUrl: BASE, fetch });
