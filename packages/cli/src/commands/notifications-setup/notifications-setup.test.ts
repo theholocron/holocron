@@ -1701,6 +1701,47 @@ describe("monitoring feeds", () => {
 		);
 	});
 
+	it("uses the monitoring provider's own icon when the config names no picture, URL first and its embedded image after", async () => {
+		const layout: NotificationsLayout = {
+			webhookAvatar: "media/all.png",
+			categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
+		};
+		const icon = { url: "https://cdn.example.com/icon.png", dataUri: "data:image/png;base64,EMBEDDED" };
+		const n = fakeNotifications({ layout });
+		const { run, lines } = setup(n, {
+			monitoring: { ...monitoring(), icon },
+			loadAvatar: async (source) => {
+				if (source.startsWith("https://")) throw new Error("fetch failed");
+				return source;
+			},
+		});
+		await run();
+		// Not the layout's picture: the provider's icon comes first, and the embedded copy backs up the URL.
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,EMBEDDED" })
+		);
+		expect(lines.join("\n")).toContain(
+			"avatar https://cdn.example.com/icon.png could not be read (fetch failed); trying the next"
+		);
+	});
+
+	it("lets the config's own picture win over the provider's icon", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: { avatar: "media/own.png" } } }] },
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const read = vi.fn(async (source: string) => `uri:${source}`);
+		await setup(n, {
+			monitoring: { ...monitoring(), icon: { url: "https://cdn.example.com/icon.png" } },
+			loadAvatar: read,
+		}).run();
+		expect(read).toHaveBeenCalledTimes(1);
+		expect(read).toHaveBeenCalledWith("media/own.png");
+		expect(n.ensureWebhook).toHaveBeenCalledWith(expect.objectContaining({ avatar: "uri:media/own.png" }));
+	});
+
 	it("falls back to the next source of a feed's picture, and says it did", async () => {
 		const layout: NotificationsLayout = {
 			categories: [

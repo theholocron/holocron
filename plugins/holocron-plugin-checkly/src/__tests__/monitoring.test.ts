@@ -193,6 +193,19 @@ describe("ChecklyMonitoring", () => {
 		});
 	});
 
+	describe("icon", () => {
+		it("carries Checkly's own icon: its CDN, and the same image embedded as a PNG", () => {
+			const { capability } = makeCapability([]);
+			expect(capability.icon.url).toBe(
+				"https://s3.eu-central-1.amazonaws.com/cdn.checklyhq.com/slack/checkly-slack-icon.png"
+			);
+			const bytes = Buffer.from(capability.icon.dataUri.replace(/^data:image\/png;base64,/, ""), "base64");
+			expect([...bytes.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+			expect(bytes.length).toBeGreaterThan(1000);
+			expect(bytes.length).toBeLessThan(8 * 1024 * 1024);
+		});
+	});
+
 	describe("ensureAlertChannel", () => {
 		const URL_NEW = "https://discord.com/api/webhooks/1/new";
 		const check = (id: string) => ({ id, name: `check ${id}` });

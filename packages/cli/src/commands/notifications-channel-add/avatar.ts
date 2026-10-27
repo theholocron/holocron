@@ -26,6 +26,7 @@ const tooBig = () => new Error(`it is larger than ${MAX_AVATAR_BYTES / 1024 / 10
  * links keep their tokens. A file path is returned as written.
  */
 export function describeAvatarSource(source: string): string {
+	if (/^data:/i.test(source)) return "the built-in icon";
 	if (!/^https:\/\//i.test(source)) return source;
 	try {
 		const url = new URL(source);
@@ -63,7 +64,12 @@ export async function loadAvatar(
 	fetchImpl: typeof fetch = fetch
 ): Promise<string> {
 	let bytes: Buffer;
-	if (/^https:\/\//i.test(source)) {
+	if (/^data:/i.test(source)) {
+		// An image the provider carries itself: already a data URI, so it is checked, not fetched.
+		const base64 = /^data:[^;,]+;base64,(.*)$/is.exec(source)?.[1];
+		if (base64 === undefined) throw new Error("it is not a base64 data URI");
+		bytes = Buffer.from(base64, "base64");
+	} else if (/^https:\/\//i.test(source)) {
 		const res = await fetchImpl(source, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 		if (!res.ok) throw new Error(`fetching it answered ${res.status}`);
 		if (Number(res.headers.get("content-length")) > MAX_AVATAR_BYTES) throw tooBig();

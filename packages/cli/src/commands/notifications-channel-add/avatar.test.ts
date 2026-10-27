@@ -123,3 +123,25 @@ describe("loadFirstAvatar", () => {
 		).rejects.toThrow("`x`: plain");
 	});
 });
+
+describe("a data: URI the provider carries", () => {
+	const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString("base64");
+
+	it("is checked and returned as it is, without a fetch", async () => {
+		const fetchImpl = vi.fn();
+		const uri = `data:image/png;base64,${png}`;
+		expect(await loadAvatar(uri, process.cwd(), fetchImpl as never)).toBe(uri);
+		expect(fetchImpl).not.toHaveBeenCalled();
+	});
+
+	it("is refused when it is not an image, or not base64", async () => {
+		await expect(loadAvatar(`data:image/png;base64,${Buffer.from("hello").toString("base64")}`)).rejects.toThrow(
+			/not a PNG, JPEG or GIF/
+		);
+		await expect(loadAvatar("data:text/plain,hello")).rejects.toThrow(/not a base64 data URI/);
+	});
+
+	it("is described as the built-in icon, not echoed", () => {
+		expect(describeAvatarSource(`data:image/png;base64,${png}`)).toBe("the built-in icon");
+	});
+});

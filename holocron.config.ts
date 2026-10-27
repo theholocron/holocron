@@ -180,16 +180,9 @@ export default defineConfig({
 									name: "uptime",
 									topic: "Monitoring up/down",
 									webhook: true,
-									feeds: {
-										monitoring: {
-											// Checkly's own icon for its webhook in Discord's Integrations list (its posts carry the same one). The
-											// CDN is tried first; if it cannot be reached, the copy kept in the repo is used.
-											avatar: {
-												url: "https://s3.eu-central-1.amazonaws.com/cdn.checklyhq.com/slack/checkly-slack-icon.png",
-												image: "media/checkly-avatar.png",
-											},
-										},
-									},
+									// The Checkly plugin carries its own icon (its CDN first, then an embedded copy) for that webhook in
+									// Discord's Integrations list, so no picture is named here.
+									feeds: { monitoring: true },
 								},
 							],
 						},

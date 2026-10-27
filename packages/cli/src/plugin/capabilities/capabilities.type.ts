@@ -986,6 +986,11 @@ export interface Monitoring extends ProviderIdentity {
 	 * are configured.
 	 */
 	readonly checks: readonly MonitoringCheckInput[];
+	/**
+	 * The service's own picture, for the webhook it posts through (see `feeds.monitoring`): where to fetch it, and the
+	 * image itself as a `data:` URI for when that cannot be reached. Used when the config names no picture of its own.
+	 */
+	readonly icon?: { url?: string; dataUri?: string };
 	/** Auth sanity-check. Throws ProviderApiError on auth failure. */
 	whoami?(): Promise<{ ok: boolean }>;
 	/** Idempotent find-or-create-or-update by `input.name`. */

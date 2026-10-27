@@ -50,15 +50,23 @@ export function webhookAvatarOf(
 }
 
 /**
- * The pictures a feed's webhook may wear, in order of preference: its own (a single source, or `{ url, image }`, the URL
- * first and the file in the repo as its fallback), else the layout's, else none.
+ * The pictures a feed's webhook may wear, in order of preference: the config's own (a single source, or `{ url, image }`,
+ * the URL first and the file in the repo as its fallback), else the provider's own icon (its URL, then the image it carries),
+ * else the layout's, else none.
  */
 export function feedAvatarOf(
 	layout: NotificationsLayout,
-	feed: true | { avatar?: string | { url?: string; image?: string } }
+	feed: true | { avatar?: string | { url?: string; image?: string } },
+	monitoring?: Pick<Monitoring, "icon">
 ): string[] {
 	const own = typeof feed === "object" ? feed.avatar : undefined;
-	if (own === undefined) return layout.webhookAvatar ? [layout.webhookAvatar] : [];
+	if (own === undefined) {
+		const icon = [monitoring?.icon?.url, monitoring?.icon?.dataUri].filter((source): source is string =>
+			Boolean(source)
+		);
+		if (icon.length > 0) return icon;
+		return layout.webhookAvatar ? [layout.webhookAvatar] : [];
+	}
 	if (typeof own === "string") return [own];
 	return [own.url, own.image].filter((source): source is string => Boolean(source));
 }
@@ -334,7 +342,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			}
 		}
 		// A feed's picture may list fallbacks (a URL, then a file in the repo): the first that can be read is used.
-		const feedSources = channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring) : [];
+		const feedSources = channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
 		const feedKey = feedSources.join("\n");
 		if (feedSources.length > 0 && !avatars.has(feedKey)) {
 			try {
@@ -538,10 +546,14 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 									feeds: {
 										monitoring: {
 											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
-											...(feedAvatarOf(layout, channel.feeds.monitoring).length > 0
+											...(feedAvatarOf(layout, channel.feeds.monitoring, monitoring).length > 0
 												? {
 														avatar: avatars.get(
-															feedAvatarOf(layout, channel.feeds.monitoring).join("\n")
+															feedAvatarOf(
+																layout,
+																channel.feeds.monitoring,
+																monitoring
+															).join("\n")
 														)!,
 													}
 												: {}),

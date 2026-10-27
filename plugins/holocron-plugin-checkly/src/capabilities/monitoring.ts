@@ -19,6 +19,7 @@ import {
 	ProviderApiError,
 } from "@theholocron/cli";
 
+import { CHECKLY_ICON } from "../icon.js";
 import type {
 	AlertChannel,
 	AlertChannelInput,
@@ -74,6 +75,7 @@ export interface ChecklyMonitoringOptions {
 export class ChecklyMonitoring implements Monitoring {
 	readonly key = "monitoring" as const;
 	readonly providerName = "checkly";
+	readonly icon = CHECKLY_ICON;
 	readonly checks: readonly MonitoringCheckInput[];
 
 	constructor(
