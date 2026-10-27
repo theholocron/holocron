@@ -1,3 +1,4 @@
+/* eslint-disable n/no-unsupported-features/node-builtins -- ReadableStream is global in the Workers runtime and in Node 22 */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MalformedDelivery, type Source } from "../sources/source.type.js";
@@ -110,6 +111,52 @@ describe("the relay", () => {
 		expect((await guarded(post("/fake", big), env)).status).toBe(413);
 		expect(verify).not.toHaveBeenCalled();
 		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it("treats a POST with no body as an empty, non-JSON one", async () => {
+		discord();
+		const request = new Request("https://comlink.example/fake", { method: "POST", headers: { "x-ok": "yes" } });
+		expect((await relay(request, env)).status).toBe(400);
+	});
+
+	it("stops reading a body that has no declared length once it passes the cap", async () => {
+		discord();
+		let pulled = 0;
+		const chunk = new TextEncoder().encode("x".repeat(64 * 1024));
+		const stream = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				pulled++;
+				controller.enqueue(chunk);
+			},
+		});
+		const request = new Request("https://comlink.example/fake", {
+			method: "POST",
+			body: stream,
+			duplex: "half",
+			headers: { "x-ok": "yes" },
+		} as RequestInit);
+		expect((await relay(request, env)).status).toBe(413);
+		// The cap is 4 chunks; it stopped pulling soon after, long before an endless stream could be buffered.
+		expect(pulled).toBeLessThan(20);
+	});
+
+	it("reads a body sent in several chunks, including multi-byte text split across them", async () => {
+		discord();
+		const bytes = new TextEncoder().encode(JSON.stringify({ text: "héllo ✓" }));
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(bytes.slice(0, 11));
+				controller.enqueue(bytes.slice(11));
+				controller.close();
+			},
+		});
+		const request = new Request("https://comlink.example/fake", {
+			method: "POST",
+			body: stream,
+			duplex: "half",
+			headers: { "x-ok": "yes" },
+		} as RequestInit);
+		expect((await relay(request, env)).status).toBe(204);
 	});
 
 	it("says it is not configured when the source has no webhook bound", async () => {

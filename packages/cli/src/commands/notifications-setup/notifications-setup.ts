@@ -41,6 +41,7 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
+import { avatarProblem } from "./avatar-problem.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
 import { deployRelay, errorsFeedWebhook, relayProblem, wantsRelay } from "./relay.js";
 import { withElevation } from "./with-elevation.js";
@@ -107,17 +108,8 @@ export function feedProblem(
 				return `channel \`${channel.name}\` is fed by monitoring, but the \`${monitoring.providerName}\` provider cannot manage alert channels`;
 			}
 			const picture = typeof channel.feeds.monitoring === "object" ? channel.feeds.monitoring.avatar : undefined;
-			if (typeof picture === "object") {
-				if (!picture.url && !picture.image) {
-					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar\` needs a \`url\`, an \`image\`, or both`;
-				}
-				if (picture.url && !/^https:\/\//i.test(picture.url)) {
-					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.url\` must be an https:// URL`;
-				}
-				if (picture.image && /^https?:\/\//i.test(picture.image)) {
-					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.image\` must be a file in the repo, not a URL`;
-				}
-			}
+			const pictureProblem = avatarProblem(channel.name, "monitoring", picture);
+			if (pictureProblem) return pictureProblem;
 			const feed = monitoringFeed(channel.name, channel.feeds.monitoring, monitoring);
 			const own = (typeof channel.webhook === "object" ? channel.webhook.name : undefined) ?? channel.name;
 			if (channel.webhook && feed.webhook.toLowerCase() === own.toLowerCase()) {
@@ -355,7 +347,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		errors = loader.get("errors") as Errors;
 		workers = loader.get("workers") as Workers;
 		dns = loader.get("dns") as Dns;
-		const clash = relayProblem(layout, errors);
+		const clash = relayProblem(layout, errors, monitoring);
 		if (clash) return refuse(clash);
 	}
 

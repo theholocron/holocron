@@ -35,6 +35,37 @@ describe("relay helpers", () => {
 		expect(wantsRelay(fed)).toBe(true);
 		expect(relayProblem(fed, { providerName: "sentry" })).toBeUndefined();
 	});
+
+	const withFeeds = (feeds: object, webhook?: unknown): NotificationsLayout =>
+		({
+			relay: { host: "h.example.dev" },
+			categories: [{ name: "A", channels: [{ name: "x", ...(webhook ? { webhook } : {}), feeds }] }],
+		}) as NotificationsLayout;
+
+	it("rejects a relay webhook that shares a name with the monitoring feed's, without regard to case", () => {
+		const sentry = { providerName: "sentry" };
+		const checkly = { providerName: "checkly" };
+		expect(relayProblem(withFeeds({ errors: true, monitoring: true }), sentry, checkly)).toBeUndefined();
+		expect(relayProblem(withFeeds({ errors: { webhook: "checkly" }, monitoring: true }), sentry, checkly)).toMatch(
+			/relay webhook and the monitoring webhook are both named Checkly/
+		);
+		expect(
+			relayProblem(withFeeds({ errors: { webhook: "Probe" }, monitoring: { webhook: "PROBE" } }), sentry, checkly)
+		).toMatch(/both named PROBE/);
+	});
+
+	it("checks the error feed's picture like the monitoring feed's", () => {
+		const sentry = { providerName: "sentry" };
+		expect(relayProblem(withFeeds({ errors: { avatar: {} } }), sentry)).toMatch(
+			/needs a `url`, an `image`, or both/
+		);
+		expect(relayProblem(withFeeds({ errors: { avatar: { image: "https://x/y.png" } } }), sentry)).toMatch(
+			/must be a file in the repo/
+		);
+		expect(relayProblem(withFeeds({ errors: { avatar: { url: "http://x/y.png" } } }), sentry)).toMatch(
+			/must be an https/
+		);
+	});
 });
 
 describe("deployRelay", () => {
@@ -60,6 +91,40 @@ describe("deployRelay", () => {
 			"comlink",
 			expect.objectContaining({ code: "export default {}" })
 		);
+	});
+
+	it("leaves the host alone when the deploy fails", async () => {
+		const c = collaborators();
+		(c.workers.deployScript as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("boom"));
+		await expect(
+			deployRelay({
+				relay: { host: "comlink.example.dev" },
+				source: "sentry",
+				webhook: "https://hook",
+				repoRoot: "/r",
+				readCode: async () => "export default {}",
+				...c,
+			})
+		).rejects.toThrow("boom");
+		expect(c.dns.upsertRecord).not.toHaveBeenCalled();
+	});
+
+	it("points the host at the Worker only after it is deployed", async () => {
+		const order: string[] = [];
+		const workers = {
+			deployScript: vi.fn(async (n: string) => (order.push("deploy"), { scriptName: n })),
+		} as unknown as Workers;
+		const dns = { upsertRecord: vi.fn(async () => void order.push("dns")) } as unknown as Dns;
+		await deployRelay({
+			relay: { host: "comlink.example.dev" },
+			source: "sentry",
+			webhook: "https://hook",
+			repoRoot: "/r",
+			readCode: async () => "x",
+			workers,
+			dns,
+		});
+		expect(order).toEqual(["deploy", "dns"]);
 	});
 
 	it("says to build the Worker when the file is not there, before touching DNS", async () => {
