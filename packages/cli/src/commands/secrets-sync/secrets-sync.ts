@@ -45,6 +45,7 @@ import {
 	type Workers,
 } from "../../plugin/index.js";
 import { style, withSpinner } from "../../ui/index.js";
+import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import type { RunSecretsSyncInput, SyncReport, SyncRow } from "./secrets-sync.type.js";
 
 export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncReport> {
@@ -73,9 +74,29 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 			`vault provider (${vault.providerName}) does not implement readEnvironment — sync needs bulk env reads`
 		);
 	}
-	const envVars = await withSpinner(`Reading vault environment ${input.environmentId}…`, () =>
-		vault.readEnvironment!(input.environmentId)
-	);
+	let envVars: Record<string, string>;
+	try {
+		envVars = await withSpinner(`Reading vault environment ${input.environmentId}…`, () =>
+			vault.readEnvironment!(input.environmentId)
+		);
+	} catch (err) {
+		// Printed, not just thrown: the CLI's global handler swallows a plain Error, so a bare throw exits 1 with no message.
+		const message = describeProviderError(err);
+		print(`  ${style.fail(`could not read vault environment ${input.environmentId}: ${message}`)}`);
+		logger.warn({ environment: input.environmentId, reason: logReason(err) }, "secrets sync: vault read failed");
+		return {
+			rows: [
+				{
+					destination: `vault:${vault.providerName}`,
+					scope: `environment=${input.environmentId}`,
+					key: "(all)",
+					status: "fail",
+					message,
+				},
+			],
+			summary: { ok: 0, fail: 1, skip: 0, dryRun: 0 },
+		};
+	}
 	const keys = Object.keys(envVars).sort();
 	print(style.step(`read ${keys.length} keys from vault`));
 	print("");

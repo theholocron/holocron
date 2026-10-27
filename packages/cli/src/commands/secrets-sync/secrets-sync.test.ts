@@ -492,4 +492,35 @@ describe("runSecretsSync", () => {
 			}
 		});
 	});
+
+	it("prints, and reports as a failure, a vault environment that cannot be read", async () => {
+		const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+		const setSecret = vi.fn();
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "doppler",
+					readEnvironment: async () => {
+						throw new Error("Doppler GET /configs/config/secrets/download failed: 403");
+					},
+				},
+			}),
+			"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+				workers: { providerName: "cloudflare", setSecret },
+			}),
+		});
+		const lines: string[] = [];
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "prd",
+			workerScript: "comlink",
+			loader,
+			print: (l) => lines.push(l),
+		});
+		expect(report.summary).toEqual({ ok: 0, fail: 1, skip: 0, dryRun: 0 });
+		expect(report.rows[0]).toMatchObject({ destination: "vault:doppler", status: "fail" });
+		expect(lines.join("\n")).toMatch(/could not read vault environment prd: .*403/);
+		expect(setSecret).not.toHaveBeenCalled();
+	});
 });
