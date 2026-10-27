@@ -7,7 +7,10 @@ const BASE = "https://cf.test/client/v4";
 
 function client(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	return { tokens: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).tokens, calls };
+	return {
+		tokens: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).tokens,
+		calls,
+	};
 }
 
 describe("tokens.verify", () => {

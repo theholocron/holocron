@@ -8,10 +8,20 @@ const ZONE = "zone-abc";
 
 function client(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	return { dns: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).dns, calls };
+	return {
+		dns: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).dns,
+		calls,
+	};
 }
 
-const record = { id: "rec-1", type: "CNAME" as const, name: "www", content: "example.com", ttl: 1, proxied: false };
+const record = {
+	id: "rec-1",
+	type: "CNAME" as const,
+	name: "www",
+	content: "example.com",
+	ttl: 1,
+	proxied: false,
+};
 
 describe("dns.list", () => {
 	it("GETs /zones/{zoneId}/dns_records", async () => {
@@ -32,7 +42,11 @@ describe("dns.list", () => {
 describe("dns.create", () => {
 	it("POSTs with defaults for ttl and proxied", async () => {
 		const { dns, calls } = client([cfOk(record)]);
-		await dns.create(ZONE, { type: "CNAME", name: "www", content: "example.com" });
+		await dns.create(ZONE, {
+			type: "CNAME",
+			name: "www",
+			content: "example.com",
+		});
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.body).toMatchObject({
 			type: "CNAME",
@@ -45,7 +59,13 @@ describe("dns.create", () => {
 
 	it("passes explicit ttl and proxied", async () => {
 		const { dns, calls } = client([cfOk(record)]);
-		await dns.create(ZONE, { type: "A", name: "api", content: "1.2.3.4", ttl: 300, proxied: true });
+		await dns.create(ZONE, {
+			type: "A",
+			name: "api",
+			content: "1.2.3.4",
+			ttl: 300,
+			proxied: true,
+		});
 		expect(calls[0]?.body).toMatchObject({ ttl: 300, proxied: true });
 	});
 });

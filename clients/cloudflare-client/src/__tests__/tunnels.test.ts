@@ -9,7 +9,10 @@ const TUNNEL_ID = "tun-abc";
 
 function client(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	return { tunnels: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).tunnels, calls };
+	return {
+		tunnels: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).tunnels,
+		calls,
+	};
 }
 
 describe("tunnels.create", () => {
@@ -18,7 +21,10 @@ describe("tunnels.create", () => {
 		const result = await tunnels.create(ACCOUNT, { name: "my-tunnel" });
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/cfd_tunnel`);
-		expect(calls[0]?.body).toEqual({ name: "my-tunnel", config_src: "cloudflare" });
+		expect(calls[0]?.body).toEqual({
+			name: "my-tunnel",
+			config_src: "cloudflare",
+		});
 		expect(result).toEqual({ id: TUNNEL_ID, name: "my-tunnel" });
 	});
 });
@@ -52,7 +58,14 @@ describe("tunnels.delete", () => {
 
 describe("tunnels.getConfig", () => {
 	it("GETs tunnel configurations", async () => {
-		const config = { ingress: [{ hostname: "app.example.com", service: "http://localhost:3000" }] };
+		const config = {
+			ingress: [
+				{
+					hostname: "app.example.com",
+					service: "http://localhost:3000",
+				},
+			],
+		};
 		const { tunnels, calls } = client([cfOk({ config })]);
 		const result = await tunnels.getConfig(ACCOUNT, TUNNEL_ID);
 		expect(calls[0]?.url).toContain(`/accounts/${ACCOUNT}/cfd_tunnel/${TUNNEL_ID}/configurations`);
@@ -64,7 +77,10 @@ describe("tunnels.putConfig", () => {
 	it("PUTs tunnel configuration", async () => {
 		const config = {
 			ingress: [
-				{ hostname: "app.example.com", service: "http://localhost:3000" },
+				{
+					hostname: "app.example.com",
+					service: "http://localhost:3000",
+				},
 				{ service: "http_status:404" },
 			],
 		};

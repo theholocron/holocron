@@ -10,10 +10,17 @@ const TOKEN = "cf-tok";
 
 function client(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	return { workers: createCloudflareClient({ token: TOKEN, baseUrl: BASE, fetch }).workers, calls };
+	return {
+		workers: createCloudflareClient({ token: TOKEN, baseUrl: BASE, fetch }).workers,
+		calls,
+	};
 }
 
-const route = { id: "route-1", pattern: "wiki.example.com/*", script: "wiki-proxy" };
+const route = {
+	id: "route-1",
+	pattern: "wiki.example.com/*",
+	script: "wiki-proxy",
+};
 
 describe("workers.putScript", () => {
 	it("PUTs to the account workers scripts endpoint", async () => {
@@ -35,6 +42,25 @@ describe("workers.putScript", () => {
 		expect(calls[0]?.body).toBeInstanceOf(FormData);
 	});
 
+	it("keeps the secrets already bound, so a redeploy does not drop them", async () => {
+		const { workers, calls } = client([{ status: 200, body: {} }]);
+		await workers.putScript(ACCOUNT, "my-worker", "export default {};");
+		const metadata = await ((calls[0]?.body as FormData).get("metadata") as Blob).text();
+		expect(JSON.parse(metadata)).toMatchObject({
+			main_module: "index.js",
+			keep_bindings: ["secret_text"],
+		});
+	});
+
+	it("drops the bound secrets when asked to", async () => {
+		const { workers, calls } = client([{ status: 200, body: {} }]);
+		await workers.putScript(ACCOUNT, "my-worker", "export default {};", {
+			keepSecrets: false,
+		});
+		const metadata = await ((calls[0]?.body as FormData).get("metadata") as Blob).text();
+		expect(JSON.parse(metadata)).not.toHaveProperty("keep_bindings");
+	});
+
 	it("URL-encodes the script name", async () => {
 		const { workers, calls } = client([{ status: 200, body: {} }]);
 		await workers.putScript(ACCOUNT, "wiki.example.com-proxy", "export default {};");
@@ -45,7 +71,10 @@ describe("workers.putScript", () => {
 		const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
 		vi.stubGlobal("fetch", mockFetch);
 		try {
-			const w = createCloudflareClient({ token: TOKEN, baseUrl: BASE }).workers;
+			const w = createCloudflareClient({
+				token: TOKEN,
+				baseUrl: BASE,
+			}).workers;
 			await w.putScript(ACCOUNT, "my-worker", "export default {};");
 			expect(mockFetch).toHaveBeenCalled();
 		} finally {
@@ -88,7 +117,10 @@ describe("workers.createRoute", () => {
 		const result = await workers.createRoute(ZONE, "wiki.example.com/*", "wiki-proxy");
 		expect(calls[0]?.method).toBe("POST");
 		expect(calls[0]?.url).toContain(`/zones/${ZONE}/workers/routes`);
-		expect(calls[0]?.body).toEqual({ pattern: "wiki.example.com/*", script: "wiki-proxy" });
+		expect(calls[0]?.body).toEqual({
+			pattern: "wiki.example.com/*",
+			script: "wiki-proxy",
+		});
 		expect(result).toEqual(route);
 	});
 });
@@ -99,7 +131,10 @@ describe("workers.updateRoute", () => {
 		const result = await workers.updateRoute(ZONE, "route-1", "wiki.example.com/*", "wiki-proxy");
 		expect(calls[0]?.method).toBe("PUT");
 		expect(calls[0]?.url).toContain(`/zones/${ZONE}/workers/routes/route-1`);
-		expect(calls[0]?.body).toEqual({ pattern: "wiki.example.com/*", script: "wiki-proxy" });
+		expect(calls[0]?.body).toEqual({
+			pattern: "wiki.example.com/*",
+			script: "wiki-proxy",
+		});
 		expect(result).toEqual(route);
 	});
 });
@@ -110,7 +145,11 @@ describe("workers.putSecret", () => {
 		const result = await workers.putSecret(ACCOUNT, "sentinel", "WEBHOOK_SECRET", "shh-its-a-secret");
 		expect(calls[0]?.method).toBe("PUT");
 		expect(calls[0]?.url).toBe(`${BASE}/accounts/${ACCOUNT}/workers/scripts/sentinel/secrets`);
-		expect(calls[0]?.body).toEqual({ name: "WEBHOOK_SECRET", text: "shh-its-a-secret", type: "secret_text" });
+		expect(calls[0]?.body).toEqual({
+			name: "WEBHOOK_SECRET",
+			text: "shh-its-a-secret",
+			type: "secret_text",
+		});
 		expect(result).toEqual({ name: "WEBHOOK_SECRET", type: "secret_text" });
 	});
 

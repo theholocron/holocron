@@ -30,13 +30,30 @@ export function workers(rest: RestClient, opts: CloudflareClientOptions) {
 		listScripts: (accountId: string): Promise<CfWorkerScript[]> =>
 			cfRequest<CfWorkerScript[]>(rest, "GET", `/accounts/${accountId}/workers/scripts`),
 
-		putScript: async (accountId: string, scriptName: string, script: string): Promise<void> => {
+		/**
+		 * Upload a script. Its secrets are kept by default, so a redeploy does not drop what was set earlier;
+		 * pass `keepSecrets: false` to replace the script with no secrets bound.
+		 */
+		putScript: async (
+			accountId: string,
+			scriptName: string,
+			script: string,
+			options: { keepSecrets?: boolean } = {}
+		): Promise<void> => {
 			const form = new FormData();
 			form.append(
 				"metadata",
-				new Blob([JSON.stringify({ main_module: "index.js", compatibility_date: "2025-08-31" })], {
-					type: "application/json",
-				})
+				new Blob(
+					[
+						JSON.stringify({
+							main_module: "index.js",
+							compatibility_date: "2025-08-31",
+							// An upload replaces the script's bindings; without this a redeploy would drop every secret set earlier.
+							...(options.keepSecrets === false ? {} : { keep_bindings: ["secret_text"] }),
+						}),
+					],
+					{ type: "application/json" }
+				)
 			);
 			form.append("index.js", new Blob([script], { type: "application/javascript+module" }), "index.js");
 

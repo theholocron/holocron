@@ -7,7 +7,10 @@ const BASE = "https://cf.test/client/v4";
 
 function client(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	return { zones: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).zones, calls };
+	return {
+		zones: createCloudflareClient({ token: "tok", baseUrl: BASE, fetch }).zones,
+		calls,
+	};
 }
 
 describe("zones.list", () => {
