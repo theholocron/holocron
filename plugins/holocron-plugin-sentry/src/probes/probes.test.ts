@@ -134,6 +134,12 @@ describe("probe sentry rules", () => {
 		expect(rows[2]!.detail).toContain("email issue_owners");
 	});
 
+	it("says none for a rule that has no actions", async () => {
+		const { ctx, rows } = ctxFor();
+		await probe(deps({ workflows: [workflow([])] }).d, "rules").run(ctx);
+		expect(rows[0]).toMatchObject({ status: "ok", detail: "enabled | detectors: 1 | actions: none" });
+	});
+
 	it("handles an action with no target, and no rules", async () => {
 		const bare = ctxFor();
 		await probe(deps({ workflows: [workflow([{ type: "email", config: {}, data: {} }])] }).d, "rules").run(
@@ -164,6 +170,19 @@ describe("probe sentry send-error", () => {
 		expect(String(init?.body)).toContain("HolocronProbeError");
 		expect(secrets).toContain("pubkey");
 		expect(rows[0]).toMatchObject({ status: "ok", label: "sent HolocronProbeError" });
+	});
+
+	it("reads SENTRY_DSN from the environment and sends with the global fetch when not given either", async () => {
+		vi.stubEnv("SENTRY_DSN", "https://pubkey@o1.ingest.sentry.io/4242");
+		const fetch = okFetch();
+		vi.stubGlobal("fetch", fetch);
+		try {
+			await probe(deps().d, "send-error").run(ctxFor().ctx);
+			expect(String(fetch.mock.calls[0]![0])).toContain("o1.ingest.sentry.io/api/4242/envelope/");
+		} finally {
+			vi.unstubAllGlobals();
+			vi.unstubAllEnvs();
+		}
 	});
 
 	it("takes the DSN from a project's client key when only the project is named", async () => {
