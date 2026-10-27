@@ -57,6 +57,8 @@ export interface ChannelOutcome {
 	updated?: string[];
 	webhook?: WebhookOutcome;
 	/** The monitoring provider's alert channel for this channel, when it is fed by one. */
+	/** The dedicated webhook the relay Worker posts through, when the channel is fed by the error tracker. */
+	relayWebhook?: { name: string; created: boolean; updated?: string[] };
 	alertChannel?: { name: string; created: boolean; updated: string[]; subscribed: number };
 }
 
@@ -73,6 +75,11 @@ export interface ProvisionDeps {
 	secrets?: Secrets;
 	/** Only needed for channels fed by the monitoring provider. */
 	monitoring?: Monitoring;
+	/**
+	 * Receives the URL of a channel's relay webhook. The URL is a credential, so it travels here and nowhere else:
+	 * never into the report, never printed.
+	 */
+	onRelayWebhook?: (url: string) => void;
 	scope: SecretScope;
 	dryRun: boolean;
 	print: NotificationsChannelAddPrint;
@@ -92,5 +99,9 @@ export interface ChannelSpec {
 	/** `avatar` is the image itself, as a `data:` URI. */
 	webhook?: false | { name?: string; secret?: string; avatar?: string };
 	/** The monitoring provider's alerts, already resolved to the names to use. */
-	feeds?: { monitoring?: { name: string; webhook: string; avatar?: string } };
+	feeds?: {
+		monitoring?: { name: string; webhook: string; avatar?: string };
+		/** The error tracker's relay webhook, already resolved to the name to use. */
+		errors?: { webhook: string; avatar?: string };
+	};
 }

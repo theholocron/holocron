@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -68,6 +68,8 @@ function setup(
 		dryRun?: boolean;
 		org?: string;
 		monitoring?: Partial<Monitoring>;
+		/** The relay's three collaborators; each can be left out to see the refusal. */
+		relay?: { errors?: boolean; workers?: unknown; dns?: unknown; readCode?: (path: string) => Promise<string> };
 		repoRoot?: string;
 		loadAvatar?: (source: string) => Promise<string>;
 		pause?: ((message: string) => Promise<void>) | false;
@@ -79,6 +81,9 @@ function setup(
 			notifications: ["discord"],
 			...(opts.secrets === false ? {} : { secrets: "github" }),
 			...(opts.monitoring ? { monitoring: "checkly" } : {}),
+			...(opts.relay?.errors ? { errors: "sentry" } : {}),
+			...(opts.relay?.workers ? { workers: "cloudflare" } : {}),
+			...(opts.relay?.dns ? { dns: "cloudflare" } : {}),
 		},
 	});
 	const stored: Array<{ name: string; value: string }> = [];
@@ -88,6 +93,21 @@ function setup(
 			? {
 					"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
 						monitoring: { key: "monitoring", providerName: "checkly", checks: [], ...opts.monitoring },
+					}),
+				}
+			: {}),
+		...(opts.relay?.errors
+			? {
+					"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+						errors: { key: "errors", providerName: "sentry" },
+					}),
+				}
+			: {}),
+		...(opts.relay?.workers || opts.relay?.dns
+			? {
+					"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", {
+						...(opts.relay.workers ? { workers: opts.relay.workers } : {}),
+						...(opts.relay.dns ? { dns: opts.relay.dns } : {}),
 					}),
 				}
 			: {}),
@@ -118,6 +138,7 @@ function setup(
 				},
 				loader,
 				...(opts.loadAvatar ? { loadAvatar: opts.loadAvatar } : {}),
+				...(opts.relay?.readCode ? { readRelayCode: opts.relay.readCode } : {}),
 				...(opts.pause ? { pause: opts.pause } : {}),
 				print: (l) => lines.push(l),
 				logger: log,
@@ -2013,5 +2034,188 @@ describe("monitoring feeds", () => {
 			expect(notifier.ensureCategory).not.toHaveBeenCalled();
 			expect(notifier.ensureChannel).not.toHaveBeenCalled();
 		}
+	});
+});
+
+describe("the relay Worker", () => {
+	const HOOK = "https://discord.com/api/webhooks/9/relay-secret-token";
+	const layout = (over: Partial<NotificationsLayout> = {}): NotificationsLayout => ({
+		relay: { host: "comlink.example.dev" },
+		categories: [{ name: "ALERTS", channels: [{ name: "errors", feeds: { errors: true } }] }],
+		...over,
+	});
+	const collaborators = () => ({
+		errors: true,
+		workers: {
+			key: "workers",
+			providerName: "cloudflare",
+			deployScript: vi.fn(async (name: string) => ({ scriptName: name })),
+		},
+		dns: { key: "dns", providerName: "cloudflare", upsertRecord: vi.fn(async (_z: string, r: unknown) => r) },
+		readCode: vi.fn(async () => "export default {}"),
+	});
+	const hooked = (over: Partial<Notifications> = {}) =>
+		fakeNotifications({
+			layout: layout(),
+			ensureWebhook: vi.fn(async () => ({ created: true, url: HOOK })),
+			...over,
+		});
+
+	it("makes a webhook named for the tracker, then deploys the Worker with that URL as its secret and a route", async () => {
+		const relay = collaborators();
+		const n = hooked();
+		const { run, lines, stored } = setup(n, { relay });
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureWebhook).toHaveBeenCalledWith({ channel: "errors", name: "Sentry", category: "ALERTS" });
+		expect(relay.dns.upsertRecord).toHaveBeenCalledWith("comlink.example.dev", {
+			type: "AAAA",
+			name: "comlink.example.dev",
+			content: "100::",
+			ttl: 1,
+			proxied: true,
+		});
+		expect(relay.workers.deployScript).toHaveBeenCalledWith("comlink", {
+			code: "export default {}",
+			secrets: { COMLINK_SENTRY_WEBHOOK: HOOK },
+			routes: ["comlink.example.dev/*"],
+		});
+		expect(relay.readCode).toHaveBeenCalledWith("/tmp/test/apps/comlink/dist/worker.js");
+		expect(lines.join("\n")).toContain("deployed comlink at comlink.example.dev");
+		// The URL is a credential: not printed, not reported, not stored as a secret.
+		expect(lines.join("\n")).not.toContain("relay-secret-token");
+		expect(JSON.stringify(report)).not.toContain("relay-secret-token");
+		expect(stored).toEqual([]);
+	});
+
+	it("honours the layout's zone, script name, code path and the feed's webhook name", async () => {
+		const relay = collaborators();
+		const n = hooked({
+			layout: layout({
+				relay: { host: "r.a.example.dev", zone: "a.example.dev", script: "hub", code: "dist/hub.js" },
+				categories: [{ name: "A", channels: [{ name: "errors", feeds: { errors: { webhook: "Tracker" } } }] }],
+			}),
+		});
+		await setup(n, { relay }).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith(expect.objectContaining({ name: "Tracker" }));
+		expect(relay.dns.upsertRecord).toHaveBeenCalledWith(
+			"a.example.dev",
+			expect.objectContaining({ name: "r.a.example.dev" })
+		);
+		expect(relay.workers.deployScript).toHaveBeenCalledWith(
+			"hub",
+			expect.objectContaining({ routes: ["r.a.example.dev/*"] })
+		);
+		expect(relay.readCode).toHaveBeenCalledWith("/tmp/test/dist/hub.js");
+	});
+
+	it("gives the webhook the layout's picture", async () => {
+		const relay = collaborators();
+		const n = hooked({ layout: layout({ webhookAvatar: "media/a.png" }) });
+		await setup(n, { relay, loadAvatar: async () => "data:image/png;base64,AAAA" }).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith(expect.objectContaining({ avatar: "data:image/png;base64,AAAA" }));
+	});
+
+	it("previews without making a webhook or touching DNS or the Worker", async () => {
+		const relay = collaborators();
+		const n = hooked();
+		const { run, lines } = setup(n, { relay, dryRun: true });
+		const report = await run();
+		expect(report.status).toBe("dry-run");
+		expect(n.ensureWebhook).not.toHaveBeenCalled();
+		expect(relay.dns.upsertRecord).not.toHaveBeenCalled();
+		expect(relay.workers.deployScript).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain("would ensure webhook Sentry for the relay Worker (errors)");
+		expect(lines.join("\n")).toContain("would deploy the relay Worker at comlink.example.dev");
+	});
+
+	it("reads the built Worker from the repo when no reader is given", async () => {
+		const root = await mkdtemp(join(tmpdir(), "relay-setup-"));
+		await mkdir(join(root, "apps/comlink/dist"), { recursive: true });
+		await writeFile(join(root, "apps/comlink/dist/worker.js"), "export default { real: true }");
+		const relay = collaborators();
+		const { readCode: _unused, ...withoutReader } = relay;
+		const report = await setup(hooked(), { relay: withoutReader, repoRoot: root }).run();
+		expect(report.status).toBe("ok");
+		expect(relay.workers.deployScript).toHaveBeenCalledWith(
+			"comlink",
+			expect.objectContaining({ code: "export default { real: true }" })
+		);
+	});
+
+	it("fails, before touching DNS, when the Worker has not been built", async () => {
+		const relay = {
+			...collaborators(),
+			readCode: vi.fn(async () => {
+				throw new Error("ENOENT");
+			}),
+		};
+		const { run } = setup(hooked(), { relay });
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(report.failures[0]!.message).toMatch(/relay Worker is not built/);
+		expect(relay.dns.upsertRecord).not.toHaveBeenCalled();
+		expect(relay.workers.deployScript).not.toHaveBeenCalled();
+	});
+
+	it("reports a webhook whose URL cannot be read back, and deploys nothing", async () => {
+		const relay = collaborators();
+		const n = hooked({ ensureWebhook: vi.fn(async () => ({ created: false })) });
+		const report = await setup(n, { relay }).run();
+		expect(report.status).toBe("fail");
+		expect(report.failures.map((f) => f.message).join()).toMatch(/URL cannot be read back/);
+		expect(relay.workers.deployScript).not.toHaveBeenCalled();
+	});
+
+	it("refuses when a collaborator is missing, naming what to add", async () => {
+		for (const [leave, pattern] of [
+			["errors", /`errors` provider/],
+			["workers", /`workers` provider/],
+			["dns", /`dns` provider/],
+		] as const) {
+			const relay = { ...collaborators(), [leave]: leave === "errors" ? false : undefined };
+			const report = await setup(hooked(), { relay }).run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(pattern);
+		}
+	});
+
+	it("refuses a layout with no relay host, with two fed channels, or whose webhook shares the channel's", async () => {
+		const run = async (l: NotificationsLayout) =>
+			(await setup(hooked({ layout: l }), { relay: collaborators() }).run()).message;
+		expect(await run(layout({ relay: undefined }))).toMatch(/needs `relay.host`/);
+		expect(
+			await run(
+				layout({
+					categories: [
+						{
+							name: "A",
+							channels: [
+								{ name: "one", feeds: { errors: true } },
+								{ name: "two", feeds: { errors: true } },
+							],
+						},
+					],
+				})
+			)
+		).toMatch(/relay posts to one channel/);
+		expect(
+			await run(
+				layout({
+					categories: [
+						{
+							name: "A",
+							channels: [{ name: "errors", webhook: { name: "sentry" }, feeds: { errors: true } }],
+						},
+					],
+				})
+			)
+		).toMatch(/both named sentry/);
+	});
+
+	it("asks nothing of the relay when no channel is fed by the tracker", async () => {
+		const n = fakeNotifications();
+		const report = await setup(n).run();
+		expect(report.status).toBe("ok");
 	});
 });

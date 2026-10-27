@@ -17,12 +17,15 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type Dns,
+	type Errors,
 	type Monitoring,
 	type NotificationsAccess,
 	type NotificationsChannelLayout,
 	type NotificationsLayout,
 	PluginLoader,
 	type Secrets,
+	type Workers,
 } from "../../plugin/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { style } from "../../ui/style/index.js";
@@ -38,7 +41,9 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
+import { avatarProblem } from "./avatar-problem.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
+import { deployRelay, errorsFeedWebhook, relayProblem, wantsRelay } from "./relay.js";
 import { withElevation } from "./with-elevation.js";
 
 /** A channel's access: its category's, with any field the channel states itself laid over it. */
@@ -103,17 +108,8 @@ export function feedProblem(
 				return `channel \`${channel.name}\` is fed by monitoring, but the \`${monitoring.providerName}\` provider cannot manage alert channels`;
 			}
 			const picture = typeof channel.feeds.monitoring === "object" ? channel.feeds.monitoring.avatar : undefined;
-			if (typeof picture === "object") {
-				if (!picture.url && !picture.image) {
-					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar\` needs a \`url\`, an \`image\`, or both`;
-				}
-				if (picture.url && !/^https:\/\//i.test(picture.url)) {
-					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.url\` must be an https:// URL`;
-				}
-				if (picture.image && /^https?:\/\//i.test(picture.image)) {
-					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.image\` must be a file in the repo, not a URL`;
-				}
-			}
+			const pictureProblem = avatarProblem(channel.name, "monitoring", picture);
+			if (pictureProblem) return pictureProblem;
 			const feed = monitoringFeed(channel.name, channel.feeds.monitoring, monitoring);
 			const own = (typeof channel.webhook === "object" ? channel.webhook.name : undefined) ?? channel.name;
 			if (channel.webhook && feed.webhook.toLowerCase() === own.toLowerCase()) {
@@ -330,9 +326,36 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		if (problem) return refuse(problem);
 	}
 
-	// The pictures a channel's feed may wear, in order (none when it has no feed).
+	// Channels fed by the error tracker go through the relay Worker: it needs the tracker, somewhere to run and DNS.
+	let errors: Errors | undefined;
+	let workers: Workers | undefined;
+	let dns: Dns | undefined;
+	if (wantsRelay(layout)) {
+		const early = relayProblem(layout);
+		if (early) return refuse(early);
+		for (const [key, what] of [
+			["errors", "an `errors` provider (the tracker whose alerts it carries)"],
+			["workers", "a `workers` provider (where it runs)"],
+			["dns", "a `dns` provider (for its host)"],
+		] as const) {
+			if (!loader.has(key)) {
+				return refuse(
+					whyMissing(loader, key, `a channel is fed by the error tracker, which needs ${what} — add one`)
+				);
+			}
+		}
+		errors = loader.get("errors") as Errors;
+		workers = loader.get("workers") as Workers;
+		dns = loader.get("dns") as Dns;
+		const clash = relayProblem(layout, errors, monitoring);
+		if (clash) return refuse(clash);
+	}
+
+	// The pictures a channel's feeds may wear, in order (none when it has no feed).
 	const feedAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
 		channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
+	const errorsAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
+		channel.feeds?.errors ? feedAvatarOf(layout, channel.feeds.errors) : [];
 	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
 	const avatars = new Map<string, string>();
 	// A relative path is the repository's, wherever the command is run from.
@@ -347,20 +370,21 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			}
 		}
 		// A feed's picture may list fallbacks (a URL, then a file in the repo): the first that can be read is used.
-		const feedSources = feedAvatarsOf(channel);
-		const feedKey = JSON.stringify(feedSources);
-		if (feedSources.length > 0 && !avatars.has(feedKey)) {
-			try {
-				avatars.set(
-					feedKey,
-					await loadFirstAvatar(feedSources, read, (source, reason, moreToTry) =>
-						print(
-							`  ${style.skip(`avatar ${describeAvatarSource(source)} could not be read (${reason})${moreToTry ? "; trying the next" : ""}`)}`
+		for (const feedSources of [feedAvatarsOf(channel), errorsAvatarsOf(channel)]) {
+			const feedKey = JSON.stringify(feedSources);
+			if (feedSources.length > 0 && !avatars.has(feedKey)) {
+				try {
+					avatars.set(
+						feedKey,
+						await loadFirstAvatar(feedSources, read, (source, reason, moreToTry) =>
+							print(
+								`  ${style.skip(`avatar ${describeAvatarSource(source)} could not be read (${reason})${moreToTry ? "; trying the next" : ""}`)}`
+							)
 						)
-					)
-				);
-			} catch (err) {
-				return refuse(`webhook avatar ${errorMessage(err)}`);
+					);
+				} catch (err) {
+					return refuse(`webhook avatar ${errorMessage(err)}`);
+				}
 			}
 		}
 	}
@@ -430,6 +454,9 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			return refuse(describeProviderError(err), logReason(err));
 		}
 	}
+
+	// The relay webhook's URL, kept here between creating it and handing it to the Worker; never reported or printed.
+	let relayWebhook: string | undefined;
 
 	// Tallied for the closing summary: made or stored (ok), already there or only previewed (skip), failed (fail).
 	const tally = { ok: 0, skip: 0 };
@@ -533,6 +560,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						notifications,
 						...(secrets ? { secrets } : {}),
 						...(monitoring ? { monitoring } : {}),
+						onRelayWebhook: (url: string) => void (relayWebhook = url),
 						scope: scope ?? { kind: "repo" },
 						dryRun,
 						print,
@@ -546,15 +574,41 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 							? { access: effectiveAccess(category.access, channel.access)! }
 							: {}),
 						...(webhook ? { webhook } : {}),
-						...(channel.feeds?.monitoring
+						...(channel.feeds?.monitoring || channel.feeds?.errors
 							? {
 									feeds: {
-										monitoring: {
-											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
-											...(feedAvatarsOf(channel).length > 0
-												? { avatar: avatars.get(JSON.stringify(feedAvatarsOf(channel)))! }
-												: {}),
-										},
+										...(channel.feeds.monitoring
+											? {
+													monitoring: {
+														...monitoringFeed(
+															channel.name,
+															channel.feeds.monitoring,
+															monitoring!
+														),
+														...(feedAvatarsOf(channel).length > 0
+															? {
+																	avatar: avatars.get(
+																		JSON.stringify(feedAvatarsOf(channel))
+																	)!,
+																}
+															: {}),
+													},
+												}
+											: {}),
+										...(channel.feeds.errors
+											? {
+													errors: {
+														webhook: errorsFeedWebhook(channel.feeds.errors, errors!),
+														...(errorsAvatarsOf(channel).length > 0
+															? {
+																	avatar: avatars.get(
+																		JSON.stringify(errorsAvatarsOf(channel))
+																	)!,
+																}
+															: {}),
+													},
+												}
+											: {}),
 									},
 								}
 							: {}),
@@ -569,6 +623,32 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				}
 			});
 		}
+	}
+
+	// The relay Worker, once its channel's webhook exists: its URL is the Worker's secret.
+	if (errors && workers && dns && wantsRelay(layout)) {
+		print(`\n${style.header("Relay")}`);
+		await attempt(`relay ${layout.relay!.host}`, async () => {
+			if (dryRun) {
+				print(`  ${style.skip(`would deploy the relay Worker at ${layout.relay!.host}`)}`);
+				tally.skip++;
+				return;
+			}
+			if (!relayWebhook) {
+				throw new Error("no relay webhook to give the Worker (its channel failed above)");
+			}
+			const deployed = await deployRelay({
+				relay: layout.relay!,
+				source: errors!.providerName,
+				webhook: relayWebhook,
+				repoRoot: input.context.repoRoot,
+				workers: workers!,
+				dns: dns!,
+				...(input.readRelayCode ? { readCode: input.readRelayCode } : {}),
+			});
+			print(`  ${style.success(`deployed ${deployed.script} at ${deployed.host}`)}`);
+			tally.ok++;
+		});
 	}
 
 	// The server's own settings come last: they name channels and roles, which exist by now.

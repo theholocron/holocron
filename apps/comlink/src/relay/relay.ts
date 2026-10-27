@@ -10,6 +10,26 @@ export const bindingNames = (id: string) => ({
 /** The largest body read: a service's alert is a few KB, so anything bigger is not worth hashing. */
 export const MAX_BODY_BYTES = 256 * 1024;
 
+/** The body as text, or null once it passes the cap: reading stops there, so an oversized body is never held in full. */
+async function readBounded(request: Request): Promise<string | null> {
+	if (!request.body) return "";
+	const reader = request.body.getReader();
+	const decoder = new TextDecoder();
+	let text = "";
+	let bytes = 0;
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		bytes += value.byteLength;
+		if (bytes > MAX_BODY_BYTES) {
+			await reader.cancel();
+			return null;
+		}
+		text += decoder.decode(value, { stream: true });
+	}
+	return text + decoder.decode();
+}
+
 /**
  * The Worker's handler. A request to `/<source>` is checked as that source says (before anything in it is trusted),
  * turned into a Discord message and posted to that source's webhook. Each answer says what happened:
@@ -28,8 +48,8 @@ export function createRelay(sources: Source[]) {
 		if (Number(request.headers.get("content-length")) > MAX_BODY_BYTES) {
 			return new Response("Payload Too Large", { status: 413 });
 		}
-		const raw = await request.text();
-		if (raw.length > MAX_BODY_BYTES) return new Response("Payload Too Large", { status: 413 });
+		const raw = await readBounded(request);
+		if (raw === null) return new Response("Payload Too Large", { status: 413 });
 		if (!(await source.verify(request.headers, raw, env[names.secret] ?? ""))) {
 			return new Response("Unauthorized", { status: 401 });
 		}

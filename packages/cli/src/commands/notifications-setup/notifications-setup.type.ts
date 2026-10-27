@@ -16,6 +16,8 @@ export interface RunNotificationsSetupInput {
 	preloaded?: boolean;
 	/** Reads a webhook avatar as a `data:` URI. Defaults to {@link loadAvatar}; tests pass their own. */
 	loadAvatar?: (source: string) => Promise<string>;
+	/** Reads the built relay Worker. Defaults to the file system; tests pass their own. */
+	readRelayCode?: (path: string) => Promise<string>;
 	/**
 	 * Waits for a person to press Enter, for a step that needs a permission given for one edit and taken away
 	 * afterwards. Defaults to a prompt when a terminal is attached, and to nothing (the step fails with the
