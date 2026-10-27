@@ -39,6 +39,11 @@ component_management:
       paths:
         - packages/cli/**
 
+    - component_id: comlink
+      name: "comlink"
+      paths:
+        - apps/comlink/**
+
     - component_id: datapad
       name: "datapad"
       paths:
