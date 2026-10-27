@@ -26,6 +26,7 @@ const tooBig = () => new Error(`it is larger than ${MAX_AVATAR_BYTES / 1024 / 10
  * links keep their tokens. A file path is returned as written.
  */
 export function describeAvatarSource(source: string): string {
+	if (/^data:/i.test(source)) return "the built-in icon";
 	if (!/^https:\/\//i.test(source)) return source;
 	try {
 		const url = new URL(source);
@@ -35,13 +36,42 @@ export function describeAvatarSource(source: string): string {
 	}
 }
 
+/**
+ * Read a picture from the first of several sources that works, so a URL can be backed by a file in the repo. Says which
+ * were skipped through `onSkip`; throws, naming every source and why, when none can be read.
+ */
+export async function loadFirstAvatar(
+	sources: string[],
+	read: (source: string) => Promise<string>,
+	onSkip: (source: string, reason: string, moreToTry: boolean) => void = () => {}
+): Promise<string> {
+	const failures: string[] = [];
+	for (const [i, source] of sources.entries()) {
+		try {
+			return await read(source);
+		} catch (err) {
+			// A read error may quote the address it was given; what is printed names the safe form of it.
+			const raw = err instanceof Error ? err.message : String(err);
+			const reason = raw.split(source).join(describeAvatarSource(source));
+			failures.push(`\`${describeAvatarSource(source)}\`: ${reason}`);
+			onSkip(source, reason, i < sources.length - 1);
+		}
+	}
+	throw new Error(failures.join("; "));
+}
+
 export async function loadAvatar(
 	source: string,
 	baseDir: string = process.cwd(),
 	fetchImpl: typeof fetch = fetch
 ): Promise<string> {
 	let bytes: Buffer;
-	if (/^https:\/\//i.test(source)) {
+	if (/^data:/i.test(source)) {
+		// An image the provider carries itself: already a data URI, so it is checked, not fetched.
+		const base64 = /^data:[^;,]+;base64,(.*)$/is.exec(source)?.[1];
+		if (base64 === undefined) throw new Error("it is not a base64 data URI");
+		bytes = Buffer.from(base64, "base64");
+	} else if (/^https:\/\//i.test(source)) {
 		const res = await fetchImpl(source, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
 		if (!res.ok) throw new Error(`fetching it answered ${res.status}`);
 		if (Number(res.headers.get("content-length")) > MAX_AVATAR_BYTES) throw tooBig();

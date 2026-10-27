@@ -68,6 +68,7 @@ function setup(
 		dryRun?: boolean;
 		org?: string;
 		monitoring?: Partial<Monitoring>;
+		repoRoot?: string;
 		loadAvatar?: (source: string) => Promise<string>;
 		pause?: ((message: string) => Promise<void>) | false;
 	} = {}
@@ -111,7 +112,7 @@ function setup(
 			runNotificationsSetup({
 				loaded,
 				context: {
-					repoRoot: "/tmp/test",
+					repoRoot: opts.repoRoot ?? "/tmp/test",
 					...("org" in opts ? (opts.org ? { org: opts.org } : {}) : { org: "theholocron" }),
 					...(opts.dryRun ? { dryRun: true } : {}),
 				},
@@ -1701,6 +1702,161 @@ describe("monitoring feeds", () => {
 		);
 	});
 
+	it("uses the monitoring provider's own icon when the config names no picture, URL first and its embedded image after", async () => {
+		const layout: NotificationsLayout = {
+			webhookAvatar: "media/all.png",
+			categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
+		};
+		const icon = { url: "https://cdn.example.com/icon.png", dataUri: "data:image/png;base64,EMBEDDED" };
+		const n = fakeNotifications({ layout });
+		const { run, lines } = setup(n, {
+			monitoring: { ...monitoring(), icon },
+			loadAvatar: async (source) => {
+				if (source.startsWith("https://")) throw new Error("fetch failed");
+				return source;
+			},
+		});
+		await run();
+		// Not the layout's picture: the provider's icon comes first, and the embedded copy backs up the URL.
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,EMBEDDED" })
+		);
+		expect(lines.join("\n")).toContain(
+			"avatar https://cdn.example.com/icon.png could not be read (fetch failed); trying the next"
+		);
+	});
+
+	it("lets the config's own picture win over the provider's icon", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: { avatar: "media/own.png" } } }] },
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const read = vi.fn(async (source: string) => `uri:${source}`);
+		await setup(n, {
+			monitoring: { ...monitoring(), icon: { url: "https://cdn.example.com/icon.png" } },
+			loadAvatar: read,
+		}).run();
+		expect(read).toHaveBeenCalledTimes(1);
+		expect(read).toHaveBeenCalledWith("media/own.png");
+		expect(n.ensureWebhook).toHaveBeenCalledWith(expect.objectContaining({ avatar: "uri:media/own.png" }));
+	});
+
+	it("falls back to the next source of a feed's picture, and says it did", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{
+							name: "uptime",
+							feeds: {
+								monitoring: { avatar: { url: "https://cdn.example.com/a.png", image: "media/a.png" } },
+							},
+						},
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const { run, lines } = setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async (source) => {
+				if (source.startsWith("https://")) throw new Error("fetch failed");
+				return "data:image/png;base64,LOCAL";
+			},
+		});
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "Checkly", avatar: "data:image/png;base64,LOCAL" })
+		);
+		expect(lines.join("\n")).toContain(
+			"avatar https://cdn.example.com/a.png could not be read (fetch failed); trying the next"
+		);
+	});
+
+	it("reads a relative avatar path from the repository root, not from wherever the command runs", async () => {
+		const { mkdtemp, mkdir, writeFile } = await import("node:fs/promises");
+		const { tmpdir } = await import("node:os");
+		const { join } = await import("node:path");
+		const root = await mkdtemp(join(tmpdir(), "repo-"));
+		await mkdir(join(root, "media"));
+		const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+		await writeFile(join(root, "media", "own.png"), png);
+		const layout: NotificationsLayout = {
+			categories: [
+				{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: { avatar: "media/own.png" } } }] },
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const report = await setup(n, { monitoring: monitoring(), repoRoot: root }).run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ avatar: `data:image/png;base64,${png.toString("base64")}` })
+		);
+	});
+
+	it("uses a single feed picture that cannot be read as before: the run is refused, naming it", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [{ name: "uptime", feeds: { monitoring: { avatar: { image: "media/gone.png" } } } }],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const { run, lines } = setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async () => {
+				throw new Error("ENOENT");
+			},
+		});
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe("webhook avatar `media/gone.png`: ENOENT");
+		expect(lines.join("\n")).not.toContain("trying the next");
+		for (const created of [n.ensureCategory, n.ensureChannel, n.ensureWebhook, n.ensureRole]) {
+			expect(created).not.toHaveBeenCalled();
+		}
+	});
+
+	it("refuses naming every source when none of a feed's pictures can be read", async () => {
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{
+							name: "uptime",
+							feeds: {
+								monitoring: { avatar: { url: "https://cdn.example.com/a.png", image: "media/a.png" } },
+							},
+						},
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		const { run, lines } = setup(n, {
+			monitoring: monitoring(),
+			loadAvatar: async (source) => {
+				throw new Error(source.startsWith("https") ? "fetch failed" : "ENOENT");
+			},
+		});
+		const report = await run();
+		// Only the first skip has another source to move on to.
+		expect(lines.filter((l) => l.includes("trying the next"))).toHaveLength(1);
+		expect(report.message).toBe(
+			"webhook avatar `https://cdn.example.com/a.png`: fetch failed; `media/a.png`: ENOENT"
+		);
+		for (const created of [n.ensureCategory, n.ensureChannel, n.ensureWebhook, n.ensureRole]) {
+			expect(created).not.toHaveBeenCalled();
+		}
+	});
+
 	it("does not print the query or credentials of an avatar URL it could not read", async () => {
 		const layout: NotificationsLayout = {
 			categories: [
@@ -1781,6 +1937,36 @@ describe("monitoring feeds", () => {
 		expect(report.failures.map((f) => f.message).join(" ")).toContain("Checkly said no");
 		expect(n.ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "errors" }));
 		expect(report.channels.map((c) => c.name)).toContain("errors");
+	});
+
+	it("accepts a feed picture given as one source, as a url, as an image, or as both", () => {
+		const ok = { providerName: "checkly", ensureAlertChannel: vi.fn() };
+		const feedWith = (avatar: unknown): NotificationsLayout => ({
+			categories: [{ name: "A", channels: [{ name: "uptime", feeds: { monitoring: { avatar } } } as never] }],
+		});
+		for (const avatar of [
+			"media/a.png",
+			{ url: "https://cdn.example.com/a.png" },
+			{ image: "media/a.png" },
+			{ url: "https://cdn.example.com/a.png", image: "media/a.png" },
+		]) {
+			expect(feedProblem(feedWith(avatar), ok)).toBeUndefined();
+		}
+	});
+
+	it("refuses a feed picture that is empty, whose url is not https, or whose image is a URL", () => {
+		const ok = { providerName: "checkly", ensureAlertChannel: vi.fn() };
+		const feedWith = (avatar: unknown): NotificationsLayout => ({
+			categories: [{ name: "A", channels: [{ name: "uptime", feeds: { monitoring: { avatar } } } as never] }],
+		});
+		expect(feedProblem(feedWith({}), ok)).toMatch(/needs a `url`, an `image`, or both/);
+		expect(feedProblem(feedWith({ url: "http://cdn.example.com/a.png" }), ok)).toMatch(
+			/avatar\.url` must be an https:\/\/ URL/
+		);
+		expect(feedProblem(feedWith({ url: "media/a.png" }), ok)).toMatch(/avatar\.url` must be an https/);
+		expect(feedProblem(feedWith({ image: "https://cdn.example.com/a.png" }), ok)).toMatch(
+			/avatar\.image` must be a file in the repo, not a URL/
+		);
 	});
 
 	it("has no feed problem for a layout with no categories, or categories with no channels", () => {

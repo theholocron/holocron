@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { describeAvatarSource, loadAvatar, MAX_AVATAR_BYTES } from "./avatar.js";
+import { describeAvatarSource, loadAvatar, loadFirstAvatar, MAX_AVATAR_BYTES } from "./avatar.js";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]);
 const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1]);
@@ -83,5 +83,97 @@ describe("describeAvatarSource", () => {
 
 	it("does not echo a URL it cannot parse", () => {
 		expect(describeAvatarSource("https://exa mple.com/?token=secret")).toBe("an unreadable https URL");
+	});
+});
+
+describe("loadFirstAvatar", () => {
+	it("uses the first source that can be read, and says which it skipped", async () => {
+		const skipped: Array<[string, string, boolean]> = [];
+		const read = async (source: string) => {
+			if (source.startsWith("https://")) throw new Error("fetch failed");
+			return `data:image/png;base64,${source}`;
+		};
+		const uri = await loadFirstAvatar(
+			["https://cdn.example.com/a.png?sig=SECRET", "media/a.png"],
+			read,
+			(s, r, more) => skipped.push([s, r, more])
+		);
+		expect(uri).toBe("data:image/png;base64,media/a.png");
+		expect(skipped).toEqual([["https://cdn.example.com/a.png?sig=SECRET", "fetch failed", true]]);
+	});
+
+	it("stops at the first that works and does not read the rest", async () => {
+		const read = vi.fn(async (source: string) => `uri:${source}`);
+		expect(await loadFirstAvatar(["a", "b"], read)).toBe("uri:a");
+		expect(read).toHaveBeenCalledTimes(1);
+	});
+
+	it("names every source and why when none can be read, without leaking a URL's secrets", async () => {
+		const read = async (source: string) => {
+			throw new Error(source.startsWith("https") ? "fetch failed" : "ENOENT");
+		};
+		await expect(
+			loadFirstAvatar(["https://u:p@cdn.example.com/a.png?sig=SECRET", "media/a.png"], read)
+		).rejects.toThrow("`https://cdn.example.com/a.png`: fetch failed; `media/a.png`: ENOENT");
+	});
+
+	it("reports a thrown non-error by its text", async () => {
+		await expect(
+			loadFirstAvatar(["x"], async () => {
+				throw "plain";
+			})
+		).rejects.toThrow("`x`: plain");
+	});
+});
+
+describe("a data: URI the provider carries", () => {
+	const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString("base64");
+
+	it("is checked and returned as it is, without a fetch", async () => {
+		const fetchImpl = vi.fn();
+		const uri = `data:image/png;base64,${png}`;
+		expect(await loadAvatar(uri, process.cwd(), fetchImpl as never)).toBe(uri);
+		expect(fetchImpl).not.toHaveBeenCalled();
+	});
+
+	it("is refused when it is not an image, or not base64", async () => {
+		await expect(loadAvatar(`data:image/png;base64,${Buffer.from("hello").toString("base64")}`)).rejects.toThrow(
+			/not a PNG, JPEG or GIF/
+		);
+		await expect(loadAvatar("data:text/plain,hello")).rejects.toThrow(/not a base64 data URI/);
+	});
+
+	it("is described as the built-in icon, not echoed", () => {
+		expect(describeAvatarSource(`data:image/png;base64,${png}`)).toBe("the built-in icon");
+	});
+
+	it("says nothing more is left to try on the last source", async () => {
+		const flags: boolean[] = [];
+		await expect(
+			loadFirstAvatar(
+				["a", "b"],
+				async () => {
+					throw new Error("no");
+				},
+				(_s, _r, more) => flags.push(more)
+			)
+		).rejects.toThrow();
+		expect(flags).toEqual([true, false]);
+	});
+
+	it("scrubs an address that a read error quotes, in what it reports and in the refusal", async () => {
+		const source = "https://u:p@cdn.example.com/a.png?sig=SECRET";
+		const reasons: string[] = [];
+		const read = async () => {
+			throw new Error(`request to ${source} failed`);
+		};
+		const failure = await loadFirstAvatar([source], read, (_s, reason) => reasons.push(reason)).catch(
+			(e: Error) => e
+		);
+		expect(reasons).toEqual(["request to https://cdn.example.com/a.png failed"]);
+		expect((failure as Error).message).toBe(
+			"`https://cdn.example.com/a.png`: request to https://cdn.example.com/a.png failed"
+		);
+		expect((failure as Error).message).not.toContain("SECRET");
 	});
 });

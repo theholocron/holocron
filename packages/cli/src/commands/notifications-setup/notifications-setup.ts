@@ -19,6 +19,7 @@ import {
 	assertPluginsResolvable,
 	type Monitoring,
 	type NotificationsAccess,
+	type NotificationsChannelLayout,
 	type NotificationsLayout,
 	PluginLoader,
 	type Secrets,
@@ -30,6 +31,7 @@ import {
 	describeAvatarSource,
 	layoutSecretProblem,
 	loadAvatar,
+	loadFirstAvatar,
 	notificationProviders,
 	pickProvisioner,
 	provisionChannel,
@@ -48,15 +50,32 @@ export function webhookAvatarOf(
 	return (typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar;
 }
 
-/** The picture a feed's webhook should have: its own, else the layout's, else none. */
-export function feedAvatarOf(layout: NotificationsLayout, feed: true | { avatar?: string }): string | undefined {
-	return (typeof feed === "object" ? feed.avatar : undefined) ?? layout.webhookAvatar;
+/**
+ * The pictures a feed's webhook may wear, in order of preference: the config's own (a single source, or `{ url, image }`,
+ * the URL first and the file in the repo as its fallback), else the provider's own icon (its URL, then the image it carries),
+ * else the layout's, else none.
+ */
+export function feedAvatarOf(
+	layout: NotificationsLayout,
+	feed: true | { avatar?: string | { url?: string; image?: string } },
+	monitoring?: Pick<Monitoring, "icon">
+): string[] {
+	const own = typeof feed === "object" ? feed.avatar : undefined;
+	if (own === undefined) {
+		const icon = [monitoring?.icon?.url, monitoring?.icon?.dataUri].filter((source): source is string =>
+			Boolean(source)
+		);
+		if (icon.length > 0) return icon;
+		return layout.webhookAvatar ? [layout.webhookAvatar] : [];
+	}
+	if (typeof own === "string") return [own];
+	return [own.url, own.image].filter((source): source is string => Boolean(source));
 }
 
 /** The names a channel's monitoring feed uses: the alert channel (`Message to #uptime`) and its dedicated webhook (`Checkly`). */
 export function monitoringFeed(
 	channel: string,
-	feed: true | { name?: string; webhook?: string; avatar?: string },
+	feed: true | { name?: string; webhook?: string; avatar?: string | { url?: string; image?: string } },
 	monitoring: Pick<Monitoring, "providerName">
 ): { name: string; webhook: string } {
 	const own = typeof feed === "object" ? feed : {};
@@ -82,6 +101,18 @@ export function feedProblem(
 			if (!channel.feeds?.monitoring) continue;
 			if (!monitoring.ensureAlertChannel) {
 				return `channel \`${channel.name}\` is fed by monitoring, but the \`${monitoring.providerName}\` provider cannot manage alert channels`;
+			}
+			const picture = typeof channel.feeds.monitoring === "object" ? channel.feeds.monitoring.avatar : undefined;
+			if (typeof picture === "object") {
+				if (!picture.url && !picture.image) {
+					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar\` needs a \`url\`, an \`image\`, or both`;
+				}
+				if (picture.url && !/^https:\/\//i.test(picture.url)) {
+					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.url\` must be an https:// URL`;
+				}
+				if (picture.image && /^https?:\/\//i.test(picture.image)) {
+					return `channel \`${channel.name}\`: \`feeds.monitoring.avatar.image\` must be a file in the repo, not a URL`;
+				}
 			}
 			const feed = monitoringFeed(channel.name, channel.feeds.monitoring, monitoring);
 			const own = (typeof channel.webhook === "object" ? channel.webhook.name : undefined) ?? channel.name;
@@ -299,21 +330,37 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		if (problem) return refuse(problem);
 	}
 
+	// The pictures a channel's feed may wear, in order (none when it has no feed).
+	const feedAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
+		channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
 	// Read every avatar first: one that cannot be read should stop the run before anything, even the secrets probe, is written.
 	const avatars = new Map<string, string>();
-	const read = input.loadAvatar ?? loadAvatar;
+	// A relative path is the repository's, wherever the command is run from.
+	const read = input.loadAvatar ?? ((source: string) => loadAvatar(source, input.context.repoRoot));
 	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
-		const feed = channel.feeds?.monitoring;
-		const sources = [
-			channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined,
-			feed ? feedAvatarOf(layout, feed) : undefined,
-		];
-		for (const source of sources) {
-			if (source === undefined || avatars.has(source)) continue;
+		const own = channel.webhook ? webhookAvatarOf(layout, channel.webhook) : undefined;
+		if (own !== undefined && !avatars.has(own)) {
 			try {
-				avatars.set(source, await read(source));
+				avatars.set(own, await read(own));
 			} catch (err) {
-				return refuse(`webhook avatar \`${describeAvatarSource(source)}\`: ${errorMessage(err)}`);
+				return refuse(`webhook avatar \`${describeAvatarSource(own)}\`: ${errorMessage(err)}`);
+			}
+		}
+		// A feed's picture may list fallbacks (a URL, then a file in the repo): the first that can be read is used.
+		const feedSources = feedAvatarsOf(channel);
+		const feedKey = JSON.stringify(feedSources);
+		if (feedSources.length > 0 && !avatars.has(feedKey)) {
+			try {
+				avatars.set(
+					feedKey,
+					await loadFirstAvatar(feedSources, read, (source, reason, moreToTry) =>
+						print(
+							`  ${style.skip(`avatar ${describeAvatarSource(source)} could not be read (${reason})${moreToTry ? "; trying the next" : ""}`)}`
+						)
+					)
+				);
+			} catch (err) {
+				return refuse(`webhook avatar ${errorMessage(err)}`);
 			}
 		}
 	}
@@ -504,12 +551,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 									feeds: {
 										monitoring: {
 											...monitoringFeed(channel.name, channel.feeds.monitoring, monitoring!),
-											...(feedAvatarOf(layout, channel.feeds.monitoring)
-												? {
-														avatar: avatars.get(
-															feedAvatarOf(layout, channel.feeds.monitoring)!
-														)!,
-													}
+											...(feedAvatarsOf(channel).length > 0
+												? { avatar: avatars.get(JSON.stringify(feedAvatarsOf(channel)))! }
 												: {}),
 										},
 									},
