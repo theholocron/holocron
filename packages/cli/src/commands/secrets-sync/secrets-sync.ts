@@ -32,6 +32,7 @@
  */
 
 import { errorMessage } from "@theholocron/misc-utils";
+import type { Logger } from "@theholocron/observability/core";
 
 import { getLogger } from "../../observability/logger/index.js";
 import {
@@ -46,7 +47,7 @@ import {
 } from "../../plugin/index.js";
 import { style, withSpinner } from "../../ui/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
-import type { RunSecretsSyncInput, SyncReport, SyncRow } from "./secrets-sync.type.js";
+import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow } from "./secrets-sync.type.js";
 
 /** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
 function workersMissing(loader: PluginLoader): string {
@@ -91,8 +92,8 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		const message = describeProviderError(err);
 		print(`  ${style.fail(`could not read vault environment ${input.environmentId}: ${message}`)}`);
 		logger.warn({ environment: input.environmentId, reason: logReason(err) }, "secrets sync: vault read failed");
-		return {
-			rows: [
+		return summarise(
+			[
 				{
 					destination: `vault:${vault.providerName}`,
 					scope: `environment=${input.environmentId}`,
@@ -101,8 +102,10 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 					message,
 				},
 			],
-			summary: { ok: 0, fail: 1, skip: 0, dryRun: 0 },
-		};
+			logger,
+			print,
+			dryRun
+		);
 	}
 	const keys = Object.keys(envVars).sort();
 	print(style.step(`read ${keys.length} keys from vault`));
@@ -189,6 +192,13 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		}
 	}
 
+	return summarise(rows, logger, print, dryRun);
+}
+
+// ── helpers ──────────────────────────────────────────────────────────
+
+/** Log every row, then print and log the summary. Shared by a finished run and one that stopped at the vault. */
+function summarise(rows: SyncRow[], logger: Logger, print: SyncPrintLine, dryRun: boolean): SyncReport {
 	for (const r of rows) {
 		// `key` is a secret NAME, never a value — safe to log. The logger also
 		// redacts `secrets[*].value` shapes as defence in depth.
@@ -225,8 +235,6 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 
 	return { rows, summary };
 }
-
-// ── helpers ──────────────────────────────────────────────────────────
 
 async function runRow(
 	destination: string,

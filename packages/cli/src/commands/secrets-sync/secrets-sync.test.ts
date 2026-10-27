@@ -520,6 +520,8 @@ describe("runSecretsSync", () => {
 		});
 		expect(report.summary).toEqual({ ok: 0, fail: 1, skip: 0, dryRun: 0 });
 		expect(report.rows[0]).toMatchObject({ destination: "vault:doppler", status: "fail" });
+		// It goes through the shared summary, so the failure row and the totals are printed too.
+		expect(lines.join("\n")).toContain("0 ok, 1 fail, 0 skipped");
 		expect(lines.join("\n")).toMatch(/could not read vault environment prd: .*403/);
 		expect(setSecret).not.toHaveBeenCalled();
 	});
