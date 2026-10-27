@@ -10,6 +10,7 @@ import type { Monitoring, MonitoringCheckInput } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ChecklyMonitoring } from "./capabilities/monitoring.js";
+import { checklyProbes } from "./probes/index.js";
 import { type ChecklyClient, createChecklyClient } from "./rest.js";
 
 export interface ChecklyPluginOptions extends ResolveTokenInput {
@@ -54,6 +55,7 @@ export function createPlugin(options: ChecklyPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-checkly",
+		probes: checklyProbes({ client: ctx.client }),
 		capabilities: {
 			monitoring: () => monitoring(ctx),
 		},
