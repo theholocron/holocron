@@ -66,17 +66,12 @@ import {
 	startCommand,
 } from "./observability/telemetry/index.js";
 import { CARDINALITY } from "./plugin/index.js";
+import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
 import { NonInteractiveError, openPath, promptForPositionals, style, viewJson } from "./ui/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
 const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN", keyringKey: "github.sync" });
-
-/**
- * Error class names whose `.message` is a complete, actionable sentence —
- * the top-level catch prints it and suppresses the stack trace.
- */
-const USER_FACING_ERRORS = new Set(["WorkspaceContextError", "ConfigFileError", "NonInteractiveError"]);
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
@@ -2157,11 +2152,9 @@ try {
 		.parse();
 } catch (err) {
 	captureException(err);
-	// User-facing errors carry a self-contained message — print it instead of
-	// letting a raw stack trace escape (unless `.fail()` already did).
-	if (!errorReported && err instanceof Error && USER_FACING_ERRORS.has(err.name)) {
-		reportError(err.message);
-	}
+	// Whatever a handler threw is printed (unless `.fail()` already did): a command that throws a plain Error must
+	// not exit 1 in silence. No stack trace either way; telemetry has it.
+	if (!errorReported) reportError(commandFailureMessage(err));
 	if (!process.exitCode) process.exitCode = 1;
 }
 
