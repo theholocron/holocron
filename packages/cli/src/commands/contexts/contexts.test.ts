@@ -38,6 +38,7 @@ const EVERY_COMMAND = [
 	"notifications create-server",
 	"notifications sync-roles",
 	"doctor notifications",
+	"probe",
 	"deploy",
 	"deploy cleanup-preview",
 	"monitoring check",

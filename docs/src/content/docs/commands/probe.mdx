@@ -1,0 +1,54 @@
+---
+title: "probe"
+description: Poke a live provider on purpose, to inspect it or to prove something works end to end.
+---
+
+```bash
+holocron probe                          # list every provider and probe
+holocron probe <provider>               # list one provider's probes
+holocron probe <provider> <probe> [--dry-run] [--yes]
+```
+
+A probe is a small, named check that talks to a real provider: _which integrations does Sentry have, and what do they allow?_ or _does a failing check reach #uptime?_ It is for the questions you would otherwise answer with a throwaway script. It is not [`doctor`](/holocron/commands/doctor/), which compares what `holocron.config.ts` declares with what exists; a probe has no layout to compare against.
+
+Probes come from the plugins your config names (a plugin offers them next to its capabilities), plus the CLI's own `core` group. `holocron probe core providers` shows which configured providers loaded and, for any that did not, why. Other commands skip a provider that fails to load without saying so.
+
+## The rules every probe follows
+
+- **Nothing secret is printed.** Output passes through one filter: the tokens in use, anything a probe marks as secret, and anything shaped like a credential (a Discord webhook URL, a `Bearer` header, a Sentry token) is replaced with `«hidden»`. A probe reports facts such as "secret visible: false", never the value.
+- **A probe that changes things says so.** `holocron probe` marks it `(changes things)`. It asks before it runs, and without a terminal it needs `--yes`.
+- **`--dry-run` is enforced.** A probe changes things only through `write`, which on a dry run prints `would <what>` and does nothing.
+- **It cleans up.** What a probe makes, it removes again: when it succeeds, when it fails and on Ctrl-C. A clean-up that fails is reported as a failure.
+- **Exit code 1** if any row fails.
+
+## Options
+
+| Option      | Default | Description                                                                        |
+| ----------- | ------- | ---------------------------------------------------------------------------------- |
+| `--dry-run` | `false` | Show what a probe that changes things would do, without doing it                   |
+| `--yes`     | `false` | Run a probe that changes things without asking first (required without a terminal) |
+
+## Writing a probe
+
+A plugin returns `probes` from `createPlugin`, next to `capabilities`. The probe closes over the plugin's own token and client.
+
+```ts
+import type { PluginProbes } from "@theholocron/cli";
+
+export function probes(ctx: PluginContext): PluginProbes {
+  return {
+    integrations: {
+      summary: "List the custom integrations, their scopes and whether their secret is visible.",
+      writes: false,
+      async run(probe) {
+        for (const app of await ctx.client().sentryApps.list(ctx.options.org!)) {
+          probe.secret(app.clientSecret);
+          probe.say({ status: "info", label: app.name, detail: `scopes: ${app.scopes.join(", ")}` });
+        }
+      },
+    },
+  };
+}
+```
+
+Use `probe.write(label, fn)` for anything that changes the provider, `probe.cleanup(label, fn)` right after making something so it is undone, and declare `writes: true`. A probe that did not declare `writes` cannot call `write`.

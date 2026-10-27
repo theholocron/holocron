@@ -1,4 +1,5 @@
 import type { CapabilityKey } from "../capabilities/index.js";
+import type { PluginProbes } from "../probe/index.js";
 
 /**
  * Per-invocation context every plugin receives, on top of its own
@@ -43,6 +44,8 @@ export interface RuntimeContext {
  */
 export interface LoadedPlugin {
 	name: string;
+	/** Things to poke at on demand (`holocron probe <provider> <probe>`); optional. */
+	probes?: PluginProbes;
 	capabilities: Partial<{
 		[K in CapabilityKey]: () => unknown;
 	}>;

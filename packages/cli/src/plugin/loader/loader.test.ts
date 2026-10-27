@@ -616,3 +616,39 @@ describe("PluginLoader — defaultImporter (cwd resolution)", () => {
 		expect(loader.loadFailures()[0]!.error).toBeInstanceOf(LoaderError);
 	});
 });
+
+describe("PluginLoader — probes", () => {
+	const probe = { summary: "reads", writes: false, run: async () => {} };
+
+	it("keeps the probes a plugin offers, by provider name", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: { source: "github", vault: "1password" } },
+			{
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => ({
+						name: "github",
+						probes: { look: probe },
+						capabilities: { source: () => ({}) },
+					}),
+				},
+				"@theholocron/holocron-plugin-1password": makePlugin("1password", { vault: {} }),
+			}
+		);
+		await loader.load();
+		expect([...loader.probes().keys()]).toEqual(["github"]);
+		expect(loader.probes().get("github")).toEqual({ look: probe });
+	});
+
+	it("has none for a plugin with no probes, or an empty set", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: { source: "github" } },
+			{
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => ({ name: "github", probes: {}, capabilities: { source: () => ({}) } }),
+				},
+			}
+		);
+		await loader.load();
+		expect(loader.probes().size).toBe(0);
+	});
+});
