@@ -38,8 +38,8 @@ const config: KnipConfig = {
 			ignoreBinaries: ["jq"],
 		},
 		"apps/comlink": {
-			// The Worker (src/worker.ts) is found through the tsdown config.
-			entry: ["src/**/*.test.ts"],
+			// The Worker (src/worker.ts) is found through the tsdown config. holocron.config.ts imports the CLI.
+			entry: ["src/**/*.test.ts", "holocron.config.ts"],
 			project: ["src/**/*.ts"],
 		},
 		"apps/sentinel": {

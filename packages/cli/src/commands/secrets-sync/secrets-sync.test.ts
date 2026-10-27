@@ -402,4 +402,94 @@ describe("runSecretsSync", () => {
 		expect(failedRow?.key).toBe("BAD");
 		expect(failedRow?.message).toContain("403 forbidden");
 	});
+
+	describe("--worker", () => {
+		const vaultPlugin = {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ COMLINK_SENTRY_SECRET: "shh" }),
+				},
+			}),
+		};
+
+		it("sets every vault key on the Worker as a secret, and nowhere else", async () => {
+			const calls: Array<[string, string, string]> = [];
+			const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+			const loader = makeLoaderWith(loaded, {
+				...vaultPlugin,
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+					workers: {
+						providerName: "cloudflare",
+						setSecret: async (script: string, name: string, value: string) =>
+							void calls.push([script, name, value]),
+					},
+				}),
+			});
+			const lines: string[] = [];
+			const report = await runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prd",
+				workerScript: "comlink",
+				loader,
+				print: (l) => lines.push(l),
+			});
+			expect(calls).toEqual([["comlink", "COMLINK_SENTRY_SECRET", "shh"]]);
+			expect(report.summary.ok).toBe(1);
+			expect(lines.join("\n")).not.toContain("shh");
+		});
+
+		it("previews in a dry run without setting anything", async () => {
+			const setSecret = vi.fn();
+			const loaded = loadedFrom({ name: "comlink", providers: { vault: "1password", workers: "cloudflare" } });
+			const loader = makeLoaderWith(loaded, {
+				...vaultPlugin,
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+					workers: { providerName: "cloudflare", setSecret },
+				}),
+			});
+			const report = await runSecretsSync({
+				loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				environmentId: "prd",
+				workerScript: "comlink",
+				loader,
+				print: () => {},
+			});
+			expect(setSecret).not.toHaveBeenCalled();
+			expect(report.summary.dryRun).toBe(1);
+		});
+
+		it("fails, naming the fix, with no workers provider or one that cannot set secrets", async () => {
+			for (const withWorkers of [false, true]) {
+				const loaded = loadedFrom({
+					name: "comlink",
+					providers: { vault: "1password", ...(withWorkers ? { workers: "cloudflare" } : {}) },
+				});
+				const loader = makeLoaderWith(loaded, {
+					...vaultPlugin,
+					...(withWorkers
+						? {
+								"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+									workers: { providerName: "cloudflare" },
+								}),
+							}
+						: {}),
+				});
+				const report = await runSecretsSync({
+					loaded,
+					context: { repoRoot: "/tmp/test" },
+					environmentId: "prd",
+					workerScript: "comlink",
+					loader,
+					print: () => {},
+				});
+				expect(report.summary.fail).toBe(1);
+				expect(report.rows[0]!.message).toMatch(
+					withWorkers ? /cannot set secrets/ : /needs a `workers` provider/
+				);
+			}
+		});
+	});
 });
