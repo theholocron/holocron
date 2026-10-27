@@ -153,7 +153,14 @@ describe("ensureSentryRelay", () => {
 		const stale = workflow({
 			enabled: false,
 			detectorIds: ["other"],
-			actionFilters: [{ id: "f", logicType: "all", conditions: [], actions: [] }],
+			actionFilters: [
+				{
+					id: "f",
+					logicType: "all",
+					conditions: [{ id: "fc", type: "level", comparison: { level: 40 }, conditionResult: true }],
+					actions: [],
+				},
+			],
 		});
 		const { client, as } = world({ apps: [app()], workflows: [stale] });
 		const result = await ensureSentryRelay(as, ORG, input);
@@ -163,6 +170,9 @@ describe("ensureSentryRelay", () => {
 		expect(body.enabled).toBe(true);
 		expect(body.detectorIds).toEqual(["other", "d1"]);
 		expect(body.actionFilters[0]!.actions).toHaveLength(1);
+		expect(body.actionFilters[0]!.conditions).toEqual([
+			{ type: "level", comparison: { level: 40 }, conditionResult: true },
+		]);
 		expect(JSON.stringify(body)).not.toContain('"id"');
 	});
 
