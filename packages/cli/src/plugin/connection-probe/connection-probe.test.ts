@@ -146,5 +146,6 @@ describe("describeNetworkError", () => {
 		expect(d(err("EWHATEVER", "odd"))).toBe("EWHATEVER: odd");
 		expect(d(new Error("plain"))).toBe("plain");
 		expect(d("just text")).toBe("just text");
+		expect(d({ code: "EODD" })).toBe("EODD: ");
 	});
 });
