@@ -9,17 +9,23 @@ export async function runCommand(
 	args: string[],
 	root: { cwd?: string } = {}
 ): Promise<Record<string, unknown>> {
-	return yargs(args)
-		.parserConfiguration({ "populate--": true })
-		.option("cwd", { type: "string", default: root.cwd ?? "/repo" })
-		.option("dry-run", { type: "boolean", default: false })
-		.option("skip-dry-run", { type: "boolean", default: false })
-		.option("token", { type: "string", array: true })
-		.option("org", { type: "string" })
-		.option("verbose", { type: "boolean", default: false })
-		.option("debug", { type: "boolean", default: false })
-		.option("quiet", { type: "boolean", default: false })
-		.option("log", { type: "string" })
-		.command(module as never)
-		.parseAsync();
+	return (
+		yargs(args)
+			.parserConfiguration({ "populate--": true })
+			.option("cwd", { type: "string", default: root.cwd ?? "/repo" })
+			.option("dry-run", { type: "boolean", default: false })
+			.option("skip-dry-run", { type: "boolean", default: false })
+			.option("token", { type: "string", array: true })
+			.option("org", { type: "string" })
+			.option("verbose", { type: "boolean", default: false })
+			.option("debug", { type: "boolean", default: false })
+			.option("quiet", { type: "boolean", default: false })
+			.option("log", { type: "string" })
+			.command(module as never)
+			// A handler that throws should reach the test as a rejection, not be printed by yargs.
+			.fail((msg, err) => {
+				throw err ?? new Error(msg);
+			})
+			.parseAsync()
+	);
 }
