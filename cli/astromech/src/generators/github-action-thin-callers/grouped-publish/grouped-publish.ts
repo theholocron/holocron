@@ -177,9 +177,10 @@ export function groupedPublishCaller(
 		"    name: Release ${{ matrix.group }}",
 		...(ungroupedInputs
 			? [
-					"    # after the ungrouped release, which pushes its own commit first; still run if it failed or was skipped",
+					"    # after the ungrouped release, which pushes its own commit first; still run if it failed or was skipped.",
+					"    # Choosing `ungrouped` by hand leaves the plan empty, and a matrix with no entries fails the run.",
 					"    needs: [plan, release]",
-					"    if: ${{ !cancelled() && needs.plan.result == 'success' }}",
+					"    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.groups != '[]' }}",
 				]
 			: ["    needs: plan"]),
 		"    strategy:",
