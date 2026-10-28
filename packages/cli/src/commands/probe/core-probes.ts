@@ -34,18 +34,27 @@ export function coreProbes(loader: PluginLoader, builtIn: ReadonlyMap<string, Pl
 					}
 				}
 				for (const name of offered.keys()) names.add(name);
+				// A provider that loaded for nothing still belongs here, with why.
+				const failedOnly = new Map<string, unknown>();
+				for (const f of loader.loadFailures()) {
+					if (!names.has(f.provider) && !failedOnly.has(f.provider)) failedOnly.set(f.provider, f.error);
+				}
 				ctx.say({ status: "heading", label: "Providers" });
+				for (const [name, error] of [...failedOnly].sort(([a], [b]) => a.localeCompare(b))) {
+					ctx.say({ status: "fail", label: name, detail: `did not load: ${describeProviderError(error)}` });
+				}
 				for (const name of [...names].sort()) {
 					const own = offered.get(name);
+					// Done is a check mark; dim is still to do.
 					ctx.say({
-						status: "info",
+						status: own ? "ok" : "info",
 						label: name,
 						detail: own ? Object.keys(own).sort().join(", ") : "no probes yet",
 					});
 				}
-				for (const [name, own] of [...builtIn].sort(([a], [b]) => a.localeCompare(b))) {
+				for (const [name, own] of builtIn) {
 					ctx.say({
-						status: "info",
+						status: "ok",
 						label: `${name} (built in)`,
 						detail: Object.keys(own).sort().join(", "),
 					});
