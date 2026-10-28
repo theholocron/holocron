@@ -1,3 +1,9 @@
+## [5.0.0-alpha.242](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.241...v5.0.0-alpha.242) (2026-10-28)
+
+### Bug Fixes
+
+* **release:** 🐛 pin the conventionalcommits preset to 9.3.1 so release notes list commits ([#1249](https://github.com/theholocron/holocron/issues/1249)) ([de22c86](https://github.com/theholocron/holocron/commit/de22c86250b11661d80aceb2c9691b32f77fe828)), closes [#1245](https://github.com/theholocron/holocron/issues/1245)
+
 ## [5.0.0-alpha.241](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.240...v5.0.0-alpha.241) (2026-10-28)
 
 ## [5.0.0-alpha.240](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.239...v5.0.0-alpha.240) (2026-10-28)
