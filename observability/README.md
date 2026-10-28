@@ -88,7 +88,7 @@ expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ target: "product
 expect(errors.captureException).not.toHaveBeenCalled();
 ```
 
-For a non-vitest context that just needs a `Logger` with no output (an
+For a non-vitest context that needs a `Logger` with no output (an
 example, a non-test opt-out path), use `NoopLogger` from `/core` — it
 discards everything, `child()` returns itself.
 
