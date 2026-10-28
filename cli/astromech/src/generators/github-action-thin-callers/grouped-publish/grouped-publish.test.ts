@@ -101,8 +101,15 @@ describe("groupedPublishCaller", () => {
 		it("runs the groups after it, even if it failed or was skipped, one at a time", () => {
 			const matrix = out().slice(out().indexOf("  release-groups:"));
 			expect(matrix).toContain("    needs: [plan, release]\n");
-			expect(matrix).toContain("    if: ${{ !cancelled() && needs.plan.result == 'success' }}\n");
+			expect(matrix).toContain("needs.plan.result == 'success'");
 			expect(matrix).toContain("      max-parallel: 1\n");
+		});
+
+		it("skips the groups' release when a manual run picked `ungrouped`, which leaves the plan empty and would fail the matrix", () => {
+			const matrix = out().slice(out().indexOf("  release-groups:"));
+			expect(matrix).toContain(
+				"    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.groups != '[]' }}\n"
+			);
 		});
 
 		it("lets a manual run pick the ungrouped release, which a group choice skips", () => {
