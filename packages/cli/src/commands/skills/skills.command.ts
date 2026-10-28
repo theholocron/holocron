@@ -1,6 +1,6 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, launchGroupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { type SkillsRemoveArgs, skillsRemoveArgs, type SkillsUpdateArgs, skillsUpdateArgs } from "./skills.args.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./skills.js";
@@ -41,16 +41,6 @@ const skillsUpdate: CommandModule<GlobalArgs, SkillsUpdateArgs> = {
 	},
 };
 
-/** Bare `holocron skills`: a menu of the subcommands (hidden from --help). */
-const skillsMenu: CommandModule<GlobalArgs, GlobalArgs> = {
-	command: "$0",
-	describe: false,
-	builder: (y) => y,
-	handler: async (argv) => {
-		await launchGroupMenu("skills", argv);
-	},
-};
-
 export const skillsCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 	command: "skills",
 	describe: "Manage agent skills from the @theholocron/skills registry",
@@ -59,6 +49,6 @@ export const skillsCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 			.command(skillsInstall as never)
 			.command(skillsRemove as never)
 			.command(skillsUpdate as never)
-			.command(skillsMenu as never),
+			.command(groupMenu("skills") as never),
 	handler: () => {},
 };

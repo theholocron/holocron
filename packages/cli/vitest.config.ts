@@ -19,8 +19,10 @@ export default defineConfig({
 			...base.test?.coverage,
 			exclude: [
 				...(base.test?.coverage?.exclude ?? []),
-				// CLI entry point — not unit-testable (yargs wiring, process.exit, etc.).
-				// See issue #117.
+				// CLI entry point: only wiring now (the global options, the middleware, the error handling and one
+				// `.command(...)` per module), and it runs on import, so no unit test can load it. What it does at the
+				// top level is checked by running the built CLI (src/cli-binary.test.ts); each command is tested in its
+				// own module. See issues #117 and #1190.
 				"src/cli.ts",
 				// Test-only helpers.
 				"src/testing/**",
