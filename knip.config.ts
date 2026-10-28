@@ -3,10 +3,13 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
 	workspaces: {
 		".": {
-			// prettier.config.ts, eslint.config.ts, release.config.ts, astro.config.ts,
-			// commitlint.config.ts — all auto-detected by Knip plugins
-			entry: ["holocron.config.ts", "astromech.config.ts"],
+			// prettier.config.ts, eslint.config.ts, astro.config.ts, commitlint.config.ts —
+			// all auto-detected by Knip plugins
+			entry: ["holocron.config.ts", "astromech.config.ts", "release.config.ts"],
 			project: ["*.ts"],
+			// release.config.ts returns inline plugin objects (the folder-scoped commit analyzers), which the
+			// plugin reads as package names and crashes on, so it is an entry here instead.
+			"semantic-release": false,
 		},
 		docs: {
 			project: ["src/**/*.ts"],
