@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { allowProgress, progressEnabled } from "../../ui/progress/index.js";
 import {
 	buildCliLogger,
 	getLogger,
@@ -132,6 +133,26 @@ describe("buildCliLogger", () => {
 		const b = buildCliLogger({});
 		expect(a).toBe(b);
 		expect(createLoggerMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("turns the progress spinner off for --quiet and --log, and on again without them", () => {
+		const tty = (v: boolean) => {
+			Object.defineProperty(process.stdout, "isTTY", { value: v, configurable: true });
+			Object.defineProperty(process.stderr, "isTTY", { value: v, configurable: true });
+		};
+		tty(true);
+		delete process.env["CI"];
+		try {
+			buildCliLogger({ quiet: true });
+			expect(progressEnabled()).toBe(false);
+			buildCliLogger({ log: "info" });
+			expect(progressEnabled()).toBe(false);
+			buildCliLogger({});
+			expect(progressEnabled()).toBe(true);
+		} finally {
+			tty(false);
+			allowProgress(true);
+		}
 	});
 
 	it("passes the resolved flag level through to createLogger", () => {

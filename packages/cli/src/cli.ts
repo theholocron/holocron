@@ -69,7 +69,7 @@ import {
 } from "./observability/telemetry/index.js";
 import { CARDINALITY } from "./plugin/index.js";
 import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
-import { allowProgress, NonInteractiveError, openPath, promptForPositionals, style, viewJson } from "./ui/index.js";
+import { NonInteractiveError, openPath, promptForPositionals, style, viewJson } from "./ui/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
@@ -244,8 +244,6 @@ try {
 				"quiet by default (no console output regardless of level) — this opts back in.",
 		})
 		.middleware((argv) => {
-			// `--quiet` and `--log` own the terminal's output, so nothing is drawn beside them.
-			allowProgress(!argv.quiet && !argv.log);
 			const name = (argv._ as string[]).slice(0, 3).join(" ") || "unknown";
 			printRunId = Boolean(argv.debug || argv.verbose);
 			// Establish the root logger first (command name + flags + env) so its
