@@ -4,7 +4,7 @@ description: Publish @theholocron/* packages to npm — steady-state (CI/OIDC) o
 ---
 
 ```bash
-holocron package publish [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--group <folder>] [--dry-run]
+holocron package publish [--tag <tag>] [--otp <code>] [--provenance] [--skip-already-published] [--group <folder> | --exclude-group <folder>...] [--dry-run]
 holocron package publish --initial [--tag <tag>] [--otp <code>] [--dry-run]
 holocron package publish --sync-trust <old-file> <new-file> [--repo <owner/repo>] [--dry-run]
 ```
@@ -17,7 +17,7 @@ Three modes:
 
 ## Publishing one version group (`--group`)
 
-`--group <folder>` limits discovery to the packages in one folder of the repo (`clients`, `observability`), for steady-state, `--initial` and `--sync-trust` alike. A group with no packages has nothing to publish, so it fails with "nothing to publish" rather than falling back to the root package. See [releasing a version group](/self-hosting/#releasing-a-version-group).
+`--group <folder>` limits discovery to the packages in one folder of the repo (`clients`, `observability`), for steady-state, `--initial` and `--sync-trust` alike. A group with no packages has nothing to publish, so it fails with "nothing to publish" rather than falling back to the root package. `--exclude-group <folder>` (repeatable) is the opposite: everything except those groups, for the repo-wide release of a repo whose other folders release on their own. See [releasing a version group](/self-hosting/#releasing-a-version-group).
 
 ## Migrating Trusted Publisher config (`--sync-trust`)
 

@@ -36,6 +36,20 @@ describe("package bump-versions command", () => {
 		});
 	});
 
+	it("passes every --exclude-group through", async () => {
+		await runCommand(npmBumpVersionsCommand, [
+			"bump-versions",
+			"2.0.0",
+			"--exclude-group",
+			"observability",
+			"--exclude-group",
+			"utils",
+		]);
+		const input = runNpmBumpVersions.mock.calls[0]![0];
+		expect(input).toMatchObject({ excludeGroups: ["observability", "utils"] });
+		expect("group" in input).toBe(false);
+	});
+
 	it("exits 1 when the bump fails", async () => {
 		runNpmBumpVersions.mockResolvedValue({ status: "fail", bumped: [], skipped: [], message: "no packages" });
 		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0", "--group", "skills"]);

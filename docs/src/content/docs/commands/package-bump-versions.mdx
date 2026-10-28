@@ -4,21 +4,24 @@ description: Bump every non-private package's version in lockstep — the semant
 ---
 
 ```bash
-holocron package bump-versions <version> [--group <folder>]
+holocron package bump-versions <version> [--group <folder> | --exclude-group <folder>...]
 ```
 
 Bumps every non-private package's `version` field in every package the workspace declares (`pnpm-workspace.yaml`) to `<version>`. Used as the `prepareCmd` in `release.config.ts` during a `semantic-release` run.
 
 With `--group`, only one [version group](/self-hosting/#releasing-a-version-group) moves: the packages in that folder of the repo. The root `package.json` and every other group are left alone. A group with no packages is an error.
 
+With `--exclude-group` (repeatable), the opposite: the repo-wide bump moves the root and every package **except** those groups, which keep their own versions. A repo that releases some folders separately runs its repo-wide release this way, so it does not take them in.
+
 ## Options
 
-| Option      | Description                                       |
-| ----------- | ------------------------------------------------- |
-| `<version>` | Target version (e.g. `4.2.0` or `2.0.0-alpha.1`)  |
-| `--group`   | Only this folder's packages; the root stays as is |
-| `--dry-run` | Print what would change without writing any files |
-| `--cwd`     | Monorepo root (default: `process.cwd()`)          |
+| Option            | Description                                        |
+| ----------------- | -------------------------------------------------- |
+| `<version>`       | Target version (e.g. `4.2.0` or `2.0.0-alpha.1`)   |
+| `--group`         | Only this folder's packages; the root stays as is  |
+| `--exclude-group` | Everything but this folder's packages (repeatable) |
+| `--dry-run`       | Print what would change without writing any files  |
+| `--cwd`           | Monorepo root (default: `process.cwd()`)           |
 
 ## Example
 

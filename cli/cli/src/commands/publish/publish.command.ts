@@ -26,6 +26,7 @@ export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				newFile,
 				dryRun: argv.dryRun,
 				...(argv.group ? { group: argv.group as string } : {}),
+				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
 				...(argv.repo ? { repo: argv.repo as string } : {}),
 			});
 			if (report.status === "fail") {
@@ -38,6 +39,7 @@ export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				cwd: argv.cwd,
 				dryRun: argv.dryRun,
 				...(argv.group ? { group: argv.group as string } : {}),
+				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
 				...(argv.tag ? { tag: argv.tag as string } : {}),
 				...(otp ? { otp } : {}),
 			});
@@ -62,6 +64,7 @@ export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 			provenance: argv.provenance as boolean,
 			skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
 			...(argv.group ? { group: argv.group as string } : {}),
+			...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
 			...(argv.tag ? { tag: argv.tag as string } : {}),
 			...(otp ? { otp } : {}),
 		});

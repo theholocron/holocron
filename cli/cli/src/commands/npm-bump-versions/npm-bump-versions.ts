@@ -11,7 +11,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
-	const { version, dryRun = false, group } = input;
+	const { version, dryRun = false, group, excludeGroups } = input;
 	const readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
 	const writeFile = input.writeFile ?? ((p: string, c: string) => writeFileSync(p, c));
 	const listDir = input.listDir ?? ((p: string) => readdirSync(p) as string[]);
@@ -20,8 +20,13 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const bumped: string[] = [];
 	const skipped: string[] = [];
 
-	print(`Bumping ${group ? `group ${group}` : "monorepo"} to ${version}${dryRun ? " (dry-run)" : ""}…`);
-	logger.info({ version, group, dryRun: dryRun || undefined }, "npm bump-versions: start");
+	const scopeLabel = group
+		? `group ${group}`
+		: excludeGroups?.length
+			? `monorepo, leaving out ${excludeGroups.join(", ")},`
+			: "monorepo";
+	print(`Bumping ${scopeLabel} to ${version}${dryRun ? " (dry-run)" : ""}…`);
+	logger.info({ version, group, excludeGroups, dryRun: dryRun || undefined }, "npm bump-versions: start");
 
 	function bumpFile(absPath: string, label: string): void {
 		let pkg: Record<string, unknown>;
@@ -53,6 +58,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 		readFile,
 		readText: readFile,
 		...(group ? { group } : {}),
+		...(excludeGroups?.length ? { excludeGroups } : {}),
 		listDirs: (dir) => {
 			let names: string[];
 			try {

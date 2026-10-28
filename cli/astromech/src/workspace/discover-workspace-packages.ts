@@ -21,6 +21,12 @@ export interface DiscoverWorkspacePackagesOptions extends Pick<ListWorkspacePack
 	 * `observability`). A package belongs when it is that folder or sits under it.
 	 */
 	group?: string;
+	/**
+	 * Leave out the packages of these version groups. A repo that releases some folders on
+	 * their own line releases everything else together, and that release must not sweep the
+	 * independent groups in.
+	 */
+	excludeGroups?: readonly string[];
 }
 
 /** Characters pnpm globs treat specially. A literal directory has none of them. */
@@ -59,10 +65,12 @@ export function discoverWorkspacePackages(
 			if (!exclude.some((pattern) => matches(entry.relativeDir, pattern))) entries.set(entry.relativeDir, entry);
 		}
 	}
-	const found = [...entries.values()];
-	return options.group === undefined
-		? found
-		: found.filter(({ relativeDir }) => inGroup(relativeDir, options.group!));
+	const { group, excludeGroups = [] } = options;
+	return [...entries.values()].filter(
+		({ relativeDir }) =>
+			(group === undefined || inGroup(relativeDir, group)) &&
+			!excludeGroups.some((excluded) => inGroup(relativeDir, excluded))
+	);
 }
 
 /** `relativeDir` is the group's folder, or is under it. `clients` holds `clients/http`, not `clients-old/x`. */

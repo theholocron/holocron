@@ -37,6 +37,13 @@ export const publishArgs = (y: Argv<GlobalArgs>) =>
 				"Only this version group's packages: a folder of the repo (clients, observability). " +
 				"Omitted, every public package in the workspace.",
 		})
+		.option("exclude-group", {
+			type: "string",
+			array: true,
+			describe:
+				"Everything except this version group (repeatable). The repo-wide release uses it so " +
+				"it does not take in a group that is released on its own.",
+		})
 		.option("provenance", {
 			type: "boolean",
 			default: true,

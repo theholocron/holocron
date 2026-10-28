@@ -20,6 +20,7 @@ export const npmBumpVersionsCommand: CommandModule<GlobalArgs, NpmBumpVersionsAr
 			cwd: argv.cwd,
 			dryRun: argv.dryRun,
 			...(argv.group ? { group: argv.group } : {}),
+			...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup } : {}),
 		});
 		if (report.status === "fail") {
 			process.exitCode = 1;

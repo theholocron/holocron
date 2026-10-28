@@ -3,6 +3,7 @@ import { defaultExec } from "../default-exec.js";
 import { discoverPublicPackages } from "../discover-public-packages.js";
 import { isEotp } from "../is-eotp.js";
 import { parseJson } from "../parse-json.js";
+import { scopeOf } from "../scope-of.js";
 import type {
 	NpmTrustEntry,
 	NpmTrustError,
@@ -39,7 +40,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 	const repo = input.repo ?? "theholocron/holocron";
 	const dryRun = input.dryRun ?? false;
 	const exec = input.exec ?? defaultExec;
-	const packageNames = input.packages ?? discoverPublicPackages(cwd, input.group);
+	const packageNames = input.packages ?? discoverPublicPackages(cwd, scopeOf(input));
 	const npm = "npx";
 	const npmArgs = ["-y", "npm@latest"];
 

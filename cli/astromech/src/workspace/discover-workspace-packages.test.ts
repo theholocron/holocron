@@ -67,6 +67,20 @@ describe("discoverWorkspacePackages", () => {
 		expect(names("nothing")).toEqual([]);
 	});
 
+	it("leaves out the packages of excluded groups, alone or with a group", () => {
+		const fs = repo({
+			"/repo/pnpm-workspace.yaml": workspace("clients/*", "observability", "utils/*"),
+			"/repo/clients/http/package.json": pkg("http"),
+			"/repo/observability/package.json": pkg("observability"),
+			"/repo/utils/array/package.json": pkg("array"),
+		});
+		const names = (options: object) => discoverWorkspacePackages("/repo", { ...fs, ...options }).map((p) => p.name);
+		expect(names({ excludeGroups: ["observability"] })).toEqual(["http", "array"]);
+		expect(names({ excludeGroups: ["clients", "utils"] })).toEqual(["observability"]);
+		expect(names({ excludeGroups: ["nothing"] })).toEqual(["http", "observability", "array"]);
+		expect(names({ group: "utils", excludeGroups: ["utils"] })).toEqual([]);
+	});
+
 	it("returns groups in glob order", () => {
 		const fs = repo({
 			"/repo/pnpm-workspace.yaml": workspace("utils/*", "apps/*"),

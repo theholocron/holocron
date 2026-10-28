@@ -12,6 +12,11 @@ export interface RunNpmBumpVersionsInput {
 	 * The root `package.json` is left alone. Omitted, the root and every workspace package.
 	 */
 	group?: string;
+	/**
+	 * Leave these version groups alone. The root and every other workspace package still move
+	 * together; a group released on its own keeps its own version.
+	 */
+	excludeGroups?: readonly string[];
 	print?: (line: string) => void;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
 	logger?: Logger;

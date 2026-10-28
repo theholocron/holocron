@@ -1,5 +1,6 @@
 import { discoverManifests } from "./discover-manifests.js";
 import type { PublicPackageEntry } from "./public-package-entry.type.js";
+import type { WorkspaceScope } from "./workspace-scope.type.js";
 
 /**
  * Every public package (`!private && name`) with its version and a
@@ -7,8 +8,8 @@ import type { PublicPackageEntry } from "./public-package-entry.type.js";
  * mode needs both to check `npm view <pkg>@<version>` and publish one
  * workspace at a time.
  */
-export function discoverPublicPackageEntries(cwd: string, group?: string): readonly PublicPackageEntry[] {
-	return discoverManifests(cwd, group).flatMap(({ manifest, dir }) =>
+export function discoverPublicPackageEntries(cwd: string, scope: WorkspaceScope = {}): readonly PublicPackageEntry[] {
+	return discoverManifests(cwd, scope).flatMap(({ manifest, dir }) =>
 		!manifest.private && manifest.name && manifest.version
 			? [{ name: manifest.name, version: manifest.version, dir }]
 			: []
