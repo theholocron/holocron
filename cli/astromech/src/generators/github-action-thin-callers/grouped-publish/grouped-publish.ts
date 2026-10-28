@@ -102,38 +102,40 @@ export function groupedPublishCaller(base: string, groups: unknown, shared: Reco
 
 	const matrixJson = JSON.stringify(entries).replaceAll("'", "''");
 
-	return `${head}jobs:
-  plan:
-    name: Plan
-    runs-on: ubuntu-latest
-    permissions: {}
-    outputs:
-      groups: \${{ steps.plan.outputs.groups }}
-    steps:
-      - id: plan
-        name: Choose the groups to release
-        env:
-          GROUP: \${{ inputs.group }}
-          ALL_GROUPS: '${matrixJson}'
-        run: |
-          if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
-            groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")
-          else
-            groups=$ALL_GROUPS
-          fi
-          echo "groups=$groups" >> "$GITHUB_OUTPUT"
-
-  release:
-    name: Release \${{ matrix.group }}
-    needs: plan
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include: \${{ fromJSON(needs.plan.outputs.groups) }}
-    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
-    with:
-${withLines.join("\n")}
-    secrets: inherit
-`;
+	return [
+		`${head}jobs:`,
+		"  plan:",
+		"    name: Plan",
+		"    runs-on: ubuntu-latest",
+		"    permissions: {}",
+		"    outputs:",
+		"      groups: ${{ steps.plan.outputs.groups }}",
+		"    steps:",
+		"      - id: plan",
+		"        name: Choose the groups to release",
+		"        env:",
+		"          GROUP: ${{ inputs.group }}",
+		`          ALL_GROUPS: '${matrixJson}'`,
+		"        run: |",
+		'          if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then',
+		`            groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")`,
+		"          else",
+		"            groups=$ALL_GROUPS",
+		"          fi",
+		'          echo "groups=$groups" >> "$GITHUB_OUTPUT"',
+		"",
+		"  release:",
+		"    name: Release ${{ matrix.group }}",
+		"    needs: plan",
+		"    strategy:",
+		"      fail-fast: false",
+		"      max-parallel: 1",
+		"      matrix:",
+		"        include: ${{ fromJSON(needs.plan.outputs.groups) }}",
+		"    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main",
+		"    with:",
+		...withLines,
+		"    secrets: inherit",
+		"",
+	].join("\n");
 }
