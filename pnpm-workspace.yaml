@@ -130,6 +130,7 @@ catalogs:
 overrides:
   "@sentry/node": 10.75.2
   "@theholocron/http-client": 1.57.0
+  conventional-changelog-conventionalcommits: 9.3.1
   cookie: ^2.0.1
   posthog-node: 5.52.5
   tsx: 4.23.15
