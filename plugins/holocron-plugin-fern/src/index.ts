@@ -35,7 +35,7 @@ export function createPlugin(options: FernPluginOptions = {}) {
 			// Fern has no endpoint for asking about a token, and only CI needs one, so this checks that there is one to use.
 			connection: connectionProbe({
 				provider: "Fern",
-				token: () => resolveToken({}),
+				token: () => resolveToken(options),
 				verify: async () => ({ ok: true, subject: "a token is set (Fern cannot check it from here)" }),
 			}),
 		},
