@@ -2,3 +2,9 @@
 # Reformatting it just fights every subsequent `pnpm install`, and it isn't
 # gitignored (lockfiles are tracked), so prettier picks it up by default.
 pnpm-lock.yaml
+
+# Written by semantic-release's changelog plugin on every release, in the
+# conventional-changelog format (`*` bullets), which prettier would rewrite to
+# `-` and so fail `prettier --check` after each release. The org's other repos
+# ignore it for the same reason.
+CHANGELOG.md
