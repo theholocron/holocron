@@ -1,6 +1,7 @@
 import { type ErrorSink, type Logger, NoopErrorSink, NoopLogger } from "@theholocron/observability/core";
 
 import { ProviderApiError } from "./errors.js";
+import { notifyRetry } from "./retry-events.js";
 import { transportCode, worthRetrying } from "./transport.js";
 
 export interface RestClientConfig {
@@ -130,7 +131,17 @@ export function createRestClient(config: RestClientConfig): RestClient {
 							},
 							"retrying"
 						);
-						await new Promise((resolve) => setTimeout(resolve, retryDelay * 3 ** attempt));
+						const delayMs = retryDelay * 3 ** attempt;
+						notifyRetry({
+							...(vendor ? { vendor } : {}),
+							method: init.method!,
+							path,
+							code: code!,
+							attempt: attempt + 2,
+							of: maxRetries + 1,
+							delayMs,
+						});
+						await new Promise((resolve) => setTimeout(resolve, delayMs));
 						continue;
 					}
 					const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);

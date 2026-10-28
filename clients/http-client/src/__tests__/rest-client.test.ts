@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ProviderApiError } from "../errors.js";
 import { createRestClient } from "../rest-client.js";
+import { onRetry, type RetryEvent } from "../retry-events.js";
 
 function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: string }>) {
 	const calls: Array<{
@@ -416,6 +417,42 @@ describe("createRestClient — transport retries", () => {
 		expect(err).toBeInstanceOf(ProviderApiError);
 		expect((err as Error).message).toBe("Test GET /x failed: TypeError: fetch failed (UND_ERR_CONNECT_TIMEOUT)");
 		expect(f.count()).toBe(3);
+	});
+
+	it("tells a listener about each retry with the attempt it is about to make, until it stops listening", async () => {
+		const events: RetryEvent[] = [];
+		const stop = onRetry((e) => events.push(e));
+		const f = flaky([failing("ECONNRESET"), failing("ECONNRESET")]);
+		await client(f.fetch).request("/x");
+		expect(events).toEqual([
+			{ vendor: "Test", method: "GET", path: "/x", code: "ECONNRESET", attempt: 2, of: 3, delayMs: 0 },
+			{ vendor: "Test", method: "GET", path: "/x", code: "ECONNRESET", attempt: 3, of: 3, delayMs: 0 },
+		]);
+		stop();
+		await client(flaky([failing("ECONNRESET")]).fetch).request("/x");
+		expect(events).toHaveLength(2);
+	});
+
+	it("leaves out a vendor it does not have, and survives a listener that throws", async () => {
+		const events: RetryEvent[] = [];
+		const stopBad = onRetry(() => {
+			throw new Error("display broke");
+		});
+		const stop = onRetry((e) => events.push(e));
+		try {
+			const f = flaky([failing("ENOTFOUND")]);
+			await createRestClient({
+				baseUrl: "https://api.test",
+				token: "t",
+				fetch: f.fetch,
+				retryDelayMs: 0,
+			}).request("/y");
+			expect(events[0]).toEqual({ method: "GET", path: "/y", code: "ENOTFOUND", attempt: 2, of: 3, delayMs: 0 });
+			expect(f.count()).toBe(2);
+		} finally {
+			stopBad();
+			stop();
+		}
 	});
 
 	it("can be turned off, and leaves a failure with no known cause alone", async () => {

@@ -62,6 +62,20 @@ const client = createRestClient({ baseUrl: "...", token: "...", logger, errors }
 typically expected and already handled by the caller (a 404 from a
 "does this exist" check, etc.).
 
+### `onRetry(listener)`
+
+Hear about every retry any client in this process is about to make, so a command line can say "retrying GitHub, attempt 2 of 3" instead of sitting silent. Returns a function that stops listening.
+
+```ts
+const stop = onRetry(({ vendor, attempt, of, code, delayMs }) => {
+  console.error(`retrying ${vendor}, attempt ${attempt} of ${of} (${code}, in ${delayMs} ms)`);
+});
+// …requests…
+stop();
+```
+
+It is per process, not per client, so nothing has to be handed to each client. It needs one copy of this package in the process (a workspace pins it); with two, the other copy's retries go unseen. A listener that throws is ignored.
+
 ### `createResolveToken(config)`
 
 Factory for the standard token resolution used by all holocron plugins. Resolution order:
