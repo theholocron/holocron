@@ -60,6 +60,16 @@ describe("run command", () => {
 		expect(lintCommitMsgFile).not.toHaveBeenCalled();
 	});
 
+	it("copes with a caller that gives no passthrough list at all", async () => {
+		await (runCmd.handler as (a: never) => Promise<void>)({
+			task: "build",
+			cwd: "/repo",
+			dryRun: false,
+			required: false,
+		} as never);
+		expect(run).toHaveBeenCalledWith("build", expect.objectContaining({ passthrough: [] }));
+	});
+
 	it("runs without a task manifest when the config cannot be read", async () => {
 		loadTasksConfig.mockRejectedValue(new Error("no config"));
 		await go(["run", "build"]);
