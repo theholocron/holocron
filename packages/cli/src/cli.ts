@@ -2,19 +2,16 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { confirm, input, select } from "@inquirer/prompts";
-import { createAstromech, deployOnRelease } from "@theholocron/astromech";
-import { loadTasksConfig } from "@theholocron/astromech/config";
-import { lintCommitMsgFile } from "@theholocron/astromech/lint";
+import { input, select } from "@inquirer/prompts";
+import { deployOnRelease } from "@theholocron/astromech";
 import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { AuthError, createFeatureResolver } from "./auth/index.js";
 import { applyResolvedConfig, launchGroupMenu, parseScope, resolveOrg, tokenContext } from "./cli-support/index.js";
-import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth/index.js";
+import { authCommand } from "./commands/auth/auth.command.js";
 import { runCleanupPreview } from "./commands/cleanup-preview/index.js";
-import { parseCloneTarget, runClone, type WholeOrgScope } from "./commands/clone/index.js";
+import { cloneCommand } from "./commands/clone/clone.command.js";
 import { configShowCommand } from "./commands/config-show/index.js";
 import { commandsInContext } from "./commands/contexts/index.js";
 import { runDeploy, runDeployFromFiles } from "./commands/deploy/index.js";
@@ -32,12 +29,13 @@ import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
 import { probeCommand } from "./commands/probe/index.js";
 import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
+import { runCommand } from "./commands/run/run.command.js";
 import { runSecretSet } from "./commands/secret-set/index.js";
 import { runSecretsSync } from "./commands/secrets-sync/index.js";
 import { runSetup } from "./commands/setup/index.js";
 import { skillsCommand } from "./commands/skills/index.js";
 import { runSync } from "./commands/sync/index.js";
-import { runSyncGithub } from "./commands/sync-github/index.js";
+import { syncCommand } from "./commands/sync/sync.command.js";
 import { runSyncReadme } from "./commands/sync-readme/index.js";
 import { runUpgradeDeps } from "./commands/upgrade-deps/index.js";
 import { runUpgradeNode } from "./commands/upgrade-node/index.js";
@@ -56,11 +54,8 @@ import { buildCliLogger, getRunId, reportError } from "./observability/logger/in
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
 import { CARDINALITY } from "./plugin/index.js";
 import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
-import { NonInteractiveError, openPath, promptForPositionals, style } from "./ui/index.js";
+import { promptForPositionals, style } from "./ui/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
-
-const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
-const resolveSyncToken = createFeatureResolver({ envName: "HOLOCRON_SYNC_TOKEN", keyringKey: "github.sync" });
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
 	version: string;
@@ -170,241 +165,12 @@ try {
 			finishCommand = startCommand(name);
 		})
 		// ── commands ────────────────────────────────────────────────────────
-		.command(
-			"clone [target]",
-			"Clone a single repo (org/repo) or every repo in an org (org)",
-			(y) =>
-				y
-					.positional("target", {
-						type: "string",
-						describe: "org/repo to clone, or a bare org to clone every repo in it (confirms first).",
-					})
-					.option("dir", {
-						type: "string",
-						describe: "Parent directory to clone into (default: ~/Code/<org>)",
-					}),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				let token: string;
-				try {
-					token = resolveCloneToken({ cliToken: tokens.cliTokens?.["github"] ?? tokens.cliToken });
-				} catch (err) {
-					reportError(`clone: ${err instanceof AuthError ? err.message : String(err)}`);
-					process.exitCode = 1;
-					return;
-				}
-				const [targetInput] = await promptForPositionals(getEntry("clone"), argv as Record<string, unknown>);
-				const { org, repo } = parseCloneTarget(targetInput);
-				const report = await runClone({
-					org,
-					...(repo ? { repo } : {}),
-					token,
-					dryRun: argv.dryRun,
-					...(argv.dir ? { dir: argv.dir } : {}),
-					...(!repo
-						? {
-								confirmWholeOrg: async ({ total, alreadyCloned, toClone }: WholeOrgScope) => {
-									if (!process.stdin.isTTY) {
-										throw new NonInteractiveError(
-											`clone: cloning every repo in "${org}" needs interactive confirmation — ` +
-												`run this from a terminal, or pass a specific org/repo instead`
-										);
-									}
-									if (toClone === 0) return true;
-									return confirm({
-										message: `${org} has ${total} repos — ${alreadyCloned} already cloned locally, ${toClone} new. Clone them all?`,
-										default: false,
-									});
-								},
-							}
-						: {}),
-					confirmOpen: async (openTarget: string, moreToCome: boolean) => {
-						if (!process.stdin.isTTY) return;
-						// A menu-launched preview with something it would actually clone
-						// is about to ask "proceed with the real run?" — defer to there
-						// instead of asking twice for the same directory. A direct
-						// --dry-run invocation (no menu involved) has no such follow-up,
-						// so it still asks now.
-						if (moreToCome && env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1") return;
-						if (await confirm({ message: `Open ${openTarget}?`, default: false })) openPath(openTarget);
-					},
-				});
-				if (report.status === "fail") {
-					if (report.message) reportError(`clone: ${report.message}`);
-					process.exitCode = 1;
-				} else if (
-					report.status === "dry-run" &&
-					report.cloned === 0 &&
-					env.get(DRY_RUN_PREVIEW_ENV_VAR) === "1"
-				) {
-					process.exitCode = DRY_RUN_NOOP_EXIT_CODE;
-				}
-			}
-		)
+		.command(cloneCommand as never)
 		.command(doctorCommand as never)
 		.command(skillsCommand as never)
-		.command(
-			"run <task> [job] [passthrough..]",
-			"Run a task locally (test, typecheck, lint, build, audit) — figures out turbo / the tool / the package manager. `run ci` runs every merge-gating check; `run lint commit-msg <file>` lints a commit message.",
-			(y) =>
-				y
-					.positional("task", {
-						type: "string",
-						demandOption: true,
-						describe:
-							"Task name (test, typecheck, lint, build, audit, or `ci` for the merge-gating suite). See `holocron run --help`.",
-					})
-					.positional("job", {
-						type: "string",
-						describe:
-							"Sub-job within the task (e.g. `holocron run audit performance`, `holocron run lint commit-msg <file>`). Omit to run every job.",
-					})
-					.positional("passthrough", {
-						type: "string",
-						array: true,
-						describe: "Args forwarded to the tool — put them after `--`.",
-					})
-					.option("required", {
-						type: "boolean",
-						default: false,
-						describe: "Fail (exit 1) if this repo has no such task, instead of skipping.",
-					})
-					.option("all", {
-						type: "boolean",
-						default: false,
-						describe: "With `run ci`: run every `ci: true` task, not just the required ones.",
-					})
-					.option("filter", {
-						type: "string",
-						describe: "turbo --filter=<pkg> passthrough (monorepo).",
-					}),
-			async (argv) => {
-				// The specific command key (not just `run`) so `contexts.ts` can scope the
-				// commit-msg hook to the global dataset and `run ci` to the repo's (ADR-0012).
-				const commandKey =
-					argv.task === "ci"
-						? "run ci"
-						: argv.task === "lint" && argv.job === "commit-msg"
-							? "run lint commit-msg"
-							: "run";
-				const { logger } = buildCliLogger(argv, { command: commandKey });
-				const passthrough = [
-					...((argv.passthrough as string[] | undefined) ?? []),
-					...((argv["--"] as string[] | undefined) ?? []),
-				];
-				// `run lint commit-msg <file>` is the `.husky/commit-msg` hook: a real
-				// commit-message linter, not astromech's filesystem-driven `lint` task.
-				if (argv.task === "lint" && argv.job === "commit-msg") {
-					const file = passthrough[0];
-					if (!file) {
-						reportError("run lint commit-msg: missing <file> (the commit message file git passes as $1).");
-						process.exitCode = 1;
-						return;
-					}
-					const result = await lintCommitMsgFile(file, argv.cwd as string);
-					if (!result.valid) {
-						for (const violation of result.violations) {
-							console.error(`✖ ${violation.rule}: ${violation.message}`);
-						}
-						process.exitCode = 1;
-					}
-					return;
-				}
-				// `ci` isn't a manifest task: it's the merge-gating suite, in CI order.
-				if (argv.task === "ci") {
-					const ciConfig = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
-					const report = createAstromech({ cwd: argv.cwd, logger, config: ciConfig }).ci({
-						dryRun: argv.dryRun,
-						scope: argv.all ? "all" : "required",
-						...(argv.filter ? { filter: argv.filter as string } : {}),
-					});
-					if (report.status === "fail") process.exitCode = 1;
-					return;
-				}
-				// The task manifest drives `lint`'s linter set; other tasks are
-				// filesystem-driven and ignore it. Missing / unparseable config → undefined.
-				const config = await loadTasksConfig(argv.cwd as string).catch(() => undefined);
-				const astromech = createAstromech({ cwd: argv.cwd, logger, config });
-				const report = astromech.run(argv.task as string, {
-					...(argv.job !== undefined ? { job: argv.job as string } : {}),
-					passthrough,
-					dryRun: argv.dryRun,
-					required: argv.required,
-					...(argv.filter ? { filter: argv.filter as string } : {}),
-				});
-				if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
-			}
-		)
+		.command(runCommand as never)
 		.command(configShowCommand as never)
-		.command(
-			"auth <subcommand>",
-			"Manage bootstrap credentials in the OS keyring",
-			(y) =>
-				y
-					.command(
-						"set [provider] [value]",
-						"Verify + store a bootstrap token for a provider",
-						(yy) => yy.positional("provider", { type: "string" }).positional("value", { type: "string" }),
-						async (argv) => {
-							const [provider] = await promptForPositionals(
-								getEntry("auth set"),
-								argv as Record<string, unknown>
-							);
-							const result = await runAuthSet({
-								provider: provider!,
-								...(argv.value ? { positional: argv.value as string } : {}),
-								...(argv.org ? { org: argv.org as string } : {}),
-							});
-							if (result.status === "fail") process.exitCode = 1;
-						}
-					)
-					.command(
-						"unset [provider]",
-						"Remove a stored bootstrap token",
-						(yy) => yy.positional("provider", { type: "string" }),
-						async (argv) => {
-							const [provider] = await promptForPositionals(
-								getEntry("auth unset"),
-								argv as Record<string, unknown>
-							);
-							runAuthUnset({ provider: provider! });
-						}
-					)
-					.command(
-						"check [provider]",
-						"Re-verify a stored bootstrap token",
-						(yy) => yy.positional("provider", { type: "string" }),
-						async (argv) => {
-							const [provider] = await promptForPositionals(
-								getEntry("auth check"),
-								argv as Record<string, unknown>
-							);
-							const result = await runAuthCheck({
-								provider: provider!,
-								...(argv.org ? { org: argv.org as string } : {}),
-							});
-							if (result.status === "fail") process.exitCode = 1;
-						}
-					)
-					.command(
-						"list",
-						"List every provider with a stored bootstrap token",
-						() => {},
-						async () => {
-							await runAuthList();
-						}
-					)
-					.command(
-						"$0",
-						false,
-						() => {},
-						async (argv) => {
-							await launchGroupMenu("auth", argv);
-						}
-					),
-			() => {}
-		)
+		.command(authCommand as never)
 		.command(
 			"$0",
 			false,
@@ -1375,82 +1141,7 @@ try {
 					),
 			() => {}
 		)
-		.command(
-			"sync",
-			"Sync generated files to other repos",
-			(g) =>
-				g
-					.command(
-						"github",
-						"Sync workflow templates and composite actions to theholocron/.github",
-						(y) =>
-							y
-								.option("repo", {
-									type: "string",
-									default: "theholocron/.github",
-									describe: "Target org/repo (default: theholocron/.github)",
-								})
-								.option("branch", {
-									type: "string",
-									describe:
-										"Push to this branch instead of the default branch (enables PR-based workflow for protected repos)",
-								})
-								.option("pr", {
-									type: "boolean",
-									default: false,
-									describe: "Open a PR after pushing to --branch (no-op without --branch)",
-								})
-								.option("message", {
-									type: "string",
-									describe: "Commit message (default: chore: sync from theholocron/holocron)",
-								})
-								.option("output-dir", {
-									type: "string",
-									describe:
-										"Write generated files to this local directory instead of pushing (for validation)",
-								}),
-						async (argv) => {
-							const outputDir = argv["output-dir"] as string | undefined;
-							const parsed = tokenContext(argv.token);
-							if (!parsed) return;
-							let token: string;
-							if (outputDir) {
-								token = "no-token-needed";
-							} else {
-								try {
-									token = resolveSyncToken({
-										cliToken: parsed.cliTokens?.["github"] ?? parsed.cliToken,
-									});
-								} catch (err) {
-									reportError(`sync-github: ${err instanceof AuthError ? err.message : String(err)}`);
-									process.exitCode = 1;
-									return;
-								}
-							}
-							const report = await runSyncGithub({
-								token,
-								repo: argv.repo,
-								dryRun: argv.dryRun,
-								...(argv.branch ? { branch: argv.branch } : {}),
-								...(argv.pr ? { createPr: true } : {}),
-								...(argv.message ? { message: argv.message } : {}),
-								...(outputDir ? { outputDir } : {}),
-							});
-							if (report.status === "fail") {
-								process.exitCode = 1;
-							}
-						}
-					)
-					.command(
-						"$0",
-						false,
-						() => {},
-						async (argv) => {
-							await launchGroupMenu("sync", argv);
-						}
-					),
-			() => {}
-		)
+		.command(syncCommand as never)
 		.command(
 			"package",
 			"Version and publish workspace packages",
