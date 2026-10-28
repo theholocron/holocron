@@ -46,40 +46,13 @@ export default defineConfig({
 	},
 	// Required status checks not backed by a `{ required: true }` task.
 	// `holocron repo setup` appends these to the task-derived contexts from
-	// `astromech.requiredChecks()`. codecov/patch + codecov/project are
-	// project-wide gates; the rest are repo-specific. The old preset's
-	// "audit / Conclusion" is gone — the decomposed audit tasks
-	// (sourceQuality.deadCodeAnalysis, delivery.bundleSize, in
-	// astromech.config.ts) each derive their own context automatically now
-	// that they're real `{ required: true }` task entries, not a
-	// preset-supplied extra.
-	extraRequiredChecks: [
-		"codecov/patch",
-		"codecov/project",
-		"codecov/patch/astromech",
-		"codecov/patch/cli",
-		"codecov/patch/datapad",
-		"codecov/patch/holocron-plugin-1password",
-		"codecov/patch/holocron-plugin-axiom",
-		"codecov/patch/holocron-plugin-clerk",
-		"codecov/patch/holocron-plugin-cloudflare",
-		"codecov/patch/holocron-plugin-fern",
-		"codecov/patch/holocron-plugin-discord",
-		"codecov/patch/holocron-plugin-doppler",
-		"codecov/patch/holocron-plugin-github",
-		"codecov/patch/holocron-plugin-infisical",
-		"codecov/patch/holocron-plugin-neon",
-		"codecov/patch/holocron-plugin-posthog",
-		"codecov/patch/holocron-plugin-postman",
-		"codecov/patch/holocron-plugin-sentry",
-		"codecov/patch/holocron-plugin-slack",
-		"codecov/patch/holocron-plugin-vercel",
-		"Platform / Compliance / Run Holocron config compatibility",
-		"Platform / Commit Standards / Run commitlint",
-		"Source Quality / Formatting / Run editorconfig",
-		"Source Quality / Static Analysis / Run eslint",
-		"Source Quality / Documentation / Run markdownlint",
-	],
+	// `astromech.requiredChecks()`. Only the aggregate codecov gates belong
+	// here: a ruleset takes no wildcards and a package a PR does not touch posts
+	// no status, so a per-package `codecov/patch/<slug>` can neither be listed
+	// for every package (one per workspace, hundreds once the org's repos are
+	// folded in) nor be relied on to appear. Codecov still posts the
+	// per-component statuses; they are informational, not required (#1223).
+	extraRequiredChecks: ["codecov/patch", "codecov/project"],
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `nodeDocs()`'s bundled `lint` (8 linters) is now 5 separately-gated
 	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/
