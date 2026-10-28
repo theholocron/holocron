@@ -410,4 +410,60 @@ describe("runNpmBumpVersions", () => {
 		expect(JSON.parse(written[join(CWD, "observability/package.json")]!).version).toBe("4.2.0");
 		expect(written[join(CWD, "packages/ignored/package.json")]).toBeUndefined();
 	});
+
+	describe("with a version group", () => {
+		const files = {
+			"pnpm-workspace.yaml": 'packages:\n  - "clients/*"\n  - observability\n  - "utils/*"\n',
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"clients/http/package.json": { name: "@acme/http", version: "1.0.0" },
+			"clients/internal/package.json": { name: "@acme/internal", version: "1.0.0", private: true },
+			"observability/package.json": { name: "@acme/observability", version: "0.1.0" },
+			"utils/array/package.json": { name: "@acme/array", version: "1.0.0" },
+		};
+		const bump = async (group: string, extra: Record<string, unknown> = {}) => {
+			const { readFile, writeFile, listDir, isDir, written } = makeFs(files);
+			const lines: string[] = [];
+			const report = await runNpmBumpVersions({
+				version: "2.0.0",
+				cwd: CWD,
+				group,
+				print: (line) => lines.push(line),
+				readFile,
+				writeFile,
+				listDir,
+				isDir,
+				...extra,
+			});
+			return { report, written, lines };
+		};
+
+		it("bumps only that group's non-private packages and leaves the root and other groups alone", async () => {
+			const { report, written, lines } = await bump("clients");
+			expect(report.bumped).toEqual(["clients/http"]);
+			expect(report.skipped).toEqual(["clients/internal"]);
+			expect(Object.keys(written)).toEqual([join(CWD, "clients/http/package.json")]);
+			expect(lines[0]).toBe("Bumping group clients to 2.0.0…");
+		});
+
+		it("bumps a package that is its own folder", async () => {
+			const { report, written } = await bump("observability");
+			expect(report.bumped).toEqual(["observability"]);
+			expect(JSON.parse(written[join(CWD, "observability/package.json")]!).version).toBe("2.0.0");
+		});
+
+		it("writes nothing on a dry run", async () => {
+			const { report, written } = await bump("utils", { dryRun: true });
+			expect(report.status).toBe("dry-run");
+			expect(report.bumped).toEqual(["utils/array"]);
+			expect(written).toEqual({});
+		});
+
+		it("fails for a group that has no packages", async () => {
+			const { report, written, lines } = await bump("skills");
+			expect(report.status).toBe("fail");
+			expect(report.message).toBe('no packages in group "skills"');
+			expect(written).toEqual({});
+			expect(lines).toContain('  ✗ no packages in group "skills"');
+		});
+	});
 });

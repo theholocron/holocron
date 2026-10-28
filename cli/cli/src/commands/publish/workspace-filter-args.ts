@@ -7,9 +7,11 @@ import { discoverWorkspacePackages, resolveWorkspaceGlobs } from "@theholocron/a
  * invocation below so a repo with several package roots is covered the same as
  * a `packages/*`-only one.
  */
-export function workspaceFilterArgs(cwd: string): string[] {
+export function workspaceFilterArgs(cwd: string, group?: string): string[] {
 	// Only public packages make this a monorepo to publish: a root beside a private docs site is a single package.
-	const found = discoverWorkspacePackages(cwd).filter(({ manifest }) => !manifest.private);
+	const found = discoverWorkspacePackages(cwd, { ...(group === undefined ? {} : { group }) }).filter(
+		({ manifest }) => !manifest.private
+	);
 	const globs = resolveWorkspaceGlobs(cwd).include.filter((glob) =>
 		found.some(({ relativeDir }) =>
 			glob.endsWith("/*") ? relativeDir.startsWith(glob.slice(0, -1)) : relativeDir === glob

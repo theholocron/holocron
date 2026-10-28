@@ -103,7 +103,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		if (loginResult.exitCode !== 0) {
 			const message = "npm login failed. Run `npm login --auth-type=web` (or `npm login`) manually, then re-run.";
 			print(`  ✗ ${message}`);
-			const packageNames = (input.packages ?? discoverPublicPackageEntries(cwd)).map((e) => e.name);
+			const packageNames = (input.packages ?? discoverPublicPackageEntries(cwd, input.group)).map((e) => e.name);
 			logger.warn({ reason: "npm login failed" }, "publish --initial: done");
 			return { status: "fail", message, packageNames };
 		}
@@ -111,7 +111,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		if (whoami.exitCode !== 0) {
 			const message = "npm login completed but `npm whoami` still fails — check your npm account.";
 			print(`  ✗ ${message}`);
-			const packageNames = (input.packages ?? discoverPublicPackageEntries(cwd)).map((e) => e.name);
+			const packageNames = (input.packages ?? discoverPublicPackageEntries(cwd, input.group)).map((e) => e.name);
 			logger.warn({ reason: "npm whoami still fails after login" }, "publish --initial: done");
 			return { status: "fail", message, packageNames };
 		}
@@ -130,7 +130,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	// — filter down to genuinely new ones before doing anything else, so
 	// re-running --initial after adding one new package to an
 	// already-bootstrapped monorepo only touches that one package.
-	const discoveredEntries = input.packages ?? discoverPublicPackageEntries(cwd);
+	const discoveredEntries = input.packages ?? discoverPublicPackageEntries(cwd, input.group);
 	// Computed once across every discovered entry (skipped and new alike) so
 	// the skip rows filterNewPackages prints and the would-publish/published
 	// rows below read as one aligned table, not two differently-padded ones.
@@ -180,7 +180,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	// and either re-publish them unnecessarily or fail outright on a
 	// version already on npm. Shared between dry-run preview and the real
 	// call so what we print is exactly what we'd run.
-	const isMonorepo = workspaceFilterArgs(cwd).length > 0;
+	const isMonorepo = workspaceFilterArgs(cwd, input.group).length > 0;
 	const publishArgs = [
 		...(isMonorepo ? ["-r", ...packageNames.map((name) => `--filter=${name}`)] : []),
 		"publish",

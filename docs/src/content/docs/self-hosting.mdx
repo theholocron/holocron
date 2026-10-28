@@ -65,3 +65,32 @@ When adding a new `holocron-plugin-*` package:
 ## Release versioning
 
 Holocron uses `semantic-release` with lockstep versioning — all packages in the workspace advance to the same version on every release. The `release.config.ts` `prepareCmd` uses `holocron package bump-versions` to patch every `package.json` in the workspace.
+
+### Releasing a version group
+
+A monorepo that holds several former repos releases each folder on its own line: `clients` at 1.43, `utils` at 1.16. Each folder is a **version group**: lockstep inside, independent of the others. `groupReleaseConfig()` from `@theholocron/astromech/release` builds the semantic-release config for one:
+
+```ts
+// release.config.ts
+import { groupReleaseConfig } from "@theholocron/astromech/release";
+
+const group = process.env["RELEASE_GROUP"] ?? "clients";
+
+export default groupReleaseConfig({
+  group,
+  branches: ["main", { name: "alpha", prerelease: true }],
+  exec: {
+    prepareCmd: `holocron package bump-versions \${nextRelease.version} --group ${group}`,
+    publishCmd: `holocron package publish --group ${group} --skip-already-published`,
+  },
+});
+```
+
+It wraps `defineConfig()` from `@theholocron/semantic-release-config`, so rules, notes and plugin order are the org's, and changes four things:
+
+- **Tags** are `<group>-v<version>` (`clients-v1.43.2`), so a group finds only its own last release.
+- **Commits** are scoped: the analyzer and notes generator see only commits that changed a file under the group's folder. After a repo is imported, `lastTag..HEAD` spans every folder, so an unscoped analyzer would release a group for a commit that never touched it. Pass `paths` to add folders beyond `[group]`; cross-group dependencies resolve from the registry, so a dependent group is not released for a dependency's commits.
+- **The changelog** is `<group>/CHANGELOG.md`.
+- **The release commit** stages only the group's `package.json` files and changelog, and says which group: `chore(release): clients 1.43.2 [skip ci]`.
+
+`@semantic-release/commit-analyzer`, `@semantic-release/release-notes-generator` and `@theholocron/semantic-release-config` are optional peers of `@theholocron/astromech`; install them where a release runs. In CI, pass the group to the `delivery.publish` workflow's `group` input (it exports `RELEASE_GROUP` and looks up tags with `git describe --match '<group>-v*'`) and release groups one at a time: they push to the same branch, and the workflow checks out the branch's current tip when a group is set.

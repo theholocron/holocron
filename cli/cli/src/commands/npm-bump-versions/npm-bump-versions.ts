@@ -11,7 +11,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
-	const { version, dryRun = false } = input;
+	const { version, dryRun = false, group } = input;
 	const readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
 	const writeFile = input.writeFile ?? ((p: string, c: string) => writeFileSync(p, c));
 	const listDir = input.listDir ?? ((p: string) => readdirSync(p) as string[]);
@@ -20,8 +20,8 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const bumped: string[] = [];
 	const skipped: string[] = [];
 
-	print(`Bumping monorepo to ${version}${dryRun ? " (dry-run)" : ""}…`);
-	logger.info({ version, dryRun: dryRun || undefined }, "npm bump-versions: start");
+	print(`Bumping ${group ? `group ${group}` : "monorepo"} to ${version}${dryRun ? " (dry-run)" : ""}…`);
+	logger.info({ version, group, dryRun: dryRun || undefined }, "npm bump-versions: start");
 
 	function bumpFile(absPath: string, label: string): void {
 		let pkg: Record<string, unknown>;
@@ -43,7 +43,8 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	}
 
 	// Root is always bumped — private means "don't publish", not "don't version".
-	bumpFile(join(cwd, "package.json"), "root");
+	// A group leaves it alone: every group's release would otherwise rewrite one shared file.
+	if (!group) bumpFile(join(cwd, "package.json"), "root");
 
 	// Every package the workspace declares; a group whose dir doesn't exist
 	// no-ops safely, so a single-package repo with none just gets the root bump.
@@ -51,6 +52,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const workspace = discoverWorkspacePackages(cwd, {
 		readFile,
 		readText: readFile,
+		...(group ? { group } : {}),
 		listDirs: (dir) => {
 			let names: string[];
 			try {
@@ -69,6 +71,12 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 			});
 		},
 	});
+	if (group && workspace.length === 0) {
+		const message = `no packages in group "${group}"`;
+		print(`  ✗ ${message}`);
+		logger.info({ version, group, status: "fail" }, "npm bump-versions: done");
+		return { status: "fail", bumped, skipped, message };
+	}
 	const found = new Set(workspace.map((entry) => entry.dir));
 	for (const dir of listed) {
 		if (!found.has(dir)) print(`  ! skipping ${relative(resolve(cwd), dir)}: no package.json or malformed JSON`);

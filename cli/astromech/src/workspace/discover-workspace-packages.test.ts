@@ -50,6 +50,23 @@ describe("discoverWorkspacePackages", () => {
 		]);
 	});
 
+	it("limits discovery to one version group: a folder of packages, or a package that is its own folder", () => {
+		const fs = repo({
+			"/repo/pnpm-workspace.yaml": workspace("clients/*", "clients-old/*", "observability", "docs/theme"),
+			"/repo/clients/http/package.json": pkg("http"),
+			"/repo/clients/github/package.json": pkg("github"),
+			"/repo/clients-old/x/package.json": pkg("old"),
+			"/repo/observability/package.json": pkg("observability"),
+			"/repo/docs/theme/package.json": pkg("theme"),
+		});
+		const names = (group: string) => discoverWorkspacePackages("/repo", { ...fs, group }).map((p) => p.name);
+		expect(names("clients")).toEqual(["github", "http"]);
+		expect(names("observability")).toEqual(["observability"]);
+		expect(names("docs")).toEqual(["theme"]);
+		expect(names("./clients/")).toEqual(["github", "http"]);
+		expect(names("nothing")).toEqual([]);
+	});
+
 	it("returns groups in glob order", () => {
 		const fs = repo({
 			"/repo/pnpm-workspace.yaml": workspace("utils/*", "apps/*"),

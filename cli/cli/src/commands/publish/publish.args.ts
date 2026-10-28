@@ -31,6 +31,12 @@ export const publishArgs = (y: Argv<GlobalArgs>) =>
 			type: "string",
 			describe: "owner/repo for Trusted Publisher config (--sync-trust). Defaults to theholocron/holocron.",
 		})
+		.option("group", {
+			type: "string",
+			describe:
+				"Only this version group's packages: a folder of the repo (clients, observability). " +
+				"Omitted, every public package in the workspace.",
+		})
 		.option("provenance", {
 			type: "boolean",
 			default: true,

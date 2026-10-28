@@ -1,21 +1,10 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
+import { makeTempWorkspace as makeRepo } from "../../testing/publish-fixtures.js";
 import { discoverManifests } from "./discover-manifests.js";
+import { discoverPublicPackageEntries } from "./discover-public-package-entries.js";
+import { discoverPublicPackages } from "./discover-public-packages.js";
 import { workspaceFilterArgs } from "./workspace-filter-args.js";
-
-/** A repo on disk: `files` maps repo-relative paths to JSON objects, or to text for non-JSON files. */
-function makeRepo(files: Record<string, Record<string, unknown> | string>): string {
-	const root = mkdtempSync(join(tmpdir(), "holocron-workspace-discovery-"));
-	for (const [path, content] of Object.entries(files)) {
-		mkdirSync(dirname(join(root, path)), { recursive: true });
-		writeFileSync(join(root, path), typeof content === "string" ? content : JSON.stringify(content));
-	}
-	return root;
-}
 
 const workspace = (...globs: string[]) => `packages:\n${globs.map((glob) => `  - "${glob}"`).join("\n")}\n`;
 
@@ -73,5 +62,45 @@ describe("workspaceFilterArgs", () => {
 
 	it("is empty for a single-package repo", () => {
 		expect(workspaceFilterArgs(makeRepo({ "package.json": { name: "@acme/lib" } }))).toEqual([]);
+	});
+});
+
+describe("version groups", () => {
+	const root = () =>
+		makeRepo({
+			"pnpm-workspace.yaml": workspace("clients/*", "observability", "utils/*"),
+			"package.json": { name: "@acme/root", version: "1.0.0" },
+			"clients/http/package.json": { name: "@acme/http", version: "1.5.0" },
+			"clients/github/package.json": { name: "@acme/github", version: "1.5.0" },
+			"clients/internal/package.json": { name: "@acme/internal", version: "1.5.0", private: true },
+			"observability/package.json": { name: "@acme/observability", version: "0.6.0" },
+			"utils/array/package.json": { name: "@acme/array", version: "1.16.0" },
+		});
+
+	it("discoverManifests lists only the group's packages", () => {
+		expect(discoverManifests(root(), "clients").map(({ dir }) => dir)).toEqual([
+			"./clients/github",
+			"./clients/http",
+			"./clients/internal",
+		]);
+		expect(discoverManifests(root(), "observability").map(({ dir }) => dir)).toEqual(["./observability"]);
+	});
+
+	it("a group with no packages publishes nothing, never the root package", () => {
+		expect(discoverManifests(root(), "skills")).toEqual([]);
+	});
+
+	it("keeps public packages only, with versions", () => {
+		expect(discoverPublicPackageEntries(root(), "clients")).toEqual([
+			{ name: "@acme/github", version: "1.5.0", dir: "./clients/github" },
+			{ name: "@acme/http", version: "1.5.0", dir: "./clients/http" },
+		]);
+		expect(discoverPublicPackages(root(), "utils")).toEqual(["@acme/array"]);
+	});
+
+	it("filters by the globs that hold the group's public packages", () => {
+		expect(workspaceFilterArgs(root(), "clients")).toEqual(["-r", "--filter=./clients/*"]);
+		expect(workspaceFilterArgs(root(), "observability")).toEqual(["-r", "--filter=./observability"]);
+		expect(workspaceFilterArgs(root(), "skills")).toEqual([]);
 	});
 });

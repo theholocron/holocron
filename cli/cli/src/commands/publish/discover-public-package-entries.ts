@@ -7,8 +7,8 @@ import type { PublicPackageEntry } from "./public-package-entry.type.js";
  * mode needs both to check `npm view <pkg>@<version>` and publish one
  * workspace at a time.
  */
-export function discoverPublicPackageEntries(cwd: string): readonly PublicPackageEntry[] {
-	return discoverManifests(cwd).flatMap(({ manifest, dir }) =>
+export function discoverPublicPackageEntries(cwd: string, group?: string): readonly PublicPackageEntry[] {
+	return discoverManifests(cwd, group).flatMap(({ manifest, dir }) =>
 		!manifest.private && manifest.name && manifest.version
 			? [{ name: manifest.name, version: manifest.version, dir }]
 			: []

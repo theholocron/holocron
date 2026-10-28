@@ -14,6 +14,8 @@ catalog:
   "@commitlint/types": ^21.2.3
   "@inquirer/prompts": ^8.5.2
   "@inquirer/search": ^4.3.3
+  "@semantic-release/commit-analyzer": ^13.0.1
+  "@semantic-release/release-notes-generator": ^14.1.1
   "@sentry/node": ^10.70.0
   "@theholocron/observability": ^0.6.0
   "@tktco/node-actionlint": ^1.6.0

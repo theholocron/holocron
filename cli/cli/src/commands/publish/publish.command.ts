@@ -25,6 +25,7 @@ export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				oldFile,
 				newFile,
 				dryRun: argv.dryRun,
+				...(argv.group ? { group: argv.group as string } : {}),
 				...(argv.repo ? { repo: argv.repo as string } : {}),
 			});
 			if (report.status === "fail") {
@@ -36,6 +37,7 @@ export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 			const report = await runPublish({
 				cwd: argv.cwd,
 				dryRun: argv.dryRun,
+				...(argv.group ? { group: argv.group as string } : {}),
 				...(argv.tag ? { tag: argv.tag as string } : {}),
 				...(otp ? { otp } : {}),
 			});
@@ -59,6 +61,7 @@ export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 			dryRun: argv.dryRun,
 			provenance: argv.provenance as boolean,
 			skipAlreadyPublished: argv.skipAlreadyPublished as boolean,
+			...(argv.group ? { group: argv.group as string } : {}),
 			...(argv.tag ? { tag: argv.tag as string } : {}),
 			...(otp ? { otp } : {}),
 		});

@@ -7,6 +7,11 @@ export interface RunNpmBumpVersionsInput {
 	cwd?: string;
 	/** Print what would change without writing anything. */
 	dryRun?: boolean;
+	/**
+	 * Bump only this version group: a folder of the repo (`clients`, `observability`).
+	 * The root `package.json` is left alone. Omitted, the root and every workspace package.
+	 */
+	group?: string;
 	print?: (line: string) => void;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
 	logger?: Logger;

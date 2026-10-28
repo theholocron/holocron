@@ -6,6 +6,11 @@ import type { PublishExecResult, PublishPrint } from "../publish.type.js";
 export interface RunPublishInput {
 	/** Working directory (the monorepo or package root). Defaults to process.cwd(). */
 	cwd?: string;
+	/**
+	 * Only this version group's packages: a folder of the repo (`clients`,
+	 * `observability`). Omitted, every public package in the workspace.
+	 */
+	group?: string;
 	/** Distribution tag for the publish. Defaults to `'alpha'`. */
 	tag?: string;
 	/** Skip the actual publish; print what would happen. */
