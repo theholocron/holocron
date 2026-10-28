@@ -68,6 +68,29 @@ describe("DopplerVault.read", () => {
 	});
 });
 
+describe("DopplerVault.readSecret", () => {
+	it("reads a bare name from the project and config the vault was set up with", async () => {
+		const { client, stub } = makeClient([
+			{ status: 200, body: { name: "API_KEY", value: { computed: "from-config" } } },
+		]);
+		const vault = new DopplerVault(() => client, { project: "comlink", config: "prd" });
+		expect(await vault.readSecret("API_KEY")).toBe("from-config");
+		expect(stub.calls[0]?.url).toMatch(/project=comlink/);
+		expect(stub.calls[0]?.url).toMatch(/config=prd/);
+		expect(stub.calls[0]?.url).toMatch(/name=API_KEY/);
+	});
+
+	it("falls back to raw, then to an empty string", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: { value: { raw: "raw-only" } } },
+			{ status: 200, body: { value: {} } },
+		]);
+		const vault = new DopplerVault(() => client, { project: "comlink", config: "prd" });
+		expect(await vault.readSecret("A")).toBe("raw-only");
+		expect(await vault.readSecret("B")).toBe("");
+	});
+});
+
 describe("DopplerVault.write", () => {
 	it("POSTs to /configs/config/secrets with a {name: value} body", async () => {
 		const { client, stub } = makeClient([{ status: 200, body: {} }]);

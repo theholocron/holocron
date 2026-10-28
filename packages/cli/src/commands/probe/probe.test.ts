@@ -105,6 +105,29 @@ describe("runProbeCommand", () => {
 		expect(asked).toHaveBeenCalled();
 	});
 
+	it("looks for the Comlink app's own vault under the repo root when `comlink deliver` needs the secret", async () => {
+		const loader = {
+			load: async () => {},
+			probes: () => new Map(),
+			loadedKeys: () => [],
+			loadFailures: () => [],
+			has: (k: string) => k === "notifications" || k === "errors",
+			get: (k: string) =>
+				k === "notifications"
+					? [{ providerName: "discord", layout: { relay: { host: "comlink.example.dev" } } }]
+					: { providerName: "sentry" },
+		} as unknown as PluginLoader;
+		const { promise, text } = run({
+			provider: "comlink",
+			probe: "deliver",
+			yes: true,
+			loader,
+			context: { repoRoot: "/nonexistent-repo-root" },
+		});
+		expect((await promise).status).toBe("fail");
+		expect(text()).toContain("give apps/comlink/holocron.config a vault");
+	});
+
 	describe("core providers", () => {
 		it("shows what loaded, what failed and why, and who offers probes", async () => {
 			const { promise, text } = run({

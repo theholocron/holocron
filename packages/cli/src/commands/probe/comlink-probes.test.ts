@@ -178,9 +178,52 @@ describe("probe comlink deliver", () => {
 		expect(calls).toHaveLength(1);
 	});
 
+	it("asks the app's own vault first, by bare name, from the app's directory; then the repo's vault", async () => {
+		const readSecret = vi.fn(async (_name: string) => SECRET);
+		const appVault = vi.fn(async (_dir: string) => ({ readSecret }) as never);
+		const { fn } = fetchSeq(202);
+		await comlinkProbes({ loader: loaderWith(), fetch: fn, env: {}, appVault }).deliver!.run(ctxFor().ctx);
+		expect(appVault).toHaveBeenCalledWith("apps/comlink");
+		expect(readSecret).toHaveBeenCalledWith("COMLINK_SENTRY_SECRET");
+
+		// The app has no vault, so the repo's is used; a vault with no bare-name read gets the name as a reference.
+		const read = vi.fn(async (_name: string) => SECRET);
+		const second = fetchSeq(202);
+		await comlinkProbes({
+			loader: loaderWith({ vault: { read } }),
+			fetch: second.fn,
+			env: {},
+			appVault: async () => undefined,
+		}).deliver!.run(ctxFor().ctx);
+		expect(read).toHaveBeenCalledWith("COMLINK_SENTRY_SECRET");
+		expect(second.calls).toHaveLength(1);
+	});
+
+	it("takes the app directory from a custom Worker path, and the environment before any vault", async () => {
+		const appVault = vi.fn(async (_dir: string) => undefined);
+		const layout = { relay: { host: "comlink.example.dev", code: "services/relay/dist/worker.js" } };
+		await expect(
+			comlinkProbes({ loader: loaderWith({ layout }), env: {}, appVault }).deliver!.run(ctxFor().ctx)
+		).rejects.toThrow(/give services\/relay\/holocron\.config a vault/);
+		expect(appVault).toHaveBeenCalledWith("services/relay");
+		const untouched = vi.fn();
+		const { fn } = fetchSeq(202);
+		await comlinkProbes({
+			loader: loaderWith(),
+			fetch: fn,
+			env: { COMLINK_SENTRY_SECRET: SECRET },
+			appVault: untouched,
+		}).deliver!.run(ctxFor().ctx);
+		expect(untouched).not.toHaveBeenCalled();
+	});
+
 	it("says how to supply the secret when there is none, or the vault cannot read it", async () => {
 		const none = comlinkProbes({ loader: loaderWith(), env: {} }).deliver!.run(ctxFor().ctx);
-		await expect(none).rejects.toThrow(/no signing secret: set COMLINK_SENTRY_SECRET/);
+		await expect(none).rejects.toThrow(/no signing secret: set COMLINK_SENTRY_SECRET in the environment/);
+		const empty = loaderWith({ vault: { read: async () => "" } });
+		await expect(comlinkProbes({ loader: empty, env: {} }).deliver!.run(ctxFor().ctx)).rejects.toThrow(
+			/no signing secret/
+		);
 		const failing = loaderWith({ vault: { read: async () => Promise.reject(new Error("nope")) } });
 		await expect(comlinkProbes({ loader: failing, env: {} }).deliver!.run(ctxFor().ctx)).rejects.toThrow(
 			/no signing secret/
