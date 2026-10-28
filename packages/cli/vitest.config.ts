@@ -12,6 +12,8 @@ export default defineConfig({
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
 		// FORCE_COLOR=1). Tests assert on plain-text strings without ANSI codes.
 		env: { ...base.test?.env, FORCE_COLOR: "0" },
+		// Builds dist/cli.mjs when it is missing or stale, for the tests that run the built CLI (src/cli-binary.test.ts).
+		globalSetup: ["./src/testing/build-cli.ts"],
 		setupFiles: [...(base.test?.setupFiles ?? []), "./src/testing/silence-logger.ts"],
 		coverage: {
 			...base.test?.coverage,
