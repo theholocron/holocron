@@ -6,6 +6,7 @@ vi.mock("ora", () => {
 	return { default: vi.fn(() => spinner) };
 });
 
+import { createRestClient } from "@theholocron/http-client";
 import ora from "ora";
 
 import { allowProgress, createProgress, progressEnabled, withProgress, withSpinner } from "./progress.js";
@@ -72,7 +73,8 @@ describe("progress", () => {
 		Object.defineProperty(process.stdout, "isTTY", { value: out, configurable: true });
 		Object.defineProperty(process.stderr, "isTTY", { value: err, configurable: true });
 	};
-	const spinner = () => vi.mocked(ora).mock.results[0]!.value as Record<string, ReturnType<typeof vi.fn>>;
+	const spinner = () =>
+		vi.mocked(ora).mock.results[0]!.value as Record<string, ReturnType<typeof vi.fn>> & { text: string };
 
 	beforeEach(() => {
 		vi.mocked(ora).mockClear();
@@ -127,6 +129,37 @@ describe("progress", () => {
 				})
 			).rejects.toThrow("boom");
 			expect(spinner().stop).toHaveBeenCalledTimes(2);
+		});
+
+		it("says on the spinner when a request is being retried, and stops listening when the step ends", async () => {
+			const flaky = () => {
+				let failed = false;
+				return (async () => {
+					if (!failed) {
+						failed = true;
+						throw Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNRESET" } });
+					}
+					return new Response("{}", { status: 200 });
+				}) as typeof fetch;
+			};
+			const client = (vendor?: string) =>
+				createRestClient({
+					baseUrl: "https://api.test",
+					token: "t",
+					fetch: flaky(),
+					retryDelayMs: 0,
+					...(vendor ? { vendor } : {}),
+				});
+			const progress = createProgress(() => {});
+			await progress.run("source: update settings…", async () => {
+				await client("GitHub").request("/x");
+				expect(spinner().text).toBe("source: update settings… (retrying GitHub, attempt 2 of 3)");
+				await client().request("/x");
+				expect(spinner().text).toBe("source: update settings… (retrying the request, attempt 2 of 3)");
+			});
+			spinner().text = "untouched";
+			await client("GitHub").request("/x");
+			expect(spinner().text).toBe("untouched");
 		});
 
 		it("clears the spinner around a line printed during a step, and prints plainly after it", async () => {

@@ -1,3 +1,4 @@
+import { onRetry } from "@theholocron/http-client";
 import ora, { type Ora } from "ora";
 
 /**
@@ -52,9 +53,14 @@ export function createProgress(print: (line: string) => void, enabled: () => boo
 			if (!enabled()) return fn();
 			const spinner = ora({ text: label, stream: process.stderr, discardStdin: false }).start();
 			active = spinner;
+			// A request that is being sent again says so, so a slow step is not mistaken for a stuck one.
+			const stopListening = onRetry((e) => {
+				spinner.text = `${label} (retrying ${e.vendor ?? "the request"}, attempt ${e.attempt} of ${e.of})`;
+			});
 			try {
 				return await fn();
 			} finally {
+				stopListening();
 				spinner.stop();
 				active = undefined;
 			}

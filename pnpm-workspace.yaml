@@ -54,7 +54,7 @@ catalogs:
     "@theholocron/discord-client": ^1.50.0
     "@theholocron/doppler-client": ^1.43.1
     "@theholocron/github-client": ^1.51.0
-    "@theholocron/http-client": ^1.54.2
+    "@theholocron/http-client": ^1.57.0
     "@theholocron/infisical-client": ^1.43.1
     "@theholocron/neon-client": ^1.43.1
     "@theholocron/netlify-client": ^1.43.0
@@ -127,7 +127,7 @@ catalogs:
 # applied (holocron#908).
 overrides:
   "@sentry/node": 10.75.2
-  "@theholocron/http-client": 1.54.2
+  "@theholocron/http-client": 1.57.0
   cookie: ^2.0.1
   posthog-node: 5.52.5
   tsx: 4.23.15
