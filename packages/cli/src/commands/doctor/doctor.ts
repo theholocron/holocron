@@ -94,9 +94,8 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 			}
 		} else {
 			const impl = loader.get(key) as unknown;
-			const row = await withProgress(`Checking ${key} (${providers[0] ?? "?"})…`, () =>
-				smokeCheck(key, providers[0] ?? "?", impl)
-			);
+			const provider = providers[0] ?? "?";
+			const row = await withProgress(`Checking ${key} (${provider})…`, () => smokeCheck(key, provider, impl));
 			rows.push(row);
 		}
 	}

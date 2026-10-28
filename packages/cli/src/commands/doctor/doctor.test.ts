@@ -139,6 +139,20 @@ describe("runDoctor", () => {
 		});
 	});
 
+	it("names a loaded capability that the config does not list as `?`", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: {} });
+		const loader = {
+			load: async () => {},
+			loadFailures: () => [],
+			loadedKeys: () => ["source"],
+			get: () => ({ whoami: async () => ({ login: "someone" }) }),
+		} as unknown as PluginLoader;
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "source")).toMatchObject({ provider: "?", status: "ok" });
+	});
+
 	it("skips dns and workers when the provider has no whoami implemented", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: { dns: "cloudflare", workers: "cloudflare" } });
 		const loader = makeLoaderWith(loaded, {
