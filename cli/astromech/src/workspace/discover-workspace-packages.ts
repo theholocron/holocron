@@ -16,6 +16,11 @@ export const DEFAULT_WORKSPACE_ROOTS: readonly string[] = ["packages", "apps", "
 export interface DiscoverWorkspacePackagesOptions extends Pick<ListWorkspacePackagesOptions, "listDirs" | "readFile"> {
 	/** Replaces the read of `pnpm-workspace.yaml`. Throw (`ENOENT`) when it is absent -- or leave it out to read the real file. */
 	readText?: (path: string) => string;
+	/**
+	 * Only the packages of one version group: a folder of the repo (`clients`,
+	 * `observability`). A package belongs when it is that folder or sits under it.
+	 */
+	group?: string;
 }
 
 /** Characters pnpm globs treat specially. A literal directory has none of them. */
@@ -54,7 +59,16 @@ export function discoverWorkspacePackages(
 			if (!exclude.some((pattern) => matches(entry.relativeDir, pattern))) entries.set(entry.relativeDir, entry);
 		}
 	}
-	return [...entries.values()];
+	const found = [...entries.values()];
+	return options.group === undefined
+		? found
+		: found.filter(({ relativeDir }) => inGroup(relativeDir, options.group!));
+}
+
+/** `relativeDir` is the group's folder, or is under it. `clients` holds `clients/http`, not `clients-old/x`. */
+function inGroup(relativeDir: string, group: string): boolean {
+	const folder = group.replace(/^\.\//, "").replace(/\/+$/, "");
+	return relativeDir === folder || relativeDir.startsWith(`${folder}/`);
 }
 
 /**

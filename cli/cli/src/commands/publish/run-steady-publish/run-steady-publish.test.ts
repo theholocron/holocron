@@ -6,7 +6,13 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
-import { baseEnv, makeExec, makeTempMonorepo, makeTempMonorepoWithPlugins } from "../../../testing/publish-fixtures.js";
+import {
+	baseEnv,
+	makeExec,
+	makeTempMonorepo,
+	makeTempMonorepoWithPlugins,
+	makeTempWorkspace,
+} from "../../../testing/publish-fixtures.js";
 import type { PublicPackageEntry } from "../public-package-entry.type.js";
 import type { PublishExecResult } from "../publish.type.js";
 import { runSteadyPublish } from "./run-steady-publish.js";
@@ -338,5 +344,62 @@ describe("runSteadyPublish", () => {
 			expect(lines.join("\n")).toContain("would check @theholocron/foo@1.0.0");
 			expect(lines.join("\n")).toContain("would check @theholocron/bar@2.0.0");
 		});
+	});
+});
+
+describe("runSteadyPublish with a version group", () => {
+	const groupRepo = () =>
+		makeTempWorkspace({
+			"pnpm-workspace.yaml": 'packages:\n  - "clients/*"\n  - "utils/*"\n',
+			"clients/http/package.json": { name: "@acme/http", version: "1.5.0" },
+			"clients/github/package.json": { name: "@acme/github", version: "1.5.0" },
+			"utils/array/package.json": { name: "@acme/array", version: "1.16.0" },
+		});
+
+	it("bulk-publishes only the group's workspace glob", async () => {
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		const lines: string[] = [];
+		const report = await runSteadyPublish({
+			cwd: groupRepo(),
+			env: baseEnv,
+			group: "clients",
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.status).toBe("ok");
+		expect(report.packageNames).toEqual(["@acme/github", "@acme/http"]);
+		expect(calls[0]?.args.slice(0, 3)).toEqual(["-r", "--filter=./clients/*", "publish"]);
+		expect(lines).toContain("  group: clients");
+	});
+
+	it("checks and publishes the group's packages one by one with --skip-already-published", async () => {
+		const { exec, calls } = makeExec({
+			npm: { exitCode: 1, stdout: "", stderr: "E404" },
+			pnpm: { exitCode: 0, stdout: "", stderr: "" },
+		});
+		await runSteadyPublish({
+			cwd: groupRepo(),
+			env: baseEnv,
+			group: "utils",
+			skipAlreadyPublished: true,
+			print: () => {},
+			exec,
+		});
+		expect(calls.filter((c) => c.cmd === "npm").map((c) => c.args[1])).toEqual(["@acme/array@1.16.0"]);
+		expect(calls.find((c) => c.cmd === "pnpm")?.args.slice(0, 2)).toEqual(["--filter", "./utils/array"]);
+	});
+
+	it("fails with nothing to publish for a group that has no packages", async () => {
+		const { exec, calls } = makeExec({});
+		const report = await runSteadyPublish({
+			cwd: groupRepo(),
+			env: baseEnv,
+			group: "skills",
+			print: () => {},
+			exec,
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/nothing to publish/);
+		expect(calls).toHaveLength(0);
 	});
 });

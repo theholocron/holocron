@@ -1,11 +1,25 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import type { PublicPackageEntry } from "../commands/publish/public-package-entry.type.js";
 import type { PublishExecResult } from "../commands/publish/publish.type.js";
 
 export type TempPackageSpec = { name: string; version?: string; private?: boolean; invalidJson?: boolean };
+
+/**
+ * A repo on disk, laid out by `files`: each repo-relative path maps to a JSON object
+ * (written as JSON) or a string (written verbatim, e.g. `pnpm-workspace.yaml`).
+ * Returns its root.
+ */
+export function makeTempWorkspace(files: Record<string, Record<string, unknown> | string>): string {
+	const root = mkdtempSync(join(tmpdir(), "holocron-workspace-"));
+	for (const [path, content] of Object.entries(files)) {
+		mkdirSync(dirname(join(root, path)), { recursive: true });
+		writeFileSync(join(root, path), typeof content === "string" ? content : JSON.stringify(content));
+	}
+	return root;
+}
 
 function writeTempWorkspaceDir(root: string, dirName: "packages" | "plugins", packages: TempPackageSpec[]) {
 	const dirPath = join(root, dirName);

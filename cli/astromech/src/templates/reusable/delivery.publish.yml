@@ -19,6 +19,19 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      group:
+        description: >
+          Version group to release: a folder of the repo (`clients`,
+          `observability`). Passed to the release config as RELEASE_GROUP, and
+          scopes every tag lookup below to that group's `<group>-v*` tags, so
+          releasing one group never reads another's. Empty releases the whole
+          repo, with plain `v*` tags. Groups push release commits to the same
+          branch, so release them one at a time (a matrix with `max-parallel: 1`);
+          each run starts from the branch's current tip, not the commit that
+          triggered the workflow.
+        type: string
+        required: false
+        default: ""
       post-release:
         description: >
           When true, dispatches a readme sync broadcast after a successful
@@ -116,6 +129,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          # A group's release commit moves the branch, so a later group's run must
+          # release from the branch's current tip, not the commit that triggered the
+          # workflow (semantic-release refuses to run behind its remote). Ungrouped,
+          # the default (the triggering commit) is unchanged.
+          ref: ${{ inputs.group != '' && github.ref || github.sha }}
           # Use HOLOCRON_RELEASE_TOKEN when available — git push (tags, release commits)
           # uses the checkout credential, not GITHUB_TOKEN env var. The
           # built-in github.token cannot push through branch protection rulesets.
@@ -149,7 +167,14 @@ jobs:
         id: release
         run: |
           BEFORE=$(git rev-parse HEAD)
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          # A group's tags are `<group>-v<version>`; without one, any tag (as before).
+          MATCH=()
+          PREFIX="v"
+          if [ -n "$RELEASE_GROUP" ]; then
+            MATCH=(--match "${RELEASE_GROUP}-v*")
+            PREFIX="${RELEASE_GROUP}-v"
+          fi
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${MATCH[@]}" 2>/dev/null || true)
           PREVIOUS=""
           if [ -n "$PREVIOUS_TAG" ]; then PREVIOUS=$(git rev-list -n 1 "$PREVIOUS_TAG"); fi
           if [ "$DRY_RUN" = "true" ]; then
@@ -167,15 +192,17 @@ jobs:
             echo "commit=$AFTER" >> "$GITHUB_OUTPUT"
             echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
             # The new version's channel: the prerelease identifier of its tag
-            # (v5.0.0-alpha.108 -> alpha), empty for a stable release.
-            VERSION=$(git describe --tags --abbrev=0)
-            VERSION=${VERSION#v}
+            # (v5.0.0-alpha.108 or cli-v5.0.0-alpha.108 -> alpha), empty for a stable release.
+            VERSION=$(git describe --tags --abbrev=0 "${MATCH[@]}")
+            VERSION=${VERSION#"$PREFIX"}
             CHANNEL=""
             case "$VERSION" in *-*) PRE=${VERSION#*-}; CHANNEL=${PRE%%.*} ;; esac
             echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
           fi
         env:
           DRY_RUN: ${{ inputs.dry-run }}
+          # Read by the repo's release config to release one version group.
+          RELEASE_GROUP: ${{ inputs.group }}
           # Prefer HOLOCRON_RELEASE_TOKEN (fine-grained PAT, Contents+Issues+PRs write,
           # owned by an admin with ruleset bypass) so @semantic-release/git can
           # push the version-bump commit through branch protection. Falls back to
@@ -208,10 +235,17 @@ jobs:
         if: ${{ inputs.sentry-project != '' && inputs.dry-run != true }}
         env:
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
+          RELEASE_GROUP: ${{ inputs.group }}
         run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          MATCH=()
+          PREFIX="v"
+          if [ -n "$RELEASE_GROUP" ]; then
+            MATCH=(--match "${RELEASE_GROUP}-v*")
+            PREFIX="${RELEASE_GROUP}-v"
+          fi
+          TAG=$(git describe --tags --abbrev=0 "${MATCH[@]}" 2>/dev/null || echo "")
           if [ -n "$TAG" ]; then
-            echo "release=${SENTRY_PROJECT}@${TAG#v}" >> "$GITHUB_OUTPUT"
+            echo "release=${SENTRY_PROJECT}@${TAG#"$PREFIX"}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Sentry release

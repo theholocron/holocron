@@ -4,16 +4,19 @@ description: Bump every non-private package's version in lockstep — the semant
 ---
 
 ```bash
-holocron package bump-versions <version>
+holocron package bump-versions <version> [--group <folder>]
 ```
 
 Bumps every non-private package's `version` field in every package the workspace declares (`pnpm-workspace.yaml`) to `<version>`. Used as the `prepareCmd` in `release.config.ts` during a `semantic-release` run.
+
+With `--group`, only one [version group](/self-hosting/#releasing-a-version-group) moves: the packages in that folder of the repo. The root `package.json` and every other group are left alone. A group with no packages is an error.
 
 ## Options
 
 | Option      | Description                                       |
 | ----------- | ------------------------------------------------- |
 | `<version>` | Target version (e.g. `4.2.0` or `2.0.0-alpha.1`)  |
+| `--group`   | Only this folder's packages; the root stays as is |
 | `--dry-run` | Print what would change without writing any files |
 | `--cwd`     | Monorepo root (default: `process.cwd()`)          |
 
@@ -22,6 +25,9 @@ Bumps every non-private package's `version` field in every package the workspace
 ```bash
 # In release.config.ts:
 prepareCmd: "node cli/cli/dist/cli.mjs package bump-versions ${nextRelease.version}"
+
+# One group, as that group's release.config.ts runs it:
+prepareCmd: "node cli/cli/dist/cli.mjs package bump-versions ${nextRelease.version} --group clients"
 
 # Manual invocation:
 holocron package bump-versions 4.2.0 --dry-run

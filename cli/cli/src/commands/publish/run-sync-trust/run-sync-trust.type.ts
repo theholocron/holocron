@@ -5,6 +5,11 @@ import type { PublishExecResult, PublishPrint, PublishStatus } from "../publish.
 export interface RunSyncTrustInput {
 	/** Working directory (the monorepo or package root). Defaults to process.cwd(). */
 	cwd?: string;
+	/**
+	 * Only this version group's packages: a folder of the repo (`clients`,
+	 * `observability`). Omitted, every public package in the workspace.
+	 */
+	group?: string;
 	/** The workflow filename npm's Trusted Publisher config currently points at. */
 	oldFile: string;
 	/** The workflow filename to migrate every package's Trusted Publisher config to. */

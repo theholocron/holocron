@@ -39,7 +39,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 	const repo = input.repo ?? "theholocron/holocron";
 	const dryRun = input.dryRun ?? false;
 	const exec = input.exec ?? defaultExec;
-	const packageNames = input.packages ?? discoverPublicPackages(cwd);
+	const packageNames = input.packages ?? discoverPublicPackages(cwd, input.group);
 	const npm = "npx";
 	const npmArgs = ["-y", "npm@latest"];
 

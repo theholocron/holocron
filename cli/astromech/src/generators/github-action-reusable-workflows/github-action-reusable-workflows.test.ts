@@ -1,3 +1,8 @@
+import { execFileSync, spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
@@ -614,5 +619,106 @@ describe("REUSABLE_WORKFLOWS['platform.repoSync'] — the role id comes from a s
 		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE:");
 		expect(wf).toContain("mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}");
 		expect(wf).not.toContain("vars.HOLOCRON_NOTIFY_ALERT_ROLE");
+	});
+});
+
+describe("delivery.publish.yml version groups", () => {
+	const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
+
+	it("takes an optional `group` string input, empty by default", () => {
+		expect(wf).toMatch(/\n {6}group:\n(?: {8}.*\n)*? {8}type: string\n {8}required: false\n {8}default: ""\n/);
+	});
+
+	it("hands the group to the release config as RELEASE_GROUP", () => {
+		expect(wf).toContain("RELEASE_GROUP: ${{ inputs.group }}");
+	});
+
+	it("releases a group from the branch's current tip, and an ungrouped repo from the triggering commit", () => {
+		expect(wf).toContain("ref: ${{ inputs.group != '' && github.ref || github.sha }}");
+	});
+
+	it("scopes every tag lookup to the group's `<group>-v*` tags, not just the release step's", () => {
+		expect(wf).not.toMatch(/git describe --tags --abbrev=0(?! "\$\{MATCH\[@\]\}")/);
+		expect(wf.match(/MATCH=\(--match "\$\{RELEASE_GROUP\}-v\*"\)/g)).toHaveLength(2);
+	});
+
+	describe("the release step's shell", () => {
+		/** The Release step's script, with `npx semantic-release` standing in as a commit and a tag. */
+		function runReleaseStep(group: string, tags: Record<string, string>, newTag: string) {
+			const start = wf.indexOf("      - name: Release\n        id: release\n        run: |\n");
+			const lines = wf.slice(start).split("        run: |\n")[1]!.split("\n");
+			const end = lines.findIndex((line) => line !== "" && !line.startsWith("          "));
+			const script = lines
+				.slice(0, end)
+				.map((line) => line.slice(10))
+				.join("\n");
+			const repo = mkdtempSync(join(tmpdir(), "astromech-release-step-"));
+			const out = join(repo, "..", `${repo.split("/").pop()}.out`);
+			writeFileSync(out, "");
+			const git = (...args: string[]) =>
+				execFileSync(
+					"git",
+					["-c", "core.hooksPath=/dev/null", "-c", "user.email=t@t", "-c", "user.name=t", ...args],
+					{
+						cwd: repo,
+						encoding: "utf8",
+						env: { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" },
+					}
+				).trim();
+			git("init", "-q");
+			const commits: Record<string, string> = {};
+			for (const [name, tag] of Object.entries(tags)) {
+				writeFileSync(join(repo, `${name}.txt`), name);
+				git("add", "-A");
+				git("commit", "-q", "-m", `feat: ${name}`);
+				git("tag", tag);
+				commits[tag] = git("rev-parse", "HEAD");
+			}
+			mkdirSync(join(repo, "x"), { recursive: true });
+			const shim = `npx() { git -c core.hooksPath=/dev/null -c user.email=t@t -c user.name=t commit -q --allow-empty -m release; git tag ${newTag}; }\n`;
+			const result = spawnSync("bash", ["-c", `set -eo pipefail\n${shim}${script}`], {
+				cwd: repo,
+				encoding: "utf8",
+				env: {
+					...process.env,
+					GIT_CONFIG_GLOBAL: "/dev/null",
+					GIT_CONFIG_SYSTEM: "/dev/null",
+					GITHUB_OUTPUT: out,
+					DRY_RUN: "false",
+					RELEASE_GROUP: group,
+				},
+			});
+			if (result.status !== 0) throw new Error(`release step exited ${result.status}: ${result.stderr}`);
+			const outputs = Object.fromEntries(
+				readFileSync(out, "utf8")
+					.split("\n")
+					.filter(Boolean)
+					.map((line) => [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)])
+			);
+			return { outputs, commits };
+		}
+
+		it("takes `previous` from the group's own last tag, not the nearest tag of another group", () => {
+			// utils is tagged after clients, so a bare `git describe` from the release commit finds utils
+			const { outputs, commits } = runReleaseStep(
+				"clients",
+				{ a: "clients-v1.0.0", b: "utils-v2.0.0" },
+				"clients-v1.1.0"
+			);
+			expect(outputs["previous"]).toBe(commits["clients-v1.0.0"]);
+			expect(outputs["commit"]).toMatch(/^[0-9a-f]{40}$/);
+			expect(outputs["channel"]).toBe("");
+		});
+
+		it("reads the channel of a group's prerelease tag past the group prefix", () => {
+			const { outputs } = runReleaseStep("cli", { a: "cli-v5.0.0-alpha.1" }, "cli-v5.0.0-alpha.2");
+			expect(outputs["channel"]).toBe("alpha");
+		});
+
+		it("keeps the ungrouped behavior: the nearest tag, `v` stripped for the channel", () => {
+			const { outputs, commits } = runReleaseStep("", { a: "v1.0.0", b: "v1.1.0" }, "v1.2.0-alpha.1");
+			expect(outputs["previous"]).toBe(commits["v1.1.0"]);
+			expect(outputs["channel"]).toBe("alpha");
+		});
 	});
 });
