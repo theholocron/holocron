@@ -7,31 +7,32 @@ import { runNpmBumpVersions } from "./npm-bump-versions.js";
 
 const CWD = "/repo";
 const PACKAGES_DIR = join(CWD, "packages");
-const PLUGINS_DIR = join(CWD, "plugins");
 
-function makeFs(files: Record<string, Record<string, unknown>>) {
+/** A JSON file's contents, or a string for a non-JSON file such as `pnpm-workspace.yaml`. */
+function makeFs(files: Record<string, Record<string, unknown> | string>) {
 	const written: Record<string, string> = {};
 	const toRel = (p: string) => (p.startsWith(CWD + "/") ? p.slice(CWD.length + 1) : p);
 	const readFile = (p: string): string => {
 		const rel = toRel(p);
 		const data = files[rel];
 		if (!data) throw new Error(`ENOENT: ${p}`);
-		return JSON.stringify(data, null, 2) + "\n";
+		return typeof data === "string" ? data : JSON.stringify(data, null, 2) + "\n";
 	};
 	const writeFile = (p: string, c: string) => {
 		written[p] = c;
 	};
 	const listDir = (p: string): string[] => {
-		const dirName = p === PACKAGES_DIR ? "packages" : p === PLUGINS_DIR ? "plugins" : undefined;
-		if (!dirName) throw new Error(`ENOENT: ${p}`);
-		return Object.keys(files)
-			.filter((k) => k.startsWith(`${dirName}/`))
-			.map((k) => k.split("/")[1] as string)
+		const prefix = `${toRel(p)}/`;
+		const names = Object.keys(files)
+			.filter((k) => k.startsWith(prefix))
+			.map((k) => k.slice(prefix.length).split("/")[0] as string)
 			.filter((v, i, a) => a.indexOf(v) === i);
+		if (names.length === 0) throw new Error(`ENOENT: ${p}`);
+		return names;
 	};
 	const isDir = (p: string): boolean => {
 		const rel = toRel(p);
-		return (rel.startsWith("packages/") || rel.startsWith("plugins/")) && !rel.endsWith("package.json");
+		return rel.includes("/") && !rel.endsWith(".json");
 	};
 	return { readFile, writeFile, listDir, isDir, written };
 }
@@ -365,5 +366,48 @@ describe("runNpmBumpVersions", () => {
 		});
 		expect(report.bumped).toEqual(["root", "packages/pkg"]);
 		expect(JSON.parse(written[join(CWD, "packages/pkg/package.json")]!).version).toBe("4.2.0");
+	});
+
+	it("bumps apps/* with no workspace file, like packages/* and plugins/* (holocron#1233 regression)", async () => {
+		const { readFile, writeFile, listDir, isDir, written } = makeFs({
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"apps/web/package.json": { name: "@acme/web", version: "4.1.0" },
+		});
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir,
+			isDir,
+		});
+		expect(report.bumped).toEqual(["root", "apps/web"]);
+		expect(JSON.parse(written[join(CWD, "apps/web/package.json")]!).version).toBe("4.2.0");
+	});
+
+	it("bumps every package the workspace file declares: `<dir>/*` groups and literal package folders", async () => {
+		const { readFile, writeFile, listDir, isDir, written } = makeFs({
+			"pnpm-workspace.yaml":
+				'packages:\n  - "clients/*"\n  - observability\n  - docs/theme\n  - "!clients/old"\n',
+			"package.json": { name: "root", version: "0.0.0", private: true },
+			"clients/http-client/package.json": { name: "@acme/http-client", version: "4.1.0" },
+			"clients/old/package.json": { name: "@acme/old", version: "4.1.0" },
+			"observability/package.json": { name: "@acme/observability", version: "4.1.0" },
+			"docs/theme/package.json": { name: "@acme/docs-theme", version: "4.1.0" },
+			"packages/ignored/package.json": { name: "@acme/ignored", version: "4.1.0" },
+		});
+		const report = await runNpmBumpVersions({
+			version: "4.2.0",
+			cwd: CWD,
+			print: () => {},
+			readFile,
+			writeFile,
+			listDir,
+			isDir,
+		});
+		expect(report.bumped).toEqual(["root", "clients/http-client", "observability", "docs/theme"]);
+		expect(JSON.parse(written[join(CWD, "observability/package.json")]!).version).toBe("4.2.0");
+		expect(written[join(CWD, "packages/ignored/package.json")]).toBeUndefined();
 	});
 });

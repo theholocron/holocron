@@ -36,13 +36,14 @@ try {
 // All changed files (for the docs-change check)
 const allChanged = git(`diff --name-only ${baseSha} HEAD`).split("\n").filter(Boolean);
 
-// New public packages: added packages/*/src/index.ts or plugins/*/src/index.ts where package is not private
+// New public packages: an added <package dir>/src/index.ts (any workspace layout: packages/x, clients/x, observability, ...) whose package.json is not private
 const newPackages = [];
 for (const file of addedFiles) {
-	const match = file.match(/^(packages|plugins)\/([^/]+)\/src\/index\.ts$/);
-	if (!match) continue;
-	const [, pkgRoot, pkgName] = match;
-	const pkgJsonPath = join(root, pkgRoot, pkgName, "package.json");
+	const match = file.match(/^(.+)\/src\/index\.ts$/);
+	if (!match || match[1].includes("node_modules")) continue;
+	const pkgDir = match[1];
+	const pkgName = pkgDir.split("/").at(-1);
+	const pkgJsonPath = join(root, pkgDir, "package.json");
 	if (!existsSync(pkgJsonPath)) continue;
 	try {
 		const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8"));

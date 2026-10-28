@@ -102,7 +102,7 @@ describe("runPluginCreate — orchestrator", () => {
 		).toThrow(PluginCreateError);
 	});
 
-	it("preflight fails when packages/ directory is absent", async () => {
+	it("preflight fails when the workspace declares no package directory that exists", async () => {
 		const { mkdtemp, writeFile: writeFileAsync, rm } = await import("node:fs/promises");
 		const { tmpdir } = await import("node:os");
 		const { join: pathJoin } = await import("node:path");
@@ -110,7 +110,7 @@ describe("runPluginCreate — orchestrator", () => {
 		const tmpDir = await mkdtemp(pathJoin(tmpdir(), "holocron-plugin-create-"));
 		try {
 			await writeFileAsync(pathJoin(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
-			// No packages/ directory
+			// pnpm-workspace.yaml lists packages/*, but there is no packages/ directory
 			expect(() =>
 				runPluginCreate({
 					...BASE_INPUT,
@@ -118,7 +118,7 @@ describe("runPluginCreate — orchestrator", () => {
 					writeFile: () => {},
 					print: () => {},
 				})
-			).toThrow(/packages.*not found/);
+			).toThrow(/declares no package directory/);
 		} finally {
 			await rm(tmpDir, { recursive: true });
 		}

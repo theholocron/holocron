@@ -116,9 +116,9 @@ export async function readWorkspacePackageJsons(
 	workspacePackages: readonly WorkspacePackage[]
 ): Promise<PackageJsonLike[]> {
 	const results: PackageJsonLike[] = [];
-	for (const { slug, dir = "packages" } of workspacePackages) {
+	for (const { slug, dir = "packages", path } of workspacePackages) {
 		// no package.json or invalid JSON — skipped, same as readWorkspacePackages().
-		const pkg = await readPackageJson(join(repoRoot, dir, slug));
+		const pkg = await readPackageJson(join(repoRoot, path ?? join(dir, slug)));
 		if (pkg) results.push(pkg);
 	}
 	return results;
