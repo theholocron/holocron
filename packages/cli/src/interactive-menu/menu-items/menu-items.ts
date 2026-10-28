@@ -43,7 +43,12 @@ export function menuItems(entries: CommandEntry[], path: string[] = []): MenuIte
 		const self = family.find((e) => e.name === full);
 		const nested = family.filter((e) => e.name !== full);
 		if (nested.length === 0 && self) {
-			items.push({ name: word, value: full, description: self.description, haystack: haystackOf([self]) });
+			items.push({
+				name: self.opensMenu ? `${word} ›` : word,
+				value: full,
+				description: self.description,
+				haystack: haystackOf([self]),
+			});
 		} else {
 			const children = [...new Set(nested.map((e) => e.name.split(" ")[path.length + 1]!))];
 			items.push({

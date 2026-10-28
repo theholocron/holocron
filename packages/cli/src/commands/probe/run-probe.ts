@@ -5,6 +5,7 @@ import { commandFailureMessage } from "../../ui/command-failure/index.js";
 import { NonInteractiveError } from "../../ui/non-interactive-error/index.js";
 import { sanitizeDetail, stripControl } from "../../ui/provider-error/index.js";
 import { statusRow } from "../../ui/status-row/index.js";
+import { style } from "../../ui/style/index.js";
 import type { ProbeReport, RunProbeInput } from "./probe.type.js";
 import { createScrubber } from "./scrub.js";
 
@@ -32,7 +33,8 @@ export async function runProbe(input: RunProbeInput): Promise<ProbeReport> {
 			...(row.detail ? { detail: scrub(sanitizeDetail(row.detail)) } : {}),
 		};
 		rows.push(clean);
-		print(statusRow(clean.status === "info" ? "skip" : clean.status, [clean.label, clean.detail ?? ""]));
+		if (clean.status === "heading") print(`\n  ${style.header(clean.label)}`);
+		else print(statusRow(clean.status === "info" ? "skip" : clean.status, [clean.label, clean.detail ?? ""]));
 	};
 
 	if (input.probe.writes && !input.dryRun && !input.yes) {

@@ -17,8 +17,9 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	await loader.load();
 
 	const groups = new Map<string, PluginProbes>(loader.probes());
-	groups.set(CORE_PROVIDER, coreProbes(loader));
-	groups.set(COMLINK_PROVIDER, comlinkProbes({ loader }));
+	const comlink = comlinkProbes({ loader });
+	groups.set(CORE_PROVIDER, coreProbes(loader, new Map([[COMLINK_PROVIDER, comlink]])));
+	groups.set(COMLINK_PROVIDER, comlink);
 
 	if (!input.provider) {
 		if (input.pick) await input.pick(groups);

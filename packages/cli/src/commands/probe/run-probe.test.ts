@@ -46,6 +46,18 @@ describe("runProbe", () => {
 		expect(text()).toContain("1 ok, 0 fail");
 	});
 
+	it("prints a heading as a title, not as a result", async () => {
+		const { promise, text } = run(
+			reader(async (ctx) => {
+				ctx.say({ status: "heading", label: "Title" });
+				ctx.say({ status: "ok", label: "a" });
+			})
+		);
+		expect((await promise).rows.map((r) => r.status)).toEqual(["heading", "ok"]);
+		expect(text()).toContain("Title");
+		expect(text()).toContain("1 ok, 0 fail");
+	});
+
 	it("reports fail when a row fails or the probe throws, and says why", async () => {
 		const failing = await run(reader(async (ctx) => ctx.say({ status: "fail", label: "x" }))).promise;
 		expect(failing.status).toBe("fail");

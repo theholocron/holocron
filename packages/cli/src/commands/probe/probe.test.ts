@@ -20,7 +20,8 @@ function fakeLoader(over: { failures?: Array<{ key: string; provider: string; er
 	return {
 		load: async () => {},
 		probes: () => new Map([["demo", probes]]),
-		loadedKeys: () => ["source"],
+		loadedKeys: () => ["source", "ci"],
+		get: (key: string) => (key === "source" ? { providerName: "github" } : [{ providerName: "demo" }, {}]),
 		loadFailures: () => over.failures ?? [],
 	} as unknown as PluginLoader;
 }
@@ -117,14 +118,17 @@ describe("runProbeCommand", () => {
 			expect(text()).toContain("source");
 			expect(text()).toContain("workers (cloudflare)");
 			expect(text()).toContain("needs an accountId");
-			expect(text()).toContain("probes offered by  demo");
+			expect(text()).toMatch(/Capabilities[\s\S]*Providers/);
+			expect(text()).toMatch(/demo\s+look, make/);
+			expect(text()).toMatch(/github\s+no probes yet/);
+			expect(text()).toMatch(/comlink \(built in\)\s+bindings, deliver, unsigned/);
 		});
 
-		it("says when no provider offers probes", async () => {
+		it("says when a provider offers no probes", async () => {
 			const loader = { ...fakeLoader(), probes: () => new Map() } as unknown as PluginLoader;
 			const { promise, text } = run({ provider: "core", probe: "providers", loader });
 			expect((await promise).status).toBe("ok");
-			expect(text()).toContain("no configured provider");
+			expect(text()).toMatch(/demo\s+no probes yet/);
 		});
 	});
 

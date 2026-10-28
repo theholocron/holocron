@@ -15,6 +15,11 @@ describe("menuItems — one level of the nested menu", () => {
 		expect(names()).not.toContain("doctor"); // only the group, never a second runnable row
 	});
 
+	it("marks `probe` with the chevron, though it is a runnable command and not a group, and does not preview it", () => {
+		expect(valueOf("probe ›")).toBe("probe");
+		expect(COMMAND_REGISTRY.find((e) => e.name === "probe")?.supportsDryRun).toBeFalsy();
+	});
+
 	it("keeps plain `doctor` runnable, as the first item of its own submenu", () => {
 		expect(names(["doctor"])).toEqual(["doctor (run it)", "notifications"]);
 		expect(valueOf("doctor (run it)", ["doctor"])).toBe("doctor");
