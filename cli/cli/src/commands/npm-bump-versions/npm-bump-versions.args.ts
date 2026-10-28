@@ -13,6 +13,13 @@ export const npmBumpVersionsArgs = (y: Argv<GlobalArgs>) =>
 			describe:
 				"Only this version group's packages: a folder of the repo (clients, observability). " +
 				"The root package.json is left alone. Omitted, the root and every workspace package move together.",
+		})
+		.option("exclude-group", {
+			type: "string",
+			array: true,
+			describe:
+				"Leave this version group's packages alone (repeatable). The repo-wide bump uses it so it " +
+				"does not move a group that is released on its own.",
 		});
 
 export type NpmBumpVersionsArgs = InferArgs<typeof npmBumpVersionsArgs>;

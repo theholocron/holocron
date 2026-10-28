@@ -78,29 +78,73 @@ describe("version groups", () => {
 		});
 
 	it("discoverManifests lists only the group's packages", () => {
-		expect(discoverManifests(root(), "clients").map(({ dir }) => dir)).toEqual([
+		expect(discoverManifests(root(), { group: "clients" }).map(({ dir }) => dir)).toEqual([
 			"./clients/github",
 			"./clients/http",
 			"./clients/internal",
 		]);
-		expect(discoverManifests(root(), "observability").map(({ dir }) => dir)).toEqual(["./observability"]);
+		expect(discoverManifests(root(), { group: "observability" }).map(({ dir }) => dir)).toEqual([
+			"./observability",
+		]);
 	});
 
 	it("a group with no packages publishes nothing, never the root package", () => {
-		expect(discoverManifests(root(), "skills")).toEqual([]);
+		expect(discoverManifests(root(), { group: "skills" })).toEqual([]);
 	});
 
 	it("keeps public packages only, with versions", () => {
-		expect(discoverPublicPackageEntries(root(), "clients")).toEqual([
+		expect(discoverPublicPackageEntries(root(), { group: "clients" })).toEqual([
 			{ name: "@acme/github", version: "1.5.0", dir: "./clients/github" },
 			{ name: "@acme/http", version: "1.5.0", dir: "./clients/http" },
 		]);
-		expect(discoverPublicPackages(root(), "utils")).toEqual(["@acme/array"]);
+		expect(discoverPublicPackages(root(), { group: "utils" })).toEqual(["@acme/array"]);
 	});
 
 	it("filters by the globs that hold the group's public packages", () => {
-		expect(workspaceFilterArgs(root(), "clients")).toEqual(["-r", "--filter=./clients/*"]);
-		expect(workspaceFilterArgs(root(), "observability")).toEqual(["-r", "--filter=./observability"]);
-		expect(workspaceFilterArgs(root(), "skills")).toEqual([]);
+		expect(workspaceFilterArgs(root(), { group: "clients" })).toEqual(["-r", "--filter=./clients/*"]);
+		expect(workspaceFilterArgs(root(), { group: "observability" })).toEqual(["-r", "--filter=./observability"]);
+		expect(workspaceFilterArgs(root(), { group: "skills" })).toEqual([]);
+	});
+
+	describe("excluding groups", () => {
+		it("leaves a group's packages out of the repo-wide set", () => {
+			expect(
+				discoverManifests(root(), { excludeGroups: ["clients", "observability"] }).map(({ dir }) => dir)
+			).toEqual(["./utils/array"]);
+		});
+
+		it("leaves excluded groups out of the public entries and names", () => {
+			expect(discoverPublicPackageEntries(root(), { excludeGroups: ["clients"] }).map((e) => e.name)).toEqual([
+				"@acme/observability",
+				"@acme/array",
+			]);
+			expect(discoverPublicPackages(root(), { excludeGroups: ["clients", "utils"] })).toEqual([
+				"@acme/observability",
+			]);
+		});
+
+		it("filters by the globs that still hold a package", () => {
+			expect(workspaceFilterArgs(root(), { excludeGroups: ["observability"] })).toEqual([
+				"-r",
+				"--filter=./clients/*",
+				"--filter=./utils/*",
+			]);
+			expect(workspaceFilterArgs(root(), { excludeGroups: ["clients", "observability", "utils"] })).toEqual([]);
+		});
+
+		it("falls back to the root package when excluding leaves nothing public, as for a repo with none", () => {
+			expect(
+				discoverManifests(root(), { excludeGroups: ["clients", "observability", "utils"] }).map(
+					({ dir }) => dir
+				)
+			).toEqual(["."]);
+		});
+
+		it("combines with a group: only that group, less what is excluded", () => {
+			expect(discoverManifests(root(), { group: "clients", excludeGroups: ["clients"] })).toEqual([]);
+			expect(
+				discoverManifests(root(), { group: "utils", excludeGroups: ["clients"] }).map(({ dir }) => dir)
+			).toEqual(["./utils/array"]);
+		});
 	});
 });

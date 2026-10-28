@@ -31,7 +31,7 @@ describe("groupedPublishCaller", () => {
 		const out = caller(["utils", { name: "cli" }]);
 		expect(out).toContain(
 			"      group:\n        description: >\n          Release one version group instead of all of them. Push-triggered\n" +
-				"          runs always release every group.\n        required: false\n        default: all\n        type: choice\n" +
+				"          runs always release everything.\n        required: false\n        default: all\n        type: choice\n" +
 				"        options:\n          - all\n          - utils\n          - cli\n"
 		);
 	});
@@ -61,6 +61,75 @@ describe("groupedPublishCaller", () => {
 		expect(caller([{ name: "cli", "sentry-project": "it's" }])).toContain(`"sentry-project":"it''s"`);
 	});
 
+	describe("with an ungrouped release", () => {
+		const out = () =>
+			groupedPublishCaller(
+				base,
+				["observability", { name: "skills", "run-build": false }],
+				{ "post-release": false },
+				{
+					"sentry-project": "holocron-cli",
+					"deploy-on-release": true,
+				}
+			);
+
+		it("releases the packages in no group first, under the repo's own tags and without a group", () => {
+			const jobs = out().slice(out().indexOf("jobs:\n"));
+			const release = jobs.slice(jobs.indexOf("  release:\n"), jobs.indexOf("  plan:\n"));
+			expect(release).toContain("    name: Release\n");
+			expect(release).toContain("uses: theholocron/.github/.github/workflows/delivery.publish.yml@main");
+			expect(release).not.toContain("group:");
+			expect(release).not.toContain("matrix");
+			expect(release.trimEnd().endsWith("secrets: inherit")).toBe(true);
+		});
+
+		it("gives that release its own inputs and the shared ones, but not the groups' per-group ones", () => {
+			const jobs = out().slice(out().indexOf("jobs:\n"));
+			const release = jobs.slice(jobs.indexOf("  release:\n"), jobs.indexOf("  plan:\n"));
+			expect(release).toContain("      sentry-project: holocron-cli\n      deploy-on-release: true\n");
+			expect(release).toContain("      post-release: false\n");
+			expect(release).not.toContain("run-build");
+		});
+
+		it("keeps the Sentry and deploy settings off the groups' releases", () => {
+			const matrix = out().slice(out().indexOf("  release-groups:"));
+			expect(matrix).not.toContain("sentry-project");
+			expect(matrix).not.toContain("deploy-on-release");
+			expect(matrix).toContain("      run-build: ${{ matrix.run-build == true }}\n");
+		});
+
+		it("runs the groups after it, even if it failed or was skipped, one at a time", () => {
+			const matrix = out().slice(out().indexOf("  release-groups:"));
+			expect(matrix).toContain("    needs: [plan, release]\n");
+			expect(matrix).toContain("    if: ${{ !cancelled() && needs.plan.result == 'success' }}\n");
+			expect(matrix).toContain("      max-parallel: 1\n");
+		});
+
+		it("lets a manual run pick the ungrouped release, which a group choice skips", () => {
+			expect(out()).toContain(
+				"          - all\n          - ungrouped\n          - observability\n          - skills\n"
+			);
+			expect(out()).toContain(
+				"    if: ${{ inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped' }}\n"
+			);
+		});
+
+		it("accepts `true` for an ungrouped release with no inputs of its own", () => {
+			const plain = groupedPublishCaller(base, ["observability"], {}, true);
+			expect(plain).toContain("  release-groups:");
+			expect(plain).toContain("      dry-run: ${{ inputs.dry_run == true }}\n    secrets: inherit");
+		});
+
+		it("is absent unless asked for: the matrix job keeps the id `release`", () => {
+			for (const flag of [undefined, false]) {
+				const without = groupedPublishCaller(base, ["observability"], {}, flag);
+				expect(without).toContain("  release:\n    name: Release ${{ matrix.group }}");
+				expect(without).not.toContain("release-groups");
+				expect(without).not.toContain("- ungrouped");
+			}
+		});
+	});
+
 	describe("rejects", () => {
 		it.each([
 			["no groups", []],
@@ -79,11 +148,33 @@ describe("groupedPublishCaller", () => {
 		});
 
 		it("an input that is not per-group, naming the ones that are", () => {
-			expect(() => caller([{ name: "utils", "dry-run": true }])).toThrow(/"dry-run".*deploy-on-release/);
+			expect(() => caller([{ name: "utils", "dry-run": true }])).toThrow(
+				/"dry-run".*per-release.*deploy-on-release/
+			);
 		});
 
 		it("an input value that is not a string or a boolean", () => {
 			expect(() => caller([{ name: "utils", "run-build": 1 }])).toThrow(/string or a boolean/);
+		});
+
+		it.each([["all"], ["ungrouped"]])("the reserved group name %s", (name) => {
+			expect(() => caller([name])).toThrow(/not "all" or "ungrouped"/);
+		});
+
+		it.each([["yes"], [["x"]], [3]])("an `ungrouped` that is not true or an object (%j)", (value) => {
+			expect(() => groupedPublishCaller(base, ["a"], {}, value)).toThrow(/ungrouped.*true, or an object/);
+		});
+
+		it("an input the ungrouped release cannot set for itself", () => {
+			expect(() => groupedPublishCaller(base, ["a"], {}, { "dry-run": true })).toThrow(
+				/`ungrouped` sets "dry-run"/
+			);
+		});
+
+		it("an input set both for every release and for the ungrouped one", () => {
+			expect(() =>
+				groupedPublishCaller(base, ["a"], { "sentry-project": "x" }, { "sentry-project": "y" })
+			).toThrow(/sentry-project is set both/);
 		});
 
 		it("an input set both for every group and for a group", () => {
@@ -110,6 +201,16 @@ describe("generateThinCallerContent for delivery.publish", () => {
 		);
 		expect(out).toContain("fromJSON(needs.plan.outputs.groups)");
 		expect(out).toContain("      post-release: true\n");
+	});
+
+	it("takes `ungrouped` as the repo-wide release's own inputs rather than passing it on to the reusable", () => {
+		const out = generateThinCallerContent(
+			"delivery.publish",
+			normalizeWorkflowWith({ groups: ["utils"], ungrouped: { "sentry-project": "holocron-cli" } })
+		);
+		expect(out).toContain("  release-groups:");
+		expect(out).toContain("      sentry-project: holocron-cli\n");
+		expect(out).not.toContain("ungrouped:");
 	});
 
 	it("does not treat groups on another workflow specially", () => {

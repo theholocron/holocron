@@ -3,6 +3,7 @@ import { defaultExec } from "../default-exec.js";
 import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";
 import type { PublishReport } from "../publish.type.js";
 import { redactOtp } from "../redact-otp.js";
+import { scopeOf } from "../scope-of.js";
 import { workspaceFilterArgs } from "../workspace-filter-args.js";
 import type { RunSteadyPublishInput } from "./run-steady-publish.type.js";
 
@@ -31,12 +32,13 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 	const exec = input.exec ?? defaultExec;
 	const provenance = input.provenance ?? true;
 	const skipAlreadyPublished = input.skipAlreadyPublished ?? false;
-	const entries = input.packages ?? discoverPublicPackageEntries(cwd, input.group);
+	const entries = input.packages ?? discoverPublicPackageEntries(cwd, scopeOf(input));
 	const packageNames = entries.map((e) => e.name);
 
 	print(`Holocron publish${dryRun ? " (dry-run)" : ""}`);
 	print(`  cwd: ${cwd}`);
 	if (input.group) print(`  group: ${input.group}`);
+	if (input.excludeGroups?.length) print(`  excluding groups: ${input.excludeGroups.join(", ")}`);
 	print(`  tag: ${tag}`);
 	print(`  provenance: ${provenance}`);
 	if (skipAlreadyPublished) print("  skip-already-published: true");
@@ -61,7 +63,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 				print(`  … would check ${entry.name}@${entry.version}, publish if not already on npm`);
 			}
 		} else {
-			const args = [...workspaceFilterArgs(cwd, input.group), "publish", ...baseFlags, ...otpFlags];
+			const args = [...workspaceFilterArgs(cwd, scopeOf(input)), "publish", ...baseFlags, ...otpFlags];
 			print(`  … (dry-run) skipping actual publish`);
 			print(`    would run: pnpm ${redactOtp(args, otp).join(" ")}`);
 		}
@@ -102,7 +104,7 @@ export async function runSteadyPublish(input: RunSteadyPublishInput = {}): Promi
 	}
 
 	print("  → publishing all public @theholocron/* packages…");
-	const args = [...workspaceFilterArgs(cwd, input.group), "publish", ...baseFlags, ...otpFlags];
+	const args = [...workspaceFilterArgs(cwd, scopeOf(input)), "publish", ...baseFlags, ...otpFlags];
 	const publish = await exec("pnpm", args, { cwd });
 	if (publish.exitCode !== 0) {
 		const message = `publish failed (exit ${publish.exitCode}): ${publish.stderr.trim() || publish.stdout.trim() || "no output"}`;

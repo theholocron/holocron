@@ -11,6 +11,11 @@ export interface RunSteadyPublishInput {
 	 * `observability`). Omitted, every public package in the workspace.
 	 */
 	group?: string;
+	/**
+	 * Everything except these version groups, which release on their own. Used by the
+	 * repo-wide release so it does not take in a group released separately.
+	 */
+	excludeGroups?: readonly string[];
 	/** Distribution tag for the publish. Defaults to `'latest'` (steady-state releases are stable by default; `--initial`'s bootstrap default is `'alpha'`). */
 	tag?: string;
 	/** Skip the actual publish; print what would happen. */

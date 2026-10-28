@@ -458,6 +458,19 @@ describe("runNpmBumpVersions", () => {
 			expect(written).toEqual({});
 		});
 
+		it("moves the root and every other package when groups are excluded, leaving the excluded ones at their version", async () => {
+			const { report, written, lines } = await bump("", {
+				group: undefined,
+				excludeGroups: ["observability", "utils"],
+			});
+			expect(report.bumped).toEqual(["root", "clients/http"]);
+			expect(report.skipped).toEqual(["clients/internal"]);
+			expect(written[join(CWD, "observability/package.json")]).toBeUndefined();
+			expect(written[join(CWD, "utils/array/package.json")]).toBeUndefined();
+			expect(JSON.parse(written[join(CWD, "package.json")]!).version).toBe("2.0.0");
+			expect(lines[0]).toBe("Bumping monorepo, leaving out observability, utils, to 2.0.0…");
+		});
+
 		it("fails for a group that has no packages", async () => {
 			const { report, written, lines } = await bump("skills");
 			expect(report.status).toBe("fail");

@@ -49,4 +49,23 @@ describe("publish command's --group", () => {
 		await runCommand(publishCommand, ["publish", "--sync-trust", "old.yml", "new.yml"]);
 		expect("group" in runSyncTrust.mock.calls[1]![0]).toBe(false);
 	});
+
+	it("steady-state publishes everything except the --exclude-group groups", async () => {
+		await runCommand(publishCommand, ["publish", "--exclude-group", "observability", "--exclude-group", "skills"]);
+		const input = runSteadyPublish.mock.calls[0]![0];
+		expect(input).toMatchObject({ excludeGroups: ["observability", "skills"] });
+		expect("group" in input).toBe(false);
+	});
+
+	it("passes the excluded groups to --initial and --sync-trust too", async () => {
+		await runCommand(publishCommand, ["publish", "--initial", "--exclude-group", "utils"]);
+		expect(runPublish.mock.calls[0]![0]).toMatchObject({ excludeGroups: ["utils"] });
+		await runCommand(publishCommand, ["publish", "--sync-trust", "old.yml", "new.yml", "--exclude-group", "utils"]);
+		expect(runSyncTrust.mock.calls[0]![0]).toMatchObject({ excludeGroups: ["utils"] });
+	});
+
+	it("passes no excluded groups when none are given", async () => {
+		await runCommand(publishCommand, ["publish"]);
+		expect("excludeGroups" in runSteadyPublish.mock.calls[0]![0]).toBe(false);
+	});
 });

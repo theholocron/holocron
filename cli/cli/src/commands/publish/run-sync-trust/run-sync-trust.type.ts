@@ -10,6 +10,11 @@ export interface RunSyncTrustInput {
 	 * `observability`). Omitted, every public package in the workspace.
 	 */
 	group?: string;
+	/**
+	 * Everything except these version groups, which release on their own. Used by the
+	 * repo-wide release so it does not take in a group released separately.
+	 */
+	excludeGroups?: readonly string[];
 	/** The workflow filename npm's Trusted Publisher config currently points at. */
 	oldFile: string;
 	/** The workflow filename to migrate every package's Trusted Publisher config to. */

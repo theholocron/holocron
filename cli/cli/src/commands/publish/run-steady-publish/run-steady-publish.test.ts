@@ -402,4 +402,19 @@ describe("runSteadyPublish with a version group", () => {
 		expect(report.message).toMatch(/nothing to publish/);
 		expect(calls).toHaveLength(0);
 	});
+
+	it("leaves excluded groups out of a repo-wide publish, and says so", async () => {
+		const { exec, calls } = makeExec({ pnpm: { exitCode: 0, stdout: "", stderr: "" } });
+		const lines: string[] = [];
+		const report = await runSteadyPublish({
+			cwd: groupRepo(),
+			env: baseEnv,
+			excludeGroups: ["clients"],
+			print: (l) => lines.push(l),
+			exec,
+		});
+		expect(report.packageNames).toEqual(["@acme/array"]);
+		expect(calls[0]?.args.slice(0, 3)).toEqual(["-r", "--filter=./utils/*", "publish"]);
+		expect(lines).toContain("  excluding groups: clients");
+	});
 });

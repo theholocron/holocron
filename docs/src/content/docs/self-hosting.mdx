@@ -122,6 +122,26 @@ The generated workflow has a `plan` job and a `release` job that calls the reusa
 - **A push releases every group.** A manual run has a `group` choice (default `all`) and the usual dry-run switch, so `group: clients` with a dry run previews that group's next release alone. A job's `if:` cannot see the matrix, which is why `plan` makes the choice.
 - **Per-group inputs.** Only `deploy-on-release`, `post-release`, `run-build` and `sentry-project` can be set per group; anything else under `with:` applies to every group. Setting the same input both ways is an error.
 
+**Packages in no group.** Listing groups makes the workflow release _only_ those groups, so a repo that also has packages outside them (holocron's own `cli/`, `plugins/` and `apps/` next to an imported `observability/`) adds `ungrouped`:
+
+```ts
+with: {
+  groups: ["observability"],
+  // everything in no group, released together under the repo's plain `v*` tags, first
+  ungrouped: { "sentry-project": "holocron-cli", "deploy-on-release": true },
+}
+```
+
+`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs before the groups, and a manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`package bump-versions` and `package publish` both take it), and releases a single group when `RELEASE_GROUP` is set:
+
+```ts
+import { loadTasksConfig } from "@theholocron/astromech/config";
+import { groupReleaseConfig, releaseGroups } from "@theholocron/astromech/release";
+
+const groups = releaseGroups(await loadTasksConfig(process.cwd()));
+const group = process.env["RELEASE_GROUP"];
+```
+
 The workflow keeps its filename (`delivery.publish.yml`), because npm Trusted Publishing is bound to the repository and workflow file. A repo that does not list `groups` gets the same single-release workflow as before.
 
 The reusable workflow is read from `theholocron/.github`, so run `holocron sync github` to publish its `group` input before a repo starts passing one.
