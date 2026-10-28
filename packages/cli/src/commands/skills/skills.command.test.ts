@@ -4,10 +4,13 @@ const loadConfig = vi.hoisted(() => vi.fn(async () => ({ resolved: {}, filepath:
 const runSkillsInstall = vi.hoisted(() => vi.fn(async () => {}));
 const runSkillsRemove = vi.hoisted(() => vi.fn(() => ({ status: "ok" })));
 const runSkillsUpdate = vi.hoisted(() => vi.fn(() => ({ status: "ok" })));
-const launchGroupMenu = vi.hoisted(() => vi.fn(async () => {}));
+const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./skills.js", () => ({ runSkillsInstall, runSkillsRemove, runSkillsUpdate }));
-vi.mock("../../cli-support/index.js", () => ({ launchGroupMenu }));
+vi.mock("../../interactive-menu/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../interactive-menu/index.js")>()),
+	launchMenu,
+}));
 
 import yargs from "yargs";
 
@@ -57,6 +60,12 @@ describe("skills command", () => {
 
 	it("opens a menu of the subcommands for a bare `skills`", async () => {
 		await parse(["skills"]);
-		expect(launchGroupMenu).toHaveBeenCalledWith("skills", expect.objectContaining({ cwd: "/repo" }));
+		expect(launchMenu).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ cwd: "/repo" }),
+			"skills — choose a subcommand:",
+			expect.any(String),
+			["skills"]
+		);
 	});
 });

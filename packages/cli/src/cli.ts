@@ -1,6 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 
 import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
@@ -12,6 +10,7 @@ import { configShowCommand } from "./commands/config-show/index.js";
 import { commandsInContext } from "./commands/contexts/index.js";
 import { deployCommand } from "./commands/deploy/deploy.command.js";
 import { doctorCommand } from "./commands/doctor/index.js";
+import { menuCommand } from "./commands/menu/menu.command.js";
 import { monitoringCommand } from "./commands/monitoring/monitoring.command.js";
 import { newCommand } from "./commands/new/new.command.js";
 import { notificationsCommand } from "./commands/notifications/notifications.command.js";
@@ -22,11 +21,9 @@ import { runCommand } from "./commands/run/run.command.js";
 import { secretsCommand } from "./commands/secrets/secrets.command.js";
 import { skillsCommand } from "./commands/skills/index.js";
 import { syncCommand } from "./commands/sync/sync.command.js";
-import { buildRunMenuEntries, COMMAND_REGISTRY, launchMenu, listRunnableTasks } from "./interactive-menu/index.js";
 import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
 import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
-import { style } from "./ui/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
 
 const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
@@ -35,20 +32,6 @@ const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.jso
 
 /** Whether to print the correlation id at command end (`--debug` / `--verbose`). */
 let printRunId = false;
-
-/**
- * Print the dim version line once per terminal session — keyed by the
- * parent shell's PID, since that's stable across repeated bare `holocron`
- * invocations in the same shell but changes in a new tab/window. A marker
- * file in the OS tmpdir tracks whether this shell has already seen it, so
- * re-running `holocron` doesn't repeat the line every time.
- */
-function printVersionHeaderOnce(): void {
-	const marker = join(tmpdir(), `.holocron-version-shown-${process.ppid}`);
-	if (existsSync(marker)) return;
-	console.log(style.dim(`v${CLI_VERSION}`));
-	writeFileSync(marker, "");
-}
 
 init(CLI_VERSION);
 const updateCheckPromise = checkForUpdates(CLI_VERSION);
@@ -143,16 +126,7 @@ try {
 		.command(runCommand as never)
 		.command(configShowCommand as never)
 		.command(authCommand as never)
-		.command(
-			"$0",
-			false,
-			() => {},
-			async (argv) => {
-				printVersionHeaderOnce();
-				const runEntries = buildRunMenuEntries(await listRunnableTasks(argv));
-				await launchMenu([...COMMAND_REGISTRY, ...runEntries], argv);
-			}
-		)
+		.command(menuCommand(CLI_VERSION) as never)
 		.command(repoCommand as never)
 		.command(newCommand as never)
 		.command(probeCommand as never)
