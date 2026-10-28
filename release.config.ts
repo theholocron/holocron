@@ -1,6 +1,5 @@
 import { loadTasksConfig } from "@theholocron/astromech/config";
-import { groupReleaseConfig, releaseGroups } from "@theholocron/astromech/release";
-import { defineConfig } from "@theholocron/semantic-release-config";
+import { groupReleaseConfig, releaseGroups, ungroupedReleaseConfig } from "@theholocron/astromech/release";
 
 const branches = ["main", { name: "alpha", prerelease: true }];
 const holocron = "node cli/cli/dist/cli.mjs";
@@ -24,7 +23,8 @@ export default group
 				publishCmd: `${holocron} package publish --group ${group} --skip-already-published --tag ${tag}`,
 			},
 		})
-	: defineConfig({
+	: ungroupedReleaseConfig({
+			groups,
 			branches,
 			// semantic-release-config's default still names `packages/*/package.json`
 			assets: ["CHANGELOG.md", "package.json", "cli/*/package.json"],
