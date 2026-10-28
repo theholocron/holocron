@@ -1,3 +1,4 @@
+export * from "./probe.command.js";
 export * from "./probe.js";
 export type * from "./probe.type.js";
 export * from "./run-probe.js";

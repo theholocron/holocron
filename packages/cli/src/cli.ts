@@ -6,24 +6,19 @@ import { confirm, input, select } from "@inquirer/prompts";
 import { createAstromech, deployOnRelease } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
 import { lintCommitMsgFile } from "@theholocron/astromech/lint";
-import { LOG_LEVELS, type LogLevel } from "@theholocron/observability/core";
+import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import {
-	AuthError,
-	createFeatureResolver,
-	type ParsedTokenArgs,
-	parseTokenArgs,
-	TokenParseError,
-} from "./auth/index.js";
+import { AuthError, createFeatureResolver } from "./auth/index.js";
+import { applyResolvedConfig, launchGroupMenu, parseScope, resolveOrg, tokenContext } from "./cli-support/index.js";
 import { runAuthCheck, runAuthList, runAuthSet, runAuthUnset } from "./commands/auth/index.js";
 import { runCleanupPreview } from "./commands/cleanup-preview/index.js";
 import { parseCloneTarget, runClone, type WholeOrgScope } from "./commands/clone/index.js";
+import { configShowCommand } from "./commands/config-show/index.js";
 import { commandsInContext } from "./commands/contexts/index.js";
 import { runDeploy, runDeployFromFiles } from "./commands/deploy/index.js";
-import { runDoctor } from "./commands/doctor/index.js";
-import { runDoctorNotifications } from "./commands/doctor-notifications/index.js";
+import { doctorCommand } from "./commands/doctor/index.js";
 import { resolveMonitoringChecks, runMonitoringCheck } from "./commands/monitoring-check/index.js";
 import { runMonitoringResolveChecks } from "./commands/monitoring-resolve-checks/index.js";
 import { resolveVercelBypassHeaders, runMonitoringRunResolved } from "./commands/monitoring-run-resolved/index.js";
@@ -35,21 +30,20 @@ import { runNotificationsSetup } from "./commands/notifications-setup/index.js";
 import { runNotificationsSyncRoles } from "./commands/notifications-sync-roles/index.js";
 import { runNpmBumpVersions } from "./commands/npm-bump-versions/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./commands/plugin-create/index.js";
-import { runProbeCommand } from "./commands/probe/index.js";
+import { probeCommand } from "./commands/probe/index.js";
 import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./commands/publish/index.js";
 import { runSecretSet } from "./commands/secret-set/index.js";
 import { runSecretsSync } from "./commands/secrets-sync/index.js";
 import { runSetup } from "./commands/setup/index.js";
-import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./commands/skills/index.js";
+import { skillsCommand } from "./commands/skills/index.js";
 import { runSync } from "./commands/sync/index.js";
 import { runSyncGithub } from "./commands/sync-github/index.js";
 import { runSyncReadme } from "./commands/sync-readme/index.js";
 import { runUpgradeDeps } from "./commands/upgrade-deps/index.js";
 import { runUpgradeNode } from "./commands/upgrade-node/index.js";
-import { loadConfig, type TelemetryConfig } from "./config/index.js";
+import { loadConfig } from "./config/index.js";
 import { env } from "./env/index.js";
 import {
-	buildProbeMenuEntries,
 	buildRunMenuEntries,
 	COMMAND_REGISTRY,
 	DRY_RUN_NOOP_EXIT_CODE,
@@ -58,18 +52,11 @@ import {
 	launchMenu,
 	listRunnableTasks,
 } from "./interactive-menu/index.js";
-import { buildCliLogger, type BuildCliLoggerOpts, getRunId, reportError } from "./observability/logger/index.js";
-import {
-	applyConfig,
-	captureException,
-	endSession,
-	flush,
-	init,
-	startCommand,
-} from "./observability/telemetry/index.js";
+import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
+import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
 import { CARDINALITY } from "./plugin/index.js";
 import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
-import { NonInteractiveError, openPath, promptForPositionals, style, viewJson } from "./ui/index.js";
+import { NonInteractiveError, openPath, promptForPositionals, style } from "./ui/index.js";
 import { checkForUpdates } from "./update-notifier/index.js";
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
@@ -83,16 +70,6 @@ const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.jso
 let printRunId = false;
 
 /**
- * Resolves the active org in priority order:
- *   1. `--org` CLI flag
- *   2. `HOLOCRON_ORG` env var
- *   3. `org` from `holocron.config.ts`
- */
-function resolveOrg(argv: { org?: string }, config: { org?: string }): string | undefined {
-	return argv.org ?? env.get("HOLOCRON_ORG") ?? config.org;
-}
-
-/**
  * Print the dim version line once per terminal session — keyed by the
  * parent shell's PID, since that's stable across repeated bare `holocron`
  * invocations in the same shell but changes in a new tab/window. A marker
@@ -104,67 +81,6 @@ function printVersionHeaderOnce(): void {
 	if (existsSync(marker)) return;
 	console.log(style.dim(`v${CLI_VERSION}`));
 	writeFileSync(marker, "");
-}
-
-/**
- * `buildCliLogger` options derived from a loaded `holocron.config` — the
- * level, the Axiom dataset, and the resolved org for a keyring-backed
- * Axiom token. Used by every handler that has already called `loadConfig`.
- */
-function cliLoggerOpts(
-	argv: { org?: string; verbose?: boolean; quiet?: boolean; log?: LogLevel },
-	resolved: { org?: string; log?: { level?: LogLevel; axiom?: { dataset?: string } } }
-): BuildCliLoggerOpts {
-	return {
-		configLevel: resolved.log?.level,
-		configAxiomDataset: resolved.log?.axiom?.dataset,
-		org: resolveOrg(argv, resolved),
-	};
-}
-
-/**
- * Fold a loaded `holocron.config` into the running process: reconfigure the
- * logger from `log:`, then apply the `telemetry:` override layer. Every handler
- * that has called `loadConfig` runs this, so a repo's `telemetry.enabled: false`
- * (or `analytics: "none"`) is honoured for that command. Env still wins —
- * `applyConfig` only narrows what `init` already turned on.
- */
-function applyResolvedConfig(
-	argv: { org?: string; verbose?: boolean; quiet?: boolean; log?: LogLevel },
-	resolved: {
-		org?: string;
-		log?: { level?: LogLevel; axiom?: { dataset?: string } };
-		telemetry?: TelemetryConfig;
-	}
-): void {
-	buildCliLogger(argv, cliLoggerOpts(argv, resolved));
-	applyConfig(resolved.telemetry);
-}
-
-/** Parses --token values and returns the context spread, or null on parse error (exits with code 1). */
-function tokenContext(rawTokens: string[] | undefined): ParsedTokenArgs | null {
-	if (!rawTokens?.length) return {};
-	try {
-		return parseTokenArgs(rawTokens);
-	} catch (err) {
-		if (err instanceof TokenParseError) {
-			reportError(`--token: ${err.message}`);
-			process.exitCode = 1;
-			return null;
-		}
-		throw err;
-	}
-}
-
-/** Layer 2: a bare group command (`holocron repo`, `holocron repo upgrade`, …) opens the menu at that level. */
-async function launchGroupMenu(parent: string, argv: Record<string, unknown>): Promise<void> {
-	await launchMenu(
-		COMMAND_REGISTRY,
-		argv,
-		`${parent} — choose a subcommand:`,
-		`Run \`holocron ${parent} --help\` to see available ${parent} subcommands.`,
-		parent.split(" ")
-	);
 }
 
 init(CLI_VERSION);
@@ -326,137 +242,8 @@ try {
 				}
 			}
 		)
-		.command(
-			"doctor",
-			"Load the config and run a smoke check against every provider",
-			(y) =>
-				y
-					.option("repo", {
-						type: "string",
-						describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
-					})
-					.command(
-						"notifications",
-						"Check the layout against the server and the secrets store, step by step (a full run leaves one test post in the test channel; --built-only posts nothing unless --deliver)",
-						(y) =>
-							y
-								.option("scope", {
-									type: "string",
-									describe:
-										'Where the layout\'s secrets live: "repo", "env=<name>" or "org=<name>" (default: the org)',
-								})
-								.option("provider", {
-									type: "string",
-									describe: "Which notifications provider, when several can inspect",
-								})
-								.option("built-only", {
-									type: "boolean",
-									default: false,
-									describe: "Leave out the features that are not built yet (a routine drift check)",
-								})
-								.option("deliver", {
-									type: "boolean",
-									default: false,
-									describe:
-										"Post a test message through every channel's webhook, read it back and remove it (works with --built-only)",
-								}),
-						async (argv) => {
-							const tokens = tokenContext(argv.token);
-							if (!tokens) return;
-							const loaded = await loadConfig(argv.cwd);
-							applyResolvedConfig(argv, loaded.resolved);
-							const report = await runDoctorNotifications({
-								loaded,
-								context: {
-									repoRoot: argv.cwd,
-									...tokens,
-									org: resolveOrg(argv, loaded.resolved),
-								},
-								...(argv.scope ? { scope: parseScope(argv.scope as string) } : {}),
-								...(argv.provider ? { provider: argv.provider as string } : {}),
-								...(argv.builtOnly ? { builtOnly: true } : {}),
-								...(argv.deliver ? { deliver: true } : {}),
-							});
-							if (report.status === "fail") process.exitCode = 1;
-						}
-					),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runDoctor({
-					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...(argv.repo ? { repo: argv.repo } : {}),
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
-				});
-				if (report.summary.fail > 0) {
-					process.exitCode = 1;
-				}
-			}
-		)
-		.command(
-			"skills",
-			"Manage agent skills from the @theholocron/skills registry",
-			(y) =>
-				y
-					.command(
-						"install",
-						"Copy skills from @theholocron/skills into .agents/ with agent symlinks",
-						() => {},
-						async (argv) => {
-							const loaded = await loadConfig(argv.cwd);
-							await runSkillsInstall({ loaded, context: { repoRoot: argv.cwd, dryRun: argv.dryRun } });
-						}
-					)
-					.command(
-						"remove [names..]",
-						"Remove installed skills via npx skills remove",
-						(yy) =>
-							yy.positional("names", {
-								type: "string",
-								array: true,
-								describe: "Skill name(s) to remove (omit to remove all installed skills)",
-							}),
-						(argv) => {
-							const report = runSkillsRemove({
-								context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
-								...(argv.names?.length ? { names: argv.names as string[] } : {}),
-							});
-							if (report.status === "fail") process.exitCode = 1;
-						}
-					)
-					.command(
-						"update [name]",
-						"Update installed skills to their latest upstream versions via npx skills update",
-						(yy) =>
-							yy.positional("name", {
-								type: "string",
-								describe: "Skill name to update (omit to update all installed skills)",
-							}),
-						(argv) => {
-							const report = runSkillsUpdate({
-								context: { repoRoot: argv.cwd, dryRun: argv.dryRun },
-								...(argv.name ? { name: argv.name as string } : {}),
-							});
-							if (report.status === "fail") process.exitCode = 1;
-						}
-					)
-					.command(
-						"$0",
-						false,
-						() => {},
-						async (argv) => {
-							await launchGroupMenu("skills", argv);
-						}
-					),
-			() => {}
-		)
+		.command(doctorCommand as never)
+		.command(skillsCommand as never)
 		.command(
 			"run <task> [job] [passthrough..]",
 			"Run a task locally (test, typecheck, lint, build, audit) — figures out turbo / the tool / the package manager. `run ci` runs every merge-gating check; `run lint commit-msg <file>` lints a commit message.",
@@ -549,25 +336,7 @@ try {
 				if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
 			}
 		)
-		.command(
-			"config show",
-			"Print the resolved holocron config",
-			(y) =>
-				y
-					.option("depth", {
-						type: "number",
-						describe: "Collapse objects/arrays nested deeper than N levels (TTY output only)",
-					})
-					.option("interactive", {
-						type: "boolean",
-						describe:
-							"Browse the config in a foldable tree (default on a TTY; --no-interactive for static output)",
-					}),
-			async (argv) => {
-				const loaded = await loadConfig(argv.cwd);
-				await viewJson(loaded.resolved, { depth: argv.depth, interactive: argv.interactive });
-			}
-		)
+		.command(configShowCommand as never)
 		.command(
 			"auth <subcommand>",
 			"Manage bootstrap credentials in the OS keyring",
@@ -1220,58 +989,7 @@ try {
 					),
 			() => {}
 		)
-		.command(
-			"probe [provider] [probe]",
-			"Poke a live provider on purpose: inspect it, or run a proof that cleans up after itself",
-			(y) =>
-				y
-					.positional("provider", {
-						type: "string",
-						describe: "Which provider's probes (omit to list them all)",
-					})
-					.positional("probe", {
-						type: "string",
-						describe: "Which probe to run (omit to list the provider's)",
-					})
-					.option("yes", {
-						type: "boolean",
-						default: false,
-						describe: "Run a probe that changes things without asking first (required without a terminal)",
-					}),
-			async (argv) => {
-				const tokens = tokenContext(argv.token);
-				if (!tokens) return;
-				const loaded = await loadConfig(argv.cwd);
-				applyResolvedConfig(argv, loaded.resolved);
-				const report = await runProbeCommand({
-					loaded,
-					context: {
-						repoRoot: argv.cwd,
-						dryRun: argv.dryRun,
-						...tokens,
-						org: resolveOrg(argv, loaded.resolved),
-					},
-					...(argv.provider ? { provider: argv.provider as string } : {}),
-					...(argv.probe ? { probe: argv.probe as string } : {}),
-					dryRun: argv.dryRun,
-					yes: argv.yes,
-					// On a terminal, `holocron probe` opens a menu of every provider and probe instead of printing them.
-					...(process.stdin.isTTY
-						? {
-								pick: (groups) =>
-									launchMenu(
-										buildProbeMenuEntries(groups),
-										argv,
-										"probe — choose a provider:",
-										"Run `holocron probe` to list the probes.",
-										["probe"]
-									),
-							}
-						: {}),
-				});
-				if (report.status === "fail") process.exitCode = 1;
-			}
-		)
+		.command(probeCommand as never)
 		.command(
 			"secrets",
 			"Set secrets and sync vault environments",
@@ -2221,15 +1939,3 @@ if (printRunId && rid) console.log(`Run ID: ${rid}`);
 const notify = await updateCheckPromise;
 notify?.();
 await flush();
-
-/**
- * Parse `--scope` strings: `repo` | `env=NAME` | `org=NAME`.
- */
-function parseScope(
-	s: string
-): { kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; name: string } {
-	if (s === "repo") return { kind: "repo" };
-	if (s.startsWith("env=")) return { kind: "environment", name: s.slice("env=".length) };
-	if (s.startsWith("org=")) return { kind: "organization", name: s.slice("org=".length) };
-	throw new Error(`invalid --scope "${s}" — expected "repo", "env=<name>", or "org=<name>"`);
-}
