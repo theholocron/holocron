@@ -1,3 +1,9 @@
+## [5.0.0-alpha.243](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.242...v5.0.0-alpha.243) (2026-10-28)
+
+### Bug Fixes
+
+* **release:** 🐛 stop prettier checking the generated CHANGELOG.md ([#1252](https://github.com/theholocron/holocron/issues/1252)) ([ccbdece](https://github.com/theholocron/holocron/commit/ccbdece50b813d8f2ab7e1f6cd5a0c721a19ec82)), closes [#1249](https://github.com/theholocron/holocron/issues/1249) [#1245](https://github.com/theholocron/holocron/issues/1245)
+
 ## [5.0.0-alpha.242](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.241...v5.0.0-alpha.242) (2026-10-28)
 
 ### Bug Fixes
