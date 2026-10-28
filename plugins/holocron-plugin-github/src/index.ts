@@ -9,6 +9,7 @@
  */
 
 import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
 import {
@@ -26,6 +27,7 @@ import { GitHubEnvironments } from "./capabilities/environments.js";
 import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
 import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface GitHubPluginOptions extends ResolveTokenInput {
 	/** "owner/name" — e.g., "theholocron/holocron". Required. */
@@ -145,6 +147,15 @@ export function createPlugin(options: GitHubPluginOptions) {
 
 	return {
 		name: "@theholocron/holocron-plugin-github",
+		probes: {
+			connection: connectionProbe({
+				provider: "GitHub",
+				url: options.baseUrl ?? "https://api.github.com",
+				fetch: options.fetch,
+				token: () => resolveReadToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			source: () => source(makeCtx(resolveAdminToken), makeOrgClient(), makeUserSyncClient()),
 			ci: () => ci(makeCtx(resolveReadToken)),

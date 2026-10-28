@@ -6,10 +6,12 @@
  */
 
 import type { Deployment } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { VercelDeployment } from "./capabilities/deployment.js";
 import { createVercelClient, type VercelClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface VercelPluginOptions extends ResolveTokenInput {
 	/** Vercel team id. Set when working with a team-owned project. */
@@ -58,6 +60,15 @@ export function createPlugin(options: VercelPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-vercel",
+		probes: {
+			connection: connectionProbe({
+				provider: "Vercel",
+				url: options.baseUrl ?? "https://api.vercel.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			deployment: () => deployment(ctx),
 		},

@@ -30,6 +30,19 @@ Probes come from the plugins your config names (a plugin offers them next to its
 | `--dry-run` | `false` | Show what a probe that changes things would do, without doing it                   |
 | `--yes`     | `false` | Run a probe that changes things without asking first (required without a terminal) |
 
+## Connection, for every provider
+
+Every provider offers `connection` (for example `holocron probe github connection`). It is the first thing to run when something fails and you do not know whether the cause is the network or the credential. It checks, in order, and reports each step:
+
+| Step           | What it tells you                                                                                                                                                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DNS <host>`   | The name resolves, and to which address. Fails with the cause (`ENOTFOUND`, `EAI_AGAIN`).                                                                                                                                                                      |
+| `reach <host>` | The host answers over TLS, and how fast. Any HTTP answer counts, even a 401. Fails with the cause: a timeout (firewall, VPN or proxy), a refused or reset connection, or an untrusted certificate (a proxy that re-signs traffic needs `NODE_EXTRA_CA_CERTS`). |
+| `token`        | A token was found, and where to put one if not. The value is never printed.                                                                                                                                                                                    |
+| `accepted`     | The provider accepts the token, and who it belongs to. Not tried when an earlier step failed, so one cause is reported once.                                                                                                                                   |
+
+1Password has no API host of its own (`op` signs in by itself), so it checks that `op` is installed and signed in. Fern has no way to check a token, so it only checks that one is set.
+
 ## Sentry
 
 These use the same token as the Comlink relay (`sentry.comlink`, the general Sentry token as a last resort) and the `org` of the `sentry` provider.

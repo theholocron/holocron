@@ -1,8 +1,10 @@
 import type { Analytics } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 import { createPostHogClient, type PostHogClient } from "@theholocron/posthog-client";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { PostHogAnalytics, type PostHogAnalyticsOptions } from "./capabilities/analytics.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface PostHogPluginOptions extends ResolveTokenInput, PostHogAnalyticsOptions {
 	/**
@@ -43,6 +45,16 @@ export function createPlugin(options: PostHogPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-posthog",
+		probes: {
+			connection: connectionProbe({
+				provider: "PostHog",
+				url: options.baseUrl ?? options.host ?? "https://app.posthog.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) =>
+					verifyToken(token, { host: options.host, baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			analytics: () => analytics(ctx),
 		},
