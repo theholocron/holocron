@@ -35,6 +35,8 @@ import typeSafetyYml from "../../templates/workflows/verification.typeSafety.yml
 import unitTestsYml from "../../templates/workflows/verification.unitTests.yml";
 import visualRegressionYml from "../../templates/workflows/verification.visualRegression.yml";
 import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
+import { groupedPublishCaller } from "./grouped-publish/index.js";
+import { yamlScalar } from "./grouped-publish/yaml-scalar.js";
 
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"verification.unitTests": unitTestsYml,
@@ -129,14 +131,12 @@ export function generateThinCallerContent(
 	const base = WORKFLOW_TEMPLATES[name];
 	if (!base) return "";
 
-	// YAML treats bare [ and { as sequence/mapping nodes; single-quote them so
-	// values like JSON arrays are kept as strings.
-	const yamlScalar = (v: unknown): string => {
-		if (v === true) return "true";
-		if (v === false) return "false";
-		const s = String(v);
-		return s.startsWith("[") || s.startsWith("{") ? `'${s}'` : s;
-	};
+	// A repo that releases several version groups gets a matrix caller (see groupedPublishCaller).
+	if (name === "delivery.publish" && withOverrides && "groups" in withOverrides) {
+		const { groups, ...shared } = withOverrides;
+		return groupedPublishCaller(base, groups, shared);
+	}
+
 	const fmt = (k: string, v: unknown) => {
 		const line = `      ${k}: ${yamlScalar(v)}`;
 		return comments?.[k] ? `      # ${comments[k]}\n${line}` : line;
@@ -353,7 +353,8 @@ export function normalizeWorkflowWith(raw: Record<string, unknown>): Record<stri
 	}
 
 	for (const [k, v] of Object.entries(result)) {
-		if (Array.isArray(v)) result[k] = JSON.stringify(v);
+		// delivery.publish's `groups` stays a list: the grouped caller builds a matrix from it.
+		if (Array.isArray(v) && k !== "groups") result[k] = JSON.stringify(v);
 	}
 	return result;
 }
