@@ -21,6 +21,17 @@ on: # yamllint disable-line rule:truthy
         required: false
         default: true
         type: boolean
+      group:
+        description: >
+          Release one version group instead of all of them. Push-triggered
+          runs always release everything.
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - ungrouped
+          - observability
 
 permissions:
   contents: write
@@ -35,9 +46,46 @@ concurrency:
 jobs:
   release:
     name: Release
+    if: ${{ inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped' }}
     uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
     with:
       dry-run: ${{ inputs.dry_run == true }}
       sentry-project: holocron-cli
       deploy-on-release: true
+    secrets: inherit
+
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      groups: ${{ steps.plan.outputs.groups }}
+    steps:
+      - id: plan
+        name: Choose the groups to release
+        env:
+          GROUP: ${{ inputs.group }}
+          ALL_GROUPS: '[{"group":"observability"}]'
+        run: |
+          if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
+            groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")
+          else
+            groups=$ALL_GROUPS
+          fi
+          echo "groups=$groups" >> "$GITHUB_OUTPUT"
+
+  release-groups:
+    name: Release ${{ matrix.group }}
+    # after the ungrouped release, which pushes its own commit first; still run if it failed or was skipped
+    needs: [plan, release]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.groups) }}
+    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run == true }}
+      group: ${{ matrix.group }}
     secrets: inherit

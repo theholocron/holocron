@@ -3,6 +3,7 @@ packages:
   - "apps/*"
   - "cli/*"
   - "plugins/*"
+  - "observability"
 
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.

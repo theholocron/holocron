@@ -370,6 +370,7 @@ cli/                              — core infrastructure (the CLI and its runti
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
 apps/                             — deployable applications (not published to npm)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
+observability/                    — @theholocron/observability             (logging, errors and analytics behind one interface; releases on its own version line, tags `observability-v*`)
 plugins/                          — vendor capability providers, one package per provider (split from cli/ as the count grew)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment

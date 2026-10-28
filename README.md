@@ -172,6 +172,7 @@ cli/                                 — core infrastructure                    
   cli/                               — @theholocron/cli                               (binary + capability runtime)
 apps/                                — deployable applications (not published to npm)
   sentinel/                          — @theholocron/sentinel                          (minimal GitHub App — scaffolding only)
+observability/                        — @theholocron/observability                     (logging, error tracking and analytics behind one interface)
 plugins/                             — vendor capability providers                    (one package per provider)
   holocron-plugin-github/            — @theholocron/holocron-plugin-github            (source, ci, secrets, environments, issues)
   holocron-plugin-vercel/            — @theholocron/holocron-plugin-vercel            (deployment)

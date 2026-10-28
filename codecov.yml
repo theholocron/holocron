@@ -49,6 +49,11 @@ component_management:
       paths:
         - cli/datapad/**
 
+    - component_id: docs
+      name: "docs"
+      paths:
+        - docs/**
+
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:
@@ -133,6 +138,11 @@ component_management:
       name: "holocron-plugin-vercel"
       paths:
         - plugins/holocron-plugin-vercel/**
+
+    - component_id: observability
+      name: "observability"
+      paths:
+        - observability/**
 
     - component_id: sentinel
       name: "sentinel"

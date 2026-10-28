@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/observability",
   "version": "0.6.0",
-  "description": "Logging, error tracking, and analytics — one interface, swappable backends.",
+  "description": "Logging, error tracking, and analytics \u2014 one interface, swappable backends.",
   "keywords": [
     "typescript",
     "observability",
@@ -12,9 +12,13 @@
     "pino",
     "theholocron"
   ],
-  "homepage": "https://docs.theholocron.dev/observability/",
-  "bugs": "https://github.com/theholocron/observability/issues",
-  "repository": "theholocron/observability",
+  "homepage": "https://docs.theholocron.dev/holocron/observability/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "observability"
+  },
   "license": "MIT",
   "author": "Newton Koumantzelis",
   "sideEffects": false,
@@ -55,73 +59,30 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsdown",
     "delivery.build": "tsdown",
-    "holocron": "holocron",
-    "knowledge.wiki": "holocron run knowledge.wiki --",
-    "platform.commitStandards": "holocron run platform.commitStandards --",
-    "platform.repoSync": "holocron run platform.repoSync --",
-    "prepare": "husky",
-    "security.secretDetection": "holocron run security.secretDetection --",
-    "sourceQuality.deadCodeAnalysis": "holocron run sourceQuality.deadCodeAnalysis --",
-    "sourceQuality.formatting": "holocron run sourceQuality.formatting --",
     "sourceQuality.staticAnalysis": "eslint .",
-    "sourceQuality.structuredDataValidation": "holocron run sourceQuality.structuredDataValidation --",
-    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
     "verification.typeSafety": "tsc --noEmit",
     "verification.unitTests": "vitest run"
   },
   "devDependencies": {
-    "@astrojs/react": "catalog:",
-    "@astrojs/starlight": "catalog:",
     "@axiomhq/pino": "catalog:",
-    "@commitlint/cli": "catalog:",
-    "@commitlint/types": "catalog:",
-    "@eslint/js": "catalog:",
-    "@semantic-release/changelog": "catalog:",
-    "@semantic-release/exec": "catalog:",
-    "@semantic-release/git": "catalog:",
-    "@semantic-release/github": "catalog:",
     "@sentry/node": "catalog:",
-    "@theholocron/astro-config": "catalog:configs",
-    "@theholocron/astromech": "catalog:holocron",
-    "@theholocron/cli": "catalog:holocron",
-    "@theholocron/commitlint-config": "catalog:configs",
-    "@theholocron/docs-theme": "catalog:",
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/holocron-plugin-cloudflare": "catalog:holocron",
-    "@theholocron/holocron-plugin-fern": "catalog:holocron",
-    "@theholocron/holocron-plugin-github": "catalog:holocron",
-    "@theholocron/lint-staged-config": "catalog:configs",
-    "@theholocron/prettier-config": "catalog:configs",
-    "@theholocron/semantic-release-config": "catalog:configs",
-    "@theholocron/skills": "^1.3.2",
     "@theholocron/tsconfig": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "astro": "catalog:",
-    "conventional-changelog-conventionalcommits": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
-    "eslint-plugin-simple-import-sort": "catalog:",
     "globals": "catalog:",
-    "husky": "catalog:",
-    "knip": "catalog:",
-    "lint-staged": "catalog:",
     "pino": "catalog:",
     "pino-pretty": "catalog:",
     "posthog-node": "catalog:",
-    "prettier": "catalog:",
-    "react": "catalog:",
-    "react-dom": "catalog:",
-    "semantic-release": "catalog:",
-    "sort-package-json": "catalog:",
     "tsdown": "catalog:",
-    "turbo": "^2.10.12",
     "typescript": "catalog:",
-    "typescript-eslint": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {
@@ -152,19 +113,10 @@
       "optional": true
     }
   },
-  "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22"
   },
   "publishConfig": {
     "access": "public"
-  },
-  "pnpm": {
-    "overrides": {
-      "@commitlint/config-conventional>conventional-changelog-conventionalcommits": "7",
-      "conventional-changelog-conventionalcommits": "9.3.1"
-    }
-  },
-  "releases": "https://github.com/theholocron/observability/releases",
-  "wiki": "https://github.com/theholocron/observability/wiki"
+  }
 }

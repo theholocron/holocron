@@ -37,6 +37,14 @@ const config: KnipConfig = {
 			// system tool on every CI runner and dev machine, not an npm dependency.
 			ignoreBinaries: ["jq"],
 		},
+		observability: {
+			// src/index.ts and the subpath entries are auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+			// pino transport targets, loaded by name at runtime (src/logger/transports.ts), never imported;
+			// optional peers of the package, installed here for its tests
+			ignoreDependencies: ["@axiomhq/pino", "pino-pretty"],
+		},
 		"apps/comlink": {
 			// The Worker (src/worker.ts) is found through the tsdown config. holocron.config.ts imports the CLI.
 			entry: ["src/**/*.test.ts", "holocron.config.ts"],
