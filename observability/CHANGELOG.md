@@ -1,0 +1,139 @@
+## [0.6.0](https://github.com/theholocron/observability/compare/v0.5.0...v0.6.0) (2026-10-16)
+
+### Features
+
+* ✨ add silenceLogger to /testing for muting createLogger in vitest setup files ([#23](https://github.com/theholocron/observability/issues/23)) ([97bff4b](https://github.com/theholocron/observability/commit/97bff4b8dbf0cb90d5e762b8ff657ad4c6f7d1aa))
+
+## [0.5.0](https://github.com/theholocron/observability/compare/v0.4.0...v0.5.0) (2026-10-07)
+
+### Features
+
+- add consoleOutput override to suppress console transports independent of level ([#22](https://github.com/theholocron/observability/issues/22)) ([3bca32a](https://github.com/theholocron/observability/commit/3bca32aa3415ef3c80655a7fd849b02e1b7870a1)), closes [#21](https://github.com/theholocron/observability/issues/21)
+
+## [0.4.0](https://github.com/theholocron/observability/compare/v0.3.2...v0.4.0) (2026-09-23)
+
+### Features
+
+- ✨ add Logger.flush() to drain worker-thread transports before exit ([#18](https://github.com/theholocron/observability/issues/18)) ([03f5080](https://github.com/theholocron/observability/commit/03f5080bb0d8259829cbc9d35067f6196b344ccd))
+- ✨ adopt universal generated turbo.json (epic [#672](https://github.com/theholocron/observability/issues/672) Phase 6) ([#16](https://github.com/theholocron/observability/issues/16)) ([7c9e2a7](https://github.com/theholocron/observability/commit/7c9e2a76781902a3a800d394781cfafaad406162)), closes [#691](https://github.com/theholocron/observability/issues/691)
+
+### Bug Fixes
+
+- 🐛 drop stale npm prefix from release prepareCmd ([#14](https://github.com/theholocron/observability/issues/14)) ([ac393d7](https://github.com/theholocron/observability/commit/ac393d7407581db0acb0b08c3274905bb0c0c468))
+
+### Refactoring
+
+- ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/observability/issues/672)) ([#12](https://github.com/theholocron/observability/issues/12)) ([6cb3fba](https://github.com/theholocron/observability/commit/6cb3fba58da2e74930cca1ec9fc265bac3af5782)), closes [theholocron/holocron#692](https://github.com/theholocron/holocron/issues/692) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
+### Chores
+
+- sync README and repo metadata ([#11](https://github.com/theholocron/observability/issues/11)) ([326e87e](https://github.com/theholocron/observability/commit/326e87ea23be4bdac06195e7e799b506a2d7e061))
+- sync README and repo metadata ([#7](https://github.com/theholocron/observability/issues/7)) ([d670e58](https://github.com/theholocron/observability/commit/d670e58fcd20618676dd4e7242d52e7c6b7fe6bf))
+
+## [0.3.2](https://github.com/theholocron/observability/compare/v0.3.1...v0.3.2) (2026-09-11)
+
+### Bug Fixes
+
+- 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#9](https://github.com/theholocron/observability/issues/9)) ([4867b24](https://github.com/theholocron/observability/commit/4867b248431c9f641e6b20887cda3a0ce7bf49df))
+
+## [0.3.1](https://github.com/theholocron/observability/compare/v0.3.0...v0.3.1) (2026-09-11)
+
+### Bug Fixes
+
+- **hooks:** scope pre-commit GitLeaks scan to staged changes ([#8](https://github.com/theholocron/observability/issues/8)) ([95123e4](https://github.com/theholocron/observability/commit/95123e45373239159f0ba1f64787b778777212ce))
+
+## [0.3.0](https://github.com/theholocron/observability/compare/v0.2.0...v0.3.0) (2026-09-11)
+
+### Features
+
+- ✨ NoopLogger in /core + a /testing subpath (fakeLogger, fakeErrorSink, fakeAnalyticsSink) ([#6](https://github.com/theholocron/observability/issues/6)) ([458b55c](https://github.com/theholocron/observability/commit/458b55c842e769cde610424432c98b9d17752a02)), closes [theholocron/holocron#643](https://github.com/theholocron/holocron/issues/643) [theholocron/holocron#645](https://github.com/theholocron/holocron/issues/645)
+
+### Chores
+
+- ⬆️ bump @theholocron/cli to 4.16.2 + 8.x holocron.config ([#3](https://github.com/theholocron/observability/issues/3)) ([bea3bc3](https://github.com/theholocron/observability/commit/bea3bc31eac382adc01bef5876f2bf17402e42b9)), closes [#642](https://github.com/theholocron/observability/issues/642) [#647](https://github.com/theholocron/observability/issues/647)
+- 🔧 holocron setup — ruleset + workflow/config sync ([#5](https://github.com/theholocron/observability/issues/5)) ([069d49b](https://github.com/theholocron/observability/commit/069d49b0b8756cfaf6fdf595cbbebd5b689fafea)), closes [#647](https://github.com/theholocron/observability/issues/647) [#649](https://github.com/theholocron/observability/issues/649) [#649](https://github.com/theholocron/observability/issues/649) [#647](https://github.com/theholocron/observability/issues/647) [theholocron/configs#450](https://github.com/theholocron/configs/issues/450) [theholocron/configs#450](https://github.com/theholocron/configs/issues/450) [#647](https://github.com/theholocron/observability/issues/647)
+
+## [0.2.0](https://github.com/theholocron/observability/compare/v0.1.0...v0.2.0) (2026-09-10)
+
+### Features
+
+- core interfaces + Node adapters + logger ([#2](https://github.com/theholocron/observability/issues/2)) ([9b4d47a](https://github.com/theholocron/observability/commit/9b4d47abf4e2f8ead3d33f84aff0971a1ecae150)), closes [theholocron/holocron#635](https://github.com/theholocron/holocron/issues/635) [theholocron/holocron#636](https://github.com/theholocron/holocron/issues/636)
+
+## [1.7.0](https://github.com/theholocron/observability/compare/v1.6.0...v1.7.0) (2026-09-06)
+
+### Features
+
+- ✨ add wiki navbar links ([#185](https://github.com/theholocron/observability/issues/185)) ([c569469](https://github.com/theholocron/observability/commit/c569469c89754f8ddd5815a6235522f9f915e3be))
+
+### Chores
+
+- ✨ add wiki icon and bump Fern to 5.114.1 ([#182](https://github.com/theholocron/observability/issues/182)) ([cf5cf5a](https://github.com/theholocron/observability/commit/cf5cf5ae673da49167b33201c73dc9ca19e8e186))
+- 🗑️ remove orphaned workflow files ([#181](https://github.com/theholocron/observability/issues/181)) ([998af63](https://github.com/theholocron/observability/commit/998af63a234e26c6b6af983e8f6aa6af1f544409))
+
+## [1.6.0](https://github.com/theholocron/observability/compare/v1.5.3...v1.6.0) (2026-09-02)
+
+### Features
+
+- ✨ add wiki/fern docs setup ([#180](https://github.com/theholocron/observability/issues/180)) ([0e6a847](https://github.com/theholocron/observability/commit/0e6a847aa12ead3d6ca3298a4cf6465e19531d74))
+
+### Chores
+
+- 🔧 ⬆️ adopt nodeDocs() preset from @theholocron/holocron-config@7.26.0 ([#178](https://github.com/theholocron/observability/issues/178)) ([4ffc941](https://github.com/theholocron/observability/commit/4ffc941a73cca4259383d73c1b8a2bf2ec6f3b1c))
+- sync README and repo metadata ([#177](https://github.com/theholocron/observability/issues/177)) ([a304c3b](https://github.com/theholocron/observability/commit/a304c3baee2544c48804b4de925d896c47aaa09d))
+
+## [1.5.3](https://github.com/theholocron/observability/compare/v1.5.2...v1.5.3) (2026-08-26)
+
+### Bug Fixes
+
+- pin conventional-changelog-conventionalcommits to 9.3.1 ([#175](https://github.com/theholocron/observability/issues/175)) ([6319119](https://github.com/theholocron/observability/commit/6319119f86d317c7db43d9b5e87301da44492548))
+
+### Documentation
+
+- 📚️ add getting-started page, update index with table and CLI snippet, wire sidebar ([#168](https://github.com/theholocron/observability/issues/168)) ([2f947c2](https://github.com/theholocron/observability/commit/2f947c246b68d3a5faab66d22bbe4fa9bd6bae11))
+
+### Chores
+
+- 🔧 bump eslint-config to 7.22.3 and drop n/no-unpublished-import override ([#169](https://github.com/theholocron/observability/issues/169)) ([55ea9e6](https://github.com/theholocron/observability/commit/55ea9e654ac0cbee68da1045d457124cfeaf63ae))
+- add development and releases marker blocks to README ([#172](https://github.com/theholocron/observability/issues/172)) ([9a66283](https://github.com/theholocron/observability/commit/9a66283360d49618a326fc071ac16e6dec0773f0))
+- add sync workflow to holocron.config ([#171](https://github.com/theholocron/observability/issues/171)) ([10ee27c](https://github.com/theholocron/observability/commit/10ee27c9473a228d312846713a9de41e4bfa5da7))
+- sync from theholocron/holocron ([#170](https://github.com/theholocron/observability/issues/170)) ([7e0850a](https://github.com/theholocron/observability/commit/7e0850aec2d9588ee2cd2346aee36107b1560bc9))
+- sync from theholocron/holocron ([#173](https://github.com/theholocron/observability/issues/173)) ([348428c](https://github.com/theholocron/observability/commit/348428c960cd4a019d89aa262ce8b2fa57f22059))
+- sync from theholocron/holocron ([#174](https://github.com/theholocron/observability/issues/174)) ([4605765](https://github.com/theholocron/observability/commit/4605765d0fe053965cf45494e99d935713174b2b))
+
+## [1.5.2](https://github.com/theholocron/observability/compare/v1.5.1...v1.5.2) (2026-08-20)
+
+## [1.5.1](https://github.com/theholocron/observability/compare/v1.5.0...v1.5.1) (2026-08-18)
+
+## [1.5.0](https://github.com/theholocron/observability/compare/v1.4.0...v1.5.0) (2026-08-18)
+
+## [1.4.0](https://github.com/theholocron/observability/compare/v1.3.2...v1.4.0) (2026-08-15)
+
+## [1.3.2](https://github.com/theholocron/observability/compare/v1.3.1...v1.3.2) (2026-08-03)
+
+## [1.3.1](https://github.com/theholocron/observability/compare/v1.3.0...v1.3.1) (2026-08-03)
+
+## [1.3.0](https://github.com/theholocron/observability/compare/v1.2.1...v1.3.0) (2026-08-03)
+
+# Changelog
+
+## [1.2.1](https://github.com/theholocron/observability/compare/v1.2.0...v1.2.1) (2024-11-08)
+
+### Bug Fixes
+
+- add in tests ([869c1b7](https://github.com/theholocron/observability/commit/869c1b737ea736de9b3dfd9eaf9c183eee49c5a8))
+
+## [1.2.0](https://github.com/theholocron/observability/compare/v1.1.0...v1.2.0) (2024-10-29)
+
+### Features
+
+- ✨ remove changeset for release-please ([c433ab5](https://github.com/theholocron/observability/commit/c433ab50969a141b476e0d84cda8f1d615001035))
+
+## [1.1.0](https://github.com/theholocron/observability/compare/1.0.0...v1.1.0) (2024-10-28)
+
+### Features
+
+- 👷 add parity ([#12](https://github.com/theholocron/observability/issues/12)) ([93d598a](https://github.com/theholocron/observability/commit/93d598a64eb7654db477cc2675670779fb67f9f2))
+
+### Bug Fixes
+
+- typo in tsconfig.json ([b0fac3c](https://github.com/theholocron/observability/commit/b0fac3c0514ce10fdad3aebf8d08347cc03f17a7))

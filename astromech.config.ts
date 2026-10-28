@@ -35,7 +35,17 @@ export default defineConfig({
 		// Publish: tag Sentry releases for the CLI package, and run the
 		// post-release `deploy` job for packages whose `delivery.deploy` task is
 		// `on: release` (Sentinel, #928, #930).
-		{ name: "delivery.publish", with: { "sentry-project": "holocron-cli", "deploy-on-release": true } },
+		{
+			name: "delivery.publish",
+			with: {
+				// Folders that release on their own version line (tags `<group>-v<version>`), one at a
+				// time after the repo-wide release. The repo-wide release leaves them out.
+				groups: ["observability"],
+				// Everything in no group is released together, as before. The Sentry release and the
+				// post-release deploy belong to it alone, not to every group.
+				ungrouped: { "sentry-project": "holocron-cli", "deploy-on-release": true },
+			},
+		},
 		// Sync: keep generated files (workflows, labels, …) current on push to main.
 		"platform.repoSync",
 		// Notify Check: manual end-to-end test of the notification channels (posts a

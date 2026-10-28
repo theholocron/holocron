@@ -3,10 +3,13 @@ import type { KnipConfig } from "knip";
 const config: KnipConfig = {
 	workspaces: {
 		".": {
-			// prettier.config.ts, eslint.config.ts, release.config.ts, astro.config.ts,
-			// commitlint.config.ts — all auto-detected by Knip plugins
-			entry: ["holocron.config.ts", "astromech.config.ts"],
+			// prettier.config.ts, eslint.config.ts, astro.config.ts, commitlint.config.ts —
+			// all auto-detected by Knip plugins
+			entry: ["holocron.config.ts", "astromech.config.ts", "release.config.ts"],
 			project: ["*.ts"],
+			// release.config.ts returns inline plugin objects (the folder-scoped commit analyzers), which the
+			// plugin reads as package names and crashes on, so it is an entry here instead.
+			"semantic-release": false,
 		},
 		docs: {
 			project: ["src/**/*.ts"],
@@ -36,6 +39,14 @@ const config: KnipConfig = {
 			// notify.test.ts runs the action's real shell script, which needs jq -- a
 			// system tool on every CI runner and dev machine, not an npm dependency.
 			ignoreBinaries: ["jq"],
+		},
+		observability: {
+			// src/index.ts and the subpath entries are auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+			// pino transport targets, loaded by name at runtime (src/logger/transports.ts), never imported;
+			// optional peers of the package, installed here for its tests
+			ignoreDependencies: ["@axiomhq/pino", "pino-pretty"],
 		},
 		"apps/comlink": {
 			// The Worker (src/worker.ts) is found through the tsdown config. holocron.config.ts imports the CLI.

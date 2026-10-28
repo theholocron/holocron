@@ -134,6 +134,11 @@ component_management:
       paths:
         - plugins/holocron-plugin-vercel/**
 
+    - component_id: observability
+      name: "observability"
+      paths:
+        - observability/**
+
     - component_id: sentinel
       name: "sentinel"
       paths:
