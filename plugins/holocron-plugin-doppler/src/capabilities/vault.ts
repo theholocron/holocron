@@ -76,6 +76,11 @@ export class DopplerVault implements Vault {
 		return res.value?.computed ?? res.value?.raw ?? "";
 	}
 
+	async readSecret(name: string): Promise<string> {
+		const res = await this.client().secrets.get(this.project, this.config, name);
+		return res.value?.computed ?? res.value?.raw ?? "";
+	}
+
 	async write(reference: string, value: string): Promise<void> {
 		const parsed = parseReference(reference);
 		await this.client().secrets.update(parsed.project, parsed.config, { [parsed.name]: value });

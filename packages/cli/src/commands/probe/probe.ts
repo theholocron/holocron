@@ -1,5 +1,8 @@
+import { join } from "node:path";
+
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
 import { statusRow } from "../../ui/status-row/index.js";
+import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";
 import { listProbes } from "./list-probes.js";
@@ -17,7 +20,10 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	await loader.load();
 
 	const groups = new Map<string, PluginProbes>(loader.probes());
-	const comlink = comlinkProbes({ loader });
+	const comlink = comlinkProbes({
+		loader,
+		appVault: (appDir) => loadAppVault(join(input.context.repoRoot, appDir), input.context),
+	});
 	groups.set(CORE_PROVIDER, coreProbes(loader, new Map([[COMLINK_PROVIDER, comlink]])));
 	groups.set(COMLINK_PROVIDER, comlink);
 

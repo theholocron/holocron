@@ -770,6 +770,12 @@ export interface Vault extends ProviderIdentity {
 	 */
 	read(reference: string): Promise<string>;
 
+	/**
+	 * Optional — read a secret by its bare name from the project and config this vault was set up with, instead of by a
+	 * full reference. For a provider whose references name the project and config the options already carry (Doppler).
+	 */
+	readSecret?(name: string): Promise<string>;
+
 	/** Write or update a secret. */
 	write(reference: string, value: string): Promise<void>;
 
