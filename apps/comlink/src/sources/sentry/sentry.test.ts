@@ -111,8 +111,13 @@ describe("sentry.format", () => {
 		const tagged = sentry.format(headers(), alert({ tags: [["project", "from-tag"]] }))!;
 		expect(tagged.embeds[0]!.fields).toContainEqual({ name: "Project", value: "from-tag", inline: true });
 
-		const numeric = sentry.format(headers(), alert({ project: 4 }))!;
-		expect(numeric.embeds[0]!.fields).toContainEqual({ name: "Project", value: "4", inline: true });
+		// A bare id says nothing, so it is left out; a project given by a slug is shown.
+		for (const id of [4, "4491"]) {
+			const numeric = sentry.format(headers(), alert({ project: id }))!;
+			expect(numeric.embeds[0]!.fields!.map((f) => f.name)).not.toContain("Project");
+		}
+		const slug = sentry.format(headers(), alert({ project: "web" }))!;
+		expect(slug.embeds[0]!.fields).toContainEqual({ name: "Project", value: "web", inline: true });
 	});
 
 	it("titles an event with neither a title nor a message 'Error', and leaves out what it has no value for", () => {

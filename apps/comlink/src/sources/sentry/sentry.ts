@@ -62,7 +62,9 @@ export const sentry: Source = {
 		const environment = event.environment ?? tagValue(event, "environment");
 		if (environment) fields.push({ name: "Environment", value: clip(environment, 1024), inline: true });
 		fields.push({ name: "Level", value: level, inline: true });
-		const project = event.project_name ?? tagValue(event, "project") ?? event.project;
+		// The payload names the project only by id when it has no name; "Project 4491" says nothing, so it is left out.
+		const id = event.project === undefined ? undefined : String(event.project);
+		const project = event.project_name ?? tagValue(event, "project") ?? (id && !/^\d+$/.test(id) ? id : undefined);
 		if (project) fields.push({ name: "Project", value: clip(project, 1024), inline: true });
 		const rule = (payload as SentryAlert).data?.triggered_rule;
 		if (rule) fields.push({ name: "Rule", value: clip(rule, 1024), inline: false });
