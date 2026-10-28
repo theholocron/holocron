@@ -1,8 +1,6 @@
 ---
 title: Observability
 description: Logging, error tracking, and analytics — one interface, swappable backends.
-sidebar:
-  hidden: true
 ---
 
 `@theholocron/observability` puts logging, error tracking, and product analytics

@@ -48,6 +48,13 @@ export default defineConfig({
 				items: [{ label: "stale", slug: "workflows/stale" }],
 			},
 			{
+				label: "Observability",
+				items: [
+					{ label: "Overview", slug: "observability" },
+					{ label: "Getting Started", slug: "observability/getting-started" },
+				],
+			},
+			{
 				label: "Legal",
 				items: [
 					{ label: "Terms of Service", slug: "legal/terms" },
