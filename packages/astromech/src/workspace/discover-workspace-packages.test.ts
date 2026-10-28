@@ -69,10 +69,28 @@ describe("discoverWorkspacePackages", () => {
 		expect(discoverWorkspacePackages("/repo", fs).map((p) => p.name)).toEqual(["new"]);
 	});
 
+	it("drops a whole `<dir>/*` group with a `!<dir>/*` exclusion, but not packages deeper than one level", () => {
+		const fs = repo({
+			"/repo/pnpm-workspace.yaml": workspace("clients/*", "clients/legacy/tool", "'!clients/*'"),
+			"/repo/clients/http-client/package.json": pkg("http-client"),
+			"/repo/clients/legacy/tool/package.json": pkg("tool"),
+		});
+		expect(discoverWorkspacePackages("/repo", fs).map((p) => p.name)).toEqual(["tool"]);
+	});
+
 	it("skips the repo root `.`, a literal directory without a manifest, and a missing group", () => {
 		const fs = repo({
 			"/repo/pnpm-workspace.yaml": workspace("'.'", "missing", "ghost/*", "docs"),
 			"/repo/docs/readme.md": "x",
+		});
+		expect(discoverWorkspacePackages("/repo", fs)).toEqual([]);
+	});
+
+	it("skips a literal folder whose package.json is not a JSON object", () => {
+		const fs = repo({
+			"/repo/pnpm-workspace.yaml": workspace("observability", "skills"),
+			"/repo/observability/package.json": "[]",
+			"/repo/skills/package.json": "not json",
 		});
 		expect(discoverWorkspacePackages("/repo", fs)).toEqual([]);
 	});

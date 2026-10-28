@@ -29,6 +29,10 @@ describe("readWorkspaceGlobs", () => {
 		expect(readWorkspaceGlobs(yaml).include).toEqual(["a", "b"]);
 	});
 
+	it("ignores an empty entry", () => {
+		expect(readWorkspaceGlobs("packages:\n  - ''\n  - a\n  -   # nothing\n").include).toEqual(["a"]);
+	});
+
 	it("reads nothing when `packages:` is absent or inline", () => {
 		expect(readWorkspaceGlobs("catalog:\n  a: ^1\n")).toEqual({ include: [], exclude: [] });
 		expect(readWorkspaceGlobs("packages: [a, b]\n")).toEqual({ include: [], exclude: [] });

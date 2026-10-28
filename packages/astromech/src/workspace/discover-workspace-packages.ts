@@ -80,7 +80,7 @@ export function resolveWorkspaceGlobs(
 function expandGlob(
 	base: string,
 	glob: string,
-	options: Pick<ListWorkspacePackagesOptions, "listDirs" | "readFile">
+	options: Pick<ListWorkspacePackagesOptions, "listDirs"> & Required<Pick<ListWorkspacePackagesOptions, "readFile">>
 ): WorkspacePackageEntry[] {
 	if (glob.endsWith("/*") && !GLOB_CHARS.test(glob.slice(0, -2))) {
 		return listWorkspacePackagesSync(base, { ...options, roots: [glob.slice(0, -2)] });
@@ -96,9 +96,7 @@ function expandGlob(
 	}
 	const dir = join(base, glob);
 	try {
-		const manifest = parsePackageJson(
-			(options.readFile ?? ((p: string) => readFileSync(p, "utf8")))(join(dir, "package.json"))
-		);
+		const manifest = parsePackageJson(options.readFile(join(dir, "package.json")));
 		return manifest ? [{ name: manifest.name, dir, relativeDir: glob, manifest }] : [];
 	} catch {
 		return [];

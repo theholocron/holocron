@@ -24,7 +24,7 @@ export function readWorkspaceGlobs(workspaceYaml: string): WorkspaceGlobs {
 		const item = /^\s*-\s*(.*)$/.exec(line);
 		if (!item) break;
 		const value = item[1]!
-			.replace(/\s+#.*$/, "")
+			.replace(/(^|\s)#.*$/, "")
 			.trim()
 			.replace(/^["']|["']$/g, "")
 			.trim();
