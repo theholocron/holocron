@@ -111,16 +111,32 @@ describe("runProbeCommand", () => {
 				provider: "core",
 				probe: "providers",
 				loader: fakeLoader({
-					failures: [{ key: "workers", provider: "cloudflare", error: new Error("needs an accountId") }],
+					failures: [
+						{ key: "workers", provider: "cloudflare", error: new Error("needs an accountId") },
+						{ key: "dns", provider: "cloudflare", error: new Error("needs an accountId") },
+						{ key: "ci", provider: "demo", error: new Error("rate limited") },
+						{ key: "logs", provider: "axiom", error: new Error("no token") },
+					],
 				}),
 			});
 			expect((await promise).status).toBe("fail");
 			expect(text()).toContain("source");
 			expect(text()).toContain("workers (cloudflare)");
 			expect(text()).toContain("needs an accountId");
+			// A provider that only failed is still listed under Providers, once, with why.
+			expect(text()).toMatch(/Providers[\s\S]*✗ cloudflare\s+did not load: .*needs an accountId/);
+			const providers = text().slice(text().indexOf("Providers"));
+			expect(providers.match(/✗ cloudflare/g)).toHaveLength(1);
+			// A provider that loaded for something else is listed by its probes, not as failed.
+			expect(providers).not.toMatch(/✗ demo/);
+			expect(providers.indexOf("✗ axiom")).toBeLessThan(providers.indexOf("✗ cloudflare"));
 			expect(text()).toMatch(/Capabilities[\s\S]*Providers/);
 			expect(text()).toMatch(/demo\s+look, make/);
 			expect(text()).toMatch(/github\s+no probes yet/);
+			// A provider with probes is a check mark; one without stays dim until it has some.
+			expect(text()).toMatch(/✓ demo\s+look, make/);
+			expect(text()).toMatch(/· github\s+no probes yet/);
+			expect(text()).toMatch(/✓ comlink \(built in\)/);
 			expect(text()).toMatch(/comlink \(built in\)\s+bindings, deliver, unsigned/);
 		});
 
