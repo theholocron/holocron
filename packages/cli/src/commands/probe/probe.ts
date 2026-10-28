@@ -1,5 +1,6 @@
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
 import { statusRow } from "../../ui/status-row/index.js";
+import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";
 import { listProbes } from "./list-probes.js";
 import type { ProbeCommandReport, RunProbeCommandInput } from "./probe.type.js";
@@ -16,7 +17,9 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	await loader.load();
 
 	const groups = new Map<string, PluginProbes>(loader.probes());
-	groups.set(CORE_PROVIDER, coreProbes(loader));
+	const comlink = comlinkProbes({ loader });
+	groups.set(CORE_PROVIDER, coreProbes(loader, new Map([[COMLINK_PROVIDER, comlink]])));
+	groups.set(COMLINK_PROVIDER, comlink);
 
 	if (!input.provider) {
 		if (input.pick) await input.pick(groups);

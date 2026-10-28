@@ -1,6 +1,6 @@
-/** One line a probe reports: `info` for a fact, `ok` / `fail` for a result. */
+/** One line a probe reports: `info` for a fact, `ok` / `fail` for a result, `heading` to title the rows that follow. */
 export interface ProbeRow {
-	status: "ok" | "fail" | "info";
+	status: "ok" | "fail" | "info" | "heading";
 	label: string;
 	detail?: string;
 }

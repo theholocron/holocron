@@ -44,6 +44,10 @@ export class CloudflareWorkers implements Workers {
 		await this.client().workers.putSecret(this.accountId, script, name, value);
 	}
 
+	async secretNames(script: string): Promise<string[]> {
+		return (await this.client().workers.listSecrets(this.accountId, script)).map((secret) => secret.name);
+	}
+
 	/** Idempotent create-or-update for one route pattern — shared by both public methods. */
 	private async upsertRoute(pattern: string, scriptName: string): Promise<void> {
 		const hostname = pattern.split("/")[0]!;

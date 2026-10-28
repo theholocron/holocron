@@ -42,6 +42,8 @@ export interface CommandEntry {
 	 * handler's own `dryRun: argv.dryRun` usage in `cli.ts`.
 	 */
 	supportsDryRun?: boolean;
+	/** The command opens a menu of its own (`probe`): shown with the same " ›" as a group, though nothing is nested under it. */
+	opensMenu?: boolean;
 	/**
 	 * Override for {@link buildChildArgv}: the real CLI argv tokens to spawn,
 	 * when they don't match a naive space-split of `name`. Every static

@@ -13,7 +13,7 @@ A probe is a small, named check that talks to a real provider: _which integratio
 
 On a terminal, `holocron probe` opens a menu: pick a provider, then a probe (a probe that changes things is marked, and offers a dry-run preview first). From the top-level `holocron` menu, choose `probe`. In a pipe or CI it prints the same list as plain text.
 
-Probes come from the plugins your config names (a plugin offers them next to its capabilities), plus the CLI's own `core` group. `holocron probe core providers` shows which configured providers loaded and, for any that did not, why. Other commands skip a provider that fails to load without saying so.
+Probes come from the plugins your config names (a plugin offers them next to its capabilities), plus the CLI's own `core` group. `holocron probe core providers` lists which capabilities loaded and, for any that did not, why, then each provider with the probes it offers. Other commands skip a provider that fails to load without saying so.
 
 ## The rules every probe follows
 
@@ -50,6 +50,16 @@ These use the `checkly` provider's token and `accountId`, and the Discord alert 
 | `holocron probe checkly deliver` | yes            | Makes a throwaway API check (`https://example.com`, every 5 minutes) that must fail, subscribes it to the channel, waits until Checkly sees it fail, tells you to look for the red embed in #uptime, then makes it pass and waits for the recovery and the green embed. Takes 10 to 20 minutes. The check is always deleted, also on Ctrl-C |
 
 `deliver` removes a check of its own that an earlier run left behind (it is found by name and the `delivery-proof` tag), and refuses to touch a check with that name that lacks the tag. It reports what Checkly sees; whether the embed arrived in Discord is for you to check, since the probe cannot read the channel.
+
+## Comlink
+
+The relay Worker (`apps/comlink`) is an app, not a provider, so these are the CLI's own. They find the relay in the notifications layout (`relay.host`) and the source from the `errors` provider (`sentry`).
+
+| Probe                             | Changes things | What it does                                                                                                                                                                                                                                                                                                              |
+| --------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe comlink unsigned` | no             | Sends the relay requests it must refuse and checks the answers: a `GET` is 405, an unsigned `POST` is 401 and an unknown source is 404. A 404 on the real source means the Worker is not deployed on that host                                                                                                            |
+| `holocron probe comlink bindings` | no             | Whether the Worker has `COMLINK_SENTRY_WEBHOOK` and `COMLINK_SENTRY_SECRET`, by name, and which other secrets it holds. Never the values. Needs a `workers` provider that can list secrets (Cloudflare can)                                                                                                               |
+| `holocron probe comlink deliver`  | yes            | Sends the relay a correctly signed test alert, so an embed titled `Holocron probe: Comlink delivery check` lands in #errors. It needs the signing secret: set `COMLINK_SENTRY_SECRET` (for example `doppler run -- holocron probe comlink deliver`) or run where the vault holds it. The message stays; delete it by hand |
 
 ## Writing a probe
 
