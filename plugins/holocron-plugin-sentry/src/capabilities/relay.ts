@@ -26,7 +26,7 @@ const isLegacyAction = (action: { type: string; config: Record<string, unknown> 
 	action.type === "sentry_app" && String(action.config["targetIdentifier"]) === String(appId);
 
 /** A workflow as Sentry returned it, as the body to send back (the nested ids are not part of an update). */
-function toInput(wf: SentryWorkflow): SentryWorkflowInput {
+export function toInput(wf: SentryWorkflow): SentryWorkflowInput {
 	return {
 		name: wf.name,
 		enabled: wf.enabled,

@@ -1,5 +1,5 @@
 import type { Probe, ProbeContext, ProbeRow } from "@theholocron/cli";
-import type { SentryApp, SentryWorkflow } from "@theholocron/sentry-client";
+import type { SentryApp, SentryWorkflow, SentryWorkflowInput } from "@theholocron/sentry-client";
 import { describe, expect, it, vi } from "vitest";
 
 import type { SentryClient } from "../rest.js";
@@ -220,13 +220,137 @@ describe("probe sentry send-error", () => {
 });
 
 describe("sentryProbes", () => {
-	it("offers the three probes, and only send-error writes", () => {
+	it("offers four probes, and only send-error and rule-update write", () => {
 		const probes = sentryProbes(deps().d);
-		expect(Object.keys(probes).sort()).toEqual(["integrations", "rules", "send-error"]);
+		expect(Object.keys(probes).sort()).toEqual(["integrations", "rule-update", "rules", "send-error"]);
 		expect(
 			Object.entries(probes)
 				.filter(([, p]) => p.writes)
 				.map(([n]) => n)
-		).toEqual(["send-error"]);
+				.sort()
+		).toEqual(["rule-update", "send-error"]);
+	});
+});
+
+describe("probe sentry rule-update", () => {
+	const stream = (id: string, projectId: string | null) => ({
+		id,
+		projectId,
+		name: "Issue Stream",
+		type: "issue_stream",
+		workflowIds: [],
+	});
+
+	function setup(over: { detectors?: unknown[]; projects?: unknown[]; readFrequency?: number } = {}) {
+		const store: { current?: SentryWorkflow } = {};
+		const cleanups: Array<() => Promise<void>> = [];
+		const client = {
+			workflows: {
+				detectors: vi.fn(async () => over.detectors ?? [stream("d1", "p1"), stream("d2", "p2")]),
+				create: vi.fn(
+					async (_org: string, input: object) => (store.current = { id: "w9", ...input } as SentryWorkflow)
+				),
+				update: vi.fn(async (_org: string, _id: string, input: object) => {
+					store.current = { ...store.current, ...input } as SentryWorkflow;
+					return store.current;
+				}),
+				get: vi.fn(async () =>
+					over.readFrequency
+						? ({ ...store.current, config: { frequency: over.readFrequency } } as SentryWorkflow)
+						: store.current!
+				),
+				delete: vi.fn(async () => {}),
+			},
+			projects: { list: vi.fn(async () => over.projects ?? [{ id: "p2", slug: "web" }]) },
+		};
+		const { ctx, rows } = ctxFor();
+		ctx.cleanup = (_label, fn) => void cleanups.push(fn);
+		return { client, ctx, rows, cleanups, store };
+	}
+
+	const run = (client: unknown, ctx: ProbeContext, over: Partial<SentryProbeDeps> = {}) =>
+		sentryProbes({ org: "my-org", client: () => client as SentryClient, env: {}, ...over })["rule-update"]!.run(
+			ctx
+		);
+
+	it("makes a disabled rule, changes its frequency with a PUT, reads it back, and registers its removal", async () => {
+		const { client, ctx, rows, cleanups } = setup();
+		await run(client, ctx);
+		const created = client.workflows.create.mock.calls[0]![1] as SentryWorkflowInput;
+		expect(created).toMatchObject({ enabled: false, detectorIds: ["d1"], config: { frequency: 5 } });
+		expect(created.actionFilters[0]!.actions).toEqual([]);
+		expect(created.name).toContain("Holocron probe");
+		expect(client.workflows.update).toHaveBeenCalledWith(
+			"my-org",
+			"w9",
+			expect.objectContaining({ enabled: false, config: { frequency: 10 } })
+		);
+		expect(rows.map((r) => [r.status, r.label])).toEqual([
+			["ok", "created"],
+			["ok", "PUT accepted"],
+			["ok", "read back"],
+		]);
+		expect(cleanups).toHaveLength(1);
+		await cleanups[0]!();
+		expect(client.workflows.delete).toHaveBeenCalledWith("my-org", "w9");
+	});
+
+	it("fails when what is read back is not what was sent", async () => {
+		const { client, ctx, rows } = setup({ readFrequency: 5 });
+		await run(client, ctx);
+		expect(rows.at(-1)).toMatchObject({ status: "fail", label: "read back differs" });
+		expect(rows.at(-1)!.detail).toContain("frequency 5 (sent 10)");
+	});
+
+	it("still registers the removal when the PUT is refused", async () => {
+		const { client, ctx, cleanups } = setup();
+		client.workflows.update.mockRejectedValueOnce(new Error("Sentry said no"));
+		await expect(run(client, ctx)).rejects.toThrow("Sentry said no");
+		expect(cleanups).toHaveLength(1);
+	});
+
+	it("makes nothing on a dry run, and says what it would do", async () => {
+		const { client, rows } = setup();
+		const { ctx } = ctxFor(true);
+		await run(client, ctx);
+		expect(client.workflows.create).not.toHaveBeenCalled();
+		expect(rows).toEqual([]);
+		const dry = ctxFor(true);
+		await run(client, dry.ctx);
+		expect(dry.rows[0]).toMatchObject({ status: "info", label: expect.stringContaining("would then change") });
+	});
+
+	it("hangs the rule on the chosen project's issue stream, and says what is wrong with the choice", async () => {
+		const { client, ctx } = setup();
+		await run(client, ctx, { env: { HOLOCRON_SENTRY_PROBE_PROJECT: "web" } });
+		expect((client.workflows.create.mock.calls[0]![1] as SentryWorkflowInput).detectorIds).toEqual(["d2"]);
+		await expect(
+			run(setup().client, setup().ctx, { env: { HOLOCRON_SENTRY_PROBE_PROJECT: "nope" } })
+		).rejects.toThrow(/`nope` was not found/);
+		await expect(
+			run(setup({ detectors: [stream("d1", "p1")] }).client, setup().ctx, {
+				env: { HOLOCRON_SENTRY_PROBE_PROJECT: "web" },
+			})
+		).rejects.toThrow(/has no issue stream detector/);
+	});
+
+	it("reads the real environment when none is injected", async () => {
+		vi.stubEnv("HOLOCRON_SENTRY_PROBE_PROJECT", "web");
+		try {
+			const { client, ctx } = setup();
+			await sentryProbes({ org: "my-org", client: () => client as unknown as SentryClient })["rule-update"]!.run(
+				ctx
+			);
+			expect((client.workflows.create.mock.calls[0]![1] as SentryWorkflowInput).detectorIds).toEqual(["d2"]);
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it("needs a detector to attach to, and the org", async () => {
+		await expect(run(setup({ detectors: [] }).client, setup().ctx)).rejects.toThrow(
+			/no project has an issue stream/
+		);
+		await expect(run(setup().client, setup().ctx, { org: undefined })).rejects.toThrow(/`org`/);
 	});
 });
