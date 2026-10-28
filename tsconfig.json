@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/cli"
+      "path": "./cli/cli"
     }
   ]
 }

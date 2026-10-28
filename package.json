@@ -20,7 +20,7 @@
   "scripts": {
     "build": "turbo run delivery.build",
     "format": "prettier --write .",
-    "holocron": "node packages/cli/dist/cli.mjs",
+    "holocron": "node cli/cli/dist/cli.mjs",
     "lint": "holocron run sourceQuality.staticAnalysis --",
     "prepare": "husky",
     "test": "holocron run verification.unitTests --",

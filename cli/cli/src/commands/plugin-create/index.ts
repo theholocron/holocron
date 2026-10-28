@@ -1,0 +1,299 @@
+/**
+ * `holocron new plugin <slug> <vendor>` — scaffold a new plugin
+ * package matching the proven template.
+ *
+ * Design: see `docs/wiki/specifications/tool-plugin-create.spec.md`.
+ *
+ * Flow:
+ *   1. Preflight — verify CWD is a workspace root (pnpm-workspace.yaml
+ *      + a package directory).
+ *   2. Slug collision — plugins/holocron-plugin-<slug>/ must not exist.
+ *   3. Capability sanity — must be one of the 14 known keys; warn for
+ *      many-cardinality caps.
+ *   4. Generate — for each template, write to
+ *      plugins/holocron-plugin-<slug>/<path>.
+ *   5. Verify (unless --no-verify) — runs pnpm install +
+ *      pnpm --filter <pkg> typecheck lint test.
+ *   6. Print next steps.
+ */
+
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+import { resolveWorkspaceGlobs } from "@theholocron/astromech";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { getLogger } from "../../observability/logger/index.js";
+import { type CapabilityKey, CARDINALITY } from "../../plugin/index.js";
+import type {
+	PluginCreateReport,
+	PluginCreateWizardArgs,
+	PluginCreateWizardPrompts,
+	RunPluginCreateInput,
+	TemplateEntry,
+} from "./index.type.js";
+import { deriveDefaults, type TemplateInputs } from "./template-inputs/index.js";
+import { render as renderAuth } from "./templates/auth.js";
+import { render as renderAuthTest } from "./templates/auth-test.js";
+import { render as renderCapability } from "./templates/capability.js";
+import { render as renderCapabilityTest } from "./templates/capability-test.js";
+import { render as renderEslintConfig } from "./templates/eslint-config.js";
+import { render as renderHelpers } from "./templates/helpers.js";
+import { render as renderIndexTest } from "./templates/index-test.js";
+import { render as renderPackageJson } from "./templates/package-json.js";
+import { render as renderPluginIndex } from "./templates/plugin-index.js";
+import { render as renderReadme } from "./templates/readme.js";
+import { render as renderRest } from "./templates/rest.js";
+import { render as renderRestTest } from "./templates/rest-test.js";
+import { render as renderTsconfigJson } from "./templates/tsconfig-json.js";
+import { render as renderTsdownConfig } from "./templates/tsdown-config.js";
+import { render as renderValidateScript } from "./templates/validate-script.js";
+import { render as renderVerifyToken } from "./templates/verify-token.js";
+import { render as renderVerifyTokenTest } from "./templates/verify-token-test.js";
+import { render as renderVitestConfig } from "./templates/vitest-config.js";
+
+/**
+ * Resolve `capability`, `vendorEnv`, and `baseUrl` from argv or by calling
+ * the supplied prompt functions for any that are absent. Extracted from
+ * `cli.ts` so the resolution logic is unit-testable.
+ */
+export async function resolvePluginCreateInputs(
+	args: PluginCreateWizardArgs,
+	prompts: PluginCreateWizardPrompts
+): Promise<{ capability: CapabilityKey; vendorEnv: string; baseUrl: string }> {
+	const capability = (args.capability ?? (await prompts.selectCapability())) as CapabilityKey;
+	const vendorEnv = args.vendorEnv ?? (await prompts.inputVendorEnv());
+	const baseUrl = args.baseUrl ?? (await prompts.inputBaseUrl());
+	return { capability, vendorEnv, baseUrl };
+}
+
+export class PluginCreateError extends Error {
+	override name = "PluginCreateError";
+}
+
+const TEMPLATES: TemplateEntry[] = [
+	// Config (5)
+	{ path: "package.json", render: renderPackageJson },
+	{ path: "tsconfig.json", render: renderTsconfigJson },
+	{ path: "vitest.config.ts", render: renderVitestConfig },
+	{ path: "eslint.config.ts", render: renderEslintConfig },
+	{ path: "tsdown.config.ts", render: renderTsdownConfig },
+	// Docs (1)
+	{ path: "README.md", render: renderReadme },
+	// Source (5) — capability path uses the dynamic capability slug.
+	{ path: "src/auth.ts", render: renderAuth },
+	{ path: "src/rest.ts", render: renderRest },
+	{ path: "src/verify-token.ts", render: renderVerifyToken },
+	{ path: "src/index.ts", render: renderPluginIndex },
+	{ path: "src/capabilities/{{capability}}.ts", render: renderCapability },
+	// Tests (6)
+	{ path: "src/__tests__/helpers.ts", render: renderHelpers },
+	{ path: "src/__tests__/auth.test.ts", render: renderAuthTest },
+	{ path: "src/__tests__/rest.test.ts", render: renderRestTest },
+	{ path: "src/__tests__/verify-token.test.ts", render: renderVerifyTokenTest },
+	{ path: "src/__tests__/{{capability}}.test.ts", render: renderCapabilityTest },
+	{ path: "src/__tests__/index.test.ts", render: renderIndexTest },
+	// Live-account validation script (1) — read-only smoke test.
+	{ path: "scripts/validate.mjs", render: renderValidateScript },
+];
+
+/** Replace `{{capability}}` in a template path with the actual capability key. */
+function resolvePath(template: string, inputs: TemplateInputs): string {
+	return template.replace(/\{\{capability\}\}/g, inputs.capability);
+}
+
+// ── Orchestrator ────────────────────────────────────────────────────
+
+export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport {
+	const cwd = input.cwd ?? process.cwd();
+	const print = input.print ?? ((line: string) => console.log(line));
+	const logger = input.logger ?? getLogger();
+	const write = input.writeFile ?? defaultWrite;
+
+	preflight(cwd);
+	validateSlug(input.slug);
+	validateVendorName(input.vendorName);
+
+	const packageDir = path.join(cwd, "plugins", `holocron-plugin-${input.slug}`);
+	if (existsSync(packageDir)) {
+		throw new PluginCreateError(`\`${packageDir}\` already exists — edit in place or pick a different slug.`);
+	}
+
+	validateCapability(input.capability, print);
+
+	const derived = deriveDefaults({
+		slug: input.slug,
+		vendorName: input.vendorName,
+		capability: input.capability,
+	});
+	const inputs: TemplateInputs = {
+		slug: input.slug,
+		vendorName: input.vendorName,
+		vendorUpper: derived.vendorUpper,
+		capability: input.capability,
+		capabilityClass: derived.capabilityClass,
+		tokenEnv: input.tokenEnv ?? derived.tokenEnv,
+		vendorEnv: input.vendorEnv,
+		// Normalize: strip trailing slashes so the embedded value in the
+		// generated rest-test.ts matches what the client trims at runtime.
+		baseUrl: trimTrailingSlashes(input.baseUrl),
+		transport: derived.transport,
+	};
+
+	const filesWritten: string[] = [];
+	print(`Scaffolding @theholocron/holocron-plugin-${inputs.slug}${input.dryRun ? " (dry-run)" : ""}`);
+	print(`  → ${packageDir}`);
+	logger.info(
+		{ slug: inputs.slug, capability: inputs.capability, dryRun: input.dryRun || undefined },
+		"plugin create: start"
+	);
+	for (const template of TEMPLATES) {
+		const resolvedPath = resolvePath(template.path, inputs);
+		const filepath = path.join(packageDir, resolvedPath);
+		const content = template.render(inputs);
+		if (input.dryRun) {
+			print(`  … would write ${resolvedPath} (${content.length} bytes)`);
+		} else {
+			write(filepath, content);
+			print(`  ✓ ${resolvedPath}`);
+		}
+		filesWritten.push(resolvedPath);
+	}
+
+	if (!input.dryRun && !input.noVerify) {
+		const execFn = input.exec ?? defaultExec;
+		const pkg = `@theholocron/holocron-plugin-${inputs.slug}`;
+		print("");
+		print("  Verifying scaffold…");
+		try {
+			execFn("pnpm", ["install", "--frozen-lockfile=false"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "verification.typeSafety"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "sourceQuality.staticAnalysis"], { cwd, stdio: "inherit" });
+			execFn("pnpm", ["--filter", pkg, "verification.unitTests"], { cwd, stdio: "inherit" });
+			print("  ✓ scaffold verified");
+		} catch (err) {
+			const message = errorMessage(err);
+			print(`  ✗ verify failed — ${message}`);
+			logger.warn(
+				{ slug: inputs.slug, files: filesWritten.length, reason: message, status: "fail" },
+				"plugin create: done"
+			);
+			return {
+				status: "fail",
+				packagePath: packageDir,
+				filesWritten,
+				message: "post-scaffold verify failed; inspect output above",
+			};
+		}
+	}
+
+	if (!input.dryRun) {
+		printNextSteps(print, inputs);
+	}
+
+	logger.info(
+		{
+			slug: inputs.slug,
+			capability: inputs.capability,
+			files: filesWritten.length,
+			status: input.dryRun ? "dry-run" : "ok",
+		},
+		"plugin create: done"
+	);
+	return { status: "ok", packagePath: packageDir, filesWritten };
+}
+
+// ── Internals ───────────────────────────────────────────────────────
+
+function preflight(cwd: string): void {
+	if (!existsSync(path.join(cwd, "pnpm-workspace.yaml"))) {
+		throw new PluginCreateError(
+			`\`pnpm-workspace.yaml\` not found in \`${cwd}\`. Run \`holocron new plugin\` from the monorepo root.`
+		);
+	}
+	const { include } = resolveWorkspaceGlobs(cwd);
+	if (!include.some((glob) => existsSync(path.join(cwd, glob.replace(/\/\*$/, ""))))) {
+		throw new PluginCreateError(`\`pnpm-workspace.yaml\` in \`${cwd}\` declares no package directory.`);
+	}
+}
+
+/**
+ * npm-package-name conventions: kebab-case, starts with lowercase
+ * letter. Rejecting numeric-prefixed slugs also sidesteps the
+ * `env.HOLOCRON_1FOO_TOKEN` invalid-identifier trap in the auth
+ * template.
+ */
+const SLUG_RE = /^[a-z][a-z0-9-]*$/;
+
+function validateSlug(slug: string): void {
+	if (!SLUG_RE.test(slug)) {
+		throw new PluginCreateError(
+			`invalid slug "${slug}" — must be kebab-case: lowercase letter followed by lowercase letters, digits, or hyphens. ` +
+				`Examples: "clerk", "cloud-flare", "doppler".`
+		);
+	}
+}
+
+/** PascalCase — starts with uppercase, alphanumeric only. */
+const VENDOR_NAME_RE = /^[A-Z][a-zA-Z0-9]*$/;
+
+function validateVendorName(name: string): void {
+	if (!VENDOR_NAME_RE.test(name)) {
+		throw new PluginCreateError(
+			`invalid vendor name "${name}" — must be PascalCase: starts with uppercase, alphanumeric only. ` +
+				`Examples: "Clerk", "CloudFlare", "Doppler".`
+		);
+	}
+}
+
+/**
+ * Trim trailing slashes with a plain loop (no regex — matches the
+ * rest.ts template's own trimming to stay ReDoS-safe under CodeQL).
+ */
+function trimTrailingSlashes(url: string): string {
+	let out = url;
+	while (out.endsWith("/")) out = out.slice(0, -1);
+	return out;
+}
+
+function validateCapability(capability: CapabilityKey, print: (line: string) => void): void {
+	if (!(capability in CARDINALITY)) {
+		throw new PluginCreateError(
+			`\`${capability}\` is not a known capability. See \`cli/cli/src/capabilities/index.ts\`.`
+		);
+	}
+	if (CARDINALITY[capability] === "many") {
+		print(
+			`  ! ${capability} is a many-cardinality capability — multiple providers can be active at once. ` +
+				"Confirm your config wiring accordingly."
+		);
+	}
+}
+
+function defaultWrite(filepath: string, content: string): void {
+	mkdirSync(path.dirname(filepath), { recursive: true });
+	writeFileSync(filepath, content, "utf8");
+}
+
+function defaultExec(cmd: string, args: string[], opts: { cwd: string; stdio: "inherit" }): void {
+	execFileSync(cmd, args, { cwd: opts.cwd, stdio: opts.stdio });
+}
+
+function printNextSteps(print: (line: string) => void, inputs: TemplateInputs): void {
+	print("");
+	print(`  Scaffolded @theholocron/holocron-plugin-${inputs.slug} (18 files).`);
+	print("");
+	print("  Next:");
+	print(
+		`    1. pnpm install                                                        # picks up the workspace package`
+	);
+	print(`    2. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} typecheck   # green`);
+	print(`    3. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} lint        # green`);
+	print(
+		`    4. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} test        # green (stubs pass, real tests are it.todo)`
+	);
+	print(`    5. Implement ${inputs.capabilityClass} methods in src/capabilities/${inputs.capability}.ts`);
+	print(`    6. Replace it.todo(...) with real tests in src/__tests__/${inputs.capability}.test.ts`);
+	print("    7. Commit + push when capability is functionally complete.");
+}

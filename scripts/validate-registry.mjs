@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validates that every public package in packages/ or plugins/ has a
+ * Validates that every public package in cli/ or plugins/ has a
  * registry entry in @theholocron/registry-doc.
  *
  * Usage: node scripts/validate-registry.mjs
@@ -32,7 +32,7 @@ function publicPackagesIn(dir) {
 }
 
 // Collect public package names from this workspace.
-const publicPackages = [...publicPackagesIn(join(root, "packages")), ...publicPackagesIn(join(root, "plugins"))];
+const publicPackages = [...publicPackagesIn(join(root, "cli")), ...publicPackagesIn(join(root, "plugins"))];
 
 if (publicPackages.length === 0) {
 	console.log("No public packages found — nothing to validate.");

@@ -1,5 +1,5 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 name: Platform
@@ -20,10 +20,10 @@ on: # yamllint disable-line rule:truthy
     # enforces for npm's dist-tags and Sentinel's own deploy trigger.
     branches: [main]
     paths:
-      - packages/astromech/src/templates/**
-      - packages/astromech/src/generators/**
-      - packages/astromech/src/registry/**
-      - packages/cli/src/templates/**
+      - cli/astromech/src/templates/**
+      - cli/astromech/src/generators/**
+      - cli/astromech/src/registry/**
+      - cli/cli/src/templates/**
   workflow_dispatch: {}
 
 concurrency:

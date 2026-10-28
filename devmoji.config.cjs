@@ -1,5 +1,5 @@
 /* AUTO-GENERATED — do not edit directly.
- * Source:  theholocron/holocron · packages/cli/src/templates/configs/devmoji/create-config.ts
+ * Source:  theholocron/holocron · cli/cli/src/templates/configs/devmoji/create-config.ts
  * Tool:    holocron repo setup
  * Changes: edit source in theholocron/holocron
  */

@@ -20,7 +20,7 @@ Three repos, one rule per concern:
 ## Architecture
 
 - **Capability/provider model.** 18 capabilities defined in
-  `packages/cli/src/plugin/capabilities/capabilities.type.ts`. Vendors implement N
+  `cli/cli/src/plugin/capabilities/capabilities.type.ts`. Vendors implement N
   capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
   up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
   typed autocomplete. `vault` is no longer required (removed constraint).
@@ -68,7 +68,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   configured without `CLOUDFLARE_ACCOUNT_ID`. Account-specific values deliberately have no default in the templates.
   **`theholocron/.github` and `.github-private` are pure sync targets** —
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
-  are generated from `packages/astromech/src/templates/` and pushed by
+  are generated from `cli/astromech/src/templates/` and pushed by
   `holocron sync github`; edit the source here, never those repos directly.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
   - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
@@ -83,7 +83,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     core + plugin-exported `parseWebhook(input): AuthEvent` utility
     (NOT a capability method). Swap auth providers without rewriting
     handlers.
-  - **Execution context** (`packages/cli/src/commands/contexts/contexts.ts`,
+  - **Execution context** (`cli/cli/src/commands/contexts/contexts.ts`,
     spec `tech-cli-execution-contexts`, #576). Every command is tagged
     `global` (binary only), `repo-aware` (`./holocron.config`, no
     plugins) or `workspace` (plugin packages resolvable). New commands
@@ -93,7 +93,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     it throws `WorkspaceContextError` (printed cleanly by `cli.ts`'s
     `USER_FACING_ERRORS` catch) only when every provider errored with a
     missing-package error — the global-install case.
-  - **Interactive fallback** (`packages/cli/src/interactive-menu/`, spec
+  - **Interactive fallback** (`cli/cli/src/interactive-menu/`, spec
     `tool-interactive-cli-menu`, #438). A command with a required positional
     gets a `COMMAND_REGISTRY` entry so a missing arg prompts instead of
     hard-failing; interactive prompting itself stays inline in `cli.ts`'s
@@ -104,7 +104,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `ExitPromptError` on a closed stdin. The generic prompting pieces
     (`NonInteractiveError`, `pickMenuItem` / `searchChoices`,
     `promptForPositionals`, `promptForOptions`) live in
-    `packages/cli/src/ui/`, which has no knowledge of commands;
+    `cli/cli/src/ui/`, which has no knowledge of commands;
     `interactive-menu/` holds the rest, one folder per piece:
     `command-registry`, `menu-items`, `run-menu-entries`, `child-argv` and
     `launch-menu`.
@@ -187,7 +187,7 @@ not object destructuring.
 
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
-- **One function per file, types in `*.type.ts`.** In `packages/*` (`cli`,
+- **One function per file, types in `*.type.ts`.** In `cli/*` (`cli`,
   `astromech`, `datapad`, and `apps/sentinel`), exported
   `interface` / `type` declarations live in `<name>.type.ts`, not in the
   implementation file. A module sits in a folder named after it, holding the
@@ -270,7 +270,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
      set CI runs. Finding failures after pushing wastes a round trip.)
   2. Tests cover the new behavior (new path → new test; bug fix → test
      that would have caught it).
-  3. Docs are updated: `packages/cli/README.md` for any public API or
+  3. Docs are updated: `cli/cli/README.md` for any public API or
      config shape change; `AGENTS.md` for any architectural or workflow
      change; the relevant `.notes/*.spec.md` spec for any design
      decision or roadmap item resolved. Stale docs that contradict the
@@ -319,7 +319,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   new file type that pins the Node.js version (e.g., a new CI platform's
   config, an `.engines` file, a custom script), add a `Pattern` entry to
   the `PATTERNS` array in
-  `packages/cli/src/commands/upgrade-node/upgrade-node.ts` — a `matches` predicate
+  `cli/cli/src/commands/upgrade-node/upgrade-node.ts` — a `matches` predicate
   on the filename and a `patch` function that replaces the old major with
   the new one. The `upgrade.node.extra` field in `holocron.config.json`
   is only for non-conventional _file paths_ (unusual locations for known
@@ -353,7 +353,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   (chicken-and-egg: trusted publishing needs the package to exist
   first). The command runs `npm login --auth-type=web` itself when
   `npm whoami` shows no session. Workflow: `pnpm install && pnpm build`
-  → `pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp <code>`.
+  → `pnpm exec tsx cli/cli/src/cli.ts package publish --initial --otp <code>`.
   Self-narrowing: it checks every publicly publishable package against the
   npm registry (existence, not version) and only targets the ones that
   don't exist on npm yet — re-running it after adding one new package to an
@@ -364,13 +364,13 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 
 <!-- prettier-ignore -->
 ```text
-packages/                         — core infrastructure (the CLI and its runtime)
+cli/                              — core infrastructure (the CLI and its runtime)
   cli/                            — @theholocron/cli                       (binary + runtime + 18 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
 apps/                             — deployable applications (not published to npm)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
-plugins/                          — vendor capability providers, one package per provider (split from packages/ as the count grew)
+plugins/                          — vendor capability providers, one package per provider (split from cli/ as the count grew)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment
   holocron-plugin-netlify/        — deployment

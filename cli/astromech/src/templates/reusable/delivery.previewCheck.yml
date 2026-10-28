@@ -1,0 +1,208 @@
+name: Preview Check
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      preview-url:
+        description: The PR's Vercel preview deployment URL, extracted from the triggering `deployment_status` event.
+        required: true
+        type: string
+      sha:
+        description: The deployed commit SHA — checked out explicitly, since GitHub evaluates which version of this workflow file to run from the default branch for a deployment_status event (unlike push/pull_request), and actions/checkout defaults to that same ref absent an explicit override.
+        required: true
+        type: string
+      cwd:
+        description: Directory to run the check from — the opted-in package's own directory in a monorepo. Defaults to the repo root.
+        required: false
+        type: string
+        default: "."
+      vercel-project:
+        description: >
+          Expected Vercel project id/name the preview URL must resolve
+          to (verified live via Vercel's API) before
+          VERCEL_PROTECTION_BYPASS_SECRET is ever attached to a request
+          (holocron#1032 review) — a bare *.vercel.app hostname proves
+          nothing on its own, since anyone can register their own
+          Vercel project. Omitted → the bypass secret is never
+          attached, regardless of whether it's configured.
+        required: false
+        type: string
+        default: ""
+    secrets:
+      VERCEL_TOKEN:
+        description: >
+          Required alongside vercel-project to verify deployment
+          ownership via Vercel's API (read-only use here). Not required
+          when vercel-project is omitted.
+        required: false
+      VERCEL_PROTECTION_BYPASS_SECRET:
+        description: >
+          Vercel's "Protection Bypass for Automation" secret for the
+          target project (holocron#1030) — sent as the
+          x-vercel-protection-bypass header so this check's request
+          isn't redirected to Vercel's own SSO login by Deployment
+          Protection, which is on by default for Preview deployments.
+          Optional: a check against a URL with protection disabled (or
+          a provider other than Vercel) needs nothing here.
+        required: false
+
+jobs:
+  preview-check:
+    name: Run monitoring checks against the preview deployment
+    permissions:
+      contents: read
+      # Both read-only, needed by the "Resolve author trust" step
+      # below: pull-requests to find which PR `inputs.sha` belongs to,
+      # and the collaborators/permission lookup (Metadata: read on a
+      # PAT, already covered by contents) that step makes against the
+      # real PR author.
+      pull-requests: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validate the preview URL
+        id: validate
+        env:
+          CANDIDATE: ${{ inputs.preview-url }}
+        run: |
+          # `preview-url` comes from the triggering deployment_status
+          # event's environment_url -- set by whoever created that
+          # deployment status, not necessarily this repo's own
+          # delivery.previewDeploy job (anyone with `deployments: write`
+          # could create one directly via the API). Validated here,
+          # independently of the event's origin, before this runner
+          # ever issues an HTTP request to it (the monitoring check
+          # below): without this, a crafted environment_url could point
+          # the runner at an internal or attacker-controlled host
+          # (SSRF) instead of a real Vercel preview. Forwarding the
+          # re-serialized `url.href` rather than the raw input also
+          # closes off argument injection through embedded whitespace
+          # or shell metacharacters -- a string that parses can't carry
+          # either.
+          host=$(node -e 'try { process.stdout.write(new URL(process.argv[1]).hostname) } catch { process.exit(1) }' "$CANDIDATE") || host=""
+          if [[ "$host" != *.vercel.app ]]; then
+            echo "::error::preview-url '$CANDIDATE' does not parse to a *.vercel.app host (parsed host: '${host:-<unparseable>}')"
+            exit 1
+          fi
+          url=$(node -e 'const u = new URL(process.argv[1]); if (u.protocol !== "https:") process.exit(1); process.stdout.write(u.href)' "$CANDIDATE") || {
+            echo "::error::preview-url '$CANDIDATE' did not parse to an https:// URL"
+            exit 1
+          }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          ref: ${{ inputs.sha }}
+          # This checks out and runs a PR's own holocron.config.ts —
+          # untrusted until reviewed. Never leave a credential sitting
+          # in .git/config for that code to read and exfiltrate; no
+          # later step in this job needs to push or pull authenticated.
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Resolve author trust
+        id: trust
+        env:
+          # Ambient, always-available -- no new secret. Only used for
+          # two read-only lookups, both within what this token already
+          # has by default.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ inputs.sha }}
+        run: |
+          # Deliberately NOT a value carried in through the
+          # deployment's own `payload` field (sourcery review on
+          # #1058's first attempt): that field is attacker-controlled
+          # by anyone with `deployments: write` -- same precondition
+          # already needed to create a deployment_status event at all
+          # -- so trusting whatever it claims would let that same
+          # attacker forge payload.collaborator_permission = "admin"
+          # on their own crafted deployment and unlock the bypass
+          # secret regardless of who actually authored the code. This
+          # step derives trust itself, from data it verifies
+          # independently: which real PR `inputs.sha` belongs to, and
+          # that PR's real author's current push-access level -- an
+          # attacker can't forge either without already having
+          # genuine write access to this repo.
+          #
+          # First attempt used
+          # github.event.pull_request.author_association instead, and
+          # separately turned out to be wrong for a different reason:
+          # that field only reports MEMBER for a *publicly visible* org
+          # membership, so a maintainer with private org membership
+          # reads as CONTRIBUTOR and would wrongly fail-closed on their
+          # own PRs (confirmed live on this exact repo, holocron#1057
+          # follow-up). This lookup has neither problem: it reflects
+          # real access -- direct collaborator, team membership, or
+          # org default -- independent of any profile visibility
+          # setting, and needs only "Pull requests: read" plus the
+          # baseline "Metadata: read" every token already has.
+          #
+          # No PR found for this SHA, or no login on it -> "none" ->
+          # untrusted. admin/maintain/write are the three roles GitHub
+          # itself treats as push-capable. Missing or unrecognized ->
+          # untrusted (fail-closed): an absent credential is safer
+          # than a wrongly granted one.
+          author=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/pulls" --jq '(.[0] // {}) | .user.login // empty' 2>/dev/null) || author=""
+          permission="none"
+          if [ -n "$author" ]; then
+            permission=$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${author}/permission" --jq '.permission // "none"' 2>/dev/null) || permission="none"
+          fi
+          case "$permission" in
+            admin | maintain | write) trusted=true ;;
+            *) trusted=false ;;
+          esac
+          echo "trusted=$trusted" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve monitoring checks
+        id: resolve
+        # Untrusted: loads and runs a PR's own holocron.config.ts, same
+        # as the checkout above. No secrets in this step's env at all
+        # (holocron#1032 review) -- VERCEL_TOKEN and
+        # VERCEL_PROTECTION_BYPASS_SECRET live only on the step below,
+        # which never loads this repo's config and so never runs a
+        # single line of PR-authored code.
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: monitoring resolve-checks
+          args: --cwd=${{ inputs.cwd }} --out=${{ runner.temp }}/monitoring-checks.json
+
+      - name: Verify project and run monitoring checks
+        env:
+          # Read directly by `monitoring run-resolved`
+          # (cli/cli/src/cli.ts) -- not part of the CLI's own
+          # `--token`-resolution chain, since neither is a vendor API
+          # credential this command calls anything with: VERCEL_TOKEN
+          # only verifies, read-only, that the preview URL resolves to
+          # vercel-project before VERCEL_PROTECTION_BYPASS_SECRET (a
+          # plain header forwarded as-is) is ever attached. The command
+          # itself never attaches the bypass header when vercel-project
+          # is empty, regardless of whether these secrets are
+          # configured -- never attached to an unverified URL.
+          #
+          # Both gated on `steps.trust.outputs.trusted` (holocron#1057):
+          # confirmed live that Vercel forwards this header straight
+          # through to the deployed function, so an untrusted PR's own
+          # code could read and exfiltrate it off its own incoming
+          # request. An untrusted deployment gets neither secret.
+          VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
+          VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: monitoring run-resolved
+          # vercel-project is NOT gated on trust (sourcery review on
+          # #1058's first attempt) -- it isn't a secret, and clearing
+          # it for an untrusted deployment would make
+          # resolveVercelBypassHeaders treat "no project given" as
+          # trivially verified (its early-return for an omitted
+          # project), skipping ownership verification entirely rather
+          # than failing. Always passing the real project here means
+          # an untrusted deployment instead hits the "project given
+          # but no token" branch -- VERCEL_TOKEN is empty above --
+          # which fails the check outright, before ever issuing the
+          # request, rather than letting an unverified host's response
+          # (e.g. a 3xx redirect a status-less assertion wouldn't
+          # catch) report green.
+          args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}

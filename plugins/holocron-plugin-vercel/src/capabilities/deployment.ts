@@ -1,7 +1,7 @@
 /**
  * `deployment` capability for Vercel.
  *
- * Ported from rando-id/rando.id `packages/cli/src/adapters/vercel.ts`,
+ * Ported from rando-id/rando.id `cli/cli/src/adapters/vercel.ts`,
  * adapted to the holocron `Deployment` interface:
  *
  *   - `ensureProject` is the idempotent create (GET-then-POST), since

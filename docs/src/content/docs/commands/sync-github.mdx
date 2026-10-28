@@ -7,7 +7,7 @@ description: Sync workflow templates and composite actions to theholocron/.githu
 holocron sync github [--repo owner/repo] [--branch <branch>] [--pr] [--message <msg>] [--output-dir <path>] [--dry-run]
 ```
 
-Generates workflow thin callers and composite action files from the source-of-truth templates in `packages/cli/src/commands/` and pushes them to `theholocron/.github` (or any target repo). This is an internal CI command — the `sync-workflow-templates` workflow in holocron itself runs it automatically on push to `main`.
+Generates workflow thin callers and composite action files from the source-of-truth templates in `cli/cli/src/commands/` and pushes them to `theholocron/.github` (or any target repo). This is an internal CI command — the `sync-workflow-templates` workflow in holocron itself runs it automatically on push to `main`.
 
 ## Options
 

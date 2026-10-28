@@ -25,7 +25,7 @@ After step 3, no operator action is needed for that package again.
 
 The initial v2 bootstrap ran this for all 7 packages together (via
 `holocron package publish --initial`, which does step 1 in a single
-invocation across the workspace — a monorepo `pnpm -r --filter=./packages/*`
+invocation across the workspace — a monorepo `pnpm -r --filter=./<workspace glob>`
 publish, or a plain `pnpm publish` for a single-package repo like a
 scaffolded plugin/template). Any new plugin added later needs to walk
 through steps 1–2 for itself.
@@ -48,7 +48,7 @@ pnpm build
 # one-time password from your authenticator and pass it via --otp. The
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
-pnpm exec tsx packages/cli/src/cli.ts package publish --initial --otp 123456
+pnpm exec tsx cli/cli/src/cli.ts package publish --initial --otp 123456
 
 ```
 

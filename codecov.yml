@@ -32,12 +32,12 @@ component_management:
     - component_id: astromech
       name: "astromech"
       paths:
-        - packages/astromech/**
+        - cli/astromech/**
 
     - component_id: cli
       name: "cli"
       paths:
-        - packages/cli/**
+        - cli/cli/**
 
     - component_id: comlink
       name: "comlink"
@@ -47,7 +47,7 @@ component_management:
     - component_id: datapad
       name: "datapad"
       paths:
-        - packages/datapad/**
+        - cli/datapad/**
 
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"

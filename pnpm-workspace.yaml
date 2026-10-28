@@ -1,7 +1,7 @@
 packages:
   - "docs"
   - "apps/*"
-  - "packages/*"
+  - "cli/*"
   - "plugins/*"
 
 # Shared dep versions used across packages. Add named catalogs as

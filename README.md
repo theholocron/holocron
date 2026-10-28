@@ -13,7 +13,7 @@ A pluggable, capability-based CLI for spinning up and operating software project
 ## Installation
 
 This repository is a workspace root — it is not published. See the
-packages under [`packages/`](./packages) for the tools it ships.
+workspace packages for the tools it ships.
 
 <!-- /holocron:installation -->
 
@@ -166,7 +166,7 @@ vault (1Password)
 
 <!-- prettier-ignore -->
 ```bash
-packages/                            — core infrastructure                            (the CLI and its runtime)
+cli/                                 — core infrastructure                            (the CLI and its runtime)
   astromech/                         — @theholocron/astromech                         (task runner — holocron run / ci)
   datapad/                           — @theholocron/datapad                           (config-file loader — <name>.config.*)
   cli/                               — @theholocron/cli                               (binary + capability runtime)

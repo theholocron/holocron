@@ -94,7 +94,7 @@ apps/sentinel/.tmp
 apps/sentinel/.vercel-deploy
 # datapad's own loadConfigFromContent tests write real fixture files inside
 # the package tree to prove node_modules resolution (see load.test.ts)
-packages/datapad/.test-tmp-*
+cli/datapad/.test-tmp-*
 super-linter-output
 .astro/
 docs/.astro/

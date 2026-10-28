@@ -11,7 +11,7 @@ const config: KnipConfig = {
 		docs: {
 			project: ["src/**/*.ts"],
 		},
-		"packages/cli": {
+		"cli/cli": {
 			// entry points auto-detected from package.json exports/bin
 			entry: ["src/**/*.test.ts", "src/testing/*.ts"],
 			project: ["src/**/*.ts"],
@@ -24,12 +24,12 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
-		"packages/datapad": {
+		"cli/datapad": {
 			// src/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
-		"packages/astromech": {
+		"cli/astromech": {
 			// src/index.ts + src/config/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
@@ -82,7 +82,7 @@ const config: KnipConfig = {
 		// ESLint toolchain: per-package eslint.config.ts spreads the root config;
 		// Knip's ESLint plugin doesn't trace through the spread
 		"@theholocron/eslint-config",
-		// vitest config auto-loading is disabled for packages/cli (the rollup
+		// vitest config auto-loading is disabled for cli/cli (the rollup
 		// plugin isn't built at audit time), so Knip can't trace this import
 		"@theholocron/vitest-config",
 		"@vitest/eslint-plugin",
@@ -123,8 +123,8 @@ const config: KnipConfig = {
 	// Declaration files for dotfile templates (.yamllint.yml, .yamlignore) — knip's
 	// glob doesn't traverse dotfiles so it can't trace these as reachable from imports
 	ignoreFiles: [
-		"packages/astromech/src/templates/configs/yamllint/.yamllint.yml.d.ts",
-		"packages/astromech/src/templates/configs/yamllint/.yamlignore.d.ts",
+		"cli/astromech/src/templates/configs/yamllint/.yamllint.yml.d.ts",
+		"cli/astromech/src/templates/configs/yamllint/.yamlignore.d.ts",
 	],
 };
 
