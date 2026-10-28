@@ -89,6 +89,10 @@ export function workflows(rest: RestClient) {
 				body: input,
 			}),
 
+		/** Remove a workflow. Sentry answers 204 with no body. */
+		delete: (org: string, id: string): Promise<void> =>
+			rest.request<void>(`/organizations/${seg(org)}/workflows/${seg(id)}/`, { method: "DELETE" }),
+
 		/** The detectors of an organization: what a workflow is attached to. */
 		detectors: (org: string): Promise<SentryDetector[]> =>
 			rest.request<SentryDetector[]>(`/organizations/${seg(org)}/detectors/`),

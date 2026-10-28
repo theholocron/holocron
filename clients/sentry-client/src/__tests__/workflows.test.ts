@@ -65,6 +65,12 @@ describe("workflows", () => {
 		expect(calls[3]?.body).toEqual(input);
 	});
 
+	it("deletes an alert rule", async () => {
+		const { workflows, calls } = client([{ status: 204 }]);
+		await expect(workflows.delete("org", "6236202")).resolves.toBeUndefined();
+		expect(calls[0]).toMatchObject({ method: "DELETE", url: `${BASE}/organizations/org/workflows/6236202/` });
+	});
+
 	it("lists the detectors a workflow attaches to", async () => {
 		const det = {
 			id: "7919365",

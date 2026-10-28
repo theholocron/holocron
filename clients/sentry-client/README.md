@@ -69,6 +69,7 @@ await sentry.workflows.create("my-org", {
     },
   ],
 });
+await sentry.workflows.delete("my-org", "6236202"); // remove one
 ```
 
 ## Auth
