@@ -30,7 +30,7 @@ async function execStep(
 		return { capability, step, status: "dry-run" };
 	}
 	try {
-		const note = await body();
+		const note = await withProgress(`${capability}: ${step}…`, body);
 		const result: SetupStepResult = { capability, step, status: "ok" };
 		if (typeof note === "string") result.message = note;
 		return result;
@@ -74,7 +74,7 @@ export function classify403(err: ProviderApiError): FailReason {
 	return "permissions";
 }
 
-import { style } from "../../../ui/index.js";
+import { style, withProgress } from "../../../ui/index.js";
 import type { FailReason, SetupStepResult } from "./run-step.type.js";
 
 export function formatStep(step: SetupStepResult): string {

@@ -18,7 +18,7 @@ import {
 import { getToken } from "../../auth/index.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
 import { env, holocronEnv } from "../../env/index.js";
-import { style } from "../../ui/index.js";
+import { allowProgress, style } from "../../ui/index.js";
 import type { BuildCliLoggerOpts } from "./logger.type.js";
 
 /**
@@ -125,6 +125,8 @@ export function buildCliLogger(
 	opts: BuildCliLoggerOpts = {}
 ): { logger: Logger; runId: string } {
 	const { command, configLevel } = opts;
+	// `--quiet` and `--log` own the terminal's output, so no progress spinner is drawn beside them.
+	allowProgress(!argv.quiet && !argv.log);
 	if (command) rootCommand = command;
 	const level = resolveLogLevel(argv, configLevel);
 	const consoleOutput = resolveConsoleOutput(argv);

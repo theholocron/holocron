@@ -27,6 +27,7 @@ import {
 	type Secrets,
 	type Workers,
 } from "../../plugin/index.js";
+import { createProgress } from "../../ui/progress/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { style } from "../../ui/style/index.js";
 import {
@@ -261,7 +262,9 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 }
 
 export async function runNotificationsSetup(input: RunNotificationsSetupInput): Promise<NotificationsSetupReport> {
-	const print = input.print ?? ((line: string) => console.log(line));
+	// Lines print through the progress spinner, so a step that is waiting on Discord shows it and a result line replaces it.
+	const progress = createProgress(input.print ?? ((line: string) => console.log(line)));
+	const print = progress.print;
 	const logger = input.logger ?? getLogger();
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
@@ -471,7 +474,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 
 	const attempt = async (step: string, fn: () => Promise<void>): Promise<boolean> => {
 		try {
-			await fn();
+			await progress.run(`${step}…`, fn);
 			return true;
 		} catch (err) {
 			const message = describeProviderError(err);

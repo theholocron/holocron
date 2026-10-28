@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("ora", () => {
-	const spinner = { succeed: vi.fn(), fail: vi.fn() };
-	return { default: vi.fn(() => ({ start: () => spinner, ...spinner })) };
+	const spinner = { succeed: vi.fn(), fail: vi.fn(), stop: vi.fn(), start: vi.fn() };
+	spinner.start.mockImplementation(() => spinner);
+	return { default: vi.fn(() => spinner) };
 });
 
 import ora from "ora";
 
-import { withSpinner } from "./progress.js";
+import { allowProgress, createProgress, progressEnabled, withProgress, withSpinner } from "./progress.js";
 
 describe("withSpinner", () => {
 	describe("non-TTY (isTTY = false)", () => {
@@ -62,6 +63,102 @@ describe("withSpinner", () => {
 
 			const spinner = vi.mocked(ora).mock.results[0]!.value as { fail: ReturnType<typeof vi.fn> };
 			expect(spinner.fail).toHaveBeenCalled();
+		});
+	});
+});
+
+describe("progress", () => {
+	const setTTY = (out: boolean, err: boolean) => {
+		Object.defineProperty(process.stdout, "isTTY", { value: out, configurable: true });
+		Object.defineProperty(process.stderr, "isTTY", { value: err, configurable: true });
+	};
+	const spinner = () => vi.mocked(ora).mock.results[0]!.value as Record<string, ReturnType<typeof vi.fn>>;
+
+	beforeEach(() => {
+		vi.mocked(ora).mockClear();
+		allowProgress(true);
+		vi.stubEnv("CI", "");
+		setTTY(true, true);
+	});
+
+	afterEach(() => {
+		setTTY(false, false);
+		allowProgress(true);
+		vi.unstubAllEnvs();
+	});
+
+	describe("progressEnabled", () => {
+		it("is on only for a person at a terminal: both streams, not CI, not switched off", () => {
+			expect(progressEnabled()).toBe(true);
+			setTTY(true, false);
+			expect(progressEnabled()).toBe(false);
+			setTTY(false, true);
+			expect(progressEnabled()).toBe(false);
+			setTTY(true, true);
+			vi.stubEnv("CI", "true");
+			expect(progressEnabled()).toBe(false);
+			vi.stubEnv("CI", "");
+			allowProgress(false);
+			expect(progressEnabled()).toBe(false);
+		});
+	});
+
+	describe("createProgress", () => {
+		it("draws nothing and prints straight through when it is off", async () => {
+			const lines: string[] = [];
+			const progress = createProgress(
+				(l) => lines.push(l),
+				() => false
+			);
+			await expect(progress.run("step…", async () => 7)).resolves.toBe(7);
+			progress.print("a line");
+			expect(ora).not.toHaveBeenCalled();
+			expect(lines).toEqual(["a line"]);
+		});
+
+		it("shows the step on stderr, and clears it when the step ends, whether it worked or not", async () => {
+			const progress = createProgress(() => {});
+			await progress.run("role admin…", async () => {});
+			expect(ora).toHaveBeenCalledWith(expect.objectContaining({ text: "role admin…", stream: process.stderr }));
+			expect(spinner().stop).toHaveBeenCalledTimes(1);
+			await expect(
+				progress.run("again…", async () => {
+					throw new Error("boom");
+				})
+			).rejects.toThrow("boom");
+			expect(spinner().stop).toHaveBeenCalledTimes(2);
+		});
+
+		it("clears the spinner around a line printed during a step, and prints plainly after it", async () => {
+			const order: string[] = [];
+			const lines: string[] = [];
+			const progress = createProgress((l) => {
+				order.push("print");
+				lines.push(l);
+			});
+			vi.mocked(ora).mockClear();
+			await progress.run("step…", async () => {
+				const s = spinner();
+				s.stop!.mockImplementation(() => void order.push("stop"));
+				s.start!.mockImplementation(() => (order.push("start"), s));
+				progress.print("✓ created");
+			});
+			progress.print("after");
+			expect(order).toEqual(["stop", "print", "start", "stop", "print"]);
+			expect(lines).toEqual(["✓ created", "after"]);
+		});
+	});
+
+	describe("withProgress", () => {
+		it("runs the step under a spinner and gives back its result", async () => {
+			await expect(withProgress("working…", async () => "done")).resolves.toBe("done");
+			expect(ora).toHaveBeenCalledWith(expect.objectContaining({ text: "working…" }));
+		});
+
+		it("does not draw one off a terminal", async () => {
+			setTTY(false, false);
+			await expect(withProgress("working…", async () => 1)).resolves.toBe(1);
+			expect(ora).not.toHaveBeenCalled();
 		});
 	});
 });
