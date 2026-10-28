@@ -7,9 +7,8 @@
  * of importing this logic directly.
  */
 
-import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
-
 import codecovTemplate from "../../templates/codecov/codecov.yml";
+import { discoverWorkspacePackages } from "../../workspace/index.js";
 import type { WorkspacePackage } from "./codecov.type.js";
 
 export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
@@ -27,11 +26,11 @@ export function codecovComponentBlock(packages: WorkspacePackage[]): string {
 	return (
 		"\n" +
 		packages
-			.flatMap(({ slug, dir }) => [
+			.flatMap(({ slug, dir, path }) => [
 				`    - component_id: ${slug}`,
 				`      name: "${slug}"`,
 				`      paths:`,
-				`        - ${dir ?? "packages"}/${slug}/**`,
+				`        - ${path ?? `${dir ?? "packages"}/${slug}`}/**`,
 				``,
 			])
 			.join("\n")
@@ -90,21 +89,29 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 }
 
 /**
- * Every public `packages/*`, `apps/*`, and `plugins/*` workspace, sorted by
- * slug. `[]` when none of the three directories exist. Monorepo templates
- * (Next.js, React, …) ship user-facing code under `apps/` alongside library
- * code under `packages/`; `holocron` itself splits vendor plugin packages
- * into their own `plugins/*` root — every recognized root needs a codecov
- * component so `codecov/patch/<slug>` actually posts for each.
+ * Every package the repo's `pnpm-workspace.yaml` declares (the default roots
+ * when it declares none), sorted by slug -- the folder name. Every one needs a
+ * codecov component so `codecov/patch/<slug>` actually posts for each. A
+ * package at `<root>/<slug>` carries `dir: <root>`; one that is itself a
+ * workspace folder (`observability`) or sits deeper (`docs/theme`) carries its
+ * `path`. Two packages with the same folder name are told apart by their full
+ * path (`docs-theme`). `[]` when there are none.
  */
 export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
-	const packages = listWorkspacePackagesSync(repoRoot, { roots: ["packages", "apps", "plugins"] }).flatMap(
-		({ name, relativeDir }) => {
-			const [dir, slug] = relativeDir.split("/") as [NonNullable<WorkspacePackage["dir"]>, string];
-			return name ? [{ slug, name, dir }] : [];
-		}
-	);
-	return packages.sort((a, b) => a.slug.localeCompare(b.slug));
+	const found = discoverWorkspacePackages(repoRoot).flatMap(({ name, relativeDir }) => {
+		return name ? [{ name, relativeDir, folder: relativeDir.split("/").at(-1)! }] : [];
+	});
+	const taken = new Map<string, number>();
+	for (const { folder } of found) taken.set(folder, (taken.get(folder) ?? 0) + 1);
+
+	return found
+		.map(({ name, relativeDir, folder }): WorkspacePackage => {
+			const slug = taken.get(folder)! > 1 ? relativeDir.replaceAll("/", "-") : folder;
+			const segments = relativeDir.split("/");
+			if (segments.length === 2 && slug === folder) return { slug, name, dir: segments[0]! };
+			return { slug, name, path: relativeDir };
+		})
+		.sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
 /** A brand-new `codecov.yml` — the scaffold header + the base template + this repo's component list. */

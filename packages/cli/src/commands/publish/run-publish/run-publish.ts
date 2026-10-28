@@ -45,14 +45,13 @@ import { defaultExec } from "../default-exec.js";
 import { defaultLogin } from "../default-login.js";
 import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";
 import { filterNewPackages } from "../filter-new-packages.js";
-import { hasPackagesDir } from "../has-packages-dir.js";
-import { hasPluginsDir } from "../has-plugins-dir.js";
 import { printNextSteps } from "../print-next-steps.js";
 import type { PublicPackageEntry } from "../public-package-entry.type.js";
 import type { PublishPrint, PublishReport } from "../publish.type.js";
 import { redactOtp } from "../redact-otp.js";
 import { resolveRepoIdentity } from "../resolve-repo-identity.js";
 import type { RepoIdentity } from "../resolve-repo-identity.type.js";
+import { workspaceFilterArgs } from "../workspace-filter-args.js";
 import type { RunPublishInput } from "./run-publish.type.js";
 
 /**
@@ -173,15 +172,15 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		return { status: "fail", message, packageNames };
 	}
 
-	// Two repo layouts: a monorepo (`packages/*` and/or `plugins/*`, this
-	// repo's own shape) and a single package at the root (most
-	// `node-template` scaffolds — neither dir). Target the exact packages
+	// Two repo layouts: a monorepo (its `pnpm-workspace.yaml` declares public
+	// packages) and a single package at the root (most `node-template`
+	// scaffolds — none declared). Target the exact packages
 	// found to be new by name, not a directory glob — a glob would also
 	// match every already-bootstrapped package sitting right next to them
 	// and either re-publish them unnecessarily or fail outright on a
 	// version already on npm. Shared between dry-run preview and the real
 	// call so what we print is exactly what we'd run.
-	const isMonorepo = hasPackagesDir(cwd) || hasPluginsDir(cwd);
+	const isMonorepo = workspaceFilterArgs(cwd).length > 0;
 	const publishArgs = [
 		...(isMonorepo ? ["-r", ...packageNames.map((name) => `--filter=${name}`)] : []),
 		"publish",

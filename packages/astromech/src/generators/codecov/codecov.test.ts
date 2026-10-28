@@ -269,3 +269,45 @@ describe("codecovConfig", () => {
 		expect(out).toContain("component_id: foo");
 	});
 });
+
+describe("readWorkspacePackages with a pnpm-workspace.yaml", () => {
+	function makeRepo(workspace: string, packages: Record<string, string>) {
+		const root = mkdtempSync(join(tmpdir(), "astromech-test-"));
+		writeFileSync(join(root, "pnpm-workspace.yaml"), workspace);
+		for (const [dir, name] of Object.entries(packages)) {
+			mkdirSync(join(root, dir), { recursive: true });
+			writeFileSync(join(root, dir, "package.json"), JSON.stringify({ name }));
+		}
+		return root;
+	}
+
+	it("covers every declared group: `<dir>/<slug>` packages carry their root, a package that is its own folder carries its path", () => {
+		const root = makeRepo('packages:\n  - "clients/*"\n  - observability\n  - docs/theme\n', {
+			"clients/http-client": "@theholocron/http-client",
+			observability: "@theholocron/observability",
+			"docs/theme": "@theholocron/docs-theme",
+		});
+		expect(readWorkspacePackages(root)).toEqual([
+			{ slug: "http-client", name: "@theholocron/http-client", dir: "clients" },
+			{ slug: "observability", name: "@theholocron/observability", path: "observability" },
+			{ slug: "theme", name: "@theholocron/docs-theme", dir: "docs" },
+		]);
+	});
+
+	it("tells packages with the same folder name apart by their full path", () => {
+		const root = makeRepo('packages:\n  - "utils/*"\n  - "clients/*"\n', {
+			"utils/env": "@theholocron/env-utils",
+			"clients/env": "@theholocron/env-client",
+		});
+		expect(readWorkspacePackages(root).map((p) => [p.slug, p.path])).toEqual([
+			["clients-env", "clients/env"],
+			["utils-env", "utils/env"],
+		]);
+	});
+
+	it("writes a component path from `path` when the package is not at <dir>/<slug>", () => {
+		const out = createCodecovConfig([{ slug: "theme", name: "@theholocron/docs-theme", path: "docs/theme" }]);
+		expect(out).toContain("- docs/theme/**");
+		expect(out).toContain("component_id: theme");
+	});
+});

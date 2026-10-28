@@ -98,3 +98,10 @@ export type { CreateHeaderOptions, HeaderFunctions, WorkflowHeaderFormat } from 
 export { createHeader } from "./utils/create-header/index.js";
 export { defaultListDirs } from "./utils/default-list-dirs/index.js";
 export { defaultReadJson } from "./utils/default-read-json/index.js";
+export type { DiscoverWorkspacePackagesOptions, WorkspaceGlobs } from "./workspace/index.js";
+export {
+	DEFAULT_WORKSPACE_ROOTS,
+	discoverWorkspacePackages,
+	readWorkspaceGlobs,
+	resolveWorkspaceGlobs,
+} from "./workspace/index.js";

@@ -21,6 +21,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { resolveWorkspaceGlobs } from "@theholocron/astromech";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -211,8 +212,9 @@ function preflight(cwd: string): void {
 			`\`pnpm-workspace.yaml\` not found in \`${cwd}\`. Run \`holocron new plugin\` from the monorepo root.`
 		);
 	}
-	if (!existsSync(path.join(cwd, "packages"))) {
-		throw new PluginCreateError(`\`packages/\` directory not found in \`${cwd}\`.`);
+	const { include } = resolveWorkspaceGlobs(cwd);
+	if (!include.some((glob) => existsSync(path.join(cwd, glob.replace(/\/\*$/, ""))))) {
+		throw new PluginCreateError(`\`pnpm-workspace.yaml\` in \`${cwd}\` declares no package directory.`);
 	}
 }
 

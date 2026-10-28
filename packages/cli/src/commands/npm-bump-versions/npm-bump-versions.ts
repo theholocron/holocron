@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
+import { discoverWorkspacePackages } from "@theholocron/astromech";
 import { stringifyJson } from "@theholocron/json-utils";
-import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import type { NpmBumpVersionsReport, RunNpmBumpVersionsInput } from "./npm-bump-versions.type.js";
@@ -45,11 +45,12 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	// Root is always bumped — private means "don't publish", not "don't version".
 	bumpFile(join(cwd, "package.json"), "root");
 
-	// Each root no-ops safely when its dir doesn't exist — a single-package
-	// repo with neither just gets the root bump.
+	// Every package the workspace declares; a group whose dir doesn't exist
+	// no-ops safely, so a single-package repo with none just gets the root bump.
 	const listed = new Set<string>();
-	const workspace = listWorkspacePackagesSync(cwd, {
+	const workspace = discoverWorkspacePackages(cwd, {
 		readFile,
+		readText: readFile,
 		listDirs: (dir) => {
 			let names: string[];
 			try {

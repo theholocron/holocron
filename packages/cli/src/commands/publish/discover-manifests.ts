@@ -1,17 +1,17 @@
-import { listWorkspacePackagesSync, type PackageJson, readPackageJsonSync } from "@theholocron/pkg-utils";
-
-import { hasPackagesDir } from "./has-packages-dir.js";
-import { hasPluginsDir } from "./has-plugins-dir.js";
+import { discoverWorkspacePackages } from "@theholocron/astromech";
+import { type PackageJson, readPackageJsonSync } from "@theholocron/pkg-utils";
 
 /**
- * Monorepo (`packages/` and/or `plugins/` present): every workspace under
- * either. Single package (neither dir present): the root `package.json`.
+ * Monorepo (the workspace declares public packages): every workspace
+ * package. Single package (it declares none -- no `pnpm-workspace.yaml`, or one
+ * listing only private members like a docs site): the root `package.json`.
  * Callers keep the public ones.
  */
 export function discoverManifests(cwd: string): { manifest: PackageJson; dir: string }[] {
-	if (!hasPackagesDir(cwd) && !hasPluginsDir(cwd)) {
+	const workspace = discoverWorkspacePackages(cwd);
+	if (!workspace.some(({ manifest }) => !manifest.private)) {
 		const manifest = readPackageJsonSync(cwd);
 		return manifest ? [{ manifest, dir: "." }] : [];
 	}
-	return listWorkspacePackagesSync(cwd).map(({ manifest, relativeDir }) => ({ manifest, dir: `./${relativeDir}` }));
+	return workspace.map(({ manifest, relativeDir }) => ({ manifest, dir: `./${relativeDir}` }));
 }

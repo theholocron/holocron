@@ -1,16 +1,13 @@
-import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
-
+import { discoverWorkspacePackages } from "../../../workspace/index.js";
 import type { Tree, WorkspacePackage } from "./workspace-packages.type.js";
 
 /**
- * Every package under `<repoRoot>/packages/*`, `<repoRoot>/apps/*` and
- * `<repoRoot>/plugins/*` with a readable, named `package.json` — `holocron`'s
- * own layout splits vendor plugin packages into `plugins/*` and deployable
- * apps into `apps/*`, siblings to `packages/*`.
+ * Every package the repo's `pnpm-workspace.yaml` declares (`packages/*`,
+ * `apps/*` and `plugins/*` when it declares none) with a readable, named
+ * `package.json`.
  */
 export function workspacePackages(repoRoot: string, { readJson, listDirs }: Tree): WorkspacePackage[] {
-	return listWorkspacePackagesSync(repoRoot, {
-		roots: ["packages", "apps", "plugins"],
+	return discoverWorkspacePackages(repoRoot, {
 		readFile: (path) => JSON.stringify(readJson(path)),
 		// A directory that can't be listed is a directory that isn't there (e.g. no plugins/ or apps/).
 		listDirs: (path) => {
