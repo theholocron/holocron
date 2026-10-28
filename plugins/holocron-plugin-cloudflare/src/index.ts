@@ -1,10 +1,12 @@
 import type { Deployment, Dns, Workers } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { CloudflareDeployment } from "./capabilities/deployment.js";
 import { CloudflareDns } from "./capabilities/dns.js";
 import { CloudflareWorkers } from "./capabilities/workers.js";
 import { type CloudflareClient, createCloudflareClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface CloudflarePluginOptions extends ResolveTokenInput {
 	/**
@@ -69,6 +71,15 @@ export function createPlugin(options: CloudflarePluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-cloudflare",
+		probes: {
+			connection: connectionProbe({
+				provider: "Cloudflare",
+				url: options.baseUrl ?? "https://api.cloudflare.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			dns: () => dns(ctx),
 			...(ctx.options.accountId

@@ -11,7 +11,9 @@
  */
 
 import type { Wiki } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
+import { resolveToken } from "./auth.js";
 import { FernWiki, type FernWikiOptions } from "./capabilities/wiki.js";
 
 export type { ResolveTokenInput } from "./auth.js";
@@ -29,6 +31,14 @@ export function wiki(opts: FernPluginOptions): Wiki {
 export function createPlugin(options: FernPluginOptions = {}) {
 	return {
 		name: "@theholocron/holocron-plugin-fern",
+		probes: {
+			// Fern has no endpoint for asking about a token, and only CI needs one, so this checks that there is one to use.
+			connection: connectionProbe({
+				provider: "Fern",
+				token: () => resolveToken({}),
+				verify: async () => ({ ok: true, subject: "a token is set (Fern cannot check it from here)" }),
+			}),
+		},
 		capabilities: {
 			wiki: () => wiki(options),
 		},

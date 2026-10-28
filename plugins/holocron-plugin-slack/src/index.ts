@@ -1,8 +1,10 @@
 import type { Notifications } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { SlackNotifications, type SlackNotificationsOptions } from "./capabilities/notifications.js";
 import { createSlackClient, type SlackClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface SlackPluginOptions extends ResolveTokenInput, SlackNotificationsOptions {
 	/** Override base URL for tests. Default: https://slack.com/api */
@@ -37,6 +39,15 @@ export function createPlugin(options: SlackPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-slack",
+		probes: {
+			connection: connectionProbe({
+				provider: "Slack",
+				url: options.baseUrl ?? "https://slack.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			notifications: () => notifications(ctx),
 		},

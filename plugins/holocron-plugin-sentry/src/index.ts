@@ -1,9 +1,11 @@
 import type { Errors } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveRelayToken, resolveToken, type ResolveTokenInput } from "./auth.js";
 import { SentryErrors, type SentryErrorsOptions } from "./capabilities/errors.js";
 import { sentryProbes } from "./probes/index.js";
 import { createSentryClient, type SentryClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface SentryPluginOptions extends ResolveTokenInput, SentryErrorsOptions {
 	/**
@@ -52,7 +54,16 @@ export function createPlugin(options: SentryPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-sentry",
-		probes: sentryProbes({ org: options.org, client: ctx.relayClient, fetch: options.fetch }),
+		probes: {
+			...sentryProbes({ org: options.org, client: ctx.relayClient, fetch: options.fetch }),
+			connection: connectionProbe({
+				provider: "Sentry",
+				url: options.baseUrl ?? "https://sentry.io",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			errors: () => errors(ctx),
 		},

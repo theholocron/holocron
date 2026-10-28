@@ -7,11 +7,13 @@
  */
 
 import type { Monitoring, MonitoringCheckInput } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ChecklyMonitoring } from "./capabilities/monitoring.js";
 import { checklyProbes } from "./probes/index.js";
 import { type ChecklyClient, createChecklyClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface ChecklyPluginOptions extends ResolveTokenInput {
 	/** Checkly account id — required on every request, not a secret (same status as Vercel's teamId). */
@@ -55,7 +57,16 @@ export function createPlugin(options: ChecklyPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-checkly",
-		probes: checklyProbes({ client: ctx.client }),
+		probes: {
+			...checklyProbes({ client: ctx.client }),
+			connection: connectionProbe({
+				provider: "Checkly",
+				url: options.baseUrl ?? "https://api.checklyhq.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			monitoring: () => monitoring(ctx),
 		},

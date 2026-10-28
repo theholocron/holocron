@@ -6,10 +6,12 @@
  */
 
 import type { Storage } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { NeonStorage } from "./capabilities/storage.js";
 import { createNeonClient, type NeonClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface NeonPluginOptions extends ResolveTokenInput {
 	/** Neon project id this plugin is bound to. Required. */
@@ -49,6 +51,15 @@ export function createPlugin(options: NeonPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-neon",
+		probes: {
+			connection: connectionProbe({
+				provider: "Neon",
+				url: options.baseUrl ?? "https://console.neon.tech",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			storage: () => storage(ctx),
 		},

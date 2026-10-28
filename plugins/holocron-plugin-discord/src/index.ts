@@ -1,4 +1,5 @@
 import type { Notifications } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveBotToken, resolveClientSecret, resolveToken, type ResolveTokenInput } from "./auth.js";
 import { DiscordNotifications, type DiscordNotificationsOptions } from "./capabilities/notifications.js";
@@ -10,6 +11,7 @@ import {
 	type DiscordClient,
 	type DiscordOAuthClient,
 } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface DiscordPluginOptions extends ResolveTokenInput, DiscordNotificationsOptions {
 	/** Override base URL for tests. Default: https://discord.com/api/v10 */
@@ -81,6 +83,15 @@ export function createPlugin(options: DiscordPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-discord",
+		probes: {
+			connection: connectionProbe({
+				provider: "Discord",
+				url: options.baseUrl ?? "https://discord.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			notifications: () => notifications(ctx),
 		},

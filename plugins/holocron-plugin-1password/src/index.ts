@@ -6,10 +6,12 @@
  */
 
 import type { Vault } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { type VerifyInput, verifyOpInstalled } from "./auth.js";
 import { OpVault } from "./capabilities/vault.js";
 import { OpShell } from "./shell.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface OpPluginOptions extends VerifyInput {
 	/** 1P vault name items live in. Required. */
@@ -52,6 +54,14 @@ export function createPlugin(options: OpPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-1password",
+		probes: {
+			// No API host and no token of ours: `op` signs in on its own, so the check is that it is installed and signed in.
+			connection: connectionProbe({
+				provider: "1Password",
+				token: () => "",
+				verify: (token) => verifyToken(token, { spawn: options.spawn }),
+			}),
+		},
 		capabilities: {
 			vault: () => vault(ctx),
 		},

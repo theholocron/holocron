@@ -7,10 +7,12 @@
  */
 
 import type { Deployment } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 import { createNetlifyClient, type NetlifyClient } from "@theholocron/netlify-client";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { NetlifyDeployment, type NetlifyDeploymentOptions } from "./capabilities/deployment.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface NetlifyPluginOptions extends ResolveTokenInput, NetlifyDeploymentOptions {
 	/** Override base URL for tests. */
@@ -50,6 +52,15 @@ export function createPlugin(options: NetlifyPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-netlify",
+		probes: {
+			connection: connectionProbe({
+				provider: "Netlify",
+				url: options.baseUrl ?? "https://api.netlify.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			deployment: () => deployment(ctx),
 		},

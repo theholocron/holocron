@@ -7,10 +7,12 @@
  */
 
 import type { Vault } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { InfisicalVault, type InfisicalVaultOptions } from "./capabilities/vault.js";
 import { createInfisicalClient, type InfisicalClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaultOptions {
 	/** Override base URL for tests (or self-hosted Infisical). */
@@ -48,6 +50,15 @@ export function createPlugin(options: InfisicalPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-infisical",
+		probes: {
+			connection: connectionProbe({
+				provider: "Infisical",
+				url: options.baseUrl ?? "https://app.infisical.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			vault: () => vault(ctx),
 		},

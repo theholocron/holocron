@@ -1,4 +1,5 @@
 export * from "./capabilities/index.js";
+export * from "./connection-probe/index.js";
 export * from "./loader/index.js";
 export * from "./probe/index.js";
 export * from "./rest-client/index.js";

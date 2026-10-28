@@ -6,10 +6,12 @@
  */
 
 import type { Auth } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ClerkAuth } from "./capabilities/auth.js";
 import { type ClerkClient, createClerkClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface ClerkPluginOptions extends ResolveTokenInput {
 	/** Override base URL for tests. */
@@ -44,6 +46,15 @@ export function createPlugin(options: ClerkPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-clerk",
+		probes: {
+			connection: connectionProbe({
+				provider: "Clerk",
+				url: options.baseUrl ?? "https://api.clerk.com",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			auth: () => auth(ctx),
 		},

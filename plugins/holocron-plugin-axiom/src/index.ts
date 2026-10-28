@@ -7,10 +7,12 @@
  */
 
 import type { Logs } from "@theholocron/cli";
+import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
 import { type AxiomClient, createAxiomClient } from "./rest.js";
+import { verifyToken } from "./verify-token.js";
 
 export interface AxiomPluginOptions extends ResolveTokenInput, AxiomLogsOptions {
 	/** Override base URL for tests. */
@@ -55,6 +57,15 @@ export function createPlugin(options: AxiomPluginOptions) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-axiom",
+		probes: {
+			connection: connectionProbe({
+				provider: "Axiom",
+				url: options.baseUrl ?? "https://api.axiom.co",
+				fetch: options.fetch,
+				token: () => resolveToken(options),
+				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+			}),
+		},
 		capabilities: {
 			logs: () => logs(ctx),
 		},
