@@ -132,11 +132,11 @@ with: {
 }
 ```
 
-`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs before the groups, and a manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`package bump-versions` and `package publish` both take it), and releases a single group when `RELEASE_GROUP` is set:
+`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs before the groups, and a manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`package bump-versions` and `package publish` both take it), and releases a single group when `RELEASE_GROUP` is set. The repo-wide release also ignores commits confined to a group's folder, including a group's imported history, so a change that only touches a group neither releases the repo nor lands in its changelog (`ungroupedReleaseConfig()` builds it, the mirror of `groupReleaseConfig()`):
 
 ```ts
 import { loadTasksConfig } from "@theholocron/astromech/config";
-import { groupReleaseConfig, releaseGroups } from "@theholocron/astromech/release";
+import { groupReleaseConfig, releaseGroups, ungroupedReleaseConfig } from "@theholocron/astromech/release";
 
 const groups = releaseGroups(await loadTasksConfig(process.cwd()));
 const group = process.env["RELEASE_GROUP"];

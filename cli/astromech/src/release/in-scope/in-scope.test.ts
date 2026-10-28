@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { inScope } from "./in-scope.js";
+import { inScope, outsideFolders } from "./in-scope.js";
 
 describe("inScope", () => {
 	it("matches a file under a folder, or the folder itself", () => {
@@ -22,5 +22,30 @@ describe("inScope", () => {
 
 	it("is false for no files", () => {
 		expect(inScope([], ["clients"])).toBe(false);
+	});
+});
+
+describe("outsideFolders", () => {
+	it("is true when a file is outside every folder", () => {
+		expect(outsideFolders(["cli/cli/src/x.ts"], ["observability"])).toBe(true);
+		expect(outsideFolders(["observability/src/x.ts", "README.md"], ["observability"])).toBe(true);
+	});
+
+	it("is false when every file is inside some folder", () => {
+		expect(outsideFolders(["observability/src/x.ts", "skills/a.md"], ["observability", "skills"])).toBe(false);
+		expect(outsideFolders(["observability"], ["observability"])).toBe(false);
+	});
+
+	it("does not take a sibling that shares a prefix for the folder", () => {
+		expect(outsideFolders(["observability-old/x.ts"], ["observability"])).toBe(true);
+	});
+
+	it("normalizes ./ and trailing slashes, and is false for no files", () => {
+		expect(outsideFolders(["observability/a.ts"], ["./observability/"])).toBe(false);
+		expect(outsideFolders([], ["observability"])).toBe(false);
+	});
+
+	it("is true for everything when there are no folders", () => {
+		expect(outsideFolders(["a.ts"], [])).toBe(true);
 	});
 });

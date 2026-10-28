@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ReleaseContext } from "../release.type.js";
-import { folderScoped } from "./folder-scoped.js";
+import { folderScoped, ungroupedScoped } from "./folder-scoped.js";
 
 const commit = (hash: string, message = hash) => ({ hash, message });
 
@@ -83,5 +83,52 @@ describe("folderScoped", () => {
 		// no commits, so git is never asked; the stock analyzer is imported for real and finds no release
 		const logger = { log: () => {} };
 		await expect(plugin.analyzeCommits!({}, { commits: [], logger })).resolves.toBeNull();
+	});
+});
+
+describe("ungroupedScoped", () => {
+	const FILES_UNGROUPED = new Map([
+		["a", ["observability/src/a.ts"]],
+		["b", ["cli/cli/src/b.ts"]],
+		["c", ["observability/src/c.ts", "package.json"]],
+		["d", ["skills/d.md"]],
+	]);
+
+	function setup(step: "analyzeCommits" | "generateNotes" = "analyzeCommits") {
+		const inner = vi.fn(() => "patch");
+		const load = vi.fn(async () => ({ [step]: inner }));
+		const plugin = ungroupedScoped(step, ["observability", "skills"], { load, listFiles: () => FILES_UNGROUPED });
+		return { inner, load, plugin };
+	}
+
+	it("keeps only commits that changed something outside every group folder", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!(
+			{ preset: "x" },
+			{ cwd: "/repo", commits: [commit("a"), commit("b"), commit("c"), commit("d")] }
+		);
+		expect(inner).toHaveBeenCalledWith(
+			{ preset: "x" },
+			expect.objectContaining({ commits: [commit("b"), commit("c")] })
+		);
+	});
+
+	it("hands the stock plugin no commits when every commit is inside a group", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("a"), commit("d")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
+	});
+
+	it("wraps generateNotes the same way, loading the notes generator", async () => {
+		const { inner, load, plugin } = setup("generateNotes");
+		await plugin.generateNotes!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
+		expect(load).toHaveBeenCalledWith("@semantic-release/release-notes-generator");
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("b")] }));
+	});
+
+	it("treats a commit git reports nothing for as inside no group, so it is kept out of the way", async () => {
+		const { inner, plugin } = setup();
+		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("unknown")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
 	});
 });

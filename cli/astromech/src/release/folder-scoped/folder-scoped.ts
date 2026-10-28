@@ -1,5 +1,5 @@
 import { commitFiles } from "../commit-files/index.js";
-import { inScope } from "../in-scope/index.js";
+import { inScope, outsideFolders } from "../in-scope/index.js";
 import type { CommitStep, ReleaseContext, StepPlugin } from "../release.type.js";
 import type { FolderScopedDeps } from "./folder-scoped.type.js";
 
@@ -24,7 +24,30 @@ const MODULES: Record<CommitStep, string> = {
 export function folderScoped<Step extends CommitStep>(
 	step: Step,
 	paths: readonly string[],
-	{ load = (specifier) => import(specifier), listFiles = commitFiles }: FolderScopedDeps = {}
+	deps: FolderScopedDeps = {}
+): StepPlugin<Step> {
+	return scopedBy(step, (files) => inScope(files, paths), deps);
+}
+
+/**
+ * The mirror of {@link folderScoped}, for the release of everything that is in **no**
+ * version group: it sees only commits that changed a file outside every group folder. A commit
+ * confined to a group (and the group's imported history) belongs to that group's release; letting the
+ * repo-wide one analyze it would release the repo for a change that is not in it, and write the
+ * group's commits into the repo's changelog.
+ */
+export function ungroupedScoped<Step extends CommitStep>(
+	step: Step,
+	groups: readonly string[],
+	deps: FolderScopedDeps = {}
+): StepPlugin<Step> {
+	return scopedBy(step, (files) => outsideFolders(files, groups), deps);
+}
+
+function scopedBy<Step extends CommitStep>(
+	step: Step,
+	keep: (files: readonly string[]) => boolean,
+	{ load = (specifier) => import(specifier), listFiles = commitFiles }: FolderScopedDeps
 ): StepPlugin<Step> {
 	const scoped = async (pluginConfig: unknown, context: ReleaseContext) => {
 		const inner = (await load(MODULES[step])) as StepPlugin<Step>;
@@ -33,8 +56,8 @@ export function folderScoped<Step extends CommitStep>(
 			cwd,
 			commits.map((commit) => commit.hash)
 		);
-		const inFolder = commits.filter((commit) => inScope(files.get(commit.hash) ?? [], paths));
-		return inner[step]?.(pluginConfig, { ...context, commits: inFolder });
+		const kept = commits.filter((commit) => keep(files.get(commit.hash) ?? []));
+		return inner[step]?.(pluginConfig, { ...context, commits: kept });
 	};
 	return { [step]: scoped } as StepPlugin<Step>;
 }

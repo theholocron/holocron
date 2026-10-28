@@ -1,7 +1,7 @@
 import { releaseNotesGenerator } from "@theholocron/semantic-release-config";
 import { describe, expect, it } from "vitest";
 
-import { folderScoped } from "./folder-scoped/index.js";
+import { folderScoped, ungroupedScoped } from "./folder-scoped/index.js";
 
 /**
  * The org's notes configuration run through the real `@semantic-release/release-notes-generator`.
@@ -59,5 +59,26 @@ describe("release notes", () => {
 
 	it("leave out commits that did not touch the group", async () => {
 		expect(await notes(["clients"])).not.toContain("a different group");
+	});
+});
+
+describe("release notes of everything in no group", () => {
+	it("list the commits outside the groups and leave out the groups' own, imported ones included", async () => {
+		const plugin = ungroupedScoped("generateNotes", ["utils"], { listFiles: () => FILES });
+		const [, config] = releaseNotesGenerator as [string, Record<string, unknown>];
+		const body = (await plugin.generateNotes!(config, {
+			cwd: process.cwd(),
+			env: {},
+			logger: { log() {} },
+			options: { repositoryUrl: "https://github.com/acme/repo.git" },
+			lastRelease: { gitTag: "v1.0.0", gitHead: "0".repeat(40) },
+			nextRelease: { version: "1.1.0", gitTag: "v1.1.0", gitHead: "9".repeat(40) },
+			commits: COMMITS,
+		})) as string;
+
+		expect(body).toContain("add a client");
+		expect(body).toContain("only clients changed");
+		expect(body).not.toContain("a different group");
+		expect(body).toContain("/compare/v1.0.0...v1.1.0");
 	});
 });
