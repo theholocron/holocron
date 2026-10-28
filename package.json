@@ -69,7 +69,7 @@
     "@vitest/eslint-plugin": "catalog:",
     "alexjs": "^1.0.0",
     "astro": "^7.3.3",
-    "conventional-changelog-conventionalcommits": "^10.3.0",
+    "conventional-changelog-conventionalcommits": "9.3.1",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
