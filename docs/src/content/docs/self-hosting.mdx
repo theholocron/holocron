@@ -93,4 +93,35 @@ It wraps `defineConfig()` from `@theholocron/semantic-release-config`, so rules,
 - **The changelog** is `<group>/CHANGELOG.md`.
 - **The release commit** stages only the group's `package.json` files and changelog, and says which group: `chore(release): clients 1.43.2 [skip ci]`.
 
-`@semantic-release/commit-analyzer`, `@semantic-release/release-notes-generator` and `@theholocron/semantic-release-config` are optional peers of `@theholocron/astromech`; install them where a release runs. In CI, pass the group to the `delivery.publish` workflow's `group` input (it exports `RELEASE_GROUP` and looks up tags with `git describe --match '<group>-v*'`) and release groups one at a time: they push to the same branch, and the workflow checks out the branch's current tip when a group is set.
+`@semantic-release/commit-analyzer`, `@semantic-release/release-notes-generator` and `@theholocron/semantic-release-config` are optional peers of `@theholocron/astromech`; install them where a release runs.
+
+#### Releasing every group in CI
+
+List the groups on the `delivery.publish` task and `holocron repo sync` generates a caller that releases each one:
+
+```ts
+// astromech.config.ts
+tasks: [
+  {
+    name: "delivery.publish",
+    with: {
+      groups: [
+        "clients",
+        "utils",
+        // inputs that belong to one group's release, not to all of them
+        { name: "cli", "sentry-project": "holocron-cli", "deploy-on-release": true },
+      ],
+    },
+  },
+],
+```
+
+The generated workflow has a `plan` job and a `release` job that calls the reusable workflow once per group from a matrix:
+
+- **One group at a time.** The matrix runs with `max-parallel: 1`, because each release pushes a commit to the branch. The reusable checks out the branch's current tip when it is given a `group`, so the next group starts after the last one's release commit instead of behind it. `fail-fast` is off, so one group failing does not skip the rest. (A `concurrency` group does not work for this: GitHub keeps only one pending run per group and cancels the rest.)
+- **A push releases every group.** A manual run has a `group` choice (default `all`) and the usual dry-run switch, so `group: clients` with a dry run previews that group's next release alone. A job's `if:` cannot see the matrix, which is why `plan` makes the choice.
+- **Per-group inputs.** Only `deploy-on-release`, `post-release`, `run-build` and `sentry-project` can be set per group; anything else under `with:` applies to every group. Setting the same input both ways is an error.
+
+The workflow keeps its filename (`delivery.publish.yml`), because npm Trusted Publishing is bound to the repository and workflow file. A repo that does not list `groups` gets the same single-release workflow as before.
+
+The reusable workflow is read from `theholocron/.github`, so run `holocron sync github` to publish its `group` input before a repo starts passing one.
