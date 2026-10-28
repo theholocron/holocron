@@ -63,6 +63,25 @@ describe.concurrent("holocron (the built CLI)", { timeout: 30_000 }, () => {
 		});
 	});
 
+	describe("command groups", () => {
+		it("lists the subcommands of `doctor` and `skills` in their --help", async () => {
+			const [doctor, skills] = await Promise.all([runCli(["doctor", "--help"]), runCli(["skills", "--help"])]);
+			expect(doctor.code).toBe(0);
+			expect(doctor.stdout).toMatch(/notifications\s+Check the layout/);
+			expect(skills.code).toBe(0);
+			for (const sub of ["install", "remove \\[names..\\]", "update \\[name\\]"]) {
+				expect(skills.stdout).toMatch(new RegExp(`skills ${sub}`));
+			}
+			expect(skills.stdout).not.toMatch(/\$0/);
+		});
+
+		it("reads --built-only and --scope on `doctor notifications`, and rejects a bad scope", async () => {
+			const run = await runCli(["doctor", "notifications", "--scope", "team=x"], { config: demo });
+			expect(run.code).toBe(1);
+			expect(run.stderr).toContain('invalid --scope "team=x"');
+		});
+	});
+
 	describe("probe", () => {
 		it("lists every group and probe without a terminal", async () => {
 			const run = await runCli(["probe"], { config: demo });
