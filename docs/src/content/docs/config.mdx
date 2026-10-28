@@ -70,7 +70,10 @@ export default defineConfig({
 
   // Required status-check contexts **not** backed by a `{ required: true }` task
   // — codecov gates, a docs/storybook publish job, etc. `holocron repo setup`
-  // (strict) appends these to the task-derived list.
+  // (strict) appends these to the task-derived list. List the aggregate
+  // `codecov/patch` and `codecov/project` only: a ruleset takes no wildcards, and a
+  // package a PR does not touch posts no `codecov/patch/<package>` status, so
+  // per-package contexts neither scale nor reliably appear.
   extraRequiredChecks: ["codecov/patch", "codecov/project"],
 
   // `holocron repo sync` reconciles package.json#scripts (merge, never clobber): the
