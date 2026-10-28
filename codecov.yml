@@ -49,11 +49,6 @@ component_management:
       paths:
         - cli/datapad/**
 
-    - component_id: docs
-      name: "docs"
-      paths:
-        - docs/**
-
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:
