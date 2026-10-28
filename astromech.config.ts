@@ -17,7 +17,7 @@ export default defineConfig({
 		// Build: sanity check that every workspace compiles to dist/. Used to be
 		// a hand-maintained .github/workflows/build.yml — now the same templated
 		// task every repo can opt into (astromech#delivery.build).
-		// SENTRY_AUTH_TOKEN passthrough: packages/cli builds with sourcemaps
+		// SENTRY_AUTH_TOKEN passthrough: cli/cli builds with sourcemaps
 		// (tsdown.config.ts) that get associated with Sentry releases — the
 		// token needs to be part of turbo's cache key, or a token rotation
 		// wouldn't invalidate a stale cached build.
@@ -66,7 +66,7 @@ export default defineConfig({
 		"knowledge.wiki",
 	],
 	// This repo's root scripts stay bootstrap-safe raw commands — `holocron`
-	// here IS the local build artifact (`node packages/cli/dist/cli.mjs`), not
+	// here IS the local build artifact (`node cli/cli/dist/cli.mjs`), not
 	// an installed bin — so `holocron repo sync` must not rewrite package.json scripts.
 	syncScripts: false,
 });

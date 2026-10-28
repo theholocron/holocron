@@ -3,7 +3,7 @@
  * Warns when a PR adds a new public package without a corresponding docs change.
  *
  * Heuristic:
- * - Triggers on new packages/<name>/src/index.ts or plugins/<name>/src/index.ts
+ * - Triggers on a new <package dir>/src/index.ts
  *   where package.json has no "private: true"
  * - A docs change = any file changed under docs/ or matching .md / .mdx
  * - Exits 0 (warning only) so it never blocks emergency fixes

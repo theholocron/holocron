@@ -13,10 +13,10 @@ on: # yamllint disable-line rule:truthy
       # Everything `astromech.reusableTemplates()` (→ `holocron sync github`)
       # reads. `templates/**` covers the reusable workflow_call impls + composite
       # actions (`reusable/`) and the thin-caller bases (`workflows/`).
-      - packages/astromech/src/templates/**
-      - packages/astromech/src/generators/github-action-reusable-workflows/**
-      - packages/astromech/src/generators/github-action-thin-callers/**
-      - packages/cli/src/commands/sync/**
+      - cli/astromech/src/templates/**
+      - cli/astromech/src/generators/github-action-reusable-workflows/**
+      - cli/astromech/src/generators/github-action-thin-callers/**
+      - cli/cli/src/commands/sync/**
   workflow_dispatch:
 
 jobs:

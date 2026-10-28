@@ -55,8 +55,8 @@ After `--initial` runs, visit each package's npm page → Settings → Trusted P
 
 ## Repo layouts
 
-- **Monorepo** (a `packages/` directory exists): publishes every public `packages/*` workspace via `pnpm -r --filter=./packages/*` (or, with `--skip-already-published`, one workspace at a time via `pnpm --filter <dir> publish`).
-- **Single package** (no `packages/` — most `node-template` scaffolds): publishes the root package directly via a plain `pnpm publish`.
+- **Monorepo** (`pnpm-workspace.yaml` declares public packages): publishes every public workspace package via `pnpm -r --filter=./<glob>` for each workspace glob (or, with `--skip-already-published`, one workspace at a time via `pnpm --filter <dir> publish`).
+- **Single package** (no workspace packages — most `node-template` scaffolds): publishes the root package directly via a plain `pnpm publish`.
 
 The command fails loudly — `nothing to publish` — rather than silently no-op'ing when it finds no publishable package in either layout.
 

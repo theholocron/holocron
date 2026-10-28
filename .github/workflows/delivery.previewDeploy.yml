@@ -1,5 +1,5 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: apps/sentinel
@@ -31,5 +31,5 @@ jobs:
     uses: theholocron/.github/.github/workflows/delivery.previewDeploy.yml@main
     with:
       cwd: apps/sentinel
-      paths: '["apps/sentinel/","packages/astromech/","packages/cli/","packages/datapad/"]'
+      paths: '["apps/sentinel/","cli/astromech/","cli/cli/","cli/datapad/"]'
     secrets: inherit

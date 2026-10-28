@@ -1,0 +1,112 @@
+name: Holocron
+description: >
+  Run the Holocron CLI — `holocron run <task> [job]` by default, or any other
+  subcommand via `command:` (`repo sync`, `sync github`, …). Resolves
+  `@theholocron/cli` from `node_modules` (published tarball) or builds it from
+  source when it resolves to an unbuilt workspace checkout (the holocron repo
+  itself). Requires dependencies to be installed already (run the setup action
+  first).
+
+inputs:
+  command:
+    description: >
+      Holocron subcommand. Default `run` — then `task` (and optional `job`)
+      name the manifest task. Set to `repo sync` / `sync github` / … to run that
+      subcommand directly; `args` becomes everything after it.
+    required: false
+    default: run
+  task:
+    description: >
+      Manifest task to run when command is run — typecheck, test, build, audit.
+    required: false
+    default: ""
+  job:
+    description: Optional sub-job within the task (e.g. knip, performance for audit).
+    required: false
+    default: ""
+  args:
+    description: >
+      For `command: run`, extra arguments forwarded to the tool after `--`.
+      For any other command, the arguments passed straight to it.
+    required: false
+    default: ""
+
+outputs:
+  log-file:
+    description: >
+      Path to a file holding the full captured stdout+stderr of this
+      invocation — the same text the live Actions log shows, saved for a
+      caller that wants to ship it elsewhere (e.g. Sentinel's dispatched
+      checks shipping it to Axiom, holocron#769/#794).
+    value: ${{ steps.run.outputs.log-file }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Build the workspace when the CLI resolves to an unbuilt checkout
+      shell: bash
+      # The holocron repo carries @theholocron/cli as `workspace:*`; its bin
+      # (dist/cli.mjs) does not exist on a fresh checkout. `pnpm build` is a
+      # turbo run — cached and cheap once warm. A no-op everywhere else, where
+      # the published tarball already ships dist/.
+      #
+      # pnpm creates every workspace package's node_modules/.bin/holocron shim
+      # once, during the setup action's earlier `pnpm install` — before this
+      # build has run, so every one of them is silently skipped ("Failed to
+      # create bin ... ENOENT"), not just @theholocron/cli's own. That's a
+      # one-time decision: a later build doesn't retroactively fix a shim that
+      # was never created. Re-running `pnpm install` here (fast — the lockfile
+      # hasn't changed, so it only re-links `.bin`) is what actually fixes it,
+      # confirmed against a real cold install: `holocron` stays unresolvable
+      # from inside any package until this second install runs.
+      run: |
+        if [ ! -f node_modules/@theholocron/cli/dist/cli.mjs ]; then
+          echo "→ @theholocron/cli dist/ missing — building the workspace from source" >&2
+          pnpm build
+          echo "→ re-linking node_modules/.bin — pnpm skipped it pre-build" >&2
+          pnpm install --frozen-lockfile
+        fi
+
+    - name: holocron ${{ inputs.command }} ${{ inputs.task }}
+      id: run
+      shell: bash
+      env:
+        HOLOCRON_COMMAND: ${{ inputs.command }}
+        HOLOCRON_TASK: ${{ inputs.task }}
+        HOLOCRON_JOB: ${{ inputs.job }}
+        HOLOCRON_ARGS: ${{ inputs.args }}
+      run: |
+        if [ "$HOLOCRON_COMMAND" = "run" ]; then
+          set -- run "$HOLOCRON_TASK"
+          [ -n "$HOLOCRON_JOB" ] && set -- "$@" "$HOLOCRON_JOB"
+          # shellcheck disable=SC2086
+          [ -n "$HOLOCRON_ARGS" ] && set -- "$@" -- $HOLOCRON_ARGS
+        else
+          # `command` may be a multi-word path (`repo sync`, `deploy on-release`):
+          # word-split it so each token is its own argument.
+          # shellcheck disable=SC2086
+          set -- $HOLOCRON_COMMAND $HOLOCRON_ARGS
+        fi
+        # Invoke the built entry directly. `pnpm exec holocron` relies on a
+        # node_modules/.bin/holocron shim that pnpm does not create for a
+        # workspace package whose dist/ was absent at install time (the holocron
+        # repo itself). Resolving the package's main export gives dist/index.mjs;
+        # the bin sits next to it as dist/cli.mjs. This is `require.resolve` from
+        # node_modules — it works in the holocron monorepo AND in every consumer
+        # repo (theholocron/holocron#655), unlike a hard-coded `cli/cli/…`.
+        cli="$(dirname "$(node -e 'process.stdout.write(require.resolve("@theholocron/cli"))')")/cli.mjs"
+        if [ ! -f "$cli" ]; then
+          echo "::error::@theholocron/cli entry not found at $cli — is the workspace built?" >&2
+          exit 1
+        fi
+        echo "→ $cli $*" >&2
+        # `tee` keeps the live Actions log streaming exactly as before while
+        # also capturing it to a file callers can ship elsewhere (log-file
+        # output, above). PIPESTATUS[0] -- not $? -- is `node`'s own exit
+        # code; $? after a pipe is tee's, which succeeds even when node fails.
+        log_file="${RUNNER_TEMP}/holocron-output.log"
+        node "$cli" "$@" 2>&1 | tee "$log_file"
+        exit_code=${PIPESTATUS[0]}
+        echo "log-file=$log_file" >> "$GITHUB_OUTPUT"
+        exit "$exit_code"
