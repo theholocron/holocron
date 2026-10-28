@@ -41,7 +41,7 @@ import {
 	type Wiki,
 	type Workers,
 } from "../../plugin/index.js";
-import { pad, statusRow, style, withSpinner } from "../../ui/index.js";
+import { pad, statusRow, style, withProgress, withSpinner } from "../../ui/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { DoctorReport, DoctorRow, DoctorStatus, RunDoctorInput } from "./doctor.type.js";
 
@@ -90,11 +90,13 @@ export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
 			// indexing the list would put a later provider's result under the wrong name.
 			for (const [idx, impl] of impls.entries()) {
 				const name = (impl as { providerName?: string }).providerName ?? providers[idx]!;
-				rows.push(await smokeCheck(key, name, impl));
+				rows.push(await withProgress(`Checking ${key} (${name})…`, () => smokeCheck(key, name, impl)));
 			}
 		} else {
 			const impl = loader.get(key) as unknown;
-			const row = await smokeCheck(key, providers[0] ?? "?", impl);
+			const row = await withProgress(`Checking ${key} (${providers[0] ?? "?"})…`, () =>
+				smokeCheck(key, providers[0] ?? "?", impl)
+			);
 			rows.push(row);
 		}
 	}

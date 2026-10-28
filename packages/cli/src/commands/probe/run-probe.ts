@@ -3,6 +3,7 @@ import { confirm } from "@inquirer/prompts";
 import type { ProbeContext, ProbeRow } from "../../plugin/index.js";
 import { commandFailureMessage } from "../../ui/command-failure/index.js";
 import { NonInteractiveError } from "../../ui/non-interactive-error/index.js";
+import { createProgress } from "../../ui/progress/index.js";
 import { sanitizeDetail, stripControl } from "../../ui/provider-error/index.js";
 import { statusRow } from "../../ui/status-row/index.js";
 import { style } from "../../ui/style/index.js";
@@ -21,7 +22,8 @@ const defaultInterrupt: NonNullable<RunProbeInput["onInterrupt"]> = (handler) =>
  * failed or was interrupted.
  */
 export async function runProbe(input: RunProbeInput): Promise<ProbeReport> {
-	const print = input.print ?? ((line: string) => console.log(line));
+	const progress = createProgress(input.print ?? ((line: string) => console.log(line)));
+	const print = progress.print;
 	const secrets = new Set(input.secrets ?? []);
 	const scrub = createScrubber(secrets);
 	const rows: ProbeRow[] = [];
@@ -88,7 +90,7 @@ export async function runProbe(input: RunProbeInput): Promise<ProbeReport> {
 
 	const stopListening = (input.onInterrupt ?? defaultInterrupt)(runCleanups);
 	try {
-		await input.probe.run(ctx);
+		await progress.run(`${input.name}…`, () => input.probe.run(ctx));
 	} catch (err) {
 		emit({ status: "fail", label: input.name, detail: commandFailureMessage(err) });
 	} finally {
