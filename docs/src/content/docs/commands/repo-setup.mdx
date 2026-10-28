@@ -19,7 +19,7 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 | Write `.alexrc.json`         | Shared inclusive-language allow-list                                                                  |
 | Write `commitlint.config.ts` | CommitLint config extending `@theholocron/commitlint-config`                                          |
 | Write `.husky/pre-push`      | When hooks are enabled — runs `holocron run ci` before every push (see below)                         |
-| Update `codecov.yml`         | Syncs `individual_components` to match the workspace packages                                     |
+| Update `codecov.yml`         | Syncs `individual_components` to match the workspace packages                                         |
 | Write `turbo.json`           | Generated from the fan-out-eligible tasks in `tasks[]` — skipped when none are eligible               |
 | Install CI workflows         | Writes `.github/workflows/<name>.yml` for each entry in `workflows[]`                                 |
 | Install agent skills         | Downloads and installs each skill from `skills[]` into `.agents/skills/` with agent-specific symlinks |
