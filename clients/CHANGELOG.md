@@ -1,3 +1,5 @@
+## [1.56.0](https://github.com/theholocron/clients/compare/v1.55.0...v1.56.0) (2026-10-28)
+
 ## [1.55.0](https://github.com/theholocron/clients/compare/v1.54.2...v1.55.0) (2026-10-27)
 
 ## [1.54.2](https://github.com/theholocron/clients/compare/v1.54.1...v1.54.2) (2026-10-27)
