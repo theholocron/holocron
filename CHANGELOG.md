@@ -1,3 +1,18 @@
+## [5.0.0-alpha.253](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.252...v5.0.0-alpha.253) (2026-10-29)
+
+### Features
+
+* **astro-config:** ✨ add apiReference and a plugins option ([#1376](https://github.com/theholocron/holocron/issues/1376)) ([d926523](https://github.com/theholocron/holocron/commit/d926523ff19017620b6e6a9025f6058f970c707e)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **astromech:** ✨ switch a task's sub-jobs off per repo ([#1369](https://github.com/theholocron/holocron/issues/1369)) ([c3188ce](https://github.com/theholocron/holocron/commit/c3188cecd124a37dc3f5e17eaf485787b667c2d6)), closes [#1227](https://github.com/theholocron/holocron/issues/1227) [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **cli:** ✨ add holocron probe docs coverage and a Docs coverage check ([#1373](https://github.com/theholocron/holocron/issues/1373)) ([cdf6d1b](https://github.com/theholocron/holocron/commit/cdf6d1bb408a32963b70c1305bd2766bad6d3c65)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+
+### Chores
+
+* **cli:** ♻️ scaffold plugins the way the existing ones are built now ([#1378](https://github.com/theholocron/holocron/issues/1378)) ([b9063f4](https://github.com/theholocron/holocron/commit/b9063f4d9f26749a14e47e0d903a92d9921717e6)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** ♻️ build every package from one root tsdown config ([#1375](https://github.com/theholocron/holocron/issues/1375)) ([d8e7a7d](https://github.com/theholocron/holocron/commit/d8e7a7dc87c377eefb2c7e5f29cbaed74f912666)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** ♻️ call the tools directly from the package scripts ([#1371](https://github.com/theholocron/holocron/issues/1371)) ([fceea7f](https://github.com/theholocron/holocron/commit/fceea7fa72cb542242aec2b7237f45d5d9e2192a)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** ♻️ resolve the in-repo packages from the workspace ([#1370](https://github.com/theholocron/holocron/issues/1370)) ([26c62c2](https://github.com/theholocron/holocron/commit/26c62c2b32124177339fecc2fdf66f808c1981c3)), closes [#1292](https://github.com/theholocron/holocron/issues/1292) [#1367](https://github.com/theholocron/holocron/issues/1367) [#1364](https://github.com/theholocron/holocron/issues/1364)
+
 ## [5.0.0-alpha.252](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.251...v5.0.0-alpha.252) (2026-10-29)
 
 ### Features
