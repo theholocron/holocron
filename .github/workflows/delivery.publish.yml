@@ -35,6 +35,7 @@ on: # yamllint disable-line rule:truthy
           - skills
           - utils
           - clients
+          - configs
 
 permissions:
   contents: write
@@ -68,7 +69,7 @@ jobs:
         name: Choose the groups to release
         env:
           GROUP: ${{ inputs.group }}
-          ALL_GROUPS: '[{"group":"observability"},{"group":"skills"},{"group":"utils"},{"group":"clients"}]'
+          ALL_GROUPS: '[{"group":"observability"},{"group":"skills"},{"group":"utils"},{"group":"clients"},{"group":"configs"}]'
         run: |
           if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
             groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")

@@ -27,6 +27,26 @@ export default [
 		},
 	},
 	{
+		// The shareable config packages publish manifests that other tools consume as they are, so an import does not
+		// reshape them: their peers are optional tools they configure (not installed for their own tests), some keep a
+		// `main` beside `exports` or are CommonJS/JSON-only, the `./package.json` export is always packed by npm, and
+		// setup files such as vitest-config's are imported for their side effects.
+		files: ["configs/*/package.json"],
+		rules: {
+			"package-json/peer-dependencies-as-dev-dependencies": "off",
+			"package-json/prefer-exports": "off",
+			"package-json/prefer-files-field": "off",
+			"package-json/prefer-side-effects-field": "off",
+			"package-json/prefer-type-module": "off",
+		},
+	},
+	{
+		// CommonJS entry point of a CommonJS package: browserslist loads it with require().
+		files: ["configs/browserslist-config/index.js"],
+		languageOptions: { sourceType: "commonjs", globals: { module: "writable", require: "readonly" } },
+		rules: { "@typescript-eslint/no-require-imports": "off" },
+	},
+	{
 		files: ["skills/package.json"],
 		rules: {
 			// the CLI resolves the package root through require.resolve("@theholocron/skills/package.json"),
@@ -42,6 +62,8 @@ export default [
 			"clients/*/coverage/**",
 			"utils/*/dist/**",
 			"utils/*/coverage/**",
+			"configs/*/dist/**",
+			"configs/*/coverage/**",
 			"**/node_modules/**",
 		],
 	},

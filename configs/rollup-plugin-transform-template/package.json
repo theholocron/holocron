@@ -11,14 +11,14 @@
     "template",
     "transform"
   ],
-  "homepage": "https://github.com/theholocron/configs/tree/main/plugins/rollup-plugin-transform-template#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
+  "homepage": "https://docs.theholocron.dev/holocron/configs/rollup-plugin-transform-template/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git",
-    "directory": "plugins/rollup-plugin-transform-template"
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/rollup-plugin-transform-template"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "sideEffects": false,
   "type": "module",
@@ -39,13 +39,12 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "devDependencies": {
-    "@theholocron/cli": "catalog:holocron",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/tsdown-config": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
@@ -60,7 +59,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/configs/releases",
-  "wiki": "https://github.com/theholocron/configs/wiki"
+  }
 }

@@ -1,5 +1,16 @@
 import type { KnipConfig } from "knip";
 
+// The shareable config packages export their built files from dist/ (package.json exports), which knip cannot map
+// back to the sources, and their sources are all public entry points (config files, bundles, presets, setup files),
+// so every source file outside the build output is an entry.
+function configPackage(ignoreDependencies: string[] = []) {
+	return {
+		entry: ["**/*.ts", "!dist/**"],
+		project: ["**/*.ts", "!dist/**"],
+		...(ignoreDependencies.length > 0 ? { ignoreDependencies } : {}),
+	};
+}
+
 const config: KnipConfig = {
 	workspaces: {
 		".": {
@@ -71,6 +82,32 @@ const config: KnipConfig = {
 			entry: ["src/index.ts", "src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
+		"configs/*": configPackage(),
+		// no TypeScript in these two (a JSON config and a CommonJS entry point)
+		"configs/browserslist-config": {},
+		"configs/tsconfig": {},
+		// the tools these packages configure are optional peers they reference but do not install
+		"configs/eslint-config": configPackage([
+			"@next/eslint-plugin-next",
+			"eslint-plugin-cypress",
+			"eslint-plugin-jsdoc",
+			"eslint-plugin-react",
+			"eslint-plugin-storybook",
+		]),
+		"configs/storybook-config": configPackage([
+			"@storybook/addon-viewport",
+			"axe-playwright",
+			"msw-storybook-addon",
+			"playwright",
+		]),
+		"configs/vite-config": configPackage(["@vitejs/plugin-react"]),
+		// its built .d.ts files (reached through package.json exports) reference vite, which the package takes as a peer
+		"configs/vitest-config": configPackage([
+			"@storybook/addon-vitest",
+			"@testing-library/jest-dom",
+			"@vitest/browser-playwright",
+			"vite",
+		]),
 		"apps/comlink": {
 			// The Worker (src/worker.ts) is found through the tsdown config. holocron.config.ts imports the CLI.
 			entry: ["src/**/*.test.ts", "holocron.config.ts"],

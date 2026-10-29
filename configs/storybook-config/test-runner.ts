@@ -1,5 +1,5 @@
+import { checkA11y,injectAxe } from "axe-playwright";
 import { type Page } from "playwright";
-import { injectAxe, checkA11y } from "axe-playwright";
 
 export const storybookTestRunner = {
 	async preVisit(page: Page): Promise<void> {

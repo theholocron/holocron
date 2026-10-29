@@ -9,13 +9,14 @@
     "starlight",
     "theholocron"
   ],
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/astro-config#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
+  "homepage": "https://docs.theholocron.dev/holocron/configs/astro-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git"
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/astro-config"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
   "exports": {
@@ -32,15 +33,14 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "devDependencies": {
     "@astrojs/react": "^6.0.0",
     "@astrojs/starlight": "^0.41.7",
-    "@theholocron/cli": "catalog:holocron",
     "@theholocron/docs-theme": "^1.3.5",
     "@theholocron/tsconfig": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
@@ -62,7 +62,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/configs/releases",
-  "wiki": "https://github.com/theholocron/configs/wiki"
+  }
 }

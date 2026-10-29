@@ -2,14 +2,6 @@
   "name": "@theholocron/lint-staged-config",
   "version": "8.8.2",
   "description": "A Lint Staged configuration for linting code that has been staged in Git within the Galaxy.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/lint-staged-config#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git"
-  },
-  "license": "GPL-3.0",
-  "author": "Newton Koumantzelis",
   "keywords": [
     "lint-staged",
     "husky",
@@ -18,26 +10,16 @@
     "config",
     "theholocron"
   ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/lint-staged-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/lint-staged-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
   "type": "module",
-  "main": "dist/index.js",
-  "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
-    "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --",
-    "prepare": "husky"
-  },
-  "devDependencies": {
-    "@theholocron/cli": "catalog:holocron",
-    "@theholocron/tsconfig": "workspace:*",
-    "@theholocron/vitest-config": "workspace:*",
-    "@vitest/coverage-v8": "catalog:",
-    "husky": "^9.1.7",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -46,9 +28,25 @@
     },
     "./package.json": "./package.json"
   },
+  "main": "./dist/index.js",
   "files": [
     "dist/"
   ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
   "peerDependencies": {
     "husky": "^9",
     "lint-staged": "^16",
@@ -64,7 +62,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/configs/releases",
-  "wiki": "https://github.com/theholocron/configs/wiki"
+  }
 }

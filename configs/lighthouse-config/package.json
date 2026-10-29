@@ -2,14 +2,6 @@
   "name": "@theholocron/lighthouse-config",
   "version": "8.8.2",
   "description": "A Lighthouse CI configuration for auditing performance and accessibility within the Galaxy.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/lighthouse-config#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git"
-  },
-  "license": "GPL-3.0",
-  "author": "Newton Koumantzelis",
   "keywords": [
     "lighthouse",
     "performance",
@@ -18,23 +10,16 @@
     "config",
     "theholocron"
   ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/lighthouse-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/lighthouse-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
   "type": "module",
-  "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
-    "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
-  },
-  "devDependencies": {
-    "@theholocron/cli": "catalog:holocron",
-    "@theholocron/tsconfig": "workspace:*",
-    "@theholocron/vitest-config": "workspace:*",
-    "@vitest/coverage-v8": "catalog:",
-    "tsdown": "catalog:",
-    "typescript": "catalog:",
-    "vitest": "catalog:"
-  },
   "exports": {
     ".": {
       "import": {
@@ -44,6 +29,10 @@
       "require": {
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      },
+      "default": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
       }
     },
     "./package.json": "./package.json"
@@ -51,12 +40,25 @@
   "files": [
     "dist/"
   ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
   "engines": {
     "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/configs/releases",
-  "wiki": "https://github.com/theholocron/configs/wiki"
+  }
 }

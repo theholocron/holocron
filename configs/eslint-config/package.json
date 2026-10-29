@@ -12,13 +12,14 @@
     "vitest",
     "storybook"
   ],
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/eslint-config#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
+  "homepage": "https://docs.theholocron.dev/holocron/configs/eslint-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git"
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/eslint-config"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "type": "module",
   "exports": {
@@ -104,10 +105,10 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "dependencies": {
     "@eslint/compat": "^2.1.0",
@@ -115,7 +116,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
-    "@theholocron/cli": "catalog:holocron",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
@@ -164,7 +164,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/configs/releases",
-  "wiki": "https://github.com/theholocron/configs/wiki"
+  }
 }

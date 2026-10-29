@@ -2,31 +2,30 @@
   "name": "@theholocron/browserslist-config",
   "version": "8.8.2",
   "description": "A Browserslist configuration for all browsers and devices supported in the Galaxy.",
-  "homepage": "https://github.com/theholocron/configs/tree/main/packages/browserslist-config#readme",
-  "bugs": "https://github.com/theholocron/configs/issues",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/theholocron/configs.git"
-  },
-  "license": "GPL-3.0",
-  "author": "Newton Koumantzelis",
   "keywords": [
     "browserslist",
     "browsers",
     "config",
     "theholocron"
   ],
-  "main": "index.js",
+  "homepage": "https://docs.theholocron.dev/holocron/configs/browserslist-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/browserslist-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "main": "./index.js",
   "files": [
-    "browserslistrc.json",
-    "index.js"
+    "index.js",
+    "browserslistrc.json"
   ],
   "engines": {
     "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/configs/releases",
-  "wiki": "https://github.com/theholocron/configs/wiki"
+  }
 }

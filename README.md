@@ -176,6 +176,7 @@ observability/                        — @theholocron/observability            
 skills/                               — @theholocron/skills                     (shared agent skill registry)
 clients/                              — @theholocron/*-client                   (20 API clients: axiom, checkly, clerk, cloudflare, confluence, discord, doppler, github, google, http, infisical, jira, neon, netlify, posthog, postman, sentry, slack, vercel and zendesk)
 utils/                                — @theholocron/*-utils                    (13 small utility libraries: array, date-time, env, fs, git, json, location, misc, object, pkg, storage, string and uri)
+configs/                              — @theholocron/*-config                   (17 shareable config packages: eslint, prettier, tsconfig, vitest, tsdown, commitlint, ...)
 plugins/                             — vendor capability providers                    (one package per provider)
   holocron-plugin-github/            — @theholocron/holocron-plugin-github            (source, ci, secrets, environments, issues)
   holocron-plugin-vercel/            — @theholocron/holocron-plugin-vercel            (deployment)

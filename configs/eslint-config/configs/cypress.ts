@@ -1,5 +1,5 @@
-import cypress from "eslint-plugin-cypress";
 import type { Linter } from "eslint";
+import cypress from "eslint-plugin-cypress";
 
 export function cypressConfig(): Linter.FlatConfig[] {
 	// `extends` is valid ESLint 9 flat config syntax but ConfigObject from

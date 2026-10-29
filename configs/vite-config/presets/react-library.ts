@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
+
 import { mergeConfig, type UserConfig } from "vite";
+
 import { getPackageName } from "./get-package-name.js";
 
 /**

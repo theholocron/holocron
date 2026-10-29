@@ -1,5 +1,5 @@
-import storybook from "eslint-plugin-storybook";
 import type { Linter } from "eslint";
+import storybook from "eslint-plugin-storybook";
 
 export function storybookConfig(): Linter.FlatConfig[] {
 	return [

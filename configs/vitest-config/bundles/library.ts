@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+
 import { node } from "../presets/node.js";
 
 // Thresholds accept global numbers and per-file overrides (nested objects).

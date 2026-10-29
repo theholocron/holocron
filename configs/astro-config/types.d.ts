@@ -6,7 +6,7 @@ declare module "astro:content" {
 	export const defineCollection: any;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export const getCollection: any;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
 	export type CollectionEntry<T extends string = string> = any;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export type RenderResult = any;
