@@ -1,7 +1,7 @@
 {
   "name": "@theholocron/observability",
-  "version": "0.6.0",
-  "description": "Logging, error tracking, and analytics \u2014 one interface, swappable backends.",
+  "version": "0.6.1-alpha.1",
+  "description": "Logging, error tracking, and analytics — one interface, swappable backends.",
   "keywords": [
     "typescript",
     "observability",

@@ -1,3 +1,18 @@
+## [0.6.1-alpha.1](https://github.com/theholocron/holocron/compare/observability-v0.6.0...observability-v0.6.1-alpha.1) (2026-10-29)
+
+### Bug Fixes
+
+* **observability:** 📝 correct the docs links and drop the duplicate install section ([#1258](https://github.com/theholocron/holocron/issues/1258)) ([fdec2a1](https://github.com/theholocron/holocron/commit/fdec2a187b2ceceb3bd19ba0f5371291e7d1729d))
+
+### Documentation
+
+* **observability:** 📝 move the package docs into the docs site ([88adf03](https://github.com/theholocron/holocron/commit/88adf03ec2e1d7c0e4a950cca14358fa26139a35)), closes [#1207](https://github.com/theholocron/holocron/issues/1207)
+
+### Chores
+
+* fix language ([4032d12](https://github.com/theholocron/holocron/commit/4032d12cab3b02de6e996d05523c4b0ae5007447))
+* **observability:** 🔧 adapt the imported package to the workspace ([f97e601](https://github.com/theholocron/holocron/commit/f97e601ae2fccbc665bcb5d8315bbaabd8642c20)), closes [#1207](https://github.com/theholocron/holocron/issues/1207)
+
 ## [0.6.0](https://github.com/theholocron/observability/compare/v0.5.0...v0.6.0) (2026-10-16)
 
 ### Features
