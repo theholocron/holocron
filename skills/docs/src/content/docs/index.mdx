@@ -1,0 +1,27 @@
+---
+title: Skills
+description: Shared agent skill registry.
+sidebar:
+  hidden: true
+---
+
+import { PackageHeader, Installation, RepoIndex } from "@theholocron/components-doc";
+import { getSkills } from "@theholocron/registry-doc";
+
+<PackageHeader entry={getSkills()["skills"]} />
+
+## Skills
+
+<RepoIndex type="skills" />
+
+<Installation package={getSkills()["skills"].package} />
+
+## Using skills in Claude Code
+
+Skills registered in Claude Code appear as slash commands. Install them with:
+
+```bash
+npx skills add @theholocron/skills
+```
+
+Then invoke any skill by name, e.g. `/commit-standards` or `/holocron-skill-client`.

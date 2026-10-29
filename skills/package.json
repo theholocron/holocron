@@ -1,0 +1,81 @@
+{
+  "name": "@theholocron/skills",
+  "version": "1.12.0",
+  "description": "Shared agent skill registry.",
+  "homepage": "https://github.com/theholocron/skills#readme",
+  "bugs": "https://github.com/theholocron/skills/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/skills.git"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./skills/*": "./src/*"
+  },
+  "files": [
+    "src/",
+    "skills-lock.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm --filter @theholocron/skills-site build",
+    "prepare": "husky",
+    "holocron": "holocron",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.formatting": "holocron run sourceQuality.formatting --",
+    "sourceQuality.structuredDataValidation": "holocron run sourceQuality.structuredDataValidation --",
+    "security.secretDetection": "holocron run security.secretDetection --",
+    "platform.commitStandards": "holocron run platform.commitStandards --",
+    "knowledge.wiki": "holocron run knowledge.wiki --",
+    "platform.repoSync": "holocron run platform.repoSync --",
+    "verification.unitTests": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml --test-reporter=lcov --test-reporter-destination=lcov.info test/index.mjs"
+  },
+  "devDependencies": {
+    "@astrojs/react": "^6.0.4",
+    "@astrojs/starlight": "catalog:",
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@commitlint/types": "^21.2.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.9",
+    "@theholocron/astro-config": "catalog:configs",
+    "@theholocron/astromech": "catalog:holocron",
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/commitlint-config": "catalog:configs",
+    "@theholocron/components-doc": "^1.6.0",
+    "@theholocron/docs-theme": "catalog:",
+    "@theholocron/holocron-plugin-cloudflare": "catalog:holocron",
+    "@theholocron/holocron-plugin-fern": "catalog:holocron",
+    "@theholocron/holocron-plugin-github": "catalog:holocron",
+    "@theholocron/prettier-config": "catalog:configs",
+    "@theholocron/registry-doc": "^1.6.0",
+    "@theholocron/semantic-release-config": "catalog:configs",
+    "@theholocron/tsconfig": "catalog:configs",
+    "astro": "catalog:",
+    "conventional-changelog-conventionalcommits": "^10.2.1",
+    "husky": "^9.1.7",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "semantic-release": "^25.0.9",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.34.4",
+  "pnpm": {
+    "overrides": {
+      "conventional-changelog-conventionalcommits": "9.3.1"
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "releases": "https://github.com/theholocron/skills/releases",
+  "wiki": "https://github.com/theholocron/skills/wiki"
+}
