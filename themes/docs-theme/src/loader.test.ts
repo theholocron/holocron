@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createDocsLoader } from "../loader.ts";
+import { createDocsLoader } from "./loader.ts";
 
 type StoreEntry = {
 	id: string;

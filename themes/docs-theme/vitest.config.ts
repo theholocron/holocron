@@ -11,13 +11,7 @@ export default {
 		...base.test,
 		coverage: {
 			...base.test?.coverage,
-			exclude: [
-				"src/**/__tests__/**",
-				"src/**/*.{test,spec}.ts",
-				"src/**/*.d.ts",
-				"**/node_modules/**",
-				"**/dist/**",
-			],
+			exclude: ["src/**/*.{test,spec}.ts", "src/**/*.d.ts", "**/node_modules/**", "**/dist/**"],
 		},
 	},
 } satisfies UserConfig;

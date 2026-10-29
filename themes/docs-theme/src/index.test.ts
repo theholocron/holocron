@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { docsTheme } from "../index.ts";
+import { docsTheme } from "./index.ts";
 
 type SetupArgs = Parameters<ReturnType<typeof docsTheme>["hooks"]["setup"]>[0];
 
@@ -67,7 +67,7 @@ describe("docsTheme", () => {
 	});
 
 	describe("styles.css", () => {
-		const css = readFileSync(new URL("../styles.css", import.meta.url), "utf-8");
+		const css = readFileSync(new URL("./styles.css", import.meta.url), "utf-8");
 
 		it("defines dark mode accent variables", () => {
 			expect(css).toContain('[data-theme="dark"]');

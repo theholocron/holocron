@@ -12,7 +12,7 @@ vi.mock("@astrojs/starlight/loaders", () => ({
 	docsLoader: vi.fn(() => ({ name: "starlight-docs-loader" })),
 }));
 
-import { createDocsCollections } from "../content.ts";
+import { createDocsCollections } from "./content.ts";
 
 describe("createDocsCollections", () => {
 	it("returns a docs collection", () => {
