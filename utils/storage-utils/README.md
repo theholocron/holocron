@@ -54,4 +54,4 @@ The returned object exposes:
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/storage-utils/) for more information.
