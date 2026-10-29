@@ -31,6 +31,36 @@
       "types": "./src/plugin/capabilities/index.ts",
       "import": "./dist/plugin/capabilities.mjs",
       "default": "./dist/plugin/capabilities.mjs"
+    },
+    "./presets": {
+      "types": "./src/presets/index.ts",
+      "import": "./dist/presets.mjs",
+      "default": "./dist/presets.mjs"
+    },
+    "./presets/node": {
+      "types": "./src/presets/configs/node.ts",
+      "import": "./dist/presets/node.mjs",
+      "default": "./dist/presets/node.mjs"
+    },
+    "./presets/node-docs": {
+      "types": "./src/presets/configs/node-docs.ts",
+      "import": "./dist/presets/node-docs.mjs",
+      "default": "./dist/presets/node-docs.mjs"
+    },
+    "./presets/nextjs": {
+      "types": "./src/presets/configs/nextjs.ts",
+      "import": "./dist/presets/nextjs.mjs",
+      "default": "./dist/presets/nextjs.mjs"
+    },
+    "./presets/react": {
+      "types": "./src/presets/configs/react.ts",
+      "import": "./dist/presets/react.mjs",
+      "default": "./dist/presets/react.mjs"
+    },
+    "./presets/monorepo": {
+      "types": "./src/presets/configs/monorepo.ts",
+      "import": "./dist/presets/monorepo.mjs",
+      "default": "./dist/presets/monorepo.mjs"
     }
   },
   "bin": {
