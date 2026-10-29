@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/object-utils",
-  "version": "1.16.0",
+  "version": "1.16.1-alpha.1",
   "description": "Inspect and deep-merge plain objects.",
   "keywords": [
     "object",

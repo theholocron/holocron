@@ -1,3 +1,18 @@
+## [1.16.1-alpha.1](https://github.com/theholocron/holocron/compare/utils-v1.16.0...utils-v1.16.1-alpha.1) (2026-10-29)
+
+### Bug Fixes
+
+* **utils:** 🐛 point the READMEs at the docs site ([#1279](https://github.com/theholocron/holocron/issues/1279)) ([8df40c7](https://github.com/theholocron/holocron/commit/8df40c70b7925eb2ff82cc4f963fd1885321ba54)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
+### Documentation
+
+* **utils:** 📝 move the package pages into the docs site ([dcdf180](https://github.com/theholocron/holocron/commit/dcdf18090c1998aa4ad8cb5d17de5dd129c746d2)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
+### Chores
+
+* **utils:** ⏪ undo the README link change merged with a non-conventional title ([#1278](https://github.com/theholocron/holocron/issues/1278)) ([0c7e17c](https://github.com/theholocron/holocron/commit/0c7e17c1af97b2807fc0fea2d6a4da6ac6778f00)), closes [#1277](https://github.com/theholocron/holocron/issues/1277) [#1277](https://github.com/theholocron/holocron/issues/1277) [#1209](https://github.com/theholocron/holocron/issues/1209)
+* **utils:** 🔧 adapt the imported packages to the workspace ([b4a71e8](https://github.com/theholocron/holocron/commit/b4a71e89fcb8c0606ea9496c48f900faf2c9923e)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
 ## [1.16.0](https://github.com/theholocron/utils/compare/v1.15.1...v1.16.0) (2026-10-20)
 
 ### Features
