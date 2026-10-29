@@ -7,14 +7,14 @@
     "typescript",
     "utils"
   ],
-  "homepage": "https://github.com/theholocron/utils/tree/main/packages/utils-array#readme",
-  "bugs": "https://github.com/theholocron/utils/issues",
+  "homepage": "https://docs.theholocron.dev/holocron/utils/array-utils/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/utils.git",
-    "directory": "packages/array-utils"
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "utils/array-utils"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "sideEffects": false,
   "type": "module",
@@ -30,28 +30,30 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "devDependencies": {
-    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@tsconfig/node-lts": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
     "tsdown": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "packageManager": "pnpm@10.34.4",
   "engines": {
     "node": ">=22"
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/utils/releases",
-  "wiki": "https://github.com/theholocron/utils/wiki"
+  }
 }
