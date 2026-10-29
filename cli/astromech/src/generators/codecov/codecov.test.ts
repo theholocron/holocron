@@ -206,7 +206,7 @@ describe("readWorkspacePackages", () => {
 		writeFileSync(join(root, "apps", "web", "package.json"), JSON.stringify({ name: "@theholocron/web" }));
 
 		const packages = readWorkspacePackages(root);
-		expect(packages.map((p) => p.slug)).toEqual(["ui", "web"]);
+		expect(packages.map((p) => p.slug)).toEqual(["web", "ui"]);
 		expect(packages.find((p) => p.slug === "ui")?.dir).toBe("packages");
 		expect(packages.find((p) => p.slug === "web")?.dir).toBe("apps");
 	});
@@ -289,8 +289,8 @@ describe("readWorkspacePackages with a pnpm-workspace.yaml", () => {
 		});
 		expect(readWorkspacePackages(root)).toEqual([
 			{ slug: "http-client", name: "@theholocron/http-client", dir: "clients" },
-			{ slug: "observability", name: "@theholocron/observability", path: "observability" },
 			{ slug: "theme", name: "@theholocron/docs-theme", dir: "docs" },
+			{ slug: "observability", name: "@theholocron/observability", path: "observability" },
 		]);
 	});
 
@@ -303,6 +303,16 @@ describe("readWorkspacePackages with a pnpm-workspace.yaml", () => {
 			["clients-env", "clients/env"],
 			["utils-env", "utils/env"],
 		]);
+	});
+
+	it("keeps each group folder together under a heading", () => {
+		const out = createCodecovConfig([
+			{ slug: "web", name: "@theholocron/web", dir: "apps" },
+			{ slug: "a", name: "@theholocron/a", dir: "cli" },
+			{ slug: "b", name: "@theholocron/b", dir: "cli" },
+			{ slug: "theme", name: "@theholocron/docs-theme", path: "docs/theme" },
+		]);
+		expect(out.match(/^ {4}# \w+$/gm)).toEqual(["    # apps", "    # cli", "    # docs"]);
 	});
 
 	it("writes a component path from `path` when the package is not at <dir>/<slug>", () => {
