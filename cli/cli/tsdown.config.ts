@@ -7,8 +7,12 @@ const sharedPlugins = [transformTemplate()];
 export default defineConfig([
 	{
 		// Library + capabilities: types generated here; dist is cleaned first.
-		// Object form pins the output names: dist/index.mjs and dist/plugin/capabilities.mjs.
-		entry: { index: "src/index.ts", "plugin/capabilities": "src/plugin/capabilities/index.ts" },
+		// Object form pins the output names: dist/index.mjs, dist/plugin/capabilities.mjs, and dist/presets.mjs.
+		entry: {
+			index: "src/index.ts",
+			"plugin/capabilities": "src/plugin/capabilities/index.ts",
+			presets: "src/presets/index.ts",
+		},
 		format: "esm",
 		dts: true,
 		clean: true,

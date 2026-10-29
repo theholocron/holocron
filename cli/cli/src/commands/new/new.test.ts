@@ -905,7 +905,7 @@ describe("runNew — holocron.config.ts", () => {
 
 		expect(written["/workspace/my-tool/holocron.config.ts"]).toBeDefined();
 		expect(written["/workspace/my-tool/holocron.config.ts"]).toContain("defineConfig");
-		expect(written["/workspace/my-tool/holocron.config.ts"]).toContain("node()");
+		expect(written["/workspace/my-tool/holocron.config.ts"]).toContain("withNode()");
 	});
 
 	it("includes the vault provider when specified", async () => {
@@ -939,8 +939,9 @@ describe("generateHolocronConfig", () => {
 	it("produces a valid TypeScript module with the composed node preset", () => {
 		const out = generateHolocronConfig({ name: "my-tool", type: "node" });
 		expect(out).toContain(`import { defineConfig } from "@theholocron/cli"`);
-		expect(out).toContain(`import { compose, node, typecheck } from "@theholocron/holocron-config"`);
-		expect(out).toContain(`const preset = compose(node(), typecheck());`);
+		expect(out).toContain(`import { compose, withCapabilities } from "@theholocron/cli/presets"`);
+		expect(out).toContain(`const { withNode, withTypecheck } = withCapabilities;`);
+		expect(out).toContain(`const preset = compose(withNode(), withTypecheck());`);
 		expect(out).toMatch(/defineConfig\(\{\n\t\.\.\.preset,/);
 	});
 

@@ -31,6 +31,11 @@
       "types": "./src/plugin/capabilities/index.ts",
       "import": "./dist/plugin/capabilities.mjs",
       "default": "./dist/plugin/capabilities.mjs"
+    },
+    "./presets": {
+      "types": "./src/presets/index.ts",
+      "import": "./dist/presets.mjs",
+      "default": "./dist/presets.mjs"
     }
   },
   "bin": {
