@@ -62,4 +62,4 @@ The `api_token` on each project is the client-side tracking token (`phc_*`) used
 
 ## License
 
-GPL-3.0 © [Newton Koumantzelis](https://github.com/iamnewton)
+MIT © [Newton Koumantzelis](https://github.com/iamnewton)

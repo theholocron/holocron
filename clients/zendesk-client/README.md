@@ -76,4 +76,4 @@ Returns a client with `activities`, `comments`, `fields`, `search`, `status`, an
 
 ## License
 
-GPL-3.0 © [Newton Koumantzelis](https://github.com/iamnewton)
+MIT © [Newton Koumantzelis](https://github.com/iamnewton)

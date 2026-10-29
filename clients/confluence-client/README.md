@@ -58,4 +58,4 @@ Returns a client with a `page` namespace.
 
 ## License
 
-GPL-3.0 © [Newton Koumantzelis](https://github.com/iamnewton)
+MIT © [Newton Koumantzelis](https://github.com/iamnewton)

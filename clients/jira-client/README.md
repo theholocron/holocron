@@ -48,4 +48,4 @@ Jira REST API v2 uses HTTP Basic auth with a base64-encoded `email:apiToken` str
 
 ## License
 
-GPL-3.0 © [Newton Koumantzelis](https://github.com/iamnewton)
+MIT © [Newton Koumantzelis](https://github.com/iamnewton)

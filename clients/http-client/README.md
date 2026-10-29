@@ -130,4 +130,4 @@ Thrown by `createResolveToken` when no token can be found in any of the four res
 
 ## License
 
-GPL-3.0 © [Newton Koumantzelis](https://github.com/iamnewton)
+MIT © [Newton Koumantzelis](https://github.com/iamnewton)

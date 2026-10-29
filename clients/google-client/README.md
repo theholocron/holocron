@@ -58,4 +58,4 @@ const authClient = await oauth(["https://www.googleapis.com/auth/spreadsheets"])
 
 ## License
 
-GPL-3.0 © [Newton Koumantzelis](https://github.com/iamnewton)
+MIT © [Newton Koumantzelis](https://github.com/iamnewton)
