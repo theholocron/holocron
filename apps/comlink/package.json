@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/comlink",
-  "version": "5.0.0-alpha.218",
+  "version": "0.0.0",
   "private": true,
   "description": "Holocron's alert relay: one Cloudflare Worker that takes webhooks from services whose alerts Discord cannot read (Sentry first), checks who sent them and posts them as Discord messages.",
   "keywords": [

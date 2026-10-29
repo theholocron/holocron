@@ -368,7 +368,7 @@ cli/                              — core infrastructure (the CLI and its runti
   cli/                            — @theholocron/cli                       (binary + runtime + 18 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
-apps/                             — deployable applications (not published to npm)
+apps/                             — deployable applications (not published to npm; private, version 0.0.0 — deployed, not versioned: the deploy-on-release job deploys the commit, and their changes land in the root CHANGELOG)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
 observability/                    — @theholocron/observability             (logging, errors and analytics behind one interface; releases on its own version line, tags `observability-v*`)
 skills/                           — @theholocron/skills                    (shared agent skill registry; releases on its own version line, tags `skills-v*`)
