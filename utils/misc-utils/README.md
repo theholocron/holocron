@@ -54,4 +54,4 @@ The Konami code sequence as a readonly `TKonamiCode[]`.
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/misc-utils/) for more information.
