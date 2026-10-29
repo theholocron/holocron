@@ -58,8 +58,8 @@
   "devDependencies": {
     "@astrojs/starlight": "^0.41.7",
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vitest-config": "catalog:configs",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
     "@tsconfig/node-lts": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",

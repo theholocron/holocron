@@ -39,16 +39,16 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "@theholocron/fs-utils": "catalog:utils",
-    "@theholocron/misc-utils": "catalog:utils",
-    "@theholocron/object-utils": "catalog:utils",
+    "@theholocron/fs-utils": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/object-utils": "workspace:^",
     "tsx": "catalog:"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/tsconfig": "catalog:configs",
-    "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vitest-config": "catalog:configs",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",

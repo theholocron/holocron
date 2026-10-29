@@ -38,11 +38,11 @@
     "verification.unitTests": "holocron run verification.unitTests --"
   },
   "devDependencies": {
-    "@theholocron/checkly-client": "catalog:clients",
+    "@theholocron/checkly-client": "workspace:^",
     "@theholocron/cli": "workspace:*",
-    "@theholocron/http-client": "catalog:clients",
-    "@theholocron/misc-utils": "catalog:utils",
-    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
