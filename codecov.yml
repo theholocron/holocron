@@ -29,11 +29,18 @@ component_management:
         target: 80%
         if_not_found: success
   individual_components:
-    - component_id: array-utils
-      name: "array-utils"
+    # apps
+    - component_id: comlink
+      name: "comlink"
       paths:
-        - utils/array-utils/**
+        - apps/comlink/**
 
+    - component_id: sentinel
+      name: "sentinel"
+      paths:
+        - apps/sentinel/**
+
+    # cli
     - component_id: astromech
       name: "astromech"
       paths:
@@ -44,36 +51,18 @@ component_management:
       paths:
         - cli/cli/**
 
-    - component_id: comlink
-      name: "comlink"
-      paths:
-        - apps/comlink/**
-
     - component_id: datapad
       name: "datapad"
       paths:
         - cli/datapad/**
 
-    - component_id: date-time-utils
-      name: "date-time-utils"
+    # observability
+    - component_id: observability
+      name: "observability"
       paths:
-        - utils/date-time-utils/**
+        - observability/**
 
-    - component_id: env-utils
-      name: "env-utils"
-      paths:
-        - utils/env-utils/**
-
-    - component_id: fs-utils
-      name: "fs-utils"
-      paths:
-        - utils/fs-utils/**
-
-    - component_id: git-utils
-      name: "git-utils"
-      paths:
-        - utils/git-utils/**
-
+    # plugins
     - component_id: holocron-plugin-1password
       name: "holocron-plugin-1password"
       paths:
@@ -159,6 +148,38 @@ component_management:
       paths:
         - plugins/holocron-plugin-vercel/**
 
+    # skills
+    - component_id: skills
+      name: "skills"
+      paths:
+        - skills/**
+
+    # utils
+    - component_id: array-utils
+      name: "array-utils"
+      paths:
+        - utils/array-utils/**
+
+    - component_id: date-time-utils
+      name: "date-time-utils"
+      paths:
+        - utils/date-time-utils/**
+
+    - component_id: env-utils
+      name: "env-utils"
+      paths:
+        - utils/env-utils/**
+
+    - component_id: fs-utils
+      name: "fs-utils"
+      paths:
+        - utils/fs-utils/**
+
+    - component_id: git-utils
+      name: "git-utils"
+      paths:
+        - utils/git-utils/**
+
     - component_id: json-utils
       name: "json-utils"
       paths:
@@ -179,25 +200,10 @@ component_management:
       paths:
         - utils/object-utils/**
 
-    - component_id: observability
-      name: "observability"
-      paths:
-        - observability/**
-
     - component_id: pkg-utils
       name: "pkg-utils"
       paths:
         - utils/pkg-utils/**
-
-    - component_id: sentinel
-      name: "sentinel"
-      paths:
-        - apps/sentinel/**
-
-    - component_id: skills
-      name: "skills"
-      paths:
-        - skills/**
 
     - component_id: storage-utils
       name: "storage-utils"

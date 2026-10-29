@@ -23,16 +23,24 @@ function scaffoldHeader(): string {
 
 export function codecovComponentBlock(packages: WorkspacePackage[]): string {
 	if (packages.length === 0) return "\n    []\n";
+	let group: string | undefined;
 	return (
 		"\n" +
 		packages
-			.flatMap(({ slug, dir, path }) => [
-				`    - component_id: ${slug}`,
-				`      name: "${slug}"`,
-				`      paths:`,
-				`        - ${path ?? `${dir ?? "packages"}/${slug}`}/**`,
-				``,
-			])
+			.flatMap(({ slug, dir, path }) => {
+				const where = path ?? `${dir ?? "packages"}/${slug}`;
+				const root = where.split("/")[0]!;
+				const heading = root === group ? [] : [`    # ${root}`];
+				group = root;
+				return [
+					...heading,
+					`    - component_id: ${slug}`,
+					`      name: "${slug}"`,
+					`      paths:`,
+					`        - ${where}/**`,
+					``,
+				];
+			})
 			.join("\n")
 	);
 }
@@ -88,9 +96,13 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 	);
 }
 
+function location({ slug, dir, path }: WorkspacePackage): string {
+	return path ?? `${dir ?? "packages"}/${slug}`;
+}
+
 /**
  * Every package the repo's `pnpm-workspace.yaml` declares (the default roots
- * when it declares none), sorted by slug -- the folder name. Every one needs a
+ * when it declares none), sorted by location, so each group folder (`cli/`, `plugins/`, ...) stays together. Every one needs a
  * codecov component so `codecov/patch/<slug>` actually posts for each. A
  * package at `<root>/<slug>` carries `dir: <root>`; one that is itself a
  * workspace folder (`observability`) or sits deeper (`docs/theme`) carries its
@@ -111,7 +123,7 @@ export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
 			if (segments.length === 2 && slug === folder) return { slug, name, dir: segments[0]! };
 			return { slug, name, path: relativeDir };
 		})
-		.sort((a, b) => a.slug.localeCompare(b.slug));
+		.sort((a, b) => location(a).localeCompare(location(b)));
 }
 
 /** A brand-new `codecov.yml` — the scaffold header + the base template + this repo's component list. */
