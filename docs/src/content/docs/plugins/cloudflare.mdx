@@ -3,8 +3,8 @@ title: Cloudflare Plugin
 description: Implements the dns and deployment capabilities against Cloudflare's API.
 ---
 
-import { PluginHeader, Installation, CapabilitiesTable } from "@theholocron/components-doc";
-import { getPlugins } from "@theholocron/registry-doc";
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
 
 <PluginHeader entry={getPlugins()["holocron-plugin-cloudflare"]} capability="dns" />
 

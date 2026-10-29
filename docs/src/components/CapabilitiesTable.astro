@@ -1,0 +1,38 @@
+---
+interface CapabilitiesRow {
+	capability: string;
+	token: string;
+}
+
+interface CapabilitiesTableProps {
+	rows: CapabilitiesRow[];
+}
+
+type Props = CapabilitiesTableProps;
+
+const { rows } = Astro.props;
+---
+
+<h2>Capabilities</h2>
+<table>
+	<thead>
+		<tr>
+			<th>Capability</th>
+			<th>Token</th>
+		</tr>
+	</thead>
+	<tbody>
+		{
+			rows.map((row) => (
+				<tr>
+					<td>
+						<code>{row.capability}</code>
+					</td>
+					<td>
+						<code>{row.token}</code>
+					</td>
+				</tr>
+			))
+		}
+	</tbody>
+</table>
