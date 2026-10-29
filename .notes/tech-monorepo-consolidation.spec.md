@@ -23,7 +23,7 @@ related:
 
 ## Scope
 
-- **Fold in:** holocron, observability, clients, configs, utils, skills, docs, themes (themes folds into `docs/theme`). Everything folded is used by this repo or used to build its work.
+- **Fold in:** holocron, observability, clients, configs, utils, skills, docs, themes (themes folds into `themes/docs-theme`, its own folder and release group, not into the docs site). Everything folded is used by this repo or used to build its work.
 - **Stay as they are:**
   - All 8 `*-template` repos (`base`, `node`, `cli`, `react`, `nextjs`, `monorepo`, `monorepo-react`, `monorepo-nextjs`). The GitHub template flag is the feature; `holocron new` runs `gh repo create --template ${org}/${type}-template`. Making them externally presentable (e.g. not hard-coding `theholocron/.github/...@main`) is a follow-up project after this conversion.
   - `.github`, `.github-private`, `theholocron.github.io` (name-locked by GitHub).
@@ -39,18 +39,19 @@ apps/           sentinel (existing)
 cli/            cli, astromech, datapad (holocron's current packages/*; packages/ dissolves)
 clients/        http-client, github-client, ...
 configs/        eslint-config, tsconfig, ...
-docs/           the one plain Astro/Starlight site; docs/theme = docs-theme (still published)
+docs/           the one plain Astro/Starlight site
 fern/           existing
 media/          existing
 observability/  single package (the folder is the package)
 plugins/        holocron-plugin-* (existing)
 skills/         single package (the folder is the package)
+themes/         docs-theme (still published: the templates and astro-config install it from npm)
 utils/          array-utils, ...
 ```
 
 - One `pnpm-workspace.yaml` and one catalog; `workspace:*` within a group.
-- Workspace globs: `cli/*`, `clients/*`, `configs/*`, `utils/*`, `plugins/*`, `apps/*`, `docs/theme`, `observability`, `skills`.
-- Generalize workspace discovery (#668/#669, #1201). The scanner is `listWorkspacePackagesSync` in `@theholocron/pkg-utils` (utils repo), not astromech: it lists one level under fixed roots (`packages`, `plugins`) and throws on `.`, so it cannot express a folder that is itself a package (`observability`, `skills`, `docs/theme`). It needs a new `pkg-utils` release or a local reimplementation, so #1201 is sequenced before the utils import. Key packages by name or `relativeDir`, not folder slug, to avoid collisions.
+- Workspace globs: `cli/*`, `clients/*`, `configs/*`, `utils/*`, `plugins/*`, `apps/*`, `themes/*`, `observability`, `skills`.
+- Generalize workspace discovery (#668/#669, #1201). The scanner is `listWorkspacePackagesSync` in `@theholocron/pkg-utils` (utils repo), not astromech: it lists one level under fixed roots (`packages`, `plugins`) and throws on `.`, so it cannot express a folder that is itself a package (`observability`, `skills`). It needs a new `pkg-utils` release or a local reimplementation, so #1201 is sequenced before the utils import. Key packages by name or `relativeDir`, not folder slug, to avoid collisions.
 
 ## Decisions
 
@@ -58,8 +59,8 @@ utils/          array-utils, ...
 2. **Channels:** single `main` for stable; major/breaking work goes to the `alpha` prerelease branch. The current mix is a side effect of the 5.0 work, not a blocker. Import holocron's `main` and `alpha` as-is and bring the libraries onto `main`. No need to ship 5.0 first. Dry-run semantic-release per group on `main` and, for holocron, `alpha`. Of the imported repos, none has a live `alpha` branch: observability and skills declare one in `release.config.ts` but it does not exist on origin, and configs' `alpha` is a stale ancestor of `main` (do not import it).
 3. **CLI is a CI tool, not pinned:** run `holocron` from the repo root only. Imported packages may keep their `@theholocron/cli` devDependency as long as the root catalog resolves it from the registry; a cycle (`cli -> env-utils -> cli`) only appears if it is linked with `workspace:*`, which pnpm/turbo reject. Remove those devDeps before ever linking cross-group with `workspace:*`. The root needs an explicit `catalogs.holocron` (the CLI only, registry-resolved) and `catalogs.docs` or the retirement of `components-doc`/`registry-doc` first, because every imported `package.json` references `catalog:holocron` (#1224). Imported per-package scripts call `holocron run ...`, which resolves each package's own pinned CLI; decide whether they move to root or turbo resolution. Whether a registry-pinned `@theholocron/cli` creates a cyclic graph is a spike (#1231).
 4. **npm trusted publishers:** `holocron package publish --sync-trust` wraps `npm trust list/revoke/github`, but only partly covers the mechanism. Every mutation needs interactive browser 2FA (it stops on the first EOTP and can be re-run; bypass-2FA tokens do not work), discovery only sees `packages/*` and `plugins/*` (#1201), and it skips an entry when the workflow filename matches, so packages bound to the same `delivery.publish.yml` on their old repo would stay bound (#1221). The binding is per package to repo + workflow file, so ~85 packages need re-registering: 1-3 hours if one approval covers a batch, about a day if not. Keep the filename `delivery.publish.yml`; whether the binding holds when publishing from a `workflow_call`ed reusable is a spike (#1231).
-5. **License (decided): MIT** ([ADR-0016](../docs/wiki/decisions/0016-mit-as-the-unified-license.md)). One root license, "Copyright (c) 2026 Newton Koumantzelis". iamnewton holds all human commits (bots otherwise), no third-party code was found, and no third-party GPL/AGPL runtime dependency constrains the choice. The MIT packages (`cli`, `astromech`, `datapad`, `sentinel`, the plugins) already depend at runtime on GPL-3.0 libraries (`env-utils`, `fs-utils`, `github-client`, `http-client`, ...), which is a strong reason to relicense. Published versions keep their original license. Change the `license` fields at import time, not at the end, so the monorepo never publishes a GPL-labelled release; the final cleanup removes the leftover LICENSE files. Staying repos (templates, `.github`, `.github-private`, `theholocron.github.io`, `components`, `themes`) are relicensed in one pass (#1230).
-6. **Docs:** `docs/` in holocron stays the holocron docs site, a normal Astro site served at `docs.theholocron.dev/holocron`, and the folded repos' docs become subdirectories of it. `theholocron.github.io` is not touched: it keeps the org-wide contributor docs at `docs.theholocron.dev` and owns the custom domain. No per-package docs release system and no redirects (single maintainer; update `homepage` fields at import time). `components-doc` and `registry-doc` are retired, but they have more consumers than first thought: the published CLI (production dependencies, used only by `sync-readme`), 16 pages of the holocron site, `apps/sentinel` (fetches `registry-doc` from npm at check time), and devDeps in utils, configs, skills and holocron. Before `npm deprecate`: move the sentinel registry data (#1227), rework `sync-readme` and drop the CLI dependencies (#1228), and move the 16 pages onto local components (#1234). `sync-readme` is kept for reuse on the next project: it fills the install, development and releases sections of READMEs between markers from the workspace, with the repo-level packages table derived from workspace discovery. `docs-theme` and `astro-config` stay published because 7 of the 8 templates depend on them.
+5. **License (decided): MIT** ([ADR-0016](../docs/wiki/decisions/0016-mit-as-the-unified-license.md)). One root license, "Copyright (c) 2026 Newton Koumantzelis". iamnewton holds all human commits (bots otherwise), no third-party code was found, and no third-party GPL/AGPL runtime dependency constrains the choice. The MIT packages (`cli`, `astromech`, `datapad`, `sentinel`, the plugins) already depend at runtime on GPL-3.0 libraries (`env-utils`, `fs-utils`, `github-client`, `http-client`, ...), which is a strong reason to relicense. Published versions keep their original license. Change the `license` fields at import time, not at the end, so the monorepo never publishes a GPL-labelled release; the final cleanup removes the leftover LICENSE files. Staying repos (templates, `.github`, `.github-private`, `theholocron.github.io`, `components`) are relicensed in one pass (#1230).
+6. **Docs:** `docs/` in holocron stays the holocron docs site, a normal Astro site served at `docs.theholocron.dev/holocron`, and the folded repos' docs become subdirectories of it. `theholocron.github.io` is not touched: it keeps the org-wide contributor docs at `docs.theholocron.dev` and owns the custom domain. No per-package docs release system and no redirects (single maintainer; update `homepage` fields at import time). `components-doc` and `registry-doc` are retired, but they have more consumers than first thought: the published CLI (production dependencies, used only by `sync-readme`), 16 pages of the holocron site, `apps/sentinel` (fetches `registry-doc` from npm at check time), and devDeps in utils, configs, skills and holocron. Before `npm deprecate`: move the sentinel registry data (#1227), rework `sync-readme` and drop the CLI dependencies (#1228), and move the 16 pages onto local components (#1234). `sync-readme` is kept for reuse on the next project: it fills the install, development and releases sections of READMEs between markers from the workspace, with the repo-level packages table derived from workspace discovery. `docs-theme` and `astro-config` stay published because 7 of the 8 templates depend on them. `docs-theme` is a Starlight plugin that runs inside each docs site's build, so it cannot become a generated template asset (every copy would freeze); it lives in `themes/docs-theme` (#1212), a folder of its own so it stays out of the docs site and leaves room for other themes, and it releases as the `themes` group with tags `themes-v*`.
 7. **Templates:** unchanged.
 
 ## Core requirement: Turborepo caching and affected-only CI
@@ -87,7 +88,7 @@ The consolidation only pays off if CI work is proportional to the change. Builds
 - `.github` shrinks to static org files: community health (CODE_OF_CONDUCT, CONTRIBUTING, SECURITY, ISSUE_TEMPLATE, FUNDING, PR template), `profile/README.md`, and `workflow-templates/`. GitHub only reads starter workflows from the org `.github` repo; they become thin callers into `holocron`. Starter workflows are distinct from the template repos.
 - `.github-private`: profile plus whatever internal docs stay. Decide a new home for its wiki/ADRs/specs (likely `docs`/`fern`) and for `AGENTS.md`, which all 8 local repos and all 8 templates import via sibling path `@../github-private/AGENTS.md` (it only resolves when repos are sibling checkouts); move it into holocron and leave a one-line pointer until every consumer is repointed. `notifications/discord-links.json` stays in `.github-private`: the CLI reads `<org>/.github-private/notifications/<provider>-links.json` by default and the file pairs identities.
 - `theholocron.github.io` is not touched by this project (see Decision 6).
-- **Transition:** existing callers (8 repos, ~112 references across the 8 templates, repos generated from templates, plus `themes`, `components` and `theholocron.github.io`) point at `theholocron/.github/...@main`. Repoint with `holocron repo sync` (#1229); keep forwarding shims in `.github` until nothing references them, then delete. The `notify` composite action is referenced but was not found in the `.github` tree (verify).
+- **Transition:** existing callers (8 repos, ~112 references across the 8 templates, repos generated from templates, plus `components` and `theholocron.github.io`) point at `theholocron/.github/...@main`. Repoint with `holocron repo sync` (#1229); keep forwarding shims in `.github` until nothing references them, then delete. The `notify` composite action is referenced but was not found in the `.github` tree (verify).
 - Preserve required-check names (matched by string) or migrate rulesets in the same step.
 
 ## Migration steps
@@ -100,10 +101,10 @@ Copy the packages in, adjust the root, publish from the new location. No interme
 - Universal generated `turbo.json` and affected-only CI (see Core requirement), and aggregate-only Codecov required checks (#1223).
 - Per-group release tooling: folder-scoped commit analysis, `tagFormat` per group, a reusable root publish workflow parameterized by group (the generated `delivery.publish` reusable assumes the repo root and has no working-directory or group input; it also strips `v` from `git describe`).
 - Root catalogs (`holocron`, missing defaults) and one vitest and tsdown major (#1224, #1225).
-- Fix `--sync-trust` (#1221) and run the spikes in #1231 (OIDC through `workflow_call`, nested `docs`/`docs/theme` in Turbo, `--affected` exit code, registry-pinned CLI cycle).
+- Fix `--sync-trust` (#1221) and run the spikes in #1231 (OIDC through `workflow_call`, nested `docs` in Turbo, `--affected` exit code, registry-pinned CLI cycle).
 - License is decided (MIT).
 
-### Step 1..N: per repo (observability, skills, utils, configs, clients, docs/themes)
+### Step 1..N: per repo (observability, skills, utils, configs, clients, docs, themes)
 
 Recommended order: observability (one package, proves filter-repo, `catalogs.holocron`, `tagFormat`, folder-scoped release and trusted-publisher registration), skills, utils, configs, clients (most active: three releases in two days, largest catalog conflict), then docs and themes. Run the pre-import checklist first (#1226): local checkouts are stale, and several repos have unpushed branches (utils 13, clients 21).
 
@@ -137,7 +138,7 @@ Per repo
 - #1209 utils
 - #1210 configs
 - #1211 clients
-- #1212 docs and themes (`docs/theme`)
+- #1212 themes (`themes/docs-theme`; the docs site itself is already in `docs/`)
 
 Final cleanup
 
