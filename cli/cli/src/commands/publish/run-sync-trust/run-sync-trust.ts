@@ -32,6 +32,11 @@ import type {
  * it stops immediately, prints the `authUrl`, and returns — the operator
  * approves it and re-runs; already-migrated packages are skipped on the next
  * pass, so it's safe to resume from wherever it stopped.
+ *
+ * A package is skipped only when BOTH its bound file and its bound repository (compared
+ * case-insensitively) already match: a package folded in from another repo keeps its
+ * filename but is still bound to the old repo (#1221). `--dry-run` does the same read-only
+ * `trust list` per package and reports what the real run would do, without revoking or creating.
  */
 export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -56,42 +61,57 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 		return { status: "fail", message, packages: [] };
 	}
 
-	if (dryRun) {
-		for (const name of packageNames) print(`  … would sync ${name}`);
-		return { status: "dry-run", message: "dry-run — no npm calls made", packages: [] };
-	}
-
 	const results: SyncTrustPackageResult[] = [];
+	const needsAuth = (name: string, authUrl: string): SyncTrustReport => {
+		print(`  needs fresh 2FA — open and approve: ${authUrl}`);
+		print("  then re-run; already-migrated packages are skipped.");
+		results.push({ name, status: "needs-auth", message: authUrl });
+		logger.warn({ package: name, authUrl }, "sync-trust: needs auth, stopping");
+		return { status: "fail", message: "npm 2FA grant needed — see printed authUrl", packages: results };
+	};
 
 	for (const name of packageNames) {
 		print(`=== ${name} ===`);
 		const listResult = await exec(npm, [...npmArgs, "trust", "list", name, "--json"], { cwd });
 		const parsed = parseJson(listResult.stdout);
 
-		if (isEotp(parsed)) {
-			const authUrl = (parsed as NpmTrustError).error?.authUrl ?? "";
-			print(`  needs fresh 2FA — open and approve: ${authUrl}`);
-			print("  then re-run; already-migrated packages are skipped.");
-			results.push({ name, status: "needs-auth", message: authUrl });
-			logger.warn({ package: name, authUrl }, "sync-trust: needs auth, stopping");
-			return { status: "fail", message: "npm 2FA grant needed — see printed authUrl", packages: results };
+		if (isEotp(parsed)) return needsAuth(name, (parsed as NpmTrustError).error?.authUrl ?? "");
+
+		if (listResult.exitCode !== 0) {
+			// A failed read is not "no trust config": revoking or creating on top of it would be a guess.
+			const message = listResult.stderr.trim() || listResult.stdout.trim() || `exit ${listResult.exitCode}`;
+			print(`  ✗ FAILED to read trust config: ${message}`);
+			results.push({ name, status: "fail", message });
+			continue;
 		}
 
-		const entry = parsed as NpmTrustEntry;
-		if (entry.file === input.newFile) {
-			print(`  already on ${input.newFile}, skipping`);
-			results.push({ name, status: "skipped" });
+		const entry = (parsed ?? {}) as NpmTrustEntry;
+		// npm ties a binding to a repo as well as a file, so a package folded in from another repo
+		// keeps the same filename but is still bound to the old repo.
+		const sameFile = entry.file === input.newFile;
+		const sameRepo = entry.repository?.toLowerCase() === repo.toLowerCase();
+		if (sameFile && sameRepo) {
+			print(`  already on ${repo} / ${input.newFile}, skipping`);
+			results.push({ name, status: dryRun ? "would-skip" : "skipped" });
+			continue;
+		}
+
+		const from = `repo=${entry.repository ?? "?"}, file=${entry.file ?? "?"}`;
+		if (dryRun) {
+			print(
+				entry.id
+					? `  would revoke (${from}, id=${entry.id}) and create ${repo} / ${input.newFile}`
+					: `  would create ${repo} / ${input.newFile} (no existing trust config)`
+			);
+			results.push({ name, status: "would-sync" });
 			continue;
 		}
 
 		if (entry.id) {
-			print(`  revoking existing trust (file=${entry.file ?? "?"}, id=${entry.id})`);
+			print(`  revoking existing trust (${from}, id=${entry.id})`);
 			const revoke = await exec(npm, [...npmArgs, "trust", "revoke", name, "--id", entry.id, "-y"], { cwd });
 			if (revoke.exitCode !== 0 && isEotp(parseJson(revoke.stdout))) {
-				const authUrl = (parseJson(revoke.stdout) as NpmTrustError).error?.authUrl ?? "";
-				print(`  needs fresh 2FA — open and approve: ${authUrl}`);
-				results.push({ name, status: "needs-auth", message: authUrl });
-				return { status: "fail", message: "npm 2FA grant needed — see printed authUrl", packages: results };
+				return needsAuth(name, (parseJson(revoke.stdout) as NpmTrustError).error?.authUrl ?? "");
 			}
 		} else {
 			print("  no existing trust config found");
@@ -121,10 +141,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 		} else {
 			const createParsed = parseJson(create.stdout);
 			if (isEotp(createParsed)) {
-				const authUrl = (createParsed as NpmTrustError).error?.authUrl ?? "";
-				print(`  needs fresh 2FA — open and approve: ${authUrl}`);
-				results.push({ name, status: "needs-auth", message: authUrl });
-				return { status: "fail", message: "npm 2FA grant needed — see printed authUrl", packages: results };
+				return needsAuth(name, (createParsed as NpmTrustError).error?.authUrl ?? "");
 			}
 			const message = create.stderr.trim() || create.stdout.trim() || `exit ${create.exitCode}`;
 			print(`  ✗ FAILED: ${message}`);
@@ -135,7 +152,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 	const failed = results.filter((r) => r.status === "fail");
 	logger.info({ ok: results.filter((r) => r.status === "ok").length, failed: failed.length }, "sync-trust: done");
 	return {
-		status: failed.length > 0 ? "fail" : "ok",
+		status: failed.length > 0 ? "fail" : dryRun ? "dry-run" : "ok",
 		...(failed.length > 0 ? { message: `${failed.length} package(s) failed` } : {}),
 		packages: results,
 	};

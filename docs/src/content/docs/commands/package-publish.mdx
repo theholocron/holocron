@@ -27,7 +27,33 @@ npm's Trusted Publisher config is tied to a specific workflow **filename** per p
 holocron package publish --sync-trust release.yml delivery.publish.yml
 ```
 
-For every public package (auto-discovered the same way as `--initial`): revokes the existing trust config if its `file` doesn't already match, then creates a new one pointing at the new filename. Already-migrated packages are skipped, so it's safe to re-run.
+For every public package (auto-discovered the same way as `--initial`), the command reads the current binding with `npm trust list <pkg> --json`, which reports the bound `file` and `repository`. A package is skipped only when **both** match the target: the new filename and `--repo` (default `theholocron/holocron`, compared case-insensitively). Otherwise the existing binding is revoked and a new one is created:
+
+| Current binding                     | Action                |
+| ----------------------------------- | --------------------- |
+| same file, same repository          | skipped               |
+| same file, **different repository** | revoked and recreated |
+| different file                      | revoked and recreated |
+| none                                | created               |
+
+The same-file, different-repository case is what happens when a package is folded into this repo from another one: the workflow filename stays `delivery.publish.yml`, but npm still trusts the old repo. A binding that reports no repository can't be proven to match, so it is re-registered too. If the read itself fails for any reason other than a 2FA request (for example `E401` when not logged in), that package is reported as failed and nothing is revoked or created for it. Already-migrated packages are skipped, so it's safe to re-run.
+
+### Previewing with `--dry-run`
+
+```bash
+holocron package publish --sync-trust delivery.publish.yml delivery.publish.yml --repo theholocron/holocron --dry-run
+```
+
+`--dry-run` does the read-only `trust list` for each package and prints what the real run would do, without revoking or creating anything:
+
+```text
+=== @theholocron/env-utils ===
+  would revoke (repo=theholocron/utils, file=delivery.publish.yml, id=56d3…) and create theholocron/holocron / delivery.publish.yml
+=== @theholocron/skills ===
+  already on theholocron/holocron / delivery.publish.yml, skipping
+```
+
+Reads can need a fresh 2FA approval too. When one does, the dry run stops and prints the `authUrl` exactly as the real run does; approve it and re-run.
 
 **This can't run unattended.** npm's `trust` mutations — and reads, once a short-lived OTP grant lapses — require a fresh interactive browser 2FA approval. There's no token that bypasses this (npm's own docs: Granular Access Tokens with the bypass-2FA option are explicitly unsupported for trust endpoints). When the command hits this, it stops immediately, prints the `authUrl` to open and approve, and returns a `needs-auth` result for that package — open the link, approve it, and re-run.
 
@@ -66,16 +92,16 @@ The command fails loudly — `nothing to publish` — rather than silently no-op
 
 ## Options
 
-| Option                     | Default                                         | Description                                                                                          |
-| -------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `--initial`                | `false`                                         | Runs the one-shot bootstrap publish instead of the steady-state path                                 |
-| `--tag`                    | `alpha` (`--initial`) / `latest` (steady-state) | npm distribution tag                                                                                 |
-| `--otp`                    | —                                               | TOTP code from your authenticator (if 2FA is required for writes)                                    |
-| `--provenance`             | `true`                                          | Steady-state only: publish with `--provenance`                                                       |
-| `--skip-already-published` | `false`                                         | Steady-state only: check `npm view <pkg>@<version>` first, skip a package whose exact version exists |
-| `--sync-trust`             | —                                               | `<old-file> <new-file>` — migrate every package's Trusted Publisher config                           |
-| `--repo`                   | `theholocron/holocron`                          | `owner/repo` for the Trusted Publisher config (`--sync-trust` only)                                  |
-| `--dry-run`                | `false`                                         | Print what would happen without making any npm calls                                                 |
+| Option                     | Default                                         | Description                                                                                                   |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `--initial`                | `false`                                         | Runs the one-shot bootstrap publish instead of the steady-state path                                          |
+| `--tag`                    | `alpha` (`--initial`) / `latest` (steady-state) | npm distribution tag                                                                                          |
+| `--otp`                    | —                                               | TOTP code from your authenticator (if 2FA is required for writes)                                             |
+| `--provenance`             | `true`                                          | Steady-state only: publish with `--provenance`                                                                |
+| `--skip-already-published` | `false`                                         | Steady-state only: check `npm view <pkg>@<version>` first, skip a package whose exact version exists          |
+| `--sync-trust`             | —                                               | `<old-file> <new-file>` — migrate every package's Trusted Publisher config                                    |
+| `--repo`                   | `theholocron/holocron`                          | `owner/repo` for the Trusted Publisher config (`--sync-trust` only)                                           |
+| `--dry-run`                | `false`                                         | Print what would happen without making any changes (`--sync-trust` still does the read-only `npm trust list`) |
 
 ## Notes
 
