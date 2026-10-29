@@ -1,3 +1,14 @@
+## [5.0.0-alpha.254](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.253...v5.0.0-alpha.254) (2026-10-29)
+
+### Bug Fixes
+
+* **astromech:** 🐛 set cache-mode on thin callers with low-trust triggers ([#1382](https://github.com/theholocron/holocron/issues/1382)) ([b5a6c56](https://github.com/theholocron/holocron/commit/b5a6c566a9747e00de7cf79a7f3955d372eda525)), closes [#1242](https://github.com/theholocron/holocron/issues/1242)
+* **cli:** 🐛 bump-versions --group no longer reports folders outside the group as broken ([#1379](https://github.com/theholocron/holocron/issues/1379)) ([d8ec9b9](https://github.com/theholocron/holocron/commit/d8ec9b99acd5d701c949503aee258ff4112e6895)), closes [#1276](https://github.com/theholocron/holocron/issues/1276)
+
+### Documentation
+
+* **notes:** 📝 spec affected-only CI with Turborepo and Codecov flags ([#1383](https://github.com/theholocron/holocron/issues/1383)) ([67b7dbf](https://github.com/theholocron/holocron/commit/67b7dbfbad5748f4f31bfbe585991856a5a2f068)), closes [#1202](https://github.com/theholocron/holocron/issues/1202) [#1232](https://github.com/theholocron/holocron/issues/1232) [#1250](https://github.com/theholocron/holocron/issues/1250)
+
 ## [5.0.0-alpha.253](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.252...v5.0.0-alpha.253) (2026-10-29)
 
 ### Features
