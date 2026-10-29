@@ -32,6 +32,7 @@ describe("turboConfig", () => {
 				"src/**",
 				"package.json",
 				"tsdown.config.ts",
+				"$TURBO_ROOT$/tsdown.config.ts",
 				"vite.config.ts",
 				"rollup.config.ts",
 				"tsconfig.json",
@@ -126,6 +127,7 @@ describe("turboConfig", () => {
 			"src/**",
 			"package.json",
 			"tsdown.config.ts",
+			"$TURBO_ROOT$/tsdown.config.ts",
 			"vite.config.ts",
 			"rollup.config.ts",
 			"tsconfig.json",
@@ -140,6 +142,7 @@ describe("turboConfig", () => {
 			"src/**",
 			"package.json",
 			"tsdown.config.ts",
+			"$TURBO_ROOT$/tsdown.config.ts",
 			"vite.config.ts",
 			"rollup.config.ts",
 			"tsconfig.json",
@@ -212,7 +215,7 @@ describe("turboConfig", () => {
 		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.ts");
 		expect(parsed.tasks["delivery.build"]?.inputs).toContain("**/*.tsx");
 		// Not duplicated beyond the two distinct globs each entry added.
-		expect(parsed.tasks["delivery.build"]?.inputs).toHaveLength(8);
+		expect(parsed.tasks["delivery.build"]?.inputs).toHaveLength(9);
 	});
 
 	it("throws a clear error when turbo.inputs is a bare string instead of an array (review on #845)", () => {

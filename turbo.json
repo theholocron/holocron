@@ -3,7 +3,17 @@
   "globalDependencies": ["pnpm-workspace.yaml", "tsconfig.json"],
   "tasks": {
     "sourceQuality.staticAnalysis": {
-      "inputs": ["src/**", "eslint.config.ts", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"],
+      "inputs": [
+        "src/**",
+        "eslint.config.ts",
+        "eslint.config.js",
+        "eslint.config.mjs",
+        "eslint.config.cjs",
+        "$TURBO_ROOT$/eslint.config.ts",
+        "$TURBO_ROOT$/eslint.config.js",
+        "$TURBO_ROOT$/eslint.config.mjs",
+        "$TURBO_ROOT$/eslint.config.cjs"
+      ],
       "outputs": [],
       "dependsOn": ["^delivery.build"]
     },
@@ -18,7 +28,15 @@
       "dependsOn": ["^delivery.build"]
     },
     "delivery.build": {
-      "inputs": ["src/**", "package.json", "tsdown.config.ts", "vite.config.ts", "rollup.config.ts", "tsconfig.json"],
+      "inputs": [
+        "src/**",
+        "package.json",
+        "tsdown.config.ts",
+        "$TURBO_ROOT$/tsdown.config.ts",
+        "vite.config.ts",
+        "rollup.config.ts",
+        "tsconfig.json"
+      ],
       "outputs": ["dist/**"],
       "dependsOn": ["^delivery.build"],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN"]

@@ -273,6 +273,9 @@ importers:
       '@theholocron/tsconfig':
         specifier: workspace:^
         version: link:configs/tsconfig
+      '@theholocron/tsdown-config':
+        specifier: workspace:^
+        version: link:configs/tsdown-config
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.27(@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@5.0.5)
