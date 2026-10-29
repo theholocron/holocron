@@ -64,7 +64,20 @@ export const TASKS: Record<string, TaskDef> = {
 		local: null,
 		linterGroup: ["eslint", "actionlint", "git-merge-conflict-markers"],
 		turbo: {
-			inputs: ["src/**", "eslint.config.ts", "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs"],
+			// ESLint finds a config by walking up from the package, so a package with none of its own
+			// lints with the repo root's: that file is an input too, or editing it would serve stale
+			// cached results for every such package.
+			inputs: [
+				"src/**",
+				"eslint.config.ts",
+				"eslint.config.js",
+				"eslint.config.mjs",
+				"eslint.config.cjs",
+				"$TURBO_ROOT$/eslint.config.ts",
+				"$TURBO_ROOT$/eslint.config.js",
+				"$TURBO_ROOT$/eslint.config.mjs",
+				"$TURBO_ROOT$/eslint.config.cjs",
+			],
 			outputs: [],
 			dependsOn: ["^delivery.build"],
 		},
