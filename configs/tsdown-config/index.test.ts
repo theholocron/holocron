@@ -1,6 +1,8 @@
-import { resolve } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cli } from "./presets/cli.js";
 import { library } from "./presets/library.js";
@@ -60,6 +62,52 @@ describe("tsdown-config", () => {
 		it("resolves an overridden outDir to an absolute path too, not just the default", () => {
 			const config = cli({ outDir: "build" });
 			expect(config.outDir).toBe(resolve(process.cwd(), "build"));
+		});
+	});
+
+	describe("library preset bundle-size guard", () => {
+		type OnSuccess = (config: { outDir: string }, signal: AbortSignal) => Promise<void>;
+		const run = (config: ReturnType<typeof library>, outDir: string) =>
+			(config.onSuccess as unknown as OnSuccess)({ outDir }, new AbortController().signal);
+		let dir: string;
+
+		beforeEach(() => {
+			dir = mkdtempSync(join(tmpdir(), "library-preset-"));
+		});
+
+		afterEach(() => {
+			rmSync(dir, { recursive: true });
+		});
+
+		it("passes a build whose bundles are small", async () => {
+			writeFileSync(join(dir, "index.mjs"), "export {};");
+			await expect(run(library(), dir)).resolves.toBeUndefined();
+		});
+
+		it("fails a build that emitted an oversized bundle", async () => {
+			writeFileSync(join(dir, "index.mjs"), "x".repeat(512_001));
+			await expect(run(library(), dir)).rejects.toThrow(/index\.mjs/);
+		});
+
+		it("runs the caller's onSuccess function after the check", async () => {
+			const onSuccess = vi.fn();
+			writeFileSync(join(dir, "index.mjs"), "export {};");
+			await run(library({ onSuccess }), dir);
+			expect(onSuccess).toHaveBeenCalledOnce();
+		});
+
+		it("does not run the caller's onSuccess when the check fails", async () => {
+			const onSuccess = vi.fn();
+			writeFileSync(join(dir, "index.mjs"), "x".repeat(512_001));
+			await expect(run(library({ onSuccess }), dir)).rejects.toThrow();
+			expect(onSuccess).not.toHaveBeenCalled();
+		});
+
+		it("runs the caller's onSuccess shell command after the check", async () => {
+			const marker = join(dir, "marker");
+			writeFileSync(join(dir, "index.mjs"), "export {};");
+			await run(library({ onSuccess: `touch ${marker}` }), dir);
+			expect(() => writeFileSync(marker, "", { flag: "r" })).not.toThrow();
 		});
 	});
 
