@@ -1,3 +1,9 @@
+## [5.0.0-alpha.248](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.247...v5.0.0-alpha.248) (2026-10-29)
+
+### Bug Fixes
+
+* **cli:** 🐛 re-register packages bound to another repo with --sync-trust ([#1274](https://github.com/theholocron/holocron/issues/1274)) ([e8aefeb](https://github.com/theholocron/holocron/commit/e8aefeb865acff7c3c379b89eebb08dcf75dad9b)), closes [#1221](https://github.com/theholocron/holocron/issues/1221)
+
 ## [5.0.0-alpha.247](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.246...v5.0.0-alpha.247) (2026-10-29)
 
 ### Chores
