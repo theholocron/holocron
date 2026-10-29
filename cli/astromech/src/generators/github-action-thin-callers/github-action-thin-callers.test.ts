@@ -8,6 +8,7 @@ import {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
+	withCacheMode,
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
 } from "./github-action-thin-callers.js";
@@ -375,5 +376,66 @@ describe("WORKFLOW_TEMPLATES['platform.notifyCheck']", () => {
 		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/platform.notifyCheck.yml@main");
 		expect(yaml).toContain("secrets: inherit");
 		expect(yaml).toContain("permissions: {}");
+	});
+});
+
+describe("withCacheMode", () => {
+	const job = "jobs:\n  a:\n    uses: o/.github/.github/workflows/a.yml@main\n    secrets: inherit\n";
+	const capped =
+		"jobs:\n  a:\n    uses: o/.github/.github/workflows/a.yml@main\n    cache-mode: read\n    secrets: inherit\n";
+
+	it.each([
+		"deployment_status",
+		"issues",
+		"issue_comment",
+		"pull_request_target",
+		"workflow_run",
+		"discussion",
+		"fork",
+		"watch",
+	])("caps the callee on a %s trigger (block mapping)", (trigger) => {
+		expect(withCacheMode(`on: # yamllint disable-line rule:truthy\n  push:\n  ${trigger}:\n\n${job}`)).toContain(
+			capped
+		);
+	});
+
+	it("handles scalar and flow-list `on:` forms", () => {
+		expect(withCacheMode(`on: issues\n\n${job}`)).toContain(capped);
+		expect(withCacheMode(`on: [push, issue_comment]\n\n${job}`)).toContain(capped);
+	});
+
+	it("does not touch callers with only normal triggers", () => {
+		for (const on of [
+			"on:\n  pull_request:\n  push:\n  workflow_dispatch:\n",
+			"on: push\n",
+			"on: [push, pull_request]\n",
+		]) {
+			expect(withCacheMode(`${on}\n${job}`)).not.toContain("cache-mode");
+		}
+	});
+
+	it("returns workflows without an `on:` block unchanged and never duplicates cache-mode", () => {
+		expect(withCacheMode(job)).toBe(job);
+		const already = `on:\n  issues:\n\n${capped}`;
+		expect(withCacheMode(already)).toBe(already);
+	});
+
+	it("caps every reusable call in a multi-job caller", () => {
+		const two = `on:\n  issues:\n\n${job}  b:\n    uses: o/.github/.github/workflows/b.yml@main\n`;
+		expect(withCacheMode(two).match(/cache-mode: read/g)).toHaveLength(2);
+	});
+
+	it("is applied by generateThinCallerContent only for low-trust templates", () => {
+		expect(generateThinCallerContent("greetings")).toContain("    cache-mode: read\n");
+		expect(generateThinCallerContent("delivery.previewCheck")).toContain("    cache-mode: read\n");
+		expect(generateThinCallerContent("verification.typeSafety")).not.toContain("cache-mode");
+	});
+
+	it("no shipped template other than the low-trust ones gets a cap", () => {
+		const capped = Object.entries(WORKFLOW_TEMPLATES)
+			.filter(([n]) => generateThinCallerContent(n).includes("cache-mode"))
+			.map(([n]) => n)
+			.sort();
+		expect(capped).toEqual(["delivery.previewCheck", "greetings"]);
 	});
 });

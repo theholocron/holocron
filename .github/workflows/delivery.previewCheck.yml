@@ -1,5 +1,5 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · packages/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: apps/sentinel
@@ -31,6 +31,7 @@ jobs:
       github.event.deployment.environment == 'Preview' &&
       github.event.deployment_status.environment_url != ''
     uses: theholocron/.github/.github/workflows/delivery.previewCheck.yml@main
+    cache-mode: read
     with:
       preview-url: ${{ github.event.deployment_status.environment_url }}
       sha: ${{ github.event.deployment.sha }}
