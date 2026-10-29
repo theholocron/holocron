@@ -46,9 +46,9 @@
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/tsconfig": "catalog:configs",
-    "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vitest-config": "catalog:configs",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
     "@types/server-destroy": "^1.0.4",
     "@vitest/coverage-v8": "catalog:",

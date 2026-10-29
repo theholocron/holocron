@@ -39,13 +39,13 @@
   },
   "dependencies": {
     "@theholocron/http-client": "workspace:^",
-    "@theholocron/observability": "catalog:"
+    "@theholocron/observability": "workspace:^"
   },
   "devDependencies": {
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/tsconfig": "catalog:configs",
-    "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vitest-config": "catalog:configs",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",

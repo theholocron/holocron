@@ -23,7 +23,6 @@ catalog:
   "@semantic-release/commit-analyzer": ^13.0.1
   "@semantic-release/release-notes-generator": ^14.1.1
   "@sentry/node": ^11.9.0
-  "@theholocron/observability": ^0.6.0
   "@tktco/node-actionlint": ^1.6.0
   "@tsconfig/node-lts": ^24.0.1
   "@types/node": ^26
@@ -55,7 +54,9 @@ catalog:
   yargs: ^18.1.0
 
 catalogs:
-  # Shared clients — release in lockstep; bump all entries together.
+  # Minimum client versions the plugins accept as peers (their peerDependencies range). The
+  # clients themselves resolve from the workspace (workspace:^), so these are compatibility
+  # floors, not what this repo builds against.
   clients:
     "@theholocron/axiom-client": ^1.43.1
     "@theholocron/checkly-client": ^1.55.0
@@ -64,42 +65,32 @@ catalogs:
     "@theholocron/discord-client": ^1.50.0
     "@theholocron/doppler-client": ^1.43.1
     "@theholocron/github-client": ^1.51.0
-    "@theholocron/http-client": ^1.57.0
     "@theholocron/infisical-client": ^1.43.1
     "@theholocron/neon-client": ^1.43.1
     "@theholocron/netlify-client": ^1.43.0
-    "@theholocron/posthog-client": ^1.43.1
     "@theholocron/postman-client": ^1.43.1
     "@theholocron/sentry-client": ^1.56.0
     "@theholocron/slack-client": ^1.43.1
     "@theholocron/vercel-client": ^1.43.1
 
-  # Shared configs — release in lockstep; bump all entries together.
+  # Configs the root tooling loads before anything is built (ESLint, Prettier, commitlint,
+  # lint-staged, markdownlint, devmoji, semantic-release) stay on the published copy: a tool
+  # cannot lint or format with a config it has not built yet. Plus holocron-config, which is
+  # not in this repo. Every other config under configs/ resolves from the workspace (workspace:^).
   configs:
-    "@theholocron/astro-config": ^8.8.2
     "@theholocron/commitlint-config": ^8.8.0
     "@theholocron/devmoji-config": ^8.8.2
-    "@theholocron/docs-theme": ^1.10.3
     "@theholocron/eslint-config": ^8.8.2
     "@theholocron/holocron-config": ^8.8.2
     "@theholocron/lint-staged-config": ^8.8.2
     "@theholocron/markdownlint-config": ^8.8.2
     "@theholocron/prettier-config": ^8.8.2
-    "@theholocron/rollup-plugin-transform-template": ^8.8.2
     "@theholocron/semantic-release-config": ^8.8.2
-    "@theholocron/tsconfig": ^8.8.2
-    "@theholocron/tsdown-config": ^8.8.2
-    "@theholocron/vitest-config": ^8.8.2
 
-  # Shared utils — release in lockstep; bump all entries together.
+  # Minimum util versions the plugins accept as peers (see clients above).
   utils:
-    "@theholocron/env-utils": ^1.16.0
     "@theholocron/fs-utils": ^1.16.0
-    "@theholocron/git-utils": ^1.16.0
-    "@theholocron/json-utils": ^1.16.0
     "@theholocron/misc-utils": ^1.16.0
-    "@theholocron/object-utils": ^1.16.0
-    "@theholocron/pkg-utils": ^1.16.0
 
 # @sentry/node and posthog-node are pinned exactly so every consumer resolves the
 # same version. @theholocron/http-client peers on both, and pnpm creates a
@@ -112,8 +103,8 @@ catalogs:
 #
 # http-client itself used to be pinned here too, to keep github-client and the
 # CLI on one copy. It is no longer: the clients live in this repo (clients/*,
-# #1211), the CLI and plugins consume the published version through the
-# `clients` catalog, and with the pin removed the lockfile still holds a single
+# #1211), the CLI and plugins resolve it from the workspace (workspace:^),
+# and with the pin removed the lockfile still holds a single
 # http-client and the CLI and plugin suites pass. If a dependency bump ever
 # splits it again, pin it here (exactly) rather than with a caret.
 #

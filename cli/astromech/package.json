@@ -58,9 +58,9 @@
     "@commitlint/load": "catalog:",
     "@commitlint/types": "catalog:",
     "@theholocron/datapad": "workspace:*",
-    "@theholocron/fs-utils": "catalog:utils",
-    "@theholocron/json-utils": "catalog:utils",
-    "@theholocron/pkg-utils": "catalog:utils"
+    "@theholocron/fs-utils": "workspace:^",
+    "@theholocron/json-utils": "workspace:^",
+    "@theholocron/pkg-utils": "workspace:^"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "catalog:",
@@ -68,11 +68,11 @@
     "@semantic-release/release-notes-generator": "catalog:",
     "@theholocron/commitlint-config": "catalog:configs",
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/rollup-plugin-transform-template": "catalog:configs",
+    "@theholocron/rollup-plugin-transform-template": "workspace:^",
     "@theholocron/semantic-release-config": "catalog:configs",
-    "@theholocron/tsconfig": "catalog:configs",
-    "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vitest-config": "catalog:configs",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",

@@ -38,16 +38,16 @@
     "verification.unitTests": "holocron run verification.unitTests --"
   },
   "dependencies": {
-    "@theholocron/posthog-client": "catalog:clients"
+    "@theholocron/posthog-client": "workspace:^"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/eslint-config": "catalog:configs",
-    "@theholocron/http-client": "catalog:clients",
-    "@theholocron/misc-utils": "catalog:utils",
-    "@theholocron/tsconfig": "catalog:configs",
-    "@theholocron/tsdown-config": "catalog:configs",
-    "@theholocron/vitest-config": "catalog:configs",
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
