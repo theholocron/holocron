@@ -9,14 +9,14 @@
     "api",
     "fetch"
   ],
-  "homepage": "https://github.com/theholocron/clients/tree/main/packages/http-client#readme",
-  "bugs": "https://github.com/theholocron/clients/issues",
+  "homepage": "https://docs.theholocron.dev/holocron/clients/http/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/clients.git",
-    "directory": "packages/http-client"
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "clients/http-client"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "sideEffects": false,
   "type": "module",
@@ -36,28 +36,26 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown && node ../../scripts/check-bundle-size.mjs",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "delivery.build": "tsdown && node ../scripts/check-bundle-size.mjs",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "@theholocron/env-utils": "catalog:",
+    "@theholocron/env-utils": "catalog:utils",
     "@theholocron/observability": "catalog:"
   },
   "devDependencies": {
-    "@theholocron/cli": "catalog:holocron",
-    "@theholocron/eslint-config": "catalog:",
-    "@theholocron/tsconfig": "catalog:",
-    "@theholocron/tsdown-config": "catalog:",
-    "@theholocron/vitest-config": "catalog:",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
-    "eslint-plugin-simple-import-sort": "catalog:",
     "globals": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
@@ -76,7 +74,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/clients/releases",
-  "wiki": "https://github.com/theholocron/clients/wiki"
+  }
 }

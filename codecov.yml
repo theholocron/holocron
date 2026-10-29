@@ -56,6 +56,113 @@ component_management:
       paths:
         - cli/datapad/**
 
+    # clients
+    - component_id: axiom-client
+      name: "axiom-client"
+      paths:
+        - clients/axiom-client/**
+
+    - component_id: checkly-client
+      name: "checkly-client"
+      paths:
+        - clients/checkly-client/**
+
+    - component_id: clerk-client
+      name: "clerk-client"
+      paths:
+        - clients/clerk-client/**
+
+    - component_id: cloudflare-client
+      name: "cloudflare-client"
+      paths:
+        - clients/cloudflare-client/**
+
+    - component_id: confluence-client
+      name: "confluence-client"
+      paths:
+        - clients/confluence-client/**
+
+    - component_id: discord-client
+      name: "discord-client"
+      paths:
+        - clients/discord-client/**
+
+    - component_id: doppler-client
+      name: "doppler-client"
+      paths:
+        - clients/doppler-client/**
+
+    - component_id: github-client
+      name: "github-client"
+      paths:
+        - clients/github-client/**
+
+    - component_id: google-client
+      name: "google-client"
+      paths:
+        - clients/google-client/**
+
+    - component_id: http-client
+      name: "http-client"
+      paths:
+        - clients/http-client/**
+
+    - component_id: infisical-client
+      name: "infisical-client"
+      paths:
+        - clients/infisical-client/**
+
+    - component_id: jira-client
+      name: "jira-client"
+      paths:
+        - clients/jira-client/**
+
+    - component_id: neon-client
+      name: "neon-client"
+      paths:
+        - clients/neon-client/**
+
+    - component_id: netlify-client
+      name: "netlify-client"
+      paths:
+        - clients/netlify-client/**
+
+    - component_id: posthog-client
+      name: "posthog-client"
+      paths:
+        - clients/posthog-client/**
+
+    - component_id: postman-client
+      name: "postman-client"
+      paths:
+        - clients/postman-client/**
+
+    - component_id: sentry-client
+      name: "sentry-client"
+      paths:
+        - clients/sentry-client/**
+
+    - component_id: slack-client
+      name: "slack-client"
+      paths:
+        - clients/slack-client/**
+
+    - component_id: vercel-client
+      name: "vercel-client"
+      paths:
+        - clients/vercel-client/**
+
+    - component_id: zendesk-client
+      name: "zendesk-client"
+      paths:
+        - clients/zendesk-client/**
+
+    # docs
+    - component_id: docs
+      name: "docs"
+      paths:
+        - docs/**
+
     # observability
     - component_id: observability
       name: "observability"

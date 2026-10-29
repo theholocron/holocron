@@ -52,14 +52,11 @@ interface AlertChannelSettings {
 }
 
 /** What a channel is made of. A webhook's `config` is checked; the other types are passed through as Checkly defines them. */
-export type AlertChannelInput = AlertChannelSettings &
-	(
-		| { type: "WEBHOOK"; config: WebhookConfig }
-		| {
-				type: Exclude<AlertChannelType, "WEBHOOK">;
-				config: Record<string, unknown>;
-		  }
-	);
+type WebhookChannelBody = { type: "WEBHOOK"; config: WebhookConfig };
+type PassThroughChannelBody = { type: Exclude<AlertChannelType, "WEBHOOK">; config: Record<string, unknown> };
+type AlertChannelBody = WebhookChannelBody | PassThroughChannelBody;
+
+export type AlertChannelInput = AlertChannelSettings & AlertChannelBody;
 
 interface AlertChannelRecord {
 	id: number;
@@ -74,14 +71,7 @@ interface AlertChannelRecord {
 	updated_at: string | null;
 }
 
-export type AlertChannel = AlertChannelRecord &
-	(
-		| { type: "WEBHOOK"; config: WebhookConfig }
-		| {
-				type: Exclude<AlertChannelType, "WEBHOOK">;
-				config: Record<string, unknown>;
-		  }
-	);
+export type AlertChannel = AlertChannelRecord & AlertChannelBody;
 
 /**
  * The message body of Checkly's own Discord setup (its AI-analysis section left out, since not every account has it), so

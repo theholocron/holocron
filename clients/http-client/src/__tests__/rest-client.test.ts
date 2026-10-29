@@ -242,6 +242,7 @@ describe("createRestClient — logger seam", () => {
 			warn: vi.fn(),
 			error: vi.fn(),
 			child: vi.fn(),
+			flush: vi.fn(),
 		};
 		await createRestClient({
 			baseUrl: "https://api.example.com",

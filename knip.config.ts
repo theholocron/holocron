@@ -53,6 +53,19 @@ const config: KnipConfig = {
 			// the test script) is code
 			project: ["test/**/*.mjs"],
 		},
+		"clients/*": {
+			// the public entry (package.json exports point at dist/, which knip cannot map back for every package)
+			entry: ["src/index.ts", "src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
+		"clients/confluence-client": {
+			entry: ["src/index.ts", "src/**/*.test.ts", "examples.ts"],
+			project: ["src/**/*.ts"],
+		},
+		"clients/zendesk-client": {
+			entry: ["src/index.ts", "src/**/*.test.ts", "examples.ts"],
+			project: ["src/**/*.ts"],
+		},
 		"utils/*": {
 			// the public entry (package.json exports point at dist/, which knip cannot map back for every package)
 			entry: ["src/index.ts", "src/**/*.test.ts"],

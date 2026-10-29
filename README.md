@@ -174,6 +174,7 @@ apps/                                — deployable applications (not published 
   sentinel/                          — @theholocron/sentinel                          (minimal GitHub App — scaffolding only)
 observability/                        — @theholocron/observability                     (logging, error tracking and analytics behind one interface)
 skills/                               — @theholocron/skills                     (shared agent skill registry)
+clients/                              — @theholocron/*-client                   (20 API clients: axiom, checkly, clerk, cloudflare, confluence, discord, doppler, github, google, http, infisical, jira, neon, netlify, posthog, postman, sentry, slack, vercel and zendesk)
 utils/                                — @theholocron/*-utils                    (13 small utility libraries: array, date-time, env, fs, git, json, location, misc, object, pkg, storage, string and uri)
 plugins/                             — vendor capability providers                    (one package per provider)
   holocron-plugin-github/            — @theholocron/holocron-plugin-github            (source, ci, secrets, environments, issues)
