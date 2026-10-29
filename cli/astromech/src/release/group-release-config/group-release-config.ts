@@ -1,6 +1,6 @@
 import { defineConfig } from "@theholocron/semantic-release-config";
 
-import { folderScoped } from "../folder-scoped/index.js";
+import { commentOnlyFor, folderScoped } from "../folder-scoped/index.js";
 import type { GroupReleaseOptions } from "./group-release-config.type.js";
 
 type PluginEntry = string | [string, Record<string, unknown> | undefined];
@@ -34,23 +34,25 @@ export function groupReleaseConfig(options: GroupReleaseOptions): object {
 		assets: assets ?? [changelogFile, `${group}/**/package.json`, "!**/node_modules/**"],
 	}) as { plugins: PluginEntry[] };
 
-	const scope = (entry: PluginEntry): PluginEntry | [object, unknown] => {
+	const scope = (entry: PluginEntry): (PluginEntry | [object, unknown])[] => {
 		const [name, config] = Array.isArray(entry) ? entry : [entry, undefined];
 		switch (name) {
 			case "@semantic-release/commit-analyzer":
-				return [folderScoped("analyzeCommits", paths), config];
+				return [[folderScoped("analyzeCommits", paths), config]];
 			case "@semantic-release/release-notes-generator":
-				return [folderScoped("generateNotes", paths), config];
+				return [[folderScoped("generateNotes", paths), config]];
 			case "@semantic-release/changelog":
-				return [name, { ...config, changelogFile }];
+				return [[name, { ...config, changelogFile }]];
 			case "@semantic-release/git":
-				return [name, { ...config, message: groupMessage(config?.["message"] as string, group) }];
+				return [[name, { ...config, message: groupMessage(config?.["message"] as string, group) }]];
+			case "@semantic-release/github":
+				return commentOnlyFor(entry, folderScoped("success", paths));
 			default:
-				return entry;
+				return [entry];
 		}
 	};
 
-	return { ...base, tagFormat: `${group}-v\${version}`, plugins: base.plugins.map(scope) };
+	return { ...base, tagFormat: `${group}-v\${version}`, plugins: base.plugins.flatMap(scope) };
 }
 
 /** `chore(release): <version> …` becomes `chore(release): <group> <version> …`. */
