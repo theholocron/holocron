@@ -109,4 +109,4 @@ branch-preview listing/cleanup.
 ## Status
 
 Implemented for Sentinel's migration off Vercel
-(`.notes/tech-sentinel-deploy-target-netlify.spec.md`, holocron#940).
+(`docs/wiki/specifications/tech-sentinel-deploy-target-netlify.spec.md`, holocron#940).

@@ -15,7 +15,7 @@ Two independent findings, same root cause:
 1. Vercel's Hobby-tier Fluid Active CPU meter hit 75% of its 4-hour
    monthly allotment, driven by Sentinel's in-process linting work
    (ESLint/markdownlint/actionlint/etc. on every PR, org-wide) —
-   `tech-sentinel-deploy-target-netlify.spec.md`'s original motivation.
+   `docs/wiki/specifications/tech-sentinel-deploy-target-netlify.spec.md`'s original motivation.
 2. Netlify's free tier turned out to be credit-metered, not
    invocation-metered: 300 credits/month, 15 per production deploy, hard
    stop with no overage. Checking this org's own `deploy-on-release`
@@ -24,7 +24,7 @@ Two independent findings, same root cause:
    the last 15 alpha releases: **14 of 15 would have redeployed
    Sentinel.** At 15 credits each, that exhausts the entire monthly
    allowance in under a week — see the correction appended to
-   `tech-sentinel-deploy-target-netlify.spec.md` for the full numbers.
+   `docs/wiki/specifications/tech-sentinel-deploy-target-netlify.spec.md` for the full numbers.
 
 Both findings trace back to the same two structural facts about
 Sentinel's current shape, independent of which vendor it runs on:
@@ -237,7 +237,7 @@ Candidates A/C above.
 
 The Netlify migration code (plugin, client, Sentinel's stage-deploy
 rewrite, Lambda-handler adapter, CI workflow token swap) is finished on
-a branch/PR per `tech-sentinel-deploy-target-netlify.spec.md`, explicitly
+a branch/PR per `docs/wiki/specifications/tech-sentinel-deploy-target-netlify.spec.md`, explicitly
 **not merged** — it's the concrete deliverable if option A (or A+B later)
 lands on "Netlify is fine once the redeploy cadence is fixed." Nothing in
 it is wasted regardless of which option below gets picked: the

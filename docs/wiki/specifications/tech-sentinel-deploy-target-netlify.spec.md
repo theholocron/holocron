@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#940
 blocked-by: [theholocron/holocron#945]
 related:
@@ -8,7 +8,7 @@ related:
 
 # Sentinel's deploy target: Netlify Functions over Vercel Functions
 
-Builds on [ADR-0011](../docs/wiki/decisions/0011-sentinel-deploy-target-vercel-over-cloudflare-workers.md)
+Builds on [ADR-0011](../decisions/0011-sentinel-deploy-target-vercel-over-cloudflare-workers.md)
 ("Sentinel's deploy target: Vercel Functions over Cloudflare Workers"),
 which is `accepted` and unchanged by this spec in its reasoning — only its
 conclusion is being re-opened, for a cost reason ADR-0011 never had to

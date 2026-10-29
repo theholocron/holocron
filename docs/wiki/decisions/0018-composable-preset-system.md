@@ -1,7 +1,25 @@
 ---
-title: "ADR 002: Composable Preset System"
-description: Replace monolithic preset functions with composable capability fragments.
+id: ADR-0018
+title: "Composable preset system"
+status: accepted
+date: 2026-08-30
+owners: []
+specs:
+  - docs/wiki/specifications/tech-holocron-config-presets.spec.md
+discussion:
+  github: https://github.com/theholocron/configs/issues/398
+supersedes:
+  - ADR-0017
+superseded-by: []
+tags: [holocron-config, presets, ci]
 ---
+
+# Composable preset system
+
+- Status: accepted
+- Date: 2026-08-30
+
+> Moved here from `theholocron/configs` (`.notes/decisions/002-...`, originally "ADR 002"). Since this was written, `config.workflows` became `config.tasks` and `requiredChecks` are derived from the task manifest (see the update note in the preset spec and [ADR-0009](0009-astromech-task-runner-package.md)). The presets themselves are moving from `@theholocron/holocron-config` into the CLI as `@theholocron/cli/presets` (#1272 shipped the export; #1271 deprecates the package).
 
 ## Status
 
