@@ -33,7 +33,7 @@ export interface RunSyncTrustInput {
 
 export interface SyncTrustPackageResult {
 	name: string;
-	status: "ok" | "skipped" | "needs-auth" | "fail";
+	status: "ok" | "skipped" | "needs-auth" | "fail" | "would-skip" | "would-sync";
 	message?: string;
 }
 
@@ -43,9 +43,14 @@ export interface SyncTrustReport {
 	packages: readonly SyncTrustPackageResult[];
 }
 
+/** What `npm trust list <pkg> --json` prints for a package with a GitHub trust binding. */
 export interface NpmTrustEntry {
 	id?: string;
+	type?: string;
 	file?: string;
+	/** `owner/repo` the package is bound to. */
+	repository?: string;
+	permissions?: readonly string[];
 }
 export interface NpmTrustError {
 	error?: { code?: string; authUrl?: string };
