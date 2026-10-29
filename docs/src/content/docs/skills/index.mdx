@@ -1,0 +1,52 @@
+---
+title: Skills
+description: Shared agent skill registry.
+---
+
+`@theholocron/skills` is the registry of agent skills that `holocron repo setup` and `holocron skills` install into a repo's `.agents/skills/` directory.
+
+## Installation
+
+```bash
+pnpm add -D @theholocron/skills
+```
+
+Most repos never install it by hand: list the skill names under `skills` in `holocron.config.ts` and `holocron repo setup` installs them. See [holocron skills](/holocron/commands/skills/).
+
+## Skills
+
+| Skill                                                                      | Description                                                                 |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `adr`                                                                      | ADR Author.                                                                 |
+| [`commit-standards`](/holocron/skills/commit-standards/)                   | Commit message standards.                                                   |
+| `design`                                                                   | Design Agent.                                                               |
+| [`destructive-command-guard`](/holocron/skills/destructive-command-guard/) | Destructive command safety rules.                                           |
+| `discover`                                                                 | Discovery Agent.                                                            |
+| `discuss`                                                                  | Discussion / RFC Agent.                                                     |
+| [`git-safety`](/holocron/skills/git-safety/)                               | Git safety rules.                                                           |
+| [`holocron-skill-client`](/holocron/skills/holocron-skill-client/)         | Scaffold a new `@theholocron/<slug>-client` package in theholocron/clients. |
+| [`holocron-skill-config`](/holocron/skills/holocron-skill-config/)         | Scaffold a new shareable config package in theholocron/configs.             |
+| [`holocron-skill-plugin`](/holocron/skills/holocron-skill-plugin/)         | Scaffold a new `@theholocron/holocron-plugin-<slug>` package.               |
+| [`holocron-skill-skill`](/holocron/skills/holocron-skill-skill/)           | Add a new owned skill to theholocron/skills.                                |
+| [`holocron-skill-util`](/holocron/skills/holocron-skill-util/)             | Scaffold a new `@theholocron/<slug>-utils` package in theholocron/utils.    |
+| `implement`                                                                | Implementation Agent.                                                       |
+| `plan`                                                                     | Implementation Planner.                                                     |
+| [`pr-workflow`](/holocron/skills/pr-workflow/)                             | Pull request workflow rules.                                                |
+| `review`                                                                   | Review Agent.                                                               |
+| [`security-review`](/holocron/skills/security-review/)                     | Security review checklist.                                                  |
+| `spec`                                                                     | Specification Agent.                                                        |
+| `verify`                                                                   | Verification Agent.                                                         |
+
+## Using skills in Claude Code
+
+Skills registered in Claude Code appear as slash commands. Install them with:
+
+```bash
+npx skills add @theholocron/skills
+```
+
+Then invoke any skill by name, e.g. `/commit-standards` or `/holocron-skill-client`.
+
+## Releases
+
+The package releases on its own version line from the `skills/` folder, with tags `skills-v<version>`. See the [CHANGELOG](https://github.com/theholocron/holocron/blob/alpha/skills/CHANGELOG.md).

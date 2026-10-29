@@ -1,0 +1,139 @@
+## [1.12.0](https://github.com/theholocron/skills/compare/v1.11.0...v1.12.0) (2026-10-16)
+
+### Features
+
+* ✨ ship the ADR template as an asset of the adr skill ([#106](https://github.com/theholocron/skills/issues/106)) ([eaf4248](https://github.com/theholocron/skills/commit/eaf4248a10b0d401aa89545f9e8c19e23836d011))
+
+## [1.11.0](https://github.com/theholocron/skills/compare/v1.10.1...v1.11.0) (2026-10-12)
+
+### Features
+
+* register 5 more Vercel ecosystem skills ([#105](https://github.com/theholocron/skills/issues/105)) ([bd84e99](https://github.com/theholocron/skills/commit/bd84e9907bdf235f4658ebfab185acb389df4a9d)), closes [#101](https://github.com/theholocron/skills/issues/101)
+
+### Documentation
+
+* **commit-standards:** 📚️ add validate-before-committing workflow ([#101](https://github.com/theholocron/skills/issues/101)) ([dfd2286](https://github.com/theholocron/skills/commit/dfd22860e64fe1bb9c48890143d33ed333945884))
+
+## [1.10.1](https://github.com/theholocron/skills/compare/v1.10.0...v1.10.1) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 drop stale npm prefix from release prepareCmd ([#99](https://github.com/theholocron/skills/issues/99)) ([b8ddf55](https://github.com/theholocron/skills/commit/b8ddf5568d56569f536529003ea459bf56fa6407))
+
+### Refactoring
+
+* ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/skills/issues/672)) ([#98](https://github.com/theholocron/skills/issues/98)) ([b109803](https://github.com/theholocron/skills/commit/b1098034ee99b241b01f3ccaf93dd747f5f61f45)), closes [theholocron/skills#97](https://github.com/theholocron/skills/issues/97) [theholocron/holocron#692](https://github.com/theholocron/holocron/issues/692) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
+### Documentation
+
+* 📝 pr-workflow — run holocron ci before pushing ([#93](https://github.com/theholocron/skills/issues/93)) ([3b6ed37](https://github.com/theholocron/skills/commit/3b6ed37559ab6bb4be1c7936b73b0d180b9ef105)), closes [theholocron/holocron#586](https://github.com/theholocron/holocron/issues/586) [#92](https://github.com/theholocron/skills/issues/92) [theholocron/holocron#586](https://github.com/theholocron/holocron/issues/586)
+
+### Chores
+
+* ⬆️ migrate to @theholocron/cli 4.16.2 + holocron-config 8.x ([#94](https://github.com/theholocron/skills/issues/94)) ([e266aac](https://github.com/theholocron/skills/commit/e266aac3177b9cf6ee96577a344b1a442b9d5ddc)), closes [#647](https://github.com/theholocron/skills/issues/647)
+* 🔧 holocron setup — ruleset + workflow/config sync ([#96](https://github.com/theholocron/skills/issues/96)) ([8d82e0b](https://github.com/theholocron/skills/commit/8d82e0bbe6965fa6a4a98a514673ccdfa2e62f32)), closes [#647](https://github.com/theholocron/skills/issues/647) [#649](https://github.com/theholocron/skills/issues/649) [#649](https://github.com/theholocron/skills/issues/649) [#647](https://github.com/theholocron/skills/issues/647) [theholocron/holocron#654](https://github.com/theholocron/holocron/issues/654) [theholocron/holocron#647](https://github.com/theholocron/holocron/issues/647) [theholocron/holocron#654](https://github.com/theholocron/holocron/issues/654)
+
+## [1.10.0](https://github.com/theholocron/skills/compare/v1.9.2...v1.10.0) (2026-09-06)
+
+### Features
+
+* ✨ add wiki navbar links ([#90](https://github.com/theholocron/skills/issues/90)) ([aad74e2](https://github.com/theholocron/skills/commit/aad74e2283b93ada36fee283a9bb86e20a9ac6f1))
+
+### Chores
+
+* ✨ add wiki icon to fern provider options ([#87](https://github.com/theholocron/skills/issues/87)) ([c035f5d](https://github.com/theholocron/skills/commit/c035f5d1f175da8a7c4baa7389d1e803d69919bb))
+* 🗑️ remove orphaned workflow files ([#86](https://github.com/theholocron/skills/issues/86)) ([a743699](https://github.com/theholocron/skills/commit/a743699fb17086b5051d774f3cd0495faccb7f37))
+
+## [1.9.2](https://github.com/theholocron/skills/compare/v1.9.1...v1.9.2) (2026-09-02)
+
+### Chores
+
+* **deps:** bump the all-dependencies group across 1 directory with 8 updates ([#82](https://github.com/theholocron/skills/issues/82)) ([9048870](https://github.com/theholocron/skills/commit/9048870343cf6c48970eb270ecec58b4087bba1d))
+
+## [1.9.1](https://github.com/theholocron/skills/compare/v1.9.0...v1.9.1) (2026-09-02)
+
+### Bug Fixes
+
+* 🐛 pass fern-org and base-path to enable deployment widget ([#84](https://github.com/theholocron/skills/issues/84)) ([de15086](https://github.com/theholocron/skills/commit/de15086033156642e20b23d4feef3ff811a74a96)), closes [#83](https://github.com/theholocron/skills/issues/83)
+
+## [1.9.0](https://github.com/theholocron/skills/compare/v1.8.1...v1.9.0) (2026-09-02)
+
+### Features
+
+* ✨ add wiki() capability — wiki.theholocron.dev/skills ([#81](https://github.com/theholocron/skills/issues/81)) ([ffaef75](https://github.com/theholocron/skills/commit/ffaef7552767e6d6778a1dfc004af1cc6700bc97))
+
+## [1.8.1](https://github.com/theholocron/skills/compare/v1.8.0...v1.8.1) (2026-08-31)
+
+### Bug Fixes
+
+* 🐛 update /adr skill to docs/decisions/ path ([#79](https://github.com/theholocron/skills/issues/79)) ([3d2eeb8](https://github.com/theholocron/skills/commit/3d2eeb8f833a34dd03247cebb2a01700c69fcee4))
+
+## [1.8.0](https://github.com/theholocron/skills/compare/v1.7.0...v1.8.0) (2026-08-31)
+
+### Features
+
+* **skills:** add AI engineering workflow slash commands ([#78](https://github.com/theholocron/skills/issues/78)) ([5993900](https://github.com/theholocron/skills/commit/59939000b0e667b069c1cb2d8619b73d3d453b65)), closes [#66](https://github.com/theholocron/skills/issues/66)
+
+## [1.7.0](https://github.com/theholocron/skills/compare/v1.6.0...v1.7.0) (2026-08-31)
+
+### Features
+
+* ✨ add enforcement checklists to scaffolding and PR skills ([#77](https://github.com/theholocron/skills/issues/77)) ([c27246d](https://github.com/theholocron/skills/commit/c27246d1dbbcec70a4557aa21945193d9c5a727c)), closes [#67](https://github.com/theholocron/skills/issues/67)
+
+## [1.6.0](https://github.com/theholocron/skills/compare/v1.5.0...v1.6.0) (2026-08-31)
+
+### Features
+
+* ⬆️ adopt nodeDocsSite() preset; bump cli, plugin, and holocron-config ([#75](https://github.com/theholocron/skills/issues/75)) ([c4c2c41](https://github.com/theholocron/skills/commit/c4c2c41f2cc456590312a8e38591a569c533bf65))
+
+### Chores
+
+* ⬆️ adopt nodeDocs() preset from @theholocron/holocron-config@7.26.0 ([#68](https://github.com/theholocron/skills/issues/68)) ([793bafd](https://github.com/theholocron/skills/commit/793bafd3a4540dd7b0884b673419e0e890ba2709))
+* ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#69](https://github.com/theholocron/skills/issues/69)) ([f9d5f56](https://github.com/theholocron/skills/commit/f9d5f56a17d35e29bcfcb60b8255dc0c3c85e2f0))
+* ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#71](https://github.com/theholocron/skills/issues/71)) ([24e3760](https://github.com/theholocron/skills/commit/24e3760a1f50764d3c508093323d9ddc5fa3661d))
+* sync from holocron.config ([#76](https://github.com/theholocron/skills/issues/76)) ([f802bf3](https://github.com/theholocron/skills/commit/f802bf36e767e6af13a80eaa385a413c290d33d3))
+
+## [1.5.0](https://github.com/theholocron/skills/compare/v1.4.3...v1.5.0) (2026-08-26)
+
+### Features
+
+* adopt RepoIndex on docs index and bump components-doc (4.5+4.6) ([#62](https://github.com/theholocron/skills/issues/62)) ([f02eec4](https://github.com/theholocron/skills/commit/f02eec4d74409b7f77b1cb172176a69e163d0519))
+
+### Bug Fixes
+
+* 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 — semantic-release@25 ships conventional-changelog-writer@8 which is incompatible with preset v10 ([#64](https://github.com/theholocron/skills/issues/64)) ([be1cbbd](https://github.com/theholocron/skills/commit/be1cbbdce86bbdb4118519af7cfdec12d1bd009b))
+
+### Chores
+
+* add sync workflow to holocron.config ([#63](https://github.com/theholocron/skills/issues/63)) ([ff6a05e](https://github.com/theholocron/skills/commit/ff6a05e35af63988ae748ca60e0f2b03f8a2b7a0))
+* **deps:** bump the all-dependencies group with 9 updates ([#61](https://github.com/theholocron/skills/issues/61)) ([45ab017](https://github.com/theholocron/skills/commit/45ab0176cc38b6b056a5aeeeed446055d1c9773a))
+
+## [1.4.3](https://github.com/theholocron/skills/compare/v1.4.2...v1.4.3) (2026-08-24)
+
+## [1.4.2](https://github.com/theholocron/skills/compare/v1.4.1...v1.4.2) (2026-08-20)
+
+## [1.4.1](https://github.com/theholocron/skills/compare/v1.4.0...v1.4.1) (2026-08-20)
+
+## [1.4.0](https://github.com/theholocron/skills/compare/v1.3.3...v1.4.0) (2026-08-19)
+
+## [1.3.3](https://github.com/theholocron/skills/compare/v1.3.2...v1.3.3) (2026-08-15)
+
+## [1.3.2](https://github.com/theholocron/skills/compare/v1.3.1...v1.3.2) (2026-08-02)
+
+## [1.3.1](https://github.com/theholocron/skills/compare/v1.3.0...v1.3.1) (2026-07-31)
+
+## [1.3.0](https://github.com/theholocron/skills/compare/v1.2.0...v1.3.0) (2026-07-31)
+
+## [1.2.1](https://github.com/theholocron/skills/compare/v1.2.0...v1.2.1) (2026-07-29)
+
+## [1.2.0](https://github.com/theholocron/skills/compare/v1.1.3...v1.2.0) (2026-07-28)
+
+## [1.1.3](https://github.com/theholocron/skills/compare/v1.1.2...v1.1.3) (2026-07-22)
+
+## [1.1.2](https://github.com/theholocron/skills/compare/v1.1.1...v1.1.2) (2026-07-22)
+
+## [1.1.2](https://github.com/theholocron/skills/compare/v1.1.1...v1.1.2) (2026-07-22)
+
+## [1.1.1](https://github.com/theholocron/skills/compare/v1.1.0...v1.1.1) (2026-07-22)
+
+## [1.1.0](https://github.com/theholocron/skills/compare/v1.0.0...v1.1.0) (2026-07-22)

@@ -143,3 +143,8 @@ component_management:
       name: "sentinel"
       paths:
         - apps/sentinel/**
+
+    - component_id: skills
+      name: "skills"
+      paths:
+        - skills/**

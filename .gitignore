@@ -105,6 +105,7 @@ docs/dist/
 
 # Generated test output — not useful in version control
 test-report.junit.xml
+lcov.info
 
 # managed by holocron setup — skills
 /.agents/skills/

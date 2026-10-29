@@ -4,6 +4,7 @@ packages:
   - "cli/*"
   - "plugins/*"
   - "observability"
+  - "skills"
 
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.

@@ -48,6 +48,11 @@ const config: KnipConfig = {
 			// optional peers of the package, installed here for its tests
 			ignoreDependencies: ["@axiomhq/pino", "pino-pretty"],
 		},
+		skills: {
+			// the package ships markdown skills; only its node:test suite (test/index.mjs, found from
+			// the test script) is code
+			project: ["test/**/*.mjs"],
+		},
 		"apps/comlink": {
 			// The Worker (src/worker.ts) is found through the tsdown config. holocron.config.ts imports the CLI.
 			entry: ["src/**/*.test.ts", "holocron.config.ts"],

@@ -1,0 +1,39 @@
+{
+  "name": "@theholocron/skills",
+  "version": "1.12.0",
+  "description": "Shared agent skill registry.",
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "skills",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/skills/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "skills"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./skills/*": "./src/*"
+  },
+  "files": [
+    "skills-lock.json",
+    "src/"
+  ],
+  "scripts": {
+    "verification.unitTests": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml --test-reporter=lcov --test-reporter-destination=lcov.info test/index.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

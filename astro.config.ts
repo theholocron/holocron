@@ -55,6 +55,22 @@ export default defineConfig({
 				],
 			},
 			{
+				label: "Skills",
+				items: [
+					{ label: "Overview", slug: "skills" },
+					{ label: "commit-standards", slug: "skills/commit-standards" },
+					{ label: "destructive-command-guard", slug: "skills/destructive-command-guard" },
+					{ label: "git-safety", slug: "skills/git-safety" },
+					{ label: "holocron-skill-client", slug: "skills/holocron-skill-client" },
+					{ label: "holocron-skill-config", slug: "skills/holocron-skill-config" },
+					{ label: "holocron-skill-plugin", slug: "skills/holocron-skill-plugin" },
+					{ label: "holocron-skill-skill", slug: "skills/holocron-skill-skill" },
+					{ label: "holocron-skill-util", slug: "skills/holocron-skill-util" },
+					{ label: "pr-workflow", slug: "skills/pr-workflow" },
+					{ label: "security-review", slug: "skills/security-review" },
+				],
+			},
+			{
 				label: "Legal",
 				items: [
 					{ label: "Terms of Service", slug: "legal/terms" },
