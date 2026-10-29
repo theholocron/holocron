@@ -64,9 +64,15 @@ function parseGroups(groups: unknown): Entry[] {
  * - A push releases every group; a manual run can pick one (and dry-run it) with the
  *   `group` input. A job's `if:` cannot see `matrix`, so the choice is made in `plan`.
  * - `ungrouped` also releases everything that is in **no** group, together and under the
- *   repo's plain tags, as the single release did before; it runs first. It takes the same
- *   per-release inputs as a group (`true` for none). A repo with groups and packages in no
- *   group needs it, or those packages would stop releasing.
+ *   repo's plain tags, as the single release did before; it runs **last**, from the branch's
+ *   current tip (`from-branch-tip`), once every group has released. Packages in no group
+ *   depend on the groups' packages through `workspace:` ranges, which are rewritten to
+ *   concrete versions at publish time, so the groups must be on npm first; list `groups` in
+ *   dependency order (a group before the groups that depend on it). It is skipped if a group
+ *   failed, so a failed dependency does not leave a package published against a version
+ *   that is not on npm. It takes the same per-release inputs as a group (`true` for none).
+ *   A repo with groups and packages in no group needs it, or those packages would stop
+ *   releasing.
  * - `shared` entries (and the template's own `dry-run`) go to every release; the
  *   per-group inputs come from the matrix entry.
  */
@@ -139,20 +145,24 @@ export function groupedPublishCaller(
 		? [
 				"  release:",
 				"    name: Release",
-				"    if: ${{ inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped' }}",
+				"    # last: the packages in no group depend on the groups' packages, which must be on npm first.",
+				"    # Runs even if the groups were skipped (a manual run picked `ungrouped`), but not if one failed.",
+				"    needs: [plan, release-groups]",
+				"    if: >-",
+				"      ${{ !cancelled() && needs.plan.result == 'success' && needs.release-groups.result != 'failure' &&",
+				"      (inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped') }}",
 				uses,
 				"    with:",
 				...templateWith,
+				"      from-branch-tip: true",
 				...sharedWith,
 				...Object.entries(ungroupedInputs).map(([key, value]) => `      ${key}: ${yamlScalar(value)}`),
 				"    secrets: inherit",
-				"",
 			]
 		: [];
 
 	return [
 		`${head}jobs:`,
-		...ungroupedJob,
 		"  plan:",
 		"    name: Plan",
 		"    runs-on: ubuntu-latest",
@@ -177,10 +187,9 @@ export function groupedPublishCaller(
 		"    name: Release ${{ matrix.group }}",
 		...(ungroupedInputs
 			? [
-					"    # after the ungrouped release, which pushes its own commit first; still run if it failed or was skipped.",
 					"    # Choosing `ungrouped` by hand leaves the plan empty, and a matrix with no entries fails the run.",
-					"    needs: [plan, release]",
-					"    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.groups != '[]' }}",
+					"    needs: plan",
+					"    if: ${{ needs.plan.outputs.groups != '[]' }}",
 				]
 			: ["    needs: plan"]),
 		"    strategy:",
@@ -192,6 +201,7 @@ export function groupedPublishCaller(
 		"    with:",
 		...matrixWith,
 		"    secrets: inherit",
+		...(ungroupedJob.length > 0 ? ["", ...ungroupedJob] : []),
 		"",
 	].join("\n");
 }

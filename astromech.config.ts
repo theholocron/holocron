@@ -39,8 +39,9 @@ export default defineConfig({
 			name: "delivery.publish",
 			with: {
 				// Folders that release on their own version line (tags `<group>-v<version>`), one at a
-				// time after the repo-wide release. The repo-wide release leaves them out.
-				groups: ["observability", "skills", "utils", "clients", "configs", "themes"],
+				// time, before the repo-wide release (which depends on them and leaves them out). List them in
+				// dependency order: clients depends on utils and observability, so it goes after both.
+				groups: ["utils", "observability", "skills", "configs", "themes", "clients"],
 				// Everything in no group is released together, as before. The Sentry release and the
 				// post-release deploy belong to it alone, not to every group.
 				ungrouped: { "sentry-project": "holocron-cli", "deploy-on-release": true },

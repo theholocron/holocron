@@ -31,12 +31,12 @@ on: # yamllint disable-line rule:truthy
         options:
           - all
           - ungrouped
+          - utils
           - observability
           - skills
-          - utils
-          - clients
           - configs
           - themes
+          - clients
 
 permissions:
   contents: write
@@ -49,16 +49,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Release
-    if: ${{ inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped' }}
-    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
-    with:
-      dry-run: ${{ inputs.dry_run == true }}
-      sentry-project: holocron-cli
-      deploy-on-release: true
-    secrets: inherit
-
   plan:
     name: Plan
     runs-on: ubuntu-latest
@@ -70,7 +60,7 @@ jobs:
         name: Choose the groups to release
         env:
           GROUP: ${{ inputs.group }}
-          ALL_GROUPS: '[{"group":"observability"},{"group":"skills"},{"group":"utils"},{"group":"clients"},{"group":"configs"},{"group":"themes"}]'
+          ALL_GROUPS: '[{"group":"utils"},{"group":"observability"},{"group":"skills"},{"group":"configs"},{"group":"themes"},{"group":"clients"}]'
         run: |
           if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
             groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")
@@ -81,10 +71,9 @@ jobs:
 
   release-groups:
     name: Release ${{ matrix.group }}
-    # after the ungrouped release, which pushes its own commit first; still run if it failed or was skipped.
     # Choosing `ungrouped` by hand leaves the plan empty, and a matrix with no entries fails the run.
-    needs: [plan, release]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.groups != '[]' }}
+    needs: plan
+    if: ${{ needs.plan.outputs.groups != '[]' }}
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -94,4 +83,20 @@ jobs:
     with:
       dry-run: ${{ inputs.dry_run == true }}
       group: ${{ matrix.group }}
+    secrets: inherit
+
+  release:
+    name: Release
+    # last: the packages in no group depend on the groups' packages, which must be on npm first.
+    # Runs even if the groups were skipped (a manual run picked `ungrouped`), but not if one failed.
+    needs: [plan, release-groups]
+    if: >-
+      ${{ !cancelled() && needs.plan.result == 'success' && needs.release-groups.result != 'failure' &&
+      (inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped') }}
+    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run == true }}
+      from-branch-tip: true
+      sentry-project: holocron-cli
+      deploy-on-release: true
     secrets: inherit

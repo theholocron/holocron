@@ -73,9 +73,12 @@ describe("groupedPublishCaller", () => {
 				}
 			);
 
-		it("releases the packages in no group first, under the repo's own tags and without a group", () => {
-			const jobs = out().slice(out().indexOf("jobs:\n"));
-			const release = jobs.slice(jobs.indexOf("  release:\n"), jobs.indexOf("  plan:\n"));
+		const matrixJob = () => out().slice(out().indexOf("  release-groups:"), out().indexOf("  release:\n"));
+		const ungroupedJob = () => out().slice(out().indexOf("  release:\n"));
+
+		it("releases the packages in no group last, under the repo's own tags and without a group", () => {
+			const release = ungroupedJob();
+			expect(out().indexOf("  release-groups:")).toBeLessThan(out().indexOf("  release:\n"));
 			expect(release).toContain("    name: Release\n");
 			expect(release).toContain("uses: theholocron/.github/.github/workflows/delivery.publish.yml@main");
 			expect(release).not.toContain("group:");
@@ -84,47 +87,57 @@ describe("groupedPublishCaller", () => {
 		});
 
 		it("gives that release its own inputs and the shared ones, but not the groups' per-group ones", () => {
-			const jobs = out().slice(out().indexOf("jobs:\n"));
-			const release = jobs.slice(jobs.indexOf("  release:\n"), jobs.indexOf("  plan:\n"));
+			const release = ungroupedJob();
 			expect(release).toContain("      sentry-project: holocron-cli\n      deploy-on-release: true\n");
 			expect(release).toContain("      post-release: false\n");
 			expect(release).not.toContain("run-build");
 		});
 
 		it("keeps the Sentry and deploy settings off the groups' releases", () => {
-			const matrix = out().slice(out().indexOf("  release-groups:"));
+			const matrix = matrixJob();
 			expect(matrix).not.toContain("sentry-project");
 			expect(matrix).not.toContain("deploy-on-release");
 			expect(matrix).toContain("      run-build: ${{ matrix.run-build == true }}\n");
 		});
 
-		it("runs the groups after it, even if it failed or was skipped, one at a time", () => {
-			const matrix = out().slice(out().indexOf("  release-groups:"));
-			expect(matrix).toContain("    needs: [plan, release]\n");
-			expect(matrix).toContain("needs.plan.result == 'success'");
+		it("runs the groups first, one at a time, without waiting for the ungrouped release", () => {
+			const matrix = matrixJob();
+			expect(matrix).toContain("    needs: plan\n");
+			expect(matrix).not.toContain("needs: [plan, release]");
 			expect(matrix).toContain("      max-parallel: 1\n");
 		});
 
 		it("skips the groups' release when a manual run picked `ungrouped`, which leaves the plan empty and would fail the matrix", () => {
-			const matrix = out().slice(out().indexOf("  release-groups:"));
-			expect(matrix).toContain(
-				"    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.groups != '[]' }}\n"
-			);
+			expect(matrixJob()).toContain("    if: ${{ needs.plan.outputs.groups != '[]' }}\n");
+		});
+
+		it("starts the ungrouped release from the branch tip, which the groups' release commits have moved", () => {
+			expect(ungroupedJob()).toContain("      from-branch-tip: true\n");
+			expect(matrixJob()).not.toContain("from-branch-tip");
+		});
+
+		it("runs the ungrouped release after the groups, even when they were skipped, but not when one failed", () => {
+			const release = ungroupedJob();
+			expect(release).toContain("    needs: [plan, release-groups]\n");
+			expect(release).toContain("!cancelled()");
+			expect(release).toContain("needs.release-groups.result != 'failure'");
 		});
 
 		it("lets a manual run pick the ungrouped release, which a group choice skips", () => {
 			expect(out()).toContain(
 				"          - all\n          - ungrouped\n          - observability\n          - skills\n"
 			);
-			expect(out()).toContain(
-				"    if: ${{ inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped' }}\n"
+			expect(ungroupedJob()).toContain(
+				"(inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped')"
 			);
 		});
 
 		it("accepts `true` for an ungrouped release with no inputs of its own", () => {
 			const plain = groupedPublishCaller(base, ["observability"], {}, true);
 			expect(plain).toContain("  release-groups:");
-			expect(plain).toContain("      dry-run: ${{ inputs.dry_run == true }}\n    secrets: inherit");
+			expect(plain).toContain(
+				"      dry-run: ${{ inputs.dry_run == true }}\n      from-branch-tip: true\n    secrets: inherit"
+			);
 		});
 
 		it("is absent unless asked for: the matrix job keeps the id `release`", () => {
