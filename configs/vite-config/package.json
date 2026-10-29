@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/vite-config",
-  "version": "8.9.0-alpha.2",
+  "version": "8.9.0-alpha.3",
   "description": "Vite configuration presets for libraries, React apps, and Node tools within the Galaxy.",
   "keywords": [
     "vite",

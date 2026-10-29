@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/commitlint-config",
-  "version": "8.9.0-alpha.2",
+  "version": "8.9.0-alpha.3",
   "description": "A CommitLint configuration for writing well-formatted and consistent Git commits.",
   "keywords": [
     "commitlint",

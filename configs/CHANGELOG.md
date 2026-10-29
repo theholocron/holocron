@@ -1,3 +1,17 @@
+## [8.9.0-alpha.3](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.2...configs-v8.9.0-alpha.3) (2026-10-29)
+
+### Features
+
+* **astro-config:** ✨ add apiReference and a plugins option ([#1376](https://github.com/theholocron/holocron/issues/1376)) ([d926523](https://github.com/theholocron/holocron/commit/d926523ff19017620b6e6a9025f6058f970c707e)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+
+### Documentation
+
+* **agents:** 📝 point the repo map at the folders in this monorepo ([#1358](https://github.com/theholocron/holocron/issues/1358)) ([84cc3bc](https://github.com/theholocron/holocron/commit/84cc3bc6016c6a5277c964faa724780391f01c96)), closes [#1321](https://github.com/theholocron/holocron/issues/1321)
+
+### Chores
+
+* **configs:** 🔥 remove the per-package changelogs ([#1365](https://github.com/theholocron/holocron/issues/1365)) ([d40c0c2](https://github.com/theholocron/holocron/commit/d40c0c2b649355d27abe5a8d738d98e39b8151f0)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+
 ## [8.9.0-alpha.2](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.1...configs-v8.9.0-alpha.2) (2026-10-29)
 
 ### Bug Fixes

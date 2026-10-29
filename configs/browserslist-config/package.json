@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/browserslist-config",
-  "version": "8.9.0-alpha.2",
+  "version": "8.9.0-alpha.3",
   "description": "A Browserslist configuration for all browsers and devices supported in the Galaxy.",
   "keywords": [
     "browserslist",
