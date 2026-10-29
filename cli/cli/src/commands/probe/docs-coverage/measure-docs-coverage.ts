@@ -22,6 +22,7 @@ function workspaceEntries(repoRoot: string): NonNullable<MeasureDocsCoverageInpu
 export function measureDocsCoverage(input: MeasureDocsCoverageInput): PackageDocs[] {
 	const packages = input.packages ?? workspaceEntries(input.repoRoot);
 	return packages
+		.filter(({ dir }) => input.only?.(dir) ?? true)
 		.map(({ name, dir, entry, tsconfig }) => ({
 			name,
 			dir,

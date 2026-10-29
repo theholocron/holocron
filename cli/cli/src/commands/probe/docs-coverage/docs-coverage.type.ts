@@ -44,4 +44,6 @@ export interface MeasureDocsCoverageInput {
 	typedoc: (entry: string, tsconfig: string | undefined) => { children?: TypedocReflection[] };
 	/** The public packages and where their entry point is; replaces the workspace scan. */
 	packages?: { name: string; dir: string; entry: string; tsconfig?: string }[];
+	/** Measure only the packages this keeps, by directory. */
+	only?: (dir: string) => boolean;
 }

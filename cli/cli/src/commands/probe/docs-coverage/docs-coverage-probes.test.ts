@@ -79,3 +79,35 @@ describe("docs coverage probes", () => {
 		expect(() => readFileSync(join(root, "coverage/docs.lcov"), "utf8")).toThrow();
 	});
 });
+
+describe("docs patch probe", () => {
+	const run = async (diff: string, typedoc = TYPEDOC) => {
+		const probes = docsCoverageProbes(repo(), vi.fn(typedoc), () => diff);
+		const { ctx, rows } = context();
+		await probes["patch"]!.run(ctx);
+		return rows;
+	};
+	const hunk = (file: string, start: number, count = 1) => `+++ b/${file}\n@@ -0,0 +${start},${count} @@`;
+
+	it("fails for each undocumented export on an added line", async () => {
+		const rows = await run(hunk("libs/a/src/index.ts", 8));
+		expect(rows).toEqual([
+			{ status: "heading", label: "Exports this PR adds or changes" },
+			{ status: "fail", label: "libs/a/src/index.ts:8", detail: "Function two has no doc comment" },
+		]);
+	});
+
+	it("passes when the changed exports are documented", async () => {
+		const rows = await run(hunk("libs/a/src/index.ts", 4));
+		expect(rows.at(-1)).toEqual({ status: "ok", label: "1 checked", detail: "every one has a doc comment" });
+	});
+
+	it("does not measure a package the PR does not touch, and passes with nothing to check", async () => {
+		const typedoc = vi.fn(TYPEDOC);
+		const probes = docsCoverageProbes(repo(), typedoc, () => hunk("elsewhere/x.ts", 1));
+		const { ctx, rows } = context();
+		await probes["patch"]!.run(ctx);
+		expect(typedoc).not.toHaveBeenCalled();
+		expect(rows.at(-1)).toEqual({ status: "ok", label: "0 checked", detail: "every one has a doc comment" });
+	});
+});
