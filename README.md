@@ -37,7 +37,7 @@ Create the config (e.g. `holocron.config.{ts | js | json}`
 <!-- prettier-ignore -->
 ```typescript
 import { defineConfig } from "@theholocron/cli";
-import { node } from "@theholocron/holocron-config";
+import { node } from "@theholocron/cli/presets";
 
 const { repo, workflows, providers } = node();
 export default defineConfig({

@@ -88,13 +88,13 @@ export function parseTopics(raw: string | undefined): string[] {
 
 /**
  * Generate the content of `holocron.config.ts` for a newly-scaffolded repo.
- * Uses the `node()` preset from `@theholocron/holocron-config` as the baseline
+ * Uses the `node()` preset from `@theholocron/cli/presets` as the baseline
  * and layers in the provider/agent choices made during the wizard.
  */
 export function generateHolocronConfig(opts: HolocronConfigOptions): string {
 	const lines: string[] = [
 		`import { defineConfig } from "@theholocron/cli";`,
-		`import { compose, node, typecheck } from "@theholocron/holocron-config";`,
+		`import { compose, node, typecheck } from "@theholocron/cli/presets";`,
 		``,
 		// `compose(node(), typecheck())` is the org baseline preset — the full
 		// task manifest (lint/test/typecheck required, security/review/… ) rides

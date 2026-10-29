@@ -1,6 +1,6 @@
 import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
-import { nodeDocs } from "@theholocron/holocron-config";
+import { nodeDocs } from "@theholocron/cli/presets";
 
 // nodeDocs() provides: org, domain, docs, strict repo protection, the base
 // providers (source, ci, issues, deployment, dns, workers). Per D13

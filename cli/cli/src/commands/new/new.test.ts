@@ -939,7 +939,7 @@ describe("generateHolocronConfig", () => {
 	it("produces a valid TypeScript module with the composed node preset", () => {
 		const out = generateHolocronConfig({ name: "my-tool", type: "node" });
 		expect(out).toContain(`import { defineConfig } from "@theholocron/cli"`);
-		expect(out).toContain(`import { compose, node, typecheck } from "@theholocron/holocron-config"`);
+		expect(out).toContain(`import { compose, node, typecheck } from "@theholocron/cli/presets"`);
 		expect(out).toContain(`const preset = compose(node(), typecheck());`);
 		expect(out).toMatch(/defineConfig\(\{\n\t\.\.\.preset,/);
 	});
