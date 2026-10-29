@@ -4,7 +4,7 @@ import { docsPreset } from "@theholocron/cli/presets";
 
 // docsPreset() provides: org, domain, docs, strict repo protection, the base
 // providers (source, ci, issues, deployment, dns, workers). Per D13
-// (epic #672 / .notes/tech-holocron-platform.spec.md): the preset's `tasks`
+// (epic #672 / docs/wiki/specifications/tech-holocron-platform.spec.md): the preset's `tasks`
 // and task-derived `extraRequiredChecks` still speak the pre-decomposition
 // vocabulary (`lint`, `test`, `typecheck`, `deploy`, plain `"audit /
 // Conclusion"`) — theholocron/configs hasn't caught up to #675 yet, and

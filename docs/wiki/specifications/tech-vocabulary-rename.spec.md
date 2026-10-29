@@ -12,7 +12,7 @@ related:
 # Vocabulary + registry rename — astromech `TASKS`
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672)
-(`.notes/tech-holocron-platform.spec.md`). Covers D3, D11, D12, D13 and the
+(`docs/wiki/specifications/tech-holocron-platform.spec.md`). Covers D3, D11, D12, D13 and the
 "Vocabulary mapping" section of that spec in full detail.
 
 ## Problem

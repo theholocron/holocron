@@ -13,7 +13,7 @@ related:
 # Ruleset investigation — GitHub `workflows` rule type
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672)
-(`.notes/tech-holocron-platform.spec.md`). Covers the "Ruleset investigation
+(`docs/wiki/specifications/tech-holocron-platform.spec.md`). Covers the "Ruleset investigation
 (Phase A)" section of that spec in full detail.
 
 ## Problem

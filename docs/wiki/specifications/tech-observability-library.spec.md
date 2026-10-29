@@ -1,5 +1,5 @@
 ---
-status: draft
+status: archived
 issue: theholocron/holocron#634
 blocked-by: []
 related:
@@ -19,6 +19,8 @@ related:
 > `@theholocron/cli` migrated off `@theholocron/logger` + the local telemetry
 > adapters; `packages/logger` deleted; `@theholocron/logger` deprecated on npm.
 > Phase B (#637 browser/edge/RN adapters, #638 `clients` seam) remains.
+>
+> **As built (2026-10).** The package did not stay in its own repo (D3): it was imported into this monorepo as `observability/` (#1207), a single-package version group released on its own line (tags `observability-v*`, now 0.6.x). It also gained a `./testing` subpath. The `clients` error-sink seam (#638) shipped and is closed. Phase B is tracked in `.notes/tech-observability-browser-adapters.spec.md` (#637). Paths below (`packages/cli/...`, the new-repo steps) describe the original plan and are kept as written; `packages/cli` is now `cli/cli`.
 >
 > Secondary-repo tooling gaps surfaced during the work: #641 (`npm publish-initial`)
 > and #642 (`holocron new` drops `tasks` from the generated config).

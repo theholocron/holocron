@@ -7,7 +7,7 @@ import { type PackageJson } from "@theholocron/pkg-utils";
  * mirror what `holocron.config.ts` already states explicitly — these four are
  * *derived*: signal that isn't an explicit config field today (framework
  * choice, repo archetype, capability drift). See
- * `.notes/tech-holocron-platform.spec.md` → "Custom-properties sync — field
+ * `docs/wiki/specifications/tech-holocron-platform.spec.md` → "Custom-properties sync — field
  * definitions (#677)" for the full design.
  */
 

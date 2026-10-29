@@ -1,5 +1,5 @@
 ---
-status: draft
+status: accepted
 issue: theholocron/holocron#672
 blocked-by: []
 related:
@@ -14,6 +14,8 @@ related:
 ---
 
 # Holocron Platform — intent vocabulary, custom-properties sync, minimal GitHub App
+
+> **Status (2026-10-29): design settled.** Phases 1-4 and 6 shipped and their sub-issues are closed: vocabulary rename (#675), config resolution (#676), custom-properties expansion (#677), the ruleset investigation (#678, not viable on this plan; see below), Sentinel v1 (#679, now `apps/sentinel`) and the generated `turbo.json` (#681). Phase 5, the migration pass (#680), is open and largely overtaken by the monorepo consolidation (#1200): repos folded into this one need no separate migration. What remains is removing the per-repo Bucket A files (sweeps #763, #765, #767). The `holocron-config` presets that D13 mentions are moving into the CLI as `@theholocron/cli/presets` (#1271, #1272). Paths and repo names below were written against the old layout: `packages/astromech` is `cli/astromech`, `packages/cli` is `cli/cli`, `packages/sentinel` is `apps/sentinel`, and `theholocron/configs` and `theholocron/clients` are now the `configs/` and `clients/` folders here.
 
 > Design conversation (ChatGPT, shared transcript) that seeded this spec:
 > <https://chatgpt.com/share/6aa70455-d25c-83e8-8c81-f2206a6d8a43>
@@ -65,9 +67,9 @@ of a 20-repo synchronized rollout.
 
 | Concern                                        | Already built as                                                                                                                                                                                                                                                                         | Gap                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reusable CI workflows, thin callers            | `packages/astromech/src/templates/reusable/` → pushed to `theholocron/.github` via `holocron sync-github`; every repo's `.github/workflows/*.yml` is a generated thin caller                                                                                                             | Not broken — the job logic is centrally owned and the caller is generated, not hand-written, so it doesn't suffer the N-repo-duplication problem the other rows do. But the caller **file itself** still physically exists in every repo. Whether it needs to — see "Ruleset investigation" below, which is the same lever, not a separate one                                                                             |
+| Reusable CI workflows, thin callers            | `cli/astromech/src/templates/reusable/` → pushed to `theholocron/.github` via `holocron sync-github`; every repo's `.github/workflows/*.yml` is a generated thin caller                                                                                                                  | Not broken — the job logic is centrally owned and the caller is generated, not hand-written, so it doesn't suffer the N-repo-duplication problem the other rows do. But the caller **file itself** still physically exists in every repo. Whether it needs to — see "Ruleset investigation" below, which is the same lever, not a separate one                                                                             |
 | Required-checks list from manifest             | `astromech.requiredChecks()` walks the `tasks` manifest + `extraRequiredChecks`, written into the repo's ruleset by `holocron setup`                                                                                                                                                     | Matches by **check-run name string**, not GitHub's "required workflow" rule type (points at a workflow file) — the exact bug class in incident 2                                                                                                                                                                                                                                                                           |
-| Shared tool config as npm packages             | `theholocron/configs` publishes `@theholocron/eslint-config`, `-prettier-config`, `-vitest-config`, `-tsconfig`, etc. — the rule sets themselves are already centralized                                                                                                                 | None — the packages stay exactly as they are, useful standalone to any project                                                                                                                                                                                                                                                                                                                                             |
+| Shared tool config as npm packages             | `configs/` (formerly `theholocron/configs`) publishes `@theholocron/eslint-config`, `-prettier-config`, `-vitest-config`, `-tsconfig`, etc. — the rule sets themselves are already centralized                                                                                           | None — the packages stay exactly as they are, useful standalone to any project                                                                                                                                                                                                                                                                                                                                             |
 | Repo carries zero config files for these tools | **Not built.** Every consuming repo has local `eslint.config.ts` / `prettier.config.*` / `vitest.config.ts` / `tsdown.config.ts` / `knip.config.ts` / `commitlint.config.ts` / `release.config.ts` that all `extend` the shared package — 52 files across 13 packages in `clients` alone | Real gap for tools our CLI invokes directly (verified `--config`/`--extends` support on all seven — see "Config resolution"). Doesn't apply uniformly: `tsconfig.json`/`.editorconfig`/`codecov.yml`/`.alexrc.json` must stay committed (a different consumer discovers them directly, no CLI flag applies), and `astro.config.ts` has genuine per-repo content, not a duplicated ruleset — see the bucket breakdown below |
 | Repo declares what it is                       | `holocron.config.ts` + `defineConfig`                                                                                                                                                                                                                                                    | Vocabulary is tool/provider-shaped (`tasks: ["test", "lint"]`, `providers: { source: "github" }`), not intent-shaped (`features.verification.unitTests: true`)                                                                                                                                                                                                                                                             |
 | Config → GitHub metadata sync                  | `repo.properties` → `source.syncProperties()` already syncs `lifecycle`, `open_source`, `runtime_environment`, `uses_external_packages`, `monorepo`, `branch_protection_level`                                                                                                           | One-way flow already exists and is the right shape — just needs to cover more fields (profile, capabilities, compliance)                                                                                                                                                                                                                                                                                                   |
@@ -197,7 +199,7 @@ bundles eslint + prettier + yamllint + gitleaks + editorconfig + commitlint
 | — (no existing task)                     | `dependencyUpdates` → Renovate/Dependabot config, currently repo-owned `.github/dependabot.yml`; centralizing this is in scope but not yet designed |
 
 Tool names (`eslint`, `vitest`, `tsdown`, …) stay exactly where they are
-today: internal to `astromech`'s registry and `theholocron/configs`. They
+today: internal to `astromech`'s registry and `configs/`. They
 never need to appear in a repo's `holocron.config.ts` for the intents this
 table covers.
 
@@ -288,7 +290,7 @@ from a bespoke path-heuristic layer.
 **Remote cache is already in place, not an open question**: `TURBO_TOKEN`/
 `TURBO_TEAM` (Vercel Remote Cache) are already wired into every reusable
 CI workflow (`test.yml`, `typecheck.yml`, `audit.yml`, `release.yml`,
-`sync-github.yml`) — confirmed in `packages/astromech/src/templates/reusable/`.
+`sync-github.yml`) — confirmed in `cli/astromech/src/templates/reusable/`.
 Cross-run cache hits (a genuinely unaffected task on a brand-new PR
 runner, not only within one run) already work today wherever `turbo.json`
 exists; making `turbo.json` universal is what extends the benefit to
@@ -404,11 +406,11 @@ open.
 
 ## Non-goals (this epic)
 
-- Rewriting `theholocron/configs`' shared tool package _content_ (the rule
+- Rewriting the shared tool packages in `configs/` _content_ (the rule
   sets themselves) — they work and aren't touched. What changes is how
   repos consume them (see "Config resolution" above), not the packages.
 - Changing the CLI-side plugin/provider capability model (`Source`, `Ci`,
-  `Deployment`, `Storage`, `Auth`, `Vault`, …, in `packages/cli/src/plugin/capabilities.ts`).
+  `Deployment`, `Storage`, `Auth`, `Vault`, …, in `cli/cli/src/plugin/capabilities/capabilities.type.ts`).
   That's a different axis (vendor integrations) from the task/intent
   vocabulary this spec covers — not touched here.
 - A `@theholocron/dev` package — resolved during the design conversation:
@@ -476,7 +478,7 @@ open.
   …, in every repo's `package.json`). If those pins mostly collapse to a
   single `@theholocron/*-config` version per repo (already true for some,
   not all, today), a tool version bump is one Dependabot PR against
-  `theholocron/configs`, not twenty. Not a redesign of Dependabot itself —
+  `configs/`, not twenty. Not a redesign of Dependabot itself —
   a consequence of there being less for it to find.
 - ~~App deploy target (Vercel vs. Cloudflare Workers) — deferred to its own
   ADR ahead of Phase 4.~~ **Resolved**: Vercel Functions, per ADR-0011 and

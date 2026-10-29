@@ -223,7 +223,7 @@ properties; properties are never a second editable source of truth):
 | `holocron_compliance`              | `"compliant" \| "non-compliant"` against a minimal `source` + `ci` baseline              |
 
 Field definitions and derivation heuristics:
-`.notes/tech-holocron-platform.spec.md` → "Custom-properties sync — field
+`docs/wiki/specifications/tech-holocron-platform.spec.md` → "Custom-properties sync — field
 definitions (#677)".
 
 The four derived fields' pure computation —
