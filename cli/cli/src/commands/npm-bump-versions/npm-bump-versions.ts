@@ -28,6 +28,17 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	print(`Bumping ${scopeLabel} to ${version}${dryRun ? " (dry-run)" : ""}…`);
 	logger.info({ version, group, excludeGroups, dryRun: dryRun || undefined }, "npm bump-versions: start");
 
+	// A listed folder missing from the workspace is either outside the group (valid manifest, say nothing)
+	// or really unreadable (warn).
+	function hasReadableManifest(absPath: string): boolean {
+		try {
+			JSON.parse(readFile(absPath));
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
 	function bumpFile(absPath: string, label: string): void {
 		let pkg: Record<string, unknown>;
 		let raw: string;
@@ -85,7 +96,8 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	}
 	const found = new Set(workspace.map((entry) => entry.dir));
 	for (const dir of listed) {
-		if (!found.has(dir)) print(`  ! skipping ${relative(resolve(cwd), dir)}: no package.json or malformed JSON`);
+		if (found.has(dir) || hasReadableManifest(join(dir, "package.json"))) continue;
+		print(`  ! skipping ${relative(resolve(cwd), dir)}: no package.json or malformed JSON`);
 	}
 	for (const { dir, relativeDir, manifest } of workspace) {
 		if (manifest.private) {
