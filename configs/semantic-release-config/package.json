@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/semantic-release-config",
-  "version": "8.9.0-alpha.1",
+  "version": "8.9.0-alpha.2",
   "description": "A semantic-release configuration for automated versioning and publishing.",
   "keywords": [
     "semantic-release",

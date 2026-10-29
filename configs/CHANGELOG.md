@@ -1,3 +1,13 @@
+## [8.9.0-alpha.2](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.1...configs-v8.9.0-alpha.2) (2026-10-29)
+
+### Bug Fixes
+
+* **devmoji-config:** 🐛 link the releases page of the monorepo ([#1324](https://github.com/theholocron/holocron/issues/1324)) ([c2157d8](https://github.com/theholocron/holocron/commit/c2157d86d1f3b07c07957eb8724214a508ab9045))
+
+### Documentation
+
+* **notes:** 🗂️ merge configs/.notes into the root and move the settled specs ([#1322](https://github.com/theholocron/holocron/issues/1322)) ([dd4642a](https://github.com/theholocron/holocron/commit/dd4642af6fb981a947e06ae203600404eb905bc2)), closes [#1288](https://github.com/theholocron/holocron/issues/1288) [#1271](https://github.com/theholocron/holocron/issues/1271) [#1272](https://github.com/theholocron/holocron/issues/1272) [#1051](https://github.com/theholocron/holocron/issues/1051) [#940](https://github.com/theholocron/holocron/issues/940) [#945](https://github.com/theholocron/holocron/issues/945) [#1010](https://github.com/theholocron/holocron/issues/1010) [#1321](https://github.com/theholocron/holocron/issues/1321)
+
 ## [8.9.0-alpha.1](https://github.com/theholocron/holocron/compare/configs-v8.8.2...configs-v8.9.0-alpha.1) (2026-10-29)
 
 ### Features
