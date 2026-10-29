@@ -4,8 +4,6 @@ import { nextjs as nextjsCapability } from "../capabilities/nextjs.js";
 import { node } from "../capabilities/node.js";
 import { typecheck } from "../capabilities/typecheck.js";
 
-export type { NextjsOptions } from "../capabilities/nextjs.js";
-
 /**
  * Preset for single-package Next.js application repos. Includes Vercel
  * deployment, Lighthouse audit, Storybook + interaction + user-flow tests,
@@ -23,6 +21,6 @@ export type { NextjsOptions } from "../capabilities/nextjs.js";
  *   ],
  * });
  */
-export function nextjs(options?: import("../capabilities/nextjs.js").NextjsOptions): ComposedPreset {
+export function nextjsPreset(options?: import("../capabilities/nextjs.js").NextjsOptions): ComposedPreset {
 	return compose(node(), typecheck(), ...nextjsCapability(options));
 }

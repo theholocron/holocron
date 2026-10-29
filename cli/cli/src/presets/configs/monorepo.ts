@@ -9,7 +9,7 @@ import type { ComposedPreset } from "../../config/compose/index.js";
  * @example
  * const preset = monorepo(nextjs());
  */
-export function monorepo(base: ComposedPreset): ComposedPreset {
+export function monorepoPreset(base: ComposedPreset): ComposedPreset {
 	return {
 		...base,
 		repo: {

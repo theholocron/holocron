@@ -5,10 +5,10 @@ import type { Capability } from "../../config/compose/index.js";
  * Provisions docs/wiki/{decisions,standards,specifications}/ and wires the
  * wiki CI workflow to publish on push to main.
  *
- * Compose with nodeDocs() for repos that have engineering content to publish:
+ * Compose with docsPreset() for repos that have engineering content to publish:
  *
  * ```ts
- * const preset = compose(nodeDocs(), wiki());
+ * const preset = compose(docsPreset(), wiki());
  * ```
  */
 export function wiki(): Capability {

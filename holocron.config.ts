@@ -1,8 +1,8 @@
 import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
-import { nodeDocs } from "@theholocron/cli/presets/node-docs";
+import { docsPreset } from "@theholocron/cli/presets";
 
-// nodeDocs() provides: org, domain, docs, strict repo protection, the base
+// docsPreset() provides: org, domain, docs, strict repo protection, the base
 // providers (source, ci, issues, deployment, dns, workers). Per D13
 // (epic #672 / .notes/tech-holocron-platform.spec.md): the preset's `tasks`
 // and task-derived `extraRequiredChecks` still speak the pre-decomposition
@@ -11,7 +11,7 @@ import { nodeDocs } from "@theholocron/cli/presets/node-docs";
 // doesn't need to for this repo to move (D13: it's a convenience preset,
 // not a required dependency). This repo declares its own intent-facing
 // tasks directly instead of spreading `presetTasks`/`presetChecks`.
-const { repo, providers, org, domain, docs } = nodeDocs();
+const { repo, providers, org, domain, docs } = docsPreset();
 
 export default defineConfig({
 	description:
@@ -54,7 +54,7 @@ export default defineConfig({
 	// per-component statuses; they are informational, not required (#1223).
 	extraRequiredChecks: ["codecov/patch", "codecov/project"],
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
-	// `nodeDocs()`'s bundled `lint` (8 linters) is now 5 separately-gated
+	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
 	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/
 	// `stale`/`greetings`/`dependencies`/`bookkeeping` aren't part of the
 	// task-name vocabulary (workflow-only keys, unaffected by the rename).

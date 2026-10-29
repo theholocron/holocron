@@ -24,6 +24,6 @@ export type { ReactOptions };
  *   tasks: [...preset.tasks, "sync", { name: "deploy", with: { docs: true, storybook: [{ name: "" }] } }],
  * });
  */
-export function react(options?: ReactOptions): ComposedPreset {
+export function reactPreset(options?: ReactOptions): ComposedPreset {
 	return compose(node(), typecheck(), reactCapability(options));
 }

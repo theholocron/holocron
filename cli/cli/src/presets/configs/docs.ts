@@ -4,8 +4,8 @@ import { docs } from "../capabilities/docs.js";
 import { node } from "../capabilities/node.js";
 import { typecheck } from "../capabilities/typecheck.js";
 
-export type NodeDocsPreset = ComposedPreset;
-export type NodeDocsSitePreset = ComposedPreset;
+export type DocsPreset = ComposedPreset;
+export type DocsSitePreset = ComposedPreset;
 
 /**
  * Preset for theholocron repos that are TypeScript libraries AND publish a
@@ -19,10 +19,10 @@ export type NodeDocsSitePreset = ComposedPreset;
  *   // or with overrides:
  *   tasks: [...preset.tasks, { name: "audit", required: true, with: { "run-knip": true } }, ...]
  *
- * For docs-only sites without TypeScript source, use nodeDocsSite() instead.
+ * For docs-only sites without TypeScript source, use docsSitePreset() instead.
  *
  * @example
- * const preset = nodeDocs();
+ * const preset = docsPreset();
  * export default defineConfig({
  *   ...preset,
  *   description: "...",
@@ -32,12 +32,12 @@ export type NodeDocsSitePreset = ComposedPreset;
  *   providers: { ...preset.providers, secrets: "github" },
  * });
  */
-export function nodeDocs(): NodeDocsPreset {
+export function docsPreset(): DocsPreset {
 	return compose(
 		node(),
 		typecheck(),
 		docs(),
-		// `audit / Conclusion` required for every nodeDocs repo — the audit
+		// `audit / Conclusion` required for every docs repo — the audit
 		// workflow is added per-repo (with repo-specific options), so this is an
 		// extra check rather than a `{ required: true }` task.
 		{ id: "audit-check", requires: ["node"], extraRequiredChecks: ["audit / Conclusion"] }
@@ -49,7 +49,7 @@ export function nodeDocs(): NodeDocsPreset {
  * TypeScript source to check (e.g. skills, themes). No typecheck, no audit.
  *
  * @example
- * const preset = nodeDocsSite();
+ * const preset = docsSitePreset();
  * export default defineConfig({
  *   ...preset,
  *   description: "...",
@@ -58,6 +58,6 @@ export function nodeDocs(): NodeDocsPreset {
  *   providers: { ...preset.providers, secrets: "github" },
  * });
  */
-export function nodeDocsSite(): NodeDocsSitePreset {
+export function docsSitePreset(): DocsSitePreset {
 	return compose(node(), docs());
 }

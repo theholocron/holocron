@@ -37,9 +37,9 @@ Create the config (e.g. `holocron.config.{ts | js | json}`
 <!-- prettier-ignore -->
 ```typescript
 import { defineConfig } from "@theholocron/cli";
-import { node } from "@theholocron/cli/presets/node";
+import { nodePreset } from "@theholocron/cli/presets";
 
-const { repo, workflows, providers } = node();
+const { repo, workflows, providers } = nodePreset();
 export default defineConfig({
 	description: "Custom app that does custom things.",
 	repo: {
