@@ -1,3 +1,18 @@
+## [5.0.0-alpha.250](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.249...v5.0.0-alpha.250) (2026-10-29)
+
+### Bug Fixes
+
+* **google-client:** 🐛 move googleapis and google-auth-library to current releases together ([#1295](https://github.com/theholocron/holocron/issues/1295)) ([97b5160](https://github.com/theholocron/holocron/commit/97b5160f97ed942ac5c2d442da08cb5adb1ead73)), closes [#1289](https://github.com/theholocron/holocron/issues/1289) [#1294](https://github.com/theholocron/holocron/issues/1294)
+
+### Documentation
+
+* **clients:** 📝 move the package pages into the docs site ([1ef9d41](https://github.com/theholocron/holocron/commit/1ef9d41be303615ddfdd62cc8faf4b615b298202)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+
+### Chores
+
+* **astromech:** 🗂️ group codecov components by folder ([#1290](https://github.com/theholocron/holocron/issues/1290)) ([0e2c680](https://github.com/theholocron/holocron/commit/0e2c680426e7bd1852e42c3d4fe62df9a778fbf5))
+* **clients:** 🔧 adapt the imported packages to the workspace ([00f5dc3](https://github.com/theholocron/holocron/commit/00f5dc3e4a9016af8922432bd6e9faeb961cce7b)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+
 ## [5.0.0-alpha.249](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.248...v5.0.0-alpha.249) (2026-10-29)
 
 ### Documentation
