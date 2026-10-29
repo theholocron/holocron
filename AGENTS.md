@@ -372,6 +372,7 @@ apps/                             — deployable applications (not published to 
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
 observability/                    — @theholocron/observability             (logging, errors and analytics behind one interface; releases on its own version line, tags `observability-v*`)
 skills/                           — @theholocron/skills                    (shared agent skill registry; releases on its own version line, tags `skills-v*`)
+utils/                            — @theholocron/*-utils                   (13 small libraries: array, date-time, env, fs, git, json, location, misc, object, pkg, storage, string and uri utils; release on their own version line, tags `utils-v*`)
 plugins/                          — vendor capability providers, one package per provider (split from cli/ as the count grew)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment

@@ -1,0 +1,52 @@
+---
+title: Package Utils
+description: Read package.json, list its dependencies and detect the package manager.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/pkg-utils
+```
+
+## API
+
+### `readPackageJson(dir)` / `readPackageJsonSync(dir, options?)`
+
+The parsed `<dir>/package.json`, or `undefined` when it is missing, unreadable or not a JSON object. `options.readFile` (sync only) replaces the file read.
+
+### `parsePackageJson(text)`
+
+Parses `package.json` text, ignoring a leading byte-order mark. `undefined` for broken JSON or JSON that isn't an object. A recognized field of the wrong type is left out, and the string-map fields keep only their string-valued entries.
+
+### `dependencyNames(pkg, fields?)`
+
+Every package name declared in `dependencies` and `devDependencies` (or the `fields` you pass), as a `Set`.
+
+### `listWorkspacePackagesSync(repoRoot, options?)`
+
+Every package directly under the workspace roots of `repoRoot` that has a readable `package.json` holding a JSON object, as `{ name, dir, relativeDir, manifest }` — roots in the order given, packages within a root sorted by directory name. A missing root, and a directory without a usable manifest, contribute nothing. Nothing is filtered by `name`, `version` or `private`: that is the caller's call. `dir` is always absolute, and a listing error other than "not there" throws.
+
+| Option     | Effect                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------- |
+| `roots`    | Directories to scan, each inside `repoRoot` (a `TypeError` otherwise). Defaults to `["packages", "plugins"]`. |
+| `readFile` | Replaces the `package.json` read.                                                                             |
+| `listDirs` | Replaces the directory listing (subdirectory names; throws when `dir` is absent).                             |
+
+```ts
+import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
+
+const publishable = listWorkspacePackagesSync(repoRoot).filter((p) => !p.manifest.private && p.name);
+```
+
+### `detectPackageManager(dir, options?)`
+
+The name in `package.json#packageManager` when it is pnpm, npm, yarn or bun, else the first lockfile found (including `npm-shrinkwrap.json`), else `options.fallback` (default `"pnpm"`).
+
+```ts
+import { dependencyNames, detectPackageManager, readPackageJson } from "@theholocron/pkg-utils";
+
+const pkg = await readPackageJson(process.cwd());
+dependencyNames(pkg).has("tsdown");
+detectPackageManager(process.cwd()); // "pnpm" | "npm" | "yarn" | "bun"
+```

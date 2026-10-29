@@ -53,6 +53,11 @@ const config: KnipConfig = {
 			// the test script) is code
 			project: ["test/**/*.mjs"],
 		},
+		"utils/*": {
+			// the public entry (package.json exports point at dist/, which knip cannot map back for every package)
+			entry: ["src/index.ts", "src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
 		"apps/comlink": {
 			// The Worker (src/worker.ts) is found through the tsdown config. holocron.config.ts imports the CLI.
 			entry: ["src/**/*.test.ts", "holocron.config.ts"],

@@ -1,0 +1,34 @@
+---
+title: Utils
+description: Lightweight TypeScript utility packages for arrays, strings, dates, environment detection, and more.
+---
+
+Small, dependency-light TypeScript libraries, published independently to npm. They share one version line and release together from the `utils/` folder, with tags `utils-v<version>`.
+
+## Packages
+
+| Package                                                            | Description                                                                              |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| [`@theholocron/array-utils`](/holocron/utils/array-utils/)         | Convert or manipulate arrays.                                                            |
+| [`@theholocron/date-time-utils`](/holocron/utils/date-time-utils/) | Handle dates and time.                                                                   |
+| [`@theholocron/env-utils`](/holocron/utils/env-utils/)             | Runtime environment detection and typed env-var parsing.                                 |
+| [`@theholocron/fs-utils`](/holocron/utils/fs-utils/)               | Walk a directory tree upward to find the nearest match or project root.                  |
+| [`@theholocron/git-utils`](/holocron/utils/git-utils/)             | Parse git remote URLs, read a repo's remote, and maintain managed blocks in .gitignore.  |
+| [`@theholocron/json-utils`](/holocron/utils/json-utils/)           | Stringify JSON with a trailing newline, preserving a file's own indent and line endings. |
+| [`@theholocron/location-utils`](/holocron/utils/location-utils/)   | Location utilities.                                                                      |
+| [`@theholocron/misc-utils`](/holocron/utils/misc-utils/)           | Miscellaneous utilities.                                                                 |
+| [`@theholocron/object-utils`](/holocron/utils/object-utils/)       | Inspect and deep-merge plain objects.                                                    |
+| [`@theholocron/pkg-utils`](/holocron/utils/pkg-utils/)             | Read package.json, list its dependencies and detect the package manager.                 |
+| [`@theholocron/storage-utils`](/holocron/utils/storage-utils/)     | Storage utilities.                                                                       |
+| [`@theholocron/string-utils`](/holocron/utils/string-utils/)       | Convert a string to any case or case to a different data type.                           |
+| [`@theholocron/uri-utils`](/holocron/utils/uri-utils/)             | Grab details from a URL.                                                                 |
+
+## Installation
+
+Each package is installed on its own:
+
+```bash
+pnpm add @theholocron/string-utils
+```
+
+See the [CHANGELOG](https://github.com/theholocron/holocron/blob/alpha/utils/CHANGELOG.md) for the current version.

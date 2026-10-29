@@ -1,0 +1,103 @@
+---
+title: Environment Utils
+description: Runtime environment detection and typed env-var parsing.
+---
+
+## Installation
+
+```bash
+pnpm add @theholocron/env-utils
+```
+
+## Environment detection
+
+### `environment`
+
+Detects the current runtime environment from `ENVIRONMENT`, `ENV`, or `NODE_ENV`.
+
+```ts
+import { environment } from "@theholocron/env-utils";
+
+environment.get(); // "local" | "dev" | "qa" | "prod"
+environment.isDeployed(); // true when env is "qa" or "prod"
+environment.normalize("production"); // "prod"
+```
+
+### Constants
+
+```ts
+import { ENVIRONMENTS, DEFAULT_ENVIRONMENT, DEPLOYED_ENVIRONMENTS } from "@theholocron/env-utils";
+
+ENVIRONMENTS; // ["local", "dev", "qa", "prod"]
+DEFAULT_ENVIRONMENT; // "prod"
+DEPLOYED_ENVIRONMENTS; // Set { "qa", "prod" }
+```
+
+### `DotenvLoader`
+
+Default loader strategy that reads `process.env`. Pass a custom loader to `createEnvParser` to swap it out.
+
+## Env lookup
+
+### `firstEnv(env, names, fallback?)`
+
+Returns the first variable in `names` that is set and non-empty, or `fallback` when none is. `env` is any `EnvLookup`, such as the result of `createEnvLookup()`. Without a `fallback` the return type includes `undefined`.
+
+```ts
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils";
+
+const env = createEnvLookup();
+const dsn = firstEnv(env, ["MYAPP_SENTRY_DSN", "SENTRY_DSN"], DEFAULT_DSN);
+```
+
+### `withEnvPrefix(env, prefix)`
+
+Wraps an `EnvLookup` so `get("KEY")` tries `<prefix>_KEY` first and falls back to `KEY`. Pass the prefix without a trailing underscore, in upper case: it is matched with exact case, because an `EnvLookup` only answers exact-name `get` calls (unlike `filterByNamespace`, which scans a whole env record). The result is itself an `EnvLookup`, so it works anywhere one is expected, including with `firstEnv`.
+
+```ts
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils";
+
+const env = withEnvPrefix(createEnvLookup(), "MYAPP");
+env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
+```
+
+### Importing without side effects
+
+The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"`, so importing the entry loads `.env` into `process.env`. Import from `@theholocron/env-utils/lookup` when you only need to read variables, for example in a library that must not touch its consumers' environment. It exports `createEnvLookup`, `EnvLookup`, `firstEnv` and `withEnvPrefix`, and never loads dotenv. `dotenv` is an optional peer dependency: install it if you import the package entry, and skip it if you only use `/lookup`.
+
+```ts
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
+```
+
+## Typed env parsing
+
+### `createEnvParser(options)`
+
+Creates a typed env parser. All four key forms resolve to the same value for nested keys:
+
+```ts
+import { createEnvParser } from "@theholocron/env-utils";
+
+const parser = createEnvParser({ appName: "my-app" });
+
+// All equivalent for nested keys
+parser.get("SERVICE__DB__URL");
+parser.get("service__db__url");
+parser.get("service.db.url");
+
+// Map to a typed config object
+export const config = parser.map((get) => ({
+  port: get("port") ?? 3000,
+  database: {
+    url: get("db.primary.url") ?? get("database_url"),
+  },
+}));
+```
+
+### Options
+
+| Option        | Type        | Default        | Description                                               |
+| ------------- | ----------- | -------------- | --------------------------------------------------------- |
+| `appName`     | `string`    | —              | Display name for debug output                             |
+| `loader`      | `EnvLoader` | `DotenvLoader` | Custom env-var loader strategy                            |
+| `parseValues` | `boolean`   | `true`         | Coerce `"true"`/`"false"`/numeric strings to native types |

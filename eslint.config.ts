@@ -19,6 +19,14 @@ export default [
 		},
 	},
 	{
+		// These utils use browser APIs (navigator, sessionStorage, KeyboardEvent), so the Node.js built-ins
+		// rule does not apply to them.
+		files: ["utils/location-utils/src/**", "utils/misc-utils/src/**", "utils/storage-utils/src/**"],
+		rules: {
+			"n/no-unsupported-features/node-builtins": "off",
+		},
+	},
+	{
 		files: ["skills/package.json"],
 		rules: {
 			// the CLI resolves the package root through require.resolve("@theholocron/skills/package.json"),
@@ -27,6 +35,6 @@ export default [
 		},
 	},
 	{
-		ignores: ["cli/*/dist/**", "cli/*/coverage/**", "**/node_modules/**"],
+		ignores: ["cli/*/dist/**", "cli/*/coverage/**", "utils/*/dist/**", "utils/*/coverage/**", "**/node_modules/**"],
 	},
 ] satisfies Linter.Config[];
