@@ -1,10 +1,12 @@
 ---
 title: Holocron Config Preset System
 description: Layered configuration presets for theholocron repositories — what each preset includes, how to compose them, and what stays per-repo.
-issue: 398
+issue: theholocron/configs#398
 status: accepted
 ---
 
+> **Moved from `theholocron/configs`.** The presets are moving from `@theholocron/holocron-config` into the CLI as `@theholocron/cli/presets` (#1272 shipped the export; #1271 deprecates the package). Re-check this spec, and archive it if it no longer describes a package, when #1271 lands. The design record is [ADR-0017](../decisions/0017-holocron-config-preset-system.md) and [ADR-0018](../decisions/0018-composable-preset-system.md).
+>
 > **Update (holocron#586 / configs#446, `@theholocron/cli` 4.10, preset ≥ 8.2):**
 > `config.workflows` is now `config.tasks`, and `requiredChecks` is gone.
 > Branch-protection checks are **derived from the manifest** — capabilities mark
@@ -269,7 +271,7 @@ requiredChecks: [
 ],
 ```
 
-The Conclusion job pattern (see [ADR 001](./decisions/001-holocron-config-preset-system.md)) means that when a workflow gains or renames a job, no `requiredChecks` array needs updating — only the workflow file itself changes.
+The Conclusion job pattern (see [ADR-0017](../decisions/0017-holocron-config-preset-system.md)) means that when a workflow gains or renames a job, no `requiredChecks` array needs updating — only the workflow file itself changes.
 
 ---
 

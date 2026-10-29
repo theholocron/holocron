@@ -1,12 +1,25 @@
-# ADR 001 — Holocron Config Preset System
-
-**Status:** Accepted  
-**Date:** 2026-08-28  
-**Repo:** theholocron/configs  
-**Issue:** #398  
-**PR:** #400
-
 ---
+id: ADR-0017
+title: "Holocron config preset system"
+status: superseded
+date: 2026-08-28
+owners: []
+specs:
+  - docs/wiki/specifications/tech-holocron-config-presets.spec.md
+discussion:
+  github: https://github.com/theholocron/configs/issues/398
+supersedes: []
+superseded-by:
+  - ADR-0018
+tags: [holocron-config, presets, ci]
+---
+
+# Holocron config preset system
+
+- Status: superseded by ADR-0018
+- Date: 2026-08-28
+
+> Moved here from `theholocron/configs` (`.notes/decisions/001-...`, originally "ADR 001"), where it was PR #400 for issue #398. The monolithic preset functions (`node()`, `nodeDocs()`, `nextjs()`, `react()`) were replaced by composable capabilities in [ADR-0018](0018-composable-preset-system.md). The **conclusion job pattern** (section 1) is still in force. `workflows` became `tasks`, and `requiredChecks` are now derived from the task manifest ([ADR-0009](0009-astromech-task-runner-package.md)).
 
 ## Context
 
