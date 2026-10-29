@@ -9,6 +9,8 @@ export interface RunProbeInput {
 	name: string;
 	provider: string;
 	probeName: string;
+	/** Words after the probe name, for a probe that takes an argument. */
+	args?: readonly string[];
 	probe: PluginProbes[string];
 	dryRun: boolean;
 	/** `--yes`: do not ask before a probe that writes. */
@@ -34,6 +36,8 @@ export interface RunProbeCommandInput {
 	context: RuntimeContext;
 	provider?: string;
 	probe?: string;
+	/** Words after the probe name, for a probe that takes an argument. */
+	args?: readonly string[];
 	dryRun?: boolean;
 	yes?: boolean;
 	/** Lets tests inject a loader with mock plugins. */

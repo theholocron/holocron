@@ -42,8 +42,8 @@ afterEach(() => {
 });
 
 describe("probe command", () => {
-	it("is `probe [provider] [probe]`", () => {
-		expect(probeCommand.command).toBe("probe [provider] [probe]");
+	it("is `probe [provider] [probe] [args..]`", () => {
+		expect(probeCommand.command).toBe("probe [provider] [probe] [args..]");
 	});
 
 	it("reads the provider and probe as positionals, and --yes", async () => {

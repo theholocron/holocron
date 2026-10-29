@@ -7,7 +7,7 @@ import { type ProbeArgs, probeArgs } from "./probe.args.js";
 import { runProbeCommand } from "./probe.js";
 
 export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
-	command: "probe [provider] [probe]",
+	command: "probe [provider] [probe] [args..]",
 	describe: "Poke a live provider on purpose: inspect it, or run a proof that cleans up after itself",
 	builder: probeArgs,
 	handler: async (argv) => {
@@ -25,6 +25,7 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 			},
 			...(argv.provider ? { provider: argv.provider } : {}),
 			...(argv.probe ? { probe: argv.probe } : {}),
+			...(argv.args?.length ? { args: argv.args.map(String) } : {}),
 			dryRun: argv.dryRun,
 			yes: argv.yes,
 			// On a terminal, `holocron probe` opens a menu of every provider and probe instead of printing them.

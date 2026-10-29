@@ -11,8 +11,8 @@ packages:
   - "themes/*"
 
 # Every dependency version lives in a catalog below, so this one file shows what the repo uses.
-# The rule, checked by `node scripts/deps-report.mjs --check` (and `node scripts/deps-report.mjs`
-# lists who uses what):
+# The rule, checked by `holocron probe deps check` (and `holocron probe deps report` /
+# `holocron probe deps who <name>` list who uses what):
 #   - used by two or more groups (a top-level folder): the default `catalog:`
 #   - used by one group: that group's named catalog, e.g. `catalog:configs`
 #   - peerDependencies keep their own compatibility ranges and are not in a catalog
