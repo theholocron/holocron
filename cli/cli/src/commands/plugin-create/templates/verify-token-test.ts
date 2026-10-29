@@ -1,10 +1,10 @@
 import type { TemplateInputs } from "../template-inputs/index.js";
 
 export function render(_inputs: TemplateInputs): string {
-	return `import { describe, expect, it } from "vitest";
+	return `import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
 
-import { verifyToken } from "../verify-token.js";
-import { stubFetch } from "./helpers.js";
+import { verifyToken } from "./verify-token.js";
 
 describe("verifyToken", () => {
 	it("returns ok with a subject when /me returns 200", async () => {

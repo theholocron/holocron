@@ -11,9 +11,11 @@
  *   3. Capability sanity — must be one of the 14 known keys; warn for
  *      many-cardinality caps.
  *   4. Generate — for each template, write to
- *      plugins/holocron-plugin-<slug>/<path>.
+ *      plugins/holocron-plugin-<slug>/<path>. Tests sit beside their source;
+ *      tsdown.config.ts is written only when the workspace has no root one.
  *   5. Verify (unless --no-verify) — runs pnpm install +
- *      pnpm --filter <pkg> typecheck lint test.
+ *      pnpm --filter <pkg> verification.typeSafety, sourceQuality.staticAnalysis,
+ *      verification.unitTests.
  *   6. Print next steps.
  */
 
@@ -39,7 +41,6 @@ import { render as renderAuthTest } from "./templates/auth-test.js";
 import { render as renderCapability } from "./templates/capability.js";
 import { render as renderCapabilityTest } from "./templates/capability-test.js";
 import { render as renderEslintConfig } from "./templates/eslint-config.js";
-import { render as renderHelpers } from "./templates/helpers.js";
 import { render as renderIndexTest } from "./templates/index-test.js";
 import { render as renderPackageJson } from "./templates/package-json.js";
 import { render as renderPluginIndex } from "./templates/plugin-index.js";
@@ -73,12 +74,15 @@ export class PluginCreateError extends Error {
 }
 
 const TEMPLATES: TemplateEntry[] = [
-	// Config (5)
+	// Config (4, +1 when the workspace has no root tsdown config)
 	{ path: "package.json", render: renderPackageJson },
 	{ path: "tsconfig.json", render: renderTsconfigJson },
 	{ path: "vitest.config.ts", render: renderVitestConfig },
 	{ path: "eslint.config.ts", render: renderEslintConfig },
-	{ path: "tsdown.config.ts", render: renderTsdownConfig },
+	// A repo-root tsdown.config.ts is found by tsdown walking up from the
+	// package directory, so the package carries its own copy only when the
+	// workspace has no root one (older checkouts, or another repo).
+	{ path: "tsdown.config.ts", render: renderTsdownConfig, when: (cwd) => !hasRootTsdownConfig(cwd) },
 	// Docs (1)
 	{ path: "README.md", render: renderReadme },
 	// Source (5) — capability path uses the dynamic capability slug.
@@ -87,16 +91,20 @@ const TEMPLATES: TemplateEntry[] = [
 	{ path: "src/verify-token.ts", render: renderVerifyToken },
 	{ path: "src/index.ts", render: renderPluginIndex },
 	{ path: "src/capabilities/{{capability}}.ts", render: renderCapability },
-	// Tests (6)
-	{ path: "src/__tests__/helpers.ts", render: renderHelpers },
-	{ path: "src/__tests__/auth.test.ts", render: renderAuthTest },
-	{ path: "src/__tests__/rest.test.ts", render: renderRestTest },
-	{ path: "src/__tests__/verify-token.test.ts", render: renderVerifyTokenTest },
-	{ path: "src/__tests__/{{capability}}.test.ts", render: renderCapabilityTest },
-	{ path: "src/__tests__/index.test.ts", render: renderIndexTest },
+	// Tests (5) — co-located beside the file they cover.
+	{ path: "src/auth.test.ts", render: renderAuthTest },
+	{ path: "src/rest.test.ts", render: renderRestTest },
+	{ path: "src/verify-token.test.ts", render: renderVerifyTokenTest },
+	{ path: "src/capabilities/{{capability}}.test.ts", render: renderCapabilityTest },
+	{ path: "src/index.test.ts", render: renderIndexTest },
 	// Live-account validation script (1) — read-only smoke test.
 	{ path: "scripts/validate.mjs", render: renderValidateScript },
 ];
+
+/** Whether the workspace root carries the shared `tsdown.config.ts`. */
+function hasRootTsdownConfig(cwd: string): boolean {
+	return existsSync(path.join(cwd, "tsdown.config.ts"));
+}
 
 /** Replace `{{capability}}` in a template path with the actual capability key. */
 function resolvePath(template: string, inputs: TemplateInputs): string {
@@ -141,6 +149,7 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 		transport: derived.transport,
 	};
 
+	const templates = TEMPLATES.filter((template) => template.when?.(cwd) ?? true);
 	const filesWritten: string[] = [];
 	print(`Scaffolding @theholocron/holocron-plugin-${inputs.slug}${input.dryRun ? " (dry-run)" : ""}`);
 	print(`  → ${packageDir}`);
@@ -148,7 +157,7 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 		{ slug: inputs.slug, capability: inputs.capability, dryRun: input.dryRun || undefined },
 		"plugin create: start"
 	);
-	for (const template of TEMPLATES) {
+	for (const template of templates) {
 		const resolvedPath = resolvePath(template.path, inputs);
 		const filepath = path.join(packageDir, resolvedPath);
 		const content = template.render(inputs);
@@ -189,7 +198,7 @@ export function runPluginCreate(input: RunPluginCreateInput): PluginCreateReport
 	}
 
 	if (!input.dryRun) {
-		printNextSteps(print, inputs);
+		printNextSteps(print, inputs, filesWritten.length);
 	}
 
 	logger.info(
@@ -280,20 +289,20 @@ function defaultExec(cmd: string, args: string[], opts: { cwd: string; stdio: "i
 	execFileSync(cmd, args, { cwd: opts.cwd, stdio: opts.stdio });
 }
 
-function printNextSteps(print: (line: string) => void, inputs: TemplateInputs): void {
+function printNextSteps(print: (line: string) => void, inputs: TemplateInputs, filesCount: number): void {
 	print("");
-	print(`  Scaffolded @theholocron/holocron-plugin-${inputs.slug} (18 files).`);
+	print(`  Scaffolded @theholocron/holocron-plugin-${inputs.slug} (${filesCount} files).`);
 	print("");
 	print("  Next:");
 	print(
 		`    1. pnpm install                                                        # picks up the workspace package`
 	);
-	print(`    2. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} typecheck   # green`);
-	print(`    3. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} lint        # green`);
+	print(`    2. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} verification.typeSafety   # green`);
+	print(`    3. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} sourceQuality.staticAnalysis   # green`);
 	print(
-		`    4. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} test        # green (stubs pass, real tests are it.todo)`
+		`    4. pnpm --filter @theholocron/holocron-plugin-${inputs.slug} verification.unitTests   # green (stubs pass, real tests are it.todo)`
 	);
 	print(`    5. Implement ${inputs.capabilityClass} methods in src/capabilities/${inputs.capability}.ts`);
-	print(`    6. Replace it.todo(...) with real tests in src/__tests__/${inputs.capability}.test.ts`);
+	print(`    6. Replace it.todo(...) with real tests in src/capabilities/${inputs.capability}.test.ts`);
 	print("    7. Commit + push when capability is functionally complete.");
 }

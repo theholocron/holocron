@@ -2,11 +2,11 @@ import type { TemplateInputs } from "../template-inputs/index.js";
 
 export function render(inputs: TemplateInputs): string {
 	const factoryName = `create${inputs.vendorName}RestClient`;
-	return `import { describe, expect, it } from "vitest";
+	return `import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
 
-import { ${inputs.capabilityClass} } from "../capabilities/${inputs.capability}.js";
 import { ${factoryName} } from "../rest.js";
-import { stubFetch } from "./helpers.js";
+import { ${inputs.capabilityClass} } from "./${inputs.capability}.js";
 
 // Stub client used by the constructor smoke test. Real capability
 // tests replace this with per-method stubs once implementations land.

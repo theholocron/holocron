@@ -3,10 +3,19 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
 
+// Whether the workspace root "has" a repo-root tsdown.config.ts. Faked so the
+// file count does not depend on the checkout this test happens to run in.
+const rootTsdown = vi.hoisted(() => ({ present: false }));
+
 vi.mock("node:child_process", () => ({ execFileSync: vi.fn() }));
 vi.mock("node:fs", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("node:fs")>();
-	return { ...actual, mkdirSync: vi.fn(), writeFileSync: vi.fn() };
+	return {
+		...actual,
+		existsSync: (p: string) => (p.endsWith("/tsdown.config.ts") ? rootTsdown.present : actual.existsSync(p)),
+		mkdirSync: vi.fn(),
+		writeFileSync: vi.fn(),
+	};
 });
 
 import { fakeLogger } from "@theholocron/observability/testing";
@@ -43,7 +52,8 @@ const BASE_INPUT = {
 };
 
 describe("runPluginCreate — orchestrator", () => {
-	it("emits exactly 18 files (5 config + 1 readme + 5 source + 6 tests + 1 script)", () => {
+	it("emits exactly 17 files (5 config + 1 readme + 5 source + 5 tests + 1 script) without a root tsdown config", () => {
+		rootTsdown.present = false;
 		const fs = makeFakeFs();
 		const log = fakeLogger();
 		const report = runPluginCreate({
@@ -53,16 +63,53 @@ describe("runPluginCreate — orchestrator", () => {
 			logger: log,
 		});
 		expect(report.status).toBe("ok");
-		expect(report.filesWritten).toHaveLength(18);
-		expect(fs.size()).toBe(18);
+		expect(report.filesWritten).toHaveLength(17);
+		expect(fs.size()).toBe(17);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ slug: BASE_INPUT.slug }),
 			"plugin create: start"
 		);
 		expect(log.info).toHaveBeenCalledWith(
-			expect.objectContaining({ files: 18, status: "ok" }),
+			expect.objectContaining({ files: 17, status: "ok" }),
 			"plugin create: done"
 		);
+	});
+
+	it("omits the per-package tsdown.config.ts when the workspace has a root one", () => {
+		rootTsdown.present = true;
+		const fs = makeFakeFs();
+		try {
+			const report = runPluginCreate({ ...BASE_INPUT, writeFile: fs.writeFile, print: () => {} });
+			expect(report.filesWritten).toHaveLength(16);
+			expect(report.filesWritten).not.toContain("tsdown.config.ts");
+			expect(fs.paths().some((p) => p.endsWith("tsdown.config.ts"))).toBe(false);
+		} finally {
+			rootTsdown.present = false;
+		}
+	});
+
+	it("writes the library-preset tsdown.config.ts when the workspace has no root one", () => {
+		rootTsdown.present = false;
+		const fs = makeFakeFs();
+		runPluginCreate({ ...BASE_INPUT, writeFile: fs.writeFile, print: () => {} });
+		const file = fs.paths().find((p) => p.endsWith("tsdown.config.ts"));
+		expect(fs.get(file!)).toBe('export { default } from "@theholocron/tsdown-config/presets/library";\n');
+	});
+
+	it("co-locates tests beside their source and writes no __tests__ directory", () => {
+		const fs = makeFakeFs();
+		runPluginCreate({ ...BASE_INPUT, capability: "vault", writeFile: fs.writeFile, print: () => {} });
+		const rel = fs.paths().map((p) => p.slice(p.indexOf("src/")));
+		for (const test of [
+			"src/auth.test.ts",
+			"src/rest.test.ts",
+			"src/verify-token.test.ts",
+			"src/index.test.ts",
+			"src/capabilities/vault.test.ts",
+		]) {
+			expect(rel).toContain(test);
+		}
+		expect(fs.paths().some((p) => p.includes("__tests__"))).toBe(false);
 	});
 
 	it("resolves {{capability}} in paths to the chosen capability key", () => {
@@ -74,7 +121,7 @@ describe("runPluginCreate — orchestrator", () => {
 			print: () => {},
 		});
 		expect(fs.paths().some((p) => p.endsWith("src/capabilities/vault.ts"))).toBe(true);
-		expect(fs.paths().some((p) => p.endsWith("src/__tests__/vault.test.ts"))).toBe(true);
+		expect(fs.paths().some((p) => p.endsWith("src/capabilities/vault.test.ts"))).toBe(true);
 		expect(fs.paths().every((p) => !p.includes("{{capability}}"))).toBe(true);
 	});
 
@@ -88,7 +135,7 @@ describe("runPluginCreate — orchestrator", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(fs.size()).toBe(0);
-		expect(report.filesWritten).toHaveLength(18);
+		expect(report.filesWritten).toHaveLength(17);
 	});
 
 	it("preflight fails when CWD is not a workspace root", () => {
@@ -195,7 +242,7 @@ describe("runPluginCreate — orchestrator", () => {
 });
 
 describe("Rendered content sanity", () => {
-	it("package.json contains the plugin name, tsdown build, workspace peer dep", () => {
+	it("package.json matches the existing plugins: direct tool scripts, workspace:^ in-repo deps", () => {
 		const fs = makeFakeFs();
 		runPluginCreate({
 			...BASE_INPUT,
@@ -210,6 +257,31 @@ describe("Rendered content sanity", () => {
 		expect(content).toMatch(/@theholocron\/holocron-plugin-acme/);
 		expect(content).toMatch(/"peerDependencies":\s*{\s*"@theholocron\/cli":/);
 		expect(content).toMatch(/"delivery\.build":\s*"tsdown"/);
+		const pkgJson = JSON.parse(content) as {
+			scripts: Record<string, string>;
+			devDependencies: Record<string, string>;
+			peerDependencies: Record<string, string>;
+			repository: { directory: string };
+		};
+		expect(pkgJson.scripts).toMatchObject({
+			"sourceQuality.staticAnalysis": "eslint .",
+			"verification.typeSafety": "tsc --noEmit",
+			"verification.unitTests": "vitest run",
+		});
+		expect(content).not.toMatch(/holocron run/);
+		expect(pkgJson.devDependencies).toMatchObject({
+			"@theholocron/cli": "workspace:*",
+			"@theholocron/http-client": "workspace:^",
+			"@theholocron/misc-utils": "workspace:^",
+			"@theholocron/tsconfig": "workspace:^",
+			"@theholocron/tsdown-config": "workspace:^",
+			"@theholocron/vitest-config": "workspace:^",
+		});
+		expect(pkgJson.peerDependencies).toEqual({
+			"@theholocron/cli": "workspace:*",
+			"@theholocron/misc-utils": "catalog:utils",
+		});
+		expect(pkgJson.repository.directory).toBe("plugins/holocron-plugin-acme");
 	});
 
 	it("auth.ts uses the 4-step precedence with keyring + custom env vars", () => {
@@ -239,7 +311,7 @@ describe("Rendered content sanity", () => {
 			writeFile: fs.writeFile,
 			print: () => {},
 		});
-		const restTest = fs.get(fs.paths().find((p) => p.endsWith("src/__tests__/rest.test.ts"))!)!;
+		const restTest = fs.get(fs.paths().find((p) => p.endsWith("src/rest.test.ts"))!)!;
 		// The trimming test expects `client.baseUrl` to equal the normalized
 		// URL. If baseUrl had leaked in with a trailing slash, the assertion
 		// would embed it and fail against the client's own trim.
