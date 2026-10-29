@@ -12,7 +12,7 @@ related:
 # Sentinel — minimal GitHub App v1
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672)
-(`.notes/tech-holocron-platform.spec.md`). Covers D2, D4, D6, D8, D10 and the
+(`docs/wiki/specifications/tech-holocron-platform.spec.md`). Covers D2, D4, D6, D8, D10 and the
 "Phase B" section of that spec in full detail.
 
 **Sentinel** is this project's name for the package — a sentinel droid
@@ -150,7 +150,7 @@ shipped, in what order.
   #683–#686. The App validates against the renamed schema.
 - Custom-properties sync expansion (#677) — **shipped**, merged to alpha via
   #714/#716 (the second PR fixed a real `multi_select`/length-limit bug the
-  first one's design missed — see `.notes/tech-holocron-platform.spec.md`'s
+  first one's design missed — see `docs/wiki/specifications/tech-holocron-platform.spec.md`'s
   "Custom-properties sync — field definitions" section). The App extends
   this mechanism rather than building its own.
 

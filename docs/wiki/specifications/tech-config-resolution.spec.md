@@ -11,7 +11,7 @@ related:
 # Config resolution — zero committed tool-config files (three-bucket)
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672)
-(`.notes/tech-holocron-platform.spec.md`). Covers D7 and the "Config
+(`docs/wiki/specifications/tech-holocron-platform.spec.md`). Covers D7 and the "Config
 resolution" section of that spec in full detail.
 
 ## Problem

@@ -20,7 +20,7 @@ Three specs already exist for adjacent pieces of this. This one doesn't
 replace them — it's the next phase, built on top, with exactly one explicit
 amendment called out below (D6-amended).
 
-- **`.notes/tech-holocron-platform.spec.md`** (epic #672) — the parent spec.
+- **`docs/wiki/specifications/tech-holocron-platform.spec.md`** (epic #672) — the parent spec.
   Named the root problem ("repos own configuration that should be
   platform-owned"), designed the intent vocabulary rename (D3, shipped),
   custom-properties sync (D5, shipped — `holocron_profile`/
