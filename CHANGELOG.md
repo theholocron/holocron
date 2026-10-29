@@ -1,3 +1,18 @@
+## [5.0.0-alpha.245](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.244...v5.0.0-alpha.245) (2026-10-29)
+
+### Bug Fixes
+
+* **astromech:** 🐛 load the wrapped release plugins the way semantic-release does ([#1261](https://github.com/theholocron/holocron/issues/1261)) ([b6ad3e5](https://github.com/theholocron/holocron/commit/b6ad3e551302a43ffa19f71678cb35e77407e142))
+
+### Documentation
+
+* **skills:** 📝 move the skill pages into the docs site ([52eea91](https://github.com/theholocron/holocron/commit/52eea916cec61ca5cec08b7d090720c35f2b6286)), closes [#1208](https://github.com/theholocron/holocron/issues/1208)
+
+### Chores
+
+* **skills:** 🔧 adapt the imported package to the workspace ([c2fd6b5](https://github.com/theholocron/holocron/commit/c2fd6b569e67e5abca8a8f208fe09bc52e9a9daa)), closes [#1208](https://github.com/theholocron/holocron/issues/1208)
+* **skills:** 🔧 satisfy the package.json lint rules ([9d08d2a](https://github.com/theholocron/holocron/commit/9d08d2a00ffe02bb059452620bea9594bc98a8ac)), closes [#1208](https://github.com/theholocron/holocron/issues/1208)
+
 ## [5.0.0-alpha.244](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.243...v5.0.0-alpha.244) (2026-10-29)
 
 ### Bug Fixes
