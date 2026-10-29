@@ -147,6 +147,7 @@ catalogs:
     "@theholocron/markdownlint-config": ^8.8.2
     "@theholocron/prettier-config": ^8.8.2
     "@theholocron/semantic-release-config": ^8.8.2
+
 # @sentry/node and posthog-node are pinned exactly so every consumer resolves the
 # same version. @theholocron/http-client peers on both, and pnpm creates a
 # SEPARATE physical http-client instance per distinct peer-resolved version set
