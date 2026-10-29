@@ -32,6 +32,16 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: false
         default: ""
+      from-branch-tip:
+        description: >
+          When true, an ungrouped release starts from the branch's current tip
+          instead of the commit that triggered the workflow. Set it when the
+          repo-wide release runs after the version groups, whose release
+          commits have moved the branch (semantic-release refuses to run
+          behind its remote). A group always starts from the tip.
+        type: boolean
+        required: false
+        default: false
       post-release:
         description: >
           When true, dispatches a readme sync broadcast after a successful
@@ -132,8 +142,9 @@ jobs:
           # A group's release commit moves the branch, so a later group's run must
           # release from the branch's current tip, not the commit that triggered the
           # workflow (semantic-release refuses to run behind its remote). Ungrouped,
-          # the default (the triggering commit) is unchanged.
-          ref: ${{ inputs.group != '' && github.ref || github.sha }}
+          # the default (the triggering commit) is unchanged, unless `from-branch-tip`
+          # says the groups ran first.
+          ref: ${{ (inputs.group != '' || inputs.from-branch-tip) && github.ref || github.sha }}
           # Use HOLOCRON_RELEASE_TOKEN when available — git push (tags, release commits)
           # uses the checkout credential, not GITHUB_TOKEN env var. The
           # built-in github.token cannot push through branch protection rulesets.
