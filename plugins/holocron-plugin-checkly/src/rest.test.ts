@@ -2,7 +2,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { createChecklyClient } from "../rest.js";
+import { createChecklyClient } from "./rest.js";
 
 const DEFAULT_BASE_URL = "https://api.checklyhq.com/v1";
 

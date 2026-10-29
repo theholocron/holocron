@@ -1,8 +1,8 @@
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { ChecklyMonitoring } from "../capabilities/monitoring.js";
 import { createChecklyClient, DISCORD_TEMPLATE } from "../rest.js";
+import { ChecklyMonitoring } from "./monitoring.js";
 
 function makeCapability(
 	responses: Array<{ status?: number; body?: unknown }>,
