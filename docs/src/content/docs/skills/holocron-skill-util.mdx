@@ -1,20 +1,22 @@
 ---
 title: holocron-skill-util
-description: Scaffold a new @theholocron/<slug>-utils package in theholocron/utils.
+description: Scaffold a new @theholocron/<slug>-utils package in the utils folder of theholocron/holocron.
 ---
 
-Scaffolds a new utility package in `theholocron/utils`.
+Scaffolds a new utility package in `utils/` of `theholocron/holocron`. The standalone `theholocron/utils` repo is archived.
 
 **Invoke as:** `/holocron-skill-util`
 
-**Trigger:** user asks to add a new utility package to the utils monorepo.
+**Trigger:** user asks to add a new utility package to the utils group.
 
 ## What it produces
 
-A new `packages/<name>-utils/` directory with standard boilerplate: `package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`, `eslint.config.ts`, and a starter `src/index.ts`.
+A new `utils/<name>-utils/` directory with `package.json`, `tsconfig.json`, one-line `tsdown.config.ts`, `vitest.config.ts`, `README.md`, and a starter `src/index.ts` with tests beside the source (`src/<module>.test.ts`).
 
 ## Key conventions
 
-- Set `version` to match the current lockstep version
-- Add to `.releaserc.json` `prepareCmd` in alphabetical order
-- Add a codecov component entry
+- The `utils/` folder is one version group: set `version` to the group's current version
+- MIT licence, `repository.directory` set, `catalog:configs` / `catalog:` dev dependencies
+- Run `pnpm install`, add a codecov component under `# utils`, then add the docs page, the `utils/index.mdx` row and the sidebar entry in `astro.config.ts`
+- Browser-API packages also add their path to the browser override in the root `eslint.config.ts`
+- Reference implementations: `utils/array-utils` (Node-only), `utils/location-utils` (browser)

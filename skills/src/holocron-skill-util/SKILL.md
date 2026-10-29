@@ -1,30 +1,34 @@
 ---
 name: holocron-skill-util
 title: "Holocron: New Util"
-description: Scaffold a new @theholocron/<slug>-utils package in theholocron/utils. INVOKE WHEN: user asks to add a new utility package to the utils monorepo. Invoked as /holocron-skill-util.
+description: Scaffold a new @theholocron/<slug>-utils package in the utils folder of theholocron/holocron. INVOKE WHEN: user asks to add a new utility package to the utils group. Invoked as /holocron-skill-util.
 ---
 
 <!-- editorconfig-checker-disable-file -->
 
 # Scaffold a new utility package
 
-Scaffold a new `@theholocron/<name>-utils` package in `theholocron/utils`.
+Scaffold a new `@theholocron/<name>-utils` package in `utils/` of `theholocron/holocron`.
+The standalone `theholocron/utils` repo is archived; do not scaffold there.
 
 Replace `<name>` with the utility domain in kebab-case (e.g. `color`, `math`, `format`).
 
-Reference implementations:
+Reference implementations (read their `package.json` and copy the shape if this
+template ever disagrees):
 
-- Node-only package: `packages/string-utils` (canonical, no browser APIs)
-- Browser-API package: `packages/location-utils` (adds DOM lib + eslint override)
+- Node-only package: `utils/array-utils` (smallest) or `utils/string-utils` (has runtime deps)
+- Browser-API package: `utils/location-utils` (DOM lib, happy-dom, eslint override)
 
 ---
 
 ## 1. Create the package directory
 
 ```
-packages/<name>-utils/
+utils/<name>-utils/
 ├── src/
-│   └── index.ts
+│   ├── index.ts
+│   ├── <module>.ts
+│   └── <module>.test.ts
 ├── package.json
 ├── tsdown.config.ts
 ├── tsconfig.json
@@ -32,7 +36,11 @@ packages/<name>-utils/
 └── README.md
 ```
 
-Tests live colocated in `src/` as `*.test.ts` files alongside the source they cover.
+Tests live beside the module they cover (`<module>.test.ts` in `src/`); there is
+no `__tests__` directory. There is no per-package `LICENSE`, `CHANGELOG.md`,
+`eslint.config.ts` (the root config applies) or `.releaserc`. The workspace glob
+`utils/*` in `pnpm-workspace.yaml` already covers the new folder, and knip's
+`utils/*` entry covers `src/index.ts` and `src/**/*.test.ts`.
 
 ---
 
@@ -43,69 +51,86 @@ Tests live colocated in `src/` as `*.test.ts` files alongside the source they co
 ```json
 {
   "name": "@theholocron/<name>-utils",
-  "version": "<current monorepo version>",
+  "version": "<current utils version>",
   "description": "<One-line description.>",
-  "homepage": "https://github.com/theholocron/utils/tree/main/packages/<name>-utils#readme",
-  "bugs": "https://github.com/theholocron/utils/issues",
-  "releases": "https://github.com/theholocron/utils/releases",
-  "wiki": "https://github.com/theholocron/utils/wiki",
+  "keywords": ["<name>", "typescript", "utils"],
+  "homepage": "https://docs.theholocron.dev/holocron/utils/<name>-utils/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/utils.git"
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "utils/<name>-utils"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": ["dist"],
   "scripts": {
-    "build": "tsdown",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "typecheck": "npx tsc --noEmit"
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "devDependencies": {
+    "@theholocron/eslint-config": "catalog:configs",
     "@theholocron/tsdown-config": "catalog:configs",
     "@theholocron/vitest-config": "catalog:configs",
     "@tsconfig/node-lts": "catalog:",
+    "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
     "tsdown": "catalog:",
+    "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "packageManager": "pnpm@10.34.4",
-  "engines": {
-    "node": ">=22",
-    "pnpm": ">=10"
-  },
-  "publishConfig": {
-    "access": "public"
-  }
+  "engines": { "node": ">=22" },
+  "publishConfig": { "access": "public" }
 }
 ```
 
-- **Match `version` to the current monorepo version** — check any existing package's `package.json`.
-- Runtime dependencies (if any) go in `"dependencies"`, not `devDependencies`.
-- Browser-API packages should add `"happy-dom": "catalog:"` to `devDependencies` for tests.
+- **`version`**: read it from any sibling (`utils/array-utils/package.json`). The
+  `utils/` folder is one version group (tags `utils-vX.Y.Z`, one
+  `utils/CHANGELOG.md`); `holocron package bump-versions --group utils` moves
+  every package together at release.
+- **License is MIT** (ADR-0016). No `releases`, `wiki` or `packageManager` fields.
+- `homepage` keeps the full package name (`.../utils/<name>-utils/`).
+- Runtime dependencies (if any) go in `"dependencies"` (`catalog:` for
+  third-party, `workspace:^` for another `utils/` package), not `devDependencies`.
+- Browser-API packages add `"happy-dom": "catalog:"` to `devDependencies`.
 
 ### `tsdown.config.ts`
+
+One line, re-exporting the shared preset:
+
+```ts
+export { default } from "@theholocron/tsdown-config/presets/library";
+```
+
+If the package has runtime dependencies that must stay external, use the preset
+as a function instead (see `utils/string-utils/tsdown.config.ts`):
 
 ```ts
 import { library } from "@theholocron/tsdown-config/presets/library";
 import type { UserConfig } from "tsdown";
 
 const config: UserConfig = library({
-  deps: { neverBundle: [/^@theholocron\//] },
+  deps: { neverBundle: [/^@theholocron\//, /^some-dependency$/] },
 });
 
 export default config;
 ```
-
-If the package has runtime dependencies that should also be externalized, add their patterns to `neverBundle` (e.g. `packages/string-utils` externalizes `change-case` and `title-case`).
 
 ### `tsconfig.json` (Node-only)
 
@@ -147,7 +172,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig(library({ globals: true }) as never);
 ```
 
-`globals: true` is required — tests use `describe`/`test`/`expect` without explicit imports.
+Browser-API packages pass `environment: "happy-dom"` too
+(`library({ globals: true, environment: "happy-dom" })`).
 
 ### `src/index.ts`
 
@@ -158,25 +184,26 @@ export function myUtil(value: string): string {
 }
 ```
 
-Use named exports throughout. Group related utilities into sibling files (`src/casing.ts`, `src/casting.ts`, …) and re-export from `src/index.ts`:
+Use named exports throughout. Group related utilities into sibling files
+(`src/casing.ts`, `src/casting.ts`, …) and re-export from `src/index.ts`:
 
 ```ts
 export * from "./casing.ts";
 export * from "./casting.ts";
 ```
 
-Note: source imports use `.ts` extensions — TypeScript's ESM convention.
+Source imports use `.ts` extensions (`allowImportingTsExtensions`).
 
 ### Test files (`src/<module>.test.ts`)
 
 ```ts
 import { describe, expect, test } from "vitest";
 
-import { myUtil } from "./index.ts";
+import * as util from "./index.ts";
 
 describe("<Name>", () => {
   test("does X", () => {
-    expect(myUtil("input")).toBe("expected");
+    expect(util.myUtil("input")).toBe("expected");
   });
 });
 ```
@@ -197,80 +224,63 @@ pnpm add @theholocron/<name>-utils
 ## Usage
 
 \`\`\`typescript
-import \* as <name> from "@theholocron/<name>-utils";
+import { myUtil } from "@theholocron/<name>-utils";
 
 <minimal working example>
 \`\`\`
-
-## Documentation
-
-Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.
 ```
 
 ---
 
-## 3. Register in `release.config.ts`
+## 3. Monorepo registration
 
-Add the new package path to `prepareCmd` **in alphabetical order**:
-
-```ts
-// release.config.ts
-"node -e \"...['packages/array-utils','packages/<name>-utils',...].forEach(...)\"",
-```
-
----
-
-## 4. Add to `codecov.yml`
-
-Append to `component_management.individual_components` (keep alphabetical):
-
-```yaml
-- component_id: <name>-utils
-  name: "<name>-utils"
-  paths:
-    - packages/<name>-utils/**
-```
-
----
-
-## 5. Browser-API packages only: update root `eslint.config.ts`
-
-Add the new package's source path to the browser override block:
-
-```ts
-// eslint.config.ts — existing override
-files: [
-  "packages/location-utils/src/**",
-  "packages/misc-utils/src/**",
-  "packages/storage-utils/src/**",
-  "packages/<name>-utils/src/**",   // ← add here
-],
-rules: {
-  "n/no-unsupported-features/node-builtins": "off",
-},
-```
+1. Run `pnpm install` from the repo root (links the workspace package, updates
+   `pnpm-lock.yaml`; commit the lockfile).
+2. **Codecov**: add a component under the `# utils` heading of `codecov.yml`
+   (`component_id: <name>-utils`, `paths: utils/<name>-utils/**`), alphabetical.
+   The file is generated by `holocron repo setup` ("write codecov.yml" step,
+   `cli/astromech/src/generators/codecov`); that command needs tokens for its
+   other steps, so add the block by hand in exactly that format.
+3. **Release**: nothing to edit. `release.config.ts` and the `delivery.publish`
+   task in `astromech.config.ts` release the whole `utils` group by folder.
+4. **Browser-API packages only**: add `"utils/<name>-utils/src/**"` to the
+   browser override (`files: [...]`, turning off
+   `n/no-unsupported-features/node-builtins`) in the root `eslint.config.ts`.
+5. **Dependency catalog**: if something outside `utils/` (the CLI, a plugin, a
+   client) will consume it, add it to `catalogs.utils` in `pnpm-workspace.yaml`
+   once it has been published and reference it as `catalog:utils`.
+6. **Docs**: add `docs/src/content/docs/utils/<name>-utils.mdx` (frontmatter
+   `title`, `description`; copy `array-utils.mdx`), a row in
+   `docs/src/content/docs/utils/index.mdx`, and
+   `{ label: "<name>-utils", slug: "utils/<name>-utils" }` to the Utils group of
+   the sidebar in the root `astro.config.ts` (alphabetical).
 
 ---
 
 ## Non-negotiables
 
-- **`catalog:configs`** for `@theholocron/tsdown-config` and `@theholocron/vitest-config`; `catalog:` for everything else — never pin exact versions.
+- **`catalog:configs`** for `@theholocron/tsdown-config`, `@theholocron/vitest-config`,
+  `@theholocron/eslint-config`; `catalog:` for everything else — never pin exact versions.
 - **`tsdown` and `vitest` must be direct `devDependencies`** — pnpm does not expose transitive binaries.
-- **`globals: true`** in every `vitest.config.ts` — required by existing test style.
-- **Match version to current monorepo version** before opening a PR.
-- **Run `pnpm install`** after adding `package.json` to pick up workspace resolution.
+- **`globals: true`** in every `vitest.config.ts` — tests use `describe`/`test`/`expect`.
+- **Match `version` to the utils group** before opening a PR.
+- Tests beside the source; no `__tests__` directory.
 
 ---
 
 ## Checklist
 
-1. Create `packages/<name>-utils/` with all files listed above.
-2. Add package path to `prepareCmd` in `release.config.ts` (alphabetical order).
-3. Add `component_id` entry to `codecov.yml` (alphabetical order).
-4. If browser-API package: add `"lib"` to tsconfig + add path to root `eslint.config.ts` override.
-5. Run `pnpm install` — must resolve without errors.
-6. Run `pnpm build` — tsdown must compile successfully.
-7. Run `pnpm test` — all tests must pass.
-8. Run `pnpm typecheck` — no type errors.
-9. Run `pnpm lint` — no lint errors.
-10. Open a PR with a `feat:` commit — semantic-release computes a minor bump and publishes all packages in lockstep.
+1. Create `utils/<name>-utils/` with all files listed above.
+2. `pnpm install` — must resolve without errors; lockfile committed.
+3. `pnpm --filter @theholocron/<name>-utils` run `delivery.build`,
+   `verification.unitTests`, `verification.typeSafety` and
+   `sourceQuality.staticAnalysis` — all must pass.
+4. Add the `codecov.yml` component (alphabetical).
+5. Browser-API package: `"lib"` in tsconfig, happy-dom, and the root
+   `eslint.config.ts` override path.
+6. Add the docs page, `utils/index.mdx` row and sidebar entry.
+7. `holocron run ci` passes.
+8. Open a PR with a `feat(utils):` commit, signed with `-s` — semantic-release
+   computes the next `utils-v*` version and publishes the group in lockstep.
+   The first publish of a brand-new package needs
+   `holocron package publish --initial --group utils` run by a maintainer.

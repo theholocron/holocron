@@ -22,7 +22,7 @@ import {} from "@theholocron/skills";
 
 <!-- /holocron:installation -->
 
-Each skill is a directory under `skills/` containing a `SKILL.md` file that Claude Code (and compatible
+Each skill is a directory under `skills/src/` containing a `SKILL.md` file that Claude Code (and compatible
 agents) can load as a slash command.
 
 ## Owned skills
@@ -40,13 +40,13 @@ Skills authored and maintained in this repo. Published inside the npm package.
 
 ### Project-specific (theholocron)
 
-| Skill                                                           | Description                                                             |
-| --------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [`holocron-skill-config`](./src/holocron-skill-config/SKILL.md) | Scaffold a new `@theholocron/*-config` package in `theholocron/configs` |
-| [`holocron-skill-client`](./src/holocron-skill-client/SKILL.md) | Scaffold a new `@theholocron/*-client` package in `theholocron/clients` |
-| [`holocron-skill-plugin`](./src/holocron-skill-plugin/SKILL.md) | Scaffold or migrate a new `holocron-plugin-*` package                   |
-| [`holocron-skill-util`](./src/holocron-skill-util/SKILL.md)     | Scaffold a new `@theholocron/*-utils` package in `theholocron/utils`    |
-| [`holocron-skill-skill`](./src/holocron-skill-skill/SKILL.md)   | Add a new owned skill to `theholocron/skills`                           |
+| Skill                                                           | Description                                                  |
+| --------------------------------------------------------------- | ------------------------------------------------------------ |
+| [`holocron-skill-config`](./src/holocron-skill-config/SKILL.md) | Scaffold a new `@theholocron/*-config` package in `configs/` |
+| [`holocron-skill-client`](./src/holocron-skill-client/SKILL.md) | Scaffold a new `@theholocron/*-client` package in `clients/` |
+| [`holocron-skill-plugin`](./src/holocron-skill-plugin/SKILL.md) | Scaffold or migrate a new `holocron-plugin-*` package        |
+| [`holocron-skill-util`](./src/holocron-skill-util/SKILL.md)     | Scaffold a new `@theholocron/*-utils` package in `utils/`    |
+| [`holocron-skill-skill`](./src/holocron-skill-skill/SKILL.md)   | Add a new owned skill to `skills/`                           |
 
 ## External skills
 
@@ -96,7 +96,7 @@ GITHUB_TOKEN=$(gh auth token) pnpm exec holocron setup
 Copy a skill directory into your project's `.agents/skills/` and symlink it:
 
 ```sh
-cp -r node_modules/@theholocron/skills/skills/git-safety .agents/skills/
+cp -r node_modules/@theholocron/skills/src/git-safety .agents/skills/
 ln -s ../../.agents/skills/git-safety .claude/skills/git-safety
 ```
 
@@ -112,7 +112,7 @@ Add both to `.gitignore`:
 
 ### Adding an owned skill
 
-1. Create `skills/<name>/SKILL.md` with the frontmatter format:
+1. Create `skills/src/<name>/SKILL.md` with the frontmatter format:
 
    ```markdown
    ---
@@ -125,9 +125,9 @@ Add both to `.gitignore`:
    …
    ```
 
-2. Run `pnpm test` — the smoke test checks that every skill dir has a `SKILL.md`.
-3. Update this README with a row in the owned skills table.
-4. Open a PR with a `feat:` commit — semantic-release handles versioning.
+2. Run `pnpm --filter @theholocron/skills verification.unitTests` — the smoke test checks that every skill dir has a `SKILL.md`.
+3. Update this README with a row in the owned skills table, and add the docs page (`docs/src/content/docs/skills/<name>.mdx`), its row in `skills/index.mdx` and its sidebar entry in `astro.config.ts`.
+4. Open a PR with a `feat(skills):` commit — semantic-release handles versioning.
 
 ### Registering an external skill
 
