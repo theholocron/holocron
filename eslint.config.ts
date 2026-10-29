@@ -19,6 +19,14 @@ export default [
 		},
 	},
 	{
+		files: ["skills/package.json"],
+		rules: {
+			// the CLI resolves the package root through require.resolve("@theholocron/skills/package.json"),
+			// so the export must stay; npm always packs package.json, which no-redundant-files knows and this rule does not
+			"package-json/prefer-files-field": "off",
+		},
+	},
+	{
 		ignores: ["cli/*/dist/**", "cli/*/coverage/**", "**/node_modules/**"],
 	},
 ] satisfies Linter.Config[];
