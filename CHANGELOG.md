@@ -1,3 +1,9 @@
+## [5.0.0-alpha.252](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.251...v5.0.0-alpha.252) (2026-10-29)
+
+### Features
+
+* **astromech:** ✨ let the ungrouped release start from the branch tip ([#1366](https://github.com/theholocron/holocron/issues/1366)) ([b137b01](https://github.com/theholocron/holocron/commit/b137b0181fbfce8956cf6e0443a660303e0666ef)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+
 ## [5.0.0-alpha.251](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.250...v5.0.0-alpha.251) (2026-10-29)
 
 ### Refactoring
