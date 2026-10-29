@@ -138,6 +138,10 @@ export default defineConfig({
 				],
 			},
 			{
+				label: "Themes",
+				items: [{ label: "docs-theme", slug: "themes/docs-theme" }],
+			},
+			{
 				label: "Legal",
 				items: [
 					{ label: "Terms of Service", slug: "legal/terms" },
