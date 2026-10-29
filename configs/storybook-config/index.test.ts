@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 // Mock all peer deps before the module under test is imported.
 // vi.mock calls are hoisted by vitest so the factories run before any import.
@@ -44,6 +44,27 @@ describe("storybook-config", () => {
 	it("exports storybookTestRunner with preVisit and postVisit hooks", () => {
 		expect(typeof config.storybookTestRunner.preVisit).toBe("function");
 		expect(typeof config.storybookTestRunner.postVisit).toBe("function");
+	});
+
+	it("preVisit injects axe into the page", async () => {
+		const { injectAxe } = await import("axe-playwright");
+		const page = {} as never;
+
+		await config.storybookTestRunner.preVisit(page);
+
+		expect(injectAxe).toHaveBeenCalledWith(page);
+	});
+
+	it("postVisit checks the accessibility of the storybook root with a detailed HTML report", async () => {
+		const { checkA11y } = await import("axe-playwright");
+		const page = {} as never;
+
+		await config.storybookTestRunner.postVisit(page);
+
+		expect(checkA11y).toHaveBeenCalledWith(page, "#storybook-root", {
+			detailedReport: true,
+			detailedReportOptions: { html: true },
+		});
 	});
 
 	it("exports setProjectAnnotations and initMSW functions", () => {

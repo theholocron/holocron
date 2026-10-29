@@ -1,4 +1,4 @@
-import { vi, describe, it, expect } from "vitest";
+import { describe, expect,it, vi } from "vitest";
 
 // storybook() does a dynamic import of this plugin which resolves the .storybook
 // directory at call time — mock it so the preset is testable in isolation.
@@ -6,8 +6,8 @@ vi.mock("@storybook/addon-vitest/vitest-plugin", () => ({
 	storybookTest: vi.fn(() => ({ name: "storybook-vitest-plugin" })),
 }));
 
-import { coverage, node, react, storybook } from "./index.js";
 import { library } from "./bundles/library.js";
+import { coverage, node, react, storybook } from "./index.js";
 
 describe("vitest-config — presets", () => {
 	it("node() returns config with node environment", () => {

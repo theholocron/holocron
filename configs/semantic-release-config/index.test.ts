@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { commitAnalyzer, releaseNotesGenerator, defineConfig } from "./index.js";
+import { describe, expect, it } from "vitest";
+
+import { commitAnalyzer, defineConfig, releaseNotesGenerator } from "./index.js";
 
 describe("semantic-release-config", () => {
 	describe("commitAnalyzer", () => {
@@ -51,6 +52,14 @@ describe("semantic-release-config", () => {
 				{ assets: string[] },
 			];
 			expect(git[1].assets).toContain("packages/*/package.json");
+		});
+
+		it("adds @semantic-release/exec before git when exec options are given", () => {
+			const exec = { prepareCmd: "pnpm build", publishCmd: "pnpm publish" };
+			const config = defineConfig({ exec }) as { plugins: unknown[] };
+			const names = config.plugins.map((p) => (Array.isArray(p) ? p[0] : p));
+			expect(config.plugins[names.indexOf("@semantic-release/exec")]).toEqual(["@semantic-release/exec", exec]);
+			expect(names.indexOf("@semantic-release/exec")).toBeLessThan(names.indexOf("@semantic-release/git"));
 		});
 
 		describe("npm option", () => {

@@ -66,6 +66,16 @@ describe("eslint-config — individual configs", () => {
 			expect(gitignore?.ignores).toContain("**/dist/");
 		});
 
+		it("adds no gitignore config when nothing between cwd and the filesystem root has a .gitignore or .git", () => {
+			originalCwd = process.cwd();
+			tmpDir = mkdtempSync(join(tmpdir(), "eslint-config-no-gitignore-"));
+			process.chdir(tmpDir);
+
+			const config = base();
+			const gitignore = config.find((c) => "name" in c && c.name === "@theholocron/gitignore");
+			expect(gitignore).toBeUndefined();
+		});
+
 		it("finds a .gitignore in a parent directory when cwd itself has none", () => {
 			originalCwd = process.cwd();
 			tmpDir = mkdtempSync(join(tmpdir(), "eslint-config-gitignore-parent-"));

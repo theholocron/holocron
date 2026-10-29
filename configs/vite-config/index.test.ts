@@ -1,5 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { library, reactApp, reactLibrary, nodeApp } from "./index.js";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { library, nodeApp, reactApp, reactLibrary } from "./index.js";
+import { getPackageName } from "./presets/get-package-name.js";
 
 describe("vite-config", () => {
 	describe("library preset", () => {
@@ -7,6 +13,12 @@ describe("vite-config", () => {
 			const config = await library();
 			expect(typeof config).toBe("object");
 			expect(config.build?.lib).toBeDefined();
+		});
+
+		it("names the bundle index.mjs", async () => {
+			const lib = (await library()).build?.lib;
+			const fileName = lib && "fileName" in lib ? lib.fileName : undefined;
+			expect((fileName as () => string)()).toBe("index.mjs");
 		});
 
 		it("outputs ESM only", async () => {
@@ -64,10 +76,9 @@ describe("vite-config", () => {
 			const lib = config.build?.lib;
 			const fileName = lib && "fileName" in lib ? lib.fileName : undefined;
 			expect(typeof fileName).toBe("function");
-			if (typeof fileName === "function") {
-				expect(fileName("es", "index")).toBe("my-lib.es.js");
-				expect(fileName("cjs", "index")).toBe("my-lib.cjs.js");
-			}
+			const toFileName = fileName as (format: string, entry: string) => string;
+			expect(toFileName("es", "index")).toBe("my-lib.es.js");
+			expect(toFileName("cjs", "index")).toBe("my-lib.cjs.js");
 		});
 
 		it("sets @ alias to <cwd>/src by default", async () => {
@@ -89,6 +100,42 @@ describe("vite-config", () => {
 		it("returns a vite config targeting node22", async () => {
 			const config = await nodeApp();
 			expect(config.build?.target).toBe("node22");
+		});
+
+		it("names the bundle index.mjs", async () => {
+			const lib = (await nodeApp()).build?.lib;
+			const fileName = lib && "fileName" in lib ? lib.fileName : undefined;
+			expect((fileName as () => string)()).toBe("index.mjs");
+		});
+	});
+
+	describe("getPackageName", () => {
+		let dir: string;
+		let originalCwd: string;
+
+		beforeEach(() => {
+			originalCwd = process.cwd();
+			dir = mkdtempSync(join(tmpdir(), "vite-config-package-name-"));
+			process.chdir(dir);
+		});
+
+		afterEach(() => {
+			process.chdir(originalCwd);
+			rmSync(dir, { recursive: true, force: true });
+		});
+
+		it("reads the name from the package.json in the working directory", () => {
+			writeFileSync(join(dir, "package.json"), JSON.stringify({ name: "@acme/thing" }));
+			expect(getPackageName()).toBe("@acme/thing");
+		});
+
+		it("is 'unknown' when the package.json has no name", () => {
+			writeFileSync(join(dir, "package.json"), JSON.stringify({ version: "1.0.0" }));
+			expect(getPackageName()).toBe("unknown");
+		});
+
+		it("is 'unknown' when there is no readable package.json", () => {
+			expect(getPackageName()).toBe("unknown");
 		});
 	});
 

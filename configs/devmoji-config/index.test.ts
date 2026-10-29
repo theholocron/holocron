@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { defineConfig, type DevmojiConfig } from "./index.js";
+
 import defaultConfig from "./index.js";
+import { defineConfig, type DevmojiConfig } from "./index.js";
 
 describe("defineConfig()", () => {
 	it("returns a valid DevmojiConfig", () => {
