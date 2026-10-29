@@ -71,6 +71,25 @@ export default defineConfig({
 				],
 			},
 			{
+				label: "Utils",
+				items: [
+					{ label: "Overview", slug: "utils" },
+					{ label: "array-utils", slug: "utils/array-utils" },
+					{ label: "date-time-utils", slug: "utils/date-time-utils" },
+					{ label: "env-utils", slug: "utils/env-utils" },
+					{ label: "fs-utils", slug: "utils/fs-utils" },
+					{ label: "git-utils", slug: "utils/git-utils" },
+					{ label: "json-utils", slug: "utils/json-utils" },
+					{ label: "location-utils", slug: "utils/location-utils" },
+					{ label: "misc-utils", slug: "utils/misc-utils" },
+					{ label: "object-utils", slug: "utils/object-utils" },
+					{ label: "pkg-utils", slug: "utils/pkg-utils" },
+					{ label: "storage-utils", slug: "utils/storage-utils" },
+					{ label: "string-utils", slug: "utils/string-utils" },
+					{ label: "uri-utils", slug: "utils/uri-utils" },
+				],
+			},
+			{
 				label: "Legal",
 				items: [
 					{ label: "Terms of Service", slug: "legal/terms" },
