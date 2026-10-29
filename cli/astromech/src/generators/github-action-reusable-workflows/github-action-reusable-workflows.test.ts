@@ -634,7 +634,13 @@ describe("delivery.publish.yml version groups", () => {
 	});
 
 	it("releases a group from the branch's current tip, and an ungrouped repo from the triggering commit", () => {
-		expect(wf).toContain("ref: ${{ inputs.group != '' && github.ref || github.sha }}");
+		expect(wf).toContain("ref: ${{ (inputs.group != '' || inputs.from-branch-tip) && github.ref || github.sha }}");
+	});
+
+	it("lets an ungrouped release start from the branch's tip too, off by default, for when the groups ran first", () => {
+		expect(wf).toMatch(
+			/\n {6}from-branch-tip:\n(?: {8}.*\n)*? {8}type: boolean\n {8}required: false\n {8}default: false\n/
+		);
 	});
 
 	it("scopes every tag lookup to the group's `<group>-v*` tags, not just the release step's", () => {
