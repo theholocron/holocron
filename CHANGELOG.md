@@ -1,3 +1,13 @@
+## [5.0.0-alpha.246](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.245...v5.0.0-alpha.246) (2026-10-29)
+
+### Features
+
+* **cli:** ✨ export the holocron-config presets from the CLI ([#1272](https://github.com/theholocron/holocron/issues/1272)) ([f7332f2](https://github.com/theholocron/holocron/commit/f7332f2e93677ab2e41a3525b71025599db279e8)), closes [#1271](https://github.com/theholocron/holocron/issues/1271) [#1229](https://github.com/theholocron/holocron/issues/1229)
+
+### Documentation
+
+* **adr:** 📝 ADR-0016 MIT as the unified license ([#1269](https://github.com/theholocron/holocron/issues/1269)) ([f64328c](https://github.com/theholocron/holocron/commit/f64328cdb7096f150d76ed839886b3271cb41000)), closes [#1206](https://github.com/theholocron/holocron/issues/1206)
+
 ## [5.0.0-alpha.245](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.244...v5.0.0-alpha.245) (2026-10-29)
 
 ### Bug Fixes
