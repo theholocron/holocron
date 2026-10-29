@@ -1,0 +1,181 @@
+## [1.10.4](https://github.com/theholocron/themes/compare/v1.10.3...v1.10.4) (2026-09-15)
+
+### Bug Fixes
+
+* 🐛 drop stale npm prefix from release prepareCmd ([#113](https://github.com/theholocron/themes/issues/113)) ([e896a00](https://github.com/theholocron/themes/commit/e896a0028ea47fcc9775f7d488872df1a59a1060))
+
+### Refactoring
+
+* migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/themes/issues/672)) ([#111](https://github.com/theholocron/themes/issues/111)) ([191c765](https://github.com/theholocron/themes/commit/191c765aa6bb12cc681a61397db3dd040d05622c)), closes [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
+## [1.10.3](https://github.com/theholocron/themes/compare/v1.10.2...v1.10.3) (2026-09-12)
+
+### Bug Fixes
+
+- 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#107](https://github.com/theholocron/themes/issues/107)) ([63ad542](https://github.com/theholocron/themes/commit/63ad5423be0f4fa13c9f59307132bbbea0d62622))
+
+### Chores
+
+- 🔧 sync from holocron.config ([#105](https://github.com/theholocron/themes/issues/105)) ([5cfa330](https://github.com/theholocron/themes/commit/5cfa33050da8167644c9c591c38c18d1cf034895))
+
+## [1.10.2](https://github.com/theholocron/themes/compare/v1.10.1...v1.10.2) (2026-09-11)
+
+### Bug Fixes
+
+- **hooks:** 🐛 scope pre-commit GitLeaks scan to staged changes ([#106](https://github.com/theholocron/themes/issues/106)) ([350e791](https://github.com/theholocron/themes/commit/350e791721409131d175bf6197aafdef78c1535c))
+
+### Chores
+
+- ⬆️ migrate to @theholocron/cli 4.16.2 + holocron-config 8.x ([#103](https://github.com/theholocron/themes/issues/103)) ([12473b0](https://github.com/theholocron/themes/commit/12473b013fd136f9337af5de2b98eb1f23270171)), closes [#647](https://github.com/theholocron/themes/issues/647)
+- 🔧 holocron setup — ruleset + workflow/config sync ([#104](https://github.com/theholocron/themes/issues/104)) ([439be97](https://github.com/theholocron/themes/commit/439be975a4c528337b41645639b611ee547a7494)), closes [#647](https://github.com/theholocron/themes/issues/647) [#649](https://github.com/theholocron/themes/issues/649) [#649](https://github.com/theholocron/themes/issues/649) [#647](https://github.com/theholocron/themes/issues/647)
+
+## [1.10.1](https://github.com/theholocron/themes/compare/v1.10.0...v1.10.1) (2026-09-08)
+
+### Chores
+
+- **deps:** Bump @types/node from 24.13.3 to 26.4.1 ([#101](https://github.com/theholocron/themes/issues/101)) ([3be9e0a](https://github.com/theholocron/themes/commit/3be9e0a50b07d455e06dee79baef22c33c77d5a5))
+- **deps:** Bump globals from 15.15.0 to 17.12.0 ([#99](https://github.com/theholocron/themes/issues/99)) ([b9499e0](https://github.com/theholocron/themes/commit/b9499e0d3c64b937af535294871963de9ca34420))
+
+## [1.10.0](https://github.com/theholocron/themes/compare/v1.9.3...v1.10.0) (2026-09-06)
+
+### Features
+
+- ✨ add wiki navbar links ([#96](https://github.com/theholocron/themes/issues/96)) ([d6b4988](https://github.com/theholocron/themes/commit/d6b4988b4eb4aa6a53648b7e3813f5685cc75bb4))
+
+### Chores
+
+- ✨ add wiki icon and bump Fern to 5.114.1 ([#93](https://github.com/theholocron/themes/issues/93)) ([5dc30a9](https://github.com/theholocron/themes/commit/5dc30a92d33ea1b71976d50d3ae2c68d1e30730e))
+- 🗑️ remove orphaned workflow files ([#92](https://github.com/theholocron/themes/issues/92)) ([ed07aa4](https://github.com/theholocron/themes/commit/ed07aa45241890c96ae7c466c2060d43594d0a95))
+- sync README and repo metadata ([#91](https://github.com/theholocron/themes/issues/91)) ([639407c](https://github.com/theholocron/themes/commit/639407c4204dd5c11b35fc4806cff235ee9e12b8))
+
+## [1.9.3](https://github.com/theholocron/themes/compare/v1.9.2...v1.9.3) (2026-09-02)
+
+### Chores
+
+- **deps:** Bump the all-dependencies group across 1 directory with 7 updates ([#88](https://github.com/theholocron/themes/issues/88)) ([4328c2e](https://github.com/theholocron/themes/commit/4328c2e1eedafb9192c6589c93257918c42ce52b))
+
+## [1.9.2](https://github.com/theholocron/themes/compare/v1.9.1...v1.9.2) (2026-09-02)
+
+### Chores
+
+- **deps:** Bump @types/node from 24.13.3 to 26.4.0 ([#86](https://github.com/theholocron/themes/issues/86)) ([8ce042d](https://github.com/theholocron/themes/commit/8ce042d4e868b0c6957c9cea94463391998bec48))
+
+## [1.9.1](https://github.com/theholocron/themes/compare/v1.9.0...v1.9.1) (2026-09-02)
+
+### Bug Fixes
+
+- 🐛 pass fern-org and base-path to enable deployment widget ([#90](https://github.com/theholocron/themes/issues/90)) ([9a9d54f](https://github.com/theholocron/themes/commit/9a9d54fe4dedc6a9bf297415f19bc37cc6d46568))
+
+### Chores
+
+- 🔧 bump CLI to ^3.45.1 and run holocron setup ([#89](https://github.com/theholocron/themes/issues/89)) ([e62234a](https://github.com/theholocron/themes/commit/e62234ade6c7d341f284bab7670e73be69e39c7a))
+
+## [1.9.0](https://github.com/theholocron/themes/compare/v1.8.0...v1.9.0) (2026-09-02)
+
+### Features
+
+- ✨ add wiki() capability — wiki.theholocron.dev/themes ([#87](https://github.com/theholocron/themes/issues/87)) ([f930a91](https://github.com/theholocron/themes/commit/f930a915b8ab819047ec63b40814f45afaa59bf7))
+
+### Bug Fixes
+
+- **config:** 🐛 restore nodeDocs() preset; move audit to explicit workflow entry ([#84](https://github.com/theholocron/themes/issues/84)) ([44e773c](https://github.com/theholocron/themes/commit/44e773ce911c7c5ca532805a92b7ca5b8f9cdfc9)), closes [#82](https://github.com/theholocron/themes/issues/82) [#80](https://github.com/theholocron/themes/issues/80)
+
+### Chores
+
+- 🔧 sync from holocron.config ([#83](https://github.com/theholocron/themes/issues/83)) ([342abd8](https://github.com/theholocron/themes/commit/342abd8eab50060656a6ebc5a62a8701d883a9d8))
+- sync README and repo metadata ([#80](https://github.com/theholocron/themes/issues/80)) ([05ca60a](https://github.com/theholocron/themes/commit/05ca60ae7ff9b7cc8dc51cf9d0e38f673c8595b9))
+
+## [1.8.0](https://github.com/theholocron/themes/compare/v1.7.4...v1.8.0) (2026-08-31)
+
+### Features
+
+- ✨ ⬆️ adopt compose(node(), docs(), audit()) preset; bump cli, plugin, and holocron-config ([#82](https://github.com/theholocron/themes/issues/82)) ([88db88a](https://github.com/theholocron/themes/commit/88db88a650ca5ea89fa618071e1d614d0d52d561))
+
+### Chores
+
+- ⬆️ adopt nodeDocs() preset ([#76](https://github.com/theholocron/themes/issues/76)) ([d7090ea](https://github.com/theholocron/themes/commit/d7090ea26a515fb9f47d5ea7f3ab3c404be34924))
+- 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#78](https://github.com/theholocron/themes/issues/78)) ([30e1e72](https://github.com/theholocron/themes/commit/30e1e724bd06b8c0ede47a15875adc5b239dfa8d))
+- 🔧 ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#79](https://github.com/theholocron/themes/issues/79)) ([0a90178](https://github.com/theholocron/themes/commit/0a90178db88d9d8a1e9581ec3230b5b50de36cc4))
+- sync from theholocron/holocron ([#77](https://github.com/theholocron/themes/issues/77)) ([e402cee](https://github.com/theholocron/themes/commit/e402cee36b4c77e6eb6650de1c0e199b8e2ccc88))
+
+## [1.7.4](https://github.com/theholocron/themes/compare/v1.7.3...v1.7.4) (2026-08-26)
+
+### Bug Fixes
+
+- 🐛 add @theholocron/registry-doc as explicit dep ([#74](https://github.com/theholocron/themes/issues/74)) ([0937d34](https://github.com/theholocron/themes/commit/0937d34b1af07e4caa001a17fa85a16627cdfe01))
+
+## [1.7.3](https://github.com/theholocron/themes/compare/v1.7.2...v1.7.3) (2026-08-26)
+
+### Bug Fixes
+
+- 🐛 use absolute paths for TypeDoc entry points ([#73](https://github.com/theholocron/themes/issues/73)) ([9a68cdc](https://github.com/theholocron/themes/commit/9a68cdc9d9329971e85b4f2a93a3f5378cee2197))
+
+## [1.7.2](https://github.com/theholocron/themes/compare/v1.7.1...v1.7.2) (2026-08-26)
+
+### Bug Fixes
+
+- 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#72](https://github.com/theholocron/themes/issues/72)) ([bb50cef](https://github.com/theholocron/themes/commit/bb50cef671ea665ce1f436aec1a8eac87456a1e6))
+
+### Chores
+
+- sync from theholocron/holocron ([#71](https://github.com/theholocron/themes/issues/71)) ([bb7c886](https://github.com/theholocron/themes/commit/bb7c886a2d33b786a1042957901b553cfbf9f000))
+
+## [1.7.1](https://github.com/theholocron/themes/compare/v1.7.0...v1.7.1) (2026-08-25)
+
+## [1.7.0](https://github.com/theholocron/themes/compare/v1.6.0...v1.7.0) (2026-08-25)
+
+## [1.6.0](https://github.com/theholocron/themes/compare/v1.5.0...v1.6.0) (2026-08-23)
+
+## [1.5.0](https://github.com/theholocron/themes/compare/v1.4.5...v1.5.0) (2026-08-22)
+
+## [1.4.5](https://github.com/theholocron/themes/compare/v1.4.4...v1.4.5) (2026-08-20)
+
+## [1.4.4](https://github.com/theholocron/themes/compare/v1.4.3...v1.4.4) (2026-08-20)
+
+## [1.4.3](https://github.com/theholocron/themes/compare/v1.4.2...v1.4.3) (2026-08-18)
+
+## [1.4.2](https://github.com/theholocron/themes/compare/v1.4.1...v1.4.2) (2026-08-18)
+
+## [1.4.1](https://github.com/theholocron/themes/compare/v1.4.0...v1.4.1) (2026-08-18)
+
+## [1.4.0](https://github.com/theholocron/themes/compare/v1.3.5...v1.4.0) (2026-08-18)
+
+## [1.3.5](https://github.com/theholocron/themes/compare/v1.3.4...v1.3.5) (2026-08-13)
+
+## [1.3.4](https://github.com/theholocron/themes/compare/v1.3.3...v1.3.4) (2026-08-11)
+
+## [1.3.3](https://github.com/theholocron/themes/compare/v1.3.2...v1.3.3) (2026-08-11)
+
+## [1.3.2](https://github.com/theholocron/themes/compare/v1.3.1...v1.3.2) (2026-08-04)
+
+## [1.3.1](https://github.com/theholocron/themes/compare/v1.3.0...v1.3.1) (2026-08-02)
+
+## [1.3.0](https://github.com/theholocron/themes/compare/v1.2.2...v1.3.0) (2026-08-01)
+
+## [1.2.2](https://github.com/theholocron/themes/compare/v1.2.1...v1.2.2) (2026-08-01)
+
+## [1.2.1](https://github.com/theholocron/themes/compare/v1.2.0...v1.2.1) (2026-08-01)
+
+## [1.2.0](https://github.com/theholocron/themes/compare/v1.1.0...v1.2.0) (2026-07-31)
+
+## [1.1.0](https://github.com/theholocron/themes/compare/v1.0.9...v1.1.0) (2026-07-30)
+
+## [1.0.9](https://github.com/theholocron/themes/compare/v1.0.8...v1.0.9) (2026-07-29)
+
+## [1.0.8](https://github.com/theholocron/themes/compare/v1.0.7...v1.0.8) (2026-07-29)
+
+## [1.0.7](https://github.com/theholocron/themes/compare/v1.0.6...v1.0.7) (2026-07-29)
+
+## [1.0.6](https://github.com/theholocron/themes/compare/v1.0.5...v1.0.6) (2026-07-29)
+
+## [1.0.5](https://github.com/theholocron/themes/compare/v1.0.4...v1.0.5) (2026-07-29)
+
+## [1.0.4](https://github.com/theholocron/themes/compare/v1.0.3...v1.0.4) (2026-07-29)
+
+## [1.0.3](https://github.com/theholocron/themes/compare/v1.0.2...v1.0.3) (2026-07-29)
+
+## [1.0.2](https://github.com/theholocron/themes/compare/v1.0.1...v1.0.2) (2026-07-29)
+
+## [1.0.1](https://github.com/theholocron/themes/compare/v1.0.0...v1.0.1) (2026-07-29)
+
+## 1.0.0 (2026-07-29)

@@ -1,0 +1,85 @@
+{
+  "name": "@theholocron/docs-theme",
+  "version": "1.10.4",
+  "description": "Starlight plugin providing the shared docs theme.",
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "docs",
+    "starlight",
+    "starlight-plugin",
+    "theme",
+    "typescript"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/themes/docs-theme/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "themes/docs-theme"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": [
+    "*.css"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
+    "./content": {
+      "types": "./dist/content.d.mts",
+      "import": "./dist/content.mjs",
+      "default": "./dist/content.mjs"
+    },
+    "./loader": {
+      "types": "./dist/loader.d.mts",
+      "import": "./dist/loader.mjs",
+      "default": "./dist/loader.mjs"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown && cp src/styles.css dist/",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "^0.41.7",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@tsconfig/node-lts": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "astro": "^7.2.2",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@astrojs/starlight": ">=0.30.0",
+    "astro": ">=5.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
