@@ -146,3 +146,19 @@ describe("users.ban / unban / lock / unlock", () => {
 		expect(calls[0]?.url).toContain("/users/user_1/unlock");
 	});
 });
+
+describe("users query params", () => {
+	it("passes query, order_by and last_active_at_since to list", async () => {
+		const { client, calls } = makeClient([{ body: [mockUser] }]);
+		await client.users.list({ query: "ada", order_by: "-created_at", last_active_at_since: 1700000000000 });
+		expect(calls[0]?.url).toContain("query=ada");
+		expect(calls[0]?.url).toContain("order_by=-created_at");
+		expect(calls[0]?.url).toContain("last_active_at_since=1700000000000");
+	});
+
+	it("passes its filters to count", async () => {
+		const { client, calls } = makeClient([{ body: { object: "total_count", total_count: 1 } }]);
+		await client.users.count({ query: "ada" });
+		expect(calls[0]?.url).toContain("/users/count?query=ada");
+	});
+});

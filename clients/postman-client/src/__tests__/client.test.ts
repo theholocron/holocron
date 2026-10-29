@@ -69,3 +69,15 @@ describe("createPostmanClient", () => {
 		expect((err as Error).name).toBe("ProviderApiError");
 	});
 });
+
+describe("createPostmanClient transport failures", () => {
+	it("rethrows an error that carries no string details unchanged", async () => {
+		const failing = (async () => {
+			throw new TypeError("network down");
+		}) as unknown as typeof fetch;
+		const client = createPostmanClient({ token: "t", fetch: failing });
+		const err = await client.me.get().catch((e: unknown) => e);
+		expect((err as Error).name).not.toBe("PostmanPlanLimitError");
+		expect((err as { status?: number }).status).toBe(0);
+	});
+});

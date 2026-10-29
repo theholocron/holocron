@@ -257,3 +257,49 @@ describe("env", () => {
 		});
 	});
 });
+
+describe("deploys.create upload edge cases", () => {
+	it("skips a function the manifest response does not ask for", async () => {
+		const zip = new Uint8Array([1, 2, 3]);
+		const { fetch, calls } = stubFetch([{ body: { ...DEPLOY, required_functions: [] } }]);
+		const client = createNetlifyClient({ token: TOKEN, fetch });
+		await client.deploys.create("s1", { functions: [{ name: "webhook", zip }] });
+		expect(calls).toHaveLength(1); // only the manifest POST, no upload
+	});
+
+	it("wraps a non-Error upload failure with status 0", async () => {
+		const content = "x";
+		let callCount = 0;
+		const throwing = (async () => {
+			callCount++;
+			if (callCount === 1) {
+				return new Response(JSON.stringify({ ...DEPLOY, required: [sha1(content)] }), { status: 200 });
+			}
+			throw "boom";
+		}) as unknown as typeof fetch;
+		const client = createNetlifyClient({ token: TOKEN, fetch: throwing });
+		const err = await client.deploys.create("s1", { files: { "a.txt": content } }).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(0);
+		expect((err as ProviderApiError).message).toContain("boom");
+	});
+
+	it("keeps the status when an upload error body cannot be read", async () => {
+		const content = "x";
+		let callCount = 0;
+		const failing = new Response("nope", { status: 500 });
+		Object.defineProperty(failing, "text", { value: () => Promise.reject(new Error("read failed")) });
+		const flaky = (async () => {
+			callCount++;
+			if (callCount === 1) {
+				return new Response(JSON.stringify({ ...DEPLOY, required: [sha1(content)] }), { status: 200 });
+			}
+			return failing;
+		}) as unknown as typeof fetch;
+		const client = createNetlifyClient({ token: TOKEN, fetch: flaky });
+		const err = await client.deploys.create("s1", { files: { "a.txt": content } }).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
+		expect((err as ProviderApiError).details).toBe("");
+	});
+});

@@ -149,4 +149,18 @@ describe("oauth", () => {
 
 		await expect(promise).resolves.toBeDefined();
 	});
+
+	it("exchanges an empty code when the callback carries none", async () => {
+		process.env["GOOGLE_CLIENT_ID"] = "client-id";
+		process.env["GOOGLE_CLIENT_SECRET"] = "client-secret";
+		mockGetToken.mockResolvedValue({ tokens: {} });
+
+		const promise = oauth(["scope"]);
+
+		await new Promise<void>((r) => setImmediate(r));
+		await capturedHandler!({ url: "/oauth2callback" }, { end: vi.fn() });
+
+		await expect(promise).resolves.toBeDefined();
+		expect(mockGetToken).toHaveBeenCalledWith("");
+	});
 });

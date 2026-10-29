@@ -336,3 +336,11 @@ describe("domains.config", () => {
 		expect(calls[0]?.url).not.toContain("projectIdOrName");
 	});
 });
+
+describe("projects.create rootDirectory", () => {
+	it("includes rootDirectory when provided", async () => {
+		const { client, calls } = makeClient([{ body: { id: "p2", name: "new-app" } }]);
+		await client.projects.create({ name: "new-app", rootDirectory: "apps/web" });
+		expect(calls[0]?.body).toMatchObject({ rootDirectory: "apps/web" });
+	});
+});

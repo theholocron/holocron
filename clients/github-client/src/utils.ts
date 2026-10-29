@@ -49,8 +49,8 @@ export function repoBase(repo: string): string {
 
 /** `["owner", "name"]` from a `"owner/name"` repo string — GraphQL's `repository(owner:, name:)` args take them separately, unlike REST's single path segment. */
 export function splitRepo(repo: string): [owner: string, name: string] {
-	const [owner, name] = repo.split("/", 2);
-	return [owner ?? "", name ?? ""];
+	const [owner = "", name = ""] = repo.split("/", 2);
+	return [owner, name];
 }
 
 /**

@@ -191,3 +191,13 @@ describe("git.putContents", () => {
 		);
 	});
 });
+
+describe("git.getTree without recursion", () => {
+	it("does not ask for a recursive tree by default", async () => {
+		const { fetch, calls } = stubFetch([{ body: { sha: "tree123", tree: [], truncated: false } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.git.getTree(REPO, "tree123");
+		expect(calls[0]?.url).toContain("/git/trees/tree123");
+		expect(calls[0]?.url).not.toContain("recursive");
+	});
+});

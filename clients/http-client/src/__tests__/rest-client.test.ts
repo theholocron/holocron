@@ -465,3 +465,32 @@ describe("createRestClient — transport retries", () => {
 		expect(bare.count()).toBe(1);
 	});
 });
+
+describe("createRestClient defaults and unreadable bodies", () => {
+	it("falls back to the global fetch when none is given", async () => {
+		const spy = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+		vi.stubGlobal("fetch", spy);
+		try {
+			const rest = createRestClient({ baseUrl: "https://api.example.com", token: "t", vendor: "Example" });
+			await rest.request("/ping");
+			expect(spy).toHaveBeenCalledOnce();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it("still throws a ProviderApiError when an error body cannot be read", async () => {
+		const failing = new Response("x", { status: 404 });
+		Object.defineProperty(failing, "text", { value: () => Promise.reject(new Error("read failed")) });
+		const rest = createRestClient({
+			baseUrl: "https://api.example.com",
+			token: "t",
+			vendor: "Example",
+			fetch: (async () => failing) as unknown as typeof globalThis.fetch,
+		});
+		const err = await rest.request("/missing").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(404);
+		expect((err as ProviderApiError).details).toBe("");
+	});
+});

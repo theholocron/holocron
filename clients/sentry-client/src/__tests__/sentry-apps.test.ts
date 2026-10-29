@@ -113,3 +113,11 @@ describe("sentryApps", () => {
 		expect(calls[0]?.url).toBe(`${BASE}/organizations/org/sentry-app-installations/`);
 	});
 });
+
+describe("sentryApps.update fallbacks", () => {
+	it("keeps the integration not alertable and without a webhook when the current one reports neither", async () => {
+		const { sentryApps, calls } = client([{ body: { name: "Bare", slug: "bare", scopes: [] } }, { body: app }]);
+		await sentryApps.update("bare", { name: "Bare", scopes: [] });
+		expect(calls[1]?.body).toMatchObject({ isAlertable: false, webhookUrl: null });
+	});
+});

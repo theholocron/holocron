@@ -1,3 +1,4 @@
+import { ProviderApiError } from "@theholocron/http-client";
 import { describe, expect, it, vi } from "vitest";
 
 import { createCloudflareClient } from "../index.js";
@@ -182,5 +183,21 @@ describe("workers.deleteSecret", () => {
 		const { workers, calls } = client([{ status: 204 }]);
 		await workers.deleteSecret(ACCOUNT, "sentinel", "A SECRET");
 		expect(calls[0]?.url).toContain("A%20SECRET");
+	});
+});
+
+describe("workers.putScript error body", () => {
+	it("still throws a ProviderApiError when the error response body cannot be read", async () => {
+		const failing = new Response("x", { status: 500 });
+		Object.defineProperty(failing, "text", { value: () => Promise.reject(new Error("read failed")) });
+		const w = createCloudflareClient({
+			token: TOKEN,
+			baseUrl: BASE,
+			fetch: (async () => failing) as unknown as typeof fetch,
+		}).workers;
+		const err = await w.putScript(ACCOUNT, "my-worker", "export default {};").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
+		expect((err as ProviderApiError).details).toBe("");
 	});
 });
