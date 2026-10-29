@@ -76,4 +76,4 @@ const { get } = createEnvParser({ appName: "my-app", logger: myLogger });
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/env-utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.

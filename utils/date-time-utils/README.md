@@ -25,4 +25,4 @@ Returns `"morning"` (midnight–10:59), `"afternoon"` (11:00–17:59), or `"even
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/date-time-utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.

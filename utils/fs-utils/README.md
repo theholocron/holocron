@@ -126,4 +126,4 @@ shelling out to pnpm can check this before deciding which flags to pass.
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/fs-utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.

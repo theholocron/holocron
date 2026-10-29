@@ -37,4 +37,4 @@ Requests the device's current position via the [Geolocation API](https://develop
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/location-utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.

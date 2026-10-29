@@ -67,4 +67,4 @@ read error other than "no such file" fails instead of overwriting.
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/git-utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.
