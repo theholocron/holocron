@@ -1,4 +1,4 @@
-import { beforeEach,describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Capture callbacks registered with vitest's lifecycle hooks so we can
 // invoke them directly and verify the behavior of each registered function.

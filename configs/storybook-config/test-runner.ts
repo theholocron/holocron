@@ -1,4 +1,4 @@
-import { checkA11y,injectAxe } from "axe-playwright";
+import { checkA11y, injectAxe } from "axe-playwright";
 import { type Page } from "playwright";
 
 export const storybookTestRunner = {

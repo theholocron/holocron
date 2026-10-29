@@ -1,4 +1,4 @@
-import { describe, expect,it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // storybook() does a dynamic import of this plugin which resolves the .storybook
 // directory at call time — mock it so the preset is testable in isolation.
