@@ -1,3 +1,18 @@
+## [5.0.0-alpha.244](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.243...v5.0.0-alpha.244) (2026-10-29)
+
+### Bug Fixes
+
+* **astromech:** 🐛 comment only on the PRs a release actually contains ([#1259](https://github.com/theholocron/holocron/issues/1259)) ([2bbffee](https://github.com/theholocron/holocron/commit/2bbffeec45381af1987737556dd931a7ed802412))
+
+### Documentation
+
+* **observability:** 📝 move the package docs into the docs site ([88adf03](https://github.com/theholocron/holocron/commit/88adf03ec2e1d7c0e4a950cca14358fa26139a35)), closes [#1207](https://github.com/theholocron/holocron/issues/1207)
+* **observability:** 📝 use .mdx for the package pages like the rest of the docs ([20a7f88](https://github.com/theholocron/holocron/commit/20a7f88bf5d94edf5e2e65a884da897e3a6641b7)), closes [#1207](https://github.com/theholocron/holocron/issues/1207)
+
+### Chores
+
+* **observability:** 🔧 adapt the imported package to the workspace ([f97e601](https://github.com/theholocron/holocron/commit/f97e601ae2fccbc665bcb5d8315bbaabd8642c20)), closes [#1207](https://github.com/theholocron/holocron/issues/1207)
+
 ## [5.0.0-alpha.243](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.242...v5.0.0-alpha.243) (2026-10-28)
 
 ### Bug Fixes
