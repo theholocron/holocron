@@ -16,8 +16,9 @@ const config: KnipConfig = {
 		".": {
 			// prettier.config.ts, eslint.config.ts, astro.config.ts, commitlint.config.ts —
 			// all auto-detected by Knip plugins
-			entry: ["holocron.config.ts", "astromech.config.ts", "release.config.ts"],
-			project: ["*.ts"],
+			// scripts/*.mjs are run by the repoValidation tasks (validate-registry.mjs reads registry-doc)
+			entry: ["holocron.config.ts", "astromech.config.ts", "release.config.ts", "scripts/*.mjs"],
+			project: ["*.ts", "scripts/*.mjs"],
 			// release.config.ts returns inline plugin objects (the folder-scoped commit analyzers), which the
 			// plugin reads as package names and crashes on, so it is an entry here instead.
 			"semantic-release": false,

@@ -39,7 +39,6 @@
     "@theholocron/astromech": "workspace:*",
     "@theholocron/cli": "workspace:*",
     "@theholocron/commitlint-config": "catalog:configs",
-    "@theholocron/components-doc": "^1.2.0",
     "@theholocron/devmoji-config": "catalog:configs",
     "@theholocron/docs-theme": "catalog:configs",
     "@theholocron/eslint-config": "catalog:configs",

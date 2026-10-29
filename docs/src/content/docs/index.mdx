@@ -5,8 +5,8 @@ sidebar:
   hidden: true
 ---
 
-import { PackageGrid } from "@theholocron/components-doc";
-import { getHolocron } from "@theholocron/registry-doc";
+import { PackageGrid } from "../../components/index.ts";
+import { getHolocron } from "../../lib/registry.ts";
 
 <PackageGrid packages={getHolocron()} />
 

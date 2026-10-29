@@ -1,0 +1,40 @@
+---
+import type { LinksRegistry } from "../lib/registry.ts";
+interface PackageGridProps {
+	packages: LinksRegistry;
+	type?: "packages" | "plugins";
+}
+
+type Props = PackageGridProps;
+
+const { packages, type = "packages" } = Astro.props;
+const entries = Object.values(packages);
+const packageLabel = type === "plugins" ? "Plugin" : "Package";
+---
+
+<table>
+	<thead>
+		<tr>
+			<th>{packageLabel}</th>
+			<th>Docs</th>
+			<th>npm</th>
+		</tr>
+	</thead>
+	<tbody>
+		{
+			entries.map((entry) => (
+				<tr>
+					<td>
+						<code>{entry.package}</code>
+					</td>
+					<td>
+						<a href={entry.docsUrl}>Docs</a>
+					</td>
+					<td>
+						<a href={entry.npmUrl}>npm</a>
+					</td>
+				</tr>
+			))
+		}
+	</tbody>
+</table>
