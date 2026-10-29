@@ -1,3 +1,18 @@
+## [1.57.1-alpha.1](https://github.com/theholocron/holocron/compare/clients-v1.57.0...clients-v1.57.1-alpha.1) (2026-10-29)
+
+### Bug Fixes
+
+* **google-client:** 🐛 move googleapis and google-auth-library to current releases together ([#1295](https://github.com/theholocron/holocron/issues/1295)) ([97b5160](https://github.com/theholocron/holocron/commit/97b5160f97ed942ac5c2d442da08cb5adb1ead73)), closes [#1289](https://github.com/theholocron/holocron/issues/1289) [#1294](https://github.com/theholocron/holocron/issues/1294)
+
+### Documentation
+
+* **clients:** 📝 move the package pages into the docs site ([1ef9d41](https://github.com/theholocron/holocron/commit/1ef9d41be303615ddfdd62cc8faf4b615b298202)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+* **clients:** 📝 state the MIT license in the READMEs ([4f21d31](https://github.com/theholocron/holocron/commit/4f21d31656f51f94b8176a55c2a1293d4338a9d2)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+
+### Chores
+
+* **clients:** 🔧 adapt the imported packages to the workspace ([00f5dc3](https://github.com/theholocron/holocron/commit/00f5dc3e4a9016af8922432bd6e9faeb961cce7b)), closes [#1211](https://github.com/theholocron/holocron/issues/1211)
+
 ## [1.57.0](https://github.com/theholocron/clients/compare/v1.56.0...v1.57.0) (2026-10-28)
 
 ## [1.56.0](https://github.com/theholocron/clients/compare/v1.55.0...v1.56.0) (2026-10-28)
