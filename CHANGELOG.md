@@ -1,3 +1,16 @@
+## [5.0.0-alpha.249](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.248...v5.0.0-alpha.249) (2026-10-29)
+
+### Documentation
+
+* **utils:** 📝 move the package pages into the docs site ([dcdf180](https://github.com/theholocron/holocron/commit/dcdf18090c1998aa4ad8cb5d17de5dd129c746d2)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
+### Chores
+
+* **deps:** Bump @sentry/node from 10.75.2 to 11.9.0 ([#1244](https://github.com/theholocron/holocron/issues/1244)) ([6e13477](https://github.com/theholocron/holocron/commit/6e1347724d8187d6c923db6157327f7f54433935))
+* **deps:** Bump happy-dom ([#1280](https://github.com/theholocron/holocron/issues/1280)) ([e61d2bd](https://github.com/theholocron/holocron/commit/e61d2bdf7706724e11086003f3f9472c362552cb))
+* **deps:** Bump posthog-node ([#1248](https://github.com/theholocron/holocron/issues/1248)) ([74be439](https://github.com/theholocron/holocron/commit/74be4399109a424895ad483db867e2f5bcf2dcce))
+* **utils:** 🔧 adapt the imported packages to the workspace ([b4a71e8](https://github.com/theholocron/holocron/commit/b4a71e89fcb8c0606ea9496c48f900faf2c9923e)), closes [#1209](https://github.com/theholocron/holocron/issues/1209)
+
 ## [5.0.0-alpha.248](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.247...v5.0.0-alpha.248) (2026-10-29)
 
 ### Bug Fixes
