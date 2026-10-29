@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { ReleaseContext } from "../release.type.js";
-import { folderScoped, ungroupedScoped } from "./folder-scoped.js";
+import { commentOnlyFor, folderScoped, ungroupedScoped } from "./folder-scoped.js";
 
 const commit = (hash: string, message = hash) => ({ hash, message });
 
@@ -130,5 +130,33 @@ describe("ungroupedScoped", () => {
 		const { inner, plugin } = setup();
 		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [commit("unknown")] });
 		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [] }));
+	});
+});
+
+describe("commentOnlyFor", () => {
+	const scoped = folderScoped("success", ["clients"], { load: async () => ({}), listFiles: () => new Map() });
+
+	it("turns the GitHub plugin's own comments and labels off and hands them to the scoped step with the same config", () => {
+		expect(commentOnlyFor(["@semantic-release/github", { assets: "x" }], scoped)).toEqual([
+			["@semantic-release/github", { assets: "x", successComment: false, releasedLabels: false }],
+			[scoped, { assets: "x" }],
+		]);
+	});
+
+	it("accepts the plugin named without a config", () => {
+		expect(commentOnlyFor("@semantic-release/github", scoped)).toEqual([
+			["@semantic-release/github", { successComment: false, releasedLabels: false }],
+			[scoped, undefined],
+		]);
+	});
+
+	it("runs the stock GitHub plugin's success over only the kept commits", async () => {
+		const inner = vi.fn();
+		const plugin = folderScoped("success", ["clients"], {
+			load: async () => ({ success: inner }),
+			listFiles: () => FILES,
+		});
+		await plugin.success!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
+		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("a")] }));
 	});
 });

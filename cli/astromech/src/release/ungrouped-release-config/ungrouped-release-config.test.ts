@@ -16,7 +16,7 @@ describe("ungroupedReleaseConfig", () => {
 		const stock = defineConfig(options) as Config;
 		expect(config.tagFormat).toBeUndefined();
 		expect(config.branches).toEqual(stock.branches);
-		expect(config.plugins.slice(2)).toEqual(stock.plugins.slice(2));
+		expect(config.plugins.slice(2, -2)).toEqual(stock.plugins.slice(2, -1));
 	});
 
 	it("scopes the analyzer and notes generator to commits outside the groups, with the org's configuration", () => {

@@ -1,6 +1,6 @@
 import { defineConfig } from "@theholocron/semantic-release-config";
 
-import { ungroupedScoped } from "../folder-scoped/index.js";
+import { commentOnlyFor, ungroupedScoped } from "../folder-scoped/index.js";
 import type { UngroupedReleaseOptions } from "./ungrouped-release-config.type.js";
 
 type PluginEntry = string | [string, Record<string, unknown> | undefined];
@@ -16,16 +16,18 @@ export function ungroupedReleaseConfig({ groups, ...options }: UngroupedReleaseO
 	const base = defineConfig(options) as { plugins: PluginEntry[] };
 	if (groups.length === 0) return base;
 
-	const scope = (entry: PluginEntry): PluginEntry | [object, unknown] => {
+	const scope = (entry: PluginEntry): (PluginEntry | [object, unknown])[] => {
 		const [name, config] = Array.isArray(entry) ? entry : [entry, undefined];
 		switch (name) {
 			case "@semantic-release/commit-analyzer":
-				return [ungroupedScoped("analyzeCommits", groups), config];
+				return [[ungroupedScoped("analyzeCommits", groups), config]];
 			case "@semantic-release/release-notes-generator":
-				return [ungroupedScoped("generateNotes", groups), config];
+				return [[ungroupedScoped("generateNotes", groups), config]];
+			case "@semantic-release/github":
+				return commentOnlyFor(entry, ungroupedScoped("success", groups));
 			default:
-				return entry;
+				return [entry];
 		}
 	};
-	return { ...base, plugins: base.plugins.map(scope) };
+	return { ...base, plugins: base.plugins.flatMap(scope) };
 }

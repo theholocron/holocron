@@ -3,10 +3,11 @@ import { inScope, outsideFolders } from "../in-scope/index.js";
 import type { CommitStep, ReleaseContext, StepPlugin } from "../release.type.js";
 import type { FolderScopedDeps } from "./folder-scoped.type.js";
 
-/** The semantic-release plugin that implements each commit-reading step. */
+/** The semantic-release plugin that implements each commit-reading step. `success` is the GitHub plugin's "released in…" comments. */
 const MODULES: Record<CommitStep, string> = {
 	analyzeCommits: "@semantic-release/commit-analyzer",
 	generateNotes: "@semantic-release/release-notes-generator",
+	success: "@semantic-release/github",
 };
 
 /**
@@ -60,4 +61,18 @@ function scopedBy<Step extends CommitStep>(
 		return inner[step]?.(pluginConfig, { ...context, commits: kept });
 	};
 	return { [step]: scoped } as StepPlugin<Step>;
+}
+
+/**
+ * Splits the GitHub plugin's entry so its "released in…" comments and labels go only to the PRs and
+ * issues of the commits `scoped` keeps. The entry stays as it was, so it still publishes the GitHub
+ * release, but with the commenting turned off; `scoped` (a {@link folderScoped} or
+ * {@link ungroupedScoped} `success` step) then does the commenting with the entry's own config.
+ */
+export function commentOnlyFor(
+	entry: string | [string, Record<string, unknown> | undefined],
+	scoped: StepPlugin<"success">
+): ((string | [string, Record<string, unknown> | undefined]) | [object, unknown])[] {
+	const [name, config] = Array.isArray(entry) ? entry : [entry, undefined];
+	return [[name, { ...config, successComment: false, releasedLabels: false }], [scoped, config]];
 }

@@ -27,11 +27,17 @@ describe("groupReleaseConfig", () => {
 		expect(typeof names[0]).toBe("object");
 		expect(names[0]).toHaveProperty("analyzeCommits");
 		expect(names[1]).toHaveProperty("generateNotes");
-		expect(names.slice(2)).toEqual([
+		expect(names.slice(2, 5)).toEqual([
 			"@semantic-release/changelog",
 			"@semantic-release/git",
 			"@semantic-release/github",
 		]);
+	});
+
+	it("comments on the PRs and issues of the group's commits only, after the GitHub plugin has published", () => {
+		const { plugins } = build({ group: "clients" });
+		expect(plugins[4]).toEqual(["@semantic-release/github", { successComment: false, releasedLabels: false }]);
+		expect((plugins[5] as [object, unknown])[0]).toHaveProperty("success");
 	});
 
 	it("keeps the org's analyzer and notes configuration for the scoped plugins", () => {

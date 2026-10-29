@@ -13,7 +13,7 @@ export interface ReleaseContext {
 }
 
 /** A semantic-release plugin step that looks at commits. */
-export type CommitStep = "analyzeCommits" | "generateNotes";
+export type CommitStep = "analyzeCommits" | "generateNotes" | "success";
 
 type StepFn = (pluginConfig: unknown, context: ReleaseContext) => unknown;
 
