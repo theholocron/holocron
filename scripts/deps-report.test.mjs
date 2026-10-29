@@ -141,4 +141,18 @@ describe("a workspace on disk", () => {
 		assert.ok(text.includes("@x/cli (prod)"), text);
 		assert.ok(text.includes("@x/plugin-a (dev)"));
 	});
+
+	it("reports a workspace package that is pinned to a version instead of linked", () => {
+		manifest("plugins/b", {
+			name: "@x/plugin-b",
+			devDependencies: { "@x/cli": "^1.0.0" },
+			peerDependencies: { "@x/cli": "^1.0.0" },
+		});
+		const problems = check(plan(root));
+		const pinned = problems.filter((p) => p.includes("@x/cli") && p.includes("workspace package"));
+		// the dev dependency is wrong; the peer range is a compatibility range and is fine
+		assert.equal(pinned.length, 1, problems.join("\n"));
+		assert.ok(pinned[0].includes("devDependencies"));
+		assert.ok(pinned[0].includes('use "workspace:^"'));
+	});
 });

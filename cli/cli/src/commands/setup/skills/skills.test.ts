@@ -6,6 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 1, stdout: "", stderr: "" })) }));
 
+// Resolve packages only under the temp "repo" a test makes: NODE_PATH would otherwise reach the workspace's own hoisted packages.
+vi.mock("node:module", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("node:module")>();
+	const { hermeticCreateRequire } = await import("../../../testing/hermetic-require.js");
+	return { ...actual, createRequire: hermeticCreateRequire(actual) };
+});
+
 import { spawnSync } from "node:child_process";
 
 import { AGENT_SYMLINK_PATHS, installSkills, parsePreviousSkills } from "./skills.js";

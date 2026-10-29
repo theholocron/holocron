@@ -41,7 +41,7 @@
   "devDependencies": {
     "@astrojs/react": "catalog:",
     "@astrojs/starlight": "catalog:",
-    "@theholocron/docs-theme": "^1.3.5",
+    "@theholocron/docs-theme": "workspace:^",
     "@theholocron/tsconfig": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "astro": "catalog:",

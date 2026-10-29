@@ -177,7 +177,16 @@ export function plan(root = fileURLToPath(new URL("..", import.meta.url))) {
 	const flags = [];
 	for (const edge of edges) {
 		const isScoped = edge.name.startsWith(SCOPE);
-		if (isScoped && inRepo.has(edge.name) && !edge.spec.startsWith("catalog:")) continue;
+		if (inRepo.has(edge.name) && !edge.spec.startsWith("catalog:")) {
+			// a package that is in this workspace is linked with workspace:, not a version from npm; a peer
+			// range is the exception, it is a compatibility range for consumers
+			if (edge.section !== "peerDependencies") {
+				flags.push(
+					`${edge.file}: ${edge.section}.${edge.name} is "${edge.spec}", but it is a workspace package; use "workspace:^"`
+				);
+			}
+			continue;
+		}
 		const entry = byName.get(edge.name) ?? { name: edge.name, edges: [], groups: new Set() };
 		entry.edges.push(edge);
 		if (edge.section !== "peerDependencies") entry.groups.add(edge.group);
