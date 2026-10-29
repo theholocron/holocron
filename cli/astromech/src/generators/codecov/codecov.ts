@@ -21,21 +21,25 @@ function scaffoldHeader(): string {
 	].join("\n");
 }
 
+function location({ slug, dir, path }: WorkspacePackage): string {
+	return path ?? `${dir ?? "packages"}/${slug}`;
+}
+
 export function codecovComponentBlock(packages: WorkspacePackage[]): string {
 	if (packages.length === 0) return "\n    []\n";
 	let group: string | undefined;
 	return (
 		"\n" +
 		packages
-			.flatMap(({ slug, dir, path }) => {
-				const where = path ?? `${dir ?? "packages"}/${slug}`;
+			.flatMap((pkg) => {
+				const where = location(pkg);
 				const root = where.split("/")[0]!;
 				const heading = root === group ? [] : [`    # ${root}`];
 				group = root;
 				return [
 					...heading,
-					`    - component_id: ${slug}`,
-					`      name: "${slug}"`,
+					`    - component_id: ${pkg.slug}`,
+					`      name: "${pkg.slug}"`,
 					`      paths:`,
 					`        - ${where}/**`,
 					``,
@@ -94,10 +98,6 @@ export function mergeCodecovComponents(existing: string, packages: WorkspacePack
 	return (
 		ensureIfNotFound(existing.slice(0, idx + INDIVIDUAL_COMPONENTS_MARKER.length)) + codecovComponentBlock(packages)
 	);
-}
-
-function location({ slug, dir, path }: WorkspacePackage): string {
-	return path ?? `${dir ?? "packages"}/${slug}`;
 }
 
 /**
