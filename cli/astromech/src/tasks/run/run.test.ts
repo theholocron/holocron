@@ -470,6 +470,19 @@ describe("runTask — sub-jobs", () => {
 		);
 	});
 
+	it("names a job without an alias by its own key when it is switched off", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+		const one = call("platform.repoValidation", { job: "adrs", jobSwitches: { adrs: false } });
+		expect(one).toMatchObject({ status: "skip", message: expect.stringMatching(/\(jobs\.adrs: false\)/) });
+		const all = call("platform.repoValidation", { jobSwitches: { adrs: false } });
+		expect(all.status).toBe("ok");
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([
+			["scripts/validate-registry.mjs"],
+			["scripts/validate-docs-presence.mjs"],
+		]);
+		expect(lines.join("\n")).toMatch(/Validate ADRs and specs — off in this repo's config \(jobs\.adrs: false\)/);
+	});
+
 	it("rejects an unknown job with the known list, exit 1", () => {
 		const { call, lines } = makeRun({ "package.json": PKG() });
 		const report = call("platform.repoValidation", { job: "frobnicate" });
