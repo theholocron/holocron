@@ -76,7 +76,7 @@ function resolvePackageContentDir(packageName: string, root: URL): string {
  *   docs: defineCollection({
  *     loader: createDocsLoader([
  *       { dir: fileURLToPath(new URL("content/docs", import.meta.url)), slug: "" },
- *       { package: "@theholocron/clients-docs", slug: "projects/clients" },
+ *       { package: "@example/content-package", slug: "projects/example" },
  *     ]),
  *     schema: docsSchema(),
  *   }),
