@@ -140,8 +140,5 @@ overrides:
   "@sentry/node": 10.75.2
   conventional-changelog-conventionalcommits: 9.3.1
   cookie: ^2.0.1
-  # googleapis@174 types against google-auth-library 10.x, while google-client declares ^11.0.2; the
-  # old clients repo forced 10.x (pnpm.overrides) so the Google types line up. Carried over as-is.
-  google-auth-library: ^10.9.0
   posthog-node: 5.52.5
   tsx: 4.23.15
