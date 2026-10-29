@@ -1,3 +1,29 @@
+## [5.0.0-alpha.251](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.250...v5.0.0-alpha.251) (2026-10-29)
+
+### Refactoring
+
+* **cli:** ♻️ read the sync-readme packages table from the workspace ([#1363](https://github.com/theholocron/holocron/issues/1363)) ([a61db87](https://github.com/theholocron/holocron/commit/a61db87a05a193ec547c0a1d57fc52ccf5576dab)), closes [#1228](https://github.com/theholocron/holocron/issues/1228)
+
+### Documentation
+
+* 📝 move the holocron site pages onto local components ([#1362](https://github.com/theholocron/holocron/issues/1362)) ([5040da0](https://github.com/theholocron/holocron/commit/5040da0b4e37d5eb49bca24e78644f3488924129)), closes [#1227](https://github.com/theholocron/holocron/issues/1227) [#1234](https://github.com/theholocron/holocron/issues/1234)
+* **agents:** 📝 point the repo map at the folders in this monorepo ([#1358](https://github.com/theholocron/holocron/issues/1358)) ([84cc3bc](https://github.com/theholocron/holocron/commit/84cc3bc6016c6a5277c964faa724780391f01c96)), closes [#1321](https://github.com/theholocron/holocron/issues/1321)
+* **configs:** 📝 move the package pages into the docs site ([8a3122f](https://github.com/theholocron/holocron/commit/8a3122ffd21ac5ee40add30442902c77129815cc)), closes [#1210](https://github.com/theholocron/holocron/issues/1210)
+* **notes:** 📝 put the docs theme in themes/docs-theme in the consolidation spec ([7b31ca2](https://github.com/theholocron/holocron/commit/7b31ca23879f88a6df7d1dfa76368c1ce76abdbe)), closes [#1212](https://github.com/theholocron/holocron/issues/1212)
+* **notes:** 📝 refresh the platform and observability specs ([#1323](https://github.com/theholocron/holocron/issues/1323)) ([738a2e7](https://github.com/theholocron/holocron/commit/738a2e71688749b305256d7200ce890a569f333d)), closes [#672](https://github.com/theholocron/holocron/issues/672) [675-#679](https://github.com/theholocron/675-/issues/679) [#681](https://github.com/theholocron/holocron/issues/681) [#680](https://github.com/theholocron/holocron/issues/680) [#763](https://github.com/theholocron/holocron/issues/763) [#765](https://github.com/theholocron/holocron/issues/765) [#767](https://github.com/theholocron/holocron/issues/767) [#1271](https://github.com/theholocron/holocron/issues/1271) [#1272](https://github.com/theholocron/holocron/issues/1272) [#634](https://github.com/theholocron/holocron/issues/634) [#1207](https://github.com/theholocron/holocron/issues/1207) [#638](https://github.com/theholocron/holocron/issues/638) [#633](https://github.com/theholocron/holocron/issues/633) [#637](https://github.com/theholocron/holocron/issues/637) [#1321](https://github.com/theholocron/holocron/issues/1321)
+* **notes:** 🗂️ merge configs/.notes into the root and move the settled specs ([#1322](https://github.com/theholocron/holocron/issues/1322)) ([dd4642a](https://github.com/theholocron/holocron/commit/dd4642af6fb981a947e06ae203600404eb905bc2)), closes [#1288](https://github.com/theholocron/holocron/issues/1288) [#1271](https://github.com/theholocron/holocron/issues/1271) [#1272](https://github.com/theholocron/holocron/issues/1272) [#1051](https://github.com/theholocron/holocron/issues/1051) [#940](https://github.com/theholocron/holocron/issues/940) [#945](https://github.com/theholocron/holocron/issues/945) [#1010](https://github.com/theholocron/holocron/issues/1010) [#1321](https://github.com/theholocron/holocron/issues/1321)
+* **skills:** 📝 rewrite the scaffolding skills for the monorepo ([#1359](https://github.com/theholocron/holocron/issues/1359)) ([1ca2d4c](https://github.com/theholocron/holocron/commit/1ca2d4c5c0a8c89642c35f84a3b13200a72e0cf4)), closes [#1357](https://github.com/theholocron/holocron/issues/1357) [#1200](https://github.com/theholocron/holocron/issues/1200)
+* **themes:** 📝 move the docs-theme page into the docs site ([a01c2f3](https://github.com/theholocron/holocron/commit/a01c2f3ad9c34395d7ff6195d01becf0eb02ae4e)), closes [#1212](https://github.com/theholocron/holocron/issues/1212)
+
+### Chores
+
+* **apps:** 🏷️ set the private apps to version 0.0.0 ([#1320](https://github.com/theholocron/holocron/issues/1320)) ([8e73fcf](https://github.com/theholocron/holocron/commit/8e73fcfc06a0423871121a7820b3d3bb38b6b4dd))
+* **configs:** 🔒 update the lockfile after rebasing onto clients ([670b5da](https://github.com/theholocron/holocron/commit/670b5da101261e5c8f8e0bca831e9a34f1b996e7))
+* **configs:** 🔧 adapt the imported packages to the workspace ([90faa5b](https://github.com/theholocron/holocron/commit/90faa5b1b8ec04b80baf14afc8ae1e549dc32478)), closes [#1210](https://github.com/theholocron/holocron/issues/1210)
+* **configs:** 🔧 meet the stricter package.json rules where it is safe ([23bdc67](https://github.com/theholocron/holocron/commit/23bdc67499a20e22cb4ef12c9d7c2ff183d2e6e7))
+* **configs:** 🗂️ regenerate codecov.yml grouped by folder ([2f70095](https://github.com/theholocron/holocron/commit/2f70095d751fc6b6bc8a74f4fb213709450a1d7c))
+* **themes:** 🔧 adapt the imported package to the workspace ([2e7a534](https://github.com/theholocron/holocron/commit/2e7a534eb20daf3da2c9ba73eeef0d6c9e51fbad)), closes [#1212](https://github.com/theholocron/holocron/issues/1212)
+
 ## [5.0.0-alpha.250](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.249...v5.0.0-alpha.250) (2026-10-29)
 
 ### Bug Fixes
