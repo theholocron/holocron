@@ -91,6 +91,15 @@ describe("plugin-index", () => {
 		expect(out).toContain("ClerkAuth");
 		expect(out).toContain("createPlugin");
 	});
+
+	it("orders the rest re-export specifiers the way simple-import-sort does", () => {
+		expect(renderPluginIndex(inputs)).toContain(
+			'export { type ClerkRestClient, createClerkRestClient } from "./rest.js";'
+		);
+		expect(renderPluginIndex({ ...inputs, vendorName: "ZzDemo", slug: "zzdemo" })).toContain(
+			'export { createZzDemoRestClient, type ZzDemoRestClient } from "./rest.js";'
+		);
+	});
 });
 
 describe("readme", () => {
