@@ -1,0 +1,26 @@
+---
+title: Array Utils
+description: Validate and manipulate arrays.
+---
+
+import { PackageHeader, Installation } from "@theholocron/components-doc";
+import { getUtils } from "@theholocron/registry-doc";
+
+<PackageHeader entry={getUtils()["array-utils"]} />
+
+<Installation package={getUtils()["array-utils"].package} />
+
+## API
+
+### `isValid(item)`
+
+Returns `true` if `item` is a non-null, non-undefined, non-empty array.
+
+```ts
+import { isValid } from "@theholocron/array-utils";
+
+isValid([1, 2, 3]); // true
+isValid([]); // false
+isValid(null); // false
+isValid(undefined); // false
+```
