@@ -1,3 +1,18 @@
+## [1.12.1-alpha.1](https://github.com/theholocron/holocron/compare/skills-v1.12.0...skills-v1.12.1-alpha.1) (2026-10-29)
+
+### Bug Fixes
+
+* **skills:** 🐛 point the README's skill links at src/ ([5b4e83b](https://github.com/theholocron/holocron/commit/5b4e83be964eb0425d85d82d2b081e315b915c5d))
+
+### Documentation
+
+* **skills:** 📝 move the skill pages into the docs site ([52eea91](https://github.com/theholocron/holocron/commit/52eea916cec61ca5cec08b7d090720c35f2b6286)), closes [#1208](https://github.com/theholocron/holocron/issues/1208)
+
+### Chores
+
+* **skills:** 🔧 adapt the imported package to the workspace ([c2fd6b5](https://github.com/theholocron/holocron/commit/c2fd6b569e67e5abca8a8f208fe09bc52e9a9daa)), closes [#1208](https://github.com/theholocron/holocron/issues/1208)
+* **skills:** 🔧 satisfy the package.json lint rules ([9d08d2a](https://github.com/theholocron/holocron/commit/9d08d2a00ffe02bb059452620bea9594bc98a8ac)), closes [#1208](https://github.com/theholocron/holocron/issues/1208)
+
 ## [1.12.0](https://github.com/theholocron/skills/compare/v1.11.0...v1.12.0) (2026-10-16)
 
 ### Features
