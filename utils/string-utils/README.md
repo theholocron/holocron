@@ -36,4 +36,4 @@ str.toBoolean(""); // false
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/string-utils/) for more information.

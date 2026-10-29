@@ -68,4 +68,4 @@ The fields these helpers read, typed; any other field passes through untyped.
 
 ## Documentation
 
-Check out [The Holocron Archive](https://docs.theholocron.dev/projects/utils/) for more information.
+Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/pkg-utils/) for more information.
