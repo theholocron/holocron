@@ -471,6 +471,37 @@ describe("runNpmBumpVersions", () => {
 			expect(lines[0]).toBe("Bumping monorepo, leaving out observability, utils, to 2.0.0…");
 		});
 
+		it("does not report folders outside the group as broken, for a group or an excluded group", async () => {
+			const group = await bump("utils");
+			const excluded = await bump("", { group: undefined, excludeGroups: ["utils"] });
+			for (const { lines } of [group, excluded])
+				expect(lines.filter((l) => l.includes("! skipping"))).toEqual([]);
+		});
+
+		it("still reports a missing or malformed manifest inside the group", async () => {
+			const broken = {
+				...files,
+				"utils/missing/readme.md": "no manifest",
+				"utils/malformed/package.json": "{ not json",
+			};
+			const { readFile, writeFile, listDir, isDir } = makeFs(broken);
+			const lines: string[] = [];
+			await runNpmBumpVersions({
+				version: "2.0.0",
+				cwd: CWD,
+				group: "utils",
+				print: (line) => lines.push(line),
+				readFile,
+				writeFile,
+				listDir,
+				isDir,
+			});
+			expect(lines.filter((l) => l.includes("skipping"))).toEqual([
+				"  ! skipping utils/missing: no package.json or malformed JSON",
+				"  ! skipping utils/malformed: no package.json or malformed JSON",
+			]);
+		});
+
 		it("fails for a group that has no packages", async () => {
 			const { report, written, lines } = await bump("skills");
 			expect(report.status).toBe("fail");
