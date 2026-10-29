@@ -17,6 +17,7 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "exports": {
     "./astro": "./astro/tsconfig.json",
     "./nextjs": "./nextjs/tsconfig.json",

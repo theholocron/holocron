@@ -19,6 +19,7 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {
@@ -28,7 +29,6 @@
     },
     "./package.json": "./package.json"
   },
-  "main": "./dist/index.js",
   "files": [
     "dist/"
   ],

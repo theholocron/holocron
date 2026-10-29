@@ -17,6 +17,7 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "main": "./index.js",
   "files": [
     "index.js",

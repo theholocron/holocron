@@ -27,16 +27,19 @@ export default [
 		},
 	},
 	{
-		// The shareable config packages publish manifests that other tools consume as they are, so an import does not
-		// reshape them: their peers are optional tools they configure (not installed for their own tests), some keep a
-		// `main` beside `exports` or are CommonJS/JSON-only, the `./package.json` export is always packed by npm, and
-		// setup files such as vitest-config's are imported for their side effects.
+		// The shareable config packages configure tools their consumers install, so those peers are optional and not
+		// installed for the package's own tests, and the `./package.json` export (npm always packs the file) is kept.
 		files: ["configs/*/package.json"],
 		rules: {
 			"package-json/peer-dependencies-as-dev-dependencies": "off",
-			"package-json/prefer-exports": "off",
 			"package-json/prefer-files-field": "off",
-			"package-json/prefer-side-effects-field": "off",
+		},
+	},
+	{
+		// CommonJS-only packages: moving them to ESM or an `exports` map would break the tools that `require()` them.
+		files: ["configs/browserslist-config/package.json", "configs/tsconfig/package.json"],
+		rules: {
+			"package-json/prefer-exports": "off",
 			"package-json/prefer-type-module": "off",
 		},
 	},

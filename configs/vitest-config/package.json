@@ -19,6 +19,9 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": [
+    "./dist/setup/*.js"
+  ],
   "type": "module",
   "exports": {
     ".": {

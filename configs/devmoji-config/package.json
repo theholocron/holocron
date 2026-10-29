@@ -18,6 +18,7 @@
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",
+  "sideEffects": false,
   "type": "module",
   "exports": {
     ".": {
