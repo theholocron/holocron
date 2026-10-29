@@ -1,0 +1,137 @@
+{
+  "name": "@theholocron/vitest-config",
+  "version": "8.8.2",
+  "description": "Vitest configuration presets for libraries, React apps, and Storybook within the Galaxy.",
+  "keywords": [
+    "vitest",
+    "testing",
+    "coverage",
+    "typescript",
+    "config",
+    "theholocron"
+  ],
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/vitest-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./coverage": {
+      "types": "./dist/coverage.d.ts",
+      "import": "./dist/coverage.js",
+      "default": "./dist/coverage.js"
+    },
+    "./node": {
+      "types": "./dist/presets/node.d.ts",
+      "import": "./dist/presets/node.js",
+      "default": "./dist/presets/node.js"
+    },
+    "./react": {
+      "types": "./dist/presets/react.d.ts",
+      "import": "./dist/presets/react.js",
+      "default": "./dist/presets/react.js"
+    },
+    "./storybook": {
+      "types": "./dist/presets/storybook.d.ts",
+      "import": "./dist/presets/storybook.js",
+      "default": "./dist/presets/storybook.js"
+    },
+    "./bundles/library": {
+      "types": "./dist/bundles/library.d.ts",
+      "import": "./dist/bundles/library.js",
+      "default": "./dist/bundles/library.js"
+    },
+    "./bundles/react-app": {
+      "types": "./dist/bundles/react-app.d.ts",
+      "import": "./dist/bundles/react-app.js",
+      "default": "./dist/bundles/react-app.js"
+    },
+    "./setup/jest-dom": {
+      "types": "./dist/setup/jest-dom.d.ts",
+      "import": "./dist/setup/jest-dom.js",
+      "default": "./dist/setup/jest-dom.js"
+    },
+    "./setup/msw": {
+      "types": "./dist/setup/msw.d.ts",
+      "import": "./dist/setup/msw.js",
+      "default": "./dist/setup/msw.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/tsconfig": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@storybook/addon-vitest": "^9",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@testing-library/user-event": "^14",
+    "@vitest/browser": "^4 || ^5",
+    "@vitest/browser-playwright": "^4 || ^5",
+    "@vitest/coverage-v8": "^4 || ^5",
+    "jsdom": "^26",
+    "playwright": "^1",
+    "vitest": "^4 || ^5"
+  },
+  "peerDependenciesMeta": {
+    "@storybook/addon-vitest": {
+      "optional": true
+    },
+    "@testing-library/jest-dom": {
+      "optional": true
+    },
+    "@testing-library/react": {
+      "optional": true
+    },
+    "@testing-library/user-event": {
+      "optional": true
+    },
+    "@vitest/browser": {
+      "optional": true
+    },
+    "@vitest/browser-playwright": {
+      "optional": true
+    },
+    "@vitest/coverage-v8": {
+      "optional": true
+    },
+    "jsdom": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}

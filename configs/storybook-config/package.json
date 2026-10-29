@@ -1,0 +1,110 @@
+{
+  "name": "@theholocron/storybook-config",
+  "version": "8.8.2",
+  "description": "A Storybook configuration for writing tested components within the Galaxy.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/storybook-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "keywords": [
+    "storybook",
+    "components",
+    "react",
+    "visual-testing",
+    "config",
+    "theholocron"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./main": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js",
+      "default": "./dist/main.js"
+    },
+    "./preview": {
+      "types": "./dist/preview.d.ts",
+      "import": "./dist/preview.js",
+      "default": "./dist/preview.js"
+    },
+    "./test-runner": {
+      "types": "./dist/test-runner.d.ts",
+      "import": "./dist/test-runner.js",
+      "default": "./dist/test-runner.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
+  "peerDependencies": {
+    "@chromatic-com/storybook": "^4",
+    "@storybook/addon-a11y": "^9 || ^10",
+    "@storybook/addon-coverage": "^1.0.4",
+    "@storybook/addon-designs": "^10",
+    "@storybook/addon-docs": "^9 || ^10",
+    "@storybook/addon-links": "^9 || ^10",
+    "@storybook/addon-themes": "^9 || ^10",
+    "@storybook/addon-vitest": "^9 || ^10",
+    "@storybook/react": "^9 || ^10",
+    "@storybook/react-vite": "^9 || ^10",
+    "@storybook/test-runner": "^0.23",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "jsdom": "^26",
+    "react": "^19",
+    "react-dom": "^19",
+    "storybook-addon-pseudo-states": "^9",
+    "@storybook/addon-viewport": "^9 || ^10",
+    "msw-storybook-addon": "^2 || ^3",
+    "playwright": ">=1",
+    "axe-playwright": ">=2"
+  },
+  "peerDependenciesMeta": {
+    "@storybook/addon-viewport": {
+      "optional": true
+    },
+    "msw-storybook-addon": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    },
+    "axe-playwright": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}

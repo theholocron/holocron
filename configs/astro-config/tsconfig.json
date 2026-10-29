@@ -1,0 +1,12 @@
+{
+  "extends": "@theholocron/tsconfig/node-lts",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["dist", "node_modules", "tsdown.config.ts"]
+}

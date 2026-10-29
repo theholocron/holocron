@@ -1,0 +1,170 @@
+{
+  "name": "@theholocron/eslint-config",
+  "version": "8.8.2",
+  "description": "A ESLint configuration for writing well-formed Javascript within the Galaxy.",
+  "keywords": [
+    "eslint",
+    "eslintconfig",
+    "eslint-config",
+    "typescript",
+    "react",
+    "nextjs",
+    "vitest",
+    "storybook"
+  ],
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/eslint-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./base": {
+      "types": "./dist/configs/base.d.ts",
+      "import": "./dist/configs/base.js",
+      "default": "./dist/configs/base.js"
+    },
+    "./jsdoc": {
+      "types": "./dist/configs/jsdoc.d.ts",
+      "import": "./dist/configs/jsdoc.js",
+      "default": "./dist/configs/jsdoc.js"
+    },
+    "./typescript": {
+      "types": "./dist/configs/typescript.d.ts",
+      "import": "./dist/configs/typescript.js",
+      "default": "./dist/configs/typescript.js"
+    },
+    "./react": {
+      "types": "./dist/configs/react.d.ts",
+      "import": "./dist/configs/react.js",
+      "default": "./dist/configs/react.js"
+    },
+    "./next": {
+      "types": "./dist/configs/next.d.ts",
+      "import": "./dist/configs/next.js",
+      "default": "./dist/configs/next.js"
+    },
+    "./node": {
+      "types": "./dist/configs/node.d.ts",
+      "import": "./dist/configs/node.js",
+      "default": "./dist/configs/node.js"
+    },
+    "./package-json": {
+      "types": "./dist/configs/package-json.d.ts",
+      "import": "./dist/configs/package-json.js",
+      "default": "./dist/configs/package-json.js"
+    },
+    "./vitest": {
+      "types": "./dist/configs/vitest.d.ts",
+      "import": "./dist/configs/vitest.js",
+      "default": "./dist/configs/vitest.js"
+    },
+    "./storybook": {
+      "types": "./dist/configs/storybook.d.ts",
+      "import": "./dist/configs/storybook.js",
+      "default": "./dist/configs/storybook.js"
+    },
+    "./cypress": {
+      "types": "./dist/configs/cypress.d.ts",
+      "import": "./dist/configs/cypress.js",
+      "default": "./dist/configs/cypress.js"
+    },
+    "./bundles/library": {
+      "types": "./dist/bundles/library.d.ts",
+      "import": "./dist/bundles/library.js",
+      "default": "./dist/bundles/library.js"
+    },
+    "./bundles/next-app": {
+      "types": "./dist/bundles/next-app.d.ts",
+      "import": "./dist/bundles/next-app.js",
+      "default": "./dist/bundles/next-app.js"
+    },
+    "./bundles/node-app": {
+      "types": "./dist/bundles/node-app.d.ts",
+      "import": "./dist/bundles/node-app.js",
+      "default": "./dist/bundles/node-app.js"
+    },
+    "./bundles/react-app": {
+      "types": "./dist/bundles/react-app.d.ts",
+      "import": "./dist/bundles/react-app.js",
+      "default": "./dist/bundles/react-app.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "dependencies": {
+    "@eslint/compat": "^2.1.0",
+    "eslint-package-json": "^0.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "^1.6.23",
+    "eslint-plugin-n": "^18.3.0",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
+    "globals": "^17.11.0",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@eslint/js": "^10",
+    "@next/eslint-plugin-next": "^16",
+    "@vitest/eslint-plugin": "^1",
+    "eslint": "^10",
+    "eslint-plugin-cypress": "^6",
+    "eslint-plugin-jsdoc": "^50.0.0",
+    "eslint-plugin-n": "^18",
+    "eslint-plugin-react": "^7",
+    "eslint-plugin-simple-import-sort": "^14",
+    "eslint-plugin-storybook": "^10",
+    "globals": "^17",
+    "typescript-eslint": "^8"
+  },
+  "peerDependenciesMeta": {
+    "@next/eslint-plugin-next": {
+      "optional": true
+    },
+    "eslint-plugin-cypress": {
+      "optional": true
+    },
+    "eslint-plugin-jsdoc": {
+      "optional": true
+    },
+    "eslint-plugin-react": {
+      "optional": true
+    },
+    "eslint-plugin-storybook": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}

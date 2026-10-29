@@ -1,0 +1,69 @@
+{
+  "name": "@theholocron/tsdown-config",
+  "version": "8.8.2",
+  "description": "Shared tsdown configurations for @theholocron packages.",
+  "homepage": "https://github.com/theholocron/configs/tree/main/packages/tsdown-config#readme",
+  "bugs": "https://github.com/theholocron/configs/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/configs.git"
+  },
+  "license": "GPL-3.0",
+  "author": "Newton Koumantzelis",
+  "keywords": [
+    "tsdown",
+    "build",
+    "bundler",
+    "typescript",
+    "config",
+    "theholocron"
+  ],
+  "type": "module",
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "test:watch": "vitest",
+    "verification.typeSafety": "holocron run verification.typeSafety --",
+    "verification.unitTests": "holocron run verification.unitTests --"
+  },
+  "devDependencies": {
+    "@theholocron/cli": "catalog:holocron",
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./presets/cli": {
+      "types": "./dist/presets/cli.d.ts",
+      "import": "./dist/presets/cli.js",
+      "default": "./dist/presets/cli.js"
+    },
+    "./presets/library": {
+      "types": "./dist/presets/library.d.ts",
+      "import": "./dist/presets/library.js",
+      "default": "./dist/presets/library.js"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "peerDependencies": {
+    "tsdown": "^0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "releases": "https://github.com/theholocron/configs/releases",
+  "wiki": "https://github.com/theholocron/configs/wiki"
+}
