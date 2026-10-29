@@ -1,3 +1,18 @@
+## [8.9.0-alpha.1](https://github.com/theholocron/holocron/compare/configs-v8.8.2...configs-v8.9.0-alpha.1) (2026-10-29)
+
+### Features
+
+* **tsdown-config:** ✨ run the bundle-size guard from the library preset ([#1292](https://github.com/theholocron/holocron/issues/1292)) ([5ee215f](https://github.com/theholocron/holocron/commit/5ee215f1a23deb783398827ff0b3b97ec7bf3933)), closes [#762](https://github.com/theholocron/holocron/issues/762) [#1291](https://github.com/theholocron/holocron/issues/1291)
+
+### Documentation
+
+* **configs:** 📝 move the package pages into the docs site ([8a3122f](https://github.com/theholocron/holocron/commit/8a3122ffd21ac5ee40add30442902c77129815cc)), closes [#1210](https://github.com/theholocron/holocron/issues/1210)
+
+### Chores
+
+* **configs:** 🔧 adapt the imported packages to the workspace ([90faa5b](https://github.com/theholocron/holocron/commit/90faa5b1b8ec04b80baf14afc8ae1e549dc32478)), closes [#1210](https://github.com/theholocron/holocron/issues/1210)
+* **configs:** 🔧 meet the stricter package.json rules where it is safe ([23bdc67](https://github.com/theholocron/holocron/commit/23bdc67499a20e22cb4ef12c9d7c2ff183d2e6e7))
+
 ## [8.8.2](https://github.com/theholocron/configs/compare/v8.8.1...v8.8.2) (2026-10-22)
 
 ### Bug Fixes

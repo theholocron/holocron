@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/prettier-config",
-  "version": "8.8.2",
+  "version": "8.9.0-alpha.1",
   "description": "A Prettier configuration for formatting libraries in the Galaxy.",
   "keywords": [
     "prettier",
