@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ReleaseContext } from "../release.type.js";
-import { commentOnlyFor, folderScoped, ungroupedScoped } from "./folder-scoped.js";
+import { commentOnlyFor, folderScoped, resolvePlugin, ungroupedScoped } from "./folder-scoped.js";
 
 const commit = (hash: string, message = hash) => ({ hash, message });
 
@@ -187,5 +187,34 @@ describe("default plugin loading", () => {
 		const result = await plugin.success!({}, { cwd: dir, commits: [commit("a"), commit("b"), commit("c")] });
 
 		expect(result).toBe(2);
+	});
+});
+
+describe("resolvePlugin", () => {
+	const notFound = () => {
+		throw new Error("MODULE_NOT_FOUND");
+	};
+
+	it("prefers the plugin the repo resolves itself", () => {
+		const requireFrom = vi.fn(() => ({ resolve: (id: string) => `/repo/node_modules/${id}/index.js` }));
+		expect(resolvePlugin("@semantic-release/github", "/repo", requireFrom)).toBe(
+			"/repo/node_modules/@semantic-release/github/index.js"
+		);
+		expect(requireFrom).toHaveBeenCalledTimes(1);
+		expect(requireFrom).toHaveBeenCalledWith("/repo/package.json");
+	});
+
+	it("falls back to the plugin as semantic-release resolves it when the repo has none", () => {
+		const fromSemanticRelease = { resolve: (id: string) => `/store/semantic-release/node_modules/${id}/index.js` };
+		const fromRepo = {
+			resolve: (id: string) =>
+				id === "semantic-release" ? "/repo/node_modules/semantic-release/index.js" : notFound(),
+		};
+		const requireFrom = vi.fn((file: string) => (file === "/repo/package.json" ? fromRepo : fromSemanticRelease));
+
+		expect(resolvePlugin("@semantic-release/github", "/repo", requireFrom)).toBe(
+			"/store/semantic-release/node_modules/@semantic-release/github/index.js"
+		);
+		expect(requireFrom).toHaveBeenLastCalledWith("/repo/node_modules/semantic-release/index.js");
 	});
 });

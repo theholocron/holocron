@@ -55,14 +55,21 @@ export function ungroupedScoped<Step extends CommitStep>(
  * would resolve from this file, inside astromech, where neither is visible.
  */
 function importFrom(specifier: string, cwd: string): Promise<unknown> {
-	const fromRepo = createRequire(join(cwd, "package.json"));
-	let path: string;
+	return import(pathToFileURL(resolvePlugin(specifier, cwd)).href);
+}
+
+/** The file `specifier` resolves to for the repo at `cwd`, else for `semantic-release`; `requireFrom` is a seam for tests. */
+export function resolvePlugin(
+	specifier: string,
+	cwd: string,
+	requireFrom: (file: string) => { resolve(id: string): string } = createRequire
+): string {
+	const fromRepo = requireFrom(join(cwd, "package.json"));
 	try {
-		path = fromRepo.resolve(specifier);
+		return fromRepo.resolve(specifier);
 	} catch {
-		path = createRequire(fromRepo.resolve("semantic-release")).resolve(specifier);
+		return requireFrom(fromRepo.resolve("semantic-release")).resolve(specifier);
 	}
-	return import(pathToFileURL(path).href);
 }
 
 function scopedBy<Step extends CommitStep>(
