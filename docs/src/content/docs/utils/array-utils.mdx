@@ -3,23 +3,21 @@ title: Array Utils
 description: Validate and manipulate arrays.
 ---
 
+Small helpers for checking and handling arrays.
+
 ## Installation
 
 ```bash
 pnpm add @theholocron/array-utils
 ```
 
-## API
-
-### `isValid(item)`
-
-Returns `true` if `item` is a non-null, non-undefined, non-empty array.
+## Usage
 
 ```ts
 import { isValid } from "@theholocron/array-utils";
 
 isValid([1, 2, 3]); // true
 isValid([]); // false
-isValid(null); // false
-isValid(undefined); // false
 ```
+
+The full [API reference](/holocron/utils/array-utils/api/readme/) is generated from the package's TSDoc comments.

@@ -393,12 +393,18 @@ importers:
       sort-package-json:
         specifier: 'catalog:'
         version: 4.0.0
+      starlight-typedoc:
+        specifier: 'catalog:'
+        version: 0.23.1(@astrojs/starlight@0.41.11(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typedoc-plugin-markdown@4.14.1(typedoc@0.28.20(typescript@5.9.3)))(typedoc@0.28.20(typescript@5.9.3))
       turbo:
         specifier: 'catalog:'
         version: 2.10.12
       typedoc:
         specifier: 'catalog:'
         version: 0.28.20(typescript@5.9.3)
+      typedoc-plugin-markdown:
+        specifier: 'catalog:'
+        version: 4.14.1(typedoc@0.28.20(typescript@5.9.3))
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

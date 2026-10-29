@@ -1,6 +1,15 @@
 import starlight from "@astrojs/starlight";
-import { defineConfig } from "@theholocron/astro-config";
+import { apiReference, defineConfig } from "@theholocron/astro-config";
 import { docsTheme } from "@theholocron/docs-theme";
+import { createStarlightTypeDocPlugin } from "starlight-typedoc";
+
+// The reference is generated from the package's TSDoc comments each time the docs are built or served, and is not
+// committed (it is gitignored).
+const arrayUtilsApi = apiReference({
+	createPlugin: createStarlightTypeDocPlugin,
+	root: new URL("./", import.meta.url),
+	package: "utils/array-utils",
+});
 
 export default defineConfig({
 	site: "https://docs.theholocron.dev",
@@ -102,7 +111,10 @@ export default defineConfig({
 				label: "Utils",
 				items: [
 					{ label: "Overview", slug: "utils" },
-					{ label: "array-utils", slug: "utils/array-utils" },
+					{
+						label: "array-utils",
+						items: [{ label: "Overview", slug: "utils/array-utils" }, arrayUtilsApi.group],
+					},
 					{ label: "date-time-utils", slug: "utils/date-time-utils" },
 					{ label: "env-utils", slug: "utils/env-utils" },
 					{ label: "fs-utils", slug: "utils/fs-utils" },
@@ -184,6 +196,7 @@ export default defineConfig({
 			},
 		],
 	},
+	plugins: [arrayUtilsApi.plugin],
 	starlight,
 	docsTheme,
 	srcDir: "./docs/src",
