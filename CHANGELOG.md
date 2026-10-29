@@ -1,3 +1,9 @@
+## [5.0.0-alpha.247](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.246...v5.0.0-alpha.247) (2026-10-29)
+
+### Chores
+
+* **deps:** ⬆️ bump vitest to 5.0.5 and tsdown to 0.23.3 ([#1273](https://github.com/theholocron/holocron/issues/1273)) ([727c699](https://github.com/theholocron/holocron/commit/727c699300a4738ecd005dc6f6b3857b9cbcc176)), closes [#1225](https://github.com/theholocron/holocron/issues/1225)
+
 ## [5.0.0-alpha.246](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.245...v5.0.0-alpha.246) (2026-10-29)
 
 ### Features
