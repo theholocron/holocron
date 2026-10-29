@@ -116,7 +116,7 @@ tasks: [
 ],
 ```
 
-The generated workflow has a `plan` job and a `release` job that calls the reusable workflow once per group from a matrix:
+The generated workflow has a `plan` job and a matrix job that calls the reusable workflow once per group:
 
 - **One group at a time.** The matrix runs with `max-parallel: 1`, because each release pushes a commit to the branch. The reusable checks out the branch's current tip when it is given a `group`, so the next group starts after the last one's release commit instead of behind it. `fail-fast` is off, so one group failing does not skip the rest. (A `concurrency` group does not work for this: GitHub keeps only one pending run per group and cancels the rest.)
 - **A push releases every group.** A manual run has a `group` choice (default `all`) and the usual dry-run switch, so `group: clients` with a dry run previews that group's next release alone. A job's `if:` cannot see the matrix, which is why `plan` makes the choice.
@@ -127,12 +127,12 @@ The generated workflow has a `plan` job and a `release` job that calls the reusa
 ```ts
 with: {
   groups: ["observability"],
-  // everything in no group, released together under the repo's plain `v*` tags, first
+  // everything in no group, released together under the repo's plain `v*` tags, last
   ungrouped: { "sentry-project": "holocron-cli", "deploy-on-release": true },
 }
 ```
 
-`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs before the groups, and a manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`package bump-versions` and `package publish` both take it), and releases a single group when `RELEASE_GROUP` is set. The repo-wide release also ignores commits confined to a group's folder, including a group's imported history, so a change that only touches a group neither releases the repo nor lands in its changelog (`ungroupedReleaseConfig()` builds it, the mirror of `groupReleaseConfig()`):
+`ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs **after** the groups, from the branch tip they have moved: the packages in no group depend on the groups' packages through `workspace:` ranges, which are rewritten to concrete versions at publish time, so the groups must be on npm first (list `groups` in dependency order: a group before the groups that depend on it). It is skipped if a group failed. A manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`package bump-versions` and `package publish` both take it), and releases a single group when `RELEASE_GROUP` is set. The repo-wide release also ignores commits confined to a group's folder, including a group's imported history, so a change that only touches a group neither releases the repo nor lands in its changelog (`ungroupedReleaseConfig()` builds it, the mirror of `groupReleaseConfig()`):
 
 ```ts
 import { loadTasksConfig } from "@theholocron/astromech/config";
