@@ -1,0 +1,55 @@
+---
+title: Checkly Client
+description: TypeScript client for the Checkly API — manage uptime and synthetic API checks.
+---
+
+`@theholocron/checkly-client` wraps the Checkly REST API for provisioning API checks.
+
+## Installation
+
+```bash
+pnpm add @theholocron/checkly-client
+```
+
+## Usage
+
+```ts
+import { createChecklyClient } from "@theholocron/checkly-client";
+
+const client = createChecklyClient({
+  token: process.env.CHECKLY_API_KEY!,
+  accountId: process.env.CHECKLY_ACCOUNT_ID!,
+});
+
+const existing = await client.checks.list({ search: "sentinel webhook" });
+// shouldFail: true is required whenever the "healthy" response is
+// itself an HTTP error status -- without it, Checkly treats any
+// 4xx/5xx as a failure before your assertions are evaluated.
+const check = await client.checks.create({
+  name: "Sentinel webhook uptime",
+  frequency: 5,
+  locations: ["us-east-1"],
+  shouldFail: true,
+  request: {
+    url: "https://sentinel.theholocron.dev/api/webhook",
+    method: "GET",
+    assertions: [{ source: "STATUS_CODE", comparison: "EQUALS", target: "405" }],
+  },
+});
+```
+
+## Exports
+
+| Export                 | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| `createChecklyClient`  | Factory returning a client with a `checks` resource         |
+| `ChecklyClientOptions` | Options type for `createChecklyClient`                      |
+| `ApiCheck`             | Shape of an API check as returned by the Checkly API        |
+| `ApiCheckInput`        | Input for `checks.create()` / `checks.update()`             |
+| `ApiCheckRequest`      | The `request` field on an API check (url/method/assertions) |
+| `Assertion`            | One check assertion (source/comparison/target)              |
+| `AssertionSource`      | Union of assertion source values                            |
+| `AssertionComparison`  | Union of assertion comparison operators                     |
+| `HttpMethod`           | Union of HTTP methods an API check can issue                |
+| `ListChecksParams`     | Query params for `checks.list()`                            |
+| `ChecklyClient`        | Return type of `createChecklyClient`                        |

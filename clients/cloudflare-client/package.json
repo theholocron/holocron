@@ -1,0 +1,66 @@
+{
+  "name": "@theholocron/cloudflare-client",
+  "version": "1.57.0",
+  "description": "A TypeScript client for the Cloudflare API",
+  "keywords": [
+    "cloudflare",
+    "dns",
+    "tunnel",
+    "typescript",
+    "http-client",
+    "api"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/clients/cloudflare/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "clients/cloudflare-client"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown && node ../scripts/check-bundle-size.mjs",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "dependencies": {
+    "@theholocron/http-client": "workspace:^",
+    "@theholocron/observability": "catalog:"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsconfig": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -35,6 +35,14 @@ export default [
 		},
 	},
 	{
-		ignores: ["cli/*/dist/**", "cli/*/coverage/**", "utils/*/dist/**", "utils/*/coverage/**", "**/node_modules/**"],
+		ignores: [
+			"cli/*/dist/**",
+			"cli/*/coverage/**",
+			"clients/*/dist/**",
+			"clients/*/coverage/**",
+			"utils/*/dist/**",
+			"utils/*/coverage/**",
+			"**/node_modules/**",
+		],
 	},
 ] satisfies Linter.Config[];

@@ -1,0 +1,174 @@
+import { type ErrorSink, type Logger, NoopErrorSink, NoopLogger } from "@theholocron/observability/core";
+
+import { ProviderApiError } from "./errors.js";
+import { notifyRetry } from "./retry-events.js";
+import { transportCode, worthRetrying } from "./transport.js";
+
+export interface RestClientConfig {
+	/** Default base URL (e.g. "https://api.github.com"). */
+	baseUrl: string;
+	/** Auth token. */
+	token: string;
+	/**
+	 * How the token is sent.
+	 * - `"bearer"` (default): `Authorization: Bearer <token>`
+	 * - `"basic"`: `Authorization: Basic <token>`
+	 * - `"apikey"`: uses `apiKeyHeader` (e.g. `x-api-key`)
+	 */
+	tokenScheme?: "bearer" | "basic" | "apikey";
+	/** Header name when `tokenScheme` is `"apikey"`. Defaults to `"x-api-key"`. */
+	apiKeyHeader?: string;
+	/**
+	 * Static headers merged into every request. Applied after the auth header
+	 * so they can override defaults (e.g. GitHub's `accept` override).
+	 */
+	extraHeaders?: Record<string, string>;
+	/** Query params appended to every request URL (e.g. Vercel's `teamId`). */
+	defaultQuery?: Record<string, string>;
+	/** Vendor label used in error messages (e.g. `"GitHub"`). */
+	vendor?: string;
+	/** Override `fetch` for tests. Defaults to `globalThis.fetch`. */
+	fetch?: typeof fetch;
+	/**
+	 * Structured logger for request/response diagnostics (`debug` level).
+	 * Defaults to a no-op — the seam, not a runtime. Bring your own
+	 * `@theholocron/observability` `Logger` (or any structurally-compatible
+	 * one) to see it.
+	 */
+	logger?: Logger;
+	/**
+	 * Reports transport failures (network errors, `status: 0`) and unexpected
+	 * 5xx responses. 4xx is left unreported — those are typically expected /
+	 * handled by the caller (a 404 from a "does this exist" check, etc.).
+	 * Defaults to a no-op.
+	 */
+	errors?: ErrorSink;
+	/**
+	 * How many times to send a request again after a transport failure that is safe to repeat (see `worthRetrying`):
+	 * the connection never opened, or a read was dropped. HTTP error statuses are never retried. Defaults to 2; 0
+	 * turns it off.
+	 */
+	retries?: number;
+	/** Milliseconds before the first retry; each later one waits three times as long. Defaults to 300. */
+	retryDelayMs?: number;
+}
+
+export interface RequestOptions {
+	method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+	body?: unknown;
+	/** Per-request query params, merged after `defaultQuery`. */
+	query?: Record<string, string>;
+	/** Return `undefined` without parsing even on a 200 response. */
+	expectNoContent?: boolean;
+}
+
+export interface RestClient {
+	readonly baseUrl: string;
+	request<T>(path: string, opts?: RequestOptions): Promise<T>;
+}
+
+export function createRestClient(config: RestClientConfig): RestClient {
+	const fetchImpl = config.fetch ?? globalThis.fetch;
+	const vendor = config.vendor ?? "";
+	const logger = config.logger ?? new NoopLogger();
+	const errors = config.errors ?? new NoopErrorSink();
+	const maxRetries = config.retries ?? 2;
+	const retryDelay = config.retryDelayMs ?? 300;
+
+	// Manual trailing-slash trim — CodeQL flags regex on library input as
+	// polynomial ReDoS. O(n) loop, no backtracking risk.
+	let baseUrl = config.baseUrl;
+	while (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
+
+	const staticHeaders: Record<string, string> = {
+		accept: "application/json",
+	};
+
+	if (config.tokenScheme === "apikey") {
+		staticHeaders[config.apiKeyHeader ?? "x-api-key"] = config.token;
+	} else if (config.tokenScheme === "basic") {
+		staticHeaders["authorization"] = `Basic ${config.token}`;
+	} else {
+		staticHeaders["authorization"] = `Bearer ${config.token}`;
+	}
+
+	// extraHeaders applied last so callers can override defaults (e.g. accept).
+	Object.assign(staticHeaders, config.extraHeaders);
+
+	return {
+		baseUrl,
+
+		async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+			const url = new URL(`${baseUrl}${path.startsWith("/") ? path : "/" + path}`);
+			for (const [k, v] of Object.entries(config.defaultQuery ?? {})) url.searchParams.set(k, v);
+			for (const [k, v] of Object.entries(opts.query ?? {})) url.searchParams.set(k, v);
+
+			const headers = { ...staticHeaders };
+			const init: RequestInit = { method: opts.method ?? "GET", headers };
+			if (opts.body !== undefined) {
+				headers["content-type"] = "application/json";
+				init.body = JSON.stringify(opts.body);
+			}
+
+			const tag = vendor ? `${vendor} ${init.method} ${path}` : `${init.method} ${path}`;
+			logger.debug({ vendor, method: init.method, path }, "request");
+
+			let res: Response;
+			for (let attempt = 0; ; attempt++) {
+				try {
+					res = await fetchImpl(url.toString(), init);
+					break;
+				} catch (err) {
+					const code = transportCode(err);
+					if (attempt < maxRetries && worthRetrying(code, init.method!)) {
+						logger.debug(
+							{
+								vendor,
+								method: init.method,
+								path,
+								code,
+								attempt: attempt + 1,
+							},
+							"retrying"
+						);
+						const delayMs = retryDelay * 3 ** attempt;
+						notifyRetry({
+							...(vendor ? { vendor } : {}),
+							method: init.method!,
+							path,
+							code: code!,
+							attempt: attempt + 2,
+							of: maxRetries + 1,
+							delayMs,
+						});
+						await new Promise((resolve) => setTimeout(resolve, delayMs));
+						continue;
+					}
+					const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+					const apiErr = new ProviderApiError(
+						`${tag} failed: ${detail}${code ? ` (${code})` : ""}`,
+						0,
+						undefined
+					);
+					errors.captureException(apiErr);
+					throw apiErr;
+				}
+			}
+
+			if (!res.ok) {
+				const body = await res.text().catch(() => "");
+				const apiErr = new ProviderApiError(`${tag} → ${res.status}`, res.status, body);
+				// 4xx is typically expected/handled by the caller (a 404 from an
+				// "does this exist" check, etc.) — only 5xx is genuinely unexpected.
+				if (res.status >= 500) errors.captureException(apiErr);
+				throw apiErr;
+			}
+			logger.debug({ vendor, method: init.method, path, status: res.status }, "response");
+
+			if (opts.expectNoContent || res.status === 204) return undefined as T;
+			const text = await res.text();
+			if (!text) return undefined as T;
+			return JSON.parse(text) as T;
+		},
+	};
+}

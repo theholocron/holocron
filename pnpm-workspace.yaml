@@ -2,6 +2,7 @@ packages:
   - "docs"
   - "apps/*"
   - "cli/*"
+  - "clients/*"
   - "plugins/*"
   - "observability"
   - "skills"
@@ -98,27 +99,30 @@ catalogs:
     "@theholocron/object-utils": ^1.16.0
     "@theholocron/pkg-utils": ^1.16.0
 
-# Force all packages (including external transitive deps) to use the
-# same http-client instance — prevents instanceof ProviderApiError
-# dual-module hazard when github-client and cli both depend on it.
-# @sentry/node and posthog-node are pinned alongside it for the same
-# reason, one level removed: http-client itself peers on both, and pnpm
-# creates a SEPARATE physical http-client instance per distinct
-# peer-resolved version set it sees anywhere in the graph — even with
-# http-client's own version pinned, an external published dependency
-# (e.g. holocron-config's npm-resolved @theholocron/cli, which doesn't
-# read this workspace's catalog) can still resolve a newer sentry/posthog
-# and silently reintroduce the split. Found live: holocron#782's
+# @sentry/node and posthog-node are pinned exactly so every consumer resolves the
+# same version. @theholocron/http-client peers on both, and pnpm creates a
+# SEPARATE physical http-client instance per distinct peer-resolved version set
+# it sees anywhere in the graph -- an external published dependency (e.g.
+# holocron-config's npm-resolved @theholocron/cli, which doesn't read this
+# workspace's catalog) can resolve a newer sentry/posthog and split
+# `instanceof ProviderApiError` across two copies. Found live: holocron#782's
 # @theholocron/holocron-config dependency pulled in exactly this.
 #
-# All three are EXACT pins (no caret) -- a caret range only constrains
-# what's ACCEPTABLE, and pnpm is still free to resolve different exact
-# versions for different consumers as long as each satisfies the range,
-# recreating the exact same split one version bump later. Found live a
-# second time: bumping github-client alone (a real, otherwise-unrelated
-# feature addition) pulled in http-client@1.26.0 for that one edge while
-# every other consumer stayed on the already-locked 1.25.0, splitting
-# ProviderApiError again under a caret override that permitted both.
+# http-client itself used to be pinned here too, to keep github-client and the
+# CLI on one copy. It is no longer: the clients live in this repo (clients/*,
+# #1211), the CLI and plugins consume the published version through the
+# `clients` catalog, and with the pin removed the lockfile still holds a single
+# http-client and the CLI and plugin suites pass. If a dependency bump ever
+# splits it again, pin it here (exactly) rather than with a caret.
+#
+# Both pins are EXACT (no caret) -- a caret range only constrains what's
+# ACCEPTABLE, and pnpm is still free to resolve different exact versions for
+# different consumers as long as each satisfies the range, recreating the same
+# split one version bump later. Found live twice with http-client: bumping
+# github-client alone pulled in http-client@1.26.0 for that one edge while every
+# other consumer stayed on 1.25.0, splitting ProviderApiError under a caret
+# override that permitted both.
+#
 # cookie and tsx are pinned too, but for unrelated reasons, and not
 # both exactly -- cookie is constrained to the 2.x line (caret range,
 # not exact: ^2.0.1) to dodge cookie@0.7.1, which broke the docs
@@ -130,12 +134,14 @@ catalogs:
 # latest instead of the stale downgrade. Both cookie and tsx used to
 # live in package.json's own `pnpm.overrides`, which pnpm prefers over
 # this block when both exist -- meaning this whole `overrides:` block,
-# including the three single-instance pins above, was silently never
+# including the single-instance pins above, was silently never
 # applied (holocron#908).
 overrides:
   "@sentry/node": 10.75.2
-  "@theholocron/http-client": 1.57.0
   conventional-changelog-conventionalcommits: 9.3.1
   cookie: ^2.0.1
+  # googleapis@174 types against google-auth-library 10.x, while google-client declares ^11.0.2; the
+  # old clients repo forced 10.x (pnpm.overrides) so the Google types line up. Carried over as-is.
+  google-auth-library: ^10.9.0
   posthog-node: 5.52.5
   tsx: 4.23.15
