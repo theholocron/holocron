@@ -74,5 +74,8 @@ export function commentOnlyFor(
 	scoped: StepPlugin<"success">
 ): ((string | [string, Record<string, unknown> | undefined]) | [object, unknown])[] {
 	const [name, config] = Array.isArray(entry) ? entry : [entry, undefined];
-	return [[name, { ...config, successComment: false, releasedLabels: false }], [scoped, config]];
+	return [
+		[name, { ...config, successComment: false, releasedLabels: false }],
+		[scoped, config],
+	];
 }
