@@ -7,6 +7,7 @@ packages:
   - "observability"
   - "skills"
   - "utils/*"
+  - "configs/*"
 
 # Shared dep versions used across packages. Add named catalogs as
 # plugin packages grow.
@@ -137,6 +138,8 @@ catalogs:
 # including the single-instance pins above, was silently never
 # applied (holocron#908).
 overrides:
+  "@astrojs/starlight>@astrojs/markdown-satteri": 0.4.5
+  "@astrojs/starlight>satteri": 0.10.5
   "@sentry/node": 10.75.2
   conventional-changelog-conventionalcommits: 9.3.1
   cookie: ^2.0.1

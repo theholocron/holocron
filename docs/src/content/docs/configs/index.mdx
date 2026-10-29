@@ -1,0 +1,38 @@
+---
+title: Configs
+description: Shared configuration files.
+---
+
+Shareable tool configurations used across every `theholocron` project: ESLint, Prettier, TypeScript, Vitest, tsdown, commitlint and more. Each package is published independently to npm. They share one version line and release together from the `configs/` folder, with tags `configs-v<version>`.
+
+## Packages
+
+| Package                                                                                                | Description                                                                                 |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| [`@theholocron/astro-config`](/holocron/configs/astro-config/)                                         | Astro configuration factory for theholocron docs sites.                                     |
+| [`@theholocron/browserslist-config`](/holocron/configs/browserslist-config/)                           | A Browserslist configuration for all browsers and devices supported in the Galaxy.          |
+| [`@theholocron/commitlint-config`](/holocron/configs/commitlint-config/)                               | A CommitLint configuration for writing well-formatted and consistent Git commits.           |
+| [`@theholocron/devmoji-config`](/holocron/configs/devmoji-config/)                                     | Shared devmoji configuration for conventional commit emojis.                                |
+| [`@theholocron/eslint-config`](/holocron/configs/eslint-config/)                                       | A ESLint configuration for writing well-formed Javascript within the Galaxy.                |
+| [`@theholocron/lighthouse-config`](/holocron/configs/lighthouse-config/)                               | A Lighthouse CI configuration for auditing performance and accessibility within the Galaxy. |
+| [`@theholocron/lint-staged-config`](/holocron/configs/lint-staged-config/)                             | A Lint Staged configuration for linting code that has been staged in Git within the Galaxy. |
+| `@theholocron/markdownlint-config`                                                                     | A markdownlint configuration for documentation in the Galaxy.                               |
+| [`@theholocron/prettier-config`](/holocron/configs/prettier-config/)                                   | A Prettier configuration for formatting libraries in the Galaxy.                            |
+| [`@theholocron/rollup-plugin-transform-template`](/holocron/configs/rollup-plugin-transform-template/) | Rollup/Vite/Rolldown plugin that transforms template files into default-exported strings.   |
+| [`@theholocron/semantic-release-config`](/holocron/configs/semantic-release-config/)                   | A semantic-release configuration for automated versioning and publishing.                   |
+| [`@theholocron/storybook-config`](/holocron/configs/storybook-config/)                                 | A Storybook configuration for writing tested components within the Galaxy.                  |
+| [`@theholocron/stylelint-config`](/holocron/configs/stylelint-config/)                                 | A StyleLint configuration for writing well-formed CSS within the Galaxy.                    |
+| [`@theholocron/tsconfig`](/holocron/configs/tsconfig/)                                                 | TypeScript base configurations for theholocron projects.                                    |
+| [`@theholocron/tsdown-config`](/holocron/configs/tsdown-config/)                                       | Shared tsdown configurations for @theholocron packages.                                     |
+| [`@theholocron/vite-config`](/holocron/configs/vite-config/)                                           | Vite configuration presets for libraries, React apps, and Node tools within the Galaxy.     |
+| [`@theholocron/vitest-config`](/holocron/configs/vitest-config/)                                       | Vitest configuration presets for libraries, React apps, and Storybook within the Galaxy.    |
+
+## Installation
+
+Install only what you need:
+
+```bash
+pnpm add -D @theholocron/eslint-config
+```
+
+See the [CHANGELOG](https://github.com/theholocron/holocron/blob/alpha/configs/CHANGELOG.md) for the current version.

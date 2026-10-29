@@ -1,0 +1,42 @@
+{
+  "name": "@theholocron/tsconfig",
+  "version": "8.8.2",
+  "description": "TypeScript base configurations for theholocron projects.",
+  "keywords": [
+    "typescript",
+    "tsconfig",
+    "config",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/tsconfig/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/tsconfig"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "exports": {
+    "./astro": "./astro/tsconfig.json",
+    "./nextjs": "./nextjs/tsconfig.json",
+    "./node-lts": "./node-lts/tsconfig.json",
+    "./react": "./react/tsconfig.json"
+  },
+  "files": [
+    "astro/tsconfig.json",
+    "nextjs/tsconfig.json",
+    "node-lts/tsconfig.json",
+    "react/tsconfig.json"
+  ],
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

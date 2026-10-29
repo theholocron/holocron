@@ -1,0 +1,61 @@
+{
+  "name": "@theholocron/commitlint-config",
+  "version": "8.8.2",
+  "description": "A CommitLint configuration for writing well-formatted and consistent Git commits.",
+  "keywords": [
+    "commitlint",
+    "conventional-commits",
+    "git",
+    "commits",
+    "config",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/commitlint-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/commitlint-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "devDependencies": {
+    "@commitlint/types": "^21.2.0",
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@commitlint/cli": "^21",
+    "@commitlint/config-conventional": "^21"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

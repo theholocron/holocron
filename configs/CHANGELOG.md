@@ -1,0 +1,531 @@
+## [8.8.2](https://github.com/theholocron/configs/compare/v8.8.1...v8.8.2) (2026-10-22)
+
+### Bug Fixes
+
+* 🐛 allow vitest 5 in vitest-config peer ranges ([#504](https://github.com/theholocron/configs/issues/504)) ([83b1012](https://github.com/theholocron/configs/commit/83b10128fa54015268a542e65b58e89667f45a04))
+
+## [8.8.1](https://github.com/theholocron/configs/compare/v8.8.0...v8.8.1) (2026-10-20)
+
+### Bug Fixes
+
+* 🐛 adopt turbo.json inputs override for this repo's flat layout ([#502](https://github.com/theholocron/configs/issues/502)) ([ab234d8](https://github.com/theholocron/configs/commit/ab234d82eb73fab30df011252bd332b36e7bfb2c))
+
+## [8.8.0](https://github.com/theholocron/configs/compare/v8.7.1...v8.8.0) (2026-10-17)
+
+### Features
+
+* ✨ move rollup-plugin-transform-template here under a new plugins directory ([#500](https://github.com/theholocron/configs/issues/500)) ([8d2528e](https://github.com/theholocron/configs/commit/8d2528e3f5aab63bca0eaca5833b30190d6a8f18))
+
+## [8.7.1](https://github.com/theholocron/configs/compare/v8.7.0...v8.7.1) (2026-10-08)
+
+### Bug Fixes
+
+* **markdownlint-config:** 🐛 disable front-matter-title heuristic for MD025 ([#499](https://github.com/theholocron/configs/issues/499)) ([d77974f](https://github.com/theholocron/configs/commit/d77974f9d40ecff5d4571883b1f228f4930e3fc8)), closes [#498](https://github.com/theholocron/configs/issues/498)
+
+## [8.7.0](https://github.com/theholocron/configs/compare/v8.6.1...v8.7.0) (2026-10-01)
+
+### Features
+
+* **markdownlint-config:** ✨ curate per-rule severity ([#496](https://github.com/theholocron/configs/issues/496)) ([3f7a8fe](https://github.com/theholocron/configs/commit/3f7a8fed3ac0bd8fd424330a74216eb3e055b58b)), closes [holocron#860](https://github.com/theholocron/holocron/issues/860) [#495](https://github.com/theholocron/configs/issues/495)
+
+## [8.6.1](https://github.com/theholocron/configs/compare/v8.6.0...v8.6.1) (2026-09-30)
+
+### Bug Fixes
+
+* **tsdown-config:** 🐛 resolve outDir against cwd, not the config file's own dir ([#494](https://github.com/theholocron/configs/issues/494)) ([c02ff69](https://github.com/theholocron/configs/commit/c02ff69830ca5f3ed123ff7da8a05786e0a00ad1)), closes [theholocron/clients#376](https://github.com/theholocron/clients/issues/376)
+
+## [8.6.0](https://github.com/theholocron/configs/compare/v8.5.4...v8.6.0) (2026-09-30)
+
+### Features
+
+* **markdownlint-config:** ✨ require a language on every fenced code block ([#492](https://github.com/theholocron/configs/issues/492)) ([4ec68f8](https://github.com/theholocron/configs/commit/4ec68f8efd4112cd957c4c847c85c42eed957368)), closes [holocron#859](https://github.com/theholocron/holocron/issues/859) [#491](https://github.com/theholocron/configs/issues/491)
+
+## [8.5.4](https://github.com/theholocron/configs/compare/v8.5.3...v8.5.4) (2026-09-30)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 library()/nodeApp() no longer clobber the docs/src exemption ([#488](https://github.com/theholocron/configs/issues/488)) ([08ad56f](https://github.com/theholocron/configs/commit/08ad56f3c307aef2651f5d3532093fd323dd871c)), closes [#487](https://github.com/theholocron/configs/issues/487)
+* **eslint-config:** 🐛 pin node-builtins compat check to the org-wide >=22 floor ([#490](https://github.com/theholocron/configs/issues/490)) ([eb694e4](https://github.com/theholocron/configs/commit/eb694e44ba085a0397d0c2d128845eec0229e1a0)), closes [holocron#849](https://github.com/theholocron/holocron/issues/849) [#489](https://github.com/theholocron/configs/issues/489)
+
+## [8.5.3](https://github.com/theholocron/configs/compare/v8.5.2...v8.5.3) (2026-09-29)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 make eslint-plugin-n and @vitest/eslint-plugin required peers ([#485](https://github.com/theholocron/configs/issues/485)) ([a958b1e](https://github.com/theholocron/configs/commit/a958b1eb433f792c83fc3aac4ea79b9783fa0cc5)), closes [theholocron/holocron#855](https://github.com/theholocron/holocron/issues/855) [#484](https://github.com/theholocron/configs/issues/484)
+
+## [8.5.2](https://github.com/theholocron/configs/compare/v8.5.1...v8.5.2) (2026-09-28)
+
+### Bug Fixes
+
+* **turbo:** 🐛 watch every *.ts file for build/test tasks, not just src/** ([#483](https://github.com/theholocron/configs/issues/483)) ([8910c82](https://github.com/theholocron/configs/commit/8910c82b630c85cae89ed19e2c7beda12d5f0a65)), closes [holocron#672](https://github.com/theholocron/holocron/issues/672) [holocron#680](https://github.com/theholocron/holocron/issues/680) [holocron#681](https://github.com/theholocron/holocron/issues/681) [holocron#845](https://github.com/theholocron/holocron/issues/845)
+
+## [8.5.1](https://github.com/theholocron/configs/compare/v8.5.0...v8.5.1) (2026-09-28)
+
+### Bug Fixes
+
+* **tsdown-config:** 🐛 externalize all dependencies in library(), not just @theholocron/* ([#482](https://github.com/theholocron/configs/issues/482)) ([4466501](https://github.com/theholocron/configs/commit/4466501cc1c43670137fce0fca4e2a0ca8a29e46)), closes [#481](https://github.com/theholocron/configs/issues/481)
+
+## [8.5.0](https://github.com/theholocron/configs/compare/v8.4.8...v8.5.0) (2026-09-27)
+
+### Features
+
+* **markdownlint-config:** add markdownlint config package (holocron[#821](https://github.com/theholocron/configs/issues/821)) ([#479](https://github.com/theholocron/configs/issues/479)) ([f67dbee](https://github.com/theholocron/configs/commit/f67dbeed702133390646417fc701bf683064fb22))
+
+## [8.4.8](https://github.com/theholocron/configs/compare/v8.4.7...v8.4.8) (2026-09-23)
+
+### Bug Fixes
+
+* **holocron-config:** 🐛 declare @theholocron/cli as a real dependency ([#478](https://github.com/theholocron/configs/issues/478)) ([7bd83e9](https://github.com/theholocron/configs/commit/7bd83e9f5c93f94b1cc45888ae6f74786851572f)), closes [#769](https://github.com/theholocron/configs/issues/769) [#771](https://github.com/theholocron/configs/issues/771) [#782](https://github.com/theholocron/configs/issues/782)
+
+## [8.4.7](https://github.com/theholocron/configs/compare/v8.4.6...v8.4.7) (2026-09-23)
+
+### Bug Fixes
+
+* **holocron-config:** 🐛 drop @theholocron/cli peerDependencies check ([#477](https://github.com/theholocron/configs/issues/477)) ([7cc03e6](https://github.com/theholocron/configs/commit/7cc03e65ff71327ea33172fd2573f3a2edf1257a)), closes [#769](https://github.com/theholocron/configs/issues/769) [#771](https://github.com/theholocron/configs/issues/771) [#782](https://github.com/theholocron/configs/issues/782)
+
+## [8.4.6](https://github.com/theholocron/configs/compare/v8.4.5...v8.4.6) (2026-09-23)
+
+### Bug Fixes
+
+- **holocron-config:** 🐛 allow prerelease @theholocron/cli in peer range ([#476](https://github.com/theholocron/configs/issues/476)) ([ec78af9](https://github.com/theholocron/configs/commit/ec78af9a73b34c4f929b2f60286241f92f6ac5b6)), closes [782/#783](https://github.com/782/configs/issues/783)
+
+## [8.4.5](https://github.com/theholocron/configs/compare/v8.4.4...v8.4.5) (2026-09-22)
+
+### Bug Fixes
+
+- **tsdown-config:** resolve entry to an absolute path ([#474](https://github.com/theholocron/configs/issues/474)) ([67c9f90](https://github.com/theholocron/configs/commit/67c9f90b959053f16d44315b3b564057972523d8)), closes [750/#680](https://github.com/750/configs/issues/680) [holocron#680](https://github.com/theholocron/holocron/issues/680) [#762](https://github.com/theholocron/configs/issues/762) [holocron#680](https://github.com/theholocron/holocron/issues/680) [holocron#749](https://github.com/theholocron/holocron/issues/749) [holocron#750](https://github.com/theholocron/holocron/issues/750)
+
+## [8.4.4](https://github.com/theholocron/configs/compare/v8.4.3...v8.4.4) (2026-09-21)
+
+### Bug Fixes
+
+- **lint-staged-config:** 🐛 resolve --config to an absolute path ([#473](https://github.com/theholocron/configs/issues/473)) ([e2a8fe6](https://github.com/theholocron/configs/commit/e2a8fe69776e33966f5b960e9ced3d33776093f1)), closes [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [#469](https://github.com/theholocron/configs/issues/469)
+
+## [8.4.3](https://github.com/theholocron/configs/compare/v8.4.2...v8.4.3) (2026-09-21)
+
+### Bug Fixes
+
+- **eslint-config:** 🐛 walk up from cwd to find the repo's .gitignore ([#472](https://github.com/theholocron/configs/issues/472)) ([60b629b](https://github.com/theholocron/configs/commit/60b629bdf6c6951cddc0bc9eeb1852af30424528)), closes [#460](https://github.com/theholocron/configs/issues/460) [#676](https://github.com/theholocron/configs/issues/676) [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680)
+
+## [8.4.2](https://github.com/theholocron/configs/compare/v8.4.1...v8.4.2) (2026-09-21)
+
+### Bug Fixes
+
+- 🐛 give lint-staged-config's prettier/eslint an explicit --config ([#470](https://github.com/theholocron/configs/issues/470)) ([a81c401](https://github.com/theholocron/configs/commit/a81c40162e274dd815ab911ed2c26780ea8405f3)), closes [676/#749](https://github.com/676/configs/issues/749) [#672](https://github.com/theholocron/configs/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [theholocron/clients#348](https://github.com/theholocron/clients/issues/348) [theholocron/holocron#672](https://github.com/theholocron/holocron/issues/672) [theholocron/holocron#680](https://github.com/theholocron/holocron/issues/680) [#469](https://github.com/theholocron/configs/issues/469)
+
+## [8.4.1](https://github.com/theholocron/configs/compare/v8.4.0...v8.4.1) (2026-09-15)
+
+### Bug Fixes
+
+- 🐛 give devmoji-config a ready-to-use default export ([#463](https://github.com/theholocron/configs/issues/463)) ([092f7cf](https://github.com/theholocron/configs/commit/092f7cffa0c5be6561064f97cb1cdad72736cade))
+- 🐛 give library() a ready-to-use default export ([#462](https://github.com/theholocron/configs/issues/462)) ([d6b9b44](https://github.com/theholocron/configs/commit/d6b9b441d8ad9d3ac4fc2c256e0f4297f355f944))
+
+## [8.4.0](https://github.com/theholocron/configs/compare/v8.3.0...v8.4.0) (2026-09-15)
+
+### Features
+
+- ✨ bake vitest() into library() unconditionally + browserPackages option ([#461](https://github.com/theholocron/configs/issues/461)) ([897ec55](https://github.com/theholocron/configs/commit/897ec559aeda50fd4bca7355074fbdd3c315728d)), closes [#676](https://github.com/theholocron/configs/issues/676) [#680](https://github.com/theholocron/configs/issues/680)
+
+## [8.3.0](https://github.com/theholocron/configs/compare/v8.2.6...v8.3.0) (2026-09-15)
+
+### Features
+
+- ✨ absorb gitignore-based ignoring + docs/src exception into base() ([#460](https://github.com/theholocron/configs/issues/460)) ([ccc0284](https://github.com/theholocron/configs/commit/ccc02847aa01705f3bea44fb445d88255a56a33e)), closes [#676](https://github.com/theholocron/configs/issues/676) [458/#459](https://github.com/458/configs/issues/459)
+
+## [8.2.6](https://github.com/theholocron/configs/compare/v8.2.5...v8.2.6) (2026-09-15)
+
+### Bug Fixes
+
+- 🐛 fold footer-max-line-length into the shared commitlint config ([#459](https://github.com/theholocron/configs/issues/459)) ([102feb4](https://github.com/theholocron/configs/commit/102feb4567e52e81196f0383da3e972c0e929dae)), closes [#676](https://github.com/theholocron/configs/issues/676) [457/#458](https://github.com/457/configs/issues/458)
+
+## [8.2.5](https://github.com/theholocron/configs/compare/v8.2.4...v8.2.5) (2026-09-15)
+
+### Bug Fixes
+
+- 🐛 drop stale npm prefix from release prepareCmd ([#458](https://github.com/theholocron/configs/issues/458)) ([df22f85](https://github.com/theholocron/configs/commit/df22f85e11ffa8c62cc3309830b2bf424099d83a)), closes [#457](https://github.com/theholocron/configs/issues/457)
+
+### Refactoring
+
+- ♻️ migrate to intent-based task vocabulary (epic [#672](https://github.com/theholocron/configs/issues/672)) ([#457](https://github.com/theholocron/configs/issues/457)) ([1ab954c](https://github.com/theholocron/configs/commit/1ab954ca33e4476847f19273e776097f4482e872)), closes [#455](https://github.com/theholocron/configs/issues/455) [theholocron/holocron#681](https://github.com/theholocron/holocron/issues/681)
+
+## [8.2.4](https://github.com/theholocron/configs/compare/v8.2.3...v8.2.4) (2026-09-15)
+
+### Bug Fixes
+
+- declare @astrojs/react as a peer dependency of astro-config ([#455](https://github.com/theholocron/configs/issues/455)) ([dd7875a](https://github.com/theholocron/configs/commit/dd7875a4c5c55ad56d1f6f5cce9faefcf4c99c21))
+
+## [8.2.3](https://github.com/theholocron/configs/compare/v8.2.2...v8.2.3) (2026-09-12)
+
+### Bug Fixes
+
+- 🐛 rename yamllint.config.yml to .yamllint.yml for auto-detection ([#454](https://github.com/theholocron/configs/issues/454)) ([314ad47](https://github.com/theholocron/configs/commit/314ad47347c62f22a2400496fd8a8430056218c5))
+
+## [8.2.2](https://github.com/theholocron/configs/compare/v8.2.1...v8.2.2) (2026-09-11)
+
+### Bug Fixes
+
+- **hooks:** 🐛 scope pre-commit GitLeaks scan to staged changes ([#453](https://github.com/theholocron/configs/issues/453)) ([9e842a6](https://github.com/theholocron/configs/commit/9e842a6523226662ae57f0f358e5c512fa9dc374))
+
+### Chores
+
+- 🔧 holocron setup — ruleset + workflow/config sync ([#452](https://github.com/theholocron/configs/issues/452)) ([b7425b3](https://github.com/theholocron/configs/commit/b7425b3ca1a4dfecda1c0bddfe9d74bf1f883727)), closes [#647](https://github.com/theholocron/configs/issues/647) [#649](https://github.com/theholocron/configs/issues/649) [#649](https://github.com/theholocron/configs/issues/649) [#647](https://github.com/theholocron/configs/issues/647) [#654](https://github.com/theholocron/configs/issues/654)
+
+## [8.2.1](https://github.com/theholocron/configs/compare/v8.2.0...v8.2.1) (2026-09-10)
+
+### Bug Fixes
+
+- **eslint-config,astro-config:** 🐛 storybook lint crash + astro-config @astrojs/react ([#451](https://github.com/theholocron/configs/issues/451)) ([fb938f3](https://github.com/theholocron/configs/commit/fb938f3b1cdeb36a988ef3f8677dc80853f0363e)), closes [configs#449](https://github.com/theholocron/configs/issues/449) [configs#450](https://github.com/theholocron/configs/issues/450) [theholocron/configs#449](https://github.com/theholocron/configs/issues/449) [theholocron/configs#450](https://github.com/theholocron/configs/issues/450) [theholocron/holocron#647](https://github.com/theholocron/holocron/issues/647)
+
+### Chores
+
+- ⬆️ bump @theholocron/\* to 4.16.2 ([#448](https://github.com/theholocron/configs/issues/448)) ([53926f8](https://github.com/theholocron/configs/commit/53926f8ac31940d2e92205774db45a4138ac2155)), closes [#647](https://github.com/theholocron/configs/issues/647)
+
+## [8.2.0](https://github.com/theholocron/configs/compare/v8.1.1...v8.2.0) (2026-09-09)
+
+### Features
+
+- ✨ manifest-derived required checks (holocron[#586](https://github.com/theholocron/configs/issues/586)) ([#447](https://github.com/theholocron/configs/issues/447)) ([f108e12](https://github.com/theholocron/configs/commit/f108e12cdc36bab04b70875c7d998fe19babb9a5)), closes [#446](https://github.com/theholocron/configs/issues/446)
+
+## [8.1.1](https://github.com/theholocron/configs/compare/v8.1.0...v8.1.1) (2026-09-09)
+
+### Chores
+
+- **deps:** Bump the all-dependencies group with 5 updates ([#443](https://github.com/theholocron/configs/issues/443)) ([af15a26](https://github.com/theholocron/configs/commit/af15a261b9a6eacfd9a60647392c7d38e31e7d85))
+
+## [8.1.0](https://github.com/theholocron/configs/compare/v8.0.0...v8.1.0) (2026-09-09)
+
+### Features
+
+- ✨ node() preset carries the org linter list on the lint task ([#444](https://github.com/theholocron/configs/issues/444)) ([8808a61](https://github.com/theholocron/configs/commit/8808a6124cb7f902c6c0268dc646aa36ec7edbe3)), closes [theholocron/holocron#585](https://github.com/theholocron/holocron/issues/585)
+
+## [8.0.0](https://github.com/theholocron/configs/compare/v7.33.0...v8.0.0) (2026-09-08)
+
+### ⚠ BREAKING CHANGES
+
+- ✨ rename capability workflows → tasks (@theholocron/cli >=4) (#442)
+
+### Features
+
+- ✨ rename capability workflows → tasks (@theholocron/cli >=4) ([#442](https://github.com/theholocron/configs/issues/442)) ([276589d](https://github.com/theholocron/configs/commit/276589de0083602c175342d91d31615f02c65462)), closes [theholocron/holocron#594](https://github.com/theholocron/holocron/issues/594) [theholocron/holocron#593](https://github.com/theholocron/holocron/issues/593)
+
+## [7.33.0](https://github.com/theholocron/configs/compare/v7.32.2...v7.33.0) (2026-09-06)
+
+### Features
+
+- ✨ add wiki navbar links ([#441](https://github.com/theholocron/configs/issues/441)) ([1f0c04f](https://github.com/theholocron/configs/commit/1f0c04f699cb875cd8cc13f6c5abbbd2732f6096))
+
+### Chores
+
+- ✨ add wiki icon to fern provider options ([#438](https://github.com/theholocron/configs/issues/438)) ([033a077](https://github.com/theholocron/configs/commit/033a0771b63025dc9be8dfb84e23fae6fad3fad8))
+- 🗑️ remove orphaned workflow files ([#437](https://github.com/theholocron/configs/issues/437)) ([12dc03c](https://github.com/theholocron/configs/commit/12dc03c34e0e298ba5f8f222c985352aa524b3fc))
+
+## [7.32.2](https://github.com/theholocron/configs/compare/v7.32.1...v7.32.2) (2026-09-04)
+
+### Chores
+
+- ✏️ update node preset: codeql → security workflow name ([#436](https://github.com/theholocron/configs/issues/436)) ([141a51b](https://github.com/theholocron/configs/commit/141a51b552c7e0c2eccfa478572a73f1bb4311bd)), closes [#499](https://github.com/theholocron/configs/issues/499) [#499](https://github.com/theholocron/configs/issues/499) [theholocron/configs#435](https://github.com/theholocron/configs/issues/435)
+- **deps:** Bump the all-dependencies group across 1 directory with 2 updates ([#426](https://github.com/theholocron/configs/issues/426)) ([01df8d6](https://github.com/theholocron/configs/commit/01df8d672a1f7058a8230bf6dd3103a49c5f00a9))
+- sync README and repo metadata ([#433](https://github.com/theholocron/configs/issues/433)) ([c18b1f2](https://github.com/theholocron/configs/commit/c18b1f234ac516119c251ac4e88c3b6e567cfa9a))
+
+## [7.32.1](https://github.com/theholocron/configs/compare/v7.32.0...v7.32.1) (2026-09-02)
+
+### Bug Fixes
+
+- 🐛 add deployments write permission to wiki workflow ([#432](https://github.com/theholocron/configs/issues/432)) ([ee89021](https://github.com/theholocron/configs/commit/ee8902112cac575345c20ff0467cf49db73d5f06))
+
+### Chores
+
+- 🔧 run holocron setup ([#431](https://github.com/theholocron/configs/issues/431)) ([e89747a](https://github.com/theholocron/configs/commit/e89747a70f99f59e8d4e18fb1593cc0f96980159)), closes [#430](https://github.com/theholocron/configs/issues/430)
+
+## [7.32.0](https://github.com/theholocron/configs/compare/v7.31.0...v7.32.0) (2026-09-02)
+
+### Features
+
+- ✨ add wiki() capability — wiki.theholocron.dev/configs ([#428](https://github.com/theholocron/configs/issues/428)) ([40e3bce](https://github.com/theholocron/configs/commit/40e3bce51ebd9ff76939165ca7db444635421bc7))
+
+### Chores
+
+- sync README and repo metadata ([#424](https://github.com/theholocron/configs/issues/424)) ([8479ead](https://github.com/theholocron/configs/commit/8479eaddd2bda31bac985ce5dfc409eb363d9e4d))
+
+## [7.31.0](https://github.com/theholocron/configs/compare/v7.30.0...v7.31.0) (2026-09-02)
+
+### Features
+
+- ✨ add wiki() capability for Fern engineering wiki ([#427](https://github.com/theholocron/configs/issues/427)) ([ba81e20](https://github.com/theholocron/configs/commit/ba81e2014cb30e11e38b5582f97287f403dbdef8))
+
+## [7.30.0](https://github.com/theholocron/configs/compare/v7.29.0...v7.30.0) (2026-09-01)
+
+### Features
+
+- ✨ add workers capability to docs() preset ([#425](https://github.com/theholocron/configs/issues/425)) ([6744925](https://github.com/theholocron/configs/commit/6744925b7532a5048ce235f03d45b0baac10e431))
+
+### Documentation
+
+- 📝 fix preset docs accuracy after react() test param and themes fix ([#422](https://github.com/theholocron/configs/issues/422)) ([e6d11bc](https://github.com/theholocron/configs/commit/e6d11bc2c7a052b8105627a77f7e3c48334d6386))
+
+### Chores
+
+- sync README and repo metadata ([#421](https://github.com/theholocron/configs/issues/421)) ([2b8b99e](https://github.com/theholocron/configs/commit/2b8b99e2501ca95915116fa6a1f81f51a242c9a7))
+
+## [7.29.0](https://github.com/theholocron/configs/compare/v7.28.2...v7.29.0) (2026-08-31)
+
+### Features
+
+- **react:** ✨ add test option to merge chromatic/user-flow overrides into single entry ([#419](https://github.com/theholocron/configs/issues/419)) ([183a170](https://github.com/theholocron/configs/commit/183a17015db49a1b974efda8288b33c90cd3ad42))
+
+### Chores
+
+- sync README and repo metadata ([#418](https://github.com/theholocron/configs/issues/418)) ([ba7ebe5](https://github.com/theholocron/configs/commit/ba7ebe5c313fc2501d8a464de87d80180814aa42))
+
+## [7.28.2](https://github.com/theholocron/configs/compare/v7.28.1...v7.28.2) (2026-08-31)
+
+### Bug Fixes
+
+- **holocron-config:** 🐛 restore react() as preset shim; rename capability to reactCapability ([#417](https://github.com/theholocron/configs/issues/417)) ([76a7d33](https://github.com/theholocron/configs/commit/76a7d33619fd282e51bf9c3638f7fc7cf108b115))
+
+### Chores
+
+- sync README and repo metadata ([#414](https://github.com/theholocron/configs/issues/414)) ([a2b3d5b](https://github.com/theholocron/configs/commit/a2b3d5bd670a6a1fc0c43010cd7d1e180184029b))
+
+## [7.28.1](https://github.com/theholocron/configs/compare/v7.28.0...v7.28.1) (2026-08-31)
+
+### Bug Fixes
+
+- **nodeDocs:** 🐛 include audit required check but not workflow; audit stays repo-specific ([#415](https://github.com/theholocron/configs/issues/415)) ([b64f910](https://github.com/theholocron/configs/commit/b64f910488f2aa60a7094fd2bcd1f836ed5938a2))
+
+## [7.28.0](https://github.com/theholocron/configs/compare/v7.27.0...v7.28.0) (2026-08-31)
+
+### Features
+
+- **holocron-config:** ✨ composable capability factories with preset shims ([#413](https://github.com/theholocron/configs/issues/413)) ([7acc7df](https://github.com/theholocron/configs/commit/7acc7dffbaf6ea8861c68e1bc89a9c44b54f3fc1))
+
+### Documentation
+
+- 📝 ADR 002 — composable preset system ([#410](https://github.com/theholocron/configs/issues/410)) ([2696b27](https://github.com/theholocron/configs/commit/2696b27e1987e1740123fde227a590daa53d14ce))
+
+### Chores
+
+- ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.1 ([#407](https://github.com/theholocron/configs/issues/407)) ([b6b33e6](https://github.com/theholocron/configs/commit/b6b33e682e70327dc72421083c68128d05bb85a5))
+- sync from holocron.config ([#408](https://github.com/theholocron/configs/issues/408)) ([bba8bab](https://github.com/theholocron/configs/commit/bba8babe39bfda13c825de20e8a7798cee8ed6a7))
+- sync from theholocron/holocron ([#411](https://github.com/theholocron/configs/issues/411)) ([fc854bc](https://github.com/theholocron/configs/commit/fc854bcf0bb7e5f6f46571d5714b1b2839133247))
+
+## [7.27.0](https://github.com/theholocron/configs/compare/v7.26.1...v7.27.0) (2026-08-30)
+
+### Features
+
+- ✨ accept test overrides in nextjs() to prevent duplicate workflow entries ([#406](https://github.com/theholocron/configs/issues/406)) ([ae7dc30](https://github.com/theholocron/configs/commit/ae7dc3025b9245fd0d53b4042301da7e2a00dce1))
+
+### Chores
+
+- ⬆️ bump @theholocron/cli and holocron-plugin-github to 3.37.0 ([#405](https://github.com/theholocron/configs/issues/405)) ([3a58735](https://github.com/theholocron/configs/commit/3a58735d6f8fce9d55ce511217a2ebf9beaee7ab))
+
+## [7.26.1](https://github.com/theholocron/configs/compare/v7.26.0...v7.26.1) (2026-08-30)
+
+### Bug Fixes
+
+- 🐛 include CF account ID in nodeDocs deployment provider ([#404](https://github.com/theholocron/configs/issues/404)) ([f2e433b](https://github.com/theholocron/configs/commit/f2e433b72dfb10211e823617e0bd23da64198f74))
+
+### Chores
+
+- sync from theholocron/holocron ([#401](https://github.com/theholocron/configs/issues/401)) ([d31fee8](https://github.com/theholocron/configs/commit/d31fee8d2c01f82e9da839f5d62afd5129ac37bd))
+
+## [7.26.0](https://github.com/theholocron/configs/compare/v7.25.5...v7.26.0) (2026-08-28)
+
+### Features
+
+- ✨ add nodeDocs, nextjs, react, and monorepo presets to holocron-config ([#400](https://github.com/theholocron/configs/issues/400)) ([f0a570a](https://github.com/theholocron/configs/commit/f0a570ad8d98b3338f267cf5ce5423434589c9c1)), closes [#398](https://github.com/theholocron/configs/issues/398)
+
+### Documentation
+
+- 📚 add preset system spec and ADR 001 ([#399](https://github.com/theholocron/configs/issues/399)) ([4645c50](https://github.com/theholocron/configs/commit/4645c50812123e58c042873ee74167aec83461d1))
+
+## [7.25.5](https://github.com/theholocron/configs/compare/v7.25.4...v7.25.5) (2026-08-26)
+
+### Bug Fixes
+
+- **astro-config:** 🐛 bump @astrojs/react to ^5.0.0 — v4 uses @vitejs/plugin-react peered to vite@6, incompatible with Astro 7 / Vite 8 Rolldown ([#395](https://github.com/theholocron/configs/issues/395)) ([7697638](https://github.com/theholocron/configs/commit/7697638abd6d7299a5d522824a4fbee7f33d7ea8))
+
+## [7.25.4](https://github.com/theholocron/configs/compare/v7.25.3...v7.25.4) (2026-08-26)
+
+### Bug Fixes
+
+- 🐛 disable no-nested-exports in packageJson() config ([#394](https://github.com/theholocron/configs/issues/394)) ([72a2121](https://github.com/theholocron/configs/commit/72a2121b0a718547814676f0aff77bd94ac0e7d7))
+
+## [7.25.3](https://github.com/theholocron/configs/compare/v7.25.2...v7.25.3) (2026-08-26)
+
+### Chores
+
+- **deps:** Bump @theholocron/holocron-plugin-github from 3.24.4 to 3.29.12 in the all-dependencies group ([#391](https://github.com/theholocron/configs/issues/391)) ([f7c26b3](https://github.com/theholocron/configs/commit/f7c26b38db2bbe3b26b6c3b59735a10b2ada03c0))
+
+## [7.25.2](https://github.com/theholocron/configs/compare/v7.25.1...v7.25.2) (2026-08-26)
+
+### Bug Fixes
+
+- **eslint-config:** 🐛 disable no-workspace-protocol-in-published-package — pnpm rewrites workspace:\* on publish ([#393](https://github.com/theholocron/configs/issues/393)) ([c5634bf](https://github.com/theholocron/configs/commit/c5634bf082d371a6eb676cf17f9d660a7e3ba151))
+
+## [7.25.1](https://github.com/theholocron/configs/compare/v7.25.0...v7.25.1) (2026-08-26)
+
+### Bug Fixes
+
+- 🐛 pin conventional-changelog-conventionalcommits to 9.3.1 ([#392](https://github.com/theholocron/configs/issues/392)) ([40a66e9](https://github.com/theholocron/configs/commit/40a66e923f5bc2ed1a52086a2ff5d5c3a17af888))
+
+### Chores
+
+- add sync workflow to holocron.config ([#387](https://github.com/theholocron/configs/issues/387)) ([d4feb41](https://github.com/theholocron/configs/commit/d4feb419454d9629c4924809a689c08ff6a8fa21))
+- sync from theholocron/holocron ([#388](https://github.com/theholocron/configs/issues/388)) ([b0273f8](https://github.com/theholocron/configs/commit/b0273f88ecd5d5e0de9d4ef4c5f93b32aa729a4c))
+- sync from theholocron/holocron ([#389](https://github.com/theholocron/configs/issues/389)) ([e06f549](https://github.com/theholocron/configs/commit/e06f5492d3f3a6140458f4055e3664732c26352b))
+- sync from theholocron/holocron ([#390](https://github.com/theholocron/configs/issues/390)) ([1791bb2](https://github.com/theholocron/configs/commit/1791bb2ed3a6ba0c634b6a651dd86f823b89d900))
+
+## [7.25.0](https://github.com/theholocron/configs/compare/v7.24.1...v7.25.0) (2026-08-25)
+
+## [7.24.1](https://github.com/theholocron/configs/compare/v7.24.0...v7.24.1) (2026-08-24)
+
+## [7.24.0](https://github.com/theholocron/configs/compare/v7.23.2...v7.24.0) (2026-08-24)
+
+## [7.23.2](https://github.com/theholocron/configs/compare/v7.23.1...v7.23.2) (2026-08-24)
+
+## [7.23.1](https://github.com/theholocron/configs/compare/v7.23.0...v7.23.1) (2026-08-22)
+
+## [7.23.0](https://github.com/theholocron/configs/compare/v7.22.4...v7.23.0) (2026-08-22)
+
+## [7.22.4](https://github.com/theholocron/configs/compare/v7.22.3...v7.22.4) (2026-08-22)
+
+## [7.22.3](https://github.com/theholocron/configs/compare/v7.22.2...v7.22.3) (2026-08-22)
+
+## [7.22.2](https://github.com/theholocron/configs/compare/v7.22.1...v7.22.2) (2026-08-19)
+
+## [7.22.1](https://github.com/theholocron/configs/compare/v7.22.0...v7.22.1) (2026-08-19)
+
+## [7.22.0](https://github.com/theholocron/configs/compare/v7.21.1...v7.22.0) (2026-08-18)
+
+## [7.21.1](https://github.com/theholocron/configs/compare/v7.21.0...v7.21.1) (2026-08-18)
+
+## [7.21.0](https://github.com/theholocron/configs/compare/v7.20.0...v7.21.0) (2026-08-18)
+
+## [7.20.0](https://github.com/theholocron/configs/compare/v7.19.1...v7.20.0) (2026-08-18)
+
+## [7.19.1](https://github.com/theholocron/configs/compare/v7.19.0...v7.19.1) (2026-08-14)
+
+## [7.19.0](https://github.com/theholocron/configs/compare/v7.18.2...v7.19.0) (2026-08-14)
+
+## [7.18.2](https://github.com/theholocron/configs/compare/v7.18.1...v7.18.2) (2026-08-13)
+
+## [7.18.1](https://github.com/theholocron/configs/compare/v7.18.0...v7.18.1) (2026-08-12)
+
+## [7.18.0](https://github.com/theholocron/configs/compare/v7.17.0...v7.18.0) (2026-08-12)
+
+## [7.17.0](https://github.com/theholocron/configs/compare/v7.16.0...v7.17.0) (2026-08-10)
+
+## [7.16.0](https://github.com/theholocron/configs/compare/v7.15.0...v7.16.0) (2026-08-09)
+
+## [7.15.0](https://github.com/theholocron/configs/compare/v7.14.4...v7.15.0) (2026-08-07)
+
+## [7.14.4](https://github.com/theholocron/configs/compare/v7.14.3...v7.14.4) (2026-08-06)
+
+## [7.14.3](https://github.com/theholocron/configs/compare/v7.14.2...v7.14.3) (2026-08-05)
+
+## [7.14.2](https://github.com/theholocron/configs/compare/v7.14.1...v7.14.2) (2026-08-05)
+
+## [7.14.1](https://github.com/theholocron/configs/compare/v7.14.0...v7.14.1) (2026-08-05)
+
+## [7.14.0](https://github.com/theholocron/configs/compare/v7.13.2...v7.14.0) (2026-08-05)
+
+## [7.13.2](https://github.com/theholocron/configs/compare/v7.13.1...v7.13.2) (2026-08-05)
+
+## [7.13.1](https://github.com/theholocron/configs/compare/v7.13.0...v7.13.1) (2026-08-04)
+
+## [7.13.0](https://github.com/theholocron/configs/compare/v7.12.0...v7.13.0) (2026-08-04)
+
+## [7.12.0](https://github.com/theholocron/configs/compare/v7.11.0...v7.12.0) (2026-08-04)
+
+## [7.11.0](https://github.com/theholocron/configs/compare/v7.10.0...v7.11.0) (2026-08-04)
+
+## [7.10.0](https://github.com/theholocron/configs/compare/v7.9.1...v7.10.0) (2026-08-04)
+
+## [7.9.1](https://github.com/theholocron/configs/compare/v7.9.0...v7.9.1) (2026-08-04)
+
+## [7.9.0](https://github.com/theholocron/configs/compare/v7.8.0...v7.9.0) (2026-08-04)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-04)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-04)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-03)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-03)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-02)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-02)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-02)
+
+## [7.8.1](https://github.com/theholocron/configs/compare/v7.8.0...v7.8.1) (2026-08-02)
+
+## [7.8.0](https://github.com/theholocron/configs/compare/v7.7.0...v7.8.0) (2026-08-01)
+
+## [7.7.0](https://github.com/theholocron/configs/compare/v7.6.2...v7.7.0) (2026-07-31)
+
+## [7.6.2](https://github.com/theholocron/configs/compare/v7.6.1...v7.6.2) (2026-07-29)
+
+## [7.6.1](https://github.com/theholocron/configs/compare/v7.6.0...v7.6.1) (2026-07-28)
+
+## [7.6.0](https://github.com/theholocron/configs/compare/v7.5.0...v7.6.0) (2026-07-27)
+
+## [7.5.0](https://github.com/theholocron/configs/compare/v7.4.1...v7.5.0) (2026-07-22)
+
+## [7.4.1](https://github.com/theholocron/configs/compare/v7.4.0...v7.4.1) (2026-07-22)
+
+## [7.4.0](https://github.com/theholocron/configs/compare/v7.3.1...v7.4.0) (2026-07-21)
+
+## [7.3.1](https://github.com/theholocron/configs/compare/v7.3.0...v7.3.1) (2026-07-20)
+
+## [7.3.0](https://github.com/theholocron/configs/compare/v7.2.3...v7.3.0) (2026-07-20)
+
+## [7.2.3](https://github.com/theholocron/configs/compare/v7.2.2...v7.2.3) (2026-07-19)
+
+## [7.2.2](https://github.com/theholocron/configs/compare/v7.2.1...v7.2.2) (2026-07-19)
+
+## [7.2.1](https://github.com/theholocron/configs/compare/v7.2.0...v7.2.1) (2026-07-19)
+
+## [7.2.0](https://github.com/theholocron/configs/compare/v7.1.5...v7.2.0) (2026-07-19)
+
+## [7.1.5](https://github.com/theholocron/configs/compare/v7.1.4...v7.1.5) (2026-07-19)
+
+## [7.1.4](https://github.com/theholocron/configs/compare/v7.1.3...v7.1.4) (2026-07-19)
+
+## [7.1.3](https://github.com/theholocron/configs/compare/v7.1.2...v7.1.3) (2026-07-19)
+
+## [7.1.2](https://github.com/theholocron/configs/compare/v7.1.1...v7.1.2) (2026-07-19)
+
+## [7.1.1](https://github.com/theholocron/configs/compare/v7.1.0...v7.1.1) (2026-07-19)
+
+## [7.1.0](https://github.com/theholocron/configs/compare/v7.0.0...v7.1.0) (2026-07-19)
+
+## [7.0.0](https://github.com/theholocron/configs/compare/v6.1.1...v7.0.0) (2026-07-17)
+
+## [6.1.1](https://github.com/theholocron/configs/compare/v6.1.0...v6.1.1) (2026-07-17)
+
+## [6.1.0](https://github.com/theholocron/configs/compare/v6.0.2...v6.1.0) (2026-07-15)
+
+## [6.0.2](https://github.com/theholocron/configs/compare/v6.0.1...v6.0.2) (2026-07-13)
+
+## [6.0.1](https://github.com/theholocron/configs/compare/v6.0.0...v6.0.1) (2026-07-13)
+
+## [6.0.0](https://github.com/theholocron/configs/compare/v5.2.0...v6.0.0) (2026-07-12)
+
+## [5.2.0](https://github.com/theholocron/configs/compare/v5.1.2...v5.2.0) (2026-07-12)
+
+## [5.1.2](https://github.com/theholocron/configs/compare/v5.1.1...v5.1.2) (2026-07-11)
+
+## [5.1.1](https://github.com/theholocron/configs/compare/v5.1.0...v5.1.1) (2026-07-11)
+
+## [5.1.0](https://github.com/theholocron/configs/compare/v5.0.0...v5.1.0) (2026-07-11)
+
+## [5.0.0](https://github.com/theholocron/configs/compare/v4.2.2...v5.0.0) (2026-07-11)
+
+## [4.2.2](https://github.com/theholocron/configs/compare/v4.2.1...v4.2.2) (2026-07-11)
+
+## [4.2.1](https://github.com/theholocron/configs/compare/v4.2.0...v4.2.1) (2026-07-11)
+
+## [4.2.0](https://github.com/theholocron/configs/compare/v4.1.0...v4.2.0) (2026-07-11)

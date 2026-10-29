@@ -1,0 +1,95 @@
+{
+  "name": "@theholocron/vite-config",
+  "version": "8.8.2",
+  "description": "Vite configuration presets for libraries, React apps, and Node tools within the Galaxy.",
+  "keywords": [
+    "vite",
+    "bundler",
+    "react",
+    "build",
+    "config",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/vite-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/vite-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./library": {
+      "types": "./dist/presets/library.d.ts",
+      "import": "./dist/presets/library.js",
+      "default": "./dist/presets/library.js"
+    },
+    "./react-app": {
+      "types": "./dist/presets/react-app.d.ts",
+      "import": "./dist/presets/react-app.js",
+      "default": "./dist/presets/react-app.js"
+    },
+    "./react-library": {
+      "types": "./dist/presets/react-library.d.ts",
+      "import": "./dist/presets/react-library.js",
+      "default": "./dist/presets/react-library.js"
+    },
+    "./node-app": {
+      "types": "./dist/presets/node-app.d.ts",
+      "import": "./dist/presets/node-app.js",
+      "default": "./dist/presets/node-app.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "devDependencies": {
+    "@codecov/vite-plugin": "^2.0.0",
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vite": "^8.2.1",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@codecov/vite-plugin": "^2",
+    "@vitejs/plugin-react": "^6",
+    "vite": "^6 || ^7 || ^8",
+    "vite-tsconfig-paths": "^5"
+  },
+  "peerDependenciesMeta": {
+    "@codecov/vite-plugin": {
+      "optional": true
+    },
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "vite-tsconfig-paths": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -27,6 +27,29 @@ export default [
 		},
 	},
 	{
+		// The shareable config packages configure tools their consumers install, so those peers are optional and not
+		// installed for the package's own tests, and the `./package.json` export (npm always packs the file) is kept.
+		files: ["configs/*/package.json"],
+		rules: {
+			"package-json/peer-dependencies-as-dev-dependencies": "off",
+			"package-json/prefer-files-field": "off",
+		},
+	},
+	{
+		// CommonJS-only packages: moving them to ESM or an `exports` map would break the tools that `require()` them.
+		files: ["configs/browserslist-config/package.json", "configs/tsconfig/package.json"],
+		rules: {
+			"package-json/prefer-exports": "off",
+			"package-json/prefer-type-module": "off",
+		},
+	},
+	{
+		// CommonJS entry point of a CommonJS package: browserslist loads it with require().
+		files: ["configs/browserslist-config/index.js"],
+		languageOptions: { sourceType: "commonjs", globals: { module: "writable", require: "readonly" } },
+		rules: { "@typescript-eslint/no-require-imports": "off" },
+	},
+	{
 		files: ["skills/package.json"],
 		rules: {
 			// the CLI resolves the package root through require.resolve("@theholocron/skills/package.json"),
@@ -42,6 +65,8 @@ export default [
 			"clients/*/coverage/**",
 			"utils/*/dist/**",
 			"utils/*/coverage/**",
+			"configs/*/dist/**",
+			"configs/*/coverage/**",
 			"**/node_modules/**",
 		],
 	},

@@ -157,11 +157,91 @@ component_management:
       paths:
         - clients/zendesk-client/**
 
-    # docs
-    - component_id: docs
-      name: "docs"
+    # configs
+    - component_id: astro-config
+      name: "astro-config"
       paths:
-        - docs/**
+        - configs/astro-config/**
+
+    - component_id: browserslist-config
+      name: "browserslist-config"
+      paths:
+        - configs/browserslist-config/**
+
+    - component_id: commitlint-config
+      name: "commitlint-config"
+      paths:
+        - configs/commitlint-config/**
+
+    - component_id: devmoji-config
+      name: "devmoji-config"
+      paths:
+        - configs/devmoji-config/**
+
+    - component_id: eslint-config
+      name: "eslint-config"
+      paths:
+        - configs/eslint-config/**
+
+    - component_id: lighthouse-config
+      name: "lighthouse-config"
+      paths:
+        - configs/lighthouse-config/**
+
+    - component_id: lint-staged-config
+      name: "lint-staged-config"
+      paths:
+        - configs/lint-staged-config/**
+
+    - component_id: markdownlint-config
+      name: "markdownlint-config"
+      paths:
+        - configs/markdownlint-config/**
+
+    - component_id: prettier-config
+      name: "prettier-config"
+      paths:
+        - configs/prettier-config/**
+
+    - component_id: rollup-plugin-transform-template
+      name: "rollup-plugin-transform-template"
+      paths:
+        - configs/rollup-plugin-transform-template/**
+
+    - component_id: semantic-release-config
+      name: "semantic-release-config"
+      paths:
+        - configs/semantic-release-config/**
+
+    - component_id: storybook-config
+      name: "storybook-config"
+      paths:
+        - configs/storybook-config/**
+
+    - component_id: stylelint-config
+      name: "stylelint-config"
+      paths:
+        - configs/stylelint-config/**
+
+    - component_id: tsconfig
+      name: "tsconfig"
+      paths:
+        - configs/tsconfig/**
+
+    - component_id: tsdown-config
+      name: "tsdown-config"
+      paths:
+        - configs/tsdown-config/**
+
+    - component_id: vite-config
+      name: "vite-config"
+      paths:
+        - configs/vite-config/**
+
+    - component_id: vitest-config
+      name: "vitest-config"
+      paths:
+        - configs/vitest-config/**
 
     # observability
     - component_id: observability

@@ -1,0 +1,108 @@
+{
+  "name": "@theholocron/storybook-config",
+  "version": "8.8.2",
+  "description": "A Storybook configuration for writing tested components within the Galaxy.",
+  "keywords": [
+    "storybook",
+    "components",
+    "react",
+    "visual-testing",
+    "config",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/configs/storybook-config/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "configs/storybook-config"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./main": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js",
+      "default": "./dist/main.js"
+    },
+    "./preview": {
+      "types": "./dist/preview.d.ts",
+      "import": "./dist/preview.js",
+      "default": "./dist/preview.js"
+    },
+    "./test-runner": {
+      "types": "./dist/test-runner.d.ts",
+      "import": "./dist/test-runner.js",
+      "default": "./dist/test-runner.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "devDependencies": {
+    "@theholocron/tsconfig": "workspace:*",
+    "@theholocron/vitest-config": "workspace:*",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@chromatic-com/storybook": "^4",
+    "@storybook/addon-a11y": "^9 || ^10",
+    "@storybook/addon-coverage": "^1.0.4",
+    "@storybook/addon-designs": "^10",
+    "@storybook/addon-docs": "^9 || ^10",
+    "@storybook/addon-links": "^9 || ^10",
+    "@storybook/addon-themes": "^9 || ^10",
+    "@storybook/addon-viewport": "^9 || ^10",
+    "@storybook/addon-vitest": "^9 || ^10",
+    "@storybook/react": "^9 || ^10",
+    "@storybook/react-vite": "^9 || ^10",
+    "@storybook/test-runner": "^0.23",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "axe-playwright": ">=2",
+    "jsdom": "^26",
+    "msw-storybook-addon": "^2 || ^3",
+    "playwright": ">=1",
+    "react": "^19",
+    "react-dom": "^19",
+    "storybook-addon-pseudo-states": "^9"
+  },
+  "peerDependenciesMeta": {
+    "@storybook/addon-viewport": {
+      "optional": true
+    },
+    "axe-playwright": {
+      "optional": true
+    },
+    "msw-storybook-addon": {
+      "optional": true
+    },
+    "playwright": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

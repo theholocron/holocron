@@ -116,6 +116,28 @@ export default defineConfig({
 				],
 			},
 			{
+				label: "Configs",
+				items: [
+					{ label: "Overview", slug: "configs" },
+					{ label: "astro-config", slug: "configs/astro-config" },
+					{ label: "browserslist-config", slug: "configs/browserslist-config" },
+					{ label: "commitlint-config", slug: "configs/commitlint-config" },
+					{ label: "devmoji-config", slug: "configs/devmoji-config" },
+					{ label: "eslint-config", slug: "configs/eslint-config" },
+					{ label: "lighthouse-config", slug: "configs/lighthouse-config" },
+					{ label: "lint-staged-config", slug: "configs/lint-staged-config" },
+					{ label: "prettier-config", slug: "configs/prettier-config" },
+					{ label: "rollup-plugin-transform-template", slug: "configs/rollup-plugin-transform-template" },
+					{ label: "semantic-release-config", slug: "configs/semantic-release-config" },
+					{ label: "storybook-config", slug: "configs/storybook-config" },
+					{ label: "stylelint-config", slug: "configs/stylelint-config" },
+					{ label: "tsconfig", slug: "configs/tsconfig" },
+					{ label: "tsdown-config", slug: "configs/tsdown-config" },
+					{ label: "vite-config", slug: "configs/vite-config" },
+					{ label: "vitest-config", slug: "configs/vitest-config" },
+				],
+			},
+			{
 				label: "Legal",
 				items: [
 					{ label: "Terms of Service", slug: "legal/terms" },
