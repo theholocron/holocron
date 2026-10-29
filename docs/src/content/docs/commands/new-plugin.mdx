@@ -19,7 +19,7 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
 | `--token-env`     | No           | Holocron env var name for the token (default: `HOLOCRON_<VENDOR>_TOKEN`)      |
 | `--vendor-env`    | _(prompted)_ | Vendor-native env var name (e.g. `STRIPE_SECRET_KEY`)                         |
 | `--base-url`      | _(prompted)_ | REST base URL (e.g. `https://api.stripe.com`)                                 |
-| `--no-verify`     | `false`      | Skip post-scaffold `pnpm install + typecheck + lint + test`                   |
+| `--no-verify`     | `false`      | Skip post-scaffold `pnpm install` + type check, lint and tests                |
 
 ## Available capability keys
 
@@ -33,8 +33,13 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
   - `src/verify-token.ts` — `verifyToken` called by `holocron auth set`
   - `src/rest.ts` — thin REST client factory
   - `src/capabilities/<capability>.ts` — capability implementation stub
-  - `package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`
-  - `__tests__/` directory with a starter test
+  - `package.json`, `tsconfig.json`, `eslint.config.ts`, `vitest.config.ts` (re-exports the shared `@theholocron/vitest-config` library bundle)
+  - Starter tests beside the code they cover (`src/auth.test.ts`, `src/rest.test.ts`, `src/index.test.ts`, `src/capabilities/<capability>.test.ts`, …); there is no `__tests__/` directory
+  - `tsdown.config.ts` re-exporting the `@theholocron/tsdown-config` library preset, but only when the workspace root has no `tsdown.config.ts` of its own. In this monorepo the root file is found by tsdown walking up from the package directory, so the package does not carry one. The `@theholocron/tsdown-config` devDependency is kept either way, so turbo builds the preset first.
+
+The generated `package.json` matches the existing plugins: scripts call the tools directly (`tsdown`, `eslint .`, `tsc --noEmit`, `vitest run`), in-repo dependencies use `workspace:^` (the CLI is `workspace:*`), and the peer dependencies resolve through the `utils` catalog.
+
+After writing the files, the command runs `pnpm install` and the package's `verification.typeSafety`, `sourceQuality.staticAnalysis` and `verification.unitTests` tasks (skip with `--no-verify`).
 
 ## Example
 

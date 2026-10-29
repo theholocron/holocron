@@ -1,10 +1,10 @@
 import type { TemplateInputs } from "../template-inputs/index.js";
 
 export function render(inputs: TemplateInputs): string {
-	return `import { describe, expect, it } from "vitest";
+	return `import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
 
-import { AUTH_HINT, createPlugin } from "../index.js";
-import { stubFetch } from "./helpers.js";
+import { AUTH_HINT, createPlugin } from "./index.js";
 
 describe("createPlugin", () => {
 	it("wires the ${inputs.capability} capability against the given fetch + token", () => {

@@ -3,10 +3,10 @@ import type { TemplateInputs } from "../template-inputs/index.js";
 export function render(inputs: TemplateInputs): string {
 	const factoryName = `create${inputs.vendorName}RestClient`;
 	return `import { ProviderApiError } from "@theholocron/cli";
+import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { ${factoryName} } from "../rest.js";
-import { stubFetch } from "./helpers.js";
+import { ${factoryName} } from "./rest.js";
 
 describe("${factoryName}", () => {
 \tit("sends bearer + accept headers and returns the parsed body", async () => {

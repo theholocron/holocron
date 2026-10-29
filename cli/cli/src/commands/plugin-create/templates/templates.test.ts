@@ -6,7 +6,6 @@ import { render as renderAuthTest } from "./auth-test.js";
 import { render as renderCapability } from "./capability.js";
 import { render as renderCapabilityTest } from "./capability-test.js";
 import { render as renderEslintConfig } from "./eslint-config.js";
-import { render as renderHelpers } from "./helpers.js";
 import { render as renderIndexTest } from "./index-test.js";
 import { render as renderPackageJson } from "./package-json.js";
 import { render as renderPluginIndex } from "./plugin-index.js";
@@ -42,7 +41,7 @@ describe("auth", () => {
 
 describe("auth-test", () => {
 	it("imports from auth.js", () => {
-		expect(renderAuthTest(inputs)).toContain(`from "../auth.js"`);
+		expect(renderAuthTest(inputs)).toContain(`from "./auth.js"`);
 	});
 });
 
@@ -67,15 +66,9 @@ describe("eslint-config", () => {
 	});
 });
 
-describe("helpers", () => {
-	it("exports stubFetch", () => {
-		expect(renderHelpers(inputs)).toContain("stubFetch");
-	});
-});
-
 describe("index-test", () => {
 	it("imports from index.js", () => {
-		expect(renderIndexTest(inputs)).toContain(`from "../index.js"`);
+		expect(renderIndexTest(inputs)).toContain(`from "./index.js"`);
 	});
 });
 
@@ -97,6 +90,15 @@ describe("plugin-index", () => {
 		const out = renderPluginIndex(inputs);
 		expect(out).toContain("ClerkAuth");
 		expect(out).toContain("createPlugin");
+	});
+
+	it("orders the rest re-export specifiers the way simple-import-sort does", () => {
+		expect(renderPluginIndex(inputs)).toContain(
+			'export { type ClerkRestClient, createClerkRestClient } from "./rest.js";'
+		);
+		expect(renderPluginIndex({ ...inputs, vendorName: "ZzDemo", slug: "zzdemo" })).toContain(
+			'export { createZzDemoRestClient, type ZzDemoRestClient } from "./rest.js";'
+		);
 	});
 });
 
@@ -133,9 +135,10 @@ describe("tsconfig-json", () => {
 });
 
 describe("tsdown-config", () => {
-	it("produces a valid tsdown config string", () => {
-		expect(renderTsdownConfig(inputs)).toContain("defineConfig");
-		expect(renderTsdownConfig(inputs)).toContain("src/index.ts");
+	it("re-exports the shared library preset", () => {
+		expect(renderTsdownConfig(inputs)).toBe(
+			'export { default } from "@theholocron/tsdown-config/presets/library";\n'
+		);
 	});
 });
 
@@ -155,13 +158,12 @@ describe("verify-token", () => {
 
 describe("verify-token-test", () => {
 	it("imports from verify-token.js", () => {
-		expect(renderVerifyTokenTest(inputs)).toContain(`from "../verify-token.js"`);
+		expect(renderVerifyTokenTest(inputs)).toContain(`from "./verify-token.js"`);
 	});
 });
 
 describe("vitest-config", () => {
 	it("produces a vitest config string", () => {
-		expect(renderVitestConfig(inputs)).toContain("defineConfig");
-		expect(renderVitestConfig(inputs)).toContain("environment");
+		expect(renderVitestConfig(inputs)).toContain("@theholocron/vitest-config/bundles/library");
 	});
 });

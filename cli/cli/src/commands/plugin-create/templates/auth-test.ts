@@ -3,7 +3,7 @@ import type { TemplateInputs } from "../template-inputs/index.js";
 export function render(inputs: TemplateInputs): string {
 	return `import { describe, expect, it } from "vitest";
 
-import { AuthError, resolveToken } from "../auth.js";
+import { AuthError, resolveToken } from "./auth.js";
 
 const noKeyring = () => null;
 

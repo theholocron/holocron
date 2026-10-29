@@ -1,10 +1,10 @@
 import type { TemplateInputs } from "../template-inputs/index.js";
 
 export function render(_inputs: TemplateInputs): string {
-	return `import { describe, expect, it } from "vitest";
+	return `import { stubFetch } from "@theholocron/http-client/testing";
+import { describe, expect, it } from "vitest";
 
-import { verifyToken } from "../verify-token.js";
-import { stubFetch } from "./helpers.js";
+import { verifyToken } from "./verify-token.js";
 
 describe("verifyToken", () => {
 	it("returns ok with a subject when /me returns 200", async () => {
@@ -12,6 +12,21 @@ describe("verifyToken", () => {
 		const result = await verifyToken("token", { fetch: stub.fetch });
 		expect(result.ok).toBe(true);
 		expect((result as { ok: boolean; subject?: string }).subject).toMatch(/user@example.com/);
+	});
+
+	it("falls back to name, then id, then a placeholder for the subject", async () => {
+		const named = stubFetch([{ status: 200, body: { name: "Ada" } }]);
+		expect(await verifyToken("t", { fetch: named.fetch })).toEqual({ ok: true, subject: "user @ Ada" });
+		const ided = stubFetch([{ status: 200, body: { id: "u_1" } }]);
+		expect(await verifyToken("t", { fetch: ided.fetch })).toEqual({ ok: true, subject: "user @ u_1" });
+		const empty = stubFetch([{ status: 200, body: {} }]);
+		expect(await verifyToken("t", { fetch: empty.fetch })).toEqual({ ok: true, subject: "user @ unknown" });
+	});
+
+	it("sends the request to the base URL override", async () => {
+		const stub = stubFetch([{ status: 200, body: { email: "user@example.com" } }]);
+		await verifyToken("token", { baseUrl: "https://override.example", fetch: stub.fetch });
+		expect(stub.calls[0]?.url).toBe("https://override.example/me");
 	});
 
 	it("returns ok:false with the error message on 401", async () => {

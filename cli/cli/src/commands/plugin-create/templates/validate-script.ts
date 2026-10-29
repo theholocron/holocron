@@ -41,9 +41,10 @@ export function render(inputs: TemplateInputs): string {
  * surface. Model on \`plugins/holocron-plugin-infisical/scripts/validate.mjs\`.
  */
 
+import { errorMessage } from "@theholocron/misc-utils";
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- filled in by operator
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
-import { errorMessage } from "@theholocron/misc-utils";
 
 const args = process.argv.slice(2);
 

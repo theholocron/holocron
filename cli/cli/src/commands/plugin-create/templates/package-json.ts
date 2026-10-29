@@ -27,38 +27,42 @@ export function render(inputs: TemplateInputs): string {
 						default: "./dist/index.mjs",
 					},
 				},
+				files: ["dist"],
 				scripts: {
-					// delivery.build stays a direct tool invocation, never `holocron
-					// run` — it's what produces the holocron binary, so it can never
-					// depend on holocron already existing. The other three tasks are
-					// safe to gateway through holocron: this template already
-					// declares @theholocron/cli as a real devDependency below, giving
-					// turbo the edge it needs to build cli (and transitively
-					// astromech) before this package's own script ever runs.
+					// Each task calls its tool directly, like every other package in
+					// the repo (no `holocron run` indirection).
 					"delivery.build": "tsdown",
-					"sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
-					"verification.typeSafety": "holocron run verification.typeSafety --",
-					"verification.unitTests": "holocron run verification.unitTests --",
+					"sourceQuality.staticAnalysis": "eslint .",
 					"test:watch": "vitest",
 					validate: "tsx scripts/validate.mjs",
+					"verification.typeSafety": "tsc --noEmit",
+					"verification.unitTests": "vitest run",
 				},
-				peerDependencies: { "@theholocron/cli": "workspace:*", "@theholocron/misc-utils": "catalog:utils" },
 				devDependencies: {
 					"@theholocron/cli": "workspace:*",
-					"@theholocron/misc-utils": "catalog:utils",
-					"@theholocron/tsconfig": "catalog:configs",
+					"@theholocron/eslint-config": "catalog:configs",
+					"@theholocron/http-client": "workspace:^",
+					"@theholocron/misc-utils": "workspace:^",
+					"@theholocron/tsconfig": "workspace:^",
+					// Kept even though the build config lives at the repo root: the
+					// root config imports this preset's dist, and the devDependency is
+					// what makes turbo build the preset first (`^delivery.build`).
+					"@theholocron/tsdown-config": "workspace:^",
+					"@theholocron/vitest-config": "workspace:^",
 					"@types/node": "catalog:",
 					"@vitest/coverage-v8": "catalog:",
+					"@vitest/eslint-plugin": "catalog:",
 					eslint: "catalog:",
+					"eslint-plugin-n": "catalog:",
 					globals: "catalog:",
 					tsdown: "catalog:",
 					tsx: "catalog:",
 					typescript: "catalog:",
 					vitest: "catalog:",
 				},
+				peerDependencies: { "@theholocron/cli": "workspace:*", "@theholocron/misc-utils": "catalog:utils" },
 				engines: { node: ">=22" },
 				publishConfig: { access: "public" },
-				files: ["dist"],
 			},
 			null,
 			2

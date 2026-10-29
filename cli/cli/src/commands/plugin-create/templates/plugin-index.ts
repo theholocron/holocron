@@ -3,6 +3,11 @@ import type { TemplateInputs } from "../template-inputs/index.js";
 export function render(inputs: TemplateInputs): string {
 	const clientClass = `${inputs.vendorName}RestClient`;
 	const factoryName = `create${inputs.vendorName}RestClient`;
+	// Same order simple-import-sort gives the specifiers (case-insensitive), so
+	// the generated file passes `eslint .` as written.
+	const restSpecifiers = [`type ${clientClass}`, factoryName]
+		.sort((a, b) => a.replace(/^type /, "").localeCompare(b.replace(/^type /, ""), "en"))
+		.join(", ");
 	// Camel-case capability name is used as the factory function name.
 	const capabilityInterface = inputs.capability.charAt(0).toUpperCase() + inputs.capability.slice(1);
 	return `/**
@@ -20,7 +25,7 @@ export function render(inputs: TemplateInputs): string {
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { ${inputs.capabilityClass} } from "./capabilities/${inputs.capability}.js";
-import { ${factoryName}, type ${clientClass} } from "./rest.js";
+import { ${restSpecifiers} } from "./rest.js";
 
 export interface ${inputs.vendorName}PluginOptions extends ResolveTokenInput {
 	/** Override base URL for tests. */
@@ -80,8 +85,8 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
-export { type ${clientClass}, ${factoryName} } from "./rest.js";
 export { ${inputs.capabilityClass} } from "./capabilities/${inputs.capability}.js";
+export { ${restSpecifiers} } from "./rest.js";
 export { verifyToken } from "./verify-token.js";
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";
 `;

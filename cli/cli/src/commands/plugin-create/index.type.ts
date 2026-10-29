@@ -63,4 +63,6 @@ export interface TemplateEntry {
 	/** Path relative to the plugin package root. */
 	path: string;
 	render: (inputs: TemplateInputs) => string;
+	/** Skip this template when it returns false. Receives the workspace root. */
+	when?: (cwd: string) => boolean;
 }
