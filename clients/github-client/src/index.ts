@@ -1,0 +1,113 @@
+import { branches } from "./branches/branches.js";
+import { checks } from "./checks/checks.js";
+import { environments } from "./environments/environments.js";
+import { git } from "./git/git.js";
+import { issues } from "./issues/issues.js";
+import { labels } from "./labels/labels.js";
+import { pages } from "./pages/pages.js";
+import { properties } from "./properties/properties.js";
+import { pulls } from "./pulls/pulls.js";
+import { repos } from "./repos/repos.js";
+import { rulesets } from "./rulesets/rulesets.js";
+import { secrets } from "./secrets/secrets.js";
+import { security } from "./security/security.js";
+import { teams } from "./teams/teams.js";
+import { topics } from "./topics/topics.js";
+import { user } from "./user/user.js";
+import { createGitHubGraphQLApiClient, createGitHubRestClient, type GitHubClientOptions } from "./utils.js";
+import { variables } from "./variables/variables.js";
+import { workflows } from "./workflows/workflows.js";
+
+export {
+	createAppJWT,
+	createInstallationClient,
+	getInstallationAccessToken,
+	type GitHubAppCredentials,
+	type InstallationAccessToken,
+} from "./app-auth/app-auth.js";
+export {
+	type CheckRunAnnotation,
+	type CheckRunAnnotationLevel,
+	type CheckRunConclusion,
+	type CheckRunOutput,
+	type CheckRunStatus,
+	type CreateCheckRunInput,
+	type GitHubCheckRun,
+	MAX_CHECK_RUN_ANNOTATIONS,
+	type UpdateCheckRunInput,
+} from "./checks/checks.js";
+export type { GitHubEnvironment } from "./environments/environments.js";
+export type {
+	CreatePullInput,
+	GitBlob,
+	GitCommit,
+	GitContents,
+	GitPull,
+	GitRef,
+	GitTree,
+	GitTreeItem,
+	PutContentsInput,
+	PutContentsResult,
+} from "./git/git.js";
+export type { GitHubIssue, GitHubMilestone, IssueSearchParams } from "./issues/issues.js";
+export type { GitHubLabel } from "./labels/labels.js";
+export type {
+	CreatePagesPayload,
+	GitHubPages,
+	PagesBuildStatus,
+	PagesBuildType,
+	UpdatePagesPayload,
+} from "./pages/pages.js";
+export type {
+	CreateReviewComment,
+	CreateReviewInput,
+	GitHubPullRequest,
+	GitHubPullRequestCommit,
+	GitHubPullRequestFile,
+	GitHubPullRequestReview,
+	ReviewThread,
+} from "./pulls/pulls.js";
+export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
+export type { GitHubRuleset } from "./rulesets/rulesets.js";
+export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
+export type { CodeScanningSetupResult } from "./security/security.js";
+export type { TeamMember, TeamPermission } from "./teams/teams.js";
+export type { GitHubUser } from "./user/user.js";
+export type { GitHubClientOptions } from "./utils.js";
+export type { GitHubVariable, VariableScope, VariableVisibility } from "./variables/variables.js";
+export {
+	type GitHubInstallationWebhookPayload,
+	type GitHubPullRequestWebhookPayload,
+	type GitHubPushWebhookPayload,
+	type GitHubWebhookHeaders,
+	parseGitHubWebhookHeaders,
+	verifyGitHubWebhookSignature,
+} from "./webhooks/webhooks.js";
+export type { GitHubWorkflowRun, WorkflowRunFilter } from "./workflows/workflows.js";
+
+export function createGitHubClient(opts: GitHubClientOptions) {
+	const rest = createGitHubRestClient(opts);
+	const graphql = createGitHubGraphQLApiClient(opts);
+	return {
+		branches: branches(rest),
+		checks: checks(rest),
+		environments: environments(rest),
+		git: git(rest),
+		issues: issues(rest),
+		labels: labels(rest),
+		pages: pages(rest),
+		properties: properties(rest),
+		pulls: pulls(rest, graphql),
+		repos: repos(rest),
+		rulesets: rulesets(rest),
+		secrets: secrets(rest),
+		security: security(rest),
+		teams: teams(rest),
+		topics: topics(rest),
+		variables: variables(rest),
+		user: user(rest),
+		workflows: workflows(rest),
+	};
+}
+
+export type GitHubClient = ReturnType<typeof createGitHubClient>;
