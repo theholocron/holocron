@@ -1,25 +1,14 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { generateReadme, type PackagesRegistry } from "@theholocron/components-doc/markdown";
-import { getClients, getConfigs, getDocs, getPlugins, getSkills, getThemes, getUtils } from "@theholocron/registry-doc";
-
 import { getLogger } from "../../observability/logger/index.js";
 import { style } from "../../ui/index.js";
+import { generateReadme } from "./generate-readme.js";
 import type { PackageJson, RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.type.js";
+import { workspacePackages } from "./workspace-packages.js";
 
 const MARKER_INSTALL_START = "<!-- holocron:installation -->";
 const MARKER_INSTALL_END = "<!-- /holocron:installation -->";
-
-const REGISTRY_MAP: Record<string, () => PackagesRegistry> = {
-	"@theholocron/clients": getClients,
-	"@theholocron/configs": getConfigs,
-	"@theholocron/docs": getDocs,
-	"@theholocron/holocron": getPlugins,
-	"@theholocron/skills": getSkills,
-	"@theholocron/themes": getThemes,
-	"@theholocron/utils": getUtils,
-};
 
 function generateInstallBlock(pkg: PackageJson, homepage = ""): string {
 	const { name = "", bin, peerDependencies = {} } = pkg;
@@ -156,7 +145,7 @@ async function updateIndexMdxDescription(
 }
 
 export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncReadmeReport> {
-	const { loaded, context, print = console.log, readFileFn = readFile, writeFileFn = writeFile } = input;
+	const { loaded, context, print = console.log, readFileFn = readFile, writeFileFn = writeFile, discoverFn } = input;
 	const logger = input.logger ?? getLogger();
 
 	const { repoRoot, dryRun = false } = context;
@@ -182,7 +171,7 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 	const description = loaded.resolved.description ?? "";
 	const homepage = loaded.resolved.homepage ?? pkg.homepage ?? "";
 	const scripts = pkg.scripts ?? {};
-	const packages = pkg.name ? REGISTRY_MAP[pkg.name]?.() : undefined;
+	const packages = workspacePackages(repoRoot, discoverFn);
 
 	const sections = generateReadme({ description, homepage, scripts, packages });
 	const markerSections: Record<string, string> = {
