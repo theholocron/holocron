@@ -162,6 +162,7 @@ export const TASKS: Record<string, TaskDef> = {
 			registry: {
 				local: { tool: "node", args: ["scripts/validate-registry.mjs"] },
 				checkContext: "platform.repoValidation / Validate registry consistency",
+				alias: "packageRegistry",
 			},
 			// Warns (never fails — the script itself always exits 0) when a PR
 			// adds a new public package without a docs change. Doesn't actually
@@ -171,6 +172,7 @@ export const TASKS: Record<string, TaskDef> = {
 			docsPresence: {
 				local: { tool: "node", args: ["scripts/validate-docs-presence.mjs"] },
 				checkContext: "platform.repoValidation / Validate docs presence",
+				alias: "docsEnforcement",
 			},
 		},
 	},

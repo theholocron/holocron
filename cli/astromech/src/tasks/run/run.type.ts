@@ -41,6 +41,8 @@ export interface RunTaskInput extends RunDeps {
 	required?: boolean;
 	/** `turbo --filter=<pkg>` passthrough (monorepo). Ignored when the repo has no `turbo.json`. */
 	filter?: string;
+	/** The task entry's `jobs` switches: a sub-job set to `false` (by key or alias) is not run. */
+	jobSwitches?: Record<string, boolean>;
 }
 
 export interface RunTaskReport {

@@ -57,6 +57,12 @@ function makeRunOne(input: RunTaskInput): (cmd: string, args: string[]) => RunTa
 	};
 }
 
+/** `false` when the repo's config switched this sub-job off, by its key or its alias. */
+function jobEnabled(name: string, jobDef: JobDef, switches: Record<string, boolean> | undefined): boolean {
+	if (!switches) return true;
+	return switches[name] !== false && (jobDef.alias === undefined || switches[jobDef.alias] !== false);
+}
+
 export function runTask(input: RunTaskInput): RunTaskReport {
 	const { print, logger, readFile, fileExists, listDir, task, cwd } = input;
 	const def = TASKS[task];
@@ -80,6 +86,12 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 			return { status: "unknown", message: `unknown job "${task} ${job}"` };
 		}
 		const label = `${task} ${job}`;
+		if (!jobEnabled(job, jobDef, input.jobSwitches)) {
+			const message = `${label} is off in this repo's config (jobs.${jobDef.alias ?? job}: false)`;
+			print(`· ${message}`);
+			logger.debug({ task, job, status: "skip" }, `run: ${label}`);
+			return { status: "skip", message };
+		}
 		return runUnit(input, label, jobDef.local, makeRunOne({ ...input, task: label }), passthrough);
 	}
 
@@ -231,6 +243,10 @@ function runAllJobs(input: RunTaskInput, jobs: Record<string, JobDef>, passthrou
 	const reports: RunTaskReport[] = [];
 	for (const [name, jobDef] of Object.entries(jobs)) {
 		const label = `${task} ${name}`;
+		if (!jobEnabled(name, jobDef, input.jobSwitches)) {
+			print(`· ${jobDef.checkContext} — off in this repo's config (jobs.${jobDef.alias ?? name}: false)`);
+			continue;
+		}
 		print(`▶ ${jobDef.checkContext}`);
 		reports.push(runUnit(perJob, label, jobDef.local, makeRunOne({ ...perJob, task: label }), passthrough));
 	}

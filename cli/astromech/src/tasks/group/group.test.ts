@@ -66,6 +66,19 @@ describe("runGroup", () => {
 		expect(exec).toHaveBeenCalledTimes(2);
 	});
 
+	it("passes a task entry's job switches to the task it runs", () => {
+		const { run, exec } = makeGroup(
+			{ "package.json": PKG },
+			{ lookPath: (_cwd, bin) => (bin === "node" ? "/bin/node" : null) }
+		);
+		const report = run(
+			{ tasks: [{ name: "platform.repoValidation", jobs: { packageRegistry: false, docsEnforcement: false } }] },
+			"platform"
+		);
+		expect(report.status).toBe("ok");
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([["scripts/validate-adrs.mjs"]]);
+	});
+
 	it("aggregates fail when any matched task fails, but still runs every one of them", () => {
 		const exec = vi
 			.fn<(c: string, a: string[], o: { cwd: string }) => { exitCode: number }>()

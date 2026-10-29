@@ -39,6 +39,12 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
 
+	/** The `jobs` switches of a task's entry in the manifest, as a `runTask` input; nothing when it has none. */
+	const jobSwitchesFor = (task: string): { jobSwitches?: Record<string, boolean> } => {
+		const jobs = items().find((e) => e.name === task)?.jobs;
+		return jobs ? { jobSwitches: jobs } : {};
+	};
+
 	/**
 	 * Task names this repo's manifest can actually run locally — shared by
 	 * {@link packageScripts} and by `holocron`'s own interactive task picker.
@@ -86,6 +92,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
 				...(opts.filter ? { filter: opts.filter } : {}),
+				...jobSwitchesFor(task),
 			});
 		},
 

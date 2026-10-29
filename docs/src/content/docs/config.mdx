@@ -169,6 +169,23 @@ dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews docs.
 None of these earn their own task; it's one capability any
 publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
+### Switching a sub-job off
+
+A task made of sub-jobs (`platform.repoValidation`) can have individual jobs switched off for one repo,
+with `jobs:` on its entry in `astromech.config.ts`:
+
+```ts
+{ name: "platform.repoValidation", required: true, jobs: { packageRegistry: false } }
+```
+
+| Key               | Job                           | Notes                                                                        |
+| ----------------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| `packageRegistry` | Validate registry consistency | every public package is listed in `registry-doc` (key `registry` also works) |
+| `docsEnforcement` | Validate docs presence        | a new public package comes with docs (key `docsPresence` also works)         |
+
+A job left out runs. A switched-off job still reports in CI (green, "off in this repo's config"), so a required
+check never goes missing, and `holocron run platform.repoValidation` prints which jobs it skipped.
+
 No super-linter: every task above runs its own tool directly, through the
 same mechanism that resolves it locally — CI runs the identical command a
 developer runs.
