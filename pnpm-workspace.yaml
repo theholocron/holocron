@@ -19,7 +19,7 @@ catalog:
   "@inquirer/search": ^4.3.3
   "@semantic-release/commit-analyzer": ^13.0.1
   "@semantic-release/release-notes-generator": ^14.1.1
-  "@sentry/node": ^10.70.0
+  "@sentry/node": ^11.9.0
   "@theholocron/observability": ^0.6.0
   "@tktco/node-actionlint": ^1.6.0
   "@tsconfig/node-lts": ^24.0.1
