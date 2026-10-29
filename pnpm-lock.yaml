@@ -121,6 +121,9 @@ catalogs:
     prettier:
       specifier: ^3.9.6
       version: 3.9.6
+    starlight-typedoc:
+      specifier: ^0.23.1
+      version: 0.23.1
     tsdown:
       specifier: ^0.23.3
       version: 0.23.3
@@ -130,6 +133,9 @@ catalogs:
     typedoc:
       specifier: ^0.28.20
       version: 0.28.20
+    typedoc-plugin-markdown:
+      specifier: ^4.14.1
+      version: 4.14.1
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
@@ -1761,9 +1767,18 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.8(react@19.2.8)
+      starlight-typedoc:
+        specifier: 'catalog:'
+        version: 0.23.1(@astrojs/starlight@0.41.11(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typedoc-plugin-markdown@4.14.1(typedoc@0.28.20(typescript@5.9.3)))(typedoc@0.28.20(typescript@5.9.3))
       tsdown:
         specifier: 'catalog:'
         version: 0.23.3(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
+      typedoc:
+        specifier: 'catalog:'
+        version: 0.28.20(typescript@5.9.3)
+      typedoc-plugin-markdown:
+        specifier: 'catalog:'
+        version: 4.14.1(typedoc@0.28.20(typescript@5.9.3))
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -12252,6 +12267,15 @@ packages:
     resolution: {integrity: sha512-XlkWvfIm6RmsWtNJx+uqtKLS8eqFbxUg0ZzLXqY0caEy9l7hruX8IpiDnjsLavoBgqCCR71TqWO8MaXYheJ3RQ==}
     engines: {node: '>=10'}
 
+  starlight-typedoc@0.23.1:
+    resolution: {integrity: sha512-H45Mxv4mZ1xUMhUNjTR4CwKDgKKHZboQA5v5+vTVMdjlCX02Xo7veTB7+F/ivmMHPmQ7SV5auF2BTlU/EpQIoQ==}
+    engines: {node: '>=22.12.0'}
+    peerDependencies:
+      '@astrojs/starlight': '>=0.39.0'
+      astro: '>=6.0.0'
+      typedoc: '>=0.28.0'
+      typedoc-plugin-markdown: '>=4.6.0'
+
   static-browser-server@1.0.3:
     resolution: {integrity: sha512-ZUyfgGDdFRbZGGJQ1YhiM930Yczz5VlbJObrQLlk24+qNHVQx4OlLcYswEUo3bIyNAbQUIUR9Yr5/Hqjzqb4zA==}
 
@@ -12776,6 +12800,12 @@ packages:
 
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
+
+  typedoc-plugin-markdown@4.14.1:
+    resolution: {integrity: sha512-24XX0oqyBsjBIBNoSH4wbgQkouci/CmgmO1ZBSaVkrcflqXFL2PQ5zFOpkz+Ewow5xQ3q2You+wrcmilNepRKg==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      typedoc: 0.28.x
 
   typedoc@0.28.20:
     resolution: {integrity: sha512-uSKqkh8Cr48vllnEy+jdaAgOeR6Y+QCBW7usgUsKj7gJEfR7stw9U/fE49LBnj2tPRKPY0c0EBJSWe9Appmplg==}
@@ -23536,6 +23566,14 @@ snapshots:
     dependencies:
       escape-string-regexp: 2.0.0
 
+  starlight-typedoc@0.23.1(@astrojs/starlight@0.41.11(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typedoc-plugin-markdown@4.14.1(typedoc@0.28.20(typescript@5.9.3)))(typedoc@0.28.20(typescript@5.9.3)):
+    dependencies:
+      '@astrojs/starlight': 0.41.11(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3)
+      astro: 7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
+      github-slugger: 2.0.0
+      typedoc: 0.28.20(typescript@5.9.3)
+      typedoc-plugin-markdown: 4.14.1(typedoc@0.28.20(typescript@5.9.3))
+
   static-browser-server@1.0.3:
     dependencies:
       '@open-draft/deferred-promise': 2.2.0
@@ -24105,6 +24143,10 @@ snapshots:
       is-typedarray: 1.0.0
 
   typedarray@0.0.6: {}
+
+  typedoc-plugin-markdown@4.14.1(typedoc@0.28.20(typescript@5.9.3)):
+    dependencies:
+      typedoc: 0.28.20(typescript@5.9.3)
 
   typedoc@0.28.20(typescript@5.9.3):
     dependencies:

@@ -11,7 +11,7 @@ vi.mock("@astrojs/react", () => ({
 import type starlight from "@astrojs/starlight";
 import type { docsTheme } from "@theholocron/docs-theme";
 
-import { defineConfig } from "./index.js";
+import { apiReference, defineConfig } from "./index.js";
 
 const mockStarlight = vi.fn((config: unknown) => ({
 	name: "starlight",
@@ -50,6 +50,21 @@ describe("defineConfig", () => {
 			integrations: Array<{ config: { social: Array<{ href: string }> } }>;
 		};
 		expect(config.integrations[0].config.social[0].href).toBe("https://github.com/theholocron/clients");
+	});
+
+	it("adds the docs theme first, then any further plugins", () => {
+		const extra = { name: "extra", hooks: {} };
+		const config = defineConfig({ ...baseInput, plugins: [extra] }) as unknown as {
+			integrations: Array<{ config: { plugins: unknown[] } }>;
+		};
+		expect(config.integrations[0].config.plugins).toEqual([{ name: "@theholocron/docs-theme" }, extra]);
+	});
+
+	it("adds only the docs theme when no plugins are given", () => {
+		const config = defineConfig(baseInput) as unknown as {
+			integrations: Array<{ config: { plugins: unknown[] } }>;
+		};
+		expect(config.integrations[0].config.plugins).toEqual([{ name: "@theholocron/docs-theme" }]);
 	});
 
 	it("passes docs.sidebar directly to starlight", () => {
@@ -94,5 +109,41 @@ describe("defineConfig", () => {
 			integrations: Array<{ name: string }>;
 		};
 		expect(config.integrations.some((i) => i.name === "@astrojs/react")).toBe(true);
+	});
+});
+
+describe("apiReference", () => {
+	const group = { label: "API reference", autogenerate: { directory: "x/api" } };
+	const plugin = vi.fn((options: unknown) => ({ name: "starlight-typedoc", options }));
+	const createPlugin = vi.fn(() => [plugin, group]) as unknown as Parameters<typeof apiReference>[0]["createPlugin"];
+
+	it("resolves the entry point and tsconfig from the repo root and writes under <package>/api", () => {
+		const result = apiReference({ createPlugin, root: new URL("file:///repo/"), package: "utils/array-utils" });
+		expect(result.plugin).toEqual({
+			name: "starlight-typedoc",
+			options: {
+				entryPoints: ["/repo/utils/array-utils/src/index.ts"],
+				tsconfig: "/repo/utils/array-utils/tsconfig.json",
+				output: "utils/array-utils/api",
+				sidebar: { label: "API reference", collapsed: true },
+			},
+		});
+		expect(result.group).toBe(group);
+	});
+
+	it("takes the root as a string, several entry points and a label", () => {
+		const result = apiReference({
+			createPlugin,
+			root: "file:///repo/",
+			package: "clients/http-client",
+			entryPoints: ["src/index.ts", "src/testing.ts"],
+			label: "Reference",
+		});
+		expect(result.plugin).toMatchObject({
+			options: {
+				entryPoints: ["/repo/clients/http-client/src/index.ts", "/repo/clients/http-client/src/testing.ts"],
+				sidebar: { label: "Reference", collapsed: true },
+			},
+		});
 	});
 });
