@@ -292,4 +292,80 @@ describe("Session Storage", () => {
 			expect(vault.getFrom("a")).toBe(1);
 		});
 	});
+
+	describe("nested keys and missing paths", () => {
+		test("sendTo reuses an intermediate object that already exists", () => {
+			const vault = storage.session.create("nested");
+			vault.registerApp("app");
+
+			vault.sendTo("a.b", 1);
+			vault.sendTo("a.c", 2);
+
+			expect(vault.getFrom("a")).toEqual({ b: 1, c: 2 });
+		});
+
+		test("removeFrom leaves everything alone when the last key does not exist", () => {
+			const setItem = vi.spyOn(Storage.prototype, "setItem");
+			const vault = storage.session.create("rm-missing");
+			vault.registerApp("app");
+			vault.sendTo("a.b", 1);
+			setItem.mockClear();
+
+			vault.removeFrom("a.nope");
+
+			expect(vault.getFrom("a")).toEqual({ b: 1 });
+			expect(setItem).not.toHaveBeenCalled();
+		});
+
+		test("removeFrom ignores a path whose middle does not exist", () => {
+			const vault = storage.session.create("rm-middle");
+			vault.registerApp("app");
+			vault.sendTo("a", 1);
+
+			expect(() => vault.removeFrom("x.y.z")).not.toThrow();
+			expect(vault.getFrom("a")).toBe(1);
+		});
+
+		test("the default logger prints just the message when the thrown value is undefined", () => {
+			const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+			vi.spyOn(sessionStorage, "setItem").mockImplementation(() => {
+				throw undefined;
+			});
+
+			const vault = storage.session.create("undef");
+			vault.registerApp("app");
+			vault.sendTo("k", "v");
+
+			expect(errorSpy).toHaveBeenCalledWith("Failed to store data in sessionStorage");
+		});
+	});
+
+	describe("without sessionStorage", () => {
+		afterEach(() => {
+			vi.unstubAllGlobals();
+			vi.resetModules();
+		});
+
+		test("keeps everything in memory and never touches the browser", async () => {
+			const setItem = vi.spyOn(Storage.prototype, "setItem");
+			const removeItem = vi.spyOn(Storage.prototype, "removeItem");
+			vi.stubGlobal("window", undefined);
+			vi.resetModules();
+			const { storage: bare } = await import("./index.ts");
+
+			const vault = bare.session.create("memory");
+			vault.registerApp("app");
+			vault.sendTo("a.b", 1);
+			vault.sendTo("a.c", 2);
+			vault.removeFrom("a.b");
+			vault.removeFrom("a.nope");
+			const read = vault.getFrom("a");
+			vault.clear();
+
+			expect(read).toEqual({ c: 2 });
+			expect(vault.getAll()).toEqual({});
+			expect(setItem).not.toHaveBeenCalled();
+			expect(removeItem).not.toHaveBeenCalled();
+		});
+	});
 });

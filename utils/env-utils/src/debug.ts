@@ -2,9 +2,10 @@ import { environment } from "./environment.js";
 import type { EnvLogger, EnvObject } from "./types.js";
 import { collectKeys } from "./utils/index.js";
 
+// The module only ever logs `info` with its key list and `warn` with a message alone.
 const consoleLogger: EnvLogger = {
-	info: (message, meta) => (meta === undefined ? console.info(message) : console.info(message, meta)),
-	warn: (message, meta) => (meta === undefined ? console.warn(message) : console.warn(message, meta)),
+	info: (message, meta) => console.info(message, meta),
+	warn: (message) => console.warn(message),
 };
 
 function isDebugEnabled(): boolean {

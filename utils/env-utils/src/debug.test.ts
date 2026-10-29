@@ -239,4 +239,29 @@ describe("debug", () => {
 			expect(message).toContain("db__primary__url");
 		});
 	});
+
+	describe("default console logger", () => {
+		test("debugLog prints the message and the key list to console.info", () => {
+			vi.stubEnv("DEBUG", "true");
+			const info = vi.spyOn(console, "info").mockImplementation(() => {});
+
+			debugLog(APP, flatEnv);
+
+			expect(info).toHaveBeenCalledWith(expect.stringContaining(`${APP} loaded 2 key(s)`), {
+				keys: expect.arrayContaining(["port", "database_url"]),
+			});
+		});
+
+		test("warnMissingKey and debugDeprecation print only the message to console.warn", () => {
+			vi.stubEnv("DEBUG", "true");
+			const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+			warnMissingKey(APP, "API_KEY");
+			debugDeprecation(APP, "port", "PORT", flatEnv);
+
+			expect(warn).toHaveBeenCalledTimes(2);
+			expect(warn).toHaveBeenNthCalledWith(1, expect.stringContaining('key not found: "API_KEY"'));
+			expect(warn).toHaveBeenNthCalledWith(2, expect.stringContaining('"port" is deprecated; migrate to "PORT"'));
+		});
+	});
 });
