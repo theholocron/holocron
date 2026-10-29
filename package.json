@@ -64,6 +64,7 @@
     "@theholocron/semantic-release-config": "catalog:configs",
     "@theholocron/skills": "^1.3.3",
     "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
     "@vitest/eslint-plugin": "catalog:",
     "alexjs": "^1.0.0",
     "astro": "^7.3.3",

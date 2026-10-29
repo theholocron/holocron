@@ -105,6 +105,8 @@ export const TASKS: Record<string, TaskDef> = {
 				"src/**",
 				"package.json",
 				"tsdown.config.ts",
+				// A repo-root tsdown config shared by every package without its own.
+				"$TURBO_ROOT$/tsdown.config.ts",
 				"vite.config.ts",
 				"rollup.config.ts",
 				"tsconfig.json",
