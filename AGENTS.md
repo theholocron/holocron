@@ -382,6 +382,7 @@ skills/                           — @theholocron/skills                    (sh
 clients/                          — @theholocron/*-client                  (20 API clients: axiom, checkly, clerk, cloudflare, confluence, discord, doppler, github, google, http, infisical, jira, neon, netlify, posthog, postman, sentry, slack, vercel and zendesk; release on their own version line, tags `clients-v*`)
 utils/                            — @theholocron/*-utils                   (13 small libraries: array, date-time, env, fs, git, json, location, misc, object, pkg, storage, string and uri utils; release on their own version line, tags `utils-v*`)
 configs/                          — @theholocron/*-config                  (17 shareable config packages: eslint, prettier, tsconfig, vitest, tsdown, commitlint, ...; release on their own version line, tags `configs-v*`)
+themes/                           — @theholocron/docs-theme                (the Starlight docs theme the templates and `astro-config` use; releases on its own version line, tags `themes-v*`)
 plugins/                          — vendor capability providers, one package per provider (split from cli/ as the count grew)
   holocron-plugin-github/         — source / ci / secrets / environments / issues
   holocron-plugin-vercel/         — deployment

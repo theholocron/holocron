@@ -341,6 +341,12 @@ component_management:
       paths:
         - skills/**
 
+    # themes
+    - component_id: docs-theme
+      name: "docs-theme"
+      paths:
+        - themes/docs-theme/**
+
     # utils
     - component_id: array-utils
       name: "array-utils"

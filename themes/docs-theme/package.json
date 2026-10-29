@@ -11,14 +11,14 @@
     "theme",
     "typescript"
   ],
-  "homepage": "https://github.com/theholocron/themes/tree/main/packages/docs-theme#readme",
-  "bugs": "https://github.com/theholocron/themes/issues",
+  "homepage": "https://docs.theholocron.dev/holocron/themes/docs-theme/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theholocron/themes.git",
-    "directory": "packages/docs-theme"
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "themes/docs-theme"
   },
-  "license": "GPL-3.0",
+  "license": "MIT",
   "author": "Newton Koumantzelis",
   "sideEffects": [
     "*.css"
@@ -47,28 +47,26 @@
   ],
   "scripts": {
     "delivery.build": "tsdown && cp src/styles.css dist/",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "dependencies": {
     "gray-matter": "^4.0.3"
   },
   "devDependencies": {
     "@astrojs/starlight": "^0.41.7",
-    "@theholocron/cli": "catalog:holocron",
-    "@theholocron/eslint-config": "catalog:",
-    "@theholocron/tsconfig": "catalog:",
-    "@theholocron/tsdown-config": "catalog:",
-    "@theholocron/vitest-config": "catalog:",
+    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/tsdown-config": "catalog:configs",
+    "@theholocron/vitest-config": "catalog:configs",
+    "@tsconfig/node-lts": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "astro": "^7.2.2",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
-    "eslint-plugin-simple-import-sort": "catalog:",
     "globals": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
@@ -83,7 +81,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "releases": "https://github.com/theholocron/themes/releases",
-  "wiki": "https://github.com/theholocron/themes/wiki"
+  }
 }

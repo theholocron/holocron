@@ -137,11 +137,7 @@ describe("createDocsLoader", () => {
 
 		await createDocsLoader([{ dir: tmpDir, slug: "" }]).load(ctx as never);
 
-		expect(ctx.renderMarkdown).toHaveBeenCalledOnce();
-		expect(ctx.renderMarkdown).toHaveBeenCalledWith(
-			expect.stringContaining("Content here."),
-			expect.objectContaining({ fileURL: expect.any(URL) })
-		);
+		expect(ctx.renderMarkdown).toHaveBeenCalledExactlyOnceWith(expect.stringContaining("Content here."), expect.objectContaining({ fileURL: expect.any(URL) }));
 	});
 
 	it("sets deferredRender for local .mdx files instead of calling renderMarkdown", async () => {

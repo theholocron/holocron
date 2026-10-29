@@ -1,6 +1,6 @@
 {
   "display": "Holocron Docs Theme",
-  "extends": "@theholocron/tsconfig/node-lts",
+  "extends": "@tsconfig/node-lts/tsconfig.json",
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "baseUrl": "./",

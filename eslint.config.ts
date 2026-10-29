@@ -67,6 +67,8 @@ export default [
 			"utils/*/coverage/**",
 			"configs/*/dist/**",
 			"configs/*/coverage/**",
+			"themes/*/dist/**",
+			"themes/*/coverage/**",
 			"**/node_modules/**",
 		],
 	},

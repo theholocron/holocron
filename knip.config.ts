@@ -82,6 +82,11 @@ const config: KnipConfig = {
 			entry: ["src/index.ts", "src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
+		"themes/*": {
+			// the Starlight plugin's three entry points (package.json exports point at dist/); astro and starlight are peers
+			entry: ["src/index.ts", "src/content.ts", "src/loader.ts", "src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
 		"configs/*": configPackage(),
 		// no TypeScript in these two (a JSON config and a CommonJS entry point)
 		"configs/browserslist-config": {},
