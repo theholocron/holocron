@@ -21,6 +21,7 @@ catalog:
   "@sentry/node": ^10.70.0
   "@theholocron/observability": ^0.6.0
   "@tktco/node-actionlint": ^1.6.0
+  "@tsconfig/node-lts": ^24.0.1
   "@types/node": ^26
   "@types/yargs": ^17.0.35
   "@vitest/coverage-v8": ^4.1.11
@@ -34,6 +35,7 @@ catalog:
   eslint-plugin-n: ^18.3.0
   eslint-plugin-simple-import-sort: ^14.0.0
   globals: ^17.11.0
+  happy-dom: ^20.14.0
   markdownlint: ^0.41.1
   ora: ^9.4.1
   pino: ^10.3.1
