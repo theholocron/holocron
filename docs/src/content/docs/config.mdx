@@ -159,7 +159,7 @@ name it knows, what it actually runs, and why.
 | `delivery.bundleSize`                    | bundle-size upload to Codecov                                     | no local equivalent — CI only                                                                     |
 | `platform.repoSync`                      | `holocron repo sync`                                              | keeps generated files current                                                                     |
 | `platform.commitStandards`               | commitlint                                                        | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI |
-| `platform.repoValidation`                | ADR/spec frontmatter + registry-doc + docs-presence scripts       | not linters — process/governance checks                                                           |
+| `platform.repoValidation`                | ADR/spec frontmatter + docs-presence scripts                      | not linters — process/governance checks                                                           |
 | `knowledge.wiki`                         | Fern                                                              | publishes `docs/wiki/*.md` — a publish, not a sync; carries `preview`                             |
 | `knowledge.docs`                         | Astro build                                                       | the docs site itself; carries `preview` (defaults on)                                             |
 | `knowledge.components`                   | Storybook build                                                   | a browsable component catalog; carries `preview` (defaults on)                                    |
@@ -175,13 +175,12 @@ A task made of sub-jobs (`platform.repoValidation`) can have individual jobs swi
 with `jobs:` on its entry in `astromech.config.ts`:
 
 ```ts
-{ name: "platform.repoValidation", required: true, jobs: { packageRegistry: false } }
+{ name: "platform.repoValidation", required: true, jobs: { docsEnforcement: false } }
 ```
 
-| Key               | Job                           | Notes                                                                        |
-| ----------------- | ----------------------------- | ---------------------------------------------------------------------------- |
-| `packageRegistry` | Validate registry consistency | every public package is listed in `registry-doc` (key `registry` also works) |
-| `docsEnforcement` | Validate docs presence        | a new public package comes with docs (key `docsPresence` also works)         |
+| Key               | Job                    | Notes                                                                |
+| ----------------- | ---------------------- | -------------------------------------------------------------------- |
+| `docsEnforcement` | Validate docs presence | a new public package comes with docs (key `docsPresence` also works) |
 
 A job left out runs. A switched-off job still reports in CI (green, "off in this repo's config"), so a required
 check never goes missing, and `holocron run platform.repoValidation` prints which jobs it skipped.

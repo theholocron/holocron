@@ -33,20 +33,25 @@ export interface JobDef {
 	local: LocalRunner | null;
 	/**
 	 * The CI status-check context this job reports as (e.g.
-	 * `platform.repoValidation / Validate registry consistency`) — every sub-job is a CI job.
+	 * `platform.repoValidation / Validate docs presence`) — every sub-job is a CI job.
 	 * `holocron run <task>` and `holocron run ci` label each job line with it;
 	 * the task-level `… / Conclusion` context (only for tasks with several
 	 * jobs) lives in `WORKFLOW_CHECK_CONTEXTS`.
 	 */
 	checkContext: string;
 	/**
-	 * The name a repo's config uses to switch this job off (`jobs: { packageRegistry: false }`),
+	 * The name a repo's config uses to switch this job off (`jobs: { docsEnforcement: false }`),
 	 * where the job's own key is vague or fixed by the reusable workflow. The key itself works too.
 	 */
 	alias?: string;
 }
 
 export interface TaskDef {
+	/**
+	 * Sub-job slugs that no longer exist but that a reusable workflow synced earlier may still pass:
+	 * `holocron run <task> <retired>` is a clean skip instead of an unknown-job failure.
+	 */
+	retiredJobs?: string[];
 	/**
 	 * `null` — the registry has no built-in runner (CodeQL, deploys, the
 	 * bundle-size job). An explicit turbo task or `package.json` script still

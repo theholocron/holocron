@@ -165,19 +165,17 @@ export const TASKS: Record<string, TaskDef> = {
 		linterGroup: ["commitlint"],
 	},
 	// Process/governance checks that rode inside the old monolithic `lint`
-	// task with no linter connection at all — spec/ADR frontmatter, registry
-	// completeness. Not `linters.ts` entries (not linters), so plain jobs.
+	// task with no linter connection at all — spec/ADR frontmatter, docs
+	// presence. Not `linters.ts` entries (not linters), so plain jobs.
 	"platform.repoValidation": {
 		local: null,
+		// The package-registry check is gone, but the reusable workflow in theholocron/.github keeps a
+		// `registry` job until it is re-synced; it must skip, not fail, meanwhile.
+		retiredJobs: ["registry"],
 		jobs: {
 			adrs: {
 				local: { tool: "node", args: ["scripts/validate-adrs.mjs"] },
 				checkContext: "platform.repoValidation / Validate ADRs and specs",
-			},
-			registry: {
-				local: { tool: "node", args: ["scripts/validate-registry.mjs"] },
-				checkContext: "platform.repoValidation / Validate registry consistency",
-				alias: "packageRegistry",
 			},
 			// Warns (never fails — the script itself always exits 0) when a PR
 			// adds a new public package without a docs change. Doesn't actually

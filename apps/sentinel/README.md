@@ -210,14 +210,7 @@ and post a review, warnings are annotations on a `neutral` check — and
 `Platform / Repo Validation / Validate docs presence` flags an added
 `packages/<name>/src/index.ts` for a non-private package shipped without
 any docs change; advisory like its script, `neutral` at worst, never
-`failure`; and, holocron#925, `Platform / Repo Validation / Validate
-registry consistency`, which fails when a public package whose
-`package.json` the PR adds or changes isn't in the **latest published**
-`@theholocron/registry-doc` — fetched from npm at check time, sha512-verified
-against the packument's `dist.integrity`, its self-contained
-`dist/index.mjs` imported from a temp file and cached ten minutes per warm
-instance, since the registry is compiled code a repo's pinned version
-can't be read from; see `src/actions/repo-validation/`) — the Bucket 2
+`failure`; see `src/actions/repo-validation/`) — the Bucket 2
 dispatch prototype, the auto-fix-commit
 capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
 the `sourceQuality.formatting` task backing three independent commit

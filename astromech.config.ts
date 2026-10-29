@@ -28,13 +28,10 @@ export default defineConfig({
 		// `run-performance` never being enabled here).
 		{ name: "sourceQuality.deadCodeAnalysis", required: true },
 		{ name: "delivery.bundleSize", required: true },
-		// Repo/spec validation (validate-adrs.mjs, validate-registry.mjs) —
+		// Repo/spec validation (validate-adrs.mjs, validate-docs-presence.mjs) —
 		// used to ride inside the old `lint` job with no linter connection at
 		// all; now its own task (#675).
-		// The package-registry check asks "is every public package listed in registry-doc?". Here the list is
-		// built from the workspace, so it could never fail: off for this repo (its CI check still reports, green).
-		// `docsEnforcement` is the same switch for the docs-presence check.
-		{ name: "platform.repoValidation", required: true, jobs: { packageRegistry: false } },
+		{ name: "platform.repoValidation", required: true },
 		// Publish: tag Sentry releases for the CLI package, and run the
 		// post-release `deploy` job for packages whose `delivery.deploy` task is
 		// `on: release` (Sentinel, #928, #930).

@@ -55,9 +55,9 @@ describe("createAstromech().run", () => {
 			exec,
 			lookPath: () => "/bin/node",
 			print: () => {},
-			config: { tasks: [{ name: "platform.repoValidation", jobs: { packageRegistry: false } }] },
+			config: { tasks: [{ name: "platform.repoValidation", jobs: { docsEnforcement: false } }] },
 		});
-		expect(astromech.run("platform.repoValidation", { job: "registry" }).status).toBe("skip");
+		expect(astromech.run("platform.repoValidation", { job: "docsPresence" }).status).toBe("skip");
 		expect(astromech.run("platform.repoValidation", { job: "adrs" }).status).toBe("ok");
 		expect(exec).toHaveBeenCalledTimes(1);
 	});
@@ -89,9 +89,9 @@ describe("createAstromech().run", () => {
 			exec,
 			lookPath: (_cwd, bin) => (bin === "node" ? "/usr/bin/node" : null),
 			print: () => {},
-		}).run("platform.repoValidation", { job: "registry" });
+		}).run("platform.repoValidation", { job: "adrs" });
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith("/usr/bin/node", ["scripts/validate-registry.mjs"], { cwd: "/repo" });
+		expect(exec).toHaveBeenCalledWith("/usr/bin/node", ["scripts/validate-adrs.mjs"], { cwd: "/repo" });
 	});
 
 	it("routes a structured logger through to run lines", () => {
