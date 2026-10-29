@@ -103,6 +103,57 @@ export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 };
 
 /**
+ * Triggers actionlint treats as low-trust: their runs default to read-only
+ * cache access, so a reusable-workflow call must cap what the callee may ask
+ * for (`cache-call-unrestricted`).
+ */
+const LOW_TRUST_TRIGGERS = new Set([
+	"branch_protection_rule",
+	"check_run",
+	"check_suite",
+	"deployment",
+	"deployment_status",
+	"discussion",
+	"discussion_comment",
+	"fork",
+	"gollum",
+	"image_version",
+	"issue_comment",
+	"issues",
+	"label",
+	"milestone",
+	"public",
+	"pull_request_target",
+	"status",
+	"watch",
+	"workflow_run",
+]);
+
+/** Top-level event names of a workflow's `on:` (scalar, flow list, or block mapping). */
+function workflowTriggers(yaml: string): string[] {
+	const onMatch = yaml.match(/^on:[^\S\n]*([^#\n]*)(?:#[^\n]*)?\n((?:[ \t]+[^\n]*\n|\n)*)/m);
+	if (!onMatch) return [];
+	const inline = onMatch[1].trim();
+	if (inline) {
+		return inline
+			.replace(/[[\]{}]/g, "")
+			.split(",")
+			.map((t) => t.trim());
+	}
+	return [...onMatch[2].matchAll(/^ {2}([a-z_]+):/gm)].map((m) => m[1]);
+}
+
+/**
+ * Cap callee cache access on callers with a low-trust trigger: adds
+ * `cache-mode: read` to every reusable-workflow job. Without it the callee
+ * could request cache writes despite the trigger's read-only default.
+ */
+export function withCacheMode(yaml: string): string {
+	if (!workflowTriggers(yaml).some((t) => LOW_TRUST_TRIGGERS.has(t))) return yaml;
+	return yaml.replace(/^( {4}uses: [^\n]+\n)(?! {4}cache-mode:)/gm, "$1    cache-mode: read\n");
+}
+
+/**
  * Generate the thin caller content for a workflow, optionally injecting or
  * merging `with:` overrides into the jobs block.
  *
@@ -128,8 +179,9 @@ export function generateThinCallerContent(
 	 */
 	comments?: Record<string, string>
 ): string {
-	const base = WORKFLOW_TEMPLATES[name];
-	if (!base) return "";
+	const template = WORKFLOW_TEMPLATES[name];
+	if (!template) return "";
+	const base = withCacheMode(template);
 
 	// A repo that releases several version groups gets a matrix caller (see groupedPublishCaller).
 	if (name === "delivery.publish" && withOverrides && "groups" in withOverrides) {
