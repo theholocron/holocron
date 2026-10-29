@@ -42,7 +42,7 @@ const data = await client.request<{ id: string }>("/widgets/42");
 | `errors`       | `ErrorSink`              | no-op              | Reports transport failures + unexpected 5xx       |
 
 **Observability seam.** `logger` and `errors` accept the `Logger` / `ErrorSink`
-interfaces from [`@theholocron/observability/core`](https://github.com/theholocron/observability)
+interfaces from [`@theholocron/observability/core`](https://github.com/theholocron/holocron/tree/alpha/observability)
 — a seam, not a runtime: the library never calls `Sentry.init` or reads
 credentials itself, and both default to a silent no-op when omitted.
 

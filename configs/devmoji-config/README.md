@@ -59,4 +59,4 @@ npx husky add .husky/prepare-commit-msg "npx devmoji -e --lint"
 
 ## Releases
 
-Versioned in lockstep with all other `@theholocron/` config packages. See the [releases page](https://github.com/theholocron/holocron/releases?q=configs-v).
+Versioned in lockstep with all other `@theholocron/` config packages. See the [releases page](https://github.com/theholocron/holocron/releases) (tags `configs-v*`).

@@ -9,11 +9,11 @@ read the same rules. Put durable, repo-wide agent guidance here.
 
 ## Where code lives (org-wide rule)
 
-Three repos, one rule per concern:
+One rule per concern (the shared-code groups are folders in this monorepo, formerly separate repos):
 
-- **Shareable tool config (ESLint, Prettier, TSConfig, Vitest, …)** → `theholocron/configs`. If you find yourself copy-pasting a tool config across repos, it belongs there as a `@theholocron/*-config` package.
-- **HTTP clients and API wrappers** → `theholocron/clients`. REST clients for third-party services and shared HTTP primitives live there.
-- **Generic, dependency-light helpers (path walking, git remote parsing, JSON formatting, …)** → `theholocron/utils` as a `@theholocron/*-utils` package, consumed here through the `utils` catalog in `pnpm-workspace.yaml`. If the same helper is written twice in this repo, it belongs there.
+- **Shareable tool config (ESLint, Prettier, TSConfig, Vitest, …)** → `configs/`. If you find yourself copy-pasting a tool config across repos, it belongs there as a `@theholocron/*-config` package.
+- **HTTP clients and API wrappers** → `clients/`. REST clients for third-party services and shared HTTP primitives live there.
+- **Generic, dependency-light helpers (path walking, git remote parsing, JSON formatting, …)** → `utils/` as a `@theholocron/*-utils` package, consumed here through the `utils` catalog in `pnpm-workspace.yaml`. If the same helper is written twice in this repo, it belongs there.
 - **Anything that can be automated** → `theholocron/holocron` (this repo). Infrastructure commands (`setup`, `upgrade`, `doctor`, `secrets sync`), CI orchestration, and repo lifecycle automation belong here in the Holocron CLI.
 - **`holocron.config` format** — use `holocron.config.ts` with `defineConfig` in any repo that has a `package.json` (the CLI must be resolvable at runtime). Use `holocron.config.json` in content-only repos with no Node.js infrastructure (e.g., `.github`, `.github-private`).
 
@@ -154,30 +154,37 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `options`/`skipOptions`/`modes` is a known, accepted gap until that
     command's turn, not a bug.
 
-## Consuming packages from `theholocron/clients`
+## Consuming packages from `clients/`
 
-When a plugin or the CLI gains a dependency on a `@theholocron/*`
-package published from the clients repo:
+The `@theholocron/*-client` packages are workspace packages in `clients/*`
+(they used to live in the archived `theholocron/clients` repo). They still
+release on their own version line (tags `clients-v*`), and the CLI and plugins
+consume the **published** version, not `workspace:*`. When a plugin or the CLI
+gains a dependency on one of them:
 
-1. **Add to catalog** in `pnpm-workspace.yaml` under `catalog:`, e.g.:
+1. **Add to catalog** in `pnpm-workspace.yaml` under `catalogs.clients`, e.g.:
    ```yaml
-   "@theholocron/github-client": ^0.3.2
+   catalogs:
+     clients:
+       "@theholocron/github-client": ^1.51.0
    ```
-2. **Reference via `catalog:`** in the consuming `package.json`
-   instead of hardcoding a version.
-3. **The `overrides:` block** in `pnpm-workspace.yaml` already forces
-   `@theholocron/http-client` to a single version. Any new clients
-   package that transitively depends on `http-client` is covered
-   automatically — no extra override needed unless the new client
-   introduces a different shared dep that could split.
+2. **Reference via `catalog:clients`** in the consuming `package.json`
+   instead of hardcoding a version, e.g.
+   `"@theholocron/github-client": "catalog:clients"` (as
+   `cli/cli/package.json` and `plugins/holocron-plugin-github/package.json` do).
+3. **Single-instance pins** live in the `overrides:` block of
+   `pnpm-workspace.yaml`. `@theholocron/http-client` is no longer pinned there:
+   with every consumer on the `clients` catalog the lockfile resolves one copy.
+   `@sentry/node` and `posthog-node` are pinned exactly because `http-client`
+   peers on them. If a bump ever splits `http-client` again, pin it there
+   (exactly, no caret).
 
-**Why overrides matter:** `@theholocron/github-client` and
-`@theholocron/cli` both depend on `@theholocron/http-client`. Without
-the override, pnpm can resolve them to different versions, creating two
-separate module instances. `instanceof ProviderApiError` then silently
-returns `false` — the same class from different instances is never
-equal. The `overrides:` block in `pnpm-workspace.yaml` collapses all
-resolutions to one version.
+**Why a single instance matters:** `@theholocron/github-client` and
+`@theholocron/cli` both depend on `@theholocron/http-client`. If pnpm resolves
+them to different versions (or peer-resolved variants), two separate module
+instances exist and `instanceof ProviderApiError` silently returns `false` — the
+same class from different instances is never equal. Catalog entries plus the
+exact pins above keep resolution to one instance.
 
 **`ProviderApiError.details` is a raw string**, not parsed JSON.
 When checking error body content use `String(err.details).includes(...)`,
@@ -222,7 +229,7 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   `observability/telemetry.ts` holds only orchestration +
   `observability/resolve-telemetry.ts` (the Holocron-specific DSN / key
   resolution, which stays here). A vendor swap or a
-  test fake is one file — in `theholocron/observability`.
+  test fake is one file — in `observability/`.
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-skill-plugin` skill at `.claude/skills/holocron-skill-plugin/`. The
   skill produces ~14 files in the right shape; only the capability
