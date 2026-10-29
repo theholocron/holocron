@@ -1,3 +1,17 @@
+## [1.10.5-alpha.1](https://github.com/theholocron/holocron/compare/themes-v1.10.4...themes-v1.10.5-alpha.1) (2026-10-29)
+
+### Bug Fixes
+
+* **docs-theme:** 🐛 document every export and drop the retired package from the loader example ([#1361](https://github.com/theholocron/holocron/issues/1361)) ([e562364](https://github.com/theholocron/holocron/commit/e562364952e5292b08ce2a3ca20ebb8218ed2fb0))
+
+### Documentation
+
+* **themes:** 📝 move the docs-theme page into the docs site ([a01c2f3](https://github.com/theholocron/holocron/commit/a01c2f3ad9c34395d7ff6195d01becf0eb02ae4e)), closes [#1212](https://github.com/theholocron/holocron/issues/1212)
+
+### Chores
+
+* **themes:** 🔧 adapt the imported package to the workspace ([2e7a534](https://github.com/theholocron/holocron/commit/2e7a534eb20daf3da2c9ba73eeef0d6c9e51fbad)), closes [#1212](https://github.com/theholocron/holocron/issues/1212)
+
 ## [1.10.4](https://github.com/theholocron/themes/compare/v1.10.3...v1.10.4) (2026-09-15)
 
 ### Bug Fixes
