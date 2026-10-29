@@ -21,10 +21,10 @@
     "build": "turbo run delivery.build",
     "format": "prettier --write .",
     "holocron": "node cli/cli/dist/cli.mjs",
-    "lint": "holocron run sourceQuality.staticAnalysis --",
+    "lint": "turbo run sourceQuality.staticAnalysis",
     "prepare": "husky",
-    "test": "holocron run verification.unitTests --",
-    "typecheck": "holocron run verification.typeSafety --"
+    "test": "turbo run verification.unitTests -- --coverage",
+    "typecheck": "turbo run verification.typeSafety"
   },
   "devDependencies": {
     "@astrojs/react": "^6.0.6",

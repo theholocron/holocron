@@ -32,11 +32,11 @@
   ],
   "scripts": {
     "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "holocron run sourceQuality.staticAnalysis --",
+    "sourceQuality.staticAnalysis": "eslint .",
     "test:watch": "vitest",
     "validate": "tsx scripts/validate.mjs",
-    "verification.typeSafety": "holocron run verification.typeSafety --",
-    "verification.unitTests": "holocron run verification.unitTests --"
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
   },
   "dependencies": {
     "libsodium-wrappers": "^0.8.4"
