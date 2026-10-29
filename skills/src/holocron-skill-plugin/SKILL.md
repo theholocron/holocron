@@ -56,7 +56,7 @@ Then follow the "Next" steps printed by the command:
 ## Step 6: migrate to a typed client
 
 The scaffolded `rest.ts` uses the raw `createRestClient` from `@theholocron/cli`.
-Once a typed client package exists in `theholocron/clients`, replace it:
+Once a typed client package exists in `clients/` of this repo (`@theholocron/<slug>-client`), replace it:
 
 **`src/rest.ts`** — swap to a re-export:
 

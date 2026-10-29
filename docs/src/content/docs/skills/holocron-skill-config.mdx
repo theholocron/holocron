@@ -1,20 +1,22 @@
 ---
 title: holocron-skill-config
-description: Scaffold a new shareable config package in theholocron/configs.
+description: Scaffold a new shareable config package in the configs folder of theholocron/holocron.
 ---
 
-Scaffolds a new `@theholocron/<tool>-config` package in `theholocron/configs`.
+Scaffolds a new `@theholocron/<tool>-config` package in `configs/` of `theholocron/holocron`. The standalone `theholocron/configs` repo is archived.
 
 **Invoke as:** `/holocron-skill-config`
 
-**Trigger:** user asks to add a new shareable config package to the configs monorepo.
+**Trigger:** user asks to add a new shareable config package to the configs group.
 
 ## What it produces
 
-A new `packages/<tool>-config/` directory with all the standard config package boilerplate, pre-wired with catalog dependencies and the shared tsdown/tsconfig setup.
+A new `configs/<tool>-config/` directory: `package.json`, `index.ts` (or `presets/` and `bundles/` for multi-preset packages), `index.test.ts` beside it, `tsdown.config.ts`, `tsconfig.json`, `vitest.config.ts` and `README.md`. Config packages build with a plain tsdown config rather than the shared preset, since the preset is itself a config package.
 
 ## Key conventions
 
-- Follow the existing lockstep versioning — set `version` to match current release
-- Add the package to `.releaserc.json` `prepareCmd` in alphabetical order
-- Add a codecov component entry
+- The `configs/` folder is one version group: set `version` to the group's current version
+- MIT licence, `repository.directory` set, no per-package `LICENSE` or `CHANGELOG.md`
+- The configured tool is a peer dependency; sibling config packages are `workspace:*`
+- Run `pnpm install`, add a codecov component under `# configs`, then add the docs page, the `configs/index.mdx` row and the sidebar entry in `astro.config.ts`
+- Reference implementation: `configs/prettier-config`

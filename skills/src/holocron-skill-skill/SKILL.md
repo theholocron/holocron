@@ -1,16 +1,23 @@
 ---
 name: holocron-skill-skill
 title: "Holocron: New Skill"
-description: Add a new owned skill to theholocron/skills. INVOKE WHEN: user asks to create or add a new skill to the skills repo. Invoked as /holocron-skill-skill.
+description: Add a new owned skill to the skills folder of theholocron/holocron. INVOKE WHEN: user asks to create or add a new skill to the skills registry. Invoked as /holocron-skill-skill.
 ---
 
 <!-- editorconfig-checker-disable-file -->
 
 # Add a new skill
 
-Add a new owned skill to `theholocron/skills`.
+Add a new owned skill to `skills/` (the `@theholocron/skills` package) in `theholocron/holocron`.
+The standalone `theholocron/skills` repo is archived; do not add skills there.
 
 Replace `<name>` with the skill's kebab-case identifier (e.g. `git-safety`, `holocron-skill-config`).
+
+There is no registry file or index to edit: the package ships everything under
+`skills/src/`, `holocron repo setup` / `holocron skills` copy `skills/src/<name>/`
+by name into a consuming repo, and the smoke test discovers skills by listing
+the directories. Creating the directory is the registration; the README row and
+docs page keep the human-facing listings in sync.
 
 ---
 
@@ -19,22 +26,26 @@ Replace `<name>` with the skill's kebab-case identifier (e.g. `git-safety`, `hol
 **Workflow & safety** — generic skills applicable to any repo (e.g. `git-safety`, `commit-standards`).
 **Project-specific** — skills scoped to a particular theholocron repo or task (e.g. `holocron-skill-config`).
 
-The category determines which section of `README.md` the skill is listed in.
+The category determines which table of `skills/README.md` the skill is listed in.
 
 ---
 
 ## 2. Create the skill file
 
 ```
-skills/<name>/
+skills/src/<name>/
 └── SKILL.md
 ```
+
+Optional supporting files (templates, examples) go in `skills/src/<name>/assets/`
+(see `skills/src/adr/assets/`); they ship with the skill.
 
 ### `SKILL.md` frontmatter
 
 ```markdown
 ---
 name: <name>
+title: "<Short title>"
 description: <One-line description>. INVOKE WHEN: <trigger conditions>. Invoked as /<name>.
 ---
 ```
@@ -42,6 +53,7 @@ description: <One-line description>. INVOKE WHEN: <trigger conditions>. Invoked 
 - `name` must match the directory name exactly.
 - `description` is what Claude reads to decide whether to invoke the skill — make the "INVOKE WHEN" clause specific and unambiguous.
 - "Invoked as `/<name>`" is the slash-command the user types.
+- `title` is optional; most skills carry one (see `git-safety`).
 
 ### Body structure
 
@@ -70,25 +82,28 @@ Follow the pattern used by existing skills:
 ```
 
 Keep it concise. The agent reads this at invocation time; every sentence should earn its place.
+Any path or command a skill names must exist in the repo — run it or `ls` it before writing it down.
 
 ---
 
 ## 3. Validate
 
 ```bash
-pnpm test
+pnpm --filter @theholocron/skills verification.unitTests
 ```
 
-The smoke test checks that every `skills/*/SKILL.md` exists. It will fail if the frontmatter is missing or the file is empty.
+The smoke test (`skills/test/index.mjs`, a `node:test` suite) checks that every
+directory under `skills/src/` contains a `SKILL.md`. Also run
+`pnpm exec prettier --check skills/` — the markdown is formatted.
 
 ---
 
-## 4. Update `README.md`
+## 4. Update `skills/README.md`
 
-Add a row to the **Owned skills** table in the appropriate section:
+Add a row to the **Owned skills** table in the matching section:
 
 ```markdown
-| [`<name>`](./skills/<name>/SKILL.md) | <Short description — match the "description" frontmatter field> |
+| [`<name>`](./src/<name>/SKILL.md) | <Short description — match the "description" frontmatter field> |
 ```
 
 - Workflow & safety skills → "Workflow & safety" table
@@ -96,40 +111,45 @@ Add a row to the **Owned skills** table in the appropriate section:
 
 ---
 
-## 5. Update `AGENTS.md`
+## 5. Update the docs site
 
-Add a row to the **Available skills** table in the matching section:
-
-```markdown
-| `<name>` | <trigger phrase — a few words> |
-```
+- Add `docs/src/content/docs/skills/<name>.mdx` (frontmatter `title`, `description`;
+  copy a small sibling such as `git-safety.mdx`).
+- Add a row to the Skills table in `docs/src/content/docs/skills/index.mdx`.
+- Add `{ label: "<name>", slug: "skills/<name>" }` to the Skills group of the
+  sidebar in the root `astro.config.ts` (alphabetical).
+- If it is a standard skill worth advertising, add a row to the registry table in
+  `docs/src/content/docs/commands/skills.mdx`.
 
 ---
 
 ## 6. Open a PR
 
 ```bash
-git add skills/<name>/SKILL.md README.md AGENTS.md
-git commit -s -m "feat: add <name> skill"
+git add skills/src/<name>/SKILL.md skills/README.md docs/src/content/docs/skills astro.config.ts
+git commit -s -m "feat(skills): ✨ add <name> skill"
 ```
 
-Semantic-release handles versioning. The `pnpm test` smoke test runs in CI.
+`@theholocron/skills` is its own version group (tags `skills-vX.Y.Z`, changelog in
+`skills/CHANGELOG.md`); semantic-release computes the bump from the commit type.
+There is no `AGENTS.md` skills table in this repo to update.
 
 ---
 
 ## Non-negotiables
 
-- **`name` in frontmatter must match the directory name** — the smoke test and install tooling rely on this.
+- **`name` in frontmatter must match the directory name** — the install tooling relies on it.
 - **`INVOKE WHEN:` clause is required in `description`** — without it, the agent won't know when to invoke the skill automatically.
-- **Both `README.md` and `AGENTS.md` must be updated** — `README.md` is the public-facing table; `AGENTS.md` is what agents read in consuming repos.
-- **`pnpm test` must pass** before opening a PR.
+- **The `skills/README.md` row, docs page, docs index row and sidebar entry ship in the same PR.**
+- **The skills unit test must pass** before opening a PR.
 
 ---
 
 ## Checklist
 
-1. Create `skills/<name>/SKILL.md` with correct frontmatter and body.
-2. Run `pnpm test` — smoke test must pass.
-3. Add row to `README.md` owned skills table (correct section).
-4. Add row to `AGENTS.md` Available skills table (correct section).
-5. Open a PR with a `feat:` commit signed with `-s`.
+1. Create `skills/src/<name>/SKILL.md` with correct frontmatter and body.
+2. Run `pnpm --filter @theholocron/skills verification.unitTests` — smoke test must pass.
+3. Add the row to the `skills/README.md` owned-skills table (correct section).
+4. Add the docs page, `skills/index.mdx` row and sidebar entry.
+5. `pnpm exec prettier --check` on the changed files; `holocron run ci` passes.
+6. Open a PR with a `feat(skills):` commit signed with `-s`.
