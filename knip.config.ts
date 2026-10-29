@@ -22,6 +22,8 @@ const config: KnipConfig = {
 			// release.config.ts returns inline plugin objects (the folder-scoped commit analyzers), which the
 			// plugin reads as package names and crashes on, so it is an entry here instead.
 			"semantic-release": false,
+			// `holocron probe docs coverage` runs the repo's own TypeDoc, found by resolving it at run time
+			ignoreDependencies: ["typedoc"],
 		},
 		docs: {
 			project: ["src/**/*.ts"],
