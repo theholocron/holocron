@@ -1,3 +1,9 @@
+## [5.0.0-alpha.255](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.254...v5.0.0-alpha.255) (2026-10-29)
+
+### Refactoring
+
+* **sentinel:** ♻️ retire the package-registry check and its registry-doc dependency ([#1381](https://github.com/theholocron/holocron/issues/1381)) ([8e51ff2](https://github.com/theholocron/holocron/commit/8e51ff2a8e2fadacd3961baa6df993693dbf97e1)), closes [#1227](https://github.com/theholocron/holocron/issues/1227)
+
 ## [5.0.0-alpha.254](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.253...v5.0.0-alpha.254) (2026-10-29)
 
 ### Bug Fixes
