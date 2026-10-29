@@ -36,7 +36,7 @@
     "verification.unitTests": "vitest run"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "catalog:published",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@tsconfig/node-lts": "catalog:",
@@ -46,7 +46,7 @@
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
-    "happy-dom": "catalog:",
+    "happy-dom": "catalog:utils",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

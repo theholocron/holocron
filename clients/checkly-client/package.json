@@ -44,7 +44,7 @@
     "@theholocron/observability": "workspace:^"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "catalog:published",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",

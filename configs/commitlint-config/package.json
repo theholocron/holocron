@@ -40,7 +40,7 @@
     "verification.unitTests": "vitest run"
   },
   "devDependencies": {
-    "@commitlint/types": "^21.2.0",
+    "@commitlint/types": "catalog:",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",

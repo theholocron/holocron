@@ -53,18 +53,18 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "gray-matter": "^4.0.3"
+    "gray-matter": "catalog:themes"
   },
   "devDependencies": {
-    "@astrojs/starlight": "^0.41.7",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@astrojs/starlight": "catalog:",
+    "@theholocron/eslint-config": "catalog:published",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@tsconfig/node-lts": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
-    "astro": "^7.2.2",
+    "astro": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",

@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "catalog:published",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/slack-client": "workspace:^",
@@ -60,8 +60,8 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/misc-utils": "catalog:utils",
-    "@theholocron/slack-client": "catalog:clients"
+    "@theholocron/misc-utils": "catalog:peers",
+    "@theholocron/slack-client": "catalog:peers"
   },
   "engines": {
     "node": ">=22"

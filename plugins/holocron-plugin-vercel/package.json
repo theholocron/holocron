@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "catalog:published",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
@@ -59,8 +59,8 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/misc-utils": "catalog:utils",
-    "@theholocron/vercel-client": "catalog:clients"
+    "@theholocron/misc-utils": "catalog:peers",
+    "@theholocron/vercel-client": "catalog:peers"
   },
   "peerDependenciesMeta": {
     "@theholocron/vercel-client": {}

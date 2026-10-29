@@ -39,18 +39,18 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "google-auth-library": "^11.3.2",
-    "googleapis": "^188.0.0",
-    "open": "^11.0.0",
-    "server-destroy": "^1.0.1"
+    "google-auth-library": "catalog:clients",
+    "googleapis": "catalog:clients",
+    "open": "catalog:clients",
+    "server-destroy": "catalog:clients"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "catalog:published",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
-    "@types/server-destroy": "^1.0.4",
+    "@types/server-destroy": "catalog:clients",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",

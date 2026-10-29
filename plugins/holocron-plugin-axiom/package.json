@@ -40,7 +40,7 @@
   "devDependencies": {
     "@theholocron/axiom-client": "workspace:^",
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "catalog:published",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
@@ -58,9 +58,9 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@theholocron/axiom-client": "catalog:clients",
+    "@theholocron/axiom-client": "catalog:peers",
     "@theholocron/cli": "workspace:*",
-    "@theholocron/misc-utils": "catalog:utils"
+    "@theholocron/misc-utils": "catalog:peers"
   },
   "engines": {
     "node": ">=22"

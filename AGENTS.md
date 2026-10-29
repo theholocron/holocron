@@ -13,7 +13,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
 
 - **Shareable tool config (ESLint, Prettier, TSConfig, Vitest, …)** → `configs/`. If you find yourself copy-pasting a tool config across repos, it belongs there as a `@theholocron/*-config` package.
 - **HTTP clients and API wrappers** → `clients/`. REST clients for third-party services and shared HTTP primitives live there.
-- **Generic, dependency-light helpers (path walking, git remote parsing, JSON formatting, …)** → `utils/` as a `@theholocron/*-utils` package, consumed here through the `utils` catalog in `pnpm-workspace.yaml`. If the same helper is written twice in this repo, it belongs there.
+- **Generic, dependency-light helpers (path walking, git remote parsing, JSON formatting, …)** → `utils/` as a `@theholocron/*-utils` package, consumed here as workspace packages (`workspace:^`). If the same helper is written twice in this repo, it belongs there.
 - **Anything that can be automated** → `theholocron/holocron` (this repo). Infrastructure commands (`setup`, `upgrade`, `doctor`, `secrets sync`), CI orchestration, and repo lifecycle automation belong here in the Holocron CLI.
 - **`holocron.config` format** — use `holocron.config.ts` with `defineConfig` in any repo that has a `package.json` (the CLI must be resolvable at runtime). Use `holocron.config.json` in content-only repos with no Node.js infrastructure (e.g., `.github`, `.github-private`).
 
@@ -154,27 +154,46 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `options`/`skipOptions`/`modes` is a known, accepted gap until that
     command's turn, not a bug.
 
+## Dependencies and catalogs
+
+Every third-party dependency version lives in a catalog in `pnpm-workspace.yaml`,
+so that one file shows what the repo uses. A manifest's `dependencies`,
+`devDependencies` and `optionalDependencies` never carry a version of their own:
+
+- used by **two or more groups** (a top-level folder: `cli`, `clients`,
+  `configs`, `plugins`, ...) → the default `catalog:`
+- used by **one group** → that group's named catalog, e.g. `catalog:configs`
+- **`peerDependencies` stay out of catalogs.** A peer range is a compatibility
+  range for consumers, and `catalog:` would publish one pinned version in its
+  place.
+- Our own packages in this repo are `workspace:^` (the CLI and the plugins'
+  peer on it is `workspace:*`). Two catalogs hold our own packages on purpose:
+  `peers` (the minimum client and util versions the plugins accept as peers)
+  and `published` (the configs the root tooling loads before anything is built,
+  plus `holocron-config` and `registry-doc`, which come from other repos).
+
+`pnpm deps` prints every dependency with its range and how widely it is used;
+`pnpm deps -- --who <name>` lists the packages that use a dependency, by group;
+`pnpm deps:check` (`node scripts/deps-report.mjs --check`) fails on a hard-coded
+version, a dependency in the wrong catalog or an unused catalog entry. Run it
+after adding or moving a dependency.
+
 ## Consuming packages from `clients/`
 
 The `@theholocron/*-client` packages are workspace packages in `clients/*`
-(they used to live in the archived `theholocron/clients` repo). They still
-release on their own version line (tags `clients-v*`), and the CLI and plugins
-consume the **published** version, not `workspace:*`. When a plugin or the CLI
-gains a dependency on one of them:
+(they used to live in the archived `theholocron/clients` repo). They release on
+their own version line (tags `clients-v*`), and the CLI and plugins depend on
+them with `workspace:^`. When a plugin or the CLI gains a dependency on one of
+them:
 
-1. **Add to catalog** in `pnpm-workspace.yaml` under `catalogs.clients`, e.g.:
-   ```yaml
-   catalogs:
-     clients:
-       "@theholocron/github-client": ^1.51.0
-   ```
-2. **Reference via `catalog:clients`** in the consuming `package.json`
-   instead of hardcoding a version, e.g.
-   `"@theholocron/github-client": "catalog:clients"` (as
-   `cli/cli/package.json` and `plugins/holocron-plugin-github/package.json` do).
-3. **Single-instance pins** live in the `overrides:` block of
+1. **Add it with `workspace:^`** in the consuming `package.json`, e.g.
+   `"@theholocron/github-client": "workspace:^"` (as `cli/cli/package.json` and
+   `plugins/holocron-plugin-github/package.json` do). A plugin that also lists
+   it as a **peer** sets the minimum version it accepts in the `peers` catalog
+   (`"@theholocron/github-client": "catalog:peers"`).
+2. **Single-instance pins** live in the `overrides:` block of
    `pnpm-workspace.yaml`. `@theholocron/http-client` is no longer pinned there:
-   with every consumer on the `clients` catalog the lockfile resolves one copy.
+   with every consumer on the workspace the lockfile resolves one copy.
    `@sentry/node` and `posthog-node` are pinned exactly because `http-client`
    peers on them. If a bump ever splits `http-client` again, pin it there
    (exactly, no caret).
@@ -183,8 +202,8 @@ gains a dependency on one of them:
 `@theholocron/cli` both depend on `@theholocron/http-client`. If pnpm resolves
 them to different versions (or peer-resolved variants), two separate module
 instances exist and `instanceof ProviderApiError` silently returns `false` — the
-same class from different instances is never equal. Catalog entries plus the
-exact pins above keep resolution to one instance.
+same class from different instances is never equal. Resolving the clients from
+the workspace plus the exact pins above keep resolution to one instance.
 
 **`ProviderApiError.details` is a raw string**, not parsed JSON.
 When checking error body content use `String(err.details).includes(...)`,
