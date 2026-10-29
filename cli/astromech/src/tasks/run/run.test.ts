@@ -403,24 +403,24 @@ describe("runTask — sub-jobs", () => {
 		(_cwd: string, bin: string): string | null =>
 			bins.includes(bin) ? `/usr/local/bin/${bin}` : null;
 
-	it("runs one named job — `platform.repoValidation registry` → node scripts/validate-registry.mjs", () => {
+	it("runs one named job — `platform.repoValidation adrs` → node scripts/validate-adrs.mjs", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("platform.repoValidation", { job: "registry" });
+		const report = call("platform.repoValidation", { job: "adrs" });
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/validate-registry.mjs"], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/validate-adrs.mjs"], { cwd: CWD });
 	});
 
 	it("forwards passthrough args to the job's tool", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		call("platform.repoValidation", { job: "registry", passthrough: ["--strict"] });
-		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/validate-registry.mjs", "--strict"], {
+		call("platform.repoValidation", { job: "adrs", passthrough: ["--strict"] });
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/validate-adrs.mjs", "--strict"], {
 			cwd: CWD,
 		});
 	});
 
 	it("skips a job whose tool isn't installed locally — enforced in CI", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }); // nothing on PATH
-		const report = call("platform.repoValidation", { job: "registry" });
+		const report = call("platform.repoValidation", { job: "adrs" });
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/node not installed locally.*enforced in CI/);
@@ -428,45 +428,42 @@ describe("runTask — sub-jobs", () => {
 
 	it("--required turns a missing job tool into a failure", () => {
 		const { call } = makeRun({ "package.json": PKG() });
-		const report = call("platform.repoValidation", { job: "registry", required: true });
+		const report = call("platform.repoValidation", { job: "adrs", required: true });
 		expect(report.status).toBe("fail");
 	});
 
 	it("skips a job the repo's config switched off, by its alias, and says so — even with --required", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
 		const report = call("platform.repoValidation", {
-			job: "registry",
+			job: "docsPresence",
 			required: true,
-			jobSwitches: { packageRegistry: false },
+			jobSwitches: { docsEnforcement: false },
 		});
 		expect(report.status).toBe("skip");
-		expect(report.message).toMatch(/off in this repo's config \(jobs\.packageRegistry: false\)/);
+		expect(report.message).toMatch(/off in this repo's config \(jobs\.docsEnforcement: false\)/);
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/off in this repo's config/);
 	});
 
 	it("also honours the job's own key, and runs a job whose switch is not false", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		expect(call("platform.repoValidation", { job: "registry", jobSwitches: { registry: false } }).status).toBe(
-			"skip"
-		);
+		expect(
+			call("platform.repoValidation", { job: "docsPresence", jobSwitches: { docsPresence: false } }).status
+		).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
 		expect(
-			call("platform.repoValidation", { job: "registry", jobSwitches: { packageRegistry: true } }).status
+			call("platform.repoValidation", { job: "docsPresence", jobSwitches: { docsEnforcement: true } }).status
 		).toBe("ok");
 		expect(exec).toHaveBeenCalledTimes(1);
 	});
 
 	it("leaves a switched-off job out of a whole-task run and still runs the others", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("platform.repoValidation", { jobSwitches: { packageRegistry: false } });
+		const report = call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } });
 		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([
-			["scripts/validate-adrs.mjs"],
-			["scripts/validate-docs-presence.mjs"],
-		]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([["scripts/validate-adrs.mjs"]]);
 		expect(lines.join("\n")).toMatch(
-			/Validate registry consistency — off in this repo's config \(jobs\.packageRegistry: false\)/
+			/Validate docs presence — off in this repo's config \(jobs\.docsEnforcement: false\)/
 		);
 	});
 
@@ -476,11 +473,17 @@ describe("runTask — sub-jobs", () => {
 		expect(one).toMatchObject({ status: "skip", message: expect.stringMatching(/\(jobs\.adrs: false\)/) });
 		const all = call("platform.repoValidation", { jobSwitches: { adrs: false } });
 		expect(all.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([
-			["scripts/validate-registry.mjs"],
-			["scripts/validate-docs-presence.mjs"],
-		]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([["scripts/validate-docs-presence.mjs"]]);
 		expect(lines.join("\n")).toMatch(/Validate ADRs and specs — off in this repo's config \(jobs\.adrs: false\)/);
+	});
+
+	it("skips a retired job (`registry`) cleanly, so a reusable workflow synced before its removal still passes", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+		const report = call("platform.repoValidation", { job: "registry", required: true });
+		expect(report.status).toBe("skip");
+		expect(report.message).toMatch(/registry was retired/);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/was retired/);
 	});
 
 	it("rejects an unknown job with the known list, exit 1", () => {
@@ -488,7 +491,7 @@ describe("runTask — sub-jobs", () => {
 		const report = call("platform.repoValidation", { job: "frobnicate" });
 		expect(report.status).toBe("unknown");
 		expect(report.message).toBe('unknown job "platform.repoValidation frobnicate"');
-		expect(lines.join("\n")).toMatch(/known: adrs, registry, docsPresence/);
+		expect(lines.join("\n")).toMatch(/known: adrs, docsPresence/);
 	});
 
 	it("`holocron run platform.repoValidation` with no job runs every job in declared order", () => {
@@ -497,14 +500,10 @@ describe("runTask — sub-jobs", () => {
 		expect(report.status).toBe("ok");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			["scripts/validate-adrs.mjs"],
-			["scripts/validate-registry.mjs"],
 			["scripts/validate-docs-presence.mjs"],
 		]);
 		const out = lines.join("\n");
 		expect(out.indexOf("platform.repoValidation / Validate ADRs and specs")).toBeLessThan(
-			out.indexOf("platform.repoValidation / Validate registry consistency")
-		);
-		expect(out.indexOf("platform.repoValidation / Validate registry consistency")).toBeLessThan(
 			out.indexOf("platform.repoValidation / Validate docs presence")
 		);
 	});
@@ -514,7 +513,9 @@ describe("runTask — sub-jobs", () => {
 		const report = call("platform.repoValidation", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/would run: .*validate-adrs\.mjs[\s\S]*would run: .*validate-registry\.mjs/);
+		expect(lines.join("\n")).toMatch(
+			/would run: .*validate-adrs\.mjs[\s\S]*would run: .*validate-docs-presence\.mjs/
+		);
 	});
 
 	it("`holocron run platform.repoValidation` is a clean skip when no job is runnable locally", () => {

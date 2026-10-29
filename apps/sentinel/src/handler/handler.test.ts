@@ -75,13 +75,6 @@ vi.mock("../actions/repo-validation/validate-adrs/validate-adrs.js", () => ({ va
 vi.mock("../actions/repo-validation/validate-docs-presence/validate-docs-presence.js", () => ({
 	validateDocsPresence: vi.fn(),
 }));
-vi.mock("../actions/repo-validation/validate-registry/validate-registry.js", () => ({ validateRegistry: vi.fn() }));
-vi.mock("../actions/repo-validation/post-registry-check/post-registry-check.js", () => ({
-	postRegistryCheck: vi.fn(),
-}));
-vi.mock("../actions/repo-validation/load-latest-registry/load-latest-registry.js", () => ({
-	loadLatestRegistry: vi.fn(),
-}));
 vi.mock("../actions/static-analysis/lint-static-analysis/lint-static-analysis.js", () => ({
 	lintStaticAnalysis: vi.fn(),
 }));
@@ -109,7 +102,6 @@ import {
 	lintFormatting,
 	lintMarkdown,
 	lintStaticAnalysis,
-	loadLatestRegistry,
 	postActionlintCheck,
 	postAdrsCheck,
 	postAutoFixComment,
@@ -121,12 +113,10 @@ import {
 	postFormattingCheck,
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
-	postRegistryCheck,
 	postStaticAnalysisCheck,
 	syncPropertiesFromConfig,
 	validateAdrs,
 	validateDocsPresence,
-	validateRegistry,
 } from "../actions/index.js";
 import { parseWebhookEvent, validateConfig, WebhookVerificationError } from "../utils/index.js";
 import { handleWebhookRequest } from "./handler.js";
@@ -174,9 +164,6 @@ beforeEach(() => {
 	vi.mocked(validateAdrs).mockReset();
 	vi.mocked(postAdrsCheck).mockReset();
 	vi.mocked(validateDocsPresence).mockReset();
-	vi.mocked(validateRegistry).mockReset();
-	vi.mocked(postRegistryCheck).mockReset();
-	vi.mocked(loadLatestRegistry).mockReset();
 	vi.mocked(postDocsPresenceCheck).mockReset();
 	vi.mocked(postActionlintCheck).mockReset();
 	vi.mocked(lintEditorConfig).mockReset();
@@ -1092,8 +1079,6 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 		hasDocsChange: true,
 		valid: true,
 	};
-	const WIDGET = { name: "@acme/widget", file: "packages/widget/package.json", line: 2 };
-	const REGISTRY_RESULT = { checked: [WIDGET], missing: [WIDGET], registryVersion: "1.14.0", valid: false };
 
 	beforeEach(() => {
 		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
@@ -1109,15 +1094,9 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 			conclusion: "success",
 			htmlUrl: "https://x/51",
 		});
-		vi.mocked(validateRegistry).mockResolvedValue(REGISTRY_RESULT);
-		vi.mocked(postRegistryCheck).mockResolvedValue({
-			checkRunId: 52,
-			conclusion: "success",
-			htmlUrl: "https://x/52",
-		});
 	});
 
-	it("runs all three checks against the PR's ref when the config declares platform.repoValidation", async () => {
+	it("runs both checks against the PR's ref when the config declares platform.repoValidation", async () => {
 		withTasks(["lint", { name: "platform.repoValidation" }]);
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
 
@@ -1141,50 +1120,15 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 			result: DOCS_RESULT,
 			runId: "test-run-id",
 		});
-		expect(validateRegistry).toHaveBeenCalledWith({ ...lintInput, loadRegistry: expect.any(Function) });
-		expect(postRegistryCheck).toHaveBeenCalledWith({
-			client: FAKE_CLIENT,
-			repo: "acme/demo",
-			pullNumber: 9,
-			headSha: "pr-head-sha",
-			result: REGISTRY_RESULT,
-			runId: "test-run-id",
-		});
 		const body = (await res.json()) as {
 			adrsCheckRun: unknown;
 			docsPresenceCheckRun: unknown;
-			registryCheckRun: unknown;
 		};
 		expect(body.adrsCheckRun).toEqual({ checkRunId: 50, conclusion: "success", htmlUrl: "https://x/50" });
 		expect(body.docsPresenceCheckRun).toEqual({ checkRunId: 51, conclusion: "success", htmlUrl: "https://x/51" });
-		expect(body.registryCheckRun).toEqual({ checkRunId: 52, conclusion: "success", htmlUrl: "https://x/52" });
 	});
 
-	it("hands the registry check the latest-published loader", async () => {
-		withTasks(["platform.repoValidation"]);
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
-
-		await handleWebhookRequest(req(), ENV);
-
-		const { loadRegistry } = vi.mocked(validateRegistry).mock.calls[0]![0];
-		await loadRegistry();
-		expect(loadLatestRegistry).toHaveBeenCalledOnce();
-	});
-
-	it("soft-skips the registry check alone when it fails (e.g. npm unreachable)", async () => {
-		withTasks(["platform.repoValidation"]);
-		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
-		vi.mocked(validateRegistry).mockRejectedValue(new Error("npm registry returned 503"));
-
-		const res = await handleWebhookRequest(req(), ENV);
-		const body = (await res.json()) as { adrsCheckRun: unknown; registryCheckRun: unknown };
-
-		expect(res.status).toBe(200);
-		expect(body.registryCheckRun).toBeUndefined();
-		expect(body.adrsCheckRun).toEqual({ checkRunId: 50, conclusion: "success", htmlUrl: "https://x/50" });
-	});
-
-	it("skips all three when the config doesn't declare platform.repoValidation", async () => {
+	it("skips both when the config doesn't declare platform.repoValidation", async () => {
 		withTasks(["lint"]);
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
 
@@ -1192,12 +1136,11 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 
 		expect(validateAdrs).not.toHaveBeenCalled();
 		expect(validateDocsPresence).not.toHaveBeenCalled();
-		expect(validateRegistry).not.toHaveBeenCalled();
 		expect(postCheckRun).toHaveBeenCalled();
 		expect(res.status).toBe(200);
 	});
 
-	it("skips all three on push.default-branch -- no PR files to validate", async () => {
+	it("skips both on push.default-branch -- no PR files to validate", async () => {
 		withTasks(["platform.repoValidation"]);
 		vi.mocked(parseWebhookEvent).mockReturnValue({
 			handled: true,
@@ -1213,7 +1156,6 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 
 		expect(validateAdrs).not.toHaveBeenCalled();
 		expect(validateDocsPresence).not.toHaveBeenCalled();
-		expect(validateRegistry).not.toHaveBeenCalled();
 	});
 
 	it("soft-skips each check independently -- an ADR failure doesn't stop docs presence, and vice versa", async () => {

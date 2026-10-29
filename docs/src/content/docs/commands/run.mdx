@@ -47,13 +47,11 @@ sub-jobs.
 ## Sub-jobs
 
 Some tasks are a bundle of smaller jobs. `platform.repoValidation` is the one
-that matters today — spec/ADR frontmatter, registry-doc completeness, and
-docs-presence, not linters:
+that matters today — spec/ADR frontmatter and docs-presence, not linters:
 
 | `holocron run …`                       | Runs                                      |
 | -------------------------------------- | ----------------------------------------- |
 | `platform.repoValidation adrs`         | `node scripts/validate-adrs.mjs`          |
-| `platform.repoValidation registry`     | `node scripts/validate-registry.mjs`      |
 | `platform.repoValidation docsPresence` | `node scripts/validate-docs-presence.mjs` |
 | `platform.repoValidation` (no job)     | each of the above, in that order          |
 

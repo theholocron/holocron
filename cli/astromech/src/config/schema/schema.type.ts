@@ -22,7 +22,7 @@ export interface TaskEntry {
 	with?: Record<string, unknown>;
 	/**
 	 * Switch individual sub-jobs of a task off for this repo (`false`), by their registry key or alias:
-	 * `{ name: "platform.repoValidation", jobs: { packageRegistry: false } }`. A job left out runs. The job's CI
+	 * `{ name: "platform.repoValidation", jobs: { docsEnforcement: false } }`. A job left out runs. The job's CI
 	 * check still reports (green, "off in this repo's config"), so a required check never goes missing.
 	 */
 	jobs?: Record<string, boolean>;

@@ -72,7 +72,7 @@ describe("runGroup", () => {
 			{ lookPath: (_cwd, bin) => (bin === "node" ? "/bin/node" : null) }
 		);
 		const report = run(
-			{ tasks: [{ name: "platform.repoValidation", jobs: { packageRegistry: false, docsEnforcement: false } }] },
+			{ tasks: [{ name: "platform.repoValidation", jobs: { docsEnforcement: false } }] },
 			"platform"
 		);
 		expect(report.status).toBe("ok");

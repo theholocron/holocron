@@ -16,7 +16,7 @@ const config: KnipConfig = {
 		".": {
 			// prettier.config.ts, eslint.config.ts, astro.config.ts, commitlint.config.ts —
 			// all auto-detected by Knip plugins
-			// scripts/*.mjs are run by the repoValidation tasks (validate-registry.mjs reads registry-doc)
+			// scripts/*.mjs are run by the repoValidation tasks
 			// tsdown.config.ts is the one build config every package without its own inherits (tsdown walks up to it)
 			entry: [
 				"holocron.config.ts",

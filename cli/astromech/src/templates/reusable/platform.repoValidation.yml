@@ -28,25 +28,6 @@ jobs:
           task: platform.repoValidation
           job: adrs
 
-  registry:
-    name: Validate registry consistency
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        name: Checkout repository
-
-      - uses: theholocron/.github/.github/actions/setup@main
-        name: Setup
-
-      - uses: theholocron/.github/.github/actions/holocron@main
-        name: Validate registry consistency
-        with:
-          task: platform.repoValidation
-          job: registry
-
   docs-presence:
     name: Validate docs presence
     permissions:
@@ -74,7 +55,7 @@ jobs:
     name: Conclusion
     runs-on: ubuntu-latest
     if: always()
-    needs: [adrs, registry, docs-presence]
+    needs: [adrs, docs-presence]
     steps:
       - name: Check job statuses
         run: |

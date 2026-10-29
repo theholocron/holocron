@@ -448,9 +448,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		);
 		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain('if [ -f "$COMMITLINT_CONFIG" ]; then');
 		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(/task: platform\.repoValidation\n\s+job: adrs/);
-		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
-			/task: platform\.repoValidation\n\s+job: registry/
-		);
+		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).not.toContain("job: registry");
 		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
 			/task: platform\.repoValidation\n\s+job: docsPresence/
 		);

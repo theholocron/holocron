@@ -79,6 +79,12 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	// ── J. an explicit sub-job → resolve against TASKS[task].jobs ──────
 	if (job !== undefined) {
 		const jobDef = def!.jobs![job];
+		if (!jobDef && def!.retiredJobs?.includes(job)) {
+			const message = `${task} ${job} was retired — nothing to run (re-sync the reusable workflows)`;
+			print(`· ${message}`);
+			logger.debug({ task, job, status: "skip" }, `run: ${task} ${job}`);
+			return { status: "skip", message };
+		}
 		if (!jobDef) {
 			const known = Object.keys(def!.jobs!).join(", ");
 			print(`✗ unknown job "${job}" for "${task}" (known: ${known})`);

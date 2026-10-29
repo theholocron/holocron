@@ -91,12 +91,11 @@
  *   static analysis, via the same shared `postErrorReview()` under its own
  *   `checkKey`.
  * - **Repo validation** (`validateAdrs → postAdrsCheck`,
- *   `validateDocsPresence → postDocsPresenceCheck`, holocron#913;
- *   `validateRegistry → postRegistryCheck`, holocron#925):
+ *   `validateDocsPresence → postDocsPresenceCheck`, holocron#913):
  *   `pull_request.*` only, and only for a repo whose valid config declares
- *   `platform.repoValidation` -- Sentinel's ports of that task's three CI
- *   jobs, kept as three separate checks. ADR/spec frontmatter errors and
- *   unregistered packages fail and post a PR review (same
+ *   `platform.repoValidation` -- Sentinel's ports of that task's CI
+ *   jobs, kept as separate checks. ADR/spec frontmatter errors
+ *   fail and post a PR review (same
  *   `postErrorReview()` split as eslint/actionlint); docs presence is
  *   advisory only (`neutral` at worst), like the script it ports.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
@@ -206,7 +205,6 @@ import {
 	lintMarkdown,
 	type LintMarkdownResult,
 	lintStaticAnalysis,
-	loadLatestRegistry,
 	postActionlintCheck,
 	postAdrsCheck,
 	postAutoFixComment,
@@ -219,12 +217,10 @@ import {
 	postInclusiveLanguageCheck,
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
-	postRegistryCheck,
 	postStaticAnalysisCheck,
 	syncPropertiesFromConfig,
 	validateAdrs,
 	validateDocsPresence,
-	validateRegistry,
 } from "../actions/index.js";
 import {
 	parseWebhookEvent,
@@ -245,7 +241,6 @@ import {
 	SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
-	SENTINEL_REGISTRY_LOG_MSG,
 	SENTINEL_REPO_VALIDATION_TASK,
 	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
 	type SentinelEvent,
@@ -798,17 +793,16 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
-	// Repo validation (holocron#913, #925): Sentinel's ports of the three
+	// Repo validation (holocron#913): Sentinel's ports of the
 	// platform.repoValidation CI jobs, kept as separate checks -- ADRs and
-	// specs and registry consistency can fail, docs presence is advisory
-	// only. Unlike the config-free Bucket 1 checks above, all three only run for a repo whose
+	// specs can fail, docs presence is advisory
+	// only. Unlike the config-free Bucket 1 checks above, both only run for a repo whose
 	// valid config declares that task (the same gate the Bucket 2 dispatch
 	// uses): a repo that doesn't keep ADRs, specs or a packages/ monorepo has
 	// nothing for them to check. Same PR-only scoping and soft-skip reasoning
 	// as every Bucket 1 check above, each in its own try.
 	let adrsCheckRun;
 	let docsPresenceCheckRun;
-	let registryCheckRun;
 	if (
 		event.type !== "push.default-branch" &&
 		context.pullNumber !== undefined &&
@@ -861,38 +855,6 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			);
 		} catch (err) {
 			logger.error({ repo, err: serializeError(err) }, "validateDocsPresence: failed, continuing without it");
-		}
-
-		try {
-			const result = await validateRegistry({
-				client,
-				repo,
-				pullNumber: context.pullNumber,
-				ref: context.headSha,
-				loadRegistry: () => loadLatestRegistry(),
-			});
-			registryCheckRun = await postRegistryCheck({
-				client,
-				repo,
-				pullNumber: context.pullNumber,
-				headSha: context.headSha,
-				result,
-				runId,
-			});
-			// Matches SENTINEL_REGISTRY_LOG_MSG exactly -- the check's own
-			// details_url is a query filtered to find this precise line.
-			logger.info(
-				{
-					repo,
-					valid: result.valid,
-					checked: result.checked.map((p) => p.name),
-					missing: result.missing.map((p) => p.name),
-					registryVersion: result.registryVersion,
-				},
-				SENTINEL_REGISTRY_LOG_MSG
-			);
-		} catch (err) {
-			logger.error({ repo, err: serializeError(err) }, "validateRegistry: failed, continuing without it");
 		}
 	}
 
@@ -1046,6 +1008,5 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		actionlintCheckRun,
 		adrsCheckRun,
 		docsPresenceCheckRun,
-		registryCheckRun,
 	});
 }
