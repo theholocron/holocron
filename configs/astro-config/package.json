@@ -47,7 +47,10 @@
     "astro": "^7.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "starlight-typedoc": "catalog:",
     "tsdown": "catalog:",
+    "typedoc": "catalog:",
+    "typedoc-plugin-markdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

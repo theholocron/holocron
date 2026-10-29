@@ -61,6 +61,34 @@ export default defineConfig({
 });
 ```
 
+### API reference from TSDoc
+
+`apiReference()` generates a package's API reference from its TSDoc comments each time the docs are built or served (nothing generated is committed). It returns a Starlight plugin and a sidebar group:
+
+```ts
+import { apiReference, defineConfig } from "@theholocron/astro-config";
+import { createStarlightTypeDocPlugin } from "starlight-typedoc";
+
+const arrayUtils = apiReference({
+  createPlugin: createStarlightTypeDocPlugin,
+  root: new URL("./", import.meta.url),
+  package: "utils/array-utils",
+});
+
+export default defineConfig({
+  docs: {
+    name: "Utils",
+    github: "utils",
+    sidebar: [{ label: "array-utils", items: [{ label: "Overview", slug: "array-utils" }, arrayUtils.group] }],
+  },
+  plugins: [arrayUtils.plugin],
+  starlight,
+  docsTheme,
+});
+```
+
+`entryPoints` (default `["src/index.ts"]`, relative to the package) and `label` (default "API reference") are optional. `starlight-typedoc` ships TypeScript source, so, like `starlight` and `docsTheme`, you import it in your own config and pass it in; install `starlight-typedoc`, `typedoc` and `typedoc-plugin-markdown` in the site.
+
 ## What it generates
 
 - `site` — `https://theholocron.github.io`
