@@ -31,22 +31,22 @@ Skills authored and maintained in this repo. Published inside the npm package.
 
 ### Workflow & safety
 
-| Skill                                                    | Description                                                    |
-| -------------------------------------------------------- | -------------------------------------------------------------- |
-| [`git-safety`](./skills/git-safety/SKILL.md)             | Never force-push or run destructive git ops without permission |
-| [`pr-workflow`](./skills/pr-workflow/SKILL.md)           | Always open a PR; one-change-per-PR; delete branch on close    |
-| [`commit-standards`](./skills/commit-standards/SKILL.md) | Conventional Commits format + DCO signing                      |
-| [`security-review`](./skills/security-review/SKILL.md)   | OWASP-oriented checklist for code review                       |
+| Skill                                                 | Description                                                    |
+| ----------------------------------------------------- | -------------------------------------------------------------- |
+| [`git-safety`](./src/git-safety/SKILL.md)             | Never force-push or run destructive git ops without permission |
+| [`pr-workflow`](./src/pr-workflow/SKILL.md)           | Always open a PR; one-change-per-PR; delete branch on close    |
+| [`commit-standards`](./src/commit-standards/SKILL.md) | Conventional Commits format + DCO signing                      |
+| [`security-review`](./src/security-review/SKILL.md)   | OWASP-oriented checklist for code review                       |
 
 ### Project-specific (theholocron)
 
-| Skill                                                              | Description                                                             |
-| ------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| [`holocron-skill-config`](./skills/holocron-skill-config/SKILL.md) | Scaffold a new `@theholocron/*-config` package in `theholocron/configs` |
-| [`holocron-skill-client`](./skills/holocron-skill-client/SKILL.md) | Scaffold a new `@theholocron/*-client` package in `theholocron/clients` |
-| [`holocron-skill-plugin`](./skills/holocron-skill-plugin/SKILL.md) | Scaffold or migrate a new `holocron-plugin-*` package                   |
-| [`holocron-skill-util`](./skills/holocron-skill-util/SKILL.md)     | Scaffold a new `@theholocron/*-utils` package in `theholocron/utils`    |
-| [`holocron-skill-skill`](./skills/holocron-skill-skill/SKILL.md)   | Add a new owned skill to `theholocron/skills`                           |
+| Skill                                                           | Description                                                             |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [`holocron-skill-config`](./src/holocron-skill-config/SKILL.md) | Scaffold a new `@theholocron/*-config` package in `theholocron/configs` |
+| [`holocron-skill-client`](./src/holocron-skill-client/SKILL.md) | Scaffold a new `@theholocron/*-client` package in `theholocron/clients` |
+| [`holocron-skill-plugin`](./src/holocron-skill-plugin/SKILL.md) | Scaffold or migrate a new `holocron-plugin-*` package                   |
+| [`holocron-skill-util`](./src/holocron-skill-util/SKILL.md)     | Scaffold a new `@theholocron/*-utils` package in `theholocron/utils`    |
+| [`holocron-skill-skill`](./src/holocron-skill-skill/SKILL.md)   | Add a new owned skill to `theholocron/skills`                           |
 
 ## External skills
 
