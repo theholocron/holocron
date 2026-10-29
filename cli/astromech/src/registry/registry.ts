@@ -14,7 +14,7 @@ import type { TaskDef } from "./registry.type.js";
  * Task names are an intent-facing vocabulary (`verification.*`,
  * `sourceQuality.*`, `security.*`, `delivery.*`, `platform.*`,
  * `knowledge.*`), not tool names — `eslint`/`vitest`/`tsdown`/… stay
- * internal to this file and `theholocron/configs`. See
+ * internal to this file and the `configs/` folder. See
  * `docs/wiki/specifications/tech-vocabulary-rename.spec.md` (#675) for the full mapping and
  * the reasoning behind each namespace and decomposition.
  *

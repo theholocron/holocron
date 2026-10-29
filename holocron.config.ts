@@ -7,7 +7,7 @@ import { docsPreset } from "@theholocron/cli/presets";
 // (epic #672 / docs/wiki/specifications/tech-holocron-platform.spec.md): the preset's `tasks`
 // and task-derived `extraRequiredChecks` still speak the pre-decomposition
 // vocabulary (`lint`, `test`, `typecheck`, `deploy`, plain `"audit /
-// Conclusion"`) — theholocron/configs hasn't caught up to #675 yet, and
+// Conclusion"`) — the `configs/` folder hasn't caught up to #675 yet, and
 // doesn't need to for this repo to move (D13: it's a convenience preset,
 // not a required dependency). This repo declares its own intent-facing
 // tasks directly instead of spreading `presetTasks`/`presetChecks`.

@@ -3,7 +3,7 @@
 # `@theholocron/holocron-plugin-netlify`
 
 Netlify plugin for [Holocron](../cli). Implements the
-`deployment` capability against [`@theholocron/netlify-client`](https://github.com/theholocron/clients/tree/main/packages/netlify-client),
+`deployment` capability against [`@theholocron/netlify-client`](https://github.com/theholocron/holocron/tree/alpha/clients/netlify-client),
 plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
 
 ## Install
