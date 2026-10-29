@@ -60,6 +60,7 @@ export function runCi(input: CiInput): CiReport {
 			listDir: input.listDir,
 			lookPath: input.lookPath,
 			task: entry.name,
+			...(entry.jobs ? { jobSwitches: entry.jobs } : {}),
 			cwd: input.cwd,
 			dryRun: input.dryRun ?? false,
 			required: entry.required === true,

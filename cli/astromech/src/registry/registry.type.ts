@@ -39,6 +39,11 @@ export interface JobDef {
 	 * jobs) lives in `WORKFLOW_CHECK_CONTEXTS`.
 	 */
 	checkContext: string;
+	/**
+	 * The name a repo's config uses to switch this job off (`jobs: { packageRegistry: false }`),
+	 * where the job's own key is vague or fixed by the reusable workflow. The key itself works too.
+	 */
+	alias?: string;
 }
 
 export interface TaskDef {

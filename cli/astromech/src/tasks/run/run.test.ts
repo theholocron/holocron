@@ -432,6 +432,57 @@ describe("runTask — sub-jobs", () => {
 		expect(report.status).toBe("fail");
 	});
 
+	it("skips a job the repo's config switched off, by its alias, and says so — even with --required", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+		const report = call("platform.repoValidation", {
+			job: "registry",
+			required: true,
+			jobSwitches: { packageRegistry: false },
+		});
+		expect(report.status).toBe("skip");
+		expect(report.message).toMatch(/off in this repo's config \(jobs\.packageRegistry: false\)/);
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/off in this repo's config/);
+	});
+
+	it("also honours the job's own key, and runs a job whose switch is not false", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+		expect(call("platform.repoValidation", { job: "registry", jobSwitches: { registry: false } }).status).toBe(
+			"skip"
+		);
+		expect(exec).not.toHaveBeenCalled();
+		expect(
+			call("platform.repoValidation", { job: "registry", jobSwitches: { packageRegistry: true } }).status
+		).toBe("ok");
+		expect(exec).toHaveBeenCalledTimes(1);
+	});
+
+	it("leaves a switched-off job out of a whole-task run and still runs the others", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+		const report = call("platform.repoValidation", { jobSwitches: { packageRegistry: false } });
+		expect(report.status).toBe("ok");
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([
+			["scripts/validate-adrs.mjs"],
+			["scripts/validate-docs-presence.mjs"],
+		]);
+		expect(lines.join("\n")).toMatch(
+			/Validate registry consistency — off in this repo's config \(jobs\.packageRegistry: false\)/
+		);
+	});
+
+	it("names a job without an alias by its own key when it is switched off", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+		const one = call("platform.repoValidation", { job: "adrs", jobSwitches: { adrs: false } });
+		expect(one).toMatchObject({ status: "skip", message: expect.stringMatching(/\(jobs\.adrs: false\)/) });
+		const all = call("platform.repoValidation", { jobSwitches: { adrs: false } });
+		expect(all.status).toBe("ok");
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([
+			["scripts/validate-registry.mjs"],
+			["scripts/validate-docs-presence.mjs"],
+		]);
+		expect(lines.join("\n")).toMatch(/Validate ADRs and specs — off in this repo's config \(jobs\.adrs: false\)/);
+	});
+
 	it("rejects an unknown job with the known list, exit 1", () => {
 		const { call, lines } = makeRun({ "package.json": PKG() });
 		const report = call("platform.repoValidation", { job: "frobnicate" });

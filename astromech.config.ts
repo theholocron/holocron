@@ -31,7 +31,10 @@ export default defineConfig({
 		// Repo/spec validation (validate-adrs.mjs, validate-registry.mjs) —
 		// used to ride inside the old `lint` job with no linter connection at
 		// all; now its own task (#675).
-		{ name: "platform.repoValidation", required: true },
+		// The package-registry check asks "is every public package listed in registry-doc?". Here the list is
+		// built from the workspace, so it could never fail: off for this repo (its CI check still reports, green).
+		// `docsEnforcement` is the same switch for the docs-presence check.
+		{ name: "platform.repoValidation", required: true, jobs: { packageRegistry: false } },
 		// Publish: tag Sentry releases for the CLI package, and run the
 		// post-release `deploy` job for packages whose `delivery.deploy` task is
 		// `on: release` (Sentinel, #928, #930).

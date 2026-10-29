@@ -48,6 +48,20 @@ describe("createAstromech().run", () => {
 		expect(exec).toHaveBeenCalledWith("/repo/node_modules/.bin/vitest", ["run", "--coverage"], { cwd: "/repo" });
 	});
 
+	it("applies the manifest's job switches to `run <task> <job>`", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({ "package.json": PKG }),
+			exec,
+			lookPath: () => "/bin/node",
+			print: () => {},
+			config: { tasks: [{ name: "platform.repoValidation", jobs: { packageRegistry: false } }] },
+		});
+		expect(astromech.run("platform.repoValidation", { job: "registry" }).status).toBe("skip");
+		expect(astromech.run("platform.repoValidation", { job: "adrs" }).status).toBe("ok");
+		expect(exec).toHaveBeenCalledTimes(1);
+	});
+
 	it("forwards passthrough / dryRun / required through to the runner", () => {
 		const astromech = createAstromech({ ...fs({ "package.json": PKG }), print: () => {} });
 		const report = astromech.run("delivery.build", { dryRun: true, required: true });

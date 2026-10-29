@@ -79,6 +79,22 @@ describe("runCi", () => {
 		});
 	});
 
+	it("leaves out a sub-job the task entry switches off, and runs the others", () => {
+		const { run, exec, lines } = makeCi(
+			{ "package.json": PKG },
+			{ lookPath: (_cwd, bin) => (bin === "node" ? "/bin/node" : null) }
+		);
+		const report = run({
+			tasks: [{ name: "platform.repoValidation", required: true, jobs: { packageRegistry: false } }],
+		});
+		expect(report.status).toBe("ok");
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([
+			["scripts/validate-adrs.mjs"],
+			["scripts/validate-docs-presence.mjs"],
+		]);
+		expect(lines.join("\n")).toMatch(/off in this repo's config \(jobs\.packageRegistry: false\)/);
+	});
+
 	it("orders by CI_ORDER regardless of manifest order", () => {
 		const { run } = makeCi({
 			"package.json": PKG,
