@@ -1,3 +1,4 @@
+import type { discoverWorkspacePackages } from "@theholocron/astromech";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
@@ -23,6 +24,8 @@ export interface RunSyncReadmeInput {
 	logger?: Logger;
 	readFileFn?: (path: string, encoding: BufferEncoding) => Promise<string>;
 	writeFileFn?: (path: string, content: string, encoding: BufferEncoding) => Promise<void>;
+	/** Replaces the workspace scan that fills the packages table. */
+	discoverFn?: typeof discoverWorkspacePackages;
 }
 
 export interface SyncReadmeReport {

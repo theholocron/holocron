@@ -394,7 +394,7 @@ it("writes releases section when marker exists", async () => {
 	expect(written["/tmp/test/README.md"]).toContain("CHANGELOG.md");
 });
 
-it("writes packages section for known monorepo", async () => {
+it("writes the packages table from the workspace's public packages", async () => {
 	const { readFileFn, writeFileFn, written } = makeFs({
 		"/tmp/test/package.json": MONOREPO_PKG,
 		"/tmp/test/README.md": README_WITH_SECTIONS,
@@ -405,8 +405,36 @@ it("writes packages section for known monorepo", async () => {
 		print: () => {},
 		readFileFn,
 		writeFileFn,
+		discoverFn: () => [
+			{
+				name: "@theholocron/github-client",
+				dir: "/tmp/test/clients/github-client",
+				relativeDir: "clients/github-client",
+				manifest: {
+					name: "@theholocron/github-client",
+					homepage: "https://docs.theholocron.dev/github-client",
+				},
+			},
+		],
 	});
-	expect(written["/tmp/test/README.md"]).toContain("@theholocron/github-client");
+	expect(written["/tmp/test/README.md"]).toContain("`@theholocron/github-client`");
+	expect(written["/tmp/test/README.md"]).toContain("[Docs](https://docs.theholocron.dev/github-client)");
+});
+
+it("leaves the packages table untouched when the workspace has no public package", async () => {
+	const { readFileFn, writeFileFn, written } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_SECTIONS,
+	});
+	await runSyncReadme({
+		loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
+		discoverFn: () => [],
+	});
+	expect(written["/tmp/test/README.md"]).toContain("old packages");
 });
 
 it("silently skips sections whose markers are absent", async () => {

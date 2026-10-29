@@ -685,9 +685,6 @@ importers:
       '@theholocron/astromech':
         specifier: workspace:*
         version: link:../astromech
-      '@theholocron/components-doc':
-        specifier: ^1.6.0
-        version: 1.14.0(@astrojs/react@6.0.6(@types/node@26.4.1)(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tsx@4.23.15)(yaml@2.9.1))(@astrojs/starlight@0.41.11(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(typescript@5.9.3))(astro@7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@theholocron/datapad':
         specifier: workspace:*
         version: link:../datapad
@@ -718,9 +715,6 @@ importers:
       '@theholocron/pkg-utils':
         specifier: catalog:utils
         version: 1.16.0
-      '@theholocron/registry-doc':
-        specifier: ^1.12.0
-        version: 1.17.0
       chalk:
         specifier: 'catalog:'
         version: 6.0.0
