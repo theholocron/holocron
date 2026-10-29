@@ -8,6 +8,15 @@ Starlight plugin that injects the shared `@theholocron` docs CSS theme.
 pnpm add @theholocron/docs-theme
 ```
 
+## Exports
+
+| Export                               | Description                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| `@theholocron/docs-theme`            | `docsTheme()`, the Starlight plugin that injects the CSS                              |
+| `@theholocron/docs-theme/content`    | `createDocsCollections()`, the `docs` collection for a site                           |
+| `@theholocron/docs-theme/loader`     | `createDocsLoader()`, an Astro loader for `.md`/`.mdx` in folders or content packages |
+| `@theholocron/docs-theme/styles.css` | the theme stylesheet on its own                                                       |
+
 ## Usage
 
 ```ts
