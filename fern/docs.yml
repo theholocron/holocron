@@ -63,6 +63,8 @@ navigation:
             path: ../docs/wiki/decisions/0013-checkly-monitoring-holocron-plugin.md
           - page: ADR-0014 — Sourcery GitHub App
             path: ../docs/wiki/decisions/0014-sourcery-github-app-no-plugin.md
+          - page: ADR-0016 — MIT as the unified license
+            path: ../docs/wiki/decisions/0016-mit-as-the-unified-license.md
 
   - tab: standards
     layout:

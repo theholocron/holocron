@@ -44,3 +44,4 @@ in CI via `scripts/validate-adrs.mjs` (runs as part of the Lint workflow).
 | [ADR-0013](0013-checkly-monitoring-holocron-plugin.md)                    | Checkly uptime monitoring — holocron plugin over monitoring-as-code CLI    | accepted |
 | [ADR-0014](0014-sourcery-github-app-no-plugin.md)                         | Sourcery AI PR review — GitHub App install, not a holocron plugin          | accepted |
 | [ADR-0015](0015-postman-tooling-plugin-over-bruno-insomnia-stoplight.md)  | Tooling capability — Postman over Bruno, Insomnia, and Stoplight Elements  | accepted |
+| [ADR-0016](0016-mit-as-the-unified-license.md)                            | License — MIT for the whole monorepo                                       | accepted |
