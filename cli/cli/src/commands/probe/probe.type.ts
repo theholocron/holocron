@@ -1,5 +1,6 @@
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, PluginProbes, ProbeRow, RuntimeContext } from "../../plugin/index.js";
+import type { MeasureDocsCoverageInput } from "./docs-coverage/index.js";
 
 export type ProbePrintLine = (line: string) => void;
 
@@ -37,6 +38,8 @@ export interface RunProbeCommandInput {
 	yes?: boolean;
 	/** Lets tests inject a loader with mock plugins. */
 	loader?: PluginLoader;
+	/** Replaces the repo's TypeDoc for the `docs` probes. */
+	typedoc?: MeasureDocsCoverageInput["typedoc"];
 	print?: ProbePrintLine;
 	interactive?: boolean;
 	confirm?: RunProbeInput["confirm"];

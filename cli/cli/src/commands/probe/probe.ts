@@ -5,6 +5,7 @@ import { statusRow } from "../../ui/status-row/index.js";
 import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";
+import { DOCS_PROVIDER, docsCoverageProbes } from "./docs-coverage/index.js";
 import { listProbes } from "./list-probes.js";
 import type { ProbeCommandReport, RunProbeCommandInput } from "./probe.type.js";
 import { runProbe } from "./run-probe.js";
@@ -26,6 +27,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	});
 	groups.set(CORE_PROVIDER, coreProbes(loader, new Map([[COMLINK_PROVIDER, comlink]])));
 	groups.set(COMLINK_PROVIDER, comlink);
+	groups.set(DOCS_PROVIDER, docsCoverageProbes(input.context.repoRoot, input.typedoc));
 
 	if (!input.provider) {
 		if (input.pick) await input.pick(groups);
