@@ -1,3 +1,7 @@
+import { createRequire } from "node:module";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { commitFiles } from "../commit-files/index.js";
 import { inScope, outsideFolders } from "../in-scope/index.js";
 import type { CommitStep, ReleaseContext, StepPlugin } from "../release.type.js";
@@ -45,14 +49,30 @@ export function ungroupedScoped<Step extends CommitStep>(
 	return scopedBy(step, (files) => outsideFolders(files, groups), deps);
 }
 
+/**
+ * `import()` of `specifier` the way semantic-release finds its own plugins: as the repo at `cwd` resolves it,
+ * else as `semantic-release` does (the stock plugins are its dependencies, not the repo's). A bare `import()`
+ * would resolve from this file, inside astromech, where neither is visible.
+ */
+function importFrom(specifier: string, cwd: string): Promise<unknown> {
+	const fromRepo = createRequire(join(cwd, "package.json"));
+	let path: string;
+	try {
+		path = fromRepo.resolve(specifier);
+	} catch {
+		path = createRequire(fromRepo.resolve("semantic-release")).resolve(specifier);
+	}
+	return import(pathToFileURL(path).href);
+}
+
 function scopedBy<Step extends CommitStep>(
 	step: Step,
 	keep: (files: readonly string[]) => boolean,
-	{ load = (specifier) => import(specifier), listFiles = commitFiles }: FolderScopedDeps
+	{ load = importFrom, listFiles = commitFiles }: FolderScopedDeps
 ): StepPlugin<Step> {
 	const scoped = async (pluginConfig: unknown, context: ReleaseContext) => {
-		const inner = (await load(MODULES[step])) as StepPlugin<Step>;
 		const { commits = [], cwd = process.cwd() } = context;
+		const inner = (await load(MODULES[step], cwd)) as StepPlugin<Step>;
 		const files = listFiles(
 			cwd,
 			commits.map((commit) => commit.hash)

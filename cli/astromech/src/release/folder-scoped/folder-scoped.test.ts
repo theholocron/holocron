@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ReleaseContext } from "../release.type.js";
 import { commentOnlyFor, folderScoped, ungroupedScoped } from "./folder-scoped.js";
@@ -64,14 +68,14 @@ describe("folderScoped", () => {
 	it("wraps generateNotes of the release-notes generator the same way", async () => {
 		const { inner, load, plugin } = setup("generateNotes");
 		await plugin.generateNotes!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
-		expect(load).toHaveBeenCalledWith("@semantic-release/release-notes-generator");
+		expect(load).toHaveBeenCalledWith("@semantic-release/release-notes-generator", "/repo");
 		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("a")] }));
 	});
 
 	it("loads the commit analyzer for analyzeCommits", async () => {
 		const { load, plugin } = setup();
 		await plugin.analyzeCommits!({}, { cwd: "/repo", commits: [] });
-		expect(load).toHaveBeenCalledWith("@semantic-release/commit-analyzer");
+		expect(load).toHaveBeenCalledWith("@semantic-release/commit-analyzer", "/repo");
 	});
 
 	it("exposes only the one step", () => {
@@ -122,7 +126,7 @@ describe("ungroupedScoped", () => {
 	it("wraps generateNotes the same way, loading the notes generator", async () => {
 		const { inner, load, plugin } = setup("generateNotes");
 		await plugin.generateNotes!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
-		expect(load).toHaveBeenCalledWith("@semantic-release/release-notes-generator");
+		expect(load).toHaveBeenCalledWith("@semantic-release/release-notes-generator", "/repo");
 		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("b")] }));
 	});
 
@@ -158,5 +162,30 @@ describe("commentOnlyFor", () => {
 		});
 		await plugin.success!({}, { cwd: "/repo", commits: [commit("a"), commit("b")] });
 		expect(inner).toHaveBeenCalledWith({}, expect.objectContaining({ commits: [commit("a")] }));
+	});
+});
+
+describe("default plugin loading", () => {
+	let dir: string | undefined;
+	afterEach(() => {
+		if (dir) rmSync(dir, { recursive: true, force: true });
+		dir = undefined;
+	});
+
+	it("loads the stock plugin as the repo being released resolves it, not as astromech does", async () => {
+		dir = mkdtempSync(join(tmpdir(), "folder-scoped-"));
+		const pkg = join(dir, "node_modules", "@semantic-release", "github");
+		mkdirSync(pkg, { recursive: true });
+		writeFileSync(join(dir, "package.json"), '{"name":"repo"}');
+		writeFileSync(
+			join(pkg, "package.json"),
+			'{"name":"@semantic-release/github","type":"module","exports":"./index.js"}'
+		);
+		writeFileSync(join(pkg, "index.js"), "export const success = (config, context) => context.commits.length;");
+
+		const plugin = folderScoped("success", ["clients"], { listFiles: () => FILES });
+		const result = await plugin.success!({}, { cwd: dir, commits: [commit("a"), commit("b"), commit("c")] });
+
+		expect(result).toBe(2);
 	});
 });
