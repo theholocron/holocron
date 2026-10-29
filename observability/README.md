@@ -16,18 +16,13 @@ pnpm install @theholocron/observability
 
 ## Usage
 
-See the [documentation](https://docs.theholocron.dev/observability/) for the API.
+See the [documentation](https://docs.theholocron.dev/holocron/observability/) for the API.
 
 <!-- /holocron:installation -->
 
-## Installation
+## Peer dependencies
 
-```bash
-pnpm add @theholocron/observability
-```
-
-Then add the peer dependencies for the subpaths you use — they are all
-optional:
+Add the peers for the subpaths you use — they are all optional:
 
 | Subpath                                | Peers                                  |
 | -------------------------------------- | -------------------------------------- |
@@ -37,7 +32,7 @@ optional:
 | `@theholocron/observability/analytics` | `posthog-node`                         |
 | `@theholocron/observability/testing`   | `vitest`                               |
 
-## Usage
+## Examples
 
 Application modules depend on the interfaces from `/core`, never a concrete
 adapter:
@@ -92,7 +87,7 @@ For a non-vitest context that needs a `Logger` with no output (an
 example, a non-test opt-out path), use `NoopLogger` from `/core` — it
 discards everything, `child()` returns itself.
 
-See the [documentation](https://docs.theholocron.dev/observability/) for the
+See the [documentation](https://docs.theholocron.dev/holocron/observability/) for the
 full API.
 
 ## Development
@@ -115,6 +110,6 @@ full API.
 <!-- holocron:releases -->
 
 Automated via [semantic-release](https://semantic-release.gitbook.io/semantic-release/).
-See the [releases page](https://docs.theholocron.dev/observability/releases) and [CHANGELOG.md](./CHANGELOG.md).
+See [CHANGELOG.md](./CHANGELOG.md).
 
 <!-- /holocron:releases -->
