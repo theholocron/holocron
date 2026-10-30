@@ -24,6 +24,14 @@ inputs:
     description: Optional sub-job within the task (e.g. knip, performance for audit).
     required: false
     default: ""
+  affected:
+    description: >
+      For `command: run`, only run the packages changed since the PR base (or the
+      merge-base with the default branch), plus their dependents: `--affected`.
+      Needs a checkout with enough history to reach the base (`fetch-depth: 0`);
+      without it holocron logs a warning and runs everything.
+    required: false
+    default: "false"
   args:
     description: >
       For `command: run`, extra arguments forwarded to the tool after `--`.
@@ -76,10 +84,26 @@ runs:
         HOLOCRON_TASK: ${{ inputs.task }}
         HOLOCRON_JOB: ${{ inputs.job }}
         HOLOCRON_ARGS: ${{ inputs.args }}
+        HOLOCRON_AFFECTED: ${{ inputs.affected }}
+        HOLOCRON_PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HOLOCRON_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       run: |
         if [ "$HOLOCRON_COMMAND" = "run" ]; then
           set -- run "$HOLOCRON_TASK"
           [ -n "$HOLOCRON_JOB" ] && set -- "$@" "$HOLOCRON_JOB"
+          if [ "$HOLOCRON_AFFECTED" = "true" ]; then
+            # A pull request compares against its base commit. Any other trigger
+            # (a push to a PR branch) compares against where the branch left the
+            # default branch. If neither resolves, no --base is passed and holocron
+            # runs everything.
+            base="$HOLOCRON_PR_BASE_SHA"
+            if [ -z "$base" ] && [ -n "$HOLOCRON_DEFAULT_BRANCH" ]; then
+              git fetch --no-tags --quiet origin "$HOLOCRON_DEFAULT_BRANCH" || true
+              base="$(git merge-base HEAD "origin/$HOLOCRON_DEFAULT_BRANCH" 2>/dev/null || true)"
+            fi
+            set -- "$@" --affected
+            [ -n "$base" ] && set -- "$@" --base "$base"
+          fi
           # shellcheck disable=SC2086
           [ -n "$HOLOCRON_ARGS" ] && set -- "$@" -- $HOLOCRON_ARGS
         else

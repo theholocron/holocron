@@ -26,6 +26,8 @@ export interface AstromechOptions {
 	readFile?: (path: string) => string;
 	fileExists?: (path: string) => boolean;
 	listDir?: (path: string) => string[];
+	/** Injectable environment for `--affected` (tests). Defaults to `process.env`. */
+	env?: Record<string, string | undefined>;
 	/** Injectable binary lookup (tests). Default checks `node_modules/.bin` then `PATH`. */
 	lookPath?: (cwd: string, bin: string) => string | null;
 }
@@ -45,6 +47,10 @@ export interface RunOptions {
 	required?: boolean;
 	/** `turbo --filter=<pkg>` passthrough (monorepo). */
 	filter?: string;
+	/** `turbo --affected`: only the packages changed since `base`. */
+	affected?: boolean;
+	/** Git ref `affected` compares against. */
+	base?: string;
 }
 
 export interface Astromech {

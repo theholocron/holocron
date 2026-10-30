@@ -252,6 +252,16 @@ describe("runCi", () => {
 		);
 	});
 
+	it("--affected and --base reach turbo", () => {
+		const { run, exec } = makeCi({ "package.json": PKG, "turbo.json": TURBO(["verification.unitTests"]) });
+		run({ tasks: [{ name: "verification.unitTests", required: true }] }, { affected: true, base: "abc", env: {} });
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "verification.unitTests", "--affected", "--", "--coverage"],
+			{ cwd: CWD, env: { TURBO_SCM_BASE: "abc" } }
+		);
+	});
+
 	it("de-dupes task entries by name (last wins)", () => {
 		const { run } = makeCi({ "package.json": PKG, "turbo.json": TURBO(["verification.unitTests"]) });
 		const report = run({

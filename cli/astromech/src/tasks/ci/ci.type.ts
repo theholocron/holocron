@@ -6,6 +6,12 @@ export interface CiOptions {
 	dryRun?: boolean;
 	/** `turbo --filter=<pkg>` passthrough (monorepo). */
 	filter?: string;
+	/** `turbo --affected`: only the packages changed since `base`. */
+	affected?: boolean;
+	/** Git ref `affected` compares against. */
+	base?: string;
+	/** Environment `affected` reads. */
+	env?: Record<string, string | undefined>;
 	/** `"required"` (default) or `"all"` (every `ci: true` task). */
 	scope?: "required" | "all";
 }

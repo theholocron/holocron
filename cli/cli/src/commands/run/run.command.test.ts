@@ -53,6 +53,13 @@ describe("run command", () => {
 		expect(process.exitCode).toBe(1);
 	});
 
+	it("passes --affected and --base to the task and to ci", async () => {
+		await go(["run", "test", "--affected", "--base", "abc"]);
+		expect(run).toHaveBeenCalledWith("test", expect.objectContaining({ affected: true, base: "abc" }));
+		await go(["run", "ci", "--affected", "--base", "abc"]);
+		expect(ci).toHaveBeenCalledWith(expect.objectContaining({ affected: true, base: "abc" }));
+	});
+
 	it("treats `lint` with any other job as a plain task", async () => {
 		await go(["run", "lint", "eslint"]);
 		expect(buildCliLogger).toHaveBeenCalledWith(expect.anything(), { command: "run" });
