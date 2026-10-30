@@ -1,3 +1,9 @@
+## [5.0.0-alpha.260](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.259...v5.0.0-alpha.260) (2026-10-30)
+
+### Bug Fixes
+
+* **astromech:** 🐛 create the Codecov commit and report before uploading per flag ([#1418](https://github.com/theholocron/holocron/issues/1418)) ([15c59da](https://github.com/theholocron/holocron/commit/15c59daa3e40f280da388dd929eb650bbe6761ad)), closes [#1250](https://github.com/theholocron/holocron/issues/1250)
+
 ## [5.0.0-alpha.259](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.258...v5.0.0-alpha.259) (2026-10-30)
 
 ### Bug Fixes
