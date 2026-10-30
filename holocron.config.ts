@@ -76,14 +76,14 @@ export default defineConfig({
 		{ name: "sourceQuality.structuredDataValidation", required: true },
 		{ name: "security.secretDetection", required: true },
 		{ name: "platform.commitStandards", required: true },
-		{ name: "verification.unitTests", required: true },
+		{ name: "verification.unitTests", required: true, with: { affected: true } },
 		"security.codeScanning",
 		"review",
 		"stale",
 		"greetings",
 		"dependencies",
 		"bookkeeping",
-		{ name: "verification.typeSafety", required: true },
+		{ name: "verification.typeSafety", required: true, with: { affected: true } },
 		// knowledge.docs implies docs: true — this repo has no Storybook, so
 		// the dedicated task is more idiomatic than delivery.deploy + with:
 		// { docs: true } now that the two mean the same thing (astromech.ts).

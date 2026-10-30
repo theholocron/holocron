@@ -22,4 +22,6 @@ jobs:
   typecheck:
     name: Typecheck
     uses: theholocron/.github/.github/workflows/verification.typeSafety.yml@main
+    with:
+      affected: true
     secrets: inherit

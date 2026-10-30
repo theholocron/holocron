@@ -26,4 +26,5 @@ jobs:
     uses: theholocron/.github/.github/workflows/verification.unitTests.yml@main
     with:
       run-unit: true
+      affected: true
     secrets: inherit
