@@ -301,12 +301,6 @@ export function generateCombinedDeployContent(
 	paths: string[],
 	preview: Pick<PreviewConfig, "project">
 ): string {
-	const yamlScalar = (v: unknown): string => {
-		if (v === true) return "true";
-		if (v === false) return "false";
-		const s = String(v);
-		return s.startsWith("[") || s.startsWith("{") ? `'${s}'` : s;
-	};
 	const withLines = (entries: Record<string, unknown>) =>
 		Object.entries(entries)
 			.map(([k, v]) => `      ${k}: ${yamlScalar(v)}`)

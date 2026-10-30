@@ -27,4 +27,5 @@ jobs:
     with:
       run-unit: true
       affected: true
+      uploads: '[{"flag":"apps","files":"apps/*/coverage/lcov.info"},{"flag":"cli","files":"cli/*/coverage/lcov.info"},{"flag":"clients","files":"clients/*/coverage/lcov.info"},{"flag":"configs","files":"configs/*/coverage/lcov.info"},{"flag":"observability","files":"observability/coverage/lcov.info"},{"flag":"plugins","files":"plugins/*/coverage/lcov.info"},{"flag":"skills","files":"skills/lcov.info"},{"flag":"themes","files":"themes/*/coverage/lcov.info"},{"flag":"utils","files":"utils/*/coverage/lcov.info"}]'
     secrets: inherit

@@ -72,6 +72,19 @@ describe("generateThinCallerContent", () => {
 		expect(content).toContain("secrets: inherit");
 	});
 
+	it("single-quotes a JSON string so it stays one string, doubling any apostrophe", () => {
+		const uploads = JSON.stringify([
+			{ flag: "apps", files: "apps/*/coverage/lcov.info" },
+			{ flag: "skills", files: "skills/o'brien/lcov.info" },
+		]);
+		const content = generateThinCallerContent("verification.unitTests", { uploads });
+		const line = content.split("\n").find((l) => l.startsWith("      uploads: "))!;
+		const quoted = line.slice("      uploads: ".length);
+		expect(quoted.startsWith("'") && quoted.endsWith("'")).toBe(true);
+		// undo YAML's single-quote escaping, as the workflow parser does
+		expect(quoted.slice(1, -1).replaceAll("''", "'")).toBe(uploads);
+	});
+
 	it("injects overrides before secrets: inherit when the template has no with: block", () => {
 		const content = generateThinCallerContent("sourceQuality.staticAnalysis", { "yaml-config": "custom.yml" });
 		expect(content).toContain("yaml-config: custom.yml");
