@@ -8,6 +8,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { hermeticCreateRequire } from "./hermetic-require.js";
 
+// built at run time: a literal "left-pad/package.json" in a resolve() call reads as an unlisted dependency to knip
+const FAKE_PACKAGE = "left-pad";
+const FAKE_SPECIFIER = `${FAKE_PACKAGE}/package.json`;
+
 describe("hermeticCreateRequire", () => {
 	let dir: string;
 	const createRequire = hermeticCreateRequire(nodeModule);
@@ -29,12 +33,12 @@ describe("hermeticCreateRequire", () => {
 		);
 
 		const require = createRequire(pathToFileURL(join(dir, "package.json")));
-		expect(require.resolve("left-pad/package.json")).toContain(join("node_modules", "left-pad", "package.json"));
+		expect(require.resolve(FAKE_SPECIFIER)).toContain(join("node_modules", FAKE_PACKAGE, "package.json"));
 	});
 
 	it("accepts a plain path as well as a file URL", async () => {
 		const require = createRequire(join(dir, "package.json"));
-		expect(() => require.resolve("left-pad/package.json")).toThrow(/Cannot find module/);
+		expect(() => require.resolve(FAKE_SPECIFIER)).toThrow(/Cannot find module/);
 	});
 
 	it("does not find a package that only exists elsewhere on the resolution path", () => {
@@ -51,6 +55,6 @@ describe("hermeticCreateRequire", () => {
 
 	it("fails to resolve when the directory does not exist", () => {
 		const require = createRequire(pathToFileURL(join(dir, "missing", "package.json")));
-		expect(() => require.resolve("left-pad/package.json")).toThrow(/Cannot find module/);
+		expect(() => require.resolve(FAKE_SPECIFIER)).toThrow(/Cannot find module/);
 	});
 });
