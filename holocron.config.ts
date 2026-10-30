@@ -66,7 +66,7 @@ export default defineConfig({
 	// per-component statuses; they are informational, not required (#1223).
 	// "Dependency catalogs / Check" is the hand-maintained
 	// `.github/workflows/sourceQuality.dependencyCatalogs.yml` (`holocron probe deps check`, #1380).
-	extraRequiredChecks: ["codecov/patch", "codecov/project", "Dependency catalogs / Check"],
+	extraRequiredChecks: ["codecov/patch", "codecov/project", "Dependency catalogs / Check", "Generated files / Check"],
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
 	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/

@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
+import { createAstromech, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
@@ -11,7 +11,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader, type Source } from "../../plugin/index.js";
-import { withAutoPreviewDeployPaths } from "../preview-deploy-paths/index.js";
+import { generateTurboFiles, generateWorkflowFiles } from "../repo-files/index.js";
 import {
 	CANONICAL_LABELS,
 	deriveCapabilities,
@@ -25,7 +25,6 @@ import {
 } from "../setup/index.js";
 import { runSyncReadme } from "../sync-readme/index.js";
 import { runSyncWiki } from "../sync-wiki/index.js";
-import { thinCallerFile } from "../thin-caller-file/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import type { RunSyncInput, SyncStep } from "./sync.type.js";
 
@@ -394,15 +393,9 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "workflows") {
-			const rawTaskEntries = config.tasks ?? [];
-			// A delivery.previewDeploy entry with a non-root cwd and no explicit
-			// with.paths gets one auto-computed from its workspace:* dependencies
-			// (holocron#1023) -- so a PR touching an unrelated package in the
-			// monorepo doesn't trigger a real Vercel preview deploy for every PR
-			// regardless of relevance. A repo's own explicit with.paths always wins.
-			const taskEntries =
-				rawTaskEntries.length === 0 ? rawTaskEntries : withAutoPreviewDeployPaths(rawTaskEntries, gitRoot);
-			if (taskEntries.length === 0) {
+			// The same files `repo setup` writes, from the same function (`generateWorkflowFiles`).
+			const entries = generateWorkflowFiles({ loaded: input.loaded, repoRoot: input.context.repoRoot, logger });
+			if ((config.tasks ?? []).length === 0) {
 				steps.push({
 					capability: "local",
 					step: "sync workflows",
@@ -410,68 +403,22 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 					message: "no tasks configured",
 				});
 				print(formatSyncStep(steps[steps.length - 1]!));
-			} else {
-				// astromech renders every thin caller from the manifest (lint linter
-				// set, deploy paths, deploy+preview). Iterate the manifest (not the
-				// map) so step reporting keeps the config's order.
-				const files = createAstromech({
-					cwd: input.context.repoRoot,
-					config: { tasks: taskEntries as TasksConfig["tasks"] },
-					orgContext: { org: config.org, domain: config.domain },
-					logger,
-				}).thinCallers();
-
-				for (const entry of taskEntries) {
-					const name = typeof entry === "string" ? entry : entry.name;
-					// knowledge.docs / knowledge.components have no static
-					// WORKFLOW_TEMPLATES entry (their content is always
-					// combined-generated, astromech.ts) — not in KNOWN_WORKFLOWS,
-					// but not "unknown" either.
-					const isCombinedContentOnly = name === "knowledge.docs" || name === "knowledge.components";
-
-					if (!KNOWN_WORKFLOWS.has(name) && !isCombinedContentOnly) {
-						steps.push({
-							capability: "local",
-							step: `sync workflow ${name}`,
-							status: "skip",
-							message: `unknown workflow "${name}" — no template available`,
-						});
-						print(formatSyncStep(steps[steps.length - 1]!));
-						continue;
-					}
-
-					// The combined-content family (delivery.deploy, knowledge.docs,
-					// knowledge.components) all key their generated file by task
-					// name already — no special-casing needed.
-					// Keyed by task name alone, regardless of which package's
-					// --cwd generated it. Two different subpackages opting into
-					// the same generic task name would otherwise overwrite each
-					// other's file silently (holocron#1026) — the "Source
-					// package" marker (stamped below, checked by
-					// assertNoPackageCollision) turns that into a loud failure
-					// instead. The other half of #1026 — a template whose own
-					// content bakes in repo-root-relative paths, which a non-root
-					// --cwd would need rebased — doesn't apply to any current
-					// WORKFLOW_TEMPLATES entry: every --cwd-eligible template
-					// (delivery.previewCheck, delivery.previewDeploy) takes an
-					// explicit `cwd:` `with:` input the reusable workflow itself
-					// resolves, carrying no repo-root-relative content of its own.
-					const filename = `${name}.yml`;
-					const content = files.get(filename);
-					if (content === undefined) continue; // ci: false — nothing to write
-
-					const withPreview = content.includes("workflows/preview.yml@main");
-					const step = `sync workflow ${name}${withPreview ? " (with preview)" : ""}`;
+			}
+			for (const entry of entries) {
+				if (entry.kind === "skip") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
+				} else {
+					const { task, filename } = entry.workflow;
 					steps.push(
-						await runSyncStep("local", step, dryRun, async () => {
-							await assertNoPackageCollision(name, pkgRelPath, filename, () =>
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await assertNoPackageCollision(task, pkgRelPath, filename, () =>
 								readExistingWorkflowFile(gitRoot, filename)
 							);
-							await writeWorkflowFile(gitRoot, filename, thinCallerFile(pkgRelPath, content));
+							await writeWorkflowFile(gitRoot, filename, entry.content);
 						})
 					);
-					print(formatSyncStep(steps[steps.length - 1]!));
 				}
+				print(formatSyncStep(steps[steps.length - 1]!));
 			}
 		}
 
@@ -536,66 +483,23 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				continue;
 			}
 
-			const astromechTurbo = createAstromech({
-				cwd: input.context.repoRoot,
-				config: { tasks: config.tasks as TasksConfig["tasks"] },
+			// turbo.json and the two edits that go with it (pnpm-workspace.yaml, the root package.json) come from the
+			// same function `repo setup` uses (`generateTurboFiles`), see there for why the edits exist.
+			for (const entry of await generateTurboFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
 				logger,
-			});
-			const content = astromechTurbo.turboConfig();
-
-			if (content === null) {
-				steps.push({
-					capability: "local",
-					step: "sync turbo.json",
-					status: "skip",
-					message: "no fan-out-eligible tasks configured",
-				});
-				print(formatSyncStep(steps[steps.length - 1]!));
-			} else {
-				steps.push(
-					await runSyncStep("local", "sync turbo.json", dryRun, async () => {
-						await writeFile(join(gitRoot, "turbo.json"), content, "utf8");
-					})
-				);
-				print(formatSyncStep(steps[steps.length - 1]!));
-
-				// #692: fix pnpm-workspace.yaml in the same step that introduces
-				// the risk — see run-setup.ts's identical wiring for the full
-				// explanation.
-				const rootPkgRaw = await readFile(join(gitRoot, "package.json"), "utf8").catch(() => null);
-				const rootPkg = rootPkgRaw ? (JSON.parse(rootPkgRaw) as { scripts?: Record<string, string> }) : null;
-				const workspaceYaml = await readFile(join(gitRoot, "pnpm-workspace.yaml"), "utf8").catch(() => "");
-				const rootScripts = rootPkg?.scripts ?? {};
-				const workspaceFix = astromechTurbo.ensureRootWorkspaceMember(workspaceYaml, rootScripts);
-				if (workspaceFix.changed) {
+			})) {
+				if (entry.kind === "skip") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
+				} else {
 					steps.push(
-						await runSyncStep(
-							"local",
-							"fix pnpm-workspace.yaml (root workspace member, #692)",
-							dryRun,
-							async () => {
-								await writeFile(join(gitRoot, "pnpm-workspace.yaml"), workspaceFix.content, "utf8");
-							}
-						)
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+						})
 					);
-					print(formatSyncStep(steps[steps.length - 1]!));
 				}
-
-				// turbo.json alone is inert without turbo itself installed —
-				// see ensureTurboDependency()'s own docstring for how this was
-				// found (a global-version fallback that silently broke on an
-				// unrelated turbo install).
-				if (rootPkgRaw) {
-					const depFix = astromechTurbo.ensureTurboDependency(rootPkgRaw, workspaceFix.content);
-					if (depFix.changed) {
-						steps.push(
-							await runSyncStep("local", "add turbo devDependency", dryRun, async () => {
-								await writeFile(join(gitRoot, "package.json"), depFix.content, "utf8");
-							})
-						);
-						print(formatSyncStep(steps[steps.length - 1]!));
-					}
-				}
+				print(formatSyncStep(steps[steps.length - 1]!));
 			}
 		}
 

@@ -288,6 +288,13 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
   which lays the file out the way Prettier does (an array that fits in 120 columns stays on one line), not
   `JSON.stringify`; and a managed block (`.gitignore` skills) lists its entries in the configured order, not the
   order the installs happened to finish in. A test for a new generated file should check Prettier leaves it as it is.
+  The files `repo setup` writes from the config alone come from `generateRepoFiles()`
+  (`cli/cli/src/commands/repo-files/`), which needs no provider: `repo setup` writes what it returns through the
+  source, `repo sync` takes its workflows and `turbo.json` from the same functions, and `holocron probe generated
+check` (`pnpm exec holocron probe generated check`, the required check `Generated files / Check`) generates them
+  twice and fails on a file that differs from the committed copy. A new file `repo setup` writes belongs in that
+  function, not in `run-setup.ts`; one that needs the provider (CODEOWNERS) stays in `run-setup.ts`. A workflow
+  that is not generated carries `# HAND-MAINTAINED` on its first line.
 - **`holocron.config.json` is the contract.** No hardcoded vendor
   lists, no hardcoded paths, no implicit assumptions. Config drives
   loader; loader drives commands.

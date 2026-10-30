@@ -1,5 +1,5 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/cli/src/commands/setup/run-setup.ts
+# Source:  theholocron/holocron · cli/cli/src/commands/repo-files/generate-config-files.ts
 # Tool:    holocron repo setup
 # Changes: edit source in theholocron/holocron
 allowRemediationCommits:

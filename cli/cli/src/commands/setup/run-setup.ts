@@ -21,26 +21,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import {
-	createAlexignore,
-	createAlexrc,
-	createAstromech,
-	createCommitMsg,
-	createDependabot,
-	createDevmoji,
-	createEditorconfig,
-	createEditorconfigChecker,
-	createHeader,
-	createLabeler,
-	createPreCommit,
-	createPrepareCommitMsg,
-	createPrePush,
-	createYamlignore,
-	createYamllint,
-	extractPreviewConfig,
-	KNOWN_WORKFLOWS,
-	readWorkspacePackages,
-} from "@theholocron/astromech";
+import { createAstromech, extractPreviewConfig, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
@@ -66,10 +47,8 @@ import {
 	type Wiki,
 	type Workers,
 } from "../../plugin/index.js";
-import dcoConfig from "../../templates/dco.yml";
 import { style, withSpinner } from "../../ui/index.js";
-import { withAutoPreviewDeployPaths } from "../preview-deploy-paths/index.js";
-import { thinCallerFile } from "../thin-caller-file/index.js";
+import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
@@ -82,15 +61,9 @@ import {
 } from "./derived-properties/index.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
-import { ownCatalogPackages } from "./own-catalog-packages/index.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, type RunSetupInput, runStep, type SetupReport, type SetupStepResult } from "./run-step/index.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/index.js";
-
-const { workflowHeader } = createHeader({
-	source: "cli/cli/src/commands/setup/run-setup.ts",
-	tool: "holocron repo setup",
-});
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -112,16 +85,6 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	// run to catch, with no protection of its own in either direction).
 	const setupGitRoot = findRootSync(input.context.repoRoot, ".git", { fallback: "start", realpath: true }) as string;
 	const setupPkgRelPath = resolvePkgRelPath(setupGitRoot, input.loaded.filepath);
-
-	// Git hooks: `--hooks`/`--no-hooks` wins, then `config.hooks`, then default
-	// on for `protection: "strict"`.
-	const hooksEnabled =
-		input.hooks ??
-		(typeof config.hooks === "boolean"
-			? config.hooks
-			: typeof config.hooks === "object"
-				? config.hooks.prePush !== false
-				: effectivePreset === "strict");
 
 	print(style.header(`Holocron setup — ${config.name}${dryRun ? " (dry-run)" : ""}`));
 	print(style.dim(`  config: ${input.loaded.filepath}`));
@@ -204,178 +167,46 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 	}
 
-	// ── source: workflow thin wrappers ──────────────────────────────────
-	// A delivery.previewDeploy entry with a non-root cwd and no explicit
-	// with.paths gets one auto-computed from its workspace:* dependencies
-	// (holocron#1023) -- so a PR touching an unrelated package in the
-	// monorepo doesn't trigger a real Vercel preview deploy for every PR
-	// regardless of relevance. A repo's own explicit with.paths always wins.
-	const tasks =
-		config.tasks && config.tasks.length > 0 ? withAutoPreviewDeployPaths(config.tasks, setupGitRoot) : config.tasks;
-	if (loader.has("source") && tasks && tasks.length > 0) {
-		const source = loader.get("source") as Source;
-		print(style.step("workflows"));
-
-		// astromech renders every thin caller from the manifest (lint linter set,
-		// deploy paths, deploy+preview) and validates it — a bad manifest throws
-		// here, aborting setup, same as before. Iterate the manifest (not the map)
-		// so step reporting keeps the config's order.
-		const files = createAstromech({
-			cwd: input.context.repoRoot,
-			config: { tasks: tasks as TasksConfig["tasks"] },
-			orgContext: { org: config.org, domain: config.domain },
-			logger,
-		}).thinCallers();
-
-		for (const entry of tasks) {
-			const name = typeof entry === "string" ? entry : entry.name;
-			// knowledge.docs / knowledge.components have no static
-			// WORKFLOW_TEMPLATES entry (their content is always
-			// combined-generated, astromech.ts) — not in KNOWN_WORKFLOWS, but
-			// not "unknown" either.
-			const isCombinedContentOnly = name === "knowledge.docs" || name === "knowledge.components";
-
-			if (!KNOWN_WORKFLOWS.has(name) && !isCombinedContentOnly) {
-				steps.push({
-					capability: "source",
-					step: `write workflow ${name}`,
-					status: "skip",
-					message: `unknown workflow "${name}" — no template available`,
-				});
-				print(formatStep(steps[steps.length - 1]!));
-				continue;
-			}
-
-			// The combined-content family (delivery.deploy, knowledge.docs,
-			// knowledge.components) all key their generated file by task name
-			// already — no special-casing needed, unlike the old hardcoded
-			// "deploy.yml" filename.
-			const filename = `${name}.yml`;
-			const content = files.get(filename);
-			if (content === undefined) continue; // ci: false — nothing to write
-
-			const withPreview = content.includes("workflows/preview.yml@main");
-			const step = withPreview ? `write workflow ${name} (with preview)` : `write workflow ${name}`;
-			steps.push(
-				await runStep("source", step, dryRun, async () => {
-					await assertNoPackageCollision(name, setupPkgRelPath, filename, () =>
-						source.readWorkflowFile(filename)
-					);
-					// Thin-caller workflows are written by `repo sync` too, through the same function.
-					await source.writeWorkflowFile(filename, thinCallerFile(setupPkgRelPath, content));
-				})
-			);
-			print(formatStep(steps[steps.length - 1]!));
-		}
-	}
-
-	// ── source: labeler config ───────────────────────────────────────────
-	if (
-		loader.has("source") &&
-		(config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name)).includes("bookkeeping")
-	) {
-		const source = loader.get("source") as Source;
-		steps.push(
-			await runStep("source", "write .github/labeler.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/labeler.yml", createLabeler());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-	}
-
-	// ── source: dependabot + dco config ─────────────────────────────────
-	if (loader.has("source") && effectivePreset !== "none") {
-		const source = loader.get("source") as Source;
-		steps.push(
-			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
-				await source.writeRepoFile(
-					".github/dependabot.yml",
-					createDependabot({ ignore: ownCatalogPackages(input.context.repoRoot) })
-				);
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .github/dco.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/dco.yml", `${workflowHeader()}${dcoConfig}`);
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-	}
-
-	// ── source: static config files ──────────────────────────────────────
+	// ── source: the files generated from the config ─────────────────────
+	// Thin-caller workflows, config files, git hooks, codecov.yml and turbo.json come from `generateRepoFiles`, which
+	// needs no provider; this only writes what it returns through the source. `repo sync` writes the same files.
 	if (loader.has("source")) {
 		const source = loader.get("source") as Source;
-		steps.push(
-			await runStep("source", "write .alexrc.json", dryRun, async () => {
-				await source.writeRepoFile(".alexrc.json", createAlexrc());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .alexignore", dryRun, async () => {
-				await source.writeRepoFile(".alexignore", createAlexignore());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .yamllint.yml", dryRun, async () => {
-				await source.writeRepoFile(".yamllint.yml", createYamllint());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .yamlignore", dryRun, async () => {
-				await source.writeRepoFile(".yamlignore", createYamlignore());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .editorconfig", dryRun, async () => {
-				await source.writeRepoFile(".editorconfig", createEditorconfig());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .editorconfig-checker.json", dryRun, async () => {
-				await source.writeRepoFile(".editorconfig-checker.json", createEditorconfigChecker());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write devmoji.config.cjs", dryRun, async () => {
-				await source.writeRepoFile("devmoji.config.cjs", createDevmoji());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .husky/prepare-commit-msg", dryRun, async () => {
-				await source.writeRepoFile(".husky/prepare-commit-msg", createPrepareCommitMsg());
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		steps.push(
-			await runStep("source", "write .husky/commit-msg", dryRun, async () => {
-				await source.writeRepoFile(".husky/commit-msg", createCommitMsg(config.holocronScript));
-			})
-		);
-		print(formatStep(steps[steps.length - 1]!));
-		if (hooksEnabled) {
-			steps.push(
-				await runStep("source", "write .husky/pre-push", dryRun, async () => {
-					await source.writeRepoFile(".husky/pre-push", createPrePush(config.holocronScript));
-					return "runs `holocron run ci` before push — bypass with `git push --no-verify`";
-				})
-			);
+		if (config.tasks && config.tasks.length > 0) print(style.step("workflows"));
+
+		for (const entry of await generateRepoFiles({
+			loaded: input.loaded,
+			repoRoot: input.context.repoRoot,
+			hooks: input.hooks,
+			logger,
+		})) {
+			if (entry.kind === "skip") {
+				steps.push({ capability: "source", step: entry.step, status: "skip", message: entry.message });
+			} else if (entry.kind === "error") {
+				steps.push(
+					await runStep("source", entry.step, dryRun, async () => {
+						throw new Error(entry.message);
+					})
+				);
+			} else {
+				steps.push(
+					await runStep("source", entry.step, dryRun, async () => {
+						if (entry.workflow) {
+							const { task, filename } = entry.workflow;
+							await assertNoPackageCollision(task, setupPkgRelPath, filename, () =>
+								source.readWorkflowFile(filename)
+							);
+							await source.writeWorkflowFile(filename, entry.content);
+						} else {
+							await source.writeRepoFile(entry.path, entry.content);
+						}
+						return entry.note;
+					})
+				);
+			}
 			print(formatStep(steps[steps.length - 1]!));
-			steps.push(
-				await runStep("source", "write .husky/pre-commit", dryRun, async () => {
-					await source.writeRepoFile(".husky/pre-commit", createPreCommit());
-					return "runs GitLeaks (staged-only) + lint-staged before commit";
-				})
-			);
-			print(formatStep(steps[steps.length - 1]!));
-			if (config.syncScripts !== false) {
+
+			if (entry.kind === "file" && entry.path === ".husky/pre-commit" && config.syncScripts !== false) {
 				steps.push(
 					await runStep("source", "set package.json prepare script", dryRun, async () => {
 						return (await ensurePrepareScript(input.context.repoRoot))
@@ -385,113 +216,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				);
 				print(formatStep(steps[steps.length - 1]!));
 			}
-		} else {
-			steps.push({
-				capability: "source",
-				step: "write .husky/pre-push",
-				status: "skip",
-				message: "git hooks disabled",
-			});
-			print(formatStep(steps[steps.length - 1]!));
-			steps.push({
-				capability: "source",
-				step: "write .husky/pre-commit",
-				status: "skip",
-				message: "git hooks disabled",
-			});
-			print(formatStep(steps[steps.length - 1]!));
 		}
-		{
-			const configuredWorkflowNames = (config.tasks ?? []).map((e) => (typeof e === "string" ? e : e.name));
-			const hasTestWorkflow = configuredWorkflowNames.includes("verification.unitTests");
-			const existing = await readFile(join(input.context.repoRoot, "codecov.yml"), "utf8").catch(() => null);
-			if (!hasTestWorkflow && existing == null) {
-				steps.push({
-					capability: "source",
-					step: "write codecov.yml",
-					status: "skip",
-					message: "no test workflow configured",
-				});
-			} else {
-				steps.push(
-					await runStep("source", "write codecov.yml", dryRun, async () => {
-						const content = createAstromech({ cwd: input.context.repoRoot, logger }).codecovConfig(
-							existing
-						);
-						await source.writeRepoFile("codecov.yml", content);
-						const packageCount = readWorkspacePackages(input.context.repoRoot).length;
-						return packageCount > 0 ? `${packageCount} components` : "no components";
-					})
-				);
-			}
-			print(formatStep(steps[steps.length - 1]!));
-		}
-		{
-			const astromechTurbo = createAstromech({
-				cwd: input.context.repoRoot,
-				config: { tasks: config.tasks as TasksConfig["tasks"] },
-				logger,
-			});
-			const content = astromechTurbo.turboConfig();
-			const firstStep = steps.length;
+	}
 
-			if (content === null) {
-				steps.push({
-					capability: "source",
-					step: "write turbo.json",
-					status: "skip",
-					message: "no fan-out-eligible tasks configured",
-				});
-			} else {
-				steps.push(
-					await runStep("source", "write turbo.json", dryRun, async () => {
-						await source.writeRepoFile("turbo.json", content);
-					})
-				);
-
-				// #692: a root that's genuinely a directly-buildable package (not
-				// just an orchestrator) silently vanishes from `turbo run <task>`
-				// once turbo.json exists, unless it's an explicit workspace
-				// member — fix pnpm-workspace.yaml in the same step that
-				// introduces the risk.
-				const rootPkgRaw = await readFile(join(input.context.repoRoot, "package.json"), "utf8").catch(
-					() => null
-				);
-				const rootPkg = rootPkgRaw ? (JSON.parse(rootPkgRaw) as { scripts?: Record<string, string> }) : null;
-				const workspaceYaml = await readFile(join(input.context.repoRoot, "pnpm-workspace.yaml"), "utf8").catch(
-					() => ""
-				);
-				const rootScripts = rootPkg?.scripts ?? {};
-				const workspaceFix = astromechTurbo.ensureRootWorkspaceMember(workspaceYaml, rootScripts);
-				if (workspaceFix.changed) {
-					steps.push(
-						await runStep(
-							"source",
-							"fix pnpm-workspace.yaml (root workspace member, #692)",
-							dryRun,
-							async () => {
-								await source.writeRepoFile("pnpm-workspace.yaml", workspaceFix.content);
-							}
-						)
-					);
-				}
-
-				// turbo.json alone is inert without turbo itself installed — see
-				// ensureTurboDependency()'s own docstring for how this was found.
-				if (rootPkgRaw) {
-					const depFix = astromechTurbo.ensureTurboDependency(rootPkgRaw, workspaceFix.content);
-					if (depFix.changed) {
-						steps.push(
-							await runStep("source", "add turbo devDependency", dryRun, async () => {
-								await source.writeRepoFile("package.json", depFix.content);
-							})
-						);
-					}
-				}
-			}
-			// Everything this block pushed, once each: the turbo.json step and any follow-up fixes.
-			for (const step of steps.slice(firstStep)) print(formatStep(step));
-		}
+	if (loader.has("source")) {
+		const source = loader.get("source") as Source;
 
 		if (source.syncLabels) {
 			steps.push(
