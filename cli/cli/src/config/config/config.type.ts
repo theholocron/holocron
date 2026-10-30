@@ -310,6 +310,8 @@ export interface TaskEntryConfig {
 		 * `src/` directory at all).
 		 */
 		inputs?: string[];
+		/** Extra tasks this one waits for, appended to the registry default's `dependsOn` (turbo syntax: `"<package>#<task>"`). */
+		dependsOn?: string[];
 	};
 }
 
