@@ -266,7 +266,9 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 - **REST clients (`rest.ts`):** bearer auth + `accept: application/json`
   headers, transport-failure wrapping (`ProviderApiError` with
   `status: 0` for `TypeError: fetch failed` etc.). Always returns
-  `undefined` on 204 or when `expectNoContent: true`.
+  `undefined` on 204 or when `expectNoContent: true`. A client opts in to
+  sending a read again on a transient HTTP status with `retryStatuses` (the
+  Cloudflare client does, for 500/502/503/504); a write is never repeated.
 - **CLI-transport clients (`shell.ts`):** `spawnSync` wrapper with
   `stdio: ['inherit', 'pipe', 'pipe']` (the inherit stdin matters —
   it gives the vendor CLI a TTY signal so biometric / interactive

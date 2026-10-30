@@ -27,6 +27,11 @@ const NEVER_SENT = new Set([
 /** Failures after the connection was made, where the server may or may not have seen the request. */
 const DROPPED = new Set(["ECONNRESET", "EPIPE", "UND_ERR_SOCKET", "ETIMEDOUT"]);
 
+/** Whether a request only reads, so sending it again changes nothing. */
+export function isRead(method: string): boolean {
+	return method === "GET" || method === "HEAD";
+}
+
 /**
  * Whether a failed request is worth sending again: always when it never left, and for a read when the connection
  * dropped (a repeat read changes nothing). A write that may have arrived is never repeated.
@@ -34,5 +39,5 @@ const DROPPED = new Set(["ECONNRESET", "EPIPE", "UND_ERR_SOCKET", "ETIMEDOUT"]);
 export function worthRetrying(code: string | undefined, method: string): boolean {
 	if (!code) return false;
 	if (NEVER_SENT.has(code)) return true;
-	return DROPPED.has(code) && (method === "GET" || method === "HEAD");
+	return DROPPED.has(code) && isRead(method);
 }

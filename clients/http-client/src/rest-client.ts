@@ -2,7 +2,7 @@ import { type ErrorSink, type Logger, NoopErrorSink, NoopLogger } from "@theholo
 
 import { ProviderApiError } from "./errors.js";
 import { notifyRetry } from "./retry-events.js";
-import { transportCode, worthRetrying } from "./transport.js";
+import { isRead, transportCode, worthRetrying } from "./transport.js";
 
 export interface RestClientConfig {
 	/** Default base URL (e.g. "https://api.github.com"). */
@@ -45,12 +45,18 @@ export interface RestClientConfig {
 	errors?: ErrorSink;
 	/**
 	 * How many times to send a request again after a transport failure that is safe to repeat (see `worthRetrying`):
-	 * the connection never opened, or a read was dropped. HTTP error statuses are never retried. Defaults to 2; 0
-	 * turns it off.
+	 * the connection never opened, or a read was dropped. An HTTP error status is retried only when it is listed in
+	 * `retryStatuses`. Defaults to 2; 0 turns it off.
 	 */
 	retries?: number;
 	/** Milliseconds before the first retry; each later one waits three times as long. Defaults to 300. */
 	retryDelayMs?: number;
+	/**
+	 * HTTP statuses (for example `[500, 502, 503, 504]`) that are worth asking for again, using the same `retries`
+	 * and `retryDelayMs`. Only a read (GET or HEAD) is repeated; a write is never sent again on a status, because the
+	 * server may have applied it. Defaults to none, so a client that does not ask behaves as before.
+	 */
+	retryStatuses?: readonly number[];
 }
 
 export interface RequestOptions {
@@ -67,6 +73,23 @@ export interface RestClient {
 	request<T>(path: string, opts?: RequestOptions): Promise<T>;
 }
 
+/** The text of a response, or nothing when it cannot be read: an error body is a courtesy, not a reason to fail. */
+const readBody = (res: Response): Promise<string> => res.text().catch(() => "");
+
+/** Response headers that name the request on the vendor's side, the first one present is quoted in an error. */
+const REQUEST_ID_HEADERS = ["cf-ray", "x-request-id"];
+
+/**
+ * What to add to the message of an error that came after the request was sent again: how many sends it took, and the
+ * vendor's id for the last one, so a failure that kept happening can be told apart from a misconfiguration and be
+ * reported to the vendor. Nothing for a request that was only sent once.
+ */
+function retriedNote(res: Response, attempt: number): string {
+	if (attempt === 0) return "";
+	const header = REQUEST_ID_HEADERS.find((name) => res.headers.has(name));
+	return ` (after ${attempt + 1} attempts${header ? `; ${header}: ${res.headers.get(header)}` : ""})`;
+}
+
 export function createRestClient(config: RestClientConfig): RestClient {
 	const fetchImpl = config.fetch ?? globalThis.fetch;
 	const vendor = config.vendor ?? "";
@@ -74,6 +97,7 @@ export function createRestClient(config: RestClientConfig): RestClient {
 	const errors = config.errors ?? new NoopErrorSink();
 	const maxRetries = config.retries ?? 2;
 	const retryDelay = config.retryDelayMs ?? 300;
+	const retryStatuses = new Set(config.retryStatuses ?? []);
 
 	// Manual trailing-slash trim — CodeQL flags regex on library input as
 	// polynomial ReDoS. O(n) loop, no backtracking risk.
@@ -113,35 +137,31 @@ export function createRestClient(config: RestClientConfig): RestClient {
 			const tag = vendor ? `${vendor} ${init.method} ${path}` : `${init.method} ${path}`;
 			logger.debug({ vendor, method: init.method, path }, "request");
 
+			// Waits, and tells the listeners, before send number `attempt + 2`.
+			const pause = async (attempt: number, code: string): Promise<void> => {
+				logger.debug({ vendor, method: init.method, path, code, attempt: attempt + 1 }, "retrying");
+				const delayMs = retryDelay * 3 ** attempt;
+				notifyRetry({
+					...(vendor ? { vendor } : {}),
+					method: init.method!,
+					path,
+					code,
+					attempt: attempt + 2,
+					of: maxRetries + 1,
+					delayMs,
+				});
+				await new Promise((resolve) => setTimeout(resolve, delayMs));
+			};
+
 			let res: Response;
-			for (let attempt = 0; ; attempt++) {
+			let attempt = 0;
+			for (; ; attempt++) {
 				try {
 					res = await fetchImpl(url.toString(), init);
-					break;
 				} catch (err) {
 					const code = transportCode(err);
 					if (attempt < maxRetries && worthRetrying(code, init.method!)) {
-						logger.debug(
-							{
-								vendor,
-								method: init.method,
-								path,
-								code,
-								attempt: attempt + 1,
-							},
-							"retrying"
-						);
-						const delayMs = retryDelay * 3 ** attempt;
-						notifyRetry({
-							...(vendor ? { vendor } : {}),
-							method: init.method!,
-							path,
-							code: code!,
-							attempt: attempt + 2,
-							of: maxRetries + 1,
-							delayMs,
-						});
-						await new Promise((resolve) => setTimeout(resolve, delayMs));
+						await pause(attempt, code!);
 						continue;
 					}
 					const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
@@ -153,11 +173,22 @@ export function createRestClient(config: RestClientConfig): RestClient {
 					errors.captureException(apiErr);
 					throw apiErr;
 				}
+				// A status the client was told to retry, on a read only: a write may have been applied already.
+				if (!res.ok && attempt < maxRetries && retryStatuses.has(res.status) && isRead(init.method!)) {
+					await readBody(res); // let go of the connection
+					await pause(attempt, `HTTP ${res.status}`);
+					continue;
+				}
+				break;
 			}
 
 			if (!res.ok) {
-				const body = await res.text().catch(() => "");
-				const apiErr = new ProviderApiError(`${tag} → ${res.status}`, res.status, body);
+				const body = await readBody(res);
+				const apiErr = new ProviderApiError(
+					`${tag} → ${res.status}${retriedNote(res, attempt)}`,
+					res.status,
+					body
+				);
 				// 4xx is typically expected/handled by the caller (a 404 from an
 				// "does this exist" check, etc.) — only 5xx is genuinely unexpected.
 				if (res.status >= 500) errors.captureException(apiErr);

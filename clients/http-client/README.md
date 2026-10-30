@@ -28,18 +28,31 @@ const data = await client.request<{ id: string }>("/widgets/42");
 
 **Config options:**
 
-| Option         | Type                     | Default            | Description                                       |
-| -------------- | ------------------------ | ------------------ | ------------------------------------------------- |
-| `baseUrl`      | `string`                 | —                  | Base URL, trailing slashes trimmed automatically  |
-| `token`        | `string`                 | —                  | Auth token                                        |
-| `tokenScheme`  | `"bearer" \| "apikey"`   | `"bearer"`         | How the token is sent                             |
-| `apiKeyHeader` | `string`                 | `"x-api-key"`      | Header name when `tokenScheme` is `"apikey"`      |
-| `extraHeaders` | `Record<string, string>` | —                  | Static headers merged into every request          |
-| `defaultQuery` | `Record<string, string>` | —                  | Query params appended to every request URL        |
-| `vendor`       | `string`                 | —                  | Vendor label for error messages                   |
-| `fetch`        | `typeof fetch`           | `globalThis.fetch` | Override fetch for testing                        |
-| `logger`       | `Logger`                 | no-op              | Structured request/response diagnostics (`debug`) |
-| `errors`       | `ErrorSink`              | no-op              | Reports transport failures + unexpected 5xx       |
+| Option          | Type                     | Default            | Description                                                  |
+| --------------- | ------------------------ | ------------------ | ------------------------------------------------------------ |
+| `baseUrl`       | `string`                 | —                  | Base URL, trailing slashes trimmed automatically             |
+| `token`         | `string`                 | —                  | Auth token                                                   |
+| `tokenScheme`   | `"bearer" \| "apikey"`   | `"bearer"`         | How the token is sent                                        |
+| `apiKeyHeader`  | `string`                 | `"x-api-key"`      | Header name when `tokenScheme` is `"apikey"`                 |
+| `extraHeaders`  | `Record<string, string>` | —                  | Static headers merged into every request                     |
+| `defaultQuery`  | `Record<string, string>` | —                  | Query params appended to every request URL                   |
+| `vendor`        | `string`                 | —                  | Vendor label for error messages                              |
+| `fetch`         | `typeof fetch`           | `globalThis.fetch` | Override fetch for testing                                   |
+| `logger`        | `Logger`                 | no-op              | Structured request/response diagnostics (`debug`)            |
+| `errors`        | `ErrorSink`              | no-op              | Reports transport failures + unexpected 5xx                  |
+| `retries`       | `number`                 | `2`                | Times a request is sent again (see Retries); `0` is off      |
+| `retryDelayMs`  | `number`                 | `300`              | Wait before the first retry; each later one waits 3× as long |
+| `retryStatuses` | `readonly number[]`      | none               | HTTP statuses a **read** is sent again on (see Retries)      |
+
+**Retries.** A request is sent again, up to `retries` times, after a transport failure that cannot have applied it twice (the connection never opened, or a read was dropped). By default an HTTP error status is never retried. List statuses in `retryStatuses` (for example `[500, 502, 503, 504]`) to ask for a read again when the server answers one of them. Only `GET` and `HEAD` are repeated on a status: a write may already have been applied, so it fails at once. A status that is not listed (a 4xx, a 429) fails at once too; `Retry-After` is not honoured.
+
+When a request still fails after being sent again, the `ProviderApiError` keeps the last `status` and `details` and its message says how many sends it took, with the vendor's request id when the response carried one (`cf-ray`, else `x-request-id`):
+
+```text
+Cloudflare GET /zones/abc/dns_records → 500 (after 3 attempts; cf-ray: 8a1b2c3d4e5f-LHR)
+```
+
+Every retry is reported to [`onRetry`](#onretrylistener); for a status the event's `code` is `HTTP 500`.
 
 **Observability seam.** `logger` and `errors` accept the `Logger` / `ErrorSink`
 interfaces from [`@theholocron/observability/core`](https://github.com/theholocron/holocron/tree/alpha/observability)

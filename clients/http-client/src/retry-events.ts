@@ -1,10 +1,13 @@
-/** A request about to be sent again after a transport failure. */
+/** A request about to be sent again after a transport failure, or an HTTP status the client was told to retry. */
 export interface RetryEvent {
 	/** The client's `vendor` label, e.g. `GitHub`. */
 	vendor?: string;
 	method: string;
 	path: string;
-	/** What went wrong (`ECONNRESET`, `UND_ERR_CONNECT_TIMEOUT`); a failure with no known cause is never retried. */
+	/**
+	 * What went wrong (`ECONNRESET`, `UND_ERR_CONNECT_TIMEOUT`, or `HTTP 503` for a retried status); a failure with no
+	 * known cause is never retried.
+	 */
 	code: string;
 	/** The number of the send that is about to happen: 2 for the first retry. */
 	attempt: number;
