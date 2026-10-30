@@ -470,9 +470,9 @@ move to `docs/wiki/specifications/`. The entire v2-alpha issue backlog
 ## Group rules
 
 Each group folder that was a separate repo keeps its own rules in an `AGENTS.md` (with a `CLAUDE.md` symlink) next to
-its packages: [`utils/`](utils/AGENTS.md), [`clients/`](clients/AGENTS.md), [`configs/`](configs/AGENTS.md),
-[`observability/`](observability/AGENTS.md), [`skills/`](skills/AGENTS.md) and [`themes/`](themes/AGENTS.md). They
-cover only what is specific to the group; this file covers the rest.
+its packages: [`utils/`](utils/AGENTS.md), [`clients/`](clients/AGENTS.md), [`configs/`](configs/AGENTS.md) and
+[`observability/`](observability/AGENTS.md). They cover only what is specific to the group; this file covers the rest.
+To add a package to a group, use that group's `holocron-skill-*` skill rather than a list of steps in prose.
 
 Rules that hold for every published package outside `cli/`:
 
@@ -482,3 +482,5 @@ Rules that hold for every published package outside `cli/`:
   because `files` lists `dist/` while the source imports `src/`. Do not re-enable it or turn it off again per package.
 - **A new package in a release group** starts at the group's current version and needs no release-config edit (the
   folder is a release group); run `holocron repo sync` to add its codecov flag and component.
+- **`skills/`** needs no rules of its own: a new skill is a `src/<name>/SKILL.md` (use `holocron-skill-skill`), a row in
+  the README table and a `feat:` commit; the unit test fails on a folder with no `SKILL.md`.
