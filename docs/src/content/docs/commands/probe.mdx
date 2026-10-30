@@ -87,6 +87,18 @@ The `deps` group is the CLI's own, like `core` and `comlink`. It reads every wor
 
 CI runs `holocron probe deps check` on every pull request (the `Dependency catalogs / Check` required check).
 
+## Generated files
+
+The `generated` group is the CLI's own too. `holocron repo setup` writes a set of files from the config alone (the thin-caller workflows, the lint and editor configs, the git hooks, `codecov.yml`, `turbo.json` and the edits that go with it), and `holocron repo sync` writes the workflows and `turbo.json` from the same function. `generated check` runs that function with no provider and no token, so it works in CI, and compares what it makes with the committed files.
+
+| Probe                            | Changes things | What it does                                                                                                                                                                                                                                                                                                            |
+| -------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe generated check` | no             | Fails for each generated file that is missing or differs from the committed copy, for each file whose second generation differs from the first, and for each workflow in `.github/workflows` that nothing generates and that is not marked `# HAND-MAINTAINED`. The fix for a difference is `repo setup` or `repo sync` |
+
+A workflow that another package's config generates (its `# Source package:` marker is not `.`) is left to that package. `platform.syncTemplates.yml`, which is committed ahead of its task on purpose, is the one named exception (`UNMANAGED_WORKFLOWS`). Not covered: `.github/CODEOWNERS` (it needs the organization from the provider), the installed skills, the agent prompts and the engineering structure.
+
+CI runs `holocron probe generated check` on every pull request (the `Generated files / Check` required check, `.github/workflows/sourceQuality.generatedFiles.yml`).
+
 ## Writing a probe
 
 A plugin returns `probes` from `createPlugin`, next to `capabilities`. The probe closes over the plugin's own token and client.
