@@ -1,3 +1,9 @@
+## [5.0.0-alpha.261](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.260...v5.0.0-alpha.261) (2026-10-30)
+
+### Refactoring
+
+* **cli:** ♻️ generate the files repo setup writes without a provider and check them for drift ([#1419](https://github.com/theholocron/holocron/issues/1419)) ([fc3c294](https://github.com/theholocron/holocron/commit/fc3c294ffadbda73b5e4c59a58c5bb7e7930da63)), closes [#1399](https://github.com/theholocron/holocron/issues/1399) [#1405](https://github.com/theholocron/holocron/issues/1405) [#1405](https://github.com/theholocron/holocron/issues/1405)
+
 ## [5.0.0-alpha.260](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.259...v5.0.0-alpha.260) (2026-10-30)
 
 ### Bug Fixes
