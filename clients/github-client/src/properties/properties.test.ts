@@ -46,4 +46,13 @@ describe("properties", () => {
 			],
 		});
 	});
+
+	it("GET /orgs/{org}/properties/schema returns the organization's definitions", async () => {
+		const schema = [{ property_name: "lifecycle", value_type: "single_select", allowed_values: ["active"] }];
+		const { fetch, calls } = stubFetch([{ status: 200, body: schema }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await expect(client.properties.orgSchema("acme")).resolves.toEqual(schema);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/orgs/acme/properties/schema");
+	});
 });

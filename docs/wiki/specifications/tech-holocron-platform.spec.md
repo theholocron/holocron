@@ -340,6 +340,18 @@ don't populate for existing repos until each one re-runs `holocron setup`/
 `sync` — that backfill is exactly what the migration-pass sub-issue (#680)
 covers, not new work here.
 
+**A new capability needs its key in the org schema first (#1397).** The 17
+`allowed_values` of `holocron_capabilities` above are the capabilities that
+existed on 2026-09-15; the schema does not follow `Capabilities`
+(`cli/cli/src/plugin/capabilities/capabilities.type.ts`) by itself. `monitoring`
+came later, so a repo that wires it sent a value the property did not allow, and
+GitHub answers a request with one such value with `422` for the whole request:
+no property of the repo is set. So adding a capability to the interface also
+means adding its key to that property's `allowed_values` (an org admin action,
+done like the original definitions, via `gh api`). `holocron repo setup` now
+names the value it was refused, by comparing the values with the org's
+definitions (read-only), and quotes GitHub's message.
+
 **`holocron_capabilities`/`holocron_stack` are `multi_select`, not a
 comma-joined `string`** — the first design here used `string` because
 `@theholocron/github-client`'s `properties.setProperties()` only accepted

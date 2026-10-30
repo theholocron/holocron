@@ -44,6 +44,8 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 | Sync teams                             | Grants team access from `repo.teams`                                    |
 | Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                     |
 
+**Sync properties** sends the repo's custom properties in one request, so one value the organization's property does not allow (a capability whose key is not in `holocron_capabilities`' allowed values) fails the whole step and sets none of them. When GitHub answers `422` the step names the value, from the organization's property definitions (read-only; needs read access to the organization's custom properties, otherwise the step says it could not read them), and quotes GitHub's message. Fix it in the organization's property definitions, not in the repo.
+
 **Required checks** (`protection: "strict"`) are derived from the task manifest —
 `"DCO"` (hard-prepended), then every `{ required: true }` task's workflow check
 context (`Lint / Conclusion`, `Test / Conclusion`, …) in CI order, then the

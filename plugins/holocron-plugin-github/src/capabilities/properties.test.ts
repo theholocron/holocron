@@ -1,3 +1,5 @@
+import type { GitHubClient } from "@theholocron/github-client";
+import { ProviderApiError } from "@theholocron/http-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
@@ -65,5 +67,115 @@ describe("syncProperties", () => {
 		await syncProperties(rest, "acme/my-lib", { open_source: "true" });
 
 		expect(calls[0]?.url).toContain("/repos/acme/my-lib/properties/values");
+	});
+
+	describe("when GitHub answers 422", () => {
+		const SCHEMA = [
+			{
+				property_name: "holocron_capabilities",
+				value_type: "multi_select",
+				allowed_values: ["ci", "source"],
+			},
+		];
+		const capture = (fn: () => Promise<unknown>) => fn().catch((e: unknown) => e);
+
+		it("names the value the organization's property does not allow, and quotes GitHub", async () => {
+			const { rest, calls } = makeRest([
+				{ status: 422, text: JSON.stringify({ message: "Validation Failed" }) },
+				{ status: 200, body: SCHEMA },
+			]);
+
+			const err = await capture(() =>
+				syncProperties(rest, REPO, { holocron_capabilities: ["ci", "monitoring"] })
+			);
+
+			expect(err).toBeInstanceOf(Error);
+			const message = (err as Error).message;
+			expect(message).toContain("none was set");
+			expect(message).toContain('holocron_capabilities has "monitoring", which is not one of its allowed values');
+			expect(message).toContain("GitHub said: Validation Failed");
+			expect((err as Error).cause).toBeInstanceOf(ProviderApiError);
+			expect(calls[1]).toMatchObject({
+				method: "GET",
+				url: expect.stringContaining("/orgs/theholocron/properties/schema"),
+			});
+		});
+
+		it("adds the errors GitHub lists to its message", async () => {
+			const { rest } = makeRest([
+				{ status: 422, text: JSON.stringify({ message: "Validation Failed", errors: [{ field: "value" }] }) },
+				{ status: 200, body: SCHEMA },
+			]);
+
+			const err = await capture(() => syncProperties(rest, REPO, { holocron_capabilities: ["ci"] }));
+
+			expect((err as Error).message).toContain('GitHub said: Validation Failed: {"field":"value"}');
+			expect((err as Error).message).toContain("no value differs");
+		});
+
+		it("falls back to the start of a body that is not JSON, and says the definitions could not be read", async () => {
+			const { rest } = makeRest([
+				{ status: 422, text: "x".repeat(400) },
+				{ status: 403, body: { message: "Resource not accessible" } },
+			]);
+
+			const err = await capture(() => syncProperties(rest, REPO, { monorepo: "true" }));
+
+			const message = (err as Error).message;
+			expect(message).toContain("could not be read");
+			expect(message).toContain(`GitHub said: ${"x".repeat(300)}`);
+			expect(message).not.toContain("x".repeat(301));
+		});
+
+		it("uses the whole body when its message is not text", async () => {
+			const { rest } = makeRest([
+				{ status: 422, text: JSON.stringify({ message: 42 }) },
+				{ status: 200, body: SCHEMA },
+			]);
+
+			const err = await capture(() => syncProperties(rest, REPO, { holocron_capabilities: ["ci"] }));
+
+			expect((err as Error).message).toContain('GitHub said: {"message":42}');
+		});
+
+		it("still explains itself with a client that cannot read the definitions, and with no body", async () => {
+			const client = {
+				properties: {
+					setProperties: async () => {
+						throw new ProviderApiError("GitHub PATCH → 422", 422);
+					},
+				},
+			} as unknown as GitHubClient;
+
+			const err = await capture(() => syncProperties(client, REPO, { monorepo: "true" }));
+
+			expect((err as Error).message).toContain("could not be read");
+			expect((err as Error).message).toMatch(/GitHub said: $/);
+		});
+	});
+
+	it("passes an error that is not a 422 through untouched, without reading the definitions", async () => {
+		const { rest, calls } = makeRest([{ status: 403, body: { message: "Forbidden" } }]);
+
+		const err = await syncProperties(rest, REPO, { monorepo: "true" }).catch((e: unknown) => e);
+
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(403);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("passes an error that is not from the API through untouched", async () => {
+		const boom = new TypeError("not a response");
+		const client = {
+			properties: {
+				setProperties: async () => {
+					throw boom;
+				},
+			},
+		} as unknown as GitHubClient;
+
+		const err = await syncProperties(client, REPO, { monorepo: "true" }).catch((e: unknown) => e);
+
+		expect(err).toBe(boom);
 	});
 });
