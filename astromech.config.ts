@@ -21,7 +21,12 @@ export default defineConfig({
 		// (tsdown.config.ts) that get associated with Sentry releases — the
 		// token needs to be part of turbo's cache key, or a token rotation
 		// wouldn't invalidate a stale cached build.
-		{ name: "delivery.build", required: true, turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"] } },
+		{
+			name: "delivery.build",
+			required: true,
+			with: { affected: true },
+			turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"] },
+		},
 		// Audit, decomposed (epic #672, D3/#675 — the old single `audit` task's
 		// 3 jobs are now separate tasks). This repo has no lighthouse config,
 		// so verification.performance isn't included (matches the old
