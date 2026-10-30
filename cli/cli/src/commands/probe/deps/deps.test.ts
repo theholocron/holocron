@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 import type { ProbeRow } from "../../../plugin/index.js";
 import { checkDeps } from "./check-deps.js";
@@ -241,5 +241,82 @@ describe("a workspace on disk", () => {
 		});
 		const problems = checkDeps(planDeps(root));
 		expect(problems.some((p) => p.includes("@types/node") && p.includes("belongs in catalog:"))).toBe(true);
+	});
+});
+
+describe("a small workspace with no peer floors", () => {
+	const root = mkdtempSync(join(tmpdir(), "deps-probe-small-"));
+	afterAll(() => {
+		rmSync(root, { recursive: true });
+		vi.restoreAllMocks();
+	});
+
+	const manifest = (dir: string, json: unknown): void => {
+		mkdirSync(join(root, dir), { recursive: true });
+		writeFileSync(join(root, dir, "package.json"), JSON.stringify(json));
+	};
+	const small = [
+		"packages:",
+		'  - "cli/*"',
+		'  - "plugins/*"',
+		'  - "empty"',
+		"",
+		"catalog:",
+		'  "@types/node": ^26',
+		"",
+		"catalogs:",
+		"  cli:",
+		"    yargs: ^18.1.0",
+		"",
+	].join("\n");
+	writeFileSync(join(root, "pnpm-workspace.yaml"), small);
+	manifest("", { name: "root" });
+	manifest("cli/a", { name: "@x/a", dependencies: { yargs: "catalog:cli", "@types/node": "catalog:" } });
+	// no name, and a peer range for a package it also depends on
+	manifest("plugins/nameless", {
+		devDependencies: { "@types/node": "catalog:" },
+		peerDependencies: { "@types/node": "^20" },
+	});
+	mkdirSync(join(root, "empty"), { recursive: true });
+
+	it("follows the rule, and leaves a peer range of a catalog dependency alone", () => {
+		expect(checkDeps(planDeps(root))).toEqual([]);
+	});
+
+	it("leaves the peer sections out of the report when there are none", () => {
+		const report = reportDeps(planDeps(root));
+		expect(report).not.toContain("Peer floors");
+		expect(report).not.toContain("Peer ranges only");
+		expect(report).toContain("`@types/node`");
+	});
+
+	it("names a package without a name as the root, and a named catalog by its reference", () => {
+		const plan = planDeps(root);
+		expect(reportDeps(plan, "@types/node")).toContain("(root)");
+		expect(reportDeps(plan, "yargs")).toContain("catalog:cli");
+	});
+
+	it("finds no folders without a packages block, and skips a folder with no manifest", () => {
+		expect(workspaceDirs(root, "catalog:\n")).toEqual([""]);
+		expect(workspaceDirs(root, small)).not.toContain("empty");
+	});
+
+	it("takes either of two ranges with the same minimum version", () => {
+		const picked = pickRange(["^1.2.0", "~1.2.0"]);
+		expect(["^1.2.0", "~1.2.0"]).toContain(picked.range);
+		expect(picked.majorConflict).toBe(false);
+	});
+
+	it("prints to the console when no printer is given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		await depsProbes(root)["report"]!.run({
+			dryRun: false,
+			args: [],
+			say: () => {},
+			write: async () => undefined,
+			cleanup: () => {},
+			secret: () => {},
+		});
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("# Dependencies"));
 	});
 });

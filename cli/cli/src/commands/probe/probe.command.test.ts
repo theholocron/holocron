@@ -77,6 +77,11 @@ describe("probe command", () => {
 		expect(process.exitCode).toBeUndefined();
 	});
 
+	it("passes the arguments after the probe name on, as strings", async () => {
+		await run({ provider: "deps", probe: "who", args: ["vitest", 2] });
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["vitest", "2"] });
+	});
+
 	it("leaves out a provider and probe it was not given, and exits 1 when the probes failed", async () => {
 		runProbeCommand.mockResolvedValue({ status: "fail" });
 		await run();

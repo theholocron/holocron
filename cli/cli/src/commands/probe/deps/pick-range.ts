@@ -15,7 +15,8 @@ export function pickRange(ranges: string[], preferred?: string): PickedRange {
 	const unique = [...new Set(ranges)];
 	if (preferred && unique.includes(preferred)) return { range: preferred, majorConflict: majorsDiffer(unique) };
 	const parsed = unique.map((r) => ({ r, v: minVersion(r) }));
-	if (parsed.some((p) => !p.v)) return { range: unique[0] ?? "", majorConflict: unique.length > 1, unparsed: true };
+	if (parsed.some((p) => !p.v))
+		return { range: unique[0] as string, majorConflict: unique.length > 1, unparsed: true };
 	parsed.sort((a, b) => {
 		const [x, y] = [a.v as number[], b.v as number[]];
 		for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return (y[i] as number) - (x[i] as number);

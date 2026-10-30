@@ -29,12 +29,11 @@ export function planDeps(root: string): DependencyPlan {
 	for (const edge of edges) {
 		if (inRepo.has(edge.name) && edge.section !== "peerDependencies") {
 			// a package that is in this workspace is linked with workspace:, not a version from npm or a
-			// catalog; a peer range is the exception, it is a compatibility range for consumers
-			if (!edge.spec.startsWith("workspace:")) {
-				flags.push(
-					`${edge.file}: ${edge.section}.${edge.name} is "${edge.spec}", but it is a workspace package; use "workspace:^"`
-				);
-			}
+			// catalog (collectEdges already left the workspace: links out); a peer range is the exception, it is
+			// a compatibility range for consumers
+			flags.push(
+				`${edge.file}: ${edge.section}.${edge.name} is "${edge.spec}", but it is a workspace package; use "workspace:^"`
+			);
 			continue;
 		}
 		const entry = byName.get(edge.name) ?? { name: edge.name, edges: [], groups: new Set<string>() };
