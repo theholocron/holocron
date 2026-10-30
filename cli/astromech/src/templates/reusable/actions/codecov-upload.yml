@@ -1,0 +1,91 @@
+name: Codecov upload
+description: >
+  Upload coverage to Codecov with one flag per group, authenticated with the job's OIDC token (the job
+  needs `id-token: write`). Downloads the Codecov CLI and verifies its GPG signature and checksum first,
+  as `codecov/codecov-action` does. `codecov-action` takes one `flags:` value per step and a job cannot
+  generate steps, so a list of groups needs this loop.
+
+inputs:
+  uploads:
+    description: >
+      JSON list of `{"flag": "utils", "files": "utils/*/coverage/lcov.info"}`. `files` is a glob relative to
+      the workspace. A group whose glob matches nothing is skipped with a note, not an error.
+    required: true
+  allow-empty:
+    description: >
+      `"true"` lets a run with no coverage file in any group finish quietly (an affected run that selected
+      nothing). Otherwise that is an error, so a missing report is not mistaken for a pass.
+    required: false
+    default: "false"
+
+outputs:
+  uploaded:
+    description: How many flags were uploaded (0 when no group had a coverage file).
+    value: ${{ steps.upload.outputs.uploaded }}
+
+runs:
+  using: composite
+
+  steps:
+    - name: Download the Codecov CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        dir="$RUNNER_TEMP/codecov-cli"
+        mkdir -p "$dir" && cd "$dir"
+        base=https://cli.codecov.io/latest/linux
+        curl -sSf --retry 3 -o codecov "$base/codecov"
+        curl -sSf --retry 3 -O "$base/codecov.SHA256SUM"
+        curl -sSf --retry 3 -O "$base/codecov.SHA256SUM.sig"
+        export GNUPGHOME="$dir/gnupg" && mkdir -m 700 "$GNUPGHOME"
+        curl -sSf --retry 3 https://keybase.io/codecovsecops/pgp_keys.asc | gpg --batch --import
+        gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM
+        sha256sum -c codecov.SHA256SUM
+        chmod +x codecov
+        echo "CODECOV_CLI=$dir/codecov" >> "$GITHUB_ENV"
+
+    - name: Upload each flag
+      id: upload
+      shell: bash
+      env:
+        UPLOADS: ${{ inputs.uploads }}
+        ALLOW_EMPTY: ${{ inputs.allow-empty }}
+      run: |
+        set -euo pipefail
+        if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+          echo "::error::No OIDC token available: give the job \`permissions: id-token: write\`."
+          exit 1
+        fi
+        if ! jq -e 'type == "array" and all(.[]; (.flag // "") != "" and (.files // "") != "")' <<<"$UPLOADS" >/dev/null; then
+          echo "::error::uploads must be a JSON list of {\"flag\", \"files\"} with both set."
+          exit 1
+        fi
+        # The token codecov-action asks for with `use_oidc: true`.
+        token="$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://codecov.io" | jq -r .value)"
+        if [ -z "$token" ] || [ "$token" = null ]; then
+          echo "::error::Could not get an OIDC token."
+          exit 1
+        fi
+        echo "::add-mask::$token"
+        uploaded=0
+        # Read the list on fd 3: the loop body must not share stdin with the CLI, which could swallow the
+        # remaining entries. A process substitution (not a pipe) keeps `uploaded` in this shell.
+        while read -r entry <&3; do
+          flag="$(jq -r .flag <<<"$entry")"
+          mapfile -t files < <(compgen -G "$(jq -r .files <<<"$entry")" || true)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "· $flag: no coverage files"
+            continue
+          fi
+          args=()
+          for f in "${files[@]}"; do args+=(--file "$f"); done
+          echo "→ $flag: ${#files[@]} file(s)"
+          "$CODECOV_CLI" do-upload -t "$token" --flag "$flag" --disable-search --fail-on-error --git-service github "${args[@]}"
+          uploaded=$((uploaded + 1))
+        done 3< <(jq -c '.[]' <<<"$UPLOADS")
+        echo "uploaded=$uploaded" >> "$GITHUB_OUTPUT"
+        if [ "$uploaded" -eq 0 ] && [ "$ALLOW_EMPTY" != "true" ]; then
+          echo "::error::No group has a coverage file, so nothing was uploaded."
+          exit 1
+        fi

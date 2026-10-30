@@ -8,6 +8,11 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         required: false
         default: false
+      uploads:
+        description: 'JSON list of {"flag", "files"} to upload one Codecov flag per group, e.g. [{"flag":"utils","files":"utils/*/coverage/lcov.info"}]. Empty uploads all coverage as one report, as before.'
+        type: string
+        required: false
+        default: ""
       run-unit:
         description: Run unit tests with coverage (disable for UI-only repos that use Storybook testing exclusively)
         type: boolean
@@ -87,10 +92,19 @@ jobs:
       # (holocron#934).
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload coverage to Codecov
-        if: ${{ !inputs.affected || steps.reports.outputs.coverage == 'true' }}
+        if: ${{ inputs.uploads == '' && (!inputs.affected || steps.reports.outputs.coverage == 'true') }}
         with:
           use_oidc: true
           fail_ci_if_error: true
+
+      # One upload per group, each with its own flag, so Codecov can carry the unchanged groups forward.
+      - id: flags
+        name: Upload coverage to Codecov, one flag per group
+        if: ${{ inputs.uploads != '' }}
+        uses: theholocron/.github/.github/actions/codecov-upload@main
+        with:
+          uploads: ${{ inputs.uploads }}
+          allow-empty: ${{ inputs.affected }}
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload test results to Codecov
@@ -103,7 +117,7 @@ jobs:
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Post the Codecov statuses without a report
-        if: ${{ inputs.affected && steps.reports.outputs.coverage != 'true' }}
+        if: ${{ inputs.affected && (inputs.uploads == '' && steps.reports.outputs.coverage != 'true' || inputs.uploads != '' && steps.flags.outputs.uploaded == '0') }}
         with:
           use_oidc: true
           fail_ci_if_error: true
