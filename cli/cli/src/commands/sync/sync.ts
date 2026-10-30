@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, createHeader, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
+import { createAstromech, KNOWN_WORKFLOWS, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
@@ -23,17 +23,10 @@ import {
 	type SetupStepResult,
 	STALE_LABELS,
 } from "../setup/index.js";
-import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
-
-// The only content this file ever prefixes with workflowHeader() is thin-caller
-// workflow content from astromech.thinCallers() — sync.ts just writes it. The
-// actual template/generation logic a contributor would edit lives there.
-const { workflowHeader } = createHeader({
-	source: "cli/astromech/src/thin-callers.ts",
-	tool: "holocron repo sync",
-});
 import { runSyncReadme } from "../sync-readme/index.js";
 import { runSyncWiki } from "../sync-wiki/index.js";
+import { thinCallerFile } from "../thin-caller-file/index.js";
+import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import type { RunSyncInput, SyncStep } from "./sync.type.js";
 
 export const SYNC_STEPS = [
@@ -474,11 +467,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 							await assertNoPackageCollision(name, pkgRelPath, filename, () =>
 								readExistingWorkflowFile(gitRoot, filename)
 							);
-							await writeWorkflowFile(
-								gitRoot,
-								filename,
-								`${workflowHeader()}# Source package: ${pkgRelPath}\n\n${content}`
-							);
+							await writeWorkflowFile(gitRoot, filename, thinCallerFile(pkgRelPath, content));
 						})
 					);
 					print(formatSyncStep(steps[steps.length - 1]!));

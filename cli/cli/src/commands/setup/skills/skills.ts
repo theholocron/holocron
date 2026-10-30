@@ -168,7 +168,14 @@ export async function installSkills({
 	}
 
 	if (installed.length > 0 || stale.length > 0 || missing.length > 0 || externalFailed.length > 0) {
-		await updateSkillsGitignore(gitignorePath, [...installed, ...missing, ...externalFailed], symlinkFn);
+		// In the order of the configured list, not the order the installs finished in: a skill fetched from outside
+		// the registry lands after the bundled ones, and which skills that is changes from one run to the next.
+		const managed = new Set([...installed, ...missing, ...externalFailed]);
+		await updateSkillsGitignore(
+			gitignorePath,
+			skills.filter((name) => managed.has(name)),
+			symlinkFn
+		);
 	}
 
 	const parts: string[] = [`installed ${installed.length}`];

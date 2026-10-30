@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -170,5 +170,46 @@ describe("installSkills — auto-install @theholocron/skills (holocron#653)", ()
 		await installSkills({ agent: "claude", skills: [], repoRoot }).catch(() => undefined);
 
 		expect(spy).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("installSkills — the managed .gitignore block", () => {
+	let repoRoot: string;
+
+	beforeEach(async () => {
+		repoRoot = await mkdtemp(join(tmpdir(), "holocron-skills-order-"));
+		const skillsRoot = join(repoRoot, "node_modules", "@theholocron", "skills");
+		await mkdir(join(skillsRoot, "src", "alpha"), { recursive: true });
+		await mkdir(join(skillsRoot, "src", "beta"), { recursive: true });
+		await writeFile(join(skillsRoot, "src", "alpha", "SKILL.md"), "alpha");
+		await writeFile(join(skillsRoot, "src", "beta", "SKILL.md"), "beta");
+		await writeFile(
+			join(skillsRoot, "package.json"),
+			JSON.stringify({ name: "@theholocron/skills", exports: { "./package.json": "./package.json" } })
+		);
+	});
+	afterEach(async () => {
+		await rm(repoRoot, { recursive: true, force: true });
+	});
+
+	const lines = async (): Promise<string[]> =>
+		(await readFile(join(repoRoot, ".gitignore"), "utf8")).split("\n").filter((l) => l.startsWith("/"));
+
+	it("lists the skills in the order they are configured, whether they installed or not", async () => {
+		// "gamma" is not in the registry (and has no lock entry), so it is only "unknown"; the order is the config's
+		await installSkills({ agent: "claude", skills: ["gamma", "alpha", "beta"], repoRoot });
+		expect(await lines()).toEqual([
+			"/.agents/skills/",
+			"/.claude/skills/gamma",
+			"/.claude/skills/alpha",
+			"/.claude/skills/beta",
+		]);
+	});
+
+	it("writes the same block on a second run", async () => {
+		await installSkills({ agent: "claude", skills: ["gamma", "alpha", "beta"], repoRoot });
+		const first = await readFile(join(repoRoot, ".gitignore"), "utf8");
+		await installSkills({ agent: "claude", skills: ["gamma", "alpha", "beta"], repoRoot });
+		expect(await readFile(join(repoRoot, ".gitignore"), "utf8")).toBe(first);
 	});
 });

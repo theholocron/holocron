@@ -278,6 +278,14 @@ from \"pino\"" packages/` must return **nothing** (source). The CLI's
 - **Idempotent capability operations.** Probe-then-act, treat
   "already exists" / 409 / EPRECONDITION as success, never break
   on re-runs.
+- **A generated file is the same bytes whichever command writes it, and passes the repo's own formatting check.**
+  `holocron repo setup` and `holocron repo sync` both write the thin-caller workflows and `turbo.json`; running
+  either on an up-to-date checkout must leave `git diff` empty. So: a file both commands write goes through one
+  function (`thinCallerFile()` in `cli/cli/src/commands/thin-caller-file/`, whose header names `holocron repo sync`
+  for either command); a generator that writes JSON uses `formatJson()` (`cli/astromech/src/utils/format-json/`),
+  which lays the file out the way Prettier does (an array that fits in 120 columns stays on one line), not
+  `JSON.stringify`; and a managed block (`.gitignore` skills) lists its entries in the configured order, not the
+  order the installs happened to finish in. A test for a new generated file should check Prettier leaves it as it is.
 - **`holocron.config.json` is the contract.** No hardcoded vendor
   lists, no hardcoded paths, no implicit assumptions. Config drives
   loader; loader drives commands.
