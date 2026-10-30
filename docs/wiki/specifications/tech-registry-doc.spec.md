@@ -42,7 +42,7 @@ Internal constants (`ORG`, `SCOPE`, `DOCS_BASE`, etc.) are never exported
 directly. Every public value goes through a function. This allows:
 
 - `DOCS_BASE` to read `process.env.DOCS_BASE_URL` for staging/preview builds
-- Easy mocking in tests
+- Mocking in tests
 - Adding parameters later without a breaking change
 
 **No `fromConfig()` adapter.**
