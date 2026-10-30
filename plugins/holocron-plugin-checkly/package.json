@@ -53,9 +53,9 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "@theholocron/checkly-client": "catalog:clients",
+    "@theholocron/checkly-client": "catalog:peers",
     "@theholocron/cli": "workspace:*",
-    "@theholocron/misc-utils": "catalog:utils"
+    "@theholocron/misc-utils": "catalog:peers"
   },
   "engines": {
     "node": ">=22"

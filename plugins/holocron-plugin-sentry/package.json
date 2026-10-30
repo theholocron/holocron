@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/sentry-client": "workspace:^",
@@ -60,8 +60,8 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/misc-utils": "catalog:utils",
-    "@theholocron/sentry-client": "catalog:clients"
+    "@theholocron/misc-utils": "catalog:peers",
+    "@theholocron/sentry-client": "catalog:peers"
   },
   "peerDependenciesMeta": {
     "@theholocron/sentry-client": {}

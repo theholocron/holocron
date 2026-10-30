@@ -80,6 +80,36 @@ describe("turboConfig", () => {
 		expect(parsed.tasks["delivery.build"]?.passThroughEnv).toEqual(["SENTRY_AUTH_TOKEN"]);
 	});
 
+	it("appends a per-repo turbo.dependsOn override to the registry default, without repeating one", () => {
+		const content = turboConfig({
+			tasks: [
+				{
+					name: "sourceQuality.staticAnalysis",
+					turbo: { dependsOn: ["@x/config#delivery.build", "^delivery.build"] },
+				},
+			],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> };
+		expect(parsed.tasks["sourceQuality.staticAnalysis"]?.dependsOn).toEqual([
+			"^delivery.build",
+			"@x/config#delivery.build",
+		]);
+	});
+
+	it("keeps the registry dependsOn when no override is given", () => {
+		const content = turboConfig({ tasks: ["sourceQuality.staticAnalysis"] });
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> };
+		expect(parsed.tasks["sourceQuality.staticAnalysis"]?.dependsOn).toEqual(["^delivery.build"]);
+	});
+
+	it("rejects a turbo.dependsOn that is not an array of strings", () => {
+		expect(() =>
+			turboConfig({
+				tasks: [{ name: "delivery.build", turbo: { dependsOn: "^delivery.build" as never } }],
+			})
+		).toThrow(/turbo\.dependsOn must be an array of strings/);
+	});
+
 	it("omits passThroughEnv entirely when no override is given", () => {
 		const content = turboConfig({ tasks: ["delivery.build"] });
 		const parsed = JSON.parse(content!) as { tasks: Record<string, { passThroughEnv?: string[] }> };

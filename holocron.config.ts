@@ -63,7 +63,13 @@ export default defineConfig({
 	// and `syncScripts: false` live in `astromech.config.ts` and are merged
 	// in by astromech's `loadTasksConfig`.
 	tasks: [
-		{ name: "sourceQuality.staticAnalysis", required: true },
+		{
+			name: "sourceQuality.staticAnalysis",
+			required: true,
+			// Packages with no eslint.config of their own lint with the root one, which loads the workspace's
+			// eslint-config from dist: build it first, even for a package that does not list it as a dependency.
+			turbo: { dependsOn: ["@theholocron/eslint-config#delivery.build"] },
+		},
 		{ name: "sourceQuality.formatting", required: true },
 		{ name: "sourceQuality.structuredDataValidation", required: true },
 		{ name: "security.secretDetection", required: true },

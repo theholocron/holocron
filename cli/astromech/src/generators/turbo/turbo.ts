@@ -39,7 +39,11 @@ const GLOBAL_DEPENDENCIES = ["pnpm-workspace.yaml", "tsconfig.json"];
  * reaches this unchecked; a typed `holocron.config.ts` via `defineConfig`
  * already rejects the wrong shape at compile time.
  */
-function validatedGlobList(value: unknown, taskName: string, field: "inputs" | "passThroughEnv"): string[] {
+function validatedGlobList(
+	value: unknown,
+	taskName: string,
+	field: "inputs" | "passThroughEnv" | "dependsOn"
+): string[] {
 	if (value === undefined) return [];
 	if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
 		throw new Error(`task "${taskName}": turbo.${field} must be an array of strings, got ${JSON.stringify(value)}`);
@@ -67,6 +71,7 @@ export function turboConfig(config: TasksConfig): string | null {
 
 		const extraEnv = validatedGlobList(entry.turbo?.passThroughEnv, entry.name, "passThroughEnv");
 		const extraInputs = validatedGlobList(entry.turbo?.inputs, entry.name, "inputs");
+		const extraDependsOn = validatedGlobList(entry.turbo?.dependsOn, entry.name, "dependsOn");
 
 		// A task declared in more than one config layer accumulates onto
 		// whatever an earlier entry for the same name already contributed,
@@ -82,10 +87,13 @@ export function turboConfig(config: TasksConfig): string | null {
 		// (e.g. "**/*.ts") without losing the registry's other tracked
 		// inputs (package.json, tsdown.config.ts, …).
 		const inputs = extraInputs.length > 0 ? [...current.inputs, ...extraInputs] : current.inputs;
+		// Appended too, and a task already waiting on it is not listed twice.
+		const dependsOn = [...new Set([...current.dependsOn, ...extraDependsOn])];
 
 		tasks[entry.name] = {
 			...turbo,
 			inputs,
+			dependsOn,
 			...(passThroughEnv && passThroughEnv.length > 0 ? { passThroughEnv } : {}),
 		};
 	}

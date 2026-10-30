@@ -39,11 +39,11 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "libsodium-wrappers": "^0.8.4"
+    "libsodium-wrappers": "catalog:plugins"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/fs-utils": "workspace:^",
     "@theholocron/github-client": "workspace:^",
     "@theholocron/http-client": "workspace:^",
@@ -64,9 +64,9 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/fs-utils": "catalog:utils",
-    "@theholocron/github-client": "catalog:clients",
-    "@theholocron/misc-utils": "catalog:utils"
+    "@theholocron/fs-utils": "catalog:peers",
+    "@theholocron/github-client": "catalog:peers",
+    "@theholocron/misc-utils": "catalog:peers"
   },
   "engines": {
     "node": ">=22"

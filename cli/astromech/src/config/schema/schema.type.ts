@@ -46,6 +46,14 @@ export interface TaskEntry {
 		 * stay tracked without needing to be repeated here.
 		 */
 		inputs?: string[];
+		/**
+		 * Extra tasks this one waits for, appended to the registry default's
+		 * `dependsOn` — for a build the package does not list as a dependency
+		 * but its task loads anyway (e.g. `staticAnalysis` loading the root
+		 * ESLint config, which imports a package of the workspace). Turbo
+		 * syntax: `"<package>#<task>"`, `"^<task>"`.
+		 */
+		dependsOn?: string[];
 	};
 }
 
