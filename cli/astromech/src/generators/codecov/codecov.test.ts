@@ -6,10 +6,14 @@ import { describe, expect, it } from "vitest";
 
 import {
 	codecovConfig,
+	codecovFlagNames,
 	createCodecovConfig,
+	ensureFlagManagement,
 	ensureIfNotFound,
+	ensureInformationalComponentStatuses,
 	mergeCodecovComponents,
 	readWorkspacePackages,
+	scopeAggregateStatuses,
 } from "./codecov.js";
 
 describe("createCodecovConfig", () => {
@@ -99,9 +103,12 @@ describe("mergeCodecovComponents", () => {
 		expect(out).not.toContain("@acme/");
 	});
 
-	it("returns the file unchanged when individual_components marker is absent", () => {
+	it("leaves the components alone when the individual_components marker is absent", () => {
 		const noMarker = "codecov:\n  require_ci_to_pass: true\n";
-		expect(mergeCodecovComponents(noMarker, [{ slug: "foo", name: "@acme/foo" }])).toBe(noMarker);
+		const out = mergeCodecovComponents(noMarker, [{ slug: "foo", name: "@acme/foo" }]);
+		expect(out).toContain("require_ci_to_pass: true");
+		expect(out).not.toContain("component_id");
+		expect(out).toContain("    - name: packages");
 	});
 
 	it("injects if_not_found into a pre-existing codecov.yml that lacks it", () => {
@@ -319,5 +326,210 @@ describe("readWorkspacePackages with a pnpm-workspace.yaml", () => {
 		const out = createCodecovConfig([{ slug: "theme", name: "@theholocron/docs-theme", path: "docs/theme" }]);
 		expect(out).toContain("- docs/theme/**");
 		expect(out).toContain("component_id: theme");
+	});
+});
+
+const multi = [
+	{ slug: "comlink", name: "a", dir: "apps" },
+	{ slug: "sentinel", name: "b", dir: "apps" },
+	{ slug: "cli", name: "c", dir: "cli" },
+	{ slug: "observability", name: "d", path: "observability" },
+	{ slug: "docs-theme", name: "e", path: "docs/theme" },
+];
+
+describe("codecovFlagNames", () => {
+	it("returns one flag per group folder, in order, without duplicates or docs", () => {
+		expect(codecovFlagNames(multi)).toEqual(["apps", "cli", "observability"]);
+	});
+
+	it("returns no flags without packages", () => {
+		expect(codecovFlagNames([])).toEqual([]);
+	});
+});
+
+describe("flag_management in a generated file", () => {
+	it("emits carryforward defaults and one individual flag per folder, with no per-flag statuses", () => {
+		const out = createCodecovConfig(multi);
+		expect(out).toContain(
+			"flag_management:\n  default_rules:\n    carryforward: true\n  individual_flags:\n    - name: apps\n    - name: cli\n    - name: observability\n\ncomponent_management:"
+		);
+		expect(out).not.toContain("name: docs");
+		expect(out.split("flag_management:")[1]!.split("component_management:")[0]).not.toContain("statuses");
+	});
+
+	it("scopes the aggregate project and patch statuses to the flags", () => {
+		const out = createCodecovConfig(multi);
+		const flags = "        flags:\n          - apps\n          - cli\n          - observability\n";
+		expect(out).toContain(`    project:\n      default:\n${flags}        target: auto`);
+		expect(out).toContain(`    patch:\n      default:\n${flags}        target: 80%`);
+	});
+
+	it("makes the component statuses informational", () => {
+		expect(createCodecovConfig(multi)).toMatch(
+			/- type: patch\n\s+target: 80%\n\s+if_not_found: success\n\s+informational: true/
+		);
+	});
+
+	it("emits an empty flag list and no aggregate scoping without packages", () => {
+		const out = createCodecovConfig([]);
+		expect(out).toContain("  individual_flags: []");
+		expect(out).not.toContain("        flags:");
+	});
+
+	it("is idempotent through a merge", () => {
+		const once = createCodecovConfig(multi);
+		expect(mergeCodecovComponents(once, multi)).toBe(once);
+	});
+});
+
+describe("ensureFlagManagement", () => {
+	const base = "coverage:\n  precision: 2\n\ncomponent_management:\n  individual_components:";
+
+	it("inserts the section before component_management when absent", () => {
+		const out = ensureFlagManagement(base, ["apps"]);
+		expect(out).toBe(
+			"coverage:\n  precision: 2\n\nflag_management:\n  default_rules:\n    carryforward: true\n  individual_flags:\n    - name: apps\n\ncomponent_management:\n  individual_components:"
+		);
+	});
+
+	it("appends the section at the end when there is no component_management", () => {
+		const out = ensureFlagManagement("coverage:\n  precision: 2", ["apps"]);
+		expect(out).toBe(
+			"coverage:\n  precision: 2\n\nflag_management:\n  default_rules:\n    carryforward: true\n  individual_flags:\n    - name: apps"
+		);
+	});
+
+	it("only adds missing flags to an existing section, keeping hand edits", () => {
+		const existing = [
+			"flag_management:",
+			"  default_rules:",
+			"    carryforward: false",
+			"  individual_flags:",
+			"    - name: apps",
+			"      paths:",
+			"        - apps/",
+			"    - name: custom",
+			"",
+			"component_management:",
+		].join("\n");
+		const out = ensureFlagManagement(existing, ["apps", "cli"]);
+		expect(out).toBe(
+			[
+				"flag_management:",
+				"  default_rules:",
+				"    carryforward: false",
+				"  individual_flags:",
+				"    - name: apps",
+				"      paths:",
+				"        - apps/",
+				"    - name: custom",
+				"    - name: cli",
+				"",
+				"component_management:",
+			].join("\n")
+		);
+		expect(ensureFlagManagement(out, ["apps", "cli"])).toBe(out);
+	});
+
+	it("adds individual_flags to a section that lacks it", () => {
+		const out = ensureFlagManagement("flag_management:\n  default_rules:\n    carryforward: true\n", ["apps"]);
+		expect(out).toBe(
+			"flag_management:\n  default_rules:\n    carryforward: true\n  individual_flags:\n    - name: apps\n"
+		);
+	});
+
+	it("fills an empty individual_flags list", () => {
+		const out = ensureFlagManagement("flag_management:\n  individual_flags: []\n", ["apps"]);
+		expect(out).toBe("flag_management:\n  individual_flags:\n    - name: apps\n");
+	});
+
+	it("leaves an empty list empty when there are no flags", () => {
+		const text = "flag_management:\n  individual_flags: []\n";
+		expect(ensureFlagManagement(text, [])).toBe(text);
+	});
+});
+
+describe("scopeAggregateStatuses", () => {
+	const yaml = (flagsBlock: string) =>
+		`coverage:\n  status:\n    project:\n      default:\n${flagsBlock}        target: auto\n    patch:\n      default:\n        target: 80%\n`;
+
+	it("adds flags to both aggregates", () => {
+		const out = scopeAggregateStatuses(yaml(""), ["apps"]);
+		expect(out).toBe(
+			"coverage:\n  status:\n    project:\n      default:\n        flags:\n          - apps\n        target: auto\n    patch:\n      default:\n        flags:\n          - apps\n        target: 80%\n"
+		);
+	});
+
+	it("adds only the missing flags to an existing list", () => {
+		const out = scopeAggregateStatuses(yaml("        flags:\n          - apps\n          - extra\n"), [
+			"apps",
+			"cli",
+		]);
+		expect(out).toContain(
+			"        flags:\n          - apps\n          - extra\n          - cli\n        target: auto"
+		);
+	});
+
+	it("leaves an inline flags list alone", () => {
+		const text = yaml("        flags: [apps]\n");
+		expect(scopeAggregateStatuses(text, ["apps", "cli"])).toContain("        flags: [apps]\n        target: auto");
+	});
+
+	it("does nothing without flags, or without a default block", () => {
+		expect(scopeAggregateStatuses(yaml(""), [])).toBe(yaml(""));
+		const bare = "coverage:\n  status:\n    patch:\n      target: 80%\n";
+		expect(scopeAggregateStatuses(bare, ["apps"])).toBe(bare);
+		expect(scopeAggregateStatuses("codecov:\n", ["apps"])).toBe("codecov:\n");
+	});
+});
+
+describe("ensureInformationalComponentStatuses", () => {
+	const text = (extra: string) =>
+		`component_management:\n  default_rules:\n    statuses:\n      - type: patch\n        target: 80%\n${extra}  individual_components:\n`;
+
+	it("adds informational: true to each default status, once", () => {
+		const out = ensureInformationalComponentStatuses(text(""));
+		expect(out).toBe(text("        informational: true\n"));
+		expect(ensureInformationalComponentStatuses(out)).toBe(out);
+	});
+
+	it("keeps a status that already sets informational", () => {
+		const own = text("        informational: false\n");
+		expect(ensureInformationalComponentStatuses(own)).toBe(own);
+	});
+
+	it("works when there is no individual_components marker, and without the section", () => {
+		const noMarker =
+			"component_management:\n  default_rules:\n    statuses:\n      - type: patch\n        target: 80%\n";
+		expect(ensureInformationalComponentStatuses(noMarker)).toContain("informational: true");
+		expect(ensureInformationalComponentStatuses("codecov:\n")).toBe("codecov:\n");
+	});
+});
+
+describe("mergeCodecovComponents with flags", () => {
+	it("adds flag_management, scoping and informational statuses to an existing file without them", () => {
+		const old =
+			"coverage:\n  status:\n    project:\n      default:\n        target: auto\n    patch:\n      default:\n        target: 80%\n\ncomponent_management:\n  default_rules:\n    statuses:\n      - type: patch\n        target: 80%\n  individual_components:\n    - component_id: gone\n";
+		const out = mergeCodecovComponents(old, multi);
+		expect(out).toContain("flag_management:");
+		expect(out).toContain("        flags:\n          - apps");
+		expect(out).toContain("informational: true");
+		expect(out).not.toContain("gone");
+	});
+
+	it("refreshes an existing flag_management with a new folder", () => {
+		const old = createCodecovConfig(multi.slice(0, 2));
+		const out = mergeCodecovComponents(old, multi);
+		expect(out).toContain("    - name: cli");
+		expect(out.match(/ {4}- name: apps/g)).toHaveLength(1);
+	});
+});
+
+describe("ensureIfNotFound with sibling keys", () => {
+	it("stops at a sibling key that is not threshold/flags/paths/branches and inserts the key", () => {
+		const out = ensureIfNotFound(
+			"coverage:\n  status:\n    patch:\n      default:\n        target: 80%\n        base: parent\n"
+		);
+		expect(out).toContain("        target: 80%\n        if_not_found: success\n        base: parent");
 	});
 });
