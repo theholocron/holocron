@@ -37,3 +37,5 @@ str.toBoolean(""); // false
 ## Documentation
 
 Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/string-utils/) for more information.
+
+<!-- throwaway: checking that only the utils flag uploads (holocron#1250); do not merge -->
