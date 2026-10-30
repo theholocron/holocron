@@ -176,7 +176,6 @@ export function plan(root = fileURLToPath(new URL("..", import.meta.url))) {
 	const byName = new Map();
 	const flags = [];
 	for (const edge of edges) {
-		const isScoped = edge.name.startsWith(SCOPE);
 		if (inRepo.has(edge.name) && edge.section !== "peerDependencies") {
 			// a package that is in this workspace is linked with workspace:, not a version from npm or a
 			// catalog; a peer range is the exception, it is a compatibility range for consumers
