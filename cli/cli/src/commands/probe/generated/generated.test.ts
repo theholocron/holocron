@@ -45,7 +45,17 @@ describe("checkGenerated", () => {
 		});
 		expect(problems).toHaveLength(2);
 		expect(problems[0]).toMatch(/^a\.json: differs from what holocron generates/);
+		expect(problems[0]).toContain('first difference at line 1: committed "{ }", generated "{}"');
 		expect(problems[1]).toMatch(/^\.github\/workflows\/x\.yml: missing/);
+	});
+
+	it("names the line where a longer or shorter committed file first differs", () => {
+		const generated = [file("a.txt", "one\ntwo\n")];
+		const run = (committed: string) =>
+			checkGenerated({ files: generated, again: generated, read: () => committed, workflows: NONE })[0];
+		expect(run("one\ntwo\nthree\n")).toContain('first difference at line 3: committed "three", generated ""');
+		expect(run("one\n")).toContain('first difference at line 2: committed "", generated "two"');
+		expect(run("one\ntwo")).toContain('first difference at line 3: committed (end of file), generated ""');
 	});
 
 	it("reports a file whose second generation differs, or is absent", () => {

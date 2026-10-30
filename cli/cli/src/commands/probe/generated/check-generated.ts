@@ -14,6 +14,17 @@ export interface CheckGeneratedInput {
 
 const WORKFLOWS_DIR = ".github/workflows/";
 
+/** Where two texts first differ: the line number and both lines, cut to fit a terminal. */
+function firstDifference(committed: string, generated: string): string {
+	const a = committed.split("\n");
+	const b = generated.split("\n");
+	const line = a.findIndex((text, i) => text !== b[i]);
+	const at = line === -1 ? Math.min(a.length, b.length) : line;
+	const cut = (text: string | undefined) =>
+		text === undefined ? "(end of file)" : JSON.stringify(text.slice(0, 80));
+	return `first difference at line ${at + 1}: committed ${cut(a[at])}, generated ${cut(b[at])}`;
+}
+
 /** The package whose config generated a workflow, from its `# Source package:` marker (`.` is the root). */
 function sourcePackage(text: string): string | null {
 	return /^# Source package: (.+)$/m.exec(text)?.[1] ?? null;
@@ -33,7 +44,7 @@ export function checkGenerated({ files, again, read, workflows }: CheckGenerated
 			problems.push(`${file.path}: missing; run \`holocron repo setup\` or \`holocron repo sync\` and commit it`);
 		} else if (committed !== file.content) {
 			problems.push(
-				`${file.path}: differs from what holocron generates; run \`holocron repo setup\` or \`holocron repo sync\` and commit the result`
+				`${file.path}: differs from what holocron generates (${firstDifference(committed, file.content)}); run \`holocron repo setup\` or \`holocron repo sync\` and commit the result`
 			);
 		}
 		if (second.get(file.path) !== file.content) {
