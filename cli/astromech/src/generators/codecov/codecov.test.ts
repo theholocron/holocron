@@ -23,7 +23,7 @@ describe("createCodecovConfig", () => {
 		expect(out).toContain("require_ci_to_pass: true");
 		expect(out).toContain("target: auto");
 		expect(out).toContain("target: 80%");
-		expect(out).toContain('layout: "reach,diff,flags,components"');
+		expect(out).toContain('layout: "reach,diff,flags"');
 		expect(out).toContain("require_changes: true");
 	});
 
@@ -383,7 +383,8 @@ describe("flag_management in a generated file", () => {
 
 	it("scopes the aggregate project and patch statuses to the flags", () => {
 		const out = createCodecovConfig(multi);
-		const flags = "        flags:\n          - comlink\n          - sentinel\n          - cli\n          - observability\n";
+		const flags =
+			"        flags:\n          - comlink\n          - sentinel\n          - cli\n          - observability\n";
 		expect(out).toContain(`    project:\n      default:\n${flags}        target: auto`);
 		expect(out).toContain(`    patch:\n      default:\n${flags}        target: 80%`);
 	});

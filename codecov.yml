@@ -170,7 +170,7 @@ coverage:
         threshold: 2%
 
 comment:
-  layout: "reach,diff,flags,components"
+  layout: "reach,diff,flags"
   behavior: default
   require_changes: true
 
