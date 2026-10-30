@@ -211,3 +211,5 @@ bootstrap live in [`docs/self-hosting.md`](./docs/self-hosting.md).
 ## License
 
 MIT. See [`LICENSE`](./LICENSE).
+
+<!-- throwaway: README-only affected-CI test -->
