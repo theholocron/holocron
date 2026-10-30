@@ -3,6 +3,11 @@ name: Test
 on: # yamllint disable-line rule:truthy
   workflow_call:
     inputs:
+      affected:
+        description: Run only the packages changed since the PR base, plus their dependents (turbo --affected). Needs a turbo.json; checks out full history. Other repos keep today's behaviour while this is false.
+        type: boolean
+        required: false
+        default: false
       run-unit:
         description: Run unit tests with coverage (disable for UI-only repos that use Storybook testing exclusively)
         type: boolean
@@ -49,6 +54,9 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
+        with:
+          # --affected needs the base commit, which a depth-1 checkout does not have.
+          fetch-depth: ${{ inputs.affected && '0' || '1' }}
 
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
@@ -57,6 +65,20 @@ jobs:
         name: Run tests with coverage
         with:
           task: verification.unitTests
+          affected: ${{ inputs.affected }}
+
+      # With `affected`, a run that selects nothing (a README-only PR) writes no coverage. The two
+      # required Codecov statuses still have to post, so say so with an empty upload instead of
+      # failing the upload. Without `affected` a missing report stays an error.
+      - id: reports
+        name: Look for coverage and test reports
+        if: ${{ inputs.affected }}
+        shell: bash
+        run: |
+          # find, not hashFiles('**/…'): hashFiles walks node_modules and can time out in a large workspace.
+          has() { [ -n "$(find . -path ./node_modules -prune -o -path '*/node_modules' -prune -o -name "$1" -print -quit)" ]; }
+          has lcov.info && echo "coverage=true" >> "$GITHUB_OUTPUT" || echo "coverage=false" >> "$GITHUB_OUTPUT"
+          has test-report.junit.xml && echo "tests=true" >> "$GITHUB_OUTPUT" || echo "tests=false" >> "$GITHUB_OUTPUT"
 
       # A Codecov upload must not fail silently. fail_ci_if_error makes a failed
       # upload fail this step (the action's default is to log the error and pass),
@@ -65,18 +87,27 @@ jobs:
       # (holocron#934).
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload coverage to Codecov
+        if: ${{ !inputs.affected || steps.reports.outputs.coverage == 'true' }}
         with:
           use_oidc: true
           fail_ci_if_error: true
 
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && (!inputs.affected || steps.reports.outputs.tests == 'true') }}
         with:
           use_oidc: true
           fail_ci_if_error: true
           report_type: test_results
           files: "**/test-report.junit.xml"
+
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        name: Post the Codecov statuses without a report
+        if: ${{ inputs.affected && steps.reports.outputs.coverage != 'true' }}
+        with:
+          use_oidc: true
+          fail_ci_if_error: true
+          run_command: empty-upload
 
   storybook:
     name: Run Storybook interaction tests

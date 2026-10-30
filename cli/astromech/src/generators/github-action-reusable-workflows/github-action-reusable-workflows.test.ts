@@ -148,9 +148,32 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 				expect(step.split("\n\n")[0]!).toContain("fail_ci_if_error: true");
 			}
 		}
-		// coverage + test results in the unit and Storybook jobs, plus the release-commit upload
-		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!.split("- uses: codecov/codecov-action@")).toHaveLength(5);
+		// coverage + test results in the unit and Storybook jobs, the empty upload, plus the release-commit upload
+		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!.split("- uses: codecov/codecov-action@")).toHaveLength(6);
 		expect(REUSABLE_WORKFLOWS["delivery.publish"]!.split("- uses: codecov/codecov-action@")).toHaveLength(2);
+	});
+
+	it.each(["verification.unitTests", "verification.typeSafety", "delivery.build"] as const)(
+		"%s takes an `affected` input that is off by default and fetches full history only when it is on",
+		(name) => {
+			const wf = REUSABLE_WORKFLOWS[name]!;
+			expect(wf).toMatch(
+				/affected:\s*\n\s*description:[^\n]*\n\s*type: boolean\n\s*required: false\n\s*default: false/
+			);
+			// a quoted '0': the number 0 is falsy in an expression, so `x && 0 || 1` is always 1
+			expect(wf).toContain("fetch-depth: ${{ inputs.affected && '0' || '1' }}");
+			expect(wf).toContain("affected: ${{ inputs.affected }}");
+		}
+	);
+
+	it("verification.unitTests posts the Codecov statuses with an empty upload when an affected run wrote no report, and only then", () => {
+		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
+		const unit = wf.split("\n  storybook:\n")[0]!;
+		expect(unit).toContain("run_command: empty-upload");
+		expect(unit).toContain("if: ${{ inputs.affected && steps.reports.outputs.coverage != 'true' }}");
+		// without `affected` an upload still runs unconditionally, so a missing report stays an error
+		expect(unit).toContain("if: ${{ !inputs.affected || steps.reports.outputs.coverage == 'true' }}");
+		expect(unit).toContain("(!inputs.affected || steps.reports.outputs.tests == 'true')");
 	});
 
 	it("a failed Codecov upload fails the unit-test job, leaving 'required' to decide what blocks a merge (holocron#934)", () => {
