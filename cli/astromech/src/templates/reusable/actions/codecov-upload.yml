@@ -68,6 +68,10 @@ runs:
           exit 1
         fi
         echo "::add-mask::$token"
+        # What codecov-action does before it uploads: tell Codecov about the commit and open the report that
+        # the per-flag uploads attach to. Uploading alone leaves the report unprocessed and posts no status.
+        "$CODECOV_CLI" create-commit -t "$token" --fail-on-error --git-service github
+        "$CODECOV_CLI" create-report -t "$token" --fail-on-error --git-service github
         uploaded=0
         # Read the list on fd 3: the loop body must not share stdin with the CLI, which could swallow the
         # remaining entries. A process substitution (not a pipe) keeps `uploaded` in this shell.

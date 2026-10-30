@@ -189,6 +189,9 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(action).toContain('echo "::add-mask::$token"');
 		expect(action).toContain('--flag "$flag"');
 		expect(action).toContain("--fail-on-error");
+		// the commit and report exist before the first flag uploads, as codecov-action does it
+		expect(action.indexOf("create-commit")).toBeGreaterThan(-1);
+		expect(action.indexOf("create-report")).toBeLessThan(action.indexOf("do-upload"));
 		// nothing uploaded is an error unless the caller says an empty run is expected
 		expect(action).toMatch(/uploaded" -eq 0 \] && \[ "\$ALLOW_EMPTY" != "true"/);
 	});
