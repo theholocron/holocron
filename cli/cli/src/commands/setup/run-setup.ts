@@ -69,6 +69,7 @@ import {
 import dcoConfig from "../../templates/dco.yml";
 import { style, withSpinner } from "../../ui/index.js";
 import { withAutoPreviewDeployPaths } from "../preview-deploy-paths/index.js";
+import { thinCallerFile } from "../thin-caller-file/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
@@ -87,15 +88,6 @@ import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/index.js";
 
 const { workflowHeader } = createHeader({
 	source: "cli/cli/src/commands/setup/run-setup.ts",
-	tool: "holocron repo setup",
-});
-// Thin-caller workflow content comes from astromech.thinCallers(), not this
-// file — a separate binding so its header points contributors at the actual
-// template/generation logic (cli/astromech/src/thin-callers.ts), same as
-// the workflowHeader() calls further down that write genuinely cli-owned
-// templates (dco.yml).
-const { workflowHeader: thinCallerHeader } = createHeader({
-	source: "cli/astromech/src/thin-callers.ts",
 	tool: "holocron repo setup",
 });
 
@@ -268,10 +260,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 					await assertNoPackageCollision(name, setupPkgRelPath, filename, () =>
 						source.readWorkflowFile(filename)
 					);
-					await source.writeWorkflowFile(
-						filename,
-						`${thinCallerHeader()}# Source package: ${setupPkgRelPath}\n\n${content}`
-					);
+					// Thin-caller workflows are written by `repo sync` too, through the same function.
+					await source.writeWorkflowFile(filename, thinCallerFile(setupPkgRelPath, content));
 				})
 			);
 			print(formatStep(steps[steps.length - 1]!));
