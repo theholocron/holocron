@@ -15,31 +15,34 @@ import { reportDeps } from "./report-deps.js";
 import { targetCatalog } from "./target-catalog.js";
 import { workspaceDirs } from "./workspace-dirs.js";
 
-const YAML = `packages:
-  - "apps/*"
-  - "cli/*"
-  - "plugins/*"
-  - "solo"
-  - "!ignored"
-  - "missing/*"
-
-# a comment
-catalog:
-  "@types/node": ^26
-  typescript: ^5.9.3
-  tsx: 4.23.15
-
-catalogs:
-  # cli: only cli uses these
-  cli:
-    yargs: ^18.1.0
-
-  peers:
-    "@theholocron/widget-client": ^1.2.0
-
-overrides:
-  cookie: ^2.0.1
-`;
+// one string per line: the YAML needs its own spaces, and a template literal's would break the repo's tabs rule
+const YAML =
+	[
+		"packages:",
+		'  - "apps/*"',
+		'  - "cli/*"',
+		'  - "plugins/*"',
+		'  - "solo"',
+		'  - "!ignored"',
+		'  - "missing/*"',
+		"",
+		"# a comment",
+		"catalog:",
+		'  "@types/node": ^26',
+		"  typescript: ^5.9.3",
+		"  tsx: 4.23.15",
+		"",
+		"catalogs:",
+		"  # cli: only cli uses these",
+		"  cli:",
+		"    yargs: ^18.1.0",
+		"",
+		"  peers:",
+		'    "@theholocron/widget-client": ^1.2.0',
+		"",
+		"overrides:",
+		"  cookie: ^2.0.1",
+	].join("\n") + "\n";
 
 describe("parseCatalogs", () => {
 	it("reads the default catalog and the named ones, quoted keys included", () => {
