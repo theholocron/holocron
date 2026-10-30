@@ -719,7 +719,7 @@ same paths in `holocron.config`'s `eslint.browserPackages`:
 ```ts
 export default defineConfig({
   eslint: {
-    browserPackages: ["packages/github-client/src/app-auth"],
+    browserPackages: ["clients/github-client/src/app-auth"],
   },
 });
 ```

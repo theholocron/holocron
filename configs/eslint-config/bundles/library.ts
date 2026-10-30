@@ -12,8 +12,9 @@ export interface LibraryOptions {
 	 * `n/no-unsupported-features/node-builtins` false-positives on browser
 	 * APIs (`navigator`, `sessionStorage`, `KeyboardEvent`, …) it doesn't
 	 * recognize. Each entry gets a `<glob>/**` files match with the rule
-	 * turned off. Rare — most repos need nothing here (`theholocron/utils`
-	 * is the one org repo that does, for its browser-targeted packages).
+	 * turned off. Rare — most repos need nothing here (`utils/` in
+	 * `theholocron/holocron` is the one place that does, for its
+	 * browser-targeted packages).
 	 */
 	browserPackages?: string[];
 }
@@ -35,9 +36,9 @@ export interface LibraryOptions {
  * `recommended-module` preset sets `n/no-extraneous-import: "error"` with no
  * `files` restriction, which otherwise clobbers `base()`'s earlier, more
  * specific `docs/src/**` exemption (flat config merges in array order, later
- * entries win per rule per matching file). Found live: `theholocron/clients`
- * still needed its own local override for this despite `base()` already
- * covering it in isolation.
+ * entries win per rule per matching file). Found live: the former
+ * `theholocron/clients` repo still needed its own local override for this
+ * despite `base()` already covering it in isolation.
  */
 export function library(options: LibraryOptions = {}): Linter.Config[] {
 	return [

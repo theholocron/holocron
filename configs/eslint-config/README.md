@@ -85,7 +85,7 @@ export default [...library()];
 
 // With browser-targeted packages (turns off a Node-builtins rule that
 // false-positives on navigator/sessionStorage/KeyboardEvent/…):
-export default [...library({ browserPackages: ["packages/browser-utils/src"] })];
+export default [...library({ browserPackages: ["utils/browser-utils/src"] })];
 ```
 
 Add project-specific configs after the bundle — they are merged in order:

@@ -15,8 +15,8 @@
  *
  * Deliberately a plain `fetch` call, not `@theholocron/vercel-client`:
  * that client's typed `deployments.get()` takes a deployment ID, not a
- * URL, and extending it is cross-repo work (clients lives in
- * `theholocron/clients`) out of scope for this one-off, read-only check.
+ * URL, and extending it is a separate change (the client lives in
+ * `clients/vercel-client`) out of scope for this one-off, read-only check.
  */
 
 import type { VerifyVercelDeploymentProjectOptions } from "./verify-vercel-project.type.js";
