@@ -12,7 +12,7 @@ const ZONE_NAME = "example.com";
 
 function makeDns(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch });
+	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch, retryDelayMs: 0 });
 	return { dns: new CloudflareDns(() => client), calls };
 }
 
@@ -96,6 +96,52 @@ describe("CloudflareDns.upsertRecord — update path", () => {
 		const { dns, calls } = makeDns([cfOk([zone]), cfOk([record]), cfOk(record)]);
 		await dns.upsertRecord(ZONE_NAME, { type: "CNAME", name: "www", content: "new.com", proxied: true });
 		expect(calls[2]?.body).toMatchObject({ proxied: true });
+	});
+});
+
+describe("CloudflareDns.upsertRecord — a transient Cloudflare failure (#1398)", () => {
+	const unavailable = (status = 500) => ({ status, text: "internal error" });
+	const wanted = { type: "CNAME" as const, name: "preview", content: "pages.example.dev" };
+
+	it("creates the record after the list of existing records answered 500 once", async () => {
+		const { dns, calls } = makeDns([
+			cfOk([zone]), // zone lookup
+			unavailable(), // list — the failure repo setup hit
+			cfOk([]), // list again — no match
+			cfOk(record), // create
+		]);
+		const result = await dns.upsertRecord(ZONE_NAME, wanted);
+		expect(result.id).toBe("rec-1");
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "POST"]);
+		expect(calls[2]?.url).toBe(calls[1]?.url);
+	});
+
+	it("updates the record after the list answered 503 once", async () => {
+		const { dns, calls } = makeDns([cfOk([zone]), unavailable(503), cfOk([record]), cfOk(record)]);
+		await dns.upsertRecord(ZONE_NAME, wanted);
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "PATCH"]);
+	});
+
+	it("looks the zone up again when that answered 502 once", async () => {
+		const { dns, calls } = makeDns([unavailable(502), cfOk([zone]), cfOk([]), cfOk(record)]);
+		await dns.upsertRecord(ZONE_NAME, wanted);
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "POST"]);
+	});
+
+	it("fails with the last status and how many sends it took, and writes nothing, when the list keeps failing", async () => {
+		const { dns, calls } = makeDns([cfOk([zone]), unavailable(), unavailable(), unavailable()]);
+		const err = await dns.upsertRecord(ZONE_NAME, wanted).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(500);
+		expect((err as Error).message).toBe(`Cloudflare GET /zones/${ZONE_ID}/dns_records → 500 (after 3 attempts)`);
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "GET"]);
+	});
+
+	it("does not send the create again when it answered 503", async () => {
+		const { dns, calls } = makeDns([cfOk([zone]), cfOk([]), unavailable(503)]);
+		const err = await dns.upsertRecord(ZONE_NAME, wanted).catch((e: unknown) => e);
+		expect((err as ProviderApiError).status).toBe(503);
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "POST"]);
 	});
 });
 

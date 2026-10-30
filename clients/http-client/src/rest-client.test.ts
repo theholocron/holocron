@@ -466,6 +466,169 @@ describe("createRestClient — transport retries", () => {
 	});
 });
 
+describe("createRestClient — retried HTTP statuses", () => {
+	/** Answers with each status in turn (`ok` once they run out), keeping the headers and body it was given. */
+	const answering = (
+		replies: Array<{ status: number; headers?: Record<string, string>; text?: string }>,
+		after: { status: number; text: string } = { status: 200, text: "{}" }
+	) => {
+		let i = 0;
+		const fetch = vi.fn(async () => {
+			const next = replies[i++];
+			if (next) return new Response(next.text ?? "{}", { status: next.status, headers: next.headers ?? {} });
+			return new Response(after.text, { status: after.status });
+		});
+		return { fetch: fetch as unknown as typeof globalThis.fetch, count: () => fetch.mock.calls.length };
+	};
+	const client = (f: typeof globalThis.fetch, extra: { retries?: number; retryStatuses?: number[] } = {}) =>
+		createRestClient({
+			baseUrl: "https://api.test",
+			token: "t",
+			vendor: "Test",
+			fetch: f,
+			retryDelayMs: 0,
+			retryStatuses: [500, 502, 503],
+			...extra,
+		});
+
+	it("asks for a read again after a listed status, and returns the answer it then gets", async () => {
+		const f = answering([{ status: 500 }], { status: 200, text: '{"ok":true}' });
+		await expect(client(f.fetch).request("/x")).resolves.toEqual({ ok: true });
+		expect(f.count()).toBe(2);
+	});
+
+	it("gives up after the retries, keeping the last status and body and saying how many sends it took", async () => {
+		const f = answering([
+			{ status: 503, text: "one" },
+			{ status: 503, text: "two" },
+			{ status: 503, text: "three" },
+		]);
+		const err = await client(f.fetch)
+			.request("/x")
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).status).toBe(503);
+		expect((err as ProviderApiError).details).toBe("three");
+		expect((err as Error).message).toBe("Test GET /x → 503 (after 3 attempts)");
+		expect(f.count()).toBe(3);
+	});
+
+	it("quotes the vendor's id for the last answer, cf-ray first and x-request-id otherwise", async () => {
+		const lastRay = answering([
+			{ status: 500, headers: { "cf-ray": "first-ray" } },
+			{ status: 500 },
+			{ status: 500, headers: { "cf-ray": "last-ray", "x-request-id": "req-1" } },
+		]);
+		const ray = await client(lastRay.fetch)
+			.request("/x")
+			.catch((e: unknown) => e);
+		expect((ray as Error).message).toBe("Test GET /x → 500 (after 3 attempts; cf-ray: last-ray)");
+
+		const lastRequest = answering([
+			{ status: 500 },
+			{ status: 500 },
+			{ status: 500, headers: { "x-request-id": "req-2" } },
+		]);
+		const request = await client(lastRequest.fetch)
+			.request("/x")
+			.catch((e: unknown) => e);
+		expect((request as Error).message).toBe("Test GET /x → 500 (after 3 attempts; x-request-id: req-2)");
+	});
+
+	it("counts the sends it made when fewer retries were allowed", async () => {
+		const f = answering([{ status: 500 }, { status: 502 }]);
+		const err = await client(f.fetch, { retries: 1 })
+			.request("/x")
+			.catch((e: unknown) => e);
+		expect((err as Error).message).toBe("Test GET /x → 502 (after 2 attempts)");
+		expect(f.count()).toBe(2);
+	});
+
+	it("does not retry when no status is listed, so a client that does not ask behaves as before", async () => {
+		const f = answering([{ status: 500 }]);
+		const plain = createRestClient({ baseUrl: "https://api.test", token: "t", fetch: f.fetch, retryDelayMs: 0 });
+		const err = await plain.request("/x").catch((e: unknown) => e);
+		expect((err as Error).message).toBe("GET /x → 500");
+		expect(f.count()).toBe(1);
+	});
+
+	it("does not retry a status that is not listed, such as a 404 or a 429", async () => {
+		for (const status of [404, 429, 400]) {
+			const f = answering([{ status }]);
+			const err = await client(f.fetch)
+				.request("/x")
+				.catch((e: unknown) => e);
+			expect((err as ProviderApiError).status).toBe(status);
+			expect((err as Error).message).toBe(`Test GET /x → ${status}`);
+			expect(f.count()).toBe(1);
+		}
+	});
+
+	it("never repeats a write on a status, even a listed one", async () => {
+		for (const method of ["POST", "PATCH", "PUT", "DELETE"] as const) {
+			const f = answering([{ status: 503 }]);
+			const err = await client(f.fetch)
+				.request("/x", { method, body: {} })
+				.catch((e: unknown) => e);
+			expect((err as ProviderApiError).status).toBe(503);
+			expect((err as Error).message).toBe(`Test ${method} /x → 503`);
+			expect(f.count()).toBe(1);
+		}
+	});
+
+	it("can be turned off with retries: 0", async () => {
+		const f = answering([{ status: 500 }]);
+		await expect(client(f.fetch, { retries: 0 }).request("/x")).rejects.toThrow(/→ 500$/);
+		expect(f.count()).toBe(1);
+	});
+
+	it("tells a listener about each retry, with the status as its code", async () => {
+		const events: RetryEvent[] = [];
+		const stop = onRetry((e) => events.push(e));
+		try {
+			await client(answering([{ status: 502 }, { status: 500 }]).fetch).request("/x");
+		} finally {
+			stop();
+		}
+		expect(events).toEqual([
+			{ vendor: "Test", method: "GET", path: "/x", code: "HTTP 502", attempt: 2, of: 3, delayMs: 0 },
+			{ vendor: "Test", method: "GET", path: "/x", code: "HTTP 500", attempt: 3, of: 3, delayMs: 0 },
+		]);
+	});
+
+	it("reports only the last answer to the error sink, not every one that is retried", async () => {
+		const errors = {
+			init: vi.fn(),
+			startSpan: vi.fn(),
+			captureException: vi.fn(),
+			endSession: vi.fn(),
+			flush: vi.fn(),
+		};
+		const f = answering([{ status: 500 }, { status: 500 }, { status: 500 }]);
+		await createRestClient({
+			baseUrl: "https://api.test",
+			token: "t",
+			fetch: f.fetch,
+			retryDelayMs: 0,
+			retryStatuses: [500],
+			errors,
+		})
+			.request("/x")
+			.catch(() => {});
+		expect(errors.captureException).toHaveBeenCalledTimes(1);
+		expect((errors.captureException.mock.calls[0]?.[0] as Error).message).toBe("GET /x → 500 (after 3 attempts)");
+	});
+
+	it("repeats a read that gets a listed status with no body at all", async () => {
+		let n = 0;
+		const f = vi.fn(async () =>
+			n++ === 0 ? new Response(null, { status: 503 }) : new Response("{}", { status: 200 })
+		);
+		await expect(client(f as unknown as typeof globalThis.fetch).request("/x")).resolves.toEqual({});
+		expect(f).toHaveBeenCalledTimes(2);
+	});
+});
+
 describe("createRestClient defaults and unreadable bodies", () => {
 	it("falls back to the global fetch when none is given", async () => {
 		const spy = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));

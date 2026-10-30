@@ -13,7 +13,17 @@ export interface CloudflareClientOptions {
 	logger?: Logger;
 	/** Reports transport failures and unexpected 5xx. Defaults to a no-op. */
 	errors?: ErrorSink;
+	/** How many times a read is sent again after a transient failure (see `retryDelayMs`). Defaults to 2; 0 turns it off. */
+	retries?: number;
+	/** Milliseconds before the first retry; each later one waits three times as long. Defaults to 300. */
+	retryDelayMs?: number;
 }
+
+/**
+ * Cloudflare answers these when the API itself is briefly unavailable. A read that gets one is asked for again; a
+ * write is never repeated (it may have been applied). A 429 is left out because its `Retry-After` is not honoured here.
+ */
+const TRANSIENT_STATUSES = [500, 502, 503, 504];
 
 export interface CfEnvelope<T> {
 	success: boolean;
@@ -29,6 +39,9 @@ export function createCloudflareRestClient(opts: CloudflareClientOptions): RestC
 		fetch: opts.fetch,
 		logger: opts.logger,
 		errors: opts.errors,
+		retryStatuses: TRANSIENT_STATUSES,
+		retries: opts.retries,
+		retryDelayMs: opts.retryDelayMs,
 	});
 }
 

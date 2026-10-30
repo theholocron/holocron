@@ -118,6 +118,16 @@ await cf.workers.createRoute("zone-id", "example.com/*", "my-worker");
 await cf.workers.updateRoute("zone-id", routes[0].id, "example.com/*", "my-worker");
 ```
 
+## Retries
+
+A read (`GET`) that Cloudflare answers with `500`, `502`, `503` or `504`, or that fails in transit, is sent again up to twice, waiting 300 ms and then 900 ms. A write (`POST`, `PATCH`, `PUT`, `DELETE`) is never sent again, because it may have been applied. When a read still fails, the `ProviderApiError` keeps the last status and body and its message says how many sends it took, with the `cf-ray` id when Cloudflare sent one:
+
+```text
+Cloudflare GET /zones/abc/dns_records → 500 (after 3 attempts; cf-ray: 8a1b2c3d4e5f-LHR)
+```
+
+Pass `retries` (`0` turns it off) and `retryDelayMs` to `createCloudflareClient` to change this. A `429` is not retried: its `Retry-After` is not honoured.
+
 ## Auth
 
 Create an [API Token](https://dash.cloudflare.com/profile/api-tokens) with the permissions your use case requires:
