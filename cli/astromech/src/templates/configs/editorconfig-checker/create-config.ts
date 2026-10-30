@@ -1,5 +1,4 @@
-import { stringifyJson } from "@theholocron/json-utils";
-
+import { formatJson } from "../../../utils/index.js";
 import editorconfigChecker from "./editorconfig-checker.json";
 
 /**
@@ -14,5 +13,5 @@ import editorconfigChecker from "./editorconfig-checker.json";
  * buys nothing.
  */
 export function createConfig(): string {
-	return stringifyJson(editorconfigChecker);
+	return formatJson(editorconfigChecker);
 }

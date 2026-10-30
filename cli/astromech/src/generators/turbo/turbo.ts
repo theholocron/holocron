@@ -23,6 +23,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 
 import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
 import { TASKS } from "../../registry/index.js";
+import { formatJson } from "../../utils/index.js";
 import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult } from "./turbo.type.js";
 
 /** Filed once per repo, unconditionally — every generated turbo.json's root. */
@@ -100,7 +101,7 @@ export function turboConfig(config: TasksConfig): string | null {
 
 	if (Object.keys(tasks).length === 0) return null;
 
-	return stringifyJson({
+	return formatJson({
 		$schema: "https://turborepo.org/schema.json",
 		globalDependencies: GLOBAL_DEPENDENCIES,
 		tasks,

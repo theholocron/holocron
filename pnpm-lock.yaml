@@ -653,6 +653,9 @@ importers:
       globals:
         specifier: 'catalog:'
         version: 17.11.0
+      prettier:
+        specifier: 'catalog:'
+        version: 3.9.6
       tsdown:
         specifier: 'catalog:'
         version: 0.23.3(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
