@@ -23,7 +23,7 @@ const route = { id: "route-1", pattern: PATTERN, script: SCRIPT_NAME };
 
 function makeWorkers(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
-	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch });
+	const client = createCloudflareClient({ token: "cf-tok", baseUrl: BASE, fetch, retryDelayMs: 0 });
 	return { workers: new CloudflareWorkers(() => client, ACCOUNT), calls };
 }
 
@@ -112,10 +112,13 @@ describe("CloudflareWorkers — error handling", () => {
 	});
 
 	it("throws ProviderApiError when listRoutes returns non-ok status", async () => {
-		const { workers } = makeWorkers([{ status: 200 }, cfOk([zone]), { status: 500, text: "server error" }]);
+		// a read that answers 500 is sent again, so the failure has to persist for it to surface
+		const serverError = { status: 500, text: "server error" };
+		const { workers, calls } = makeWorkers([{ status: 200 }, cfOk([zone]), serverError, serverError, serverError]);
 		await expect(workers.upsertProxy(HOSTNAME, PROXY_CONFIG)).rejects.toThrow(
-			`Cloudflare GET /zones/${ZONE_ID}/workers/routes → 500`
+			`Cloudflare GET /zones/${ZONE_ID}/workers/routes → 500 (after 3 attempts)`
 		);
+		expect(calls).toHaveLength(5);
 	});
 
 	it("throws ProviderApiError when listRoutes returns success:false", async () => {
