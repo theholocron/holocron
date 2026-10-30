@@ -25,7 +25,7 @@ const RAW_PR = {
 	state: "closed" as const,
 	merged_at: "2026-08-28T00:00:00Z",
 	html_url: "https://github.com/theholocron/holocron/pull/42",
-	head: { ref: "fix/something" },
+	head: { ref: "fix/something", sha: "abc1234" },
 };
 
 describe("GitHubSource.getPullRequest", () => {
@@ -51,6 +51,40 @@ describe("GitHubSource.getPullRequest", () => {
 		const { source, calls } = makeSource([{ status: 200, body: RAW_PR }]);
 		await source.getPullRequest(42, "theholocron/clients");
 		expect(calls[0]?.url).toContain("/repos/theholocron/clients/pulls/42");
+	});
+});
+
+describe("GitHubSource.listPullRequests", () => {
+	it("lists one state and maps each pull request, with its head sha", async () => {
+		const { source, calls } = makeSource([
+			{ status: 200, body: [RAW_PR, { ...RAW_PR, number: 43, merged_at: null }] },
+		]);
+		const prs = await source.listPullRequests("closed");
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/pulls?state=closed");
+		expect(prs.map((p) => [p.number, p.merged, p.headSha])).toEqual([
+			[42, true, "abc1234"],
+			[43, false, "abc1234"],
+		]);
+	});
+
+	it("accepts a repo override", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: [] }]);
+		await source.listPullRequests("open", "theholocron/clients");
+		expect(calls[0]?.url).toContain("/repos/theholocron/clients/pulls?state=open");
+	});
+});
+
+describe("GitHubSource.listPullRequestCommits", () => {
+	it("returns the commit shas of a pull request", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: [{ sha: "aaa" }, { sha: "bbb" }] }]);
+		expect(await source.listPullRequestCommits(42)).toEqual(["aaa", "bbb"]);
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/pulls/42/commits");
+	});
+
+	it("accepts a repo override", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: [] }]);
+		await source.listPullRequestCommits(7, "theholocron/clients");
+		expect(calls[0]?.url).toContain("/repos/theholocron/clients/pulls/7/commits");
 	});
 });
 

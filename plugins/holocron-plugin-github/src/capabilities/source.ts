@@ -18,6 +18,7 @@ import {
 	createGitHubClient,
 	type CreatePagesPayload,
 	type GitHubClient,
+	type GitHubPullRequest,
 	type UpdatePagesPayload,
 } from "@theholocron/github-client";
 
@@ -38,6 +39,18 @@ export interface SourceOptions {
 	/** Forwarded to a secondary client created for Pages calls (HOLOCRON_DEPLOY_TOKEN). */
 	baseUrl?: string;
 	fetch?: typeof fetch;
+}
+
+function toPullRequest(raw: GitHubPullRequest): PullRequest {
+	return {
+		number: raw.number,
+		title: raw.title,
+		state: raw.state,
+		merged: raw.merged_at !== null,
+		branch: raw.head.ref,
+		headSha: raw.head.sha,
+		url: raw.html_url,
+	};
 }
 
 export class GitHubSource implements Source {
@@ -252,15 +265,15 @@ export class GitHubSource implements Source {
 	}
 
 	async getPullRequest(number: number, repo?: string): Promise<PullRequest> {
-		const raw = await this.client.pulls.getPullRequest(repo ?? this.repo, number);
-		return {
-			number: raw.number,
-			title: raw.title,
-			state: raw.state,
-			merged: raw.merged_at !== null,
-			branch: raw.head.ref,
-			url: raw.html_url,
-		};
+		return toPullRequest(await this.client.pulls.getPullRequest(repo ?? this.repo, number));
+	}
+
+	async listPullRequests(state: "open" | "closed", repo?: string): Promise<PullRequest[]> {
+		return (await this.client.pulls.listPullRequests(repo ?? this.repo, state)).map(toPullRequest);
+	}
+
+	async listPullRequestCommits(number: number, repo?: string): Promise<string[]> {
+		return (await this.client.pulls.listCommits(repo ?? this.repo, number)).map((commit) => commit.sha);
 	}
 
 	async configurePages(config: PagesConfig, token: string): Promise<void> {
