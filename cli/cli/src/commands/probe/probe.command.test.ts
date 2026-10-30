@@ -42,8 +42,8 @@ afterEach(() => {
 });
 
 describe("probe command", () => {
-	it("is `probe [provider] [probe]`", () => {
-		expect(probeCommand.command).toBe("probe [provider] [probe]");
+	it("is `probe [provider] [probe] [args..]`", () => {
+		expect(probeCommand.command).toBe("probe [provider] [probe] [args..]");
 	});
 
 	it("reads the provider and probe as positionals, and --yes", async () => {
@@ -75,6 +75,11 @@ describe("probe command", () => {
 		});
 		expect(input.pick).toBeUndefined();
 		expect(process.exitCode).toBeUndefined();
+	});
+
+	it("passes the arguments after the probe name on, as strings", async () => {
+		await run({ provider: "deps", probe: "who", args: ["vitest", 2] });
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["vitest", "2"] });
 	});
 
 	it("leaves out a provider and probe it was not given, and exits 1 when the probes failed", async () => {

@@ -40,7 +40,7 @@
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/cloudflare-client": "workspace:^",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
@@ -60,8 +60,8 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/cloudflare-client": "catalog:clients",
-    "@theholocron/misc-utils": "catalog:utils"
+    "@theholocron/cloudflare-client": "catalog:peers",
+    "@theholocron/misc-utils": "catalog:peers"
   },
   "peerDependenciesMeta": {
     "@theholocron/cloudflare-client": {}

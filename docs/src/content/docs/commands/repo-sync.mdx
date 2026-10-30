@@ -54,6 +54,12 @@ A task entry's `turbo.passThroughEnv` appends extra env vars to that task's cach
 tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"] } }];
 ```
 
+`turbo.inputs` appends input globs the same way. `turbo.dependsOn` appends tasks the task waits for, for a build it loads without listing the package as a dependency (turbo syntax, `"<package>#<task>"`):
+
+```typescript
+tasks: [{ name: "sourceQuality.staticAnalysis", turbo: { dependsOn: ["@theholocron/eslint-config#delivery.build"] } }];
+```
+
 ## Options
 
 | Option              | Description                           |

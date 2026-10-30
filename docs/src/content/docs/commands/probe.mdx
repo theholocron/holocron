@@ -6,7 +6,7 @@ description: Poke a live provider on purpose, to inspect it or to prove somethin
 ```bash
 holocron probe                          # on a terminal: a menu of every provider and probe; otherwise the list
 holocron probe <provider>               # list one provider's probes
-holocron probe <provider> <probe> [--dry-run] [--yes]
+holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes]
 ```
 
 A probe is a small, named check that talks to a real provider: _which integrations does Sentry have, and what do they allow?_ or _does a failing check reach #uptime?_ It is for the questions you would otherwise answer with a throwaway script. It is not [`doctor`](/holocron/commands/doctor/), which compares what `holocron.config.ts` declares with what exists; a probe has no layout to compare against.
@@ -74,6 +74,18 @@ The relay Worker (`apps/comlink`) is an app, not a provider, so these are the CL
 | `holocron probe comlink unsigned` | no             | Sends the relay requests it must refuse and checks the answers: a `GET` is 405, an unsigned `POST` is 401 and an unknown source is 404. A 404 on the real source means the Worker is not deployed on that host                                                                                                                                                                                                                                                    |
 | `holocron probe comlink bindings` | no             | Whether the Worker has `COMLINK_SENTRY_WEBHOOK` and `COMLINK_SENTRY_SECRET`, by name, and which other secrets it holds. Never the values. Needs a `workers` provider that can list secrets (Cloudflare can)                                                                                                                                                                                                                                                       |
 | `holocron probe comlink deliver`  | yes            | Sends the relay a correctly signed test alert, so an embed titled `Holocron probe: Comlink delivery check` lands in #errors. It needs the signing secret. It reads it from `COMLINK_SENTRY_SECRET` if set, else from the vault in the app's own config (`apps/comlink/holocron.config`, found from the Worker's `relay.code`, so with your Doppler token from the keyring and no `doppler run`), else from the repo's vault. The message stays; delete it by hand |
+
+## Dependencies
+
+The `deps` group is the CLI's own, like `core` and `comlink`. It reads every workspace `package.json` and `pnpm-workspace.yaml` live on each run (nothing is cached or generated) and checks them against the catalog rule written at the top of `pnpm-workspace.yaml`: a dependency used by two or more groups (a top-level folder) is in the default `catalog:`, one used by a single group is in that group's named catalog (`catalog:configs`), peer ranges stay out of catalogs, and a package that lives in this repo is linked with `workspace:`.
+
+| Probe                            | Changes things | What it does                                                                                                                                  |
+| -------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe deps report`     | no             | Prints a markdown report of every dependency, its catalog and range, and how widely it is used                                                |
+| `holocron probe deps who <name>` | no             | Lists the packages that use the dependencies whose name contains `<name>`, by group, with how (`prod`, `dev`, `peer`)                         |
+| `holocron probe deps check`      | no             | Fails for each hard-coded version, workspace package pinned to a version, dependency in the wrong catalog or unused catalog entry. CI runs it |
+
+CI runs `holocron probe deps check` on every pull request (the `Dependency catalogs / Check` required check).
 
 ## Writing a probe
 

@@ -36,11 +36,11 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "change-case": "^5.4.4",
-    "title-case": "^4.3.1"
+    "change-case": "catalog:utils",
+    "title-case": "catalog:utils"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@tsconfig/node-lts": "catalog:",

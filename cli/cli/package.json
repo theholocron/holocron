@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/cli",
-  "version": "5.0.0-alpha.255",
+  "version": "5.0.0-alpha.256",
   "description": "The Holocron CLI - a pluggable, capability-based orchestrator for spinning up and operating software projects.",
   "keywords": [
     "cli",
@@ -54,9 +54,9 @@
   },
   "dependencies": {
     "@axiomhq/pino": "catalog:",
-    "@inquirer/prompts": "catalog:",
-    "@inquirer/search": "catalog:",
-    "@napi-rs/keyring": "^1.3.0",
+    "@inquirer/prompts": "catalog:cli",
+    "@inquirer/search": "catalog:cli",
+    "@napi-rs/keyring": "catalog:",
     "@sentry/node": "catalog:",
     "@theholocron/astromech": "workspace:*",
     "@theholocron/datapad": "workspace:*",
@@ -71,19 +71,19 @@
     "@theholocron/pkg-utils": "workspace:^",
     "chalk": "catalog:",
     "dotenv": "catalog:",
-    "ora": "catalog:",
+    "ora": "catalog:cli",
     "pino": "catalog:",
     "pino-pretty": "catalog:",
     "posthog-node": "catalog:",
-    "yargs": "catalog:"
+    "yargs": "catalog:cli"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/rollup-plugin-transform-template": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
-    "@types/yargs": "catalog:",
+    "@types/yargs": "catalog:cli",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",

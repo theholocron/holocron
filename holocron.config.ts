@@ -52,7 +52,9 @@ export default defineConfig({
 	// for every package (one per workspace, hundreds once the org's repos are
 	// folded in) nor be relied on to appear. Codecov still posts the
 	// per-component statuses; they are informational, not required (#1223).
-	extraRequiredChecks: ["codecov/patch", "codecov/project"],
+	// "Dependency catalogs / Check" is the hand-maintained
+	// `.github/workflows/sourceQuality.dependencyCatalogs.yml` (`holocron probe deps check`, #1380).
+	extraRequiredChecks: ["codecov/patch", "codecov/project", "Dependency catalogs / Check"],
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
 	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/
@@ -63,7 +65,13 @@ export default defineConfig({
 	// and `syncScripts: false` live in `astromech.config.ts` and are merged
 	// in by astromech's `loadTasksConfig`.
 	tasks: [
-		{ name: "sourceQuality.staticAnalysis", required: true },
+		{
+			name: "sourceQuality.staticAnalysis",
+			required: true,
+			// Packages with no eslint.config of their own lint with the root one, which loads the workspace's
+			// eslint-config from dist: build it first, even for a package that does not list it as a dependency.
+			turbo: { dependsOn: ["@theholocron/eslint-config#delivery.build"] },
+		},
 		{ name: "sourceQuality.formatting", required: true },
 		{ name: "sourceQuality.structuredDataValidation", required: true },
 		{ name: "security.secretDetection", required: true },

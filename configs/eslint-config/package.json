@@ -112,21 +112,21 @@
     "verification.unitTests": "vitest run"
   },
   "dependencies": {
-    "@eslint/compat": "^2.1.0",
-    "eslint-package-json": "^0.3.0"
+    "@eslint/compat": "catalog:configs",
+    "eslint-package-json": "catalog:configs"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.0",
+    "@eslint/js": "catalog:configs",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
-    "@vitest/eslint-plugin": "^1.6.23",
-    "eslint-plugin-n": "^18.3.0",
-    "eslint-plugin-simple-import-sort": "^14.0.0",
-    "globals": "^17.11.0",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
+    "globals": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "typescript-eslint": "^8.67.0",
+    "typescript-eslint": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {

@@ -40,7 +40,7 @@
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/doppler-client": "workspace:^",
-    "@theholocron/eslint-config": "catalog:configs",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
@@ -59,8 +59,8 @@
   },
   "peerDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/doppler-client": "catalog:clients",
-    "@theholocron/misc-utils": "catalog:utils"
+    "@theholocron/doppler-client": "catalog:peers",
+    "@theholocron/misc-utils": "catalog:peers"
   },
   "engines": {
     "node": ">=22"

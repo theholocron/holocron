@@ -40,6 +40,16 @@ function run(over: Partial<Parameters<typeof runProbeCommand>[0]> = {}) {
 }
 
 describe("runProbeCommand", () => {
+	it("hands the words after the probe name to the probe, and lists the deps group", async () => {
+		read.mockClear();
+		const { promise } = run({ provider: "demo", probe: "look", args: ["vitest"] });
+		await promise;
+		expect(read.mock.calls[0]![0]).toMatchObject({ args: ["vitest"] });
+		const listing = run();
+		await listing.promise;
+		expect(listing.text()).toMatch(/deps\n\s+check/);
+	});
+
 	it("lists every provider and probe, marking the ones that change things", async () => {
 		const { promise, text } = run();
 		expect((await promise).status).toBe("listed");
@@ -191,7 +201,7 @@ describe("runProbeCommand", () => {
 		const pick = vi.fn(async (_groups: ReadonlyMap<string, PluginProbes>) => {});
 		const { promise, text } = run({ pick });
 		expect((await promise).status).toBe("listed");
-		expect([...pick.mock.calls[0]![0].keys()].sort()).toEqual(["comlink", "core", "demo", "docs"]);
+		expect([...pick.mock.calls[0]![0].keys()].sort()).toEqual(["comlink", "core", "demo", "deps", "docs"]);
 		expect(text()).toBe("");
 	});
 

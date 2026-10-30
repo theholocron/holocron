@@ -1,3 +1,14 @@
+## [5.0.0-alpha.256](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.255...v5.0.0-alpha.256) (2026-10-30)
+
+### Features
+
+* **astromech:** ✨ add holocron run --affected and base resolution ([#1392](https://github.com/theholocron/holocron/issues/1392)) ([e297185](https://github.com/theholocron/holocron/commit/e297185514b34b8b9f4cbe9a633e861faf4d8d05)), closes [#1232](https://github.com/theholocron/holocron/issues/1232)
+* **cli:** ✨ add holocron probe deps and enforce the dependency catalogs in CI ([#1388](https://github.com/theholocron/holocron/issues/1388)) ([420efb6](https://github.com/theholocron/holocron/commit/420efb6fb9d8ebf26fed62fb5d59725167a1bf71)), closes [#1380](https://github.com/theholocron/holocron/issues/1380)
+
+### Chores
+
+* **platform:** 🗂️ organize the pnpm catalogs by group and add a who-uses-what report ([#1384](https://github.com/theholocron/holocron/issues/1384)) ([49246a3](https://github.com/theholocron/holocron/commit/49246a3ea3652a6db9539f947fd73a93c7c5370c)), closes [#1380](https://github.com/theholocron/holocron/issues/1380)
+
 ## [5.0.0-alpha.255](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.254...v5.0.0-alpha.255) (2026-10-29)
 
 ### Refactoring

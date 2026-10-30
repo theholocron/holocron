@@ -60,13 +60,13 @@
     "verification.unitTests": "vitest run"
   },
   "devDependencies": {
-    "@codecov/vite-plugin": "^2.0.0",
+    "@codecov/vite-plugin": "catalog:configs",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vite": "^8.2.1",
+    "vite": "catalog:configs",
     "vitest": "catalog:"
   },
   "peerDependencies": {

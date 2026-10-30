@@ -15,7 +15,7 @@
         "$TURBO_ROOT$/eslint.config.cjs"
       ],
       "outputs": [],
-      "dependsOn": ["^delivery.build"]
+      "dependsOn": ["^delivery.build", "@theholocron/eslint-config#delivery.build"]
     },
     "verification.unitTests": {
       "inputs": ["src/**", "vitest.config.ts", "vitest.config.js", "vitest.config.mjs", "package.json"],

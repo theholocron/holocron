@@ -5,6 +5,7 @@ import type { GlobalArgs } from "../../cli-support/index.js";
 export interface ProbeArgs extends GlobalArgs {
 	provider?: string;
 	probe?: string;
+	args?: string[];
 	yes: boolean;
 }
 
@@ -17,6 +18,11 @@ export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 		.positional("probe", {
 			type: "string",
 			describe: "Which probe to run (omit to list the provider's)",
+		})
+		.positional("args", {
+			type: "string",
+			array: true,
+			describe: "Arguments for the probe (`probe deps who <name>`)",
 		})
 		.option("yes", {
 			type: "boolean",
