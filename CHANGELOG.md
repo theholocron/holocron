@@ -1,3 +1,10 @@
+## [5.0.0-alpha.259](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.258...v5.0.0-alpha.259) (2026-10-30)
+
+### Bug Fixes
+
+* **cloudflare:** 🐛 retry a read that gets a transient 5xx so repo setup does not fail on one ([#1414](https://github.com/theholocron/holocron/issues/1414)) ([55123d5](https://github.com/theholocron/holocron/commit/55123d5facaa1258883c01aa39c92c9305a64797)), closes [#1398](https://github.com/theholocron/holocron/issues/1398) [#1398](https://github.com/theholocron/holocron/issues/1398)
+* **github:** 🐛 say which custom property value GitHub refused on a 422 ([#1413](https://github.com/theholocron/holocron/issues/1413)) ([b1735be](https://github.com/theholocron/holocron/commit/b1735be046c75540a2c5ed897fb8acdc903b229c)), closes [#1397](https://github.com/theholocron/holocron/issues/1397)
+
 ## [5.0.0-alpha.258](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.257...v5.0.0-alpha.258) (2026-10-30)
 
 ### Bug Fixes
