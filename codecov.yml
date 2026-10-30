@@ -243,6 +243,12 @@ component_management:
       paths:
         - configs/vitest-config/**
 
+    # docs
+    - component_id: docs
+      name: "docs"
+      paths:
+        - docs/**
+
     # observability
     - component_id: observability
       name: "observability"
