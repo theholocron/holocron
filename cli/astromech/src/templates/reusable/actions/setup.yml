@@ -17,6 +17,16 @@ runs:
 
     - uses: theholocron/.github/.github/actions/install@main
 
+    # Restored before the bootstrap build below so `pnpm build` replays from the cache instead of running cold.
+    - name: Cache Turbo artifacts
+      if: ${{ hashFiles('turbo.json') != '' }}
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: .turbo
+        key: turbo-${{ runner.os }}-${{ github.sha }}
+        restore-keys: |
+          turbo-${{ runner.os }}-
+
     # `@theholocron/cli`'s `dist/cli.mjs` doesn't exist yet at this point, so
     # pnpm's workspace bin-linking can't create `node_modules/.bin/holocron`
     # (silent `WARN ... ENOENT`, not a hard failure). Every package whose
@@ -40,15 +50,6 @@ runs:
           echo "→ re-linking node_modules/.bin — pnpm skipped it pre-build" >&2
           pnpm install --frozen-lockfile
         fi
-
-    - name: Cache Turbo artifacts
-      if: ${{ hashFiles('turbo.json') != '' }}
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-      with:
-        path: .turbo
-        key: turbo-${{ runner.os }}-${{ github.sha }}
-        restore-keys: |
-          turbo-${{ runner.os }}-
 
     # A Turbo token with no team turns the remote cache off without a word: every task just runs cold. `TURBO_TEAM` is
     # an organization variable that `holocron repo setup` writes from `repo.variables.org.TURBO_TEAM` in
