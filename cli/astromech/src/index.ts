@@ -82,6 +82,7 @@ export {
 	createRcConfig as createAlexrc,
 } from "./templates/configs/alexjs/index.js";
 export { createConfig as createCommitMsg } from "./templates/configs/commit-msg/index.js";
+export type { DependabotConfigOptions } from "./templates/configs/dependabot/index.js";
 export { createConfig as createDependabot } from "./templates/configs/dependabot/index.js";
 export { createConfig as createDevmoji } from "./templates/configs/devmoji/index.js";
 export { createConfig as createEditorconfig } from "./templates/configs/editorconfig/index.js";

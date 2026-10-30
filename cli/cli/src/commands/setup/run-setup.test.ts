@@ -3728,6 +3728,40 @@ describe("runSetup", () => {
 		expect(written).toContain(".github/dependabot.yml");
 	});
 
+	it("keeps Dependabot off the workspace packages a catalog lists", async () => {
+		const repoRoot = await mkdtemp(join(tmpdir(), "setup-dependabot-"));
+		await mkdir(join(repoRoot, "clients", "a-client"), { recursive: true });
+		await writeFile(join(repoRoot, "clients", "a-client", "package.json"), JSON.stringify({ name: "@x/a-client" }));
+		await writeFile(
+			join(repoRoot, "pnpm-workspace.yaml"),
+			["packages:", '  - "clients/*"', "", "catalogs:", "  peers:", '    "@x/a-client": ^1.0.0', ""].join("\n")
+		);
+		let content = "";
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", source: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", { vault: { list: async () => [] } }),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					writeRepoFile: async (path: string, text: string) => {
+						if (path === ".github/dependabot.yml") content = text;
+					},
+				},
+			}),
+		});
+
+		try {
+			await runSetup({ loaded, context: { repoRoot }, loader, print: () => {} });
+		} finally {
+			await rm(repoRoot, { recursive: true, force: true });
+		}
+
+		expect(content).toContain('      - dependency-name: "@x/a-client"');
+	});
+
 	it("dry-run does not write .alexrc.json", async () => {
 		let writeCalled = false;
 		const loaded = loadedFrom({

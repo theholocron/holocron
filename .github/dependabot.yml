@@ -11,6 +11,23 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
+    ignore:
+      - dependency-name: "@theholocron/axiom-client"
+      - dependency-name: "@theholocron/checkly-client"
+      - dependency-name: "@theholocron/clerk-client"
+      - dependency-name: "@theholocron/cloudflare-client"
+      - dependency-name: "@theholocron/discord-client"
+      - dependency-name: "@theholocron/doppler-client"
+      - dependency-name: "@theholocron/fs-utils"
+      - dependency-name: "@theholocron/github-client"
+      - dependency-name: "@theholocron/infisical-client"
+      - dependency-name: "@theholocron/misc-utils"
+      - dependency-name: "@theholocron/neon-client"
+      - dependency-name: "@theholocron/netlify-client"
+      - dependency-name: "@theholocron/postman-client"
+      - dependency-name: "@theholocron/sentry-client"
+      - dependency-name: "@theholocron/slack-client"
+      - dependency-name: "@theholocron/vercel-client"
     groups:
       security-patches:
         applies-to: security-updates

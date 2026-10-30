@@ -36,7 +36,7 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 | Enable private vulnerability reporting | Private advisories                                                      |
 | Enable dependency graph                | Dependency graph + snapshot submission                                  |
 | Enable CodeQL                          | Default setup with extended query suite                                 |
-| Configure Dependabot                   | Writes `.github/dependabot.yml`                                         |
+| Configure Dependabot                   | Writes `.github/dependabot.yml` (see below)                             |
 | Sync labels                            | Upserts canonical labels; removes stale ones                            |
 | Sync properties                        | Sets org-level custom properties from `repo.properties`                 |
 | Sync topics                            | Sets GitHub topics from `repo.topics`                                   |
@@ -54,6 +54,8 @@ top-level `extraRequiredChecks`. No hand-maintained list.
 `--hooks` / `--no-hooks` — `setup` writes `.husky/pre-push` (runs `holocron run ci`)
 and sets `package.json#scripts.prepare` to `husky` (unless `syncScripts: false`).
 Run `pnpm install` once to activate it; bypass one push with `git push --no-verify`.
+
+**Dependabot.** `.github/dependabot.yml` is generated: weekly npm and GitHub Actions updates, grouped. Dependabot reads every entry of a pnpm catalog as a dependency, so for each package of the workspace that a catalog also lists (the plugins' minimum client and util versions, say) `setup` adds a name-only `ignore` entry to the npm ecosystem. Those entries are compatibility floors raised by hand, and the package itself is linked with `workspace:`. A package from outside the workspace in a catalog keeps getting updates, and so do security updates for every dependency (a name-only `ignore` only stops version updates).
 
 ### `vault` capability
 

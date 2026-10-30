@@ -81,6 +81,7 @@ import {
 } from "./derived-properties/index.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
+import { ownCatalogPackages } from "./own-catalog-packages/index.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, type RunSetupInput, runStep, type SetupReport, type SetupStepResult } from "./run-step/index.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/index.js";
@@ -297,7 +298,10 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const source = loader.get("source") as Source;
 		steps.push(
 			await runStep("source", "write .github/dependabot.yml", dryRun, async () => {
-				await source.writeRepoFile(".github/dependabot.yml", createDependabot());
+				await source.writeRepoFile(
+					".github/dependabot.yml",
+					createDependabot({ ignore: ownCatalogPackages(input.context.repoRoot) })
+				);
 			})
 		);
 		print(formatStep(steps[steps.length - 1]!));
