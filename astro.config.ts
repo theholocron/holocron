@@ -32,6 +32,7 @@ export default defineConfig({
 					{ label: "notifications sync-roles", slug: "commands/notifications-sync-roles" },
 					{ label: "package bump-versions", slug: "commands/package-bump-versions" },
 					{ label: "package publish", slug: "commands/package-publish" },
+					{ label: "repo cleanup", slug: "commands/repo-cleanup" },
 					{ label: "repo setup", slug: "commands/repo-setup" },
 					{ label: "repo sync", slug: "commands/repo-sync" },
 					{ label: "repo upgrade", slug: "commands/repo-upgrade" },

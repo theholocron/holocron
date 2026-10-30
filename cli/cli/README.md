@@ -111,7 +111,7 @@ Every command is tagged with how much of a repo it needs:
 | ------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin`, `repo upgrade …`, `auth set` / `check`, `package …`, `run lint commit-msg`, `skills …` |
 | `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `config show`, `repo sync readme`, `deploy on-release`                                                           |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `repo setup`, `repo sync`, `secrets …`, `deploy`, `sync github`                                                         |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `repo setup`, `repo sync`, `repo cleanup branches`, `secrets …`, `deploy`, `sync github`                                |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
@@ -588,6 +588,14 @@ Provider credentials for Discord: `discord.holonet` is the **bot token** (Bot �
 **OAuth client secret** (OAuth2 → Reset Secret). They are different values; the API can create or read neither.
 
 See the [command pages](https://theholocron.dev/holocron/commands/notifications-setup/) for each command's options.
+
+## Cleaning up
+
+- **`holocron repo cleanup branches --local`** — lists the local branches and, with `--yes`, deletes the ones
+  proven merged: an ancestor of `origin/alpha` or `origin/main`, or the head (or an ancestor, or one of the
+  commits) of a merged pull request. Branches with more commits than their merged PR, with an open PR, checked
+  out (here or in a worktree), or never merged are listed and kept. Pull requests come from the `source`
+  provider (`Source.listPullRequests` / `listPullRequestCommits`).
 
 ## Upgrading
 

@@ -1,0 +1,41 @@
+---
+title: "repo cleanup"
+description: Delete the local branches whose pull request is merged.
+---
+
+The `cleanup` subcommand group removes what a repo accumulates.
+
+## `cleanup branches --local`
+
+```bash
+holocron repo cleanup branches --local [--yes] [--repo <owner/name>] [--dry-run]
+```
+
+Squash-merging leaves every merged branch looking unmerged to git, so `git branch --merged` finds almost none of them. This command asks the source provider which pull requests merged, then sorts every local branch and deletes only the ones it can prove are merged. It needs the source provider's plugin, so run it with `pnpm exec holocron`.
+
+By default it only lists. `--yes` deletes; `--dry-run` wins over `--yes`. Branches are deleted with `git branch -D`, because a squash-merged branch is not an ancestor of the base and `-d` refuses it.
+
+### What each branch is
+
+| Group            | Meaning                                                                                                                | With `--yes` |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------ |
+| merged           | An ancestor of `origin/alpha` or `origin/main`.                                                                        | deleted      |
+| squash-merged    | A merged PR has this branch as its head, and the tip is that PR's head, an ancestor of it, or one of the PR's commits. | deleted      |
+| has more commits | A merged PR has this branch as its head, but the tip is none of those, so the branch holds more.                       | listed, kept |
+| closed unmerged  | The PR was closed without merging.                                                                                     | listed, kept |
+| no PR            | No PR, and not merged.                                                                                                 | listed, kept |
+
+The groups that are kept are listed newest first. A branch that is never touched is reported as skipped, with the reason: `alpha` and `main`, the checked-out branch, a branch any worktree has out, and a branch with an open PR.
+
+The squash-merged match by a PR's commits is the weakest evidence, since contents are not compared; a tip that is among a merged PR's commits is treated as merged.
+
+### Options
+
+| Option      | Default      | Description                                                         |
+| ----------- | ------------ | ------------------------------------------------------------------- |
+| `--local`   | _(required)_ | Clean up the branches in this checkout. It is the only mode so far. |
+| `--yes`     | `false`      | Delete the merged branches. Without it nothing is touched.          |
+| `--repo`    | _(config)_   | `owner/name` to look pull requests up in                            |
+| `--dry-run` | `false`      | List only, even with `--yes`                                        |
+
+Fetch first (`git fetch origin`) so `origin/alpha` and `origin/main` are current: a branch counts as merged by ancestry only against what the checkout has.

@@ -148,7 +148,12 @@ describe("launchMenu", () => {
 			source: (t?: string) => Array<{ value: string }>;
 		};
 		expect(level.message).toBe("repo — choose a subcommand:");
-		expect(level.source().map((i) => i.value)).toEqual(["repo setup", "group:repo sync", "group:repo upgrade"]);
+		expect(level.source().map((i) => i.value)).toEqual([
+			"repo setup",
+			"group:repo sync",
+			"group:repo cleanup",
+			"group:repo upgrade",
+		]);
 		expect(spawnMock.mock.calls[0]![1]).toEqual([process.argv[1], "repo", "setup"]);
 	});
 

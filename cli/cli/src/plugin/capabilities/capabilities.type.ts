@@ -259,6 +259,19 @@ export interface Source extends ProviderIdentity {
 	getPullRequest?(number: number, repo?: string): Promise<PullRequest>;
 
 	/**
+	 * Every pull request in one state, newest first. `closed` includes the merged ones (`merged` tells them
+	 * apart). Optional — providers without a PR concept omit this.
+	 */
+	listPullRequests?(state: "open" | "closed", repo?: string): Promise<PullRequest[]>;
+
+	/**
+	 * The commit SHAs of one pull request, in commit order. A squash-merged branch is not an ancestor of the
+	 * base, so this is how a local tip is matched to a PR whose head commit is not in the checkout.
+	 * Optional — providers without a PR concept omit this.
+	 */
+	listPullRequestCommits?(number: number, repo?: string): Promise<string[]>;
+
+	/**
 	 * Enable or update GitHub Pages for the repository.
 	 * Idempotent: POST to create, PUT to update existing settings.
 	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
@@ -294,6 +307,8 @@ export interface PullRequest {
 	merged: boolean;
 	/** The head branch name (e.g. "fix/my-change"). */
 	branch: string;
+	/** The commit the head branch pointed at when the PR was last read. */
+	headSha?: string;
 	url: string;
 }
 

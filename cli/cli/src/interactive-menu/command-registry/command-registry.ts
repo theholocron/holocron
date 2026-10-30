@@ -21,6 +21,7 @@ import { pluginCreateEntry } from "../../commands/plugin-create/plugin-create.en
 import { probeEntry } from "../../commands/probe/probe.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
 import { repoSyncEntry } from "../../commands/repo/repo-sync.entry.js";
+import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
 import { runCiEntry } from "../../commands/run/run-ci.entry.js";
 import { secretSetEntry } from "../../commands/secret-set/secret-set.entry.js";
 import { secretsSyncEntry } from "../../commands/secrets-sync/secrets-sync.entry.js";
@@ -64,6 +65,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	npmBumpVersionsEntry,
 	publishEntry,
 	repoSyncEntry,
+	repoCleanupBranchesEntry,
 	runCiEntry,
 	syncGithubEntry,
 	syncReadmeEntry,
