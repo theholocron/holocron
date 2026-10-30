@@ -92,11 +92,141 @@ export function ensureIfNotFound(yaml: string): string {
 	return out.join("\n");
 }
 
+/** Folders that never get a flag: `docs` coverage must not count toward the aggregate statuses. */
+const FLAGLESS_FOLDERS = new Set(["docs"]);
+
+/**
+ * One Codecov flag per workspace group folder (the first path segment of each
+ * package location: `apps`, `cli`, `configs`, ...), in package order, without
+ * duplicates and without `docs`.
+ */
+export function codecovFlagNames(packages: WorkspacePackage[]): string[] {
+	const names = packages.map((pkg) => location(pkg).split("/")[0]!).filter((root) => !FLAGLESS_FOLDERS.has(root));
+	return [...new Set(names)];
+}
+
+/** `[start, end)` of a top-level key's section; trailing blank lines are not part of it. `null` when absent. */
+function section(lines: string[], key: string): [number, number] | null {
+	const start = lines.indexOf(`${key}:`);
+	if (start === -1) return null;
+	let end = lines.findIndex((line, i) => i > start && /^[A-Za-z_]/.test(line));
+	if (end === -1) end = lines.length;
+	while (lines[end - 1]!.trim() === "") end--;
+	return [start, end];
+}
+
+/** Insert the entries of `wanted` that no existing list item names, after the list's last line (`listEnd`). */
+function appendMissingItems(
+	lines: string[],
+	listStart: number,
+	listEnd: number,
+	wanted: string[],
+	itemName: RegExp,
+	render: (name: string) => string
+): void {
+	const have = new Set(lines.slice(listStart + 1, listEnd).map((line) => itemName.exec(line)?.[1]));
+	lines.splice(listEnd, 0, ...wanted.filter((name) => !have.has(name)).map(render));
+}
+
+const FLAG_ENTRY = /^ {4}- name:\s*(\S+)/;
+const flagEntry = (name: string) => `    - name: ${name}`;
+
+/**
+ * Ensure a top-level `flag_management:` section carries `default_rules.carryforward`
+ * and one `individual_flags` entry per flag. A missing section is inserted before
+ * `component_management:`; an existing one only gains the entries it lacks, so hand
+ * edits (extra flags, per-flag `paths`/`statuses`, a different `carryforward`) survive.
+ */
+export function ensureFlagManagement(yaml: string, flags: string[]): string {
+	const lines = yaml.split("\n");
+	const listHead = flags.length === 0 ? "  individual_flags: []" : "  individual_flags:";
+	const range = section(lines, "flag_management");
+	if (!range) {
+		const block = [
+			"flag_management:",
+			"  default_rules:",
+			"    carryforward: true",
+			listHead,
+			...flags.map(flagEntry),
+		];
+		const at = lines.indexOf("component_management:");
+		if (at === -1) lines.push("", ...block);
+		else lines.splice(at, 0, ...block, "");
+		return lines.join("\n");
+	}
+	const [start, end] = range;
+	const list = lines.findIndex((line, i) => i > start && i < end && /^ {2}individual_flags:/.test(line));
+	if (list === -1) {
+		lines.splice(end, 0, listHead, ...flags.map(flagEntry));
+	} else if (/\[\s*\]\s*$/.test(lines[list]!)) {
+		if (flags.length > 0) lines.splice(list, 1, listHead, ...flags.map(flagEntry));
+	} else {
+		appendMissingItems(lines, list, end, flags, FLAG_ENTRY, flagEntry);
+	}
+	return lines.join("\n");
+}
+
+/**
+ * Scope `coverage.status.project.default` and `coverage.status.patch.default` to
+ * the flags, so the required `codecov/project` and `codecov/patch` contexts keep
+ * their names while only counting the grouped (non-`docs`) coverage. A block that
+ * already lists flags only gains the missing ones; an inline `flags: [...]` is left alone.
+ */
+export function scopeAggregateStatuses(yaml: string, flags: string[]): string {
+	if (flags.length === 0) return yaml;
+	const lines = yaml.split("\n");
+	for (const kind of ["project", "patch"]) {
+		const at = lines.indexOf(`    ${kind}:`);
+		if (at === -1 || lines[at + 1] !== "      default:") continue;
+		let end = at + 2;
+		while (end < lines.length && /^ {8}/.test(lines[end]!)) end++;
+		const flagsAt = lines.findIndex((line, i) => i >= at + 2 && i < end && /^ {8}flags:/.test(line));
+		if (flagsAt === -1) {
+			lines.splice(at + 2, 0, "        flags:", ...flags.map((name) => `          - ${name}`));
+		} else if (!/^ {8}flags:\s*\S/.test(lines[flagsAt]!)) {
+			let listEnd = flagsAt + 1;
+			while (listEnd < end && /^ {10}- /.test(lines[listEnd]!)) listEnd++;
+			appendMissingItems(lines, flagsAt, listEnd, flags, /^ {10}- (\S+)/, (name) => `          - ${name}`);
+		}
+	}
+	return lines.join("\n");
+}
+
+/**
+ * Make the per-component statuses (`component_management.default_rules.statuses`)
+ * informational, so the ~70 `codecov/patch/<component>` contexts post but never block.
+ */
+export function ensureInformationalComponentStatuses(yaml: string): string {
+	const lines = yaml.split("\n");
+	const range = section(lines, "component_management");
+	if (!range) return yaml;
+	const stop = lines.indexOf(INDIVIDUAL_COMPONENTS_MARKER);
+	const limit = stop === -1 ? range[1] : stop;
+	const starts = lines.flatMap((line, i) => (i > range[0] && i < limit && /^ {6}- type:/.test(line) ? [i] : []));
+	for (const first of starts.reverse()) {
+		let last = first + 1;
+		while (last < limit && /^ {8}\S/.test(lines[last]!)) last++;
+		if (!lines.slice(first, last).some((line) => /^ {8}informational:/.test(line))) {
+			lines.splice(last, 0, "        informational: true");
+		}
+	}
+	return lines.join("\n");
+}
+
+/** Everything `codecov.yml` needs on top of the components list: if_not_found, flags, scoped aggregates, informational components. */
+function applyStatusRules(yaml: string, flags: string[]): string {
+	return ensureInformationalComponentStatuses(
+		scopeAggregateStatuses(ensureFlagManagement(ensureIfNotFound(yaml), flags), flags)
+	);
+}
+
 export function mergeCodecovComponents(existing: string, packages: WorkspacePackage[]): string {
+	const flags = codecovFlagNames(packages);
 	const idx = existing.indexOf(INDIVIDUAL_COMPONENTS_MARKER);
-	if (idx === -1) return ensureIfNotFound(existing);
+	if (idx === -1) return applyStatusRules(existing, flags);
 	return (
-		ensureIfNotFound(existing.slice(0, idx + INDIVIDUAL_COMPONENTS_MARKER.length)) + codecovComponentBlock(packages)
+		applyStatusRules(existing.slice(0, idx + INDIVIDUAL_COMPONENTS_MARKER.length), flags) +
+		codecovComponentBlock(packages)
 	);
 }
 
@@ -128,7 +258,8 @@ export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
 
 /** A brand-new `codecov.yml` — the scaffold header + the base template + this repo's component list. */
 export function createCodecovConfig(packages: WorkspacePackage[]): string {
-	return `${scaffoldHeader()}${codecovTemplate.trimEnd()}${codecovComponentBlock(packages)}`;
+	const base = applyStatusRules(codecovTemplate.trimEnd(), codecovFlagNames(packages));
+	return `${scaffoldHeader()}${base}${codecovComponentBlock(packages)}`;
 }
 
 /**

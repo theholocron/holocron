@@ -8,11 +8,31 @@ coverage:
   status:
     project:
       default:
+        flags:
+          - apps
+          - cli
+          - clients
+          - configs
+          - observability
+          - plugins
+          - skills
+          - themes
+          - utils
         target: auto
         if_not_found: success
         threshold: 2%
     patch:
       default:
+        flags:
+          - apps
+          - cli
+          - clients
+          - configs
+          - observability
+          - plugins
+          - skills
+          - themes
+          - utils
         target: 80%
         if_not_found: success
         threshold: 2%
@@ -22,12 +42,27 @@ comment:
   behavior: default
   require_changes: true
 
+flag_management:
+  default_rules:
+    carryforward: true
+  individual_flags:
+    - name: apps
+    - name: cli
+    - name: clients
+    - name: configs
+    - name: observability
+    - name: plugins
+    - name: skills
+    - name: themes
+    - name: utils
+
 component_management:
   default_rules:
     statuses:
       - type: patch
         target: 80%
         if_not_found: success
+        informational: true
   individual_components:
     # apps
     - component_id: comlink
@@ -242,12 +277,6 @@ component_management:
       name: "vitest-config"
       paths:
         - configs/vitest-config/**
-
-    # docs
-    - component_id: docs
-      name: "docs"
-      paths:
-        - docs/**
 
     # observability
     - component_id: observability

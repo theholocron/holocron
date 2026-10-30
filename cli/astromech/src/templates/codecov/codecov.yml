@@ -29,4 +29,5 @@ component_management:
       - type: patch
         target: 80%
         if_not_found: success
+        informational: true
   individual_components:
