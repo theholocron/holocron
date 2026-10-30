@@ -96,13 +96,26 @@ export function ensureIfNotFound(yaml: string): string {
 const FLAGLESS_FOLDERS = new Set(["docs"]);
 
 /**
- * One Codecov flag per workspace group folder (the first path segment of each
- * package location: `apps`, `cli`, `configs`, ...), in package order, without
- * duplicates and without `docs`.
+ * One Codecov flag per workspace package (its slug, the same name as its
+ * component), in package order, without `docs`. A flag per package, not per
+ * group folder: Codecov carries a flag forward whole or not at all, so a run that
+ * tests one package of a group would otherwise drop the group's other packages.
  */
 export function codecovFlagNames(packages: WorkspacePackage[]): string[] {
-	const names = packages.map((pkg) => location(pkg).split("/")[0]!).filter((root) => !FLAGLESS_FOLDERS.has(root));
-	return [...new Set(names)];
+	return packages.filter((pkg) => !FLAGLESS_FOLDERS.has(location(pkg).split("/")[0]!)).map((pkg) => pkg.slug);
+}
+
+/**
+ * The `uploads` input of the `verification.unitTests` workflow: a JSON list of `{ flag, files }`, one per package
+ * that has a flag. `files` is where the package writes its lcov report (`<location>/coverage/lcov.info`), unless
+ * `lcovPaths` names another for that slug (a package whose test runner writes it elsewhere).
+ */
+export function codecovUploads(packages: WorkspacePackage[], lcovPaths: Record<string, string> = {}): string {
+	const flags = new Set(codecovFlagNames(packages));
+	const entries = packages
+		.filter((pkg) => flags.has(pkg.slug))
+		.map((pkg) => ({ flag: pkg.slug, files: lcovPaths[pkg.slug] ?? `${location(pkg)}/coverage/lcov.info` }));
+	return JSON.stringify(entries);
 }
 
 /** `[start, end)` of a top-level key's section; trailing blank lines are not part of it. `null` when absent. */

@@ -9,30 +9,162 @@ coverage:
     project:
       default:
         flags:
-          - apps
           - cli
-          - clients
-          - configs
           - observability
-          - plugins
           - skills
-          - themes
-          - utils
+          - comlink
+          - sentinel
+          - astromech
+          - datapad
+          - axiom-client
+          - checkly-client
+          - clerk-client
+          - cloudflare-client
+          - confluence-client
+          - discord-client
+          - doppler-client
+          - github-client
+          - google-client
+          - http-client
+          - infisical-client
+          - jira-client
+          - neon-client
+          - netlify-client
+          - posthog-client
+          - postman-client
+          - sentry-client
+          - slack-client
+          - vercel-client
+          - zendesk-client
+          - astro-config
+          - browserslist-config
+          - commitlint-config
+          - devmoji-config
+          - eslint-config
+          - lighthouse-config
+          - lint-staged-config
+          - markdownlint-config
+          - prettier-config
+          - rollup-plugin-transform-template
+          - semantic-release-config
+          - storybook-config
+          - stylelint-config
+          - tsconfig
+          - tsdown-config
+          - vite-config
+          - vitest-config
+          - holocron-plugin-1password
+          - holocron-plugin-axiom
+          - holocron-plugin-checkly
+          - holocron-plugin-clerk
+          - holocron-plugin-cloudflare
+          - holocron-plugin-discord
+          - holocron-plugin-doppler
+          - holocron-plugin-fern
+          - holocron-plugin-github
+          - holocron-plugin-infisical
+          - holocron-plugin-neon
+          - holocron-plugin-netlify
+          - holocron-plugin-posthog
+          - holocron-plugin-postman
+          - holocron-plugin-sentry
+          - holocron-plugin-slack
+          - holocron-plugin-vercel
+          - docs-theme
+          - array-utils
+          - date-time-utils
+          - env-utils
+          - fs-utils
+          - git-utils
+          - json-utils
+          - location-utils
+          - misc-utils
+          - object-utils
+          - pkg-utils
+          - storage-utils
+          - string-utils
+          - uri-utils
         target: auto
         if_not_found: success
         threshold: 2%
     patch:
       default:
         flags:
-          - apps
           - cli
-          - clients
-          - configs
           - observability
-          - plugins
           - skills
-          - themes
-          - utils
+          - comlink
+          - sentinel
+          - astromech
+          - datapad
+          - axiom-client
+          - checkly-client
+          - clerk-client
+          - cloudflare-client
+          - confluence-client
+          - discord-client
+          - doppler-client
+          - github-client
+          - google-client
+          - http-client
+          - infisical-client
+          - jira-client
+          - neon-client
+          - netlify-client
+          - posthog-client
+          - postman-client
+          - sentry-client
+          - slack-client
+          - vercel-client
+          - zendesk-client
+          - astro-config
+          - browserslist-config
+          - commitlint-config
+          - devmoji-config
+          - eslint-config
+          - lighthouse-config
+          - lint-staged-config
+          - markdownlint-config
+          - prettier-config
+          - rollup-plugin-transform-template
+          - semantic-release-config
+          - storybook-config
+          - stylelint-config
+          - tsconfig
+          - tsdown-config
+          - vite-config
+          - vitest-config
+          - holocron-plugin-1password
+          - holocron-plugin-axiom
+          - holocron-plugin-checkly
+          - holocron-plugin-clerk
+          - holocron-plugin-cloudflare
+          - holocron-plugin-discord
+          - holocron-plugin-doppler
+          - holocron-plugin-fern
+          - holocron-plugin-github
+          - holocron-plugin-infisical
+          - holocron-plugin-neon
+          - holocron-plugin-netlify
+          - holocron-plugin-posthog
+          - holocron-plugin-postman
+          - holocron-plugin-sentry
+          - holocron-plugin-slack
+          - holocron-plugin-vercel
+          - docs-theme
+          - array-utils
+          - date-time-utils
+          - env-utils
+          - fs-utils
+          - git-utils
+          - json-utils
+          - location-utils
+          - misc-utils
+          - object-utils
+          - pkg-utils
+          - storage-utils
+          - string-utils
+          - uri-utils
         target: 80%
         if_not_found: success
         threshold: 2%
@@ -46,15 +178,81 @@ flag_management:
   default_rules:
     carryforward: true
   individual_flags:
-    - name: apps
     - name: cli
-    - name: clients
-    - name: configs
     - name: observability
-    - name: plugins
     - name: skills
-    - name: themes
-    - name: utils
+    - name: comlink
+    - name: sentinel
+    - name: astromech
+    - name: datapad
+    - name: axiom-client
+    - name: checkly-client
+    - name: clerk-client
+    - name: cloudflare-client
+    - name: confluence-client
+    - name: discord-client
+    - name: doppler-client
+    - name: github-client
+    - name: google-client
+    - name: http-client
+    - name: infisical-client
+    - name: jira-client
+    - name: neon-client
+    - name: netlify-client
+    - name: posthog-client
+    - name: postman-client
+    - name: sentry-client
+    - name: slack-client
+    - name: vercel-client
+    - name: zendesk-client
+    - name: astro-config
+    - name: browserslist-config
+    - name: commitlint-config
+    - name: devmoji-config
+    - name: eslint-config
+    - name: lighthouse-config
+    - name: lint-staged-config
+    - name: markdownlint-config
+    - name: prettier-config
+    - name: rollup-plugin-transform-template
+    - name: semantic-release-config
+    - name: storybook-config
+    - name: stylelint-config
+    - name: tsconfig
+    - name: tsdown-config
+    - name: vite-config
+    - name: vitest-config
+    - name: holocron-plugin-1password
+    - name: holocron-plugin-axiom
+    - name: holocron-plugin-checkly
+    - name: holocron-plugin-clerk
+    - name: holocron-plugin-cloudflare
+    - name: holocron-plugin-discord
+    - name: holocron-plugin-doppler
+    - name: holocron-plugin-fern
+    - name: holocron-plugin-github
+    - name: holocron-plugin-infisical
+    - name: holocron-plugin-neon
+    - name: holocron-plugin-netlify
+    - name: holocron-plugin-posthog
+    - name: holocron-plugin-postman
+    - name: holocron-plugin-sentry
+    - name: holocron-plugin-slack
+    - name: holocron-plugin-vercel
+    - name: docs-theme
+    - name: array-utils
+    - name: date-time-utils
+    - name: env-utils
+    - name: fs-utils
+    - name: git-utils
+    - name: json-utils
+    - name: location-utils
+    - name: misc-utils
+    - name: object-utils
+    - name: pkg-utils
+    - name: storage-utils
+    - name: string-utils
+    - name: uri-utils
 
 component_management:
   default_rules:
@@ -277,6 +475,12 @@ component_management:
       name: "vitest-config"
       paths:
         - configs/vitest-config/**
+
+    # docs
+    - component_id: docs
+      name: "docs"
+      paths:
+        - docs/**
 
     # observability
     - component_id: observability

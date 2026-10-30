@@ -27,6 +27,7 @@ export type { WorkspacePackage } from "./generators/codecov/index.js";
 export {
 	codecovComponentBlock,
 	codecovConfig,
+	codecovUploads,
 	createCodecovConfig,
 	ensureIfNotFound,
 	mergeCodecovComponents,
