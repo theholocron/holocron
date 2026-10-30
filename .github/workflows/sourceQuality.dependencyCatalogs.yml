@@ -10,6 +10,10 @@
 # Required: "Dependency catalogs / Check" is in `extraRequiredChecks` in holocron.config.ts, so
 # `holocron repo setup` adds it to the ruleset. There is deliberately no `paths:` filter: a required check
 # that is skipped blocks the merge.
+#
+# The job's name is the whole status ("Dependency catalogs / Check"): GitHub reports a job that runs steps under
+# its own name only, and adds the workflow name just for a job that calls a reusable workflow. With the job named
+# plain "Check" the required status above never arrives, and every PR waits on it.
 name: Dependency catalogs
 
 on: # yamllint disable-line rule:truthy
@@ -20,7 +24,7 @@ permissions:
 
 jobs:
   check:
-    name: Check
+    name: Dependency catalogs / Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
