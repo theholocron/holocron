@@ -9,7 +9,7 @@ const RAW_PR = {
 	state: "closed" as const,
 	merged_at: "2026-08-28T00:00:00Z",
 	html_url: "https://github.com/theholocron/test-repo/pull/42",
-	head: { ref: "fix/something" },
+	head: { ref: "fix/something", sha: "abc1234" },
 };
 
 describe("pulls.getPullRequest", () => {
@@ -24,6 +24,36 @@ describe("pulls.getPullRequest", () => {
 		expect(result.state).toBe("closed");
 		expect(result.merged_at).toBe("2026-08-28T00:00:00Z");
 		expect(result.head.ref).toBe("fix/something");
+	});
+});
+
+describe("pulls.listPullRequests", () => {
+	it("GETs one state, newest first, with the head sha", async () => {
+		const { fetch, calls } = stubFetch([{ body: [RAW_PR] }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listPullRequests(REPO, "closed");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/pulls?state=closed&sort=created&direction=desc");
+		expect(calls[0]?.url).toContain("per_page=100&page=1");
+		expect(result.map((pr) => pr.head.sha)).toEqual(["abc1234"]);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("reads the next page while a page comes back full, and stops at the first short one", async () => {
+		const full = Array.from({ length: 100 }, (_, i) => ({ ...RAW_PR, number: i + 1 }));
+		const { fetch, calls } = stubFetch([{ body: full }, { body: [{ ...RAW_PR, number: 101 }] }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listPullRequests(REPO, "open");
+		expect(result).toHaveLength(101);
+		expect(calls.map((c) => c.url.match(/&page=(\d+)/)?.[1])).toEqual(["1", "2"]);
+	});
+
+	it("stops at the page limit instead of reading forever", async () => {
+		const full = Array.from({ length: 100 }, (_, i) => ({ ...RAW_PR, number: i + 1 }));
+		const { fetch, calls } = stubFetch(Array.from({ length: 101 }, () => ({ body: full })));
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listPullRequests(REPO, "closed");
+		expect(calls).toHaveLength(100);
+		expect(result).toHaveLength(10_000);
 	});
 });
 
