@@ -1,6 +1,6 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "globalDependencies": ["pnpm-workspace.yaml", "tsconfig.json"],
+  "globalDependencies": ["pnpm-workspace.yaml", "tsconfig.json", "holocron.config.*", "astromech.config.*"],
   "tasks": {
     "sourceQuality.staticAnalysis": {
       "inputs": [
@@ -18,12 +18,22 @@
       "dependsOn": ["^delivery.build", "@theholocron/eslint-config#delivery.build"]
     },
     "verification.unitTests": {
-      "inputs": ["src/**", "vitest.config.ts", "vitest.config.js", "vitest.config.mjs", "package.json"],
+      "inputs": [
+        "src/**",
+        "test/**",
+        "vitest.config.ts",
+        "vitest.config.js",
+        "vitest.config.mjs",
+        "$TURBO_ROOT$/vitest.config.ts",
+        "$TURBO_ROOT$/vitest.config.js",
+        "$TURBO_ROOT$/vitest.config.mjs",
+        "package.json"
+      ],
       "outputs": ["test-report.junit.xml", "coverage/**"],
       "dependsOn": ["delivery.build", "^delivery.build"]
     },
     "verification.typeSafety": {
-      "inputs": ["src/**", "tsconfig.json"],
+      "inputs": ["src/**", "test/**", "tsconfig.json"],
       "outputs": [],
       "dependsOn": ["^delivery.build"]
     },

@@ -46,7 +46,12 @@ describe("turboConfig", () => {
 		const content = turboConfig({ tasks: ["verification.typeSafety"] });
 		const parsed = JSON.parse(content!) as { $schema: string; globalDependencies: string[] };
 		expect(parsed.$schema).toBe("https://turborepo.org/schema.json");
-		expect(parsed.globalDependencies).toEqual(["pnpm-workspace.yaml", "tsconfig.json"]);
+		expect(parsed.globalDependencies).toEqual([
+			"pnpm-workspace.yaml",
+			"tsconfig.json",
+			"holocron.config.*",
+			"astromech.config.*",
+		]);
 	});
 
 	it("skips a task marked local: false", () => {

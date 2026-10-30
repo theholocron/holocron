@@ -27,7 +27,18 @@ export const TASKS: Record<string, TaskDef> = {
 		local: { tool: "vitest", args: ["run"] },
 		flags: { vitest: ["--coverage"] },
 		turbo: {
-			inputs: ["src/**", "vitest.config.ts", "vitest.config.js", "vitest.config.mjs", "package.json"],
+			inputs: [
+				"src/**",
+				"test/**",
+				"vitest.config.ts",
+				"vitest.config.js",
+				"vitest.config.mjs",
+				// A repo-root vitest config shared by every package without its own.
+				"$TURBO_ROOT$/vitest.config.ts",
+				"$TURBO_ROOT$/vitest.config.js",
+				"$TURBO_ROOT$/vitest.config.mjs",
+				"package.json",
+			],
 			outputs: ["test-report.junit.xml", "coverage/**"],
 			// Own package's build first (tests may import from dist) + every
 			// upstream workspace's build (so a dependency's types/dist are current).
@@ -37,7 +48,7 @@ export const TASKS: Record<string, TaskDef> = {
 	"verification.typeSafety": {
 		local: { tool: "tsc", args: ["--noEmit"] },
 		turbo: {
-			inputs: ["src/**", "tsconfig.json"],
+			inputs: ["src/**", "test/**", "tsconfig.json"],
 			outputs: [],
 			dependsOn: ["^delivery.build"],
 		},
