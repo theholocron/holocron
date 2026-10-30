@@ -172,11 +172,15 @@ so that one file shows what the repo uses. A manifest's `dependencies`,
   accept as peers. A package that is not in this repo, such as
   `holocron-config`, is an ordinary dependency in its group's catalog.
 
-`pnpm deps` prints every dependency with its range and how widely it is used;
-`pnpm deps -- --who <name>` lists the packages that use a dependency, by group;
-`pnpm deps:check` (`node scripts/deps-report.mjs --check`) fails on a hard-coded
-version, a dependency in the wrong catalog or an unused catalog entry. Run it
-after adding or moving a dependency.
+`holocron probe deps report` (`pnpm deps`) prints every dependency with its
+range and how widely it is used; `holocron probe deps who <name>` lists the
+packages that use a dependency, by group; `holocron probe deps check`
+(`pnpm deps:check`) fails on a hard-coded version, a workspace package pinned
+to a version, a dependency in the wrong catalog or an unused catalog entry.
+They read the manifests and `pnpm-workspace.yaml` live on each run (nothing is
+cached), from the built CLI (`pnpm build` first). Run the check after adding or
+moving a dependency; CI runs it on every pull request as the required check
+`Dependency catalogs / Check` (`.github/workflows/sourceQuality.dependencyCatalogs.yml`).
 
 ## Consuming packages from `clients/`
 

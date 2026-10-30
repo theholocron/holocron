@@ -52,7 +52,9 @@ export default defineConfig({
 	// for every package (one per workspace, hundreds once the org's repos are
 	// folded in) nor be relied on to appear. Codecov still posts the
 	// per-component statuses; they are informational, not required (#1223).
-	extraRequiredChecks: ["codecov/patch", "codecov/project"],
+	// "Dependency catalogs / Check" is the hand-maintained
+	// `.github/workflows/sourceQuality.dependencyCatalogs.yml` (`holocron probe deps check`, #1380).
+	extraRequiredChecks: ["codecov/patch", "codecov/project", "Dependency catalogs / Check"],
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
 	// tasks; `typecheck`/`test`/`deploy` are renamed 1:1. `security`/`review`/

@@ -19,8 +19,8 @@
   "type": "module",
   "scripts": {
     "build": "turbo run delivery.build",
-    "deps": "node scripts/deps-report.mjs",
-    "deps:check": "node scripts/deps-report.mjs --check",
+    "deps": "node cli/cli/dist/cli.mjs probe deps report",
+    "deps:check": "node cli/cli/dist/cli.mjs probe deps check",
     "format": "prettier --write .",
     "holocron": "node cli/cli/dist/cli.mjs",
     "lint": "turbo run sourceQuality.staticAnalysis",

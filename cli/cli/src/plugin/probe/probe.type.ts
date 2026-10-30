@@ -7,6 +7,8 @@ export interface ProbeRow {
 
 /** What a probe is handed. Everything it prints or changes goes through this, so the runner can enforce the rules. */
 export interface ProbeContext {
+	/** What the person typed after the probe name (`probe deps who vitest` hands `["vitest"]`). */
+	args?: readonly string[];
 	/** `--dry-run`: `write` calls are announced and skipped. */
 	dryRun: boolean;
 	/** Report one line. The text is scrubbed of secrets before it is printed. */
