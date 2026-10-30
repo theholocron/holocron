@@ -1,3 +1,4 @@
+/** What varies in the generated `.github/dependabot.yml`; the rest of the file is the same for every repo. */
 export interface DependabotConfigOptions {
 	/**
 	 * Packages Dependabot must not raise version updates for, by exact name. Each becomes a name-only

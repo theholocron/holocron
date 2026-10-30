@@ -14,6 +14,10 @@ function ignoreBlock(names: readonly string[]): string {
 	return `    ignore:\n${entries.join("")}`;
 }
 
+/**
+ * The content of `.github/dependabot.yml`, with its generated-file header. Names in `ignore` get a name-only
+ * `ignore` entry on the npm ecosystem; with none, the file is the shared body unchanged.
+ */
 export function createConfig({ ignore = [] }: DependabotConfigOptions = {}): string {
 	const body =
 		ignore.length === 0
