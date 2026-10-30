@@ -26,3 +26,5 @@ Returns `true` if the value is a non-null, non-undefined, non-empty array. Retur
 ## Documentation
 
 Check out [The Holocron Archive](https://docs.theholocron.dev/holocron/utils/array-utils/) for more information.
+
+<!-- throwaway: README-only affected-CI test -->
