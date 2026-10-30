@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:published",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/sentry-client": "workspace:^",

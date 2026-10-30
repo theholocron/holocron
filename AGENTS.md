@@ -166,11 +166,11 @@ so that one file shows what the repo uses. A manifest's `dependencies`,
 - **`peerDependencies` stay out of catalogs.** A peer range is a compatibility
   range for consumers, and `catalog:` would publish one pinned version in its
   place.
-- Our own packages in this repo are `workspace:^` (the CLI and the plugins'
-  peer on it is `workspace:*`). Two catalogs hold our own packages on purpose:
-  `peers` (the minimum client and util versions the plugins accept as peers)
-  and `published` (the configs the root tooling loads before anything is built,
-  plus `holocron-config` and `registry-doc`, which come from other repos).
+- Our own packages in this repo are always `workspace:^`, never a catalog (the
+  CLI and the plugins' peer on it is `workspace:*`). The one catalog of our
+  own packages is `peers`: the minimum client and util versions the plugins
+  accept as peers. A package that is not in this repo, such as
+  `holocron-config`, is an ordinary dependency in its group's catalog.
 
 `pnpm deps` prints every dependency with its range and how widely it is used;
 `pnpm deps -- --who <name>` lists the packages that use a dependency, by group;

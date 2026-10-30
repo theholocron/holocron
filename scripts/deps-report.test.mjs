@@ -155,4 +155,13 @@ describe("a workspace on disk", () => {
 		assert.ok(pinned[0].includes("devDependencies"));
 		assert.ok(pinned[0].includes('use "workspace:^"'));
 	});
+
+	it("reports a workspace package that is reached through a catalog", () => {
+		manifest("plugins/b", { name: "@x/plugin-b", devDependencies: { "@x/cli": "catalog:cli" } });
+		const problems = check(plan(root));
+		assert.ok(
+			problems.some((p) => p.includes("devDependencies.@x/cli") && p.includes('use "workspace:^"')),
+			problems.join("\n")
+		);
+	});
 });

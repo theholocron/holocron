@@ -45,7 +45,7 @@
     "server-destroy": "catalog:clients"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:published",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",

@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
-    "@theholocron/eslint-config": "catalog:published",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",

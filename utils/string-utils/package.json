@@ -40,7 +40,7 @@
     "title-case": "catalog:utils"
   },
   "devDependencies": {
-    "@theholocron/eslint-config": "catalog:published",
+    "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@tsconfig/node-lts": "catalog:",

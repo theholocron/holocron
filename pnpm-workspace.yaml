@@ -63,6 +63,7 @@ catalog:
 catalogs:
   # apps: dependencies only apps/ uses
   apps:
+    "@theholocron/holocron-config": ^8.8.2
     "@tktco/node-actionlint": ^1.6.0
     "@vscode-shellcheck/shellcheck-wasm": ^0.2.0
     alex: ^11.0.1
@@ -134,19 +135,6 @@ catalogs:
     "@theholocron/sentry-client": ^1.56.0
     "@theholocron/slack-client": ^1.43.1
     "@theholocron/vercel-client": ^1.43.1
-
-  # Our own packages consumed from npm instead of the workspace, on purpose: the configs the root
-  # tooling loads before anything is built (a tool cannot lint or format with a config it has not built
-  # yet) and holocron-config, which is published from another repo.
-  published:
-    "@theholocron/commitlint-config": ^8.8.0
-    "@theholocron/devmoji-config": ^8.8.2
-    "@theholocron/eslint-config": ^8.8.2
-    "@theholocron/holocron-config": ^8.8.2
-    "@theholocron/lint-staged-config": ^8.8.2
-    "@theholocron/markdownlint-config": ^8.8.2
-    "@theholocron/prettier-config": ^8.8.2
-    "@theholocron/semantic-release-config": ^8.8.2
 
 # @sentry/node and posthog-node are pinned exactly so every consumer resolves the
 # same version. @theholocron/http-client peers on both, and pnpm creates a

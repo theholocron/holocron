@@ -10,8 +10,8 @@
  * - a dependency used by one group lives in that group's named catalog (`catalog:configs`);
  * - `peerDependencies` stay out of catalogs: a peer range is a compatibility range for
  *   consumers, and `catalog:` would publish one pinned version in its place;
- * - our own packages consumed from npm on purpose (the configs the root tooling loads before anything is
- *   built, holocron-config, registry-doc) live in `published`, and the plugins' minimum client and util versions in `peers`.
+ * - a package that is in this workspace is linked with `workspace:^`, never a catalog; the plugins'
+ *   minimum client and util versions live in `peers`.
  *
  * Usage:
  *   node scripts/deps-report.mjs                 # markdown report: every dependency and its users
@@ -30,7 +30,7 @@ import { fileURLToPath } from "node:url";
 export const CATALOG_SECTIONS = ["dependencies", "devDependencies", "optionalDependencies"];
 
 /** Catalogs that are not a group's own dependencies. */
-export const SPECIAL_CATALOGS = ["peers", "published"];
+export const SPECIAL_CATALOGS = ["peers"];
 
 const SCOPE = "@theholocron/";
 
@@ -177,10 +177,10 @@ export function plan(root = fileURLToPath(new URL("..", import.meta.url))) {
 	const flags = [];
 	for (const edge of edges) {
 		const isScoped = edge.name.startsWith(SCOPE);
-		if (inRepo.has(edge.name) && !edge.spec.startsWith("catalog:")) {
-			// a package that is in this workspace is linked with workspace:, not a version from npm; a peer
-			// range is the exception, it is a compatibility range for consumers
-			if (edge.section !== "peerDependencies") {
+		if (inRepo.has(edge.name) && edge.section !== "peerDependencies") {
+			// a package that is in this workspace is linked with workspace:, not a version from npm or a
+			// catalog; a peer range is the exception, it is a compatibility range for consumers
+			if (!edge.spec.startsWith("workspace:")) {
 				flags.push(
 					`${edge.file}: ${edge.section}.${edge.name} is "${edge.spec}", but it is a workspace package; use "workspace:^"`
 				);
@@ -202,9 +202,9 @@ export function plan(root = fileURLToPath(new URL("..", import.meta.url))) {
 		const peers = entry.edges.filter((e) => e.section === "peerDependencies");
 
 		let target;
-		if (isScoped) {
-			// our own packages that are resolved from a catalog: a published copy on purpose
-			target = nonPeer.length > 0 ? "published" : "peers";
+		if (isScoped && nonPeer.length === 0) {
+			// our own package that is only a peer: the plugins' minimum version of it
+			target = "peers";
 		} else if (nonPeer.length === 0) {
 			// peer-only: keeps its compatibility range, not in any catalog
 			rows.push({ name: entry.name, catalog: null, range: null, groups: [], edges: entry.edges });
@@ -324,7 +324,6 @@ export function report(p, filter) {
 	];
 	const titles = {
 		default: "Shared (default `catalog:`)",
-		published: "Published (our own packages, consumed from npm instead of the workspace)",
 		peers: "Peer floors (minimum versions the plugins accept)",
 	};
 	for (const catalog of order) {
