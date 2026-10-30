@@ -1,3 +1,14 @@
+## [5.0.0-alpha.257](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.256...v5.0.0-alpha.257) (2026-10-30)
+
+### Features
+
+* **astromech:** ✨ scope turbo inputs and global dependencies ([#1404](https://github.com/theholocron/holocron/issues/1404)) ([1508796](https://github.com/theholocron/holocron/commit/1508796e6203b85d1a7fdf30a3d556e5dbbee2b9))
+
+### Bug Fixes
+
+* **cli:** 🐛 keep Dependabot from raising the plugins' peer floors ([#1401](https://github.com/theholocron/holocron/issues/1401)) ([b4b4622](https://github.com/theholocron/holocron/commit/b4b4622314a2017b2a935aac991095ed4231bc48)), closes [IgnoreCondition#ignored_versions](https://github.com/theholocron/IgnoreCondition/issues/ignored_versions) [#1400](https://github.com/theholocron/holocron/issues/1400)
+* **cli:** 🐛 make repo setup and repo sync write identical generated files ([#1403](https://github.com/theholocron/holocron/issues/1403)) ([1c31248](https://github.com/theholocron/holocron/commit/1c312486249497527aa04fe168b0b07fcc574ede)), closes [#1399](https://github.com/theholocron/holocron/issues/1399)
+
 ## [5.0.0-alpha.256](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.255...v5.0.0-alpha.256) (2026-10-30)
 
 ### Features
