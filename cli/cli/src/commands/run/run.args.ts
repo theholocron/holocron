@@ -33,6 +33,15 @@ export const runArgs = (y: Argv<GlobalArgs>) =>
 		.option("filter", {
 			type: "string",
 			describe: "turbo --filter=<pkg> passthrough (monorepo).",
+		})
+		.option("affected", {
+			type: "boolean",
+			default: false,
+			describe: "Run only the packages changed since --base, and their dependents (turbo --affected).",
+		})
+		.option("base", {
+			type: "string",
+			describe: "Git ref --affected compares against. Falls back to TURBO_SCM_BASE.",
 		});
 
 export type RunArgs = InferArgs<typeof runArgs>;

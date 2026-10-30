@@ -36,6 +36,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		listDir: options.listDir ?? ((path: string) => readdirSync(path) as string[]),
 		lookPath: options.lookPath ?? realLookPath,
 	};
+	const env = options.env ?? process.env;
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
 
@@ -81,6 +82,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 					namespace: task,
 					dryRun: opts.dryRun ?? false,
 					...(opts.filter ? { filter: opts.filter } : {}),
+					...(opts.affected ? { affected: true, env } : {}),
+					...(opts.base ? { base: opts.base } : {}),
 				});
 			}
 			return runTask({
@@ -92,6 +95,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
 				...(opts.filter ? { filter: opts.filter } : {}),
+				...(opts.affected ? { affected: true, env } : {}),
+				...(opts.base ? { base: opts.base } : {}),
 				...jobSwitchesFor(task),
 			});
 		},
@@ -101,6 +106,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				...deps,
 				cwd: options.cwd,
 				config: options.config ?? {},
+				...(opts.affected ? { env } : {}),
 				...opts,
 			}),
 

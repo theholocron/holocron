@@ -32,6 +32,7 @@ import { detectPackageManager, readPackageJsonSync } from "@theholocron/pkg-util
 
 import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "../../registry/index.js";
 import { resolveLinters } from "./linters/index.js";
+import { resolveAffected } from "./resolve-affected/index.js";
 import { resolveBin } from "./resolve-bin/index.js";
 import { resolveRunner } from "./resolve-runner/index.js";
 import { resolveToolConfig } from "./resolve-tool-config/index.js";
@@ -39,10 +40,10 @@ import type { RunTaskInput, RunTaskReport } from "./run.type.js";
 import { turboDefinesTask } from "./turbo-defines-task/index.js";
 
 /** The per-command runner — `runTask` and `runLintAggregate` share it. */
-function makeRunOne(input: RunTaskInput): (cmd: string, args: string[]) => RunTaskReport {
+function makeRunOne(input: RunTaskInput): (cmd: string, args: string[], env?: Record<string, string>) => RunTaskReport {
 	const { print, logger, exec, task, cwd } = input;
 	const dryRun = input.dryRun ?? false;
-	return (cmd, args) => {
+	return (cmd, args, env) => {
 		const command = [cmd, ...args].join(" ");
 		if (dryRun) {
 			print(`would run: ${command}`);
@@ -50,7 +51,7 @@ function makeRunOne(input: RunTaskInput): (cmd: string, args: string[]) => RunTa
 			return { status: "dry-run", command };
 		}
 		print(`→ ${command}`);
-		const { exitCode } = exec(cmd, args, { cwd });
+		const { exitCode } = exec(cmd, args, env ? { cwd, env } : { cwd });
 		const status = exitCode === 0 ? "ok" : "fail";
 		logger[status === "fail" ? "warn" : "debug"]({ task, command, exitCode, status }, `run: ${task}`);
 		return { status, command, ...(status === "fail" ? { message: `\`${command}\` exited ${exitCode}` } : {}) };
@@ -111,9 +112,20 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
 		const orgFlags = def?.local && !def.local.command && def.local.tool ? (def.flags?.[def.local.tool] ?? []) : [];
 		const forwarded = [...orgFlags, ...passthrough];
-		const args = ["run", task, ...filterArg, ...(forwarded.length ? ["--", ...forwarded] : [])];
-		return run(resolveBin(cwd, "turbo", fileExists), args);
+		const plan = resolveAffected({
+			affected: input.affected,
+			base: input.base,
+			env: input.env ?? {},
+			exec: input.exec,
+			cwd,
+		});
+		if (plan.notice) print(`· ${plan.notice}`);
+		const affectedArg = plan.affected ? ["--affected"] : [];
+		const args = ["run", task, ...filterArg, ...affectedArg, ...(forwarded.length ? ["--", ...forwarded] : [])];
+		return run(resolveBin(cwd, "turbo", fileExists), args, plan.env);
 	}
+
+	if (input.affected) print("· --affected ignored: this repo has no turbo task for it");
 
 	// ── 2. an explicit package.json script wins ────────────────────────
 	// (unless it's the `holocron run <task>` thin caller — that would recurse)

@@ -124,6 +124,18 @@ describe("runGroup", () => {
 		});
 	});
 
+	it("forwards --affected and --base to each matched task's turbo invocation", () => {
+		const { run, exec } = makeGroup({
+			"package.json": PKG,
+			"turbo.json": TURBO(["sourceQuality.staticAnalysis"]),
+		});
+		run({ tasks: ["sourceQuality.staticAnalysis"] }, "sourceQuality", { affected: true, base: "abc", env: {} });
+		expect(exec).toHaveBeenCalledWith("turbo", ["run", "sourceQuality.staticAnalysis", "--affected"], {
+			cwd: CWD,
+			env: { TURBO_SCM_BASE: "abc" },
+		});
+	});
+
 	it("prints a header line naming the namespace and matched task count", () => {
 		const { run, lines } = makeGroup({
 			"package.json": PKG,

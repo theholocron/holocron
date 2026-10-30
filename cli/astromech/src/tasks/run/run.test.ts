@@ -96,6 +96,51 @@ describe("runTask", () => {
 		);
 	});
 
+	describe("--affected", () => {
+		const TURBO_FILES = {
+			"package.json": PKG(),
+			"turbo.json": JSON.stringify({ tasks: { "verification.typeSafety": {} } }),
+		};
+
+		it("adds --affected to turbo and hands it the base through TURBO_SCM_BASE", () => {
+			const { call, exec } = makeRun(TURBO_FILES);
+			call("verification.typeSafety", { affected: true, base: "abc123" });
+			expect(exec).toHaveBeenCalledWith(
+				expect.stringMatching(/turbo$/),
+				["run", "verification.typeSafety", "--affected"],
+				{ cwd: CWD, env: { TURBO_SCM_BASE: "abc123" } }
+			);
+		});
+
+		it("combines with --filter, in front of the passthrough", () => {
+			const { call, exec } = makeRun(TURBO_FILES);
+			call("verification.typeSafety", {
+				affected: true,
+				base: "abc",
+				filter: "@scope/x",
+				passthrough: ["--force"],
+			});
+			expect(exec).toHaveBeenCalledWith(
+				expect.any(String),
+				["run", "verification.typeSafety", "--filter=@scope/x", "--affected", "--", "--force"],
+				{ cwd: CWD, env: { TURBO_SCM_BASE: "abc" } }
+			);
+		});
+
+		it("runs everything and says why when the base is missing", () => {
+			const { call, exec, lines } = makeRun(TURBO_FILES);
+			call("verification.typeSafety", { affected: true });
+			expect(exec).toHaveBeenCalledWith(expect.any(String), ["run", "verification.typeSafety"], { cwd: CWD });
+			expect(lines.join("\n")).toMatch(/--affected ignored: no base/);
+		});
+
+		it("says so when the repo has no turbo task to apply it to", () => {
+			const { call, lines } = makeRun({ "package.json": PKG({ scripts: { "verification.typeSafety": "tsc" } }) });
+			call("verification.typeSafety", { affected: true, base: "abc" });
+			expect(lines.join("\n")).toMatch(/--affected ignored: this repo has no turbo task/);
+		});
+	});
+
 	it("runs the registry tool with org-default flags", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),

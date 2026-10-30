@@ -65,6 +65,9 @@ export function runCi(input: CiInput): CiReport {
 			dryRun: input.dryRun ?? false,
 			required: entry.required === true,
 			...(input.filter ? { filter: input.filter } : {}),
+			...(input.affected ? { affected: true } : {}),
+			...(input.base ? { base: input.base } : {}),
+			...(input.env ? { env: input.env } : {}),
 		});
 
 		// `runTask` only returns "unknown" for an unrecognised task; every entry

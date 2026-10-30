@@ -82,6 +82,41 @@ describe("createAstromech().run", () => {
 		);
 	});
 
+	it("forwards --affected and --base to turbo, reading the injected environment", () => {
+		const exec = vi.fn(() => ({ exitCode: 0 }));
+		createAstromech({
+			...fs({ "package.json": PKG, "turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }) }),
+			exec,
+			env: {},
+			print: () => {},
+		}).run("verification.unitTests", { affected: true, base: "abc" });
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "verification.unitTests", "--affected", "--", "--coverage"],
+			{ cwd: "/repo", env: { TURBO_SCM_BASE: "abc" } }
+		);
+	});
+
+	it("forwards --affected through a bare namespace and through ci", () => {
+		const exec = vi.fn((_cmd: string, _args: string[], _o: { cwd: string }) => ({ exitCode: 0 }));
+		const astromech = createAstromech({
+			...fs({
+				"package.json": PKG,
+				"turbo.json": JSON.stringify({
+					tasks: { "sourceQuality.staticAnalysis": {}, "verification.unitTests": {} },
+				}),
+			}),
+			exec,
+			env: {},
+			config: { tasks: ["sourceQuality.staticAnalysis", { name: "verification.unitTests", required: true }] },
+			print: () => {},
+		});
+		astromech.run("sourceQuality", { affected: true, base: "abc" });
+		astromech.ci({ affected: true, base: "abc" });
+		const affected = exec.mock.calls.filter((c) => c[1].includes("--affected"));
+		expect(affected).toHaveLength(2);
+	});
+
 	it("threads a sub-job through to the registry — run('platform.repoValidation', { job })", () => {
 		const exec = vi.fn(() => ({ exitCode: 0 }));
 		const report = createAstromech({

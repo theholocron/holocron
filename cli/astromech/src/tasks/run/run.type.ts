@@ -4,7 +4,11 @@ export interface RunLogger {
 	warn(obj: Record<string, unknown>, msg?: string): void;
 }
 
-export type ExecFn = (cmd: string, args: string[], opts: { cwd: string }) => { exitCode: number };
+export type ExecFn = (
+	cmd: string,
+	args: string[],
+	opts: { cwd: string; env?: Record<string, string> }
+) => { exitCode: number };
 
 /**
  * Everything `runTask` needs from the outside world. `createAstromech`
@@ -41,6 +45,12 @@ export interface RunTaskInput extends RunDeps {
 	required?: boolean;
 	/** `turbo --filter=<pkg>` passthrough (monorepo). Ignored when the repo has no `turbo.json`. */
 	filter?: string;
+	/** `turbo --affected`: only the packages changed since `base`, plus their dependents. Ignored without a `turbo.json`. */
+	affected?: boolean;
+	/** Git ref `affected` compares against; falls back to `TURBO_SCM_BASE`. */
+	base?: string;
+	/** Environment `affected` reads (`GITHUB_EVENT_NAME`, `GITHUB_REF_NAME`, `TURBO_SCM_BASE`). Defaults to empty. */
+	env?: Record<string, string | undefined>;
 	/** The task entry's `jobs` switches: a sub-job set to `false` (by key or alias) is not run. */
 	jobSwitches?: Record<string, boolean>;
 }

@@ -48,6 +48,9 @@ export function runGroup(input: GroupInput): GroupReport {
 			cwd: input.cwd,
 			dryRun: input.dryRun ?? false,
 			...(input.filter ? { filter: input.filter } : {}),
+			...(input.affected ? { affected: true } : {}),
+			...(input.base ? { base: input.base } : {}),
+			...(input.env ? { env: input.env } : {}),
 		});
 		// `runTask` only returns "unknown" for an unrecognised task name; every
 		// name here came from the repo's own config, so its status is a

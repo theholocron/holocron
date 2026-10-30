@@ -31,6 +31,18 @@ describe("realExec", { timeout: 30_000 }, () => {
 		expect(code).toEqual({ exitCode: 0 });
 	});
 
+	it("adds the given variables to the child's environment", () => {
+		const code = realExec(
+			process.execPath,
+			["-e", "process.exit(process.env.HOLOCRON_TEST_VAR === 'yes' ? 0 : 1)"],
+			{
+				cwd: process.cwd(),
+				env: { HOLOCRON_TEST_VAR: "yes" },
+			}
+		);
+		expect(code).toEqual({ exitCode: 0 });
+	});
+
 	it("reports -1 when the command cannot be spawned", () => {
 		expect(realExec("holocron-no-such-binary", [], { cwd: process.cwd() })).toEqual({ exitCode: -1 });
 	});

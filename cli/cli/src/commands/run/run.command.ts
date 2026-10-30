@@ -51,6 +51,8 @@ export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 				dryRun: argv.dryRun,
 				scope: argv.all ? "all" : "required",
 				...(argv.filter ? { filter: argv.filter as string } : {}),
+				...(argv.affected ? { affected: true } : {}),
+				...(argv.base ? { base: argv.base as string } : {}),
 			});
 			if (report.status === "fail") process.exitCode = 1;
 			return;
@@ -65,6 +67,8 @@ export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 			dryRun: argv.dryRun,
 			required: argv.required,
 			...(argv.filter ? { filter: argv.filter as string } : {}),
+			...(argv.affected ? { affected: true } : {}),
+			...(argv.base ? { base: argv.base as string } : {}),
 		});
 		if (report.status === "fail" || report.status === "unknown") process.exitCode = 1;
 	},
