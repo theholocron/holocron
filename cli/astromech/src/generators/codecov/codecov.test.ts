@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
 	codecovConfig,
 	codecovFlagNames,
+	codecovUploads,
 	createCodecovConfig,
 	ensureFlagManagement,
 	ensureIfNotFound,
@@ -22,7 +23,7 @@ describe("createCodecovConfig", () => {
 		expect(out).toContain("require_ci_to_pass: true");
 		expect(out).toContain("target: auto");
 		expect(out).toContain("target: 80%");
-		expect(out).toContain('layout: "reach,diff,flags,components"');
+		expect(out).toContain('layout: "reach,diff,flags"');
 		expect(out).toContain("require_changes: true");
 	});
 
@@ -108,7 +109,7 @@ describe("mergeCodecovComponents", () => {
 		const out = mergeCodecovComponents(noMarker, [{ slug: "foo", name: "@acme/foo" }]);
 		expect(out).toContain("require_ci_to_pass: true");
 		expect(out).not.toContain("component_id");
-		expect(out).toContain("    - name: packages");
+		expect(out).toContain("    - name: foo");
 	});
 
 	it("injects if_not_found into a pre-existing codecov.yml that lacks it", () => {
@@ -338,8 +339,8 @@ const multi = [
 ];
 
 describe("codecovFlagNames", () => {
-	it("returns one flag per group folder, in order, without duplicates or docs", () => {
-		expect(codecovFlagNames(multi)).toEqual(["apps", "cli", "observability"]);
+	it("returns one flag per package slug, in order, without docs", () => {
+		expect(codecovFlagNames(multi)).toEqual(["comlink", "sentinel", "cli", "observability"]);
 	});
 
 	it("returns no flags without packages", () => {
@@ -347,11 +348,34 @@ describe("codecovFlagNames", () => {
 	});
 });
 
+describe("codecovUploads", () => {
+	it("lists one upload per flagged package, reading <location>/coverage/lcov.info", () => {
+		expect(JSON.parse(codecovUploads(multi))).toEqual([
+			{ flag: "comlink", files: "apps/comlink/coverage/lcov.info" },
+			{ flag: "sentinel", files: "apps/sentinel/coverage/lcov.info" },
+			{ flag: "cli", files: "cli/cli/coverage/lcov.info" },
+			{ flag: "observability", files: "observability/coverage/lcov.info" },
+		]);
+	});
+
+	it("takes another report path for a package that names one", () => {
+		const uploads = JSON.parse(codecovUploads(multi, { observability: "observability/lcov.info" })) as {
+			flag: string;
+			files: string;
+		}[];
+		expect(uploads.find((u) => u.flag === "observability")?.files).toBe("observability/lcov.info");
+	});
+
+	it("is an empty list without packages", () => {
+		expect(codecovUploads([])).toBe("[]");
+	});
+});
+
 describe("flag_management in a generated file", () => {
-	it("emits carryforward defaults and one individual flag per folder, with no per-flag statuses", () => {
+	it("emits carryforward defaults and one individual flag per package, with no per-flag statuses", () => {
 		const out = createCodecovConfig(multi);
 		expect(out).toContain(
-			"flag_management:\n  default_rules:\n    carryforward: true\n  individual_flags:\n    - name: apps\n    - name: cli\n    - name: observability\n\ncomponent_management:"
+			"flag_management:\n  default_rules:\n    carryforward: true\n  individual_flags:\n    - name: comlink\n    - name: sentinel\n    - name: cli\n    - name: observability\n\ncomponent_management:"
 		);
 		expect(out).not.toContain("name: docs");
 		expect(out.split("flag_management:")[1]!.split("component_management:")[0]).not.toContain("statuses");
@@ -359,7 +383,8 @@ describe("flag_management in a generated file", () => {
 
 	it("scopes the aggregate project and patch statuses to the flags", () => {
 		const out = createCodecovConfig(multi);
-		const flags = "        flags:\n          - apps\n          - cli\n          - observability\n";
+		const flags =
+			"        flags:\n          - comlink\n          - sentinel\n          - cli\n          - observability\n";
 		expect(out).toContain(`    project:\n      default:\n${flags}        target: auto`);
 		expect(out).toContain(`    patch:\n      default:\n${flags}        target: 80%`);
 	});
@@ -512,16 +537,16 @@ describe("mergeCodecovComponents with flags", () => {
 			"coverage:\n  status:\n    project:\n      default:\n        target: auto\n    patch:\n      default:\n        target: 80%\n\ncomponent_management:\n  default_rules:\n    statuses:\n      - type: patch\n        target: 80%\n  individual_components:\n    - component_id: gone\n";
 		const out = mergeCodecovComponents(old, multi);
 		expect(out).toContain("flag_management:");
-		expect(out).toContain("        flags:\n          - apps");
+		expect(out).toContain("        flags:\n          - comlink");
 		expect(out).toContain("informational: true");
 		expect(out).not.toContain("gone");
 	});
 
-	it("refreshes an existing flag_management with a new folder", () => {
+	it("refreshes an existing flag_management with a new package", () => {
 		const old = createCodecovConfig(multi.slice(0, 2));
 		const out = mergeCodecovComponents(old, multi);
 		expect(out).toContain("    - name: cli");
-		expect(out.match(/ {4}- name: apps/g)).toHaveLength(1);
+		expect(out.match(/ {4}- name: comlink/g)).toHaveLength(1);
 	});
 });
 
