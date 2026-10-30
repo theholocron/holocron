@@ -1,3 +1,9 @@
+## [5.0.0-alpha.258](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.257...v5.0.0-alpha.258) (2026-10-30)
+
+### Bug Fixes
+
+* **platform:** 🐛 name the dependency catalogs job so it reports the status the ruleset requires ([#1409](https://github.com/theholocron/holocron/issues/1409)) ([ace7e19](https://github.com/theholocron/holocron/commit/ace7e192b07fada1b1fb5c3ed4b7c10c2085afc2)), closes [#1406](https://github.com/theholocron/holocron/issues/1406)
+
 ## [5.0.0-alpha.257](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.256...v5.0.0-alpha.257) (2026-10-30)
 
 ### Features
