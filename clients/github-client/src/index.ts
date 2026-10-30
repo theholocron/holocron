@@ -58,6 +58,7 @@ export type {
 	PagesBuildType,
 	UpdatePagesPayload,
 } from "./pages/pages.js";
+export type { OrgProperty } from "./properties/properties.js";
 export type {
 	CreateReviewComment,
 	CreateReviewInput,

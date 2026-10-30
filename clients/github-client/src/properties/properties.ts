@@ -1,8 +1,25 @@
 import type { RestClient } from "../utils.js";
-import { repoBase } from "../utils.js";
+import { repoBase, segment } from "../utils.js";
+
+/** One custom property of an organization, as its schema defines it. */
+export interface OrgProperty {
+	property_name: string;
+	/** `string`, `single_select`, `multi_select`, `true_false` or `url`. */
+	value_type: string;
+	required?: boolean;
+	/** The values a `single_select` or `multi_select` property accepts; `null` for any other type. */
+	allowed_values?: string[] | null;
+}
 
 export function properties(rest: RestClient) {
 	return {
+		/**
+		 * The custom properties an organization defines, with their types and allowed values (read-only).
+		 * The token needs read access to the organization's custom properties.
+		 */
+		orgSchema: (org: string): Promise<OrgProperty[]> =>
+			rest.request<OrgProperty[]>(`/orgs/${segment(org)}/properties/schema`),
+
 		/**
 		 * `value` is a plain string for `string`/`single_select`/`true_false`
 		 * custom properties, or a string array for `multi_select` ones —
