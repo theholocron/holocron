@@ -521,7 +521,7 @@ describe("mergeCodecovComponents with flags", () => {
 		const old = createCodecovConfig(multi.slice(0, 2));
 		const out = mergeCodecovComponents(old, multi);
 		expect(out).toContain("    - name: cli");
-		expect(out.match(/    - name: apps/g)).toHaveLength(1);
+		expect(out.match(/ {4}- name: apps/g)).toHaveLength(1);
 	});
 });
 
