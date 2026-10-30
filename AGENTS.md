@@ -191,7 +191,7 @@ moving a dependency; CI runs it on every pull request as the required check
 ## Consuming packages from `clients/`
 
 The `@theholocron/*-client` packages are workspace packages in `clients/*`
-(they used to live in the archived `theholocron/clients` repo). They release on
+(formerly a separate repo, now archived). They release on
 their own version line (tags `clients-v*`), and the CLI and plugins depend on
 them with `workspace:^`. When a plugin or the CLI gains a dependency on one of
 them:
@@ -253,8 +253,8 @@ not object destructuring.
   interfaces (with `Noop*` for the opted-out / no-credentials path) come from
   `@theholocron/observability/core`; the `PinoLogger` / `SentrySink` /
   `PostHogSink` adapters — the sole vendor call sites — from
-  `/logger`, `/errors`, `/analytics`. `git grep -nE "@sentry/node|posthog-node|
-from \"pino\"" packages/` must return **nothing** (source). The CLI's
+  `/logger`, `/errors`, `/analytics`. `git grep -nE "from \"(@sentry/node|posthog-node|pino)\"" cli/ plugins/
+apps/` must return **nothing** (source). The CLI's
   `observability/telemetry.ts` holds only orchestration +
   `observability/resolve-telemetry.ts` (the Holocron-specific DSN / key
   resolution, which stays here). A vendor swap or a
