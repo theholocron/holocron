@@ -4,6 +4,10 @@ export interface RunLogger {
 	warn(obj: Record<string, unknown>, msg?: string): void;
 }
 
+/**
+ * Runs `cmd` and reports its exit code. `opts.env` is added to the child's
+ * environment (on top of the parent's), e.g. `TURBO_SCM_BASE` for `--affected`.
+ */
 export type ExecFn = (
 	cmd: string,
 	args: string[],
