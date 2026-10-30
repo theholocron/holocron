@@ -13,6 +13,7 @@
  */
 
 import autoCommitAction from "../../templates/reusable/actions/auto-commit.yml";
+import codecovUploadAction from "../../templates/reusable/actions/codecov-upload.yml";
 import holocronAction from "../../templates/reusable/actions/holocron.yml";
 import installAction from "../../templates/reusable/actions/install.yml";
 import notifyAction from "../../templates/reusable/actions/notify.yml";
@@ -95,6 +96,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 /** Composite actions → `.github/actions/<name>/action.yml` (key includes `/action`). */
 export const REUSABLE_ACTIONS: Record<string, string> = {
 	"auto-commit/action": autoCommitAction,
+	"codecov-upload/action": codecovUploadAction,
 	"holocron/action": holocronAction,
 	"install/action": installAction,
 	"notify/action": notifyAction,

@@ -148,7 +148,8 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 				expect(step.split("\n\n")[0]!).toContain("fail_ci_if_error: true");
 			}
 		}
-		// coverage + test results in the unit and Storybook jobs, the empty upload, plus the release-commit upload
+		// coverage + test results in the unit and Storybook jobs, the empty upload, plus the release-commit upload.
+		// The per-flag upload is the codecov-upload action, not a codecov-action step, so it isn't counted here.
 		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!.split("- uses: codecov/codecov-action@")).toHaveLength(6);
 		expect(REUSABLE_WORKFLOWS["delivery.publish"]!.split("- uses: codecov/codecov-action@")).toHaveLength(2);
 	});
@@ -170,10 +171,39 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
 		const unit = wf.split("\n  storybook:\n")[0]!;
 		expect(unit).toContain("run_command: empty-upload");
-		expect(unit).toContain("if: ${{ inputs.affected && steps.reports.outputs.coverage != 'true' }}");
+		expect(unit).toContain(
+			"if: ${{ inputs.affected && (inputs.uploads == '' && steps.reports.outputs.coverage != 'true' || inputs.uploads != '' && steps.flags.outputs.uploaded == '0') }}"
+		);
 		// without `affected` an upload still runs unconditionally, so a missing report stays an error
-		expect(unit).toContain("if: ${{ !inputs.affected || steps.reports.outputs.coverage == 'true' }}");
+		expect(unit).toContain(
+			"if: ${{ inputs.uploads == '' && (!inputs.affected || steps.reports.outputs.coverage == 'true') }}"
+		);
 		expect(unit).toContain("(!inputs.affected || steps.reports.outputs.tests == 'true')");
+	});
+
+	it("codecov-upload verifies the CLI, authenticates with the job's OIDC token and uploads one flag per entry", () => {
+		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
+		expect(action).toContain("gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM");
+		expect(action).toContain("sha256sum -c codecov.SHA256SUM");
+		expect(action).toContain("audience=https://codecov.io");
+		expect(action).toContain('echo "::add-mask::$token"');
+		expect(action).toContain('--flag "$flag"');
+		expect(action).toContain("--fail-on-error");
+		// nothing uploaded is an error unless the caller says an empty run is expected
+		expect(action).toMatch(/uploaded" -eq 0 \] && \[ "\$ALLOW_EMPTY" != "true"/);
+	});
+
+	it("verification.unitTests uploads per flag only when `uploads` is set, and the old single upload otherwise", () => {
+		const unit = REUSABLE_WORKFLOWS["verification.unitTests"]!.split("\n  storybook:\n")[0]!;
+		expect(unit).toMatch(/uploads:\s*\n\s*description:[^\n]*\n\s*type: string\n\s*required: false\n\s*default: ""/);
+		expect(unit).toContain("if: ${{ inputs.uploads != '' }}");
+		expect(unit).toContain("uses: theholocron/.github/.github/actions/codecov-upload@main");
+		expect(unit).toContain("allow-empty: ${{ inputs.affected }}");
+		expect(unit).toContain(
+			"if: ${{ inputs.uploads == '' && (!inputs.affected || steps.reports.outputs.coverage == 'true') }}"
+		);
+		// the empty upload follows whichever upload path ran
+		expect(unit).toContain("inputs.uploads != '' && steps.flags.outputs.uploaded == '0'");
 	});
 
 	it("a failed Codecov upload fails the unit-test job, leaving 'required' to decide what blocks a merge (holocron#934)", () => {
