@@ -2,7 +2,7 @@
 export const CATALOG_SECTIONS = ["dependencies", "devDependencies", "optionalDependencies"] as const;
 
 /** Catalogs that are not a group's own dependencies. */
-export const SPECIAL_CATALOGS = ["peers", "published"] as const;
+export const SPECIAL_CATALOGS = ["peers"] as const;
 
 /** The scope of this org's own packages. */
 export const SCOPE = "@theholocron/";

@@ -27,10 +27,10 @@ export function planDeps(root: string): DependencyPlan {
 	const byName = new Map<string, { name: string; edges: DependencyEdge[]; groups: Set<string> }>();
 	const flags: string[] = [];
 	for (const edge of edges) {
-		if (inRepo.has(edge.name) && !edge.spec.startsWith("catalog:")) {
-			// a package that is in this workspace is linked with workspace:, not a version from npm; a peer
-			// range is the exception, it is a compatibility range for consumers
-			if (edge.section !== "peerDependencies") {
+		if (inRepo.has(edge.name) && edge.section !== "peerDependencies") {
+			// a package that is in this workspace is linked with workspace:, not a version from npm or a
+			// catalog; a peer range is the exception, it is a compatibility range for consumers
+			if (!edge.spec.startsWith("workspace:")) {
 				flags.push(
 					`${edge.file}: ${edge.section}.${edge.name} is "${edge.spec}", but it is a workspace package; use "workspace:^"`
 				);
@@ -51,9 +51,9 @@ export function planDeps(root: string): DependencyPlan {
 		const peers = entry.edges.filter((e) => e.section === "peerDependencies");
 
 		let target: string;
-		if (isScoped) {
-			// our own packages that are resolved from a catalog: a published copy on purpose
-			target = nonPeer.length > 0 ? "published" : "peers";
+		if (isScoped && nonPeer.length === 0) {
+			// our own package that is only a peer: the plugins' minimum version of it
+			target = "peers";
 		} else if (nonPeer.length === 0) {
 			// peer-only: keeps its compatibility range, not in any catalog
 			rows.push({ name: entry.name, catalog: null, range: null, groups: [], edges: entry.edges });

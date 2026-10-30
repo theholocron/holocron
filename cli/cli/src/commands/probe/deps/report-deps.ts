@@ -48,7 +48,6 @@ function detail(p: DependencyPlan, filter: string): string {
 
 const TITLES: Record<string, string> = {
 	default: "Shared (default `catalog:`)",
-	published: "Published (our own packages, consumed from npm instead of the workspace)",
 	peers: "Peer floors (minimum versions the plugins accept)",
 };
 

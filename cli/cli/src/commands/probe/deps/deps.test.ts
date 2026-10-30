@@ -221,6 +221,14 @@ describe("a workspace on disk", () => {
 		expect(pinned[0]).toContain('use "workspace:^"');
 	});
 
+	it("reports a workspace package that is reached through a catalog", () => {
+		manifest("plugins/b", { name: "@x/plugin-b", devDependencies: { "@x/cli": "catalog:cli" } });
+		const problems = checkDeps(planDeps(root));
+		expect(problems.some((p) => p.includes("devDependencies.@x/cli") && p.includes('use "workspace:^"'))).toBe(
+			true
+		);
+	});
+
 	it("reports a dependency that names the wrong catalog", () => {
 		manifest("plugins/b", { name: "@x/plugin-b" });
 		manifest("cli/cli", {
