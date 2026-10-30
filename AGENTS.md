@@ -171,6 +171,12 @@ so that one file shows what the repo uses. A manifest's `dependencies`,
   own packages is `peers`: the minimum client and util versions the plugins
   accept as peers. A package that is not in this repo, such as
   `holocron-config`, is an ordinary dependency in its group's catalog.
+- **Dependabot does not bump the `peers` floors.** It reads every catalog entry
+  as a dependency, so `holocron repo setup` writes a name-only `ignore` entry
+  (`.github/dependabot.yml`, never edited by hand) for each workspace package
+  that a catalog lists. Security updates are not affected. To raise a floor,
+  edit its line in `pnpm-workspace.yaml` by hand, in the PR that needs the newer
+  version, then run `pnpm install`.
 
 `holocron probe deps report` (`pnpm deps`) prints every dependency with its
 range and how widely it is used; `holocron probe deps who <name>` lists the
