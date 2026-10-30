@@ -1,0 +1,36 @@
+name: Codecov upload (spike)
+description: Spike. Upload coverage files per flag with the Codecov CLI, authenticated with the job's OIDC token.
+
+inputs:
+  uploads:
+    description: JSON list of {"flag":"utils","files":"utils/**/coverage/lcov.info"} entries
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Upload each flag
+      shell: bash
+      env:
+        UPLOADS: ${{ inputs.uploads }}
+      run: |
+        set -euo pipefail
+        # The same token codecov-action asks for with use_oidc: true.
+        token="$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://codecov.io" | jq -r .value)"
+        [ -n "$token" ] && echo "::add-mask::$token"
+        cli="$RUNNER_TEMP/codecov"
+        curl -sSf -o "$cli" https://cli.codecov.io/latest/linux/codecov
+        curl -sSf -o "$cli.SHA256SUM" https://cli.codecov.io/latest/linux/codecov.SHA256SUM
+        (cd "$RUNNER_TEMP" && sed 's# .*codecov$# codecov#' codecov.SHA256SUM | sha256sum -c -)
+        chmod +x "$cli"
+        echo "$UPLOADS" | jq -c '.[]' | while read -r u; do
+          flag="$(echo "$u" | jq -r .flag)"
+          files="$(echo "$u" | jq -r .files)"
+          mapfile -t list < <(compgen -G "$files" || true)
+          if [ "${#list[@]}" -eq 0 ]; then echo "· $flag: no files match $files"; continue; fi
+          args=()
+          for f in "${list[@]}"; do args+=(--file "$f"); done
+          echo "→ $flag: ${#list[@]} file(s)"
+          "$cli" do-upload -t "$token" --flag "$flag" --disable-search --fail-on-error --git-service github "${args[@]}"
+        done

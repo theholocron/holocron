@@ -1,0 +1,22 @@
+name: Spike codecov flags
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  spike:
+    name: Spike
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: theholocron/.github/.github/actions/setup@main
+      - name: Tests with coverage for two groups
+        run: pnpm exec turbo run verification.unitTests --filter="./utils/*" --filter="./observability" -- --coverage
+      - uses: ./.github/actions/codecov-upload-spike
+        with:
+          uploads: '[{"flag":"utils","files":"utils/*/coverage/lcov.info"},{"flag":"observability","files":"observability/coverage/lcov.info"}]'
