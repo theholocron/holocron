@@ -318,4 +318,5 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 	};
 }
 
+/** The bot-token client returned by `createDiscordBotClient`, with its resource groups (guilds, channels, roles, webhooks, messages and so on). */
 export type DiscordBotClient = ReturnType<typeof createDiscordBotClient>;

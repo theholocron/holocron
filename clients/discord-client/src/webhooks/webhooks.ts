@@ -1,8 +1,12 @@
 import { ProviderApiError } from "@theholocron/http-client";
 
+/** What fetching a webhook by id and token returns. */
 export interface DiscordWebhookInfo {
+	/** The webhook id. */
 	id: string;
+	/** The webhook name. */
 	name: string;
+	/** Id of the server the webhook belongs to, when Discord includes it. */
 	guild_id?: string;
 }
 
