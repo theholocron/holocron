@@ -3,6 +3,7 @@ import { defineConfig } from "@theholocron/astro-config";
 import { docsTheme } from "@theholocron/docs-theme";
 
 export default defineConfig({
+	site: "https://docs.theholocron.dev",
 	docs: {
 		name: "Holocron",
 		github: "holocron",

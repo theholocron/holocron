@@ -74,6 +74,16 @@ describe("defineConfig", () => {
 		expect(config.integrations[0].config.sidebar).toBe(mockDocs.sidebar);
 	});
 
+	it("does not include site when omitted", () => {
+		const config = defineConfig(baseInput) as { site?: string };
+		expect(config.site).toBeUndefined();
+	});
+
+	it("passes site through when provided, so Starlight can generate a sitemap", () => {
+		const config = defineConfig({ ...baseInput, site: "https://docs.theholocron.dev" }) as { site: string };
+		expect(config.site).toBe("https://docs.theholocron.dev");
+	});
+
 	it("does not include srcDir when omitted", () => {
 		const config = defineConfig(baseInput) as { srcDir?: string };
 		expect(config.srcDir).toBeUndefined();
