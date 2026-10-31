@@ -2,11 +2,15 @@ import { ProviderApiError, type RestClient } from "@theholocron/http-client";
 
 import type { JiraIssueLinkType } from "./types.js";
 
+/** The outcome of linking one ticket in `links.createMany()`. */
 export interface IssueLinkResult {
+	/** The ticket key that was linked. */
 	ticket: string;
+	/** The HTTP status of the link request; `201` on success. */
 	status: number;
 }
 
+/** Issue link operations. */
 export function links(client: RestClient) {
 	return {
 		// Returns a status code rather than throwing so createMany can collect

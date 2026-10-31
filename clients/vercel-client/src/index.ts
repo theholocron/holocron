@@ -32,6 +32,7 @@ export type {
 export type { VercelUser, VercelUserResponse } from "./user/user.js";
 export type { VercelClientOptions } from "./utils.js";
 
+/** Create a Vercel client with `deployments`, `domains`, `env`, `projects` and `user` groups, all sharing one REST client built from `opts`. */
 export function createVercelClient(opts: VercelClientOptions) {
 	const rest = createVercelRestClient(opts);
 	return {
@@ -43,4 +44,5 @@ export function createVercelClient(opts: VercelClientOptions) {
 	};
 }
 
+/** The client `createVercelClient()` returns. */
 export type VercelClient = ReturnType<typeof createVercelClient>;

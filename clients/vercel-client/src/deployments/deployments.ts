@@ -1,21 +1,37 @@
 import type { RestClient } from "../utils.js";
 
+/** The lifecycle state of a Vercel deployment; `READY` means it is serving traffic. */
 export type VercelDeploymentState = "INITIALIZING" | "QUEUED" | "BUILDING" | "READY" | "ERROR" | "CANCELED";
 
+/** The environment a deployment is built for. */
 export type VercelDeploymentTarget = "production" | "staging";
 
+/** A Vercel deployment as the API returns it. */
 export interface VercelDeployment {
+	/** The deployment id. */
 	id: string;
+	/** The deployment's generated hostname, without a scheme. */
 	url: string;
+	/** Where the deployment is in its lifecycle. */
 	readyState: VercelDeploymentState;
+	/** The environment the deployment was built for; absent or `null` for a preview. */
 	target?: VercelDeploymentTarget | null;
-	meta?: { githubCommitRef?: string };
+	/** Git metadata Vercel attaches to the deployment. */
+	meta?: {
+		/** The branch or ref the deployment was built from. */
+		githubCommitRef?: string;
+	};
 }
 
+/** Input for `deployments.trigger()`: deploy a branch of a linked GitHub repository. */
 export interface VercelTriggerDeploymentInput {
+	/** The Vercel project to deploy. */
 	projectName: string;
+	/** The Git branch (ref) to deploy. */
 	branch: string;
+	/** The numeric GitHub repository id. */
 	repoId: number;
+	/** The environment to deploy to; omitted, Vercel decides. */
 	target?: VercelDeploymentTarget;
 }
 
@@ -27,8 +43,11 @@ export interface VercelDeployFile {
 	content: string;
 }
 
+/** Input for `deployments.create()`: deploy source files without a Git repository. */
 export interface VercelCreateDeploymentInput {
+	/** The Vercel project to deploy to. */
 	projectName: string;
+	/** The files that make up the deployment. */
 	files: VercelDeployFile[];
 	/**
 	 * `projectSettings.framework`. `null` (the default) deploys with no
@@ -37,6 +56,7 @@ export interface VercelCreateDeploymentInput {
 	 * later deployments inherit it unless overridden here again.
 	 */
 	framework?: string | null;
+	/** The environment to deploy to; omitted, Vercel decides. */
 	target?: VercelDeploymentTarget;
 }
 
