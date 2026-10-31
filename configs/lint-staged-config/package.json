@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/lint-staged-config",
-  "version": "8.9.0-alpha.3",
+  "version": "8.9.0-alpha.4",
   "description": "A Lint Staged configuration for linting code that has been staged in Git within the Galaxy.",
   "keywords": [
     "lint-staged",

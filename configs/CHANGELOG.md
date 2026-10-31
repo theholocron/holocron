@@ -1,3 +1,20 @@
+## [8.9.0-alpha.4](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.3...configs-v8.9.0-alpha.4) (2026-10-31)
+
+### Bug Fixes
+
+* **configs:** 🐛 label released issues "released" on every branch ([#1470](https://github.com/theholocron/holocron/issues/1470)) ([0ec442d](https://github.com/theholocron/holocron/commit/0ec442d549e841d64f10fee861f1461d329d2e48)), closes [#1469](https://github.com/theholocron/holocron/issues/1469) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
+### Documentation
+
+* 📝 carry the per-repo agent rules into the monorepo groups ([#1425](https://github.com/theholocron/holocron/issues/1425)) ([77f60e1](https://github.com/theholocron/holocron/commit/77f60e19f321a76dddc23d4840a25855e2729fce)), closes [#1394](https://github.com/theholocron/holocron/issues/1394) [#1394](https://github.com/theholocron/holocron/issues/1394)
+* 📝 update stale references to the archived repos and the old packages/ layout ([#1424](https://github.com/theholocron/holocron/issues/1424)) ([9858306](https://github.com/theholocron/holocron/commit/9858306ee93ba9282ff15a8f238bfb92c7c32861)), closes [#1217](https://github.com/theholocron/holocron/issues/1217) [#1395](https://github.com/theholocron/holocron/issues/1395)
+
+### Chores
+
+* **docs:** 🔧 point the docs site at docs.theholocron.dev/holocron and license it MIT ([#1428](https://github.com/theholocron/holocron/issues/1428)) ([8a67eab](https://github.com/theholocron/holocron/commit/8a67eab5705f48386e264bfec6d2ec5f349972e6))
+* **platform:** ♻️ build every package from one root tsdown config ([#1375](https://github.com/theholocron/holocron/issues/1375)) ([d8e7a7d](https://github.com/theholocron/holocron/commit/d8e7a7dc87c377eefb2c7e5f29cbaed74f912666)), closes [#1364](https://github.com/theholocron/holocron/issues/1364)
+* **platform:** 🗂️ organize the pnpm catalogs by group and add a who-uses-what report ([#1384](https://github.com/theholocron/holocron/issues/1384)) ([49246a3](https://github.com/theholocron/holocron/commit/49246a3ea3652a6db9539f947fd73a93c7c5370c)), closes [#1380](https://github.com/theholocron/holocron/issues/1380)
+
 ## [8.9.0-alpha.3](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.2...configs-v8.9.0-alpha.3) (2026-10-29)
 
 ### Features

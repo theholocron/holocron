@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/lighthouse-config",
-  "version": "8.9.0-alpha.3",
+  "version": "8.9.0-alpha.4",
   "description": "A Lighthouse CI configuration for auditing performance and accessibility within the Galaxy.",
   "keywords": [
     "lighthouse",
