@@ -211,7 +211,9 @@ describe("resolveConfig", () => {
 
 	it("passes repoValidation.docsCoverage through, and leaves it unset by default", () => {
 		for (const docsCoverage of ["off", "warn", "required"] as const) {
-			expect(resolveConfig({ ...minimal, repoValidation: { docsCoverage } }).repoValidation).toEqual({ docsCoverage });
+			expect(resolveConfig({ ...minimal, repoValidation: { docsCoverage } }).repoValidation).toEqual({
+				docsCoverage,
+			});
 		}
 		expect(resolveConfig(minimal).repoValidation).toBeUndefined();
 		expect(resolveConfig({ ...minimal, repoValidation: {} }).repoValidation).toEqual({});
@@ -226,6 +228,8 @@ describe("resolveConfig", () => {
 			}
 		})();
 		expect(err).toBeInstanceOf(ConfigError);
-		expect((err as ConfigError).message).toMatch(/repoValidation\.docsCoverage.*"off", "warn", "required".*"strict"/);
+		expect((err as ConfigError).message).toMatch(
+			/repoValidation\.docsCoverage.*"off", "warn", "required".*"strict"/
+		);
 	});
 });
