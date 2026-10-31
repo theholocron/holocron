@@ -452,3 +452,19 @@ describe("withCacheMode", () => {
 		expect(capped).toEqual(["delivery.previewCheck", "greetings"]);
 	});
 });
+
+describe("WORKFLOW_TEMPLATES['security.tokenExpiry']", () => {
+	it("is a known workflow", () => {
+		expect(KNOWN_WORKFLOWS.has("security.tokenExpiry")).toBe(true);
+	});
+
+	it("runs daily and by hand, read-only, through the reusable workflow", () => {
+		const yaml = generateThinCallerContent("security.tokenExpiry");
+		expect(yaml).toContain("schedule:");
+		expect(yaml).toContain('cron: "17 6 * * *"');
+		expect(yaml).toContain("workflow_dispatch: {}");
+		expect(yaml).toContain("contents: read");
+		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/security.tokenExpiry.yml@main");
+		expect(yaml).toContain("secrets: inherit");
+	});
+});

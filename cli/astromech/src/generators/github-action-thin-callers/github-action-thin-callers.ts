@@ -25,6 +25,7 @@ import previewYml from "../../templates/workflows/preview.yml";
 import reviewYml from "../../templates/workflows/review.yml";
 import codeScanningYml from "../../templates/workflows/security.codeScanning.yml";
 import secretDetectionYml from "../../templates/workflows/security.secretDetection.yml";
+import tokenExpiryYml from "../../templates/workflows/security.tokenExpiry.yml";
 import deadCodeAnalysisYml from "../../templates/workflows/sourceQuality.deadCodeAnalysis.yml";
 import formattingYml from "../../templates/workflows/sourceQuality.formatting.yml";
 import staticAnalysisYml from "../../templates/workflows/sourceQuality.staticAnalysis.yml";
@@ -49,6 +50,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"sourceQuality.deadCodeAnalysis": deadCodeAnalysisYml,
 	"security.secretDetection": secretDetectionYml,
 	"security.codeScanning": codeScanningYml,
+	"security.tokenExpiry": tokenExpiryYml,
 	"delivery.build": buildYml,
 	"delivery.publish": publishYml,
 	"delivery.deploy": deployYml,

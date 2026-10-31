@@ -111,6 +111,10 @@ export const TASKS: Record<string, TaskDef> = {
 		linterGroup: ["gitleaks"],
 	},
 	"security.codeScanning": { local: null },
+	// Runs `holocron doctor tokens`: fails on a token that is rejected or has 7 days or fewer left. Scheduled daily by
+	// its workflow; never part of `holocron run ci`'s gate (it needs the org's token secrets, and a token about to
+	// expire is not a reason to block a merge).
+	"security.tokenExpiry": { local: { command: "doctor tokens" } },
 
 	// ── delivery.* — shipping software (npm packages, deployed apps) ──────
 	"delivery.build": {

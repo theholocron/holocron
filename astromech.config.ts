@@ -78,6 +78,9 @@ export default defineConfig({
 		// the file stays correct and functional with this line absent.
 		// Add "platform.syncTemplates" back here in a follow-up PR once
 		// this one has merged and released.
+		// Token Expiry: `holocron doctor tokens` daily, so a token that is rejected or has 7 days or fewer
+		// left fails a run and GitHub's failed-workflow notification reaches the team.
+		"security.tokenExpiry",
 		// Wiki: publish the engineering wiki to wiki.theholocron.dev/holocron.
 		"knowledge.wiki",
 	],
