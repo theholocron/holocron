@@ -1,3 +1,9 @@
+## [5.0.0-alpha.264](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.263...v5.0.0-alpha.264) (2026-10-31)
+
+### Features
+
+* **cli:** 🔎 holocron secrets list shows which secrets exist at each scope ([#1430](https://github.com/theholocron/holocron/issues/1430)) ([790b1d1](https://github.com/theholocron/holocron/commit/790b1d12d48c904d4c95bf522c9ca7902e277b27))
+
 ## [5.0.0-alpha.263](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.262...v5.0.0-alpha.263) (2026-10-31)
 
 ### Refactoring
