@@ -15,6 +15,8 @@ related:
   - theholocron/holocron#1476
   - theholocron/holocron#1477
   - theholocron/holocron#1478
+  - theholocron/holocron#1480
+  - theholocron/holocron#1481
 ---
 
 # Host the reusable workflows and composite actions in holocron
@@ -45,11 +47,13 @@ Reusable workflows and composite actions can live in any repo, so they are the p
 ### One source, one ref
 
 - A constant holds the base (`theholocron/holocron/.github`) and the ref. Every generator, template and starter uses it; a test fails on a literal `theholocron/.github/.github/` outside the shim generator (#1474).
-- The ref is a moving tag, `workflows-v1`, never `alpha` (holocron's default branch is the prerelease channel) and never `main` directly. The tag is created on a commit of `main` and moved only when `main` releases, which is the rule `platform.syncTemplates` follows today (it publishes from `main` only, so unreleased template changes cannot overwrite what `main` published). Until `main` is promoted (#1101), outside callers stay on `.github@main` through the shims and holocron's own CI moves first.
+- The ref is a moving tag, `ci-v1`, never `alpha` (holocron's default branch is the prerelease channel) and never `main` directly. The tag is created on a commit of `main` and moved only by a release of the `ci` group, so only when workflow or action files changed. Releasing from `main` only is the rule `platform.syncTemplates` follows today (it publishes from `main` only, so unreleased template changes cannot overwrite what `main` published). Until `main` is promoted (#1101), outside callers stay on `.github@main` through the shims and holocron's own CI moves first.
 
-### Where the reusables live
+### Where the sources and the reusables live
 
-The reusables are generated into this repo's `.github/workflows` and `.github/actions` and keep their file names, so an outside caller changes only repo and ref in its `uses:`. `workflow_call` stays their only trigger.
+A top-level `ci/` folder, like `clients/` and `configs/`, holds the template sources of the reusable workflows and the composite actions, with their tests (#1480). Callable workflows must be in `.github/workflows/` (GitHub allows no subfolders there), so the reusables are generated from `ci/` into this repo's `.github/workflows`, keeping their file names: an outside caller changes only repo and ref in its `uses:`. Composite actions can be at any path, so they are used from `ci/actions/<name>/action.yml` directly and are not copied anywhere. `workflow_call` stays the reusables' only trigger.
+
+`ci/` is a version group (#1481): immutable prefixed tags (`ci-v1.4.0`) that an outside caller can pin, a moving `ci-v1` for those that follow the major, and release analysis scoped to the folder and the generated files it writes. The group publishes nothing to npm; it only versions and tags.
 
 ### How holocron calls them
 
@@ -60,7 +64,7 @@ holocron's own callers are generated thin callers, as today, but `uses: ./.githu
 
 ### Composite actions
 
-A reusable called from another repo cannot use `./.github/actions/...`, which resolves in the caller's workspace. Inside the reusables the actions are therefore referenced by full ref: `theholocron/holocron/.github/actions/setup@workflows-v1`.
+A reusable called from another repo cannot use `./.github/actions/...`, which resolves in the caller's workspace. Inside the reusables the actions are therefore referenced by full ref: `theholocron/holocron/ci/actions/setup@ci-v1`.
 
 Consequence, accepted and to be documented: a change to a composite action reaches holocron's own CI one tag move later, while a change to a reusable workflow is exercised in its own PR. The first introduction of an action follows the bootstrap rule below.
 
@@ -76,7 +80,7 @@ A new reusable cannot resolve until its ref exists. The order inside any PR that
 
 `.github` keeps a forwarding shim for every reusable workflow and composite action it has today, until nothing references it.
 
-- **Generated, not hand-written.** A shim is generated from the same template: it declares the same `workflow_call` inputs and secrets, passes them through, runs `secrets: inherit`, and `uses:` the holocron reusable at `workflows-v1`. A composite shim does the same with `uses:` of the holocron action. A shim's job `permissions:` must cover what the inner workflow needs, because a caller's permissions cap the called workflow's.
+- **Generated, not hand-written.** A shim is generated from the same template: it declares the same `workflow_call` inputs and secrets, passes them through, runs `secrets: inherit`, and `uses:` the holocron reusable at `ci-v1`. A composite shim does the same with `uses:` of the holocron action. A shim's job `permissions:` must cover what the inner workflow needs, because a caller's permissions cap the called workflow's.
 - **Marked.** Each shim starts with a header: why it exists, what replaces it, the removal condition, and the tracking issue (#1477).
 - **Removal condition.** An org-wide scan for `theholocron/.github/.github/` (8 repos, 8 templates, repos generated from templates, themes, the org site, components) reports zero. The scan is a repeatable command, and its first output is the baseline (#1473).
 - **Nesting.** A shim adds one level (starter, shim, reusable, and the reusables that call other reusables). Every chain is checked against GitHub's nesting limit (#1477).
@@ -87,15 +91,16 @@ The 9 workflows with no template are not moved on faith: the inventory (#1473) m
 ## Rollout
 
 1. This spec merged, then the inventory and baseline scan (#1473), which fixes the scope of the rest.
-2. The constant and the `workflows-v1` tag (#1474). No behaviour change.
+2. The constant and the `ci-v1` ref (#1474). No behaviour change.
 3. Check-name test (#1476), before any file moves.
-4. Generate the composite actions into holocron's `.github/actions` and switch the reusables to the full ref (#1475). `.github` keeps its copies.
-5. Generate the reusable workflows into holocron's `.github/workflows`; rename holocron's callers to `ci.<name>.yml` and point them at `./.github/workflows/<name>.yml` (#1475). holocron's own CI now runs the reusables from this repo.
-6. Generate the shims in `.github` (#1477), after the tag exists on a `main` commit. Outside callers still work through them.
-7. Repoint the callers, templates and starters (#1478, #1229), one repo per PR, merged by the maintainer. Shrink `holocron sync github` to what `.github` keeps (#1216).
-8. When the scan reports zero: delete the shims and anything the inventory marked dead (#1216).
+4. Move the templates and composite actions into `ci/`, with astromech taking the folder as input (#1480). The generated files are unchanged.
+5. Release `ci/` as a tag-only version group (#1481), then create `ci-v1` on a `main` commit.
+6. Generate the reusable workflows into holocron's `.github/workflows`; rename holocron's callers to `ci.<name>.yml` and point them at `./.github/workflows/<name>.yml`; switch the reusables to the `ci/actions` full ref (#1475). holocron's own CI now runs the reusables from this repo.
+7. Generate the shims in `.github` (#1477), after the tag exists on a `main` commit. Outside callers still work through them.
+8. Repoint the callers, templates and starters (#1478, #1229), one repo per PR, merged by the maintainer. Shrink `holocron sync github` to what `.github` keeps (#1216).
+9. When the scan reports zero: delete the shims and anything the inventory marked dead (#1216).
 
-Steps 4 to 5 can ship before `main` is promoted. Steps 6 to 8 follow the promotion (#1101), because the tag lives on `main`.
+Steps 4 to 6 can ship before `main` is promoted, except the tag, which needs a `main` commit. Steps 7 to 9 follow the promotion (#1101).
 
 ## Risks
 
@@ -107,12 +112,9 @@ Steps 4 to 5 can ship before `main` is promoted. Steps 6 to 8 follow the promoti
 ## Decisions
 
 1. **holocron's own caller file name: `ci.<name>.yml`.** Decided by the maintainer; only the file name changes.
-2. **Combined `workflow_call` plus direct-trigger files: open.** Recommendation: drop them and close #1236. A direct run has no `inputs`, so the repo's settings (`affected`, the Codecov `uploads` list) need a new home, and a direct run's check is named by the job alone (`Run unit tests and collect coverage`) where a call through a caller is `Test / Run unit tests and collect coverage`, so combining changes holocron's required check names. Thin callers keep the names and the generator.
-3. **The `workflows-v1` tag moves only when workflow or action files changed** (a path check in the release workflow), not on every `main` release. Decided by the maintainer.
-
-### Option for later: a top-level folder as a version group
-
-Callable workflows must stay in `.github/workflows/` (GitHub allows no subfolders there), but composite actions can live at any path. A top-level folder (`ci/` or `workflows/`) could hold the template sources and the actions, with the generated workflows still written to `.github/workflows`, and be released as a version group like `clients`: prefixed immutable tags (`ci-v1.4.0`) beside the moving `workflows-v1`, and release analysis scoped to the folder, which gives decision 3 without a custom path check. Costs: the group release tooling assumes npm-published packages and skips `apps/*` (#1233), so a tag-only group needs new support; and moving the templates out of astromech separates the generator from its data and tests. Not part of this plan; if wanted, it becomes its own sub-issue ahead of rollout step 4.
+2. **No combined `workflow_call` plus direct-trigger files.** #1236 is closed as not planned. A direct run has no `inputs`, so the repo's settings (`affected`, the Codecov `uploads` list) would need a new home, and a direct run's check is named by the job alone (`Run unit tests and collect coverage`) where a call through a caller is `Test / Run unit tests and collect coverage`, so combining would change holocron's required check names. Thin callers keep the names and the generator.
+3. **The ref moves only when workflow or action files changed**, as a release of the `ci` group. Decided by the maintainer.
+4. **A top-level `ci/` folder holds the templates and composite actions and is a tag-only version group.** Decided by the maintainer. The cost is new support in the group release tooling, which assumes npm-published packages and skips `apps/*` (#1233), and a generator that reads the folder instead of bundling the templates (#1480, #1481).
 
 ## Not in scope
 
