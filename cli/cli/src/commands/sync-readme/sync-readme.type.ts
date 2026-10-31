@@ -1,5 +1,5 @@
-import type { discoverWorkspacePackages } from "@theholocron/astromech";
 import type { Logger } from "@theholocron/observability/core";
+import type { discoverWorkspacePackages } from "@theholocron/pkg-utils";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { RuntimeContext } from "../../plugin/index.js";

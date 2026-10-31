@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-import { discoverWorkspacePackages } from "@theholocron/astromech";
+import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
 
 import { countSymbols } from "./count-symbols.js";
 import type { MeasureDocsCoverageInput, PackageDocs } from "./docs-coverage.type.js";

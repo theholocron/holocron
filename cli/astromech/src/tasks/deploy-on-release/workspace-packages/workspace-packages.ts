@@ -1,4 +1,5 @@
-import { discoverWorkspacePackages } from "../../../workspace/index.js";
+import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
+
 import type { Tree, WorkspacePackage } from "./workspace-packages.type.js";
 
 /**

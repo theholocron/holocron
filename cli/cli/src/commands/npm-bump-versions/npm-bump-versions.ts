@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
-import { discoverWorkspacePackages } from "@theholocron/astromech";
 import { stringifyJson } from "@theholocron/json-utils";
+import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import type { NpmBumpVersionsReport, RunNpmBumpVersionsInput } from "./npm-bump-versions.type.js";

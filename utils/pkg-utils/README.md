@@ -62,6 +62,20 @@ import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
 const publishable = listWorkspacePackagesSync(repoRoot).filter((p) => !p.manifest.private && p.name);
 ```
 
+### `discoverWorkspacePackages(repoRoot, options?)`
+
+Every package the repo's `pnpm-workspace.yaml` declares, as `listWorkspacePackagesSync()` entries — in glob order, packages within a `<dir>/*` glob sorted by name. Two glob forms are understood: `<dir>/*` (each child of `<dir>` with a `package.json`) and a literal directory (that directory is the package). `!pattern` entries drop matching packages, the repo root (`.`) is skipped, and any other glob throws. Without a `pnpm-workspace.yaml`, or one with no `packages:`, `DEFAULT_WORKSPACE_ROOTS` (`packages`, `apps`, `plugins`) are scanned. `options.group` keeps one version group's folder, `options.excludeGroups` leaves some out, and `options.readText`, `options.readFile` and `options.listDirs` replace the disk access.
+
+```typescript
+import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
+
+const names = discoverWorkspacePackages(repoRoot, { group: "clients" }).map((p) => p.name);
+```
+
+### `resolveWorkspaceGlobs(repoRoot, options?)` and `readWorkspaceGlobs(yaml)`
+
+`readWorkspaceGlobs` reads the `packages:` list of a `pnpm-workspace.yaml` text into `{ include, exclude }` (a line-based read, not a YAML parse; quotes and trailing comments are stripped). `resolveWorkspaceGlobs` reads the file in `repoRoot` and falls back to the default roots as `<root>/*` when it lists none.
+
 ### `PackageJson`
 
 The fields these helpers read, typed; any other field passes through untyped.

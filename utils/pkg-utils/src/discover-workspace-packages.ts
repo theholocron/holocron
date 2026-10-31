@@ -1,14 +1,10 @@
 import { readFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import {
-	type ListWorkspacePackagesOptions,
-	listWorkspacePackagesSync,
-	parsePackageJson,
-	type WorkspacePackageEntry,
-} from "@theholocron/pkg-utils";
-
-import { readWorkspaceGlobs, type WorkspaceGlobs } from "./workspace-globs.js";
+import { type ListWorkspacePackagesOptions, listWorkspacePackagesSync } from "./list-workspace-packages.ts";
+import { parsePackageJson } from "./parse-package-json.ts";
+import { readWorkspaceGlobs, type WorkspaceGlobs } from "./workspace-globs.ts";
+import type { WorkspacePackageEntry } from "./workspace-package.type.ts";
 
 /** Where packages live when there is no `pnpm-workspace.yaml` (or it lists none): the layout before globs were read. */
 export const DEFAULT_WORKSPACE_ROOTS: readonly string[] = ["packages", "apps", "plugins"];
