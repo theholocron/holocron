@@ -38,12 +38,19 @@ const eslint = eslintConfig ? `eslint --config ${eslintConfig}` : "eslint";
  * @see https://github.com/lint-staged/lint-staged?tab=readme-ov-file#configuration
  */
 const config = {
+	/** Fixes staged CSS files with `stylelint --fix`. */
 	"*.css": "stylelint --fix",
+	/** Formats staged JavaScript files with Prettier, then lints them with ESLint. */
 	"*.{js,jsx}": [prettierWrite, eslint],
+	/** Formats staged Markdown files with Prettier. */
 	"*.md": [prettierWrite],
+	/** Formats staged MDX files with Prettier. */
 	"*.mdx": [prettierWrite],
+	/** Fixes staged SCSS files with `stylelint --syntax=scss --fix`. */
 	"*.scss": "stylelint --syntax=scss --fix",
+	/** Formats staged TypeScript files with Prettier, then lints them with ESLint. */
 	"*.{ts,tsx}": [prettierWrite, eslint],
+	/** Sorts the keys of a staged `package.json` with `sort-package-json`. */
 	"package.json": "sort-package-json",
 };
 

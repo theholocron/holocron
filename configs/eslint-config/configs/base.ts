@@ -58,6 +58,7 @@ export const docsSrcConfig: Linter.Config = {
 	},
 };
 
+/** The base ESLint flat config: the repo's `.gitignore` as ignores, browser and Node globals, `@eslint/js` recommended rules, import and export sorting, and a relaxed `n/no-extraneous-import` for `docs/src`. */
 export function base(): Linter.Config[] {
 	const gitignore = gitignoreConfig();
 	return [
