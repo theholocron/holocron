@@ -42,6 +42,12 @@ export interface CommandEntry {
 	 * handler's own `dryRun: argv.dryRun` usage in `cli.ts`.
 	 */
 	supportsDryRun?: boolean;
+	/**
+	 * What the menu shows for this entry when it is a plain leaf, instead of its last word. For a variant of
+	 * its parent that is run with a flag (`doctor all` is `doctor --all`), so it reads as a choice beside
+	 * `doctor (run it)`.
+	 */
+	menuLabel?: string;
 	/** The command opens a menu of its own (`probe`): shown with the same " ›" as a group, though nothing is nested under it. */
 	opensMenu?: boolean;
 	/**

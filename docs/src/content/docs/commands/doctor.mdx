@@ -42,9 +42,33 @@ Exit code is 1 if any capability reports `fail`.
 
 | Option              | Description                                                     |
 | ------------------- | --------------------------------------------------------------- |
+| `--all`             | Run every deep check and print one row each (see below)         |
 | `--repo owner/name` | Override the repo coordinate (defaults to config or git remote) |
 | `--dry-run`         | No-op for doctor — read-only checks still run                   |
 
 ## Going deeper
 
 `holocron doctor` only asks whether each provider can be reached. To compare what a provider is _declared_ to have with what it actually has, run the capability's own check: [`holocron doctor notifications`](/holocron/commands/doctor-notifications/) checks the notification server layout step by step, and [`holocron doctor variables`](/holocron/commands/doctor-variables/) checks the Actions variables in `repo.variables`.
+
+## Running every deep check
+
+```bash
+holocron doctor --all
+```
+
+Runs every deep check in turn and prints one row for each, then the closing count of checks. It is the one command for a scheduled run, or for a person after a large change. It also runs from the interactive menu as `doctor › doctor (everything)`.
+
+```text
+  ✓ notifications  8 ok
+  ✗ variables      1 failed
+      - run `holocron doctor variables` for the steps
+
+1 ok, 1 fail, 0 skipped
+```
+
+- **One row per check, not per step.** A failing row names the command that shows its steps.
+- **A check that cannot run is a skip.** No provider, no token, or nothing declared to compare shows as a skip with the reason (for example `no source provider to read them with`), and does not fail the run.
+- **Any other error fails that check only.** The checks after it still run.
+- **It exits 1 when any check failed**, and 0 otherwise.
+- **It changes nothing.** `doctor notifications` on its own leaves one labelled test post in the layout's test channel; inside `--all` it runs as `--built-only`, which posts nothing. Run `holocron doctor notifications` for the delivery check.
+- **It is the deep checks, not the smoke check too.** Plain `holocron doctor` is the smoke check and stays a separate command.

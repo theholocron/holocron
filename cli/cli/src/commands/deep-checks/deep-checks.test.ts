@@ -69,7 +69,13 @@ describe("the notifications entry", () => {
 		expect(await notifications.run(input)).toEqual({ status: "ok", summary: { ok: 3, fail: 0, skip: 1 } });
 	});
 
-	it("carries the reason a run could not verify anything", async () => {
+	it("runs without posting anything", async () => {
+		runDoctorNotifications.mockResolvedValue({ status: "ok", checks: [], summary: { pass: 1, fail: 0, skip: 0 } });
+		await notifications.run(input);
+		expect(runDoctorNotifications).toHaveBeenLastCalledWith(expect.objectContaining({ builtOnly: true }));
+	});
+
+	it("is a skip, with the reason, when the run could not verify anything", async () => {
 		runDoctorNotifications.mockResolvedValue({
 			status: "fail",
 			checks: [],
@@ -77,8 +83,8 @@ describe("the notifications entry", () => {
 			message: "no notifications provider configured",
 		});
 		expect(await notifications.run(input)).toEqual({
-			status: "fail",
-			summary: { ok: 0, fail: 1, skip: 0 },
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
 			reason: "no notifications provider configured",
 		});
 	});

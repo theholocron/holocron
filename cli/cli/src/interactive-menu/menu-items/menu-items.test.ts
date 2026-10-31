@@ -21,8 +21,9 @@ describe("menuItems — one level of the nested menu", () => {
 	});
 
 	it("keeps plain `doctor` runnable, as the first item of its own submenu", () => {
-		expect(names(["doctor"])).toEqual(["doctor (run it)", "notifications", "variables"]);
+		expect(names(["doctor"])).toEqual(["doctor (run it)", "doctor (everything)", "notifications", "variables"]);
 		expect(valueOf("doctor (run it)", ["doctor"])).toBe("doctor");
+		expect(valueOf("doctor (everything)", ["doctor"])).toBe("doctor all");
 		expect(valueOf("notifications", ["doctor"])).toBe("doctor notifications");
 	});
 
@@ -38,7 +39,7 @@ describe("menuItems — one level of the nested menu", () => {
 		const bad = rows.filter((n) =>
 			n
 				.replace(/ ›$/, "")
-				.replace(/ \(run it\)$/, "")
+				.replace(/ \((run it|everything)\)$/, "")
 				.includes(" ")
 		);
 		expect(bad).toEqual([]);
