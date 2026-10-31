@@ -4,7 +4,9 @@ import { ProviderApiError } from "./errors.js";
 import { createRestClient } from "./rest-client.js";
 import { onRetry, type RetryEvent } from "./retry-events.js";
 
-function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: string }>) {
+function stubFetch(
+	responses: Array<{ status?: number; body?: unknown; text?: string; headers?: Record<string, string> }>
+) {
 	const calls: Array<{
 		url: string;
 		method: string;
@@ -23,14 +25,38 @@ function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: st
 		});
 		const next = responses[i++] ?? { status: 200, body: {} };
 		const status = next.status ?? 200;
-		if (status === 204) return new Response(null, { status });
+		if (status === 204) return new Response(null, { status, headers: next.headers });
 		const text = next.text ?? JSON.stringify(next.body ?? {});
-		return new Response(text, { status });
+		return new Response(text, { status, headers: next.headers });
 	});
 	return { fetch: mock as unknown as typeof fetch, calls };
 }
 
 const TOKEN = "test-token";
+
+describe("createRestClient — onResponse", () => {
+	const config = (fetch: typeof globalThis.fetch) => ({ baseUrl: "https://api.example.com", token: TOKEN, fetch });
+
+	it("hands the headers of a successful response to onResponse", async () => {
+		const { fetch } = stubFetch([{ body: { a: 1 }, headers: { "x-thing": "yes" } }]);
+		const seen: Array<string | null> = [];
+		const body = await createRestClient(config(fetch)).request("/x", {
+			onResponse: (headers) => seen.push(headers.get("x-thing")),
+		});
+		expect(body).toEqual({ a: 1 });
+		expect(seen).toEqual(["yes"]);
+	});
+
+	it("does not call onResponse for a failed response", async () => {
+		const { fetch } = stubFetch([{ status: 401, body: {} }]);
+		const seen: unknown[] = [];
+		const err = await createRestClient(config(fetch))
+			.request("/x", { onResponse: (headers) => seen.push(headers) })
+			.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect(seen).toEqual([]);
+	});
+});
 
 describe("createRestClient — bearer auth", () => {
 	it("sends Authorization: Bearer header", async () => {
