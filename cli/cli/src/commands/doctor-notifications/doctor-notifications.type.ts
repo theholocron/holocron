@@ -3,13 +3,13 @@ import type { Logger } from "@theholocron/observability/core";
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext, SecretScope } from "../../plugin/index.js";
 
-export type NotificationsCheckStatus = "pass" | "fail";
+export type NotificationsCheckStatus = "pass" | "fail" | "skip";
 
 export interface NotificationsCheck {
 	id: string;
 	title: string;
 	status: NotificationsCheckStatus;
-	/** One line: what was found, or why it failed. */
+	/** One line: what was found, or why it failed or was skipped. */
 	detail: string;
 	/** For a failing check, one line per thing that is wrong. */
 	problems: string[];

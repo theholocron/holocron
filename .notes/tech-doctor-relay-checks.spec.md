@@ -29,8 +29,8 @@ These are new steps of `doctor notifications`, not new subcommands. They follow 
 | Step          | Declared                                                                                    | Actual                                                                                |
 | ------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | feed webhook  | webhook named `feeds.monitoring.webhook` (default `Checkly`) on the channel, with a picture | Discord inspect (already read by the webhook and avatar steps; reuse, do not re-read) |
-| alert channel | a webhook alert channel named `Message to #uptime` whose URL is the feed webhook's          | `Monitoring.inspectAlertChannel(name)`                                                |
-| subscriptions | every check on the account is subscribed and activated                                      | same read, compared with `Monitoring.listChecks` ids                                  |
+| alert channel | a webhook alert channel named `Message to #uptime` that posts through the feed webhook      | `Monitoring.inspectAlertChannel(name)`, compared by webhook id                        |
+| subscriptions | every check on the account is subscribed and activated                                      | same read: the checks it is not subscribed to, or has switched off                    |
 
 ### Comlink relay (when the layout has `relay` and a channel has `feeds.errors`)
 
@@ -49,7 +49,7 @@ The DNS placeholder (`AAAA <host> 100::`, proxied) is already checked by `doctor
 
 Each is optional on its capability, like `Monitoring.listChecks`; a provider without it makes its steps a skip ("the provider cannot be read"), not a failure.
 
-- `Monitoring.inspectAlertChannel?(name)`: `{ exists, type, url?, subscribedCheckIds[] }`. The Checkly plugin already lists and gets alert channels (`client.alertChannels`), so this is a read-only wrapper.
+- `Monitoring.inspectAlertChannel?(name)`: `{ exists, discord?, webhookId?, unsubscribed[], deactivated[] }`. The Checkly plugin already lists and gets alert channels (`client.alertChannels`), so this is a read-only wrapper. The alert channel's URL is a credential and never leaves the plugin: `webhookId` is the id inside a Discord webhook URL (public, unlike the token after it). The doctor compares it with the id of the feed webhook, which the Discord plugin's `inspect` now returns in `webhookIds` (by lower-cased name, for any channel that has a webhook or a feed). `unsubscribed` and `deactivated` are check names, worked out in the plugin from the account's checks, so no check ids are compared here.
 - `Workers.inspectScript?(name)`: `{ exists, routes[], bindingNames[] }`. Binding **names** only. Cloudflare returns secret names without values; the implementation must not request or keep values.
 - `Errors.inspectRelay?(input)`: the read half of `ensureRelay`, returning `{ integration?: { webhookUrl, alertAction }, rules: { project, enabled }[] }`. The Sentry plugin already finds both by name inside `ensureRelay`; split the find from the write.
 

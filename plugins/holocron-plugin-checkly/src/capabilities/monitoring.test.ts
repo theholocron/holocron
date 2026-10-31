@@ -648,4 +648,91 @@ describe("ChecklyMonitoring", () => {
 			expect(stub.calls.some((c) => c.url.includes("page=2"))).toBe(true);
 		});
 	});
+
+	describe("inspectAlertChannel", () => {
+		const TOKEN = "sentinel-webhook-token";
+		const channel = (over: Record<string, unknown> = {}, subscriptions: unknown[] = []) => ({
+			id: 9,
+			type: "WEBHOOK",
+			config: {
+				name: "Message to #uptime",
+				url: `https://discord.com/api/webhooks/1234567/${TOKEN}`,
+				method: "POST",
+				headers: [],
+				queryParameters: [],
+				template: "",
+				webhookType: "WEBHOOK_DISCORD",
+				...over,
+			},
+			subscriptions,
+		});
+		const sub = (checkId: string, activated = true) => ({ id: 1, checkId, groupId: null, activated });
+		const checks = [
+			{ id: "a", name: "check a" },
+			{ id: "b", name: "check b" },
+			{ id: "c", name: "check c" },
+		];
+
+		it("names the webhook by its id and lists the checks it lacks or has switched off, without the URL", async () => {
+			const { capability } = makeCapability([
+				{ body: [channel()] },
+				{ body: checks },
+				{ body: channel({}, [sub("a"), sub("b", false)]) },
+			]);
+			const state = await capability.inspectAlertChannel("Message to #uptime");
+			expect(state).toEqual({
+				exists: true,
+				discord: true,
+				webhookId: "1234567",
+				unsubscribed: ["check c"],
+				deactivated: ["check b"],
+			});
+			expect(JSON.stringify(state)).not.toContain(TOKEN);
+		});
+
+		it("reports a channel that is missing, and a URL that is not a Discord webhook", async () => {
+			const none = makeCapability([{ body: [channel({ name: "other" })] }, { body: checks }]);
+			expect(await none.capability.inspectAlertChannel("Message to #uptime")).toEqual({
+				exists: false,
+				unsubscribed: [],
+				deactivated: [],
+			});
+			const odd = makeCapability([
+				{ body: [channel({ url: "https://example.com/hook", webhookType: "WEBHOOK_SPIKE" })] },
+				{ body: [] },
+				{ body: channel({ url: "https://example.com/hook", webhookType: "WEBHOOK_SPIKE" }) },
+			]);
+			expect(await odd.capability.inspectAlertChannel("Message to #uptime")).toEqual({
+				exists: true,
+				discord: false,
+				unsubscribed: [],
+				deactivated: [],
+			});
+		});
+
+		it("ignores a group subscription and a channel of another kind with the same name", async () => {
+			const { capability } = makeCapability([
+				{
+					body: [
+						{ id: 3, type: "EMAIL", config: { name: "Message to #uptime" }, subscriptions: [] },
+						channel(),
+					],
+				},
+				{ body: checks },
+				{
+					body: channel({}, [
+						{ id: 2, checkId: null, groupId: 7, activated: true },
+						sub("a"),
+						sub("b"),
+						sub("c"),
+					]),
+				},
+			]);
+			expect(await capability.inspectAlertChannel("Message to #uptime")).toMatchObject({
+				exists: true,
+				unsubscribed: [],
+				deactivated: [],
+			});
+		});
+	});
 });
