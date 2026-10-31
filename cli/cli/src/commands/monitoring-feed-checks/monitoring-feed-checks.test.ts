@@ -158,6 +158,13 @@ describe("monitoringFeedChecks", () => {
 			expect(row(token, "monitoring-alert-channel").detail).toContain("Checkly");
 		});
 
+		it("treats a plugin's AuthError as a missing token too", async () => {
+			const noToken = Object.assign(new Error("no Checkly token found"), { name: "AuthError" });
+			const rows = await run({ monitoring: provider(noToken) });
+			expect(rows.map((r) => r.status)).toEqual(["pass", "skip", "skip"]);
+			expect(row(rows, "monitoring-alert-channel").detail).toBe("no Checkly token found");
+		});
+
 		it("stops reading after the first channel when it is skipped, and reports any other error as a problem", async () => {
 			const two: NotificationsLayout = {
 				categories: [

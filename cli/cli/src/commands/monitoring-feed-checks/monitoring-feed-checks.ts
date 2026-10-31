@@ -1,6 +1,6 @@
-import { MissingTokenError } from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import { feedAvatarOf, monitoringFeed } from "../notifications-setup/index.js";
 import type { MonitoringFeedChecksInput } from "./monitoring-feed-checks.type.js";
 
@@ -81,8 +81,9 @@ export async function monitoringFeedChecks(input: MonitoringFeedChecksInput): Pr
 		try {
 			state = await monitoring.inspectAlertChannel(names.name);
 		} catch (err) {
-			if (err instanceof MissingTokenError) {
-				channelSkip = err.message;
+			const noToken = missingTokenReason(err);
+			if (noToken !== undefined) {
+				channelSkip = noToken;
 				continue;
 			}
 			channelProblems.push(`${label}: ${shown(describeProviderError(err))}`);
