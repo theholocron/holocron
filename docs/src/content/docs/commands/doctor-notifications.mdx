@@ -55,6 +55,42 @@ It is the end-to-end check for [`notifications setup`](/holocron/commands/notifi
 
 When the server cannot be read, the steps that depend on it are reported as "not checked" and the reason is printed once. One failing read (a channel's webhook list, or the roles) is reported on that step and does not discard what was read elsewhere. A provider only needs to be able to read (`inspect`); it does not have to provision. An empty `topic` in the layout means "unspecified", as it does for `setup`.
 
+## The Checkly feed and the Comlink relay
+
+Nine more steps check the two feeds that reach Discord from outside it. They appear only when the layout has them: the three `monitoring-*` steps when a channel declares `feeds.monitoring`, and the `relay-*` steps when the layout declares a `relay` and a channel declares `feeds.errors` (`relay-integration` and `relay-rule` only with `relay.errors`). The relay's DNS record is [`holocron doctor dns`](/holocron/commands/doctor-dns/)'s and is not repeated here.
+
+| Step                       | Passes when                                                                                                                                                                                                                                                           |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `monitoring-feed-webhook`  | each channel with `feeds.monitoring` has the feed's webhook (default `Checkly`), with a picture when the layout or the provider gives one                                                                                                                             |
+| `monitoring-alert-channel` | the monitoring provider's alert channel (default `Message to #<channel>`) exists, is formatted for Discord and posts through that feed webhook. The two are told apart by the webhook's id; the alert channel's URL is never read                                     |
+| `monitoring-subscriptions` | the alert channel is subscribed to every check on the account and has none switched off. Each check it lacks, or has off, is named                                                                                                                                    |
+| `relay-answers`            | an unsigned `POST` to `https://<relay.host>/<errors provider>` (`/sentry`) gets `401`. `404` means the Worker is not deployed or has no route. Any other status, a network error or no answer in 5 seconds fails. It is sent once, and nothing is read from the reply |
+| `relay-worker`             | the relay script (default `comlink`) is deployed and serves `<relay.host>/*`                                                                                                                                                                                          |
+| `relay-bindings`           | the Worker has `COMLINK_<SOURCE>_WEBHOOK` and `COMLINK_<SOURCE>_SECRET` bound. Only the names of its secrets are read, never a value                                                                                                                                  |
+| `relay-feed-webhook`       | the error feed's webhook (default the provider's name, `Sentry`) is on its channel, with a picture when one is declared                                                                                                                                               |
+| `relay-integration`        | the error tracker's integration (default `Comlink`) exists, posts to the relay's URL and is offered as an alert action. Its signing secret is not read                                                                                                                |
+| `relay-rule`               | the tracker's alert rule (default `Errors to Discord (Comlink)`) is on each project in `relay.errors.projects`, enabled, and sends through the integration                                                                                                            |
+
+Each step reads from a different provider, and a provider that is missing is a **skip with its reason**, never a failure:
+
+| Steps                                                  | Reads                      | Skipped when                                                              |
+| ------------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------- |
+| `monitoring-alert-channel`, `monitoring-subscriptions` | the `monitoring` provider  | there is none, its token is missing, or it cannot read its alert channels |
+| `relay-worker`, `relay-bindings`                       | the `workers` provider     | there is none, its token is missing, or it cannot read its Workers        |
+| `relay-integration`, `relay-rule`                      | the `errors` provider      | there is none, its token is missing, or it cannot read its relay          |
+| `relay-answers`                                        | the Worker itself          | there is no `errors` provider, which names the path                       |
+| `monitoring-feed-webhook`, `relay-feed-webhook`        | the notifications provider | the server could not be read                                              |
+
+### With `--built-only` and `doctor --all`
+
+These steps run under `--built-only`, and so under [`holocron doctor --all`](/holocron/commands/doctor/), which runs notifications that way. They post nothing: the request to the Worker is unsigned and the Worker rejects it before it reads anything, and every other read is a listing. The delivery proofs that do post (a labelled message sent through a feed and read back) are [probes](/holocron/commands/probe/), not part of `doctor`.
+
+None of them reads a secret value. The Worker's bindings are listed by name, the alert channel's URL stays inside the Checkly plugin, and the integration's signing secret is never requested.
+
+### Tokens
+
+The steps use the tokens the providers already take, so nothing new is needed. They only read: the Checkly alert channels and checks, the Cloudflare Worker scripts, routes and secret names, and the Sentry integrations, projects and alert rules. For Sentry that is the Comlink token (`sentry.comlink`), as for `notifications setup`. See [tokens](/holocron/tokens/). Whether a narrower, read-only token would do for each has not been tried against the providers, so the scopes listed there are the ones `setup` needs.
+
 ## Options
 
 | Option              | Default | Description                                                                                                                               |

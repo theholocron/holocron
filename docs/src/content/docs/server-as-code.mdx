@@ -70,4 +70,4 @@ See [`notifications link`](/holocron/commands/notifications-link/) and [`notific
 holocron doctor notifications
 ```
 
-It compares the live server with the layout step by step, posts one `🧪 test:` message in the test channel (`--built-only` skips that, `--deliver` posts to every channel and removes the posts), and names the command that fixes each failure. See [`doctor notifications`](/holocron/commands/doctor-notifications/).
+It compares the live server with the layout step by step, posts one `🧪 test:` message in the test channel (`--built-only` skips that, `--deliver` posts to every channel and removes the posts), and names the command that fixes each failure. It also checks the two feeds that reach Discord from outside it, the Checkly alert channel and the Comlink relay (the Worker, its route and bindings, and the error tracker's integration and alert rule), without posting anything. See [`doctor notifications`](/holocron/commands/doctor-notifications/).
