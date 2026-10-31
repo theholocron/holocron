@@ -40,6 +40,13 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `runProbe`: output is scrubbed of secrets, a change goes through `ctx.write` (skipped on `--dry-run`, refused for a probe
   without `writes: true`), a writer is asked about first (`--yes` without a terminal), and what it registers with
   `ctx.cleanup` is undone on success, failure and Ctrl-C. `doctor` compares the config with reality; a probe has no layout.
+- **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
+  `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
+  step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`
+  (`cli/cli/src/commands/deep-checks/`) and prints through the shared pieces in `doctor-checks/` (`printCheckRows`,
+  `printCheckSummary`, `declaredVsActual`), so a new one is a list of comparisons, not a renderer. A new entry also
+  needs `COMMAND_CONTEXTS` and `COMMAND_REGISTRY` entries; `deep-checks.test.ts` fails without them. Checks that write
+  and read back are probes, not doctor.
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting

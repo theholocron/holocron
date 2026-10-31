@@ -19,8 +19,8 @@ import {
 	type Source,
 } from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
-import { statusRow } from "../../ui/status-row/index.js";
 import { style } from "../../ui/style/index.js";
+import { printCheckRows, printCheckSummary } from "../doctor-checks/index.js";
 import {
 	defaultSecretName,
 	layoutSecretProblem,
@@ -113,8 +113,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	};
 	const refuse = (message: string, reason: string = message): DoctorNotificationsReport => {
 		print(`  ${style.fail(message)}`);
-		print("");
-		print(style.header("0 ok, 1 fail, 0 skipped"));
+		printCheckSummary({ ok: 0, fail: 1, skip: 0 }, print);
 		logger.warn({ reason }, "doctor notifications");
 		return { status: "fail", checks, summary: summarise(), message };
 	};
@@ -904,18 +903,16 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	}
 
 	// Render in one place so the output order is the check order.
-	const width = Math.max(...checks.map((c) => c.title.length));
-	for (const check of checks) {
-		print(statusRow(check.status === "pass" ? "ok" : "fail", [check.title.padEnd(width), check.detail]));
-		for (const problem of check.problems) print(`      - ${problem}`);
-	}
+	printCheckRows(
+		checks.map((check) => ({ ...check, status: check.status === "pass" ? "ok" : "fail" })),
+		print
+	);
 	// Not a step and not counted: why the delivery check did not run, set apart below the steps.
 	if (deliveryNote) {
 		print("");
 		print(`  ${style.skip(`note: ${deliveryNote}`)}`);
 	}
 	const summary = summarise();
-	print("");
-	print(style.header(`${summary.pass} ok, ${summary.fail} fail, ${summary.skip} skipped`));
+	printCheckSummary({ ok: summary.pass, fail: summary.fail, skip: summary.skip }, print);
 	return finish();
 }
