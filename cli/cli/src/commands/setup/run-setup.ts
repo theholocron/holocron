@@ -21,7 +21,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, extractPreviewConfig, readWorkspacePackages } from "@theholocron/astromech";
+import { createAstromech, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
@@ -61,6 +61,7 @@ import {
 } from "./derived-properties/index.js";
 import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
+import { previewConfigOf } from "./preview-config-of.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, type RunSetupInput, runStep, type SetupReport, type SetupStepResult } from "./run-step/index.js";
 import { SETUP_ENVIRONMENTS } from "./setup-environments.js";
@@ -480,20 +481,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		const deploy = loader.get("deployment") as Deployment;
 		print(style.step("deployment"));
 
-		// delivery.deploy, knowledge.docs, and knowledge.components all share the
-		// same combined production+preview mechanism (astromech.ts) — any one of
-		// them can carry the preview config that drives project/DNS provisioning.
-		const deployEntry = (config.tasks ?? [])
-			.map((e) => (typeof e === "string" ? { name: e } : e))
-			.find(
-				(e) => e.name === "delivery.deploy" || e.name === "knowledge.docs" || e.name === "knowledge.components"
-			);
-		const previewCfg = deployEntry?.with
-			? extractPreviewConfig(deployEntry.with as Record<string, unknown>, {
-					org: config.org,
-					domain: config.domain,
-				})
-			: null;
+		const previewCfg = previewConfigOf(config);
 		const ensureCustomDomain = async (projectId: string, hostname: string) => {
 			if (!deploy.ensureCustomDomain) return;
 			const customDomainDns = { value: null as DnsRecordRequest | null };

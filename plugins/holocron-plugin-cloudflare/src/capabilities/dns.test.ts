@@ -29,6 +29,19 @@ describe("CloudflareDns.listRecords", () => {
 		expect(result[0]?.id).toBe("rec-1");
 	});
 
+	it("returns whether each record is proxied, and leaves it out when the zone does not say", async () => {
+		const { dns } = makeDns([
+			cfOk([zone]),
+			cfOk([
+				{ ...record, proxied: true },
+				{ ...record, id: "rec-2", proxied: undefined },
+			]),
+		]);
+		const result = await dns.listRecords(ZONE_NAME);
+		expect(result[0]?.proxied).toBe(true);
+		expect(result[1] && "proxied" in result[1]).toBe(false);
+	});
+
 	it("caches the zone id on subsequent calls", async () => {
 		const { dns, calls } = makeDns([cfOk([zone]), cfOk([record]), cfOk([record])]);
 		await dns.listRecords(ZONE_NAME);

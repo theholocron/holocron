@@ -83,12 +83,20 @@ export class CloudflareDns implements Dns {
 	}
 }
 
-function mapRecord(raw: { id: string; type: string; name: string; content: string; ttl: number }): DnsRecord {
+function mapRecord(raw: {
+	id: string;
+	type: string;
+	name: string;
+	content: string;
+	ttl: number;
+	proxied?: boolean;
+}): DnsRecord {
 	return {
 		id: raw.id,
 		type: raw.type as DnsRecordType,
 		name: raw.name,
 		content: raw.content,
 		ttl: raw.ttl,
+		...(raw.proxied !== undefined ? { proxied: raw.proxied } : {}),
 	};
 }
