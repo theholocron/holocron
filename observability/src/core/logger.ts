@@ -11,12 +11,16 @@
  * for a simple line (`log.info("sync complete")`).
  */
 export interface Logger {
+	/** Logs a verbose line, either a context object with an optional message or a bare string. */
 	debug(obj: Record<string, unknown>, msg?: string): void;
 	debug(msg: string): void;
+	/** Logs a routine progress line, either a context object with an optional message or a bare string. */
 	info(obj: Record<string, unknown>, msg?: string): void;
 	info(msg: string): void;
+	/** Logs a recoverable problem, either a context object with an optional message or a bare string. */
 	warn(obj: Record<string, unknown>, msg?: string): void;
 	warn(msg: string): void;
+	/** Logs a failure, either a context object with an optional message or a bare string. */
 	error(obj: Record<string, unknown>, msg?: string): void;
 	error(msg: string): void;
 	/**
@@ -61,9 +65,13 @@ export type LogEnv = "ci" | "local";
  * instead of discarding them) live in `@theholocron/observability/testing`.
  */
 export class NoopLogger implements Logger {
+	/** Discards the line. */
 	debug(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
+	/** Discards the line. */
 	info(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
+	/** Discards the line. */
 	warn(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
+	/** Discards the line. */
 	error(_objOrMsg?: Record<string, unknown> | string, _msg?: string): void {}
 	child(_bindings?: Record<string, unknown>): Logger {
 		return this;

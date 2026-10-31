@@ -8,5 +8,6 @@ export interface WorkspacePackageEntry {
 	dir: string;
 	/** The directory relative to the repo root, `/`-separated (`packages/cli`). */
 	relativeDir: string;
+	/** The parsed `package.json`. */
 	manifest: PackageJson;
 }

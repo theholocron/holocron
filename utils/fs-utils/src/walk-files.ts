@@ -1,6 +1,7 @@
 import { type Dirent, lstatSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 
+/** Options for {@link walkFilesSync}. */
 export interface WalkFilesOptions {
 	/** Directory names not descended into, at any depth (files with these names are still listed). Defaults to `.git` and `node_modules`. */
 	skip?: Iterable<string>;

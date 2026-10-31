@@ -1,5 +1,7 @@
+/** A leaf value of a parsed env object. */
 export type Primitive = string | number | boolean;
 
+/** A nested env object: keys map to leaf values or further nested objects. */
 export type EnvObject = {
 	[key: string]: Primitive | EnvObject;
 };
@@ -9,6 +11,7 @@ export type EnvObject = {
  * Swap out dotenv for anything else without touching consumer code.
  */
 export interface EnvLoader {
+	/** Returns the raw env vars to parse, keyed by name. */
 	load(): Record<string, string | undefined>;
 }
 
@@ -20,10 +23,13 @@ export interface EnvLoader {
  * is injected.
  */
 export interface EnvLogger {
+	/** Logs an informational message. */
 	info(message: string, meta?: unknown): void;
+	/** Logs a warning. */
 	warn(message: string, meta?: unknown): void;
 }
 
+/** Options for creating an env parser. */
 export interface EnvParserOptions {
 	/**
 	 * Display name for this app — used in debug output.
@@ -77,6 +83,7 @@ export interface EnvParserOptions {
 	logger?: EnvLogger;
 }
 
+/** A parsed environment with typed lookups. */
 export interface EnvParser<T extends EnvObject = EnvObject> {
 	/**
 	 * The fully parsed env object. Exposed if you need direct access,

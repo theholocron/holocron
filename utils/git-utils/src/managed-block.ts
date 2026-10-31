@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { chmod, readFile, realpath, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+/** The markers and content of a block managed inside a text file. */
 export interface ManagedBlockOptions {
 	/** The line that opens the block, e.g. `# managed by my-tool — skills`. Matched as text, so it must be distinctive. */
 	start: string;

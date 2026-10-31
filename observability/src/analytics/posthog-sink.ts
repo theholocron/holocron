@@ -22,14 +22,17 @@ export class PostHogSink implements AnalyticsSink {
 		this.#client = new PostHog(config.key, { host: config.host });
 	}
 
+	/** Associates `props` with the person identified by `distinctId`. */
 	identify(distinctId: string, props: Record<string, unknown>): void {
 		this.#client.identify({ distinctId, properties: props });
 	}
 
+	/** Records the `event` for `distinctId` with the given `props`. */
 	capture(distinctId: string, event: string, props: Record<string, unknown>): void {
 		this.#client.capture({ distinctId, event, properties: props });
 	}
 
+	/** Flushes queued events and closes the PostHog client. */
 	async shutdown(): Promise<void> {
 		await this.#client.shutdown();
 	}
