@@ -23,7 +23,7 @@
 
 export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
-export type { WorkspacePackage } from "./generators/codecov/index.js";
+export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";
 export {
 	codecovComponentBlock,
 	codecovConfig,

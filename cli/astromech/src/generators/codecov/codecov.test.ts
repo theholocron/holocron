@@ -9,6 +9,7 @@ import {
 	codecovFlagNames,
 	codecovUploads,
 	createCodecovConfig,
+	ensureDocumentationCoverage,
 	ensureFlagManagement,
 	ensureIfNotFound,
 	ensureIgnore,
@@ -583,5 +584,101 @@ describe("ensureIfNotFound with sibling keys", () => {
 			"coverage:\n  status:\n    patch:\n      default:\n        target: 80%\n        base: parent\n"
 		);
 		expect(out).toContain("        target: 80%\n        if_not_found: success\n        base: parent");
+	});
+});
+
+describe("ensureDocumentationCoverage", () => {
+	const base = createCodecovConfig([{ slug: "a", name: "@s/a", dir: "libs" }]);
+	const block = (yaml: string, kind: "project" | "patch") =>
+		yaml
+			.slice(yaml.indexOf(`    ${kind}:`))
+			.split("\n")
+			.slice(0, 16)
+			.join("\n");
+
+	it("adds nothing, and removes nothing, when the mode is off", () => {
+		expect(ensureDocumentationCoverage(base, "off")).toBe(base);
+		const warned = ensureDocumentationCoverage(base, "warn");
+		expect(ensureDocumentationCoverage(warned, "off")).toBe(warned);
+	});
+
+	it("adds the documentation flag and a named status under project and patch", () => {
+		const out = ensureDocumentationCoverage(base, "required");
+		expect(out).toContain("    - name: documentation");
+		expect(block(out, "project")).toContain(
+			"      documentation:\n        flags:\n          - documentation\n        target: auto\n        if_not_found: success\n"
+		);
+		expect(block(out, "patch")).toContain(
+			"      documentation:\n        flags:\n          - documentation\n        target: 100%\n        if_not_found: success\n"
+		);
+		expect(out).not.toContain("informational: true\n    patch");
+	});
+
+	it("leaves the aggregate project and patch statuses counting only the package flags", () => {
+		const out = ensureDocumentationCoverage(base, "required");
+		const defaults = out.slice(out.indexOf("      default:"), out.indexOf("      documentation:"));
+		expect(defaults).toContain("          - a");
+		expect(defaults).not.toContain("documentation");
+	});
+
+	it("makes the statuses informational for warn, and not for required", () => {
+		const warn = ensureDocumentationCoverage(base, "warn");
+		expect(block(warn, "project")).toContain(
+			"          - documentation\n        target: auto\n        if_not_found: success\n        informational: true"
+		);
+		expect(block(warn, "patch")).toContain(
+			"        target: 100%\n        if_not_found: success\n        informational: true"
+		);
+		expect(ensureDocumentationCoverage(base, "required")).not.toContain("informational: true\n      documentation");
+	});
+
+	it("is a no-op the second time, and moves between warn and required without duplicating anything", () => {
+		const required = ensureDocumentationCoverage(base, "required");
+		expect(ensureDocumentationCoverage(required, "required")).toBe(required);
+		const warn = ensureDocumentationCoverage(required, "warn");
+		expect(warn).toBe(ensureDocumentationCoverage(base, "warn"));
+		expect(ensureDocumentationCoverage(warn, "required")).toBe(required);
+		expect(required.match(/- name: documentation/g)).toHaveLength(1);
+	});
+
+	it("keeps what a hand edit added to an existing documentation status", () => {
+		const edited = base.replace(
+			"    patch:\n",
+			"    patch:\n      documentation:\n        flags:\n          - documentation\n        target: 90%\n        threshold: 1%\n"
+		);
+		const out = ensureDocumentationCoverage(edited, "warn");
+		expect(block(out, "patch")).toContain(
+			"        target: 90%\n        threshold: 1%\n        informational: true"
+		);
+	});
+
+	it("skips a status kind the file does not have", () => {
+		const out = ensureDocumentationCoverage(
+			"flag_management:\n  individual_flags: []\ncoverage:\n  status:\n    project:\n      default:\n        target: auto",
+			"warn"
+		);
+		expect(out).toContain("    - name: documentation");
+		expect(out).toContain("      documentation:\n        flags:");
+		expect(out).not.toContain("target: 100%");
+	});
+
+	it("is applied by createCodecovConfig, mergeCodecovComponents and codecovConfig from their options", () => {
+		const packages = [{ slug: "a", name: "@s/a", dir: "libs" }];
+		const created = createCodecovConfig(packages, { docsCoverage: "required" });
+		expect(created).toContain("      documentation:");
+		expect(createCodecovConfig(packages, {})).not.toContain("documentation");
+		expect(mergeCodecovComponents(base, packages, { docsCoverage: "required" })).toBe(
+			ensureDocumentationCoverage(mergeCodecovComponents(base, packages), "required")
+		);
+		expect(mergeCodecovComponents("coverage:\n  status: {}", packages, { docsCoverage: "warn" })).toContain(
+			"- name: documentation"
+		);
+		const root = mkdtempSync(join(tmpdir(), "codecov-docs-"));
+		writeFileSync(join(root, "pnpm-workspace.yaml"), 'packages:\n  - "libs/*"\n');
+		mkdirSync(join(root, "libs/a"), { recursive: true });
+		writeFileSync(join(root, "libs/a/package.json"), JSON.stringify({ name: "@s/a" }));
+		expect(codecovConfig(root, null, { docsCoverage: "warn" })).toContain("      documentation:");
+		expect(codecovConfig(root, base, { docsCoverage: "warn" })).toContain("      documentation:");
+		expect(codecovConfig(root, null)).not.toContain("documentation");
 	});
 });

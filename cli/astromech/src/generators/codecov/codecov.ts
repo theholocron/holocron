@@ -10,7 +10,7 @@
 import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
 
 import codecovTemplate from "../../templates/codecov/codecov.yml";
-import type { WorkspacePackage } from "./codecov.type.js";
+import type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./codecov.type.js";
 
 export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
 
@@ -254,19 +254,74 @@ export function ensureIgnore(yaml: string): string {
 	return lines.join("\n");
 }
 
-/** Everything `codecov.yml` needs on top of the components list: if_not_found, ignored docs, flags, scoped aggregates, informational components. */
-function applyStatusRules(yaml: string, flags: string[]): string {
-	return ensureInformationalComponentStatuses(
-		scopeAggregateStatuses(ensureFlagManagement(ensureIgnore(ensureIfNotFound(yaml)), flags), flags)
+/** The Codecov flag the Docs coverage workflow uploads doc-comment coverage as (`holocron probe docs --lcov`). */
+export const DOCUMENTATION_FLAG = "documentation";
+
+/** What each aggregate asks of the `documentation` flag: the patch must be fully documented, the project must not drop. */
+const DOCUMENTATION_TARGETS = { project: "auto", patch: "100%" } as const;
+
+function documentationStatus(kind: keyof typeof DOCUMENTATION_TARGETS, mode: DocsCoverageMode): string[] {
+	return [
+		`      ${DOCUMENTATION_FLAG}:`,
+		"        flags:",
+		`          - ${DOCUMENTATION_FLAG}`,
+		`        target: ${DOCUMENTATION_TARGETS[kind]}`,
+		"        if_not_found: success",
+		...(mode === "warn" ? ["        informational: true"] : []),
+	];
+}
+
+/**
+ * Ensure `codecov.yml` carries the `documentation` flag and a named `documentation` status under
+ * `coverage.status.project` and `coverage.status.patch` (spec `tech-api-docs`). They are named statuses scoped to that
+ * flag, so the required `codecov/project` and `codecov/patch` keep counting only the tests. `warn` makes them
+ * informational and `required` does not; an existing status only has that line brought in line, so hand edits survive.
+ * `off` adds nothing and leaves what is there alone: setup never deletes.
+ */
+export function ensureDocumentationCoverage(yaml: string, mode: DocsCoverageMode): string {
+	if (mode === "off") return yaml;
+	const lines = ensureFlagManagement(yaml, [DOCUMENTATION_FLAG]).split("\n");
+	for (const kind of ["project", "patch"] as const) {
+		const at = lines.indexOf(`    ${kind}:`);
+		if (at === -1) continue;
+		// the status block ends at the next line that is not indented deeper than the kind, minus trailing blanks
+		let end = at + 1;
+		while (end < lines.length && (lines[end]!.trim() === "" || /^ {5}/.test(lines[end]!))) end++;
+		while (lines[end - 1]!.trim() === "") end--;
+		const own = lines.findIndex((line, i) => i > at && i < end && line === `      ${DOCUMENTATION_FLAG}:`);
+		if (own === -1) {
+			lines.splice(end, 0, ...documentationStatus(kind, mode));
+			continue;
+		}
+		let ownEnd = own + 1;
+		while (ownEnd < end && /^ {8}/.test(lines[ownEnd]!)) ownEnd++;
+		const keep = lines.slice(own, ownEnd).filter((line) => !/^ {8}informational:/.test(line));
+		lines.splice(own, ownEnd - own, ...keep, ...(mode === "warn" ? ["        informational: true"] : []));
+	}
+	return lines.join("\n");
+}
+
+/** Everything `codecov.yml` needs on top of the components list: if_not_found, ignored docs, flags, scoped aggregates, informational components, and the documentation flag when the repo asks for it. */
+function applyStatusRules(yaml: string, flags: string[], docsCoverage: DocsCoverageMode): string {
+	return ensureDocumentationCoverage(
+		ensureInformationalComponentStatuses(
+			scopeAggregateStatuses(ensureFlagManagement(ensureIgnore(ensureIfNotFound(yaml)), flags), flags)
+		),
+		docsCoverage
 	);
 }
 
-export function mergeCodecovComponents(existing: string, packages: WorkspacePackage[]): string {
+export function mergeCodecovComponents(
+	existing: string,
+	packages: WorkspacePackage[],
+	options: CodecovConfigOptions = {}
+): string {
 	const flags = codecovFlagNames(packages);
+	const docsCoverage = options.docsCoverage ?? "off";
 	const idx = existing.indexOf(INDIVIDUAL_COMPONENTS_MARKER);
-	if (idx === -1) return applyStatusRules(existing, flags);
+	if (idx === -1) return applyStatusRules(existing, flags, docsCoverage);
 	return (
-		applyStatusRules(existing.slice(0, idx + INDIVIDUAL_COMPONENTS_MARKER.length), flags) +
+		applyStatusRules(existing.slice(0, idx + INDIVIDUAL_COMPONENTS_MARKER.length), flags, docsCoverage) +
 		codecovComponentBlock(packages)
 	);
 }
@@ -298,8 +353,8 @@ export function readWorkspacePackages(repoRoot: string): WorkspacePackage[] {
 }
 
 /** A brand-new `codecov.yml` — the scaffold header + the base template + this repo's component list. */
-export function createCodecovConfig(packages: WorkspacePackage[]): string {
-	const base = applyStatusRules(codecovTemplate.trimEnd(), codecovFlagNames(packages));
+export function createCodecovConfig(packages: WorkspacePackage[], options: CodecovConfigOptions = {}): string {
+	const base = applyStatusRules(codecovTemplate.trimEnd(), codecovFlagNames(packages), options.docsCoverage ?? "off");
 	return `${scaffoldHeader()}${base}${codecovComponentBlock(packages)}`;
 }
 
@@ -308,7 +363,9 @@ export function createCodecovConfig(packages: WorkspacePackage[]): string {
  * `packages/*`, then either merge them into an `existing` `codecov.yml` or
  * scaffold a new one.
  */
-export function codecovConfig(repoRoot: string, existing: string | null): string {
+export function codecovConfig(repoRoot: string, existing: string | null, options: CodecovConfigOptions = {}): string {
 	const packages = readWorkspacePackages(repoRoot);
-	return existing != null ? mergeCodecovComponents(existing, packages) : createCodecovConfig(packages);
+	return existing != null
+		? mergeCodecovComponents(existing, packages, options)
+		: createCodecovConfig(packages, options);
 }

@@ -165,3 +165,65 @@ describe("docs patch probe", () => {
 		expect(rows.at(-1)).toEqual({ status: "ok", label: "0 checked", detail: "every one has a doc comment" });
 	});
 });
+
+describe("docs patch and repoValidation.docsCoverage", () => {
+	const hunk = "+++ b/libs/a/src/index.ts\n@@ -0,0 +8,1 @@";
+
+	it("off skips the check: nothing is measured or written, and nothing fails", async () => {
+		const root = repo();
+		const typedoc = vi.fn(TYPEDOC);
+		const probes = docsCoverageProbes(root, typedoc, () => hunk, "off");
+		const { ctx, rows } = context(false, "docs.lcov");
+		await probes["patch"]!.run(ctx);
+		expect(typedoc).not.toHaveBeenCalled();
+		expect(() => readFileSync(join(root, "docs.lcov"), "utf8")).toThrow();
+		expect(rows).toEqual([
+			{ status: "info", label: "docs patch", detail: "off in this repo's config (repoValidation.docsCoverage)" },
+		]);
+	});
+
+	it("warn reports an undocumented export without failing, and still writes the report", async () => {
+		const root = repo();
+		const probes = docsCoverageProbes(root, vi.fn(TYPEDOC), () => hunk, "warn");
+		const { ctx, rows } = context(false, "docs.lcov");
+		await probes["patch"]!.run(ctx);
+		expect(rows.some((row) => row.status === "fail")).toBe(false);
+		expect(rows).toContainEqual({
+			status: "info",
+			label: "libs/a/src/index.ts:8",
+			detail: "Function two has no doc comment",
+		});
+		expect(rows.at(-1)).toEqual({
+			status: "info",
+			label: "1 without a doc comment",
+			detail: "warn: not failing (repoValidation.docsCoverage)",
+		});
+		expect(readFileSync(join(root, "docs.lcov"), "utf8")).toContain("DA:8,0");
+	});
+
+	it("warn passes quietly when everything the PR changed is documented", async () => {
+		const probes = docsCoverageProbes(
+			repo(),
+			vi.fn(TYPEDOC),
+			() => "+++ b/libs/a/src/index.ts\n@@ -0,0 +4,1 @@",
+			"warn"
+		);
+		const { ctx, rows } = context();
+		await probes["patch"]!.run(ctx);
+		expect(rows.at(-1)).toEqual({ status: "ok", label: "1 checked", detail: "every one has a doc comment" });
+	});
+
+	it("required fails for it", async () => {
+		const probes = docsCoverageProbes(repo(), vi.fn(TYPEDOC), () => hunk, "required");
+		const { ctx, rows } = context();
+		await probes["patch"]!.run(ctx);
+		expect(rows.some((row) => row.status === "fail")).toBe(true);
+	});
+
+	it("coverage and lcov do not depend on it", async () => {
+		const probes = docsCoverageProbes(repo(), vi.fn(TYPEDOC), () => hunk, "off");
+		const { ctx, rows } = context();
+		await probes["coverage"]!.run(ctx);
+		expect(rows.at(-1)).toMatchObject({ label: "total" });
+	});
+});

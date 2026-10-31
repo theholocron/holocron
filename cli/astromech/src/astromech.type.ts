@@ -1,5 +1,10 @@
 import type { TasksConfig } from "./config/schema/index.js";
-import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult, OrgContext } from "./generators/index.js";
+import type {
+	CodecovConfigOptions,
+	EnsureRootWorkspaceMemberResult,
+	EnsureTurboDependencyResult,
+	OrgContext,
+} from "./generators/index.js";
 import type { CiOptions, CiReport, ExecFn, GroupReport, RunLogger, RunTaskReport } from "./tasks/index.js";
 
 export interface AstromechOptions {
@@ -111,8 +116,9 @@ export interface Astromech {
 	 * Pass the current file's content (`null` if none exists yet) to either
 	 * merge the component list in or scaffold a fresh file. Policy-free same
 	 * as {@link requiredChecks} — `holocron repo setup` owns writing the result.
+	 * `options.docsCoverage` adds the `documentation` flag and its statuses.
 	 */
-	codecovConfig(existing: string | null): string;
+	codecovConfig(existing: string | null, options?: CodecovConfigOptions): string;
 	/**
 	 * The generated `turbo.json` for this repo's manifest, pretty-printed —
 	 * write directly, no merge. `null` when no manifest task has turbo fan-out

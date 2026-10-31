@@ -4,6 +4,8 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
+import type { DocsCoverageMode } from "@theholocron/astromech";
+
 import type { PluginProbes, ProbeContext } from "../../../plugin/index.js";
 import { addedLines } from "./added-lines.js";
 import type { MeasureDocsCoverageInput, PackageDocs } from "./docs-coverage.type.js";
@@ -91,11 +93,15 @@ function summarise(ctx: ProbeContext, packages: PackageDocs[]): void {
  * numbers as `coverage/docs.lcov`, for a coverage service to read. `docs patch` fails for each export a PR adds or
  * changes without a doc comment, which is the check CI runs. `docs coverage` and `docs patch` also write that
  * report wherever `--lcov <path>` says, from the same measurement, so CI gates and uploads with one command.
+ *
+ * `mode` is the repo's `repoValidation.docsCoverage`, and only `docs patch` follows it: `off` skips it (nothing is
+ * measured or written), `warn` reports an undocumented export without failing, `required` fails for it.
  */
 export function docsCoverageProbes(
 	repoRoot: string,
 	typedoc: MeasureDocsCoverageInput["typedoc"] = runTypedoc(repoRoot),
-	diff: () => string = realDiff(repoRoot)
+	diff: () => string = realDiff(repoRoot),
+	mode: DocsCoverageMode = "required"
 ): PluginProbes {
 	const measure = (): PackageDocs[] => measureDocsCoverage({ repoRoot, typedoc });
 	return {
@@ -112,6 +118,14 @@ export function docsCoverageProbes(
 			summary: "Fail for each export a PR adds or changes that has no doc comment (against BASE_SHA).",
 			writes: false,
 			async run(ctx) {
+				if (mode === "off") {
+					ctx.say({
+						status: "info",
+						label: "docs patch",
+						detail: "off in this repo's config (repoValidation.docsCoverage)",
+					});
+					return;
+				}
 				const added = addedLines(diff());
 				const touched = (dir: string): boolean => [...added.keys()].some((file) => file.startsWith(`${dir}/`));
 				// the report covers every package, so `--lcov` measures them all; otherwise only the touched ones
@@ -122,14 +136,22 @@ export function docsCoverageProbes(
 					.filter((s) => added.get(s.file)?.has(s.line));
 				const undocumented = missing.filter((s) => !s.documented);
 				ctx.say({ status: "heading", label: "Exports this PR adds or changes" });
+				// `warn` reports the same rows but does not fail the run
+				const level = mode === "warn" ? "info" : "fail";
 				for (const { file, line, kind, name } of undocumented) {
-					ctx.say({ status: "fail", label: `${file}:${line}`, detail: `${kind} ${name} has no doc comment` });
+					ctx.say({ status: level, label: `${file}:${line}`, detail: `${kind} ${name} has no doc comment` });
 				}
 				if (undocumented.length === 0) {
 					ctx.say({
 						status: "ok",
 						label: `${missing.length} checked`,
 						detail: "every one has a doc comment",
+					});
+				} else if (mode === "warn") {
+					ctx.say({
+						status: "info",
+						label: `${undocumented.length} without a doc comment`,
+						detail: "warn: not failing (repoValidation.docsCoverage)",
 					});
 				}
 			},
