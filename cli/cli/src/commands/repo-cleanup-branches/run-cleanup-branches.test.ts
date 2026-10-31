@@ -166,7 +166,7 @@ describe("runCleanupBranches", () => {
 	it("reads this checkout with git and prints to the console when it is given neither", async () => {
 		const dir = realpathSync(mkdtempSync(join(tmpdir(), "cleanup-branches-")));
 		try {
-			execFileSync("git", ["init", "-q", "-b", "alpha"], { cwd: dir });
+			execFileSync("git", ["init", "-q", "-b", "alpha", "--template="], { cwd: dir });
 			const log = vi.spyOn(console, "log").mockImplementation(() => {});
 			const source = makeSource({ listPullRequests: vi.fn(async () => []) });
 			await runCleanupBranches({

@@ -12,7 +12,9 @@ const git = (...args: string[]) => execFileSync("git", args, { cwd: dir, encodin
 
 beforeEach(() => {
 	dir = realpathSync(mkdtempSync(join(tmpdir(), "local-git-")));
-	git("init", "-q", "-b", "alpha");
+	// No template and no hooks: a global hook (a ctags one, for instance) can write into .git after the test has ended.
+	git("init", "-q", "-b", "alpha", "--template=");
+	git("config", "core.hooksPath", "/dev/null");
 	git("config", "user.email", "t@example.test");
 	git("config", "user.name", "T");
 	git("config", "commit.gpgsign", "false");
