@@ -11,6 +11,8 @@ export interface RunProbeInput {
 	probeName: string;
 	/** Words after the probe name, for a probe that takes an argument. */
 	args?: readonly string[];
+	/** `--lcov <path>`: where a coverage probe also writes its lcov report. */
+	lcov?: string;
 	probe: PluginProbes[string];
 	dryRun: boolean;
 	/** `--yes`: do not ask before a probe that writes. */
@@ -38,6 +40,8 @@ export interface RunProbeCommandInput {
 	probe?: string;
 	/** Words after the probe name, for a probe that takes an argument. */
 	args?: readonly string[];
+	/** `--lcov <path>`: where a coverage probe also writes its lcov report. */
+	lcov?: string;
 	dryRun?: boolean;
 	yes?: boolean;
 	/** Lets tests inject a loader with mock plugins. */

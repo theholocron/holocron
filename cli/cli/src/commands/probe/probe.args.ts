@@ -6,6 +6,7 @@ export interface ProbeArgs extends GlobalArgs {
 	provider?: string;
 	probe?: string;
 	args?: string[];
+	lcov?: string;
 	yes: boolean;
 }
 
@@ -23,6 +24,10 @@ export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 			type: "string",
 			array: true,
 			describe: "Arguments for the probe (`probe deps who <name>`)",
+		})
+		.option("lcov", {
+			type: "string",
+			describe: "Also write the coverage a `docs` probe measures to this lcov file (relative to the repo root)",
 		})
 		.option("yes", {
 			type: "boolean",

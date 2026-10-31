@@ -69,6 +69,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 		provider: input.provider,
 		probeName: input.probe,
 		args: input.args ?? [],
+		...(input.lcov ? { lcov: input.lcov } : {}),
 		probe,
 		dryRun: input.dryRun ?? false,
 		yes: input.yes ?? false,

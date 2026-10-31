@@ -90,6 +90,13 @@ coverage:
         target: auto
         if_not_found: success
         threshold: 2%
+      # Doc-comment coverage of the public API (#1368), uploaded as its own flag by the Docs coverage
+      # workflow. Its own named status, so the required codecov/project above keeps counting only the tests.
+      documentation:
+        flags:
+          - documentation
+        target: auto
+        if_not_found: success
     patch:
       default:
         flags:
@@ -171,6 +178,11 @@ coverage:
         target: 80%
         if_not_found: success
         threshold: 2%
+      documentation:
+        flags:
+          - documentation
+        target: 100%
+        if_not_found: success
 
 comment:
   layout: "reach,diff,flags"
@@ -256,6 +268,7 @@ flag_management:
     - name: storage-utils
     - name: string-utils
     - name: uri-utils
+    - name: documentation
 
 component_management:
   default_rules:

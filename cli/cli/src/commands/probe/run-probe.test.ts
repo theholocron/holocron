@@ -46,6 +46,14 @@ describe("runProbe", () => {
 		expect(text()).toContain("1 ok, 0 fail");
 	});
 
+	it("hands the probe the --lcov path, and none when it was not given", async () => {
+		const seen: Array<string | undefined> = [];
+		const probe = reader(async (ctx) => void seen.push(ctx.lcov));
+		await run(probe, { lcov: "coverage/docs.lcov" }).promise;
+		await run(probe).promise;
+		expect(seen).toEqual(["coverage/docs.lcov", undefined]);
+	});
+
 	it("prints a heading as a title, not as a result", async () => {
 		const { promise, text } = run(
 			reader(async (ctx) => {
