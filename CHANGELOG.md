@@ -1,3 +1,20 @@
+## [5.0.0-alpha.262](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.261...v5.0.0-alpha.262) (2026-10-31)
+
+### Features
+
+* **cli:** ✨ holocron repo cleanup branches ([#1426](https://github.com/theholocron/holocron/issues/1426)) ([5e0d57f](https://github.com/theholocron/holocron/commit/5e0d57f4f200d303446adab6170b080bb87710ee)), closes [#1417](https://github.com/theholocron/holocron/issues/1417)
+
+### Bug Fixes
+
+* **astromech:** 🐛 key the Turbo cache by workflow and job ([#1427](https://github.com/theholocron/holocron/issues/1427)) ([4ac5c4a](https://github.com/theholocron/holocron/commit/4ac5c4a56a2a9b0be92b76332af987b619f26ddf)), closes [#1202](https://github.com/theholocron/holocron/issues/1202)
+
+### Documentation
+
+* 📝 carry the per-repo agent rules into the monorepo groups ([#1425](https://github.com/theholocron/holocron/issues/1425)) ([77f60e1](https://github.com/theholocron/holocron/commit/77f60e19f321a76dddc23d4840a25855e2729fce)), closes [#1394](https://github.com/theholocron/holocron/issues/1394) [#1394](https://github.com/theholocron/holocron/issues/1394)
+* 📝 move the archived docs repo's specs into docs/wiki/specifications ([#1423](https://github.com/theholocron/holocron/issues/1423)) ([fee5640](https://github.com/theholocron/holocron/commit/fee56407851b38c73dbaa6fe04c397d6d5484d65)), closes [#1393](https://github.com/theholocron/holocron/issues/1393)
+* 📝 update stale references to the archived repos and the old packages/ layout ([#1424](https://github.com/theholocron/holocron/issues/1424)) ([9858306](https://github.com/theholocron/holocron/commit/9858306ee93ba9282ff15a8f238bfb92c7c32861)), closes [#1217](https://github.com/theholocron/holocron/issues/1217) [#1395](https://github.com/theholocron/holocron/issues/1395)
+* **ci:** 📝 record per-package Codecov flags and the create-report step in the affected-CI spec ([#1422](https://github.com/theholocron/holocron/issues/1422)) ([d0699f6](https://github.com/theholocron/holocron/commit/d0699f655806ad5786e650040d021da9238337a3)), closes [#1250](https://github.com/theholocron/holocron/issues/1250)
+
 ## [5.0.0-alpha.261](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.260...v5.0.0-alpha.261) (2026-10-30)
 
 ### Refactoring
