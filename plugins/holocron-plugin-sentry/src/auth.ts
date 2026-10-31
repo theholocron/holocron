@@ -1,4 +1,10 @@
-import { AuthError, createFeatureResolver, createResolveToken, type ResolveTokenInput } from "@theholocron/cli";
+import {
+	AuthError,
+	createFeatureResolver,
+	createResolveToken,
+	type PluginToken,
+	type ResolveTokenInput,
+} from "@theholocron/cli";
 
 export { AuthError };
 export type { ResolveTokenInput };
@@ -34,3 +40,6 @@ export function resolveRelayToken(input: ResolveTokenInput = {}): string {
 		return resolveToken(input);
 	}
 }
+
+/** Every token this plugin takes, for `holocron doctor tokens`: the general one and the Comlink relay's own. */
+export const tokens: PluginToken[] = [resolveToken.token, resolveComlinkToken.token];

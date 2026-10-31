@@ -1,4 +1,4 @@
-import { AuthError, createResolveToken, type ResolveTokenInput } from "@theholocron/cli";
+import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput } from "@theholocron/cli";
 
 export { AuthError };
 export type { ResolveTokenInput };
@@ -10,3 +10,6 @@ export const resolveToken = createResolveToken({
 	errorMessage:
 		"no Fern token found. Set HOLOCRON_FERN_TOKEN / FERN_TOKEN, " + "or run: holocron auth set fern <token>",
 });
+
+/** Every token this plugin takes, for `holocron doctor tokens`. */
+export const tokens: PluginToken[] = [resolveToken.token];

@@ -1,4 +1,4 @@
-import { AuthError, createResolveToken, type ResolveTokenInput } from "@theholocron/cli";
+import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput } from "@theholocron/cli";
 
 export { AuthError };
 export type { ResolveTokenInput };
@@ -35,3 +35,13 @@ export const resolveClientSecret = createResolveToken({
 		"holocron auth set discord.holonet.oauth <secret> — it is the client secret from the developer portal " +
 		"(OAuth2 → Reset Secret), which the API cannot create or read.",
 });
+
+/**
+ * Every token this plugin takes, for `holocron doctor tokens`. `verifyToken` checks a webhook URL, so the bot token and
+ * the OAuth client secret are listed but not handed to it.
+ */
+export const tokens: PluginToken[] = [
+	resolveToken.token,
+	{ ...resolveBotToken.token, verifiable: false },
+	{ ...resolveClientSecret.token, verifiable: false },
+];
