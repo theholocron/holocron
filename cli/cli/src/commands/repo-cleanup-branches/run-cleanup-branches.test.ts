@@ -1,3 +1,8 @@
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { checkbox, confirm } from "@inquirer/prompts";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -158,6 +163,26 @@ describe("runCleanupBranches", () => {
 		await expect(t.run()).resolves.toBeDefined();
 	});
 
+	it("reads this checkout with git and prints to the console when it is given neither", async () => {
+		const dir = realpathSync(mkdtempSync(join(tmpdir(), "cleanup-branches-")));
+		try {
+			execFileSync("git", ["init", "-q", "-b", "alpha"], { cwd: dir });
+			const log = vi.spyOn(console, "log").mockImplementation(() => {});
+			const source = makeSource({ listPullRequests: vi.fn(async () => []) });
+			await runCleanupBranches({
+				loaded,
+				context: { repoRoot: dir, dryRun: true },
+				scope: "local",
+				loader: loaderWith(source),
+				logger: fakeLogger(),
+			});
+			expect(log).toHaveBeenCalledWith(expect.stringContaining("Dry run"));
+			log.mockRestore();
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	describe("the list", () => {
 		it("groups every branch, local and remote, and says where each one lives", async () => {
 			const t = go({ context: { repoRoot: "/tmp/test", dryRun: true } });
@@ -312,6 +337,19 @@ describe("runCleanupBranches", () => {
 			]);
 			expect(rows.filter((c) => !c.checked)).toHaveLength(rows.length - 2);
 			expect(choices.filter((c) => c.name === undefined).length).toBe(5);
+		});
+
+		it("leaves a group with no branches out of the checklist", async () => {
+			mockConfirm.mockResolvedValue(true);
+			mockCheckbox.mockResolvedValue([]);
+			const git = fakeGit({
+				branches: () => [local("anc", "anc")],
+				currentBranch: () => undefined,
+				worktreeBranches: () => [],
+			});
+			await go({ scope: "local" }, makeSource({ listPullRequests: vi.fn(async () => []) }), git).run();
+			const choices = (mockCheckbox.mock.calls[0]?.[0] as unknown as { choices: unknown[] }).choices;
+			expect(choices).toHaveLength(2);
 		});
 
 		it("deletes the picked rows in each place they live and only those", async () => {
