@@ -1,3 +1,13 @@
+## [1.58.0-alpha.1](https://github.com/theholocron/holocron/compare/clients-v1.57.1-alpha.2...clients-v1.58.0-alpha.1) (2026-10-31)
+
+### Features
+
+* **cli:** ✨ holocron repo cleanup branches ([#1426](https://github.com/theholocron/holocron/issues/1426)) ([5e0d57f](https://github.com/theholocron/holocron/commit/5e0d57f4f200d303446adab6170b080bb87710ee)), closes [#1417](https://github.com/theholocron/holocron/issues/1417)
+
+### Documentation
+
+* 📝 carry the per-repo agent rules into the monorepo groups ([#1425](https://github.com/theholocron/holocron/issues/1425)) ([77f60e1](https://github.com/theholocron/holocron/commit/77f60e19f321a76dddc23d4840a25855e2729fce)), closes [#1394](https://github.com/theholocron/holocron/issues/1394) [#1394](https://github.com/theholocron/holocron/issues/1394)
+
 ## [1.57.1-alpha.2](https://github.com/theholocron/holocron/compare/clients-v1.57.1-alpha.1...clients-v1.57.1-alpha.2) (2026-10-30)
 
 ### Bug Fixes
