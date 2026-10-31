@@ -63,7 +63,7 @@ touches both.
 - The lcov comes from the probe's code, not a second parser (see item 2).
 - **The probe step stays in the workflow for a few PRs after the flag exists.** A required Codecov check hangs
   sometimes (`codecov/patch/misc-utils` stuck pending on #1421; "not posting commit statuses" on #1346). The probe is
-  deterministic. Once the `docs` flag has posted reliably, the probe step is dropped from the workflow and the command
+  deterministic. Once the `documentation` flag has posted reliably, the probe step is dropped from the workflow and the command
   stays in the CLI. How many PRs counts as reliable is settled in decision 7.
 
 So the flag does not replace the probe. It sits next to it, then takes over the gating.
@@ -111,8 +111,7 @@ in that PR):
 1. the flag and its two statuses appear with the expected names, and `codecov/patch` / `codecov/project` (the required
    ones) are unchanged in value and name;
 2. the _component_ statuses: a component is path-based and counts every flag, so the docs flag may leak into
-   `codecov/patch/<component>`. If it does, set `flag_regexes` on the components to leave `documentation` out (see decision 5)
-   5);
+   `codecov/patch/<component>`. If it does, set `flag_regexes` on the components to leave `documentation` out (decision 5);
 3. Codecov accepts a `DA` line that is not an executable line of the file.
 
 ## (c) TypeDoc generation
