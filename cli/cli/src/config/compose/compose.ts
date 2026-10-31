@@ -80,7 +80,7 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 	let repo: Partial<Omit<RepoConfig, "name">> = {};
 	for (const cap of caps) {
 		if (!cap.repo) continue;
-		const { properties, topics, teams, variables, ...scalars } = cap.repo;
+		const { properties, topics, teams, variables, secrets, ...scalars } = cap.repo;
 		repo = { ...repo, ...scalars };
 		if (properties) repo.properties = { ...repo.properties, ...properties };
 		if (variables) {
@@ -91,6 +91,21 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 					? { repo: { ...repo.variables?.repo, ...variables.repo } }
 					: {}),
 				...(repo.variables?.org || variables.org ? { org: { ...repo.variables?.org, ...variables.org } } : {}),
+			};
+		}
+		if (secrets) {
+			// Names add up across presets: each list is a union, each environment's too.
+			const union = (a: string[] | undefined, b: string[] | undefined) => [
+				...new Set([...(a ?? []), ...(b ?? [])]),
+			];
+			const environments = { ...repo.secrets?.environments };
+			for (const [env, names] of Object.entries(secrets.environments ?? {})) {
+				environments[env] = union(environments[env], names);
+			}
+			repo.secrets = {
+				...(repo.secrets?.repo || secrets.repo ? { repo: union(repo.secrets?.repo, secrets.repo) } : {}),
+				...(repo.secrets?.org || secrets.org ? { org: union(repo.secrets?.org, secrets.org) } : {}),
+				...(Object.keys(environments).length > 0 ? { environments } : {}),
 			};
 		}
 		if (topics) {

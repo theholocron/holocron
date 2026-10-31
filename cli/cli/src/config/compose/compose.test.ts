@@ -101,6 +101,32 @@ describe("compose()", () => {
 		expect(compose(strict, balanced).repo.protection).toBe("balanced");
 	});
 
+	it("adds up repo.secrets across capabilities, without duplicates", () => {
+		const a: Capability = {
+			id: "a",
+			repo: { secrets: { repo: ["A", "SAME"], environments: { production: ["P"] } } },
+		};
+		const b: Capability = {
+			id: "b",
+			repo: { secrets: { repo: ["B", "SAME"], org: ["O"], environments: { production: ["Q"], preview: ["R"] } } },
+		};
+		expect(compose(a, b).repo.secrets).toEqual({
+			repo: ["A", "SAME", "B"],
+			org: ["O"],
+			environments: { production: ["P", "Q"], preview: ["R"] },
+		});
+		// A fragment names only the scopes it declares.
+		expect(compose(a).repo.secrets).toEqual({ repo: ["A", "SAME"], environments: { production: ["P"] } });
+		expect(compose({ id: "c", repo: { secrets: { org: ["O"] } } }).repo.secrets).toEqual({ org: ["O"] });
+		// A later fragment that names another scope keeps what an earlier one declared.
+		const c: Capability = { id: "c", repo: { secrets: { org: ["O"] } } };
+		expect(compose(a, c).repo.secrets).toEqual({
+			repo: ["A", "SAME"],
+			org: ["O"],
+			environments: { production: ["P"] },
+		});
+	});
+
 	it("merges repo.variables across capabilities instead of replacing them", () => {
 		const a: Capability = { id: "a", repo: { variables: { repo: { A: "1", SAME: "a" }, org: { X: "x" } } } };
 		const b: Capability = { id: "b", repo: { variables: { repo: { B: "2", SAME: "b" }, prune: true } } };

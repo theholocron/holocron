@@ -22,7 +22,7 @@ import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/i
 import { style } from "../../ui/style/index.js";
 import { printCheckRows, printCheckSummary } from "../doctor-checks/index.js";
 import {
-	defaultSecretName,
+	layoutSecretNames,
 	layoutSecretProblem,
 	notificationProviders,
 	pickProvider,
@@ -704,16 +704,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	}
 
 	// 5. the secrets the layout fills exist in the org
-	const wanted: string[] = [
-		...declaredChannels
-			.filter(({ channel }) => channel.webhook)
-			.map(({ channel }) =>
-				channel.webhook !== true && channel.webhook && channel.webhook.secret
-					? channel.webhook.secret
-					: defaultSecretName(channel.name)
-			),
-		...(layout.roles ?? []).flatMap((r) => (r.secret ? [r.secret] : [])),
-	];
+	const wanted = layoutSecretNames(layout);
 	if (wanted.length === 0) {
 		checks.push({ id: "secrets", title: SECRETS_TITLE, status: "pass", detail: "none declared", problems: [] });
 	} else if (!loader.has("secrets")) {

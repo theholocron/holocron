@@ -40,6 +40,7 @@ const EVERY_COMMAND = [
 	"notifications sync-roles",
 	"doctor all",
 	"doctor notifications",
+	"doctor secrets",
 	"doctor variables",
 	"probe",
 	"deploy",
@@ -91,6 +92,7 @@ describe("COMMAND_CONTEXTS", () => {
 			"notifications sync-roles",
 			"doctor all",
 			"doctor notifications",
+			"doctor secrets",
 			"doctor variables",
 		]) {
 			expect(contextForCommand(cmd)).toBe("workspace");

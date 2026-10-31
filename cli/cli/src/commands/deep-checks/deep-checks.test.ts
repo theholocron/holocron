@@ -10,6 +10,12 @@ vi.mock("../doctor-notifications/index.js", async (importActual) => ({
 	runDoctorNotifications,
 }));
 
+const runDoctorSecrets = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-secrets/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-secrets/index.js")>()),
+	runDoctorSecrets,
+}));
+
 const runDoctorVariables = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-variables/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../doctor-variables/index.js")>()),
@@ -33,6 +39,30 @@ describe("DEEP_CHECKS", () => {
 	it.each(DEEP_CHECKS.map((c) => c.name))("`doctor %s` registers a subcommand named after it", (name) => {
 		const check = DEEP_CHECKS.find((c) => c.name === name)!;
 		expect(String(check.command.command)).toMatch(new RegExp(`^${name}\\b`));
+	});
+});
+
+describe("the secrets entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const secrets = DEEP_CHECKS.find((c) => c.name === "secrets")!;
+
+	it("reports the run's status and counts", async () => {
+		runDoctorSecrets.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 1, fail: 0, skip: 1 } });
+		expect(await secrets.run(input)).toEqual({ status: "ok", summary: { ok: 1, fail: 0, skip: 1 } });
+	});
+
+	it("carries the reason every row was skipped", async () => {
+		runDoctorSecrets.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no secrets provider",
+		});
+		expect(await secrets.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no secrets provider",
+		});
 	});
 });
 
