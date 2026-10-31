@@ -61,7 +61,7 @@ interface DeepCheck {
 
 1. The shared helpers and the registry; `doctor notifications` moves onto them with its tests unchanged (this step).
 2. `secrets list` (#1145).
-3. `doctor variables`.
+3. `doctor variables` (#1433). It reads through the optional `Source.listVariables` and `listOrgVariables`; a missing token is a `MissingTokenError`, which a check reports as a skip rather than a failure.
 4. `doctor --all`, the skip rule, and the `doctor (everything)` menu entry.
 5. `doctor secrets`, then `doctor tokens`.
 6. `doctor monitoring`, `doctor repo`, `doctor dns`, `doctor environments`.

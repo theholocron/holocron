@@ -1,4 +1,5 @@
 import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-notifications/index.js";
+import { doctorVariablesCommand, runDoctorVariables } from "../doctor-variables/index.js";
 import type { DeepCheck } from "./deep-checks.type.js";
 
 /**
@@ -16,6 +17,19 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 				status: report.status,
 				summary: { ok: report.summary.pass, fail: report.summary.fail, skip: report.summary.skip },
 				...(report.message ? { reason: report.message } : {}),
+			};
+		},
+	},
+	{
+		name: "variables",
+		capability: "source",
+		command: doctorVariablesCommand as never,
+		async run(input) {
+			const report = await runDoctorVariables(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
 			};
 		},
 	},

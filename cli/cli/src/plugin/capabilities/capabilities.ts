@@ -58,6 +58,15 @@ export class ElevationRequiredError extends Error {
 	}
 }
 
+/**
+ * A provider cannot do a read because it has no token for it. A check that meets this skips with the message instead
+ * of failing: the token is missing, not wrong.
+ */
+export class MissingTokenError extends Error {
+	/** Lets a caller tell this error from any other by name, across package copies. */
+	override name = "MissingTokenError";
+}
+
 export class WebhookVerificationError extends Error {
 	override name = "WebhookVerificationError";
 }

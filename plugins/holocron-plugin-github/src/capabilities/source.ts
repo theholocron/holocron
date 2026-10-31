@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 
 import {
 	type LabelDef,
+	MissingTokenError,
 	type PagesConfig,
 	ProviderApiError,
 	type PullRequest,
@@ -254,6 +255,23 @@ export class GitHubSource implements Source {
 			);
 		}
 		return syncOrgVariables(this.orgClient, this.repo, org, variables, opts);
+	}
+
+	async listVariables(): Promise<Record<string, string>> {
+		const found = await this.client.variables.listVariables(this.repo, { kind: "repo" });
+		return Object.fromEntries(found.map((v) => [v.name, v.value]));
+	}
+
+	async listOrgVariables(
+		org: string
+	): Promise<Record<string, { value: string; visibility: "all" | "private" | "selected" }>> {
+		if (!this.orgClient) {
+			throw new MissingTokenError(
+				"organization variables need the org token: set HOLOCRON_ORG_TOKEN or run `holocron auth set github.org <token>`"
+			);
+		}
+		const found = await this.orgClient.variables.listVariables(this.repo, { kind: "organization", org });
+		return Object.fromEntries(found.map((v) => [v.name, { value: v.value, visibility: v.visibility ?? "all" }]));
 	}
 
 	async syncDescription(description: string): Promise<string> {

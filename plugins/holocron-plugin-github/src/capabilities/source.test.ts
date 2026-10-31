@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { ProviderApiError } from "@theholocron/cli";
+import { MissingTokenError, ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -308,6 +308,55 @@ describe("GitHubSource — REST methods", () => {
 		await expect(source.syncOrgVariables("theholocron", { A: { value: "1", visibility: "all" } })).rejects.toThrow(
 			/HOLOCRON_ORG_TOKEN/
 		);
+	});
+
+	it("listVariables → the repository's variables by name, with their values", async () => {
+		const { source, calls } = makeSource([
+			{
+				status: 200,
+				body: {
+					total_count: 2,
+					variables: [
+						{ name: "A", value: "1" },
+						{ name: "B", value: "2" },
+					],
+				},
+			},
+		]);
+		expect(await source.listVariables()).toEqual({ A: "1", B: "2" });
+		expect(calls[0]?.url).toContain(`/repos/${REPO}/actions/variables`);
+	});
+
+	it("listOrgVariables → the org's variables with their visibility, from the org client", async () => {
+		const { fetch, calls } = stubFetch([
+			{
+				status: 200,
+				body: {
+					total_count: 2,
+					variables: [
+						{ name: "A", value: "1", visibility: "private" },
+						{ name: "B", value: "2" },
+					],
+				},
+			},
+		]);
+		const withOrg = new GitHubSource(createGitHubClient({ token: "pat", fetch: stubFetch([]).fetch }), {
+			repo: REPO,
+			repoRoot: process.cwd(),
+			orgClient: createGitHubClient({ token: "org-pat", fetch }),
+		});
+		expect(await withOrg.listOrgVariables("theholocron")).toEqual({
+			A: { value: "1", visibility: "private" },
+			B: { value: "2", visibility: "all" },
+		});
+		expect(calls[0]?.url).toContain("/orgs/theholocron/actions/variables");
+	});
+
+	it("listOrgVariables → a MissingTokenError naming the org token when there is none", async () => {
+		const { source } = makeSource([]);
+		const err = await source.listOrgVariables("theholocron").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(MissingTokenError);
+		expect((err as Error).message).toMatch(/HOLOCRON_ORG_TOKEN/);
 	});
 
 	it("syncLabels → syncs canonical labels against the repo", async () => {
