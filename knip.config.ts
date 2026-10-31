@@ -34,6 +34,9 @@ const config: KnipConfig = {
 		},
 		docs: {
 			project: ["src/**/*.ts"],
+			// The site's astro.config.ts sits at the repo root (`astro build --root ..`), so knip counts the import there.
+			// The devDependency stays so Turbo builds astro-config before the docs build.
+			ignoreDependencies: ["@theholocron/astro-config"],
 		},
 		"cli/cli": {
 			// entry points auto-detected from package.json exports/bin

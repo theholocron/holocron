@@ -8,7 +8,7 @@
     "plugin",
     "vault"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-1password#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/1password/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

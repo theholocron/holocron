@@ -10,7 +10,7 @@
     "theholocron",
     "typescript"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/cli/datapad#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

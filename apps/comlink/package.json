@@ -11,7 +11,7 @@
     "theholocron",
     "webhook"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/apps/comlink#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

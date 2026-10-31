@@ -8,7 +8,7 @@
     "plugin",
     "vault"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-infisical#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/infisical/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

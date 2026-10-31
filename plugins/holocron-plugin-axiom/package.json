@@ -8,7 +8,7 @@
     "logs",
     "plugin"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-axiom#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/axiom/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
