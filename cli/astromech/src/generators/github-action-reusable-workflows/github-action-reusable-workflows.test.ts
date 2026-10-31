@@ -181,6 +181,17 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(unit).toContain("(!inputs.affected || steps.reports.outputs.tests == 'true')");
 	});
 
+	it("setup keys the Turbo cache by workflow and job so every job saves its own entries", () => {
+		const action = REUSABLE_ACTIONS["setup/action"]!;
+		expect(action).toContain(
+			"key: turbo-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ github.sha }}"
+		);
+		// the same job's earlier commit comes first, any turbo cache last
+		expect(action).toMatch(
+			/restore-keys: \|\n\s+turbo-\$\{\{ runner\.os \}\}-\$\{\{ github\.workflow \}\}-\$\{\{ github\.job \}\}-\n\s+turbo-\$\{\{ runner\.os \}\}-\n/
+		);
+	});
+
 	it("codecov-upload verifies the CLI, authenticates with the job's OIDC token and uploads one flag per entry", () => {
 		const action = REUSABLE_ACTIONS["codecov-upload/action"]!;
 		expect(action).toContain("gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM");

@@ -18,13 +18,16 @@ runs:
     - uses: theholocron/.github/.github/actions/install@main
 
     # Restored before the bootstrap build below so `pnpm build` replays from the cache instead of running cold.
+    # The key names the workflow and job: actions/cache never overwrites an existing key, so with one key per commit only
+    # the first job to finish saved its .turbo and every other job's entries (type checks, unit tests) were lost.
     - name: Cache Turbo artifacts
       if: ${{ hashFiles('turbo.json') != '' }}
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: .turbo
-        key: turbo-${{ runner.os }}-${{ github.sha }}
+        key: turbo-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ github.sha }}
         restore-keys: |
+          turbo-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
           turbo-${{ runner.os }}-
 
     # `@theholocron/cli`'s `dist/cli.mjs` doesn't exist yet at this point, so
