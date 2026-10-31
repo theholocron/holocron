@@ -7,13 +7,21 @@
 # function, class, interface, type, constant or member of one without a doc comment. Measured with the repo's
 # TypeDoc by `holocron probe docs patch`; old undocumented exports do not count against a PR.
 #
-# Informational for now: this check is not in the ruleset's required checks, so a failure shows on the PR
-# without blocking the merge. Making it required is adding "Docs coverage / Patch" to `extraRequiredChecks`
-# in holocron.config.ts and running `holocron repo setup`.
+# The same measurement is uploaded to Codecov as the `documentation` flag (`--lcov`), so the patch and project
+# percentages show on every PR next to the test coverage: `codecov/patch/documentation` and
+# `codecov/project/documentation`. Pushes to `alpha` upload it too, so a PR has a base report to compare against.
+# The probe step stays alongside the flag for a few PRs (it depends on nothing outside the repo); once the flag has
+# posted reliably the step is dropped and the command stays in the CLI.
+#
+# Informational for now: neither this check nor the Codecov statuses are in the ruleset's required checks, so a
+# failure shows on the PR without blocking the merge. Making it required is adding "Docs coverage / Patch" to
+# `extraRequiredChecks` in holocron.config.ts and running `holocron repo setup`.
 name: Docs coverage
 
 on: # yamllint disable-line rule:truthy
   pull_request:
+  push:
+    branches: [alpha]
 
 permissions:
   contents: read
@@ -23,6 +31,10 @@ jobs:
     name: Patch
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      # The Codecov upload authenticates with the job's OIDC token.
+      id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
@@ -35,7 +47,24 @@ jobs:
       - name: Build the CLI
         run: pnpm turbo run delivery.build --filter=@theholocron/cli...
 
+      # A pull request is gated on the exports it adds or changes; the report of every package is written on
+      # the way (one TypeDoc pass), so the upload below needs no second measurement.
       - name: Check the exports this PR adds or changes
+        if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: node cli/cli/dist/cli.mjs probe docs patch
+        run: node cli/cli/dist/cli.mjs probe docs patch --lcov coverage/docs.lcov
+
+      - name: Measure the documented exports
+        if: github.event_name == 'push'
+        run: node cli/cli/dist/cli.mjs probe docs coverage --lcov coverage/docs.lcov
+
+      # Runs after a failed check too, so the numbers post when the gate fails. A pull request from a fork has no
+      # OIDC token to upload with; the check above still gates it.
+      - name: Upload the documentation coverage to Codecov
+        if: >-
+          ${{ !cancelled() && hashFiles('coverage/docs.lcov') != '' &&
+          (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: theholocron/.github/.github/actions/codecov-upload@main
+        with:
+          uploads: '[{"flag":"documentation","files":"coverage/docs.lcov"}]'

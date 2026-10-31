@@ -6,7 +6,7 @@ description: Poke a live provider on purpose, to inspect it or to prove somethin
 ```bash
 holocron probe                          # on a terminal: a menu of every provider and probe; otherwise the list
 holocron probe <provider>               # list one provider's probes
-holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes]
+holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes] [--lcov <path>]
 ```
 
 A probe is a small, named check that talks to a real provider: _which integrations does Sentry have, and what do they allow?_ or _does a failing check reach #uptime?_ It is for the questions you would otherwise answer with a throwaway script. It is not [`doctor`](/holocron/commands/doctor/), which compares what `holocron.config.ts` declares with what exists; a probe has no layout to compare against.
@@ -25,10 +25,11 @@ Probes come from the plugins your config names (a plugin offers them next to its
 
 ## Options
 
-| Option      | Default | Description                                                                        |
-| ----------- | ------- | ---------------------------------------------------------------------------------- |
-| `--dry-run` | `false` | Show what a probe that changes things would do, without doing it                   |
-| `--yes`     | `false` | Run a probe that changes things without asking first (required without a terminal) |
+| Option      | Default | Description                                                                                                    |
+| ----------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `--dry-run` | `false` | Show what a probe that changes things would do, without doing it                                               |
+| `--yes`     | `false` | Run a probe that changes things without asking first (required without a terminal)                             |
+| `--lcov`    | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root |
 
 ## Connection, for every provider
 
@@ -86,6 +87,20 @@ The `deps` group is the CLI's own, like `core` and `comlink`. It reads every wor
 | `holocron probe deps check`      | no             | Fails for each hard-coded version, workspace package pinned to a version, dependency in the wrong catalog or unused catalog entry. CI runs it |
 
 CI runs `holocron probe deps check` on every pull request (the `Dependency catalogs / Check` required check).
+
+## Documentation
+
+The `docs` group is the CLI's own as well. It measures how much of each public package's exported API carries a doc comment: functions, classes, interfaces, type aliases, constants, enums and the public members of those, read with the repo's TypeDoc from each package's entry point (`src/index.ts`, or `index.ts`). TSDoc comments are the source of truth for the API reference, so this is the number that says how complete it is.
+
+| Probe                          | Changes things | What it does                                                                                                                                    |
+| ------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe docs coverage` | no             | Prints each package's documented share and the total                                                                                            |
+| `holocron probe docs patch`    | no             | Fails for each export a PR adds or changes without a doc comment (against `BASE_SHA`, or `origin/alpha`). Old undocumented exports do not count |
+| `holocron probe docs lcov`     | yes            | Writes `coverage/docs.lcov`, one line per exported symbol (hit when it has a doc comment)                                                       |
+
+`--lcov <path>` adds that report to `docs coverage` and `docs patch` from the same measurement, without the prompt `docs lcov` needs: `docs patch --lcov coverage/docs.lcov` gates a PR and writes the file in one pass, and `docs patch` without it measures only the packages the PR touched. On `--dry-run` nothing is written.
+
+CI runs the `Docs coverage` workflow on every pull request and on pushes to `alpha`. It runs `docs patch --lcov` (`docs coverage --lcov` on a push) and uploads the file to Codecov as the `documentation` flag, so `codecov/patch/documentation` and `codecov/project/documentation` show next to the test coverage. They are separate from the required `codecov/patch` and `codecov/project`, which count only the tests, and neither they nor the `Docs coverage / Patch` check are required checks yet. The probe step stays in the workflow alongside the flag until the flag has posted reliably.
 
 ## Generated files
 

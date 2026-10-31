@@ -71,6 +71,7 @@ export async function runProbe(input: RunProbeInput): Promise<ProbeReport> {
 	const ctx: ProbeContext = {
 		dryRun: input.dryRun,
 		args: input.args ?? [],
+		...(input.lcov ? { lcov: input.lcov } : {}),
 		say: emit,
 		secret: (value) => {
 			if (value) secrets.add(value);

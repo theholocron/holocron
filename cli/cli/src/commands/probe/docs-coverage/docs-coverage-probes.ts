@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import type { PluginProbes, ProbeContext } from "../../../plugin/index.js";
 import { addedLines } from "./added-lines.js";
@@ -51,6 +51,19 @@ export function realDiff(repoRoot: string): () => string {
 	/* v8 ignore stop */
 }
 
+/** Writes the report `--lcov <path>` asks for, and says so; a dry run only says what it would write. */
+function writeLcov(ctx: ProbeContext, repoRoot: string, packages: PackageDocs[]): void {
+	if (!ctx.lcov) return;
+	if (ctx.dryRun) {
+		ctx.say({ status: "info", label: "lcov", detail: `would write ${ctx.lcov}` });
+		return;
+	}
+	const file = resolve(repoRoot, ctx.lcov);
+	mkdirSync(dirname(file), { recursive: true });
+	writeFileSync(file, toLcov(packages));
+	ctx.say({ status: "info", label: "lcov", detail: `wrote ${ctx.lcov}` });
+}
+
 function percent(documented: number, total: number): string {
 	return `${total === 0 ? 100 : Math.round((100 * documented) / total)}%`;
 }
@@ -76,7 +89,8 @@ function summarise(ctx: ProbeContext, packages: PackageDocs[]): void {
  * `docs coverage`: how much of each public package's exported API has a doc comment (functions, classes, interfaces,
  * types, constants and their public members), measured with the repo's TypeDoc. `docs lcov` writes the same
  * numbers as `coverage/docs.lcov`, for a coverage service to read. `docs patch` fails for each export a PR adds or
- * changes without a doc comment, which is the check CI runs.
+ * changes without a doc comment, which is the check CI runs. `docs coverage` and `docs patch` also write that
+ * report wherever `--lcov <path>` says, from the same measurement, so CI gates and uploads with one command.
  */
 export function docsCoverageProbes(
 	repoRoot: string,
@@ -89,7 +103,9 @@ export function docsCoverageProbes(
 			summary: "Show how much of each package's exported API has a doc comment.",
 			writes: false,
 			async run(ctx) {
-				summarise(ctx, measure());
+				const packages = measure();
+				writeLcov(ctx, repoRoot, packages);
+				summarise(ctx, packages);
 			},
 		},
 		patch: {
@@ -98,7 +114,10 @@ export function docsCoverageProbes(
 			async run(ctx) {
 				const added = addedLines(diff());
 				const touched = (dir: string): boolean => [...added.keys()].some((file) => file.startsWith(`${dir}/`));
-				const missing = measureDocsCoverage({ repoRoot, typedoc, only: touched })
+				// the report covers every package, so `--lcov` measures them all; otherwise only the touched ones
+				const packages = measureDocsCoverage({ repoRoot, typedoc, ...(ctx.lcov ? {} : { only: touched }) });
+				writeLcov(ctx, repoRoot, packages);
+				const missing = packages
 					.flatMap(({ symbols }) => symbols)
 					.filter((s) => added.get(s.file)?.has(s.line));
 				const undocumented = missing.filter((s) => !s.documented);
