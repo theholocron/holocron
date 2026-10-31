@@ -1,3 +1,22 @@
+## [5.0.0-alpha.277](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.276...v5.0.0-alpha.277) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 doctor notifications checks the Comlink relay Worker ([#1461](https://github.com/theholocron/holocron/issues/1461)) ([fd6e814](https://github.com/theholocron/holocron/commit/fd6e8146cf659cb25bfda39bf0ea0ecb0aba75ec)), closes [#1458](https://github.com/theholocron/holocron/issues/1458) [#1162](https://github.com/theholocron/holocron/issues/1162)
+* **cli:** 🩺 doctor notifications checks the error tracker's relay side ([#1462](https://github.com/theholocron/holocron/issues/1462)) ([deb9eba](https://github.com/theholocron/holocron/commit/deb9ebab5cb45a3a3650482a89737dd7f9ea272c)), closes [#1458](https://github.com/theholocron/holocron/issues/1458) [#1155](https://github.com/theholocron/holocron/issues/1155) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
+### Bug Fixes
+
+* **cli:** 🐛 a plugin's missing token is a skip in every deep check ([#1468](https://github.com/theholocron/holocron/issues/1468)) ([6b1a5c2](https://github.com/theholocron/holocron/commit/6b1a5c2b40ceadbf452b1bd2b82e0984c33445a2)), closes [#1467](https://github.com/theholocron/holocron/issues/1467) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
+### Refactoring
+
+* **pkg-utils:** ♻️ gather the pnpm-workspace readers ([#1466](https://github.com/theholocron/holocron/issues/1466)) ([49024cd](https://github.com/theholocron/holocron/commit/49024cdbe22625ea46f88b8071a32a398cd41c4b)), closes [#1240](https://github.com/theholocron/holocron/issues/1240) [#1240](https://github.com/theholocron/holocron/issues/1240)
+
+### Documentation
+
+* **cli:** 📚️ 📝 document the Checkly feed and relay steps of doctor notifications ([#1463](https://github.com/theholocron/holocron/issues/1463)) ([b22706a](https://github.com/theholocron/holocron/commit/b22706a21d0b787672bc7ab6a9b66e36da22ae54)), closes [#1458](https://github.com/theholocron/holocron/issues/1458) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
 ## [5.0.0-alpha.276](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.275...v5.0.0-alpha.276) (2026-10-31)
 
 ### Features
