@@ -16,8 +16,18 @@ export interface VerifyTokenFailure {
 
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
+/** One token a plugin takes, and where it is looked up. */
+export interface PluginToken {
+	/** The environment variable, e.g. `HOLOCRON_ADMIN_TOKEN`. */
+	envName: string;
+	/** The OS keyring entry, e.g. `github.admin`. */
+	keyringKey: string;
+}
+
 export interface AuthPluginModule {
 	verifyToken?: (token: string) => Promise<VerifyTokenResult>;
+	/** Every token the plugin takes, for `holocron doctor tokens`. A plugin that lists none is not checked there. */
+	tokens?: PluginToken[];
 	/** One-line hint printed when no token was supplied. */
 	AUTH_HINT?: string;
 }

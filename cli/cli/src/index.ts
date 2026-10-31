@@ -1,6 +1,6 @@
 export * from "./auth/auth-resolver/index.js";
 export * from "./auth/keyring/index.js";
-export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./commands/auth/index.js";
+export type { PluginToken, VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./commands/auth/index.js";
 export * from "./commands/setup/derived-properties/index.js";
 export * from "./config/compose/index.js";
 export * from "./config/config/index.js";

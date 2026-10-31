@@ -1,0 +1,40 @@
+---
+title: "doctor tokens"
+description: Check that each token a configured plugin takes is set and still accepted. Read-only; no token is printed.
+---
+
+```bash
+holocron doctor tokens
+```
+
+For every token a configured plugin lists, finds the token the way the plugin does (its environment variable, then the OS keyring) and asks the plugin's `verifyToken` whether it is still accepted. It prints one row per token and exits non-zero while any is rejected. It changes nothing and never prints a token.
+
+The GitHub plugin takes nine separate tokens, one per kind of operation (see the [Token Reference](/holocron/tokens/)). Plain [`doctor`](/holocron/commands/doctor/) only exercises the one its shallow check happens to use, and a fine-grained token that has expired or been revoked is otherwise found when the operation that needs it fails, in CI or part-way through [`repo setup`](/holocron/commands/repo-setup/). This is the check that says which are due for replacing.
+
+```text
+  ✓ github.read      user @ cnewton (keyring)
+  ✗ github.admin     rejected (HOLOCRON_ADMIN_TOKEN): Bad credentials
+  ✓ github.org       user @ cnewton (keyring)
+
+2 ok, 1 fail, 0 skipped
+```
+
+## What each row means
+
+| Row                 | When                                                                                                                                   |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| ok                  | The token is set and the plugin accepts it. The row says whose it is and where it came from (the variable name, or `keyring`)          |
+| fail                | The token is set and is rejected (expired, revoked, malformed), or verifying it threw. The row carries the provider's message          |
+| skip: not set       | Neither the environment variable nor the keyring has it. Whether a token is needed depends on what you run, so this is never a failure |
+| skip: cannot verify | The token is set but its plugin has no `verifyToken`                                                                                   |
+| skip: plugin        | The plugin package could not be loaded here, with the reason                                                                           |
+
+When no configured plugin lists any token, the one row says so.
+
+## What it does not check
+
+- **What a token may do.** GitHub does not return a fine-grained token's permissions, so "has the permissions the token reference lists" cannot be read back. A token can be accepted here and still be refused by an operation it lacks a permission for.
+- **When it expires.** GitHub reports a token's expiry in a response header the client does not expose yet.
+- Plugins other than GitHub, until they list their `tokens` (see [Plugins](/holocron/plugins/overview/)). Their main token is exercised by plain `doctor`.
+
+Related: [`auth check`](/holocron/commands/auth-check/), [`auth list`](/holocron/commands/auth-list/), [`doctor variables`](/holocron/commands/doctor-variables/).

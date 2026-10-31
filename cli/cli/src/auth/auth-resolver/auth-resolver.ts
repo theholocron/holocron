@@ -5,7 +5,7 @@ import { AuthError, createResolveToken as _createResolveToken, type ResolveToken
 
 import { makeEnv } from "../../env/index.js";
 import { getToken as getKeyringToken } from "../keyring/index.js";
-import type { FeatureResolverConfig, ResolveTokenConfig } from "./auth-resolver.type.js";
+import type { FeatureResolver, FeatureResolverConfig, ResolveTokenConfig } from "./auth-resolver.type.js";
 
 export { AuthError, type ResolveTokenInput };
 
@@ -22,8 +22,8 @@ export function createResolveToken(config: ResolveTokenConfig): (input?: Resolve
  * No broad-token fallback — if the feature-specific token is absent the
  * operation fails with a message naming the exact env var to set.
  */
-export function createFeatureResolver(config: FeatureResolverConfig): (input?: ResolveTokenInput) => string {
-	return function resolveFeatureToken(input: ResolveTokenInput = {}): string {
+export function createFeatureResolver(config: FeatureResolverConfig): FeatureResolver {
+	const resolveFeatureToken = (input: ResolveTokenInput = {}): string => {
 		const env = makeEnv(input.env);
 		const keyring = input.keyring ?? getKeyringToken;
 		const token = input.cliToken || env.get(config.envName) || keyring(config.keyringKey);
@@ -35,4 +35,5 @@ export function createFeatureResolver(config: FeatureResolverConfig): (input?: R
 		}
 		return token;
 	};
+	return Object.assign(resolveFeatureToken, { token: { envName: config.envName, keyringKey: config.keyringKey } });
 }
