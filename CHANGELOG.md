@@ -1,3 +1,9 @@
+## [5.0.0-alpha.267](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.266...v5.0.0-alpha.267) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 holocron doctor secrets checks the secrets the config relies on exist ([#1439](https://github.com/theholocron/holocron/issues/1439)) ([4aaa95c](https://github.com/theholocron/holocron/commit/4aaa95c279fc5b9338701a796af4182e6651a5db))
+
 ## [5.0.0-alpha.266](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.265...v5.0.0-alpha.266) (2026-10-31)
 
 ### Features
