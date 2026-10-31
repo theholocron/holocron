@@ -1,3 +1,9 @@
+## [5.0.0-alpha.274](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.273...v5.0.0-alpha.274) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 holocron doctor dns checks the DNS records the config makes setup write ([#1455](https://github.com/theholocron/holocron/issues/1455)) ([aac2939](https://github.com/theholocron/holocron/commit/aac2939bac8eedd02e1fe2f74668ee05a27039d0)), closes [#1451](https://github.com/theholocron/holocron/issues/1451) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
 ## [5.0.0-alpha.273](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.272...v5.0.0-alpha.273) (2026-10-31)
 
 ### Features
