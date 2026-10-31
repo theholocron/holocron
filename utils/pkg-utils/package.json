@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/pkg-utils",
-  "version": "1.16.1-alpha.2",
+  "version": "1.16.1-alpha.3",
   "description": "Read package.json, list its dependencies and detect the package manager.",
   "keywords": [
     "package.json",

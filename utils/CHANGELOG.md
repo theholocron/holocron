@@ -1,3 +1,9 @@
+## [1.16.1-alpha.3](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.2...utils-v1.16.1-alpha.3) (2026-10-31)
+
+### Refactoring
+
+* **pkg-utils:** ♻️ gather the pnpm-workspace readers ([#1466](https://github.com/theholocron/holocron/issues/1466)) ([49024cd](https://github.com/theholocron/holocron/commit/49024cdbe22625ea46f88b8071a32a398cd41c4b)), closes [#1240](https://github.com/theholocron/holocron/issues/1240) [#1240](https://github.com/theholocron/holocron/issues/1240)
+
 ## [1.16.1-alpha.2](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.1...utils-v1.16.1-alpha.2) (2026-10-31)
 
 ### Refactoring
