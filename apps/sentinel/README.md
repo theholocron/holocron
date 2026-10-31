@@ -564,4 +564,4 @@ Automated via semantic-release. See [CHANGELOG.md](../../CHANGELOG.md).
 
 ## Documentation
 
-<https://theholocron.github.io/holocron/>
+<https://docs.theholocron.dev/holocron/>

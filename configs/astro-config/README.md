@@ -91,7 +91,7 @@ export default defineConfig({
 
 ## What it generates
 
-- `site` — `https://theholocron.github.io`
+- `site` — only when you pass it (for example `https://docs.theholocron.dev`); without it Starlight cannot generate a sitemap
 - `base` — `/${docs.slug}`
 - Starlight integration with the `@theholocron/docs-theme` plugin
 - GitHub social link to `https://github.com/theholocron/${docs.slug}`

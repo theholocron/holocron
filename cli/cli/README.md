@@ -117,7 +117,7 @@ A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
 use `pnpm exec holocron <cmd>`. `auth check` degrades to "token present,
 verification skipped" instead. `holocron --help` prints the grouping; see
-[Execution Contexts](https://theholocron.github.io/holocron/execution-contexts).
+[Execution Contexts](https://docs.theholocron.dev/holocron/execution-contexts).
 
 ### Viewing the resolved config
 

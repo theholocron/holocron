@@ -25,6 +25,8 @@ export interface DocsConfigInput {
 	outDir?: string;
 	publicDir?: string;
 	base?: string;
+	/** The site's absolute origin (for example `https://docs.theholocron.dev`). Starlight needs it to generate a sitemap. */
+	site?: string;
 }
 
 export function defineConfig({
@@ -36,8 +38,10 @@ export function defineConfig({
 	outDir,
 	publicDir,
 	base,
+	site,
 }: DocsConfigInput): ReturnType<typeof astroDefineConfig> {
 	return astroDefineConfig({
+		...(site && { site }),
 		base: base ?? `/${docs.github}`,
 		...(srcDir && { srcDir }),
 		...(outDir && { outDir }),

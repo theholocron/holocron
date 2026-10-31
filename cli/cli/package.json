@@ -10,7 +10,7 @@
     "orchestrator",
     "theholocron"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/cli/cli#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/cli/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

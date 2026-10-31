@@ -21,8 +21,8 @@ const NPM = "https://www.npmjs.com/package";
 /** The page that documents each tool, where it is not simply `<slug>`. */
 const TOOL_PAGES: Record<string, string> = {
 	cli: "cli",
-	astromech: "commands/run",
-	datapad: "config",
+	astromech: "astromech",
+	datapad: "datapad",
 	sentinel: "sentinel",
 };
 

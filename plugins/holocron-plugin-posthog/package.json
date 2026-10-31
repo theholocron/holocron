@@ -8,7 +8,7 @@
     "plugin",
     "posthog"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-posthog#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/posthog/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

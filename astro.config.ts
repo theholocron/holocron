@@ -3,6 +3,7 @@ import { defineConfig } from "@theholocron/astro-config";
 import { docsTheme } from "@theholocron/docs-theme";
 
 export default defineConfig({
+	site: "https://docs.theholocron.dev",
 	docs: {
 		name: "Holocron",
 		github: "holocron",
@@ -139,6 +140,16 @@ export default defineConfig({
 				],
 			},
 			{
+				label: "Packages",
+				items: [
+					{ label: "cli", slug: "cli" },
+					{ label: "astromech", slug: "astromech" },
+					{ label: "datapad", slug: "datapad" },
+					{ label: "comlink", slug: "comlink" },
+					{ label: "sentinel", slug: "sentinel" },
+				],
+			},
+			{
 				label: "Themes",
 				items: [{ label: "docs-theme", slug: "themes/docs-theme" }],
 			},
@@ -155,12 +166,14 @@ export default defineConfig({
 					{ label: "Overview", slug: "plugins/overview" },
 					{ label: "1Password", slug: "plugins/1password" },
 					{ label: "Axiom", slug: "plugins/axiom" },
+					{ label: "Checkly", slug: "plugins/checkly" },
 					{ label: "Clerk", slug: "plugins/clerk" },
 					{ label: "Cloudflare", slug: "plugins/cloudflare" },
 					{ label: "Discord", slug: "plugins/discord" },
 					{ label: "Doppler", slug: "plugins/doppler" },
 					{ label: "GitHub", slug: "plugins/github" },
 					{ label: "Infisical", slug: "plugins/infisical" },
+					{ label: "Netlify", slug: "plugins/netlify" },
 					{ label: "Neon", slug: "plugins/neon" },
 					{ label: "PostHog", slug: "plugins/posthog" },
 					{ label: "Postman", slug: "plugins/postman" },

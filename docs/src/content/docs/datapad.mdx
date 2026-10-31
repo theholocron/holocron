@@ -1,0 +1,62 @@
+---
+title: Datapad
+description: Generic config-file loading. Discover, load, layer and deep-merge <name>.config.* files, including typed TypeScript configs.
+---
+
+`@theholocron/datapad` finds a `<name>.config.*` file, loads it (JSON, JS, TS, ESM or CJS), layers a dedicated file over a key of a parent file, deep-merges, and hands back a plain object. TypeScript configs load through [`tsx`](https://tsx.is) with no build step.
+
+It is Holocron-agnostic: no schema, no validation, no defaults. Consumers build those on top:
+
+- [`@theholocron/cli`](/holocron/cli/) for `holocron.config.*`
+- [`@theholocron/astromech`](/holocron/astromech/) for `astromech.config.*`
+- [`@theholocron/sentinel`](/holocron/sentinel/) for configs fetched from GitHub rather than read from disk
+
+## Installation
+
+```bash
+pnpm add @theholocron/datapad
+```
+
+## Usage
+
+```ts
+import { loadConfigFile, loadLayered, mergeConfig, createDefineConfig } from "@theholocron/datapad";
+
+// One file: holocron.config.{ts,js,mjs,cjs,json}
+const found = await loadConfigFile<MyConfig>({ cwd, name: "holocron" });
+// { config, filepath } | null
+
+// A dedicated file layered over the `tasks` key of a parent file
+const layered = await loadLayered<TasksConfig>({
+  cwd,
+  name: "astromech",
+  fallback: { file: "holocron", key: "tasks" },
+});
+// { config, filepath, sources } | null   (the dedicated file wins on conflict)
+
+const merged = mergeConfig(defaults, layered?.config);
+
+// A typed identity defineConfig for one config shape
+export const defineConfig = createDefineConfig<TasksConfig>();
+```
+
+## API
+
+| Export                                    | What it does                                                                                                                                                      |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `loadConfigFile({ cwd, name, … })`        | Loads the first `<name>.config.<ext>` found. Probe order is `.ts`, `.js`, `.mjs`, `.cjs`, `.json`. `walkUp: true` searches parent directories up to the repo root |
+| `loadLayered({ cwd, name, fallback, … })` | A dedicated file layered over a key of a parent file. Either, both or neither may exist. `sources` lists the files merged, lowest priority first                  |
+| `loadConfigFromContent({ dir, … })`       | Loads config from content that did not come from disk, by writing it to `<dir>/<name>.config.<ext>` first                                                         |
+| `readConfigSource({ name, fetch })`       | The extension probe for a config that lives elsewhere, such as the GitHub API                                                                                     |
+| `withConfigSandbox({ nodeModules }, run)` | Prepares a throwaway directory with `node_modules` linked, so fetched config can resolve its imports                                                              |
+| `mergeLayers(layers)`                     | The merge `loadLayered` uses, for layers loaded some other way                                                                                                    |
+| `mergeConfig(base, override)`             | Vite-style deep merge: objects merge, arrays concatenate, `undefined` is skipped. Neither input is mutated                                                        |
+| `createDefineConfig<T>()`                 | A typed identity function, so config files get autocomplete at zero runtime cost                                                                                  |
+| `ConfigFileError`                         | Thrown when a file exists but cannot be parsed, loaded or has no default export                                                                                   |
+
+"Not found" is `null`, never an error. A file that exists but is unusable throws `ConfigFileError`, carrying its `filepath`.
+
+## Related
+
+- [Configuration](/holocron/config/): the config the CLI builds on top of datapad
+- Source and the full API notes: [`cli/datapad`](https://github.com/theholocron/holocron/tree/alpha/cli/datapad) on GitHub

@@ -1,0 +1,58 @@
+---
+title: CLI
+description: The Holocron CLI, a pluggable, capability-based orchestrator for spinning up and operating software projects.
+---
+
+`@theholocron/cli` is the `holocron` command. It reads one `holocron.config.ts`, maps each **capability** (source, vault, deployment, monitoring, notifications and so on) to a **provider** plugin, and runs the commands that set up and operate a repository against those providers. The CLI never talks to a vendor directly: the `@theholocron/holocron-plugin-*` packages do (see the [plugin overview](/holocron/plugins/overview/)).
+
+## Install
+
+```bash
+pnpm add -g @theholocron/cli@alpha
+holocron --help
+```
+
+Or per project, so the plugin packages resolve next to it:
+
+```bash
+pnpm add -D @theholocron/cli@alpha
+```
+
+The package is published on npm under the `alpha` dist-tag, and its API may still shift before a stable v2.
+
+## How it fits
+
+| Package                                          | Role                                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `@theholocron/cli`                               | The command tree, the config schema and the plugin loader                            |
+| [`@theholocron/datapad`](/holocron/datapad/)     | Finds and loads `holocron.config.*` and `astromech.config.*`                         |
+| [`@theholocron/astromech`](/holocron/astromech/) | The task runner behind `holocron run`, `holocron run ci` and the generated workflows |
+| [Plugins](/holocron/plugins/overview/)           | One provider per capability, loaded on demand                                        |
+| [`@theholocron/sentinel`](/holocron/sentinel/)   | The GitHub App that validates the same config on every repo                          |
+
+## Key points
+
+- **Interactive mode.** Run `holocron` with no command, a parent command with no subcommand, or a command missing a required argument, and you get a prompt in place of a `--help` dead end. The menu mirrors the command tree, and typing searches it.
+- **Execution contexts.** Each command is tagged `global`, `repo-aware` or `workspace` by how much of a repo it needs. A bare global install can run the first kind only. See [Execution Contexts](/holocron/execution-contexts/).
+- **One config file.** Providers, repo settings, the task manifest and the notifications layout all live in `holocron.config.ts`, optionally with the task manifest split into `astromech.config.ts`. See [Configuration](/holocron/config/) and `holocron config show`.
+- **Capabilities.** The interfaces providers implement are listed on [Capabilities](/holocron/capabilities/).
+- **Auth.** Tokens are stored in the OS keyring with `holocron auth set`, or read from environment variables. The [Token Reference](/holocron/tokens/) lists every token and its scopes.
+- **Server as code.** A notifications provider can declare a whole chat server in the config, and the CLI applies and checks it. See [Server as Code](/holocron/server-as-code/).
+- **Logging and telemetry.** See [Logging](/holocron/logging/) and [Telemetry](/holocron/telemetry/) (`HOLOCRON_TELEMETRY=false` turns the latter off).
+
+## Commands
+
+| Area            | Commands                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo            | [`repo setup`](/holocron/commands/repo-setup/), [`repo sync`](/holocron/commands/repo-sync/), [`repo upgrade`](/holocron/commands/repo-upgrade/), [`new repo`](/holocron/commands/new-repo/), [`clone`](/holocron/commands/clone/)                                                                                                                                                       |
+| Tasks           | [`run`](/holocron/commands/run/), [`run ci`](/holocron/commands/run-ci/)                                                                                                                                                                                                                                                                                                                 |
+| Deploy          | [`deploy`](/holocron/commands/deploy/), [`sync github`](/holocron/commands/sync-github/)                                                                                                                                                                                                                                                                                                 |
+| Secrets         | [`secrets set`](/holocron/commands/secrets-set/), [`secrets sync`](/holocron/commands/secrets-sync/)                                                                                                                                                                                                                                                                                     |
+| Auth and health | [`auth`](/holocron/commands/auth/), [`doctor`](/holocron/commands/doctor/), [`probe`](/holocron/commands/probe/), [`config show`](/holocron/commands/config-show/)                                                                                                                                                                                                                       |
+| Packages        | [`package publish`](/holocron/commands/package-publish/), [`package bump-versions`](/holocron/commands/package-bump-versions/)                                                                                                                                                                                                                                                           |
+| Notifications   | [`notifications setup`](/holocron/commands/notifications-setup/), [`channel add`](/holocron/commands/notifications-channel-add/), [`create-server`](/holocron/commands/notifications-create-server/), [`link`](/holocron/commands/notifications-link/), [`sync-roles`](/holocron/commands/notifications-sync-roles/), [`doctor notifications`](/holocron/commands/doctor-notifications/) |
+| Scaffolding     | [`new plugin`](/holocron/commands/new-plugin/), [`skills`](/holocron/commands/skills/)                                                                                                                                                                                                                                                                                                   |
+
+## Next steps
+
+Start with [Getting Started](/holocron/getting-started/). The package README on [GitHub](https://github.com/theholocron/holocron/tree/alpha/cli/cli) holds the long-form reference, and the architecture is specified in `tech-architecture.spec.md` in the repo's wiki.

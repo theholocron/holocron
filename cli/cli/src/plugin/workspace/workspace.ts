@@ -41,7 +41,7 @@ export class WorkspaceContextError extends Error {
 			`\`${command}\` needs ${subject}, but no plugin package resolves here.\n` +
 				`Run it from a repo that has the \`@theholocron/holocron-plugin-*\` packages as devDependencies, ` +
 				`or \`pnpm exec holocron ${command}\`. A global install can't resolve them — see ` +
-				`https://theholocron.github.io/holocron/execution-contexts`
+				`https://docs.theholocron.dev/holocron/execution-contexts`
 		);
 		this.command = command;
 		this.packages = packages;

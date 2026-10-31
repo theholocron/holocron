@@ -1,0 +1,52 @@
+---
+title: Comlink
+description: Holocron's alert relay, a Cloudflare Worker that turns signed service webhooks into Discord messages.
+---
+
+`@theholocron/comlink` is Holocron's alert relay: one Cloudflare Worker that takes webhooks from services whose alerts Discord cannot read, checks who sent them, and posts them to a channel as Discord messages.
+
+It exists because Sentry's free plan has no Discord integration and what an internal integration sends is Sentry's own JSON. Other services that post a webhook in their own shape can use the same Worker.
+
+:::note
+Comlink is a **private app, deployed rather than published**. It is not on npm, so there is nothing to `pnpm add`. The build produces a single Worker module that `holocron notifications setup` uploads.
+:::
+
+## How it fits
+
+Sentinel watches the repositories. Comlink carries the alerts. It is deployed as part of the [server as code](/holocron/server-as-code/) flow: a channel declared with `feeds: { errors: true }` and a layout `relay` gets a dedicated Discord webhook, a DNS record pointing at the Worker, and the Worker itself, all through `holocron notifications setup`.
+
+## How it works
+
+There is one route per source, `https://comlink.theholocron.dev/<source>`.
+
+1. The path picks the source (`/sentry`). An unknown path is a 404.
+2. A body over 256 KB is refused (413) before it is hashed. The source verifies the request with its bound secret before anything in the body is trusted (401 if not).
+3. The source formats the delivery as a Discord embed with pings disabled. It can also say it does not carry the delivery (202, acknowledged and dropped so the service does not retry), or that it cannot read one it should carry (422).
+4. The message is posted to the source's own webhook (502 if Discord refuses, fails or takes over 8 seconds, 500 if none is bound).
+
+| Source   | Path      | Verified by                                                                  | Carries                      |
+| -------- | --------- | ---------------------------------------------------------------------------- | ---------------------------- |
+| `sentry` | `/sentry` | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret | issue alerts (`event_alert`) |
+
+## Secrets
+
+Each source has two bindings, never echoed: `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
+
+- The signing secret is kept in Doppler (project `comlink`, config `prd`) and pushed to the Worker with `holocron secrets sync prd --cwd apps/comlink --worker comlink`. With `relay.errors` configured, `holocron notifications setup` creates the Sentry integration and alert rule itself and deploys the Worker with the integration's secret.
+- The webhook URL is not kept in Doppler. `holocron notifications setup` creates each channel's webhook and sets its URL on the Worker directly, so run `setup` before `secrets sync`.
+
+See [`secrets sync`](/holocron/commands/secrets-sync/) and [`notifications setup`](/holocron/commands/notifications-setup/). `holocron probe comlink deliver` reads the signing secret from the config's vault (or from `COMLINK_SENTRY_SECRET` in the environment) to exercise delivery.
+
+## Adding a source
+
+A source is one file under `src/sources/<id>/` implementing `Source` (`verify` and `format`), plus one entry in the list in `src/worker.ts`. Nothing else changes.
+
+## Build and deploy
+
+```bash
+pnpm --filter @theholocron/comlink delivery.build
+```
+
+This writes `dist/worker.js`, a single ES module with no imports, which is uploaded as it stands. Deployment is `holocron notifications setup`'s job, through the `workers` capability.
+
+Source: [`apps/comlink`](https://github.com/theholocron/holocron/tree/alpha/apps/comlink) on GitHub.

@@ -1,0 +1,51 @@
+---
+title: Astromech
+description: The Holocron task runner. One task manifest per repo drives local runs, CI, generated workflows, package scripts and required checks.
+---
+
+`@theholocron/astromech` is the task runner behind `holocron run`. A repo declares **one task manifest**, and every surface is derived from it:
+
+- `holocron run <task>` (local)
+- `holocron run ci` (the CI suite, run locally)
+- the generated GitHub Actions workflows
+- the `package.json` scripts
+- the branch-protection required-checks list
+
+It is a plain library, **not** a capability plugin. [`@theholocron/cli`](/holocron/cli/) depends on it and instantiates it once.
+
+## Installation
+
+```bash
+pnpm add @theholocron/astromech
+```
+
+Most repos never import it directly: they use it through the CLI. Import it to build tooling on the same manifest.
+
+## Usage
+
+```ts
+import { createAstromech } from "@theholocron/astromech";
+
+const astromech = createAstromech({ cwd });
+
+const report = astromech.run("verification.unitTests", { passthrough: ["--watch"] });
+// { status: "ok" | "fail" | "skip" | "dry-run" | "unknown", command?, message? }
+```
+
+## Key points
+
+- **Tasks are named by intent, not tool.** A repo declares `verification.unitTests`, not `vitest`. The registry maps each task name to what it runs (vitest, tsc, eslint, prettier, knip, gitleaks, semantic-release, an Astro build, and so on), and tool names never appear in `holocron.config.ts`.
+- **Resolution.** `holocron run <task>` uses `turbo.json` if it defines the task, then a `package.json` script, then the registry's local runner. A task made of jobs runs each job in order. A known task with nothing to run exits 0 (1 with `--required`), and an unknown task is an error.
+- **Task entries.** Each manifest entry can set `ci`, `local`, `required` and `with` (per-repo overrides on the reusable workflow). `local: false` makes a task CI-only.
+- **Config.** `defineConfig` comes from the zero-runtime-dependency `@theholocron/astromech/config` subpath. The manifest is the `tasks` key of `holocron.config.*`, with an optional dedicated `astromech.config.*` merged on top, loaded through [`@theholocron/datapad`](/holocron/datapad/).
+- **Generated surfaces.** `thinCallers()` returns the workflow files, `packageScripts()` the `package.json` scripts, `requiredChecks()` the branch-protection contexts, and `codecovConfig()` the `codecov.yml`. `holocron repo sync` and `holocron repo setup` write them.
+- **Running CI locally.** `ci()` runs every required task in CI order and sets the exit code of `holocron run ci`.
+- **Release-time deploys.** A package can declare a `delivery.deploy` task with `on: "release"`, and `holocron deploy on-release` deploys it when a release changes it or one of its `workspace:*` dependencies.
+- **Lint subpath.** `@theholocron/astromech/lint` holds the commit-message linter and the ignore lists, shared with [Sentinel](/holocron/sentinel/) so its central checks skip exactly what each repo's own CI skips.
+
+## Related
+
+- [`holocron run`](/holocron/commands/run/) and [`holocron run ci`](/holocron/commands/run-ci/)
+- [`holocron repo sync`](/holocron/commands/repo-sync/) and [`holocron deploy`](/holocron/commands/deploy/)
+- [Configuration](/holocron/config/)
+- Source and the full task table: [`cli/astromech`](https://github.com/theholocron/holocron/tree/alpha/cli/astromech) on GitHub

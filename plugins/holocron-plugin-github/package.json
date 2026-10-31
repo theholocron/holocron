@@ -9,7 +9,7 @@
     "plugin",
     "source"
   ],
-  "homepage": "https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-github#readme",
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/github/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",

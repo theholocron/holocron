@@ -143,7 +143,7 @@ try {
 				`  global      works from a bare 'npm i -g': ${commandsInContext("global").join(", ")}\n` +
 				`  repo-aware  needs ./holocron.config in cwd: ${commandsInContext("repo-aware").join(", ")}\n` +
 				`  workspace   also needs the plugin packages: ${commandsInContext("workspace").join(", ")}\n` +
-				"  https://theholocron.github.io/holocron/execution-contexts"
+				"  https://docs.theholocron.dev/holocron/execution-contexts"
 		)
 		.fail((msg, err) => {
 			// A user-facing error (a `workspace` command with no resolvable
