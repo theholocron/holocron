@@ -4,7 +4,9 @@
  * Read-only. For every token a configured plugin lists (its `tokens` export), the token is looked up the way the
  * plugin does it (the environment variable, then the OS keyring) and the plugin's `verifyToken` is asked whether it
  * is still accepted. A token is never printed. One that is not set is a skip, not a failure: whether it is needed
- * depends on what is run. One that is set and rejected (expired, revoked, malformed) fails.
+ * depends on what is run. One that is set and rejected (expired, revoked, malformed) fails, and so does one that
+ * the plugin reports will expire within `TOKEN_EXPIRY_WARN_DAYS` days (a warning is a fail: the check has no third
+ * status). A token with no expiry shows nothing extra.
  *
  * What a token may do is not checked: GitHub does not return a fine-grained token's permissions.
  */
@@ -17,6 +19,7 @@ import { getLogger } from "../../observability/logger/index.js";
 import { type AuthPluginModule, defaultImporter, type PluginToken } from "../auth/index.js";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import type { DoctorTokensReport, RunDoctorTokensInput } from "./doctor-tokens.type.js";
+import { describeExpiry } from "./token-expiry/index.js";
 
 export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<DoctorTokensReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -24,6 +27,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 	const importer = input.importer ?? defaultImporter;
 	const env = makeEnv(input.env);
 	const keyring = input.keyring ?? getToken;
+	const now = input.now ?? (() => new Date());
 
 	const rows: CheckRow[] = [];
 	for (const pkg of configuredPackages(input)) {
@@ -35,7 +39,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 			continue;
 		}
 		for (const token of module.tokens ?? []) {
-			rows.push(await checkToken(token, module, env.get(token.envName), keyring));
+			rows.push(await checkToken(token, module, env.get(token.envName), keyring, now()));
 		}
 	}
 	if (rows.length === 0) {
@@ -74,7 +78,8 @@ async function checkToken(
 	token: PluginToken,
 	module: AuthPluginModule,
 	fromEnv: string | undefined,
-	keyring: (key: string) => string | null
+	keyring: (key: string) => string | null,
+	now: Date
 ): Promise<CheckRow> {
 	const { keyringKey, envName } = token;
 	const value = fromEnv || keyring(keyringKey);
@@ -83,9 +88,16 @@ async function checkToken(
 	const from = fromEnv ? envName : "keyring";
 	try {
 		const verified = await module.verifyToken(value);
-		return verified.ok
-			? row(keyringKey, "ok", `${verified.subject} (${from})`)
-			: row(keyringKey, "fail", `rejected (${from}): ${verified.message}`);
+		if (!verified.ok) return row(keyringKey, "fail", `rejected (${from}): ${verified.message}`);
+		const expiry = verified.expiresAt ? describeExpiry(verified.expiresAt, now) : undefined;
+		if (!expiry) return row(keyringKey, "ok", `${verified.subject} (${from})`);
+		// A warning is a failing row: the check has only ok / fail / skip, and a fail is what turns a scheduled run red.
+		return expiry.soon
+			? {
+					...row(keyringKey, "fail", `${verified.subject} (${from}), ${expiry.text}`),
+					problems: [`${expiry.text}: renew it`],
+				}
+			: row(keyringKey, "ok", `${verified.subject} (${from}), ${expiry.text}`);
 	} catch (err) {
 		return row(keyringKey, "fail", `could not be verified (${from}): ${errorMessage(err)}`);
 	}

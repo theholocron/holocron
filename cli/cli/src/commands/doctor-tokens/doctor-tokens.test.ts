@@ -30,7 +30,7 @@ const importerOf =
 async function run(
 	config: LoadedConfig,
 	modules: Record<string, AuthPluginModule | Error>,
-	opts: { env?: NodeJS.ProcessEnv; keyring?: Record<string, string> } = {}
+	opts: { env?: NodeJS.ProcessEnv; keyring?: Record<string, string>; now?: Date } = {}
 ) {
 	const lines: string[] = [];
 	const report = await runDoctorTokens({
@@ -38,6 +38,7 @@ async function run(
 		context: { repoRoot: "/tmp/test" },
 		importer: importerOf(modules),
 		env: opts.env ?? {},
+		now: () => opts.now ?? NOW,
 		keyring: (key) => opts.keyring?.[key] ?? null,
 		print: (l) => lines.push(stripVTControlCharacters(l)),
 		logger: fakeLogger(),
@@ -46,6 +47,8 @@ async function run(
 }
 
 const github = { source: "github" };
+const NOW = new Date("2026-11-01T00:00:00Z");
+const expiringIn = (days: number) => new Date(NOW.getTime() + days * 86_400_000).toISOString();
 
 describe("doctor tokens", () => {
 	it("verifies a token found in the environment, and says where it came from and whose it is", async () => {
@@ -193,5 +196,62 @@ describe("doctor tokens", () => {
 		log.mockRestore();
 		expect(report.rows[0]).toMatchObject({ status: "skip" });
 		expect(report.rows[0]!.detail).toMatch(/^cannot load the plugin/);
+	});
+
+	it("shows how long a token has left when it expires later than the warning window", async () => {
+		const verifyToken = async () => ({ ok: true as const, subject: "user @ a", expiresAt: expiringIn(12) });
+		const { report } = await run(
+			loaded(github),
+			{ [GITHUB]: { tokens: [ADMIN], verifyToken } },
+			{ env: { HOLOCRON_ADMIN_TOKEN: "t" } }
+		);
+		expect(report.status).toBe("ok");
+		expect(report.rows[0]).toMatchObject({
+			status: "ok",
+			detail: "user @ a (HOLOCRON_ADMIN_TOKEN), expires in 12 days",
+			problems: [],
+		});
+	});
+
+	it("fails a token that expires within a week, with a problem line", async () => {
+		const verifyToken = async () => ({ ok: true as const, subject: "user @ a", expiresAt: expiringIn(3) });
+		const { report, lines } = await run(
+			loaded(github),
+			{ [GITHUB]: { tokens: [ADMIN], verifyToken } },
+			{ env: { HOLOCRON_ADMIN_TOKEN: "t" } }
+		);
+		expect(report.status).toBe("fail");
+		expect(report.rows[0]).toMatchObject({
+			status: "fail",
+			detail: "user @ a (HOLOCRON_ADMIN_TOKEN), expires in 3 days",
+			problems: ["expires in 3 days: renew it"],
+		});
+		expect(lines).toContain("      - expires in 3 days: renew it");
+	});
+
+	it("shows nothing extra when the expiry cannot be read", async () => {
+		const verifyToken = async () => ({ ok: true as const, subject: "user @ a", expiresAt: "later" });
+		const { report } = await run(
+			loaded(github),
+			{ [GITHUB]: { tokens: [ADMIN], verifyToken } },
+			{ env: { HOLOCRON_ADMIN_TOKEN: "t" } }
+		);
+		expect(report.rows[0]?.detail).toBe("user @ a (HOLOCRON_ADMIN_TOKEN)");
+	});
+
+	it("uses the clock when no time is injected", async () => {
+		const lines: string[] = [];
+		const soon = new Date(Date.now() + 86_400_000).toISOString();
+		const report = await runDoctorTokens({
+			loaded: loaded(github),
+			context: { repoRoot: "/tmp/test" },
+			importer: importerOf({
+				[GITHUB]: { tokens: [ADMIN], verifyToken: async () => ({ ok: true, subject: "u", expiresAt: soon }) },
+			}),
+			env: { HOLOCRON_ADMIN_TOKEN: "t" },
+			print: (l) => lines.push(l),
+			logger: fakeLogger(),
+		});
+		expect(report.status).toBe("fail");
 	});
 });
