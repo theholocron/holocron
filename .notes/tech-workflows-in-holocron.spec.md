@@ -104,11 +104,15 @@ Steps 4 to 5 can ship before `main` is promoted. Steps 6 to 8 follow the promoti
 - **A shim that forgets an input silently drops it.** Mitigation: generated from the template's `workflow_call` schema, with a test that every input and secret is passed.
 - **Hand-written workflows in `.github` are lost.** Mitigation: the inventory before any deletion.
 
-## Open decisions for the maintainer
+## Decisions
 
-1. holocron's own caller file name: `ci.<name>.yml` (recommended) or another scheme. Only the file name changes.
-2. Whether to keep combined `workflow_call` plus direct-trigger files as a later goal (#1236) or drop it, since thin callers cover it.
-3. Whether the `workflows-v1` tag moves on every `main` release or only when workflow files changed.
+1. **holocron's own caller file name: `ci.<name>.yml`.** Decided by the maintainer; only the file name changes.
+2. **Combined `workflow_call` plus direct-trigger files: open.** Recommendation: drop them and close #1236. A direct run has no `inputs`, so the repo's settings (`affected`, the Codecov `uploads` list) need a new home, and a direct run's check is named by the job alone (`Run unit tests and collect coverage`) where a call through a caller is `Test / Run unit tests and collect coverage`, so combining changes holocron's required check names. Thin callers keep the names and the generator.
+3. **The `workflows-v1` tag moves only when workflow or action files changed** (a path check in the release workflow), not on every `main` release. Decided by the maintainer.
+
+### Option for later: a top-level folder as a version group
+
+Callable workflows must stay in `.github/workflows/` (GitHub allows no subfolders there), but composite actions can live at any path. A top-level folder (`ci/` or `workflows/`) could hold the template sources and the actions, with the generated workflows still written to `.github/workflows`, and be released as a version group like `clients`: prefixed immutable tags (`ci-v1.4.0`) beside the moving `workflows-v1`, and release analysis scoped to the folder, which gives decision 3 without a custom path check. Costs: the group release tooling assumes npm-published packages and skips `apps/*` (#1233), so a tag-only group needs new support; and moving the templates out of astromech separates the generator from its data and tests. Not part of this plan; if wanted, it becomes its own sub-issue ahead of rollout step 4.
 
 ## Not in scope
 
