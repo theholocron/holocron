@@ -62,7 +62,8 @@ export function defineConfig({ branches = ["main"], exec, npm, assets }: Options
 			...(npm ? [["@semantic-release/npm", npmOptions]] : []),
 			...(exec ? [["@semantic-release/exec", exec]] : []),
 			["@semantic-release/git", { assets: resolvedAssets, message: defaultMessage }],
-			"@semantic-release/github",
+			// One `released` label on every branch. The default adds `released on @<channel>` on a prerelease branch, a label `repo setup` removes.
+			["@semantic-release/github", { releasedLabels: ["released"] }],
 		],
 	};
 }
