@@ -1,8 +1,9 @@
 import { parseScope } from "../../cli-support/index.js";
 import type { RepoSecretsSync } from "../../config/index.js";
-import { MissingTokenError, type SecretScope, type Vault } from "../../plugin/index.js";
+import { type SecretScope, type Vault } from "../../plugin/index.js";
 import { describeProviderError } from "../../ui/provider-error/index.js";
 import type { CheckRow } from "../doctor-checks/index.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import type { SyncedSecrets } from "./doctor-secrets.type.js";
 
 /**
@@ -45,9 +46,8 @@ export async function syncedSecrets(
 				scopes.push({ scope, names: Object.keys(await vault.readEnvironment(entry.environment)) });
 			} catch (err) {
 				skip(
-					err instanceof MissingTokenError
-						? err.message
-						: `could not read vault environment ${entry.environment}: ${describeProviderError(err)}`
+					missingTokenReason(err) ??
+						`could not read vault environment ${entry.environment}: ${describeProviderError(err)}`
 				);
 			}
 		}

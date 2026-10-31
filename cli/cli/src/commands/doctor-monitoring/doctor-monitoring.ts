@@ -15,7 +15,6 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
-	MissingTokenError,
 	type Monitoring,
 	type MonitoringAssertion,
 	type MonitoringCheckInput,
@@ -28,6 +27,7 @@ import {
 	printCheckSummary,
 	summariseChecks,
 } from "../doctor-checks/index.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorMonitoringReport, RunDoctorMonitoringInput } from "./doctor-monitoring.type.js";
 
@@ -79,7 +79,8 @@ async function checkRow(loader: PluginLoader): Promise<CheckRow> {
 		const n = monitoring.checks.length;
 		return { id: ID, title: TITLE, status: "ok", detail: `${n} of ${n} match`, problems: [] };
 	} catch (err) {
-		if (err instanceof MissingTokenError) return skip(err.message);
+		const noToken = missingTokenReason(err);
+		if (noToken !== undefined) return skip(noToken);
 		return { id: ID, title: TITLE, status: "fail", detail: errorMessage(err), problems: [] };
 	}
 }

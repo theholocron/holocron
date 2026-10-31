@@ -102,6 +102,17 @@ describe("runDoctorAll", () => {
 		expect(report.status).toBe("fail");
 	});
 
+	it("treats a plugin's AuthError as a missing token too", async () => {
+		const { report } = await run([
+			check("alpha", async () => {
+				throw Object.assign(new Error("no Checkly token found"), { name: "AuthError" });
+			}),
+		]);
+		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
+			["alpha", "skip", "no Checkly token found"],
+		]);
+	});
+
 	it("lets the whole run fail when the plugins cannot be resolved here", async () => {
 		await expect(
 			run([

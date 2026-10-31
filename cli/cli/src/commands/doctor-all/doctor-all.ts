@@ -9,9 +9,10 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { MissingTokenError, WorkspaceContextError } from "../../plugin/index.js";
+import { WorkspaceContextError } from "../../plugin/index.js";
 import { DEEP_CHECKS, type DeepCheck, type DeepCheckOutcome } from "../deep-checks/index.js";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import type { DoctorAllReport, RunDoctorAllInput } from "./doctor-all.type.js";
 
 export async function runDoctorAll(input: RunDoctorAllInput): Promise<DoctorAllReport> {
@@ -47,8 +48,9 @@ async function outcomeOf(check: DeepCheck, input: RunDoctorAllInput): Promise<De
 	} catch (err) {
 		// Not being in a repo with the plugins is the whole command's problem, not one check's.
 		if (err instanceof WorkspaceContextError) throw err;
-		if (err instanceof MissingTokenError) {
-			return { status: "skip", summary: { ok: 0, fail: 0, skip: 1 }, reason: err.message };
+		const noToken = missingTokenReason(err);
+		if (noToken !== undefined) {
+			return { status: "skip", summary: { ok: 0, fail: 0, skip: 1 }, reason: noToken };
 		}
 		return { status: "fail", summary: { ok: 0, fail: 1, skip: 0 }, reason: errorMessage(err) };
 	}

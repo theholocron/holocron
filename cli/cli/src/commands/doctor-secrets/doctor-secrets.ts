@@ -12,7 +12,6 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
-	MissingTokenError,
 	PluginLoader,
 	type Secrets,
 	type SecretScope,
@@ -25,6 +24,7 @@ import {
 	printCheckSummary,
 	summariseChecks,
 } from "../doctor-checks/index.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorSecretsReport, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
 import { expectedSecrets } from "./expected-secrets.js";
@@ -154,7 +154,8 @@ async function checkScope(secrets: Secrets, check: ScopeCheck): Promise<CheckRow
 			? { id, title, status: "fail", detail: `${problems.length} problem(s)`, problems }
 			: { id, title, status: "ok", detail: `${names.length} of ${names.length} exist`, problems: [] };
 	} catch (err) {
-		if (err instanceof MissingTokenError) return { id, title, status: "skip", detail: err.message, problems: [] };
+		const noToken = missingTokenReason(err);
+		if (noToken !== undefined) return { id, title, status: "skip", detail: noToken, problems: [] };
 		return { id, title, status: "fail", detail: errorMessage(err), problems: [] };
 	}
 }
