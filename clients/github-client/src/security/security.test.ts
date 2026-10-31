@@ -60,4 +60,36 @@ describe("security", () => {
 		await client.security.disableDefaultCodeScanning(REPO);
 		expect(calls[0]?.body).toMatchObject({ state: "not-configured" });
 	});
+
+	it("vulnerabilityAlertsEnabled: 204 is on, 404 is off, anything else throws", async () => {
+		const on = stubFetch([{ status: 204 }]);
+		const client = createGitHubClient({ token: TOKEN, fetch: on.fetch });
+		await expect(client.security.vulnerabilityAlertsEnabled(REPO)).resolves.toBe(true);
+		expect(on.calls[0]?.method).toBe("GET");
+		expect(on.calls[0]?.url).toContain("/vulnerability-alerts");
+
+		const off = stubFetch([{ status: 404, body: { message: "Not Found" } }]);
+		await expect(
+			createGitHubClient({ token: TOKEN, fetch: off.fetch }).security.vulnerabilityAlertsEnabled(REPO)
+		).resolves.toBe(false);
+
+		const bad = stubFetch([{ status: 403, body: { message: "Forbidden" } }]);
+		await expect(
+			createGitHubClient({ token: TOKEN, fetch: bad.fetch }).security.vulnerabilityAlertsEnabled(REPO)
+		).rejects.toThrow();
+	});
+
+	it("reads automated-security-fixes, private-vulnerability-reporting and code-scanning default setup", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { enabled: true, paused: false } },
+			{ body: { enabled: false } },
+			{ body: { state: "configured" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await expect(client.security.automatedSecurityFixesEnabled(REPO)).resolves.toBe(true);
+		await expect(client.security.privateVulnerabilityReportingEnabled(REPO)).resolves.toBe(false);
+		await expect(client.security.codeScanningDefaultSetupState(REPO)).resolves.toBe("configured");
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+		expect(calls[2]?.url).toContain("/code-scanning/default-setup");
+	});
 });

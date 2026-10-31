@@ -11,8 +11,19 @@ export interface OrgProperty {
 	allowed_values?: string[] | null;
 }
 
+/** One custom property value set on a repository. */
+export interface RepoPropertyValue {
+	property_name: string;
+	/** A string, a string array for `multi_select`, or `null` when unset. */
+	value: string | string[] | null;
+}
+
 export function properties(rest: RestClient) {
 	return {
+		/** The custom property values set on a repository (read-only). */
+		getValues: (repo: string): Promise<RepoPropertyValue[]> =>
+			rest.request<RepoPropertyValue[]>(`${repoBase(repo)}/properties/values`),
+
 		/**
 		 * The custom properties an organization defines, with their types and allowed values (read-only).
 		 * The token needs read access to the organization's custom properties.

@@ -39,4 +39,12 @@ describe("rulesets", () => {
 		expect(calls[0]?.method).toBe("PUT");
 		expect(calls[0]?.url).toContain("/rulesets/1");
 	});
+
+	it("GET /repos/{owner}/{name}/rulesets/{id}", async () => {
+		const { fetch, calls } = stubFetch([{ body: { ...RULESET, rules: [{ type: "deletion" }] } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.rulesets.getRuleset(REPO, 1);
+		expect(calls[0]?.url).toContain("/rulesets/1");
+		expect(result.rules).toEqual([{ type: "deletion" }]);
+	});
 });

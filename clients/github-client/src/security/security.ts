@@ -1,3 +1,5 @@
+import { ProviderApiError } from "@theholocron/http-client";
+
 import type { RestClient } from "../utils.js";
 import { repoBase } from "../utils.js";
 
@@ -8,6 +10,29 @@ export interface CodeScanningSetupResult {
 
 export function security(rest: RestClient) {
 	return {
+		/** Whether vulnerability alerts are on: GitHub answers 204 when they are and 404 when they are not. */
+		vulnerabilityAlertsEnabled: async (repo: string): Promise<boolean> => {
+			try {
+				await rest.request<void>(`${repoBase(repo)}/vulnerability-alerts`, { expectNoContent: true });
+				return true;
+			} catch (err) {
+				if (err instanceof ProviderApiError && err.status === 404) return false;
+				throw err;
+			}
+		},
+
+		/** Whether Dependabot security updates are on. */
+		automatedSecurityFixesEnabled: async (repo: string): Promise<boolean> =>
+			(await rest.request<{ enabled: boolean }>(`${repoBase(repo)}/automated-security-fixes`)).enabled,
+
+		/** Whether private vulnerability reporting is on. */
+		privateVulnerabilityReportingEnabled: async (repo: string): Promise<boolean> =>
+			(await rest.request<{ enabled: boolean }>(`${repoBase(repo)}/private-vulnerability-reporting`)).enabled,
+
+		/** The state of CodeQL default setup: `configured` or `not-configured`. */
+		codeScanningDefaultSetupState: async (repo: string): Promise<string> =>
+			(await rest.request<{ state: string }>(`${repoBase(repo)}/code-scanning/default-setup`)).state,
+
 		enableVulnerabilityAlerts: (repo: string): Promise<void> =>
 			rest.request<void>(`${repoBase(repo)}/vulnerability-alerts`, {
 				method: "PUT",

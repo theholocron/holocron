@@ -55,4 +55,12 @@ describe("properties", () => {
 		expect(calls[0]?.method).toBe("GET");
 		expect(calls[0]?.url).toContain("/orgs/acme/properties/schema");
 	});
+
+	it("GET /repos/{owner}/{name}/properties/values", async () => {
+		const values = [{ property_name: "lifecycle", value: "active" }];
+		const { fetch, calls } = stubFetch([{ body: values }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await expect(client.properties.getValues(REPO)).resolves.toEqual(values);
+		expect(calls[0]?.url).toContain("/properties/values");
+	});
 });
