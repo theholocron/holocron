@@ -1,3 +1,13 @@
+## [5.0.0-alpha.263](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.262...v5.0.0-alpha.263) (2026-10-31)
+
+### Refactoring
+
+* **cli:** ♻️ share the doctor check rows and list the deep checks in a registry ([#1429](https://github.com/theholocron/holocron/issues/1429)) ([e528d99](https://github.com/theholocron/holocron/commit/e528d991d3d35189a90458add64a694057efcae4))
+
+### Chores
+
+* **docs:** 🔧 point the docs site at docs.theholocron.dev/holocron and license it MIT ([#1428](https://github.com/theholocron/holocron/issues/1428)) ([8a67eab](https://github.com/theholocron/holocron/commit/8a67eab5705f48386e264bfec6d2ec5f349972e6))
+
 ## [5.0.0-alpha.262](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.261...v5.0.0-alpha.262) (2026-10-31)
 
 ### Features
