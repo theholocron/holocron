@@ -124,6 +124,21 @@ export interface RepoVariables {
 	prune?: boolean;
 }
 
+/**
+ * The names of the secrets that must exist for this repository's workflows to work, so `holocron doctor secrets`
+ * can say which are missing. Only names go here, never values; `holocron secrets set` and `secrets sync` write
+ * them. The secrets the config already implies (the notification layout's webhooks and roles, a Chromatic project
+ * token) are expected without being listed again. A secret that exists but is not listed is never a problem.
+ */
+export interface RepoSecrets {
+	/** Repository secrets. */
+	repo?: string[];
+	/** Organization secrets. Declare these in one repo only (the one that owns the org's configuration). */
+	org?: string[];
+	/** Environment secrets, by environment name. */
+	environments?: Record<string, string[]>;
+}
+
 export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
 	name?: string;
@@ -162,6 +177,8 @@ export interface RepoConfig {
 	properties?: RepoProperties;
 	/** GitHub Actions variables reconciled by `holocron repo setup`. */
 	variables?: RepoVariables;
+	/** The secrets that must exist, checked by `holocron doctor secrets`. Names only; nothing writes them. */
+	secrets?: RepoSecrets;
 }
 
 export interface AppConfig {

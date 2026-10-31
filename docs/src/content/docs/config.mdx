@@ -41,6 +41,8 @@ export default defineConfig({
     topics: ["typescript", "node", "cli"],
     // GitHub Actions variables (workflows read them as `vars.NAME`).
     variables: { org: { TURBO_TEAM: "my-team" } },
+    // Secrets that must exist; `holocron doctor secrets` reports the missing ones. Names only.
+    secrets: { repo: ["TURBO_TOKEN"], org: ["NPM_TOKEN"] },
 
     // GitHub org-level custom properties synced by `holocron repo setup`.
     properties: {
