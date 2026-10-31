@@ -1,3 +1,9 @@
+## [5.0.0-alpha.265](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.264...v5.0.0-alpha.265) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 holocron doctor variables checks the declared Actions variables ([#1434](https://github.com/theholocron/holocron/issues/1434)) ([c0a89ce](https://github.com/theholocron/holocron/commit/c0a89ceeba4a9feedbe06f4ca7167e4f75998775))
+
 ## [5.0.0-alpha.264](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.263...v5.0.0-alpha.264) (2026-10-31)
 
 ### Features
