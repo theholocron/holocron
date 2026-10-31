@@ -63,6 +63,7 @@ import { installEngineeringStructure } from "./engineering.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
 import { formatStep, type RunSetupInput, runStep, type SetupReport, type SetupStepResult } from "./run-step/index.js";
+import { SETUP_ENVIRONMENTS } from "./setup-environments.js";
 import { AGENT_SYMLINK_PATHS, installSkills } from "./skills/index.js";
 
 export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
@@ -389,7 +390,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 	if (loader.has("environments")) {
 		const envs = loader.get("environments") as Environments;
 		print(style.step("environments"));
-		for (const envName of ["staging", "production"]) {
+		for (const envName of SETUP_ENVIRONMENTS) {
 			steps.push(
 				await runStep("environments", `upsert ${envName}`, dryRun, async () => {
 					await envs.upsertEnvironment({ name: envName });

@@ -8,4 +8,5 @@ export {
 export { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
 export { runSetup } from "./run-setup.js";
 export type { SetupPrintLine, SetupReport, SetupStepResult } from "./run-step/index.js";
+export { SETUP_ENVIRONMENTS } from "./setup-environments.js";
 export { installSkills } from "./skills/index.js";

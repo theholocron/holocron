@@ -1,0 +1,42 @@
+---
+title: "doctor environments"
+description: Check that the deployment environments the config relies on exist. Read-only.
+---
+
+```bash
+holocron doctor environments
+```
+
+Compares the environments the config relies on with the ones the `environments` provider holds, and prints one row. It changes nothing and exits non-zero while an expected environment is missing.
+
+[`repo setup`](/holocron/commands/repo-setup/) creates the environments `staging` and `production` when an `environments` provider is configured, and a secret can only be set on an environment that exists ([`secrets set --scope env=<name>`](/holocron/commands/secrets-set/)). A missing environment is otherwise found when a deploy job or that command fails.
+
+```text
+  ✗ environments exist  2 problem(s)
+      - missing environment staging
+      - missing environment qa
+
+0 ok, 1 fail, 0 skipped
+```
+
+## What must exist
+
+| Environment                              | Why it is expected                                                          |
+| ---------------------------------------- | --------------------------------------------------------------------------- |
+| `staging`, `production`                  | `repo setup` creates them whenever an `environments` provider is configured |
+| each name in `repo.secrets.environments` | a secret is declared for it, and it can only be set on an existing one      |
+
+An environment that exists but is not expected is never a problem. Names are compared without regard to case. Reviewers, wait timers and branch rules are not compared, because `repo setup` creates an environment by name only.
+
+## Skips
+
+- **No `environments` provider, and no environment named in `repo.secrets.environments`**: the row says `none declared`, since `repo setup` would create nothing.
+- **No provider, but `repo.secrets.environments` names some**: a **skip** with the reason (or, if the plugin failed to load, why).
+- **The provider has no token for the read**: a skip with the message.
+- Any other error from the provider fails the row with its message.
+
+## Authentication
+
+The read uses the same token as `repo setup`'s environment step (`github.admin`, with environments read access).
+
+Related: [`doctor secrets`](/holocron/commands/doctor-secrets/), [`doctor variables`](/holocron/commands/doctor-variables/), [`doctor`](/holocron/commands/doctor/).
