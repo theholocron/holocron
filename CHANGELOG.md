@@ -1,3 +1,9 @@
+## [5.0.0-alpha.270](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.269...v5.0.0-alpha.270) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 holocron doctor environments checks the deployment environments exist ([#1448](https://github.com/theholocron/holocron/issues/1448)) ([bdcda8b](https://github.com/theholocron/holocron/commit/bdcda8bc664c06d1b1147e38787cc9714f6cc5e2))
+
 ## [5.0.0-alpha.269](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.268...v5.0.0-alpha.269) (2026-10-31)
 
 ### Features
