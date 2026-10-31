@@ -1,3 +1,13 @@
+## [5.0.0-alpha.266](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.265...v5.0.0-alpha.266) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 holocron doctor --all runs every deep check ([#1437](https://github.com/theholocron/holocron/issues/1437)) ([3146e05](https://github.com/theholocron/holocron/commit/3146e057cf01ed13af5a2c7381b39c817e86dc13))
+
+### Documentation
+
+* **cli:** 📝 give every command its own docs page ([#1432](https://github.com/theholocron/holocron/issues/1432)) ([2047b8a](https://github.com/theholocron/holocron/commit/2047b8a168db12883458a931760f2f4581345d4f))
+
 ## [5.0.0-alpha.265](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.264...v5.0.0-alpha.265) (2026-10-31)
 
 ### Features
