@@ -1,4 +1,5 @@
 import { doctorEnvironmentsCommand, runDoctorEnvironments } from "../doctor-environments/index.js";
+import { doctorMonitoringCommand, runDoctorMonitoring } from "../doctor-monitoring/index.js";
 import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-notifications/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
@@ -34,6 +35,19 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorEnvironmentsCommand as never,
 		async run(input) {
 			const report = await runDoctorEnvironments(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "monitoring",
+		capability: "monitoring",
+		command: doctorMonitoringCommand as never,
+		async run(input) {
+			const report = await runDoctorMonitoring(input);
 			return {
 				status: report.status,
 				summary: report.summary,

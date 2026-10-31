@@ -24,6 +24,7 @@ describe("menuItems — one level of the nested menu", () => {
 		expect(names(["doctor"])).toEqual([
 			"doctor (run it)",
 			"doctor (everything)",
+			"monitoring",
 			"notifications",
 			"environments",
 			"secrets",
