@@ -25,6 +25,7 @@ describe("menuItems — one level of the nested menu", () => {
 			"doctor (run it)",
 			"doctor (everything)",
 			"notifications",
+			"environments",
 			"secrets",
 			"tokens",
 			"variables",

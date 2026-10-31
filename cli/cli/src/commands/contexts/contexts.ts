@@ -53,6 +53,7 @@ export const COMMAND_CONTEXTS = {
 	"notifications sync-roles": "workspace",
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
+	"doctor environments": "workspace",
 	"doctor secrets": "workspace",
 	"doctor tokens": "workspace",
 	"doctor variables": "workspace",
