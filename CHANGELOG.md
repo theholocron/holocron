@@ -1,3 +1,17 @@
+## [5.0.0-alpha.276](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.275...v5.0.0-alpha.276) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 doctor notifications checks the Checkly feed into Discord ([#1460](https://github.com/theholocron/holocron/issues/1460)) ([794013d](https://github.com/theholocron/holocron/commit/794013d08be09e1638c883be0fe2c02a4386ddd5)), closes [#1458](https://github.com/theholocron/holocron/issues/1458) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
+### Refactoring
+
+* **pkg-utils:** ♻️ move workspace discovery out of astromech ([#1464](https://github.com/theholocron/holocron/issues/1464)) ([83f5889](https://github.com/theholocron/holocron/commit/83f5889746285b5cc47b8b8465e03c0aead442e2)), closes [#1240](https://github.com/theholocron/holocron/issues/1240)
+
+### Documentation
+
+* **cli:** 📝 spec for the Checkly feed and Comlink relay doctor checks ([#1459](https://github.com/theholocron/holocron/issues/1459)) ([028bdf7](https://github.com/theholocron/holocron/commit/028bdf739920531bdaf85c0e5892075388822e03)), closes [#1458](https://github.com/theholocron/holocron/issues/1458)
+
 ## [5.0.0-alpha.275](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.274...v5.0.0-alpha.275) (2026-10-31)
 
 ### Features
