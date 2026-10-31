@@ -10,6 +10,7 @@ import type { Astromech, AstromechOptions } from "./astromech.type.js";
 import { normalizeTaskEntry, type TaskEntry } from "./config/schema/index.js";
 import {
 	codecovConfig as resolveCodecovConfig,
+	type CodecovConfigOptions,
 	deriveDeployPaths,
 	ensureRootWorkspaceMember as resolveEnsureRootWorkspaceMember,
 	ensureTurboDependency as resolveEnsureTurboDependency,
@@ -208,7 +209,8 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 		requiredChecks: () => resolveRequiredChecks(options.config ?? {}),
 
-		codecovConfig: (existing: string | null) => resolveCodecovConfig(options.cwd, existing),
+		codecovConfig: (existing: string | null, codecov?: CodecovConfigOptions) =>
+			resolveCodecovConfig(options.cwd, existing, codecov),
 
 		turboConfig: () => resolveTurboConfig(options.config ?? {}),
 

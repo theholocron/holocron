@@ -1,3 +1,4 @@
+import type { DocsCoverageMode } from "@theholocron/astromech";
 import type { LogLevel } from "@theholocron/observability/core";
 
 import type { CapabilityKey, PagesConfig, TeamEntry } from "../../plugin/capabilities/index.js";
@@ -155,6 +156,18 @@ export interface RepoSecretsSync {
 	keys?: string[];
 	/** Where the secrets land, as `--github-secret-scope` words it: `"repo"` (the default), `"env=<name>"` or `"org=<name>"`. */
 	scope?: string;
+}
+
+/** Per-repo switches for the repo-validation checks (spec `tech-api-docs`, #1368). */
+export interface RepoValidationConfig {
+	/**
+	 * How strictly this repo enforces doc-comment coverage of its public API (`holocron probe docs patch`, the
+	 * `Docs coverage` workflow and the `documentation` Codecov flag). `"off"` (the default) does nothing; `"warn"`
+	 * reports without failing and posts informational Codecov statuses; `"required"` fails the check and posts statuses
+	 * that are not informational. It never adds a status to the branch-protection required checks: that stays in
+	 * `extraRequiredChecks`.
+	 */
+	docsCoverage?: DocsCoverageMode;
 }
 
 export interface RepoConfig {
@@ -376,6 +389,8 @@ export interface HolocronConfig {
 	 * `--repo` on the command line still overrides.
 	 */
 	repo?: RepoConfig;
+	/** Per-repo switches for the repo-validation checks. */
+	repoValidation?: RepoValidationConfig;
 	/**
 	 * The task manifest — what this repo runs. Each entry is a task name
 	 * (backed by a reusable workflow in `theholocron/.github`), or the object
@@ -593,6 +608,8 @@ export interface ResolvedHolocronConfig {
 	org?: string;
 	domain?: string;
 	repo?: RepoConfig;
+	/** Which repo-wide checks this repo turns on (`docsCoverage`), validated by `resolveConfig`. */
+	repoValidation?: RepoValidationConfig;
 	tasks?: Array<string | TaskEntryConfig>;
 	syncScripts?: boolean;
 	holocronScript?: string;

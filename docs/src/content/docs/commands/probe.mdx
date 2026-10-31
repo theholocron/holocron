@@ -98,9 +98,11 @@ The `docs` group is the CLI's own as well. It measures how much of each public p
 | `holocron probe docs patch`    | no             | Fails for each export a PR adds or changes without a doc comment (against `BASE_SHA`, or `origin/alpha`). Old undocumented exports do not count |
 | `holocron probe docs lcov`     | yes            | Writes `coverage/docs.lcov`, one line per exported symbol (hit when it has a doc comment)                                                       |
 
+`docs patch` follows [`repoValidation.docsCoverage`](/holocron/config/#doc-comment-coverage): `off` (the default) skips it, `warn` reports each miss without failing, `required` fails. The other two always run.
+
 `--lcov <path>` adds that report to `docs coverage` and `docs patch` from the same measurement, without the prompt `docs lcov` needs: `docs patch --lcov coverage/docs.lcov` gates a PR and writes the file in one pass, and `docs patch` without it measures only the packages the PR touched. On `--dry-run` nothing is written.
 
-CI runs the `Docs coverage` workflow on every pull request and on pushes to `alpha`. It runs `docs patch --lcov` (`docs coverage --lcov` on a push) and uploads the file to Codecov as the `documentation` flag, so `codecov/patch/documentation` and `codecov/project/documentation` show next to the test coverage. They are separate from the required `codecov/patch` and `codecov/project`, which count only the tests, and neither they nor the `Docs coverage / Patch` check are required checks yet. The probe step stays in the workflow alongside the flag until the flag has posted reliably.
+CI runs the `Docs coverage` workflow on every pull request and on pushes to `alpha`. It runs `docs patch --lcov` (on a push there is no diff, so it only writes the report) and uploads the file to Codecov as the `documentation` flag, so `codecov/patch/documentation` and `codecov/project/documentation` show next to the test coverage. They are separate from the required `codecov/patch` and `codecov/project`, which count only the tests, and neither they nor the `Docs coverage / Patch` check are required checks yet. The probe step stays in the workflow alongside the flag until the flag has posted reliably.
 
 ## Generated files
 

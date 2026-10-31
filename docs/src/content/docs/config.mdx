@@ -221,6 +221,30 @@ with `jobs:` on its entry in `astromech.config.ts`:
 A job left out runs. A switched-off job still reports in CI (green, "off in this repo's config"), so a required
 check never goes missing, and `holocron run platform.repoValidation` prints which jobs it skipped.
 
+### Doc-comment coverage
+
+`repoValidation.docsCoverage` decides what the `Docs coverage` check does about an exported function, class, interface,
+type or constant that a pull request adds or changes without a doc comment (TSDoc is the source of truth for the API
+reference, so this is what keeps it complete):
+
+```ts
+export default defineConfig({
+  repoValidation: { docsCoverage: "required" }, // "off" (default) | "warn" | "required"
+});
+```
+
+| Value        | `holocron probe docs patch`                                 | `documentation` Codecov flag                                                        |
+| ------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `"off"`      | skipped: nothing is measured or written, the check is green | nothing is added to `codecov.yml`                                                   |
+| `"warn"`     | reports each miss, exits 0                                  | `codecov/patch/documentation` and `codecov/project/documentation` are informational |
+| `"required"` | fails for each miss                                         | the statuses are not informational                                                  |
+
+Left out, it is `"off"`, so a repo that does not set it sees no change. `holocron repo setup` adds the `documentation`
+flag and its two statuses to `codecov.yml` for `"warn"` and `"required"` and moves them between the two; it never removes
+them, and `"off"` leaves what is there alone. The value never puts a check in the branch-protection required checks:
+that is `extraRequiredChecks` and a ruleset change. A value other than the three is a config error. The check itself and
+the `--lcov` upload are described under [`holocron probe`](/holocron/commands/probe/#documentation).
+
 No super-linter: every task above runs its own tool directly, through the
 same mechanism that resolves it locally — CI runs the identical command a
 developer runs.

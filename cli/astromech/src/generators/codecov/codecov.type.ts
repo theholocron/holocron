@@ -1,3 +1,16 @@
+/**
+ * How strictly a repo enforces doc-comment coverage of its public API (`repoValidation.docsCoverage`, spec
+ * `tech-api-docs`): `off` (the default) does nothing, `warn` reports without failing and posts informational Codecov
+ * statuses, `required` fails the check and posts statuses that are not informational.
+ */
+export type DocsCoverageMode = "off" | "warn" | "required";
+
+/** Per-repo choices that change what the `codecov.yml` generator writes. */
+export interface CodecovConfigOptions {
+	/** Adds the `documentation` flag and its statuses to `codecov.yml`. Default `off`: nothing is added. */
+	docsCoverage?: DocsCoverageMode;
+}
+
 export interface WorkspacePackage {
 	slug: string;
 	name: string;

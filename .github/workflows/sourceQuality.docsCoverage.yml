@@ -47,17 +47,14 @@ jobs:
       - name: Build the CLI
         run: pnpm turbo run delivery.build --filter=@theholocron/cli...
 
-      # A pull request is gated on the exports it adds or changes; the report of every package is written on
-      # the way (one TypeDoc pass), so the upload below needs no second measurement.
+      # One TypeDoc pass gates a pull request on the exports it adds or changes and writes the report of every
+      # package for the upload below. On a push to alpha there is no diff to gate, so it only writes the report.
+      # `repoValidation.docsCoverage` in holocron.config.ts decides what a miss does: "off" skips the check (and the
+      # upload, there being no report), "warn" reports without failing, "required" fails.
       - name: Check the exports this PR adds or changes
-        if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node cli/cli/dist/cli.mjs probe docs patch --lcov coverage/docs.lcov
-
-      - name: Measure the documented exports
-        if: github.event_name == 'push'
-        run: node cli/cli/dist/cli.mjs probe docs coverage --lcov coverage/docs.lcov
 
       # Runs after a failed check too, so the numbers post when the gate fails. A pull request from a fork has no
       # OIDC token to upload with; the check above still gates it.

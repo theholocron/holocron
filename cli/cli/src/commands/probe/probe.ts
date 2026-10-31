@@ -29,7 +29,15 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	});
 	groups.set(CORE_PROVIDER, coreProbes(loader, new Map([[COMLINK_PROVIDER, comlink]])));
 	groups.set(COMLINK_PROVIDER, comlink);
-	groups.set(DOCS_PROVIDER, docsCoverageProbes(input.context.repoRoot, input.typedoc));
+	groups.set(
+		DOCS_PROVIDER,
+		docsCoverageProbes(
+			input.context.repoRoot,
+			input.typedoc,
+			undefined,
+			input.loaded.resolved.repoValidation?.docsCoverage ?? "off"
+		)
+	);
 
 	groups.set(DEPS_PROVIDER, depsProbes(input.context.repoRoot, print));
 	groups.set(GENERATED_PROVIDER, generatedProbes(input.loaded, input.context.repoRoot));
