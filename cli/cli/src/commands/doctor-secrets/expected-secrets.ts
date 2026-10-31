@@ -2,13 +2,7 @@ import type { ResolvedHolocronConfig } from "../../config/index.js";
 import type { NotificationsLayout } from "../../plugin/index.js";
 import { layoutSecretNames } from "../notifications-channel-add/index.js";
 import type { ExpectedSecrets } from "./doctor-secrets.type.js";
-
-/** Names that differ only in case are one secret to GitHub, so the first spelling wins. */
-const unique = (names: string[]): string[] => {
-	const seen = new Map<string, string>();
-	for (const name of names) if (!seen.has(name.toUpperCase())) seen.set(name.toUpperCase(), name);
-	return [...seen.values()];
-};
+import { uniqueNames } from "./unique-names.js";
 
 /**
  * The secret a Chromatic project reads: `CHROMATIC_PROJECT_TOKEN` for `default` (or no name), otherwise
@@ -32,10 +26,10 @@ export function expectedSecrets(config: ResolvedHolocronConfig, layouts: Notific
 			: []
 	);
 	return {
-		repo: unique([...(declared?.repo ?? []), ...chromatic]),
-		org: unique([...(declared?.org ?? []), ...layouts.flatMap(layoutSecretNames)]),
+		repo: uniqueNames([...(declared?.repo ?? []), ...chromatic]),
+		org: uniqueNames([...(declared?.org ?? []), ...layouts.flatMap(layoutSecretNames)]),
 		environments: Object.fromEntries(
-			Object.entries(declared?.environments ?? {}).map(([env, names]) => [env, unique(names)])
+			Object.entries(declared?.environments ?? {}).map(([env, names]) => [env, uniqueNames(names)])
 		),
 	};
 }

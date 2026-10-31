@@ -127,6 +127,47 @@ describe("compose()", () => {
 		});
 	});
 
+	it("merges repo.secrets.sync by environment and scope", () => {
+		const a: Capability = {
+			id: "a",
+			repo: {
+				secrets: {
+					sync: [
+						{ environment: "e1", keys: ["A"] },
+						{ environment: "e2", keys: ["X"], scope: "org=o" },
+						{ environment: "e3", keys: ["K"] },
+					],
+				},
+			},
+		};
+		const b: Capability = {
+			id: "b",
+			repo: {
+				secrets: {
+					sync: [
+						{ environment: "e1", keys: ["B", "A"], scope: "repo" },
+						{ environment: "e2", scope: "org=o" },
+						{ environment: "e1", scope: "env=qa" },
+					],
+				},
+			},
+		};
+		expect(compose(a, b).repo.secrets?.sync).toEqual([
+			{ environment: "e1", keys: ["A", "B"] },
+			{ environment: "e2", scope: "org=o" },
+			{ environment: "e3", keys: ["K"] },
+			{ environment: "e1", scope: "env=qa" },
+		]);
+		// Either side alone, and a fragment that declares no sync, keep what is there.
+		expect(compose(a).repo.secrets?.sync).toHaveLength(3);
+		expect(
+			compose(
+				{ id: "c", repo: { secrets: { sync: [{ environment: "e" }] } } },
+				{ id: "d", repo: { secrets: { org: ["O"] } } }
+			).repo.secrets
+		).toEqual({ org: ["O"], sync: [{ environment: "e" }] });
+	});
+
 	it("merges repo.variables across capabilities instead of replacing them", () => {
 		const a: Capability = { id: "a", repo: { variables: { repo: { A: "1", SAME: "a" }, org: { X: "x" } } } };
 		const b: Capability = { id: "b", repo: { variables: { repo: { B: "2", SAME: "b" }, prune: true } } };

@@ -137,6 +137,24 @@ export interface RepoSecrets {
 	org?: string[];
 	/** Environment secrets, by environment name. */
 	environments?: Record<string, string[]>;
+	/**
+	 * The vault environments `holocron secrets sync` fills secrets from. `holocron doctor secrets` expects the
+	 * keys each one holds (or lists) at its scope. Names only; the doctor never reads or prints a value.
+	 */
+	sync?: RepoSecretsSync[];
+}
+
+/** One vault environment that `holocron secrets sync` pushes into GitHub secrets, declared so the doctor can check them. */
+export interface RepoSecretsSync {
+	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	environment: string;
+	/**
+	 * The vault keys pushed to GitHub (the `--github-secret` allowlist). Omit it for every key the vault
+	 * environment holds, which the doctor then asks the `vault` provider to list.
+	 */
+	keys?: string[];
+	/** Where the secrets land, as `--github-secret-scope` words it: `"repo"` (the default), `"env=<name>"` or `"org=<name>"`. */
+	scope?: string;
 }
 
 export interface RepoConfig {
