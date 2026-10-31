@@ -1,0 +1,36 @@
+---
+title: "deploy on-release"
+description: Deploy the workspace packages that opt in to a release-time deploy and changed in the release.
+---
+
+```bash
+holocron deploy on-release [--channel <alpha|main>] [--from <commit>] [--to <commit>] [--dry-run]
+```
+
+Deploys every workspace package whose own `holocron.config` declares `{ name: "delivery.deploy", with: { on: "release" } }`, when two things hold:
+
+- the release is on the task's `channel` (default `main`, the stable release), and
+- the release changes the package, or one of its `workspace:*` dependencies, between `--from` and `--to`.
+
+It waits for npm to serve the release's new dependency versions, then runs `pnpm --filter <pkg> delivery.deploy`. A package that does not apply is skipped. A deploy that does not succeed exits non-zero.
+
+The shared `delivery.publish` workflow runs this as its own `deploy` job after the release job; opt in with `deploy-on-release: true`.
+
+## Options
+
+| Option      | Default | Description                                                                                      |
+| ----------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `--channel` | `""`    | The release's channel: its prerelease identifier (`alpha`); empty or `main` for a stable release |
+| `--from`    | —       | The previous release's commit, to diff against. Omit when there is none                          |
+| `--to`      | `HEAD`  | The release commit                                                                               |
+| `--dry-run` | `false` | Print which packages would be deployed without deploying                                         |
+
+## Examples
+
+```bash
+# A stable release
+holocron deploy on-release --from v1.2.0
+
+# An alpha release, previewed
+holocron deploy on-release --channel alpha --from v1.3.0-alpha.4 --dry-run
+```

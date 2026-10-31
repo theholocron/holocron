@@ -1,0 +1,24 @@
+---
+title: "auth list"
+description: List the providers that have a token in the OS keyring.
+---
+
+```bash
+holocron auth list
+```
+
+Lists every provider that has a stored token. It prints provider names only, never a token.
+
+## Example
+
+```bash
+holocron auth list
+```
+
+```text
+github.admin   ✓ stored
+github.read    ✓ stored
+vercel         ✓ stored
+```
+
+Related: [`auth set`](/holocron/commands/auth-set/), [`auth check`](/holocron/commands/auth-check/), [`auth unset`](/holocron/commands/auth-unset/).

@@ -1,0 +1,19 @@
+---
+title: "run lint commit-msg"
+description: Lint a commit message file against the repo's commit rules.
+---
+
+```bash
+holocron run lint commit-msg <file>
+```
+
+Lints the commit message in `<file>`. It exists for the `commit-msg` Git hook, which passes the message file as `$1`:
+
+```bash
+# .husky/commit-msg
+holocron run lint commit-msg "$1"
+```
+
+It needs only the CLI binary (the `global` context), so it works before a checkout has installed its plugins. Run without a file, it says the file is missing.
+
+For the other lint jobs and tasks, see [`run`](/holocron/commands/run/).

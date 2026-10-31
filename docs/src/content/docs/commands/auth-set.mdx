@@ -1,0 +1,56 @@
+---
+title: "auth set"
+description: Verify a provider token and store it in the OS keyring.
+---
+
+```bash
+holocron auth set <provider> [value]
+```
+
+Verifies a token with its provider's plugin and stores it in the OS credential store (macOS Keychain, Windows Credential Manager, or libsecret on Linux). Every other command picks the stored token up automatically.
+
+## Arguments
+
+| Argument     | Default      | Description                                                                   |
+| ------------ | ------------ | ----------------------------------------------------------------------------- |
+| `<provider>` | _(required)_ | Provider name, e.g. `github.admin`, `vercel`, `doppler` (see the table below) |
+| `[value]`    | —            | The token. When omitted it is read from the environment (below)               |
+
+If `value` is omitted, the CLI reads, in order:
+
+1. `HOLOCRON_<PROVIDER>_TOKEN` (uppercased, dots replaced with underscores)
+2. `<PROVIDER>_TOKEN`, the vendor-native variable
+
+## How it works
+
+The command loads the provider's plugin (`@theholocron/holocron-plugin-<provider>`) and calls its `verifyToken` before storing. A token the provider rejects is not stored, and the reason is printed.
+
+`holocron auth set 1password` stores nothing: the `op` CLI manages its own sign-in, so the command prints the plugin's `AUTH_HINT` instead.
+
+## Examples
+
+```bash
+holocron auth set github.admin ghp_xxx
+holocron auth set vercel v_xxx
+
+# Read from the environment
+HOLOCRON_GITHUB_ADMIN_TOKEN=ghp_xxx holocron auth set github.admin
+```
+
+## Provider names
+
+| Provider name    | Plugin                                                |
+| ---------------- | ----------------------------------------------------- |
+| `github.admin`   | `@theholocron/holocron-plugin-github` (admin token)   |
+| `github.read`    | `@theholocron/holocron-plugin-github` (read token)    |
+| `github.issues`  | `@theholocron/holocron-plugin-github` (issues token)  |
+| `github.sync`    | `@theholocron/holocron-plugin-github` (sync token)    |
+| `github.release` | `@theholocron/holocron-plugin-github` (release token) |
+| `vercel`         | `@theholocron/holocron-plugin-vercel`                 |
+| `doppler`        | `@theholocron/holocron-plugin-doppler`                |
+| `infisical`      | `@theholocron/holocron-plugin-infisical`              |
+| `clerk`          | `@theholocron/holocron-plugin-clerk`                  |
+| `neon`           | `@theholocron/holocron-plugin-neon`                   |
+| `postman`        | `@theholocron/holocron-plugin-postman`                |
+
+See the [Token Reference](../tokens) for the environment variable names and the scopes each token needs. Related: [`auth check`](/holocron/commands/auth-check/), [`auth unset`](/holocron/commands/auth-unset/), [`auth list`](/holocron/commands/auth-list/).
