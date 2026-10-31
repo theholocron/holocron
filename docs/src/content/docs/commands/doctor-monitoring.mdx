@@ -1,0 +1,52 @@
+---
+title: "doctor monitoring"
+description: Check the monitoring checks declared for the monitoring provider against the ones its account holds. Read-only.
+---
+
+```bash
+holocron doctor monitoring
+```
+
+Compares the checks the `monitoring` provider declares in `holocron.config.ts` (the `checks` in its provider options, the same list [`monitoring check`](/holocron/commands/monitoring-check/) runs) with the checks that exist in the provider's account, and prints one row. It changes nothing, and it exits non-zero while the row fails.
+
+It is the check for [`repo setup`](/holocron/commands/repo-setup/), which creates and updates the checks. Run it after `repo setup`, or when an alert you expected never came.
+
+```text
+  ✗ monitoring checks match  3 problem(s)
+      - missing check Sentinel health
+      - check Sentinel webhook uptime frequency: declared 5, found 10
+      - check Sentinel webhook uptime assertions: declared status_code equals 405, found none
+
+0 ok, 1 fail, 0 skipped
+```
+
+## What counts as a problem
+
+| Finding                                                                | A problem when                                                                                                                 |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| A declared check is not in the account                                 | always. Checks are matched by name                                                                                             |
+| A declared check has another URL or method                             | always. A check that states no method is a `GET`                                                                               |
+| Another frequency, locations, activated, should-fail, body, assertions | the config states that setting. A setting the config leaves out is not compared, since the provider then picks its own default |
+| A check is in the account but not declared                             | never: the account may hold checks made by hand or by another tool                                                             |
+
+Locations and assertions are compared without regard to their order. Only the settings the provider can return are compared; an assertion on something the config cannot express (for example a JSON body in Checkly) is not read back.
+
+## Skips
+
+The row is a **skip**, not a failure, when it cannot be read:
+
+- the `monitoring` provider is configured but failed to load (its reason is shown),
+- the provider cannot list its checks, or
+- the provider's token is not set.
+
+When no provider is configured or it declares no checks, the row says `none declared`.
+
+## Not covered
+
+The alert channel and its subscriptions come from the notification layout, so they belong to [`doctor notifications`](/holocron/commands/doctor-notifications/). Whether an alert reaches the channel is a probe, not a doctor check.
+
+## Authentication
+
+Uses the same token as `repo setup` for the provider (for Checkly, `CHECKLY_API_KEY` or `holocron auth set checkly`), read-only.
+
+Related: [`doctor`](/holocron/commands/doctor/), [`monitoring check`](/holocron/commands/monitoring-check/), [`doctor variables`](/holocron/commands/doctor-variables/).

@@ -54,6 +54,36 @@ describe("DEEP_CHECKS", () => {
 	});
 });
 
+const runDoctorMonitoring = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-monitoring/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-monitoring/index.js")>()),
+	runDoctorMonitoring,
+}));
+
+describe("the monitoring entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const monitoring = DEEP_CHECKS.find((c) => c.name === "monitoring")!;
+
+	it("reports the run's status and counts", async () => {
+		runDoctorMonitoring.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 1, fail: 0, skip: 0 } });
+		expect(await monitoring.run(input)).toEqual({ status: "ok", summary: { ok: 1, fail: 0, skip: 0 } });
+	});
+
+	it("carries the reason every row was skipped", async () => {
+		runDoctorMonitoring.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "provider does not implement listChecks",
+		});
+		expect(await monitoring.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "provider does not implement listChecks",
+		});
+	});
+});
+
 describe("the secrets entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const secrets = DEEP_CHECKS.find((c) => c.name === "secrets")!;

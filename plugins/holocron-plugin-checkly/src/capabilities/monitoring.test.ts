@@ -193,6 +193,106 @@ describe("ChecklyMonitoring", () => {
 		});
 	});
 
+	describe("listChecks", () => {
+		const api = (over: Record<string, unknown> = {}) => ({
+			id: "c1",
+			name: "uptime",
+			checkType: "API",
+			activated: true,
+			frequency: 10,
+			locations: ["us-east-1"],
+			shouldFail: false,
+			request: { url: "https://example.com", method: "GET", assertions: [] },
+			...over,
+		});
+
+		it("reads each API check back in the shape checks are declared in", async () => {
+			const { capability, stub } = makeCapability([
+				{
+					status: 200,
+					body: [
+						api({
+							shouldFail: true,
+							request: {
+								url: "https://example.com/hook",
+								method: "POST",
+								body: "{}",
+								assertions: [
+									{ source: "STATUS_CODE", comparison: "EQUALS", target: "405" },
+									{ source: "HEADERS", comparison: "CONTAINS", property: "x-a", target: "b" },
+								],
+							},
+						}),
+					],
+				},
+			]);
+			expect(await capability.listChecks()).toEqual([
+				{
+					name: "uptime",
+					url: "https://example.com/hook",
+					method: "POST",
+					frequency: 10,
+					activated: true,
+					shouldFail: true,
+					locations: ["us-east-1"],
+					body: "{}",
+					assertions: [
+						{ source: "status_code", comparison: "equals", target: "405" },
+						{ source: "header", comparison: "contains", property: "x-a", target: "b" },
+					],
+				},
+			]);
+			expect(stub.calls[0]?.url).toContain("limit=100");
+			expect(stub.calls[0]?.url).toContain("page=1");
+		});
+
+		it("leaves out locations that are null, an empty body, other check types and assertions it has no word for", async () => {
+			const { capability } = makeCapability([
+				{
+					status: 200,
+					body: [
+						api({
+							locations: null,
+							request: {
+								url: "https://example.com",
+								method: "GET",
+								body: "",
+								assertions: [
+									{ source: "JSON_BODY", comparison: "EQUALS", property: "$.a", target: "1" },
+									{ source: "STATUS_CODE", comparison: "HAS_KEY" },
+									{ source: "STATUS_CODE", comparison: "EQUALS" },
+								],
+							},
+						}),
+						api({ id: "c2", name: "browser", checkType: "BROWSER" }),
+					],
+				},
+			]);
+			const [check, ...rest] = await capability.listChecks();
+			expect(rest).toEqual([]);
+			expect(check).not.toHaveProperty("locations");
+			expect(check).not.toHaveProperty("body");
+			expect(check?.assertions).toEqual([{ source: "status_code", comparison: "equals" }]);
+		});
+
+		it("treats a check with no assertions list as having none", async () => {
+			const { capability } = makeCapability([
+				{ status: 200, body: [api({ request: { url: "https://example.com", method: "GET" } })] },
+			]);
+			expect((await capability.listChecks())[0]?.assertions).toEqual([]);
+		});
+
+		it("reads every page", async () => {
+			const full = Array.from({ length: 100 }, (_, i) => api({ id: `c${i}`, name: `n${i}` }));
+			const { capability, stub } = makeCapability([
+				{ status: 200, body: full },
+				{ status: 200, body: [api({ id: "last", name: "last" })] },
+			]);
+			expect(await capability.listChecks()).toHaveLength(101);
+			expect(stub.calls[1]?.url).toContain("page=2");
+		});
+	});
+
 	describe("icon", () => {
 		it("carries Checkly's own icon: its CDN, and the same image embedded as a PNG", () => {
 			const { capability } = makeCapability([]);

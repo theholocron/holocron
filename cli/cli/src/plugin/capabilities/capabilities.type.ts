@@ -1078,6 +1078,12 @@ export interface Monitoring extends ProviderIdentity {
 	/** Idempotent find-or-create-or-update by `input.name`. */
 	ensureCheck(input: MonitoringCheckInput): Promise<{ check: MonitoringCheck; alreadyExists: boolean }>;
 	/**
+	 * Every check the provider's account holds now, in the same shape `checks` declares them, so the two can be
+	 * compared. Read-only. Settings the provider cannot return are left out of each entry.
+	 * Optional — a provider that cannot list its checks omits it.
+	 */
+	listChecks?(): Promise<MonitoringCheckInput[]>;
+	/**
 	 * Find-or-create-or-update an alert channel by name and subscribe every check the provider has to it. Checks made
 	 * through an API are never subscribed automatically, so a later run subscribes the ones added since.
 	 * Optional — a provider with no alert channels omits it.

@@ -14,6 +14,7 @@ import {
 	type Monitoring,
 	type MonitoringAlertChannelInput,
 	type MonitoringAlertChannelResult,
+	type MonitoringAssertion,
 	type MonitoringCheck,
 	type MonitoringCheckInput,
 	ProviderApiError,
@@ -47,6 +48,43 @@ const COMPARISON_MAP: Record<string, AssertionComparison> = {
 	greater_than: "GREATER_THAN",
 	less_than: "LESS_THAN",
 };
+
+const SOURCE_FROM_CHECKLY = invert(SOURCE_MAP);
+const COMPARISON_FROM_CHECKLY = invert(COMPARISON_MAP);
+
+function invert<T extends string>(map: Record<string, T>): Record<string, string> {
+	return Object.fromEntries(Object.entries(map).map(([ours, theirs]) => [theirs, ours]));
+}
+
+/** What a Checkly API check reads back as, in the shape `checks` declares. Settings Checkly does not return are left out. */
+function fromChecklyCheck(check: ApiCheck): MonitoringCheckInput {
+	const request = check.request;
+	// An assertion on a source or comparison this interface has no word for (a JSON body, "has key") cannot be declared.
+	const assertions = (request.assertions ?? []).flatMap((a) => {
+		const source = SOURCE_FROM_CHECKLY[a.source];
+		const comparison = COMPARISON_FROM_CHECKLY[a.comparison];
+		if (!source || !comparison) return [];
+		return [
+			{
+				source,
+				comparison,
+				...(a.property !== undefined ? { property: a.property } : {}),
+				...(a.target !== undefined ? { target: a.target } : {}),
+			} as MonitoringAssertion,
+		];
+	});
+	return {
+		name: check.name,
+		url: request.url,
+		method: request.method,
+		frequency: check.frequency,
+		activated: check.activated,
+		shouldFail: check.shouldFail,
+		assertions,
+		...(check.locations ? { locations: check.locations } : {}),
+		...(request.body ? { body: request.body } : {}),
+	};
+}
 
 function toChecklyPayload(input: MonitoringCheckInput): ApiCheckInput {
 	return {
@@ -106,6 +144,17 @@ export class ChecklyMonitoring implements Monitoring {
 
 		const created = await this.client().checks.create(payload);
 		return { check: { id: created.id, name: created.name }, alreadyExists: false };
+	}
+
+	/** Every API check on the account, read a page at a time. Checks of another type (browser, heartbeat) are left out. */
+	async listChecks(): Promise<MonitoringCheckInput[]> {
+		const PAGE = 100;
+		const found: MonitoringCheckInput[] = [];
+		for (let page = 1; ; page++) {
+			const batch = await this.client().checks.list({ limit: PAGE, page });
+			found.push(...batch.filter((c) => c.checkType === "API").map(fromChecklyCheck));
+			if (batch.length < PAGE) return found;
+		}
 	}
 
 	/**
