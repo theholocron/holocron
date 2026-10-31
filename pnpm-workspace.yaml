@@ -52,10 +52,12 @@ catalog:
   prettier: ^3.9.6
   semantic-release: ^25.0.9
   sort-package-json: ^4.0.0
+  starlight-typedoc: ^0.23.1
   tsdown: ^0.23.3
   tsx: 4.23.15
   turbo: ^2.10.12
   typedoc: ^0.28.20
+  typedoc-plugin-markdown: ^4.14.1
   typescript: ^5.9.3
   typescript-eslint: ^8.67.0
   vitest: ^5.0.5
@@ -97,8 +99,6 @@ catalogs:
     eslint-package-json: ^0.3.0
     react: ^19.0.0
     react-dom: ^19.0.0
-    starlight-typedoc: ^0.23.1
-    typedoc-plugin-markdown: ^4.14.1
     vite: ^8.2.1
 
   # plugins: dependencies only plugins/ uses

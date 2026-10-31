@@ -80,8 +80,10 @@
     "prettier": "catalog:",
     "semantic-release": "catalog:",
     "sort-package-json": "catalog:",
+    "starlight-typedoc": "catalog:",
     "turbo": "catalog:",
     "typedoc": "catalog:",
+    "typedoc-plugin-markdown": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:"
   },
