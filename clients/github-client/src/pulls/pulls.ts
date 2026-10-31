@@ -7,7 +7,13 @@ export interface GitHubPullRequest {
 	state: "open" | "closed";
 	merged_at: string | null;
 	html_url: string;
-	head: { ref: string; sha: string };
+	/** The head branch: its name and the commit it pointed at when the PR was read. */
+	head: {
+		/** The branch name, e.g. `fix/my-change`. */
+		ref: string;
+		/** The head commit. */
+		sha: string;
+	};
 }
 
 /** A commit's name/email as git itself recorded it — `commit.author`/`commit.committer`, distinct from the GitHub-account `author` below (a commit can carry any email, linked to a GitHub account or not). */
