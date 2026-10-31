@@ -99,7 +99,8 @@ export async function generateConfigFiles(input: RepoFilesInput): Promise<RepoFi
 	} else {
 		try {
 			const content = createAstromech({ cwd: input.repoRoot, logger: input.logger ?? getLogger() }).codecovConfig(
-				existing
+				existing,
+				{ docsCoverage: config.repoValidation?.docsCoverage ?? "off" }
 			);
 			const packageCount = readWorkspacePackages(input.repoRoot).length;
 			entries.push(

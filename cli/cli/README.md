@@ -298,6 +298,19 @@ branch so Sentinel validates against what's actually being developed, then
 change it back once that branch merges to `main` for a stable cut and stops
 being the active branch.
 
+### Doc-comment coverage
+
+```ts
+export default defineConfig({
+  repoValidation: { docsCoverage: "required" }, // "off" (default) | "warn" | "required"
+});
+```
+
+Controls `holocron probe docs patch` (skipped, reports without failing, or fails for an export a PR adds or changes
+without a doc comment) and whether `holocron repo setup` adds the `documentation` flag and its statuses to
+`codecov.yml`, informational for `"warn"`. It never touches the required checks. See the
+[config docs](https://docs.theholocron.dev/holocron/config/#doc-comment-coverage).
+
 ### Git hooks
 
 ```ts

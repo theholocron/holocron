@@ -107,6 +107,9 @@ export function resolveEntry(key: CapabilityKey, raw: RawProviderEntry): Resolve
 	return { cardinality: "many", tuples };
 }
 
+/** The values `repoValidation.docsCoverage` accepts. */
+const DOCS_COVERAGE_MODES: readonly string[] = ["off", "warn", "required"];
+
 export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (!raw.name) {
 		throw new ConfigError("`name` is required");
@@ -136,6 +139,13 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		docs = raw.docs as PagesConfig;
 	}
 
+	const docsCoverage = raw.repoValidation?.docsCoverage;
+	if (docsCoverage !== undefined && !DOCS_COVERAGE_MODES.includes(docsCoverage)) {
+		throw new ConfigError(
+			`\`repoValidation.docsCoverage\` must be one of ${DOCS_COVERAGE_MODES.map((m) => `"${m}"`).join(", ")}, got ${JSON.stringify(docsCoverage)}`
+		);
+	}
+
 	// Derive homepage from docs.domain when not explicitly set
 	const homepage = raw.homepage ?? (docs?.domain ? `https://${docs.domain}/` : undefined);
 
@@ -146,6 +156,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		org: raw.org,
 		domain: raw.domain,
 		repo: raw.repo,
+		repoValidation: raw.repoValidation,
 		tasks: raw.tasks,
 		syncScripts: raw.syncScripts,
 		holocronScript: raw.holocronScript,

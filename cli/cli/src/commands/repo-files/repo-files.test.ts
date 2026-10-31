@@ -22,9 +22,9 @@ vi.mock("@theholocron/astromech", async (importOriginal) => {
 			const astromech = real.createAstromech(...args);
 			return {
 				...astromech,
-				codecovConfig: (existing: string | null) => {
+				codecovConfig: (existing: string | null, options?: Parameters<typeof astromech.codecovConfig>[1]) => {
 					if (codecov.fail) throw new Error("cannot merge codecov.yml");
-					return astromech.codecovConfig(existing);
+					return astromech.codecovConfig(existing, options);
 				},
 			};
 		},
@@ -97,6 +97,19 @@ describe("generateConfigFiles", () => {
 			repoRoot: root,
 		});
 		expect(entries.map((e) => e.step)).not.toContain("write .github/dco.yml");
+	});
+
+	it("adds the documentation flag to codecov.yml only when repoValidation.docsCoverage asks for it", async () => {
+		writeFileSync(join(root, "codecov.yml"), "comment: false\n");
+		const content = async (raw: Parameters<typeof loadedFrom>[0]) => {
+			const entries = await generateConfigFiles({ loaded: loadedFrom(raw), repoRoot: root });
+			return (entries.find((e) => e.step === "write codecov.yml") as { content: string }).content;
+		};
+		expect(await content({ name: "x" })).not.toContain("documentation");
+		expect(await content({ name: "x", repoValidation: { docsCoverage: "off" } })).not.toContain("documentation");
+		expect(await content({ name: "x", repoValidation: { docsCoverage: "required" } })).toContain(
+			"- name: documentation"
+		);
 	});
 
 	it("merges into the codecov.yml already there, and reports a codecov.yml it cannot read as a failed step", async () => {
