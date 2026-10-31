@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readWorkspaceGlobs } from "./workspace-globs.js";
+import { readWorkspaceGlobs } from "./workspace-globs.ts";
 
 describe("readWorkspaceGlobs", () => {
 	it("reads the plain block list, stripping quotes and trailing comments", () => {

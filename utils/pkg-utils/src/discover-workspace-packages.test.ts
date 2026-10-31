@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { discoverWorkspacePackages } from "./discover-workspace-packages.js";
+import { discoverWorkspacePackages } from "./discover-workspace-packages.ts";
 
 /** An in-memory repo: `files` maps absolute paths to text; directories are inferred from them. */
 function repo(files: Record<string, string>) {

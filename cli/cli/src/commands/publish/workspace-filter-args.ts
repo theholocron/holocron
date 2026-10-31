@@ -1,4 +1,4 @@
-import { discoverWorkspacePackages, resolveWorkspaceGlobs } from "@theholocron/astromech";
+import { discoverWorkspacePackages, resolveWorkspaceGlobs } from "@theholocron/pkg-utils";
 
 import type { WorkspaceScope } from "./workspace-scope.type.js";
 

@@ -1,4 +1,4 @@
-import { discoverWorkspacePackages } from "@theholocron/astromech";
+import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
 
 import type { PackagesRegistry } from "./generate-readme.type.js";
 

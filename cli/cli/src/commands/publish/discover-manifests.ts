@@ -1,5 +1,4 @@
-import { discoverWorkspacePackages } from "@theholocron/astromech";
-import { type PackageJson, readPackageJsonSync } from "@theholocron/pkg-utils";
+import { discoverWorkspacePackages, type PackageJson, readPackageJsonSync } from "@theholocron/pkg-utils";
 
 import type { WorkspaceScope } from "./workspace-scope.type.js";
 

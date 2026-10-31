@@ -7,8 +7,9 @@
  * of importing this logic directly.
  */
 
+import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
+
 import codecovTemplate from "../../templates/codecov/codecov.yml";
-import { discoverWorkspacePackages } from "../../workspace/index.js";
 import type { WorkspacePackage } from "./codecov.type.js";
 
 export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";

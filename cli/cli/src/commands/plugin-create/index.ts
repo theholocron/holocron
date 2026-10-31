@@ -23,8 +23,8 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { resolveWorkspaceGlobs } from "@theholocron/astromech";
 import { errorMessage } from "@theholocron/misc-utils";
+import { resolveWorkspaceGlobs } from "@theholocron/pkg-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { type CapabilityKey, CARDINALITY } from "../../plugin/index.js";
