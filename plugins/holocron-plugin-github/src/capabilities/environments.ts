@@ -5,8 +5,11 @@ export interface EnvironmentsOptions {
 	repo: string;
 }
 
+/** The GitHub implementation of the `environments` capability, managing a repo's deployment environments. */
 export class GitHubEnvironments implements Environments {
+	/** Capability key, always `"environments"`. */
 	readonly key = "environments" as const;
+	/** Provider name, always `"github"`. */
 	readonly providerName = "github";
 
 	constructor(
@@ -14,6 +17,7 @@ export class GitHubEnvironments implements Environments {
 		private readonly opts: EnvironmentsOptions
 	) {}
 
+	/** Lists the repo's environments with their wait timer, self-review rule and required reviewers. */
 	async listEnvironments(): Promise<Environment[]> {
 		const raw = await this.client.environments.listEnvironments(this.opts.repo);
 		return raw.map((e) => ({
@@ -24,6 +28,7 @@ export class GitHubEnvironments implements Environments {
 		}));
 	}
 
+	/** Creates or updates an environment, sending only the settings the given environment defines. */
 	async upsertEnvironment(env: Environment): Promise<void> {
 		const body: Record<string, unknown> = {};
 		if (env.waitTimer !== undefined) body.wait_timer = env.waitTimer;
@@ -34,6 +39,7 @@ export class GitHubEnvironments implements Environments {
 		await this.client.environments.upsertEnvironment(this.opts.repo, env.name, body);
 	}
 
+	/** Deletes the named environment. */
 	async deleteEnvironment(name: string): Promise<void> {
 		await this.client.environments.deleteEnvironment(this.opts.repo, name);
 	}
