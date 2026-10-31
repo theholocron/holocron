@@ -1,3 +1,9 @@
+## [5.0.0-alpha.272](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.271...v5.0.0-alpha.272) (2026-10-31)
+
+### Features
+
+* **cli:** 🔐 doctor secrets covers the keys secrets sync fills from a vault ([#1450](https://github.com/theholocron/holocron/issues/1450)) ([a7d8e12](https://github.com/theholocron/holocron/commit/a7d8e12108057ef2a105272e17538b7182816fcd)), closes [#1445](https://github.com/theholocron/holocron/issues/1445) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
 ## [5.0.0-alpha.271](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.270...v5.0.0-alpha.271) (2026-10-31)
 
 ### Features
