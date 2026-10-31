@@ -3,6 +3,7 @@ import { ProviderApiError } from "@theholocron/http-client";
 import type { RestClient } from "../utils.js";
 import { segment } from "../utils.js";
 
+/** Where a variable lives: the repository, one of its environments, or an organization. */
 export type VariableScope =
 	{ kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; org: string };
 
@@ -14,7 +15,9 @@ export type VariableVisibility = "all" | "private" | "selected";
 
 /** A GitHub Actions variable. Unlike a secret its value is readable, so a reconcile can tell whether it differs. */
 export interface GitHubVariable {
+	/** The variable's name. */
 	name: string;
+	/** The variable's value. */
 	value: string;
 	/** Present on organization variables only. */
 	visibility?: VariableVisibility;

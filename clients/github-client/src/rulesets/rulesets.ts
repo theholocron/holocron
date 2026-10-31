@@ -1,9 +1,13 @@
 import type { RestClient } from "../utils.js";
 import { repoBase } from "../utils.js";
 
+/** A repository ruleset in summary form. */
 export interface GitHubRuleset {
+	/** The ruleset's numeric id. */
 	id: number;
+	/** The ruleset's name. */
 	name: string;
+	/** How the ruleset is enforced, e.g. `active`, `evaluate` or `disabled`. */
 	enforcement: string;
 }
 

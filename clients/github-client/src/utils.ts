@@ -5,9 +5,13 @@ import { createGitHubGraphQLClient, type GraphQLClient } from "./graphql/graphql
 
 export type { GraphQLClient, RestClient };
 
+/** Options for creating a GitHub client. */
 export interface GitHubClientOptions {
+	/** The token sent as the bearer credential. */
 	token: string;
+	/** The GitHub API base URL; defaults to `https://api.github.com`. */
 	baseUrl?: string;
+	/** The `fetch` implementation to use; defaults to the global `fetch`. */
 	fetch?: typeof fetch;
 	/** Structured logger for request/response diagnostics. Defaults to a no-op. */
 	logger?: Logger;

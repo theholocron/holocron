@@ -1,10 +1,15 @@
 import type { RestClient } from "../utils.js";
 import { repoBase } from "../utils.js";
 
+/** A deployment environment of a repository and its protection settings. */
 export interface GitHubEnvironment {
+	/** The environment's name. */
 	name: string;
+	/** Minutes to wait before a job that targets the environment may proceed. */
 	wait_timer?: number;
+	/** Whether the user who triggered a deployment may also approve it. */
 	prevent_self_review?: boolean;
+	/** The protection rules on the environment; each has a `type` and, for required reviewers, the reviewers. */
 	protection_rules?: Array<{
 		type: string;
 		reviewers?: Array<{
