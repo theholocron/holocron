@@ -2,7 +2,7 @@ import type { SentryApp, SentryAppInput, SentryWorkflow, SentryWorkflowInput } f
 import { describe, expect, it, vi } from "vitest";
 
 import type { SentryClient } from "../rest.js";
-import { ensureSentryRelay } from "./relay.js";
+import { ensureSentryRelay, inspectSentryRelay } from "./relay.js";
 
 const ORG = "my-org";
 const WEBHOOK = "https://discord.example/api/webhooks/1/token";
@@ -260,5 +260,55 @@ describe("ensureSentryRelay", () => {
 			/no issue stream detector/
 		);
 		await expect(ensureSentryRelay(world({ installs: [] }).as, ORG, input)).rejects.toThrow(/not installed/);
+	});
+});
+
+describe("inspectSentryRelay", () => {
+	const ask = { name: "Comlink", projects: ["holocron-cli"], rule: { name: input.rule.name } };
+
+	it("reports the integration and, per project, the rule that is on it, enabled and sending through it", async () => {
+		const { client, as } = world({ apps: [app()], workflows: [workflow()] });
+		expect(await inspectSentryRelay(as, ORG, ask)).toEqual({
+			integration: { webhookUrl: WEBHOOK, alertAction: true },
+			rules: [{ project: "holocron-cli", enabled: true, sends: true }],
+		});
+		expect(client.sentryApps.get).not.toHaveBeenCalled();
+		expect(client.sentryApps.create).not.toHaveBeenCalled();
+		expect(client.workflows.update).not.toHaveBeenCalled();
+	});
+
+	it("never returns the integration's signing secret", async () => {
+		const { as } = world({ apps: [app({ clientSecret: "sentinel-secret" })], workflows: [workflow()] });
+		expect(JSON.stringify(await inspectSentryRelay(as, ORG, ask))).not.toContain("sentinel-secret");
+	});
+
+	it("reports a rule that is disabled, or does not send through the integration", async () => {
+		const off = world({ apps: [app()], workflows: [workflow({ enabled: false, actionFilters: [] })] });
+		expect(await inspectSentryRelay(off.as, ORG, ask)).toMatchObject({
+			rules: [{ project: "holocron-cli", enabled: false, sends: false }],
+		});
+	});
+
+	it("reports no integration, no rule, a rule on another project, and a project that is not there", async () => {
+		const none = world();
+		expect(await inspectSentryRelay(none.as, ORG, ask)).toEqual({ rules: [] });
+		const noApp = world({ workflows: [workflow()] });
+		expect(await inspectSentryRelay(noApp.as, ORG, ask)).toEqual({
+			rules: [{ project: "holocron-cli", enabled: true, sends: false }],
+		});
+		const other = world({ apps: [app()], workflows: [workflow({ detectorIds: ["d9"] })] });
+		expect((await inspectSentryRelay(other.as, ORG, ask)).rules).toEqual([]);
+		const unknown = world({ apps: [app()], workflows: [workflow()] });
+		expect((await inspectSentryRelay(unknown.as, ORG, { ...ask, projects: ["nope"] })).rules).toEqual([]);
+		const noDetector = world({ apps: [app()], workflows: [workflow()], detectors: [] });
+		expect((await inspectSentryRelay(noDetector.as, ORG, ask)).rules).toEqual([]);
+	});
+
+	it("reports an integration that is not offered as an alert action", async () => {
+		const { as } = world({ apps: [app({ isAlertable: false })], workflows: [] });
+		expect((await inspectSentryRelay(as, ORG, ask)).integration).toEqual({
+			webhookUrl: WEBHOOK,
+			alertAction: false,
+		});
 	});
 });

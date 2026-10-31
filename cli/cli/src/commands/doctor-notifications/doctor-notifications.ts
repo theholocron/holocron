@@ -35,6 +35,7 @@ import {
 import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
 import { relayChecks } from "../relay-checks/index.js";
+import { sentryRelayChecks } from "../sentry-relay-checks/index.js";
 import type {
 	DoctorNotificationsReport,
 	NotificationsCheck,
@@ -825,6 +826,15 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			workersMissingReason: whyMissing(loader, "workers", "no `workers` provider is configured"),
 			found,
 			...(input.fetch ? { fetch: input.fetch } : {}),
+		}))
+	);
+
+	// The error tracker's side of the relay: its integration and alert rule. Read-only as well.
+	checks.push(
+		...(await sentryRelayChecks({
+			layout,
+			errors: loader.has("errors") ? (loader.get("errors") as Errors) : undefined,
+			errorsMissingReason: whyMissing(loader, "errors", "no `errors` provider is configured"),
 		}))
 	);
 

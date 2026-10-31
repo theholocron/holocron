@@ -2045,3 +2045,59 @@ describe("runDoctorNotifications — the Comlink relay", () => {
 		expect(report.summary.skip).toBe(2);
 	});
 });
+
+describe("runDoctorNotifications — the error tracker's side of the relay", () => {
+	const TRACKER_LAYOUT: NotificationsLayout = {
+		relay: { host: "comlink.example.com", errors: { projects: ["holocron-cli"] } },
+		categories: [{ name: "ALERTS", channels: [{ name: "errors", feeds: { errors: true } }] }],
+	};
+	const TRACKER_FOUND: ServerInspection = {
+		categories: ["ALERTS"],
+		channels: [{ name: "errors", category: "ALERTS", webhooks: ["Sentry"], webhookAvatars: [] }],
+		roles: [],
+	};
+
+	function trackerRun(errors: Record<string, unknown>) {
+		const loaded = loadedFrom({ name: "demo", providers: { notifications: ["discord"], errors: "sentry" } });
+		const notifications = fakeNotifications({ layout: TRACKER_LAYOUT, found: TRACKER_FOUND });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: { providerName: "sentry", ...errors },
+			}),
+		});
+		return runDoctorNotifications({
+			loaded,
+			context: { repoRoot: "/tmp/test", org: "theholocron" },
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+			builtOnly: true,
+			fetch: (async () => ({ status: 401 }) as Response) as unknown as typeof fetch,
+		});
+	}
+	const ok = {
+		integration: { webhookUrl: "https://comlink.example.com/sentry", alertAction: true },
+		rules: [{ project: "holocron-cli", enabled: true, sends: true }],
+	};
+
+	it("adds the integration and rule steps and keeps them under --built-only", async () => {
+		const inspectRelay = vi.fn(async () => ok);
+		const report = await trackerRun({ inspectRelay });
+		expect(["relay-integration", "relay-rule"].map((id) => byId(report, id).status)).toEqual(["pass", "pass"]);
+		expect(inspectRelay).toHaveBeenCalledTimes(1);
+	});
+
+	it("fails the run when the rule is disabled", async () => {
+		const report = await trackerRun({
+			inspectRelay: async () => ({ ...ok, rules: [{ project: "holocron-cli", enabled: false, sends: true }] }),
+		});
+		expect(report.status).toBe("fail");
+		expect(byId(report, "relay-rule").problems).toEqual(["holocron-cli: Errors to Discord (Comlink) is disabled"]);
+	});
+
+	it("skips both steps when the provider cannot read its relay", async () => {
+		const report = await trackerRun({});
+		expect(["relay-integration", "relay-rule"].map((id) => byId(report, id).status)).toEqual(["skip", "skip"]);
+	});
+});

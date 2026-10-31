@@ -1016,6 +1016,12 @@ export interface Errors extends ProviderIdentity {
 	 * provider did not give it (some show it only when the integration is made).
 	 */
 	ensureRelay?(input: EnsureRelayInput): Promise<EnsureRelayResult>;
+	/**
+	 * Read back what `ensureRelay` makes without changing anything: the integration and, for each project, whether the
+	 * alert rule is on it, enabled and sends through the integration. Never reads the signing secret.
+	 * Optional — a provider with no relay omits it.
+	 */
+	inspectRelay?(input: InspectRelayInput): Promise<RelayState>;
 }
 
 export interface EnsureRelayInput {
@@ -1027,6 +1033,40 @@ export interface EnsureRelayInput {
 	projects: string[];
 	/** The alert rule: its name, and the minutes between two notifications for one issue (default 5). */
 	rule: { name: string; frequency?: number };
+}
+
+/** Which integration and alert rule to read back: the names `ensureRelay` was given, without the parts that write. */
+export interface InspectRelayInput {
+	/** The integration's name at the provider. */
+	name: string;
+	/** The projects whose issues are sent. */
+	projects: string[];
+	/** The alert rule to look for. */
+	rule: {
+		/** Its name at the provider. */
+		name: string;
+	};
+}
+
+/**
+ * The tracker's side of a relay as the provider holds it. Never carries the integration's signing secret: the read
+ * does not ask for it.
+ */
+export interface RelayState {
+	/** The integration, or undefined when none has that name. */
+	integration?: {
+		/** Where it posts alerts, or null when it has no webhook. */
+		webhookUrl: string | null;
+		/** Whether it is offered as an alert action. */
+		alertAction: boolean;
+	};
+	/** One entry per requested project the rule is attached to; a project missing here has no such rule. */
+	rules: Array<{
+		project: string;
+		enabled: boolean;
+		/** Whether the rule sends through the integration. */
+		sends: boolean;
+	}>;
 }
 
 export interface EnsureRelayResult {
