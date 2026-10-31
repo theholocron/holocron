@@ -177,7 +177,7 @@ so that one file shows what the repo uses. A manifest's `dependencies`,
   CLI and the plugins' peer on it is `workspace:*`). The one catalog of our
   own packages is `peers`: the minimum client and util versions the plugins
   accept as peers. A package that is not in this repo, such as
-  `holocron-config`, is an ordinary dependency in its group's catalog.
+  `vitest`, is an ordinary dependency in its group's catalog.
 - **Dependabot does not bump the `peers` floors.** It reads every catalog entry
   as a dependency, so `holocron repo setup` writes a name-only `ignore` entry
   (`.github/dependabot.yml`, never edited by hand) for each workspace package
