@@ -160,6 +160,20 @@ describe("doctor dns", () => {
 		expect(skipped.report.reason).toBe("needs the dns token");
 	});
 
+	it("skips when the dns plugin reports its token missing as an AuthError", async () => {
+		const { report } = await run(loadedWith(WITH_RELAY), {
+			dns: {
+				providerName: "cloudflare",
+				listRecords: async () => {
+					throw Object.assign(new Error("no Cloudflare token found"), { name: "AuthError" });
+				},
+			},
+			notifications: RELAY,
+		});
+		expect(report.status).toBe("skip");
+		expect(report.reason).toBe("no Cloudflare token found");
+	});
+
 	it("skips every zone, with the reason, when records are expected but there is no dns provider", async () => {
 		const { report, lines } = await run(loadedWith({ notifications: ["discord"] }), { notifications: RELAY });
 		expect(report.rows.map((r) => r.status)).toEqual(["skip"]);

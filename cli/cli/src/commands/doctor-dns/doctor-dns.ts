@@ -15,7 +15,6 @@ import {
 	type Deployment,
 	type Dns,
 	type DnsRecord,
-	MissingTokenError,
 	PluginLoader,
 	type Wiki,
 } from "../../plugin/index.js";
@@ -26,6 +25,7 @@ import {
 	printCheckSummary,
 	summariseChecks,
 } from "../doctor-checks/index.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorDnsReport, ExpectedDnsRecord, RunDoctorDnsInput } from "./doctor-dns.type.js";
 import { expectedDnsRecords } from "./expected-dns-records.js";
@@ -112,6 +112,7 @@ async function checkZone(dns: Dns, zone: string, wanted: Wanted[]): Promise<Chec
 			? row(zone, "fail", `${problems.length} problem(s)`, problems)
 			: row(zone, "ok", `${wanted.length} of ${wanted.length} exist`);
 	} catch (err) {
-		return err instanceof MissingTokenError ? row(zone, "skip", err.message) : row(zone, "fail", errorMessage(err));
+		const noToken = missingTokenReason(err);
+		return noToken !== undefined ? row(zone, "skip", noToken) : row(zone, "fail", errorMessage(err));
 	}
 }

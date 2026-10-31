@@ -10,7 +10,7 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, type Environments, MissingTokenError, PluginLoader } from "../../plugin/index.js";
+import { assertPluginsResolvable, type Environments, PluginLoader } from "../../plugin/index.js";
 import {
 	type CheckRow,
 	declaredVsActual,
@@ -18,6 +18,7 @@ import {
 	printCheckSummary,
 	summariseChecks,
 } from "../doctor-checks/index.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { SETUP_ENVIRONMENTS } from "../setup/setup-environments.js";
 import type { DoctorEnvironmentsReport, RunDoctorEnvironmentsInput } from "./doctor-environments.type.js";
@@ -76,6 +77,7 @@ async function checkEnvironments(loader: PluginLoader, named: string[]): Promise
 			? make("fail", `${problems.length} problem(s)`, problems)
 			: make("ok", `${names.length} of ${names.length} exist`);
 	} catch (err) {
-		return err instanceof MissingTokenError ? make("skip", err.message) : make("fail", errorMessage(err));
+		const noToken = missingTokenReason(err);
+		return noToken !== undefined ? make("skip", noToken) : make("fail", errorMessage(err));
 	}
 }

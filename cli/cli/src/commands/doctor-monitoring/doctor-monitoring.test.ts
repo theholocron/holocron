@@ -200,6 +200,15 @@ describe("doctor monitoring — the checks", () => {
 		expect(report.rows[0]!.status).toBe("skip");
 	});
 
+	it("skips when a plugin reports its token missing as an AuthError", async () => {
+		const { report } = await run(
+			provider([declared()], async () => {
+				throw Object.assign(new Error("no Checkly token found"), { name: "AuthError" });
+			})
+		);
+		expect(report.rows[0]).toMatchObject({ status: "skip", detail: "no Checkly token found" });
+	});
+
 	it("skips when the provider cannot list its checks", async () => {
 		const { report } = await run({ checks: [declared()] });
 		expect(report.status).toBe("skip");
