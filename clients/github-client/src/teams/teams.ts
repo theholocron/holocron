@@ -1,7 +1,15 @@
 import type { RestClient } from "../utils.js";
-import { segment } from "../utils.js";
+import { repoBase, segment } from "../utils.js";
 
 export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
+
+/** A team with access to a repository, and the permission it has there. */
+export interface RepoTeam {
+	/** The team's slug. */
+	slug: string;
+	/** The team's permission on the repository. */
+	permission: TeamPermission;
+}
 
 /** A member of a team, as GitHub lists it. `id` is the numeric user id, which survives a rename; `login` does not. */
 export interface TeamMember {
@@ -38,6 +46,9 @@ export function teams(rest: RestClient) {
 			}
 			return all;
 		},
+		/** The teams that have access to a repository, with each team's permission there (read-only). */
+		listForRepo: (repo: string): Promise<RepoTeam[]> =>
+			rest.request<RepoTeam[]>(`${repoBase(repo)}/teams`, { query: { per_page: String(PAGE) } }),
 		addRepo: (
 			org: string,
 			teamSlug: string,

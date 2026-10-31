@@ -7,8 +7,19 @@ export interface GitHubRuleset {
 	enforcement: string;
 }
 
+/** One ruleset in full, as `GET /repos/{repo}/rulesets/{id}` returns it. */
+export interface GitHubRulesetDetail extends GitHubRuleset {
+	/** What the ruleset applies to, e.g. `branch`. */
+	target?: string;
+	/** Each rule has a `type`; some carry `parameters`. */
+	rules?: Array<{ type: string; parameters?: Record<string, unknown> }>;
+}
+
 export function rulesets(rest: RestClient) {
 	return {
+		getRuleset: (repo: string, id: number): Promise<GitHubRulesetDetail> =>
+			rest.request<GitHubRulesetDetail>(`${repoBase(repo)}/rulesets/${id}`),
+
 		listRulesets: (repo: string): Promise<GitHubRuleset[]> =>
 			rest.request<GitHubRuleset[]>(`${repoBase(repo)}/rulesets`),
 

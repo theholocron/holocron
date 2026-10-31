@@ -58,7 +58,7 @@ export type {
 	PagesBuildType,
 	UpdatePagesPayload,
 } from "./pages/pages.js";
-export type { OrgProperty } from "./properties/properties.js";
+export type { OrgProperty, RepoPropertyValue } from "./properties/properties.js";
 export type {
 	CreateReviewComment,
 	CreateReviewInput,
@@ -69,10 +69,10 @@ export type {
 	ReviewThread,
 } from "./pulls/pulls.js";
 export type { GitHubContents, GitHubRepo } from "./repos/repos.js";
-export type { GitHubRuleset } from "./rulesets/rulesets.js";
+export type { GitHubRuleset, GitHubRulesetDetail } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
 export type { CodeScanningSetupResult } from "./security/security.js";
-export type { TeamMember, TeamPermission } from "./teams/teams.js";
+export type { RepoTeam, TeamMember, TeamPermission } from "./teams/teams.js";
 export type { GitHubUser, GitHubUserWithExpiry } from "./user/user.js";
 export { parseTokenExpiration } from "./user/user.js";
 export type { GitHubClientOptions } from "./utils.js";

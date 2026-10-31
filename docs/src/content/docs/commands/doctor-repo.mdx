@@ -1,0 +1,55 @@
+---
+title: "doctor repo"
+description: Check that the repository settings match the config. Read-only.
+---
+
+```bash
+holocron doctor repo
+```
+
+Compares what [`holocron repo setup`](/holocron/commands/repo-setup/) writes to the repository with what the `source` provider reports now, and prints one row per group. It changes nothing and exits non-zero while any row fails.
+
+Run it after `repo setup` to see whether the repository still matches the config, or before it to see what `repo setup` would change. Variables, secrets and environments have their own checks: [`doctor variables`](/holocron/commands/doctor-variables/) and [`doctor secrets`](/holocron/commands/doctor-secrets/).
+
+```text
+  ✓ description and homepage match  2 of 2 match
+  ✗ topics match                    2 problem(s)
+      - missing topic automation
+      - unexpected topic cli
+  ✓ labels match                    17 of 17 match
+  · branch protection matches       rulesets are not available on this plan (classic branch protection is not read)
+  ✓ security settings match         6 of 6 match
+
+3 ok, 1 fail, 1 skipped
+```
+
+## What is compared
+
+A row appears only when the config declares that group. Labels and the security settings are always written by `repo setup`, so they are always checked.
+
+| Row                         | Declared by                                                                                               | A problem is                                                                                                                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| description and homepage    | `description`, `homepage`                                                                                 | a value that differs or is unset                                                                                                      |
+| default branch and settings | `repo.defaultBranch`; the merge and feature settings `repo setup` applies with a `repo.protection` preset | a setting that differs                                                                                                                |
+| topics                      | `repo.topics`                                                                                             | a missing topic, or one not declared (`repo setup` replaces the whole set)                                                            |
+| custom properties           | `repo.properties`, and the protection level `repo setup` stamps for a preset                              | a value that differs or is unset. The properties `repo setup` derives (profile, stack, capabilities) are not compared                 |
+| labels                      | the canonical labels                                                                                      | a label that is missing, whose colour or description differs, or one of the stale labels `repo setup` deletes                         |
+| team access                 | `repo.teams`                                                                                              | a team without access, or with another permission (a bare slug means `push`)                                                          |
+| branch protection           | `repo.protection` (`balanced` or `strict`)                                                                | the `holocron-default-branch` ruleset is missing, not active, lacks a rule, or requires other status checks than the manifest derives |
+| security settings           | always: alerts, security updates, secret scanning, push protection, private reporting, CodeQL             | a feature that is off (CodeQL default setup is expected off when a `security.codeScanning` task replaces it)                          |
+
+Something that exists but is not declared is not a problem, except where `repo setup` would remove it: an extra topic, a stale label, an extra rule or required check in the ruleset.
+
+Not compared: GitHub Pages, `CODEOWNERS` and the generated files (`holocron probe generated check` covers those), the dependency graph (GitHub has no read for it), and classic branch protection.
+
+## Skips
+
+A row is a **skip**, not a failure, when it cannot be read: no `source` provider is configured or it failed to load, the provider lacks the read method for that group, the token is missing, the plan has no rulesets API (403), or the provider reports none of the security settings.
+
+A row **fails** when something differs and when the provider reports an error for that group.
+
+## Authentication
+
+The reads use the same token as `repo setup`: `github.admin` for the repository, rulesets and security settings, and `github.org` for the teams when set. Security settings GitHub does not report to the token are left out of the comparison rather than counted as off.
+
+Related: [`doctor`](/holocron/commands/doctor/), [`repo setup`](/holocron/commands/repo-setup/), [`doctor variables`](/holocron/commands/doctor-variables/), [`doctor secrets`](/holocron/commands/doctor-secrets/).

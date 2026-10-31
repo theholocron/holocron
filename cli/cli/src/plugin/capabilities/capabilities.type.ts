@@ -86,6 +86,48 @@ export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
 /** Shorthand `"slug"` defaults to `push` permission. */
 export type TeamEntry = string | { slug: string; permission: TeamPermission };
 
+/** The repository's own settings, as {@link Source.getRepoInfo} reports them. */
+export interface SourceRepoInfo {
+	/** `null` when none is set. */
+	description: string | null;
+	/** `null` when none is set. */
+	homepage: string | null;
+	/** The branch a fresh clone checks out. */
+	defaultBranch: string;
+	/** The topics set on the repository. */
+	topics: string[];
+	/** The merge and feature settings the provider reports; one it does not report is left out. */
+	settings: RepoSettings;
+}
+
+/** A ruleset in full, as {@link Source.getRulesetDetail} reports it. */
+export interface SourceRulesetDetail {
+	/** The ruleset's name. */
+	name: string;
+	/** Whether the ruleset is enforced. */
+	enforcement: Ruleset["enforcement"];
+	/** The `type` of each rule, e.g. `deletion`, `pull_request`. */
+	ruleTypes: string[];
+	/** The status check contexts the ruleset requires. */
+	requiredChecks: string[];
+}
+
+/** Which security features are on, as {@link Source.getSecurity} reports them. A feature left out was not reported. */
+export interface SourceSecurity {
+	/** Vulnerability alerts are on. */
+	vulnerabilityAlerts?: boolean;
+	/** Automated security updates are on. */
+	automatedSecurityFixes?: boolean;
+	/** Secret scanning is on. */
+	secretScanning?: boolean;
+	/** Secret scanning push protection is on. */
+	secretScanningPushProtection?: boolean;
+	/** Private vulnerability reporting is on. */
+	privateVulnerabilityReporting?: boolean;
+	/** Whether CodeQL default setup is configured. */
+	codeScanningDefaultSetup?: boolean;
+}
+
 /** A member of a team, as {@link Source.teamMembers} reports it. */
 export interface SourceTeamMember {
 	/** The provider's stable id for the person; for GitHub, the numeric user id as a string. */
@@ -220,6 +262,43 @@ export interface Source extends ProviderIdentity {
 	listOrgVariables?(
 		org: string
 	): Promise<Record<string, { value: string; visibility: "all" | "private" | "selected" }>>;
+
+	/**
+	 * The repository's description, homepage, default branch, topics and merge/feature settings as they are now.
+	 * Read-only. Optional — providers that cannot report them omit this.
+	 */
+	getRepoInfo?(): Promise<SourceRepoInfo>;
+
+	/**
+	 * The repository's custom property values as they are now, by property name. A property that is not set is left out.
+	 * Read-only. Optional — providers without custom properties omit this.
+	 */
+	getProperties?(): Promise<Record<string, string | string[]>>;
+
+	/**
+	 * The repository's labels as they are now. Read-only.
+	 * Optional — providers without labels omit this.
+	 */
+	listLabels?(): Promise<LabelDef[]>;
+
+	/**
+	 * The teams that have access to the repository, with each team's permission. Read-only.
+	 * Optional — providers without a team concept omit this.
+	 */
+	listTeamAccess?(): Promise<Array<{ slug: string; permission: TeamPermission }>>;
+
+	/**
+	 * One ruleset in full: its enforcement, the types of its rules and the status checks it requires. Read-only.
+	 * Optional — providers without rulesets omit this.
+	 */
+	getRulesetDetail?(id: number): Promise<SourceRulesetDetail>;
+
+	/**
+	 * Which security features are on. A feature the provider cannot report (the token cannot see it, the plan lacks it)
+	 * is left out rather than reported as off. Read-only.
+	 * Optional — providers without security toggles omit this.
+	 */
+	getSecurity?(): Promise<SourceSecurity>;
 
 	/**
 	 * Sync GitHub team repository access. String shorthand defaults to `push`.

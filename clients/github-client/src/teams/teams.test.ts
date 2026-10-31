@@ -61,4 +61,12 @@ describe("teams", () => {
 		const client = createGitHubClient({ token: TOKEN, fetch });
 		await expect(client.teams.members(ORG, "gatekeepers")).rejects.toThrow(/refusing to read/);
 	});
+
+	it("listForRepo: GET /repos/{owner}/{name}/teams", async () => {
+		const teams = [{ slug: "maintainers", permission: "push" }];
+		const { fetch, calls } = stubFetch([{ body: teams }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await expect(client.teams.listForRepo("theholocron/test-repo")).resolves.toEqual(teams);
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/teams");
+	});
 });
