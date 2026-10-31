@@ -16,6 +16,7 @@ import {
 	PluginLoader,
 	type Secrets,
 	type SecretScope,
+	type Vault,
 } from "../../plugin/index.js";
 import {
 	type CheckRow,
@@ -27,6 +28,8 @@ import {
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorSecretsReport, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
 import { expectedSecrets } from "./expected-secrets.js";
+import { syncedSecrets } from "./synced-secrets.js";
+import { uniqueNames } from "./unique-names.js";
 
 interface ScopeCheck {
 	id: string;
@@ -49,6 +52,23 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	);
 	const expected = expectedSecrets(config, layouts);
 	const org = input.context.org ?? (input.context.repo ?? config.repo?.name ?? "").split("/")[0];
+
+	// What `repo.secrets.sync` adds: names join the scope's own check, an organization other than ours gets its own.
+	const syncEntries = config.repo?.secrets?.sync ?? [];
+	const synced = await syncedSecrets(
+		syncEntries,
+		loader.has("vault")
+			? (loader.get("vault") as Vault)
+			: { why: whyMissing(loader, "vault", "no `vault` provider to list the environment's keys with") }
+	);
+	const foreignOrgs = new Map<string, string[]>();
+	for (const { scope, names } of synced.scopes) {
+		if (scope.kind === "repo") expected.repo = uniqueNames([...expected.repo, ...names]);
+		else if (scope.kind === "environment") {
+			expected.environments[scope.name] = uniqueNames([...(expected.environments[scope.name] ?? []), ...names]);
+		} else if (scope.name === org) expected.org = uniqueNames([...expected.org, ...names]);
+		else foreignOrgs.set(scope.name, uniqueNames([...(foreignOrgs.get(scope.name) ?? []), ...names]));
+	}
 
 	const checks: ScopeCheck[] = [];
 	if (expected.repo.length > 0) {
@@ -79,8 +99,18 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		});
 	}
 
+	for (const [name, names] of foreignOrgs) {
+		if (names.length === 0) continue;
+		checks.push({
+			id: `org-secrets-${name}`,
+			title: `${name} organization secrets exist`,
+			scope: { kind: "organization", name },
+			names,
+		});
+	}
+
 	const rows: CheckRow[] = [];
-	if (checks.length === 0) {
+	if (checks.length === 0 && synced.rows.length === 0) {
 		rows.push({ id: "secrets", title: "secrets", status: "ok", detail: "none declared", problems: [] });
 	} else if (!loader.has("secrets")) {
 		const why = whyMissing(loader, "secrets", "no `secrets` provider to check them with");
@@ -89,6 +119,8 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		const secrets = loader.get("secrets") as Secrets;
 		for (const check of checks) rows.push(await checkScope(secrets, check));
 	}
+
+	rows.push(...synced.rows);
 
 	printCheckRows(rows, print);
 	const summary = summariseChecks(rows);

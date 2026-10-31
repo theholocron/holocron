@@ -1,7 +1,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
-import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
+import type { PluginLoader, RuntimeContext, SecretScope } from "../../plugin/index.js";
 import type { CheckRow, CheckStatus, CheckSummary } from "../doctor-checks/index.js";
 
 export interface RunDoctorSecretsInput {
@@ -33,4 +33,12 @@ export interface ExpectedSecrets {
 	org: string[];
 	/** Environment secrets, by environment name. */
 	environments: Record<string, string[]>;
+}
+
+/** What `repo.secrets.sync` adds to the expected secrets. */
+export interface SyncedSecrets {
+	/** The names expected at each scope. */
+	scopes: Array<{ scope: SecretScope; names: string[] }>;
+	/** A row for each entry that could not be resolved. */
+	rows: CheckRow[];
 }

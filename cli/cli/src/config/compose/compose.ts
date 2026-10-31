@@ -1,8 +1,38 @@
-import { ConfigError, type DocsConfig, type RawProvidersConfig, type RepoConfig } from "../config/index.js";
+import {
+	ConfigError,
+	type DocsConfig,
+	type RawProvidersConfig,
+	type RepoConfig,
+	type RepoSecretsSync,
+} from "../config/index.js";
 import type { Capability, ComposedPreset, TaskEntry } from "./compose.type.js";
 
 function taskName(e: TaskEntry): string {
 	return typeof e === "string" ? e : e.name;
+}
+
+/**
+ * Merge two lists of `repo.secrets.sync` entries. An entry is the same sync when its environment and scope match;
+ * the keys then add up, and an entry that names no keys (every key the vault holds) stays that way.
+ */
+function mergeSync(a: RepoSecretsSync[] | undefined, b: RepoSecretsSync[] | undefined): RepoSecretsSync[] {
+	const merged = new Map<string, RepoSecretsSync>();
+	for (const entry of [...(a ?? []), ...(b ?? [])]) {
+		const id = `${entry.environment}\0${entry.scope ?? "repo"}`;
+		const have = merged.get(id);
+		merged.set(
+			id,
+			have
+				? {
+						...have,
+						...(have.keys && entry.keys
+							? { keys: [...new Set([...have.keys, ...entry.keys])] }
+							: { keys: undefined }),
+					}
+				: { ...entry }
+		);
+	}
+	return [...merged.values()].map(({ keys, ...rest }) => (keys ? { ...rest, keys } : rest));
 }
 
 /**
@@ -106,6 +136,7 @@ export function compose(...args: (Capability | Capability[])[]): ComposedPreset 
 				...(repo.secrets?.repo || secrets.repo ? { repo: union(repo.secrets?.repo, secrets.repo) } : {}),
 				...(repo.secrets?.org || secrets.org ? { org: union(repo.secrets?.org, secrets.org) } : {}),
 				...(Object.keys(environments).length > 0 ? { environments } : {}),
+				...(repo.secrets?.sync || secrets.sync ? { sync: mergeSync(repo.secrets?.sync, secrets.sync) } : {}),
 			};
 		}
 		if (topics) {
