@@ -28,6 +28,7 @@ describe("createLocalGit", () => {
 		const branches = createLocalGit(dir).branches();
 		expect(branches.map((b) => b.name).sort()).toEqual(["alpha", "feature"]);
 		expect(branches[0]?.sha).toMatch(/^[0-9a-f]{40}$/);
+		expect(branches[0]?.where).toBe("local");
 		expect(branches[0]?.date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
 	});
 

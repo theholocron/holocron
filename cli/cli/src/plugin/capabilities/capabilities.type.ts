@@ -272,6 +272,18 @@ export interface Source extends ProviderIdentity {
 	listPullRequestCommits?(number: number, repo?: string): Promise<string[]>;
 
 	/**
+	 * Every branch on the remote, with the commit each points at.
+	 * Optional — providers without branches omit this.
+	 */
+	listBranches?(repo?: string): Promise<SourceBranch[]>;
+
+	/**
+	 * Delete one branch on the remote. Idempotent: a branch that is already gone is success, not an error.
+	 * Optional — providers that cannot delete a branch omit this.
+	 */
+	deleteBranch?(name: string, repo?: string): Promise<void>;
+
+	/**
 	 * Enable or update GitHub Pages for the repository.
 	 * Idempotent: POST to create, PUT to update existing settings.
 	 * Requires HOLOCRON_DEPLOY_TOKEN (pages:write + repo scope) — passed
@@ -296,6 +308,12 @@ export interface PagesConfig {
 	domain?: string;
 	/** Enforce HTTPS. Only effective once the custom domain is DNS-verified. */
 	https?: boolean;
+}
+
+/** A branch on the remote and the commit it points at. */
+export interface SourceBranch {
+	name: string;
+	sha: string;
 }
 
 export interface PullRequest {

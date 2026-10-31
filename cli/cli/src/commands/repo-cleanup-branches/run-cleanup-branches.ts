@@ -1,19 +1,25 @@
+import { checkbox, confirm, Separator } from "@inquirer/prompts";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
+import { NonInteractiveError, style } from "../../ui/index.js";
 import { classifyBranches } from "./classify-branches.js";
 import { BASE_BRANCHES } from "./constants.js";
+import { groupBranches } from "./group-branches.js";
 import { createLocalGit } from "./local-git.js";
 import type {
+	BranchEntry,
 	BranchGroup,
-	ClassifiedBranch,
+	BranchRef,
 	CleanupBranchesReport,
 	RunCleanupBranchesInput,
 	SkipReason,
 } from "./repo-cleanup-branches.type.js";
 
+const GROUPS: readonly BranchGroup[] = ["merged", "squash-merged", "has-extra", "closed-unmerged", "no-pr"];
+
+/** The two groups that are proven merged: ticked in the checklist, and what `--yes` deletes. */
 const SAFE: readonly BranchGroup[] = ["merged", "squash-merged"];
 
 const GROUP_LABEL: Record<BranchGroup, string> = {
@@ -31,19 +37,24 @@ const SKIP_LABEL: Record<SkipReason, string> = {
 	"open-pr": "has an open PR",
 };
 
-/** Newest commit first, so the branches most likely to be live work head each list. */
-function newestFirst(a: ClassifiedBranch, b: ClassifiedBranch): number {
-	return b.branch.date.localeCompare(a.branch.date);
+/** A row's label: the name, where it lives, when it was last committed to (local only) and its PR. */
+function rowLabel(entry: BranchEntry): string {
+	const detail = [entry.date?.slice(0, 10), entry.pr === undefined ? undefined : `PR #${entry.pr}`].filter(Boolean);
+	return `${entry.name}  [${entry.locations.join(", ")}]${detail.length > 0 ? `  ${style.dim(detail.join("  "))}` : ""}`;
 }
 
 /**
- * Classifies the local branches against the provider's pull requests and, with `yes`, deletes the ones proven
- * merged. Without it (or on `--dry-run`) nothing is touched. Branches that hold more than their merged PR, or
- * that were never merged, are listed and left alone.
+ * Classifies the branches against the provider's pull requests, shows them grouped, and deletes the ones
+ * chosen. With no flag it covers local and remote branches, each row saying where the branch lives.
+ *
+ * - `--dry-run` stops after the list.
+ * - `--yes` deletes every proven-merged branch without asking.
+ * - Otherwise it asks, then offers a checklist of every branch with the proven-merged ones ticked.
  */
 export async function runCleanupBranches(input: RunCleanupBranchesInput): Promise<CleanupBranchesReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
+	const scope = input.scope ?? "both";
 	const git = input.git ?? createLocalGit(input.context.repoRoot);
 	// c8 ignore next -- real PluginLoader construction is integration-level; unit tests always supply loader
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
@@ -54,72 +65,107 @@ export async function runCleanupBranches(input: RunCleanupBranchesInput): Promis
 		throw new Error("source capability is not configured — add a source provider to holocron.config.json");
 	}
 	const source = loader.get("source") as Source;
-	if (!source.listPullRequests || !source.listPullRequestCommits) {
+	const { listPullRequests, listPullRequestCommits, listBranches, deleteBranch } = source;
+	if (!listPullRequests || !listPullRequestCommits) {
 		throw new Error(`${source.providerName} source provider does not support listing pull requests`);
 	}
-	const { listPullRequests, listPullRequestCommits } = source;
+	if (scope !== "local" && (!listBranches || !deleteBranch)) {
+		throw new Error(`${source.providerName} source provider does not support listing and deleting remote branches`);
+	}
 
-	const excluded = new Map<string, Exclude<SkipReason, "open-pr">>();
-	for (const name of git.worktreeBranches()) excluded.set(name, "worktree");
-	const current = git.currentBranch();
-	if (current) excluded.set(current, "current");
-	for (const name of BASE_BRANCHES) excluded.set(name, "base");
+	const worktrees = new Set(scope === "remote" ? [] : git.worktreeBranches());
+	const current = scope === "remote" ? undefined : git.currentBranch();
+	const refs: BranchRef[] = [];
+	if (scope !== "remote") refs.push(...git.branches());
+	if (scope !== "local") {
+		const remote = await listBranches!.call(source, input.repo);
+		refs.push(...remote.map((b): BranchRef => ({ name: b.name, sha: b.sha, where: "remote" })));
+	}
 
 	const [openPullRequests, closedPullRequests] = await Promise.all([
 		listPullRequests.call(source, "open", input.repo),
 		listPullRequests.call(source, "closed", input.repo),
 	]);
 	const classification = await classifyBranches({
-		branches: git.branches(),
+		branches: refs,
 		git,
-		excluded,
+		excluded: (ref) => {
+			if ((BASE_BRANCHES as readonly string[]).includes(ref.name)) return "base";
+			if (ref.where === "remote") return undefined;
+			if (ref.name === current) return "current";
+			return worktrees.has(ref.name) ? "worktree" : undefined;
+		},
 		openPullRequests,
 		closedPullRequests,
 		pullRequestCommits: (number) => listPullRequestCommits.call(source, number, input.repo),
 	});
 
-	const byGroup = (group: BranchGroup) => classification.classified.filter((c) => c.group === group);
-	const deletable = classification.classified.filter((c) => SAFE.includes(c.group));
-	const dryRun = input.context.dryRun === true || input.yes !== true;
+	const entries = groupBranches(classification.classified);
+	const report: CleanupBranchesReport = { classification, deleted: [], failed: [], status: "ok" };
 
 	print("");
-	for (const group of Object.keys(GROUP_LABEL) as BranchGroup[]) {
-		const rows = byGroup(group);
-		const safe = SAFE.includes(group);
+	for (const group of GROUPS) {
+		const rows = entries.filter((e) => e.group === group);
 		const line = `${rows.length}  ${GROUP_LABEL[group]}`;
-		print(safe ? style.success(line) : style.warn(line));
-		// A safe group is long and about to go; the groups left alone are the ones worth reading.
-		if (!safe) {
-			for (const row of [...rows].sort(newestFirst)) {
-				const pr = row.pr === undefined ? "" : `  PR #${row.pr}`;
-				print(`      ${row.branch.name}  ${style.dim(`${row.branch.date.slice(0, 10)}${pr}`)}`);
-			}
-		}
+		print(SAFE.includes(group) ? style.success(line) : style.warn(line));
+		for (const row of rows) print(`      ${rowLabel(row)}`);
 	}
 	if (classification.skipped.length > 0) {
 		print(style.dim(`${classification.skipped.length}  skipped`));
-		for (const { branch, reason } of classification.skipped)
-			print(style.dim(`      ${branch.name}  ${SKIP_LABEL[reason]}`));
+		for (const { ref, reason } of classification.skipped) {
+			print(style.dim(`      ${ref.name}  [${ref.where}]  ${SKIP_LABEL[reason]}`));
+		}
 	}
 	print("");
 
-	const report: CleanupBranchesReport = { classification, deleted: [], failed: [], status: "ok" };
-	if (dryRun) {
-		print(style.dim(`Dry run: would delete ${deletable.length} branches. Run with --yes to delete them.`));
-		logger.info({ candidates: deletable.length, deleted: 0 }, "repo cleanup branches: dry run");
+	const safe = entries.filter((e) => SAFE.includes(e.group));
+	if (input.context.dryRun === true) {
+		print(style.dim(`Dry run: ${safe.length} branches are proven merged. Nothing was deleted.`));
+		logger.info({ proven: safe.length, deleted: 0 }, "repo cleanup branches: dry run");
 		return report;
 	}
+	if (entries.length === 0) return report;
 
-	for (const { branch } of deletable) {
-		try {
-			git.deleteBranch(branch.name);
-			report.deleted.push(branch.name);
-		} catch (err) {
-			report.failed.push({ name: branch.name, message: errorMessage(err) });
+	let chosen: BranchEntry[] = safe;
+	if (input.yes !== true) {
+		if (!process.stdin.isTTY) {
+			throw new NonInteractiveError(
+				"`repo cleanup branches` asks which branches to delete — run it in a terminal, or pass --yes to delete the proven-merged ones, or --dry-run to only list them"
+			);
+		}
+		if (!(await confirm({ message: "Choose branches to delete?", default: true }))) return report;
+		const picked = await checkbox<number>({
+			message: "Delete which branches? (the proven-merged ones are ticked)",
+			pageSize: 20,
+			choices: GROUPS.flatMap((group) => {
+				const rows = entries.filter((e) => e.group === group);
+				if (rows.length === 0) return [];
+				return [
+					new Separator(`── ${GROUP_LABEL[group]} (${rows.length})`),
+					...rows.map((row) => ({
+						name: rowLabel(row),
+						value: entries.indexOf(row),
+						checked: SAFE.includes(group),
+					})),
+				];
+			}),
+		});
+		chosen = picked.map((index) => entries[index]!);
+	}
+
+	for (const entry of chosen) {
+		for (const where of entry.locations) {
+			try {
+				if (where === "local") git.deleteBranch(entry.name);
+				else await deleteBranch!.call(source, entry.name, input.repo);
+				report.deleted.push({ name: entry.name, where });
+			} catch (err) {
+				report.failed.push({ name: entry.name, where, message: errorMessage(err) });
+			}
 		}
 	}
-	for (const { name, message } of report.failed) print(style.fail(`${name}: ${message}`));
-	print(`Deleted ${report.deleted.length} of ${deletable.length} branches.`);
+	for (const { name, where, message } of report.failed) print(style.fail(`${name} [${where}]: ${message}`));
+	print(`Deleted ${report.deleted.length} of ${report.deleted.length + report.failed.length} branches.`);
 	if (report.failed.length > 0) report.status = "fail";
 	logger.info({ deleted: report.deleted.length, failed: report.failed.length }, "repo cleanup branches: done");
 	return report;

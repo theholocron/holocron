@@ -2,9 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { PullRequest } from "../../plugin/index.js";
 import { classifyBranches } from "./classify-branches.js";
-import type { ClassifyBranchesInput, LocalBranch } from "./repo-cleanup-branches.type.js";
+import type { BranchLocation, BranchRef, ClassifyBranchesInput } from "./repo-cleanup-branches.type.js";
 
-const branch = (name: string, sha = `sha-${name}`): LocalBranch => ({ name, sha, date: "2026-10-01T00:00:00+00:00" });
+const branch = (name: string, sha = `sha-${name}`, where: BranchLocation = "local"): BranchRef => ({
+	name,
+	sha,
+	where,
+});
 
 const pr = (number: number, name: string, over: Partial<PullRequest> = {}): PullRequest => ({
 	number,
@@ -17,11 +21,11 @@ const pr = (number: number, name: string, over: Partial<PullRequest> = {}): Pull
 	...over,
 });
 
-function run(branches: LocalBranch[], over: Partial<ClassifyBranchesInput> = {}) {
+function run(branches: BranchRef[], over: Partial<ClassifyBranchesInput> = {}) {
 	return classifyBranches({
 		branches,
 		git: { isMergedIntoBase: () => false, isAncestor: () => false },
-		excluded: new Map(),
+		excluded: () => undefined,
 		openPullRequests: [],
 		closedPullRequests: [],
 		pullRequestCommits: async () => [],
@@ -29,19 +33,14 @@ function run(branches: LocalBranch[], over: Partial<ClassifyBranchesInput> = {})
 	});
 }
 
-const groupOf = async (b: LocalBranch, over: Partial<ClassifyBranchesInput> = {}) =>
-	(await run([b], over)).classified[0];
+const groupOf = async (b: BranchRef, over: Partial<ClassifyBranchesInput> = {}) => (await run([b], over)).classified[0];
 
 describe("classifyBranches", () => {
 	it("skips an excluded branch with the reason it was excluded", async () => {
 		const result = await run([branch("alpha"), branch("work"), branch("wt")], {
-			excluded: new Map([
-				["alpha", "base"],
-				["work", "current"],
-				["wt", "worktree"],
-			]),
+			excluded: (ref) => ({ alpha: "base", work: "current", wt: "worktree" })[ref.name] as never,
 		});
-		expect(result.skipped.map((s) => [s.branch.name, s.reason])).toEqual([
+		expect(result.skipped.map((s) => [s.ref.name, s.reason])).toEqual([
 			["alpha", "base"],
 			["work", "current"],
 			["wt", "worktree"],
@@ -54,7 +53,7 @@ describe("classifyBranches", () => {
 			openPullRequests: [pr(2, "x", { state: "open", merged: false })],
 			closedPullRequests: [pr(1, "x")],
 		});
-		expect(result.skipped).toEqual([{ branch: branch("x"), reason: "open-pr" }]);
+		expect(result.skipped).toEqual([{ ref: branch("x"), reason: "open-pr" }]);
 	});
 
 	it("calls an ancestor of a base branch merged, without asking the provider anything", async () => {
@@ -125,5 +124,18 @@ describe("classifyBranches", () => {
 	it("does not match a PR from a different branch name", async () => {
 		const got = await groupOf(branch("x", "head-1"), { closedPullRequests: [pr(1, "other")] });
 		expect(got?.group).toBe("no-pr");
+	});
+
+	it("classifies a remote ref by the same evidence as a local one", async () => {
+		const got = await groupOf(branch("x", "head-1", "remote"), { closedPullRequests: [pr(1, "x")] });
+		expect(got).toMatchObject({ group: "squash-merged", ref: { where: "remote" } });
+	});
+
+	it("lets the exclusion depend on where the branch is", async () => {
+		const result = await run([branch("x", "s1", "local"), branch("x", "s2", "remote")], {
+			excluded: (ref) => (ref.where === "local" ? "current" : undefined),
+		});
+		expect(result.skipped.map((s) => s.ref.where)).toEqual(["local"]);
+		expect(result.classified.map((c) => c.ref.where)).toEqual(["remote"]);
 	});
 });

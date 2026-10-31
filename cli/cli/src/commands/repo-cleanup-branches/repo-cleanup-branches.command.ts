@@ -7,14 +7,9 @@ import { type RepoCleanupBranchesArgs, repoCleanupBranchesArgs } from "./repo-cl
 
 export const repoCleanupBranchesCommand: CommandModule<GlobalArgs, RepoCleanupBranchesArgs> = {
 	command: "branches",
-	describe: "Delete the local branches whose pull request is merged",
+	describe: "List the branches whose pull request is merged and delete the ones you pick (local, remote or both)",
 	builder: repoCleanupBranchesArgs,
 	handler: async (argv) => {
-		if (!argv.local) {
-			console.error("Pass --local: it is the only kind of branch cleanup so far.");
-			process.exitCode = 1;
-			return;
-		}
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
 		const loaded = await loadConfig(argv.cwd);
@@ -27,6 +22,7 @@ export const repoCleanupBranchesCommand: CommandModule<GlobalArgs, RepoCleanupBr
 				...tokens,
 				org: resolveOrg(argv, loaded.resolved),
 			},
+			scope: argv.local && !argv.remote ? "local" : argv.remote && !argv.local ? "remote" : "both",
 			...(argv.yes ? { yes: true } : {}),
 			...(argv.repo ? { repo: argv.repo } : {}),
 		});

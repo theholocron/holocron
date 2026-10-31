@@ -26,37 +26,37 @@ beforeEach(() => {
 afterEach(() => void (process.exitCode = undefined));
 
 describe("repo cleanup branches", () => {
-	it("refuses to run without --local", async () => {
-		const err = vi.spyOn(console, "error").mockImplementation(() => {});
-		await go([]);
-		expect(runCleanupBranches).not.toHaveBeenCalled();
-		expect(err).toHaveBeenCalledWith(expect.stringContaining("--local"));
-		expect(process.exitCode).toBe(1);
-		err.mockRestore();
-	});
-
 	it("does nothing when there is no token", async () => {
 		tokenContext.mockReturnValue(undefined);
-		await go(["--local"]);
+		await go([]);
 		expect(runCleanupBranches).not.toHaveBeenCalled();
 	});
 
-	it("runs a dry listing by default", async () => {
-		await go(["--local"]);
+	it("covers both sides by default, and asks rather than deleting", async () => {
+		await go([]);
 		const input = runCleanupBranches.mock.calls[0]?.[0];
+		expect(input.scope).toBe("both");
 		expect(input).not.toHaveProperty("yes");
 		expect(input).not.toHaveProperty("repo");
 		expect(input.context).toMatchObject({ org: "acme", cliToken: "t", dryRun: false });
 	});
 
-	it("passes --yes and --repo through", async () => {
-		await go(["--local", "--yes", "--repo", "o/r"]);
+	it("narrows the scope with --local or --remote, and both flags mean both", async () => {
+		await go(["--local"]);
+		await go(["--remote"]);
+		await go(["--local", "--remote"]);
+		expect(runCleanupBranches.mock.calls.map((c) => c[0].scope)).toEqual(["local", "remote", "both"]);
+	});
+
+	it("passes --yes, --repo and the global --dry-run through", async () => {
+		await go(["--yes", "--repo", "o/r", "--dry-run"]);
 		expect(runCleanupBranches.mock.calls[0]?.[0]).toMatchObject({ yes: true, repo: "o/r" });
+		expect(runCleanupBranches.mock.calls[0]?.[0].context.dryRun).toBe(true);
 	});
 
 	it("exits 1 when a branch could not be deleted", async () => {
 		runCleanupBranches.mockResolvedValue({ status: "fail" });
-		await go(["--local", "--yes"]);
+		await go(["--yes"]);
 		expect(process.exitCode).toBe(1);
 	});
 });

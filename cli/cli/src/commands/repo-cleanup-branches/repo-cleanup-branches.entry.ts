@@ -2,25 +2,25 @@ import { type CommandEntry } from "../../interactive-menu/command-registry/comma
 
 export const repoCleanupBranchesEntry: CommandEntry = {
 	name: "repo cleanup branches",
-	description: "Delete the local branches whose pull request is merged",
+	description: "List the branches whose pull request is merged and delete the ones you pick",
 	positionals: [],
 	options: [
 		{
 			key: "local",
 			flag: "--local",
 			type: "confirm",
-			default: true,
-			required: true,
-			message: "Clean up the branches in this checkout?",
+			default: false,
+			message: "Only the branches in this checkout?",
 		},
 		{
-			key: "yes",
-			flag: "--yes",
+			key: "remote",
+			flag: "--remote",
 			type: "confirm",
 			default: false,
-			message: "Delete the merged ones (otherwise only list them)?",
+			message: "Only the branches on the remote?",
 		},
 	],
-	skipOptions: ["repo"],
-	supportsDryRun: true,
+	skipOptions: ["yes", "repo"],
+	// The command lists first and asks before it deletes, so the menu's own dry-run round would show the list twice.
+	supportsDryRun: false,
 };

@@ -5,7 +5,7 @@ import { repoCleanupBranchesCommand } from "../repo-cleanup-branches/repo-cleanu
 
 export const repoCleanupCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 	command: "cleanup",
-	describe: "Clean up what a repo accumulates (local branches)",
+	describe: "Clean up what a repo accumulates (merged branches)",
 	builder: (y: Argv<GlobalArgs>) =>
 		y.command(repoCleanupBranchesCommand as never).command(groupMenu("repo cleanup") as never),
 	handler: () => {},

@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 
 import { BASE_BRANCHES } from "./constants.js";
-import type { LocalBranch, LocalGit } from "./repo-cleanup-branches.type.js";
+import type { BranchRef, LocalGit } from "./repo-cleanup-branches.type.js";
 
 /** `git` run in `cwd`, no shell: its trimmed stdout and stderr, and whether it exited 0. */
 function git(cwd: string, args: string[]): { out: string; ok: boolean; err: string } {
@@ -12,7 +12,7 @@ function git(cwd: string, args: string[]): { out: string; ok: boolean; err: stri
 /** {@link LocalGit} over the checkout at `cwd`. */
 export function createLocalGit(cwd: string): LocalGit {
 	return {
-		branches(): LocalBranch[] {
+		branches(): BranchRef[] {
 			const { out } = git(cwd, [
 				"for-each-ref",
 				"--format=%(refname:short)%09%(objectname)%09%(committerdate:iso-strict)",
@@ -21,9 +21,9 @@ export function createLocalGit(cwd: string): LocalGit {
 			return out
 				.split("\n")
 				.filter(Boolean)
-				.map((line) => {
+				.map((line): BranchRef => {
 					const [name = "", sha = "", date = ""] = line.split("\t");
-					return { name, sha, date };
+					return { name, sha, date, where: "local" };
 				});
 		},
 

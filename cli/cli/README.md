@@ -591,11 +591,13 @@ See the [command pages](https://theholocron.dev/holocron/commands/notifications-
 
 ## Cleaning up
 
-- **`holocron repo cleanup branches --local`** — lists the local branches and, with `--yes`, deletes the ones
-  proven merged: an ancestor of `origin/alpha` or `origin/main`, or the head (or an ancestor, or one of the
-  commits) of a merged pull request. Branches with more commits than their merged PR, with an open PR, checked
-  out (here or in a worktree), or never merged are listed and kept. Pull requests come from the `source`
-  provider (`Source.listPullRequests` / `listPullRequestCommits`).
+- **`holocron repo cleanup branches [--local | --remote]`** — lists the branches whose pull request is merged,
+  grouped, each saying whether it lives locally, on the remote or both; then asks, and offers a checklist with the
+  proven-merged ones ticked. Proven merged means an ancestor of `origin/alpha` or `origin/main`, or the head (or an
+  ancestor, or one of the commits) of a merged pull request. Branches with more commits than their merged PR, with
+  an open PR, checked out (here or in a worktree), or never merged are listed unticked. `--dry-run` only lists;
+  `--yes` deletes every proven-merged branch without asking. Pull requests and remote branches come from the
+  `source` provider (`Source.listPullRequests`, `listPullRequestCommits`, `listBranches`, `deleteBranch`).
 
 ## Upgrading
 
