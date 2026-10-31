@@ -312,7 +312,9 @@ export interface PagesConfig {
 
 /** A branch on the remote and the commit it points at. */
 export interface SourceBranch {
+	/** The branch name, e.g. `fix/my-change`. */
 	name: string;
+	/** The commit the branch points at. */
 	sha: string;
 }
 
