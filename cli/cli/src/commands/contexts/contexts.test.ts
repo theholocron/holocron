@@ -45,6 +45,7 @@ const EVERY_COMMAND = [
 	"monitoring resolve-checks",
 	"monitoring run-resolved",
 	"repo sync",
+	"repo cleanup branches",
 	"sync github",
 ];
 

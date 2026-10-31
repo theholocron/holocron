@@ -54,7 +54,7 @@ describe("menuItems — one level of the nested menu", () => {
 	});
 
 	it("shows the next word under a group, and nests as deep as the names go", () => {
-		expect(names(["repo"])).toEqual(["setup", "sync ›", "upgrade ›"]);
+		expect(names(["repo"])).toEqual(["setup", "sync ›", "cleanup ›", "upgrade ›"]);
 		expect(valueOf("setup", ["repo"])).toBe("repo setup");
 		expect(valueOf("upgrade ›", ["repo"])).toBe("group:repo upgrade");
 		expect(names(["repo", "upgrade"])).toEqual(["node", "deps"]);
@@ -77,7 +77,7 @@ describe("menuItems — one level of the nested menu", () => {
 
 	it("a group's description lists its children, and its haystack covers everything under it", () => {
 		const repo = menuItems(COMMAND_REGISTRY).find((i) => i.value === "group:repo")!;
-		expect(repo.description).toBe("setup, sync, upgrade");
+		expect(repo.description).toBe("setup, sync, cleanup, upgrade");
 		expect(repo.haystack).toContain("repo upgrade node");
 	});
 

@@ -62,6 +62,7 @@ export const COMMAND_CONTEXTS = {
 	// delivery.previewCheck split).
 	"monitoring run-resolved": "global",
 	"repo sync": "workspace",
+	"repo cleanup branches": "workspace",
 	// Pushes generated templates to theholocron/.github — needs the holocron
 	// monorepo checkout (not plugins), so only ever run with `pnpm exec`.
 	"sync github": "workspace",

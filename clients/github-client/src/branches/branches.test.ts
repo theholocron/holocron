@@ -20,4 +20,30 @@ describe("branches", () => {
 		await client.branches.protectBranch(REPO, "feat/my-branch", {});
 		expect(calls[0]?.url).toContain("feat%2Fmy-branch");
 	});
+
+	it("lists branches with their commit, a page at a time", async () => {
+		const full = Array.from({ length: 100 }, (_, n) => ({ name: `b${n}`, commit: { sha: `s${n}` } }));
+		const { fetch, calls } = stubFetch([{ body: full }, { body: [{ name: "last", commit: { sha: "z" } }] }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const all = await client.branches.listBranches(REPO);
+		expect(all).toHaveLength(101);
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/branches?per_page=100&page=1");
+		expect(calls[1]?.url).toContain("page=2");
+	});
+
+	it("stops listing at the page limit", async () => {
+		const full = Array.from({ length: 100 }, (_, n) => ({ name: `b${n}`, commit: { sha: `s${n}` } }));
+		const { fetch, calls } = stubFetch(Array.from({ length: 101 }, () => ({ body: full })));
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		expect(await client.branches.listBranches(REPO)).toHaveLength(10_000);
+		expect(calls).toHaveLength(100);
+	});
+
+	it("DELETEs the branch's ref, keeping the slashes in its name", async () => {
+		const { fetch, calls } = stubFetch([{ status: 204 }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.branches.removeBranch(REPO, "feat/my branch");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/git/refs/heads/feat/my%20branch");
+	});
 });

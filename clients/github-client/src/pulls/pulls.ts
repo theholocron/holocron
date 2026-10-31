@@ -7,7 +7,13 @@ export interface GitHubPullRequest {
 	state: "open" | "closed";
 	merged_at: string | null;
 	html_url: string;
-	head: { ref: string };
+	/** The head branch: its name and the commit it pointed at when the PR was read. */
+	head: {
+		/** The branch name, e.g. `fix/my-change`. */
+		ref: string;
+		/** The head commit. */
+		sha: string;
+	};
 }
 
 /** A commit's name/email as git itself recorded it — `commit.author`/`commit.committer`, distinct from the GitHub-account `author` below (a commit can carry any email, linked to a GitHub account or not). */
@@ -151,10 +157,30 @@ const RESOLVE_REVIEW_THREAD_MUTATION = `
 	}
 `;
 
+/** Page size and the most pages {@link pulls}`.listPullRequests` reads: 100 a page (GitHub's maximum) over 100 pages, so 10,000 pull requests. */
+const PULL_REQUEST_PAGE_SIZE = 100;
+const PULL_REQUEST_MAX_PAGES = 100;
+
 export function pulls(rest: RestClient, graphql: GraphQLClient) {
 	return {
 		getPullRequest: (repo: string, number: number): Promise<GitHubPullRequest> =>
 			rest.request<GitHubPullRequest>(`${repoBase(repo)}/pulls/${number}`),
+
+		/**
+		 * Every pull request in one state, newest first, read a page at a time until a page comes back short.
+		 * `closed` includes the merged ones; tell them apart by `merged_at`.
+		 */
+		listPullRequests: async (repo: string, state: "open" | "closed"): Promise<GitHubPullRequest[]> => {
+			const all: GitHubPullRequest[] = [];
+			for (let page = 1; page <= PULL_REQUEST_MAX_PAGES; page++) {
+				const batch = await rest.request<GitHubPullRequest[]>(
+					`${repoBase(repo)}/pulls?state=${state}&sort=created&direction=desc&per_page=${PULL_REQUEST_PAGE_SIZE}&page=${page}`
+				);
+				all.push(...batch);
+				if (batch.length < PULL_REQUEST_PAGE_SIZE) break;
+			}
+			return all;
+		},
 
 		/**
 		 * A PR's own commits, in commit order. `per_page=100` — GitHub's max —

@@ -1,23 +1,26 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import type {
-	LabelDef,
-	PagesConfig,
-	PullRequest,
-	RepoRef,
-	RepoSettings,
-	Ruleset,
-	Source,
-	SourceFile,
-	SourceTeamMember,
-	TeamEntry,
+import {
+	type LabelDef,
+	type PagesConfig,
+	ProviderApiError,
+	type PullRequest,
+	type RepoRef,
+	type RepoSettings,
+	type Ruleset,
+	type Source,
+	type SourceBranch,
+	type SourceFile,
+	type SourceTeamMember,
+	type TeamEntry,
 } from "@theholocron/cli";
 import { findRootSync } from "@theholocron/fs-utils";
 import {
 	createGitHubClient,
 	type CreatePagesPayload,
 	type GitHubClient,
+	type GitHubPullRequest,
 	type UpdatePagesPayload,
 } from "@theholocron/github-client";
 
@@ -38,6 +41,18 @@ export interface SourceOptions {
 	/** Forwarded to a secondary client created for Pages calls (HOLOCRON_DEPLOY_TOKEN). */
 	baseUrl?: string;
 	fetch?: typeof fetch;
+}
+
+function toPullRequest(raw: GitHubPullRequest): PullRequest {
+	return {
+		number: raw.number,
+		title: raw.title,
+		state: raw.state,
+		merged: raw.merged_at !== null,
+		branch: raw.head.ref,
+		headSha: raw.head.sha,
+		url: raw.html_url,
+	};
 }
 
 export class GitHubSource implements Source {
@@ -252,15 +267,33 @@ export class GitHubSource implements Source {
 	}
 
 	async getPullRequest(number: number, repo?: string): Promise<PullRequest> {
-		const raw = await this.client.pulls.getPullRequest(repo ?? this.repo, number);
-		return {
-			number: raw.number,
-			title: raw.title,
-			state: raw.state,
-			merged: raw.merged_at !== null,
-			branch: raw.head.ref,
-			url: raw.html_url,
-		};
+		return toPullRequest(await this.client.pulls.getPullRequest(repo ?? this.repo, number));
+	}
+
+	async listPullRequests(state: "open" | "closed", repo?: string): Promise<PullRequest[]> {
+		return (await this.client.pulls.listPullRequests(repo ?? this.repo, state)).map(toPullRequest);
+	}
+
+	async listBranches(repo?: string): Promise<SourceBranch[]> {
+		return (await this.client.branches.listBranches(repo ?? this.repo)).map((b) => ({
+			name: b.name,
+			sha: b.commit.sha,
+		}));
+	}
+
+	async deleteBranch(name: string, repo?: string): Promise<void> {
+		try {
+			await this.client.branches.removeBranch(repo ?? this.repo, name);
+		} catch (err) {
+			// A ref that is already gone is what was asked for: GitHub says 422 "Reference does not exist" (404 for a repo it cannot see is not that).
+			if (err instanceof ProviderApiError && err.status === 422 && String(err.details).includes("does not exist"))
+				return;
+			throw err;
+		}
+	}
+
+	async listPullRequestCommits(number: number, repo?: string): Promise<string[]> {
+		return (await this.client.pulls.listCommits(repo ?? this.repo, number)).map((commit) => commit.sha);
 	}
 
 	async configurePages(config: PagesConfig, token: string): Promise<void> {
