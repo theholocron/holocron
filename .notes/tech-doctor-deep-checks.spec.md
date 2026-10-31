@@ -68,7 +68,7 @@ interface DeepCheck {
    `doctor monitoring` (#1452): done. It compares the provider's declared `checks` (by name, plus the URL, method, frequency, locations, activated, should-fail, body and assertions the config states) with the optional `Monitoring.listChecks`; a check in the account that is not declared is never a problem. The alert channel is not here: its subscriptions follow the notification layout, so that stays with `doctor notifications`. Still to come: `doctor repo`, `doctor dns`, `doctor environments`.
    `doctor dns` (#1451): done. It checks the records the config makes setup write that can be read without writing (the preview domain's CNAMEs, the docs host, the relay placeholder).
    `doctor repo` (#1454): done. It compares the groups `repo setup` writes through `source` (description and homepage, default branch and merge settings, topics, custom properties, labels, team access, the default-branch ruleset, security toggles) through new optional `Source` reads: `getRepoInfo`, `getProperties`, `listLabels`, `listTeamAccess`, `getRulesetDetail`, `getSecurity`. Pages, classic branch protection and the dependency graph are not read.
-7. The Checkly feed and Comlink relay checks (they need live credentials and the deployed Worker).
+7. The Checkly feed and Comlink relay checks (they need live credentials and the deployed Worker): done as steps of `doctor notifications` (#1458, spec `tech-doctor-relay-checks`). They are read-only, so they run under `--built-only` and `doctor --all`; a live run with real credentials is the maintainer's acceptance step.
 
 ## Not in scope
 

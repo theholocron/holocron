@@ -99,6 +99,18 @@ A test fails when a plugin resolves a token that has no row here. Each token res
 | `vercel`     | deployment                     | `HOLOCRON_VERCEL_TOKEN`     | `VERCEL_TOKEN`             | `vercel`     | Personal access token; **Full Account** scope for team operations                                                                                                        |
 | `1password`  | secrets vault                  | _(none)_                    | `OP_SERVICE_ACCOUNT_TOKEN` | _(none)_     | Uses the `op` CLI's own auth: `op signin` on a laptop, a service account token in CI. Holocron never stores it                                                           |
 
+### What `doctor notifications` reads
+
+The Checkly feed and Comlink relay steps of [`holocron doctor notifications`](/holocron/commands/doctor-notifications/) use the tokens above and need no new one. Each only reads, and a missing token skips its steps with the reason:
+
+| Provider     | Read                                                                          |
+| ------------ | ----------------------------------------------------------------------------- |
+| `checkly`    | the alert channels (not their URLs) and the account's checks                  |
+| `cloudflare` | the Worker scripts, the routes in the relay host's zone, and secret **names** |
+| `sentry`     | the integrations, projects and alert rules, with the Comlink token below      |
+
+Whether a narrower, read-only token would do for Checkly and Cloudflare has not been tried against those providers, so the scopes in the table above are the ones `setup` needs.
+
 ### Sentry
 
 Two tokens. The general one above (`HOLOCRON_SENTRY_TOKEN`, keyring `sentry`) provisions projects and their DSNs. The Comlink relay has its own, because creating an integration and an alert rule need far more:
@@ -112,6 +124,8 @@ It needs no delete or admin permission: setup creates and updates, and never rem
 ```bash
 holocron auth set sentry.comlink sntryu_xxx
 ```
+
+`holocron doctor notifications` uses this token too, to read the integration and the alert rule back. It only reads: the integrations, the projects and the alert rules, and never the integration's signing secret. It needs no scope beyond the ones above, but whether a narrower, read-only token would do has not been tried against Sentry.
 
 ### Discord
 
