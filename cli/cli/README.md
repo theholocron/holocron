@@ -767,6 +767,9 @@ the local override exists to exempt.
   `repo upgrade deps`, `new plugin`, `auth`, `notifications setup`,
   `notifications channel add`, `notifications link`,
   `notifications sync-roles`, `doctor notifications`
+- `src/commands/doctor-checks/` and `src/commands/deep-checks/` — the shared row
+  renderer and `declaredVsActual` helper, and `DEEP_CHECKS`, the registry every
+  `doctor <capability>` is listed in
 - `src/interactive-menu/` — the interactive fallback: `command-registry`
   (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `launch-menu`
   (Layers 1–2, picks + spawns a fresh `holocron <command>`), `child-argv`
