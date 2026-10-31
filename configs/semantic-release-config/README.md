@@ -60,7 +60,7 @@ The config wires up this fixed plugin order:
 3. `@semantic-release/changelog` — writes `CHANGELOG.md`
 4. `@semantic-release/exec` — repo-specific version bump and publish commands _(only when `exec` is passed)_
 5. `@semantic-release/git` — commits updated files back to the repo
-6. `@semantic-release/github` — creates a GitHub release
+6. `@semantic-release/github` — creates a GitHub release, and labels the issues and pull requests it ships `released` on every branch (the plugin's default is `released on @<channel>` on a prerelease branch)
 
 ## Named exports
 

@@ -24,6 +24,13 @@ describe("semantic-release-config", () => {
 	});
 
 	describe("defineConfig()", () => {
+		it("labels released issues `released` on every branch, not `released on @<channel>`", () => {
+			const { plugins } = defineConfig({ branches: ["main", { name: "alpha", prerelease: true }] }) as {
+				plugins: unknown[];
+			};
+			expect(plugins.at(-1)).toEqual(["@semantic-release/github", { releasedLabels: ["released"] }]);
+		});
+
 		it("returns an object with branches and plugins", () => {
 			const config = defineConfig() as {
 				branches: unknown[];
