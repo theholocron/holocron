@@ -15,6 +15,7 @@ export type { NeonDatabase, NeonDatabasesResponse } from "./databases/databases.
 export type { NeonMe } from "./users/users.js";
 export type { NeonClientOptions } from "./utils.js";
 
+/** Creates a Neon API client with `branches`, `connection`, `databases` and `users` groups, all sharing one REST client. */
 export function createNeonClient(opts: NeonClientOptions) {
 	const rest = createNeonRestClient(opts);
 	return {
@@ -25,4 +26,5 @@ export function createNeonClient(opts: NeonClientOptions) {
 	};
 }
 
+/** The client `createNeonClient` returns. */
 export type NeonClient = ReturnType<typeof createNeonClient>;

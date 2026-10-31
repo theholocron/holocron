@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createNeonClient`. */
 export interface NeonClientOptions {
 	/** Neon API key. */
 	token: string;

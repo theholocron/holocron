@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createInfisicalClient`. */
 export interface InfisicalClientOptions {
 	/** Infisical Universal Auth machine identity token or personal token. */
 	token: string;

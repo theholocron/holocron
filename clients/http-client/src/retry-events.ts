@@ -2,7 +2,9 @@
 export interface RetryEvent {
 	/** The client's `vendor` label, e.g. `GitHub`. */
 	vendor?: string;
+	/** The HTTP method of the request, such as `GET`. */
 	method: string;
+	/** The request path, relative to the client's base URL. */
 	path: string;
 	/**
 	 * What went wrong (`ECONNRESET`, `UND_ERR_CONNECT_TIMEOUT`, or `HTTP 503` for a retried status); a failure with no

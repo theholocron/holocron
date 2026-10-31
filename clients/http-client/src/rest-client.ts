@@ -4,6 +4,7 @@ import { ProviderApiError } from "./errors.js";
 import { notifyRetry } from "./retry-events.js";
 import { isRead, transportCode, worthRetrying } from "./transport.js";
 
+/** Settings for `createRestClient`. */
 export interface RestClientConfig {
 	/** Default base URL (e.g. "https://api.github.com"). */
 	baseUrl: string;
@@ -59,8 +60,11 @@ export interface RestClientConfig {
 	retryStatuses?: readonly number[];
 }
 
+/** Options for one `RestClient.request` call. */
 export interface RequestOptions {
+	/** The HTTP method. Defaults to `"GET"`. */
 	method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+	/** The request body; sent as JSON with a `content-type` header. Left out or `undefined`, no body is sent. */
 	body?: unknown;
 	/** Per-request query params, merged after `defaultQuery`. */
 	query?: Record<string, string>;
@@ -74,8 +78,11 @@ export interface RequestOptions {
 	onResponse?: (headers: Headers) => void;
 }
 
+/** A JSON REST client bound to one vendor's base URL and credentials. */
 export interface RestClient {
+	/** The base URL with any trailing slashes removed. */
 	readonly baseUrl: string;
+	/** Sends a request to `path` and resolves with the parsed JSON body, or `undefined` for an empty or 204 response; rejects with a `ProviderApiError`. */
 	request<T>(path: string, opts?: RequestOptions): Promise<T>;
 }
 
@@ -96,6 +103,7 @@ function retriedNote(res: Response, attempt: number): string {
 	return ` (after ${attempt + 1} attempts${header ? `; ${header}: ${res.headers.get(header)}` : ""})`;
 }
 
+/** Creates a `RestClient` that sends the configured auth header and retries safe transport failures. */
 export function createRestClient(config: RestClientConfig): RestClient {
 	const fetchImpl = config.fetch ?? globalThis.fetch;
 	const vendor = config.vendor ?? "";

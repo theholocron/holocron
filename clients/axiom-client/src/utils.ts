@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createAxiomClient`. */
 export interface AxiomClientOptions {
 	/** Axiom API token. */
 	token: string;

@@ -27,5 +27,6 @@ async function getSpreadsheet(id: string): Promise<Return<sheets_v4.Schema$Sprea
 }
 
 export const spreadsheets = {
+	/** Reads a spreadsheet by id, grid data included; resolves with a `Return` tuple of error, spreadsheet and elapsed ms. */
 	get: getSpreadsheet,
 };

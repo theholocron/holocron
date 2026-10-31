@@ -26,5 +26,6 @@ async function getDocument(id: string): Promise<Return<docs_v1.Schema$Document>>
 }
 
 export const documents = {
+	/** Reads a Google Doc by id; resolves with a `Return` tuple of error, document and elapsed milliseconds. */
 	get: getDocument,
 };

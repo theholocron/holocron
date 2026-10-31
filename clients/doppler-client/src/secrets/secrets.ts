@@ -1,16 +1,24 @@
 import type { RestClient } from "../utils.js";
 
+/** A secret's value in its two forms. */
 export interface DopplerSecretValue {
+	/** The value as stored, with references such as `${OTHER}` left unexpanded. */
 	raw?: string;
+	/** The value with references expanded. */
 	computed?: string;
 }
 
+/** One secret, as returned when reading it by name. */
 export interface DopplerSecret {
+	/** The secret's name. */
 	name?: string;
+	/** The secret's value; `null` or `undefined` when it has none. */
 	value?: DopplerSecretValue | null;
 }
 
+/** The secrets of a config, keyed by name. */
 export interface DopplerSecretsMap {
+	/** Each secret's value by name; a secret with no value is `null`. */
 	secrets?: Record<string, DopplerSecretValue | null>;
 }
 

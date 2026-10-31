@@ -20,6 +20,7 @@ function buildOAuth2Client(): OAuth2Client {
 	return new google.auth.OAuth2(clientID, clientSecret, redirectURI);
 }
 
+/** Signs in with Google OAuth: opens the consent page, waits on a local callback and resolves with the client holding the tokens. */
 export const oauth = async (scopes: string[]): Promise<OAuth2Client | null> => {
 	const oauth2Client = buildOAuth2Client();
 	const port = parseInt(process.env.GOOGLE_REDIRECT_PORT ?? "4000", 10);
@@ -52,6 +53,7 @@ export const oauth = async (scopes: string[]): Promise<OAuth2Client | null> => {
 	});
 };
 
+/** Authenticates as the service account from `loadServiceAccountKey()` for the given scopes and resolves with its JWT client. */
 export async function googleAuth(scopes: string[]): Promise<JWT> {
 	const auth = new google.auth.GoogleAuth({
 		credentials: loadServiceAccountKey(),

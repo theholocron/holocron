@@ -1,9 +1,12 @@
 import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
 
+/** Thrown by a token resolver when no token was found in any source. */
 export class AuthError extends Error {
+	/** The error name, `AuthError`. */
 	override name = "AuthError";
 }
 
+/** Where `resolveToken` looks for a token. */
 export interface ResolveTokenInput {
 	/** From `--token` CLI flag. */
 	cliToken?: string;
@@ -15,6 +18,7 @@ export interface ResolveTokenInput {
 	org?: string;
 }
 
+/** How `createResolveToken` finds a vendor's token. */
 export interface ResolveTokenConfig {
 	/** HOLOCRON_* env var (e.g. `"HOLOCRON_GH_TOKEN"`). */
 	envName: string;

@@ -1,30 +1,46 @@
 import type { RestClient } from "../utils.js";
 
+/** A secret as the Infisical API returns it. */
 export interface InfisicalSecret {
+	/** The secret's name. */
 	secretKey?: string;
+	/** The secret's value in plain text. */
 	secretValue?: string;
 }
 
+/** The response of listing secrets. */
 export interface InfisicalSecretsListResponse {
+	/** The secrets in the requested scope. */
 	secrets?: InfisicalSecret[];
 }
 
+/** The response of reading one secret. */
 export interface InfisicalSecretResponse {
+	/** The secret that was read. */
 	secret?: InfisicalSecret;
 }
 
+/** Where a secret lives: a workspace, an environment and a folder path. */
 export interface InfisicalSecretScope {
+	/** The id of the workspace (project) that holds the secret. */
 	workspaceId: string;
+	/** The slug of the environment, such as `dev` or `prod`. */
 	environment: string;
+	/** The folder path inside the environment; left out, `/` is used. */
 	secretPath?: string;
 }
 
+/** What to create a secret with, on top of its scope. */
 export interface InfisicalCreateSecretInput extends InfisicalSecretScope {
+	/** The value to store. */
 	secretValue: string;
+	/** Whether the secret is `"shared"` or `"personal"`; left out, `"shared"` is sent. */
 	type?: "shared" | "personal";
 }
 
+/** What to update a secret with, on top of its scope. */
 export interface InfisicalUpdateSecretInput extends InfisicalSecretScope {
+	/** The new value to store. */
 	secretValue: string;
 }
 

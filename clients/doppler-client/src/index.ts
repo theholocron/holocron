@@ -10,6 +10,7 @@ export type { DopplerProject, DopplerProjectResponse } from "./projects/projects
 export type { DopplerSecret, DopplerSecretsMap, DopplerSecretValue } from "./secrets/secrets.js";
 export type { DopplerClientOptions } from "./utils.js";
 
+/** Creates a Doppler API client with `environments`, `me`, `projects` and `secrets` groups, all sharing one REST client. */
 export function createDopplerClient(opts: DopplerClientOptions) {
 	const rest = createDopplerRestClient(opts);
 	return {
@@ -20,4 +21,5 @@ export function createDopplerClient(opts: DopplerClientOptions) {
 	};
 }
 
+/** The client `createDopplerClient` returns. */
 export type DopplerClient = ReturnType<typeof createDopplerClient>;

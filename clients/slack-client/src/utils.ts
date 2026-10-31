@@ -1,5 +1,6 @@
 import { ProviderApiError } from "@theholocron/http-client";
 
+/** Options for `createSlackClient`. */
 export interface SlackClientOptions {
 	/** Slack bot/user OAuth token. */
 	token: string;

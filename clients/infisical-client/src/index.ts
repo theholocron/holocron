@@ -19,6 +19,7 @@ export type {
 	InfisicalWorkspaceListResponse,
 } from "./workspaces/workspaces.js";
 
+/** Creates an Infisical API client with `secrets` and `workspaces` groups, all sharing one REST client. */
 export function createInfisicalClient(opts: InfisicalClientOptions) {
 	const rest = createInfisicalRestClient(opts);
 	return {
@@ -27,4 +28,5 @@ export function createInfisicalClient(opts: InfisicalClientOptions) {
 	};
 }
 
+/** The client `createInfisicalClient` returns. */
 export type InfisicalClient = ReturnType<typeof createInfisicalClient>;

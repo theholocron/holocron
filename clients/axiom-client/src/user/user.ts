@@ -1,9 +1,14 @@
 import type { RestClient } from "../utils.js";
 
+/** The user the Axiom token belongs to. */
 export interface AxiomUser {
+	/** The user id. */
 	id: string;
+	/** The user's name. */
 	name?: string;
+	/** The user's primary email address. */
 	email?: string;
+	/** All of the user's email addresses. */
 	emails?: string[];
 }
 

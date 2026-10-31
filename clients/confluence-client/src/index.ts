@@ -5,6 +5,7 @@ import { page } from "./page/index.js";
 
 export { page };
 
+/** Options for `createConfluenceClient`. */
 export interface ConfluenceClientOptions {
 	/** Base URL including the API path, e.g. "https://myorg.atlassian.net/wiki/rest/api". */
 	baseUrl: string;
@@ -29,6 +30,7 @@ function createConfluenceRestClient(opts: ConfluenceClientOptions): RestClient {
 	});
 }
 
+/** Creates a Confluence API client with a `page` group, using the options' base URL and token. */
 export function createConfluenceClient(opts: ConfluenceClientOptions) {
 	const rest = createConfluenceRestClient(opts);
 	return {

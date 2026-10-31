@@ -6,6 +6,7 @@ export type { CreatePostHogProjectInput, PostHogProject, PostHogProjectsResponse
 export type { PostHogOrganization, PostHogUser } from "./users/users.js";
 export type { PostHogClientOptions } from "./utils.js";
 
+/** Creates a PostHog API client with `users` and `projects` groups, both sharing one REST client. */
 export function createPostHogClient(opts: PostHogClientOptions) {
 	const rest = createPostHogRestClient(opts);
 	return {
@@ -14,4 +15,5 @@ export function createPostHogClient(opts: PostHogClientOptions) {
 	};
 }
 
+/** The client `createPostHogClient` returns. */
 export type PostHogClient = ReturnType<typeof createPostHogClient>;
