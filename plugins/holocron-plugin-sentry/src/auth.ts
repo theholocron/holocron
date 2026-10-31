@@ -9,6 +9,7 @@ import {
 export { AuthError };
 export type { ResolveTokenInput };
 
+/** Resolves the Sentry token from `--token`, `HOLOCRON_SENTRY_TOKEN`, `SENTRY_AUTH_TOKEN` or the keyring, and throws an `AuthError` when none is set. */
 export const resolveToken = createResolveToken({
 	envName: "HOLOCRON_SENTRY_TOKEN",
 	vendorEnvName: "SENTRY_AUTH_TOKEN",

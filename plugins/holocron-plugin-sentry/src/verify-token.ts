@@ -8,6 +8,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Sentry token by listing its organizations; the success subject is `org:` and the first organization's slug, the failure carries the error message. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createSentryClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

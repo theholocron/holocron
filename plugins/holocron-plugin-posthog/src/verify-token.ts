@@ -8,6 +8,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a PostHog personal API key by fetching the current user; the success subject is `email @ organization slug`, the failure carries the error message. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createPostHogClient({ token, host: opts.host, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
