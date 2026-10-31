@@ -13,8 +13,12 @@ import {
 	type Source,
 	type SourceBranch,
 	type SourceFile,
+	type SourceRepoInfo,
+	type SourceRulesetDetail,
+	type SourceSecurity,
 	type SourceTeamMember,
 	type TeamEntry,
+	type TeamPermission,
 } from "@theholocron/cli";
 import { findRootSync } from "@theholocron/fs-utils";
 import {
@@ -28,6 +32,7 @@ import {
 import { readRepoFile, writeRepoFile } from "./files.js";
 import { syncLabels } from "./labels.js";
 import { syncProperties } from "./properties.js";
+import { readRepoInfo, readSecurity, toRulesetDetail } from "./read-repo.js";
 import { syncTeams } from "./teams.js";
 import { syncTopics } from "./topics.js";
 import { syncOrgVariables, syncVariables } from "./variables.js";
@@ -272,6 +277,33 @@ export class GitHubSource implements Source {
 		}
 		const found = await this.orgClient.variables.listVariables(this.repo, { kind: "organization", org });
 		return Object.fromEntries(found.map((v) => [v.name, { value: v.value, visibility: v.visibility ?? "all" }]));
+	}
+
+	async getRepoInfo(): Promise<SourceRepoInfo> {
+		return readRepoInfo(this.client, this.repo);
+	}
+
+	async getProperties(): Promise<Record<string, string | string[]>> {
+		const found = await this.client.properties.getValues(this.repo);
+		return Object.fromEntries(found.flatMap((p) => (p.value === null ? [] : [[p.property_name, p.value]])));
+	}
+
+	async listLabels(): Promise<LabelDef[]> {
+		const found = await this.client.labels.listLabels(this.repo);
+		return found.map((l) => ({ name: l.name, color: l.color, description: l.description ?? "" }));
+	}
+
+	async listTeamAccess(): Promise<Array<{ slug: string; permission: TeamPermission }>> {
+		const found = await (this.orgClient ?? this.client).teams.listForRepo(this.repo);
+		return found.map((t) => ({ slug: t.slug, permission: t.permission }));
+	}
+
+	async getRulesetDetail(id: number): Promise<SourceRulesetDetail> {
+		return toRulesetDetail(await this.client.rulesets.getRuleset(this.repo, id));
+	}
+
+	async getSecurity(): Promise<SourceSecurity> {
+		return readSecurity(this.client, this.repo);
 	}
 
 	async syncDescription(description: string): Promise<string> {

@@ -735,3 +735,87 @@ describe("GitHubSource — team members and files", () => {
 		});
 	});
 });
+
+describe("GitHubSource — reads for doctor repo", () => {
+	it("getRepoInfo → the description, homepage, branch, topics and settings", async () => {
+		const { source } = makeSource([
+			{ body: { default_branch: "alpha", full_name: REPO, description: "d", topics: ["a"], has_wiki: false } },
+		]);
+		expect(await source.getRepoInfo()).toMatchObject({
+			description: "d",
+			homepage: null,
+			defaultBranch: "alpha",
+			topics: ["a"],
+			settings: { has_wiki: false },
+		});
+	});
+
+	it("getProperties → the values that are set, by name", async () => {
+		const { source, calls } = makeSource([
+			{
+				body: [
+					{ property_name: "lifecycle", value: "active" },
+					{ property_name: "holocron_capabilities", value: ["ci"] },
+					{ property_name: "unset", value: null },
+				],
+			},
+		]);
+		expect(await source.getProperties()).toEqual({ lifecycle: "active", holocron_capabilities: ["ci"] });
+		expect(calls[0]?.url).toContain("/properties/values");
+	});
+
+	it("listLabels → name, colour and description, an empty one for no description", async () => {
+		const { source } = makeSource([
+			{
+				body: [
+					{ name: "bug", color: "d73a4a", description: "x" },
+					{ name: "ci", color: "0075ca", description: null },
+				],
+			},
+		]);
+		expect(await source.listLabels()).toEqual([
+			{ name: "bug", color: "d73a4a", description: "x" },
+			{ name: "ci", color: "0075ca", description: "" },
+		]);
+	});
+
+	it("listTeamAccess → each team's slug and permission, from the org client when there is one", async () => {
+		const { fetch, calls } = stubFetch([{ body: [{ slug: "maintainers", permission: "push", id: 1 }] }]);
+		const source = new GitHubSource(createGitHubClient({ token: "pat", fetch: stubFetch([]).fetch }), {
+			repo: REPO,
+			repoRoot: process.cwd(),
+			orgClient: createGitHubClient({ token: "org", fetch }),
+		});
+		expect(await source.listTeamAccess()).toEqual([{ slug: "maintainers", permission: "push" }]);
+		expect(calls[0]?.url).toContain(`/repos/${REPO}/teams`);
+	});
+
+	it("listTeamAccess → falls back to the main client without an org token", async () => {
+		const { source } = makeSource([{ body: [] }]);
+		expect(await source.listTeamAccess()).toEqual([]);
+	});
+
+	it("getRulesetDetail → enforcement, rule types and required checks", async () => {
+		const { source, calls } = makeSource([
+			{ body: { id: 3, name: "r", enforcement: "active", rules: [{ type: "deletion" }] } },
+		]);
+		expect(await source.getRulesetDetail(3)).toEqual({
+			name: "r",
+			enforcement: "active",
+			ruleTypes: ["deletion"],
+			requiredChecks: [],
+		});
+		expect(calls[0]?.url).toContain("/rulesets/3");
+	});
+
+	it("getSecurity → the features GitHub reports", async () => {
+		const { source } = makeSource([
+			{ body: { default_branch: "main", full_name: REPO } },
+			{ status: 204 },
+			{ body: { enabled: true } },
+			{ body: { enabled: true } },
+			{ body: { state: "configured" } },
+		]);
+		expect(await source.getSecurity()).toMatchObject({ vulnerabilityAlerts: true, codeScanningDefaultSetup: true });
+	});
+});
