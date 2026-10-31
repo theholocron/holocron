@@ -27,6 +27,7 @@ export type {
 } from "./checks/checks.js";
 export type { ChecklyClientOptions } from "./utils.js";
 
+/** Creates a Checkly client with `alertChannels`, `checkStatuses` and `checks` groups sharing one REST client. */
 export function createChecklyClient(opts: ChecklyClientOptions) {
 	const rest = createChecklyRestClient(opts);
 	return {
@@ -36,4 +37,5 @@ export function createChecklyClient(opts: ChecklyClientOptions) {
 	};
 }
 
+/** The client `createChecklyClient` returns. */
 export type ChecklyClient = ReturnType<typeof createChecklyClient>;

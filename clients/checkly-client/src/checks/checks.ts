@@ -1,7 +1,9 @@
 import type { RestClient } from "../utils.js";
 
+/** What an assertion reads from the response. */
 export type AssertionSource = "STATUS_CODE" | "JSON_BODY" | "HEADERS" | "TEXT_BODY" | "RESPONSE_TIME";
 
+/** How an assertion compares the value it reads with its `target`. */
 export type AssertionComparison =
 	| "EQUALS"
 	| "NOT_EQUALS"
@@ -18,20 +20,30 @@ export type AssertionComparison =
 	| "IS_NULL"
 	| "NOT_NULL";
 
+/** One check on an API response: read `source`, compare it with `target`. */
 export interface Assertion {
+	/** What part of the response to read. */
 	source: AssertionSource;
+	/** How to compare the value with `target`. */
 	comparison: AssertionComparison;
 	/** JSON path / header name the assertion reads — required for JSON_BODY and HEADERS. */
 	property?: string;
+	/** The value to compare against. */
 	target?: string;
+	/** A regular expression Checkly applies to the value before comparing. */
 	regex?: string;
 }
 
+/** The HTTP methods an API check can use. */
 export type HttpMethod = "GET" | "POST" | "PUT" | "HEAD" | "DELETE" | "PATCH";
 
+/** The request an API check sends. */
 export interface ApiCheckRequest {
+	/** The URL to request. */
 	url: string;
+	/** The HTTP method to use. */
 	method: HttpMethod;
+	/** Assertions on the response; the check passes when all of them hold. */
 	assertions?: Assertion[];
 	/**
 	 * Raw request body to send with the check — e.g. simulating a webhook
@@ -43,13 +55,17 @@ export interface ApiCheckRequest {
 	body?: string;
 }
 
+/** What to send to Checkly to create or update an API check. */
 export interface ApiCheckInput {
+	/** The check's display name. */
 	name: string;
 	/** Minutes between runs. One of Checkly's fixed frequency values (0, 1, 2, 5, 10, 15, 30, 60, 120, 180, 360, 720, 1440). Defaults to 10. */
 	frequency?: number;
 	/** Checkly datacenter region ids (e.g. "us-east-1"). Defaults to the account's configured default. */
 	locations?: string[];
+	/** Whether the check runs on its schedule. */
 	activated?: boolean;
+	/** Tags attached to the check. */
 	tags?: string[];
 	/**
 	 * Inverts pass/fail: when `true`, a response status >= 400 counts as
@@ -62,27 +78,43 @@ export interface ApiCheckInput {
 	 * to `false`.
 	 */
 	shouldFail?: boolean;
+	/** The request the check sends. */
 	request: ApiCheckRequest;
 }
 
+/** An API check as Checkly returns it. */
 export interface ApiCheck {
+	/** Checkly's id for the check. */
 	id: string;
+	/** The check's display name. */
 	name: string;
+	/** The kind of check; always `"API"` here. */
 	checkType: "API";
+	/** Whether the check runs on its schedule. */
 	activated: boolean;
+	/** Minutes between runs. */
 	frequency: number;
+	/** The regions the check runs from, or `null` when none are set. */
 	locations: string[] | null;
+	/** Tags attached to the check. */
 	tags: string[];
+	/** Whether a status of 400 or above counts as passing. */
 	shouldFail: boolean;
+	/** The request the check sends. */
 	request: ApiCheckRequest;
+	/** When the check was created, as an ISO timestamp. */
 	created_at: string;
+	/** When the check was last updated, as an ISO timestamp, or `null`. */
 	updated_at: string | null;
 }
 
+/** Options for listing checks. */
 export interface ListChecksParams {
 	/** Case-insensitive partial match on the check name. */
 	search?: string;
+	/** The maximum number of checks per page. */
 	limit?: number;
+	/** The page to fetch. */
 	page?: number;
 }
 

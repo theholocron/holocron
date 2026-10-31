@@ -1,7 +1,9 @@
 import type { PostmanCollection } from "../collections/collections.js";
 import type { RestClient } from "../utils.js";
 
+/** The response of importing an OpenAPI definition. */
 export interface PostmanImportOpenApiResponse {
+	/** The collections the import created. */
 	collections: PostmanCollection[];
 }
 

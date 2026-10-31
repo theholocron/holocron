@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createChecklyClient`. */
 export interface ChecklyClientOptions {
 	/** Checkly API key — sent as a Bearer token. */
 	token: string;
