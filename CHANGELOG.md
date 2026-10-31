@@ -1,3 +1,9 @@
+## [5.0.0-alpha.271](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.270...v5.0.0-alpha.271) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 every plugin lists the tokens doctor tokens checks ([#1447](https://github.com/theholocron/holocron/issues/1447)) ([512660e](https://github.com/theholocron/holocron/commit/512660e08a48f06f499d59c010222cc0d8eb0040)), closes [#1448](https://github.com/theholocron/holocron/issues/1448) [#1444](https://github.com/theholocron/holocron/issues/1444) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
 ## [5.0.0-alpha.270](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.269...v5.0.0-alpha.270) (2026-10-31)
 
 ### Features
