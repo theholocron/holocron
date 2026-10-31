@@ -1,6 +1,7 @@
 /** Comment style produced by workflowHeader. */
 export type WorkflowHeaderFormat = "yaml" | "cjs" | "shebang";
 
+/** Where a generated file came from, for the header `createHeader` writes. */
 export interface CreateHeaderOptions {
 	/** Path within theholocron/holocron that owns the file being generated. */
 	source: string;
@@ -10,6 +11,7 @@ export interface CreateHeaderOptions {
 	forPrimary?: boolean;
 }
 
+/** The header writers `createHeader` returns, one per kind of generated file. */
 export interface HeaderFunctions {
 	/**
 	 * "AUTO-GENERATED — do not edit" header for files managed on every run.

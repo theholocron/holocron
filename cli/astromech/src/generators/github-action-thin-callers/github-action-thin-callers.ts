@@ -39,6 +39,7 @@ import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.typ
 import { groupedPublishCaller } from "./grouped-publish/index.js";
 import { yamlScalar } from "./grouped-publish/yaml-scalar.js";
 
+/** The reusable-workflow thin-caller templates, by task name. */
 export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	"verification.unitTests": unitTestsYml,
 	"verification.visualRegression": visualRegressionYml,
@@ -71,6 +72,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	bookkeeping: bookkeepingYml,
 };
 
+/** The task names that have a thin-caller workflow template. */
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
 
 /**

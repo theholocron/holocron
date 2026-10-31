@@ -24,6 +24,7 @@ function jobSwitches(config: TasksConfig, name: string): { jobSwitches?: Record<
 	return jobs ? { jobSwitches: jobs } : {};
 }
 
+/** Runs every configured task under a namespace (`sourceQuality` runs `sourceQuality.*`) in sequence and reports each. */
 export function runGroup(input: GroupInput): GroupReport {
 	const { print, namespace } = input;
 	const names = matchNamespace(input.config, namespace);

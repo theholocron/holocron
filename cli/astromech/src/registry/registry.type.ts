@@ -46,6 +46,7 @@ export interface JobDef {
 	alias?: string;
 }
 
+/** One registry task: how `holocron run <task>` resolves, runs and reports it. */
 export interface TaskDef {
 	/**
 	 * Sub-job slugs that no longer exist but that a reusable workflow synced earlier may still pass:
