@@ -64,6 +64,10 @@ function jobEnabled(name: string, jobDef: JobDef, switches: Record<string, boole
 	return switches[name] !== false && (jobDef.alias === undefined || switches[jobDef.alias] !== false);
 }
 
+/**
+ * Resolves one registry task (an explicit turbo task, a `package.json` script, then the registry's built-in runner)
+ * and runs it, or prints the command on a dry run.
+ */
 export function runTask(input: RunTaskInput): RunTaskReport {
 	const { print, logger, readFile, fileExists, listDir, task, cwd } = input;
 	const def = TASKS[task];

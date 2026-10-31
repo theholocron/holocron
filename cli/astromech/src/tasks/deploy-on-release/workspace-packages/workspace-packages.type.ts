@@ -1,8 +1,12 @@
 /** A workspace package: absolute folder, and what its `package.json` says. */
 export interface WorkspacePackage {
+	/** The package's `name`. */
 	name: string;
+	/** Absolute path of the package folder. */
 	dir: string;
+	/** The package's `version`; `undefined` when its manifest has none. */
 	version: string | undefined;
+	/** The package's `dependencies`, name to range. */
 	dependencies: Record<string, string>;
 	/**
 	 * A workspace:* devDependency can optionally count too (holocron#1071,

@@ -1,6 +1,8 @@
 /** Minimal structural logger — `@theholocron/observability`'s `Logger` satisfies it. */
 export interface RunLogger {
+	/** Records a debug-level structured line. */
 	debug(obj: Record<string, unknown>, msg?: string): void;
+	/** Records a warning. */
 	warn(obj: Record<string, unknown>, msg?: string): void;
 }
 
@@ -31,6 +33,7 @@ export interface RunDeps {
 	lookPath: (cwd: string, bin: string) => string | null;
 }
 
+/** What `runTask` needs for one task: the task, where to run it, and the injected dependencies. */
 export interface RunTaskInput extends RunDeps {
 	/** Registry task name, e.g. `"test"`. */
 	task: string;
@@ -59,9 +62,12 @@ export interface RunTaskInput extends RunDeps {
 	jobSwitches?: Record<string, boolean>;
 }
 
+/** The result of `runTask`. */
 export interface RunTaskReport {
+	/** `ok`, `fail`, `skip` (no such task for this repo), `dry-run` or `unknown` (not a registry task). */
 	status: "ok" | "fail" | "skip" | "dry-run" | "unknown";
 	/** Resolved command, for the caller / tests. */
 	command?: string;
+	/** Why the task failed or was skipped. */
 	message?: string;
 }

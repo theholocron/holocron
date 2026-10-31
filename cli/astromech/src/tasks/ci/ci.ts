@@ -17,6 +17,7 @@ import { CI_ORDER } from "../../registry/index.js";
 import { runTask } from "../run/index.js";
 import type { CiInput, CiJobReport, CiReport } from "./ci.type.js";
 
+/** Runs the merge-gating tasks in CI order and reports each job and an overall `ok` or `fail`. */
 export function runCi(input: CiInput): CiReport {
 	const { print } = input;
 

@@ -1,3 +1,4 @@
+/** Where a repo's pull-request previews are deployed. */
 export interface PreviewConfig {
 	/** Cloudflare Pages project name shared across all repos for previews. */
 	project: string;
