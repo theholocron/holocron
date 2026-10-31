@@ -11,6 +11,7 @@ import {
 	createCodecovConfig,
 	ensureFlagManagement,
 	ensureIfNotFound,
+	ensureIgnore,
 	ensureInformationalComponentStatuses,
 	mergeCodecovComponents,
 	readWorkspacePackages,
@@ -528,6 +529,32 @@ describe("ensureInformationalComponentStatuses", () => {
 			"component_management:\n  default_rules:\n    statuses:\n      - type: patch\n        target: 80%\n";
 		expect(ensureInformationalComponentStatuses(noMarker)).toContain("informational: true");
 		expect(ensureInformationalComponentStatuses("codecov:\n")).toBe("codecov:\n");
+	});
+});
+
+describe("ensureIgnore", () => {
+	it("inserts the docs globs before coverage, once", () => {
+		const out = ensureIgnore("codecov:\n  require_ci_to_pass: true\n\ncoverage:\n  precision: 2\n");
+		expect(out).toBe(
+			'codecov:\n  require_ci_to_pass: true\n\nignore:\n  - "**/*.mdx"\n\ncoverage:\n  precision: 2\n'
+		);
+		expect(ensureIgnore(out)).toBe(out);
+	});
+
+	it("keeps globs already listed and adds only the missing one", () => {
+		const own = 'ignore:\n  - "**/*.snap"\n\ncoverage:\n';
+		expect(ensureIgnore(own)).toBe('ignore:\n  - "**/*.snap"\n  - "**/*.mdx"\n\ncoverage:\n');
+		const done = "ignore:\n  - **/*.mdx\n\ncoverage:\n";
+		expect(ensureIgnore(done)).toBe(done);
+	});
+
+	it("appends the list when there is no coverage section", () => {
+		expect(ensureIgnore("codecov:\n")).toBe('codecov:\n\nignore:\n  - "**/*.mdx"');
+	});
+
+	it("is written into a new codecov.yml and into one that is merged", () => {
+		expect(createCodecovConfig([])).toContain('ignore:\n  - "**/*.mdx"');
+		expect(mergeCodecovComponents("coverage:\n  precision: 2\n", [])).toContain('ignore:\n  - "**/*.mdx"');
 	});
 });
 

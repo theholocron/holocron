@@ -274,8 +274,9 @@ unverified/unattributed commit. Repository-admin bypass still covers the real
 risk. And the `codecov.yml` `holocron repo setup` writes carries `if_not_found:
 success` on every status default, so an infra-only PR (dep bump, config,
 lockfile — no coverable change) passes instead of hanging on a `codecov/*`
-required check that never posts. A re-run of `holocron repo setup` backfills both into
-an existing repo.
+required check that never posts. It also ignores `**/*.mdx`, so a docs-only PR that
+adds pages is not judged to change testable files and left with an empty upload.
+A re-run of `holocron repo setup` backfills all of these into an existing repo.
 
 ### Default branch (`repo.defaultBranch`)
 

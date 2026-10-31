@@ -226,10 +226,37 @@ export function ensureInformationalComponentStatuses(yaml: string): string {
 	return lines.join("\n");
 }
 
-/** Everything `codecov.yml` needs on top of the components list: if_not_found, flags, scoped aggregates, informational components. */
+/** Documentation Codecov would otherwise count as testable code, though nothing reports coverage for it. */
+const IGNORED_DOCS = ["**/*.mdx"];
+
+const ignoreEntry = (glob: string) => `  - "${glob}"`;
+
+/**
+ * Ensure a top-level `ignore:` list names the documentation files in {@link IGNORED_DOCS}. Without it a docs-only
+ * PR that adds `.mdx` pages is judged to change testable files, posts no coverage and fails `codecov/patch` and
+ * `codecov/project` ("Empty Upload", #1442). A missing list is inserted before `coverage:`; an existing one only
+ * gains the entries it lacks, so hand-added globs survive.
+ */
+export function ensureIgnore(yaml: string): string {
+	const lines = yaml.split("\n");
+	const range = section(lines, "ignore");
+	if (!range) {
+		const block = ["ignore:", ...IGNORED_DOCS.map(ignoreEntry), ""];
+		const at = lines.indexOf("coverage:");
+		if (at === -1) {
+			while (lines.at(-1) === "") lines.pop();
+			lines.push("", ...block.slice(0, -1));
+		} else lines.splice(at, 0, ...block);
+		return lines.join("\n");
+	}
+	appendMissingItems(lines, range[0], range[1], IGNORED_DOCS, /^ {2}- ["']?([^"'\s]+)/, ignoreEntry);
+	return lines.join("\n");
+}
+
+/** Everything `codecov.yml` needs on top of the components list: if_not_found, ignored docs, flags, scoped aggregates, informational components. */
 function applyStatusRules(yaml: string, flags: string[]): string {
 	return ensureInformationalComponentStatuses(
-		scopeAggregateStatuses(ensureFlagManagement(ensureIfNotFound(yaml), flags), flags)
+		scopeAggregateStatuses(ensureFlagManagement(ensureIgnore(ensureIfNotFound(yaml)), flags), flags)
 	);
 }
 
