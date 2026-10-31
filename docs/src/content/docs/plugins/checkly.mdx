@@ -1,0 +1,114 @@
+---
+title: Checkly Plugin
+description: Implements the monitoring capability via Checkly's REST API (API checks).
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-checkly"]} capability="monitoring" />
+
+<Installation package={getPlugins()["holocron-plugin-checkly"].package} dev />
+
+<CapabilitiesTable rows={[{ capability: "monitoring", token: "HOLOCRON_CHECKLY_TOKEN (checkly)" }]} />
+
+Only API checks are managed. Browser checks, heartbeats and dashboards are out of scope until a real consumer needs them.
+
+## Config
+
+```ts
+providers: {
+  monitoring: ["checkly", {
+    // Required: sent as the x-checkly-account header on every request
+    accountId: "<your Checkly account id>",
+    // Checks `holocron repo setup` ensures exist, matched and upserted by exact name
+    checks: [
+      {
+        name: "Sentinel webhook uptime",
+        url: "https://sentinel.theholocron.dev/api/webhook",
+        method: "GET",
+        locations: ["us-east-1"],
+        shouldFail: true, // 405 is the EXPECTED healthy response here
+        assertions: [
+          { source: "status_code", comparison: "equals", target: "405" },
+        ],
+      },
+    ],
+  }],
+}
+```
+
+### Options
+
+| Option      | Required | Description                                                                                |
+| ----------- | -------- | ------------------------------------------------------------------------------------------ |
+| `accountId` | Yes      | Checkly account id. Not a secret (the same status as Vercel's `teamId`)                    |
+| `checks`    | No       | The API checks `holocron repo setup` ensures exist; each is matched and upserted by `name` |
+
+### Check fields
+
+| Field        | Description                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------- |
+| `name`       | Exact name used to find the check                                                                           |
+| `url`        | URL to request                                                                                              |
+| `method`     | HTTP method, `GET` when omitted                                                                             |
+| `body`       | Request body, to simulate a real request (for example an unsigned `POST`)                                   |
+| `locations`  | Run locations. Required in practice: Checkly rejects a check with no location on an account with no default |
+| `frequency`  | How often the check runs                                                                                    |
+| `activated`  | Whether the check is enabled                                                                                |
+| `shouldFail` | Required when the healthy response is itself an HTTP error status (see below)                               |
+| `assertions` | List of `{ source, comparison, property?, target? }`                                                        |
+
+Assertion `source` is one of `status_code`, `response_time`, `body` or `header`. `comparison` is one of `equals`, `not_equals`, `contains`, `not_contains`, `greater_than` or `less_than`.
+
+:::caution
+Checkly classifies any response of 400 or above as a platform-level failure before assertions run. When the healthy response is an error status (a 405 or 401 that proves an endpoint is wired correctly), set `shouldFail: true`. An assertion matching that status does not override it.
+:::
+
+## Authentication
+
+Create a regular **User API key** under **Account settings → API keys** in [Checkly](https://app.checklyhq.com/settings/user/api-keys). Account-scoped Service API keys survive personnel changes and carry granular roles, but they need the Starter tier or above, so they are not available on the free Hobby tier.
+
+Store it:
+
+```bash
+holocron auth set checkly <KEY>
+holocron auth check checkly
+```
+
+`auth check` verifies the key with `GET /v1/accounts`, the one Checkly endpoint that does not require `x-checkly-account`. It works before any `accountId` is in scope.
+
+Or via env var:
+
+```bash
+export HOLOCRON_CHECKLY_TOKEN=...
+# Also recognized:
+export CHECKLY_API_KEY=...
+```
+
+Resolution order: the `--token` flag, `HOLOCRON_CHECKLY_TOKEN`, `CHECKLY_API_KEY`, the OS keyring (service `com.theholocron.cli`, account `checkly`), then an error naming all four.
+
+## What `monitoring` provides
+
+- `ensureCheck(input)`: finds the check by exact name (Checkly's `search` is a case-insensitive partial match, so results are filtered client-side), then creates or updates it.
+- `ensureAlertChannel(input)`: finds an alert channel by name or creates one, and subscribes every check. This is how `holocron notifications setup` feeds a Discord channel from your checks (see [Server as Code](/holocron/server-as-code/)).
+- `whoami()`: a lightweight auth probe (`GET /checks?limit=1`).
+- `checks`: the configured check list, which `holocron repo setup` loops over.
+
+The plugin also contributes probes for `holocron probe` (see the [probe command](/holocron/commands/probe/)).
+
+## Example
+
+```ts
+import { createPlugin } from "@theholocron/holocron-plugin-checkly";
+
+const plugin = createPlugin({
+  accountId: "<your Checkly account id>",
+  checks: [{ name: "API uptime", url: "https://api.example.com/health", locations: ["us-east-1"] }],
+});
+const monitoring = plugin.capabilities.monitoring();
+
+await monitoring.ensureCheck(monitoring.checks[0]);
+```
+
+The HTTP calls go through [`@theholocron/checkly-client`](/holocron/clients/checkly/).

@@ -1,0 +1,95 @@
+---
+title: Netlify Plugin
+description: Implements the deployment capability via Netlify's REST API.
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-netlify"]} capability="deployment" />
+
+<Installation package={getPlugins()["holocron-plugin-netlify"].package} dev />
+
+<CapabilitiesTable rows={[{ capability: "deployment", token: "HOLOCRON_NETLIFY_TOKEN (netlify)" }]} />
+
+## Config
+
+```ts
+providers: {
+  deployment: ["netlify", {
+    // Needed by listProjects / ensureProject: create-site is scoped to /{account_slug}/sites
+    accountSlug: "my-team",
+    // Needed by listEnvVars / setEnvVar: the env var API is scoped to /accounts/{account_id}/env
+    accountId: "6ac41cd9a87355ef3d13d261",
+    // Custom domain `holocron repo setup` attaches to the site
+    domain: "app.example.com",
+  }],
+}
+```
+
+### Options
+
+| Option        | Required | Description                                                                                      |
+| ------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `accountSlug` | No       | Account slug. Required for `ensureProject` (the call throws without it)                          |
+| `accountId`   | No       | Account id, not the slug. Required for the env var methods (they throw without it). Not a secret |
+| `domain`      | No       | Custom domain attached to the site by `holocron repo setup`                                      |
+
+## Authentication
+
+### 1. Generate a token
+
+Create a Personal Access Token under **User settings → Applications → Personal access tokens** in [Netlify](https://app.netlify.com/user/applications#personal-access-tokens).
+
+### 2. Store the token
+
+```bash
+holocron auth set netlify <TOKEN>
+holocron auth check netlify
+```
+
+`auth check` verifies the token with Netlify's `GET /user`.
+
+Or via env var:
+
+```bash
+export HOLOCRON_NETLIFY_TOKEN=...
+# Also recognized:
+export NETLIFY_AUTH_TOKEN=...
+```
+
+Resolution order: the `--token` flag, `HOLOCRON_NETLIFY_TOKEN`, `NETLIFY_AUTH_TOKEN`, the OS keyring (service `com.theholocron.cli`, account `netlify`), then an error naming all four.
+
+## What `deployment` provides
+
+A thin wrapper over the `sites`, `deploys`, `env` and `user` resources of [`@theholocron/netlify-client`](/holocron/clients/netlify/).
+
+| Method                           | Netlify call                                                                                                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `listProjects` / `ensureProject` | `sites.list` / `sites.create`                                                                                                                                            |
+| `getDeployment`                  | `deploys.get`                                                                                                                                                            |
+| `listEnvVars` / `setEnvVar`      | `env.list` / `env.set`                                                                                                                                                   |
+| `ensureCustomDomain`             | `sites.update({ custom_domain })`. Returns a CNAME record unconditionally, so idempotency relies on `Dns.upsertRecord()` being a safe no-op on an already-correct record |
+
+Required by the `Deployment` interface but not exercised by any current consumer:
+
+- `updateProjectSettings`: Netlify has no equivalent of Vercel's git-linked project settings, so it no-ops to `sites.get`.
+- `triggerDeployment`: calls `sites.triggerBuild`, untested against a real git-linked Netlify site.
+
+Not implemented:
+
+- `deployFunction`: the interface takes text-only files, and Netlify runs no install step for a raw function upload, so a function would need its real `node_modules` zipped alongside. Call `deploys.create()` on the client directly instead.
+- `listPreviewDeployments` and `deletePreviewDeployments` (both optional on the interface).
+
+## Example
+
+```ts
+import { createPlugin } from "@theholocron/holocron-plugin-netlify";
+
+const plugin = createPlugin({
+  token: process.env.HOLOCRON_NETLIFY_TOKEN,
+  accountSlug: "my-team",
+  accountId: "6ac41cd9a87355ef3d13d261",
+});
+const deployment = plugin.capabilities.deployment();
+```

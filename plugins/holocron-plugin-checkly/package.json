@@ -8,7 +8,7 @@
     "monitoring",
     "plugin"
   ],
-  "homepage": "https://docs.theholocron.dev/holocron/plugins/overview/",
+  "homepage": "https://docs.theholocron.dev/holocron/plugins/checkly/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
