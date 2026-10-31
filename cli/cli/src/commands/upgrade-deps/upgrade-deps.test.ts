@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { bumpCatalogs, fetchLatestFromNpm, gt, isLegacyConfig, migrateConfig, runUpgradeDeps } from "./upgrade-deps.js";
+import { bumpCatalogs, fetchLatestFromNpm, isLegacyConfig, migrateConfig, runUpgradeDeps } from "./upgrade-deps.js";
 import type { FetchLatest } from "./upgrade-deps.type.js";
 
 const fakeLatest =
@@ -34,20 +34,6 @@ describe("fetchLatestFromNpm", () => {
 			.mockResolvedValue(new Response(JSON.stringify({ "dist-tags": { next: "5.0.0" } }), { status: 200 }));
 		await expect(fetchLatestFromNpm("@theholocron/cli")).resolves.toBeNull();
 		spy.mockRestore();
-	});
-});
-
-describe("gt", () => {
-	it("compares x.y.z release versions", () => {
-		expect(gt("4.15.0", "3.45.1")).toBe(true);
-		expect(gt("8.2.0", "8.2.0")).toBe(false);
-		expect(gt("8.1.9", "8.2.0")).toBe(false);
-		expect(gt("1.10.0", "1.9.0")).toBe(true);
-	});
-	it("treats missing version segments as 0", () => {
-		expect(gt("4.1", "4")).toBe(true);
-		expect(gt("4", "4.0.0")).toBe(false);
-		expect(gt("4.0.1", "4.0")).toBe(true);
 	});
 });
 

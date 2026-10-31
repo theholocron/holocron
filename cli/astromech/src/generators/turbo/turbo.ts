@@ -20,6 +20,7 @@
  */
 
 import { stringifyJson } from "@theholocron/json-utils";
+import { addWorkspaceMember } from "@theholocron/pkg-utils";
 
 import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
 import { TASKS } from "../../registry/index.js";
@@ -148,15 +149,11 @@ export function turboConfig(config: TasksConfig): string | null {
  * <task>` again, forever). Only a matching script whose value is *not* that
  * wrapper counts as "root is genuinely a directly-buildable package".
  *
- * A targeted line-based edit, not a full YAML parse/reserialize — same
- * pattern `codecov.ts`'s `mergeCodecovComponents()` already uses for editing
- * an existing generated file. `pnpm-workspace.yaml` routinely carries a
- * `catalog:`/`catalogs:`/`overrides:` block after `packages:`; a real parser
- * round-trip risks reformatting or reordering content nobody asked to touch.
- * Only ever *adds* a line — never rewrites or reorders anything already
- * there — and is a no-op (`changed: false`) whenever root doesn't need it,
- * root is already listed, or `packages:` isn't in the plain block-list form
- * every repo checked actually uses.
+ * The edit itself is `addWorkspaceMember()` in `@theholocron/pkg-utils`: a
+ * targeted line-based edit that only ever adds a line. This function decides
+ * whether root needs it; it is a no-op (`changed: false`) whenever root
+ * doesn't, root is already listed, or `packages:` isn't in the plain
+ * block-list form every repo checked actually uses.
  */
 export function ensureRootWorkspaceMember(
 	workspaceYaml: string,
@@ -169,30 +166,7 @@ export function ensureRootWorkspaceMember(
 	});
 	if (!rootHasEligibleTask) return { content: workspaceYaml, changed: false };
 
-	const lines = workspaceYaml.split("\n");
-	const packagesLineIdx = lines.findIndex((l) => /^packages:\s*$/.test(l));
-	if (packagesLineIdx === -1) return { content: workspaceYaml, changed: false };
-
-	const items: string[] = [];
-	let cursor = packagesLineIdx + 1;
-	while (cursor < lines.length && /^\s*-\s*/.test(lines[cursor]!)) {
-		items.push(lines[cursor]!);
-		cursor++;
-	}
-
-	const alreadyIncluded = items.some((item) => {
-		const value = item
-			.replace(/^\s*-\s*/, "")
-			.replace(/^["']|["']$/g, "")
-			.trim();
-		return value === "." || value === "";
-	});
-	if (alreadyIncluded) return { content: workspaceYaml, changed: false };
-
-	const indent = items[0]?.match(/^(\s*-\s*)/)?.[1] ?? "  - ";
-	const newLine = `${indent}"."`;
-	const newLines = [...lines.slice(0, packagesLineIdx + 1), newLine, ...lines.slice(packagesLineIdx + 1)];
-	return { content: newLines.join("\n"), changed: true };
+	return addWorkspaceMember(workspaceYaml, ".");
 }
 
 /**

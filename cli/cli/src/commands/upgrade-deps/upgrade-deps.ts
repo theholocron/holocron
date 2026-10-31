@@ -20,11 +20,11 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { bumpCatalogPins, type CatalogBump, type FetchLatest } from "@theholocron/pkg-utils";
+
 import { getLogger } from "../../observability/logger/index.js";
 import type {
-	CatalogBump,
 	ConfigMigration,
-	FetchLatest,
 	RunUpgradeDepsInput,
 	UpgradeDepsReport,
 	UpgradeDepsStatus,
@@ -47,58 +47,19 @@ export const fetchLatestFromNpm: FetchLatest = async (pkg) => {
 	}
 };
 
-// ── semver (just enough) ─────────────────────────────────────────────────────
-
-/** `a > b` for `x.y.z` release versions (prerelease tags are ignored). */
-export function gt(a: string, b: string): boolean {
-	const pa = a.split(".").map((n) => parseInt(n, 10));
-	const pb = b.split(".").map((n) => parseInt(n, 10));
-	for (let i = 0; i < 3; i++) {
-		const x = pa[i] ?? 0;
-		const y = pb[i] ?? 0;
-		if (x !== y) return x > y;
-	}
-	return false;
-}
-
 // ── 1. catalog pins ──────────────────────────────────────────────────────────
 
-const CATALOG_LINE = /^(\s*['"]?)(@theholocron\/[a-z0-9-]+)(['"]?\s*:\s*['"]?)([~^]?)(\d+\.\d+\.\d+[\w.-]*)(['"]?\s*)$/;
+const HOLOCRON_PACKAGE = /^@theholocron\/[a-z0-9-]+$/;
 
 /**
  * Rewrite every `@theholocron/*` pin in a `pnpm-workspace.yaml` to `latest`,
  * keeping the range prefix. `latest` is looked up once per package.
  */
-export async function bumpCatalogs(
+export function bumpCatalogs(
 	content: string,
 	fetchLatest: FetchLatest
 ): Promise<{ content: string; bumps: CatalogBump[] }> {
-	const lines = content.split("\n");
-	const wanted = new Set<string>();
-	for (const line of lines) {
-		const m = CATALOG_LINE.exec(line);
-		if (m) wanted.add(m[2]!);
-	}
-
-	const latest = new Map<string, string | null>();
-	await Promise.all(
-		[...wanted].map(async (pkg) => {
-			latest.set(pkg, await fetchLatest(pkg));
-		})
-	);
-
-	const bumps: CatalogBump[] = [];
-	const out = lines.map((line) => {
-		const m = CATALOG_LINE.exec(line);
-		if (!m) return line;
-		const [, pre, pkg, mid, prefix, current, post] = m;
-		const next = latest.get(pkg!);
-		if (!next || next === current || !gt(next, current!)) return line;
-		bumps.push({ pkg: pkg!, from: current!, to: next });
-		return `${pre}${pkg}${mid}${prefix}${next}${post}`;
-	});
-
-	return { content: out.join("\n"), bumps };
+	return bumpCatalogPins(content, fetchLatest, { include: (pkg) => HOLOCRON_PACKAGE.test(pkg) });
 }
 
 /** True if the file still uses the 7.x preset shape. */

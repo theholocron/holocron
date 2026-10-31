@@ -1,14 +1,9 @@
 import type { Logger } from "@theholocron/observability/core";
+import type { CatalogBump, FetchLatest } from "@theholocron/pkg-utils";
 
 // ── npm registry ─────────────────────────────────────────────────────────────
 
-export type FetchLatest = (pkg: string) => Promise<string | null>;
-
-export interface CatalogBump {
-	pkg: string;
-	from: string;
-	to: string;
-}
+export type { CatalogBump, FetchLatest } from "@theholocron/pkg-utils";
 
 // ── 2. holocron.config.ts migration (7.x → 8.x) ──────────────────────────────
 
