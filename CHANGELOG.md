@@ -1,3 +1,9 @@
+## [5.0.0-alpha.269](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.268...v5.0.0-alpha.269) (2026-10-31)
+
+### Features
+
+* **cli:** ⏰ doctor tokens warns a week before a token expires ([#1449](https://github.com/theholocron/holocron/issues/1449)) ([8069eab](https://github.com/theholocron/holocron/commit/8069eab96c5a015440750d569965f1629f99008d))
+
 ## [5.0.0-alpha.268](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.267...v5.0.0-alpha.268) (2026-10-31)
 
 ### Features
