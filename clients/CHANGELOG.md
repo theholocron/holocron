@@ -1,3 +1,9 @@
+## [1.58.0-alpha.3](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.2...clients-v1.58.0-alpha.3) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 doctor repo — check the repository settings match the config ([#1456](https://github.com/theholocron/holocron/issues/1456)) ([c157fbb](https://github.com/theholocron/holocron/commit/c157fbb34483e63bbd5fcfdf677f1c84fbeeaaf4)), closes [#1454](https://github.com/theholocron/holocron/issues/1454) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
 ## [1.58.0-alpha.2](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.1...clients-v1.58.0-alpha.2) (2026-10-31)
 
 ### Features
