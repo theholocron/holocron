@@ -50,6 +50,14 @@ describe("runProbeCommand", () => {
 		expect(listing.text()).toMatch(/deps\n\s+check/);
 	});
 
+	it("hands --lcov to the probe, and nothing when it was not given", async () => {
+		read.mockClear();
+		await run({ provider: "demo", probe: "look", lcov: "coverage/docs.lcov" }).promise;
+		expect(read.mock.calls[0]![0]).toMatchObject({ lcov: "coverage/docs.lcov" });
+		await run({ provider: "demo", probe: "look" }).promise;
+		expect(read.mock.calls[1]![0]).not.toHaveProperty("lcov");
+	});
+
 	it("lists every provider and probe, marking the ones that change things", async () => {
 		const { promise, text } = run();
 		expect((await promise).status).toBe("listed");
