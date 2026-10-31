@@ -32,7 +32,7 @@ function jobsOf(yaml: string): Job[] {
 	const body = yaml.split(/^jobs:\s*$/m)[1];
 	if (body === undefined) return [];
 	const jobs: Job[] = [];
-	for (const block of body.split(/^(?=  [\w-]+:\s*$)/m)) {
+	for (const block of body.split(/^(?= {2}[\w-]+:\s*$)/m)) {
 		const id = block.match(/^ {2}([\w-]+):\s*$/m)?.[1];
 		if (!id) continue;
 		const name = block.match(/^ {4}name:\s*(.+?)\s*$/m)?.[1];
