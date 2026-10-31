@@ -92,7 +92,9 @@ export interface SourceRepoInfo {
 	description: string | null;
 	/** `null` when none is set. */
 	homepage: string | null;
+	/** The branch a fresh clone checks out. */
 	defaultBranch: string;
+	/** The topics set on the repository. */
 	topics: string[];
 	/** The merge and feature settings the provider reports; one it does not report is left out. */
 	settings: RepoSettings;
@@ -100,7 +102,9 @@ export interface SourceRepoInfo {
 
 /** A ruleset in full, as {@link Source.getRulesetDetail} reports it. */
 export interface SourceRulesetDetail {
+	/** The ruleset's name. */
 	name: string;
+	/** Whether the ruleset is enforced. */
 	enforcement: Ruleset["enforcement"];
 	/** The `type` of each rule, e.g. `deletion`, `pull_request`. */
 	ruleTypes: string[];
@@ -110,10 +114,15 @@ export interface SourceRulesetDetail {
 
 /** Which security features are on, as {@link Source.getSecurity} reports them. A feature left out was not reported. */
 export interface SourceSecurity {
+	/** Vulnerability alerts are on. */
 	vulnerabilityAlerts?: boolean;
+	/** Automated security updates are on. */
 	automatedSecurityFixes?: boolean;
+	/** Secret scanning is on. */
 	secretScanning?: boolean;
+	/** Secret scanning push protection is on. */
 	secretScanningPushProtection?: boolean;
+	/** Private vulnerability reporting is on. */
 	privateVulnerabilityReporting?: boolean;
 	/** Whether CodeQL default setup is configured. */
 	codeScanningDefaultSetup?: boolean;

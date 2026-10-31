@@ -5,7 +5,9 @@ export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
 
 /** A team with access to a repository, and the permission it has there. */
 export interface RepoTeam {
+	/** The team's slug. */
 	slug: string;
+	/** The team's permission on the repository. */
 	permission: TeamPermission;
 }
 

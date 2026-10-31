@@ -9,10 +9,10 @@ export interface GitHubRuleset {
 
 /** One ruleset in full, as `GET /repos/{repo}/rulesets/{id}` returns it. */
 export interface GitHubRulesetDetail extends GitHubRuleset {
+	/** What the ruleset applies to, e.g. `branch`. */
 	target?: string;
 	/** Each rule has a `type`; some carry `parameters`. */
 	rules?: Array<{ type: string; parameters?: Record<string, unknown> }>;
-	conditions?: { ref_name?: { include?: string[]; exclude?: string[] } };
 }
 
 export function rulesets(rest: RestClient) {

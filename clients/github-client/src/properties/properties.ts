@@ -13,6 +13,7 @@ export interface OrgProperty {
 
 /** One custom property value set on a repository. */
 export interface RepoPropertyValue {
+	/** The property's name. */
 	property_name: string;
 	/** A string, a string array for `multi_select`, or `null` when unset. */
 	value: string | string[] | null;
