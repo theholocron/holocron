@@ -311,6 +311,10 @@ function applyStatusRules(yaml: string, flags: string[], docsCoverage: DocsCover
 	);
 }
 
+/**
+ * Brings an existing `codecov.yml` up to date with the workspace packages (flags, components and status rules) and the
+ * repo's `options`, keeping every hand edit.
+ */
 export function mergeCodecovComponents(
 	existing: string,
 	packages: WorkspacePackage[],

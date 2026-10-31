@@ -5,6 +5,7 @@
  */
 export type DocsCoverageMode = "off" | "warn" | "required";
 
+/** Per-repo choices that change what the `codecov.yml` generator writes. */
 export interface CodecovConfigOptions {
 	/** Adds the `documentation` flag and its statuses to `codecov.yml`. Default `off`: nothing is added. */
 	docsCoverage?: DocsCoverageMode;

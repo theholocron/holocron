@@ -608,6 +608,7 @@ export interface ResolvedHolocronConfig {
 	org?: string;
 	domain?: string;
 	repo?: RepoConfig;
+	/** Which repo-wide checks this repo turns on (`docsCoverage`), validated by `resolveConfig`. */
 	repoValidation?: RepoValidationConfig;
 	tasks?: Array<string | TaskEntryConfig>;
 	syncScripts?: boolean;
