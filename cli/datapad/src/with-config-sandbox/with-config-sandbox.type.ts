@@ -1,3 +1,4 @@
+/** Options for the temporary directory a config is loaded in. */
 export interface ConfigSandboxOptions {
 	/**
 	 * A real `node_modules` directory to make visible from the sandbox. A config

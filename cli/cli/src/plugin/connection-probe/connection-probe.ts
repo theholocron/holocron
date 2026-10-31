@@ -3,6 +3,7 @@ import { lookup as dnsLookup } from "node:dns/promises";
 import type { VerifyTokenResult } from "../../commands/auth/auth.type.js";
 import type { Probe } from "../probe/index.js";
 
+/** What a connection probe needs to check a provider's host and token. */
 export interface ConnectionProbeInput {
 	/** How the provider is named in output, e.g. `Axiom`. */
 	provider: string;

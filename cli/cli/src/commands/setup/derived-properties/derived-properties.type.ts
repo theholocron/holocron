@@ -21,9 +21,13 @@ export type HolocronProfile = "library" | "cli" | "plugin" | "template" | "app" 
 /** The `package.json` shape profile derivation reads — `@theholocron/pkg-utils`'s `PackageJson`, under the name Sentinel already imports. */
 export type PackageJsonLike = PackageJson;
 
+/** What profile derivation reads to decide a repo's archetype. */
 export interface DeriveProfileInput {
+	/** The repo's root `package.json`, or `null` when it has none. */
 	rootPackageJson: PackageJsonLike | null;
+	/** The repository name, without the owner. */
 	repoName: string;
+	/** Whether the repo is a monorepo with several workspace packages. */
 	isMonorepo: boolean;
 	/** `packages/*` package.json contents, monorepo repos only — used to find the primary published artifact. */
 	workspacePackageJsons: PackageJsonLike[];

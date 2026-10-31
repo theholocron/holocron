@@ -1,3 +1,4 @@
+/** Options for loading a config from raw content rather than a file already on disk. */
 export interface LoadConfigFromContentOptions {
 	/**
 	 * Directory to write `<name>.config.<extension>` into before loading —

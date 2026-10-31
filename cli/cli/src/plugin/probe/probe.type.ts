@@ -1,7 +1,10 @@
 /** One line a probe reports: `info` for a fact, `ok` / `fail` for a result, `heading` to title the rows that follow. */
 export interface ProbeRow {
+	/** `ok` or `fail` for a result, `info` for a fact, `heading` to title the rows that follow. */
 	status: "ok" | "fail" | "info" | "heading";
+	/** The row's short title. */
 	label: string;
+	/** Further detail, when there is some. */
 	detail?: string;
 }
 
@@ -29,11 +32,13 @@ export interface ProbeContext {
 	secret(value: string | undefined): void;
 }
 
+/** A named, on-demand poke at a live provider. */
 export interface Probe {
 	/** One sentence for `holocron probe`'s listing. */
 	summary: string;
 	/** Whether it creates or changes anything on the provider. Asked about first, and needs `--yes` without a terminal. */
 	writes: boolean;
+	/** Runs the probe, reporting and changing things only through `ctx`. */
 	run(ctx: ProbeContext): Promise<void>;
 }
 

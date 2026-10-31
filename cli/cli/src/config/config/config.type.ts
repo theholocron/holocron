@@ -49,6 +49,7 @@ export interface TelemetryConfig {
 // Raw config (what users write in holocron.config.json)
 // ───────────────────────────────────────────────────────────────────────
 
+/** Options a provider plugin receives; their shape is the plugin's own. */
 export type ProviderOptions = Record<string, unknown>;
 
 /**
@@ -65,18 +66,25 @@ export type ProviderOptions = Record<string, unknown>;
  * } satisfies CapabilityConfigPackage
  */
 export interface CapabilityConfigPackage {
+	/** The provider's short name or package. */
 	provider: string;
+	/** Options passed to the provider. */
 	options?: ProviderOptions;
 }
 
+/** A single provider: a name, or a `[provider, options]` tuple. */
 export type SingleEntry = string | [provider: string, options: ProviderOptions];
 
+/** Several providers: a list of names or `[provider, options]` tuples. */
 export type MultiEntry = Array<string | [provider: string, options: ProviderOptions]>;
 
+/** A capability's provider entry as written in the config. */
 export type RawProviderEntry = SingleEntry | MultiEntry;
 
+/** The `providers` block as written in the config. */
 export type RawProvidersConfig = Partial<Record<CapabilityKey, RawProviderEntry>>;
 
+/** A branch-protection preset: `balanced`, `strict` or `none`. */
 export type RepoProtection = "balanced" | "strict" | "none";
 
 /**
@@ -102,10 +110,15 @@ export interface DocsConfig {
 	https?: boolean;
 }
 
+/** GitHub custom properties synced to the org dashboard. */
 export interface RepoProperties {
+	/** The repo's lifecycle stage. */
 	lifecycle?: "active" | "experimental" | "deprecated";
+	/** Whether the repo is open source. */
 	open_source?: boolean;
+	/** Where the code runs. */
 	runtime_environment?: "node" | "browser" | "universal" | "none";
+	/** Whether the repo depends on external packages. */
 	uses_external_packages?: boolean;
 }
 
@@ -170,6 +183,7 @@ export interface RepoValidationConfig {
 	docsCoverage?: DocsCoverageMode;
 }
 
+/** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron repo setup`. */
 export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */
 	name?: string;
@@ -212,16 +226,23 @@ export interface RepoConfig {
 	secrets?: RepoSecrets;
 }
 
+/** An application in the repo. */
 export interface AppConfig {
+	/** The application's name. */
 	name: string;
+	/** The application's directory. */
 	path: string;
+	/** What kind of application it is. */
 	kind?: string;
 }
 
+/** The `doctor` block. */
 export interface DoctorConfig {
+	/** Names of the checks `doctor` runs. */
 	checks?: string[];
 }
 
+/** The `env` block: how the project's environment variables are named and documented. */
 export interface EnvConfig {
 	/**
 	 * Namespace prefixes used by this project's env vars.
@@ -298,7 +319,9 @@ export interface ChromaticProjectConfig {
  * `path` is the working directory relative to the repo root; defaults to `"."` (repo root) when omitted.
  */
 export interface StorybookDeployProject {
+	/** The sub-path under `_site/sandbox/` the Storybook app is published to. */
 	name?: string;
+	/** The app's working directory relative to the repo root; defaults to `"."`. */
 	path?: string;
 }
 
@@ -330,9 +353,13 @@ export type WorkflowWithConfig = Record<string, unknown> & {
  * for `{ name, ci: true, local: true }`.
  */
 export interface TaskEntryConfig {
+	/** The task's name. */
 	name: string;
+	/** Inputs passed to the task's reusable workflow. */
 	with?: WorkflowWithConfig;
+	/** Path filters for the generated workflow's triggers. */
 	paths?: string[];
+	/** Linters this task runs. */
 	linters?: string[];
 	/** Emit a `.github/workflows/<name>.yml` thin caller + include in `holocron run ci`. Default `true`. */
 	ci?: boolean;
@@ -363,9 +390,11 @@ export interface TaskEntryConfig {
 	};
 }
 
+/** A `holocron.config` as a user writes it; `defineConfig` types it. */
 export interface HolocronConfig {
 	/** Project name. Derived from package.json when absent. */
 	name?: string;
+	/** A one-line description of the project. */
 	description?: string;
 	/** Project homepage URL. Synced to package.json#homepage and the GitHub repo's website field by `holocron repo sync`. */
 	homepage?: string;
@@ -503,8 +532,11 @@ export interface HolocronConfig {
 	 * off otherwise. `--hooks` / `--no-hooks` on `holocron repo setup` override.
 	 */
 	hooks?: boolean | { prePush?: boolean };
+	/** Which provider backs each capability. */
 	providers: RawProvidersConfig;
+	/** Applications in the repo. */
 	apps?: AppConfig[];
+	/** Settings for `holocron doctor`. */
 	doctor?: DoctorConfig;
 	/**
 	 * Agent runtime that determines where skills are installed by `holocron repo setup`.
@@ -582,6 +614,7 @@ export interface HolocronConfig {
  * { browserPackages: ["packages/github-client/src/app-auth"] }
  */
 export interface EslintConfig {
+	/** Repo-root-relative directories treated as browser-targeted. */
 	browserPackages?: string[];
 }
 
@@ -589,41 +622,67 @@ export interface EslintConfig {
 // Resolved config (what the runtime sees after parsing)
 // ───────────────────────────────────────────────────────────────────────
 
+/** A provider with its plugin package resolved. */
 export interface ResolvedTuple {
+	/** The provider's short name, e.g. `github`. */
 	provider: string;
 	/** Resolved package name (`@theholocron/holocron-plugin-<provider>` for short refs). */
 	packageName: string;
+	/** Options passed to the plugin. */
 	options: ProviderOptions;
 }
 
+/** A capability's resolved entry: one provider, or a list of providers. */
 export type ResolvedProviderEntry =
 	{ cardinality: "single"; tuple: ResolvedTuple } | { cardinality: "many"; tuples: ResolvedTuple[] };
 
+/** Resolved entries by capability. */
 export type ResolvedProvidersConfig = Partial<Record<CapabilityKey, ResolvedProviderEntry>>;
 
+/** A `holocron.config` after `resolveConfig`: defaults applied and provider entries resolved. */
 export interface ResolvedHolocronConfig {
+	/** Project name. */
 	name: string;
+	/** A one-line description of the project. */
 	description?: string;
+	/** Project homepage URL. */
 	homepage?: string;
+	/** Org name. */
 	org?: string;
+	/** Org canonical domain. */
 	domain?: string;
+	/** Repository settings. */
 	repo?: RepoConfig;
 	/** Which repo-wide checks this repo turns on (`docsCoverage`), validated by `resolveConfig`. */
 	repoValidation?: RepoValidationConfig;
+	/** The task manifest. */
 	tasks?: Array<string | TaskEntryConfig>;
+	/** Whether to sync the generated `package.json` scripts. */
 	syncScripts?: boolean;
+	/** The script used to invoke the `holocron` binary. */
 	holocronScript?: string;
+	/** Required status checks not backed by a task. */
 	extraRequiredChecks?: string[];
+	/** Git hooks `holocron repo setup` installs. */
 	hooks?: boolean | { prePush?: boolean };
+	/** Resolved provider entries by capability. */
 	providers: ResolvedProvidersConfig;
+	/** Applications in the repo; empty when none are declared. */
 	apps: AppConfig[];
+	/** Settings for `holocron doctor`; empty when none are declared. */
 	doctor: DoctorConfig;
+	/** The agent runtime skills are installed for. */
 	agent?: "claude" | "codex" | "gemini";
+	/** Names of the agent skills to install. */
 	skills?: string[];
 	/** Resolved Pages config. `build` is guaranteed present when this field exists. */
 	docs?: PagesConfig;
+	/** Environment-variable settings. */
 	env?: EnvConfig;
+	/** Logging settings. */
 	log?: LogConfig;
+	/** Telemetry settings. */
 	telemetry?: TelemetryConfig;
+	/** ESLint settings. */
 	eslint?: EslintConfig;
 }
