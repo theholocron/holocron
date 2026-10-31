@@ -1,0 +1,27 @@
+---
+title: "repo sync readme"
+description: Regenerate the Installation and Usage block of README.md from package.json.
+---
+
+```bash
+holocron repo sync readme [--dry-run]
+```
+
+Rewrites the marked blocks of `README.md` from the package's `package.json` and `holocron.config`: the description between the `holocron:description` markers, and the Installation and Usage section between `<!-- holocron:installation -->` and `<!-- /holocron:installation -->` (from `name`, `bin`, `peerDependencies` and whether the package is private). A private workspace root with nothing to install gets a note that it is not published instead of an install command. Text outside the markers is left alone.
+
+It is the `readme` step of [`holocron repo sync`](/holocron/commands/repo-sync/) and needs only `./holocron.config`, no provider plugins.
+
+## Options
+
+| Option      | Default | Description                             |
+| ----------- | ------- | --------------------------------------- |
+| `--dry-run` | `false` | Print what would change without writing |
+
+## Examples
+
+```bash
+holocron repo sync readme
+holocron repo sync readme --dry-run
+```
+
+Run it after changing `description` in `holocron.config.ts` or `bin` in `package.json`.

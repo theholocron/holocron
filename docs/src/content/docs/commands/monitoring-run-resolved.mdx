@@ -1,0 +1,26 @@
+---
+title: "monitoring run-resolved"
+description: Run an already-resolved check list against a URL, the trusted half of the preview check.
+---
+
+```bash
+holocron monitoring run-resolved <url> --checks-file <file> [--vercel-project <id|name>]
+```
+
+Reads a check list written by [`monitoring resolve-checks`](/holocron/commands/monitoring-resolve-checks/) and runs every check against `<url>`. It loads no config and no plugins, so it is safe to run with credentials in the environment: it is the trusted half of the `delivery.previewCheck` split.
+
+It reads these from the environment when set: `VERCEL_TOKEN` and `VERCEL_TEAM_ID` (to verify which project `<url>` belongs to) and `VERCEL_PROTECTION_BYPASS_SECRET` (the Deployment Protection bypass header). It exits non-zero when any check fails.
+
+## Arguments and options
+
+| Argument / Option  | Default      | Description                                                                                                                       |
+| ------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `<url>`            | _(required)_ | The URL to run every resolved check against                                                                                       |
+| `--checks-file`    | _(required)_ | The file to read the resolved checks from                                                                                         |
+| `--vercel-project` | —            | The Vercel project id or name `<url>` must resolve to before the bypass header is attached. Omitted, the header is never attached |
+
+## Example
+
+```bash
+holocron monitoring run-resolved https://my-preview.vercel.app --checks-file checks.json
+```

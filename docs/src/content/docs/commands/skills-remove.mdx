@@ -1,0 +1,31 @@
+---
+title: "skills remove"
+description: Remove installed agent skills.
+---
+
+```bash
+holocron skills remove [names..]
+```
+
+Removes installed skills via `npx skills remove`. Omit the names to remove every installed skill.
+
+## Arguments
+
+| Argument    | Default | Description                                    |
+| ----------- | ------- | ---------------------------------------------- |
+| `[names..]` | all     | The skills to remove (omit to remove them all) |
+
+## Examples
+
+```bash
+# One skill
+holocron skills remove git-safety
+
+# Several
+holocron skills remove git-safety pr-workflow
+
+# All of them
+holocron skills remove
+```
+
+Related: [`skills install`](/holocron/commands/skills-install/), [`skills update`](/holocron/commands/skills-update/).

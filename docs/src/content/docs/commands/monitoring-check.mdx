@@ -1,0 +1,34 @@
+---
+title: "monitoring check"
+description: Run every configured monitoring check against a URL, such as a PR's preview deployment.
+---
+
+```bash
+holocron monitoring check <url> [--vercel-project <id|name>]
+```
+
+Runs every configured `monitoring` check against `<url>` instead of each check's own configured `url`. It makes no vendor API call: it is a plain HTTP request evaluated locally against the same `assertions` already in `holocron.config.ts`.
+
+It is built for CI. The `delivery.previewCheck` task runs it against a PR's Vercel preview deployment (triggered by `deployment_status`, not `push` or `pull_request`), reusing the production check definitions to catch a breaking change before merge instead of after.
+
+It exits non-zero when any check fails, so the job's own pass or fail is the GitHub check.
+
+## Arguments and options
+
+| Argument / Option  | Default      | Description                                                                                                                                                                                 |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<url>`            | _(required)_ | The URL to test every configured check against                                                                                                                                              |
+| `--vercel-project` | —            | The Vercel project id or name `<url>` must resolve to before the Deployment Protection bypass header (`VERCEL_PROTECTION_BYPASS_SECRET`) is attached. Omitted, the header is never attached |
+
+## Configuration
+
+```ts
+export default defineConfig({
+  tasks: ["delivery.previewCheck"],
+  providers: {
+    monitoring: ["checkly", { accountId: "...", checks: [/* ... */] }],
+  },
+});
+```
+
+This command loads the config and plugins in one process. A workflow that runs a pull request's own `holocron.config.ts` should use the two-step form instead: [`monitoring resolve-checks`](/holocron/commands/monitoring-resolve-checks/), then [`monitoring run-resolved`](/holocron/commands/monitoring-run-resolved/).

@@ -1,0 +1,27 @@
+---
+title: "monitoring resolve-checks"
+description: Write the configured monitoring checks to a JSON file, the untrusted half of the preview check.
+---
+
+```bash
+holocron monitoring resolve-checks --out <file>
+```
+
+Loads `holocron.config` and the plugins, and writes the configured `monitoring` checks to `<file>` as JSON. It prints `Resolved N monitoring check(s) → <file>`.
+
+This is the untrusted half of the `delivery.previewCheck` split. It executes a pull request's own `holocron.config.ts`, so it must never run with a credential worth protecting (such as the Deployment Protection bypass secret) in its environment. [`monitoring run-resolved`](/holocron/commands/monitoring-run-resolved/) is the trusted half: it reads this file and makes the authenticated request without loading any config.
+
+## Options
+
+| Option  | Default      | Description                                   |
+| ------- | ------------ | --------------------------------------------- |
+| `--out` | _(required)_ | The file path to write the resolved checks to |
+
+## Example
+
+```bash
+holocron monitoring resolve-checks --out checks.json
+holocron monitoring run-resolved https://my-preview.vercel.app --checks-file checks.json
+```
+
+For a single process with no such split, use [`monitoring check`](/holocron/commands/monitoring-check/).

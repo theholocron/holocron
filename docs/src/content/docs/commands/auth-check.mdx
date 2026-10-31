@@ -1,0 +1,26 @@
+---
+title: "auth check"
+description: Re-verify a stored provider token.
+---
+
+```bash
+holocron auth check <provider>
+```
+
+Re-verifies the token stored for `<provider>` with the provider's plugin, without asking for a new one. Use it to confirm a token has not expired or been revoked.
+
+Exits with code 1 when the token is missing, expired or rejected by the provider.
+
+## Arguments
+
+| Argument     | Default      | Description                                                                         |
+| ------------ | ------------ | ----------------------------------------------------------------------------------- |
+| `<provider>` | _(required)_ | Provider name, e.g. `github.admin` (see [`auth set`](/holocron/commands/auth-set/)) |
+
+## Examples
+
+```bash
+holocron auth check github.admin
+```
+
+Related: [`auth set`](/holocron/commands/auth-set/), [`auth list`](/holocron/commands/auth-list/).

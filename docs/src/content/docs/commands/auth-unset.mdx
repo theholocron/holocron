@@ -1,0 +1,25 @@
+---
+title: "auth unset"
+description: Remove a stored provider token from the OS keyring.
+---
+
+```bash
+holocron auth unset <provider>
+```
+
+Removes the token stored for `<provider>` from the OS credential store. Nothing else is changed: a token in an environment variable is untouched.
+
+## Arguments
+
+| Argument     | Default      | Description                                                                                  |
+| ------------ | ------------ | -------------------------------------------------------------------------------------------- |
+| `<provider>` | _(required)_ | Provider name, e.g. `github.read`, `vercel` (see [`auth set`](/holocron/commands/auth-set/)) |
+
+## Examples
+
+```bash
+holocron auth unset github.read
+holocron auth unset vercel
+```
+
+Related: [`auth set`](/holocron/commands/auth-set/), [`auth list`](/holocron/commands/auth-list/).
