@@ -9,6 +9,7 @@ import { deployEntry } from "../../commands/deploy/deploy.entry.js";
 import { deployOnReleaseEntry } from "../../commands/deploy/deploy-on-release.entry.js";
 import { doctorEntry } from "../../commands/doctor/doctor.entry.js";
 import { doctorAllEntry } from "../../commands/doctor/doctor-all.entry.js";
+import { doctorDnsEntry } from "../../commands/doctor-dns/doctor-dns.entry.js";
 import { doctorEnvironmentsEntry } from "../../commands/doctor-environments/doctor-environments.entry.js";
 import { doctorMonitoringEntry } from "../../commands/doctor-monitoring/doctor-monitoring.entry.js";
 import { doctorNotificationsEntry } from "../../commands/doctor-notifications/doctor-notifications.entry.js";
@@ -65,6 +66,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	doctorMonitoringEntry,
 	doctorNotificationsEntry,
 	doctorEnvironmentsEntry,
+	doctorDnsEntry,
 	doctorSecretsEntry,
 	doctorTokensEntry,
 	doctorVariablesEntry,

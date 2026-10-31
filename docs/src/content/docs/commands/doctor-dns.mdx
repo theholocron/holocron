@@ -1,0 +1,49 @@
+---
+title: "doctor dns"
+description: Check that the DNS records the config makes setup write exist and point where they should. Read-only.
+---
+
+```bash
+holocron doctor dns
+```
+
+Compares the DNS records the config makes setup write with what the `dns` provider lists for each zone, and prints one row per zone. It changes nothing and exits non-zero while any row fails.
+
+[`repo setup`](/holocron/commands/repo-setup/) and `notifications setup` write these records. One that is missing, changed by hand or pointing at the wrong target is otherwise found when a preview URL or the relay stops answering.
+
+```text
+  ✗ preview.example.dev records exist  1 problem(s)
+      - missing record CNAME *.preview.example.dev
+  ✓ example.dev records exist          1 of 1 exist
+
+1 ok, 1 fail, 0 skipped
+```
+
+## Which records are expected
+
+Only records that can be worked out from the config alone, without asking a provider to create anything:
+
+| Record                                                                                 | When                                                                                                                  |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `CNAME <domain>` and `CNAME *.<domain>` to `<project>.pages.dev`                       | a `delivery.deploy`, `knowledge.docs` or `knowledge.components` task has a preview domain, on a Cloudflare deployment |
+| the record a `wiki` provider returns from `dnsRecord()`, proxied when the wiki proxies | a `wiki` provider is configured                                                                                       |
+| `AAAA <relay.host>` to `100::`, proxied                                                | a notifications layout declares a `relay`; the zone is `relay.zone`, or the host's own                                |
+
+A record is found by its type and name (case and a final dot do not matter). The target must match; where the record must be proxied, it must be. A record in the zone that is not expected is never a problem.
+
+A record that `deployment.ensureCustomDomain()` returns is **not** checked: asking for it creates the custom domain at the provider, so it cannot be read without writing.
+
+## Skips
+
+- **Nothing expected**: the one row says `none declared`.
+- **Records expected but no `dns` provider** (or it failed to load): each zone's row is a skip with the reason.
+- **No token for the read**: that zone is a skip with the message.
+- Any other provider error fails that zone's row with its message.
+
+This reads the provider's zone, not the internet: it does not say whether a record has propagated.
+
+## Authentication
+
+The `dns` provider's token (for Cloudflare: `HOLOCRON_CLOUDFLARE_TOKEN`, with Zone:Read and DNS read).
+
+Related: [`doctor secrets`](/holocron/commands/doctor-secrets/), [`doctor variables`](/holocron/commands/doctor-variables/), [`doctor`](/holocron/commands/doctor/).
