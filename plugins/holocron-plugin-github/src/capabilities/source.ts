@@ -1,17 +1,19 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import type {
-	LabelDef,
-	PagesConfig,
-	PullRequest,
-	RepoRef,
-	RepoSettings,
-	Ruleset,
-	Source,
-	SourceFile,
-	SourceTeamMember,
-	TeamEntry,
+import {
+	type LabelDef,
+	type PagesConfig,
+	ProviderApiError,
+	type PullRequest,
+	type RepoRef,
+	type RepoSettings,
+	type Ruleset,
+	type Source,
+	type SourceBranch,
+	type SourceFile,
+	type SourceTeamMember,
+	type TeamEntry,
 } from "@theholocron/cli";
 import { findRootSync } from "@theholocron/fs-utils";
 import {
@@ -270,6 +272,24 @@ export class GitHubSource implements Source {
 
 	async listPullRequests(state: "open" | "closed", repo?: string): Promise<PullRequest[]> {
 		return (await this.client.pulls.listPullRequests(repo ?? this.repo, state)).map(toPullRequest);
+	}
+
+	async listBranches(repo?: string): Promise<SourceBranch[]> {
+		return (await this.client.branches.listBranches(repo ?? this.repo)).map((b) => ({
+			name: b.name,
+			sha: b.commit.sha,
+		}));
+	}
+
+	async deleteBranch(name: string, repo?: string): Promise<void> {
+		try {
+			await this.client.branches.removeBranch(repo ?? this.repo, name);
+		} catch (err) {
+			// A ref that is already gone is what was asked for: GitHub says 422 "Reference does not exist" (404 for a repo it cannot see is not that).
+			if (err instanceof ProviderApiError && err.status === 422 && String(err.details).includes("does not exist"))
+				return;
+			throw err;
+		}
 	}
 
 	async listPullRequestCommits(number: number, repo?: string): Promise<string[]> {

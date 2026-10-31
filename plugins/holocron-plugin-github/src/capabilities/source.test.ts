@@ -88,6 +88,50 @@ describe("GitHubSource.listPullRequestCommits", () => {
 	});
 });
 
+describe("GitHubSource.listBranches", () => {
+	it("maps each branch to its name and sha", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: [{ name: "alpha", commit: { sha: "abc" } }] }]);
+		expect(await source.listBranches()).toEqual([{ name: "alpha", sha: "abc" }]);
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/branches?per_page=100");
+	});
+
+	it("accepts a repo override", async () => {
+		const { source, calls } = makeSource([{ status: 200, body: [] }]);
+		await source.listBranches("theholocron/clients");
+		expect(calls[0]?.url).toContain("/repos/theholocron/clients/branches");
+	});
+});
+
+describe("GitHubSource.deleteBranch", () => {
+	it("DELETEs the branch's ref", async () => {
+		const { source, calls } = makeSource([{ status: 204 }]);
+		await source.deleteBranch("feat/x");
+		expect(calls[0]?.method).toBe("DELETE");
+		expect(calls[0]?.url).toContain("/repos/theholocron/holocron/git/refs/heads/feat/x");
+	});
+
+	it("accepts a repo override", async () => {
+		const { source, calls } = makeSource([{ status: 204 }]);
+		await source.deleteBranch("x", "theholocron/clients");
+		expect(calls[0]?.url).toContain("/repos/theholocron/clients/git/refs/heads/x");
+	});
+
+	it("treats a branch that is already gone as deleted", async () => {
+		const { source } = makeSource([{ status: 422, body: { message: "Reference does not exist" } }]);
+		await expect(source.deleteBranch("gone")).resolves.toBeUndefined();
+	});
+
+	it("rethrows any other 422", async () => {
+		const { source } = makeSource([{ status: 422, body: { message: "Something else" } }]);
+		await expect(source.deleteBranch("x")).rejects.toBeInstanceOf(ProviderApiError);
+	});
+
+	it("rethrows a failure that is not an API error", async () => {
+		const { source } = makeSource([{ status: 500, body: {} }]);
+		await expect(source.deleteBranch("x")).rejects.toThrow();
+	});
+});
+
 describe("GitHubSource — REST methods", () => {
 	it("whoami → GET /user", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: { login: "iamnewton" } }]);
