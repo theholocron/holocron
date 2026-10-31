@@ -64,7 +64,7 @@ touches both.
 - **The probe step stays in the workflow for a few PRs after the flag exists.** A required Codecov check hangs
   sometimes (`codecov/patch/misc-utils` stuck pending on #1421; "not posting commit statuses" on #1346). The probe is
   deterministic. Once the `docs` flag has posted reliably, the probe step is dropped from the workflow and the command
-  stays in the CLI. How many PRs counts as reliable is the maintainer's call (open question 7).
+  stays in the CLI. How many PRs counts as reliable is settled in decision 7.
 
 So the flag does not replace the probe. It sits next to it, then takes over the gating.
 
@@ -75,16 +75,16 @@ line count as documented only when both are), with `LF`/`LH`. Paths are repo-rel
 with `--basePath <repo root>`, which is what Codecov needs to match files in the diff. Only declaration lines get a
 `DA`, so only those lines count towards the percentage.
 
-**Flag name.** `api-docs` (open question 1). A flag named `docs` would produce the context `codecov/patch/docs`, which
+**Flag name.** `documentation` A flag named `docs` would produce the context `codecov/patch/docs`, which
 already exists: the `docs` _component_ (`docs/**`) posts it. Flags and components share the status-context namespace.
 The generator also already treats the `docs/` folder as flagless (`FLAGLESS_FOLDERS`), so `docs` is taken in two ways.
 
-**Files.** One lcov file for the whole repo, `coverage/docs.lcov`, in one `do-upload --flag api-docs`.
+**Files.** One lcov file for the whole repo, `coverage/docs.lcov`, in one `do-upload --flag documentation`.
 
 **Upload, alongside the per-package flags.**
 
 - Reuse the `codecov-upload` composite action (`create-commit`, `create-report`, then `do-upload --flag`) with
-  `uploads: [{"flag":"api-docs","files":"coverage/docs.lcov"}]`. Same OIDC path as the unit-test job. Without
+  `uploads: [{"flag":"documentation","files":"coverage/docs.lcov"}]`. Same OIDC path as the unit-test job. Without
   `create-commit`/`create-report` Codecov queues an upload and never posts a status, so the composite is the only
   supported route; do not call `do-upload` directly.
 - It runs in the **Docs coverage** workflow, a separate job from the unit tests (the unit-test job is skipped for
@@ -100,9 +100,9 @@ The generator also already treats the `docs/` folder as flagless (`FLAGLESS_FOLD
 
 **Not breaking the required `codecov/patch` and `codecov/project`.** Both are already scoped with `flags:` to the
 package flags by the generator (`scopeAggregateStatuses`), so a new flag outside that list does not count towards them.
-The generator's `codecovFlagNames()` must therefore not include `api-docs`; it is added to `flag_management` and given
+The generator's `codecovFlagNames()` must therefore not include `documentation`; it is added to `flag_management` and given
 its own statuses as a separate step, not through the package list. Its two statuses
-(`codecov/patch/api-docs`, `codecov/project/api-docs`) are `informational: true` until the maintainer decides
+(`codecov/patch/documentation`, `codecov/project/documentation`) are `informational: true` until the maintainer decides
 otherwise. **No ruleset or required-check change is part of this work.**
 
 **To verify on a real upload, not by guessing** (the first PR that carries the upload; the run to look at will be named
@@ -111,8 +111,8 @@ in that PR):
 1. the flag and its two statuses appear with the expected names, and `codecov/patch` / `codecov/project` (the required
    ones) are unchanged in value and name;
 2. the _component_ statuses: a component is path-based and counts every flag, so the docs flag may leak into
-   `codecov/patch/<component>`. If it does, set `flag_regexes` on the components to leave `api-docs` out (open
-   question 5);
+   `codecov/patch/<component>`. If it does, set `flag_regexes` on the components to leave `documentation` out (see decision 5)
+   5);
 3. Codecov accepts a `DA` line that is not an executable line of the file.
 
 ## (c) TypeDoc generation
@@ -127,7 +127,7 @@ TypeScript source.
 
 **Built, not committed.** Generated on every `astro build` / `astro dev` and gitignored, so the reference cannot drift
 from the source and PR diffs show only the TSDoc. Cost in the pilot: about +0.4 s per small package. The plugin writes
-into `src/content/docs`, so the ignore line is required. Open question 4 asks the maintainer to confirm.
+into `src/content/docs`, so the ignore line is required. Decision 4.
 
 **Rollout, by package, as each is backfilled** (the 36% backlog would otherwise publish near-empty pages). The loop is
 a list in `astro.config.ts`, not 75 hand-written blocks; packages with subpath exports list each export as an entry
@@ -150,17 +150,17 @@ changed since:
 
 What the new switch has to do is three-valued, which the boolean `jobs` map cannot say:
 
-| Value      | `docs patch` job in the workflow | Codecov `api-docs` statuses | Upload |
-| ---------- | -------------------------------- | --------------------------- | ------ |
-| `required` | fails the check on a miss        | not informational           | yes    |
-| `warn`     | reports, always exits 0          | informational               | yes    |
-| `off`      | skipped, check reports green     | none                        | no     |
+| Value      | `docs patch` job in the workflow | Codecov `documentation` statuses | Upload |
+| ---------- | -------------------------------- | -------------------------------- | ------ |
+| `required` | fails the check on a miss        | not informational                | yes    |
+| `warn`     | reports, always exits 0          | informational                    | yes    |
+| `off`      | skipped, check reports green     | none                             | no     |
 
 "Required" in the sense of a **branch-protection required check** is a ruleset change and stays the maintainer's
 (`extraRequiredChecks` + `holocron repo setup`); the value only controls whether the check can fail and whether the
 Codecov status is informational.
 
-Proposed shape (open question 3 settles it): a top-level key in `holocron.config.ts`, validated by the config schema and
+Shape (decision 3): a top-level key in `holocron.config.ts`, validated by the config schema and
 typed in `defineConfig`:
 
 ```ts
@@ -177,33 +177,46 @@ repoValidation: {
 
 ## Rollout
 
-| #   | PR                                                                                      | Needs from the maintainer                     |
-| --- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 0   | This spec                                                                               | Merge; answer the open questions below        |
-| 1   | Finish the pilot #1374 (array-utils reference, hand-written duplicate shrunk)           | Spec merged                                   |
-| 2   | `docs lcov` as a file the existing probe writes with `--lcov`, uploaded as `api-docs`   | Open questions 1, 2, 5                        |
-| 3   | The `repoValidation.docsCoverage` switch: schema, default, tests, docs                  | Open question 3                               |
-| –   | Make `codecov/patch/api-docs` a required check; backfill (issue step 5); README warning | Not part of this work; the maintainer decides |
+| #   | PR                                                                                           | Needs from the maintainer                     |
+| --- | -------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| 0   | This spec                                                                                    | Merge                                         |
+| 1   | Finish the pilot #1374 (array-utils reference, hand-written duplicate shrunk)                | Spec merged                                   |
+| 2   | `docs lcov` as a file the existing probe writes with `--lcov`, uploaded as `documentation`   | Decisions 1, 2, 5                             |
+| 3   | The `repoValidation.docsCoverage` switch: schema, default, tests, docs                       | Decision 3                                    |
+| –   | Make `codecov/patch/documentation` a required check; backfill (issue step 5); README warning | Not part of this work; the maintainer decides |
 
-## Open questions
+## Decisions
 
-1. **Flag name.** `api-docs` (recommended), because `docs` collides with the `docs` component's `codecov/*/docs`
-   contexts. Any other name is fine if it is not `docs`.
-2. **How CI asks the probe for the file.** The probe takes positional arguments only (`probe docs patch`, no named
-   options), and `docs lcov` already exists as a separate subcommand writing `coverage/docs.lcov`. Recommended: add a
-   `--lcov <path>` option to `holocron probe`, honoured by `docs coverage` (rows for people, plus the file) and
-   `docs patch`, and keep `docs lcov` as it is so nothing that uses it breaks. The alternative is no new option: CI
-   calls `docs lcov`. The first needs a yargs option and a field on `ProbeContext`.
-3. **The switch.** (i) Is `repoValidation.docsCoverage: "off" | "warn" | "required"` the right place and name, or should
-   the value live in the existing task `jobs` map (`jobs: { docsCoverage: "warn" }`, extending a boolean to a
-   boolean-or-string)? (ii) Default `off` for other repos, and `warn` here? (iii) Should `required` also be what puts
-   `codecov/patch/api-docs` into `extraRequiredChecks`, or stay purely "can fail" with the ruleset left to you?
-4. **Generated pages built, not committed** (the pilot's choice): confirm, or say you want them committed.
-5. **Component statuses.** If the first real upload shows `api-docs` counting towards `codecov/patch/<component>`,
-   do you want `flag_regexes` on every component to exclude it, or is mixing acceptable while those are informational?
-6. **Targets.** For the informational `codecov/patch/api-docs` and `codecov/project/api-docs`: patch target 100% with
-   no threshold (the probe's rule), project target `auto`?
-7. **How many PRs** with the flag posting reliably before the probe step leaves the workflow? (Suggested: five
-   consecutive PRs with both statuses posted within the usual window.)
-8. **Upload on `alpha` pushes.** Adds a `push` trigger to the hand-maintained docs-coverage workflow, the upload step
-   only. OK?
+The maintainer's goal, in their words: add TSDoc to the code so docs get a coverage number, enforce that coverage, use
+the TSDoc as the source of truth and build the documentation site from it. The docs check may fail coverage until the
+backfill catches up. Given that, each question the first draft asked is settled here with the tradeoff, so the choice can
+be reversed in one place.
+
+1. **Flag name: `documentation`.** Spelled out, not `docs`: a flag named `docs` posts `codecov/patch/docs`, which the
+   `docs` component already posts. `documentation` shares no context with anything.
+2. **The probe gets a `--lcov <path>` option.** CI runs the same command people run, so there is one measurement path.
+   _Tradeoff:_ it adds a yargs option and a field on `ProbeContext` (a small change in the probe command), against CI
+   calling `docs lcov` with no CLI change but a second entry point to keep in step. `docs lcov` stays as it is.
+3. **The switch is a top-level `repoValidation.docsCoverage: "off" | "warn" | "required"`, default `off`.** This repo sets
+   `"required"`: the check fails on a miss and the Codecov statuses are not informational. `required` here means the job
+   can fail; it does **not** add anything to the ruleset's required checks, so a failing check does not block a merge.
+   _Tradeoff:_ a top-level key is easy to find and to document and holds three states; the alternative, a string in the
+   existing `jobs` map, avoids a new key but stretches a boolean map and hides the setting among task options.
+4. **Generated pages are built at docs-build time and not committed.** The reference then cannot drift from the source,
+   which is the "TSDoc is the source of truth" goal, and PR diffs show only the TSDoc. _Tradeoff:_ every docs build runs
+   TypeDoc (about +0.4 s per small package in the pilot, more for the large ones) and needs the packages built first,
+   against committed output that is fast to build but can go stale and floods diffs.
+5. **Components are left as they are for now.** A component counts every flag, so the `documentation` flag may show up in
+   `codecov/patch/<component>`. Those are informational, so nothing blocks; the first real upload shows whether it
+   happens, and only then are `flag_regexes` added. _Tradeoff:_ excluding up front is a change to 76 components for a
+   problem that may not appear.
+6. **Targets:** `codecov/patch/documentation` target 100% with no threshold (the probe's rule: a touched export is
+   documented), `codecov/project/documentation` target `auto` (it must not drop; it starts low and the backfill raises it).
+7. **The probe step leaves the workflow after five consecutive PRs** on which both `documentation` statuses posted
+   normally. Until then both run.
+8. **The upload also runs on pushes to `alpha`**, so a PR has a base report to compare against.
+
+## Out of scope (the maintainer's)
+
+Making `codecov/patch/documentation` a branch-protection required check, the backfill (issue step 5), and the README
+warning (step 6).
