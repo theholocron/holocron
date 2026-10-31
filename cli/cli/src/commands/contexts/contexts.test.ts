@@ -30,6 +30,7 @@ const EVERY_COMMAND = [
 	"repo sync readme",
 	"doctor",
 	"repo setup",
+	"secrets list",
 	"secrets set",
 	"secrets sync",
 	"notifications channel add",

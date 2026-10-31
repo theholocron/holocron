@@ -24,6 +24,7 @@ import { repoSyncEntry } from "../../commands/repo/repo-sync.entry.js";
 import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
 import { runCiEntry } from "../../commands/run/run-ci.entry.js";
 import { secretSetEntry } from "../../commands/secret-set/secret-set.entry.js";
+import { secretsListEntry } from "../../commands/secrets-list/secrets-list.entry.js";
 import { secretsSyncEntry } from "../../commands/secrets-sync/secrets-sync.entry.js";
 import { setupEntry } from "../../commands/setup/setup.entry.js";
 import { skillsInstallEntry } from "../../commands/skills/skills-install.entry.js";
@@ -51,6 +52,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	probeEntry,
 	setupEntry,
 	secretSetEntry,
+	secretsListEntry,
 	secretsSyncEntry,
 	notificationsChannelAddEntry,
 	doctorNotificationsEntry,

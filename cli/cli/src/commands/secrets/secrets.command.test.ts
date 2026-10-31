@@ -4,10 +4,15 @@ const loadConfig = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 const runSecretSet = vi.hoisted(() => vi.fn());
 const runSecretsSync = vi.hoisted(() => vi.fn());
+const runSecretsList = vi.hoisted(() => vi.fn());
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("../secret-set/index.js", () => ({ runSecretSet }));
 vi.mock("../secrets-sync/index.js", () => ({ runSecretsSync }));
+vi.mock("../secrets-list/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../secrets-list/index.js")>()),
+	runSecretsList,
+}));
 vi.mock("../../ui/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../ui/index.js")>()),
 	promptForPositionals: async (_e: unknown, argv: Record<string, unknown>) => [argv["name"] ?? argv["environmentId"]],
@@ -34,6 +39,7 @@ beforeEach(() => {
 	tokenContext.mockReturnValue({ cliToken: "t" });
 	runSecretSet.mockResolvedValue({ status: "ok" });
 	runSecretsSync.mockResolvedValue({ summary: { ok: 2, fail: 0, skip: 0 } });
+	runSecretsList.mockResolvedValue({ groups: [], failed: 0 });
 });
 afterEach(() => void (process.exitCode = undefined));
 
@@ -116,6 +122,41 @@ describe("secrets sync", () => {
 		runSecretsSync.mockClear();
 		await go(["sync", "prd"]);
 		expect(runSecretsSync).not.toHaveBeenCalled();
+	});
+});
+
+describe("secrets list", () => {
+	it("lists the repository and the configured organization, as text", async () => {
+		await go(["list"]);
+		expect(runSecretsList.mock.calls[0]![0]).toMatchObject({
+			scopes: [{ kind: "repo" }, { kind: "organization", name: "acme" }],
+			json: false,
+			context: { repoRoot: "/repo", cliToken: "t", org: "acme", dryRun: false },
+		});
+	});
+
+	it("passes --scope, --env and --json through", async () => {
+		await go(["list", "--scope", "environment", "--env", "production", "--json"]);
+		expect(runSecretsList.mock.calls[0]![0]).toMatchObject({
+			scopes: [{ kind: "environment", name: "production" }],
+			json: true,
+		});
+	});
+
+	it("lists only the repository when no organization is known", async () => {
+		loadConfig.mockResolvedValue({ resolved: {}, filepath: "/x" });
+		await go(["list"]);
+		expect(runSecretsList.mock.calls[0]![0].scopes).toEqual([{ kind: "repo" }]);
+	});
+
+	it("exits 1 when a scope could not be listed, and stops when --token cannot be parsed", async () => {
+		runSecretsList.mockResolvedValue({ groups: [], failed: 1 });
+		await go(["list"]);
+		expect(process.exitCode).toBe(1);
+		tokenContext.mockReturnValue(null);
+		runSecretsList.mockClear();
+		await go(["list"]);
+		expect(runSecretsList).not.toHaveBeenCalled();
 	});
 });
 

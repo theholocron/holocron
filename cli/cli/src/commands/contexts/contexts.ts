@@ -43,6 +43,7 @@ export const COMMAND_CONTEXTS = {
 
 	doctor: "workspace",
 	"repo setup": "workspace",
+	"secrets list": "workspace",
 	"secrets set": "workspace",
 	"secrets sync": "workspace",
 	"notifications channel add": "workspace",
