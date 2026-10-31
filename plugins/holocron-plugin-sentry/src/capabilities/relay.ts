@@ -1,4 +1,4 @@
-import type { EnsureRelayInput, EnsureRelayResult } from "@theholocron/cli";
+import type { EnsureRelayInput, EnsureRelayResult, InspectRelayInput, RelayState } from "@theholocron/cli";
 import type { SentryApp, SentryWorkflow, SentryWorkflowInput } from "@theholocron/sentry-client";
 
 import type { SentryClient } from "../rest.js";
@@ -196,5 +196,37 @@ export async function ensureSentryRelay(
 		integration: { created: integration.created, updated: integration.updated },
 		rule,
 		...(clientSecret ? { clientSecret } : {}),
+	};
+}
+
+/**
+ * Read the integration and the alert rule back, changing nothing. The integration's signing secret is not read: the
+ * list answer is used as it is and `get`, which returns the secret, is never called.
+ */
+export async function inspectSentryRelay(
+	client: SentryClient,
+	org: string,
+	input: InspectRelayInput
+): Promise<RelayState> {
+	const apps = await client.sentryApps.list(org);
+	const projects = await client.projects.list(org);
+	const detectors = await client.workflows.detectors(org);
+	const workflows = await client.workflows.list(org);
+	const app = apps.find((a) => a.name === input.name);
+	const rule = workflows.find((w) => w.name === input.rule.name);
+	return {
+		...(app ? { integration: { webhookUrl: app.webhookUrl, alertAction: app.isAlertable } } : {}),
+		rules: rule
+			? input.projects.flatMap((slug) => {
+					const project = projects.find((p) => p.slug === slug);
+					const detector =
+						project && detectors.find((d) => d.projectId === project.id && d.type === "issue_stream");
+					if (!detector || !rule.detectorIds.includes(detector.id)) return [];
+					const sends =
+						app !== undefined &&
+						rule.actionFilters.some((f) => f.actions.some((a) => sendsThrough(a, app.slug)));
+					return [{ project: slug, enabled: rule.enabled, sends }];
+				})
+			: [],
 	};
 }

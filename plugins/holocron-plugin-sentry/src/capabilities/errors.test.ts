@@ -159,3 +159,68 @@ describe("SentryErrors.ensureRelay", () => {
 		await expect(errors.ensureRelay(input)).rejects.toThrow(/requires `org`/);
 	});
 });
+
+describe("SentryErrors.inspectRelay", () => {
+	const ask = { name: "Comlink", projects: ["my-project"], rule: { name: "Rule" } };
+
+	it("reads through the relay client, not the general one, and changes nothing", async () => {
+		const main = stubFetch([]);
+		const relay = stubFetch([
+			{
+				body: [
+					{
+						name: "Comlink",
+						slug: "comlink-1",
+						uuid: "u",
+						status: "internal",
+						scopes: ["event:read"],
+						webhookUrl: "https://hook",
+						isAlertable: true,
+						clientSecret: "sentinel-secret",
+					},
+				],
+			},
+			{ body: [project] },
+			{ body: [{ id: "d1", projectId: "p1", name: "x", type: "issue_stream", workflowIds: [] }] },
+			{
+				body: [
+					{
+						id: "w1",
+						name: "Rule",
+						enabled: true,
+						environment: null,
+						config: { frequency: 5 },
+						detectorIds: ["d1"],
+						triggers: { logicType: "any-short", conditions: [] },
+						actionFilters: [
+							{
+								logicType: "all",
+								conditions: [],
+								actions: [{ type: "webhook", config: { targetIdentifier: "comlink-1" }, data: {} }],
+							},
+						],
+					},
+				],
+			},
+		]);
+		const make = (fetch: typeof main.fetch) => createSentryClient({ token: "t", baseUrl: BASE, fetch });
+		const errors = new SentryErrors(
+			() => make(main.fetch),
+			{ org: ORG },
+			() => make(relay.fetch)
+		);
+		const state = await errors.inspectRelay(ask);
+		expect(state).toEqual({
+			integration: { webhookUrl: "https://hook", alertAction: true },
+			rules: [{ project: "my-project", enabled: true, sends: true }],
+		});
+		expect(JSON.stringify(state)).not.toContain("sentinel-secret");
+		expect(main.calls).toHaveLength(0);
+		expect(relay.calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("needs an org", async () => {
+		const { errors } = makeErrors([], {});
+		await expect(errors.inspectRelay(ask)).rejects.toThrow(/requires `org`/);
+	});
+});

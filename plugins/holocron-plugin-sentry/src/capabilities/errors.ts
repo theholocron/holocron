@@ -1,8 +1,8 @@
-import type { EnsureRelayInput, EnsureRelayResult, Errors } from "@theholocron/cli";
+import type { EnsureRelayInput, EnsureRelayResult, Errors, InspectRelayInput, RelayState } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
 import type { SentryClient } from "../rest.js";
-import { ensureSentryRelay } from "./relay.js";
+import { ensureSentryRelay, inspectSentryRelay } from "./relay.js";
 
 export interface SentryErrorsOptions {
 	/** Sentry organization slug. Required for `whoami` and `ensureProject`. */
@@ -24,6 +24,10 @@ export class SentryErrors implements Errors {
 
 	async ensureRelay(input: EnsureRelayInput): Promise<EnsureRelayResult> {
 		return ensureSentryRelay(this.relayClient(), this.requireOrg(), input);
+	}
+
+	async inspectRelay(input: InspectRelayInput): Promise<RelayState> {
+		return inspectSentryRelay(this.relayClient(), this.requireOrg(), input);
 	}
 
 	async describe() {

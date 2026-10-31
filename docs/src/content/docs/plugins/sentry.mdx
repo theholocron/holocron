@@ -76,6 +76,8 @@ export SENTRY_AUTH_TOKEN=<TOKEN>
 - `describe()` — returns the provider name and required env var keys (`SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`)
 - `whoami()` — verifies the token by fetching the organization
 - `ensureProject(input)` — create or retrieve a Sentry project, returning its DSN and whether it already existed
+- `ensureRelay(input)` — make the integration and the alert rule that send a project's issues to the Comlink relay (see [Server as Code](/holocron/server-as-code/))
+- `inspectRelay(input)` — read the integration and the rule back without changing anything, for `holocron doctor notifications`: whether the integration posts to the relay and is offered as an alert action, and for each project whether the rule is on it, enabled and sending through the integration. The integration's signing secret is not read.
 
 ## Example
 
