@@ -1,4 +1,4 @@
-import { AuthError, createResolveToken, type ResolveTokenInput } from "@theholocron/cli";
+import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput } from "@theholocron/cli";
 
 export { AuthError };
 export type { ResolveTokenInput };
@@ -11,3 +11,6 @@ export const resolveToken = createResolveToken({
 		"no Neon API key found. Pass --token <KEY>, set HOLOCRON_NEON_API_KEY / NEON_API_KEY, " +
 		"or run: holocron auth set neon <KEY>",
 });
+
+/** Every token this plugin takes, for `holocron doctor tokens`. */
+export const tokens: PluginToken[] = [resolveToken.token];

@@ -83,6 +83,50 @@ describe("doctor tokens", () => {
 		expect(report.rows.map((r) => r.detail)).toEqual(["user @ a (keyring)", "user @ a (HOLOCRON_READ_TOKEN)"]);
 	});
 
+	it("reads the plugin's variable, then the vendor's, then the keyring, as the plugins do", async () => {
+		const verifyToken = vi.fn(async (_token: string) => ({ ok: true as const, subject: "me" }));
+		const token = { envName: "HOLOCRON_VERCEL_TOKEN", vendorEnvName: "VERCEL_TOKEN", keyringKey: "vercel" };
+		const modules = { "@theholocron/holocron-plugin-vercel": { tokens: [token], verifyToken } };
+		const config = loaded({ deployment: "vercel" });
+		const keyring = { vercel: "kr" };
+
+		const both = await run(config, modules, {
+			env: { HOLOCRON_VERCEL_TOKEN: "own", VERCEL_TOKEN: "vendor" },
+			keyring,
+		});
+		const vendor = await run(config, modules, { env: { VERCEL_TOKEN: "vendor" }, keyring });
+		const ring = await run(config, modules, { keyring });
+
+		expect(verifyToken.mock.calls.map((c) => c[0])).toEqual(["own", "vendor", "kr"]);
+		expect([both, vendor, ring].map((r) => r.report.rows[0]!.detail)).toEqual([
+			"me (HOLOCRON_VERCEL_TOKEN)",
+			"me (VERCEL_TOKEN)",
+			"me (keyring)",
+		]);
+	});
+
+	it("names both variables when a token with a vendor variable is not set", async () => {
+		const token = { envName: "HOLOCRON_VERCEL_TOKEN", vendorEnvName: "VERCEL_TOKEN", keyringKey: "vercel" };
+		const { report } = await run(loaded({ deployment: "vercel" }), {
+			"@theholocron/holocron-plugin-vercel": { tokens: [token] },
+		});
+		expect(report.rows[0]!.detail).toBe(
+			"not set (HOLOCRON_VERCEL_TOKEN / VERCEL_TOKEN, or `holocron auth set vercel`)"
+		);
+	});
+
+	it("does not hand a token to verifyToken when the plugin says that check is for a different credential", async () => {
+		const verifyToken = vi.fn(async () => ({ ok: true as const, subject: "x" }));
+		const token = { envName: "HOLOCRON_DISCORD_BOT_TOKEN", keyringKey: "discord.holonet", verifiable: false };
+		const { report } = await run(
+			loaded({ notifications: ["discord"] }),
+			{ "@theholocron/holocron-plugin-discord": { tokens: [token], verifyToken } },
+			{ env: { HOLOCRON_DISCORD_BOT_TOKEN: "bot" } }
+		);
+		expect(verifyToken).not.toHaveBeenCalled();
+		expect(report.rows[0]).toMatchObject({ status: "skip", detail: "set, but its plugin cannot verify it" });
+	});
+
 	it("fails a rejected token with the provider's message and keeps checking the rest", async () => {
 		const verifyToken = vi.fn(async (token: string) =>
 			token === "old"

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthError, resolveRelayToken } from "./auth.js";
+import { AuthError, resolveRelayToken, tokens } from "./auth.js";
 
 const none = () => null;
 
@@ -23,5 +23,14 @@ describe("resolveRelayToken", () => {
 
 	it("names Sentry when neither is set", () => {
 		expect(() => resolveRelayToken({ env: {}, keyring: none })).toThrow(AuthError);
+	});
+});
+
+describe("the plugin's tokens export", () => {
+	it("lists the general token and the Comlink relay's", () => {
+		expect(tokens).toEqual([
+			{ envName: "HOLOCRON_SENTRY_TOKEN", vendorEnvName: "SENTRY_AUTH_TOKEN", keyringKey: "sentry" },
+			{ envName: "HOLOCRON_SENTRY_COMLINK_TOKEN", keyringKey: "sentry.comlink" },
+		]);
 	});
 });

@@ -59,7 +59,7 @@ Use `holocron new plugin <slug> <Vendor>` to scaffold a new plugin. The generate
 - `createPlugin(options)` — factory function returning `{ name, capabilities }`
 - `verifyToken(token)` — called by `holocron auth set <slug>` to validate before storing
 - `AUTH_HINT` — one-line guidance printed when no token is supplied
-- `tokens` (optional) — every token the plugin takes, as `{ envName, keyringKey }`, so `holocron doctor tokens` can check each is set and still accepted. A plugin that lists none is not checked there
+- `tokens` (optional) — every token the plugin takes, as `{ envName, vendorEnvName?, keyringKey, verifiable? }` (each resolver exposes its own as `.token`, so there is one definition), so `holocron doctor tokens` can check each is set and still accepted. A plugin that lists none is not checked there
 - A capability implementation stub for the chosen capability
 
 Community plugins are referenced by their full npm package name in config:

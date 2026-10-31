@@ -7,9 +7,9 @@ description: Check that each token a configured plugin takes is set and still ac
 holocron doctor tokens
 ```
 
-For every token a configured plugin lists, finds the token the way the plugin does (its environment variable, then the OS keyring) and asks the plugin's `verifyToken` whether it is still accepted. It prints one row per token and exits non-zero while any is rejected or has 7 days or fewer left. It changes nothing and never prints a token.
+For every token a configured plugin lists, finds the token the way the plugin does (its own environment variable, then the vendor's, then the OS keyring) and asks the plugin's `verifyToken` whether it is still accepted. It prints one row per token and exits non-zero while any is rejected or has 7 days or fewer left. It changes nothing and never prints a token.
 
-The GitHub plugin takes nine separate tokens, one per kind of operation (see the [Token Reference](/holocron/tokens/)). Plain [`doctor`](/holocron/commands/doctor/) only exercises the one its shallow check happens to use, and a fine-grained token that has expired or been revoked is otherwise found when the operation that needs it fails, in CI or part-way through [`repo setup`](/holocron/commands/repo-setup/). This is the check that says which are due for replacing.
+Every plugin that resolves a token lists it, built from the same resolver the plugin uses, so a configured provider is covered without a list to keep in step. The GitHub plugin takes nine separate tokens, one per kind of operation, Discord three (webhook, bot, OAuth client secret) and Sentry two (see the [Token Reference](/holocron/tokens/)). Plain [`doctor`](/holocron/commands/doctor/) only exercises the one its shallow check happens to use, and a fine-grained token that has expired or been revoked is otherwise found when the operation that needs it fails, in CI or part-way through [`repo setup`](/holocron/commands/repo-setup/). This is the check that says which are due for replacing.
 
 ```text
   ✓ github.read      user @ cnewton (keyring), expires in 41 days
@@ -29,7 +29,7 @@ The GitHub plugin takes nine separate tokens, one per kind of operation (see the
 | fail                | The token is set and is rejected (expired, revoked, malformed), or verifying it threw. The row carries the provider's message                                              |
 | fail: expires soon  | The token is accepted but expires within 7 days (`TOKEN_EXPIRY_WARN_DAYS`). The row gets a problem line, `expires in 3 days: renew it`                                     |
 | skip: not set       | Neither the environment variable nor the keyring has it. Whether a token is needed depends on what you run, so this is never a failure                                     |
-| skip: cannot verify | The token is set but its plugin has no `verifyToken`                                                                                                                       |
+| skip: cannot verify | The token is set but its plugin has no `verifyToken`, or its `verifyToken` checks a different credential (Discord's checks a webhook, not the bot token or client secret)  |
 | skip: plugin        | The plugin package could not be loaded here, with the reason                                                                                                               |
 
 When no configured plugin lists any token, the one row says so.
@@ -47,6 +47,6 @@ The `security.tokenExpiry` task runs this check daily from CI (a generated `.git
 ## What it does not check
 
 - **What a token may do.** GitHub does not return a fine-grained token's permissions, so "has the permissions the token reference lists" cannot be read back. A token can be accepted here and still be refused by an operation it lacks a permission for.
-- Plugins other than GitHub, until they list their `tokens` (see [Plugins](/holocron/plugins/overview/)). Their main token is exercised by plain `doctor`.
+- **1Password.** It uses the `op` CLI's own sign-in and lists no token. A plugin without a `verifyToken` (Fern) shows its token as set, not as accepted.
 
 Related: [`auth check`](/holocron/commands/auth-check/), [`auth list`](/holocron/commands/auth-list/), [`doctor variables`](/holocron/commands/doctor-variables/).

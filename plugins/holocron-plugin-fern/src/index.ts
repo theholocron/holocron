@@ -17,7 +17,7 @@ import { resolveToken } from "./auth.js";
 import { FernWiki, type FernWikiOptions } from "./capabilities/wiki.js";
 
 export type { ResolveTokenInput } from "./auth.js";
-export { AuthError, resolveToken } from "./auth.js";
+export { AuthError, resolveToken, tokens } from "./auth.js";
 export type { FernWikiOptions } from "./capabilities/wiki.js";
 export { FernWiki } from "./capabilities/wiki.js";
 export { FERN_VERSION } from "./capabilities/wiki.js";

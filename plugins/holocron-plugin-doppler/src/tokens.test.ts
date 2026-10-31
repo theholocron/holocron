@@ -1,0 +1,11 @@
+import { describe, expect, it } from "vitest";
+
+import { tokens } from "./index.js";
+
+describe("the plugin's tokens export", () => {
+	it("lists each token the plugin resolves, with where it is looked up", () => {
+		expect(tokens).toEqual([
+			{ envName: "HOLOCRON_DOPPLER_TOKEN", vendorEnvName: "DOPPLER_TOKEN", keyringKey: "doppler" },
+		]);
+	});
+});

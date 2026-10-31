@@ -5,14 +5,21 @@ import { AuthError, createResolveToken as _createResolveToken, type ResolveToken
 
 import { makeEnv } from "../../env/index.js";
 import { getToken as getKeyringToken } from "../keyring/index.js";
-import type { FeatureResolver, FeatureResolverConfig, ResolveTokenConfig } from "./auth-resolver.type.js";
+import type {
+	FeatureResolver,
+	FeatureResolverConfig,
+	ResolveTokenConfig,
+	TokenResolver,
+} from "./auth-resolver.type.js";
 
 export { AuthError, type ResolveTokenInput };
 
 /** Wraps `createResolveToken` from `@theholocron/http` and injects the
  *  system keyring so plugins stay at a one-liner call site. */
-export function createResolveToken(config: ResolveTokenConfig): (input?: ResolveTokenInput) => string {
-	return _createResolveToken({ ...config, getKeyringToken });
+export function createResolveToken(config: ResolveTokenConfig): TokenResolver {
+	return Object.assign(_createResolveToken({ ...config, getKeyringToken }), {
+		token: { envName: config.envName, vendorEnvName: config.vendorEnvName, keyringKey: config.keyringService },
+	});
 }
 
 /**

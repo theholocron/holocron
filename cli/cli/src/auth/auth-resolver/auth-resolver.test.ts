@@ -160,6 +160,16 @@ describe("createFeatureResolver, vendor in the message", () => {
 	});
 });
 
+describe("createResolveToken, where it looks", () => {
+	it("exposes the plugin and vendor environment variables and the keyring entry it reads", () => {
+		expect(resolveToken.token).toEqual({
+			envName: "HOLOCRON_TEST_TOKEN",
+			vendorEnvName: "TEST_TOKEN",
+			keyringKey: "test",
+		});
+	});
+});
+
 describe("createFeatureResolver, where it looks", () => {
 	it("exposes the environment variable and keyring entry it reads, without the vendor", () => {
 		const resolver = createFeatureResolver({

@@ -39,7 +39,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 			continue;
 		}
 		for (const token of module.tokens ?? []) {
-			rows.push(await checkToken(token, module, env.get(token.envName), keyring, now()));
+			rows.push(await checkToken(token, module, env, keyring, now()));
 		}
 	}
 	if (rows.length === 0) {
@@ -77,15 +77,22 @@ function row(id: string, status: CheckRow["status"], detail: string): CheckRow {
 async function checkToken(
 	token: PluginToken,
 	module: AuthPluginModule,
-	fromEnv: string | undefined,
+	env: ReturnType<typeof makeEnv>,
 	keyring: (key: string) => string | null,
 	now: Date
 ): Promise<CheckRow> {
-	const { keyringKey, envName } = token;
-	const value = fromEnv || keyring(keyringKey);
-	if (!value) return row(keyringKey, "skip", `not set (${envName}, or \`holocron auth set ${keyringKey}\`)`);
-	if (!module.verifyToken) return row(keyringKey, "skip", "set, but its plugin cannot verify it");
-	const from = fromEnv ? envName : "keyring";
+	const { keyringKey, envName, vendorEnvName } = token;
+	// The order the plugins resolve in: their own variable, the vendor's, then the keyring.
+	const fromEnv = env.get(envName) ? envName : vendorEnvName && env.get(vendorEnvName) ? vendorEnvName : undefined;
+	const value = fromEnv ? env.get(fromEnv) : keyring(keyringKey);
+	if (!value) {
+		const names = vendorEnvName ? `${envName} / ${vendorEnvName}` : envName;
+		return row(keyringKey, "skip", `not set (${names}, or \`holocron auth set ${keyringKey}\`)`);
+	}
+	if (!module.verifyToken || token.verifiable === false) {
+		return row(keyringKey, "skip", "set, but its plugin cannot verify it");
+	}
+	const from = fromEnv ?? "keyring";
 	try {
 		const verified = await module.verifyToken(value);
 		if (!verified.ok) return row(keyringKey, "fail", `rejected (${from}): ${verified.message}`);

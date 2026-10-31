@@ -20,10 +20,17 @@ export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
 /** One token a plugin takes, and where it is looked up. */
 export interface PluginToken {
-	/** The environment variable, e.g. `HOLOCRON_ADMIN_TOKEN`. */
+	/** The plugin's own environment variable, e.g. `HOLOCRON_ADMIN_TOKEN`. */
 	envName: string;
+	/** The vendor's own environment variable, e.g. `CLOUDFLARE_API_TOKEN`; read after `envName` and before the keyring. */
+	vendorEnvName?: string;
 	/** The OS keyring entry, e.g. `github.admin`. */
 	keyringKey: string;
+	/**
+	 * `false` when the plugin's `verifyToken` does not apply to this token (it checks a different credential, such as
+	 * a webhook URL), so `holocron doctor tokens` reports it as set without calling the plugin. Default `true`.
+	 */
+	verifiable?: boolean;
 }
 
 export interface AuthPluginModule {
