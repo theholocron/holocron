@@ -10,6 +10,7 @@
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type Errors,
 	type Monitoring,
 	type Notifications,
 	type NotificationsAccess,
@@ -18,6 +19,7 @@ import {
 	PluginLoader,
 	type Secrets,
 	type Source,
+	type Workers,
 } from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import { style } from "../../ui/style/index.js";
@@ -32,6 +34,7 @@ import {
 } from "../notifications-channel-add/index.js";
 import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
+import { relayChecks } from "../relay-checks/index.js";
 import type {
 	DoctorNotificationsReport,
 	NotificationsCheck,
@@ -808,6 +811,20 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			monitoring: loader.has("monitoring") ? (loader.get("monitoring") as Monitoring) : undefined,
 			missingReason: whyMissing(loader, "monitoring", "no `monitoring` provider is configured"),
 			found,
+		}))
+	);
+
+	// The Comlink relay that carries the error tracker's alerts. The one request is unsigned and the Worker rejects it
+	// unread, so this posts nothing either and `--built-only` keeps it.
+	checks.push(
+		...(await relayChecks({
+			layout,
+			errors: loader.has("errors") ? (loader.get("errors") as Errors) : undefined,
+			errorsMissingReason: whyMissing(loader, "errors", "no `errors` provider is configured"),
+			workers: loader.has("workers") ? (loader.get("workers") as Workers) : undefined,
+			workersMissingReason: whyMissing(loader, "workers", "no `workers` provider is configured"),
+			found,
+			...(input.fetch ? { fetch: input.fetch } : {}),
 		}))
 	);
 

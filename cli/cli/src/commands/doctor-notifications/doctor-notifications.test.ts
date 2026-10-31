@@ -1966,3 +1966,82 @@ describe("runDoctorNotifications — the monitoring feed", () => {
 		expect(lines.join("\n")).toContain("3 skipped");
 	});
 });
+
+describe("runDoctorNotifications — the Comlink relay", () => {
+	const RELAY_LAYOUT: NotificationsLayout = {
+		relay: { host: "comlink.example.com" },
+		categories: [{ name: "ALERTS", channels: [{ name: "errors", feeds: { errors: true } }] }],
+	};
+	const RELAY_FOUND: ServerInspection = {
+		categories: ["ALERTS"],
+		channels: [{ name: "errors", category: "ALERTS", webhooks: ["Sentry"], webhookAvatars: [] }],
+		roles: [],
+	};
+	const RELAY_IDS = ["relay-answers", "relay-worker", "relay-bindings", "relay-feed-webhook"];
+
+	function relayRun(workers: Record<string, unknown> | undefined, status = 401) {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { notifications: ["discord"], errors: "sentry", ...(workers ? { workers: "cloudflare" } : {}) },
+		});
+		const notifications = fakeNotifications({ layout: RELAY_LAYOUT, found: RELAY_FOUND });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", { errors: { providerName: "sentry" } }),
+			...(workers
+				? {
+						"@theholocron/holocron-plugin-cloudflare": makePlugin("cloudflare", {
+							workers: { providerName: "cloudflare", ...workers },
+						}),
+					}
+				: {}),
+		});
+		const fetchStub = vi.fn(async () => ({ status }) as Response);
+		const lines: string[] = [];
+		return {
+			lines,
+			fetchStub,
+			run: () =>
+				runDoctorNotifications({
+					loaded,
+					context: { repoRoot: "/tmp/test", org: "theholocron" },
+					loader,
+					print: (l) => lines.push(l),
+					logger: fakeLogger(),
+					builtOnly: true,
+					fetch: fetchStub as unknown as typeof fetch,
+				}),
+		};
+	}
+	const inspectScript = (state = {}) =>
+		vi.fn(async () => ({
+			exists: true,
+			routes: ["comlink.example.com/*"],
+			bindingNames: ["COMLINK_SENTRY_WEBHOOK", "COMLINK_SENTRY_SECRET"],
+			...state,
+		}));
+
+	it("adds the four steps and keeps them under --built-only", async () => {
+		const { run, fetchStub, lines } = relayRun({ inspectScript: inspectScript() });
+		const report = await run();
+		expect(RELAY_IDS.map((id) => byId(report, id).status)).toEqual(["pass", "pass", "pass", "pass"]);
+		expect(report.status).toBe("ok");
+		expect(fetchStub).toHaveBeenCalledTimes(1);
+		expect(lines.join("\n")).toContain("✓ relay Worker answers an unsigned request with 401");
+	});
+
+	it("fails the run when the Worker is not deployed (404) and a binding is missing", async () => {
+		const { run } = relayRun({ inspectScript: inspectScript({ bindingNames: ["COMLINK_SENTRY_WEBHOOK"] }) }, 404);
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(byId(report, "relay-answers").problems[0]).toContain("answered 404");
+		expect(byId(report, "relay-bindings").problems).toEqual(["COMLINK_SENTRY_SECRET: not bound"]);
+	});
+
+	it("skips the Worker steps, and counts them, when no workers provider is configured", async () => {
+		const { run } = relayRun(undefined);
+		const report = await run();
+		expect(["relay-worker", "relay-bindings"].map((id) => byId(report, id).status)).toEqual(["skip", "skip"]);
+		expect(report.summary.skip).toBe(2);
+	});
+});

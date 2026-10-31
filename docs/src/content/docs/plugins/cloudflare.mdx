@@ -78,6 +78,12 @@ export CLOUDFLARE_ACCOUNT_ID=<ACCOUNT_ID>
 
 Zone resolution walks from the full domain up to the apex automatically — e.g. `api.staging.example.com` tries `api.staging.example.com`, then `staging.example.com`, then `example.com`.
 
+## What `workers` provides
+
+- `deployScript(name, config)`: uploads a Worker with its secrets and routes. This is how `holocron notifications setup` deploys the Comlink relay.
+- `setSecret(script, name, value)` and `secretNames(script)`: set one secret on a deployed script, and list the names (never the values) of its secrets.
+- `inspectScript(name, host)`: reads a script without changing it, for `holocron doctor notifications`. It returns whether the script exists, the routes in the zone of `host` that point at it, and the names of its secrets. A secret's value is never requested.
+
 ## What `deployment` provides
 
 Manages [Cloudflare Pages](https://developers.cloudflare.com/pages/) projects. Used by `holocron repo setup` to provision per-PR preview deployments.

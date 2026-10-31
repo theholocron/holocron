@@ -1819,6 +1819,16 @@ export interface DeployScriptConfig {
 	routes?: string[];
 }
 
+/** A deployed Worker as the provider holds it, for `doctor notifications`. Binding names only: a value is never read. */
+export interface WorkerScriptState {
+	/** Whether a script with that name is deployed. */
+	exists: boolean;
+	/** The route patterns that serve the script in the zone of the host asked about. */
+	routes: string[];
+	/** The names of the secrets bound to the script. */
+	bindingNames: string[];
+}
+
 export interface DeployScriptResult {
 	/** The deployed script's name at the provider. */
 	scriptName: string;
@@ -1850,6 +1860,12 @@ export interface Workers extends ProviderIdentity {
 	setSecret?(script: string, name: string, value: string): Promise<void>;
 	/** The names (never the values) of the secrets bound to a deployed script. `holocron probe` uses it to see what a Worker has. */
 	secretNames?(script: string): Promise<string[]>;
+	/**
+	 * Read a deployed script without changing it: whether it exists, which route patterns serve it in the zone `host`
+	 * is in, and the names of its bindings. Read-only; `holocron doctor notifications` uses it to check the relay.
+	 * Optional — a provider that cannot read its scripts omits it.
+	 */
+	inspectScript?(name: string, host: string): Promise<WorkerScriptState>;
 	/**
 	 * A `holocron doctor` smoke check — every other method either mutates or
 	 * needs a specific script/zone doctor has no way to supply up front.
