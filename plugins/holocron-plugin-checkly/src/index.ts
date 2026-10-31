@@ -15,6 +15,7 @@ import { checklyProbes } from "./probes/index.js";
 import { type ChecklyClient, createChecklyClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Checkly plugin, including how its API key is resolved. */
 export interface ChecklyPluginOptions extends ResolveTokenInput {
 	/** Checkly account id — required on every request, not a secret (same status as Vercel's teamId). */
 	accountId: string;
@@ -26,12 +27,15 @@ export interface ChecklyPluginOptions extends ResolveTokenInput {
 	fetch?: typeof fetch;
 }
 
+/** The shared state the Checkly plugin's capabilities and probes are built from. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: ChecklyPluginOptions;
 	/** Memoized client — the token is resolved on first use, not at plugin load. */
 	client: () => ChecklyClient;
 }
 
+/** Builds the plugin context from its options; the API key is resolved lazily on the first client use. */
 export function createContext(options: ChecklyPluginOptions): PluginContext {
 	let client: ChecklyClient | undefined;
 	return {
@@ -49,10 +53,12 @@ export function createContext(options: ChecklyPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `monitoring` capability for a context, passing it the configured checks. */
 export function monitoring(ctx: PluginContext): Monitoring {
 	return new ChecklyMonitoring(ctx.client, { checks: ctx.options.checks });
 }
 
+/** Creates the Checkly plugin: its `monitoring` capability and its `connection` and Checkly probes. */
 export function createPlugin(options: ChecklyPluginOptions) {
 	const ctx = createContext(options);
 	return {

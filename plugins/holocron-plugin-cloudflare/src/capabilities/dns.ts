@@ -3,8 +3,11 @@ import { ProviderApiError } from "@theholocron/cli";
 
 import type { CloudflareClient } from "../rest.js";
 
+/** The Cloudflare implementation of the `dns` capability; finds a domain's zone by walking from the domain up to its apex. */
 export class CloudflareDns implements Dns {
+	/** The capability this class provides, always `"dns"`. */
 	readonly key = "dns" as const;
+	/** The provider name, `"cloudflare"`. */
 	readonly providerName = "cloudflare";
 
 	// Zone id is cached per domain name for the plugin instance lifetime.
@@ -12,12 +15,14 @@ export class CloudflareDns implements Dns {
 
 	constructor(private readonly client: () => CloudflareClient) {}
 
+	/** Lists the DNS records in the zone that holds the domain. */
 	async listRecords(domain: string): Promise<DnsRecord[]> {
 		const zoneId = await this.resolveZone(domain);
 		const records = await this.client().dns.list(zoneId);
 		return records.map(mapRecord);
 	}
 
+	/** Updates the first record of the same type and name, or creates the record when there is none; returns the stored record. */
 	async upsertRecord(domain: string, record: DnsRecord): Promise<DnsRecord> {
 		const client = this.client();
 		const zoneId = await this.resolveZone(domain);
@@ -48,6 +53,7 @@ export class CloudflareDns implements Dns {
 		return mapRecord(created);
 	}
 
+	/** Deletes the DNS record with this id from the zone that holds the domain. */
 	async deleteRecord(domain: string, id: string): Promise<void> {
 		const zoneId = await this.resolveZone(domain);
 		await this.client().dns.delete(zoneId, id);

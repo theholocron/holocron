@@ -8,6 +8,7 @@ import { CloudflareWorkers } from "./capabilities/workers.js";
 import { type CloudflareClient, createCloudflareClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Cloudflare plugin: how the API token is resolved, the account, and test overrides. */
 export interface CloudflarePluginOptions extends ResolveTokenInput {
 	/**
 	 * Cloudflare account ID. Required for Pages (deployment) operations;
@@ -16,10 +17,13 @@ export interface CloudflarePluginOptions extends ResolveTokenInput {
 	accountId?: string;
 	/** Override base URL for tests. */
 	baseUrl?: string;
+	/** The `fetch` to use instead of the global one, for tests. */
 	fetch?: typeof fetch;
 }
 
+/** The shared state the Cloudflare plugin's capabilities and probes are built from. */
 export interface PluginContext {
+	/** The options the plugin was created with, with `accountId` falling back to `CLOUDFLARE_ACCOUNT_ID`. */
 	options: CloudflarePluginOptions;
 	/** Memoized client — the token is resolved on first use, not at plugin load. */
 	client: () => CloudflareClient;
@@ -27,6 +31,7 @@ export interface PluginContext {
 	token: () => string;
 }
 
+/** Builds the plugin context from its options; the API token is resolved lazily on the first client use. */
 export function createContext(options: CloudflarePluginOptions = {}): PluginContext {
 	// CLOUDFLARE_ACCOUNT_ID is the standard Cloudflare env var; fall back so
 	// `deployment: "cloudflare"` works without repeating the ID in every config.
@@ -43,10 +48,12 @@ export function createContext(options: CloudflarePluginOptions = {}): PluginCont
 	};
 }
 
+/** Builds the `dns` capability for a context. */
 export function dns(ctx: PluginContext): Dns {
 	return new CloudflareDns(ctx.client);
 }
 
+/** Builds the `deployment` capability for a context; throws when no account id is set. */
 export function deployment(ctx: PluginContext): Deployment {
 	if (!ctx.options.accountId) {
 		throw new Error(
@@ -57,6 +64,7 @@ export function deployment(ctx: PluginContext): Deployment {
 	return new CloudflareDeployment(ctx.client, ctx.options.accountId);
 }
 
+/** Builds the `workers` capability for a context; throws when no account id is set. */
 export function workersCapability(ctx: PluginContext): Workers {
 	if (!ctx.options.accountId) {
 		throw new Error(
@@ -67,6 +75,7 @@ export function workersCapability(ctx: PluginContext): Workers {
 	return new CloudflareWorkers(ctx.client, ctx.options.accountId);
 }
 
+/** Creates the Cloudflare plugin: `dns` always, plus `deployment` and `workers` when an account id is set, and a `connection` probe. */
 export function createPlugin(options: CloudflarePluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
@@ -92,6 +101,7 @@ export function createPlugin(options: CloudflarePluginOptions = {}) {
 	};
 }
 
+/** One-line hint printed by `holocron auth set cloudflare` when no token is supplied or the supplied one is rejected. */
 export const AUTH_HINT =
 	"create an API token at https://dash.cloudflare.com/profile/api-tokens " +
 	"with Zone:Read, DNS:Edit, Cloudflare Pages:Edit, Workers Scripts:Edit (account-level), " +

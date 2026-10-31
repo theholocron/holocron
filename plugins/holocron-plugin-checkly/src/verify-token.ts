@@ -29,6 +29,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Checkly API key by listing the accounts it can see; resolves to the account names and ids, or the failure message. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const rest = createRestClient({
 		baseUrl: opts.baseUrl ?? "https://api.checklyhq.com/v1",

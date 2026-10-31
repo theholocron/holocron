@@ -12,8 +12,11 @@ import type { CfPagesProject } from "@theholocron/cloudflare-client";
 
 import type { CloudflareClient } from "../rest.js";
 
+/** The Cloudflare implementation of the `deployment` capability, backed by Cloudflare Pages projects in one account. */
 export class CloudflareDeployment implements Deployment {
+	/** The capability this class provides, always `"deployment"`. */
 	readonly key = "deployment" as const;
+	/** The provider name, `"cloudflare"`. */
 	readonly providerName = "cloudflare";
 
 	constructor(
@@ -23,6 +26,7 @@ export class CloudflareDeployment implements Deployment {
 
 	// ── projects ────────────────────────────────────────────────────────
 
+	/** Lists the account's Pages projects. */
 	async listProjects(): Promise<DeploymentProject[]> {
 		const projects = await this.client().pages.listProjects(this.accountId);
 		return projects.map(mapProject);
@@ -44,6 +48,7 @@ export class CloudflareDeployment implements Deployment {
 		return mapProject(created);
 	}
 
+	/** Returns the project as it is now; Pages has no REST setting for the requested options, so `settings` is ignored. */
 	async updateProjectSettings(projectId: string, settings: DeploymentProjectSettings): Promise<DeploymentProject> {
 		// CF Pages has no direct "disable preview deployments" flag in the REST API;
 		// ignore unknown settings and return current project state.
@@ -54,6 +59,7 @@ export class CloudflareDeployment implements Deployment {
 
 	// ── env vars ────────────────────────────────────────────────────────
 
+	/** Lists the names of the environment variables set for the production or preview target. */
 	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
 		const project = await this.client().pages.getProject(this.accountId, projectId);
 		const envConfig =
@@ -61,6 +67,7 @@ export class CloudflareDeployment implements Deployment {
 		return Object.keys(envConfig.env_vars);
 	}
 
+	/** Sets a plain-text environment variable on the production or preview target, keeping the others. */
 	async setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void> {
 		const project = await this.client().pages.getProject(this.accountId, projectId);
 		const cfg = project.deployment_configs;
@@ -90,6 +97,7 @@ export class CloudflareDeployment implements Deployment {
 		return mapDeployment(raw, input.projectId, input.branch, input.target);
 	}
 
+	/** Fetches a deployment by an id of the form `projectName:deploymentId`; throws a 400 `ProviderApiError` for any other form. */
 	async getDeployment(deploymentId: string): Promise<DeploymentRecord> {
 		const sep = deploymentId.indexOf(":");
 		if (sep === -1) {

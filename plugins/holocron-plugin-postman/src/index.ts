@@ -13,6 +13,7 @@ import { PostmanTooling, type PostmanToolingOptions } from "./capabilities/tooli
 import { createPostmanClient, type PostmanClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Postman plugin: how the API key is resolved, the tooling settings, and test overrides. */
 export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingOptions {
 	/** Working repo root. Used to resolve relative paths in specFile/envFiles. Defaults to process.cwd(). */
 	repoRoot?: string;
@@ -22,11 +23,15 @@ export interface PostmanPluginOptions extends ResolveTokenInput, PostmanToolingO
 	fetch?: typeof fetch;
 }
 
+/** The shared state the Postman plugin's capability and probes are built from. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: PostmanPluginOptions;
+	/** Memoized client factory; the API key is resolved on first use. */
 	client: () => PostmanClient;
 }
 
+/** Builds the plugin context from its options; throws when `workspaceId` is missing. */
 export function createContext(options: PostmanPluginOptions): PluginContext {
 	if (!options.workspaceId) {
 		throw new Error("@theholocron/holocron-plugin-postman requires `workspaceId` in options");
@@ -43,6 +48,7 @@ export function createContext(options: PostmanPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `tooling` capability for a context, passing only the options that are set. */
 export function tooling(ctx: PluginContext): Tooling {
 	const opts: PostmanToolingOptions = { workspaceId: ctx.options.workspaceId };
 	if (ctx.options.specFile !== undefined) opts.specFile = ctx.options.specFile;
@@ -53,6 +59,7 @@ export function tooling(ctx: PluginContext): Tooling {
 	return new PostmanTooling(ctx.client, opts);
 }
 
+/** Creates the Postman plugin: its `tooling` capability and its `connection` probe. */
 export function createPlugin(options: PostmanPluginOptions) {
 	const ctx = createContext(options);
 	return {
