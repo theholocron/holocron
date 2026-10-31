@@ -10,6 +10,7 @@
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type Monitoring,
 	type Notifications,
 	type NotificationsAccess,
 	type NotificationsOnboardingLayout,
@@ -21,6 +22,7 @@ import {
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import { style } from "../../ui/style/index.js";
 import { printCheckRows, printCheckSummary } from "../doctor-checks/index.js";
+import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
 import {
 	layoutSecretNames,
 	layoutSecretProblem,
@@ -96,7 +98,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	const summarise = () => ({
 		pass: checks.filter((c) => c.status === "pass").length,
 		fail: checks.filter((c) => c.status === "fail").length,
-		skip: 0,
+		skip: checks.filter((c) => c.status === "skip").length,
 	});
 	const finish = (): DoctorNotificationsReport => {
 		const summary = summarise();
@@ -799,6 +801,16 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		}
 	}
 
+	// The monitoring provider's feed into Discord. These read and post nothing, so `--built-only` keeps them.
+	checks.push(
+		...(await monitoringFeedChecks({
+			layout,
+			monitoring: loader.has("monitoring") ? (loader.get("monitoring") as Monitoring) : undefined,
+			missingReason: whyMissing(loader, "monitoring", "no `monitoring` provider is configured"),
+			found,
+		}))
+	);
+
 	// 15. a test message gets through a webhook: the layout's test channel by default, every channel on request
 	const withHook = (layout.categories ?? []).flatMap((cat) =>
 		(cat.channels ?? []).filter((c) => c.webhook).map((channel) => ({ cat, channel }))
@@ -895,7 +907,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 
 	// Render in one place so the output order is the check order.
 	printCheckRows(
-		checks.map((check) => ({ ...check, status: check.status === "pass" ? "ok" : "fail" })),
+		checks.map((check) => ({ ...check, status: check.status === "pass" ? "ok" : check.status })),
 		print
 	);
 	// Not a step and not counted: why the delivery check did not run, set apart below the steps.

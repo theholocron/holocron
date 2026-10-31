@@ -1868,3 +1868,101 @@ describe("runDoctorNotifications — pinned messages", () => {
 		]);
 	});
 });
+
+describe("runDoctorNotifications — the monitoring feed", () => {
+	const FEED_LAYOUT: NotificationsLayout = {
+		categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
+	};
+	const FEED_FOUND: ServerInspection = {
+		categories: ["ALERTS"],
+		channels: [
+			{
+				name: "uptime",
+				category: "ALERTS",
+				webhooks: ["Checkly"],
+				webhookAvatars: ["Checkly"],
+				webhookIds: { checkly: "1234567" },
+			},
+		],
+		roles: [],
+	};
+	const FEED_IDS = ["monitoring-feed-webhook", "monitoring-alert-channel", "monitoring-subscriptions"];
+
+	function feedRun(monitoring: Record<string, unknown> | undefined, builtOnly = false) {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { notifications: ["discord"], ...(monitoring ? { monitoring: "checkly" } : {}) },
+		});
+		const notifications = fakeNotifications({ layout: FEED_LAYOUT, found: FEED_FOUND });
+		const loader = makeLoader(loaded, {
+			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
+			...(monitoring
+				? {
+						"@theholocron/holocron-plugin-checkly": makePlugin("checkly", {
+							monitoring: { providerName: "checkly", checks: [], ...monitoring },
+						}),
+					}
+				: {}),
+		});
+		const lines: string[] = [];
+		return {
+			lines,
+			notifications,
+			run: () =>
+				runDoctorNotifications({
+					loaded,
+					context: { repoRoot: "/tmp/test", org: "theholocron" },
+					loader,
+					print: (l) => lines.push(l),
+					logger: fakeLogger(),
+					...(builtOnly ? { builtOnly: true } : {}),
+				}),
+		};
+	}
+	const inspect = (over = {}) =>
+		vi.fn(async () => ({
+			exists: true,
+			discord: true,
+			webhookId: "1234567",
+			unsubscribed: [],
+			deactivated: [],
+			...over,
+		}));
+
+	it("adds the three steps, keeps them under --built-only and posts nothing", async () => {
+		const inspectAlertChannel = inspect();
+		const { run, lines, notifications } = feedRun({ inspectAlertChannel }, true);
+		const report = await run();
+		expect(report.checks.filter((c) => FEED_IDS.includes(c.id)).map((c) => c.status)).toEqual([
+			"pass",
+			"pass",
+			"pass",
+		]);
+		expect(report.status).toBe("ok");
+		expect(inspectAlertChannel).toHaveBeenCalledWith("Message to #uptime");
+		expect(lines.join("\n")).toContain("✓ monitoring alert channel posts through the feed webhook");
+		expect(notifications.checkDelivery).not.toHaveBeenCalled();
+	});
+
+	it("fails the run when the alert channel posts through another webhook", async () => {
+		const { run, lines } = feedRun({
+			inspectAlertChannel: inspect({ webhookId: "42", unsubscribed: ["check c"] }),
+		});
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(byId(report, "monitoring-alert-channel").status).toBe("fail");
+		expect(byId(report, "monitoring-subscriptions").problems).toEqual([
+			"#uptime: Message to #uptime is not subscribed to check c",
+		]);
+		expect(lines.join("\n")).toContain("posts through a different webhook than Checkly");
+	});
+
+	it("skips the steps, and counts the skips, when no monitoring provider is configured", async () => {
+		const { run, lines } = feedRun(undefined, true);
+		const report = await run();
+		expect(FEED_IDS.map((id) => byId(report, id).status)).toEqual(["skip", "skip", "skip"]);
+		expect(report.summary.skip).toBe(3);
+		expect(report.status).toBe("ok");
+		expect(lines.join("\n")).toContain("3 skipped");
+	});
+});

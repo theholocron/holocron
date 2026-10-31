@@ -1115,10 +1115,11 @@ describe("DiscordNotifications.inspect", () => {
 				topic: "needs a human",
 				webhooks: ["alerts"],
 				webhookAvatars: [],
+				webhookIds: { alerts: "w1" },
 				access: OPEN,
 			},
-			{ name: "errors", category: "ALERTS", webhooks: [], webhookAvatars: [], access: OPEN },
-			{ name: "general", webhooks: [], webhookAvatars: [], access: OPEN },
+			{ name: "errors", category: "ALERTS", webhooks: [], webhookAvatars: [], webhookIds: {}, access: OPEN },
+			{ name: "general", webhooks: [], webhookAvatars: [], webhookIds: {}, access: OPEN },
 		]);
 		expect(found.categoryAccess).toEqual({ ALERTS: OPEN });
 		expect(found.roles).toEqual([{ name: "gatekeepers", id: "4001", mentionable: true, color: "#000000" }]);
@@ -1141,6 +1142,29 @@ describe("DiscordNotifications.inspect", () => {
 		await notifs.inspect(layout);
 		expect(calls.filter((c) => c.url.endsWith("/webhooks"))).toHaveLength(1);
 		expect(calls.find((c) => c.url.endsWith("/webhooks"))?.url).toBe(`${BASE}/channels/2001/webhooks`);
+	});
+
+	it("lists the webhooks of a channel with a feed too, and reports each one's id and never its token", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [category("1001", "ALERTS"), text("2001", "uptime", "1001"), text("2002", "errors", "1001")] },
+			{ body: [{ id: "w9", name: "Checkly", token: "sentinel-token", channel_id: "2001" }] },
+			{ body: [{ id: "w8", name: "Sentry", token: "sentinel-token", channel_id: "2002" }] },
+			{ body: [] },
+		]);
+		const found = await notifs.inspect({
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{ name: "uptime", feeds: { monitoring: true } },
+						{ name: "errors", feeds: { errors: true } },
+					],
+				},
+			],
+		});
+		expect(calls.filter((c) => c.url.endsWith("/webhooks"))).toHaveLength(2);
+		expect(found.channels.map((c) => c.webhookIds)).toEqual([{ checkly: "w9" }, { sentry: "w8" }]);
+		expect(JSON.stringify(found)).not.toContain("sentinel-token");
 	});
 
 	it("handles a layout whose category declares no channels, fetching no webhooks", async () => {

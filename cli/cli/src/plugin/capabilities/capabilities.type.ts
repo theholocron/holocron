@@ -1137,6 +1137,23 @@ export interface MonitoringAlertChannelResult {
 	subscribed: number;
 }
 
+/**
+ * An alert channel as the provider holds it, for `doctor notifications`. The URL it posts to is a credential and is not
+ * returned: `webhookId` is the public part of a Discord webhook's URL, enough to tell which webhook it posts through.
+ */
+export interface MonitoringAlertChannelState {
+	/** Whether a webhook alert channel with that name exists. */
+	exists: boolean;
+	/** Whether the provider formats its message for Discord. Absent when the channel does not exist. */
+	discord?: boolean;
+	/** The id of the Discord webhook the channel posts through, read from its URL. Absent when the URL is not one. */
+	webhookId?: string;
+	/** Names of the checks on the account that the channel is not subscribed to. */
+	unsubscribed: string[];
+	/** Names of the checks the channel is subscribed to but has switched off. */
+	deactivated: string[];
+}
+
 export interface Monitoring extends ProviderIdentity {
 	readonly key: "monitoring";
 	/**
@@ -1168,6 +1185,11 @@ export interface Monitoring extends ProviderIdentity {
 	 * Optional — a provider with no alert channels omits it.
 	 */
 	ensureAlertChannel?(input: MonitoringAlertChannelInput): Promise<MonitoringAlertChannelResult>;
+	/**
+	 * Read the alert channel named `name` and which of the account's checks it alerts for. Read-only, and never returns
+	 * the URL it posts to. Optional — a provider with no alert channels omits it.
+	 */
+	inspectAlertChannel?(name: string): Promise<MonitoringAlertChannelState>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -1513,10 +1535,12 @@ export interface ServerInspection {
 		/** The category it sits under, if any. */
 		category?: string;
 		topic?: string;
-		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook. */
+		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook or a feed. */
 		webhooks: string[];
 		/** Which of those webhooks have a picture of their own. */
 		webhookAvatars?: string[];
+		/** The id of each of those webhooks, by lower-cased name: the public part of its URL, never the token. */
+		webhookIds?: Record<string, string>;
 		/** Set when listing this channel's webhooks failed; `webhooks` is then empty and means nothing. */
 		webhooksError?: string;
 		/** Who can see and post; `"custom"` as for `categoryAccess`. */

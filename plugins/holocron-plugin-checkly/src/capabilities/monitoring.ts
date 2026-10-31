@@ -14,6 +14,7 @@ import {
 	type Monitoring,
 	type MonitoringAlertChannelInput,
 	type MonitoringAlertChannelResult,
+	type MonitoringAlertChannelState,
 	type MonitoringAssertion,
 	type MonitoringCheck,
 	type MonitoringCheckInput,
@@ -48,6 +49,9 @@ const COMPARISON_MAP: Record<string, AssertionComparison> = {
 	greater_than: "GREATER_THAN",
 	less_than: "LESS_THAN",
 };
+
+/** The id in a Discord webhook URL (`.../api/webhooks/<id>/<token>`): public, unlike the token after it. */
+const DISCORD_WEBHOOK_ID = /\/api(?:\/v\d+)?\/webhooks\/(\d+)\//;
 
 const SOURCE_FROM_CHECKLY = invert(SOURCE_MAP);
 const COMPARISON_FROM_CHECKLY = invert(COMPARISON_MAP);
@@ -316,14 +320,43 @@ export class ChecklyMonitoring implements Monitoring {
 		return { added: missing.length, active: active.size };
 	}
 
+	/**
+	 * Read the alert channel named `name` and which of the account's checks it alerts for. Read-only. The URL it posts to
+	 * is a credential, so only the webhook id inside it is returned, enough to tell which webhook it is.
+	 */
+	async inspectAlertChannel(name: string): Promise<MonitoringAlertChannelState> {
+		const client = this.client();
+		const [channels, checks] = await Promise.all([client.alertChannels.list(), this.allChecks()]);
+		const listed = channels.find(
+			(c): c is Extract<AlertChannel, { type: "WEBHOOK" }> => c.type === "WEBHOOK" && c.config.name === name
+		);
+		if (!listed) return { exists: false, unsubscribed: [], deactivated: [] };
+		// The list may leave subscriptions out; the channel itself is the authority.
+		const channel = await client.alertChannels.get(listed.id);
+		const subscribed = new Map(channel.subscriptions.flatMap((s) => (s.checkId ? [[s.checkId, s.activated]] : [])));
+		const webhookId = DISCORD_WEBHOOK_ID.exec(listed.config.url)?.[1];
+		return {
+			exists: true,
+			discord: listed.config.webhookType === "WEBHOOK_DISCORD",
+			...(webhookId ? { webhookId } : {}),
+			unsubscribed: checks.filter((c) => !subscribed.has(c.id)).map((c) => c.name),
+			deactivated: checks.filter((c) => subscribed.get(c.id) === false).map((c) => c.name),
+		};
+	}
+
 	/** The id of every check on the account, read a page at a time. */
 	private async allCheckIds(): Promise<string[]> {
+		return (await this.allChecks()).map((c) => c.id);
+	}
+
+	/** Every check on the account, read a page at a time. */
+	private async allChecks(): Promise<{ id: string; name: string }[]> {
 		const PAGE = 100;
-		const ids: string[] = [];
+		const found: { id: string; name: string }[] = [];
 		for (let page = 1; ; page++) {
 			const batch = await this.client().checks.list({ limit: PAGE, page });
-			ids.push(...batch.map((c) => c.id));
-			if (batch.length < PAGE) return ids;
+			found.push(...batch.map((c) => ({ id: c.id, name: c.name })));
+			if (batch.length < PAGE) return found;
 		}
 	}
 

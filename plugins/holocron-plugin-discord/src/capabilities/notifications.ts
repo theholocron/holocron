@@ -330,7 +330,9 @@ export class DiscordNotifications implements Notifications {
 		);
 		const wantsWebhook = new Set(
 			(layout.categories ?? []).flatMap((c) =>
-				(c.channels ?? []).filter((ch) => ch.webhook).map((ch) => ch.name.toLowerCase())
+				(c.channels ?? [])
+					.filter((ch) => ch.webhook || ch.feeds?.monitoring || ch.feeds?.errors)
+					.map((ch) => ch.name.toLowerCase())
 			)
 		);
 		const text = channels.filter((c) => c.type === ChannelType.Text || c.type === ChannelType.Announcement);
@@ -338,6 +340,7 @@ export class DiscordNotifications implements Notifications {
 		for (const c of text) {
 			let webhooks: string[] = [];
 			let webhookAvatars: string[] = [];
+			let webhookIds: Record<string, string> = {};
 			let webhooksError: string | undefined;
 			if (wantsWebhook.has(c.name.toLowerCase())) {
 				// One channel's webhook list failing must not discard everything else that was read.
@@ -345,6 +348,7 @@ export class DiscordNotifications implements Notifications {
 					const hooks = await bot.channels.webhooks(c.id);
 					webhooks = hooks.map((w) => w.name ?? "");
 					webhookAvatars = hooks.filter((w) => w.avatar).map((w) => w.name ?? "");
+					webhookIds = Object.fromEntries(hooks.map((w) => [(w.name ?? "").toLowerCase(), w.id]));
 				} catch (err) {
 					webhooksError = reason(err);
 				}
@@ -356,6 +360,7 @@ export class DiscordNotifications implements Notifications {
 				...(c.topic ? { topic: c.topic } : {}),
 				webhooks,
 				webhookAvatars,
+				webhookIds,
 				...(webhooksError ? { webhooksError } : {}),
 			});
 		}
