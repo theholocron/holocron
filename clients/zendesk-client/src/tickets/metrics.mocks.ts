@@ -1,5 +1,6 @@
 import type { ITicketMetric } from "./metrics.types.js";
 
+/** Fixture for a ticket's metrics record, for use in tests. */
 export const mockTicketMetric: ITicketMetric = {
 	agent_wait_time_in_minutes: {
 		business: 737,

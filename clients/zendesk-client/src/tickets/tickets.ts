@@ -4,6 +4,7 @@ import type { ITicket, TTicketResponse, TTicketsResponse } from "./tickets.types
 
 const PATH = "/api/v2/tickets";
 
+/** Builds the tickets resource of the Zendesk API (`/api/v2/tickets`) on top of a REST client; `list` includes custom statuses. */
 export function tickets(rest: RestClient) {
 	return {
 		list: (params?: Record<string, string>): Promise<TTicketsResponse> =>

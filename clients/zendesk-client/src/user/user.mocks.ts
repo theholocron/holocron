@@ -1,6 +1,7 @@
 import { mockAttachment } from "../attachments/attachments.mocks.js";
 import type { IUser } from "./user.types.js";
 
+/** Fixture for a Zendesk user, for use in tests. */
 export const mockUser: IUser = {
 	active: true,
 	alias: "test",
