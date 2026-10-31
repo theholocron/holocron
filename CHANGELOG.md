@@ -1,3 +1,9 @@
+## [5.0.0-alpha.273](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.272...v5.0.0-alpha.273) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 doctor monitoring checks the declared checks exist in the account ([#1453](https://github.com/theholocron/holocron/issues/1453)) ([ca0d336](https://github.com/theholocron/holocron/commit/ca0d33676b7952671f90ab05d03d835639856df0)), closes [#1452](https://github.com/theholocron/holocron/issues/1452) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
 ## [5.0.0-alpha.272](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.271...v5.0.0-alpha.272) (2026-10-31)
 
 ### Features
