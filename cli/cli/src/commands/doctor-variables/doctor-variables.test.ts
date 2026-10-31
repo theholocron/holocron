@@ -226,7 +226,10 @@ describe("doctor variables — no provider", () => {
 describe("doctor variables — defaults", () => {
 	it("prints to the console and builds its own loader when none is passed", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
-		const report = await runDoctorVariables({ loaded: loadedWith(undefined), context: { repoRoot: "/tmp/test" } });
+		const report = await runDoctorVariables({
+			loaded: loadedWith(undefined, { providers: {} }),
+			context: { repoRoot: "/tmp/test" },
+		});
 		expect(report.status).toBe("ok");
 		expect(log).toHaveBeenCalled();
 		log.mockRestore();
