@@ -1,3 +1,5 @@
+import type { Catalogs } from "@theholocron/pkg-utils";
+
 /** A dependency section of a manifest. */
 export type DependencySection = "dependencies" | "devDependencies" | "optionalDependencies" | "peerDependencies";
 
@@ -16,9 +18,6 @@ export interface DependencyEdge {
 	/** The manifest path relative to the repo root. */
 	file: string;
 }
-
-/** The catalogs of `pnpm-workspace.yaml`: the default one under `default`, the named ones under their name. */
-export type Catalogs = Record<string, Record<string, string>>;
 
 /** One dependency: the catalog it belongs in (`null` for peer-only) and everything that uses it. */
 export interface DependencyRow {

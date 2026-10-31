@@ -1,3 +1,5 @@
+import { PACKAGES_KEY } from "./pnpm-workspace.ts";
+
 /** The `packages:` entries of a `pnpm-workspace.yaml`, split by whether they include or exclude (`!pattern`) packages. */
 export interface WorkspaceGlobs {
 	include: string[];
@@ -15,7 +17,7 @@ export interface WorkspaceGlobs {
  */
 export function readWorkspaceGlobs(workspaceYaml: string): WorkspaceGlobs {
 	const lines = workspaceYaml.split("\n");
-	const start = lines.findIndex((line) => /^packages:\s*(#.*)?$/.test(line));
+	const start = lines.findIndex((line) => PACKAGES_KEY.test(line));
 	const globs: WorkspaceGlobs = { include: [], exclude: [] };
 	if (start === -1) return globs;
 

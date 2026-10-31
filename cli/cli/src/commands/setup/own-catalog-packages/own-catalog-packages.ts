@@ -1,9 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
-
-import { parseCatalogs } from "../../probe/deps/index.js";
+import { discoverWorkspacePackages, parseCatalogs } from "@theholocron/pkg-utils";
 
 /**
  * The packages of this workspace that a pnpm catalog also lists: the minimum versions a plugin accepts

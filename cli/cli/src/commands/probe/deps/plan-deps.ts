@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { type Catalogs, parseCatalogs } from "@theholocron/pkg-utils";
+
 import { collectEdges } from "./collect-edges.js";
 import { SCOPE } from "./constants.js";
-import type { Catalogs, DependencyEdge, DependencyPlan, DependencyRow } from "./deps.type.js";
-import { parseCatalogs } from "./parse-catalogs.js";
+import type { DependencyEdge, DependencyPlan, DependencyRow } from "./deps.type.js";
 import { pickRange } from "./pick-range.js";
 import { targetCatalog } from "./target-catalog.js";
 import { workspaceDirs } from "./workspace-dirs.js";

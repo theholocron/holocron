@@ -8,7 +8,6 @@ import type { ProbeRow } from "../../../plugin/index.js";
 import { checkDeps } from "./check-deps.js";
 import { depsProbes } from "./deps-probes.js";
 import { groupOf } from "./group-of.js";
-import { parseCatalogs } from "./parse-catalogs.js";
 import { pickRange } from "./pick-range.js";
 import { planDeps } from "./plan-deps.js";
 import { reportDeps } from "./report-deps.js";
@@ -43,19 +42,6 @@ const YAML =
 		"overrides:",
 		"  cookie: ^2.0.1",
 	].join("\n") + "\n";
-
-describe("parseCatalogs", () => {
-	it("reads the default catalog and the named ones, quoted keys included", () => {
-		const catalogs = parseCatalogs(YAML);
-		expect(catalogs["default"]).toEqual({ "@types/node": "^26", typescript: "^5.9.3", tsx: "4.23.15" });
-		expect(catalogs["cli"]).toEqual({ yargs: "^18.1.0" });
-		expect(catalogs["peers"]).toEqual({ "@theholocron/widget-client": "^1.2.0" });
-	});
-
-	it("stops at the next top-level key", () => {
-		expect(parseCatalogs(YAML)["default"]?.["cookie"]).toBeUndefined();
-	});
-});
 
 describe("targetCatalog", () => {
 	it("puts a dependency used by two or more groups in the default catalog", () => {

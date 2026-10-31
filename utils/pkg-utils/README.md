@@ -76,6 +76,18 @@ const names = discoverWorkspacePackages(repoRoot, { group: "clients" }).map((p) 
 
 `readWorkspaceGlobs` reads the `packages:` list of a `pnpm-workspace.yaml` text into `{ include, exclude }` (a line-based read, not a YAML parse; quotes and trailing comments are stripped). `resolveWorkspaceGlobs` reads the file in `repoRoot` and falls back to the default roots as `<root>/*` when it lists none.
 
+### `parseCatalogs(text)`
+
+The `catalog:` and `catalogs:` blocks of a `pnpm-workspace.yaml` as `{ default: {...}, <name>: {...} }`, package name to range. A line-based read of the flat format pnpm writes; entries outside a catalog are ignored.
+
+### `addWorkspaceMember(workspaceYaml, member)`
+
+Adds `member` (for example `"."`) as the first quoted entry of the `packages:` list and returns `{ content, changed }`. A line-based edit that only adds a line, so the `catalog:` and `overrides:` blocks after it keep their formatting. Nothing changes when the member is already listed, or when there is no plain block-list `packages:`.
+
+### `bumpCatalogPins(content, fetchLatest, options?)`
+
+Rewrites the pins of every catalog entry to the latest version `fetchLatest(name)` returns, keeping the range prefix (`^`, `~`) and the quoting. It never downgrades, leaves a package with no answer alone, and asks once per package. `options.include` limits which packages are looked up. Returns `{ content, bumps }`. `gt(a, b)` is the comparison it uses for `x.y.z` release versions.
+
 ### `PackageJson`
 
 The fields these helpers read, typed; any other field passes through untyped.

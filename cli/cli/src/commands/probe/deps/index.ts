@@ -4,7 +4,6 @@ export * from "./constants.js";
 export * from "./deps.type.js";
 export * from "./deps-probes.js";
 export * from "./group-of.js";
-export * from "./parse-catalogs.js";
 export * from "./pick-range.js";
 export * from "./plan-deps.js";
 export * from "./report-deps.js";
