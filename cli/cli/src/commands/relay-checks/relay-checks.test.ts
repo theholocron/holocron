@@ -173,6 +173,12 @@ describe("relayChecks", () => {
 			const token = await run({ workers: workers(new MissingTokenError("no Cloudflare token set")) });
 			expect(token.map((r) => r.status)).toEqual(["pass", "skip", "skip", "pass"]);
 			expect(row(token, "relay-worker").detail).toBe("no Cloudflare token set");
+			const authError = Object.assign(new Error("no Cloudflare token found"), { name: "AuthError" });
+			const fromPlugin = await run({ workers: workers(authError) });
+			expect(row(fromPlugin, "relay-bindings")).toMatchObject({
+				status: "skip",
+				detail: "no Cloudflare token found",
+			});
 		});
 
 		it("reports any other read error as a failure", async () => {

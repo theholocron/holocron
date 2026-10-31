@@ -1,8 +1,8 @@
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { MissingTokenError } from "../../plugin/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
+import { missingTokenReason } from "../missing-token/index.js";
 import { resultRow, skipRow } from "../notification-check-rows/index.js";
 import { feedAvatarOf } from "../notifications-setup/index.js";
 import {
@@ -121,7 +121,7 @@ export async function relayChecks(input: RelayChecksInput): Promise<Notification
 				);
 			}
 		} catch (err) {
-			const reason = err instanceof MissingTokenError ? err.message : undefined;
+			const reason = missingTokenReason(err);
 			rows.push(
 				...(reason === undefined
 					? [
