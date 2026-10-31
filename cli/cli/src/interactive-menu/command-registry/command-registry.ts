@@ -13,6 +13,7 @@ import { doctorDnsEntry } from "../../commands/doctor-dns/doctor-dns.entry.js";
 import { doctorEnvironmentsEntry } from "../../commands/doctor-environments/doctor-environments.entry.js";
 import { doctorMonitoringEntry } from "../../commands/doctor-monitoring/doctor-monitoring.entry.js";
 import { doctorNotificationsEntry } from "../../commands/doctor-notifications/doctor-notifications.entry.js";
+import { doctorRepoEntry } from "../../commands/doctor-repo/doctor-repo.entry.js";
 import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets.entry.js";
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
@@ -67,6 +68,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	doctorNotificationsEntry,
 	doctorEnvironmentsEntry,
 	doctorDnsEntry,
+	doctorRepoEntry,
 	doctorSecretsEntry,
 	doctorTokensEntry,
 	doctorVariablesEntry,

@@ -28,6 +28,7 @@ describe("menuItems — one level of the nested menu", () => {
 			"notifications",
 			"environments",
 			"dns",
+			"repo",
 			"secrets",
 			"tokens",
 			"variables",

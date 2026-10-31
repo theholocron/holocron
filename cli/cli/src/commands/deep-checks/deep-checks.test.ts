@@ -10,6 +10,12 @@ vi.mock("../doctor-notifications/index.js", async (importActual) => ({
 	runDoctorNotifications,
 }));
 
+const runDoctorRepo = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-repo/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-repo/index.js")>()),
+	runDoctorRepo,
+}));
+
 const runDoctorSecrets = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-secrets/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../doctor-secrets/index.js")>()),
@@ -203,6 +209,30 @@ describe("the variables entry", () => {
 			reason: "no source provider",
 		});
 		expect(await variables.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no source provider",
+		});
+	});
+});
+
+describe("the repo entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const repo = DEEP_CHECKS.find((c) => c.name === "repo")!;
+
+	it("reports the run's status and counts", async () => {
+		runDoctorRepo.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 1, fail: 0, skip: 1 } });
+		expect(await repo.run(input)).toEqual({ status: "ok", summary: { ok: 1, fail: 0, skip: 1 } });
+	});
+
+	it("carries the reason every row was skipped", async () => {
+		runDoctorRepo.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no source provider",
+		});
+		expect(await repo.run(input)).toEqual({
 			status: "skip",
 			summary: { ok: 0, fail: 0, skip: 1 },
 			reason: "no source provider",

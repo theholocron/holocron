@@ -2,6 +2,7 @@ import { doctorDnsCommand, runDoctorDns } from "../doctor-dns/index.js";
 import { doctorEnvironmentsCommand, runDoctorEnvironments } from "../doctor-environments/index.js";
 import { doctorMonitoringCommand, runDoctorMonitoring } from "../doctor-monitoring/index.js";
 import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-notifications/index.js";
+import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
 import { doctorVariablesCommand, runDoctorVariables } from "../doctor-variables/index.js";
@@ -62,6 +63,19 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorDnsCommand as never,
 		async run(input) {
 			const report = await runDoctorDns(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "repo",
+		capability: "source",
+		command: doctorRepoCommand as never,
+		async run(input) {
+			const report = await runDoctorRepo(input);
 			return {
 				status: report.status,
 				summary: report.summary,
