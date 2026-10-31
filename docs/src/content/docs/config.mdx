@@ -3,7 +3,39 @@ title: Configuration
 description: Complete reference for holocron.config.ts — providers, repo metadata, workflows, skills, and more.
 ---
 
-Holocron looks for `holocron.config.ts` (preferred) or `holocron.config.json` in the current working directory (or the path passed to `--cwd`). TypeScript configs require `@theholocron/holocron-config` as a dev dependency.
+Holocron looks for `holocron.config.ts` (preferred) or `holocron.config.json` in the current working directory (or the path passed to `--cwd`). TypeScript configs import `defineConfig` and the ready-made presets from `@theholocron/cli`; see [Presets](#presets).
+
+## Presets
+
+A preset is a ready-made config fragment: spread it into `defineConfig()`. They ship with the CLI, from one entry point, `@theholocron/cli/presets` (they used to be the separate `@theholocron/holocron-config` package, which is deprecated).
+
+```ts
+import { defineConfig } from "@theholocron/cli";
+import { nodePreset } from "@theholocron/cli/presets";
+
+export default defineConfig({
+  ...nodePreset(),
+  name: "my-project",
+});
+```
+
+| Export           | For                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `nodePreset`     | A Node.js repository.                                                                           |
+| `docsPreset`     | A TypeScript library that also publishes a docs site.                                           |
+| `docsSitePreset` | A docs-only site with no TypeScript source to check.                                            |
+| `nextjsPreset`   | A single-package Next.js app: Vercel deploy, Lighthouse, Storybook and interaction tests.       |
+| `reactPreset`    | A single-package React/Vite app: Storybook, interaction tests, and a Knip and Lighthouse audit. |
+| `monorepoPreset` | Wraps another preset for a monorepo root: `monorepoPreset(nextjsPreset())`.                     |
+
+To build your own, `compose()` capabilities. `withCapabilities` holds the factories: `withNode`, `withTypecheck`, `withDocs`, `withAudit`, `withWiki`, `withReact`, `withNextjs` and `withMonorepo`.
+
+```ts
+import { compose, withCapabilities } from "@theholocron/cli/presets";
+
+const { withNode, withTypecheck } = withCapabilities;
+const preset = compose(withNode(), withTypecheck());
+```
 
 ## Full schema
 
