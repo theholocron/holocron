@@ -14,6 +14,7 @@ import { InfisicalVault, type InfisicalVaultOptions } from "./capabilities/vault
 import { createInfisicalClient, type InfisicalClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Infisical plugin: the token lookup inputs plus the default workspace and environment. */
 export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaultOptions {
 	/** Override base URL for tests (or self-hosted Infisical). */
 	baseUrl?: string;
@@ -21,11 +22,15 @@ export interface InfisicalPluginOptions extends ResolveTokenInput, InfisicalVaul
 	fetch?: typeof fetch;
 }
 
+/** Shared state for one Infisical plugin instance: its options and a lazily created client. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: InfisicalPluginOptions;
+	/** Returns the memoized Infisical client; the token is resolved on the first call, not at plugin load. */
 	client: () => InfisicalClient;
 }
 
+/** Builds the plugin context from its options. */
 export function createContext(options: InfisicalPluginOptions): PluginContext {
 	let client: InfisicalClient | undefined;
 	return {
@@ -39,6 +44,7 @@ export function createContext(options: InfisicalPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `vault` capability for the context's default workspace and environment. */
 export function vault(ctx: PluginContext): Vault {
 	return new InfisicalVault(ctx.client, {
 		workspace: ctx.options.workspace,
@@ -46,6 +52,7 @@ export function vault(ctx: PluginContext): Vault {
 	});
 }
 
+/** Creates the Infisical plugin: its `connection` probe and the `vault` capability. */
 export function createPlugin(options: InfisicalPluginOptions) {
 	const ctx = createContext(options);
 	return {

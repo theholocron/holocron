@@ -13,6 +13,7 @@ import { NeonStorage } from "./capabilities/storage.js";
 import { createNeonClient, type NeonClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Neon plugin: the token lookup inputs plus the project it is bound to. */
 export interface NeonPluginOptions extends ResolveTokenInput {
 	/** Neon project id this plugin is bound to. Required. */
 	projectId: string;
@@ -22,11 +23,15 @@ export interface NeonPluginOptions extends ResolveTokenInput {
 	fetch?: typeof fetch;
 }
 
+/** Shared state for one Neon plugin instance: its options and a lazily created client. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: NeonPluginOptions;
+	/** Returns the memoized Neon client; the token is resolved on the first call, not at plugin load. */
 	client: () => NeonClient;
 }
 
+/** Builds the plugin context from its options; throws when `projectId` is missing. */
 export function createContext(options: NeonPluginOptions): PluginContext {
 	if (!options.projectId) {
 		throw new Error("@theholocron/holocron-plugin-neon requires `projectId` in options");
@@ -43,10 +48,12 @@ export function createContext(options: NeonPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `storage` capability for the context's project. */
 export function storage(ctx: PluginContext): Storage {
 	return new NeonStorage(ctx.client, { projectId: ctx.options.projectId });
 }
 
+/** Creates the Neon plugin: its `connection` probe and the `storage` capability. */
 export function createPlugin(options: NeonPluginOptions) {
 	const ctx = createContext(options);
 	return {

@@ -43,6 +43,7 @@ import type {
 import { ProviderApiError } from "@theholocron/http-client";
 import type { NetlifyClient, NetlifyDeploy, NetlifyEnvContext, NetlifySite } from "@theholocron/netlify-client";
 
+/** Options for the Netlify `deployment` capability. */
 export interface NetlifyDeploymentOptions {
 	/**
 	 * Required for `ensureProject` / `listProjects` (create/list use
@@ -82,8 +83,11 @@ function toNetlifyContext(target: DeploymentTarget): NetlifyEnvContext {
 	return target === "production" ? "production" : "branch-deploy";
 }
 
+/** `deployment` capability for Netlify, where a Holocron project is a Netlify site. */
 export class NetlifyDeployment implements Deployment {
+	/** Capability key; always `"deployment"`. */
 	readonly key = "deployment" as const;
+	/** Provider name; always `"netlify"`. */
 	readonly providerName = "netlify";
 	readonly domain?: string;
 
@@ -94,6 +98,7 @@ export class NetlifyDeployment implements Deployment {
 		if (opts.domain !== undefined) this.domain = opts.domain;
 	}
 
+	/** Lists the sites the token can see, mapped to deployment projects. */
 	async listProjects(): Promise<DeploymentProject[]> {
 		const sites = await this.client().sites.list();
 		return sites.map(toDeploymentProject);
@@ -142,6 +147,7 @@ export class NetlifyDeployment implements Deployment {
 		return toDeploymentProject(site);
 	}
 
+	/** Lists the names of the env vars that have a value for the given target; needs `accountId`. */
 	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
 		const accountId = this.requireAccountId();
 		const context = toNetlifyContext(target);
@@ -149,6 +155,7 @@ export class NetlifyDeployment implements Deployment {
 		return vars.filter((v) => v.values.some((value) => value.context === context)).map((v) => v.key);
 	}
 
+	/** Sets an env var for the given target (`production`, or the branch-deploy context for any other); needs `accountId`. */
 	async setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void> {
 		const accountId = this.requireAccountId();
 		await this.client().env.set(accountId, projectId, name, toNetlifyContext(target), value);
@@ -175,6 +182,7 @@ export class NetlifyDeployment implements Deployment {
 		return toDeploymentRecord(deploy);
 	}
 
+	/** Fetches a deploy by id and maps its state to `ready`, `error` or `building`. */
 	async getDeployment(deploymentId: string): Promise<DeploymentRecord> {
 		const deploy = await this.client().deploys.get(deploymentId);
 		return toDeploymentRecord(deploy);

@@ -22,12 +22,15 @@ export type { FernWikiOptions } from "./capabilities/wiki.js";
 export { FernWiki } from "./capabilities/wiki.js";
 export { FERN_VERSION } from "./capabilities/wiki.js";
 
+/** Options for the Fern plugin; the same as the `wiki` capability's. */
 export type FernPluginOptions = FernWikiOptions;
 
+/** Builds the `wiki` capability from the plugin options. */
 export function wiki(opts: FernPluginOptions): Wiki {
 	return new FernWiki(opts);
 }
 
+/** Creates the Fern plugin: its `connection` probe and the `wiki` capability. */
 export function createPlugin(options: FernPluginOptions = {}) {
 	return {
 		name: "@theholocron/holocron-plugin-fern",

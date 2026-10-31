@@ -19,6 +19,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Doppler token by fetching the caller and reports its kind and workplace, or why it was rejected. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createDopplerClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

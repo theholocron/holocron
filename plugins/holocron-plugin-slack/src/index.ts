@@ -6,18 +6,23 @@ import { SlackNotifications, type SlackNotificationsOptions } from "./capabiliti
 import { createSlackClient, type SlackClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Slack plugin: the token lookup inputs plus the notification defaults. */
 export interface SlackPluginOptions extends ResolveTokenInput, SlackNotificationsOptions {
 	/** Override base URL for tests. Default: https://slack.com/api */
 	baseUrl?: string;
+	/** Override `fetch` for tests. */
 	fetch?: typeof fetch;
 }
 
+/** Shared state for one Slack plugin instance: its options and a lazily created client. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: SlackPluginOptions;
 	/** Memoized client — the token is resolved on first use, not at plugin load. */
 	client: () => SlackClient;
 }
 
+/** Builds the plugin context from its options. */
 export function createContext(options: SlackPluginOptions = {}): PluginContext {
 	let client: SlackClient | undefined;
 	return {
@@ -31,10 +36,12 @@ export function createContext(options: SlackPluginOptions = {}): PluginContext {
 	};
 }
 
+/** Builds the `notifications` capability for the context. */
 export function notifications(ctx: PluginContext): Notifications {
 	return new SlackNotifications(ctx.client, ctx.options);
 }
 
+/** Creates the Slack plugin: its `connection` probe and the `notifications` capability. */
 export function createPlugin(options: SlackPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
@@ -54,6 +61,7 @@ export function createPlugin(options: SlackPluginOptions = {}) {
 	};
 }
 
+/** Hint printed by `holocron auth set slack` when no token is supplied or the token is rejected; explains how to create a bot token. */
 export const AUTH_HINT =
 	"create a Slack app at https://api.slack.com/apps, add the chat:write bot scope, " +
 	"install it to your workspace, copy the Bot User OAuth Token (xoxb-...), " +

@@ -28,6 +28,7 @@ interface WhoamiResponse {
 	email?: string;
 }
 
+/** Checks that `op` is installed and signed in by running `op whoami`; the token argument is unused. */
 export async function verifyToken(_token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const spawnImpl = opts.spawn ?? spawnSync;
 	const binary = opts.binary ?? "op";

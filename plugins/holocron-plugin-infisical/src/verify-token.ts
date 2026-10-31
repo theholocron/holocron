@@ -25,6 +25,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks an Infisical token by listing workspaces; a 403 is reported as a valid but scope-limited token. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createInfisicalClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

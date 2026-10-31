@@ -13,6 +13,7 @@ import { OpVault } from "./capabilities/vault.js";
 import { OpShell } from "./shell.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the 1Password plugin: the vault and account to use plus the `op` binary overrides. */
 export interface OpPluginOptions extends VerifyInput {
 	/** 1P vault name items live in. Required. */
 	vault: string;
@@ -20,11 +21,15 @@ export interface OpPluginOptions extends VerifyInput {
 	account?: string;
 }
 
+/** Shared state for one 1Password plugin instance: its options and the `op` shell wrapper. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: OpPluginOptions;
+	/** The wrapper that runs `op` commands. */
 	shell: OpShell;
 }
 
+/** Builds the plugin context; throws when `vault` is missing or the `op` binary is not installed. */
 export function createContext(options: OpPluginOptions): PluginContext {
 	if (!options.vault) {
 		throw new Error("@theholocron/holocron-plugin-1password requires `vault` in options");
@@ -46,10 +51,12 @@ export function createContext(options: OpPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `vault` capability for the configured vault. */
 export function vault(ctx: PluginContext): Vault {
 	return new OpVault(ctx.shell, { vault: ctx.options.vault });
 }
 
+/** Creates the 1Password plugin: its `connection` probe and the `vault` capability. */
 export function createPlugin(options: OpPluginOptions) {
 	const ctx = createContext(options);
 	return {
