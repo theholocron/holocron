@@ -11,6 +11,7 @@
     "directory": "docs"
   },
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "build": "astro build --root ..",
     "dev": "astro dev --root ..",
