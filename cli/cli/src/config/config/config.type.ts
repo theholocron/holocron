@@ -369,7 +369,7 @@ export interface HolocronConfig {
 	 *   "verification.unitTests" | "verification.visualRegression" | "verification.typeSafety" | "verification.performance" |
 	 *   "sourceQuality.staticAnalysis" | "sourceQuality.formatting" |
 	 *   "sourceQuality.structuredDataValidation" | "sourceQuality.deadCodeAnalysis" |
-	 *   "security.secretDetection" | "security.codeScanning" |
+	 *   "security.secretDetection" | "security.codeScanning" | "security.tokenExpiry" |
 	 *   "delivery.build" | "delivery.publish" | "delivery.deploy" | "delivery.bundleSize" |
 	 *   "platform.repoSync" | "platform.notifyCheck" | "platform.commitStandards" | "platform.repoValidation" |
 	 *   "knowledge.wiki" | "knowledge.docs" | "knowledge.components" |

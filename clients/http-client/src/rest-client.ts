@@ -66,6 +66,12 @@ export interface RequestOptions {
 	query?: Record<string, string>;
 	/** Return `undefined` without parsing even on a 200 response. */
 	expectNoContent?: boolean;
+	/**
+	 * Called with the response headers of a successful (2xx) response, before the body is read. For a value the
+	 * vendor returns in a header rather than the body (GitHub's token expiry). A failed response throws as before
+	 * and does not call it.
+	 */
+	onResponse?: (headers: Headers) => void;
 }
 
 export interface RestClient {
@@ -195,6 +201,7 @@ export function createRestClient(config: RestClientConfig): RestClient {
 				throw apiErr;
 			}
 			logger.debug({ vendor, method: init.method, path, status: res.status }, "response");
+			opts.onResponse?.(res.headers);
 
 			if (opts.expectNoContent || res.status === 204) return undefined as T;
 			const text = await res.text();

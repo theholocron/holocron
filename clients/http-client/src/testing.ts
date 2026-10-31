@@ -10,7 +10,9 @@ export interface FetchCall {
 	body: unknown;
 }
 
-export function stubFetch(responses: Array<{ status?: number; body?: unknown; text?: string }>) {
+export function stubFetch(
+	responses: Array<{ status?: number; body?: unknown; text?: string; headers?: Record<string, string> }>
+) {
 	const calls: FetchCall[] = [];
 	let i = 0;
 	const mock = vi.fn(async (input: string | URL, init?: RequestInit) => {
@@ -24,9 +26,9 @@ export function stubFetch(responses: Array<{ status?: number; body?: unknown; te
 		});
 		const next = responses[i++] ?? { status: 200, body: {} };
 		const status = next.status ?? 200;
-		if (status === 204) return new Response(null, { status });
+		if (status === 204) return new Response(null, { status, headers: next.headers });
 		const text = next.text ?? JSON.stringify(next.body ?? {});
-		return new Response(text, { status });
+		return new Response(text, { status, headers: next.headers });
 	});
 	return { fetch: mock as unknown as typeof fetch, calls };
 }

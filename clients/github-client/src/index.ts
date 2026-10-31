@@ -73,7 +73,8 @@ export type { GitHubRuleset } from "./rulesets/rulesets.js";
 export type { GitHubPublicKey, SecretScope } from "./secrets/secrets.js";
 export type { CodeScanningSetupResult } from "./security/security.js";
 export type { TeamMember, TeamPermission } from "./teams/teams.js";
-export type { GitHubUser } from "./user/user.js";
+export type { GitHubUser, GitHubUserWithExpiry } from "./user/user.js";
+export { parseTokenExpiration } from "./user/user.js";
 export type { GitHubClientOptions } from "./utils.js";
 export type { GitHubVariable, VariableScope, VariableVisibility } from "./variables/variables.js";
 export {

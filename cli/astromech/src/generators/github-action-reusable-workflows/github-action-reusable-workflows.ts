@@ -39,6 +39,7 @@ import previewWorkflow from "../../templates/reusable/preview.yml";
 import reviewWorkflow from "../../templates/reusable/review.yml";
 import codeScanningWorkflow from "../../templates/reusable/security.codeScanning.yml";
 import secretDetectionWorkflow from "../../templates/reusable/security.secretDetection.yml";
+import tokenExpiryWorkflow from "../../templates/reusable/security.tokenExpiry.yml";
 import deadCodeAnalysisWorkflow from "../../templates/reusable/sourceQuality.deadCodeAnalysis.yml";
 import formattingWorkflow from "../../templates/reusable/sourceQuality.formatting.yml";
 import staticAnalysisWorkflow from "../../templates/reusable/sourceQuality.staticAnalysis.yml";
@@ -87,6 +88,7 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	preview: previewWorkflow,
 	greetings: greetingsWorkflow,
 	review: reviewWorkflow,
+	"security.tokenExpiry": tokenExpiryWorkflow,
 	stale: staleWorkflow,
 	"sync-dispatch": syncDispatchWorkflow,
 	tag: tagWorkflow,

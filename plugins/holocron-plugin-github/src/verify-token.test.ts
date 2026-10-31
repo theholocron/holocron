@@ -11,6 +11,24 @@ describe("verifyToken", () => {
 		expect((result as { ok: boolean; subject?: string; message?: string }).subject).toMatch(/user @ cnewton/);
 	});
 
+	it("returns the token expiry GitHub reports", async () => {
+		const stub = stubFetch([
+			{
+				status: 200,
+				body: { login: "x" },
+				headers: { "github-authentication-token-expiration": "2026-11-19 03:46:04 UTC" },
+			},
+		]);
+		const result = await verifyToken("pat-abc", { fetch: stub.fetch });
+		expect((result as { expiresAt?: string }).expiresAt).toBe("2026-11-19T03:46:04.000Z");
+	});
+
+	it("has no expiresAt when GitHub reports none", async () => {
+		const stub = stubFetch([{ status: 200, body: { login: "x" } }]);
+		const result = await verifyToken("pat-abc", { fetch: stub.fetch });
+		expect(result).toEqual({ ok: true, subject: "user @ x" });
+	});
+
 	it("falls back to email when login is absent", async () => {
 		const stub = stubFetch([{ status: 200, body: { email: "c@example.com" } }]);
 		const result = await verifyToken("pat-abc", { fetch: stub.fetch });

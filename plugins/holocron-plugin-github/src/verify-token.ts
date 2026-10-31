@@ -22,9 +22,9 @@ export interface VerifyTokenOptions {
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createGitHubClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
-		const me = await client.user.getCurrentUser();
+		const { user: me, expiresAt } = await client.user.getCurrentUserWithExpiry();
 		const subject = me.login ?? me.email ?? "unknown";
-		return { ok: true, subject: `user @ ${subject}` };
+		return { ok: true, subject: `user @ ${subject}`, ...(expiresAt ? { expiresAt } : {}) };
 	} catch (err) {
 		const message = errorMessage(err);
 		return { ok: false, message };

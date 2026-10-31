@@ -6,6 +6,8 @@ export interface VerifyTokenSuccess {
 	ok: true;
 	/** "workplace: acme" / "user: cnewton@x" — surfaced in success output. */
 	subject: string;
+	/** When the token stops working, ISO 8601 in UTC, for a provider that reports it. Absent when unknown or never. */
+	expiresAt?: string;
 }
 
 export interface VerifyTokenFailure {

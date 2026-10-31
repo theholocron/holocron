@@ -793,3 +793,33 @@ describe("delivery.publish.yml version groups", () => {
 		});
 	});
 });
+
+describe("REUSABLE_WORKFLOWS['security.tokenExpiry'] — the scheduled token check", () => {
+	const wf = REUSABLE_WORKFLOWS["security.tokenExpiry"]!;
+
+	it("runs the task through the holocron action", () => {
+		expect(wf).toMatch(/task: security\.tokenExpiry/);
+	});
+
+	it("declares every GitHub token as an optional secret and hands each to the job as its env var", () => {
+		for (const name of [
+			"HOLOCRON_READ_TOKEN",
+			"HOLOCRON_ISSUES_TOKEN",
+			"HOLOCRON_SYNC_TOKEN",
+			"HOLOCRON_RELEASE_TOKEN",
+			"HOLOCRON_ADMIN_TOKEN",
+			"HOLOCRON_SECRETS_TOKEN",
+			"HOLOCRON_DEPLOY_TOKEN",
+			"HOLOCRON_ORG_TOKEN",
+			"HOLOCRON_USER_SYNC_TOKEN",
+		]) {
+			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: false`));
+			expect(wf).toContain(`${name}: \${{ secrets.${name} }}`);
+		}
+	});
+
+	it("only reads the repository", () => {
+		expect(wf).toContain("contents: read");
+		expect(wf).not.toMatch(/: write/);
+	});
+});

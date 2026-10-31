@@ -16,6 +16,8 @@ export interface RunDoctorTokensInput {
 	env?: NodeJS.ProcessEnv;
 	/** Reads a keyring entry, or null. Defaults to the OS keyring. */
 	keyring?: (key: string) => string | null;
+	/** The current time, for how long a token has left. Defaults to the clock; tests pass a fixed one. */
+	now?: () => Date;
 	/** Where the rows and the closing count go. Defaults to the console. */
 	print?: (line: string) => void;
 	/** Structured-logging sink. Defaults to the command-bound root. */

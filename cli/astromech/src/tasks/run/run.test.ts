@@ -389,6 +389,12 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "sync", "github"], { cwd: CWD });
 	});
 
+	it("runs `holocron doctor tokens` for security.tokenExpiry, as two argv entries", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
+		call("security.tokenExpiry");
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "doctor", "tokens"], { cwd: CWD });
+	});
+
 	it("reports a task with no local equivalent as skipped — even when --required", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() });
 		const report = call("security.codeScanning", { required: true });

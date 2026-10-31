@@ -1,0 +1,15 @@
+name: Token Expiry
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  token-expiry:
+    name: Token Expiry
+    uses: theholocron/.github/.github/workflows/security.tokenExpiry.yml@main
+    secrets: inherit

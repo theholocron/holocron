@@ -126,7 +126,7 @@ catalogs:
     "@theholocron/discord-client": ^1.50.0
     "@theholocron/doppler-client": ^1.43.1
     "@theholocron/fs-utils": ^1.16.0
-    "@theholocron/github-client": ^1.51.0
+    "@theholocron/github-client": ^1.58.0
     "@theholocron/infisical-client": ^1.43.1
     "@theholocron/misc-utils": ^1.16.0
     "@theholocron/neon-client": ^1.43.1

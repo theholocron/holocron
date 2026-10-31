@@ -154,6 +154,7 @@ name it knows, what it actually runs, and why.
 | `sourceQuality.deadCodeAnalysis`         | knip                                                              |                                                                                                   |
 | `security.secretDetection`               | gitleaks                                                          |                                                                                                   |
 | `security.codeScanning`                  | CodeQL                                                            | no local equivalent — CI only                                                                     |
+| `security.tokenExpiry`                   | `holocron doctor tokens`                                          | scheduled daily in CI; fails on a rejected token or one with 7 days or fewer left                 |
 | `security.dependencyReview`              | GitHub's native Dependabot alerts/graph                           | a capability method, not a task                                                                   |
 | `delivery.build`                         | tsdown / vite / rollup / tsc, detected from the repo's own config |                                                                                                   |
 | `delivery.publish`                       | semantic-release                                                  | no local equivalent — CI only; carries `preview` (npm dist-tags)                                  |
