@@ -8,6 +8,7 @@ import { configShowEntry } from "../../commands/config-show/config-show.entry.js
 import { deployEntry } from "../../commands/deploy/deploy.entry.js";
 import { deployOnReleaseEntry } from "../../commands/deploy/deploy-on-release.entry.js";
 import { doctorEntry } from "../../commands/doctor/doctor.entry.js";
+import { doctorAllEntry } from "../../commands/doctor/doctor-all.entry.js";
 import { doctorNotificationsEntry } from "../../commands/doctor-notifications/doctor-notifications.entry.js";
 import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
 import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring-check.entry.js";
@@ -50,6 +51,7 @@ import type { CommandEntry } from "./command-registry.type.js";
 export const COMMAND_REGISTRY: CommandEntry[] = [
 	cloneEntry,
 	doctorEntry,
+	doctorAllEntry,
 	probeEntry,
 	setupEntry,
 	secretSetEntry,

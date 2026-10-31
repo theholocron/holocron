@@ -44,7 +44,7 @@ export function menuItems(entries: CommandEntry[], path: string[] = []): MenuIte
 		const nested = family.filter((e) => e.name !== full);
 		if (nested.length === 0 && self) {
 			items.push({
-				name: self.opensMenu ? `${word} ›` : word,
+				name: self.menuLabel ?? (self.opensMenu ? `${word} ›` : word),
 				value: full,
 				description: self.description,
 				haystack: haystackOf([self]),

@@ -51,6 +51,7 @@ export const COMMAND_CONTEXTS = {
 	"notifications link": "workspace",
 	"notifications create-server": "workspace",
 	"notifications sync-roles": "workspace",
+	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor variables": "workspace",
 	// Loads the configured plugins and runs the probes they offer.
