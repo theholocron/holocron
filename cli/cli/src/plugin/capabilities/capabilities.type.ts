@@ -1055,8 +1055,8 @@ export interface InspectRelayInput {
 export interface RelayState {
 	/** The integration, or undefined when none has that name. */
 	integration?: {
-		/** Where it posts alerts. */
-		webhookUrl: string;
+		/** Where it posts alerts, or null when it has no webhook. */
+		webhookUrl: string | null;
 		/** Whether it is offered as an alert action. */
 		alertAction: boolean;
 	};

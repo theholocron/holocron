@@ -49,10 +49,9 @@ export async function sentryRelayChecks(input: SentryRelayChecksInput): Promise<
 	if (!state.integration) {
 		integrationProblems.push(`no integration named ${shown(name)}`);
 	} else {
-		if (bare(state.integration.webhookUrl) !== expected) {
-			integrationProblems.push(
-				`${shown(name)} posts to ${shown(state.integration.webhookUrl)}, not ${shown(expected)}`
-			);
+		const posts = state.integration.webhookUrl;
+		if (bare(posts ?? "") !== expected) {
+			integrationProblems.push(`${shown(name)} posts to ${shown(posts ?? "nowhere")}, not ${shown(expected)}`);
 		}
 		if (!state.integration.alertAction)
 			integrationProblems.push(`${shown(name)} is not offered as an alert action`);

@@ -108,6 +108,15 @@ describe("sentryRelayChecks", () => {
 			]);
 		});
 
+		it("fails for an integration with no webhook URL", async () => {
+			const rows = await run({
+				errors: provider({ ...GOOD, integration: { webhookUrl: null, alertAction: true } }),
+			});
+			expect(row(rows, "relay-integration").problems).toEqual([
+				"Comlink posts to nowhere, not https://comlink.example.com/sentry",
+			]);
+		});
+
 		it("ignores a trailing slash on the URL", async () => {
 			const rows = await run({
 				errors: provider({
