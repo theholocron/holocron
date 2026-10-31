@@ -1,4 +1,10 @@
-import type { DeployScriptConfig, DeployScriptResult, WikiProxyConfig, Workers } from "@theholocron/cli";
+import type {
+	DeployScriptConfig,
+	DeployScriptResult,
+	WikiProxyConfig,
+	Workers,
+	WorkerScriptState,
+} from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 import type { CloudflareClient } from "@theholocron/cloudflare-client";
 
@@ -46,6 +52,24 @@ export class CloudflareWorkers implements Workers {
 
 	async secretNames(script: string): Promise<string[]> {
 		return (await this.client().workers.listSecrets(this.accountId, script)).map((secret) => secret.name);
+	}
+
+	/**
+	 * Whether the script exists, which routes in the zone of `host` point at it, and the names of its secrets. Reads
+	 * only, and asks Cloudflare for names, so no value is ever fetched.
+	 */
+	async inspectScript(name: string, host: string): Promise<WorkerScriptState> {
+		const client = this.client();
+		const scripts = await client.workers.listScripts(this.accountId);
+		if (!scripts.some((s) => s.id === name)) return { exists: false, routes: [], bindingNames: [] };
+		const zoneId = await this.resolveZone(host);
+		const routes = await client.workers.listRoutes(zoneId);
+		const secrets = await client.workers.listSecrets(this.accountId, name);
+		return {
+			exists: true,
+			routes: routes.filter((r) => r.script === name).map((r) => r.pattern),
+			bindingNames: secrets.map((secret) => secret.name),
+		};
 	}
 
 	/** Idempotent create-or-update for one route pattern — shared by both public methods. */

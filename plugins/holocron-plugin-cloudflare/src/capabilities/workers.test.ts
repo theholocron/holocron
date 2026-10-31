@@ -172,6 +172,33 @@ describe("CloudflareWorkers.secretNames", () => {
 	});
 });
 
+describe("CloudflareWorkers.inspectScript", () => {
+	const host = "comlink.example.com";
+
+	it("reports the routes that point at the script and the names of its secrets, never a value", async () => {
+		const { workers, calls } = makeWorkers([
+			cfOk([{ id: "other" }, { id: "comlink" }]),
+			cfOk([zone]),
+			cfOk([
+				{ id: "r1", pattern: `${host}/*`, script: "comlink" },
+				{ id: "r2", pattern: "wiki.example.com/*", script: "other" },
+				{ id: "r3", pattern: "none.example.com/*", script: null },
+			]),
+			cfOk([{ name: "COMLINK_SENTRY_WEBHOOK", type: "secret_text", text: "sentinel-secret" }]),
+		]);
+		const state = await workers.inspectScript("comlink", host);
+		expect(state).toEqual({ exists: true, routes: [`${host}/*`], bindingNames: ["COMLINK_SENTRY_WEBHOOK"] });
+		expect(JSON.stringify(state)).not.toContain("sentinel-secret");
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("reports a script that is not deployed without reading its routes or secrets", async () => {
+		const { workers, calls } = makeWorkers([cfOk([{ id: "other" }])]);
+		expect(await workers.inspectScript("comlink", host)).toEqual({ exists: false, routes: [], bindingNames: [] });
+		expect(calls).toHaveLength(1);
+	});
+});
+
 describe("CloudflareWorkers.deployScript", () => {
 	it("deploys the given code and returns the script name", async () => {
 		const { workers, calls } = makeWorkers([{ status: 200 }]);

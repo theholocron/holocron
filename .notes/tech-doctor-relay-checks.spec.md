@@ -34,14 +34,14 @@ These are new steps of `doctor notifications`, not new subcommands. They follow 
 
 ### Comlink relay (when the layout has `relay` and a channel has `feeds.errors`)
 
-| Step               | Declared                                                                                               | Actual                                                                                          |
-| ------------------ | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| Worker answers     | `https://<relay.host>/sentry`, unsigned `POST`, gets `401`                                             | a single `fetch`; `404` is reported as "not deployed or no route", a network error as a failure |
-| Worker and route   | script `relay.script` (default `comlink`) with route `<host>/*`                                        | `Workers.inspectScript(name)`                                                                   |
-| bindings           | `COMLINK_SENTRY_WEBHOOK` and `COMLINK_SENTRY_SECRET` bound                                             | same read; names only                                                                           |
-| feed webhook       | webhook named `Sentry` on the `errors` channel                                                         | Discord inspect (reuse)                                                                         |
-| Sentry integration | integration `relay.errors.integration` (default `Comlink`) with the right webhook URL and alert action | `Errors.inspectRelay(input)`                                                                    |
-| Sentry rule        | rule `relay.errors.rule` exists and is enabled on every project in `relay.errors.projects`             | same read                                                                                       |
+| Step               | Declared                                                                                               | Actual                                                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Worker answers     | `https://<relay.host>/sentry`, unsigned `POST`, gets `401`                                             | a single `fetch` (the path is the `errors` provider's name, `/sentry` for Sentry); `404` is reported as "not deployed or no route", a network error as a failure |
+| Worker and route   | script `relay.script` (default `comlink`) with route `<host>/*`                                        | `Workers.inspectScript(name, host)`                                                                                                                              |
+| bindings           | `COMLINK_SENTRY_WEBHOOK` and `COMLINK_SENTRY_SECRET` bound                                             | same read; names only                                                                                                                                            |
+| feed webhook       | webhook named `Sentry` on the `errors` channel                                                         | Discord inspect (reuse)                                                                                                                                          |
+| Sentry integration | integration `relay.errors.integration` (default `Comlink`) with the right webhook URL and alert action | `Errors.inspectRelay(input)`                                                                                                                                     |
+| Sentry rule        | rule `relay.errors.rule` exists and is enabled on every project in `relay.errors.projects`             | same read                                                                                                                                                        |
 
 The DNS placeholder (`AAAA <host> 100::`, proxied) is already checked by `doctor dns`; this spec does not repeat it.
 
@@ -50,7 +50,7 @@ The DNS placeholder (`AAAA <host> 100::`, proxied) is already checked by `doctor
 Each is optional on its capability, like `Monitoring.listChecks`; a provider without it makes its steps a skip ("the provider cannot be read"), not a failure.
 
 - `Monitoring.inspectAlertChannel?(name)`: `{ exists, discord?, webhookId?, unsubscribed[], deactivated[] }`. The Checkly plugin already lists and gets alert channels (`client.alertChannels`), so this is a read-only wrapper. The alert channel's URL is a credential and never leaves the plugin: `webhookId` is the id inside a Discord webhook URL (public, unlike the token after it). The doctor compares it with the id of the feed webhook, which the Discord plugin's `inspect` now returns in `webhookIds` (by lower-cased name, for any channel that has a webhook or a feed). `unsubscribed` and `deactivated` are check names, worked out in the plugin from the account's checks, so no check ids are compared here.
-- `Workers.inspectScript?(name)`: `{ exists, routes[], bindingNames[] }`. Binding **names** only. Cloudflare returns secret names without values; the implementation must not request or keep values.
+- `Workers.inspectScript?(name, host)`: `{ exists, routes[], bindingNames[] }`. Routes belong to a zone, so the read takes the relay host to find the zone from; `routes` are the patterns in that zone that point at the script. Binding **names** only. Cloudflare returns secret names without values; the implementation must not request or keep values.
 - `Errors.inspectRelay?(input)`: the read half of `ensureRelay`, returning `{ integration?: { webhookUrl, alertAction }, rules: { project, enabled }[] }`. The Sentry plugin already finds both by name inside `ensureRelay`; split the find from the write.
 
 ### The Worker request

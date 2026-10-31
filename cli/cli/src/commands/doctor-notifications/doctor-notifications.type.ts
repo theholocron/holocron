@@ -31,7 +31,7 @@ export interface RunDoctorNotificationsInput {
 	 * Without it, a full run leaves one test post in the layout's `testChannel`, and `builtOnly` posts nothing.
 	 */
 	deliver?: boolean;
-	/** Test seam for the check that asks the hosted sign-in service whether it is up. */
+	/** Test seam for the requests to the hosted sign-in service and to the relay Worker. */
 	fetch?: typeof fetch;
 	loader?: PluginLoader;
 	print?: (line: string) => void;

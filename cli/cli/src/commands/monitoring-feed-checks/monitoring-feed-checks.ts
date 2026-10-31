@@ -1,6 +1,7 @@
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
 import { missingTokenReason } from "../missing-token/index.js";
+import { resultRow, skipRow } from "../notification-check-rows/index.js";
 import { feedAvatarOf, monitoringFeed } from "../notifications-setup/index.js";
 import type { MonitoringFeedChecksInput } from "./monitoring-feed-checks.type.js";
 
@@ -14,24 +15,10 @@ const SUBSCRIPTIONS_TITLE = "monitoring alert channel is subscribed to every che
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const shown = (s: string) => sanitizeDetail(s);
 
-const skip = (id: string, title: string, reason: string): NotificationsCheck => ({
-	id,
-	title,
-	status: "skip",
-	detail: reason,
-	problems: [],
-});
-const row = (id: string, title: string, problems: string[], ok: string): NotificationsCheck => ({
-	id,
-	title,
-	status: problems.length === 0 ? "pass" : "fail",
-	detail: problems.length === 0 ? ok : `${problems.length} problem(s)`,
-	problems,
-});
 const skipAll = (reason: string): NotificationsCheck[] => [
-	skip(WEBHOOK_ID, WEBHOOK_TITLE, reason),
-	skip(CHANNEL_ID, CHANNEL_TITLE, reason),
-	skip(SUBSCRIPTIONS_ID, SUBSCRIPTIONS_TITLE, reason),
+	skipRow(WEBHOOK_ID, WEBHOOK_TITLE, reason),
+	skipRow(CHANNEL_ID, CHANNEL_TITLE, reason),
+	skipRow(SUBSCRIPTIONS_ID, SUBSCRIPTIONS_TITLE, reason),
 ];
 
 /**
@@ -111,12 +98,15 @@ export async function monitoringFeedChecks(input: MonitoringFeedChecksInput): Pr
 
 	const n = fed.length;
 	return [
-		row(WEBHOOK_ID, WEBHOOK_TITLE, webhookProblems, `${n} of ${n} as declared`),
+		resultRow(WEBHOOK_ID, WEBHOOK_TITLE, webhookProblems, `${n} of ${n} as declared`),
 		...(channelSkip === undefined
 			? [
-					row(CHANNEL_ID, CHANNEL_TITLE, channelProblems, `${n} of ${n} as declared`),
-					row(SUBSCRIPTIONS_ID, SUBSCRIPTIONS_TITLE, subscriptionProblems, `${n} of ${n} subscribed`),
+					resultRow(CHANNEL_ID, CHANNEL_TITLE, channelProblems, `${n} of ${n} as declared`),
+					resultRow(SUBSCRIPTIONS_ID, SUBSCRIPTIONS_TITLE, subscriptionProblems, `${n} of ${n} subscribed`),
 				]
-			: [skip(CHANNEL_ID, CHANNEL_TITLE, channelSkip), skip(SUBSCRIPTIONS_ID, SUBSCRIPTIONS_TITLE, channelSkip)]),
+			: [
+					skipRow(CHANNEL_ID, CHANNEL_TITLE, channelSkip),
+					skipRow(SUBSCRIPTIONS_ID, SUBSCRIPTIONS_TITLE, channelSkip),
+				]),
 	];
 }
