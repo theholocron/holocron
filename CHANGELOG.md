@@ -1,3 +1,9 @@
+## [5.0.0-alpha.275](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.274...v5.0.0-alpha.275) (2026-10-31)
+
+### Features
+
+* **cli:** 🩺 doctor repo — check the repository settings match the config ([#1456](https://github.com/theholocron/holocron/issues/1456)) ([c157fbb](https://github.com/theholocron/holocron/commit/c157fbb34483e63bbd5fcfdf677f1c84fbeeaaf4)), closes [#1454](https://github.com/theholocron/holocron/issues/1454) [#1162](https://github.com/theholocron/holocron/issues/1162)
+
 ## [5.0.0-alpha.274](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.273...v5.0.0-alpha.274) (2026-10-31)
 
 ### Features
