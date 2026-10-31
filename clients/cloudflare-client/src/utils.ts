@@ -3,7 +3,9 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createCloudflareClient`. */
 export interface CloudflareClientOptions {
+	/** A Cloudflare API token, sent as a bearer token. */
 	token: string;
 	/** Override base URL for testing. Defaults to https://api.cloudflare.com/client/v4 */
 	baseUrl?: string;
@@ -25,9 +27,13 @@ export interface CloudflareClientOptions {
  */
 const TRANSIENT_STATUSES = [500, 502, 503, 504];
 
+/** The `{ success, errors, result }` envelope Cloudflare wraps every JSON response in. */
 export interface CfEnvelope<T> {
+	/** Whether Cloudflare reports the call as successful. */
 	success: boolean;
+	/** The errors Cloudflare reports, empty on success. */
 	errors: unknown[];
+	/** The payload of the call. */
 	result: T;
 }
 

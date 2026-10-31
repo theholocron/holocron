@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createClerkClient`. */
 export interface ClerkClientOptions {
 	/** Clerk secret key (sk_live_... or sk_test_...). */
 	token: string;
