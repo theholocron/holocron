@@ -71,3 +71,14 @@ describe.each([
 		expect((err as Error).message).toMatch(new RegExp(keyringKey.replace(".", "\\.")));
 	});
 });
+
+describe("the plugin's tokens export", () => {
+	it("lists the nine GitHub tokens, each with its own environment variable and keyring key", async () => {
+		const { tokens } = await import("./index.js");
+		expect(tokens).toHaveLength(9);
+		expect(new Set(tokens.map((t) => t.envName)).size).toBe(9);
+		expect(new Set(tokens.map((t) => t.keyringKey)).size).toBe(9);
+		expect(tokens).toContainEqual({ envName: "HOLOCRON_ADMIN_TOKEN", keyringKey: "github.admin" });
+		expect(tokens).toContainEqual({ envName: "HOLOCRON_USER_SYNC_TOKEN", keyringKey: "github.user-sync" });
+	});
+});

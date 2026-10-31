@@ -63,7 +63,7 @@ interface DeepCheck {
 2. `secrets list` (#1145).
 3. `doctor variables` (#1433). It reads through the optional `Source.listVariables` and `listOrgVariables`; a missing token is a `MissingTokenError`, which a check reports as a skip rather than a failure.
 4. `doctor --all` (#1435), the skip rule, and the `doctor (everything)` menu entry. Done. Inside `--all` the notifications check runs as `--built-only` so it posts nothing, and a run that could verify nothing (no provider, no layout) is a skip there, where `doctor notifications` alone fails.
-5. `doctor secrets` (#1438): done. It expects `repo.secrets` plus what the config implies (the notification layout's secrets, a Chromatic token), checks names only, and never flags a secret that is not listed. Then `doctor tokens`.
+5. `doctor secrets` (#1438): done. It expects `repo.secrets` plus what the config implies (the notification layout's secrets, a Chromatic token), checks names only, and never flags a secret that is not listed. `doctor tokens` (#1440): done. It asks each configured plugin for its `tokens` (the GitHub plugin lists its nine), finds each as the plugin does and verifies it with `verifyToken`. A token that is not set is a skip. Scopes are not checked, because GitHub does not return a fine-grained token's permissions.
 6. `doctor monitoring`, `doctor repo`, `doctor dns`, `doctor environments`.
 7. The Checkly feed and Comlink relay checks (they need live credentials and the deployed Worker).
 

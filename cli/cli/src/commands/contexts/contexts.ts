@@ -54,6 +54,7 @@ export const COMMAND_CONTEXTS = {
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor secrets": "workspace",
+	"doctor tokens": "workspace",
 	"doctor variables": "workspace",
 	// Loads the configured plugins and runs the probes they offer.
 	probe: "workspace",

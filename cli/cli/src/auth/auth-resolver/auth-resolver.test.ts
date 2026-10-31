@@ -159,3 +159,15 @@ describe("createFeatureResolver, vendor in the message", () => {
 		expect(() => github({ env: {}, keyring: () => null })).toThrow(/no GitHub token found/);
 	});
 });
+
+describe("createFeatureResolver, where it looks", () => {
+	it("exposes the environment variable and keyring entry it reads, without the vendor", () => {
+		const resolver = createFeatureResolver({
+			envName: "HOLOCRON_SENTRY_COMLINK_TOKEN",
+			keyringKey: "sentry.comlink",
+			vendor: "Sentry",
+		});
+		expect(resolver.token).toEqual({ envName: "HOLOCRON_SENTRY_COMLINK_TOKEN", keyringKey: "sentry.comlink" });
+		expect(resolver({ cliToken: "t", env: {}, keyring: () => null })).toBe("t");
+	});
+});

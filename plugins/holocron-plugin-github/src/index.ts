@@ -8,17 +8,20 @@
  * returns the bound implementation.
  */
 
-import type { Auth, Ci, Environments, Issues, Secrets, Source } from "@theholocron/cli";
+import type { Auth, Ci, Environments, Issues, PluginToken, Secrets, Source } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
 import {
 	AuthError,
 	resolveAdminToken,
+	resolveDeployToken,
 	resolveIssuesToken,
 	resolveOrgToken,
 	resolveReadToken,
+	resolveReleaseToken,
 	resolveSecretsToken,
+	resolveSyncToken,
 	type ResolveTokenInput,
 	resolveUserSyncToken,
 } from "./auth.js";
@@ -191,4 +194,17 @@ export { normalizeTeamEntry, syncTeams } from "./capabilities/teams.js";
 export { createGitHubClient, type GitHubClientOptions } from "./rest.js";
 export { encryptSecret } from "./sodium.js";
 export { verifyToken } from "./verify-token.js";
+
+/** Every token this plugin takes, for `holocron doctor tokens`. */
+export const tokens: PluginToken[] = [
+	resolveReadToken,
+	resolveIssuesToken,
+	resolveSyncToken,
+	resolveReleaseToken,
+	resolveAdminToken,
+	resolveSecretsToken,
+	resolveDeployToken,
+	resolveUserSyncToken,
+	resolveOrgToken,
+].map((resolver) => resolver.token);
 export type { VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "@theholocron/cli";

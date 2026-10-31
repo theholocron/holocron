@@ -11,6 +11,7 @@ import { doctorEntry } from "../../commands/doctor/doctor.entry.js";
 import { doctorAllEntry } from "../../commands/doctor/doctor-all.entry.js";
 import { doctorNotificationsEntry } from "../../commands/doctor-notifications/doctor-notifications.entry.js";
 import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets.entry.js";
+import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
 import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring-check.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
@@ -61,6 +62,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	notificationsChannelAddEntry,
 	doctorNotificationsEntry,
 	doctorSecretsEntry,
+	doctorTokensEntry,
 	doctorVariablesEntry,
 	notificationsSetupEntry,
 	notificationsCreateServerEntry,

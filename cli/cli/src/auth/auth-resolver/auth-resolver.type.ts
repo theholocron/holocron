@@ -1,3 +1,4 @@
+import type { ResolveTokenInput } from "@theholocron/http-client";
 import { type ResolveTokenConfig as _ResolveTokenConfig } from "@theholocron/http-client";
 
 export type ResolveTokenConfig = Omit<_ResolveTokenConfig, "getKeyringToken">;
@@ -10,3 +11,9 @@ export interface FeatureResolverConfig {
 	/** The vendor named in the "no token" message. Default `GitHub`. */
 	vendor?: string;
 }
+
+/** A resolver from `createFeatureResolver`: call it for the token, or read `token` to see where it looks. */
+export type FeatureResolver = ((input?: ResolveTokenInput) => string) & {
+	/** The environment variable and keyring entry this resolver reads, for `holocron doctor tokens`. */
+	readonly token: { envName: string; keyringKey: string };
+};

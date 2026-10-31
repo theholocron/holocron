@@ -39,7 +39,8 @@ import type {
 	RunAuthUnsetInput,
 } from "./auth.type.js";
 
-const defaultImporter: AuthImporter = async (pkg) => {
+/** Loads a plugin package for its module-level exports (`verifyToken`, `tokens`), from the working directory first. */
+export const defaultImporter: AuthImporter = async (pkg) => {
 	try {
 		const localRequire = createRequire(process.cwd() + "/");
 		const resolved = localRequire.resolve(pkg);
