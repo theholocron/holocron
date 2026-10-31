@@ -6,20 +6,26 @@ export const PACKAGES_KEY = /^packages:\s*(#.*)?$/;
 
 /** What an edit of a `pnpm-workspace.yaml` gives back: the new text, and whether it differs from what was passed in. */
 export interface WorkspaceYamlEdit {
+	/** The file's text after the edit; the text passed in when nothing changed. */
 	content: string;
+	/** Whether `content` differs from the text passed in. */
 	changed: boolean;
 }
 
 /** A catalog pin rewritten by {@link bumpCatalogPins}. */
 export interface CatalogBump {
+	/** The package whose pin was rewritten. */
 	pkg: string;
+	/** The version it was pinned to. */
 	from: string;
+	/** The version it is pinned to now. */
 	to: string;
 }
 
 /** Resolves a package's latest published version, or `null` when there is no answer. */
 export type FetchLatest = (pkg: string) => Promise<string | null>;
 
+/** What {@link bumpCatalogPins} may be told. */
 export interface BumpCatalogPinsOptions {
 	/** Which pinned packages to look up. Default: all of them. */
 	include?: (pkg: string) => boolean;
