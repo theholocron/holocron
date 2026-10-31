@@ -206,6 +206,22 @@ export interface Source extends ProviderIdentity {
 	): Promise<string>;
 
 	/**
+	 * The repository's Actions variables as they are now, by name, with their values. Read-only.
+	 * Optional — providers without Actions variables omit this.
+	 */
+	listVariables?(): Promise<Record<string, string>>;
+
+	/**
+	 * The organization's Actions variables as they are now, by name, with each value and the repositories that can read
+	 * it (`selected` is a list this interface does not manage). Read-only. Throws {@link MissingTokenError} when the
+	 * provider has no token that can read them.
+	 * Optional — providers without organization variables omit this.
+	 */
+	listOrgVariables?(
+		org: string
+	): Promise<Record<string, { value: string; visibility: "all" | "private" | "selected" }>>;
+
+	/**
 	 * Sync GitHub team repository access. String shorthand defaults to `push`.
 	 * Optional — providers without a team concept omit this.
 	 */
