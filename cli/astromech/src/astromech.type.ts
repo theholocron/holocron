@@ -1,7 +1,13 @@
 import type { TasksConfig } from "./config/schema/index.js";
-import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult, OrgContext } from "./generators/index.js";
+import type {
+	CodecovConfigOptions,
+	EnsureRootWorkspaceMemberResult,
+	EnsureTurboDependencyResult,
+	OrgContext,
+} from "./generators/index.js";
 import type { CiOptions, CiReport, ExecFn, GroupReport, RunLogger, RunTaskReport } from "./tasks/index.js";
 
+/** Everything `createAstromech` needs from the repo and the outside world; only `cwd` is required. */
 export interface AstromechOptions {
 	/** Repo root. */
 	cwd: string;
@@ -24,7 +30,9 @@ export interface AstromechOptions {
 	exec?: ExecFn;
 	/** Injectable fs (tests). Default to `node:fs`. */
 	readFile?: (path: string) => string;
+	/** Injectable existence check (tests). Defaults to `node:fs`. */
 	fileExists?: (path: string) => boolean;
+	/** Injectable directory listing (tests). Defaults to `node:fs`. */
 	listDir?: (path: string) => string[];
 	/** Injectable environment for `--affected` (tests). Defaults to `process.env`. */
 	env?: Record<string, string | undefined>;
@@ -32,6 +40,7 @@ export interface AstromechOptions {
 	lookPath?: (cwd: string, bin: string) => string | null;
 }
 
+/** Options for `Astromech.run`: which sub-job, what to forward, and how to scope the turbo run. */
 export interface RunOptions {
 	/**
 	 * Sub-job within the task — `performance` in `holocron run audit
@@ -53,6 +62,7 @@ export interface RunOptions {
 	base?: string;
 }
 
+/** The task runner: one manifest drives local runs, the CI pre-flight and the generated workflows and scripts. */
 export interface Astromech {
 	/**
 	 * Run one task — or one of its sub-jobs (`opts.job`) — locally. When
@@ -111,8 +121,9 @@ export interface Astromech {
 	 * Pass the current file's content (`null` if none exists yet) to either
 	 * merge the component list in or scaffold a fresh file. Policy-free same
 	 * as {@link requiredChecks} — `holocron repo setup` owns writing the result.
+	 * `options.docsCoverage` adds the `documentation` flag and its statuses.
 	 */
-	codecovConfig(existing: string | null): string;
+	codecovConfig(existing: string | null, options?: CodecovConfigOptions): string;
 	/**
 	 * The generated `turbo.json` for this repo's manifest, pretty-printed —
 	 * write directly, no merge. `null` when no manifest task has turbo fan-out

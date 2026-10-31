@@ -29,7 +29,7 @@ function fakeLoader(over: { failures?: Array<{ key: string; provider: string; er
 function run(over: Partial<Parameters<typeof runProbeCommand>[0]> = {}) {
 	const lines: string[] = [];
 	const promise = runProbeCommand({
-		loaded: {} as LoadedConfig,
+		loaded: { resolved: {} } as LoadedConfig,
 		context: { repoRoot: "/tmp" },
 		loader: fakeLoader(),
 		print: (l) => lines.push(strip(l)),
@@ -48,6 +48,29 @@ describe("runProbeCommand", () => {
 		const listing = run();
 		await listing.promise;
 		expect(listing.text()).toMatch(/deps\n\s+check/);
+	});
+
+	it("hands --lcov to the probe, and nothing when it was not given", async () => {
+		read.mockClear();
+		await run({ provider: "demo", probe: "look", lcov: "coverage/docs.lcov" }).promise;
+		expect(read.mock.calls[0]![0]).toMatchObject({ lcov: "coverage/docs.lcov" });
+		await run({ provider: "demo", probe: "look" }).promise;
+		expect(read.mock.calls[1]![0]).not.toHaveProperty("lcov");
+	});
+
+	it("runs docs patch as off unless the config says otherwise", async () => {
+		for (const resolved of [{}, { repoValidation: {} }, { repoValidation: { docsCoverage: "off" } }]) {
+			const { promise, text } = run({
+				provider: "docs",
+				probe: "patch",
+				loaded: { resolved } as LoadedConfig,
+				typedoc: () => {
+					throw new Error("nothing should be measured");
+				},
+			});
+			expect((await promise).status).toBe("ok");
+			expect(text()).toContain("off in this repo's config");
+		}
 	});
 
 	it("lists every provider and probe, marking the ones that change things", async () => {
@@ -185,7 +208,7 @@ describe("runProbeCommand", () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		const before = process.listenerCount("SIGINT");
 		const report = await runProbeCommand({
-			loaded: {} as LoadedConfig,
+			loaded: { resolved: {} } as LoadedConfig,
 			context: { repoRoot: "/tmp" },
 			loader: fakeLoader(),
 			provider: "demo",

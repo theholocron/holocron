@@ -2,7 +2,9 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+
+import type { DocsCoverageMode } from "@theholocron/astromech";
 
 import type { PluginProbes, ProbeContext } from "../../../plugin/index.js";
 import { addedLines } from "./added-lines.js";
@@ -51,6 +53,19 @@ export function realDiff(repoRoot: string): () => string {
 	/* v8 ignore stop */
 }
 
+/** Writes the report `--lcov <path>` asks for, and says so; a dry run only says what it would write. */
+function writeLcov(ctx: ProbeContext, repoRoot: string, packages: PackageDocs[]): void {
+	if (!ctx.lcov) return;
+	if (ctx.dryRun) {
+		ctx.say({ status: "info", label: "lcov", detail: `would write ${ctx.lcov}` });
+		return;
+	}
+	const file = resolve(repoRoot, ctx.lcov);
+	mkdirSync(dirname(file), { recursive: true });
+	writeFileSync(file, toLcov(packages));
+	ctx.say({ status: "info", label: "lcov", detail: `wrote ${ctx.lcov}` });
+}
+
 function percent(documented: number, total: number): string {
 	return `${total === 0 ? 100 : Math.round((100 * documented) / total)}%`;
 }
@@ -76,12 +91,17 @@ function summarise(ctx: ProbeContext, packages: PackageDocs[]): void {
  * `docs coverage`: how much of each public package's exported API has a doc comment (functions, classes, interfaces,
  * types, constants and their public members), measured with the repo's TypeDoc. `docs lcov` writes the same
  * numbers as `coverage/docs.lcov`, for a coverage service to read. `docs patch` fails for each export a PR adds or
- * changes without a doc comment, which is the check CI runs.
+ * changes without a doc comment, which is the check CI runs. `docs coverage` and `docs patch` also write that
+ * report wherever `--lcov <path>` says, from the same measurement, so CI gates and uploads with one command.
+ *
+ * `mode` is the repo's `repoValidation.docsCoverage`, and only `docs patch` follows it: `off` skips it (nothing is
+ * measured or written), `warn` reports an undocumented export without failing, `required` fails for it.
  */
 export function docsCoverageProbes(
 	repoRoot: string,
 	typedoc: MeasureDocsCoverageInput["typedoc"] = runTypedoc(repoRoot),
-	diff: () => string = realDiff(repoRoot)
+	diff: () => string = realDiff(repoRoot),
+	mode: DocsCoverageMode = "required"
 ): PluginProbes {
 	const measure = (): PackageDocs[] => measureDocsCoverage({ repoRoot, typedoc });
 	return {
@@ -89,28 +109,49 @@ export function docsCoverageProbes(
 			summary: "Show how much of each package's exported API has a doc comment.",
 			writes: false,
 			async run(ctx) {
-				summarise(ctx, measure());
+				const packages = measure();
+				writeLcov(ctx, repoRoot, packages);
+				summarise(ctx, packages);
 			},
 		},
 		patch: {
 			summary: "Fail for each export a PR adds or changes that has no doc comment (against BASE_SHA).",
 			writes: false,
 			async run(ctx) {
+				if (mode === "off") {
+					ctx.say({
+						status: "info",
+						label: "docs patch",
+						detail: "off in this repo's config (repoValidation.docsCoverage)",
+					});
+					return;
+				}
 				const added = addedLines(diff());
 				const touched = (dir: string): boolean => [...added.keys()].some((file) => file.startsWith(`${dir}/`));
-				const missing = measureDocsCoverage({ repoRoot, typedoc, only: touched })
+				// the report covers every package, so `--lcov` measures them all; otherwise only the touched ones
+				const packages = measureDocsCoverage({ repoRoot, typedoc, ...(ctx.lcov ? {} : { only: touched }) });
+				writeLcov(ctx, repoRoot, packages);
+				const missing = packages
 					.flatMap(({ symbols }) => symbols)
 					.filter((s) => added.get(s.file)?.has(s.line));
 				const undocumented = missing.filter((s) => !s.documented);
 				ctx.say({ status: "heading", label: "Exports this PR adds or changes" });
+				// `warn` reports the same rows but does not fail the run
+				const level = mode === "warn" ? "info" : "fail";
 				for (const { file, line, kind, name } of undocumented) {
-					ctx.say({ status: "fail", label: `${file}:${line}`, detail: `${kind} ${name} has no doc comment` });
+					ctx.say({ status: level, label: `${file}:${line}`, detail: `${kind} ${name} has no doc comment` });
 				}
 				if (undocumented.length === 0) {
 					ctx.say({
 						status: "ok",
 						label: `${missing.length} checked`,
 						detail: "every one has a doc comment",
+					});
+				} else if (mode === "warn") {
+					ctx.say({
+						status: "info",
+						label: `${undocumented.length} without a doc comment`,
+						detail: "warn: not failing (repoValidation.docsCoverage)",
 					});
 				}
 			},

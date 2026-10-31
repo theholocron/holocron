@@ -26,6 +26,7 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 			...(argv.provider ? { provider: argv.provider } : {}),
 			...(argv.probe ? { probe: argv.probe } : {}),
 			...(argv.args?.length ? { args: argv.args.map(String) } : {}),
+			...(argv.lcov ? { lcov: argv.lcov } : {}),
 			dryRun: argv.dryRun,
 			yes: argv.yes,
 			// On a terminal, `holocron probe` opens a menu of every provider and probe instead of printing them.

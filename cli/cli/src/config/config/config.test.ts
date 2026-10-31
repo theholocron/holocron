@@ -208,4 +208,28 @@ describe("resolveConfig", () => {
 	it("homepage is undefined when neither homepage nor docs.domain is set", () => {
 		expect(resolveConfig(minimal).homepage).toBeUndefined();
 	});
+
+	it("passes repoValidation.docsCoverage through, and leaves it unset by default", () => {
+		for (const docsCoverage of ["off", "warn", "required"] as const) {
+			expect(resolveConfig({ ...minimal, repoValidation: { docsCoverage } }).repoValidation).toEqual({
+				docsCoverage,
+			});
+		}
+		expect(resolveConfig(minimal).repoValidation).toBeUndefined();
+		expect(resolveConfig({ ...minimal, repoValidation: {} }).repoValidation).toEqual({});
+	});
+
+	it("rejects a docsCoverage value that is not off, warn or required", () => {
+		const err = (() => {
+			try {
+				resolveConfig({ ...minimal, repoValidation: { docsCoverage: "strict" as never } });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(ConfigError);
+		expect((err as ConfigError).message).toMatch(
+			/repoValidation\.docsCoverage.*"off", "warn", "required".*"strict"/
+		);
+	});
 });

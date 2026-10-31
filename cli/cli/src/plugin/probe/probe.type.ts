@@ -9,6 +9,11 @@ export interface ProbeRow {
 export interface ProbeContext {
 	/** What the person typed after the probe name (`probe deps who vitest` hands `["vitest"]`). */
 	args?: readonly string[];
+	/**
+	 * `--lcov <path>`: where a probe that measures coverage also writes an lcov report, on top of the rows it prints.
+	 * Relative to the repo root. Unset when the flag was not given.
+	 */
+	lcov?: string;
 	/** `--dry-run`: `write` calls are announced and skipped. */
 	dryRun: boolean;
 	/** Report one line. The text is scrubbed of secrets before it is printed. */

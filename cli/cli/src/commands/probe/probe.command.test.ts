@@ -82,6 +82,22 @@ describe("probe command", () => {
 		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["vitest", "2"] });
 	});
 
+	it("passes --lcov on, and leaves it out when not given", async () => {
+		await run({ provider: "docs", probe: "patch", lcov: "coverage/docs.lcov" });
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ lcov: "coverage/docs.lcov" });
+		await run({ provider: "docs", probe: "patch" });
+		expect("lcov" in runProbeCommand.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("reads --lcov as an option", async () => {
+		await yargs(["probe", "docs", "patch", "--lcov", "out.lcov", "--cwd", "/repo"])
+			.option("cwd", { type: "string" })
+			.option("dry-run", { type: "boolean", default: false })
+			.command(probeCommand as never)
+			.parseAsync();
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ provider: "docs", probe: "patch", lcov: "out.lcov" });
+	});
+
 	it("leaves out a provider and probe it was not given, and exits 1 when the probes failed", async () => {
 		runProbeCommand.mockResolvedValue({ status: "fail" });
 		await run();

@@ -40,6 +40,10 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `runProbe`: output is scrubbed of secrets, a change goes through `ctx.write` (skipped on `--dry-run`, refused for a probe
   without `writes: true`), a writer is asked about first (`--yes` without a terminal), and what it registers with
   `ctx.cleanup` is undone on success, failure and Ctrl-C. `doctor` compares the config with reality; a probe has no layout.
+  The `docs` probes measure doc-comment coverage of the public API (`docs coverage`, `docs patch`, `docs lcov`); `--lcov <path>`
+  on the first two also writes the lcov report, which the Docs coverage workflow uploads to Codecov as the `documentation`
+  flag (spec `tech-api-docs`, epic #1368). `repoValidation.docsCoverage` (`off` default, `warn`, `required`) in
+  `holocron.config.ts` decides what `docs patch` does about a miss and whether `repo setup` writes the flag's statuses.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

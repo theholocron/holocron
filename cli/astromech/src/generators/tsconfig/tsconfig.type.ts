@@ -1,3 +1,4 @@
+/** Options for a package's generated `tsconfig.json`. */
 export interface TsconfigOptions {
 	/** Human-readable name for the `display` field — the package's own name is the usual choice. */
 	display: string;
