@@ -124,7 +124,7 @@ Steps 4 to 6 can ship before `main` is promoted, except the tag, which needs a `
 
 ## Appendix: inventory of `theholocron/.github` (#1473)
 
-Taken 2026-10-31 from `main` of `.github` and the default branch of every active repository in the org. Regenerate it with `node scripts/scan-github-refs.mjs`; add `--json` for every reference with its file and line.
+Taken 2026-10-31 from `main` of `.github` and the default branch of every active repository in the org. Regenerate it with `holocron probe ci refs`; `holocron probe ci ref-list` prints every reference with its file and line.
 
 ### Baseline
 

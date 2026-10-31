@@ -202,6 +202,7 @@ describe("runProbeCommand", () => {
 		const { promise, text } = run({ pick });
 		expect((await promise).status).toBe("listed");
 		expect([...pick.mock.calls[0]![0].keys()].sort()).toEqual([
+			"ci",
 			"comlink",
 			"core",
 			"demo",

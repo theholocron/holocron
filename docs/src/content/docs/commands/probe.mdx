@@ -87,6 +87,17 @@ The `deps` group is the CLI's own, like `core` and `comlink`. It reads every wor
 
 CI runs `holocron probe deps check` on every pull request (the `Dependency catalogs / Check` required check).
 
+## CI references
+
+The `ci` group is the CLI's own. `ci refs` counts the references to the reusable workflows and composite actions hosted in the org's `.github` repository, across every active repository of the org (templates and the org site included). It shallow-clones each one with `gh` and searches the files, because GitHub code search skips repositories that are not indexed. It is the exit test for removing the forwarding shims in `.github`: they can go when the count outside `.github` is zero.
+
+| Probe                          | Changes things | What it does                                                                                                  |
+| ------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------- |
+| `holocron probe ci refs [max]` | no             | Counts the references per repository, split into workflow, action and other. Fails when above `max`, if given |
+| `holocron probe ci ref-list`   | no             | Prints every reference with its file and line                                                                 |
+
+It needs `gh` signed in with read access to the org, and a config that names the org.
+
 ## Generated files
 
 The `generated` group is the CLI's own too. `holocron repo setup` writes a set of files from the config alone (the thin-caller workflows, the lint and editor configs, the git hooks, `codecov.yml`, `turbo.json` and the edits that go with it), and `holocron repo sync` writes the workflows and `turbo.json` from the same function. `generated check` runs that function with no provider and no token, so it works in CI, and compares what it makes with the committed files.
