@@ -1,0 +1,74 @@
+---
+title: Sentinel
+description: Holocron's GitHub App. It receives webhooks, validates holocron.config.ts, syncs repo properties and posts check runs.
+---
+
+`@theholocron/sentinel` is Holocron's GitHub App: a webhook receiver that validates a repo's `holocron.config.ts` on its default branch, syncs the resolved capabilities to GitHub custom properties, and posts check runs. It watches, validates and reports.
+
+:::note
+Sentinel is a **private app, deployed rather than published**. It is not on npm, so there is nothing to `pnpm add`. It is deployed as its own product, with its own `holocron.config.ts` separate from the monorepo root's.
+:::
+
+## How it fits
+
+Sentinel reads the same configuration the [CLI](/holocron/cli/) acts on, so a repo is checked centrally by the rules it runs locally:
+
+- [`@theholocron/datapad`](/holocron/datapad/) executes the `holocron.config.*` fetched from GitHub (as content, not a local file).
+- [`@theholocron/astromech`](/holocron/astromech/) supplies the task registry that config is validated against, the merge of `astromech.config.*` over `holocron.config.*`, and the lint ignore lists.
+- `@theholocron/cli` supplies the derivations behind the custom properties and the compliance baseline, imported unchanged so a check and `holocron repo sync` can never disagree.
+- `@theholocron/github-client` does every GitHub call, including webhook signature verification.
+
+## What it does
+
+| Piece                                | Job                                                                                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `parseWebhookEvent`                  | Verifies the `X-Hub-Signature-256` signature and normalizes the delivery. Handles installation events, pushes to the default branch and PR opened or synchronized               |
+| `validateConfig`                     | Reads `holocron.config.*` (and an optional `astromech.config.*`) and checks every task name against the registry. Returns `valid`, `no-config`, `unknown-tasks` or `load-error` |
+| `syncPropertiesFromConfig`           | Syncs the resolved capabilities and profile to GitHub custom properties, the same fields `holocron repo sync` computes                                                          |
+| `postCheckRun`                       | Posts one capability-compliance check run, `Sentinel / Capability Compliance`                                                                                                   |
+| `handleWebhookRequest(request, env)` | A plain `(Request, Env) => Response` function that runs the pipeline above plus the central source-quality checks                                                               |
+
+The central checks run in the same pipeline: commit standards, DCO, inclusive language, formatting, editorconfig, markdown lint, static analysis (eslint and actionlint), repo validation, and an advisory PR config validation. An opt-out auto-fix commit can repair the mechanical formatting, editorconfig and markdown failures. The handler's module docstring in `src/handler/handler.ts` is the source of truth for the current list.
+
+## Key points
+
+- **Default branch only.** The config is read from a repo's default branch, never a fork or an unreviewed PR branch, and `validateConfig` only validates and never writes. This is the hard security boundary of the design. The exception is the auto-fix check, which reads a same-repo PR branch to see what that branch declares.
+- **Org-portable.** The repo and installation id come from the webhook payload, so one registration handles any number of orgs and accounts.
+- **Quiet on a bad config.** A missing or broken config is acknowledged without a check run.
+- **Out of scope for v1.** Autonomous fix PRs or comments triggered by an event, and dashboards, are tracked in issue 674.
+- **Environment.** `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, plus two log-shipping values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`). They live in Doppler and are fanned out with [`holocron secrets sync`](/holocron/commands/secrets-sync/).
+
+## Deployment
+
+Sentinel runs as a serverless function: it needs a real filesystem and dynamic `import()` to execute a fetched config, which Workers-style isolates do not offer. Its own config wires the `deployment`, `dns` and `vault` providers (Vercel, Cloudflare and Doppler today). A Netlify deploy target is the subject of the `tech-sentinel-deploy-target-netlify` wiki spec, and the [Netlify plugin](/holocron/plugins/netlify/) was built for it.
+
+```bash
+# Recurring: build, stage, deploy to production
+pnpm run delivery.deploy
+
+# One time: attach the custom domain and hand the DNS challenge to the dns provider
+holocron repo setup --cwd apps/sentinel
+```
+
+- **Production only.** A GitHub App has a single webhook URL, so there is no staging deployment. `holocron deploy --dry-run` verifies the wiring, and the unit tests exercise the handler directly.
+- **Automated.** A workflow deploys on merges to `main` that touch the app, and a `delivery.deploy` task with `on: "release"` deploys it after a release that changes it (see [`holocron deploy`](/holocron/commands/deploy/)).
+- **Secrets.** `holocron secrets sync prd --cwd apps/sentinel` syncs the Doppler config to the deployment. It targets production only, deliberately, so the app's private key is never exposed to PR preview deployments.
+
+## GitHub App registration
+
+Registering the App is a one-time, manual web-UI flow, done under the org. Deploy first and attach the custom domain, then register with `https://sentinel.theholocron.dev/api/webhook` as the webhook URL.
+
+| Setting                | Value                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| Repository permissions | Contents, Checks, Custom properties, Issues, Pull requests and Actions at write; Metadata at read |
+| Subscribed events      | `push`, `pull_request`, `installation`                                                            |
+| User authorization     | Not used. Sentinel only uses installation access tokens                                           |
+| Webhook secret         | Generated by you, stored as `SENTINEL_WEBHOOK_SECRET`                                             |
+| Private key            | Generated once after creation, stored as `GITHUB_APP_PRIVATE_KEY`                                 |
+
+The package README on [GitHub](https://github.com/theholocron/holocron/tree/alpha/apps/sentinel) has the full permission rationale and the registration walkthrough. The design is in the `tech-sentinel-v1` and `tech-sentinel-ci-runner` wiki specs.
+
+## Related
+
+- [Server as Code](/holocron/server-as-code/): the other half of org-level setup, which the CLI applies and checks from the same config
+- [Configuration](/holocron/config/)
