@@ -35,12 +35,13 @@ import performanceYml from "../../templates/workflows/verification.performance.y
 import typeSafetyYml from "../../templates/workflows/verification.typeSafety.yml";
 import unitTestsYml from "../../templates/workflows/verification.unitTests.yml";
 import visualRegressionYml from "../../templates/workflows/verification.visualRegression.yml";
+import { rehomeAll,reusableWorkflowRef } from "../ci-ref/index.js";
 import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
 import { groupedPublishCaller } from "./grouped-publish/index.js";
 import { yamlScalar } from "./grouped-publish/yaml-scalar.js";
 
 /** The reusable-workflow thin-caller templates, by task name. */
-export const WORKFLOW_TEMPLATES: Record<string, string> = {
+export const WORKFLOW_TEMPLATES: Record<string, string> = rehomeAll({
 	"verification.unitTests": unitTestsYml,
 	"verification.visualRegression": visualRegressionYml,
 	"verification.typeSafety": typeSafetyYml,
@@ -70,7 +71,7 @@ export const WORKFLOW_TEMPLATES: Record<string, string> = {
 	greetings: greetingsYml,
 	dependencies: dependenciesYml,
 	bookkeeping: bookkeepingYml,
-};
+});
 
 /** The task names that have a thin-caller workflow template. */
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
@@ -346,14 +347,14 @@ export function generateCombinedDeployContent(
 		`  deploy:`,
 		`    name: Deploy`,
 		`    if: \${{ github.event_name != 'pull_request' }}`,
-		`    uses: theholocron/.github/.github/workflows/delivery.deploy.yml@main`,
+		`    uses: ${reusableWorkflowRef("delivery.deploy.yml")}`,
 		...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
 		`    secrets: inherit`,
 		``,
 		`  preview:`,
 		`    name: Preview`,
 		`    if: \${{ github.event_name == 'pull_request' }}`,
-		`    uses: theholocron/.github/.github/workflows/preview.yml@main`,
+		`    uses: ${reusableWorkflowRef("preview.yml")}`,
 		previewWithBlock.trimEnd(),
 		`    secrets: inherit`,
 		``,

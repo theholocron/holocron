@@ -1,3 +1,4 @@
+import { reusableWorkflowRef } from "../../ci-ref/index.js";
 import { yamlScalar } from "./yaml-scalar.js";
 
 /** The reusable's inputs a group may set for itself; everything else is shared by all releases. */
@@ -139,7 +140,7 @@ export function groupedPublishCaller(
 	];
 
 	const matrixJson = JSON.stringify(entries).replaceAll("'", "''");
-	const uses = "    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main";
+	const uses = `    uses: ${reusableWorkflowRef("delivery.publish.yml")}`;
 
 	const ungroupedJob = ungroupedInputs
 		? [
