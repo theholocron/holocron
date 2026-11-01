@@ -40,4 +40,5 @@ export type { ConfigSource, ReadConfigSourceOptions } from "./read-config-source
 export { readConfigSource } from "./read-config-source/index.js";
 export type { ConfigSandboxOptions } from "./with-config-sandbox/index.js";
 export { withConfigSandbox } from "./with-config-sandbox/index.js";
+/** Deep-merges config objects; the datapad name for `deepMerge` from `@theholocron/object-utils`. */
 export { deepMerge as mergeConfig } from "@theholocron/object-utils";

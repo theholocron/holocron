@@ -90,6 +90,7 @@ export function deriveCapabilities(providers: ResolvedProvidersConfig | undefine
  */
 const REQUIRED_BASELINE = ["source", "ci"] as const;
 
+/** Whether a repo's capabilities include the required baseline (`source` and `ci`); `non-compliant` means drift. */
 export function deriveCompliance(capabilities: readonly string[]): "compliant" | "non-compliant" {
 	return REQUIRED_BASELINE.every((key) => capabilities.includes(key)) ? "compliant" : "non-compliant";
 }

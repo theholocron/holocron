@@ -1,5 +1,6 @@
 import type { DocsConfig, HolocronConfig, RawProvidersConfig, RepoConfig } from "../config/index.js";
 
+/** One entry of the `tasks` manifest: a task name or the object form. */
 export type TaskEntry = NonNullable<HolocronConfig["tasks"]>[number];
 
 /** A single composable capability fragment. */
@@ -31,12 +32,18 @@ export interface Capability {
 
 /** The merged result of a compose() call. Spreads into defineConfig(). */
 export interface ComposedPreset {
+	/** Task entries merged from every capability, by name. */
 	tasks: TaskEntry[];
+	/** Provider config merged from every capability. */
 	providers: RawProvidersConfig;
+	/** Repo config merged from every capability. */
 	repo: Partial<Omit<RepoConfig, "name">>;
 	/** Non-task required-check contexts, unioned across capabilities. */
 	extraRequiredChecks: string[];
+	/** Org name; the last capability that sets it wins. */
 	org?: string;
+	/** Org canonical domain; the last capability that sets it wins. */
 	domain?: string;
+	/** Docs site config; the last capability that sets it wins. */
 	docs?: DocsConfig;
 }

@@ -2,7 +2,9 @@ import type { Logger } from "@theholocron/observability/core";
 
 // ── Plugin-level export shapes (mirrored on every plugin) ────────────
 
+/** A plugin's `verifyToken` result when the provider accepted the token. */
 export interface VerifyTokenSuccess {
+	/** Always `true` for an accepted token. */
 	ok: true;
 	/** "workplace: acme" / "user: cnewton@x" — surfaced in success output. */
 	subject: string;
@@ -10,12 +12,15 @@ export interface VerifyTokenSuccess {
 	expiresAt?: string;
 }
 
+/** A plugin's `verifyToken` result when the provider rejected the token. */
 export interface VerifyTokenFailure {
+	/** Always `false` for a rejected token. */
 	ok: false;
 	/** Reason the token was rejected. Surfaces to the operator. */
 	message: string;
 }
 
+/** What a plugin's `verifyToken` returns: the token was accepted, or it was rejected with a reason. */
 export type VerifyTokenResult = VerifyTokenSuccess | VerifyTokenFailure;
 
 /** One token a plugin takes, and where it is looked up. */

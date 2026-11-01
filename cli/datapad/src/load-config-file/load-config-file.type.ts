@@ -1,3 +1,4 @@
+/** Options for finding and loading a config file from disk. */
 export interface LoadConfigFileOptions {
 	/** Directory to start looking in. */
 	cwd: string;
@@ -15,7 +16,9 @@ export interface LoadConfigFileOptions {
 	walkUp?: boolean;
 }
 
+/** A config value together with the file it was loaded from. */
 export interface Loaded<T> {
+	/** The loaded config value. */
 	config: T;
 	/** Absolute path of the file the value came from. */
 	filepath: string;

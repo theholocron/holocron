@@ -1,5 +1,6 @@
 import type { LoadConfigFileOptions, Loaded } from "../load-config-file/index.js";
 
+/** Options for loading a dedicated config file layered over a fallback file's key. */
 export interface LoadLayeredOptions<T = unknown> extends LoadConfigFileOptions {
 	/**
 	 * When no dedicated `<name>.config.*` exists — or in addition to it —
@@ -7,7 +8,9 @@ export interface LoadLayeredOptions<T = unknown> extends LoadConfigFileOptions {
 	 * any) is merged on top.
 	 */
 	fallback?: {
+		/** Base name of the fallback file, read as `<file>.config.*`. */
 		file: string;
+		/** The key in the fallback file whose value is taken. */
 		key: string;
 		/**
 		 * The `<file>.config.*` already loaded by the caller (`null`: it was
@@ -25,7 +28,9 @@ export interface LoadLayeredOptions<T = unknown> extends LoadConfigFileOptions {
 	coerce?: (raw: unknown) => T | undefined;
 }
 
+/** The merged config from `loadLayered`, with where it came from. */
 export interface LayeredResult<T> {
+	/** The merged config value. */
 	config: T;
 	/** The dedicated file path if present, else the fallback file path, else `null`. */
 	filepath: string | null;

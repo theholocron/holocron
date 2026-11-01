@@ -3,8 +3,10 @@ import { type ResolveTokenConfig as _ResolveTokenConfig } from "@theholocron/htt
 
 import type { PluginToken } from "../../commands/auth/index.js";
 
+/** Options for a token resolver, without the keyring lookup, which the CLI supplies itself. */
 export type ResolveTokenConfig = Omit<_ResolveTokenConfig, "getKeyringToken">;
 
+/** Settings for a feature-specific token resolver: which env var and keyring entry it reads. */
 export interface FeatureResolverConfig {
 	/** Env var name for this feature, e.g. `"HOLOCRON_ISSUES_TOKEN"`. */
 	envName: string;

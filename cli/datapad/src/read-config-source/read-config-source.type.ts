@@ -8,6 +8,7 @@ export interface ConfigSource {
 	content: string;
 }
 
+/** Options for fetching a config file's content from a remote source. */
 export interface ReadConfigSourceOptions {
 	/** Base name — `"holocron"` probes `holocron.config.{ts,js,mjs,cjs,json}`. */
 	name: string;

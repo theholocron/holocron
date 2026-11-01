@@ -22,7 +22,9 @@ export type { PagesConfig, TeamEntry, TeamPermission };
 // Errors
 // ───────────────────────────────────────────────────────────────────────
 
+/** Thrown when a `holocron.config` is invalid. */
 export class ConfigError extends Error {
+	/** The error's name, `"ConfigError"`. */
 	override name = "ConfigError";
 }
 
@@ -67,6 +69,7 @@ function normalizeEntry(entry: string | [string, ProviderOptions]): ResolvedTupl
 // Parse / resolve
 // ───────────────────────────────────────────────────────────────────────
 
+/** Resolves one capability's raw provider entry into single or multiple resolved tuples, checking it against the capability's cardinality. */
 export function resolveEntry(key: CapabilityKey, raw: RawProviderEntry): ResolvedProviderEntry {
 	const cardinality = CARDINALITY[key];
 
@@ -110,6 +113,7 @@ export function resolveEntry(key: CapabilityKey, raw: RawProviderEntry): Resolve
 /** The values `repoValidation.docsCoverage` accepts. */
 const DOCS_COVERAGE_MODES: readonly string[] = ["off", "warn", "required"];
 
+/** Validates a raw `holocron.config` and resolves its provider entries; throws `ConfigError` when `name` or `providers` is missing or an entry is malformed. */
 export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (!raw.name) {
 		throw new ConfigError("`name` is required");

@@ -5,6 +5,7 @@
  * `null` for that.
  */
 export class ConfigFileError extends Error {
+	/** The error's name, `"ConfigFileError"`. */
 	override name = "ConfigFileError";
 
 	constructor(
