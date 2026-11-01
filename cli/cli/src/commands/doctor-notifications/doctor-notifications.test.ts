@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -82,6 +86,7 @@ function setup(
 		deliver?: boolean;
 		scope?: { kind: "repo" };
 		fetch?: typeof fetch;
+		repoRoot?: string;
 	} = {}
 ) {
 	const loaded = loadedFrom({
@@ -112,7 +117,7 @@ function setup(
 			runDoctorNotifications({
 				loaded,
 				context: {
-					repoRoot: "/tmp/test",
+					repoRoot: opts.repoRoot ?? "/tmp/test",
 					...("org" in opts ? (opts.org ? { org: opts.org } : {}) : { org: "theholocron" }),
 				},
 				loader,
@@ -1866,6 +1871,58 @@ describe("runDoctorNotifications — pinned messages", () => {
 		expect(byId(await run({ pinned: [] }), "pinned").problems).toEqual([
 			"#welcome: not checked (the provider gave no answer)",
 		]);
+	});
+});
+
+describe("runDoctorNotifications — pinned messages from a file", () => {
+	const FILE_LAYOUT: NotificationsLayout = {
+		categories: [{ name: "A", channels: [{ name: "rules" }] }],
+		pinned: [{ channel: "rules", file: "RULES.md" }],
+	};
+	const found = (state: "ok" | "different"): ServerInspection => ({
+		categories: [],
+		channels: [],
+		roles: [],
+		pinned: [{ channel: "rules", state }],
+	});
+
+	it("compares the file's text, and names the file when the pin has drifted from it", async () => {
+		const root = await mkdtemp(join(tmpdir(), "doctor-pinned-"));
+		await writeFile(join(root, "RULES.md"), "**Rules**\n");
+		const n = fakeNotifications({ layout: FILE_LAYOUT, found: found("different") });
+
+		const report = await setup(n, { secretNames: [], repoRoot: root }).run();
+
+		expect(n.inspect).toHaveBeenCalledWith(
+			expect.objectContaining({ pinned: [{ channel: "rules", file: "RULES.md", content: "**Rules**" }] })
+		);
+		expect(byId(report, "pinned").problems).toEqual(["#rules: the pinned messages differ from RULES.md"]);
+	});
+
+	it("passes when the pin matches the file", async () => {
+		const root = await mkdtemp(join(tmpdir(), "doctor-pinned-"));
+		await writeFile(join(root, "RULES.md"), "**Rules**\n");
+
+		const report = await setup(fakeNotifications({ layout: FILE_LAYOUT, found: found("ok") }), {
+			secretNames: [],
+			repoRoot: root,
+		}).run();
+
+		expect(byId(report, "pinned")).toMatchObject({ status: "pass", detail: "1 of 1 in place" });
+	});
+
+	it("fails only the pinned row when the file cannot be read, and still checks the rest", async () => {
+		const root = await mkdtemp(join(tmpdir(), "doctor-pinned-"));
+		const n = fakeNotifications({ layout: FILE_LAYOUT, found: found("ok") });
+
+		const report = await setup(n, { secretNames: [], repoRoot: root }).run();
+
+		expect(byId(report, "pinned")).toMatchObject({
+			status: "fail",
+			problems: ["pinned: `RULES.md` (for #rules) could not be read: it does not exist"],
+		});
+		expect(n.inspect).toHaveBeenCalledWith(expect.objectContaining({ pinned: [] }));
+		expect(byId(report, "server")?.status).toBe("pass");
 	});
 });
 

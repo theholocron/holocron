@@ -1588,12 +1588,21 @@ export interface NotificationsServerLayout {
 	locale?: string;
 }
 
-/** A message the provider posts in a channel and pins, so it stays at the top. */
+/**
+ * A message the provider posts in a channel and pins, so it stays at the top. Give the text as `content`, or as
+ * a `file` in the repository that is its source of truth (never both). The CLI reads the file before it calls the
+ * provider, so a provider only ever sees `content`.
+ */
 export interface NotificationsPinnedLayout {
 	/** A channel in the layout. */
 	channel: string;
-	/** The message text (Discord allows up to 2000 characters). */
-	content: string;
+	/** The message text (Discord allows up to 2000 characters). Absent when the text comes from `file`. */
+	content?: string;
+	/**
+	 * A text file in the repository, relative to its root, whose contents are the message, such as `RULES.md`. The
+	 * file wins: a hand edit of the pinned message is replaced on the next `setup`, and `doctor` reports it until then.
+	 */
+	file?: string;
 }
 
 /**

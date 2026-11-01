@@ -908,6 +908,19 @@ export class DiscordNotifications implements Notifications {
 			.join("");
 	}
 
+	/**
+	 * The text of a pinned message. The CLI reads a message's `file` into `content` before it calls the provider, so
+	 * the text is only missing when a caller skipped that.
+	 */
+	private static pinText(pin: NotificationsPinnedLayout): string {
+		if (pin.content === undefined) {
+			throw new Error(
+				`the pinned message for #${pin.channel} has no text: its \`file\` was not read before the layout reached the provider`
+			);
+		}
+		return pin.content;
+	}
+
 	/** The layout's messages grouped by channel, in the order the channels first appear, with channel names linked. */
 	private static pinsByChannel(
 		pinned: NotificationsPinnedLayout[],
@@ -916,7 +929,7 @@ export class DiscordNotifications implements Notifications {
 		const byChannel = new Map<string, string[]>();
 		for (const pin of pinned) {
 			const key = pin.channel.toLowerCase();
-			const content = DiscordNotifications.linkChannels(pin.content, channels);
+			const content = DiscordNotifications.linkChannels(DiscordNotifications.pinText(pin), channels);
 			byChannel.set(key, [...new Set([...(byChannel.get(key) ?? []), content])]);
 		}
 		return byChannel;
@@ -961,7 +974,7 @@ export class DiscordNotifications implements Notifications {
 		}
 		return pinned.map((pin) => {
 			const v = verdicts.get(pin.channel.toLowerCase())!;
-			const state = v.missing.has(DiscordNotifications.linkChannels(pin.content, channels))
+			const state = v.missing.has(DiscordNotifications.linkChannels(DiscordNotifications.pinText(pin), channels))
 				? v.anyPinned
 					? "different"
 					: "missing"
@@ -1454,9 +1467,10 @@ export class DiscordNotifications implements Notifications {
 				return `welcome: the description of \`${long.channel}\` is ${long.description.length} characters; Discord allows up to 50`;
 			}
 		}
-		const long2000 = layout.pinned?.find((p) => p.content.length > 2000);
+		const long2000 = layout.pinned?.find((p) => (p.content?.length ?? 0) > 2000);
 		if (long2000) {
-			return `pinned: the message for \`${long2000.channel}\` is ${long2000.content.length} characters; Discord allows up to 2000`;
+			const from = long2000.file ? ` (from \`${long2000.file}\`)` : "";
+			return `pinned: the message for \`${long2000.channel}\`${from} is ${long2000.content!.length} characters; Discord allows up to 2000`;
 		}
 		const server = layout.server;
 		for (const [field, map] of [

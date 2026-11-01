@@ -1421,6 +1421,74 @@ describe("pinned messages", () => {
 		const cannot = await setup(fakeNotifications({ layout: PINNED_LAYOUT })).run();
 		expect(cannot.message).toMatch(/cannot manage them/);
 	});
+
+	describe("from a file in the repository", () => {
+		const FILE_LAYOUT = (pinned: NotificationsLayout["pinned"]): NotificationsLayout => ({
+			categories: [{ name: "A", channels: [{ name: "rules" }] }],
+			pinned,
+		});
+
+		it("hands the provider the file's text, and the file's name with it", async () => {
+			const root = await mkdtemp(join(tmpdir(), "setup-pinned-"));
+			await writeFile(join(root, "RULES.md"), "**Rules**\r\nBe kind.\r\n\r\n");
+			const ensurePinned = vi.fn(async () => ({ updated: ["#rules"] }));
+			const n = fakeNotifications({
+				layout: FILE_LAYOUT([{ channel: "rules", file: "RULES.md" }]),
+				ensurePinned,
+			});
+
+			const report = await setup(n, { repoRoot: root }).run();
+
+			expect(report.status).toBe("ok");
+			expect(ensurePinned).toHaveBeenCalledWith([
+				{ channel: "rules", file: "RULES.md", content: "**Rules**\nBe kind." },
+			]);
+		});
+
+		it("stops before anything is created when the file cannot be read", async () => {
+			const root = await mkdtemp(join(tmpdir(), "setup-pinned-"));
+			const n = fakeNotifications({
+				layout: FILE_LAYOUT([{ channel: "rules", file: "RULES.md" }]),
+				ensurePinned: vi.fn(),
+			});
+
+			const report = await setup(n, { repoRoot: root }).run();
+
+			expect(report.status).toBe("fail");
+			expect(report.message).toBe("pinned: `RULES.md` (for #rules) could not be read: it does not exist");
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+		});
+
+		it("refuses a message that gives both content and file, or neither", async () => {
+			const both = await setup(
+				fakeNotifications({
+					layout: FILE_LAYOUT([{ channel: "rules", content: "x", file: "RULES.md" }]),
+					ensurePinned: vi.fn(),
+				})
+			).run();
+			const neither = await setup(
+				fakeNotifications({ layout: FILE_LAYOUT([{ channel: "rules" }]), ensurePinned: vi.fn() })
+			).run();
+
+			expect(both.message).toMatch(/sets both `content` and `file`/);
+			expect(neither.message).toMatch(/message for `rules` has no text; give it `content` or a `file`/);
+		});
+
+		it("refuses a file that is empty once read", async () => {
+			const root = await mkdtemp(join(tmpdir(), "setup-pinned-"));
+			await writeFile(join(root, "RULES.md"), "\n\n");
+
+			const report = await setup(
+				fakeNotifications({
+					layout: FILE_LAYOUT([{ channel: "rules", file: "RULES.md" }]),
+					ensurePinned: vi.fn(),
+				}),
+				{ repoRoot: root }
+			).run();
+
+			expect(report.message).toMatch(/message for `rules` is empty/);
+		});
+	});
 });
 
 describe("a permission given for one edit", () => {
