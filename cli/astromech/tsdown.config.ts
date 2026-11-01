@@ -8,6 +8,12 @@ export default library({
 		neverBundle: (id: string) => /^[^./]/.test(id) && !/^@theholocron\/ci(?:\/|$)/.test(id),
 		alwaysBundle: [/^@theholocron\/ci(?:\/|$)/],
 	},
-	entry: ["src/index.ts", "src/config/index.ts", "src/lint/index.ts", "src/release/index.ts"],
+	entry: [
+		"src/index.ts",
+		"src/config/index.ts",
+		"src/lint/index.ts",
+		"src/release/index.ts",
+		"src/repo-validation/index.ts",
+	],
 	plugins: [transformTemplate({ dirs: ["/src/templates/configs/"] })],
 });

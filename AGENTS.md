@@ -46,7 +46,8 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `holocron.config.ts` decides what `docs patch` does about a miss and whether `repo setup` writes the flag's statuses.
   `docs presence` is the `docsEnforcement` job of `platform.repoValidation`: it warns (never fails) when a new public
   package, or a `feat` to one, ships with no docs change, and `[skip docs] <reason>` in the PR description or a commit
-  message excuses it (#1515). A registry job can be a holocron subcommand (`local: { command }`), as a task can.
+  message excuses it (#1515). Its rules are pure functions in `@theholocron/astromech/repo-validation` (#929); the probe
+  only supplies them with git data, and Sentinel is meant to supply the same rules from the GitHub API. A registry job can be a holocron subcommand (`local: { command }`), as a task can.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

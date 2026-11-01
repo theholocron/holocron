@@ -248,3 +248,16 @@ config surface don't pull `@commitlint/*` in:
 The root entry also exports the config-file generators `holocron repo setup`
 writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
 `createHeader`.
+
+## Repo validation — `@theholocron/astromech/repo-validation`
+
+The rules of the `platform.repoValidation` checks, once, as pure functions over plain data (changed files, commit
+subjects, the PR description, a manifest) that return findings. They do no git, no filesystem and no network, so the two
+interfaces that run them only supply the data: the CLI (`holocron probe docs presence`, and the `docsEnforcement` job of
+`holocron run platform.repoValidation`) from git, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the
+webhook and the GitHub API (#929).
+
+- Docs presence: `isFeat(subjects)`, `packageOf(file, readPackage)`, `pageNames(dir)`, `hasDocsSignal(dir, changedFiles, addedCommentLines)`,
+  `isAddedDocComment(line)`, `parseSkipDocs(text)` (the `[skip docs] <reason>` marker) and
+  `evaluateDocsPresence({ packages, changedFiles, addedCommentLines, skip })`, which sorts a feature's packages into
+  those to warn about and those a marker excused.

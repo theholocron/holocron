@@ -42,6 +42,7 @@ const report = astromech.run("verification.unitTests", { passthrough: ["--watch"
 - **Running CI locally.** `ci()` runs every required task in CI order and sets the exit code of `holocron run ci`.
 - **Release-time deploys.** A package can declare a `delivery.deploy` task with `on: "release"`, and `holocron deploy on-release` deploys it when a release changes it or one of its `workspace:*` dependencies.
 - **Lint subpath.** `@theholocron/astromech/lint` holds the commit-message linter and the ignore lists, shared with [Sentinel](/holocron/sentinel/) so its central checks skip exactly what each repo's own CI skips.
+- **Repo-validation subpath.** `@theholocron/astromech/repo-validation` holds the rules of the `platform.repoValidation` checks as pure functions, run by the CLI (`holocron probe docs presence`) from git and by [Sentinel](/holocron/sentinel/) from the GitHub API, so the two cannot disagree.
 
 ## Related
 

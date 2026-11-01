@@ -41,6 +41,11 @@
       "types": "./dist/release/index.d.mts",
       "import": "./dist/release/index.mjs",
       "default": "./dist/release/index.mjs"
+    },
+    "./repo-validation": {
+      "types": "./dist/repo-validation/index.d.mts",
+      "import": "./dist/repo-validation/index.mjs",
+      "default": "./dist/repo-validation/index.mjs"
     }
   },
   "files": [
