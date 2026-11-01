@@ -1,5 +1,9 @@
 import {
+	type DiscussionPatch,
+	type DiscussionPost,
 	ElevationRequiredError,
+	type EnsuredDiscussion,
+	type EnsureDiscussionInput,
 	type EnsuredResource,
 	type EnsureWebhookResult,
 	type Notifications,
@@ -39,6 +43,7 @@ import {
 	permissionNames,
 	permissions,
 } from "../rest.js";
+import { DiscordDiscussions } from "./discussions.js";
 
 /** Discord's numeric settings, by the names the layout uses. */
 const VERIFICATION = { none: 0, low: 1, medium: 2, high: 3, highest: 4 } as const;
@@ -1001,6 +1006,32 @@ export class DiscordNotifications implements Notifications {
 					: "ok";
 			return { channel: pin.channel, state };
 		});
+	}
+
+	private discussionStore?: DiscordDiscussions;
+
+	/** The discussion posts of this instance's forum channels, which read each forum once. */
+	private discussions(): DiscordDiscussions {
+		return (this.discussionStore ??= new DiscordDiscussions({
+			bot: () => this.bot(),
+			guild: () => this.guild(),
+			channels: () => this.channelList(),
+		}));
+	}
+
+	/** Finds the post for a document in a forum channel, or makes it. See {@link DiscordDiscussions}. */
+	ensureDiscussion(input: EnsureDiscussionInput): Promise<EnsuredDiscussion> {
+		return this.discussions().ensure(input);
+	}
+
+	/** The post for a document in a forum channel, or `undefined`. */
+	readDiscussion(channel: string, key: string): Promise<DiscussionPost | undefined> {
+		return this.discussions().read(channel, key);
+	}
+
+	/** Changes a document's post: its title, its tag, the state last synced. */
+	updateDiscussion(channel: string, key: string, patch: DiscussionPatch): Promise<void> {
+		return this.discussions().update(channel, key, patch);
 	}
 
 	async ensurePinned(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }> {

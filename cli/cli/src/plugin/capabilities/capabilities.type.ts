@@ -1499,6 +1499,56 @@ export interface EnsuredResource {
 	updated?: string[];
 }
 
+/**
+ * A conversation about one document (an ADR or a spec) in a forum channel, as the provider has it. `key` identifies
+ * the document, the repo-relative path of its file; the provider records it on the post so the post can be found again.
+ */
+export interface DiscussionPost {
+	/** The post's address, for the document's `discussion.url`. */
+	url: string;
+	/**
+	 * The post's state: the name of the one tag it carries. `undefined` when it carries none, or more than one, so there
+	 * is no single state to read.
+	 */
+	state?: string;
+	/** The state the post was last in step with the document, as the post records it; `undefined` when it records none. */
+	synced?: string;
+}
+
+/** What {@link Notifications.ensureDiscussion} takes. */
+export interface EnsureDiscussionInput {
+	/** The forum channel's name, as in the layout. */
+	channel: string;
+	/** Identifies the document: its repo-relative path. */
+	key: string;
+	/** The post's title. */
+	title: string;
+	/** The post's first message, without the line the provider adds to record `key` and the synced state. */
+	body: string;
+	/** The state to open the post in: the name of one of the forum's tags. It is also recorded as the state last synced. */
+	state: string;
+	/** Post without notifying anyone, as a backfill of many posts should. */
+	quiet?: boolean;
+}
+
+/** What {@link Notifications.ensureDiscussion} found or made. */
+export interface EnsuredDiscussion {
+	/** The post, as it is now. */
+	post: DiscussionPost;
+	/** Whether the post was made now rather than already existing. */
+	created: boolean;
+}
+
+/** What {@link Notifications.updateDiscussion} changes; a field left out is left alone. */
+export interface DiscussionPatch {
+	/** A new title. */
+	title?: string;
+	/** A new state: the name of one of the forum's tags. It replaces the post's tags. */
+	state?: string;
+	/** The state the post and the document now agree on. */
+	synced?: string;
+}
+
 /** A webhook (or equivalent inbound URL) for a channel. */
 export interface EnsureWebhookResult {
 	/** Whether the webhook was made now rather than already existing. */
@@ -2060,6 +2110,17 @@ export interface Notifications extends ProviderIdentity {
 
 	/** Post and pin the layout's messages, replacing any that differ. Returns the channels it changed. */
 	ensurePinned?(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }>;
+
+	/**
+	 * Find the discussion post for `key` in a forum channel, or make it. Never changes a post that exists: its state and
+	 * its text are the caller's to reconcile through {@link Notifications.readDiscussion} and
+	 * {@link Notifications.updateDiscussion}. Idempotent, and the lookup reads archived posts too.
+	 */
+	ensureDiscussion?(input: EnsureDiscussionInput): Promise<EnsuredDiscussion>;
+	/** The discussion post for `key` in a forum channel, or `undefined` when there is none. */
+	readDiscussion?(channel: string, key: string): Promise<DiscussionPost | undefined>;
+	/** Change the discussion post for `key`: its title, its state (the tag) and the state last synced. Throws when there is no post. */
+	updateDiscussion?(channel: string, key: string, patch: DiscussionPatch): Promise<void>;
 
 	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */
 	holdsPermission?(permission: string): Promise<boolean>;
