@@ -74,6 +74,17 @@ const isMiss = (err: unknown): boolean => {
  * `bin` must be a bare name — an empty string, `.`, `..` or anything with a
  * path separator throws a `TypeError`, as does any filesystem error other
  * than "not there" / "not permitted".
+ *
+ * On Windows, where there is no exec bit, `bin` is tried with each `PATHEXT`
+ * extension unless it already ends in one (see {@link FindExecutableOptions}).
+ *
+ * @example
+ * ```ts
+ * import { findExecutableSync } from "@theholocron/fs-utils";
+ *
+ * // a project-local binary first, then the real PATH
+ * const tsc = findExecutableSync("tsc", { path: join(cwd, "node_modules", ".bin") }) ?? findExecutableSync("tsc");
+ * ```
  */
 export async function findExecutable(bin: string, options: FindExecutableOptions = {}): Promise<string | undefined> {
 	assertBare(bin);

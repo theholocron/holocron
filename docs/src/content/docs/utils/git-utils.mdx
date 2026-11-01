@@ -11,36 +11,13 @@ pnpm add @theholocron/git-utils
 
 Node-only: it shells out to `git` and touches the filesystem. Zero dependencies.
 
-## API
-
-### `parseGitRemoteUrl(url)`
-
-Pure. Understands `https://host/owner/repo(.git)(/)` (with credentials or a port), scp-style `git@host:owner/repo(.git)`, `ssh://git@host(:port)/owner/repo` and `git://`, on any server (bracketed IPv6 addresses included, returned without brackets). The whole input must be one remote — trailing text after it, other than a `?query` or `#fragment`, gives `undefined`. Nested groups stay in `owner`. Returns `{ host, owner, repo, slug }`, or `undefined` for a local path, an empty string, or a URL with fewer than two path segments.
+## Usage
 
 ```ts
-import { parseGitRemoteUrl } from "@theholocron/git-utils";
+import { parseGitRemoteUrl, upsertManagedBlock } from "@theholocron/git-utils";
 
 parseGitRemoteUrl("git@github.com:theholocron/holocron.git");
 // { host: "github.com", owner: "theholocron", repo: "holocron", slug: "theholocron/holocron" }
-
-parseGitRemoteUrl("/Users/me/code/repo"); // undefined
-```
-
-### `readGitRemote(cwd, options?)`
-
-Runs `git remote get-url <remote>` in `cwd` and parses it. `undefined` when `cwd` isn't a repository, there is no such remote, git isn't installed, or the URL isn't understood.
-
-| Option   | Effect                                                                                                                |
-| -------- | --------------------------------------------------------------------------------------------------------------------- |
-| `remote` | Remote name. Default `"origin"`.                                                                                      |
-| `exec`   | `(args, { cwd }) => Promise<string>`, rejecting on a non-zero exit. Injectable so tests don't need a real repository. |
-
-### `upsertManagedBlock(content, { start, end, lines })`
-
-Pure. Inserts or replaces the lines between two marker lines, leaving the rest of the text alone: appended (blank-line separated) when absent, replaced in place when present. If `start` is present but `end` is missing, the block is taken to run to the next blank line or end of file, so the content after it is kept; an `end` marker further down than that blank line doesn't close the block. A CRLF file stays CRLF. `lines` entries must be non-blank single lines (a `TypeError` otherwise). Idempotent. There are no default markers — choose them and keep them stable.
-
-```ts
-import { upsertManagedBlock } from "@theholocron/git-utils";
 
 upsertManagedBlock("node_modules\n", {
   start: "# managed: skills",
@@ -50,8 +27,11 @@ upsertManagedBlock("node_modules\n", {
 // "node_modules\n\n# managed: skills\n/.agents/\n# end managed: skills\n"
 ```
 
-### `updateGitignore(path, options)`
+## How the pieces fit
 
-`upsertManagedBlock` applied to a file; a missing file counts as empty and is created. Writes only when the content changes — atomically, through a temp file renamed into place (a symlinked path is updated through the link) — and resolves to `true` when it wrote. Calls for the same path in one process run one after another; a read error other than "no such file" fails instead of overwriting.
+- `parseGitRemoteUrl` and `upsertManagedBlock` are pure. `readGitRemote` runs `git remote get-url` and parses the
+  result with `parseGitRemoteUrl`; `updateGitignore` applies `upsertManagedBlock` to a file.
+- A managed block has no default markers. Choose them and keep them stable, because they are how an existing block is
+  found again.
 
 The full [API reference](/holocron/utils/git-utils/api/readme/) is generated from the package's TSDoc comments.

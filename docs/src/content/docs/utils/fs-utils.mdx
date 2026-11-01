@@ -9,15 +9,15 @@ description: Walk a directory tree upward to find the nearest match or project r
 pnpm add @theholocron/fs-utils
 ```
 
-## API
-
-### `findUpward(startDir, check, stop?)`
-
-Walks upward from `startDir` — itself first, then its parent, and so on — calling `check(dir)` at each directory and returning the first result that isn't `undefined`. When given, `stop(dir)` is checked only after `check` has already come back empty for that directory — returning `true` ends the walk there with no result. Without `stop`, walks all the way to the filesystem root.
+## Usage
 
 ```ts
-import { findUpward, hasGitEntry } from "@theholocron/fs-utils";
+import { findRoot, findUpward, hasGitEntry } from "@theholocron/fs-utils";
 
+// the nearest ancestor holding a marker file or directory
+const repoRoot = await findRoot(process.cwd(), ".git");
+
+// anything a marker cannot express: your own check, stopping at the repo root
 const configDir = await findUpward(
   process.cwd(),
   async (dir) => ((await fileExists(join(dir, "app.config.json"))) ? dir : undefined),
@@ -25,53 +25,14 @@ const configDir = await findUpward(
 );
 ```
 
-### `findRoot(startDir, marker, options?)` / `findRootSync(...)`
+## Choosing a helper
 
-The nearest ancestor of `startDir` — itself first — that contains `marker`: a file or directory name, or a list of names where any one counts. Resolves to `undefined` when nothing is found; `findRootSync` is the synchronous twin.
+- `findRoot` / `findRootSync` when a named file or directory marks the root. Reach for `findUpward` when the test is
+  anything else.
+- `findExecutable` / `findExecutableSync` is a `which`: it searches `PATH` (or a path you pass) for a runnable file.
+- `walkFilesSync` lists every regular file under a directory in a stable order, skipping `.git` and `node_modules`
+  unless you say otherwise.
 
-| Option              | Effect                                                                                                                                                                        |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `fallback: "start"` | Return the start directory instead of `undefined` when nothing is found.                                                                                                      |
-| `realpath: true`    | Resolve symlinks of `startDir` before walking. A start path that doesn't exist counts as not found; other errors throw. Markers must be bare names (a `TypeError` otherwise). |
-
-```ts
-import { findRoot, findRootSync } from "@theholocron/fs-utils";
-
-const repoRoot = await findRoot(process.cwd(), ".git");
-const workspaceRoot = await findRoot(process.cwd(), ["pnpm-workspace.yaml", "turbo.json"]);
-
-// never throws, never undefined: the git root, or the start dir when there is none
-const root = findRootSync(cwd, ".git", { fallback: "start", realpath: true });
-```
-
-### `findExecutable(bin, options?)` / `findExecutableSync(...)`
-
-The first runnable file named `bin` on `options.path` (default `process.env.PATH`), or `undefined` — a `which`. Directories and files without the exec bit don't count. `bin` must be a bare command name (a `TypeError` otherwise); filesystem errors other than "not there" / "not permitted" throw.
-
-| Option                | Effect                                                                                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `path`                | Directories to search, delimited like `PATH` on the target platform. Empty entries are skipped; relative ones resolve against the working directory when the call starts.                     |
-| `pathExt`, `platform` | Windows has no exec bit: `bin` is tried with each `PATHEXT` extension (default `.COM;.EXE;.BAT;.CMD`) unless it already ends in one. An extension with a path separator throws a `TypeError`. |
-
-```ts
-import { findExecutableSync } from "@theholocron/fs-utils";
-
-// a project-local binary first, then the real PATH
-const tsc = findExecutableSync("tsc", { path: join(cwd, "node_modules", ".bin") }) ?? findExecutableSync("tsc");
-```
-
-### `walkFilesSync(dir, options?)`
-
-Every regular file under `dir`, as absolute paths in a stable (name-sorted, depth-first) order. `options.skip` names the directories not entered, at any depth (default `.git` and `node_modules`; it replaces the default). A file with a skipped name is still listed. Symlinks found while walking are neither followed nor listed, so a link back up the tree can't loop; `dir` itself is followed if it is a symlink. A subdirectory that can't be read is skipped; `dir` itself must be readable — its error propagates. The tree is assumed not to change mid-walk.
-
-```ts
-import { walkFilesSync } from "@theholocron/fs-utils";
-
-const sources = walkFilesSync(repoRoot, { skip: [".git", "node_modules", "dist"] });
-```
-
-### `hasGitEntry(dir)`
-
-Returns `true` when `dir` has a `.git` entry — a directory in a normal checkout, a file in a worktree/submodule. A common `stop` boundary for `findUpward`.
+Every helper that takes a name (a marker or a command) accepts a bare name only, never a path.
 
 The full [API reference](/holocron/utils/fs-utils/api/readme/) is generated from the package's TSDoc comments.

@@ -80,6 +80,17 @@ function hasAnySync(dir: string, markers: readonly string[]): boolean {
  * Resolves to `undefined` when nothing is found, unless `options.fallback` is
  * `"start"`. See {@link FindRootOptions}; {@link findRootSync} is the
  * synchronous twin. Built on {@link findUpward}.
+ *
+ * @example
+ * ```ts
+ * import { findRoot, findRootSync } from "@theholocron/fs-utils";
+ *
+ * const repoRoot = await findRoot(process.cwd(), ".git");
+ * const workspaceRoot = await findRoot(process.cwd(), ["pnpm-workspace.yaml", "turbo.json"]);
+ *
+ * // never throws, never undefined: the git root, or the start dir when there is none
+ * const root = findRootSync(cwd, ".git", { fallback: "start", realpath: true });
+ * ```
  */
 export async function findRoot(
 	startDir: string,

@@ -43,6 +43,18 @@ function detectEol(text: string): "\n" | "\r\n" {
  * so existing blocks are still found.
  *
  * @throws {TypeError} when an entry in `lines` is blank or contains a line break.
+ *
+ * @example
+ * ```ts
+ * import { upsertManagedBlock } from "@theholocron/git-utils";
+ *
+ * upsertManagedBlock("node_modules\n", {
+ * 	start: "# managed: skills",
+ * 	end: "# end managed: skills",
+ * 	lines: ["/.agents/"],
+ * });
+ * // "node_modules\n\n# managed: skills\n/.agents/\n# end managed: skills\n"
+ * ```
  */
 export function upsertManagedBlock(content: string, { start, end, lines }: ManagedBlockOptions): string {
 	for (const line of lines) {

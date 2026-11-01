@@ -7,6 +7,17 @@
  * - every other `override` value replaces `base`
  *
  * Neither input is mutated.
+ *
+ * @example
+ * ```ts
+ * import { deepMerge } from "@theholocron/object-utils";
+ *
+ * deepMerge({ a: 1, nested: { x: 1 } }, { nested: { y: 2 } });
+ * // { a: 1, nested: { x: 1, y: 2 } }
+ *
+ * deepMerge({ tasks: ["a"] }, { tasks: ["b"] });
+ * // { tasks: ["a", "b"] }
+ * ```
  */
 export function deepMerge<T>(base: T, override: unknown): T {
 	if (!isPlainObject(base) || !isPlainObject(override)) {
@@ -31,6 +42,15 @@ export function deepMerge<T>(base: T, override: unknown): T {
  * `true` for a plain `{}` object — not `null`, not an array, not a class
  * instance (`Object.getPrototypeOf` is `Object.prototype` or `null`, so
  * `Object.create(null)` counts too).
+ *
+ * @example
+ * ```ts
+ * import { isPlainObject } from "@theholocron/object-utils";
+ *
+ * isPlainObject({}); // true
+ * isPlainObject([]); // false
+ * isPlainObject(new Date()); // false
+ * ```
  */
 export function isPlainObject(value: unknown): value is Record<string, unknown> {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return false;

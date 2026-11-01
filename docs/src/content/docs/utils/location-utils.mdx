@@ -9,31 +9,13 @@ description: Browser geolocation wrapper.
 pnpm add @theholocron/location-utils
 ```
 
-## API
-
-### `location.getCurrent()`
-
-Returns a `Promise<IGeolocationCoordinates>`. Falls back to zeroed coordinates if the user has denied the permission.
+## Usage
 
 ```ts
 import { location } from "@theholocron/location-utils";
 
 const coords = await location.getCurrent();
 console.log(coords.latitude, coords.longitude);
-```
-
-### Types
-
-```ts
-interface IGeolocationCoordinates {
-  accuracy: number;
-  altitude?: number | null;
-  altitudeAccuracy?: number | null;
-  heading?: number | null;
-  latitude: number;
-  longitude: number;
-  speed?: number | null;
-}
 ```
 
 ## Notes

@@ -9,29 +9,13 @@ description: Date and time helpers.
 pnpm add @theholocron/date-time-utils
 ```
 
-## API
-
-### `getTimeOfDay(date?)`
-
-Returns a `TTimeOfDay` string representing the part of the day for the given date (or now if omitted).
-
-| Hours | Return value  |
-| ----- | ------------- |
-| 0–10  | `"morning"`   |
-| 11–17 | `"afternoon"` |
-| 18–23 | `"evening"`   |
+## Usage
 
 ```ts
 import { getTimeOfDay } from "@theholocron/date-time-utils";
 
 getTimeOfDay(); // e.g. "morning"
 getTimeOfDay(new Date("2024-01-01T20:00:00")); // "evening"
-```
-
-### Types
-
-```ts
-type TTimeOfDay = "morning" | "afternoon" | "evening";
 ```
 
 The full [API reference](/holocron/utils/date-time-utils/api/readme/) is generated from the package's TSDoc comments.

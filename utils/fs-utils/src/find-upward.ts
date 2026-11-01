@@ -15,6 +15,17 @@ import { dirname, join } from "node:path";
  *
  * Always terminates: directory nesting is finite, and walking stops
  * unconditionally once the filesystem root is reached (its own parent).
+ *
+ * @example
+ * ```ts
+ * import { findUpward, hasGitEntry } from "@theholocron/fs-utils";
+ *
+ * const configDir = await findUpward(
+ * 	process.cwd(),
+ * 	async (dir) => ((await fileExists(join(dir, "app.config.json"))) ? dir : undefined),
+ * 	hasGitEntry
+ * );
+ * ```
  */
 export async function findUpward<T>(
 	startDir: string,
