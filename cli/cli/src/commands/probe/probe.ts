@@ -12,6 +12,7 @@ import { listProbes } from "./list-probes.js";
 import type { ProbeCommandReport, RunProbeCommandInput } from "./probe.type.js";
 import { CI_PROVIDER, ciProbes } from "./references/index.js";
 import { runProbe } from "./run-probe.js";
+import { realSpecsIo, SPECS_PROVIDER, specsProbes } from "./specs/index.js";
 
 /**
  * `holocron probe [<provider> [<probe>]]`. With nothing, lists what can be probed; with a provider, lists its probes;
@@ -43,6 +44,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 	groups.set(DEPS_PROVIDER, depsProbes(input.context.repoRoot, print));
 	groups.set(GENERATED_PROVIDER, generatedProbes(input.loaded, input.context.repoRoot));
 	groups.set(CI_PROVIDER, ciProbes(input.context.org));
+	groups.set(SPECS_PROVIDER, specsProbes(realSpecsIo(input.context.repoRoot)));
 
 	if (!input.provider) {
 		if (input.pick) await input.pick(groups);

@@ -369,7 +369,7 @@ cp .agents/skills/adr/assets/template.md docs/wiki/decisions/000N-short-title.md
 \`\`\`
 
 \`madr\` has no CLI — creation is manual. Frontmatter is validated in CI
-via \`scripts/validate-adrs.mjs\` (runs as part of the Lint workflow).
+via \`holocron probe specs check\` (the \`adrs\` job of \`platform.repoValidation\`).
 
 ## Status values
 

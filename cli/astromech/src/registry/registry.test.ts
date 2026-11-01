@@ -31,7 +31,10 @@ describe("TASKS registry", () => {
 				jd.local?.command ? [[`${name}/${job}`, jd.local.command]] : []
 			)
 		);
-		expect(commands).toEqual([["platform.repoValidation/docsPresence", "probe docs presence"]]);
+		expect(commands).toEqual([
+			["platform.repoValidation/adrs", "probe specs check"],
+			["platform.repoValidation/docsPresence", "probe docs presence"],
+		]);
 	});
 
 	it("delivery.build detects tsdown before vite before tsc", () => {
@@ -69,7 +72,7 @@ describe("TASKS registry", () => {
 	it("platform.repoValidation bundles the process/governance scripts as jobs, not a linterGroup", () => {
 		const jobs = TASKS["platform.repoValidation"]!.jobs!;
 		expect(Object.keys(jobs)).toEqual(["adrs", "docsPresence"]);
-		expect(jobs.adrs!.local).toEqual({ tool: "node", args: ["scripts/validate-adrs.mjs"] });
+		expect(jobs.adrs!.local).toEqual({ command: "probe specs check" });
 		expect(jobs.docsPresence!.local).toEqual({ command: "probe docs presence" });
 	});
 

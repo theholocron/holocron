@@ -48,6 +48,10 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   package, or a `feat` to one, ships with no docs change, and `[skip docs] <reason>` in the PR description or a commit
   message excuses it (#1515). Its rules are pure functions in `@theholocron/astromech/repo-validation` (#929); the probe
   only supplies them with git data, and Sentinel is meant to supply the same rules from the GitHub API. A registry job can be a holocron subcommand (`local: { command }`), as a task can.
+  `specs check [files...]` is the `adrs` job of `platform.repoValidation` (#929): it fails for each ADR (`docs/wiki/decisions`)
+  or spec (`.notes`, `docs/wiki/specifications`) whose frontmatter is wrong and reports a warning as an `info` row. The rules
+  are `checkSpecs()` in `@theholocron/astromech/repo-validation`; the probe reads the files through an injected `SpecsIo`,
+  and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`
@@ -324,7 +328,7 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
   Once the design is settled the spec **moves to
   `docs/wiki/specifications/`** (`accepted` for living reference docs,
   `archived`/`superseded` for shipped or dropped work); `.notes/` holds
-  only in-progress specs. `scripts/validate-adrs.mjs` checks both dirs.
+  only in-progress specs. `holocron probe specs check` checks both dirs.
 - **File issues for non-trivial work** and reference in commits/PRs
   (`Closes #N` / `Refs #N`). Cross-check against `.notes/*.spec.md`
   before starting; several already have design docs. Skip for typo fixes.

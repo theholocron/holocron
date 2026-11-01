@@ -128,6 +128,16 @@ A workflow that another package's config generates (its `# Source package:` mark
 
 CI runs `holocron probe generated check` on every pull request (the `Generated files / Check` required check, `.github/workflows/sourceQuality.generatedFiles.yml`).
 
+## ADRs and specs
+
+The `specs` group is the CLI's own. `specs check` validates the frontmatter of the ADRs (`docs/wiki/decisions/*.md`, other than `template.md` and `README.md`) and the specs (`.notes/*.spec.md` and `docs/wiki/specifications/*.spec.md`). It is the `adrs` job of `platform.repoValidation`, so `holocron run platform.repoValidation adrs` runs it too.
+
+| Probe                                 | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe specs check [files…]` | no             | Fails for each error: no frontmatter; an ADR with a missing `id` (or one that does not match the file's `NNNN-` prefix), `title`, `status` or `date`, an unknown status or a date that is not `YYYY-MM-DD`; a spec with a missing or unknown `status`. A warning is printed and never fails: an accepted ADR with no `discussion.github`, a spec with no `issue` (except an archived or superseded one). With files, checks only those that are an ADR or a spec |
+
+The rules are `checkSpecs()` in `@theholocron/astromech/repo-validation`. Sentinel runs the same function on the ADRs and specs a pull request changes, so the CLI and the check run cannot disagree.
+
 ## Writing a probe
 
 A plugin returns `probes` from `createPlugin`, next to `capabilities`. The probe closes over the plugin's own token and client.

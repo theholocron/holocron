@@ -1,3 +1,4 @@
+import type { SpecFinding } from "@theholocron/astromech/repo-validation";
 import type { GitHubClient } from "@theholocron/github-client";
 
 export interface ValidateAdrsInput {
@@ -9,23 +10,14 @@ export interface ValidateAdrsInput {
 	ref: string;
 }
 
-export interface AdrMessage {
-	file: string;
-	/** 1-indexed — the offending frontmatter field's own line, or the file's first line when the field (or the whole frontmatter) is missing. */
-	line: number;
-	/** The frontmatter field at fault (`id`, `status`, …), or `frontmatter` when there's none at all. */
-	rule: string;
-	reason: string;
-	severity: "error" | "warning";
-}
+/**
+ * One finding of the ADR and spec check: the file, the offending field's 1-indexed line, the field (`rule`), the
+ * reason and the severity. Defined once, in astromech, as `SpecFinding`.
+ */
+export type AdrMessage = SpecFinding;
 
 export interface ValidateAdrsResult {
 	valid: boolean;
 	fileCount: number;
 	messages: AdrMessage[];
-}
-
-export interface Field {
-	value: string;
-	line: number;
 }

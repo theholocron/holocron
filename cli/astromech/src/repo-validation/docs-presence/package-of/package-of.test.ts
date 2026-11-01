@@ -19,7 +19,7 @@ describe("packageOf", () => {
 		expect(packageOf("utils/array-utils/package.json", read)).toBeUndefined();
 		expect(packageOf("utils/array-utils/README.md", read)).toBeUndefined();
 		expect(packageOf("apps/sentinel/src/index.ts", read)).toBeUndefined();
-		expect(packageOf("scripts/validate-adrs.mjs", read)).toBeUndefined();
+		expect(packageOf("scripts/release.mjs", read)).toBeUndefined();
 		expect(packageOf("utils/array-utils/node_modules/x/src/a.ts", read)).toBeUndefined();
 	});
 });

@@ -74,7 +74,7 @@ documents, not a naming convention repos need to follow.
 | `platform.notifyCheck`                   | _(none — manual workflow)_                                                                                                                                       | posts a labelled test message to every notification channel; fails per channel that does not work         |
 | `platform.repoSync`                      | `holocron repo sync`                                                                                                                                             | keeps generated files current                                                                             |
 | `platform.commitStandards`               | commitlint                                                                                                                                                       | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI         |
-| `platform.repoValidation`                | `scripts/validate-adrs.mjs`, `holocron probe docs presence`                                                                                                      | a job-bearing task — spec/ADR frontmatter and docs-presence, not linters                                  |
+| `platform.repoValidation`                | `holocron probe specs check`, `holocron probe docs presence`                                                                                                     | a job-bearing task — spec/ADR frontmatter and docs-presence, not linters                                  |
 | `knowledge.wiki`                         | Fern                                                                                                                                                             | publishes `docs/wiki/*.md` — not a sync, a publish; carries `preview`                                     |
 | `knowledge.docs`                         | Astro build                                                                                                                                                      | the docs site itself; carries `preview` (defaults on)                                                     |
 | `knowledge.components`                   | Storybook build                                                                                                                                                  | a browsable component catalog — "Storybook" is the tool, not the intent; carries `preview` (defaults on)  |
@@ -253,11 +253,16 @@ writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
 
 The rules of the `platform.repoValidation` checks, once, as pure functions over plain data (changed files, commit
 subjects, the PR description, a manifest) that return findings. They do no git, no filesystem and no network, so the two
-interfaces that run them only supply the data: the CLI (`holocron probe docs presence`, and the `docsEnforcement` job of
-`holocron run platform.repoValidation`) from git, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the
+interfaces that run them only supply the data: the CLI (`holocron probe docs presence` and `holocron probe specs check`, the two jobs of
+`holocron run platform.repoValidation`) from git and the filesystem, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the
 webhook and the GitHub API (#929).
 
 - Docs presence: `isFeat(subjects)`, `packageOf(file, readPackage)`, `pageNames(dir)`, `hasDocsSignal(dir, changedFiles, addedCommentLines)`,
   `isAddedDocComment(line)`, `parseSkipDocs(text)` (the `[skip docs] <reason>` marker) and
   `evaluateDocsPresence({ packages, changedFiles, addedCommentLines, skip })`, which sorts a feature's packages into
   those to warn about and those a marker excused.
+- ADRs and specs: `checkSpecs(files)` takes `{ path, text }` pairs and returns `{ fileCount, findings }`, skipping a path that
+  is neither an ADR nor a spec; underneath it are `classifySpecPath(path)`, `parseFrontmatter(text)`,
+  `validateAdr(path, text)`, `validateSpec(path, text)` and `isValidIsoDate(value)`, and the folders and status sets
+  (`ADR_DIR`, `SPEC_DIRS`, `ADR_STATUSES`, `SPEC_STATUSES`). A `SpecFinding` is an `error` (fails the check) or a
+  `warning` (never does), with the file, the field's line and the rule.

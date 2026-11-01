@@ -88,7 +88,7 @@ describe("runCi", () => {
 			tasks: [{ name: "platform.repoValidation", required: true, jobs: { docsEnforcement: false } }],
 		});
 		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([["scripts/validate-adrs.mjs"]]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
 		expect(lines.join("\n")).toMatch(/off in this repo's config \(jobs\.docsEnforcement: false\)/);
 	});
 
@@ -163,7 +163,7 @@ describe("runCi", () => {
 		const out = lines.join("\n");
 		expect(out).toContain("▶ platform.repoValidation");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
-			["scripts/validate-adrs.mjs"],
+			[process.argv[1], "probe", "specs", "check"],
 			[process.argv[1], "probe", "docs", "presence"],
 		]);
 		// still one task-level row in the report
@@ -171,10 +171,10 @@ describe("runCi", () => {
 	});
 
 	it("does not fail `holocron run ci` when a jobs-bearing task is required but no sub-job runs locally", () => {
-		const { run, exec } = makeCi({ "package.json": PKG }); // node not on PATH
-		// the docs presence job is a holocron subcommand, so it always runs: switch it off to leave nothing runnable
+		const { run, exec } = makeCi({ "package.json": PKG });
+		// both jobs are holocron subcommands, so they always run: switch them off to leave nothing runnable
 		const report = run({
-			tasks: [{ name: "platform.repoValidation", required: true, jobs: { docsEnforcement: false } }],
+			tasks: [{ name: "platform.repoValidation", required: true, jobs: { adrs: false, docsEnforcement: false } }],
 		});
 		expect(report.status).toBe("ok");
 		expect(exec).not.toHaveBeenCalled();

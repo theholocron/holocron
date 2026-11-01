@@ -204,7 +204,8 @@ processes — see `src/actions/actionlint/lint-actionlint/lint-actionlint.ts`'s 
 docstring), and repo validation (holocron#913 — two checks, gated on the
 repo's `holocron.config` declaring `platform.repoValidation`:
 `Platform / Repo Validation / Validate ADRs and specs` ports
-`scripts/validate-adrs.mjs`'s frontmatter rules to the PR's own changed
+the frontmatter rules of `holocron probe specs check` (`checkSpecs()` in
+`@theholocron/astromech/repo-validation`, one implementation for both) to the PR's own changed
 `docs/wiki/decisions/*.md` and `*.spec.md` files — errors fail the check
 and post a review, warnings are annotations on a `neutral` check — and
 `Platform / Repo Validation / Validate docs presence` flags an added
