@@ -42,19 +42,75 @@ const CLIENTS = [
 	"zendesk-client",
 ] as const;
 
+/** Every config package's page, in sidebar order. `browserslist-config` and `tsconfig` have no TypeScript API. */
+const CONFIGS = [
+	"astro-config",
+	"browserslist-config",
+	"commitlint-config",
+	"devmoji-config",
+	"eslint-config",
+	"lighthouse-config",
+	"lint-staged-config",
+	"prettier-config",
+	"rollup-plugin-transform-template",
+	"semantic-release-config",
+	"storybook-config",
+	"stylelint-config",
+	"tsconfig",
+	"tsdown-config",
+	"vite-config",
+	"vitest-config",
+] as const;
+// `astro-config` is left out too: its types come from Starlight, whose sources TypeDoc cannot type-check (the site
+// build stops on them), so its reference needs a TypeDoc option that `apiReference()` does not pass yet.
+const CONFIGS_WITHOUT_API: readonly string[] = ["astro-config", "browserslist-config", "tsconfig"];
+
+/** Every plugin's page slug and sidebar label, in sidebar order; the package is `plugins/holocron-plugin-<slug>`. */
+const PLUGINS = [
+	["1password", "1Password"],
+	["axiom", "Axiom"],
+	["checkly", "Checkly"],
+	["clerk", "Clerk"],
+	["cloudflare", "Cloudflare"],
+	["discord", "Discord"],
+	["doppler", "Doppler"],
+	["github", "GitHub"],
+	["infisical", "Infisical"],
+	["netlify", "Netlify"],
+	["neon", "Neon"],
+	["posthog", "PostHog"],
+	["postman", "Postman"],
+	["sentry", "Sentry"],
+	["slack", "Slack"],
+	["vercel", "Vercel"],
+] as const;
+
 // The reference is generated from each package's TSDoc comments every time the docs are built or served, and is not
-// committed (it is gitignored).
-const referenceFor = (group: string, names: readonly string[]) =>
-	names.map((name) => ({
-		name,
-		api: apiReference({
-			createPlugin: createStarlightTypeDocPlugin,
-			root: new URL("./", import.meta.url),
-			package: `${group}/${name}`,
-		}),
-	}));
-const utilsApi = referenceFor("utils", UTILS);
-const clientsApi = referenceFor("clients", CLIENTS);
+// committed (it is gitignored). `entryPoints` is relative to the package; the default is `src/index.ts`.
+const referenceFor = (dir: string, entryPoints?: readonly string[]) =>
+	apiReference({
+		createPlugin: createStarlightTypeDocPlugin,
+		root: new URL("./", import.meta.url),
+		package: dir,
+		...(entryPoints ? { entryPoints: [...entryPoints] } : {}),
+	});
+const referencesFor = (group: string, names: readonly string[], entryPoints?: (name: string) => readonly string[]) =>
+	names.map((name) => ({ name, api: referenceFor(`${group}/${name}`, entryPoints?.(name)) }));
+const utilsApi = referencesFor("utils", UTILS);
+const clientsApi = referencesFor("clients", CLIENTS);
+// a config package keeps its entry point at the package root, except the rollup plugin
+const configsApi = referencesFor(
+	"configs",
+	CONFIGS.filter((name) => !CONFIGS_WITHOUT_API.includes(name)),
+	(name) => (name === "rollup-plugin-transform-template" ? ["src/index.ts"] : ["index.ts"])
+);
+const pluginsApi = referencesFor(
+	"plugins",
+	PLUGINS.map(([slug]) => `holocron-plugin-${slug}`)
+);
+const cliApi = referencesFor("cli", ["cli", "astromech", "datapad"]);
+const observabilityApi = referenceFor("observability");
+const docsThemeApi = referenceFor("themes/docs-theme");
 
 export default defineConfig({
 	site: "https://docs.theholocron.dev",
@@ -108,6 +164,7 @@ export default defineConfig({
 				items: [
 					{ label: "Overview", slug: "observability" },
 					{ label: "Getting Started", slug: "observability/getting-started" },
+					observabilityApi.group,
 				],
 			},
 			{
@@ -151,37 +208,33 @@ export default defineConfig({
 				label: "Configs",
 				items: [
 					{ label: "Overview", slug: "configs" },
-					{ label: "astro-config", slug: "configs/astro-config" },
-					{ label: "browserslist-config", slug: "configs/browserslist-config" },
-					{ label: "commitlint-config", slug: "configs/commitlint-config" },
-					{ label: "devmoji-config", slug: "configs/devmoji-config" },
-					{ label: "eslint-config", slug: "configs/eslint-config" },
-					{ label: "lighthouse-config", slug: "configs/lighthouse-config" },
-					{ label: "lint-staged-config", slug: "configs/lint-staged-config" },
-					{ label: "prettier-config", slug: "configs/prettier-config" },
-					{ label: "rollup-plugin-transform-template", slug: "configs/rollup-plugin-transform-template" },
-					{ label: "semantic-release-config", slug: "configs/semantic-release-config" },
-					{ label: "storybook-config", slug: "configs/storybook-config" },
-					{ label: "stylelint-config", slug: "configs/stylelint-config" },
-					{ label: "tsconfig", slug: "configs/tsconfig" },
-					{ label: "tsdown-config", slug: "configs/tsdown-config" },
-					{ label: "vite-config", slug: "configs/vite-config" },
-					{ label: "vitest-config", slug: "configs/vitest-config" },
+					...CONFIGS.map((name) => {
+						const api = configsApi.find((c) => c.name === name)?.api;
+						return api
+							? { label: name, items: [{ label: "Overview", slug: `configs/${name}` }, api.group] }
+							: { label: name, slug: `configs/${name}` };
+					}),
 				],
 			},
 			{
 				label: "Packages",
 				items: [
-					{ label: "cli", slug: "cli" },
-					{ label: "astromech", slug: "astromech" },
-					{ label: "datapad", slug: "datapad" },
+					...cliApi.map(({ name, api }) => ({
+						label: name,
+						items: [{ label: "Overview", slug: name }, api.group],
+					})),
 					{ label: "comlink", slug: "comlink" },
 					{ label: "sentinel", slug: "sentinel" },
 				],
 			},
 			{
 				label: "Themes",
-				items: [{ label: "docs-theme", slug: "themes/docs-theme" }],
+				items: [
+					{
+						label: "docs-theme",
+						items: [{ label: "Overview", slug: "themes/docs-theme" }, docsThemeApi.group],
+					},
+				],
 			},
 			{
 				label: "Legal",
@@ -194,27 +247,19 @@ export default defineConfig({
 				label: "Plugins",
 				items: [
 					{ label: "Overview", slug: "plugins/overview" },
-					{ label: "1Password", slug: "plugins/1password" },
-					{ label: "Axiom", slug: "plugins/axiom" },
-					{ label: "Checkly", slug: "plugins/checkly" },
-					{ label: "Clerk", slug: "plugins/clerk" },
-					{ label: "Cloudflare", slug: "plugins/cloudflare" },
-					{ label: "Discord", slug: "plugins/discord" },
-					{ label: "Doppler", slug: "plugins/doppler" },
-					{ label: "GitHub", slug: "plugins/github" },
-					{ label: "Infisical", slug: "plugins/infisical" },
-					{ label: "Netlify", slug: "plugins/netlify" },
-					{ label: "Neon", slug: "plugins/neon" },
-					{ label: "PostHog", slug: "plugins/posthog" },
-					{ label: "Postman", slug: "plugins/postman" },
-					{ label: "Sentry", slug: "plugins/sentry" },
-					{ label: "Slack", slug: "plugins/slack" },
-					{ label: "Vercel", slug: "plugins/vercel" },
+					...PLUGINS.map(([slug, label], i) => ({
+						label,
+						items: [{ label: "Overview", slug: `plugins/${slug}` }, pluginsApi[i]!.api.group],
+					})),
 				],
 			},
 		],
 	},
-	plugins: [...utilsApi, ...clientsApi].map(({ api }) => api.plugin),
+	plugins: [
+		...[...utilsApi, ...clientsApi, ...configsApi, ...pluginsApi, ...cliApi].map(({ api }) => api.plugin),
+		observabilityApi.plugin,
+		docsThemeApi.plugin,
+	],
 	starlight,
 	docsTheme,
 	srcDir: "./docs/src",
