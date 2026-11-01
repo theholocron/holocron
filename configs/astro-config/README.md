@@ -87,7 +87,7 @@ export default defineConfig({
 });
 ```
 
-`entryPoints` (default `["src/index.ts"]`, relative to the package) and `label` (default "API reference") are optional. `starlight-typedoc` ships TypeScript source, so, like `starlight` and `docsTheme`, you import it in your own config and pass it in; install `starlight-typedoc`, `typedoc` and `typedoc-plugin-markdown` in the site.
+`entryPoints` (default `["src/index.ts"]`, relative to the package), `label` (default "API reference") and `skipErrorChecking` (default `false`) are optional. Set `skipErrorChecking` for a package whose types come from sources TypeDoc cannot type-check on its own, such as this one's from Starlight; TypeDoc then does not stop the build on type errors. `starlight-typedoc` ships TypeScript source, so, like `starlight` and `docsTheme`, you import it in your own config and pass it in; install `starlight-typedoc`, `typedoc` and `typedoc-plugin-markdown` in the site.
 
 ## What it generates
 

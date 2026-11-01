@@ -95,6 +95,11 @@ export interface ApiReferenceInput {
 	entryPoints?: string[];
 	/** The sidebar group's label. Defaults to "API reference". */
 	label?: string;
+	/**
+	 * Tell TypeDoc not to stop on type errors. For a package whose types come from sources TypeDoc cannot check on its
+	 * own (this package's, from Starlight); the build would otherwise fail on them. Defaults to `false`.
+	 */
+	skipErrorChecking?: boolean;
 }
 
 /** What `apiReference` returns: the Starlight plugin and the sidebar group that belong together. */
@@ -119,6 +124,7 @@ export function apiReference({
 	package: dir,
 	entryPoints = ["src/index.ts"],
 	label = "API reference",
+	skipErrorChecking = false,
 }: ApiReferenceInput): ApiReference {
 	const [plugin, group] = createPlugin();
 	const inPackage = (path: string): string => fileURLToPath(new URL(`${dir}/${path}`, root));
@@ -129,6 +135,7 @@ export function apiReference({
 			tsconfig: inPackage("tsconfig.json"),
 			output: `${dir}/api`,
 			sidebar: { label, collapsed: true },
+			...(skipErrorChecking ? { typeDoc: { skipErrorChecking: true } } : {}),
 		}),
 	};
 }

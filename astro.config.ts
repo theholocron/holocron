@@ -61,9 +61,7 @@ const CONFIGS = [
 	"vite-config",
 	"vitest-config",
 ] as const;
-// `astro-config` is left out too: its types come from Starlight, whose sources TypeDoc cannot type-check (the site
-// build stops on them), so its reference needs a TypeDoc option that `apiReference()` does not pass yet.
-const CONFIGS_WITHOUT_API: readonly string[] = ["astro-config", "browserslist-config", "tsconfig"];
+const CONFIGS_WITHOUT_API: readonly string[] = ["browserslist-config", "tsconfig"];
 
 /** Every plugin's page slug and sidebar label, in sidebar order; the package is `plugins/holocron-plugin-<slug>`. */
 const PLUGINS = [
@@ -87,22 +85,33 @@ const PLUGINS = [
 
 // The reference is generated from each package's TSDoc comments every time the docs are built or served, and is not
 // committed (it is gitignored). `entryPoints` is relative to the package; the default is `src/index.ts`.
-const referenceFor = (dir: string, entryPoints?: readonly string[]) =>
+const referenceFor = (dir: string, entryPoints?: readonly string[], skipErrorChecking = false) =>
 	apiReference({
 		createPlugin: createStarlightTypeDocPlugin,
 		root: new URL("./", import.meta.url),
 		package: dir,
 		...(entryPoints ? { entryPoints: [...entryPoints] } : {}),
+		skipErrorChecking,
 	});
-const referencesFor = (group: string, names: readonly string[], entryPoints?: (name: string) => readonly string[]) =>
-	names.map((name) => ({ name, api: referenceFor(`${group}/${name}`, entryPoints?.(name)) }));
+const referencesFor = (
+	group: string,
+	names: readonly string[],
+	entryPoints?: (name: string) => readonly string[],
+	skipErrorChecking?: (name: string) => boolean
+) =>
+	names.map((name) => ({
+		name,
+		api: referenceFor(`${group}/${name}`, entryPoints?.(name), skipErrorChecking?.(name)),
+	}));
 const utilsApi = referencesFor("utils", UTILS);
 const clientsApi = referencesFor("clients", CLIENTS);
 // a config package keeps its entry point at the package root, except the rollup plugin
 const configsApi = referencesFor(
 	"configs",
 	CONFIGS.filter((name) => !CONFIGS_WITHOUT_API.includes(name)),
-	(name) => (name === "rollup-plugin-transform-template" ? ["src/index.ts"] : ["index.ts"])
+	(name) => (name === "rollup-plugin-transform-template" ? ["src/index.ts"] : ["index.ts"]),
+	// astro-config's types come from Starlight, whose sources TypeDoc cannot type-check
+	(name) => name === "astro-config"
 );
 const pluginsApi = referencesFor(
 	"plugins",
