@@ -19,16 +19,42 @@ const UTILS = [
 	"uri-utils",
 ] as const;
 
+const CLIENTS = [
+	"axiom-client",
+	"checkly-client",
+	"clerk-client",
+	"cloudflare-client",
+	"confluence-client",
+	"discord-client",
+	"doppler-client",
+	"github-client",
+	"google-client",
+	"http-client",
+	"infisical-client",
+	"jira-client",
+	"neon-client",
+	"netlify-client",
+	"posthog-client",
+	"postman-client",
+	"sentry-client",
+	"slack-client",
+	"vercel-client",
+	"zendesk-client",
+] as const;
+
 // The reference is generated from each package's TSDoc comments every time the docs are built or served, and is not
 // committed (it is gitignored).
-const utilsApi = UTILS.map((name) => ({
-	name,
-	api: apiReference({
-		createPlugin: createStarlightTypeDocPlugin,
-		root: new URL("./", import.meta.url),
-		package: `utils/${name}`,
-	}),
-}));
+const referenceFor = (group: string, names: readonly string[]) =>
+	names.map((name) => ({
+		name,
+		api: apiReference({
+			createPlugin: createStarlightTypeDocPlugin,
+			root: new URL("./", import.meta.url),
+			package: `${group}/${name}`,
+		}),
+	}));
+const utilsApi = referenceFor("utils", UTILS);
+const clientsApi = referenceFor("clients", CLIENTS);
 
 export default defineConfig({
 	site: "https://docs.theholocron.dev",
@@ -104,26 +130,11 @@ export default defineConfig({
 				label: "Clients",
 				items: [
 					{ label: "Overview", slug: "clients" },
-					{ label: "axiom-client", slug: "clients/axiom" },
-					{ label: "checkly-client", slug: "clients/checkly" },
-					{ label: "clerk-client", slug: "clients/clerk" },
-					{ label: "cloudflare-client", slug: "clients/cloudflare" },
-					{ label: "confluence-client", slug: "clients/confluence" },
-					{ label: "discord-client", slug: "clients/discord" },
-					{ label: "doppler-client", slug: "clients/doppler" },
-					{ label: "github-client", slug: "clients/github" },
-					{ label: "google-client", slug: "clients/google" },
-					{ label: "http-client", slug: "clients/http" },
-					{ label: "infisical-client", slug: "clients/infisical" },
-					{ label: "jira-client", slug: "clients/jira" },
-					{ label: "neon-client", slug: "clients/neon" },
-					{ label: "netlify-client", slug: "clients/netlify" },
-					{ label: "posthog-client", slug: "clients/posthog" },
-					{ label: "postman-client", slug: "clients/postman" },
-					{ label: "sentry-client", slug: "clients/sentry" },
-					{ label: "slack-client", slug: "clients/slack" },
-					{ label: "vercel-client", slug: "clients/vercel" },
-					{ label: "zendesk-client", slug: "clients/zendesk" },
+					// a client's page is `clients/<name without "-client">`; its reference is built under `clients/<name>/api`
+					...clientsApi.map(({ name, api }) => ({
+						label: name,
+						items: [{ label: "Overview", slug: `clients/${name.replace(/-client$/, "")}` }, api.group],
+					})),
 				],
 			},
 			{
@@ -203,7 +214,7 @@ export default defineConfig({
 			},
 		],
 	},
-	plugins: utilsApi.map(({ api }) => api.plugin),
+	plugins: [...utilsApi, ...clientsApi].map(({ api }) => api.plugin),
 	starlight,
 	docsTheme,
 	srcDir: "./docs/src",
