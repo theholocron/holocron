@@ -53,3 +53,5 @@ upsertManagedBlock("node_modules\n", {
 ### `updateGitignore(path, options)`
 
 `upsertManagedBlock` applied to a file; a missing file counts as empty and is created. Writes only when the content changes — atomically, through a temp file renamed into place (a symlinked path is updated through the link) — and resolves to `true` when it wrote. Calls for the same path in one process run one after another; a read error other than "no such file" fails instead of overwriting.
+
+The full [API reference](/holocron/utils/git-utils/api/readme/) is generated from the package's TSDoc comments.
