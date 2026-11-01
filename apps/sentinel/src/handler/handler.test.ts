@@ -1230,6 +1230,15 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 		expect(((await res.json()) as { docsPresenceCheckRun?: unknown }).docsPresenceCheckRun).toBeUndefined();
 	});
 
+	it("does nothing on an edit when the valid config declares no tasks at all", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: editedEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: {} as never });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(validateDocsPresence).not.toHaveBeenCalled();
+	});
+
 	it("does nothing on an edit of a payload without a PR number", async () => {
 		withTasks(["platform.repoValidation"]);
 		const event = editedEvent();
