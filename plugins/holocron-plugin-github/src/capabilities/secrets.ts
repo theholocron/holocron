@@ -7,8 +7,11 @@ export interface SecretsOptions {
 	repo: string;
 }
 
+/** The GitHub implementation of the `secrets` capability, covering repository, environment and organization secrets. */
 export class GitHubSecrets implements Secrets {
+	/** Capability key, always `"secrets"`. */
 	readonly key = "secrets" as const;
+	/** Provider name, always `"github"`. */
 	readonly providerName = "github";
 
 	/**
@@ -40,6 +43,7 @@ export class GitHubSecrets implements Secrets {
 		await client.secrets.putSecret(this.opts.repo, ghScope, name, body);
 	}
 
+	/** Deletes the named secret in the given scope. */
 	async deleteSecret(scope: SecretScope, name: string): Promise<void> {
 		await this.clientFor(scope).secrets.deleteSecret(this.opts.repo, toGHScope(scope), name);
 	}

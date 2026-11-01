@@ -32,6 +32,7 @@ import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the GitHub plugin. */
 export interface GitHubPluginOptions extends ResolveTokenInput {
 	/** "owner/name" — e.g., "theholocron/holocron". Required. */
 	repo: string;
@@ -39,22 +40,33 @@ export interface GitHubPluginOptions extends ResolveTokenInput {
 	 * workflow-file methods. Defaults to `process.cwd()`. */
 	repoRoot?: string;
 	/** Lifecycle slot → label name. Used by the `issues` capability. */
-	labels?: { inProgress: string; inReview: string };
+	labels?: {
+		/** Label that marks an issue as in progress. */
+		inProgress: string;
+		/** Label that marks an issue as in review. */
+		inReview: string;
+	};
 	/** Override base URL for tests. Defaults to https://api.github.com. */
 	baseUrl?: string;
 	/** Override `fetch` for tests. Defaults to global `fetch`. */
 	fetch?: typeof fetch;
 }
 
+/** What the capability factories receive: the plugin options, a client, the repo and its root. */
 export interface PluginContext {
+	/** The plugin options. */
 	options: GitHubPluginOptions;
+	/** The GitHub client the capability uses. */
 	client: GitHubClient;
+	/** The repo as `owner/name`. */
 	repo: string;
+	/** Absolute path to the working repo root. */
 	repoRoot: string;
 }
 
 // ── Capability factories ──────────────────────────────────────────────
 
+/** Builds the `source` capability; the optional clients cover org-level and user-sync access. */
 export function source(ctx: PluginContext, orgClient?: GitHubClient, userSyncClient?: GitHubClient): Source {
 	return new GitHubSource(ctx.client, {
 		repo: ctx.repo,
@@ -66,18 +78,22 @@ export function source(ctx: PluginContext, orgClient?: GitHubClient, userSyncCli
 	});
 }
 
+/** Builds the `secrets` capability; the optional client handles organization secrets. */
 export function secrets(ctx: PluginContext, orgClient?: GitHubClient): Secrets {
 	return new GitHubSecrets(ctx.client, { repo: ctx.repo }, orgClient);
 }
 
+/** Builds the `environments` capability. */
 export function environments(ctx: PluginContext): Environments {
 	return new GitHubEnvironments(ctx.client, { repo: ctx.repo });
 }
 
+/** Builds the `ci` capability. */
 export function ci(ctx: PluginContext): Ci {
 	return new GitHubCi(ctx.client, { repo: ctx.repo });
 }
 
+/** Builds the `issues` capability, passing the lifecycle labels when configured. */
 export function issues(ctx: PluginContext): Issues {
 	const opts: IssuesOptions = { repo: ctx.repo };
 	if (ctx.options.labels !== undefined) opts.labels = ctx.options.labels;
@@ -86,6 +102,7 @@ export function issues(ctx: PluginContext): Issues {
 
 // ── Plugin barrel for the core loader ─────────────────────────────────
 
+/** Creates the plugin, resolving a token per capability when it is first used. */
 export function createPlugin(options: GitHubPluginOptions) {
 	function makeCtx(resolver: (input: ResolveTokenInput) => string): PluginContext {
 		const token = resolver(options);

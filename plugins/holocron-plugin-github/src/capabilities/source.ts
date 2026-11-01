@@ -61,8 +61,14 @@ function toPullRequest(raw: GitHubPullRequest): PullRequest {
 	};
 }
 
+/**
+ * The GitHub implementation of the `source` capability: repo settings, rulesets, branch protection, security
+ * features and local workflow files.
+ */
 export class GitHubSource implements Source {
+	/** Capability key, always `"source"`. */
 	readonly key = "source" as const;
+	/** Provider name, always `"github"`. */
 	readonly providerName = "github";
 
 	private readonly owner: string;
@@ -105,25 +111,30 @@ export class GitHubSource implements Source {
 		return { login: data.login };
 	}
 
+	/** Returns the repo's owner, name and default branch. */
 	async getRepo(): Promise<RepoRef> {
 		const data = await this.client.repos.getRepo(this.repo);
 		return { owner: this.owner, name: this.name, defaultBranch: data.default_branch };
 	}
 
+	/** Lists the repo's rulesets. */
 	async listRulesets(): Promise<Ruleset[]> {
 		// GitHubRuleset.enforcement is string; Ruleset.enforcement is a narrower
 		// union — safe at runtime since GitHub only returns the three known values.
 		return this.client.rulesets.listRulesets(this.repo) as unknown as Promise<Ruleset[]>;
 	}
 
+	/** Creates a ruleset from the given payload. */
 	async createRuleset(payload: Record<string, unknown>): Promise<Ruleset> {
 		return this.client.rulesets.createRuleset(this.repo, payload) as unknown as Promise<Ruleset>;
 	}
 
+	/** Updates the ruleset with the given id from the payload. */
 	async updateRuleset(id: number, payload: Record<string, unknown>): Promise<Ruleset> {
 		return this.client.rulesets.updateRuleset(this.repo, id, payload) as unknown as Promise<Ruleset>;
 	}
 
+	/** Updates the repo's settings. */
 	async updateRepoSettings(settings: RepoSettings): Promise<void> {
 		await this.client.repos.updateRepo(this.repo, settings as Record<string, unknown>);
 	}
@@ -132,14 +143,17 @@ export class GitHubSource implements Source {
 		await this.client.branches.protectBranch(this.repo, branch, payload);
 	}
 
+	/** Enables Dependabot vulnerability alerts. */
 	async enableVulnerabilityAlerts(): Promise<void> {
 		await this.client.security.enableVulnerabilityAlerts(this.repo);
 	}
 
+	/** Enables Dependabot automated security fixes. */
 	async enableAutomatedSecurityFixes(): Promise<void> {
 		await this.client.security.enableAutomatedSecurityFixes(this.repo);
 	}
 
+	/** Enables secret scanning. */
 	async enableSecretScanning(): Promise<void> {
 		await this.client.security.enableSecretScanning(this.repo);
 	}
@@ -157,12 +171,14 @@ export class GitHubSource implements Source {
 		await this.client.security.enableDependencyGraph(this.repo);
 	}
 
+	/** Enables private vulnerability reporting. */
 	async enablePrivateVulnerabilityReporting(): Promise<void> {
 		await this.client.security.enablePrivateVulnerabilityReporting(this.repo);
 	}
 
 	// ── workflow files (local fs) ───────────────────────────────────────
 
+	/** Lists the `.yml` and `.yaml` files in `.github/workflows`, sorted by name; empty when the folder is missing. */
 	async listWorkflowFiles(): Promise<string[]> {
 		try {
 			const entries = await readdir(this.workflowDir);
@@ -173,6 +189,7 @@ export class GitHubSource implements Source {
 		}
 	}
 
+	/** Reads a workflow file's text, or `null` when it does not exist. */
 	async readWorkflowFile(name: string): Promise<string | null> {
 		try {
 			return await readFile(join(this.workflowDir, name), "utf8");
@@ -182,11 +199,13 @@ export class GitHubSource implements Source {
 		}
 	}
 
+	/** Writes a workflow file, creating `.github/workflows` first when needed. */
 	async writeWorkflowFile(name: string, contents: string): Promise<void> {
 		await ensureDir(this.workflowDir);
 		await writeFile(join(this.workflowDir, name), contents, "utf8");
 	}
 
+	/** Removes a workflow file; a file that is already gone is not an error. */
 	async removeWorkflowFile(name: string): Promise<void> {
 		try {
 			await rm(join(this.workflowDir, name));

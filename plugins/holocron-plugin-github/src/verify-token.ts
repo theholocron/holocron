@@ -14,11 +14,15 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { createGitHubClient } from "./rest.js";
 
+/** Options for `verifyToken`. */
 export interface VerifyTokenOptions {
+	/** Overrides the API base URL, for tests. */
 	baseUrl?: string;
+	/** Overrides `fetch`, for tests. */
 	fetch?: typeof fetch;
 }
 
+/** Checks a token against `GET /user` and returns who it belongs to, or why it failed. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createGitHubClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
