@@ -3,6 +3,7 @@ import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput
 export { AuthError };
 export type { ResolveTokenInput };
 
+/** Resolves the Cloudflare API token from `--token`, `HOLOCRON_CLOUDFLARE_TOKEN`, `CLOUDFLARE_API_TOKEN` or the keyring, and throws an `AuthError` when none is set. */
 export const resolveToken = createResolveToken({
 	envName: "HOLOCRON_CLOUDFLARE_TOKEN",
 	vendorEnvName: "CLOUDFLARE_API_TOKEN",

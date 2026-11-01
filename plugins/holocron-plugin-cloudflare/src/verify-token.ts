@@ -8,6 +8,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Cloudflare API token, first by the token-verify endpoint and otherwise by listing zones; resolves to a description of what it found, or the failure message. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createCloudflareClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 

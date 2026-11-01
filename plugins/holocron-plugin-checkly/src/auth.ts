@@ -3,6 +3,7 @@ import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput
 export { AuthError };
 export type { ResolveTokenInput };
 
+/** Resolves the Checkly API key from `--token`, `HOLOCRON_CHECKLY_TOKEN`, `CHECKLY_API_KEY` or the keyring, and throws an `AuthError` when none is set. */
 export const resolveToken = createResolveToken({
 	envName: "HOLOCRON_CHECKLY_TOKEN",
 	vendorEnvName: "CHECKLY_API_KEY",

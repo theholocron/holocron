@@ -213,6 +213,7 @@ function keepThreadBits(
 	return merged;
 }
 
+/** Options for the Discord `notifications` capability: webhook aliases, the default channel, and the server it provisions. */
 export interface DiscordNotificationsOptions {
 	/**
 	 * Named aliases mapping a logical channel name to its webhook URL.
@@ -230,6 +231,7 @@ export interface DiscordNotificationsOptions {
 	layout?: NotificationsLayout;
 	/** A custom API host, for tests. Webhook tokens are only sent to it when `unsafeBotBaseUrl` is also set. */
 	baseUrl?: string;
+	/** Also send the bot token to `baseUrl`. Off by default so a changed config cannot redirect the bot token to another host; tests that stub the API set it. */
 	unsafeBotBaseUrl?: boolean;
 }
 
@@ -237,8 +239,11 @@ let idCounter = 0;
 /** A snowflake-shaped id for a new onboarding question or answer, which Discord asks the sender to make. */
 const newId = (): string => String(((BigInt(Date.now()) - 1420070400000n) << 22n) + BigInt(idCounter++ % 4096));
 
+/** The Discord implementation of the `notifications` capability: sends messages through webhooks and provisions the server's channels, roles and webhooks with the bot. */
 export class DiscordNotifications implements Notifications {
+	/** The capability this class provides, always `"notifications"`. */
 	readonly key = "notifications" as const;
+	/** The provider name, `"discord"`. */
 	readonly providerName = "discord";
 
 	constructor(
@@ -1721,6 +1726,7 @@ export class DiscordNotifications implements Notifications {
 		return named.find((c) => c.parent_id === parentId) ?? named.find((c) => !c.parent_id);
 	}
 
+	/** Finds the text or announcement channel with this name (under the category, when given), or creates it; reports whether it was created. */
 	async ensureChannel(input: {
 		name: string;
 		category?: string;
@@ -1759,6 +1765,7 @@ export class DiscordNotifications implements Notifications {
 		return { id: made.id, created: true };
 	}
 
+	/** Finds the webhook with this name on the channel, or creates it; the optional avatar is the picture it posts with. */
 	async ensureWebhook(input: {
 		channel: string;
 		name: string;
@@ -2010,6 +2017,7 @@ export class DiscordNotifications implements Notifications {
 		await this.bot().guilds.removeMemberRole(this.guild(), memberId, (await this.roleNamed(roleName)).id);
 	}
 
+	/** Finds the role with this name, or creates it with the given mentionable, color, hoist and permissions settings; reports whether it was created. */
 	async ensureRole(input: {
 		name: string;
 		mentionable?: boolean;
