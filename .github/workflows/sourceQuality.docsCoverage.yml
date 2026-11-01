@@ -10,12 +10,11 @@
 # The same measurement is uploaded to Codecov as the `documentation` flag (`--lcov`), so the patch and project
 # percentages show on every PR next to the test coverage: `codecov/patch/documentation` and
 # `codecov/project/documentation`. Pushes to `alpha` upload it too, so a PR has a base report to compare against.
-# The probe step stays alongside the flag for a few PRs (it depends on nothing outside the repo); once the flag has
-# posted reliably the step is dropped and the command stays in the CLI.
+# The probe step stays alongside the flag until it is dropped (#1511), and the command stays in the CLI.
 #
-# Informational for now: neither this check nor the Codecov statuses are in the ruleset's required checks, so a
-# failure shows on the PR without blocking the merge. Making it required is adding "Docs coverage / Patch" to
-# `extraRequiredChecks` in holocron.config.ts and running `holocron repo setup`.
+# The required check is `codecov/patch/documentation` (`extraRequiredChecks` in holocron.config.ts, written into the
+# ruleset by `holocron repo setup`). This job's own check, "Docs coverage / Patch", is not required: it is the probe
+# that #1511 removes from the gate.
 name: Docs coverage
 
 on: # yamllint disable-line rule:truthy
