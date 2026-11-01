@@ -1,0 +1,28 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Security
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 * * 1"
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  security:
+    name: Code Scanning
+    uses: ./.github/workflows/security.codeScanning.yml
+    secrets: inherit

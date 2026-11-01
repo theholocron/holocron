@@ -1,21 +1,77 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/security.tokenExpiry.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
 name: Token Expiry
 
-on: # yamllint disable-line rule:truthy
-  schedule:
-    - cron: "17 6 * * *"
-  workflow_dispatch: {}
+# Runs `holocron doctor tokens` on a schedule, so a token that has been rejected or is about to expire (7 days or
+# fewer left) fails this job and GitHub's failed-workflow notification reaches the team before an operation breaks.
+#
+# Daily, not weekly: the warning window is 7 days, so a weekly run could land just outside it and the next one just
+# after the token lapsed. A daily run fails every day inside the window, which keeps the reminder in view until the
+# token is renewed.
+#
+# A token that is not set is skipped, not a failure, so a repo passes only the secrets it uses. Secrets reach the
+# job through `secrets: inherit`; the declared list below is for callers that pass them explicitly.
 
-permissions:
-  contents: read
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_READ_TOKEN:
+        description: Fine-grained token for reading repos and Actions runs.
+        required: false
+      HOLOCRON_ISSUES_TOKEN:
+        description: Fine-grained token for issues.
+        required: false
+      HOLOCRON_SYNC_TOKEN:
+        description: Fine-grained token for `sync github`.
+        required: false
+      HOLOCRON_RELEASE_TOKEN:
+        description: Fine-grained token for releases.
+        required: false
+      HOLOCRON_ADMIN_TOKEN:
+        description: Fine-grained token for repo settings.
+        required: false
+      HOLOCRON_SECRETS_TOKEN:
+        description: Fine-grained organization token for organization secrets.
+        required: false
+      HOLOCRON_DEPLOY_TOKEN:
+        description: Fine-grained token for GitHub Pages.
+        required: false
+      HOLOCRON_ORG_TOKEN:
+        description: Fine-grained organization token for teams and organization variables.
+        required: false
+      HOLOCRON_USER_SYNC_TOKEN:
+        description: Fine-grained token for the account links files.
+        required: false
 
 jobs:
   token-expiry:
-    name: Token Expiry
-    uses: theholocron/.github/.github/workflows/security.tokenExpiry.yml@main
-    secrets: inherit
+    name: Run holocron doctor tokens
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}
+      HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN }}
+      HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+      HOLOCRON_RELEASE_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN }}
+      HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
+      HOLOCRON_SECRETS_TOKEN: ${{ secrets.HOLOCRON_SECRETS_TOKEN }}
+      HOLOCRON_DEPLOY_TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
+      HOLOCRON_ORG_TOKEN: ${{ secrets.HOLOCRON_ORG_TOKEN }}
+      HOLOCRON_USER_SYNC_TOKEN: ${{ secrets.HOLOCRON_USER_SYNC_TOKEN }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Run holocron doctor tokens
+        with:
+          task: security.tokenExpiry

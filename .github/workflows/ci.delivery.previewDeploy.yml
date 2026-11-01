@@ -1,0 +1,35 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: apps/sentinel
+
+name: Delivery
+
+on: # yamllint disable-line rule:truthy
+  pull_request: {}
+
+concurrency:
+  group: preview-deploy-${{ github.event.pull_request.number }}
+  # Not true: a cancelled run could land between Vercel accepting the
+  # upload and the report job posting a status, leaving a real preview
+  # deployment with no corresponding GitHub check — worse than letting an
+  # overlapping run for the same PR simply queue.
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: write
+  # Must be a superset of what the reusable workflow's own job requests
+  # (holocron#1058) -- its new path-relevance check lists the PR's
+  # changed files via the API (holocron#1023).
+  pull-requests: read
+
+jobs:
+  preview-deploy:
+    name: Preview Deploy
+    uses: ./.github/workflows/delivery.previewDeploy.yml
+    with:
+      cwd: apps/sentinel
+      paths: '["apps/sentinel/","cli/astromech/","cli/cli/","cli/datapad/","clients/github-client/","clients/http-client/","observability/","utils/env-utils/","utils/fs-utils/","utils/git-utils/","utils/json-utils/","utils/misc-utils/","utils/object-utils/","utils/pkg-utils/","configs/commitlint-config/","configs/eslint-config/","configs/markdownlint-config/","configs/prettier-config/","configs/tsconfig/","configs/tsdown-config/","configs/vitest-config/","ci/","configs/rollup-plugin-transform-template/","configs/semantic-release-config/"]'
+    secrets: inherit

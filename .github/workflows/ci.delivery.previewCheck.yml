@@ -1,0 +1,48 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: apps/sentinel
+
+name: Delivery
+
+on: # yamllint disable-line rule:truthy
+  deployment_status:
+
+permissions:
+  contents: read
+  # Must be a superset of what the reusable workflow's own job
+  # requests (holocron#1058) -- GitHub hard-fails the whole run at
+  # startup, zero jobs dispatched, if the callee asks for more than
+  # the caller grants. Needed for the author-trust step's
+  # commits/{sha}/pulls lookup.
+  pull-requests: read
+
+jobs:
+  preview-check:
+    name: Preview Check
+    # environment_url is the only field documented to point at the live
+    # app — target_url can point at a deployment-details page instead,
+    # so there's no safe fallback to it. No environment_url means
+    # nothing to check; skip the job entirely rather than hit the wrong
+    # page.
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Preview' &&
+      github.event.deployment_status.environment_url != ''
+    uses: ./.github/workflows/delivery.previewCheck.yml
+    cache-mode: read
+    with:
+      preview-url: ${{ github.event.deployment_status.environment_url }}
+      sha: ${{ github.event.deployment.sha }}
+      cwd: apps/sentinel
+      vercel-project: prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV
+    secrets:
+      # Named explicitly, not `secrets: inherit` -- this job needs only
+      # these two secrets (holocron#1030/#1032), not every secret this
+      # workflow's caller context has access to (e.g.
+      # HOLOCRON_DEPLOYMENTS_TOKEN). VERCEL_TOKEN here is read-only use
+      # (verifying deployment ownership), never a write/deploy
+      # credential.
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}

@@ -1,46 +1,58 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/platform.syncTemplates.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
-name: Platform
+# Source package: .
 
-# Bootstrap note: this `uses:` a reusable workflow that must already exist
-# on theholocron/.github's main branch to resolve at all — a brand-new
-# reusable workflow here needs ONE manual `holocron sync github` run
-# (pushing directly to theholocron/.github) before this thin caller can
-# ever successfully trigger it, since GitHub resolves `uses:` at run time,
-# not at merge time. Same deadlock every reusable workflow added here hits
-# on its first introduction.
+name: Sync Templates
+
 on: # yamllint disable-line rule:truthy
-  push:
-    # main only — this publishes to theholocron/.github, consumed by every
-    # other repo's CI. alpha is the prerelease channel; publishing from it
-    # would let unreleased/unstable template changes overwrite what main
-    # just published, the same stable-vs-prerelease split this org already
-    # enforces for npm's dist-tags and Sentinel's own deploy trigger.
-    branches: [main]
-    paths:
-      - cli/astromech/src/templates/**
-      - cli/astromech/src/generators/**
-      - cli/astromech/src/registry/**
-      - cli/cli/src/templates/**
-  workflow_dispatch: {}
-
-concurrency:
-  group: sync-templates
-  cancel-in-progress: false
-
-permissions:
-  contents: read
+  workflow_call:
+    secrets:
+      HOLOCRON_SYNC_TOKEN:
+        description: >
+          Fine-grained PAT (resource owner org) with BOTH contents:write and
+          workflows:write on theholocron/.github — contents:write alone is
+          rejected for anything under .github/workflows/, a GitHub
+          fine-grained-PAT restriction independent of repo permissions.
+        required: false
+      GH_TOKEN:
+        description: >
+          Fallback PAT with the same two permissions, used only when
+          HOLOCRON_SYNC_TOKEN is not set. The default GITHUB_TOKEN is never
+          an acceptable fallback here — it cannot write to a different repo
+          no matter what this job's own `permissions:` block grants, so it
+          is deliberately not offered as a third fallback; the CLI's own
+          token resolver already fails with a clear, actionable message
+          when both secrets above are unset.
+        required: false
 
 jobs:
   sync-templates:
-    name: Sync Templates
-    # workflow_dispatch can target ANY ref, not only main — without this,
-    # anyone able to dispatch this workflow (a broader group than who can
-    # push to main) could run it against an arbitrary branch, checking out
-    # and building that ref's own code with the sync token present, then
-    # publishing that ref's templates to theholocron/.github.
-    if: github.ref == 'refs/heads/main'
-    uses: theholocron/.github/.github/workflows/platform.syncTemplates.yml@main
-    secrets: inherit
+    name: Run holocron sync github
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Run holocron sync github
+        # No local commit, no branch, no PR — pushes directly to
+        # theholocron/.github's own default branch.
+        #
+        # HOLOCRON_SYNC_TOKEN is scoped to ONLY this step, not the job —
+        # "Setup" (above) runs this ref's own pnpm install, and the
+        # "Build the workspace" step this composite action may run (an
+        # unbuilt workspace checkout — the holocron repo itself) runs this
+        # ref's own build, including any postinstall/build-time script a
+        # malicious push could carry. Neither sees a write credential.
+        uses: theholocron/.github/.github/actions/holocron@main
+        env:
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
+        with:
+          command: sync github

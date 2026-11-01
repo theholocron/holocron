@@ -1,21 +1,76 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/platform.repoValidation.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Platform
+name: Repo Validation
 
 on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main, alpha]
-  pull_request:
-
-permissions:
-  contents: read
+  workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
 
 jobs:
-  repo-validation:
-    name: Repo Validation
-    uses: theholocron/.github/.github/workflows/platform.repoValidation.yml@main
-    secrets: inherit
+  adrs:
+    name: Validate ADRs and specs
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Validate ADR and spec frontmatter
+        with:
+          task: platform.repoValidation
+          job: adrs
+
+  docs-presence:
+    name: Validate docs presence
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Validate docs presence for new packages
+        with:
+          task: platform.repoValidation
+          job: docsPresence
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # The PR title and description, read by the script for a `feat` and a `[skip docs] <reason>` marker. They
+          # reach the script through the environment, never inline in a command.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+
+  conclusion:
+    name: Conclusion
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [adrs, docs-presence]
+    steps:
+      - name: Check job statuses
+        run: |
+          if [[ "$RESULTS" == *"failure"* ]] || [[ "$RESULTS" == *"cancelled"* ]]; then
+            exit 1
+          fi
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}

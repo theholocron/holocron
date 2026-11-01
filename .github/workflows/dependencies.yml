@@ -1,20 +1,40 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/dependencies.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Platform
+name: Dependencies
 
 on: # yamllint disable-line rule:truthy
-  pull_request:
-
-permissions:
-  contents: write
-  pull-requests: write
+  workflow_call:
+    secrets:
+      merge-token:
+        description: >
+          Optional privileged token for auto-merge. Falls back to GITHUB_TOKEN.
+          Required when branch protection enforces required reviews — GITHUB_TOKEN
+          cannot approve its own PRs.
+        required: false
 
 jobs:
-  dependencies:
-    name: Dependencies
-    uses: theholocron/.github/.github/workflows/dependencies.yml@main
-    secrets: inherit
+  dependabot:
+    name: Update the dependencies
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        name: Fetch Dependabot metadata
+        id: metadata
+
+      - run: gh pr merge --auto --squash "$PR_URL"
+        # --squash is intentional: repo protection sets allow_merge_commit: false,
+        # so --merge would fail on any repo using the standard preset.
+        name: Enable auto-merge for Dependabot PRs
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.merge-token || github.token }}

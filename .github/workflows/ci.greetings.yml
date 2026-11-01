@@ -1,0 +1,22 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Platform
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+  issues:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  greetings:
+    name: Greetings
+    uses: ./.github/workflows/greetings.yml
+    cache-mode: read
+    secrets: inherit

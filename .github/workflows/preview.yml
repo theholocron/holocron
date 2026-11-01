@@ -1,0 +1,232 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/preview.yml
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Preview
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      type:
+        description: "Type of deployment: docs or storybook"
+        required: true
+        type: string
+      name:
+        description: Repo name prefix used to filter the docs site package (<name>-site); omit to run pnpm -C docs build
+        required: false
+        type: string
+        default: ""
+      storybook-projects:
+        description: >
+          JSON array of { "name"?, "workingDir", "outputDir"? } objects for storybook deploys.
+          Each is built via `pnpm -C <workingDir> build:storybook`. If "name" is provided the
+          output is placed under `sandbox/<name>/`; omit "name" for single-repo deploys and the
+          output lands directly in `sandbox/`.
+        type: string
+        required: false
+        default: "[]"
+      build-script:
+        description: pnpm script that builds the Storybook static output (single storybook, type:storybook only)
+        type: string
+        required: false
+        default: build:storybook
+      output-dir:
+        description: Directory where Storybook writes its static output (single storybook, type:storybook only)
+        type: string
+        required: false
+        default: storybook-static
+      cloudflare-project:
+        description: >
+          Cloudflare Pages project name. Falls back to the CLOUDFLARE_PAGES_PROJECT
+          org variable when omitted — set that variable once and all repos get previews
+          without per-repo config.
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  deploy-preview:
+    name: Preview
+    if: ${{ github.event.action != 'closed' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Build workspace dependencies
+        # The docs site imports workspace packages (e.g. a shared theme) via
+        # `workspace:*` — its exports map points at dist/, which doesn't
+        # exist until something builds it. Nothing else in this job does,
+        # so without this step Vite fails to resolve the import entirely.
+        if: ${{ inputs.type == 'docs' }}
+        run: pnpm run build
+
+      - name: Build docs site
+        if: ${{ inputs.type == 'docs' && inputs.name != '' }}
+        env:
+          SITE_NAME: ${{ inputs.name }}
+        run: pnpm --filter @theholocron/"$SITE_NAME"-site build
+
+      - name: Build docs site
+        if: ${{ inputs.type == 'docs' && inputs.name == '' }}
+        run: pnpm -C docs build
+
+      - name: Build Storybook projects
+        if: ${{ inputs.storybook-projects != '[]' }}
+        env:
+          PROJECTS: ${{ inputs.storybook-projects }}
+        run: |
+          echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+            workingDir=$(echo "$project" | jq -r '.workingDir')
+            pnpm -C "$workingDir" build:storybook
+          done
+
+      - name: Build Storybook
+        if: ${{ inputs.type == 'storybook' && inputs.storybook-projects == '[]' }}
+        env:
+          BUILD_SCRIPT: ${{ inputs.build-script }}
+        run: pnpm run "$BUILD_SCRIPT"
+
+      - name: Assemble site
+        env:
+          DEPLOY_TYPE: ${{ inputs.type }}
+          SITE_NAME: ${{ inputs.name }}
+          PROJECTS: ${{ inputs.storybook-projects }}
+          STORYBOOK_OUTPUT_DIR: ${{ inputs.output-dir }}
+        run: |
+          mkdir -p _site
+          if [ "$DEPLOY_TYPE" = "docs" ]; then
+            if [ -n "$SITE_NAME" ]; then
+              # Site built with base: /<name>/ — nest under _site/<name>/ so asset
+              # paths match (/name/_astro/... → served at /name/_astro/...).
+              mkdir -p "_site/${SITE_NAME}"
+              cp -r docs/dist/. "_site/${SITE_NAME}/"
+              # Redirect root to the base path so the preview URL lands correctly.
+              printf "/ /%s/ 301\n" "$SITE_NAME" > _site/_redirects
+            else
+              cp -r docs/dist/. _site/
+            fi
+          fi
+          if [ "$PROJECTS" != "[]" ]; then
+            echo "$PROJECTS" | jq -c '.[]' | while IFS= read -r project; do
+              name=$(echo "$project" | jq -r '.name // ""')
+              workingDir=$(echo "$project" | jq -r '.workingDir')
+              outputDir=$(echo "$project" | jq -r '.outputDir // "storybook-static"')
+              if [ -n "$name" ]; then
+                target="_site/sandbox/${name}"
+              else
+                target="_site/sandbox"
+              fi
+              mkdir -p "$target"
+              cp -r "${workingDir}/${outputDir}/." "$target/"
+            done
+          elif [ "$DEPLOY_TYPE" = "storybook" ]; then
+            mkdir -p _site/sandbox
+            cp -r "${STORYBOOK_OUTPUT_DIR}/." _site/sandbox/
+          fi
+
+      - name: Install Wrangler
+        # The action's install step runs npm/pnpm in the repo root; pnpm fails
+        # because it rejects adding to a workspace root without -w, and npm fails
+        # because package.json contains pnpm catalog: references it cannot parse.
+        # Pre-installing from /tmp (no package.json) lets the action find wrangler
+        # already on PATH and skip its own install entirely.
+        working-directory: /tmp
+        run: npm install -g wrangler@4
+
+      - name: Warn when the Cloudflare account id is missing
+        # The deploy below needs it. It is an organization variable that `holocron repo setup` writes from
+        # `repo.variables.org.CLOUDFLARE_ACCOUNT_ID` in holocron.config.ts.
+        if: ${{ (inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '') && vars.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The Pages deploy needs it. Declare it under repo.variables.org in holocron.config.ts and run holocron repo setup."
+
+      - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+        id: deploy
+        name: Deploy to Cloudflare Pages
+        # Skip when neither the per-repo input nor the org variable is set.
+        if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          packageManager: npm
+          command: >-
+            pages deploy _site
+            --project-name ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+            --branch ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
+            --commit-dirty=true
+
+      - name: Report preview URL
+        if: ${{ steps.deploy.outputs.pages-deployment-alias-url != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+          SITE_NAME: ${{ inputs.name }}
+          PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          PREVIEW_URL="${ALIAS%/}${SITE_NAME:+/${SITE_NAME}}/"
+          # GITHUB_HEAD_REF is the PR branch name — links the deployment to this PR's sidebar widget.
+          PAYLOAD=$(printf '{"ref":"%s","environment":"%s","description":"Cloudflare Pages","production_environment":false,"auto_merge":false,"required_contexts":[]}' \
+            "$GITHUB_HEAD_REF" "${PROJECT} (Preview)")
+          DEPLOY_ID=$(echo "$PAYLOAD" | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+            --method POST --input - | jq -r '.id')
+          gh api "repos/${GITHUB_REPOSITORY}/deployments/${DEPLOY_ID}/statuses" \
+            --method POST --field state=success --field environment_url="${PREVIEW_URL}"
+
+  cleanup:
+    name: Clean up Preview
+    if: ${{ github.event.action == 'closed' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - name: Warn when the Cloudflare account id is missing
+        # Without it the request below cannot find the preview deployments, so closing the PR leaves them behind.
+        if: ${{ (inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '') && vars.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The preview deployments cannot be deleted without it. Declare it under repo.variables.org in holocron.config.ts and run holocron repo setup."
+
+      - name: Delete Cloudflare Pages deployments for branch
+        if: ${{ inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ inputs.cloudflare-project || vars.CLOUDFLARE_PAGES_PROJECT }}
+          BRANCH: ${{ github.event.repository.name }}-pr-${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DEPLOYMENTS=$(curl -s \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT}/deployments" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            | jq -r --arg b "$BRANCH" \
+              '.result[] | select(.deployment_trigger.metadata.branch == $b) | .id')
+
+          if [ -z "$DEPLOYMENTS" ]; then
+            echo "No deployments found for branch ${BRANCH} — nothing to clean up."
+            exit 0
+          fi
+
+          for id in $DEPLOYMENTS; do
+            echo "Deleting CF Pages deployment: $id"
+            curl -s -X DELETE \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT}/deployments/${id}?force=true" \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" | jq -r 'if .success then "  ✓ deleted" else "  ✗ \(.errors[0].message)" end'
+          done
+
+          # Mark the GitHub Deployment environment as inactive.
+          ENV_NAME="${PROJECT} (Preview)"
+          gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+            | jq -r ".[] | select(.environment == \"${ENV_NAME}\") | .id" \
+            | while read -r deploy_id; do
+                gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+                  --method POST --field state=inactive 2>/dev/null || true
+              done

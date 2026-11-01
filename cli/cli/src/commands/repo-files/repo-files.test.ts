@@ -149,6 +149,89 @@ describe("generateWorkflowFiles", () => {
 	});
 });
 
+describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
+	function host(name = "@theholocron/ci") {
+		mkdirSync(join(root, "ci"));
+		writeFileSync(join(root, "ci", "package.json"), JSON.stringify({ name }));
+	}
+	const generate = () =>
+		generateWorkflowFiles({
+			loaded: loadedFrom({ name: "x", tasks: ["stale", "verification.unitTests"] }),
+			repoRoot: root,
+			logger: getLogger(),
+		});
+
+	it("names the callers ci.<name>.yml and has them call the reusable in the same checkout", () => {
+		host();
+		const callers = generate().filter((entry) => entry.kind === "file" && entry.path.includes("/ci."));
+		expect(callers.map((entry) => entry.kind === "file" && entry.workflow.filename)).toEqual([
+			"ci.stale.yml",
+			"ci.verification.unitTests.yml",
+		]);
+		const stale = callers[0]!;
+		if (stale.kind !== "file") throw new Error("expected a file");
+		expect(stale.path).toBe(".github/workflows/ci.stale.yml");
+		expect(stale.content).toContain("    uses: ./.github/workflows/stale.yml\n");
+		expect(stale.content).not.toContain("theholocron/.github/.github/workflows");
+		expect(stale.workflow).toEqual({ task: "stale", filename: "ci.stale.yml" });
+		// the caller's job and workflow names are what a required check is named from: unchanged
+		expect(stale.content).toMatch(/^name: Stale$/m);
+	});
+
+	it("writes each reusable that only runs when called, under its own name, from ci/workflows", () => {
+		host();
+		const reusables = generate().filter(
+			(entry) => entry.kind === "file" && entry.step.startsWith("write reusable")
+		);
+		const names = reusables.map((entry) => (entry.kind === "file" ? entry.path : ""));
+		expect(names.length).toBeGreaterThan(25);
+		expect(names).toContain(".github/workflows/stale.yml");
+		expect(names).toContain(".github/workflows/verification.unitTests.yml");
+		for (const unlisted of ["tag", "sync-dispatch", "platform.dispatchedCheck"]) {
+			expect(names).not.toContain(`.github/workflows/${unlisted}.yml`);
+		}
+		const stale = reusables.find((entry) => entry.kind === "file" && entry.path.endsWith("/stale.yml"));
+		if (!stale || stale.kind !== "file") throw new Error("expected stale");
+		expect(stale.content).toMatch(/^# Source: {2}theholocron\/holocron · ci\/workflows\/stale\.yml$/m);
+		expect(stale.content).toContain("# Source package: .\n");
+		expect(stale.content).toMatch(/^on: # yamllint disable-line rule:truthy\n {2}workflow_call:/m);
+		expect(stale.workflow).toEqual({ task: "stale", filename: "stale.yml" });
+	});
+
+	it("leaves a repo without the ci package alone: plain names, references, no reusables", () => {
+		const entries = generate();
+		expect(entries.map((entry) => (entry.kind === "file" ? entry.path : ""))).toEqual([
+			".github/workflows/stale.yml",
+			".github/workflows/verification.unitTests.yml",
+		]);
+		const stale = entries[0]!;
+		if (stale.kind !== "file") throw new Error("expected a file");
+		expect(stale.content).toContain("theholocron/.github/.github/workflows/stale.yml@main");
+	});
+
+	it("does not take another package named ci for the hosting package", () => {
+		host("@acme/ci");
+		expect(generate().every((entry) => entry.kind !== "file" || !entry.path.includes("/ci."))).toBe(true);
+	});
+
+	it("does not write the reusables from a package's own config, only from the root's", () => {
+		host();
+		mkdirSync(join(root, "apps"));
+		mkdirSync(join(root, "apps", "web"));
+		const entries = generateWorkflowFiles({
+			loaded: {
+				...loadedFrom({ name: "x", tasks: ["stale"] }),
+				filepath: join(root, "apps", "web", "holocron.config.json"),
+			},
+			repoRoot: root,
+			logger: getLogger(),
+		});
+		expect(entries.map((entry) => (entry.kind === "file" ? entry.path : ""))).toEqual([
+			".github/workflows/ci.stale.yml",
+		]);
+	});
+});
+
 describe("generateTurboFiles", () => {
 	it("skips when no task fans out, and writes turbo.json and the edits that go with it otherwise", async () => {
 		const none = await generateTurboFiles({ loaded: loadedFrom({ name: "x" }), repoRoot: root });

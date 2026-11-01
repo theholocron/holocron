@@ -1,37 +1,242 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/platform.repoSync.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Platform
+name: Sync
 
 on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main]
-    paths:
-      - holocron.config.ts
-      - package.json
-      - pnpm-workspace.yaml
-  workflow_dispatch:
+  workflow_call:
     inputs:
       steps:
-        description: "Sync steps to run (default: all)"
+        description: >
+          Sync steps to run (default: all). Valid values:
+          labels, properties, teams, topics, keywords, description, homepage, readme, workflows, wiki.
+          Pass a space-separated list to run a subset, e.g. "readme" or "readme wiki".
         type: string
         required: false
-
-concurrency:
-  group: sync-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: write
-  pull-requests: write
+    secrets:
+      HOLOCRON_ADMIN_TOKEN:
+        description: Fine-grained PAT with admin scopes (labels, properties, teams).
+        required: false
+      HOLOCRON_AXIOM_TOKEN:
+        description: >
+          Axiom API token. When set alongside the HOLOCRON_AXIOM_DATASET
+          repo/org variable, the CLI ships this run's structured logs to Axiom.
+          Falls back to the vendor-native AXIOM_TOKEN secret.
+        required: false
+      AXIOM_TOKEN:
+        description: Vendor-native fallback for HOLOCRON_AXIOM_TOKEN.
+        required: false
+      HOLOCRON_DEPLOY_TOKEN:
+        description: Fine-grained PAT for GitHub Pages configuration.
+        required: false
+      HOLOCRON_ISSUES_TOKEN:
+        description: Fine-grained PAT for issue management.
+        required: false
+      HOLOCRON_ORG_TOKEN:
+        description: Org-scoped fine-grained PAT for team sync and org properties.
+        required: false
+      HOLOCRON_READ_TOKEN:
+        description: Fine-grained PAT for read-only GitHub API calls.
+        required: false
+      HOLOCRON_SYNC_TOKEN:
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_SYNC:
+        description: >
+          Webhook for the sync channel: a sync PR opened and its
+          auto-merge result. Unset = no post.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_ALERTS:
+        description: >
+          Webhook for the alerts channel: a failed sync run, or a sync
+          PR that needs a manual merge. Unset = no post. The optional
+          HOLOCRON_NOTIFY_ALERT_ROLE secret (a role id) makes these posts
+          mention that role.
+        required: false
+      HOLOCRON_NOTIFY_ALERT_ROLE:
+        description: >
+          Id of the role to mention on alerts. Written by `holocron
+          notifications setup`; not sensitive, kept as a secret so the same
+          token that writes the webhook secrets can write it. Optional.
+        required: false
+      GH_TOKEN:
+        description: >
+          Generic GitHub token fallback for gh CLI calls. Used when
+          HOLOCRON_SYNC_TOKEN is not set.
+        required: false
 
 jobs:
   sync:
-    name: Sync
-    uses: theholocron/.github/.github/workflows/platform.repoSync.yml@main
-    with:
-      steps: ${{ inputs.steps }}
-    secrets: inherit
+    name: Run holocron repo sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Serialise the find-or-create-PR and supersede steps repo-wide: the caller's
+    # concurrency key is per ref, so runs from different refs could otherwise
+    # interleave and leave several sync PRs open.
+    concurrency:
+      group: repo-sync-pr-${{ github.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+    # Job-level so the `holocron` composite action's steps inherit them.
+    env:
+      HOLOCRON_ADMIN_TOKEN: ${{ secrets.HOLOCRON_ADMIN_TOKEN }}
+      HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
+      HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET || vars.AXIOM_DATASET }}
+      POSTHOG_PROJECT_TOKEN: ${{ vars.POSTHOG_PROJECT_TOKEN }}
+      HOLOCRON_DEPLOY_TOKEN: ${{ secrets.HOLOCRON_DEPLOY_TOKEN }}
+      HOLOCRON_ISSUES_TOKEN: ${{ secrets.HOLOCRON_ISSUES_TOKEN }}
+      HOLOCRON_ORG_TOKEN: ${{ secrets.HOLOCRON_ORG_TOKEN }}
+      HOLOCRON_READ_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN }}
+      HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Run holocron repo sync
+        # The `holocron` action resolves @theholocron/cli from node_modules (or
+        # builds the workspace when it's an unbuilt checkout — the holocron repo
+        # itself). `inputs.steps` is a space-separated list or empty; the
+        # `--steps <list>` arg is omitted when empty.
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: repo sync
+          args: ${{ inputs.steps != '' && format('--steps {0}', inputs.steps) || '' }}
+
+      - name: Format generated files
+        run: |
+          pnpm exec prettier --write README.md docs/src/content/docs/index.mdx 2>/dev/null || true
+          # `holocron repo sync` writes package.json fields (keywords, description,
+          # homepage) with a plain assignment, which appends new keys at the
+          # end — re-apply the canonical order the lint config enforces.
+          pnpm exec eslint --fix --no-warn-ignored package.json 2>/dev/null || true
+
+      - uses: theholocron/.github/.github/actions/auto-commit@main
+        id: auto-commit
+        name: Commit sync changes
+        with:
+          token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+          # One branch per source commit (full SHA, so distinct commits never collide): a PR left unreviewed never blocks the
+          # next sync, and a re-run for the same commit updates its own branch.
+          branch: ${{ format('chore/auto-sync-{0}', github.sha) }}
+          commit-message: "chore: sync from holocron.config"
+          commit-options: "--no-verify"
+
+      - name: Open PR and enable auto-merge
+        id: pr
+        if: steps.auto-commit.outputs.changes-detected == 'true'
+        run: |
+          # Find or create this run's PR first: older PRs are only closed once
+          # a replacement exists, so a failure here never leaves the changes
+          # without an open PR.
+          url=$(gh pr view "$BRANCH" --json url --jq .url 2>/dev/null || gh pr create \
+            --title "chore: sync README and repo metadata" \
+            --body "Automated sync from holocron.config. Auto-merges once required checks pass." \
+            --base main \
+            --head "$BRANCH")
+          created=$(gh pr view "$url" --json createdAt --jq .createdAt)
+
+          # Supersede older sync PRs: same-repo only, exact generated or legacy
+          # branch name, and created before this one (a slow older run can
+          # never close a newer PR). --limit covers more than the default page.
+          gh pr list --state open --limit 200 --json number,headRefName,isCrossRepository,createdAt \
+            --jq ".[] | select(.isCrossRepository | not) | select(.headRefName == \"chore/auto-sync\" or (.headRefName | test(\"^chore/auto-sync-[0-9a-f]{40}$\"))) | select(.headRefName != \"$BRANCH\") | select(.createdAt < \"$created\") | .number" |
+            while read -r n; do
+              gh pr close "$n" --delete-branch --comment "Superseded by $url." || true
+            done
+
+          # Delete pushed sync branches that never got a PR (e.g. a run
+          # cancelled between push and PR creation). The repo-wide concurrency
+          # group means no other run is mid-flight here.
+          open=$(gh pr list --state open --limit 200 --json headRefName --jq '.[].headRefName')
+          git ls-remote --heads origin 'refs/heads/chore/auto-sync-*' | sed 's|.*refs/heads/||' |
+            while read -r b; do
+              [ "$b" = "$BRANCH" ] && continue
+              echo "$b" | grep -Eq '^chore/auto-sync-[0-9a-f]{40}$' || continue
+              echo "$open" | grep -qxF "$b" || git push origin --delete "$b" || true
+            done
+
+          # A PR opened with the default GITHUB_TOKEN does not trigger
+          # pull_request workflows, so required checks would never start and
+          # auto-merge would wait forever.
+          if [ "$HAS_PAT" != "true" ]; then
+            echo "::warning::Sync PR $url opened with GITHUB_TOKEN: checks will not run and auto-merge is skipped. Set HOLOCRON_SYNC_TOKEN."
+            echo "Sync PR $url — needs manual merge (no PAT)." >> "$GITHUB_STEP_SUMMARY"
+            result="needs a manual merge (no PAT, so checks will not run)"
+            attention=true
+          elif gh pr merge "$url" --auto --squash; then
+            echo "Sync PR $url — auto-merge enabled." | tee -a "$GITHUB_STEP_SUMMARY"
+            result="auto-merge enabled"
+          else
+            echo "::warning::Sync PR $url opened but auto-merge could not be enabled; merge it manually."
+            echo "Sync PR $url — needs manual merge." >> "$GITHUB_STEP_SUMMARY"
+            result="needs a manual merge (auto-merge could not be enabled)"
+            attention=true
+          fi
+          {
+            echo "url=$url"
+            echo "result=$result"
+            echo "attention=${attention:-false}"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          BRANCH: ${{ format('chore/auto-sync-{0}', github.sha) }}
+          HAS_PAT: ${{ secrets.HOLOCRON_SYNC_TOKEN != '' || secrets.GH_TOKEN != '' }}
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: Notify of the sync PR
+        if: steps.pr.outputs.url != '' && steps.pr.outputs.attention != 'true'
+        with:
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_SYNC }}
+          message: "🔄 ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"
+
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: Notify that a sync PR needs attention
+        if: steps.pr.outputs.attention == 'true'
+        with:
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
+          mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
+          message: "⚠️ ${{ github.repository }}: sync PR ${{ steps.pr.outputs.url }} — ${{ steps.pr.outputs.result }}${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"
+
+      - name: Broadcast wiki sync if navbar changed
+        if: >-
+          steps.auto-commit.outputs.changes-detected == 'true' &&
+          github.event_name == 'push' &&
+          (inputs.steps == '' || contains(inputs.steps, 'wiki'))
+        run: |
+          if git diff HEAD~1 --name-only | grep -q 'fern/docs.yml'; then
+            gh workflow run sync-dispatch.yml \
+              --repo theholocron/.github \
+              --field "steps=wiki" \
+            || echo "skipping broadcast — insufficient permissions"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+
+  # A separate job, not a final step: a job-level timeout cancels the sync job
+  # before any later step in it can run, so an in-job `if: failure()` step would
+  # stay silent on exactly the hang we most want to hear about. `!cancelled()` is
+  # false when the whole run was cancelled (a newer run superseded this one), so
+  # that expected case stays quiet, while a failed or timed-out sync job alerts.
+  notify-failure:
+    name: Notify of a failed sync
+    needs: sync
+    if: ${{ !cancelled() && (needs.sync.result == 'failure' || needs.sync.result == 'cancelled') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: Notify of a failed sync
+        with:
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
+          mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
+          message: "❌ ${{ github.repository }}: repo sync ${{ needs.sync.result == 'cancelled' && 'timed out or was cancelled' || 'failed' }} — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}${{ github.run_attempt > 1 && format(' (attempt {0})', github.run_attempt) || '' }}"

@@ -150,6 +150,9 @@ const config: KnipConfig = {
 			],
 		},
 	},
+	// Run by the reusable verification.unitTests workflow when a caller turns on its Storybook or Cypress jobs. That
+	// workflow now lives in this repo's .github/workflows (generated from ci/); holocron installs neither tool.
+	ignoreBinaries: ["playwright", "cypress"],
 	ignoreDependencies: [
 		// The root tsdown.config.ts builds every package without its own config, so the packages no longer import
 		// the preset themselves. They keep the devDependency anyway: it makes turbo build the preset's dist first

@@ -1,0 +1,37 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Platform
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    paths:
+      - holocron.config.ts
+      - package.json
+      - pnpm-workspace.yaml
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: "Sync steps to run (default: all)"
+        type: string
+        required: false
+
+concurrency:
+  group: sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Sync
+    uses: ./.github/workflows/platform.repoSync.yml
+    with:
+      steps: ${{ inputs.steps }}
+    secrets: inherit

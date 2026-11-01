@@ -60,6 +60,17 @@ tasks: [{ name: "delivery.build", turbo: { passThroughEnv: ["SENTRY_AUTH_TOKEN"]
 tasks: [{ name: "sourceQuality.staticAnalysis", turbo: { dependsOn: ["@theholocron/eslint-config#delivery.build"] } }];
 ```
 
+### The repo that hosts the reusables
+
+The reusable workflows and composite actions that every repo's callers use are written in one repo, in its `ci/` folder (the private `@theholocron/ci` package). A repo with that package is the **host**: the `workflows` step does two things differently there.
+
+- **Its callers call the reusable in the same checkout.** They are named `ci.<name>.yml` (so they do not clash with the reusable of the same name) and say `uses: ./.github/workflows/<name>.yml`, so a pull request that edits a reusable runs the edit. A caller's workflow and job names do not change, and so neither do the names of the checks it posts.
+- **It writes the reusables themselves** into its `.github/workflows`, under their own names, from `ci/workflows/`. Only the ones that run when another workflow calls them: a reusable that is also started by an event or by hand (`tag`, `sync-dispatch`, `platform.dispatchedCheck`) runs where it lives, so it is not copied.
+
+Composite actions are not copied: a reusable called from another repository cannot see this checkout, so they stay on their full reference. Until the `ci-v1` tag exists that is the org's `.github` repository, and the host's own CI picks up a change to an action only after the actions are published there.
+
+Every other repo keeps plain file names and calls the reusables by reference. `holocron probe generated check` covers the reusables like any other generated file.
+
 ## Options
 
 | Option              | Description                           |
