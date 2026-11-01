@@ -1,13 +1,20 @@
 import type { RestClient } from "../utils.js";
 
+/** An Axiom dataset. */
 export interface AxiomDataset {
+	/** The dataset id. */
 	id: string;
+	/** The dataset name. */
 	name: string;
+	/** The dataset description, if it has one. */
 	description?: string;
 }
 
+/** What to create a dataset with. */
 export interface CreateAxiomDatasetInput {
+	/** The name of the new dataset. */
 	name: string;
+	/** A description for the new dataset. */
 	description?: string;
 }
 

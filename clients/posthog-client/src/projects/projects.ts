@@ -1,17 +1,24 @@
 import type { RestClient } from "../utils.js";
 
+/** A PostHog project. */
 export interface PostHogProject {
+	/** The project id. */
 	id: number;
+	/** The project name. */
 	name: string;
 	/** The client-side tracking token (`phc_*`). */
 	api_token: string;
 }
 
+/** The response of listing projects. */
 export interface PostHogProjectsResponse {
+	/** The projects the token can access. */
 	results: PostHogProject[];
 }
 
+/** What to create a project with. */
 export interface CreatePostHogProjectInput {
+	/** The name of the new project. */
 	name: string;
 }
 

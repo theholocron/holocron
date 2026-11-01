@@ -1,23 +1,36 @@
 import type { RestClient } from "../utils.js";
 
+/** A Neon branch of a project, as the Neon API returns it. */
 export interface NeonBranch {
+	/** The branch id, such as `br-...`. */
 	id: string;
+	/** The branch name. */
 	name: string;
+	/** The id of the branch this one was created from; `undefined` for a root branch. */
 	parent_id?: string;
+	/** When the branch was created, as an ISO 8601 timestamp. */
 	created_at: string;
 }
 
+/** The response of listing a project's branches. */
 export interface NeonBranchesResponse {
+	/** The project's branches. */
 	branches: NeonBranch[];
 }
 
+/** The response of creating a branch. */
 export interface NeonBranchResponse {
+	/** The branch that was created. */
 	branch: NeonBranch;
 }
 
+/** What to create a branch with. */
 export interface CreateNeonBranchInput {
+	/** The name of the new branch. */
 	name: string;
+	/** The id of the branch to create it from; left out, no parent is sent. */
 	parent_id?: string;
+	/** Compute endpoints to create with the branch, each read-write or read-only; left out, none are sent. */
 	endpoints?: Array<{ type: "read_write" | "read_only" }>;
 }
 

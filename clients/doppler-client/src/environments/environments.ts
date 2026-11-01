@@ -1,12 +1,18 @@
 import type { RestClient } from "../utils.js";
 
+/** A Doppler environment of a project. */
 export interface DopplerEnvironment {
+	/** The environment id. */
 	id?: string;
+	/** The environment name. */
 	name?: string;
+	/** The environment slug. */
 	slug?: string;
 }
 
+/** The response of listing or creating environments. */
 export interface DopplerEnvironmentsResponse {
+	/** The environments the API returned. */
 	environments?: DopplerEnvironment[];
 }
 

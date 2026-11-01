@@ -3,7 +3,9 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createPostHogClient`. */
 export interface PostHogClientOptions {
+	/** PostHog API token, sent as a bearer token. */
 	token: string;
 	/**
 	 * PostHog host. Defaults to `https://app.posthog.com`.

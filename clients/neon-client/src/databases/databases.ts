@@ -1,12 +1,18 @@
 import type { RestClient } from "../utils.js";
 
+/** A database on a Neon branch. */
 export interface NeonDatabase {
+	/** The database's numeric id. */
 	id: number;
+	/** The database name. */
 	name: string;
+	/** The name of the role that owns the database. */
 	owner_name: string;
 }
 
+/** The response of listing a branch's databases. */
 export interface NeonDatabasesResponse {
+	/** The branch's databases. */
 	databases: NeonDatabase[];
 }
 

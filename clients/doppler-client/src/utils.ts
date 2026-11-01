@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createDopplerClient`. */
 export interface DopplerClientOptions {
 	/** Doppler service token or personal token. */
 	token: string;
