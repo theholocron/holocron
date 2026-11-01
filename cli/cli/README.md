@@ -580,7 +580,7 @@ Channels fed by the error tracker add `feeds: { errors: true }` and a layout `re
 
 `holocron secrets list [--scope repo|environment|organization] [--env <name>] [--json]` prints the names (never the values; GitHub does not return them) of the secrets at each scope, sorted, under a heading per scope. With no `--scope` it lists the repository, plus the organization (`--org`, `HOLOCRON_ORG` or the config's `org`) and the `--env` environment when they are known; `--scope` lists one. A scope that cannot be listed is reported under its heading and the rest are still listed; the exit code is 1 if any failed. `--json` prints `[{ scope, names, error? }]`. It is read-only, so `--dry-run` does not apply. Comparing the names with what the config expects is `doctor secrets`, which also covers the keys of the vault environments declared in `repo.secrets.sync`.
 
-Pinned messages are declared under the provider's `layout` as `pinned: [{ channel, content }]` (`channel` is a channel in the layout, `content` up to 2000 characters); the layout is the whole set of messages the bot has pinned in those channels.
+Pinned messages are declared under the provider's `layout` as `pinned: [{ channel, content }]` or `pinned: [{ channel, file }]` (`channel` is a channel in the layout, `content` up to 2000 characters, `file` a text file in the repository, such as `RULES.md`, whose contents are the message and win over a hand edit; `doctor notifications` reports the drift); the layout is the whole set of messages the bot has pinned in those channels.
 
 Config shape added for role sync and sign-in (all under the provider's `layout`):
 

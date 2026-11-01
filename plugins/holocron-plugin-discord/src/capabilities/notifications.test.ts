@@ -3812,6 +3812,32 @@ describe("DiscordNotifications pinned messages", () => {
 		);
 		expect(notifs.validateLayout({ pinned: pins })).toBeUndefined();
 	});
+
+	it("names the file a too-long message came from", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(
+			notifs.validateLayout({ pinned: [{ channel: "rules", file: "RULES.md", content: "x".repeat(2001) }] })
+		).toMatch(/message for `rules` \(from `RULES.md`\) is 2001 characters; Discord allows up to 2000/);
+	});
+
+	it("leaves a message with no text yet to the step that reads its file", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(notifs.validateLayout({ pinned: [{ channel: "rules", file: "RULES.md" }] })).toBeUndefined();
+	});
+
+	it("refuses to post a message whose file was never read into its text", async () => {
+		const { notifs } = makeProvisioner([chans, me]);
+		await expect(notifs.ensurePinned([{ channel: "welcome", file: "RULES.md" }])).rejects.toThrow(
+			/pinned message for #welcome has no text: its `file` was not read/
+		);
+	});
+
+	it("reports a message whose file was never read as unreadable, not as missing", async () => {
+		const { notifs } = makeProvisioner([chans, me]);
+		const found = await notifs.inspect({ categories: [], pinned: [{ channel: "welcome", file: "RULES.md" }] });
+		expect(found.pinnedError).toMatch(/has no text/);
+		expect(found.pinned).toBeUndefined();
+	});
 });
 
 describe("DiscordNotifications elevation", () => {

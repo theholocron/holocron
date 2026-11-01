@@ -42,6 +42,7 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
+import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { avatarProblem } from "./avatar-problem.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
 import {
@@ -238,6 +239,9 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 	for (const pin of layout.pinned ?? []) {
 		const problem = channel("pinned:", pin.channel);
 		if (problem) return problem;
+		if (pin.content === undefined) {
+			return `pinned: the message for \`${pin.channel}\` has no text; give it \`content\` or a \`file\``;
+		}
 		if (pin.content.trim() === "") return `pinned: the message for \`${pin.channel}\` is empty`;
 	}
 	const onboarding = layout.onboarding;
@@ -290,12 +294,17 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	} catch (err) {
 		return refuse(errorMessage(err));
 	}
-	const layout = notifications.layout;
-	if (!layout) {
+	const declared = notifications.layout;
+	if (!declared) {
 		return refuse(
 			`the \`${notifications.providerName}\` provider declares no layout — add \`layout\` to its options in holocron.config.ts`
 		);
 	}
+	// A pinned message may take its text from a file in the repository: read it now, so a file that cannot be read
+	// stops the run before anything is created, and the provider only ever sees the text.
+	const pinnedFiles = await resolvePinnedFiles(declared, input.context.repoRoot);
+	if ("problem" in pinnedFiles) return refuse(pinnedFiles.problem);
+	const layout = pinnedFiles.layout;
 
 	// Anything that writes a secret: a channel's webhook URL, or a role's id.
 	const wantsWebhook = (layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook));

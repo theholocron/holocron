@@ -251,7 +251,7 @@ export default defineConfig({
 						],
 					},
 					// Pinned at the top of #welcome and #rules. The layout is the whole set of messages the bot has pinned in a channel, so
-					// editing this text replaces the pinned message on the next `holocron notifications setup`.
+					// editing this text (or the file a message names) replaces the pinned message on the next `holocron notifications setup`.
 					pinned: [
 						{
 							channel: "welcome",
@@ -275,25 +275,8 @@ export default defineConfig({
 								"The maintainers hold the gatekeepers role.",
 							].join("\n"),
 						},
-						{
-							channel: "rules",
-							content: [
-								"**Rules** 📜",
-								"",
-								"The Holocron is a small, friendly place to build things. These keep it that way.",
-								"",
-								"**1. Be kind.** Disagree with the idea, not the person. No harassment, hate, slurs or personal attacks, and assume good intent until shown otherwise.",
-								"**2. Stay on topic.** Building talk goes in #dev, half-formed ideas in #ideas. Keep the bot channels (#releases, #deploys, #alerts) for the bot.",
-								"**3. No spam or self-promotion.** Share something you made if it is relevant to what we are doing, not as an ad. No unsolicited DMs.",
-								"**4. Keep private things private.** Never post tokens, passwords or other people's personal information. If you leak a secret by accident, say so and rotate it.",
-								"**5. Follow Discord's rules.** The [Terms of Service](<https://discord.com/terms>) and [Community Guidelines](<https://discord.com/guidelines>) apply here too.",
-								"",
-								"**Problems**",
-								"If something is wrong, or someone is making you uncomfortable, message anyone with the gatekeepers role. They will keep your report private and see that it is dealt with.",
-								"",
-								"Rules may change as the community grows; changes are announced here.",
-							].join("\n"),
-						},
+						// The rules live in RULES.md at the repo root; `notifications setup` pins whatever it says.
+						{ channel: "rules", file: "RULES.md" },
 					],
 					// The questions a new member answers. Not switched on: Discord needs at least 7 default channels,
 					// 5 of them open for members to post in, and the server has fewer discussion channels than that.
