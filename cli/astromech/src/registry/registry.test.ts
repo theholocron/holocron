@@ -25,12 +25,13 @@ describe("TASKS registry", () => {
 		}
 	});
 
-	it("no sub-job uses the command (holocron-subcommand) runner form", () => {
-		for (const [name, def] of Object.entries(TASKS)) {
-			for (const [job, jd] of Object.entries(def.jobs ?? {})) {
-				expect(jd.local?.command, `${name}/${job}`).toBeUndefined();
-			}
-		}
+	it("a sub-job that is a holocron subcommand is a probe", () => {
+		const commands = Object.entries(TASKS).flatMap(([name, def]) =>
+			Object.entries(def.jobs ?? {}).flatMap(([job, jd]) =>
+				jd.local?.command ? [[`${name}/${job}`, jd.local.command]] : []
+			)
+		);
+		expect(commands).toEqual([["platform.repoValidation/docsPresence", "probe docs presence"]]);
 	});
 
 	it("delivery.build detects tsdown before vite before tsc", () => {
@@ -69,7 +70,7 @@ describe("TASKS registry", () => {
 		const jobs = TASKS["platform.repoValidation"]!.jobs!;
 		expect(Object.keys(jobs)).toEqual(["adrs", "docsPresence"]);
 		expect(jobs.adrs!.local).toEqual({ tool: "node", args: ["scripts/validate-adrs.mjs"] });
-		expect(jobs.docsPresence!.local).toEqual({ tool: "node", args: ["scripts/validate-docs-presence.mjs"] });
+		expect(jobs.docsPresence!.local).toEqual({ command: "probe docs presence" });
 	});
 
 	it("preview-carrying tasks are flagged, not their own namespace (cross-cutting feature, not a task)", () => {

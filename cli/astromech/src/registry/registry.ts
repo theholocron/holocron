@@ -192,13 +192,13 @@ export const TASKS: Record<string, TaskDef> = {
 				local: { tool: "node", args: ["scripts/validate-adrs.mjs"] },
 				checkContext: "platform.repoValidation / Validate ADRs and specs",
 			},
-			// Warns (never fails — the script itself always exits 0) when a PR
-			// adds a new public package without a docs change. Doesn't actually
-			// require a docs *site* to be meaningful (just "was something
-			// documented"), so it belongs here with its process/governance
-			// siblings, not gated behind knowledge.docs.
+			// Warns (never fails — `holocron probe docs presence` reports, it does not
+			// exit non-zero) when a PR adds a new public package, or a `feat` changes
+			// one, without a docs change. Doesn't actually require a docs *site* to be
+			// meaningful (just "was something documented"), so it belongs here with its
+			// process/governance siblings, not gated behind knowledge.docs.
 			docsPresence: {
-				local: { tool: "node", args: ["scripts/validate-docs-presence.mjs"] },
+				local: { command: "probe docs presence" },
 				checkContext: "platform.repoValidation / Validate docs presence",
 				alias: "docsEnforcement",
 			},

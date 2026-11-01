@@ -164,7 +164,7 @@ describe("runCi", () => {
 		expect(out).toContain("▶ platform.repoValidation");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			["scripts/validate-adrs.mjs"],
-			["scripts/validate-docs-presence.mjs"],
+			[process.argv[1], "probe", "docs", "presence"],
 		]);
 		// still one task-level row in the report
 		expect(report.jobs.find((j) => j.task === "platform.repoValidation")!.status).toBe("ok");
@@ -172,7 +172,10 @@ describe("runCi", () => {
 
 	it("does not fail `holocron run ci` when a jobs-bearing task is required but no sub-job runs locally", () => {
 		const { run, exec } = makeCi({ "package.json": PKG }); // node not on PATH
-		const report = run({ tasks: [{ name: "platform.repoValidation", required: true }] });
+		// the docs presence job is a holocron subcommand, so it always runs: switch it off to leave nothing runnable
+		const report = run({
+			tasks: [{ name: "platform.repoValidation", required: true, jobs: { docsEnforcement: false } }],
+		});
 		expect(report.status).toBe("ok");
 		expect(exec).not.toHaveBeenCalled();
 		expect(report.jobs.find((j) => j.task === "platform.repoValidation")!.status).toBe("skip");
