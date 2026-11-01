@@ -39,6 +39,7 @@ import { setupEntry } from "../../commands/setup/setup.entry.js";
 import { skillsInstallEntry } from "../../commands/skills/skills-install.entry.js";
 import { skillsRemoveEntry } from "../../commands/skills/skills-remove.entry.js";
 import { skillsUpdateEntry } from "../../commands/skills/skills-update.entry.js";
+import { specsSyncEntry } from "../../commands/specs-sync/specs-sync.entry.js";
 import { syncGithubEntry } from "../../commands/sync-github/sync-github.entry.js";
 import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
@@ -77,6 +78,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	notificationsCreateServerEntry,
 	notificationsLinkEntry,
 	notificationsSyncRolesEntry,
+	specsSyncEntry,
 	deployEntry,
 	cleanupPreviewEntry,
 	deployOnReleaseEntry,

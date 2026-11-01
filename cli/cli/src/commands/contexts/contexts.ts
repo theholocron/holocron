@@ -52,6 +52,8 @@ export const COMMAND_CONTEXTS = {
 	"notifications link": "workspace",
 	"notifications create-server": "workspace",
 	"notifications sync-roles": "workspace",
+	// Loads the notifications provider to keep a discussion post per ADR and spec.
+	"specs sync": "workspace",
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor environments": "workspace",

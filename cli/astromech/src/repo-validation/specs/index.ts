@@ -10,5 +10,6 @@ export * from "./spec-locations/index.js";
 export * from "./spec-summary/index.js";
 export * from "./spec-title/index.js";
 export type * from "./specs.type.js";
+export * from "./update-frontmatter/index.js";
 export * from "./validate-adr/index.js";
 export * from "./validate-spec/index.js";

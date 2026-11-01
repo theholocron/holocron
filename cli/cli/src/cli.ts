@@ -20,6 +20,7 @@ import { repoCommand } from "./commands/repo/repo.command.js";
 import { runCommand } from "./commands/run/run.command.js";
 import { secretsCommand } from "./commands/secrets/secrets.command.js";
 import { skillsCommand } from "./commands/skills/index.js";
+import { specsCommand } from "./commands/specs/specs.command.js";
 import { syncCommand } from "./commands/sync/sync.command.js";
 import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
@@ -132,6 +133,7 @@ try {
 		.command(probeCommand as never)
 		.command(secretsCommand as never)
 		.command(notificationsCommand as never)
+		.command(specsCommand as never)
 		.command(syncCommand as never)
 		.command(packageCommand as never)
 		.command(deployCommand as never)
