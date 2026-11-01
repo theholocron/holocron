@@ -1,14 +1,21 @@
 import type { RestClient } from "../utils.js";
 
+/** An environment a variable applies to. */
 export type VercelEnvTarget = "production" | "preview" | "development";
 
+/** An environment variable on a project, as the API lists it. */
 export interface VercelEnvVar {
+	/** The variable's id. */
 	id: string;
+	/** The variable's name. */
 	key: string;
+	/** The environments the variable applies to. */
 	target: VercelEnvTarget[];
 }
 
+/** The response of `env.list()`. */
 export interface VercelEnvVarsResponse {
+	/** The project's environment variables. */
 	envs: VercelEnvVar[];
 }
 

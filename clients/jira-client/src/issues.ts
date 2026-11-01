@@ -2,6 +2,7 @@ import { type RestClient } from "@theholocron/http-client";
 
 import type { JiraIssue, JiraIssueFields, JiraSearchQuery, JiraSearchResponse } from "./types.js";
 
+/** Issue operations: create, read, update and search. */
 export function issues(client: RestClient) {
 	return {
 		create(title: string, type: string, project: string, fields: JiraIssueFields = {}): Promise<JiraIssue> {

@@ -1,29 +1,46 @@
 import type { RestClient } from "../utils.js";
 
+/** A Sentry project. */
 export interface SentryProject {
+	/** The project id. */
 	id: string;
+	/** The project slug used in API paths. */
 	slug: string;
+	/** The project's display name. */
 	name: string;
+	/** The platform identifier, or `null` when none is set. */
 	platform: string | null;
 }
 
+/** The DSN URLs of a client key. */
 export interface SentryKeyDsn {
+	/** The DSN to give an SDK; it carries only the public key. */
 	public: string;
+	/** The DSN that includes the secret key. */
 	secret: string;
 	/** Content Security Policy endpoint. */
 	csp: string;
 }
 
+/** A client key (DSN) of a project. */
 export interface SentryKey {
+	/** The key id. */
 	id: string;
+	/** The key's label. */
 	label: string;
+	/** The public key. */
 	public: string;
+	/** The secret key. */
 	secret: string;
+	/** The DSN URLs built from the key. */
 	dsn: SentryKeyDsn;
 }
 
+/** Input for `projects.create()`. */
 export interface CreateSentryProjectInput {
+	/** The project name. */
 	name: string;
+	/** The platform identifier, e.g. `node`; omitted, none is sent. */
 	platform?: string;
 }
 
