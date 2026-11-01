@@ -1,8 +1,12 @@
 import { cfRequest, type RestClient } from "../utils.js";
 
+/** A Cloudflare zone (a domain on the account). */
 export interface CfZone {
+	/** The zone's identifier. */
 	id: string;
+	/** The zone's domain name. */
 	name: string;
+	/** The zone's status, as Cloudflare reports it. */
 	status: string;
 }
 

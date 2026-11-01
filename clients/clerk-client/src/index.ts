@@ -17,6 +17,7 @@ export type {
 export type { ClerkClientOptions } from "./utils.js";
 export type { ClerkSvixApp, ClerkSvixUrl } from "./webhooks/webhooks.js";
 
+/** Creates a Clerk Backend API client with `instance`, `users` and `webhooks` groups, all sharing one REST transport. */
 export function createClerkClient(opts: ClerkClientOptions) {
 	const rest = createClerkRestClient(opts);
 	return {
@@ -26,4 +27,5 @@ export function createClerkClient(opts: ClerkClientOptions) {
 	};
 }
 
+/** The client returned by `createClerkClient`. */
 export type ClerkClient = ReturnType<typeof createClerkClient>;
