@@ -250,6 +250,46 @@ describe("parseWebhookEvent — push events", () => {
 		expect((result as { event: { installationId: number } }).event.installationId).toBe(0);
 	});
 
+	it("normalizes a pull_request.edited action that changed the title or the description", () => {
+		for (const changes of [{ title: { from: "old" } }, { body: { from: null } }]) {
+			const body = JSON.stringify({
+				action: "edited",
+				changes,
+				installation: { id: 3 },
+				repository: { full_name: "acme/widgets" },
+			});
+			const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
+			expect(result.handled).toBe(true);
+			expect((result as { event: { type: string } }).event.type).toBe("pull_request.edited");
+		}
+	});
+
+	it("falls back to installation 0 and omits deliveryId for an edit without them", () => {
+		const body = JSON.stringify({
+			action: "edited",
+			changes: { title: { from: "old" } },
+			repository: { full_name: "acme/widgets" },
+		});
+		const headers = signedHeaders(body, "pull_request", { "x-github-delivery": undefined });
+		const result = parseWebhookEvent({ body, headers, secret: SECRET });
+		const event = (result as { event: { installationId: number; deliveryId?: string } }).event;
+		expect(event.installationId).toBe(0);
+		expect(event.deliveryId).toBeUndefined();
+	});
+
+	it("ignores a pull_request.edited action that changed neither (a base branch change, say)", () => {
+		for (const changes of [{ base: { ref: { from: "main" } } }, undefined]) {
+			const body = JSON.stringify({
+				action: "edited",
+				...(changes ? { changes } : {}),
+				installation: { id: 3 },
+				repository: { full_name: "acme/widgets" },
+			});
+			const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
+			expect(result.handled).toBe(false);
+		}
+	});
+
 	it("omits deliveryId when X-GitHub-Delivery is absent", () => {
 		const body = JSON.stringify({
 			ref: "refs/heads/main",

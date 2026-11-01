@@ -28,7 +28,7 @@ Sentinel reads the same configuration the [CLI](/holocron/cli/) acts on, so a re
 | `postCheckRun`                       | Posts one capability-compliance check run, `Sentinel / Capability Compliance`                                                                                                   |
 | `handleWebhookRequest(request, env)` | A plain `(Request, Env) => Response` function that runs the pipeline above plus the central source-quality checks                                                               |
 
-The central checks run in the same pipeline: commit standards, DCO, inclusive language, formatting, editorconfig, markdown lint, static analysis (eslint and actionlint), repo validation, and an advisory PR config validation. An opt-out auto-fix commit can repair the mechanical formatting, editorconfig and markdown failures. The handler's module docstring in `src/handler/handler.ts` is the source of truth for the current list.
+The central checks run in the same pipeline: commit standards, DCO, inclusive language, formatting, editorconfig, markdown lint, static analysis (eslint and actionlint), repo validation, and an advisory PR config validation. The advisory docs-presence check runs the same shared rules as `holocron probe docs presence`: it warns about a new public package, or a `feat` to one, that ships without a docs change, unless `[skip docs] <reason>` is in the PR description or a commit message, and it re-runs when the PR title or description is edited. An opt-out auto-fix commit can repair the mechanical formatting, editorconfig and markdown failures. The handler's module docstring in `src/handler/handler.ts` is the source of truth for the current list.
 
 ## Key points
 

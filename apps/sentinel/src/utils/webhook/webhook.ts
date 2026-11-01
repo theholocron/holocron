@@ -98,6 +98,21 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 		}
 		case "pull_request": {
 			const p = payload as unknown as GitHubPullRequestWebhookPayload;
+			// An edit only matters when the title or description changed (not the
+			// base branch or a draft toggle): the docs-presence check reads a
+			// `feat` from the title and `[skip docs]` from the description.
+			if (p.action === "edited" && (p.changes?.title || p.changes?.body)) {
+				return {
+					handled: true,
+					event: {
+						type: "pull_request.edited",
+						repo: p.repository.full_name,
+						installationId: p.installation?.id ?? 0,
+						...(deliveryId ? { deliveryId } : {}),
+						raw: payload,
+					},
+				};
+			}
 			if (p.action !== "opened" && p.action !== "synchronize") {
 				return {
 					handled: false,

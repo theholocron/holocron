@@ -207,10 +207,16 @@ repo's `holocron.config` declaring `platform.repoValidation`:
 `scripts/validate-adrs.mjs`'s frontmatter rules to the PR's own changed
 `docs/wiki/decisions/*.md` and `*.spec.md` files — errors fail the check
 and post a review, warnings are annotations on a `neutral` check — and
-`Platform / Repo Validation / Validate docs presence` flags an added
-`packages/<name>/src/index.ts` for a non-private package shipped without
-any docs change; advisory like its script, `neutral` at worst, never
-`failure`; see `src/actions/repo-validation/`) — the Bucket 2
+`Platform / Repo Validation / Validate docs presence` runs the same shared
+rules as `holocron probe docs presence`
+(`@theholocron/astromech/repo-validation`, holocron#929): it flags an added
+`<dir>/src/index.ts` (any workspace layout) of a non-private package shipped
+without any docs change, and a `feat` (read from the PR title and commit
+subjects) that changes a public package's source without a README change, a
+docs page named after it or an added doc comment, unless `[skip docs]
+<reason>` (or `[skip docs: <package>] <reason>`) is in the PR description or a
+commit message; advisory, `neutral` at worst, never `failure`, and re-run
+when the PR title or description is edited; see `src/actions/repo-validation/`) — the Bucket 2
 dispatch prototype, the auto-fix-commit
 capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
 the `sourceQuality.formatting` task backing three independent commit

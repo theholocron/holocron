@@ -97,7 +97,11 @@
  *   jobs, kept as separate checks. ADR/spec frontmatter errors
  *   fail and post a PR review (same
  *   `postErrorReview()` split as eslint/actionlint); docs presence is
- *   advisory only (`neutral` at worst), like the script it ports.
+ *   advisory only (`neutral` at worst), and runs the same shared rules as
+ *   `holocron probe docs presence` (`@theholocron/astromech/repo-validation`,
+ *   holocron#929): new public packages and the `feat` rule with its
+ *   `[skip docs] <reason>` marker. Editing a PR's title or description
+ *   (`pull_request.edited`) re-runs that one check and nothing else.
  * - **Bucket 2 dispatch** (`dispatchCheck`, holocron#769/#794,
  *   `tech-sentinel-ci-runner.spec.md`): fires for both event types, same as
  *   capability compliance, but only when the repo's *valid* config declares
@@ -185,7 +189,7 @@
 
 import { normalizeTaskEntry } from "@theholocron/astromech/config";
 import { createEnvLookup } from "@theholocron/env-utils";
-import { createInstallationClient } from "@theholocron/github-client";
+import { createInstallationClient, type GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
 
@@ -291,7 +295,12 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 	const raw = event.raw as {
 		repository?: { default_branch?: string };
 		after?: string;
-		pull_request?: { number?: number; head?: { sha?: string; ref?: string } };
+		pull_request?: {
+			number?: number;
+			title?: string;
+			body?: string | null;
+			head?: { sha?: string; ref?: string };
+		};
 	};
 	const defaultBranch = raw.repository?.default_branch;
 	const headSha = event.type === "push.default-branch" ? raw.after : raw.pull_request?.head?.sha;
@@ -305,7 +314,50 @@ function resolutionContext(event: SentinelEvent): ResolutionContext {
 		headSha,
 		pullNumber: raw.pull_request?.number,
 		headRef: raw.pull_request?.head?.ref,
+		prTitle: raw.pull_request?.title,
+		prBody: raw.pull_request?.body ?? undefined,
 	};
+}
+
+/**
+ * Runs the docs-presence check for a pull request and posts its check run (holocron#913, #929). Soft-skip like every
+ * check in `handle()`: a failure is logged and the caller carries on without a check run. Shared by the full
+ * pipeline and by the `pull_request.edited` path, which re-runs only this check.
+ */
+async function runDocsPresence(
+	client: GitHubClient,
+	repo: string,
+	pullNumber: number,
+	context: ResolutionContext
+): Promise<Awaited<ReturnType<typeof postDocsPresenceCheck>> | undefined> {
+	try {
+		const result = await validateDocsPresence({
+			client,
+			repo,
+			pullNumber,
+			ref: context.headSha,
+			prTitle: context.prTitle ?? "",
+			prBody: context.prBody ?? "",
+		});
+		const checkRun = await postDocsPresenceCheck({ client, repo, headSha: context.headSha, result, runId });
+		// Matches SENTINEL_DOCS_PRESENCE_LOG_MSG exactly -- the check's
+		// own details_url is a query filtered to find this precise line.
+		logger.info(
+			{
+				repo,
+				valid: result.valid,
+				newPackages: result.newPackages.map((p) => p.name),
+				hasDocsChange: result.hasDocsChange,
+				isFeat: result.isFeat,
+				featWarnings: result.featWarnings.map((w) => w.dir),
+			},
+			SENTINEL_DOCS_PRESENCE_LOG_MSG
+		);
+		return checkRun;
+	} catch (err) {
+		logger.error({ repo, err: serializeError(err) }, "validateDocsPresence: failed, continuing without it");
+		return undefined;
+	}
 }
 
 /** Handles one inbound webhook request. Platform adapters call this directly — no `{ fetch }` wrapper required. */
@@ -391,6 +443,24 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		{ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY },
 		event.installationId
 	);
+
+	// A PR title or description edit changes only what the docs-presence check
+	// reads (a `feat` in the title, a `[skip docs]` marker in the description),
+	// so it re-runs that one check and nothing else -- no commit changed, and
+	// the other checks (and the auto-fix commit) would only repeat themselves.
+	if (event.type === "pull_request.edited") {
+		const editedConfig = await validateConfig({ client, repo });
+		const declared =
+			editedConfig.status === "valid" &&
+			(editedConfig.config.tasks ?? [])
+				.map(normalizeTaskEntry)
+				.some((t) => t.name === SENTINEL_REPO_VALIDATION_TASK);
+		const docsPresenceCheckRun =
+			declared && context.pullNumber !== undefined
+				? await runDocsPresence(client, repo, context.pullNumber, context)
+				: undefined;
+		return json({ handled: true, type: event.type, docsPresenceCheckRun });
+	}
 
 	// Commit-message linting (holocron#769/#771) is config-free by design
 	// (D6, tech-sentinel-enforcement.spec.md) -- it never reads
@@ -828,34 +898,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 			logger.error({ repo, err: serializeError(err) }, "validateAdrs: failed, continuing without it");
 		}
 
-		try {
-			const result = await validateDocsPresence({
-				client,
-				repo,
-				pullNumber: context.pullNumber,
-				ref: context.headSha,
-			});
-			docsPresenceCheckRun = await postDocsPresenceCheck({
-				client,
-				repo,
-				headSha: context.headSha,
-				result,
-				runId,
-			});
-			// Matches SENTINEL_DOCS_PRESENCE_LOG_MSG exactly -- the check's
-			// own details_url is a query filtered to find this precise line.
-			logger.info(
-				{
-					repo,
-					valid: result.valid,
-					newPackages: result.newPackages.map((p) => p.name),
-					hasDocsChange: result.hasDocsChange,
-				},
-				SENTINEL_DOCS_PRESENCE_LOG_MSG
-			);
-		} catch (err) {
-			logger.error({ repo, err: serializeError(err) }, "validateDocsPresence: failed, continuing without it");
-		}
+		docsPresenceCheckRun = await runDocsPresence(client, repo, context.pullNumber, context);
 	}
 
 	// Auto-fix-commit (holocron#820) -- default-on (holocron#864 follow-up),

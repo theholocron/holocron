@@ -12,4 +12,8 @@ export interface ResolutionContext {
 	pullNumber?: number;
 	/** Only present for `pull_request.*` events — the PR's head *branch name*, not a SHA. `commitFormattingFix()`'s own `updateRef()` input (holocron#820); nothing else needs it. */
 	headRef?: string;
+	/** Only present for `pull_request.*` events — the PR title, which the docs-presence check reads a `feat` from. */
+	prTitle?: string;
+	/** Only present for `pull_request.*` events — the PR description, which the docs-presence check reads `[skip docs]` from. */
+	prBody?: string;
 }
