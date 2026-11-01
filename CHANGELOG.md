@@ -1,3 +1,9 @@
+## [5.0.0-alpha.284](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.283...v5.0.0-alpha.284) (2026-11-01)
+
+### Refactoring
+
+* **astromech:** ♻️ move the docs-presence rules into astromech/repo-validation ([#1524](https://github.com/theholocron/holocron/issues/1524)) ([59647d4](https://github.com/theholocron/holocron/commit/59647d430a52ffbf0bf22f474571e7c82882c102)), closes [#929](https://github.com/theholocron/holocron/issues/929)
+
 ## [5.0.0-alpha.283](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.282...v5.0.0-alpha.283) (2026-11-01)
 
 ### Refactoring
