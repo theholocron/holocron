@@ -40,21 +40,9 @@ const merged = mergeConfig(defaults, layered?.config);
 export const defineConfig = createDefineConfig<TasksConfig>();
 ```
 
-## API
-
-| Export                                    | What it does                                                                                                                                                      |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `loadConfigFile({ cwd, name, … })`        | Loads the first `<name>.config.<ext>` found. Probe order is `.ts`, `.js`, `.mjs`, `.cjs`, `.json`. `walkUp: true` searches parent directories up to the repo root |
-| `loadLayered({ cwd, name, fallback, … })` | A dedicated file layered over a key of a parent file. Either, both or neither may exist. `sources` lists the files merged, lowest priority first                  |
-| `loadConfigFromContent({ dir, … })`       | Loads config from content that did not come from disk, by writing it to `<dir>/<name>.config.<ext>` first                                                         |
-| `readConfigSource({ name, fetch })`       | The extension probe for a config that lives elsewhere, such as the GitHub API                                                                                     |
-| `withConfigSandbox({ nodeModules }, run)` | Prepares a throwaway directory with `node_modules` linked, so fetched config can resolve its imports                                                              |
-| `mergeLayers(layers)`                     | The merge `loadLayered` uses, for layers loaded some other way                                                                                                    |
-| `mergeConfig(base, override)`             | Vite-style deep merge: objects merge, arrays concatenate, `undefined` is skipped. Neither input is mutated                                                        |
-| `createDefineConfig<T>()`                 | A typed identity function, so config files get autocomplete at zero runtime cost                                                                                  |
-| `ConfigFileError`                         | Thrown when a file exists but cannot be parsed, loaded or has no default export                                                                                   |
-
 "Not found" is `null`, never an error. A file that exists but is unusable throws `ConfigFileError`, carrying its `filepath`.
+
+The loaders probe `.ts`, `.js`, `.mjs`, `.cjs`, then `.json`.
 
 ## Related
 
