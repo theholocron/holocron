@@ -52,10 +52,11 @@ import performanceWorkflow from "../../templates/reusable/verification.performan
 import typeSafetyWorkflow from "../../templates/reusable/verification.typeSafety.yml";
 import unitTestsWorkflow from "../../templates/reusable/verification.unitTests.yml";
 import visualRegressionWorkflow from "../../templates/reusable/verification.visualRegression.yml";
+import { rehomeAll } from "../ci-ref/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 
 /** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
-export const REUSABLE_WORKFLOWS: Record<string, string> = {
+export const REUSABLE_WORKFLOWS: Record<string, string> = rehomeAll({
 	"verification.unitTests": unitTestsWorkflow,
 	"verification.visualRegression": visualRegressionWorkflow,
 	"verification.typeSafety": typeSafetyWorkflow,
@@ -93,10 +94,10 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = {
 	"sync-dispatch": syncDispatchWorkflow,
 	tag: tagWorkflow,
 	"sync-github": syncGithubWorkflow,
-};
+});
 
 /** Composite actions → `.github/actions/<name>/action.yml` (key includes `/action`). */
-export const REUSABLE_ACTIONS: Record<string, string> = {
+export const REUSABLE_ACTIONS: Record<string, string> = rehomeAll({
 	"auto-commit/action": autoCommitAction,
 	"codecov-upload/action": codecovUploadAction,
 	"holocron/action": holocronAction,
@@ -104,7 +105,7 @@ export const REUSABLE_ACTIONS: Record<string, string> = {
 	"notify/action": notifyAction,
 	"setup/action": setupAction,
 	"setup-node/action": setupNodeAction,
-};
+});
 
 /** GitHub starter-workflow metadata → `workflow-templates/<name>.properties.json`. */
 export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {
