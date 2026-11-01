@@ -2,22 +2,35 @@ import type { RestClient } from "../utils.js";
 
 /** Netlify site — the subset of fields consumers read/write. */
 export interface NetlifySite {
+	/** The site's id. */
 	id: string;
+	/** The site's name. */
 	name: string;
+	/** The site's URL. */
 	url: string;
+	/** The site's HTTPS URL. */
 	ssl_url: string;
+	/** The URL of the site's page in the Netlify admin UI. */
 	admin_url: string;
+	/** The id of the account that owns the site. */
 	account_id: string;
+	/** The slug of the account that owns the site. */
 	account_slug?: string;
+	/** The site's custom domain, or `null` when none is set. */
 	custom_domain?: string | null;
 }
 
+/** What to send to Netlify to create a site. */
 export interface NetlifyCreateSiteInput {
+	/** The site's name. */
 	name: string;
+	/** A custom domain to set on the site. */
 	custom_domain?: string;
 }
 
+/** What to send to Netlify to update a site. */
 export interface NetlifyUpdateSiteInput {
+	/** The custom domain to set. */
 	custom_domain?: string;
 }
 

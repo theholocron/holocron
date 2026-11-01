@@ -4,6 +4,7 @@ import { ProviderApiError } from "@theholocron/cli";
 import type { SentryClient } from "../rest.js";
 import { ensureSentryRelay, inspectSentryRelay } from "./relay.js";
 
+/** Options for the Sentry `errors` capability. */
 export interface SentryErrorsOptions {
 	/** Sentry organization slug. Required for `whoami` and `ensureProject`. */
 	org?: string;
@@ -11,8 +12,11 @@ export interface SentryErrorsOptions {
 	team?: string;
 }
 
+/** The `errors` capability for Sentry: finds or creates a project and reports its DSN, and manages the Comlink relay. */
 export class SentryErrors implements Errors {
+	/** The capability key, always `errors`. */
 	readonly key = "errors" as const;
+	/** The provider name, `sentry`. */
 	readonly providerName = "sentry";
 
 	constructor(
@@ -46,6 +50,7 @@ export class SentryErrors implements Errors {
 		return { org: org.slug };
 	}
 
+	/** Returns the public DSN of the project named `input.name` (matched by its slug), creating it when missing; needs `org`, and the new project uses `team` (default the org slug) and `platform` (default `node`). */
 	async ensureProject(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }> {
 		const org = this.requireOrg();
 		const slug = toSlug(input.name);

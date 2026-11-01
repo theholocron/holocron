@@ -2,13 +2,17 @@ import type { Notifications } from "@theholocron/cli";
 
 import type { SlackClient } from "../rest.js";
 
+/** Options for the Slack `notifications` capability. */
 export interface SlackNotificationsOptions {
 	/** Default channel id used when `send()` is called without an explicit channel. */
 	defaultChannel?: string;
 }
 
+/** `notifications` capability for Slack: posts messages to a channel as the bot. */
 export class SlackNotifications implements Notifications {
+	/** Capability key; always `"notifications"`. */
 	readonly key = "notifications" as const;
+	/** Provider name; always `"slack"`. */
 	readonly providerName = "slack";
 
 	constructor(

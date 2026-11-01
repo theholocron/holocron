@@ -9,26 +9,39 @@ import type { createStarlightTypeDocPlugin } from "starlight-typedoc";
 type StarlightSidebar = NonNullable<Parameters<typeof starlight>[0]["sidebar"]>;
 type StarlightPlugins = NonNullable<Parameters<typeof starlight>[0]["plugins"]>;
 
+/** The docs site's identity: its title, its GitHub repo name and its sidebar. */
 export interface DocsConfig {
+	/** The site title Starlight shows (passed as Starlight's `title`). */
 	name: string;
+	/** The repo name under the `theholocron` GitHub org; builds the social link and the default `base` (`/<github>`). */
 	github: string;
+	/** The Starlight sidebar definition, passed to Starlight unchanged. */
 	sidebar: StarlightSidebar;
 }
 
+/** Everything `defineConfig` needs to build the Astro config for a Starlight docs site. */
 export interface DocsConfigInput {
+	/** The docs site's name, repo and sidebar. */
 	docs: DocsConfig;
+	/** The `starlight` integration, imported by the site's own config so Astro's loader handles it. */
 	starlight: typeof starlight;
+	/** The `docsTheme` Starlight plugin from `@theholocron/docs-theme`, imported by the site's own config. */
 	docsTheme: typeof docsTheme;
 	/** Further Starlight plugins, added after the docs theme (for example the ones `apiReference()` returns). */
 	plugins?: StarlightPlugins;
+	/** Astro's `srcDir`. Omitted from the config when unset, so Astro's default (`./src`) applies. */
 	srcDir?: string;
+	/** Astro's `outDir`, the build output folder. Omitted from the config when unset, so Astro's default applies. */
 	outDir?: string;
+	/** Astro's `publicDir`, the folder of static assets. Omitted from the config when unset, so Astro's default applies. */
 	publicDir?: string;
+	/** Astro's `base`, the path the site is served under. Defaults to `/<docs.github>`. */
 	base?: string;
 	/** The site's absolute origin (for example `https://docs.theholocron.dev`). Starlight needs it to generate a sitemap. */
 	site?: string;
 }
 
+/** Builds the Astro config for a Starlight docs site: the docs theme, a GitHub social link, the React integration and an `@` alias to the docs source folder. */
 export function defineConfig({
 	docs,
 	starlight,
@@ -70,6 +83,7 @@ export function defineConfig({
 	});
 }
 
+/** Options for `apiReference`. */
 export interface ApiReferenceInput {
 	/** `createStarlightTypeDocPlugin` from your own `starlight-typedoc` import, as with `starlight` and `docsTheme`. */
 	createPlugin: typeof createStarlightTypeDocPlugin;
@@ -83,6 +97,7 @@ export interface ApiReferenceInput {
 	label?: string;
 }
 
+/** What `apiReference` returns: the Starlight plugin and the sidebar group that belong together. */
 export interface ApiReference {
 	/** Add to `defineConfig({ plugins })`. */
 	plugin: StarlightPlugins[number];

@@ -17,6 +17,7 @@ export type {
 	SentryWorkflowInput,
 } from "./workflows/workflows.js";
 
+/** Create a Sentry client with `auth`, `projects`, `sentryApps` and `workflows` groups, all sharing one REST client built from `opts`. */
 export function createSentryClient(opts: SentryClientOptions) {
 	const rest = createSentryRestClient(opts);
 	return {
@@ -27,4 +28,5 @@ export function createSentryClient(opts: SentryClientOptions) {
 	};
 }
 
+/** The client `createSentryClient()` returns. */
 export type SentryClient = ReturnType<typeof createSentryClient>;

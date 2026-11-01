@@ -1,22 +1,37 @@
 import type { RestClient } from "../utils.js";
 import { repoBase } from "../utils.js";
 
+/** A workflow run as GitHub returns it, with only the fields this client reads. */
 export interface GitHubWorkflowRun {
+	/** The run's numeric id. */
 	id: number;
+	/** The workflow's name, or `null` when unnamed. */
 	name: string | null;
+	/** The run's display title. */
 	display_title: string;
+	/** The branch the run was triggered on. */
 	head_branch: string;
+	/** The commit SHA the run was triggered on. */
 	head_sha: string;
+	/** The run's status, e.g. `queued`, `in_progress` or `completed`. */
 	status: string;
+	/** The run's result once completed, or `null` before. */
 	conclusion: string | null;
+	/** The URL of the run's page on GitHub. */
 	html_url: string;
+	/** When the run was created, as an ISO 8601 timestamp. */
 	created_at: string;
+	/** When the run was last updated, as an ISO 8601 timestamp. */
 	updated_at: string;
 }
 
+/** Filters for listing workflow runs. */
 export interface WorkflowRunFilter {
+	/** Only runs on this branch. */
 	branch?: string;
+	/** The maximum number of runs to return. */
 	limit?: number;
+	/** Only runs with this status. */
 	status?: string;
 }
 

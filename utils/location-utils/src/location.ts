@@ -1,10 +1,18 @@
+/** A position, shaped like the browser's `GeolocationCoordinates`. */
 export interface IGeolocationCoordinates {
+	/** Accuracy of `latitude` and `longitude`, in meters. */
 	accuracy: number;
+	/** Height above sea level, in meters, or `null` when unavailable. */
 	altitude?: number | null;
+	/** Accuracy of `altitude`, in meters, or `null` when unavailable. */
 	altitudeAccuracy?: number | null;
+	/** Direction of travel in degrees clockwise from true north, or `null` when unavailable. */
 	heading?: number | null;
+	/** Latitude in decimal degrees. */
 	latitude: number;
+	/** Longitude in decimal degrees. */
 	longitude: number;
+	/** Speed in meters per second, or `null` when unavailable. */
 	speed?: number | null;
 }
 
@@ -15,6 +23,7 @@ export interface IGeolocationCoordinates {
  * `console.warn` so behavior is unchanged when nothing is injected.
  */
 export interface LocationLogger {
+	/** Logs a warning. */
 	warn(message: string, meta?: unknown): void;
 }
 

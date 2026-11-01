@@ -39,6 +39,7 @@ const CLERK_TO_NORMALIZED: Record<string, AuthEventType> = {
 
 const REPLAY_WINDOW_SECONDS = 5 * 60;
 
+/** Verifies a Clerk webhook's signature and replay window, then turns it into a normalized `AuthEvent`; throws `WebhookVerificationError` on a bad signature, invalid JSON or an unmapped event type. */
 export async function parseWebhook(input: ParseWebhookInput): Promise<AuthEvent> {
 	await verifySignature(input);
 

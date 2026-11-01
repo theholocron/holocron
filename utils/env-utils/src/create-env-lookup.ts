@@ -1,3 +1,4 @@
+/** A read-only lookup of environment variables. */
 export interface EnvLookup {
 	/** Return the string value for `key`, or `undefined` if absent or empty. */
 	get(key: string): string | undefined;

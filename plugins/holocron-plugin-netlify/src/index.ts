@@ -14,6 +14,7 @@ import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { NetlifyDeployment, type NetlifyDeploymentOptions } from "./capabilities/deployment.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Netlify plugin: the token lookup inputs plus the deployment settings. */
 export interface NetlifyPluginOptions extends ResolveTokenInput, NetlifyDeploymentOptions {
 	/** Override base URL for tests. */
 	baseUrl?: string;
@@ -21,12 +22,15 @@ export interface NetlifyPluginOptions extends ResolveTokenInput, NetlifyDeployme
 	fetch?: typeof fetch;
 }
 
+/** Shared state for one Netlify plugin instance: its options and a lazily created client. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: NetlifyPluginOptions;
 	/** Memoized client — the token is resolved on first use, not at plugin load. */
 	client: () => NetlifyClient;
 }
 
+/** Builds the plugin context from its options. */
 export function createContext(options: NetlifyPluginOptions): PluginContext {
 	let client: NetlifyClient | undefined;
 	return {
@@ -40,6 +44,7 @@ export function createContext(options: NetlifyPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `deployment` capability, passing along only the account and domain options that are set. */
 export function deployment(ctx: PluginContext): Deployment {
 	const opts: NetlifyDeploymentOptions = {};
 	if (ctx.options.accountSlug !== undefined) opts.accountSlug = ctx.options.accountSlug;
@@ -48,6 +53,7 @@ export function deployment(ctx: PluginContext): Deployment {
 	return new NetlifyDeployment(ctx.client, opts);
 }
 
+/** Creates the Netlify plugin: its `connection` probe and the `deployment` capability. */
 export function createPlugin(options: NetlifyPluginOptions) {
 	const ctx = createContext(options);
 	return {

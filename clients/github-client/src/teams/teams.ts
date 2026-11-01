@@ -1,6 +1,7 @@
 import type { RestClient } from "../utils.js";
 import { repoBase, segment } from "../utils.js";
 
+/** A permission level a team can hold on a repository. */
 export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
 
 /** A team with access to a repository, and the permission it has there. */
@@ -13,8 +14,11 @@ export interface RepoTeam {
 
 /** A member of a team, as GitHub lists it. `id` is the numeric user id, which survives a rename; `login` does not. */
 export interface TeamMember {
+	/** The member's numeric user id. */
 	id: number;
+	/** The member's login. */
 	login: string;
+	/** The kind of account, e.g. `User`. */
 	type?: string;
 }
 

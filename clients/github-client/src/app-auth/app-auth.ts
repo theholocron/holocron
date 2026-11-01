@@ -24,6 +24,7 @@ import { createGitHubClient, type GitHubClient } from "../index.js";
 import type { GitHubClientOptions } from "../utils.js";
 import { base64UrlEncode, importRsaPrivateKey } from "./pem.js";
 
+/** The credentials identifying a GitHub App: its id and private key. */
 export interface GitHubAppCredentials {
 	/** The App's numeric id (not the client id). */
 	appId: string;
@@ -31,7 +32,9 @@ export interface GitHubAppCredentials {
 	privateKey: string;
 }
 
+/** A short-lived installation access token and when it expires. */
 export interface InstallationAccessToken {
+	/** The installation access token, used as a bearer token for the REST API. */
 	token: string;
 	/** ISO 8601 — installation tokens are short-lived, about an hour. */
 	expiresAt: string;

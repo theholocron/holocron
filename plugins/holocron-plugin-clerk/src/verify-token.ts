@@ -19,6 +19,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Clerk secret key by fetching the instance and reports its environment type and id, or why it was rejected. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createClerkClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

@@ -13,9 +13,11 @@ import {
 } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Discord plugin: how the webhook URL is resolved plus the notifications settings. */
 export interface DiscordPluginOptions extends ResolveTokenInput, DiscordNotificationsOptions {
 	/** Override base URL for tests. Default: https://discord.com/api/v10 */
 	baseUrl?: string;
+	/** The `fetch` to use instead of the global one, for tests. */
 	fetch?: typeof fetch;
 	/**
 	 * Also send the BOT token to `baseUrl`. Off by default: `baseUrl` comes from a
@@ -25,8 +27,11 @@ export interface DiscordPluginOptions extends ResolveTokenInput, DiscordNotifica
 	unsafeBotBaseUrl?: boolean;
 }
 
+/** The shared state the Discord plugin's capability and probes are built from. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: DiscordPluginOptions;
+	/** The webhook client used to send messages. */
 	client: DiscordClient;
 	/**
 	 * Memoized — the resolved "token" IS Discord's default webhook URL, and it is
@@ -39,6 +44,7 @@ export interface PluginContext {
 	oauth: (redirectUri: string) => Promise<DiscordOAuthClient>;
 }
 
+/** Builds the plugin context from its options; the webhook URL, bot token and client secret are each resolved on first use. */
 export function createContext(options: DiscordPluginOptions = {}): PluginContext {
 	let url: string | undefined;
 	let bot: DiscordBotClient | undefined;
@@ -75,10 +81,12 @@ export function createContext(options: DiscordPluginOptions = {}): PluginContext
 	};
 }
 
+/** Builds the `notifications` capability for a context. */
 export function notifications(ctx: PluginContext): Notifications {
 	return new DiscordNotifications(ctx.client, ctx.options, ctx.defaultWebhookUrl, ctx.bot, ctx.oauth);
 }
 
+/** Creates the Discord plugin: its `notifications` capability and its `connection` probe. */
 export function createPlugin(options: DiscordPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
@@ -98,6 +106,7 @@ export function createPlugin(options: DiscordPluginOptions = {}) {
 	};
 }
 
+/** One-line hint printed by `holocron auth set discord` when no webhook URL is supplied or the supplied one is rejected. */
 export const AUTH_HINT =
 	"create a webhook in Discord: open your server → channel settings → Integrations → Webhooks → New Webhook, " +
 	"copy the webhook URL, then run: holocron auth set discord <https://discord.com/api/webhooks/...>";

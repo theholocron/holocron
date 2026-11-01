@@ -9,6 +9,7 @@ import type { WorkspacePackageEntry } from "./workspace-package.type.ts";
 /** Where packages live when there is no `pnpm-workspace.yaml` (or it lists none): the layout before globs were read. */
 export const DEFAULT_WORKSPACE_ROOTS: readonly string[] = ["packages", "apps", "plugins"];
 
+/** Options for {@link discoverWorkspacePackages}. */
 export interface DiscoverWorkspacePackagesOptions extends Pick<ListWorkspacePackagesOptions, "listDirs" | "readFile"> {
 	/** Replaces the read of `pnpm-workspace.yaml`. Throw (`ENOENT`) when it is absent -- or leave it out to read the real file. */
 	readText?: (path: string) => string;

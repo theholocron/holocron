@@ -32,14 +32,18 @@ export type CapabilityKey =
 	| "wiki"
 	| "workers";
 
+/** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
 export type Cardinality = "single" | "many";
 
 // ───────────────────────────────────────────────────────────────────────
 // Common shapes
 // ───────────────────────────────────────────────────────────────────────
 
+/** What every capability implementation carries: which capability it is and which provider backs it. */
 export interface ProviderIdentity {
+	/** The capability this implementation provides. */
 	readonly key: CapabilityKey;
+	/** The provider's name, e.g. `github` or `vercel`. */
 	readonly providerName: string;
 }
 
@@ -47,40 +51,65 @@ export interface ProviderIdentity {
 // source — repos, branches, PRs, rulesets, settings, workflow files
 // ───────────────────────────────────────────────────────────────────────
 
+/** A repository ruleset as {@link Source.listRulesets} reports it. */
 export interface Ruleset {
+	/** The provider's numeric id for the ruleset. */
 	id: number;
+	/** The ruleset's name. */
 	name: string;
+	/** Whether the ruleset is enforced (`active`), only logged (`evaluate`) or off (`disabled`). */
 	enforcement: "active" | "evaluate" | "disabled";
+	/** What the ruleset applies to, e.g. `branch`; `undefined` when the provider does not say. */
 	target?: string;
 }
 
+/** The repository settings {@link Source.updateRepoSettings} can change; a field left out is left alone. */
 export interface RepoSettings {
+	/** Allow merging a pull request by squashing its commits. */
 	allow_squash_merge?: boolean;
+	/** Allow merging a pull request with a merge commit. */
 	allow_merge_commit?: boolean;
+	/** Allow merging a pull request by rebasing its commits. */
 	allow_rebase_merge?: boolean;
+	/** Allow a pull request to be set to merge itself once its checks pass. */
 	allow_auto_merge?: boolean;
 	/** Always suggest updating PR branches when the base branch has new commits. */
 	allow_update_branch?: boolean;
+	/** Delete a pull request's head branch once it is merged. */
 	delete_branch_on_merge?: boolean;
+	/** The branch a fresh clone checks out. */
 	default_branch?: string;
+	/** Whether the repository has an issue tracker. */
 	has_issues?: boolean;
+	/** Whether the repository has discussions. */
 	has_discussions?: boolean;
+	/** Whether the repository has project boards. */
 	has_projects?: boolean;
+	/** Whether the repository has a wiki. */
 	has_wiki?: boolean;
 }
 
+/** The repository a {@link Source} provider is scoped to. */
 export interface RepoRef {
+	/** The account or organization that owns the repository. */
 	owner: string;
+	/** The repository's name, without the owner. */
 	name: string;
+	/** The branch a fresh clone checks out. */
 	defaultBranch: string;
 }
 
+/** A repository label as the canonical set passed to {@link Source.syncLabels} defines it. */
 export interface LabelDef {
+	/** The label's name. */
 	readonly name: string;
+	/** The label's colour as a hex string. */
 	readonly color: string;
+	/** What the label is for; an empty string when it has none. */
 	readonly description: string;
 }
 
+/** The access level a team can hold on a repository, from least (`pull`) to most (`admin`). */
 export type TeamPermission = "pull" | "triage" | "push" | "maintain" | "admin";
 
 /** Shorthand `"slug"` defaults to `push` permission. */
@@ -138,25 +167,33 @@ export interface SourceTeamMember {
 
 /** A file read by {@link Source.readFile}. */
 export interface SourceFile {
+	/** The file's text. */
 	content: string;
 	/** Opaque; hand it back to {@link Source.writeFile} to replace this exact version. */
 	version: string;
 }
 
+/** Source hosting: the repository, its rulesets, settings, security features, workflow files and pull requests. */
 export interface Source extends ProviderIdentity {
+	/** Identifies this provider as the `source` capability. */
 	readonly key: "source";
 
 	/** Auth sanity-check. Throws ProviderApiError on auth failure. */
 	whoami(): Promise<{ login: string }>;
 
+	/** The repository this provider is scoped to: its owner, name and default branch. */
 	getRepo(): Promise<RepoRef>;
 
 	// Rulesets / branch protection
+	/** Every ruleset on the repository. */
 	listRulesets(): Promise<Ruleset[]>;
+	/** Create a ruleset from the provider's own payload shape and return it. */
 	createRuleset(payload: Record<string, unknown>): Promise<Ruleset>;
+	/** Replace the ruleset with the given id using the provider's own payload shape. */
 	updateRuleset(id: number, payload: Record<string, unknown>): Promise<Ruleset>;
 
 	// Repo settings
+	/** Change the repository's merge and feature settings; only the fields given are changed. */
 	updateRepoSettings(settings: RepoSettings): Promise<void>;
 
 	/**
@@ -166,9 +203,13 @@ export interface Source extends ProviderIdentity {
 	protectBranch(branch: string, payload: Record<string, unknown>): Promise<void>;
 
 	// Security toggles (idempotent; flip-or-noop)
+	/** Turn on vulnerability alerts (dependency advisories) for the repository. */
 	enableVulnerabilityAlerts(): Promise<void>;
+	/** Turn on automated security updates, which open pull requests for vulnerable dependencies. */
 	enableAutomatedSecurityFixes(): Promise<void>;
+	/** Turn on secret scanning, and push protection with it. */
 	enableSecretScanning(): Promise<void>;
+	/** Turn on private vulnerability reporting, so people can report a vulnerability to the maintainers privately. */
 	enablePrivateVulnerabilityReporting(): Promise<void>;
 	/**
 	 * Enables the dependency graph and automatic dependency snapshot
@@ -197,9 +238,13 @@ export interface Source extends ProviderIdentity {
 	// equivalent). These are conceptually repo content; providers may
 	// throw `NotImplementedError` if the underlying VCS has no notion
 	// of declarative CI files.
+	/** The file names in the workflow directory, sorted; empty when the directory does not exist. */
 	listWorkflowFiles(): Promise<string[]>;
+	/** The contents of one workflow file, or `null` when it does not exist. */
 	readWorkflowFile(name: string): Promise<string | null>;
+	/** Write one workflow file, creating the workflow directory if needed and replacing a file of that name. */
 	writeWorkflowFile(name: string, contents: string): Promise<void>;
+	/** Delete one workflow file; one that is already gone is not an error. */
 	removeWorkflowFile(name: string): Promise<void>;
 
 	/**
@@ -392,6 +437,7 @@ export interface Source extends ProviderIdentity {
 // Pages
 // ───────────────────────────────────────────────────────────────────────
 
+/** How GitHub Pages is set up for a repository, as {@link Source.configurePages} takes it. */
 export interface PagesConfig {
 	/** GitHub Pages build source. */
 	build: "workflow" | "branch";
@@ -413,8 +459,11 @@ export interface SourceBranch {
 	sha: string;
 }
 
+/** A pull request as {@link Source.getPullRequest} and {@link Source.listPullRequests} report it. */
 export interface PullRequest {
+	/** The pull request's number within the repository. */
 	number: number;
+	/** The pull request's title. */
 	title: string;
 	/** "open" | "closed" — GitHub marks merged PRs as "closed". */
 	state: "open" | "closed";
@@ -424,6 +473,7 @@ export interface PullRequest {
 	branch: string;
 	/** The commit the head branch pointed at when the PR was last read. */
 	headSha?: string;
+	/** The address of the pull request's page. */
 	url: string;
 }
 
@@ -431,28 +481,46 @@ export interface PullRequest {
 // ci — workflow runs (history + status only)
 // ───────────────────────────────────────────────────────────────────────
 
+/** Where a workflow run is in its life; a finished run carries its outcome (`success`, `failure`, ...). */
 export type CiRunStatus = "queued" | "in_progress" | "completed" | "cancelled" | "failure" | "success" | "skipped";
 
+/** One run of a CI workflow. */
 export interface CiRun {
+	/** The provider's id for the run. */
 	id: string | number;
+	/** The workflow's name, falling back to the run's display title. */
 	workflowName: string;
+	/** The branch the run was triggered on. */
 	branch: string;
+	/** The commit the run was for. */
 	sha: string;
+	/** Where the run is, or how it ended once finished. */
 	status: CiRunStatus;
+	/** The address of the run's page. */
 	url: string;
+	/** When the run started, as an ISO timestamp. */
 	startedAt: string;
+	/** When the run finished, as an ISO timestamp; `undefined` while it is still going. */
 	completedAt?: string;
 }
 
+/** What {@link Ci.listRuns} narrows its result by; a field left out does not filter. */
 export interface CiRunFilter {
+	/** Only runs on this branch. */
 	branch?: string;
+	/** Only runs in this state. */
 	status?: CiRunStatus;
+	/** The most runs to return. */
 	limit?: number;
 }
 
+/** CI history: lists workflow runs and reads one back, with no way to start or change one. */
 export interface Ci extends ProviderIdentity {
+	/** Identifies this provider as the `ci` capability. */
 	readonly key: "ci";
+	/** Recent workflow runs, narrowed by `filter` when given. */
 	listRuns(filter?: CiRunFilter): Promise<CiRun[]>;
+	/** One workflow run by its id. */
 	getRun(id: string | number): Promise<CiRun>;
 }
 
@@ -460,10 +528,13 @@ export interface Ci extends ProviderIdentity {
 // secrets — CI/platform secrets sync destination (multi-scope)
 // ───────────────────────────────────────────────────────────────────────
 
+/** Where a secret lives: the repository, one of its environments, or the organization. */
 export type SecretScope =
 	{ kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; name: string };
 
+/** A destination for secrets (CI or platform secrets) that `holocron secrets sync` writes into. */
 export interface Secrets extends ProviderIdentity {
+	/** Identifies this provider as the `secrets` capability. */
 	readonly key: "secrets";
 
 	/** List secret NAMES (not values) at the given scope. */
@@ -472,6 +543,7 @@ export interface Secrets extends ProviderIdentity {
 	/** Idempotent upsert. Adapter handles encryption. */
 	setSecret(scope: SecretScope, name: string, value: string): Promise<void>;
 
+	/** Remove a secret at the given scope. */
 	deleteSecret(scope: SecretScope, name: string): Promise<void>;
 }
 
@@ -479,23 +551,35 @@ export interface Secrets extends ProviderIdentity {
 // environments — named deployment environments
 // ───────────────────────────────────────────────────────────────────────
 
+/** Someone whose approval a deployment to an environment needs. */
 export interface EnvironmentReviewer {
+	/** Whether the reviewer is a person (`User`) or a team (`Team`). */
 	type: "User" | "Team";
 	/** Numeric id — GitHub's reviewer API silently ignores login strings. */
 	id: number;
 }
 
+/** A named deployment environment and the protection rules on it. */
 export interface Environment {
+	/** The environment's name, e.g. `production`. */
 	name: string;
+	/** Who must approve a deployment to the environment. */
 	reviewers?: EnvironmentReviewer[];
+	/** Minutes a deployment waits before it proceeds. */
 	waitTimer?: number;
+	/** Whether the person who started a deployment is barred from approving it. */
 	preventSelfReview?: boolean;
 }
 
+/** Named deployment environments and their protection rules. */
 export interface Environments extends ProviderIdentity {
+	/** Identifies this provider as the `environments` capability. */
 	readonly key: "environments";
+	/** Every environment on the repository. */
 	listEnvironments(): Promise<Environment[]>;
+	/** Create the environment, or bring an existing one of that name in line with `env`. */
 	upsertEnvironment(env: Environment): Promise<void>;
+	/** Delete the environment with the given name. */
 	deleteEnvironment(name: string): Promise<void>;
 }
 
@@ -503,30 +587,45 @@ export interface Environments extends ProviderIdentity {
 // issues — tracker
 // ───────────────────────────────────────────────────────────────────────
 
+/** A step in an issue's life that {@link Issues.transition} can move it to. */
 export type LifecycleSlot = "inProgress" | "inReview" | "done";
 
+/** The tracker-neutral group a provider's own status names fall into. */
 export type StatusCategory = "open" | "in-progress" | "in-review" | "done" | "other";
 
+/** A person in the issue tracker. */
 export interface TrackerUser {
+	/** The tracker's id for the person. */
 	id: string;
+	/** The name shown for the person. */
 	displayName: string;
+	/** Their email address, when the tracker shares it. */
 	emailAddress?: string;
 }
 
+/** An issue in the tracker, in a shape that does not depend on the provider. */
 export interface Issue {
 	/** Human-readable key — "#42" for GitHub, "RANDO-42" for Jira. */
 	key: string;
 	/** Internal opaque id. */
 	id: string;
+	/** The issue's title. */
 	summary: string;
+	/** The issue's description; `undefined` when the provider did not return one. */
 	body?: string;
+	/** The provider's own status name. */
 	status: string;
+	/** The group the status falls into. */
 	statusCategory: StatusCategory;
+	/** Who the issue is assigned to; `null` when nobody. */
 	assignee: TrackerUser | null;
+	/** When the issue last changed, as an ISO timestamp. */
 	updated: string;
+	/** The address of the issue's page, when the provider gives one. */
 	url?: string;
 }
 
+/** What {@link Issues.search} narrows its result by; a field left out does not filter. */
 export interface IssueSearchFilter {
 	/** Restrict to issues assigned to a specific id, or 'currentUser'. */
 	assignee?: string | "currentUser";
@@ -536,6 +635,7 @@ export interface IssueSearchFilter {
 	limit?: number;
 }
 
+/** What {@link Issues.transition} did. */
 export interface LifecycleResult {
 	/** False when no API write happened (already at target state). */
 	transitioned: boolean;
@@ -545,6 +645,7 @@ export interface LifecycleResult {
 	via?: string;
 }
 
+/** What {@link Issues.doctor} found about the tracker connection, for `holocron doctor` to print. */
 export interface TrackerDoctorReport {
 	/** "Authenticated as ..." subject for the spinner. */
 	authedAs: string;
@@ -565,15 +666,20 @@ export interface TrackerDoctorReport {
 	}>;
 }
 
+/** An issue tracker: finds, reads, creates, moves and comments on issues. */
 export interface Issues extends ProviderIdentity {
+	/** Identifies this provider as the `issues` capability. */
 	readonly key: "issues";
 
 	/** Currently-authenticated user. */
 	getMyself(): Promise<TrackerUser>;
 
+	/** Issues matching `filter`. */
 	search(filter: IssueSearchFilter): Promise<Issue[]>;
+	/** One issue by its human-readable key (e.g. `#42`). */
 	get(key: string): Promise<Issue>;
 
+	/** Open a new issue and return its key. */
 	create(input: {
 		summary: string;
 		body?: string;
@@ -585,8 +691,10 @@ export interface Issues extends ProviderIdentity {
 	/** Idempotent — `transitioned: false` if the issue is already at the target. */
 	transition(key: string, slot: LifecycleSlot): Promise<LifecycleResult>;
 
+	/** Add a comment to the issue. */
 	comment(key: string, body: string): Promise<void>;
 
+	/** Check the tracker connection and how the lifecycle slots map onto the tracker's statuses. */
 	doctor(): Promise<TrackerDoctorReport>;
 }
 
@@ -603,30 +711,42 @@ export type DeploymentTarget = "development" | "preview" | "production";
  */
 export type DeploymentTrigger = "production" | "staging";
 
+/** A project on the deployment platform. */
 export interface DeploymentProject {
+	/** The platform's id for the project. */
 	id: string;
+	/** The project's name. */
 	name: string;
+	/** The framework preset the project uses, when the platform reports one. */
 	framework?: string;
 	/** True when the project is linked to a Git provider. */
 	gitLinked?: boolean;
+	/** The directory in the repository the project builds from; `null` or `undefined` for the repository root. */
 	rootDirectory?: string | null;
 }
 
+/** The project settings {@link Deployment.updateProjectSettings} can change; a field left out is left alone. */
 export interface DeploymentProjectSettings {
+	/** Turn off preview deployments for the project. */
 	previewDeploymentsDisabled?: boolean;
 	/** Vercel-specific: whether the GitHub integration creates deployments
 	 * for every push (false → only on-demand triggers). */
 	gitProviderCreateDeployments?: boolean;
 }
 
+/** One deployment on the platform. */
 export interface DeploymentRecord {
+	/** The platform's id for the deployment. */
 	id: string;
+	/** The address the deployment is served at. */
 	url: string;
 	/** Branch this deployment was made from (null if not git-sourced). */
 	branch: string | null;
 	/** Named environment if one was targeted; undefined for branch previews. */
 	target?: DeploymentTrigger;
+	/** Where the deployment is in its build. */
 	status: "queued" | "building" | "ready" | "error" | "cancelled";
+	/** When the deployment was created, as an ISO timestamp. */
 	createdAt?: string;
 	/** The provider's own reason when `status` is `"error"` (e.g. Vercel's `Command "npm install" exited with 1`). */
 	errorMessage?: string;
@@ -647,12 +767,17 @@ export interface DeployFunctionConfig {
 	target?: DeploymentTrigger;
 }
 
+/** What {@link Deployment.deployFunction} made. */
 export interface DeployFunctionResult {
+	/** The platform's id for the new deployment. */
 	deploymentId: string;
+	/** The address the deployment is served at. */
 	url: string;
 }
 
+/** A deployment platform: projects, environment variables and deployments. */
 export interface Deployment extends ProviderIdentity {
+	/** Identifies this provider as the `deployment` capability. */
 	readonly key: "deployment";
 	/**
 	 * Custom domain declared in the deployment provider's configuration.
@@ -661,6 +786,7 @@ export interface Deployment extends ProviderIdentity {
 	 */
 	readonly domain?: string;
 
+	/** Every project the account can see. */
 	listProjects(): Promise<DeploymentProject[]>;
 	/** Create if missing, otherwise return existing. Idempotent. */
 	ensureProject(input: {
@@ -671,10 +797,13 @@ export interface Deployment extends ProviderIdentity {
 		rootDirectory?: string;
 	}): Promise<DeploymentProject>;
 
+	/** Change the project's settings; only the fields given are changed. Returns the project afterwards. */
 	updateProjectSettings(projectId: string, settings: DeploymentProjectSettings): Promise<DeploymentProject>;
 
 	// Env vars on the deploy platform (Vercel-style: per-target).
+	/** The names (not values) of the environment variables set on the project for `target`. */
 	listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]>;
+	/** Set an environment variable on the project for `target`, replacing any existing value. */
 	setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void>;
 
 	/**
@@ -688,6 +817,7 @@ export interface Deployment extends ProviderIdentity {
 		target?: DeploymentTrigger;
 	}): Promise<DeploymentRecord>;
 
+	/** One deployment by its id. */
 	getDeployment(deploymentId: string): Promise<DeploymentRecord>;
 
 	/**
@@ -733,20 +863,27 @@ export interface Deployment extends ProviderIdentity {
 // storage — DB / object / file store
 // ───────────────────────────────────────────────────────────────────────
 
+/** A branch of a database or other store, as {@link Storage.listBranches} reports it. */
 export interface StorageBranch {
+	/** The provider's id for the branch. */
 	id: string;
+	/** The branch's name. */
 	name: string;
 	/** Parent branch id; null for the root/main branch. */
 	parentId: string | null;
+	/** When the branch was created, as an ISO timestamp. */
 	createdAt: string;
 }
 
+/** Options for {@link Storage.getConnectionString}. */
 export interface ConnectionStringOptions {
 	/** Use the pooled (PgBouncer) URL when available. Defaults to false. */
 	pooled?: boolean;
 }
 
+/** A database or file store: connection strings and, for providers that have them, branches. */
 export interface Storage extends ProviderIdentity {
+	/** Identifies this provider as the `storage` capability. */
 	readonly key: "storage";
 
 	/**
@@ -762,8 +899,11 @@ export interface Storage extends ProviderIdentity {
 	getConnectionString(scope: string, options?: ConnectionStringOptions): Promise<string>;
 
 	// Branch operations (optional — flat providers can omit).
+	/** Every branch of the store. */
 	listBranches?(): Promise<StorageBranch[]>;
+	/** Create a branch named `name`, copied from the `from` branch when given. */
 	createBranch?(input: { name: string; from?: string }): Promise<StorageBranch>;
+	/** Delete the branch (by name or id). */
 	destroyBranch?(branch: string): Promise<void>;
 	/** Restore one branch to match another (e.g., reset preview → main). */
 	resetBranch?(input: { branch: string; from: string }): Promise<void>;
@@ -779,35 +919,51 @@ export interface Storage extends ProviderIdentity {
 // auth — identity provider
 // ───────────────────────────────────────────────────────────────────────
 
+/** What the auth provider needs the app to be given at runtime. */
 export interface AuthDescription {
+	/** The provider's name. */
 	provider: string;
 	/** Env-var names the app needs at runtime (CLERK_PUBLISHABLE_KEY, etc.). */
 	envKeys: string[];
 }
 
+/** What {@link Auth.whoami} found out about the configured credentials. */
 export interface AuthIdentity {
+	/** The provider's name. */
 	provider: string;
 	/** Provider-specific health signal (user count, role, account name, etc.). */
 	details?: Record<string, unknown>;
 }
 
+/** A user in the auth provider. */
 export interface AuthUser {
+	/** The provider's id for the user. */
 	id: string;
+	/** The user's email address. */
 	email: string;
 }
 
+/** What {@link Auth.createUser} needs to make a user. */
 export interface CreateAuthUserInput {
+	/** The new user's email address. */
 	email: string;
+	/** The new user's password. */
 	password: string;
+	/** The new user's first name. */
 	firstName?: string;
+	/** The new user's last name. */
 	lastName?: string;
 }
 
+/** Where to configure the auth provider's webhooks. */
 export interface WebhookDashboardInfo {
+	/** The address of the provider's webhook settings page. */
 	url: string;
 }
 
+/** An identity provider: describes what an app needs from it, proves the credentials work and, where the provider allows, manages users and webhooks. */
 export interface Auth extends ProviderIdentity {
+	/** Identifies this provider as the `auth` capability. */
 	readonly key: "auth";
 
 	/** Env-var keys the runtime app needs. */
@@ -854,24 +1010,34 @@ export interface Auth extends ProviderIdentity {
 // Swap clerk for another auth plugin → change one import line; the
 // handler logic stays the same.
 
+/** What happened to a user, in a form that does not depend on the auth provider. */
 export type AuthEventType = "user.created" | "user.updated" | "user.deleted";
 
+/** A user as a webhook event reports it, in a form that does not depend on the auth provider. */
 export interface NormalizedAuthUser {
+	/** The provider's id for the user. */
 	id: string;
+	/** The user's email address. */
 	email: string;
+	/** The user's first name; `null` or `undefined` when none is set. */
 	firstName?: string | null;
+	/** The user's last name; `null` or `undefined` when none is set. */
 	lastName?: string | null;
 	/** Provider-native fields preserved verbatim for consumers that need them. */
 	raw?: Record<string, unknown>;
 }
 
+/** A webhook event from the auth provider, in a form that does not depend on the provider. */
 export interface AuthEvent {
+	/** What happened to the user. */
 	type: AuthEventType;
+	/** The user the event is about. */
 	user: NormalizedAuthUser;
 	/** ISO timestamp of when the event occurred. */
 	occurredAt: string;
 }
 
+/** What a plugin's `parseWebhook` needs to verify and translate an incoming webhook request. */
 export interface ParseWebhookInput {
 	/** Raw request body (string or Buffer). */
 	body: string | Buffer;
@@ -885,12 +1051,15 @@ export interface ParseWebhookInput {
 // vault — REQUIRED source-of-truth for secrets
 // ───────────────────────────────────────────────────────────────────────
 
+/** The outcome of an idempotent `ensure*` call that creates a container. */
 export interface EnsureResult {
 	/** True when the resource already existed (idempotent no-op). */
 	alreadyExists: boolean;
 }
 
+/** A secret store, the source of truth that `holocron secrets sync` reads from. */
 export interface Vault extends ProviderIdentity {
+	/** Identifies this provider as the `vault` capability. */
 	readonly key: "vault";
 
 	/**
@@ -947,15 +1116,24 @@ export interface Vault extends ProviderIdentity {
 // dns — DNS record management
 // ───────────────────────────────────────────────────────────────────────
 
+/** The DNS record types a provider can manage. */
 export type DnsRecordType = "A" | "AAAA" | "CNAME" | "TXT" | "MX" | "NS" | "SRV" | "CAA";
 
+/** A DNS record. */
 export interface DnsRecord {
+	/** The provider's id for the record; absent on a record not yet created. */
 	id?: string;
+	/** The record's type. */
 	type: DnsRecordType;
+	/** The record's name (the host it answers for). */
 	name: string;
+	/** The record's value, e.g. an address for `A` or a target host for `CNAME`. */
 	content: string;
+	/** Time to live in seconds; the provider's default when absent. */
 	ttl?: number;
+	/** Priority, for the record types that have one (`MX`, `SRV`). */
 	priority?: number;
+	/** Whether traffic goes through the provider's proxy; only providers that offer one use it. */
 	proxied?: boolean;
 }
 
@@ -968,13 +1146,19 @@ export interface DnsRecord {
 export interface DnsRecordRequest {
 	/** Zone apex passed as the first argument to `dns.upsertRecord`. */
 	zone: string;
+	/** The record to create or update. */
 	record: DnsRecord;
 }
 
+/** DNS record management for a domain. */
 export interface Dns extends ProviderIdentity {
+	/** Identifies this provider as the `dns` capability. */
 	readonly key: "dns";
+	/** Every record in the domain's zone. */
 	listRecords(domain: string): Promise<DnsRecord[]>;
+	/** Create the record, or update the existing one that matches it, and return the result. */
 	upsertRecord(domain: string, record: DnsRecord): Promise<DnsRecord>;
+	/** Delete the record with the given id from the domain's zone. */
 	deleteRecord(domain: string, id: string): Promise<void>;
 	/**
 	 * A `holocron doctor` smoke check with no specific domain to ask about —
@@ -994,7 +1178,9 @@ export interface Dns extends ProviderIdentity {
 // enables `holocron repo setup` provisioning and `holocron doctor` checks.
 // ───────────────────────────────────────────────────────────────────────
 
+/** Error tracking: describes what an app needs at runtime and, where the provider allows, creates projects and relays alerts. */
 export interface Errors extends ProviderIdentity {
+	/** Identifies this provider as the `errors` capability. */
 	readonly key: "errors";
 	/** Returns the env var names the app reads at runtime for this provider. */
 	describe(): Promise<{ provider: string; envKeys: string[] }>;
@@ -1007,6 +1193,7 @@ export interface Errors extends ProviderIdentity {
 	 * Still throws for a genuine failure (bad token, network error, etc.).
 	 */
 	whoami?(): Promise<{ org: string } | null>;
+	/** Create the project if it is missing and return its DSN; `alreadyExists` is true when it was already there. */
 	ensureProject?(input: { name: string; platform?: string }): Promise<{ dsn: string; alreadyExists: boolean }>;
 	/**
 	 * Make the tracker send its alerts to a relay (the Comlink Worker): an integration that posts to `webhookUrl`, and
@@ -1024,6 +1211,7 @@ export interface Errors extends ProviderIdentity {
 	inspectRelay?(input: InspectRelayInput): Promise<RelayState>;
 }
 
+/** What {@link Errors.ensureRelay} sets up at the error tracker. */
 export interface EnsureRelayInput {
 	/** The integration's name at the provider (also how an existing one is found). */
 	name: string;
@@ -1032,7 +1220,12 @@ export interface EnsureRelayInput {
 	/** The projects whose issues are sent. */
 	projects: string[];
 	/** The alert rule: its name, and the minutes between two notifications for one issue (default 5). */
-	rule: { name: string; frequency?: number };
+	rule: {
+		/** The alert rule's name at the provider (also how an existing one is found). */
+		name: string;
+		/** Minutes between two notifications for one issue; 5 when absent. */
+		frequency?: number;
+	};
 }
 
 /** Which integration and alert rule to read back: the names `ensureRelay` was given, without the parts that write. */
@@ -1069,13 +1262,29 @@ export interface RelayState {
 	}>;
 }
 
+/** What {@link Errors.ensureRelay} did. */
 export interface EnsureRelayResult {
-	integration: { created: boolean; updated: string[] };
-	rule: { created: boolean; updated: string[] };
+	/** The integration that posts to the relay. */
+	integration: {
+		/** Whether it was made now rather than adopted. */
+		created: boolean;
+		/** For one adopted, the settings that differed and were changed. */
+		updated: string[];
+	};
+	/** The alert rule that sends through the integration. */
+	rule: {
+		/** Whether it was made now rather than adopted. */
+		created: boolean;
+		/** For one adopted, the settings that differed and were changed. */
+		updated: string[];
+	};
+	/** The integration's signing secret, for the relay to verify alerts with. A credential: never print or store it. */
 	clientSecret?: string;
 }
 
+/** Log aggregation: describes what an app needs at runtime and, where the provider allows, creates the dataset. */
 export interface Logs extends ProviderIdentity {
+	/** Identifies this provider as the `logs` capability. */
 	readonly key: "logs";
 	/** Returns the env var names the app reads at runtime for this provider. */
 	describe(): Promise<{ provider: string; envKeys: string[] }>;
@@ -1100,29 +1309,41 @@ export interface Logs extends ProviderIdentity {
 // adapter, not leaked into this interface.
 // ───────────────────────────────────────────────────────────────────────
 
+/** What part of a response a {@link MonitoringAssertion} looks at. */
 export type MonitoringAssertionSource = "status_code" | "response_time" | "body" | "header";
 
+/** How a {@link MonitoringAssertion} compares the part of the response with its target. */
 export type MonitoringAssertionComparison =
 	"equals" | "not_equals" | "contains" | "not_contains" | "greater_than" | "less_than";
 
+/** A condition a monitoring check's response must meet to pass. */
 export interface MonitoringAssertion {
+	/** The part of the response to look at. */
 	source: MonitoringAssertionSource;
+	/** How to compare it with `target`. */
 	comparison: MonitoringAssertionComparison;
 	/** Header name / JSON path — required when `source` needs one (e.g. `"header"`). */
 	property?: string;
+	/** The value to compare against. */
 	target?: string;
 }
 
+/** The HTTP methods a monitoring check can use. */
 export type MonitoringHttpMethod = "GET" | "POST" | "PUT" | "HEAD" | "DELETE" | "PATCH";
 
+/** A monitoring check, in a form that does not depend on the provider. */
 export interface MonitoringCheckInput {
 	/** Also the idempotency key — `ensureCheck` finds-or-creates by this name. */
 	name: string;
+	/** The address to request. */
 	url: string;
+	/** The HTTP method; the provider's default when absent. */
 	method?: MonitoringHttpMethod;
 	/** Minutes between runs. Adapters round to their own supported values. */
 	frequency?: number;
+	/** Conditions the response must meet; the provider's default check when absent. */
 	assertions?: MonitoringAssertion[];
+	/** Whether the check runs; the provider's default when absent. */
 	activated?: boolean;
 	/**
 	 * Provider-specific region/datacenter ids to run the check from (e.g.
@@ -1150,8 +1371,11 @@ export interface MonitoringCheckInput {
 	body?: string;
 }
 
+/** A check as the provider holds it. */
 export interface MonitoringCheck {
+	/** The provider's id for the check. */
 	id: string;
+	/** The check's name. */
 	name: string;
 }
 
@@ -1169,7 +1393,9 @@ export interface MonitoringAlertChannelInput {
 	url?: string;
 }
 
+/** What {@link Monitoring.ensureAlertChannel} did. */
 export interface MonitoringAlertChannelResult {
+	/** Whether the channel was made now rather than already existing. */
 	created: boolean;
 	/** For an existing channel, what was brought in line (`"url"`, `"subscriptions"`). */
 	updated: string[];
@@ -1194,7 +1420,9 @@ export interface MonitoringAlertChannelState {
 	deactivated: string[];
 }
 
+/** External uptime and synthetic checks run from the provider's infrastructure against a deployed URL. */
 export interface Monitoring extends ProviderIdentity {
+	/** Identifies this provider as the `monitoring` capability. */
 	readonly key: "monitoring";
 	/**
 	 * Checks this provider is configured to ensure exist — populated from
@@ -1208,7 +1436,12 @@ export interface Monitoring extends ProviderIdentity {
 	 * The service's own picture, for the webhook it posts through (see `feeds.monitoring`): where to fetch it, and the
 	 * image itself as a `data:` URI for when that cannot be reached. Used when the config names no picture of its own.
 	 */
-	readonly icon?: { url?: string; dataUri?: string };
+	readonly icon?: {
+		/** Where to fetch the picture. */
+		url?: string;
+		/** The picture itself as a `data:` URI, for when `url` cannot be reached. */
+		dataUri?: string;
+	};
 	/** Auth sanity-check. Throws ProviderApiError on auth failure. */
 	whoami?(): Promise<{ ok: boolean }>;
 	/** Idempotent find-or-create-or-update by `input.name`. */
@@ -1236,23 +1469,31 @@ export interface Monitoring extends ProviderIdentity {
 // Multi-provider capabilities — many can be active at once
 // ───────────────────────────────────────────────────────────────────────
 
+/** What {@link Tooling.doctor} found. */
 export interface ToolingDoctorReport {
+	/** Whether the tool is in a good state. */
 	ok: boolean;
+	/** What to show the person: what was found, or what is wrong. */
 	message: string;
 }
 
+/** A developer tool kept in step with the repo; several can be active at once. */
 export interface Tooling extends ProviderIdentity {
+	/** Identifies this provider as the `tooling` capability. */
 	readonly key: "tooling";
 
 	/** Sync the tool's authoritative state from the repo. */
 	sync(): Promise<void>;
 
+	/** Check the tool is set up and working, and report what was found. */
 	doctor(): Promise<ToolingDoctorReport>;
 }
 
 /** What an `ensure*` call found or made. `created: false` means it already existed. */
 export interface EnsuredResource {
+	/** The provider's id for the resource. */
 	id: string;
+	/** Whether the resource was made now rather than already existing. */
 	created: boolean;
 	/** For something that already existed: the settings that disagreed with the layout and were changed. */
 	updated?: string[];
@@ -1260,6 +1501,7 @@ export interface EnsuredResource {
 
 /** A webhook (or equivalent inbound URL) for a channel. */
 export interface EnsureWebhookResult {
+	/** Whether the webhook was made now rather than already existing. */
 	created: boolean;
 	/**
 	 * The posting URL — a credential. Absent when the webhook already existed and
@@ -1287,7 +1529,9 @@ export interface NotificationsAccess {
 
 /** One channel in a {@link NotificationsLayout}. */
 export interface NotificationsChannelLayout {
+	/** The channel's name. */
 	name: string;
+	/** The channel's topic text. */
 	topic?: string;
 	/** Who may see and post. Overrides the category's, field by field. */
 	access?: NotificationsAccess;
@@ -1379,6 +1623,7 @@ export interface NotificationsOnboardingLayout {
 	enabled?: boolean;
 	/** Channels every member starts with, by name. */
 	defaultChannels?: string[];
+	/** The questions asked, in order. */
 	prompts?: Array<{
 		title: string;
 		/** One answer only (`true`) or any number. Defaults to `false`. */
@@ -1407,7 +1652,12 @@ export interface NotificationsApplicationLayout {
 	/** Short labels, up to five of up to twenty characters each. */
 	tags?: string[];
 	/** The default install link: what the bot is added with. Permissions are named, as in a role's. */
-	install?: { scopes: string[]; permissions: string[] };
+	install?: {
+		/** The OAuth2 scopes the install link asks for. */
+		scopes: string[];
+		/** The permissions the bot is added with, named as in a role's. */
+		permissions: string[];
+	};
 	/** `https://` link to the terms of service. */
 	termsUrl?: string;
 	/** `https://` link to the privacy policy. */
@@ -1418,7 +1668,10 @@ export interface NotificationsApplicationLayout {
 	 * Privileged intents the bot needs. `members` lets it list who is in the server, which `sync-roles` needs to
 	 * find who holds a role. `true` switches it on from code; `false` switches it off.
 	 */
-	intents?: { members?: boolean };
+	intents?: {
+		/** The server members intent: lets the bot list who is in the server. */
+		members?: boolean;
+	};
 	/**
 	 * OAuth2 redirect URIs that must be registered, for `notifications link`. The provider's API does not allow
 	 * setting them, so these are only checked: `setup` and the doctor say what to add and where.
@@ -1492,7 +1745,16 @@ export interface NotificationsLayout {
 		 * are sent, the integration's name (default `Comlink`) and the alert rule's name (default
 		 * `Errors to Discord (Comlink)`) and throttle in minutes (default 5). Left out, nothing is done at the tracker.
 		 */
-		errors?: { projects: string[]; integration?: string; rule?: string; frequency?: number };
+		errors?: {
+			/** The tracker projects whose issues are sent. */
+			projects: string[];
+			/** The integration's name at the tracker; `Comlink` when absent. */
+			integration?: string;
+			/** The alert rule's name; `Errors to Discord (Comlink)` when absent. */
+			rule?: string;
+			/** Minutes between two notifications for one issue; 5 when absent. */
+			frequency?: number;
+		};
 	};
 	/** What a new member sees on joining, applied after the channels exist. */
 	welcome?: NotificationsWelcomeLayout;
@@ -1505,7 +1767,9 @@ export interface NotificationsLayout {
 	pinned?: NotificationsPinnedLayout[];
 	/** Settings of the server itself, applied after its channels exist. */
 	server?: NotificationsServerLayout;
+	/** The categories to create, each with the channels under it. */
 	categories?: Array<{ name: string; access?: NotificationsAccess; channels?: NotificationsChannelLayout[] }>;
+	/** The roles to create. */
 	roles?: Array<{
 		name: string;
 		mentionable?: boolean;
@@ -1545,7 +1809,10 @@ export interface ServerInspection {
 	/** Set when reading the application failed; `application` is then absent and means nothing. */
 	applicationError?: string;
 	/** What everyone may do, by permission name, when the layout declares `everyone`. */
-	everyone?: { permissions: string[] };
+	everyone?: {
+		/** The permissions everyone holds now, by name. */
+		permissions: string[];
+	};
 	/** Set when reading everyone's permissions failed; `everyone` is then absent and means nothing. */
 	everyoneError?: string;
 	/** The welcome screen as the server has it, in the layout's terms, when the layout declares `welcome`. */
@@ -1564,12 +1831,14 @@ export interface ServerInspection {
 	server?: NotificationsServerLayout;
 	/** Set when reading the server's settings failed; `server` is then absent and means nothing. */
 	serverError?: string;
+	/** Names of the categories on the server. */
 	categories: string[];
 	/**
 	 * Who can see and post in each category. `"custom"` means its overwrites are not an access the layout
 	 * can state (a role-specific deny, a member overwrite, only some of the posting permissions).
 	 */
 	categoryAccess?: Record<string, Required<NotificationsAccess> | "custom">;
+	/** The channels the layout asks about, as the server has them. */
 	channels: Array<{
 		name: string;
 		/** The category it sits under, if any. */
@@ -1586,6 +1855,7 @@ export interface ServerInspection {
 		/** Who can see and post; `"custom"` as for `categoryAccess`. */
 		access?: Required<NotificationsAccess> | "custom";
 	}>;
+	/** The roles on the server. */
 	roles: Array<{
 		name: string;
 		id: string;
@@ -1603,29 +1873,40 @@ export interface ServerInspection {
 export interface NotificationsSignedIn {
 	/** Their id on the provider; for Discord, the user id. */
 	member: string;
+	/** Their name on the provider, when it gives one. */
 	name?: string;
 	/** The GitHub account the provider has verified they own; absent when they have none linked. */
-	github?: { id: string; login: string };
+	github?: {
+		/** The GitHub user id, as a string. */
+		id: string;
+		/** The GitHub login. */
+		login: string;
+	};
 }
 
 /** The provider's "sign in" half: build the page a member opens, then learn who they are from the code it sends back. */
 export interface NotificationsSignIn {
+	/** The address of the provider's sign-in page, carrying the redirect address and state given. */
 	authorizeUrl(input: { redirectUri: string; state: string }): Promise<string>;
 	/** Trades the one-use `code` for who they are, and discards the token it was given. */
 	complete(input: { redirectUri: string; code: string }): Promise<NotificationsSignedIn>;
 }
 
-/** A member of the server, as {@link Notifications.roleMembers} reports it. */
 /** What {@link Notifications.checkDelivery} saw: each step that went wrong is named in `problems`. */
 export interface NotificationsDelivery {
+	/** The message was posted through the channel's webhook. */
 	posted: boolean;
+	/** The message was found in the channel afterwards. */
 	readBack: boolean;
+	/** The message was deleted again. */
 	removed: boolean;
 	/** Set when the message was deliberately left in the channel (`keep`), so `removed` is false on purpose. */
 	kept?: boolean;
+	/** What went wrong at each failed step; empty when delivery worked. */
 	problems: string[];
 }
 
+/** A member of the server, as {@link Notifications.roleMembers} reports it. */
 export interface NotificationsMember {
 	/** The provider's id for them; for Discord, the user id. */
 	id: string;
@@ -1633,7 +1914,9 @@ export interface NotificationsMember {
 	name?: string;
 }
 
+/** Chat notifications: posts messages and, where the provider allows, builds the server a layout describes. */
 export interface Notifications extends ProviderIdentity {
+	/** Identifies this provider as the `notifications` capability. */
 	readonly key: "notifications";
 
 	/**
@@ -1654,12 +1937,14 @@ export interface Notifications extends ProviderIdentity {
 	 * URL — so a provider that only posts simply omits them.
 	 */
 	ensureCategory?(name: string, opts?: { access?: NotificationsAccess }): Promise<EnsuredResource>;
+	/** Find or create a channel, under its category when named, with its topic and access. */
 	ensureChannel?(input: {
 		name: string;
 		category?: string;
 		topic?: string;
 		access?: NotificationsAccess;
 	}): Promise<EnsuredResource>;
+	/** Find or create a webhook named `name` on the channel, creating the channel first if it is missing. */
 	ensureWebhook?(input: {
 		channel: string;
 		name: string;
@@ -1716,6 +2001,7 @@ export interface Notifications extends ProviderIdentity {
 	/** Sign-in used to learn which GitHub account a member is. Optional; needs an OAuth client secret. */
 	signIn?(): NotificationsSignIn;
 
+	/** Find or create a role; one that exists has its settings brought in line. */
 	ensureRole?(input: {
 		name: string;
 		mentionable?: boolean;
@@ -1778,11 +2064,15 @@ export interface Notifications extends ProviderIdentity {
 	inspect?(layout: NotificationsLayout): Promise<ServerInspection>;
 }
 
+/** Product analytics: describes what an app needs at runtime and, where the provider allows, creates projects. */
 export interface Analytics extends ProviderIdentity {
+	/** Identifies this provider as the `analytics` capability. */
 	readonly key: "analytics";
 	/** Returns the env var names the app reads at runtime for this provider. */
 	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	/** Reachability probe: proves the credentials work and names the organization they belong to. */
 	whoami?(): Promise<{ org: string }>;
+	/** Create the project if it is missing and return its ingestion token; `alreadyExists` is true when it was there. */
 	ensureProject?(name: string): Promise<{ token: string; alreadyExists: boolean }>;
 }
 
@@ -1790,6 +2080,7 @@ export interface Analytics extends ProviderIdentity {
 // wiki — engineering knowledge publishing platform
 // ───────────────────────────────────────────────────────────────────────
 
+/** Options for {@link Wiki.provision}. */
 export interface WikiProvisionOpts {
 	/** Project display name used in the wiki title (e.g. "Holocron"). */
 	name?: string;
@@ -1816,6 +2107,7 @@ export interface WikiProxyConfig {
  * providers (github) make API calls.
  */
 export interface Wiki extends ProviderIdentity {
+	/** Identifies this provider as the `wiki` capability. */
 	readonly key: "wiki";
 	/** Provision the wiki — write config files or call the provider API. */
 	provision(opts?: WikiProvisionOpts): Promise<string>;
@@ -1869,6 +2161,7 @@ export interface WorkerScriptState {
 	bindingNames: string[];
 }
 
+/** What {@link Workers.deployScript} made. */
 export interface DeployScriptResult {
 	/** The deployed script's name at the provider. */
 	scriptName: string;
@@ -1884,6 +2177,7 @@ export interface DeployScriptResult {
  * receiver, for instance).
  */
 export interface Workers extends ProviderIdentity {
+	/** Identifies this provider as the `workers` capability. */
 	readonly key: "workers";
 	/**
 	 * Deploy (or update) a reverse-proxy Worker for `hostname`.
@@ -1918,27 +2212,47 @@ export interface Workers extends ProviderIdentity {
 // Capability map (key → implementation type) + cardinality helpers
 // ───────────────────────────────────────────────────────────────────────
 
+/** Maps each capability key to the interface its provider implements. */
 export interface CapabilityImpls {
+	/** The `source` provider. */
 	source: Source;
+	/** The `ci` provider. */
 	ci: Ci;
+	/** The `secrets` provider. */
 	secrets: Secrets;
+	/** The `environments` provider. */
 	environments: Environments;
+	/** The `issues` provider. */
 	issues: Issues;
+	/** The `deployment` provider. */
 	deployment: Deployment;
+	/** The `storage` provider. */
 	storage: Storage;
+	/** The `auth` provider. */
 	auth: Auth;
+	/** The `vault` provider. */
 	vault: Vault;
+	/** The `dns` provider. */
 	dns: Dns;
+	/** The `tooling` provider. */
 	tooling: Tooling;
+	/** The `notifications` provider. */
 	notifications: Notifications;
+	/** The `analytics` provider. */
 	analytics: Analytics;
+	/** The `errors` provider. */
 	errors: Errors;
+	/** The `logs` provider. */
 	logs: Logs;
+	/** The `monitoring` provider. */
 	monitoring: Monitoring;
+	/** The `wiki` provider. */
 	wiki: Wiki;
+	/** The `workers` provider. */
 	workers: Workers;
 }
 
+/** The cardinality (`"single"` or `"many"`) of the capability `K`. */
 export type CardinalityFor<K extends CapabilityKey> = (typeof CARDINALITY)[K];
 
 /** Resolved runtime shape: single → one impl; many → array. */

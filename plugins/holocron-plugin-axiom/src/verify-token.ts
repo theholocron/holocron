@@ -17,6 +17,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks an Axiom token by fetching the current user; the success subject is `user @` followed by the email, name or id, the failure carries the error message. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createAxiomClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

@@ -10,6 +10,7 @@ import { DOCS_PROVIDER, docsCoverageProbes } from "./docs-coverage/index.js";
 import { GENERATED_PROVIDER, generatedProbes } from "./generated/index.js";
 import { listProbes } from "./list-probes.js";
 import type { ProbeCommandReport, RunProbeCommandInput } from "./probe.type.js";
+import { CI_PROVIDER, ciProbes } from "./references/index.js";
 import { runProbe } from "./run-probe.js";
 
 /**
@@ -41,6 +42,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 
 	groups.set(DEPS_PROVIDER, depsProbes(input.context.repoRoot, print));
 	groups.set(GENERATED_PROVIDER, generatedProbes(input.loaded, input.context.repoRoot));
+	groups.set(CI_PROVIDER, ciProbes(input.context.org));
 
 	if (!input.provider) {
 		if (input.pick) await input.pick(groups);

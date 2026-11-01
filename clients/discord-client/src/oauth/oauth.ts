@@ -103,6 +103,7 @@ export function createDiscordOAuthClient(opts: DiscordOAuthClientOptions) {
 	};
 }
 
+/** The member-OAuth client returned by `createDiscordOAuthClient`. */
 export type DiscordOAuthClient = ReturnType<typeof createDiscordOAuthClient>;
 
 /**

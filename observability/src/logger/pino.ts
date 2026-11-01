@@ -17,24 +17,28 @@ export class PinoLogger implements Logger {
 		this.#pino = instance;
 	}
 
+	/** Logs at `debug` level. */
 	debug(obj: Record<string, unknown>, msg?: string): void;
 	debug(msg: string): void;
 	debug(objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		this.#emit("debug", objOrMsg, msg);
 	}
 
+	/** Logs at `info` level. */
 	info(obj: Record<string, unknown>, msg?: string): void;
 	info(msg: string): void;
 	info(objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		this.#emit("info", objOrMsg, msg);
 	}
 
+	/** Logs at `warn` level. */
 	warn(obj: Record<string, unknown>, msg?: string): void;
 	warn(msg: string): void;
 	warn(objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		this.#emit("warn", objOrMsg, msg);
 	}
 
+	/** Logs at `error` level. */
 	error(obj: Record<string, unknown>, msg?: string): void;
 	error(msg: string): void;
 	error(objOrMsg: Record<string, unknown> | string, msg?: string): void {
@@ -63,6 +67,7 @@ export class PinoLogger implements Logger {
 	}
 }
 
+/** Inputs for {@link createPinoInstance} and {@link buildPinoOptions}. */
 export interface CreatePinoInstanceInput {
 	/** Resolved log level. */
 	level: LogLevel;

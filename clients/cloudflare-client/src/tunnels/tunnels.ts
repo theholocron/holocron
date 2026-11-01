@@ -1,17 +1,26 @@
 import { cfRequest, type RestClient } from "../utils.js";
 
+/** A Cloudflare Tunnel. */
 export interface CfTunnel {
+	/** The tunnel's identifier. */
 	id: string;
+	/** The tunnel's name. */
 	name: string;
 }
 
+/** One ingress rule of a tunnel's configuration. */
 export interface CfIngressRule {
+	/** The hostname the rule matches; omitted for the catch-all rule. */
 	hostname?: string;
+	/** The origin service requests are sent to. */
 	service: string;
+	/** The path the rule matches, when it is limited to one. */
 	path?: string;
 }
 
+/** A tunnel's configuration. */
 export interface CfTunnelConfig {
+	/** The ingress rules, evaluated in order. */
 	ingress: CfIngressRule[];
 }
 

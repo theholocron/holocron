@@ -1,6 +1,7 @@
 import type { Linter } from "eslint";
 import eslintPackageJson from "eslint-package-json";
 
+/** ESLint flat config for `package.json` files: the `eslint-package-json` recommended rules, with the rules that misfire on pnpm catalogs and workspaces turned off. */
 export function packageJson(): Linter.Config[] {
 	return [
 		{

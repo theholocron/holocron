@@ -41,9 +41,12 @@ export interface RunOptions {
 	skipAccount?: boolean;
 }
 
+/** Thin wrapper around `spawnSync` that runs the `op` CLI and returns a uniform result. */
 export class OpShell {
 	private readonly spawnImpl: typeof spawnSync;
+	/** The `op` binary this wrapper runs; defaults to `"op"`. */
 	readonly binary: string;
+	/** The 1Password account UUID passed as `--account` on each call, when one is set. */
 	readonly account?: string;
 
 	constructor(opts: OpShellOptions = {}) {

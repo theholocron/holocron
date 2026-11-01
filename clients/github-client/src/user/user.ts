@@ -1,8 +1,12 @@
 import type { RestClient } from "../utils.js";
 
+/** The authenticated user, with only the fields this client reads. */
 export interface GitHubUser {
+	/** The user's login. */
 	login: string;
+	/** The user's display name, or `null` when not set. */
 	name: string | null;
+	/** The user's public email, or `null` when not set. */
 	email: string | null;
 }
 

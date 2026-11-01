@@ -1,8 +1,12 @@
 import type { RestClient } from "../utils.js";
 
+/** A Sentry organization. */
 export interface SentryOrganization {
+	/** The organization id. */
 	id: string;
+	/** The organization slug used in API paths. */
 	slug: string;
+	/** The organization's display name. */
 	name: string;
 }
 

@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createNetlifyClient`. */
 export interface NetlifyClientOptions {
 	/** Netlify Personal Access Token. */
 	token: string;

@@ -3,6 +3,7 @@ import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput
 export { AuthError };
 export type { ResolveTokenInput };
 
+/** Resolves the Doppler token from `--token`, `HOLOCRON_DOPPLER_TOKEN`, `DOPPLER_TOKEN` or the keyring entry for `doppler`, and throws `AuthError` when none is set. */
 export const resolveToken = createResolveToken({
 	envName: "HOLOCRON_DOPPLER_TOKEN",
 	vendorEnvName: "DOPPLER_TOKEN",

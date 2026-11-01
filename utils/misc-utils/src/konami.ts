@@ -1,3 +1,4 @@
+/** A `KeyboardEvent.code` value that appears in the Konami code. */
 export type TKonamiCode = "ArrowDown" | "ArrowLeft" | "ArrowRight" | "ArrowUp" | "KeyA" | "KeyB";
 
 export const CODE: TKonamiCode[] = [

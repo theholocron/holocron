@@ -34,8 +34,10 @@ const types = [
 	{ type: "test", section: "Tests", hidden: true },
 ];
 
+/** The `@semantic-release/commit-analyzer` plugin with the Conventional Commits preset: `feat` releases a minor, `fix`, `perf`, `refactor` and `chore(deps)` a patch, and a breaking change a major. */
 export const commitAnalyzer = ["@semantic-release/commit-analyzer", { preset: "conventionalcommits", releaseRules }];
 
+/** The `@semantic-release/release-notes-generator` plugin with the Conventional Commits preset, grouping commits into changelog sections by type. */
 export const releaseNotesGenerator = [
 	"@semantic-release/release-notes-generator",
 	{ preset: "conventionalcommits", presetConfig: { types } },

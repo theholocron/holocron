@@ -8,8 +8,11 @@ import type {
 import { ProviderApiError } from "@theholocron/cli";
 import type { CloudflareClient } from "@theholocron/cloudflare-client";
 
+/** The Cloudflare implementation of the `workers` capability, backed by Workers scripts and routes in one account. */
 export class CloudflareWorkers implements Workers {
+	/** The capability this class provides, always `"workers"`. */
 	readonly key = "workers" as const;
+	/** The provider name, `"cloudflare"`. */
 	readonly providerName = "cloudflare";
 
 	private readonly zoneCache = new Map<string, string>();

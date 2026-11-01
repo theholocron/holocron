@@ -26,6 +26,7 @@ function location({ slug, dir, path }: WorkspacePackage): string {
 	return path ?? `${dir ?? "packages"}/${slug}`;
 }
 
+/** The YAML list of components, one per package and grouped by workspace root, that `codecov.yml` carries. */
 export function codecovComponentBlock(packages: WorkspacePackage[]): string {
 	if (packages.length === 0) return "\n    []\n";
 	let group: string | undefined;

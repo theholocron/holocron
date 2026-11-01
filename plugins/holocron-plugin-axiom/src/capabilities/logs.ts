@@ -17,6 +17,7 @@ import { ProviderApiError } from "@theholocron/cli";
 
 import type { AxiomClient } from "../rest.js";
 
+/** Options for the Axiom `logs` capability. */
 export interface AxiomLogsOptions {
 	/**
 	 * Target dataset, resolved from `HOLOCRON_AXIOM_DATASET` /
@@ -26,8 +27,11 @@ export interface AxiomLogsOptions {
 	dataset?: string;
 }
 
+/** The `logs` capability for Axiom: checks a dataset is reachable and creates datasets that are missing. */
 export class AxiomLogs implements Logs {
+	/** The capability key, always `logs`. */
 	readonly key = "logs" as const;
+	/** The provider name, `axiom`. */
 	readonly providerName = "axiom";
 
 	/**

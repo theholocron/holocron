@@ -87,6 +87,7 @@ export {
 } from "./webhooks/webhooks.js";
 export type { GitHubWorkflowRun, WorkflowRunFilter } from "./workflows/workflows.js";
 
+/** Creates a GitHub client with a group of methods per API area (branches, pulls, issues, secrets and so on), backed by one REST client and one GraphQL client built from the same options. */
 export function createGitHubClient(opts: GitHubClientOptions) {
 	const rest = createGitHubRestClient(opts);
 	const graphql = createGitHubGraphQLApiClient(opts);
@@ -112,4 +113,5 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 	};
 }
 
+/** The client returned by `createGitHubClient()`: one group of methods per GitHub API area. */
 export type GitHubClient = ReturnType<typeof createGitHubClient>;

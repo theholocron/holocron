@@ -3,6 +3,7 @@ import { detectEnv, generateRunId, isCI, isTelemetryDisabled, resolveAxiomFromEn
 import { createPinoInstance, PinoLogger } from "./pino.js";
 import type { AxiomTransportConfig } from "./transports.js";
 
+/** Options for {@link createLogger}. */
 export interface LoggerConfig {
 	/**
 	 * Explicit level — the highest-priority source. The caller passes the
@@ -30,6 +31,7 @@ export interface LoggerConfig {
 	consoleOutput?: boolean;
 }
 
+/** What {@link createLogger} returns. */
 export interface CreateLoggerResult {
 	/** The logger to thread through modules via `child()`. */
 	logger: Logger;

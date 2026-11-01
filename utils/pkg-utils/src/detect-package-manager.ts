@@ -3,8 +3,10 @@ import { join } from "node:path";
 
 import { parsePackageJson } from "./parse-package-json.ts";
 
+/** A package manager that {@link detectPackageManager} can report. */
 export type PackageManager = "pnpm" | "npm" | "yarn" | "bun";
 
+/** Options for {@link detectPackageManager}. */
 export interface DetectPackageManagerOptions {
 	/** Replaces the `package.json` read — for callers with an injected or in-memory filesystem. */
 	readFile?: (path: string) => string;

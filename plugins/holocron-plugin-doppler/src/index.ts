@@ -14,6 +14,7 @@ import { DopplerVault, type DopplerVaultOptions } from "./capabilities/vault.js"
 import { createDopplerClient, type DopplerClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Doppler plugin: the token lookup inputs plus the default project and config. */
 export interface DopplerPluginOptions extends ResolveTokenInput, DopplerVaultOptions {
 	/** Override base URL for tests. */
 	baseUrl?: string;
@@ -21,11 +22,15 @@ export interface DopplerPluginOptions extends ResolveTokenInput, DopplerVaultOpt
 	fetch?: typeof fetch;
 }
 
+/** Shared state for one Doppler plugin instance: its options and a lazily created client. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: DopplerPluginOptions;
+	/** Returns the memoized Doppler client; the token is resolved on the first call, not at plugin load. */
 	client: () => DopplerClient;
 }
 
+/** Builds the plugin context from its options. */
 export function createContext(options: DopplerPluginOptions): PluginContext {
 	let client: DopplerClient | undefined;
 	return {
@@ -39,10 +44,12 @@ export function createContext(options: DopplerPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `vault` capability for the context's default project and config. */
 export function vault(ctx: PluginContext): Vault {
 	return new DopplerVault(ctx.client, { project: ctx.options.project, config: ctx.options.config });
 }
 
+/** Creates the Doppler plugin: its `connection` probe and the `vault` capability. */
 export function createPlugin(options: DopplerPluginOptions) {
 	const ctx = createContext(options);
 	return {

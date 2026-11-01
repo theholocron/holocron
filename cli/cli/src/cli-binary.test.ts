@@ -96,7 +96,7 @@ describe.concurrent("holocron (the built CLI)", { timeout: 30_000 }, () => {
 			expect(one.stdout).toContain("providers");
 			const unknown = await runCli(["probe", "nope"], { config: demo });
 			expect(unknown.code).toBe(1);
-			expect(unknown.stdout).toMatch(/no probes for `nope`\s+try: comlink, core/);
+			expect(unknown.stdout).toMatch(/no probes for `nope`\s+try: ci, comlink, core/);
 		});
 
 		it("runs a read-only probe and exits 0, listing the built-in group", async () => {

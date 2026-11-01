@@ -6,8 +6,10 @@ import { stringifyJson } from "@theholocron/json-utils";
 
 import { AuthError, resolveToken, type ResolveTokenInput } from "../auth.js";
 
+/** The Fern CLI version written into `fern/fern.config.json`. */
 export const FERN_VERSION = "5.114.1";
 
+/** Options for the Fern `wiki` capability. */
 export interface FernWikiOptions extends ResolveTokenInput {
 	/** Absolute path to the working repo root. Injected by the loader from RuntimeContext. */
 	repoRoot?: string;
@@ -53,8 +55,11 @@ export interface FernWikiOptions extends ResolveTokenInput {
 	icon?: string;
 }
 
+/** `wiki` capability for Fern: writes the Fern config and docs scaffold for a repo. */
 export class FernWiki implements Wiki {
+	/** Capability key; always `"wiki"`. */
 	readonly key = "wiki" as const;
+	/** Provider name; always `"fern"`. */
 	readonly providerName = "fern";
 
 	constructor(private readonly opts: FernWikiOptions) {}

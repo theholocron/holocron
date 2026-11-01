@@ -1,11 +1,15 @@
 import type { RestClient } from "../utils.js";
 import { repoBase } from "../utils.js";
 
+/** Where a secret lives: the repository, one of its environments, or an organization. */
 export type SecretScope =
 	{ kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; org: string };
 
+/** A public key used to encrypt a secret before it is sent. */
 export interface GitHubPublicKey {
+	/** The key's id, sent back with the encrypted secret. */
 	key_id: string;
+	/** The Base64-encoded public key. */
 	key: string;
 }
 

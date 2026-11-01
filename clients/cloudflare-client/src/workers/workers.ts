@@ -2,22 +2,31 @@ import { ProviderApiError } from "@theholocron/http-client";
 
 import { cfRequest, type CloudflareClientOptions, type RestClient } from "../utils.js";
 
+/** A route that sends matching requests to a Worker. */
 export interface CfWorkerRoute {
+	/** The route's identifier. */
 	id: string;
+	/** The URL pattern the route matches. */
 	pattern: string;
+	/** The name of the Worker script, or `null` when the route is bound to none. */
 	script: string | null;
 }
 
 /** https://developers.cloudflare.com/api/operations/worker-script-put-encrypted-secret-binding */
 export interface CfWorkerSecret {
+	/** The secret's name. */
 	name: string;
+	/** The binding type, always `"secret_text"`. */
 	type: "secret_text";
 }
 
 /** https://developers.cloudflare.com/api/operations/worker-script-list-workers */
 export interface CfWorkerScript {
+	/** The script's name. */
 	id: string;
+	/** When the script was created, as an ISO 8601 string. */
 	created_on?: string;
+	/** When the script was last modified, as an ISO 8601 string. */
 	modified_on?: string;
 }
 

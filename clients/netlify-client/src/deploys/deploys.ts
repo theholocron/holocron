@@ -11,14 +11,23 @@ import type { RestClient } from "../utils.js";
  * `error`, `retrying`, `current`.
  */
 export interface NetlifyDeploy {
+	/** The deploy's id. */
 	id: string;
+	/** The id of the site the deploy belongs to. */
 	site_id: string;
+	/** The deploy's state, a free-form string. */
 	state: string;
+	/** The site's URL. */
 	url: string;
+	/** The site's HTTPS URL. */
 	ssl_url: string;
+	/** The URL of this specific deploy. */
 	deploy_url: string;
+	/** The branch the deploy was built from, or `null`. */
 	branch: string | null;
+	/** Why the deploy failed, when it did. */
 	error_message?: string | null;
+	/** When the deploy was created, as an ISO timestamp. */
 	created_at: string;
 }
 
@@ -41,9 +50,11 @@ export interface NetlifyDeployFunctionSpec {
 	name: string;
 	/** Lambda runtime: `"js"` (Node.js, zipped) or `"go"` (zipped binary). */
 	runtime?: "js" | "go";
+	/** The function's zip archive. */
 	zip: Uint8Array;
 }
 
+/** What to deploy with `create()`: static files, functions, or both. */
 export interface NetlifyCreateDeployInput {
 	/** Static files, plain text — served as-is, no build step. */
 	files?: Record<string, string>;
@@ -55,8 +66,11 @@ export interface NetlifyCreateDeployInput {
 
 /** Raw transport details `create()` needs beyond the generic `RestClient` — file/function uploads send a binary body, which `RestClient.request()` can't carry (always JSON-encodes a given body). */
 export interface NetlifyRawTransport {
+	/** The Netlify token used for the upload requests. */
 	token: string;
+	/** Override base URL, as for the client. */
 	baseUrl?: string;
+	/** Override fetch, as for the client. */
 	fetch?: typeof fetch;
 }
 

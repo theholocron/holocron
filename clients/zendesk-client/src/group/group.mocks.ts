@@ -1,5 +1,6 @@
 import type { IGroup } from "./group.types.js";
 
+/** Fixture for a Zendesk group, for use in tests. */
 export const mockGroup: IGroup = {
 	created_at: "2018-04-06T03:17:05Z",
 	default: false,

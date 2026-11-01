@@ -19,6 +19,7 @@ export type { PostmanCreateSpecInput, PostmanSpec, PostmanSpecsResponse } from "
 export type { PostmanClientOptions } from "./utils.js";
 export type { PostmanWorkspace, PostmanWorkspacesResponse } from "./workspaces/workspaces.js";
 
+/** Creates a Postman client with `collections`, `environments`, `import`, `me`, `specs` and `workspaces` groups sharing one REST client. */
 export function createPostmanClient(opts: PostmanClientOptions) {
 	const rest = createPostmanRestClient(opts);
 	return {
@@ -31,4 +32,5 @@ export function createPostmanClient(opts: PostmanClientOptions) {
 	};
 }
 
+/** The client `createPostmanClient` returns. */
 export type PostmanClient = ReturnType<typeof createPostmanClient>;

@@ -1,19 +1,30 @@
 import type { RestClient } from "../utils.js";
 
+/** A Postman API specification, as listed by the API. */
 export interface PostmanSpec {
+	/** The specification's id. */
 	id: string;
+	/** The specification's name. */
 	name: string;
+	/** The specification's type. */
 	type: string;
 }
 
+/** The response of listing specifications. */
 export interface PostmanSpecsResponse {
+	/** The specifications returned. */
 	specs: PostmanSpec[];
 }
 
+/** What to send to Postman to create a specification. */
 export interface PostmanCreateSpecInput {
+	/** The specification's name. */
 	name: string;
+	/** The specification's content, as a string. */
 	fileContent: string;
+	/** The specification's type, when set. */
 	type?: string;
+	/** The path of the specification's file, when set. */
 	filePath?: string;
 }
 

@@ -11,10 +11,13 @@
 
 import { spawnSync } from "node:child_process";
 
+/** Thrown when the 1Password `op` CLI is missing or does not run. */
 export class AuthError extends Error {
+	/** Error name; always `"AuthError"`. */
 	override name = "AuthError";
 }
 
+/** Inputs for checking that the `op` binary is installed. */
 export interface VerifyInput {
 	/** Override the spawn function in tests. */
 	spawn?: typeof spawnSync;
@@ -22,6 +25,7 @@ export interface VerifyInput {
 	binary?: string;
 }
 
+/** Runs `op --version` and throws `AuthError` when the binary is not found or exits non-zero. */
 export function verifyOpInstalled(input: VerifyInput = {}): void {
 	const spawnImpl = input.spawn ?? spawnSync;
 	const binary = input.binary ?? "op";

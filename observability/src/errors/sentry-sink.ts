@@ -22,6 +22,7 @@ export function scrubError(event: ErrorEvent, _hint: EventHint): ErrorEvent {
 }
 
 export class SentrySink implements ErrorSink {
+	/** Initialises Sentry with the DSN, release and environment, starts a session and applies `ctx.tags`; events are scrubbed by {@link scrubError} and every trace is sampled. */
 	init(ctx: { dsn: string; release: string; environment: "ci" | "local"; tags: Record<string, string> }): void {
 		Sentry.init({
 			dsn: ctx.dsn,
@@ -43,14 +44,17 @@ export class SentrySink implements ErrorSink {
 		};
 	}
 
+	/** Reports `err` to Sentry. */
 	captureException(err: unknown): void {
 		Sentry.captureException(err);
 	}
 
+	/** Ends the Sentry session. */
 	endSession(): void {
 		Sentry.endSession();
 	}
 
+	/** Closes the Sentry client, waiting up to two seconds for pending events to send. */
 	async flush(): Promise<void> {
 		await Sentry.close(2_000);
 	}

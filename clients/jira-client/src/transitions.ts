@@ -2,6 +2,7 @@ import { type RestClient } from "@theholocron/http-client";
 
 import type { JiraIssueFields, JiraResolution, JiraTransition } from "./types.js";
 
+/** Issue transition operations. */
 export function transitions(client: RestClient) {
 	return {
 		create(ticket: string, statusId: string, fields: JiraIssueFields = {}): Promise<void> {

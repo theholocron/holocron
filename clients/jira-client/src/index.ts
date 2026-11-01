@@ -12,6 +12,7 @@ export type * from "./types.js";
 
 export type { issues, links, projects, transitions, versions };
 
+/** Create a Jira client with `issues`, `links`, `projects`, `transitions` and `versions` groups, all sharing one REST client. `options.token` is the pre-encoded Basic credential (Base64 of `email:apiToken`). */
 export function createJiraClient(options: {
 	host: string;
 	token: string;

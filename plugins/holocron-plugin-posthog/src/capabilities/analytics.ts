@@ -1,13 +1,17 @@
 import type { Analytics } from "@theholocron/cli";
 import type { PostHogClient } from "@theholocron/posthog-client";
 
+/** Options for the PostHog `analytics` capability. */
 export interface PostHogAnalyticsOptions {
 	/** PostHog instance host — pushed as NEXT_PUBLIC_POSTHOG_HOST. Default: https://app.posthog.com */
 	host?: string;
 }
 
+/** The `analytics` capability for PostHog: finds or creates a project and reports its API token. */
 export class PostHogAnalytics implements Analytics {
+	/** The capability key, always `analytics`. */
 	readonly key = "analytics" as const;
+	/** The provider name, `posthog`. */
 	readonly providerName = "posthog";
 
 	constructor(
@@ -22,11 +26,13 @@ export class PostHogAnalytics implements Analytics {
 		};
 	}
 
+	/** Returns the organization slug of the user the token belongs to. */
 	async whoami() {
 		const user = await this.client().users.me();
 		return { org: user.organization.slug };
 	}
 
+	/** Returns the API token of the project called `name`, creating the project when it does not exist yet; `alreadyExists` says which happened. */
 	async ensureProject(name: string): Promise<{ token: string; alreadyExists: boolean }> {
 		const { results } = await this.client().projects.list();
 		const found = results.find((p) => p.name === name);

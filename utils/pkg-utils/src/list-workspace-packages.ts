@@ -4,6 +4,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { parsePackageJson } from "./parse-package-json.ts";
 import type { WorkspacePackageEntry } from "./workspace-package.type.ts";
 
+/** Options for {@link listWorkspacePackagesSync}. */
 export interface ListWorkspacePackagesOptions {
 	/** Directories under the repo root whose children are packages; each must stay inside it. Defaults to `packages` and `plugins`. */
 	roots?: readonly string[];

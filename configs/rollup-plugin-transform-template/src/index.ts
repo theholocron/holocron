@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 
+/** Options for `transformTemplate`. */
 export interface TransformTemplateOptions {
 	/**
 	 * Additional directory path segments. Any file whose resolved id contains
