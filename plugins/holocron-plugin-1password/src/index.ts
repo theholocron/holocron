@@ -17,7 +17,7 @@ import { verifyToken } from "./verify-token.js";
 export interface OpPluginOptions extends VerifyInput {
 	/** 1P vault name items live in. Required. */
 	vault: string;
-	/** Optional 1P account UUID; passed as `--account` on every op call. */
+	/** Optional 1P account UUID; passed as `--account` on every op call. Useful when several accounts are signed in. */
 	account?: string;
 }
 

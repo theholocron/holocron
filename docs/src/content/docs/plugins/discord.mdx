@@ -30,13 +30,6 @@ providers: {
 }
 ```
 
-### Options
-
-| Option           | Required | Description                                                                             |
-| ---------------- | -------- | --------------------------------------------------------------------------------------- |
-| `webhooks`       | No       | Named aliases mapping logical channel names to their webhook URLs                       |
-| `defaultChannel` | No       | Alias key or raw webhook URL used as the fallback when no channel is passed to `send()` |
-
 ## Authentication
 
 The "token" for Discord is an **incoming webhook URL** — it contains the credential inline and requires no Authorization header.
