@@ -14,22 +14,36 @@ const group = process.env["RELEASE_GROUP"];
 // The repo-wide release leaves the groups out, so it does not move or publish them.
 const exclude = groups.map((name) => ` --exclude-group ${name}`).join("");
 
-export default group
+// Groups that publish nothing to npm: a release bumps the group's private package, records the release, tags it
+// (`ci-v1.4.0`) and moves the major tag (`ci-v1`) that callers pin. They release from `main` only, so an alpha
+// never moves a tag that outside callers follow.
+const tagOnly = new Set(["ci"]);
+
+export default group && tagOnly.has(group)
 	? groupReleaseConfig({
 			group,
-			branches,
+			branches: ["main"],
 			exec: {
-				prepareCmd: `${holocron} package bump-versions \${nextRelease.version} --group ${group}`,
-				publishCmd: `${holocron} package publish --group ${group} --skip-already-published --tag ${tag}`,
+				prepareCmd: `${holocron} package bump-versions \${nextRelease.version} --group ${group} --include-private`,
+				publishCmd: `${holocron} package move-tag ${group} \${nextRelease.version}`,
 			},
 		})
-	: ungroupedReleaseConfig({
-			groups,
-			branches,
-			// semantic-release-config's default still names `packages/*/package.json`
-			assets: ["CHANGELOG.md", "package.json", "cli/*/package.json"],
-			exec: {
-				prepareCmd: `${holocron} package bump-versions \${nextRelease.version}${exclude}`,
-				publishCmd: `${holocron} package publish --skip-already-published${exclude} --tag ${tag}`,
-			},
-		});
+	: group
+		? groupReleaseConfig({
+				group,
+				branches,
+				exec: {
+					prepareCmd: `${holocron} package bump-versions \${nextRelease.version} --group ${group}`,
+					publishCmd: `${holocron} package publish --group ${group} --skip-already-published --tag ${tag}`,
+				},
+			})
+		: ungroupedReleaseConfig({
+				groups,
+				branches,
+				// semantic-release-config's default still names `packages/*/package.json`
+				assets: ["CHANGELOG.md", "package.json", "cli/*/package.json"],
+				exec: {
+					prepareCmd: `${holocron} package bump-versions \${nextRelease.version}${exclude}`,
+					publishCmd: `${holocron} package publish --skip-already-published${exclude} --tag ${tag}`,
+				},
+			});

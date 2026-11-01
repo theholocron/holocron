@@ -20,6 +20,13 @@ export const npmBumpVersionsArgs = (y: Argv<GlobalArgs>) =>
 			describe:
 				"Leave this version group's packages alone (repeatable). The repo-wide bump uses it so it " +
 				"does not move a group that is released on its own.",
+		})
+		.option("include-private", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Bump private packages too, for a group that publishes nothing and only records its version (ci). " +
+				"Default: private packages are skipped.",
 		});
 
 export type NpmBumpVersionsArgs = InferArgs<typeof npmBumpVersionsArgs>;

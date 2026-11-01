@@ -24,6 +24,7 @@ import { notificationsCreateServerEntry } from "../../commands/notifications-cre
 import { notificationsLinkEntry } from "../../commands/notifications-link/notifications-link.entry.js";
 import { notificationsSetupEntry } from "../../commands/notifications-setup/notifications-setup.entry.js";
 import { notificationsSyncRolesEntry } from "../../commands/notifications-sync-roles/notifications-sync-roles.entry.js";
+import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { npmBumpVersionsEntry } from "../../commands/npm-bump-versions/npm-bump-versions.entry.js";
 import { pluginCreateEntry } from "../../commands/plugin-create/plugin-create.entry.js";
 import { probeEntry } from "../../commands/probe/probe.entry.js";
@@ -81,6 +82,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	deployOnReleaseEntry,
 	monitoringCheckEntry,
 	npmBumpVersionsEntry,
+	moveTagEntry,
 	publishEntry,
 	repoSyncEntry,
 	repoCleanupBranchesEntry,
