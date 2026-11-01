@@ -7,12 +7,73 @@ import { describe, expect, it } from "vitest";
 
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 import {
+	frozenReusablePaths,
 	hostedReusableWorkflows,
+	isDeprecated,
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
 	reusableTemplates,
+	stampDeprecated,
 	WORKFLOW_TEMPLATE_PROPERTIES,
 } from "./github-action-reusable-workflows.js";
+
+describe("REUSABLE_WORKFLOWS['delivery.publish'] — npm provenance", () => {
+	it("installs sigstore next to npm 11, which the provenance step needs at module parse time", () => {
+		expect(REUSABLE_WORKFLOWS["delivery.publish"]).toContain("npm install -g npm@11 sigstore");
+	});
+});
+
+describe("frozen copies in theholocron/.github", () => {
+	const frozen = frozenReusablePaths();
+
+	it("are every hosted reusable and every composite action, at the paths `sync github` used to push", () => {
+		const pushed = new Set(reusableTemplates().keys());
+		expect(frozen.filter((path) => !pushed.has(path))).toEqual([]);
+		expect(frozen).toContain(".github/workflows/delivery.publish.yml");
+		expect(frozen).toContain(".github/actions/setup/action.yml");
+		expect(frozen.length).toBe(hostedReusableWorkflows().size + Object.keys(REUSABLE_ACTIONS).length);
+	});
+
+	it("leave out what still runs in .github and the starters", () => {
+		expect(frozen).not.toContain(".github/workflows/tag.yml");
+		expect(frozen).not.toContain(".github/workflows/sync-dispatch.yml");
+		expect(frozen.filter((path) => path.startsWith("workflow-templates/"))).toEqual([]);
+	});
+
+	it("are stamped below the header with where to go and when the copy goes", () => {
+		const header = "# AUTO-GENERATED — do not edit in theholocron/.github directly.\n# Source:  x\n";
+		// the live files have no blank line after the header; a file that has one keeps a single one
+		for (const gap of ["", "\n"]) {
+			const stamped = stampDeprecated(
+				`${header}${gap}name: Test\n`,
+				".github/workflows/verification.unitTests.yml"
+			);
+			expect(stamped.startsWith(`${header}\n# DEPRECATED — frozen copy.\n`)).toBe(true);
+			expect(stamped.endsWith("\n\nname: Test\n")).toBe(true);
+			expect(stamped).not.toContain("\n\n\n");
+		}
+		const stamped = stampDeprecated(`${header}name: Test\n`, ".github/workflows/verification.unitTests.yml");
+		expect(stamped).toContain("# DEPRECATED — frozen copy.");
+		expect(stamped).toContain("use theholocron/holocron/.github/workflows/verification.unitTests.yml@ci-v1.");
+		expect(stamped).toContain("`holocron probe ci refs` finds no reference");
+		expect(stamped).toContain("issues/1215");
+	});
+
+	it("point an action at its folder, and stamp a file with no header at the top", () => {
+		const stamped = stampDeprecated("name: Setup\n", ".github/actions/setup/action.yml");
+		expect(stamped).toMatch(
+			/^# DEPRECATED — frozen copy\.\n# This file no longer changes\. It moved to theholocron\/holocron; use theholocron\/holocron\/ci\/actions\/setup@ci-v1\.\n/
+		);
+		expect(stamped.endsWith("\n\nname: Setup\n")).toBe(true);
+	});
+
+	it("are stamped once: a stamped file is returned as it is", () => {
+		const once = stampDeprecated("# h\n\nname: x\n", ".github/workflows/stale.yml");
+		expect(isDeprecated(once)).toBe(true);
+		expect(isDeprecated("# h\n\nname: x\n")).toBe(false);
+		expect(stampDeprecated(once, ".github/workflows/stale.yml")).toBe(once);
+	});
+});
 
 describe("hostedReusableWorkflows()", () => {
 	const hosted = hostedReusableWorkflows();

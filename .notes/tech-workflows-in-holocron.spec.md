@@ -46,7 +46,7 @@ Reusable workflows and composite actions can live in any repo, so they are the p
 
 ### One source, one ref
 
-- A constant holds the base (`theholocron/holocron/.github`) and the ref. Every generator, template and starter uses it; a test fails on a literal `theholocron/.github/.github/` outside the shim generator (#1474).
+- A constant holds the base (`theholocron/holocron/.github`) and the ref. Every generator, template and starter uses it; a test fails on a literal `theholocron/.github/.github/` (#1474).
 - The ref is a moving tag, `ci-v1`, never `alpha` (holocron's default branch is the prerelease channel) and never `main` directly. The tag is created on a commit of `main` and moved only by a release of the `ci` group, so only when workflow or action files changed. Releasing from `main` only is the rule `platform.syncTemplates` follows today (it publishes from `main` only, so unreleased template changes cannot overwrite what `main` published). Until `main` is promoted (#1101), outside callers stay on `.github@main` through the shims and holocron's own CI moves first.
 
 ### Where the sources and the reusables live
@@ -78,15 +78,16 @@ A new reusable cannot resolve until its ref exists. The order inside any PR that
 
 ## Deprecation plan: what stays in `.github`, and until when
 
-`.github` keeps a forwarding shim for every reusable workflow and composite action it has today, until nothing references it.
+`.github` keeps a **frozen copy** of every reusable workflow and composite action it has today, until nothing references it. (The first plan was a forwarding shim that `uses:` the holocron reusable. A nested reusable adds a level to every check name, `Outer job / Shim job / Inner job`, confirmed on a throwaway run, so every repo still on a shim would stop posting the checks its ruleset requires. Frozen copies keep the names.)
 
-- **Generated, not hand-written.** A shim is generated from the same template: it declares the same `workflow_call` inputs and secrets, passes them through, runs `secrets: inherit`, and `uses:` the holocron reusable at `ci-v1`. A composite shim does the same with `uses:` of the holocron action. A shim's job `permissions:` must cover what the inner workflow needs, because a caller's permissions cap the called workflow's.
-- **Marked.** Each shim starts with a header: why it exists, what replaces it, the removal condition, and the tracking issue (#1477).
-- **Removal condition.** An org-wide scan for `theholocron/.github/.github/` (8 repos, 8 templates, repos generated from templates, themes, the org site, components) reports zero. The scan is a repeatable command, and its first output is the baseline (#1473).
-- **Nesting.** A shim adds one level (starter, shim, reusable, and the reusables that call other reusables). Every chain is checked against GitHub's nesting limit (#1477).
-- **Documented.** The deprecation plan goes in the `.github` README and on the docs site: what is kept, until what condition, and how a repo can tell it is still on the old path.
+- **Frozen, not forwarded.** `holocron sync github` no longer pushes the moved reusables (the 30 that only run when called) or the 7 composite actions. A repo on `theholocron/.github/.github/workflows/<name>.yml@main` keeps working with the version it had; nothing new reaches it, and fixes are made in holocron only.
+- **Marked once.** The first sync after the move reads each copy and adds a `# DEPRECATED — frozen copy.` block below its header: what replaces it, the removal condition and the tracking issue (#1477). A copy that already says so is left alone.
+- **Removal condition.** An org-wide scan for `theholocron/.github/.github/` (the active repos: the template repos, the org site, `.github-private`, holocron) reports zero. The scan is `holocron probe ci refs`, and its first output is the baseline (#1473).
+- **Not frozen.** The workflows that run where they live (`tag`, `sync-dispatch`, `platform.dispatchedCheck`), the starters and their metadata, and the nine hand-written workflows, which have no template yet (#1475).
+- **Moving a repo is one line** (`uses: theholocron/holocron/.github/workflows/<name>.yml@ci-v1`), and the check names do not change (#1478).
+- **Documented.** The plan is on the `sync github` page of the docs site. The `.github` README gets the same note in a PR to that repo.
 
-The 9 workflows with no template are not moved on faith: the inventory (#1473, appendix) marks each as live, legacy or dead, with its callers, and only then is each moved, shimmed or deleted. All nine turned out to be live.
+The 9 workflows with no template are not moved on faith: the inventory (#1473, appendix) marks each as live, legacy or dead, with its callers, and only then is each moved, frozen or deleted. All nine turned out to be live.
 
 ## Rollout
 
@@ -96,17 +97,17 @@ The 9 workflows with no template are not moved on faith: the inventory (#1473, a
 4. Move the templates and composite actions into `ci/`, with astromech taking the folder as input (#1480). The generated files are unchanged.
 5. Release `ci/` as a tag-only version group (#1481), then create `ci-v1` on a `main` commit.
 6. Generate the reusable workflows into holocron's `.github/workflows`; rename holocron's callers to `ci.<name>.yml` and point them at `./.github/workflows/<name>.yml`; switch the reusables to the `ci/actions` full ref (#1475). holocron's own CI now runs the reusables from this repo.
-7. Generate the shims in `.github` (#1477), after the tag exists on a `main` commit. Outside callers still work through them.
+7. Freeze the copies in `.github` (#1477): `sync github` stops pushing the moved files and stamps each as deprecated, once. Outside callers keep working on the version they had.
 8. Repoint the callers, templates and starters (#1478, #1229), one repo per PR, merged by the maintainer. Shrink `holocron sync github` to what `.github` keeps (#1216).
-9. When the scan reports zero: delete the shims and anything the inventory marked dead (#1216).
+9. When the scan reports zero: delete the frozen copies and anything the inventory marked dead (#1216).
 
 Steps 4 to 6 can ship before `main` is promoted, except the tag, which needs a `main` commit. Steps 7 to 9 follow the promotion (#1101).
 
 ## Risks
 
-- **A bad move breaks every repo at once.** Mitigation: nothing outside holocron changes until the shims exist and a repo on the old path has run green through one; repoint repo by repo.
+- **A bad move breaks every repo at once.** Mitigation: nothing outside holocron changes until the copies are frozen and a repo on the old path has run green through one; repoint repo by repo.
 - **Tag moves are a new release step.** A forgotten move leaves outside callers on stale workflows. Mitigation: automate it in the release workflow; the scan and a check that the tag matches the last `main` release run in CI.
-- **A shim that forgets an input silently drops it.** Mitigation: generated from the template's `workflow_call` schema, with a test that every input and secret is passed.
+- **A frozen copy gets no fixes.** A repo that stays on `.github@main` keeps any bug the copy had when it was frozen. Mitigation: the notice says where to go, the scan lists who is still there, and moving is one line.
 - **Hand-written workflows in `.github` are lost.** Mitigation: the inventory before any deletion.
 
 ## Decisions
@@ -115,6 +116,8 @@ Steps 4 to 6 can ship before `main` is promoted, except the tag, which needs a `
 2. **No combined `workflow_call` plus direct-trigger files.** #1236 is closed as not planned. A direct run has no `inputs`, so the repo's settings (`affected`, the Codecov `uploads` list) would need a new home, and a direct run's check is named by the job alone (`Run unit tests and collect coverage`) where a call through a caller is `Test / Run unit tests and collect coverage`, so combining would change holocron's required check names. Thin callers keep the names and the generator.
 3. **The ref moves only when workflow or action files changed**, as a release of the `ci` group. Decided by the maintainer.
 4. **A top-level `ci/` folder holds the templates and composite actions and is a tag-only version group.** Decided by the maintainer. The cost is new support in the group release tooling, which assumes npm-published packages and skips `apps/*` (#1233), and a generator that reads the folder instead of bundling the templates (#1480, #1481).
+
+5. **Frozen copies in `.github`, not forwarding shims.** Decided by the maintainer after a throwaway run confirmed that a nested reusable renames its checks (`Outer job / Shim job / Inner job`). Cost: a repo that stays on `.github@main` gets no fixes. Gain: no repo's required checks change while it is repointed (#1477).
 
 ## Not in scope
 
@@ -145,7 +148,7 @@ The scan covers 13 active repositories. The seven repositories folded into holoc
 | react-template           |    14 |            15 |           0 |
 | theholocron.github.io    |     9 |             8 |           1 |
 
-**Baseline: 281 references outside the host**, and 138 inside it (the starters and the docs that describe them). The shims can go when the number outside reaches zero. The count includes holocron's own thin callers, the generators that write them and prose in docs; the scan does not tell a live caller from a mention, so read the `--json` output before deleting anything.
+**Baseline: 281 references outside the host**, and 138 inside it (the starters and the docs that describe them). The frozen copies can go when the number outside reaches zero. The count includes holocron's own thin callers, the generators that write them and prose in docs; the scan does not tell a live caller from a mention, so read the `--json` output before deleting anything.
 
 Most of the references are the eight template repositories, which each carry 14 callers.
 
@@ -159,62 +162,62 @@ Most of the references are the eight template repositories, which each carry 14 
 
 ### Reusable workflows (`.github/workflows`, 42)
 
-| File                                         | Source       | Called by                                                   | Fate                                            |
-| -------------------------------------------- | ------------ | ----------------------------------------------------------- | ----------------------------------------------- |
-| `audit.yml`                                  | hand-written | templates, theholocron.github.io                            | generate from a new template (#1475), then shim |
-| `bookkeeping.yml`                            | astromech    | holocron, .github-private, templates, theholocron.github.io | move to holocron, shim here                     |
-| `delivery.build.yml`                         | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `delivery.bundleSize.yml`                    | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `delivery.deploy.yml`                        | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `delivery.previewCheck.yml`                  | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `delivery.previewDeploy.yml`                 | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `delivery.publish.yml`                       | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `dependencies.yml`                           | astromech    | holocron, .github-private, templates, theholocron.github.io | move to holocron, shim here                     |
-| `deploy.yml`                                 | hand-written | templates                                                   | generate from a new template (#1475), then shim |
-| `greetings.yml`                              | astromech    | holocron, .github-private, templates, theholocron.github.io | move to holocron, shim here                     |
-| `knowledge.wiki.yml`                         | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `lint.yml`                                   | hand-written | templates, theholocron.github.io                            | generate from a new template (#1475), then shim |
-| `platform.commitStandards.yml`               | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `platform.dispatchedCheck.yml`               | astromech    | dispatch by name only                                       | stays until #1216 decides                       |
-| `platform.notifyCheck.yml`                   | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `platform.repoSync.yml`                      | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `platform.repoValidation.yml`                | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `platform.syncTemplates.yml`                 | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `preview.yml`                                | astromech    | holocron, templates                                         | move to holocron, shim here                     |
-| `release.yml`                                | hand-written | templates                                                   | generate from a new template (#1475), then shim |
-| `review.yml`                                 | astromech    | holocron, templates, theholocron.github.io                  | move to holocron, shim here                     |
-| `security.codeScanning.yml`                  | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `security.secretDetection.yml`               | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `security.tokenExpiry.yml`                   | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `security.yml`                               | hand-written | templates                                                   | generate from a new template (#1475), then shim |
-| `sourceQuality.deadCodeAnalysis.yml`         | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `sourceQuality.formatting.yml`               | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `sourceQuality.staticAnalysis.yml`           | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `sourceQuality.structuredDataValidation.yml` | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `stale.yml`                                  | astromech    | holocron, .github-private, templates, theholocron.github.io | move to holocron, shim here                     |
-| `sync-dispatch.yml`                          | astromech    | dispatch by name only                                       | stays until #1216 decides                       |
-| `sync-github.yml`                            | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `sync.yml`                                   | hand-written | templates                                                   | generate from a new template (#1475), then shim |
-| `tag.yml`                                    | astromech    | .github-private, templates                                  | move to holocron, shim here                     |
-| `test.yml`                                   | hand-written | templates                                                   | generate from a new template (#1475), then shim |
-| `typecheck.yml`                              | hand-written | templates, theholocron.github.io                            | generate from a new template (#1475), then shim |
-| `verification.performance.yml`               | astromech    | none                                                        | move to holocron, shim here                     |
-| `verification.typeSafety.yml`                | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `verification.unitTests.yml`                 | astromech    | holocron                                                    | move to holocron, shim here                     |
-| `verification.visualRegression.yml`          | astromech    | none                                                        | move to holocron, shim here                     |
-| `wiki.yml`                                   | hand-written | .github-private, templates                                  | generate from a new template (#1475), then shim |
+| File                                         | Source       | Called by                                                   | Fate                                                   |
+| -------------------------------------------- | ------------ | ----------------------------------------------------------- | ------------------------------------------------------ |
+| `audit.yml`                                  | hand-written | templates, theholocron.github.io                            | generate from a new template (#1475), then frozen copy |
+| `bookkeeping.yml`                            | astromech    | holocron, .github-private, templates, theholocron.github.io | moved to holocron; frozen copy here                    |
+| `delivery.build.yml`                         | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `delivery.bundleSize.yml`                    | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `delivery.deploy.yml`                        | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `delivery.previewCheck.yml`                  | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `delivery.previewDeploy.yml`                 | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `delivery.publish.yml`                       | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `dependencies.yml`                           | astromech    | holocron, .github-private, templates, theholocron.github.io | moved to holocron; frozen copy here                    |
+| `deploy.yml`                                 | hand-written | templates                                                   | generate from a new template (#1475), then frozen copy |
+| `greetings.yml`                              | astromech    | holocron, .github-private, templates, theholocron.github.io | moved to holocron; frozen copy here                    |
+| `knowledge.wiki.yml`                         | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `lint.yml`                                   | hand-written | templates, theholocron.github.io                            | generate from a new template (#1475), then frozen copy |
+| `platform.commitStandards.yml`               | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `platform.dispatchedCheck.yml`               | astromech    | dispatch by name only                                       | stays until #1216 decides                              |
+| `platform.notifyCheck.yml`                   | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `platform.repoSync.yml`                      | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `platform.repoValidation.yml`                | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `platform.syncTemplates.yml`                 | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `preview.yml`                                | astromech    | holocron, templates                                         | moved to holocron; frozen copy here                    |
+| `release.yml`                                | hand-written | templates                                                   | generate from a new template (#1475), then frozen copy |
+| `review.yml`                                 | astromech    | holocron, templates, theholocron.github.io                  | moved to holocron; frozen copy here                    |
+| `security.codeScanning.yml`                  | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `security.secretDetection.yml`               | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `security.tokenExpiry.yml`                   | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `security.yml`                               | hand-written | templates                                                   | generate from a new template (#1475), then frozen copy |
+| `sourceQuality.deadCodeAnalysis.yml`         | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `sourceQuality.formatting.yml`               | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `sourceQuality.staticAnalysis.yml`           | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `sourceQuality.structuredDataValidation.yml` | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `stale.yml`                                  | astromech    | holocron, .github-private, templates, theholocron.github.io | moved to holocron; frozen copy here                    |
+| `sync-dispatch.yml`                          | astromech    | dispatch by name only                                       | stays until #1216 decides                              |
+| `sync-github.yml`                            | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `sync.yml`                                   | hand-written | templates                                                   | generate from a new template (#1475), then frozen copy |
+| `tag.yml`                                    | astromech    | .github-private, templates                                  | stays: also runs on push                               |
+| `test.yml`                                   | hand-written | templates                                                   | generate from a new template (#1475), then frozen copy |
+| `typecheck.yml`                              | hand-written | templates, theholocron.github.io                            | generate from a new template (#1475), then frozen copy |
+| `verification.performance.yml`               | astromech    | none                                                        | moved to holocron; frozen copy here                    |
+| `verification.typeSafety.yml`                | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `verification.unitTests.yml`                 | astromech    | holocron                                                    | moved to holocron; frozen copy here                    |
+| `verification.visualRegression.yml`          | astromech    | none                                                        | moved to holocron; frozen copy here                    |
+| `wiki.yml`                                   | hand-written | .github-private, templates                                  | generate from a new template (#1475), then frozen copy |
 
 ### Composite actions (`.github/actions`, 7)
 
-| Action           | Source    | Called by                       | Fate                                    |
-| ---------------- | --------- | ------------------------------- | --------------------------------------- |
-| `auto-commit`    | astromech | none                            | move to `ci/actions` (#1480), shim here |
-| `codecov-upload` | astromech | none                            | move to `ci/actions` (#1480), shim here |
-| `holocron`       | astromech | holocron                        | move to `ci/actions` (#1480), shim here |
-| `install`        | astromech | none                            | move to `ci/actions` (#1480), shim here |
-| `notify`         | astromech | none                            | move to `ci/actions` (#1480), shim here |
-| `setup`          | astromech | holocron, theholocron.github.io | move to `ci/actions` (#1480), shim here |
-| `setup-node`     | astromech | none                            | move to `ci/actions` (#1480), shim here |
+| Action           | Source    | Called by                       | Fate                                            |
+| ---------------- | --------- | ------------------------------- | ----------------------------------------------- |
+| `auto-commit`    | astromech | none                            | moved to `ci/actions` (#1480); frozen copy here |
+| `codecov-upload` | astromech | none                            | moved to `ci/actions` (#1480); frozen copy here |
+| `holocron`       | astromech | holocron                        | moved to `ci/actions` (#1480); frozen copy here |
+| `install`        | astromech | none                            | moved to `ci/actions` (#1480); frozen copy here |
+| `notify`         | astromech | none                            | moved to `ci/actions` (#1480); frozen copy here |
+| `setup`          | astromech | holocron, theholocron.github.io | moved to `ci/actions` (#1480); frozen copy here |
+| `setup-node`     | astromech | none                            | moved to `ci/actions` (#1480); frozen copy here |
 
 ### Starter workflows (`workflow-templates`, 42 workflows and 13 `.properties.json`)
 

@@ -35,10 +35,13 @@ export {
 	readWorkspacePackages,
 } from "./generators/codecov/index.js";
 export {
+	frozenReusablePaths,
 	hostedReusableWorkflows,
+	isDeprecated,
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
 	reusableTemplates,
+	stampDeprecated,
 	WORKFLOW_TEMPLATE_PROPERTIES,
 } from "./generators/github-action-reusable-workflows/index.js";
 export type { OrgContext, PreviewConfig } from "./generators/github-action-thin-callers/index.js";
