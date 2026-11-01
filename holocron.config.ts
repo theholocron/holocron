@@ -229,7 +229,9 @@ export default defineConfig({
 							name: "BUILD",
 							channels: [
 								{ name: "dev", topic: "Day-to-day building talk" },
-								{ name: "ideas", topic: "Half-formed ideas and things to spec later" },
+								// New and changed specs are posted here by the "Specs to ideas" workflow (#1534), through this webhook
+								// (HOLOCRON_NOTIFY_WEBHOOK_IDEAS).
+								{ name: "ideas", topic: "Half-formed ideas and things to spec later", webhook: true },
 								// The test channel: the doctor's own test post is left here, never in a real channel.
 								{
 									name: "holonet",

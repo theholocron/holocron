@@ -40,12 +40,19 @@ async function run(io: SpecsIo, args?: string[]): Promise<ProbeRow[]> {
 const labels = (rows: ProbeRow[]): string[] => rows.map((r) => `${r.status}: ${r.label}`);
 
 describe("specsProbes", () => {
-	it("is the specs group with one probe, which writes nothing", () => {
+	it("is the specs group with its two probes, neither of which writes anything", () => {
 		expect(SPECS_PROVIDER).toBe("specs");
-		const probes = specsProbes(makeIo({}));
-		expect(Object.keys(probes)).toEqual(["check"]);
+		const probes = specsProbes(makeIo({}), {
+			env: {},
+			changedFiles: () => [],
+			readAt: () => undefined,
+			setOutput: () => {},
+		});
+		expect(Object.keys(probes)).toEqual(["check", "announce"]);
 		expect(probes["check"]!.writes).toBe(false);
 		expect(probes["check"]!.summary).toMatch(/frontmatter/);
+		expect(probes["announce"]!.writes).toBe(false);
+		expect(probes["announce"]!.summary).toMatch(/#ideas/);
 	});
 });
 
