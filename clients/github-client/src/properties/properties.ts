@@ -3,9 +3,11 @@ import { repoBase, segment } from "../utils.js";
 
 /** One custom property of an organization, as its schema defines it. */
 export interface OrgProperty {
+	/** The property's name. */
 	property_name: string;
 	/** `string`, `single_select`, `multi_select`, `true_false` or `url`. */
 	value_type: string;
+	/** Whether a repository must set the property. */
 	required?: boolean;
 	/** The values a `single_select` or `multi_select` property accepts; `null` for any other type. */
 	allowed_values?: string[] | null;

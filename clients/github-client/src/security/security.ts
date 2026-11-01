@@ -3,8 +3,11 @@ import { ProviderApiError } from "@theholocron/http-client";
 import type { RestClient } from "../utils.js";
 import { repoBase } from "../utils.js";
 
+/** The workflow run that a code scanning setup started. */
 export interface CodeScanningSetupResult {
+	/** The id of the workflow run. */
 	run_id: number;
+	/** The URL of the workflow run. */
 	run_url: string;
 }
 

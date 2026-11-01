@@ -40,6 +40,7 @@ export function verifyGitHubWebhookSignature(input: {
 	return provided.length === computed.length && timingSafeEqual(provided, computed);
 }
 
+/** The three GitHub webhook headers a consumer needs. */
 export interface GitHubWebhookHeaders {
 	/** `X-GitHub-Event` — the event category, e.g. `"push"`, `"pull_request"`. */
 	event: string | undefined;
@@ -72,19 +73,47 @@ export function parseGitHubWebhookHeaders(
 // scoped to the fields Holocron's own GitHub App (Sentinel) reads today
 // — not a full re-typing of every field GitHub sends.
 
+/** The payload of an `installation` webhook delivery. */
 export interface GitHubInstallationWebhookPayload {
+	/** What happened to the installation, e.g. `created` or `deleted`. */
 	action: string;
-	installation: { id: number };
+	/** The installation the delivery is about. */
+	installation: {
+		/** The installation id. */
+		id: number;
+	};
 }
 
+/** The payload of a `push` webhook delivery. */
 export interface GitHubPushWebhookPayload {
+	/** The full name of the pushed ref, e.g. `refs/heads/main`. */
 	ref: string;
-	installation?: { id: number };
-	repository: { full_name: string; default_branch: string };
+	/** The installation the delivery is about, when sent. */
+	installation?: {
+		/** The installation id. */
+		id: number;
+	};
+	/** The repository that was pushed to. */
+	repository: {
+		/** The repository's owner/name. */
+		full_name: string;
+		/** The name of the default branch. */
+		default_branch: string;
+	};
 }
 
+/** The payload of a `pull_request` webhook delivery. */
 export interface GitHubPullRequestWebhookPayload {
+	/** What happened to the pull request, e.g. `opened` or `closed`. */
 	action: string;
-	installation?: { id: number };
-	repository: { full_name: string };
+	/** The installation the delivery is about, when sent. */
+	installation?: {
+		/** The installation id. */
+		id: number;
+	};
+	/** The repository the pull request belongs to. */
+	repository: {
+		/** The repository's owner/name. */
+		full_name: string;
+	};
 }

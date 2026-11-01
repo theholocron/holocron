@@ -1,11 +1,17 @@
 import type { GraphQLClient, RestClient } from "../utils.js";
 import { repoBase, splitRepo } from "../utils.js";
 
+/** A pull request as GitHub returns it, with only the fields this client reads. */
 export interface GitHubPullRequest {
+	/** The pull request's number. */
 	number: number;
+	/** The pull request's title. */
 	title: string;
+	/** Whether the pull request is open or closed. */
 	state: "open" | "closed";
+	/** When the pull request was merged as an ISO 8601 timestamp, or `null` if it was not merged. */
 	merged_at: string | null;
+	/** The URL of the pull request's page on GitHub. */
 	html_url: string;
 	/** The head branch: its name and the commit it pointed at when the PR was read. */
 	head: {
@@ -24,10 +30,15 @@ export interface GitHubCommitIdentity {
 
 /** One commit as returned by `GET /pulls/{pull_number}/commits` — only the fields any known consumer needs. */
 export interface GitHubPullRequestCommit {
+	/** The commit's SHA. */
 	sha: string;
+	/** The commit's message and git identities. */
 	commit: {
+		/** The commit message. */
 		message: string;
+		/** The commit's author, as git recorded it. */
 		author: GitHubCommitIdentity;
+		/** The commit's committer, as git recorded it. */
 		committer: GitHubCommitIdentity;
 	};
 	/** The commit's linked GitHub account, when GitHub can associate one — `null` for a commit email with no linked account. `type: "Bot"` identifies an app-authored commit (e.g. Dependabot, a prior Sentinel auto-fix-commit). */
@@ -38,7 +49,9 @@ export interface GitHubPullRequestCommit {
 
 /** One file as returned by `GET /pulls/{pull_number}/files` — only the fields any known consumer needs. */
 export interface GitHubPullRequestFile {
+	/** The file's path in the repository. */
 	filename: string;
+	/** How the pull request changes the file. */
 	status: "added" | "removed" | "modified" | "renamed" | "copied" | "changed" | "unchanged";
 	/** Set only when `status === "renamed"`. */
 	previous_filename?: string;
@@ -59,9 +72,11 @@ export interface CreateReviewComment {
 	line: number;
 	/** Almost always `"RIGHT"` (the PR's own new content) — `"LEFT"` targets the base/pre-PR version instead. */
 	side: "LEFT" | "RIGHT";
+	/** The comment text. */
 	body: string;
 }
 
+/** The body of a review creation request. */
 export interface CreateReviewInput {
 	/** The PR's head SHA the review attaches to. */
 	commit_id: string;
@@ -74,12 +89,15 @@ export interface CreateReviewInput {
 	 * required-approval counts and dismissal.
 	 */
 	event: "COMMENT" | "REQUEST_CHANGES" | "APPROVE";
+	/** Inline comments to post with the review. */
 	comments?: CreateReviewComment[];
 }
 
 /** `POST /pulls/{pull_number}/reviews`'s response — only the fields any known consumer needs. */
 export interface GitHubPullRequestReview {
+	/** The review's numeric id. */
 	id: number;
+	/** The URL of the review on GitHub. */
 	html_url: string;
 }
 
@@ -91,7 +109,9 @@ export interface GitHubPullRequestReview {
  * never compare it against a REST-sourced ID.
  */
 export interface ReviewThread {
+	/** The thread's GraphQL node id. */
 	id: string;
+	/** Whether the thread is resolved. */
 	isResolved: boolean;
 	/** The thread's first comment's author login (e.g. `"the-holocron-sentinel[bot]"`) — `undefined` if GitHub ever returns a thread with no comments, which shouldn't happen in practice. Callers filter on this before resolving anything, so a bot never touches a human reviewer's own thread. */
 	authorLogin: string | undefined;
