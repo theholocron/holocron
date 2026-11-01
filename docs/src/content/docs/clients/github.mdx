@@ -24,21 +24,21 @@ const labels = await client.labels.listLabels("owner/name");
 
 ## Namespaces
 
-| Namespace      | Methods                                                                                                                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `branches`     | `protectBranch`                                                                                                                                                                                         |
-| `environments` | `listEnvironments`, `upsertEnvironment`, `deleteEnvironment`                                                                                                                                            |
-| `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                                                     |
-| `issues`       | `listIssues`, `getIssue`, `createIssue`, `updateIssue`, `addLabels`, `removeLabel`, `createComment`, `listMilestones`                                                                                   |
-| `labels`       | `listLabels`, `createLabel`, `updateLabel`, `deleteLabel`                                                                                                                                               |
-| `properties`   | `setProperties`                                                                                                                                                                                         |
-| `repos`        | `getRepo`, `updateRepo`, `getContents`                                                                                                                                                                  |
-| `rulesets`     | `listRulesets`, `createRuleset`, `updateRuleset`                                                                                                                                                        |
-| `secrets`      | `listSecrets`, `getPublicKey`, `putSecret`, `deleteSecret`                                                                                                                                              |
-| `security`     | `enableVulnerabilityAlerts`, `enableAutomatedSecurityFixes`, `enableSecretScanning`, `enablePrivateVulnerabilityReporting`, `enableDependencyGraph`, `enableCodeScanning`, `disableDefaultCodeScanning` |
-| `teams`        | `addRepo`                                                                                                                                                                                               |
-| `topics`       | `setTopics`                                                                                                                                                                                             |
-| `user`         | `getCurrentUser`                                                                                                                                                                                        |
-| `workflows`    | `listRuns`, `getRun`                                                                                                                                                                                    |
+| Namespace      | Covers                                                                        |
+| -------------- | ----------------------------------------------------------------------------- |
+| `branches`     | Branch protection                                                             |
+| `environments` | Deployment environments                                                       |
+| `git`          | Refs, commits, trees, blobs and pull requests                                 |
+| `issues`       | Issues, their labels and comments, and milestones                             |
+| `labels`       | Repository labels                                                             |
+| `properties`   | Custom repository properties                                                  |
+| `repos`        | Repository settings and contents                                              |
+| `rulesets`     | Repository rulesets                                                           |
+| `secrets`      | Actions secrets, in a repository, environment or organization                 |
+| `security`     | Vulnerability alerts, secret scanning, code scanning and the dependency graph |
+| `teams`        | Team access to a repository                                                   |
+| `topics`       | Repository topics                                                             |
+| `user`         | The authenticated user                                                        |
+| `workflows`    | Workflow runs                                                                 |
 
 The full [API reference](/holocron/clients/github-client/api/readme/) is generated from the package's TSDoc comments.

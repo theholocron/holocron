@@ -34,8 +34,15 @@ export interface ResolveTokenConfig {
 
 /**
  * Returns a `resolveToken(input?)` function wired to the given env vars
- * and keyring service. Plugins call this once at module level:
+ * and keyring service. Plugins call this once at module level.
  *
+ * @remarks
+ * The resolver tries, in order: the `cliToken` input (the `--token` flag), the
+ * `HOLOCRON_*` env var, the vendor's own env var, the keyring entry
+ * `<service>.<org>` (only when an org is known), then the keyring entry
+ * `<service>`. It throws {@link AuthError} when none has a token.
+ *
+ * @example
  * ```ts
  * export const resolveToken = createResolveToken({
  *   envName: "HOLOCRON_GITHUB_TOKEN",

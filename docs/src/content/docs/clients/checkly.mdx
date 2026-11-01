@@ -38,20 +38,4 @@ const check = await client.checks.create({
 });
 ```
 
-## Exports
-
-| Export                 | Description                                                 |
-| ---------------------- | ----------------------------------------------------------- |
-| `createChecklyClient`  | Factory returning a client with a `checks` resource         |
-| `ChecklyClientOptions` | Options type for `createChecklyClient`                      |
-| `ApiCheck`             | Shape of an API check as returned by the Checkly API        |
-| `ApiCheckInput`        | Input for `checks.create()` / `checks.update()`             |
-| `ApiCheckRequest`      | The `request` field on an API check (url/method/assertions) |
-| `Assertion`            | One check assertion (source/comparison/target)              |
-| `AssertionSource`      | Union of assertion source values                            |
-| `AssertionComparison`  | Union of assertion comparison operators                     |
-| `HttpMethod`           | Union of HTTP methods an API check can issue                |
-| `ListChecksParams`     | Query params for `checks.list()`                            |
-| `ChecklyClient`        | Return type of `createChecklyClient`                        |
-
 The full [API reference](/holocron/clients/checkly-client/api/readme/) is generated from the package's TSDoc comments.

@@ -31,13 +31,7 @@ try {
 }
 ```
 
-## Exports
-
-| Export               | Description                                                                                                                      |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `createRestClient`   | Factory that returns a typed REST client for a given base URL + token                                                            |
-| `createResolveToken` | Builds a 5-step token resolver: `--token` flag → `HOLOCRON_*` env → vendor env → keyring `<service>.<org>` → keyring `<service>` |
-| `ProviderApiError`   | Error class thrown on non-2xx responses; includes `status` and body                                                              |
-| `AuthError`          | Thrown by `createResolveToken` when no token is found in any resolution step                                                     |
+Tokens resolve in order: the `--token` flag, a `HOLOCRON_*` env var, the vendor's own env var, the keyring entry
+`<service>.<org>`, then the keyring entry `<service>`. `createResolveToken` throws `AuthError` when none has one.
 
 The full [API reference](/holocron/clients/http-client/api/readme/) is generated from the package's TSDoc comments.

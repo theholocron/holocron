@@ -2,13 +2,19 @@
 export interface DiscordBotClientOptions {
 	/** Bot token from the Discord developer portal (Bot → Reset Token). */
 	botToken: string;
-	/** Override base URL for testing. Defaults to https://discord.com/api/v10. */
+	/**
+	 * Override base URL for testing. Defaults to https://discord.com/api/v10.
+	 * The bot token is sent to whatever host this names, so never derive it from untrusted input.
+	 */
 	baseUrl?: string;
 	/** Override fetch for testing. Defaults to globalThis.fetch. */
 	fetch?: typeof fetch;
 	/** Per-request deadline in milliseconds. Defaults to 15000. */
 	timeoutMs?: number;
-	/** Retries after a 429 (rate limit) before giving up. Defaults to 3. */
+	/**
+	 * Retries after a 429 (rate limit) before giving up. Defaults to 3.
+	 * Each retry waits for the `Retry-After` Discord sends; a wait longer than 10 seconds fails immediately.
+	 */
 	maxRetries?: number;
 	/** Wait between rate-limit retries; a test seam. Defaults to `setTimeout`. */
 	sleep?: (ms: number) => Promise<void>;

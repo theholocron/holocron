@@ -28,21 +28,4 @@ const tunnels = await client.tunnels.list(zones[0].id);
 const verified = await client.tokens.verify();
 ```
 
-## Exports
-
-| Export                    | Description                                                                       |
-| ------------------------- | --------------------------------------------------------------------------------- |
-| `createCloudflareClient`  | Factory returning a client with `dns`, `tokens`, `tunnels`, and `zones` resources |
-| `CloudflareClientOptions` | Options type for `createCloudflareClient`                                         |
-| `CfZone`                  | Shape of a Cloudflare zone                                                        |
-| `CfDnsRecord`             | Shape of a DNS record                                                             |
-| `CfDnsRecordInput`        | Input for `dns.create()`                                                          |
-| `CfDnsRecordType`         | Union of valid DNS record types                                                   |
-| `CfTunnel`                | Shape of a Cloudflare tunnel                                                      |
-| `CfTunnelConfig`          | Tunnel configuration shape                                                        |
-| `CfIngressRule`           | Ingress rule within a tunnel config                                               |
-| `CfTokenVerification`     | Shape of the token verification response                                          |
-| `CfEnvelope`              | Generic Cloudflare API response envelope                                          |
-| `CloudflareClient`        | Return type of `createCloudflareClient`                                           |
-
 The full [API reference](/holocron/clients/cloudflare-client/api/readme/) is generated from the package's TSDoc comments.

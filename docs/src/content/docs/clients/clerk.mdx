@@ -25,10 +25,10 @@ await client.users.ban("user_abc123");
 
 ## Namespaces
 
-| Namespace  | Methods                                                                                |
-| ---------- | -------------------------------------------------------------------------------------- |
-| `instance` | `get`                                                                                  |
-| `users`    | `list`, `count`, `get`, `create`, `update`, `delete`, `ban`, `unban`, `lock`, `unlock` |
-| `webhooks` | `ensureSvixApp`, `getSvixUrl`                                                          |
+| Namespace  | Covers                                                                                |
+| ---------- | ------------------------------------------------------------------------------------- |
+| `instance` | The Clerk instance                                                                    |
+| `users`    | Listing, counting, creating, updating and deleting users, and banning or locking them |
+| `webhooks` | The Svix app behind Clerk's webhooks                                                  |
 
 The full [API reference](/holocron/clients/clerk-client/api/readme/) is generated from the package's TSDoc comments.
