@@ -35,7 +35,7 @@ import performanceYml from "../../templates/workflows/verification.performance.y
 import typeSafetyYml from "../../templates/workflows/verification.typeSafety.yml";
 import unitTestsYml from "../../templates/workflows/verification.unitTests.yml";
 import visualRegressionYml from "../../templates/workflows/verification.visualRegression.yml";
-import { rehomeAll,reusableWorkflowRef } from "../ci-ref/index.js";
+import { rehomeAll, reusableWorkflowRef } from "../ci-ref/index.js";
 import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
 import { groupedPublishCaller } from "./grouped-publish/index.js";
 import { yamlScalar } from "./grouped-publish/yaml-scalar.js";
