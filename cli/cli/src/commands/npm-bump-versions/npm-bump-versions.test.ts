@@ -437,6 +437,32 @@ describe("runNpmBumpVersions", () => {
 			return { report, written, lines };
 		};
 
+		it("skips a group whose only package is private, unless told to bump private packages", async () => {
+			const tagOnly = makeFs({
+				"pnpm-workspace.yaml": "packages:\n  - ci\n",
+				"ci/package.json": { name: "@acme/ci", version: "1.0.0", private: true },
+			});
+			const run = (extra: { includePrivate?: boolean }) =>
+				runNpmBumpVersions({
+					version: "2.0.0",
+					cwd: CWD,
+					group: "ci",
+					print: () => {},
+					...tagOnly,
+					...extra,
+				});
+
+			const skipped = await run({});
+			expect(skipped.bumped).toEqual([]);
+			expect(skipped.skipped).toEqual(["ci"]);
+			expect(tagOnly.written).toEqual({});
+
+			const bumped = await run({ includePrivate: true });
+			expect(bumped.bumped).toEqual(["ci"]);
+			expect(bumped.skipped).toEqual([]);
+			expect(JSON.parse(tagOnly.written[join(CWD, "ci/package.json")]!).version).toBe("2.0.0");
+		});
+
 		it("bumps only that group's non-private packages and leaves the root and other groups alone", async () => {
 			const { report, written, lines } = await bump("clients");
 			expect(report.bumped).toEqual(["clients/http"]);

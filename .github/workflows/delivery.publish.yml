@@ -37,6 +37,7 @@ on: # yamllint disable-line rule:truthy
           - configs
           - themes
           - clients
+          - ci
 
 permissions:
   contents: write
@@ -60,7 +61,7 @@ jobs:
         name: Choose the groups to release
         env:
           GROUP: ${{ inputs.group }}
-          ALL_GROUPS: '[{"group":"utils"},{"group":"observability"},{"group":"skills"},{"group":"configs"},{"group":"themes"},{"group":"clients"}]'
+          ALL_GROUPS: '[{"group":"utils","run-build":true},{"group":"observability","run-build":true},{"group":"skills","run-build":true},{"group":"configs","run-build":true},{"group":"themes","run-build":true},{"group":"clients","run-build":true},{"group":"ci","run-build":false}]'
         run: |
           if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
             groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")
@@ -83,6 +84,7 @@ jobs:
     with:
       dry-run: ${{ inputs.dry_run == true }}
       group: ${{ matrix.group }}
+      run-build: ${{ matrix.run-build == true }}
     secrets: inherit
 
   release:

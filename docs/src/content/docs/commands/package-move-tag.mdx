@@ -1,0 +1,34 @@
+---
+title: "package move-tag"
+description: Move a version group's major tag (ci-v1) to its latest stable release — the publishCmd of a tag-only group.
+---
+
+```bash
+holocron package move-tag <group> [<release>] [--remote <name>] [--dry-run]
+```
+
+Moves `<group>-v<major>` (`ci-v1`) to the commit of a stable release of the group (`ci-v1.4.0`) and force-pushes it, so a workflow that pins `ci-v1` follows the group without changing its own files. The immutable release tags (`ci-v1.4.0`) are never touched.
+
+Without `<release>` it moves to the group's latest stable tag. A prerelease (`1.5.0-alpha.1`) is refused: the major tag follows stable releases only. The release's tag must exist in the clone, so fetch the tags first.
+
+A [tag-only group](/self-hosting/#a-group-that-publishes-nothing-tag-only) runs it as its `publishCmd`; run it by hand to repair a major tag.
+
+## Options
+
+| Option      | Description                                                          |
+| ----------- | -------------------------------------------------------------------- |
+| `<group>`   | The version group: a folder of the repo (`ci`)                       |
+| `<release>` | The stable release to point at (`1.4.0`); default: the latest stable |
+| `--remote`  | The remote to push to (default `origin`)                             |
+| `--dry-run` | Print what would move without tagging or pushing                     |
+| `--cwd`     | Repo root (default: `process.cwd()`)                                 |
+
+## Example
+
+```bash
+# In release.config.ts, for a tag-only group:
+publishCmd: "node cli/cli/dist/cli.mjs package move-tag ci ${nextRelease.version}"
+
+# By hand, to see where ci-v1 would go:
+holocron package move-tag ci --dry-run
+```

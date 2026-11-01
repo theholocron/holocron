@@ -18,6 +18,7 @@ import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
 import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring-check.entry.js";
+import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
 import { notificationsChannelAddEntry } from "../../commands/notifications-channel-add/notifications-channel-add.entry.js";
 import { notificationsCreateServerEntry } from "../../commands/notifications-create-server/notifications-create-server.entry.js";
@@ -81,6 +82,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	deployOnReleaseEntry,
 	monitoringCheckEntry,
 	npmBumpVersionsEntry,
+	moveTagEntry,
 	publishEntry,
 	repoSyncEntry,
 	repoCleanupBranchesEntry,

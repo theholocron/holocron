@@ -11,7 +11,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
-	const { version, dryRun = false, group, excludeGroups } = input;
+	const { version, dryRun = false, group, excludeGroups, includePrivate = false } = input;
 	const readFile = input.readFile ?? ((p: string) => readFileSync(p, "utf8"));
 	const writeFile = input.writeFile ?? ((p: string, c: string) => writeFileSync(p, c));
 	const listDir = input.listDir ?? ((p: string) => readdirSync(p) as string[]);
@@ -100,7 +100,7 @@ export async function runNpmBumpVersions(input: RunNpmBumpVersionsInput): Promis
 		print(`  ! skipping ${relative(resolve(cwd), dir)}: no package.json or malformed JSON`);
 	}
 	for (const { dir, relativeDir, manifest } of workspace) {
-		if (manifest.private) {
+		if (manifest.private && !includePrivate) {
 			print(`  · skipping private package ${relativeDir}`);
 			skipped.push(relativeDir);
 			continue;

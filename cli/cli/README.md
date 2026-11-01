@@ -788,7 +788,7 @@ the local override exists to exempt.
   never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`,
   `monitoring check`, `secrets list`, `secrets set`, `secrets sync`, `package publish`,
-  `package bump-versions`, `sync github`, `repo upgrade node`,
+  `package bump-versions`, `package move-tag`, `sync github`, `repo upgrade node`,
   `repo upgrade deps`, `new plugin`, `auth`, `notifications setup`,
   `notifications channel add`, `notifications link`,
   `notifications sync-roles`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor repo`, `doctor secrets`, `doctor tokens`, `doctor variables`

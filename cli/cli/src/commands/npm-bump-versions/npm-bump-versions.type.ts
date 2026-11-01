@@ -17,6 +17,11 @@ export interface RunNpmBumpVersionsInput {
 	 * together; a group released on its own keeps its own version.
 	 */
 	excludeGroups?: readonly string[];
+	/**
+	 * Bump private packages too. For a group that publishes nothing (a tag-only group such as `ci`), whose only
+	 * package is private and whose version is the one thing its release records. Default: private packages are skipped.
+	 */
+	includePrivate?: boolean;
 	print?: (line: string) => void;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */
 	logger?: Logger;

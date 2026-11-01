@@ -36,6 +36,13 @@ describe("package bump-versions command", () => {
 		});
 	});
 
+	it("passes --include-private through, and leaves it out when it is not given", async () => {
+		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0", "--group", "ci", "--include-private"]);
+		expect(runNpmBumpVersions.mock.calls[0]![0]).toMatchObject({ group: "ci", includePrivate: true });
+		await runCommand(npmBumpVersionsCommand, ["bump-versions", "2.0.0", "--group", "ci"]);
+		expect("includePrivate" in runNpmBumpVersions.mock.calls[1]![0]).toBe(false);
+	});
+
 	it("passes every --exclude-group through", async () => {
 		await runCommand(npmBumpVersionsCommand, [
 			"bump-versions",

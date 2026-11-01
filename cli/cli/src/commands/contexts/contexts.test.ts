@@ -18,6 +18,7 @@ const EVERY_COMMAND = [
 	"auth list",
 	"auth check",
 	"package bump-versions",
+	"package move-tag",
 	"package publish",
 	"skills install",
 	"skills remove",

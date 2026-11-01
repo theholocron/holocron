@@ -46,7 +46,17 @@ export default defineConfig({
 				// Folders that release on their own version line (tags `<group>-v<version>`), one at a
 				// time, before the repo-wide release (which depends on them and leaves them out). List them in
 				// dependency order: clients depends on utils and observability, so it goes after both.
-				groups: ["utils", "observability", "skills", "configs", "themes", "clients"],
+				// `ci` publishes nothing to npm: it only records a release, tags it (`ci-v1.4.0`) and moves
+				// `ci-v1` (see release.config.ts), so it has nothing to build and no dependency on the rest.
+				groups: [
+					"utils",
+					"observability",
+					"skills",
+					"configs",
+					"themes",
+					"clients",
+					{ name: "ci", "run-build": false },
+				],
 				// Everything in no group is released together, as before. The Sentry release and the
 				// post-release deploy belong to it alone, not to every group.
 				ungrouped: { "sentry-project": "holocron-cli", "deploy-on-release": true },

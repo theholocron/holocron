@@ -25,6 +25,7 @@ export const COMMAND_CONTEXTS = {
 	// from a global install. See `runAuthCheck`.
 	"auth check": "global",
 	"package bump-versions": "global",
+	"package move-tag": "global",
 	"package publish": "global",
 	"skills install": "global",
 	"skills remove": "global",
