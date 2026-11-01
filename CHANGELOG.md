@@ -1,3 +1,9 @@
+## [5.0.0-alpha.283](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.282...v5.0.0-alpha.283) (2026-11-01)
+
+### Refactoring
+
+* **platform:** 📁 move the reusable workflows and actions into the ci package ([#1523](https://github.com/theholocron/holocron/issues/1523)) ([e77c435](https://github.com/theholocron/holocron/commit/e77c43587ebecb7963df195a8f00558dc75e503b)), closes [#1480](https://github.com/theholocron/holocron/issues/1480) [#1215](https://github.com/theholocron/holocron/issues/1215)
+
 ## [5.0.0-alpha.282](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.281...v5.0.0-alpha.282) (2026-11-01)
 
 ### Refactoring
