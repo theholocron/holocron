@@ -3,13 +3,32 @@ import { apiReference, defineConfig } from "@theholocron/astro-config";
 import { docsTheme } from "@theholocron/docs-theme";
 import { createStarlightTypeDocPlugin } from "starlight-typedoc";
 
-// The reference is generated from the package's TSDoc comments each time the docs are built or served, and is not
+const UTILS = [
+	"array-utils",
+	"date-time-utils",
+	"env-utils",
+	"fs-utils",
+	"git-utils",
+	"json-utils",
+	"location-utils",
+	"misc-utils",
+	"object-utils",
+	"pkg-utils",
+	"storage-utils",
+	"string-utils",
+	"uri-utils",
+] as const;
+
+// The reference is generated from each package's TSDoc comments every time the docs are built or served, and is not
 // committed (it is gitignored).
-const arrayUtilsApi = apiReference({
-	createPlugin: createStarlightTypeDocPlugin,
-	root: new URL("./", import.meta.url),
-	package: "utils/array-utils",
-});
+const utilsApi = UTILS.map((name) => ({
+	name,
+	api: apiReference({
+		createPlugin: createStarlightTypeDocPlugin,
+		root: new URL("./", import.meta.url),
+		package: `utils/${name}`,
+	}),
+}));
 
 export default defineConfig({
 	site: "https://docs.theholocron.dev",
@@ -111,22 +130,10 @@ export default defineConfig({
 				label: "Utils",
 				items: [
 					{ label: "Overview", slug: "utils" },
-					{
-						label: "array-utils",
-						items: [{ label: "Overview", slug: "utils/array-utils" }, arrayUtilsApi.group],
-					},
-					{ label: "date-time-utils", slug: "utils/date-time-utils" },
-					{ label: "env-utils", slug: "utils/env-utils" },
-					{ label: "fs-utils", slug: "utils/fs-utils" },
-					{ label: "git-utils", slug: "utils/git-utils" },
-					{ label: "json-utils", slug: "utils/json-utils" },
-					{ label: "location-utils", slug: "utils/location-utils" },
-					{ label: "misc-utils", slug: "utils/misc-utils" },
-					{ label: "object-utils", slug: "utils/object-utils" },
-					{ label: "pkg-utils", slug: "utils/pkg-utils" },
-					{ label: "storage-utils", slug: "utils/storage-utils" },
-					{ label: "string-utils", slug: "utils/string-utils" },
-					{ label: "uri-utils", slug: "utils/uri-utils" },
+					...utilsApi.map(({ name, api }) => ({
+						label: name,
+						items: [{ label: "Overview", slug: `utils/${name}` }, api.group],
+					})),
 				],
 			},
 			{
@@ -196,7 +203,7 @@ export default defineConfig({
 			},
 		],
 	},
-	plugins: [arrayUtilsApi.plugin],
+	plugins: utilsApi.map(({ api }) => api.plugin),
 	starlight,
 	docsTheme,
 	srcDir: "./docs/src",
