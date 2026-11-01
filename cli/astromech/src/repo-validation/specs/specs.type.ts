@@ -44,3 +44,46 @@ export interface SpecsResult {
 	/** Every problem found, in file order. */
 	findings: SpecFinding[];
 }
+
+/** What happened to a pull request that touches a spec: it was opened (or reopened), got another push, or was merged. */
+export type SpecChangeEvent = "opened" | "updated" | "merged";
+
+/** One spec file in a pull request event, as it was before the event and after it. */
+export interface SpecChange {
+	/** What happened to the pull request. */
+	event: SpecChangeEvent;
+	/** The file's repo-relative path. */
+	path: string;
+	/** The file's text before the event, or `undefined` when it did not exist yet. */
+	before: string | undefined;
+	/** The file's text after the event, or `undefined` when the event removed it. */
+	after: string | undefined;
+}
+
+/**
+ * Why a spec is worth announcing: `new` (the file is added), `status` (its `status` changed), `edited` (a pull request
+ * was opened that edits it) or `merged` (the pull request that touches it landed).
+ */
+export type SpecAnnouncementKind = "new" | "edited" | "status" | "merged";
+
+/** A spec change worth a post, with what the post says about it. */
+export interface SpecAnnouncement {
+	/** The file's repo-relative path. */
+	path: string;
+	/** The spec's first heading, or its file name when it has none, stripped of anything that would format or link. */
+	title: string;
+	/** Why it is worth announcing. */
+	kind: SpecAnnouncementKind;
+	/** The spec's `status` after the event; absent when it has none. */
+	status?: string;
+	/** The spec's `status` before the event, when the event changed it. */
+	previousStatus?: string;
+}
+
+/** The pull request an announcement is about. */
+export interface SpecPullRequest {
+	/** The pull request's number. */
+	number: number;
+	/** The pull request's address. */
+	url: string;
+}
