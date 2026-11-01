@@ -1,3 +1,10 @@
+## [5.0.0-alpha.285](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.284...v5.0.0-alpha.285) (2026-11-01)
+
+### Refactoring
+
+* **astromech:** ♻️ move the ADR and spec check into the CLI as probe specs check ([#1527](https://github.com/theholocron/holocron/issues/1527)) ([fa30450](https://github.com/theholocron/holocron/commit/fa304500df8894bf1c76e87c986e4bc8e4ddddc4)), closes [#929](https://github.com/theholocron/holocron/issues/929) [#1522](https://github.com/theholocron/holocron/issues/1522)
+* **sentinel:** ♻️ run the docs-presence check on the shared rules ([#1526](https://github.com/theholocron/holocron/issues/1526)) ([c2d8cec](https://github.com/theholocron/holocron/commit/c2d8cece9c79b8519749ddc5e9b98770d15929e5)), closes [#929](https://github.com/theholocron/holocron/issues/929)
+
 ## [5.0.0-alpha.284](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.283...v5.0.0-alpha.284) (2026-11-01)
 
 ### Refactoring
