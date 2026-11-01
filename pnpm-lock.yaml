@@ -587,6 +587,51 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  ci:
+    devDependencies:
+      '@theholocron/eslint-config':
+        specifier: workspace:^
+        version: link:../configs/eslint-config
+      '@theholocron/rollup-plugin-transform-template':
+        specifier: workspace:^
+        version: link:../configs/rollup-plugin-transform-template
+      '@theholocron/tsdown-config':
+        specifier: workspace:^
+        version: link:../configs/tsdown-config
+      '@theholocron/vitest-config':
+        specifier: workspace:^
+        version: link:../configs/vitest-config
+      '@tsconfig/node-lts':
+        specifier: 'catalog:'
+        version: 24.0.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.5(@vitest/browser@5.0.5)(vitest@5.0.5)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.27(@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@5.0.5)
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.11.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.3(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
   cli/astromech:
     dependencies:
       '@commitlint/lint':
@@ -620,6 +665,9 @@ importers:
       '@semantic-release/release-notes-generator':
         specifier: catalog:cli
         version: 14.1.1(semantic-release@25.0.9(typescript@5.9.3))
+      '@theholocron/ci':
+        specifier: workspace:*
+        version: link:../../ci
       '@theholocron/commitlint-config':
         specifier: workspace:^
         version: link:../../configs/commitlint-config

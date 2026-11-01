@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import notifyAction from "./notify.yml";
+import notifyAction from "../actions/notify/action.yml";
 
 const hasJq = spawnSync("jq", ["--version"]).status === 0;
 

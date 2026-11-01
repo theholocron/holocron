@@ -60,6 +60,13 @@ const config: KnipConfig = {
 			// src/index.ts + src/config/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
+			// grouped-publish.test.ts runs the generated shell with jq -- a system tool on every CI runner and dev
+			// machine, not an npm dependency.
+			ignoreBinaries: ["jq"],
+		},
+		ci: {
+			entry: ["src/index.ts", "src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
 			// notify.test.ts runs the action's real shell script, which needs jq -- a
 			// system tool on every CI runner and dev machine, not an npm dependency.
 			ignoreBinaries: ["jq"],

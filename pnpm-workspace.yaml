@@ -1,6 +1,7 @@
 packages:
   - "docs"
   - "apps/*"
+  - "ci"
   - "cli/*"
   - "clients/*"
   - "plugins/*"

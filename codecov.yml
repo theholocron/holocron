@@ -87,6 +87,7 @@ coverage:
           - storage-utils
           - string-utils
           - uri-utils
+          - ci
         target: auto
         if_not_found: success
         threshold: 2%
@@ -175,6 +176,7 @@ coverage:
           - storage-utils
           - string-utils
           - uri-utils
+          - ci
         target: 80%
         if_not_found: success
         threshold: 2%
@@ -269,6 +271,7 @@ flag_management:
     - name: string-utils
     - name: uri-utils
     - name: documentation
+    - name: ci
 
 component_management:
   default_rules:
@@ -288,6 +291,12 @@ component_management:
       name: "sentinel"
       paths:
         - apps/sentinel/**
+
+    # ci
+    - component_id: ci
+      name: "ci"
+      paths:
+        - ci/**
 
     # cli
     - component_id: astromech

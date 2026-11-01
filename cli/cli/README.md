@@ -784,7 +784,7 @@ the local override exists to exempt.
   `holocron repo sync` / `holocron repo setup` write each repo's `.github/workflows/*.yml`
   thin callers from `astromech.thinCallers()`; `holocron sync github` pushes the
   reusable `workflow_call` implementations + composite actions from
-  `astromech.reusableTemplates()` to `theholocron/.github` (a pure sync target —
+  `astromech.reusableTemplates()` (written in `ci/`) to `theholocron/.github` (a pure sync target —
   never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`,
   `monitoring check`, `secrets list`, `secrets set`, `secrets sync`, `package publish`,

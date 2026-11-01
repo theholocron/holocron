@@ -1,0 +1,59 @@
+{
+  "name": "@theholocron/ci",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The reusable workflows and composite actions every repo of the org calls, versioned and tagged as the ci group.",
+  "keywords": [
+    "ci",
+    "github-actions",
+    "theholocron",
+    "workflows"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "ci"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "delivery.build": "tsdown",
+    "sourceQuality.staticAnalysis": "eslint .",
+    "test:watch": "vitest",
+    "verification.typeSafety": "tsc --noEmit",
+    "verification.unitTests": "vitest run"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/rollup-plugin-transform-template": "workspace:^",
+    "@theholocron/tsdown-config": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@tsconfig/node-lts": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
