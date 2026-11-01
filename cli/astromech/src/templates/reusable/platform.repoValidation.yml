@@ -50,6 +50,10 @@ jobs:
           job: docsPresence
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # The PR title and description, read by the script for a `feat` and a `[skip docs] <reason>` marker. They
+          # reach the script through the environment, never inline in a command.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
 
   conclusion:
     name: Conclusion

@@ -214,12 +214,26 @@ with `jobs:` on its entry in `astromech.config.ts`:
 { name: "platform.repoValidation", required: true, jobs: { docsEnforcement: false } }
 ```
 
-| Key               | Job                    | Notes                                                                |
-| ----------------- | ---------------------- | -------------------------------------------------------------------- |
-| `docsEnforcement` | Validate docs presence | a new public package comes with docs (key `docsPresence` also works) |
+| Key               | Job                    | Notes                                                                              |
+| ----------------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| `docsEnforcement` | Validate docs presence | a new public package, or a `feat`, comes with docs (key `docsPresence` also works) |
 
 A job left out runs. A switched-off job still reports in CI (green, "off in this repo's config"), so a required
 check never goes missing, and `holocron run platform.repoValidation` prints which jobs it skipped.
+
+The `docsEnforcement` job only ever warns. It warns for a new public package with no docs change, and for a `feat`
+that changes a public package's source (`src/**`, or a root `index.ts`) without a docs signal for that package: its
+README, a docs page named after it, or a doc comment in the diff. When no docs change is needed, say why in the pull
+request description or in a commit message:
+
+```text
+[skip docs] the new option is internal and has no page
+[skip docs: array-utils, fs-utils] only these two need no page
+```
+
+Like `[skip ci]`, the marker is read from the text, and the reason after it is required: a bare `[skip docs]` still
+warns. The description is read from the run's event, so editing it after the run needs a new push (a commit message
+works the same way); a re-run uses the old description.
 
 ### Doc-comment coverage
 
