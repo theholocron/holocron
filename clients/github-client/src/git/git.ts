@@ -1,46 +1,93 @@
 import type { RestClient } from "../utils.js";
 import { filePath, repoBase, toBase64 } from "../utils.js";
 
+/** A git reference (such as a branch) and the object it points at. */
 export interface GitRef {
-	object: { sha: string; type: string; url: string };
+	/** The object the reference points at. */
+	object: {
+		/** The object's SHA. */
+		sha: string;
+		/** The object's type, e.g. `commit`. */
+		type: string;
+		/** The API URL of the object. */
+		url: string;
+	};
+	/** The full reference name, e.g. `refs/heads/main`. */
 	ref: string;
+	/** The API URL of the reference. */
 	url: string;
 }
 
+/** A git commit, with only the fields this client reads. */
 export interface GitCommit {
+	/** The commit's SHA. */
 	sha: string;
-	tree: { sha: string; url: string };
+	/** The tree the commit points at. */
+	tree: {
+		/** The tree's SHA. */
+		sha: string;
+		/** The API URL of the tree. */
+		url: string;
+	};
 }
 
+/** One entry of a git tree. */
 export interface GitTreeItem {
+	/** The entry's path within the tree. */
 	path: string;
+	/** The entry's object SHA. */
 	sha: string;
+	/** The kind of object the entry points at, e.g. `blob` or `tree`. */
 	type: string;
+	/** The entry's file mode, e.g. `100644`. */
 	mode?: string;
+	/** The blob's size in bytes; absent for trees. */
 	size?: number;
 }
 
+/** A git tree as GitHub returns it. */
 export interface GitTree {
+	/** The tree's SHA. */
 	sha: string;
+	/** The entries of the tree. */
 	tree: GitTreeItem[];
+	/** Whether GitHub cut the entry list short because the tree was too large. */
 	truncated: boolean;
 }
 
+/** A file's contents as the contents API returns them. */
 export interface GitContents {
+	/** The file content, encoded as named by `encoding`. */
 	content: string;
+	/** The encoding of `content`, normally `base64`. */
 	encoding: string;
+	/** The file's blob SHA. */
 	sha: string;
+	/** The file's name. */
 	name: string;
+	/** The file's path in the repository. */
 	path: string;
 }
 
 /** What `git.putContents` returns: the file's new blob sha (the `sha` to pass next time) and the commit it made. */
 export interface PutContentsResult {
-	content: { sha: string; path: string };
-	commit: { sha: string };
+	/** The file written: its path and its new blob SHA. */
+	content: {
+		/** The file's new blob SHA. */
+		sha: string;
+		/** The file's path. */
+		path: string;
+	};
+	/** The commit that was made. */
+	commit: {
+		/** The new commit's SHA. */
+		sha: string;
+	};
 }
 
+/** The body of a `putContents()` request. */
 export interface PutContentsInput {
+	/** The commit message. */
 	message: string;
 	/** The new file text (UTF-8); the client encodes it. */
 	content: string;
@@ -54,21 +101,33 @@ export interface PutContentsInput {
 	branch?: string;
 }
 
+/** A git blob created in the repository. */
 export interface GitBlob {
+	/** The blob's SHA. */
 	sha: string;
+	/** The API URL of the blob. */
 	url: string;
 }
 
+/** A pull request as returned when one is created, with only the fields this client reads. */
 export interface GitPull {
+	/** The pull request's number. */
 	number: number;
+	/** The URL of the pull request's page on GitHub. */
 	html_url: string;
+	/** The pull request's title. */
 	title: string;
 }
 
+/** The body of a `createPull()` request. */
 export interface CreatePullInput {
+	/** The pull request's title. */
 	title: string;
+	/** The branch the changes come from. */
 	head: string;
+	/** The branch the changes are to be merged into. */
 	base: string;
+	/** The pull request's description. */
 	body?: string;
 }
 

@@ -3,6 +3,7 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createVercelClient()` and `createVercelRestClient()`. */
 export interface VercelClientOptions {
 	/** Vercel API token. */
 	token: string;

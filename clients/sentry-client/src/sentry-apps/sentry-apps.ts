@@ -5,21 +5,33 @@ import type { RestClient } from "../utils.js";
  * integration has, so it is absent for a token with fewer. It signs the webhooks Sentry sends to `webhookUrl`.
  */
 export interface SentryApp {
+	/** The integration's name. */
 	name: string;
+	/** The integration's slug. */
 	slug: string;
+	/** The integration's UUID. */
 	uuid: string;
+	/** The integration's status as Sentry reports it. */
 	status: string;
+	/** The scopes the integration holds. */
 	scopes: string[];
+	/** Where Sentry sends webhooks, or `null` for none. */
 	webhookUrl: string | null;
+	/** Whether the integration is offered as an action in alert rules. */
 	isAlertable: boolean;
+	/** The OAuth client id; present only when the token may see it. */
 	clientId?: string;
+	/** The secret that signs webhooks; present only when the token may see it. */
 	clientSecret?: string;
 }
 
+/** Input for `sentryApps.create()` and `sentryApps.update()`. */
 export interface SentryAppInput {
+	/** The integration's name. */
 	name: string;
 	/** What the integration may read or write, e.g. `event:read`. The token making the call must hold each. */
 	scopes: string[];
+	/** Where Sentry sends webhooks; `null` or omitted for none. */
 	webhookUrl?: string | null;
 	/** Offer the integration as an action in alert rules. */
 	isAlertable?: boolean;
@@ -27,9 +39,19 @@ export interface SentryAppInput {
 
 /** An integration installed on the organization. For an internal one this happens when it is created. */
 export interface SentryAppInstallation {
+	/** The installation's UUID. */
 	uuid: string;
+	/** The installation's status as Sentry reports it. */
 	status: string;
-	app: { uuid: string; slug: string; sentryAppId: number };
+	/** The installed integration. */
+	app: {
+		/** The integration's UUID. */
+		uuid: string;
+		/** The integration's slug. */
+		slug: string;
+		/** The numeric integration id that alert actions point at. */
+		sentryAppId: number;
+	};
 }
 
 const seg = encodeURIComponent;

@@ -3,7 +3,9 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
 
 export type { RestClient };
 
+/** Options for `createSentryClient()` and `createSentryRestClient()`. */
 export interface SentryClientOptions {
+	/** Sentry auth token. */
 	token: string;
 	/** Override base URL for testing. Defaults to https://sentry.io/api/0 */
 	baseUrl?: string;

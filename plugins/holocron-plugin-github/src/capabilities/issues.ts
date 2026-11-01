@@ -34,8 +34,11 @@ export interface IssuesOptions {
 	labels?: { inProgress: string; inReview: string };
 }
 
+/** The GitHub implementation of the `issues` capability, backed by GitHub Issues and status labels. */
 export class GitHubIssues implements Issues {
+	/** Capability key, always `"issues"`. */
 	readonly key = "issues" as const;
+	/** Provider name, always `"github"`. */
 	readonly providerName = "github";
 
 	private readonly owner: string;
@@ -63,6 +66,7 @@ export class GitHubIssues implements Issues {
 
 	// ── search / get ─────────────────────────────────────────────────────
 
+	/** Searches the repo's issues, newest update first, leaving out pull requests. */
 	async search(filter: IssueSearchFilter): Promise<Issue[]> {
 		const params: Record<string, string | number> = {
 			state: filter.openOnly ? "open" : "all",
@@ -88,6 +92,7 @@ export class GitHubIssues implements Issues {
 		return raw.filter((i) => !i.pull_request).map((i) => this.mapIssue(i));
 	}
 
+	/** Fetches one issue by its key. */
 	async get(key: string): Promise<Issue> {
 		const number = parseIssueNumber(key, this.owner, this.repoName);
 		const raw = await this.client.issues.getIssue(this.repo, number);
@@ -96,6 +101,7 @@ export class GitHubIssues implements Issues {
 
 	// ── create / transition / comment ────────────────────────────────────
 
+	/** Creates an issue and returns its key as `#<number>`; the milestone is resolved from its title. */
 	async create(input: {
 		summary: string;
 		body?: string;
@@ -148,6 +154,7 @@ export class GitHubIssues implements Issues {
 		return { transitioned: true, status: `open + ${targetLabel}`, via: `label set to ${targetLabel}` };
 	}
 
+	/** Adds a comment to the issue with the given key. */
 	async comment(key: string, body: string): Promise<void> {
 		const number = parseIssueNumber(key, this.owner, this.repoName);
 		await this.client.issues.createComment(this.repo, number, body);
@@ -155,6 +162,7 @@ export class GitHubIssues implements Issues {
 
 	// ── doctor ───────────────────────────────────────────────────────────
 
+	/** Checks the authenticated user, the repo and the label-backed lifecycle slots, and reports what resolves. */
 	async doctor(): Promise<TrackerDoctorReport> {
 		const me = await this.getMyself();
 		const repo = await this.client.repos.getRepo(this.repo);

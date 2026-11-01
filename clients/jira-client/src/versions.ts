@@ -2,6 +2,7 @@ import { type RestClient } from "@theholocron/http-client";
 
 import type { JiraVersion } from "./types.js";
 
+/** Project version (release) operations. */
 export function versions(client: RestClient) {
 	return {
 		create(name: string, project: string, fields: Partial<JiraVersion> = {}): Promise<JiraVersion> {

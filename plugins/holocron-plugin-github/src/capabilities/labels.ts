@@ -1,8 +1,12 @@
 import type { GitHubClient, GitHubLabel } from "@theholocron/github-client";
 
+/** A label the repo is expected to have. */
 export interface CanonicalLabel {
+	/** The label's name. */
 	readonly name: string;
+	/** The label's color, as a hex string. */
 	readonly color: string;
+	/** The label's description. */
 	readonly description: string;
 }
 

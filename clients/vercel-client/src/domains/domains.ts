@@ -1,12 +1,18 @@
 import type { RestClient } from "../utils.js";
 
+/** A domain attached to a Vercel project. */
 export interface VercelDomain {
+	/** The domain name. */
 	name: string;
+	/** The domain's apex (registrable) name. */
 	apexName: string;
+	/** Whether Vercel has verified ownership of the domain. */
 	verified: boolean;
 }
 
+/** The response of `domains.list()`. */
 export interface VercelDomainsResponse {
+	/** The domains attached to the project. */
 	domains: VercelDomain[];
 }
 
@@ -19,22 +25,33 @@ export interface VercelDomainsResponse {
  * host — always read it from this response, never hardcode it.
  */
 export interface VercelDomainVerification {
+	/** The record type to create: `CNAME` or `TXT`. */
 	type: string;
+	/** The name the record goes on. */
 	domain: string;
+	/** The record content. */
 	value: string;
+	/** Why Vercel asks for this record. */
 	reason: string;
 }
 
+/** The response of `domains.add()`. */
 export interface VercelAddDomainResult {
+	/** The domain name. */
 	name: string;
+	/** The domain's apex (registrable) name. */
 	apexName: string;
+	/** Whether ownership is already verified; when `false`, `verification` lists what to do. */
 	verified: boolean;
+	/** The challenges to complete to verify ownership; absent when already verified. */
 	verification?: VercelDomainVerification[];
 }
 
 /** One ranked CNAME/IPv4 recommendation — `rank: 1` is the preferred value. */
 export interface VercelDomainConfigRecommendation<T> {
+	/** The preference order; `1` is the preferred value. */
 	rank: number;
+	/** The recommended value. */
 	value: T;
 }
 

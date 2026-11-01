@@ -1,3 +1,17 @@
+## [5.0.0-alpha.279](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.278...v5.0.0-alpha.279) (2026-11-01)
+
+### Features
+
+* **cli:** 🔍 probe ci refs: inventory .github and scan the org for references to it ([#1485](https://github.com/theholocron/holocron/issues/1485)) ([1270f20](https://github.com/theholocron/holocron/commit/1270f201edc42a35c5e569b326b046a3211f1125)), closes [#1473](https://github.com/theholocron/holocron/issues/1473) [#1215](https://github.com/theholocron/holocron/issues/1215)
+
+### Documentation
+
+* **cli:** 📝 document capabilities a-l with TSDoc ([#1498](https://github.com/theholocron/holocron/issues/1498)) ([5ef69a9](https://github.com/theholocron/holocron/commit/5ef69a95560a3b279f3cc0deaab6235b41cb7896))
+* **plugin-github:** 📝 document the public API with TSDoc ([#1489](https://github.com/theholocron/holocron/issues/1489)) ([9136f6c](https://github.com/theholocron/holocron/commit/9136f6c522ddbef8bfc4ac1559ef3e4579a68c54))
+* **plugins:** 📝 document the checkly, discord, cloudflare and postman plugins with TSDoc ([#1493](https://github.com/theholocron/holocron/issues/1493)) ([f35af04](https://github.com/theholocron/holocron/commit/f35af04ca3bac3190f0b2aa79e8eea9ac235928e))
+* **plugins:** 📝 document the posthog, axiom, vercel and sentry plugins with TSDoc ([#1499](https://github.com/theholocron/holocron/issues/1499)) ([0895d02](https://github.com/theholocron/holocron/commit/0895d02db5b0c26e26d8024a6192580bd8cd9203))
+* **plugins:** 📝 document the remaining plugins with TSDoc ([#1497](https://github.com/theholocron/holocron/issues/1497)) ([add1b57](https://github.com/theholocron/holocron/commit/add1b5723a308371dfd9d46987118e7828bbcbc2))
+
 ## [5.0.0-alpha.278](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.277...v5.0.0-alpha.278) (2026-10-31)
 
 ### Features

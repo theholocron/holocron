@@ -5,8 +5,11 @@ export interface CiOptions {
 	repo: string;
 }
 
+/** The GitHub implementation of the `ci` capability, backed by GitHub Actions workflow runs. */
 export class GitHubCi implements Ci {
+	/** Capability key, always `"ci"`. */
 	readonly key = "ci" as const;
+	/** Provider name, always `"github"`. */
 	readonly providerName = "github";
 
 	constructor(
@@ -14,6 +17,7 @@ export class GitHubCi implements Ci {
 		private readonly opts: CiOptions
 	) {}
 
+	/** Lists workflow runs for the repo, optionally filtered by branch, status and limit. */
 	async listRuns(filter?: CiRunFilter): Promise<CiRun[]> {
 		const runs = await this.client.workflows.listRuns(this.opts.repo, {
 			branch: filter?.branch,
@@ -23,6 +27,7 @@ export class GitHubCi implements Ci {
 		return runs.map((r) => this.mapRun(r));
 	}
 
+	/** Fetches one workflow run by id. */
 	async getRun(id: string | number): Promise<CiRun> {
 		const raw = await this.client.workflows.getRun(this.opts.repo, id);
 		return this.mapRun(raw);
