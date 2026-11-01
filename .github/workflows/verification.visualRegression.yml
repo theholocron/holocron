@@ -1,0 +1,63 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/verification.visualRegression.yml
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Visual Regression
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      chromatic-projects:
+        description: >
+          JSON array of Chromatic projects to build, one matrix job per entry.
+          Each entry: { "tokenName": "WEB", "workingDir": "apps/web", "buildScript": "build:storybook" }.
+          tokenName maps to secret CHROMATIC_PROJECT_TOKEN_<TOKENNAME>; use "default"
+          (or omit for the legacy empty-string form) to use the bare CHROMATIC_PROJECT_TOKEN
+          secret for single-project repos.
+          buildScript defaults to "build:storybook" when omitted.
+          Required -- this task only exists in a repo's workflow list when it
+          opts into Chromatic at all (holocron#394/#1062): GitHub evaluates a
+          job's `if:` before expanding its `strategy.matrix`, so no default
+          here (empty or otherwise) can make a *disabled* Chromatic job
+          disappear from PR checks -- only not generating this job's thin
+          caller in the first place can. A repo that doesn't want Chromatic
+          simply omits `verification.visualRegression` from its `tasks:`.
+        type: string
+        required: true
+    secrets:
+      CHROMATIC_PROJECT_TOKEN:
+        required: false
+
+jobs:
+  visual-and-composition:
+    name: Run visual and composition tests
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(inputs.chromatic-projects) }}
+    permissions:
+      contents: read
+      statuses: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: chromaui/action@14cfaef73576e69f95f47f60058063f46ca38719 # v18
+        name: Publish to Chromatic
+        with:
+          projectToken: ${{ (matrix.project.tokenName == 'default' || matrix.project.tokenName == '') && secrets.CHROMATIC_PROJECT_TOKEN || secrets[format('CHROMATIC_PROJECT_TOKEN_{0}', matrix.project.tokenName)] }}
+          token: ${{ github.token }}
+          buildScriptName: ${{ matrix.project.buildScript || 'build:storybook' }}
+          workingDir: ${{ matrix.project.workingDir || '.' }}
+          storybookBaseDir: ${{ matrix.project.storybookBaseDir || '' }}
+          untraced: ${{ matrix.project.untraced || '' }}
+          onlyStoryFiles: ${{ matrix.project.onlyStoryFiles || '' }}
+          exitZeroOnChanges: ${{ matrix.project.exitZeroOnChanges || false }}

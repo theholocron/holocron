@@ -1,24 +1,46 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/bookkeeping.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Platform
+name: Bookkeeping
 
 on: # yamllint disable-line rule:truthy
-  pull_request:
-    types:
-      - opened
-      - edited
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+  workflow_call:
+    inputs:
+      configuration-path:
+        description: Path to the labeler configuration file in the calling repo
+        type: string
+        required: false
+        default: .github/labeler.yml
 
 jobs:
-  bookkeeping:
-    name: Bookkeeping
-    uses: theholocron/.github/.github/workflows/bookkeeping.yml@main
-    secrets: inherit
+  label:
+    name: Apply Labels
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          sparse-checkout: ${{ inputs.configuration-path || '.github/labeler.yml' }}
+          sparse-checkout-cone-mode: false
+
+      - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+        if: ${{ github.event_name == 'pull_request' && hashFiles(inputs.configuration-path || '.github/labeler.yml') != '' }}
+        # v3.4 bundles Node 20; allow it to run under Actions' current default.
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+        with:
+          # Fall back to default path when triggered directly (not via workflow_call)
+          # because inputs.* defaults only apply on workflow_call events.
+          configuration-path: ${{ inputs.configuration-path || '.github/labeler.yml' }}
+          include-title: 1
+          include-body: 0
+          sync-labels: 1
+          enable-versioned-regex: 0
+          repo-token: ${{ github.token }}

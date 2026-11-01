@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS } from "../github-action-reusable-workflows/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
-import { CI_HOME, type CiHome, rehome, rehomeAll, reusableWorkflowRef, TEMPLATE_HOME } from "./ci-ref.js";
+import { CI_HOME, type CiHome, localize, rehome, rehomeAll, reusableWorkflowRef, TEMPLATE_HOME } from "./ci-ref.js";
 
 const MOVED: CiHome = {
 	workflows: "acme/central/.github/workflows",
@@ -49,6 +49,37 @@ describe("rehome", () => {
 	it("builds a reusable workflow reference", () => {
 		expect(reusableWorkflowRef("preview.yml", MOVED)).toBe("acme/central/.github/workflows/preview.yml@ci-v1");
 		expect(reusableWorkflowRef("preview.yml")).toBe("theholocron/.github/.github/workflows/preview.yml@main");
+	});
+});
+
+describe("localize", () => {
+	it("points a reference to a hosted workflow at the file in the same checkout", () => {
+		expect(localize("    uses: theholocron/.github/.github/workflows/verification.unitTests.yml@main")).toBe(
+			"    uses: ./.github/workflows/verification.unitTests.yml"
+		);
+		expect(localize("uses: acme/central/.github/workflows/stale.yml@ci-v1", MOVED)).toBe(
+			"uses: ./.github/workflows/stale.yml"
+		);
+	});
+
+	it("leaves a composite action on its full ref, since a called reusable cannot see this checkout", () => {
+		const action = "uses: theholocron/.github/.github/actions/setup@main";
+		expect(localize(action)).toBe(action);
+	});
+
+	it("leaves a reference to some other home alone", () => {
+		const text = "uses: someone/else/.github/workflows/x.yml@main";
+		expect(localize(text)).toBe(text);
+	});
+
+	it("rewrites every workflow reference of every caller, and none of its other lines", () => {
+		const bad = Object.entries(WORKFLOW_TEMPLATES)
+			.filter(([, text]) => {
+				const local = localize(text);
+				return local.includes(`${CI_HOME.workflows}/`) || local.split("\n").length !== text.split("\n").length;
+			})
+			.map(([name]) => name);
+		expect(bad).toEqual([]);
 	});
 });
 

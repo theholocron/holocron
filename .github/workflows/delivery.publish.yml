@@ -1,104 +1,329 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/delivery.publish.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Delivery
+name: Release
+
+# Semantic-release with OIDC Trusted Publishing.
+# actions/setup-node writes a default NODE_AUTH_TOKEN=${{ github.token }}
+# which shadows OIDC auth. We explicitly clear it so npm falls through to
+# the Trusted Publisher OIDC exchange.
+# The calling repo must have a .releaserc.json that configures branches,
+# plugins, and any publish options. npm@11+ is installed to support OIDC.
 
 on: # yamllint disable-line rule:truthy
-  push:
-    branches:
-      - main
-      - alpha
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      dry_run:
+      dry-run:
         description: >
-          Dry run — analyze commits and preview the release without git writes
-          or publish. Push-triggered runs always run fully; this only applies
-          to manual workflow_dispatch triggers.
-        required: false
-        default: true
+          When true, runs semantic-release --dry-run: analyzes commits and
+          previews the next release without git writes or publish. Only
+          meaningful for workflow_dispatch triggers; push-triggered runs
+          always run fully.
         type: boolean
+        required: false
+        default: false
       group:
         description: >
-          Release one version group instead of all of them. Push-triggered
-          runs always release everything.
+          Version group to release: a folder of the repo (`clients`,
+          `observability`). Passed to the release config as RELEASE_GROUP, and
+          scopes every tag lookup below to that group's `<group>-v*` tags, so
+          releasing one group never reads another's. Empty releases the whole
+          repo, with plain `v*` tags. Groups push release commits to the same
+          branch, so release them one at a time (a matrix with `max-parallel: 1`);
+          each run starts from the branch's current tip, not the commit that
+          triggered the workflow.
+        type: string
         required: false
-        default: all
-        type: choice
-        options:
-          - all
-          - ungrouped
-          - utils
-          - observability
-          - skills
-          - configs
-          - themes
-          - clients
-          - ci
-
-permissions:
-  contents: write
-  id-token: write
-  issues: write
-  pull-requests: write
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+        default: ""
+      from-branch-tip:
+        description: >
+          When true, an ungrouped release starts from the branch's current tip
+          instead of the commit that triggered the workflow. Set it when the
+          repo-wide release runs after the version groups, whose release
+          commits have moved the branch (semantic-release refuses to run
+          behind its remote). A group always starts from the tip.
+        type: boolean
+        required: false
+        default: false
+      post-release:
+        description: >
+          When true, dispatches a readme sync broadcast after a successful
+          release. Enable for packages consumed by other repos via the
+          registry-doc system so downstream README installation blocks
+          stay current.
+        type: boolean
+        required: false
+        default: false
+      run-build:
+        description: Run `pnpm build` before releasing
+        type: boolean
+        required: false
+        default: true
+      deploy-on-release:
+        description: >
+          When true, runs a separate `deploy` job after a successful release
+          (holocron#930): `holocron deploy on-release` deploys every workspace
+          package whose `delivery.deploy` task is `with: { on: release }`, when
+          the release is on its channel and changes its paths. The job is its
+          own check, re-runnable on its own, and gets VERCEL_TOKEN; the release
+          job never sees it. Off by default, so a repo that doesn't deploy from
+          its release never exposes the token.
+        type: boolean
+        required: false
+        default: false
+      sentry-project:
+        description: >
+          Sentry project slug for sourcemap upload and release creation after
+          publishing. Omit to skip the Sentry release step entirely.
+        type: string
+        required: false
+        default: ""
+    secrets:
+      HOLOCRON_RELEASE_TOKEN:
+        description: >
+          Fine-grained PAT (Contents + Issues + Pull requests: write) owned by
+          an admin. Required when the default branch is protected by a ruleset —
+          github.token cannot push through rulesets, but an admin PAT can.
+          Takes priority over HOLOCRON_SYNC_TOKEN. Falls back to github.token.
+        required: false
+      HOLOCRON_SYNC_TOKEN:
+        description: >
+          Legacy alias for HOLOCRON_RELEASE_TOKEN — kept for backward compatibility.
+          Prefer HOLOCRON_RELEASE_TOKEN for new repos.
+        required: false
+      HOLOCRON_READ_TOKEN:
+        description: >
+          Fine-grained PAT for read-only GitHub API calls (e.g. resolving git
+          committer identity via `gh api user`). Falls back to github.token.
+        required: false
+      GH_TOKEN:
+        description: >
+          Generic GitHub token fallback for `gh` CLI calls. Used when
+          HOLOCRON_READ_TOKEN is not set.
+        required: false
+      SENTRY_AUTH_TOKEN:
+        description: >
+          Sentry auth token for sourcemap upload and release creation.
+          Required when sentry-project is set. Use the org-level secret.
+        required: false
+      TURBO_TOKEN:
+        required: false
+      VERCEL_TOKEN:
+        description: >
+          Vercel token for the deploy job. Only used when deploy-on-release is
+          true, and only by that job.
+        required: false
 
 jobs:
-  plan:
-    name: Plan
-    runs-on: ubuntu-latest
-    permissions: {}
-    outputs:
-      groups: ${{ steps.plan.outputs.groups }}
-    steps:
-      - id: plan
-        name: Choose the groups to release
-        env:
-          GROUP: ${{ inputs.group }}
-          ALL_GROUPS: '[{"group":"utils","run-build":true},{"group":"observability","run-build":true},{"group":"skills","run-build":true},{"group":"configs","run-build":true},{"group":"themes","run-build":true},{"group":"clients","run-build":true},{"group":"ci","run-build":false}]'
-        run: |
-          if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
-            groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")
-          else
-            groups=$ALL_GROUPS
-          fi
-          echo "groups=$groups" >> "$GITHUB_OUTPUT"
-
-  release-groups:
-    name: Release ${{ matrix.group }}
-    # Choosing `ungrouped` by hand leaves the plan empty, and a matrix with no entries fails the run.
-    needs: plan
-    if: ${{ needs.plan.outputs.groups != '[]' }}
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include: ${{ fromJSON(needs.plan.outputs.groups) }}
-    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
-    with:
-      dry-run: ${{ inputs.dry_run == true }}
-      group: ${{ matrix.group }}
-      run-build: ${{ matrix.run-build == true }}
-    secrets: inherit
-
   release:
-    name: Release
-    # last: the packages in no group depend on the groups' packages, which must be on npm first.
-    # Runs even if the groups were skipped (a manual run picked `ungrouped`), but not if one failed.
-    needs: [plan, release-groups]
-    if: >-
-      ${{ !cancelled() && needs.plan.result == 'success' && needs.release-groups.result != 'failure' &&
-      (inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped') }}
-    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main
-    with:
-      dry-run: ${{ inputs.dry_run == true }}
-      from-branch-tip: true
-      sentry-project: holocron-cli
-      deploy-on-release: true
-    secrets: inherit
+    name: Semantic release
+    permissions:
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      # Read by the deploy job (holocron#930). Empty unless semantic-release
+      # published: `commit` is the release commit, `previous` the commit of
+      # the release before it (to diff against), `channel` the new version's
+      # prerelease identifier (`alpha`), empty for a stable release (`main`).
+      commit: ${{ steps.release.outputs.commit }}
+      previous: ${{ steps.release.outputs.previous }}
+      channel: ${{ steps.release.outputs.channel }}
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    # Do not cancel in-progress releases — a partial release is worse than a slow one.
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          # A group's release commit moves the branch, so a later group's run must
+          # release from the branch's current tip, not the commit that triggered the
+          # workflow (semantic-release refuses to run behind its remote). Ungrouped,
+          # the default (the triggering commit) is unchanged, unless `from-branch-tip`
+          # says the groups ran first.
+          ref: ${{ (inputs.group != '' || inputs.from-branch-tip) && github.ref || github.sha }}
+          # Use HOLOCRON_RELEASE_TOKEN when available — git push (tags, release commits)
+          # uses the checkout credential, not GITHUB_TOKEN env var. The
+          # built-in github.token cannot push through branch protection rulesets.
+          token: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Configure git identity
+        run: |
+          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
+          GIT_EMAIL=$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
+          git config --global user.name "$GIT_NAME"
+          git config --global user.email "$GIT_EMAIL"
+          git config --global format.signoff true
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.GH_TOKEN || github.token }}
+
+      - name: Upgrade npm for OIDC support
+        run: npm install -g npm@11 sigstore
+        # sigstore is required by libnpmpublish/provenance.js at module parse
+        # time — before any config takes effect. Some npm 11.x builds stopped
+        # bundling it; installing it globally into the same prefix ensures it
+        # resolves regardless of npm version. (Discovered 2026-07-09.)
+
+      - run: pnpm build
+        name: Build
+        if: ${{ inputs.run-build == true }}
+
+      - name: Release
+        id: release
+        run: |
+          BEFORE=$(git rev-parse HEAD)
+          # A group's tags are `<group>-v<version>`; without one, any tag (as before).
+          MATCH=()
+          PREFIX="v"
+          if [ -n "$RELEASE_GROUP" ]; then
+            MATCH=(--match "${RELEASE_GROUP}-v*")
+            PREFIX="${RELEASE_GROUP}-v"
+          fi
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${MATCH[@]}" 2>/dev/null || true)
+          PREVIOUS=""
+          if [ -n "$PREVIOUS_TAG" ]; then PREVIOUS=$(git rev-list -n 1 "$PREVIOUS_TAG"); fi
+          if [ "$DRY_RUN" = "true" ]; then
+            npx semantic-release --dry-run
+          else
+            npx semantic-release
+          fi
+          AFTER=$(git rev-parse HEAD)
+          # semantic-release only commits (`chore(release): … [skip ci]`) when it
+          # actually publishes. That commit gets no CI (and so no coverage
+          # upload), which makes the next PR's `codecov/project` compare a full
+          # report against a stale ancestor — a phantom drop (holocron#644).
+          # Emit the new SHA so the steps below upload coverage for it.
+          if [ "$BEFORE" != "$AFTER" ]; then
+            echo "commit=$AFTER" >> "$GITHUB_OUTPUT"
+            echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
+            # The new version's channel: the prerelease identifier of its tag
+            # (v5.0.0-alpha.108 or cli-v5.0.0-alpha.108 -> alpha), empty for a stable release.
+            VERSION=$(git describe --tags --abbrev=0 "${MATCH[@]}")
+            VERSION=${VERSION#"$PREFIX"}
+            CHANNEL=""
+            case "$VERSION" in *-*) PRE=${VERSION#*-}; CHANNEL=${PRE%%.*} ;; esac
+            echo "channel=$CHANNEL" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          DRY_RUN: ${{ inputs.dry-run }}
+          # Read by the repo's release config to release one version group.
+          RELEASE_GROUP: ${{ inputs.group }}
+          # Prefer HOLOCRON_RELEASE_TOKEN (fine-grained PAT, Contents+Issues+PRs write,
+          # owned by an admin with ruleset bypass) so @semantic-release/git can
+          # push the version-bump commit through branch protection. Falls back to
+          # HOLOCRON_SYNC_TOKEN (legacy) then github.token for unprotected repos.
+          GITHUB_TOKEN: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
+          HUSKY: "0"
+          NPM_CONFIG_PROVENANCE: true
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Coverage for the release commit
+        if: ${{ steps.release.outputs.commit != '' }}
+        with:
+          task: verification.unitTests
+
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        name: Upload release-commit coverage to Codecov
+        if: ${{ steps.release.outputs.commit != '' }}
+        # fail_ci_if_error makes a failed upload fail this step, so it is visible, but
+        # continue-on-error keeps it from failing the job: the release has already
+        # published, and the Sentry release steps below must still run (holocron#934).
+        continue-on-error: true
+        with:
+          use_oidc: true
+          fail_ci_if_error: true
+          override_commit: ${{ steps.release.outputs.commit }}
+          override_branch: ${{ github.ref_name }}
+
+      - name: Get release version
+        id: release_version
+        if: ${{ inputs.sentry-project != '' && inputs.dry-run != true }}
+        env:
+          SENTRY_PROJECT: ${{ inputs.sentry-project }}
+          RELEASE_GROUP: ${{ inputs.group }}
+        run: |
+          MATCH=()
+          PREFIX="v"
+          if [ -n "$RELEASE_GROUP" ]; then
+            MATCH=(--match "${RELEASE_GROUP}-v*")
+            PREFIX="${RELEASE_GROUP}-v"
+          fi
+          TAG=$(git describe --tags --abbrev=0 "${MATCH[@]}" 2>/dev/null || echo "")
+          if [ -n "$TAG" ]; then
+            echo "release=${SENTRY_PROJECT}@${TAG#"$PREFIX"}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Sentry release
+        if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' && inputs.dry-run != true }}
+        uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: theholocron
+          SENTRY_PROJECT: ${{ inputs.sentry-project }}
+        with:
+          environment: production
+          version: ${{ steps.release_version.outputs.release }}
+          sourcemaps: "**/dist"
+
+  deploy:
+    name: Deploy
+    needs: release
+    # Only after a release that actually published (`commit` is empty on a dry
+    # run or when nothing was released). A failed deploy fails only this job:
+    # the release is already on npm, and this job re-runs on its own.
+    if: ${{ inputs.deploy-on-release == true && inputs.dry-run != true && needs.release.outputs.commit != '' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout the release commit
+        with:
+          ref: ${{ needs.release.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Deploy packages that deploy on release
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        with:
+          command: deploy on-release
+          args: >-
+            --channel=${{ needs.release.outputs.channel }}
+            --from=${{ needs.release.outputs.previous }}
+            --to=${{ needs.release.outputs.commit }}
+
+  sync-readme:
+    name: Post-release readme sync
+    needs: release
+    if: ${{ inputs.post-release == true && inputs.dry-run != true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger broadcast readme sync
+        run: |
+          gh workflow run sync-dispatch.yml \
+            --repo theholocron/.github \
+            --field "steps=readme"
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}

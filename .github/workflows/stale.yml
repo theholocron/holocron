@@ -1,5 +1,5 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/stale.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
@@ -7,20 +7,104 @@
 name: Stale
 
 on: # yamllint disable-line rule:truthy
-  schedule:
-    - cron: "30 1 * * *"
-
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  workflow_call:
+    inputs:
+      days-before-stale:
+        description: Days of inactivity before an issue or PR is marked stale (applies to both unless type-specific value is set)
+        type: number
+        required: false
+        default: 30
+      days-before-close:
+        description: Days after stale label before closing (applies to both unless type-specific value is set)
+        type: number
+        required: false
+        default: 5
+      days-before-issue-stale:
+        description: Days of inactivity before an issue is marked stale; overrides days-before-stale when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      days-before-issue-close:
+        description: Days after stale label before closing an issue; overrides days-before-close when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      days-before-pr-stale:
+        description: Days of inactivity before a PR is marked stale; overrides days-before-stale when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      days-before-pr-close:
+        description: Days after stale label before closing a PR; overrides days-before-close when set to a non-negative value
+        type: number
+        required: false
+        default: -1
+      exempt-issue-labels:
+        description: Comma-separated labels that exempt an issue from being marked stale
+        type: string
+        required: false
+        default: "in-progress,wip"
+      exempt-pr-labels:
+        description: Comma-separated labels that exempt a PR from being marked stale
+        type: string
+        required: false
+        default: ""
+      exempt-all-issue-milestones:
+        description: Issues assigned to any milestone are never marked stale
+        type: boolean
+        required: false
+        default: true
+      exempt-all-pr-milestones:
+        description: PRs assigned to any milestone are never marked stale
+        type: boolean
+        required: false
+        default: true
+      exempt-all-issue-projects:
+        description: Issues assigned to any project are never marked stale
+        type: boolean
+        required: false
+        default: true
+      exempt-all-pr-projects:
+        description: PRs assigned to any project are never marked stale
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   stale:
-    uses: theholocron/.github/.github/workflows/stale.yml@main
-    with:
-      exempt-issue-labels: "in-progress,wip"
-      exempt-all-issue-milestones: true
-      exempt-all-issue-projects: true
-      exempt-all-pr-projects: true
-    secrets: inherit
+    name: Mark stale issues and pull requests
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629 # v10.4.0
+        name: Run Stale
+        with:
+          close-issue-message: >
+            This issue was closed because it has been stalled for
+            ${{ inputs.days-before-close }} days with no activity.
+          days-before-close: ${{ inputs.days-before-close }}
+          days-before-issue-close: ${{ inputs.days-before-issue-close }}
+          days-before-issue-stale: ${{ inputs.days-before-issue-stale }}
+          days-before-pr-close: ${{ inputs.days-before-pr-close }}
+          days-before-pr-stale: ${{ inputs.days-before-pr-stale }}
+          days-before-stale: ${{ inputs.days-before-stale }}
+          exempt-all-issue-milestones: ${{ inputs.exempt-all-issue-milestones }}
+          exempt-all-issue-projects: ${{ inputs.exempt-all-issue-projects }}
+          exempt-all-pr-milestones: ${{ inputs.exempt-all-pr-milestones }}
+          exempt-all-pr-projects: ${{ inputs.exempt-all-pr-projects }}
+          exempt-issue-labels: ${{ inputs.exempt-issue-labels }}
+          exempt-pr-labels: ${{ inputs.exempt-pr-labels }}
+          stale-issue-label: wontfix
+          stale-issue-message: >
+            This issue is stale because it has been open ${{ inputs.days-before-stale }}
+            days with no activity. Remove the stale label or comment, or this will be
+            closed in ${{ inputs.days-before-close }} days.
+          stale-pr-label: wontfix
+          stale-pr-message: >
+            This PR is stale because it has been open ${{ inputs.days-before-stale }}
+            days with no activity. Remove the stale label or comment, or this will be
+            closed in ${{ inputs.days-before-close }} days.

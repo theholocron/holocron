@@ -1,0 +1,30 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Delivery
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches-ignore:
+      - main # delivery.publish builds before publishing
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: delivery.build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    uses: ./.github/workflows/delivery.build.yml
+    with:
+      affected: true
+    secrets: inherit

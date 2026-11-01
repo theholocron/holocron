@@ -15,10 +15,25 @@
 import { ACTIONS, WORKFLOWS } from "@theholocron/ci";
 
 import { rehomeAll } from "../ci-ref/index.js";
-import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
+import { WORKFLOW_TEMPLATES, workflowTriggers } from "../github-action-thin-callers/index.js";
 
 /** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
 export const REUSABLE_WORKFLOWS: Record<string, string> = rehomeAll(WORKFLOWS);
+
+/**
+ * The reusables a repo that hosts them keeps in its own `.github/workflows`, by name: the ones that only run when
+ * another workflow calls them. A reusable that is also started by an event or by hand (`tag`, `sync-dispatch`,
+ * `platform.dispatchedCheck`) would become a live workflow of the hosting repo, and runs where it is dispatched, so
+ * it stays out (spec `tech-workflows-in-holocron`, #1216).
+ */
+export function hostedReusableWorkflows(): Map<string, string> {
+	return new Map(
+		Object.entries(REUSABLE_WORKFLOWS).filter(([, text]) => {
+			const triggers = workflowTriggers(text);
+			return triggers.length === 1 && triggers[0] === "workflow_call";
+		})
+	);
+}
 
 /** Composite actions → `.github/actions/<name>/action.yml` (key includes `/action`). */
 export const REUSABLE_ACTIONS: Record<string, string> = rehomeAll(

@@ -1,0 +1,104 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Delivery
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+      - alpha
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: >
+          Dry run — analyze commits and preview the release without git writes
+          or publish. Push-triggered runs always run fully; this only applies
+          to manual workflow_dispatch triggers.
+        required: false
+        default: true
+        type: boolean
+      group:
+        description: >
+          Release one version group instead of all of them. Push-triggered
+          runs always release everything.
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - ungrouped
+          - utils
+          - observability
+          - skills
+          - configs
+          - themes
+          - clients
+          - ci
+
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      groups: ${{ steps.plan.outputs.groups }}
+    steps:
+      - id: plan
+        name: Choose the groups to release
+        env:
+          GROUP: ${{ inputs.group }}
+          ALL_GROUPS: '[{"group":"utils","run-build":true},{"group":"observability","run-build":true},{"group":"skills","run-build":true},{"group":"configs","run-build":true},{"group":"themes","run-build":true},{"group":"clients","run-build":true},{"group":"ci","run-build":false}]'
+        run: |
+          if [ -n "$GROUP" ] && [ "$GROUP" != "all" ]; then
+            groups=$(jq -c --arg group "$GROUP" '[.[] | select(.group == $group)]' <<<"$ALL_GROUPS")
+          else
+            groups=$ALL_GROUPS
+          fi
+          echo "groups=$groups" >> "$GITHUB_OUTPUT"
+
+  release-groups:
+    name: Release ${{ matrix.group }}
+    # Choosing `ungrouped` by hand leaves the plan empty, and a matrix with no entries fails the run.
+    needs: plan
+    if: ${{ needs.plan.outputs.groups != '[]' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.groups) }}
+    uses: ./.github/workflows/delivery.publish.yml
+    with:
+      dry-run: ${{ inputs.dry_run == true }}
+      group: ${{ matrix.group }}
+      run-build: ${{ matrix.run-build == true }}
+    secrets: inherit
+
+  release:
+    name: Release
+    # last: the packages in no group depend on the groups' packages, which must be on npm first.
+    # Runs even if the groups were skipped (a manual run picked `ungrouped`), but not if one failed.
+    needs: [plan, release-groups]
+    if: >-
+      ${{ !cancelled() && needs.plan.result == 'success' && needs.release-groups.result != 'failure' &&
+      (inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped') }}
+    uses: ./.github/workflows/delivery.publish.yml
+    with:
+      dry-run: ${{ inputs.dry_run == true }}
+      from-branch-tip: true
+      sentry-project: holocron-cli
+      deploy-on-release: true
+    secrets: inherit

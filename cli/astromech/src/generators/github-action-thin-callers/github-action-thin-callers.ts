@@ -135,7 +135,7 @@ const LOW_TRUST_TRIGGERS = new Set([
 ]);
 
 /** Top-level event names of a workflow's `on:` (scalar, flow list, or block mapping). */
-function workflowTriggers(yaml: string): string[] {
+export function workflowTriggers(yaml: string): string[] {
 	const onMatch = yaml.match(/^on:[^\S\n]*([^#\n]*)(?:#[^\n]*)?\n((?:[ \t]+[^\n]*\n|\n)*)/m);
 	if (!onMatch) return [];
 	const inline = onMatch[1].trim();

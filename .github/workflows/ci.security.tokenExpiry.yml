@@ -1,0 +1,21 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Token Expiry
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  token-expiry:
+    name: Token Expiry
+    uses: ./.github/workflows/security.tokenExpiry.yml
+    secrets: inherit

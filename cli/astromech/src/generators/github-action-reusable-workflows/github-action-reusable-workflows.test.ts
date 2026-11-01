@@ -7,11 +7,34 @@ import { describe, expect, it } from "vitest";
 
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 import {
+	hostedReusableWorkflows,
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
 	reusableTemplates,
 	WORKFLOW_TEMPLATE_PROPERTIES,
 } from "./github-action-reusable-workflows.js";
+
+describe("hostedReusableWorkflows()", () => {
+	const hosted = hostedReusableWorkflows();
+
+	it("keeps only the reusables that run when another workflow calls them", () => {
+		expect(hosted.size).toBeGreaterThan(25);
+		const other = [...hosted]
+			.filter(([, text]) => !/^on: # yamllint disable-line rule:truthy\n {2}workflow_call:/m.test(text))
+			.map(([name]) => name);
+		expect(other).toEqual([]);
+	});
+
+	it("leaves out the ones that are also started by an event or by hand, which run where they live", () => {
+		const left = ["tag", "sync-dispatch", "platform.dispatchedCheck"];
+		expect(left.filter((name) => !(name in REUSABLE_WORKFLOWS))).toEqual([]);
+		expect(left.filter((name) => hosted.has(name))).toEqual([]);
+	});
+
+	it("takes its text from the same map `holocron sync github` pushes", () => {
+		expect([...hosted].filter(([name, text]) => text !== REUSABLE_WORKFLOWS[name])).toEqual([]);
+	});
+});
 
 describe("reusableTemplates()", () => {
 	const batch = reusableTemplates();

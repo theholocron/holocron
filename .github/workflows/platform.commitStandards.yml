@@ -1,23 +1,50 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/platform.commitStandards.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Platform
+name: Commit Standards
 
 on: # yamllint disable-line rule:truthy
-  pull_request:
-
-concurrency:
-  group: platform-commit-standards-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
+  workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
 
 jobs:
   commit-standards:
-    name: Commit Standards
-    uses: theholocron/.github/.github/workflows/platform.commitStandards.yml@main
-    secrets: inherit
+    name: Run commitlint
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      # No local equivalent (linters.ts: commitlint has no localBin — enforced
+      # only at commit time via the commit-msg hook, and here in CI over the
+      # PR's commit range). Not run through the holocron composite action.
+      #
+      # --config <resolved shared path> (config-resolution workstream, #676)
+      # — falls back to commitlint's own auto-discovery of a local
+      # commitlint.config.ts when the shared package's built dist/ isn't
+      # present, same guard as the commit-msg hook.
+      - name: Run commitlint over the PR range
+        if: github.event_name == 'pull_request'
+        run: |
+          COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"
+          if [ -f "$COMMITLINT_CONFIG" ]; then
+            pnpm exec commitlint --config "$COMMITLINT_CONFIG" --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
+          else
+            pnpm exec commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
+          fi

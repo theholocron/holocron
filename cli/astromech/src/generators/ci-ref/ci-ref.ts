@@ -48,3 +48,15 @@ export function rehomeAll<T extends Record<string, string>>(templates: T, home: 
 export function reusableWorkflowRef(file: string, home: CiHome = CI_HOME): string {
 	return `${home.workflows}/${file}@${home.ref}`;
 }
+
+/**
+ * `text` with every reference to a hosted reusable workflow at `home` rewritten to the file in the same checkout
+ * (`./.github/workflows/<name>.yml`). For the repo that hosts the reusables: its own callers then run the reusable at
+ * their own commit, so a PR that edits one exercises it. Composite actions are left on their full ref, because a
+ * reusable called from another repository cannot see this checkout.
+ */
+export function localize(text: string, home: CiHome = CI_HOME): string {
+	const escaped = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const reference = new RegExp(`${escaped(home.workflows)}/([\\w.-]+)@${escaped(home.ref)}`, "g");
+	return text.replace(reference, "./.github/workflows/$1");
+}

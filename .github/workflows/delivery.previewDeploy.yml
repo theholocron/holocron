@@ -1,35 +1,343 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · ci/workflows/delivery.previewDeploy.yml
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
-# Source package: apps/sentinel
+# Source package: .
 
-name: Delivery
+name: Preview Deploy
 
 on: # yamllint disable-line rule:truthy
-  pull_request: {}
-
-concurrency:
-  group: preview-deploy-${{ github.event.pull_request.number }}
-  # Not true: a cancelled run could land between Vercel accepting the
-  # upload and the report job posting a status, leaving a real preview
-  # deployment with no corresponding GitHub check — worse than letting an
-  # overlapping run for the same PR simply queue.
-  cancel-in-progress: false
-
-permissions:
-  contents: read
-  deployments: write
-  # Must be a superset of what the reusable workflow's own job requests
-  # (holocron#1058) -- its new path-relevance check lists the PR's
-  # changed files via the API (holocron#1023).
-  pull-requests: read
+  workflow_call:
+    inputs:
+      cwd:
+        description: Directory to run the delivery.previewDeploy task from — the opted-in package's own directory in a monorepo. Defaults to the repo root.
+        required: false
+        type: string
+        default: "."
+      paths:
+        description: >
+          JSON array of repo-relative path prefixes (each ending in "/") --
+          a PR touching none of them skips the actual deploy work instead
+          of spinning up a Vercel preview for every PR in the monorepo
+          regardless of relevance (holocron#1023). Defaults to an empty
+          array: no filter, every PR is relevant -- correct for a
+          single-repo consumer, where every PR IS a PR to that package.
+        required: false
+        type: string
+        default: "[]"
+    secrets:
+      VERCEL_TOKEN:
+        required: false
+      HOLOCRON_DEPLOYMENTS_TOKEN:
+        description: >
+          A dedicated fine-grained PAT (Deployments: read/write only — see
+          docs/tokens.md), not the default GITHUB_TOKEN — GitHub does not
+          start a new workflow run for a deployment_status event created
+          using a run's own GITHUB_TOKEN, which would make a
+          deployment_status-triggered check (e.g. delivery.previewCheck)
+          silently never fire. No existing HOLOCRON_<FEATURE>_TOKEN carries
+          the Deployments permission, so `secrets: inherit` on the thin
+          caller forwards nothing for this unless a repo/org secret
+          literally named HOLOCRON_DEPLOYMENTS_TOKEN has been provisioned.
+        required: false
 
 jobs:
-  preview-deploy:
-    name: Preview Deploy
-    uses: theholocron/.github/.github/workflows/delivery.previewDeploy.yml@main
-    with:
-      cwd: apps/sentinel
-      paths: '["apps/sentinel/","cli/astromech/","cli/cli/","cli/datapad/"]'
-    secrets: inherit
+  # Two jobs, deliberately not one: "report" never checks out the repo at
+  # all, so it never runs a single line of this PR's own code. "deploy"
+  # does — it has to, to build and stage the preview — and runs with
+  # VERCEL_TOKEN present for that (tracked as a residual risk, #1020: the
+  # build step still runs this monorepo's own PR-affectable CLI build,
+  # pre-review). Without the split, a malicious build/stage script could
+  # persist a `gh` shim onto $GITHUB_PATH (or similar runner-state
+  # tampering) that a LATER step in the SAME job — the one that finally
+  # gets GH_TOKEN — would then execute instead of the real `gh` CLI,
+  # stealing that token too. Separate jobs run on separate, fresh
+  # runners; "report" has nothing of the first job's runner state to
+  # inherit.
+  deploy:
+    name: Deploy preview
+    runs-on: ubuntu-latest
+    # Setup/build/stage, plus the deploy capability's own
+    # wait-for-ready polling (up to 10 minutes by itself) — 10 would kill
+    # this before that polling could even finish.
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # Listing the PR's changed files (below, via `gh api`) needs this —
+      # must be granted here too, not only on the thin caller: GitHub
+      # hard-fails the whole run at startup, zero jobs dispatched, if a
+      # called reusable workflow's job asks for more than the caller
+      # grants (holocron#1058).
+      pull-requests: read
+    outputs:
+      url: ${{ steps.extract.outputs.url }}
+    steps:
+      - name: Check whether the PR touches any watched path
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PATHS: ${{ inputs.paths }}
+        run: |
+          # No checkout needed — the PR's changed-file list comes from the
+          # API, not local git history (which this job's later shallow
+          # checkout, below, doesn't have enough of to diff against the
+          # base branch anyway).
+          #
+          # `jq -e` both parses PATHS and rejects anything that isn't a
+          # JSON array (holocron#1069 review) -- a malformed input (bad
+          # JSON, or valid JSON that isn't an array) fails the job loudly
+          # instead of the process-substitution loop below silently
+          # reading zero prefixes and skipping the deploy with a green
+          # check and no explanation.
+          paths=$(echo "$PATHS" | jq -e 'if type != "array" then error("paths input is not a JSON array") else . end') || {
+            echo "::error::delivery.previewDeploy's paths input is not a valid JSON array: $PATHS"
+            exit 1
+          }
+          # `jq 'length'` on the PARSED value, not a comparison against the
+          # literal string "[]" -- any valid JSON encoding of an empty
+          # array (e.g. " [ ] ") means the same "no filter" thing.
+          if [ "$(echo "$paths" | jq 'length')" = "0" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Both the new name AND the old one for a rename -- a file
+          # renamed OUT of a watched package (old path matches, new
+          # doesn't) is still a real change to that package's tree.
+          files=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${{ github.event.pull_request.number }}/files" --paginate --jq '.[] | .filename, (.previous_filename // empty)')
+          file_count=$(echo "$files" | grep -c . || true)
+          if [ "$file_count" -ge 3000 ]; then
+            # The pulls-files endpoint caps out at 3,000 entries even with
+            # --paginate -- past that, a watched path could be among the
+            # files we never saw. Can't prove the PR irrelevant, so fail
+            # safe to relevant rather than risk silently skipping a real
+            # deploy.
+            echo "::warning::PR has >= 3000 changed files -- can't reliably determine path relevance, treating as relevant"
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          relevant=false
+          while IFS= read -r prefix; do
+            [ -z "$prefix" ] && continue
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              # Unquoted $prefix (deliberately) -- case pattern-matches it
+              # as a glob, anchored at the START of the repo-relative path
+              # (holocron#1069 review: grep -F matched the prefix as a
+              # literal substring anywhere in the filename, and couldn't
+              # match a configured glob like "custom/**" at all). The
+              # trailing `*` covers a plain directory prefix like
+              # "apps/sentinel/"; a caller-supplied prefix that already
+              # has its own wildcards (e.g. "custom/**") just gets one
+              # more, harmlessly.
+              case "$file" in
+                $prefix*) relevant=true; break 2 ;;
+              esac
+            done <<< "$files"
+          done < <(echo "$paths" | jq -r '.[]')
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
+        with:
+          # The PR's exact head SHA, not the default pull_request
+          # merge-commit ref — what gets built and deployed must be the
+          # exact commit the PR actually points at.
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
+
+      - name: Check deploy credentials are available
+        if: ${{ steps.filter.outputs.relevant == 'true' }}
+        id: creds
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          # `secrets` isn't valid in a step `if:` (actionlint-enforced) —
+          # a fork PR never receives this secret, so the deploy step below
+          # skips cleanly on an empty token instead of failing on a
+          # missing credential -- correct, and must stay that way: a
+          # fork-triggered pull_request run never gets a write-scoped
+          # token either, so there's no way to post a PR comment or check
+          # run from here regardless (that needs a separate,
+          # pull_request_target-triggered job in the base repo's
+          # context -- a real feature with its own review surface, not
+          # this step; holocron#1027 explicitly scoped this fix to
+          # observability only). The ::notice:: below needs no extra
+          # permission -- it's a log annotation the runner itself renders,
+          # not an API write -- so it's the cheap half of #1027 that IS
+          # worth doing here: a visible, on-PR explanation instead of
+          # silence.
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=No preview deployed::This run has no VERCEL_TOKEN available, so no preview was deployed -- most commonly because GitHub withholds repository secrets from a pull_request run triggered by a fork, though any run missing this secret ends up here the same way. Since this run creates no deployment, it won't trigger delivery.previewCheck for this PR. A maintainer can deploy one manually if needed."
+          fi
+
+      - name: Deploy preview
+        id: deploy
+        if: ${{ steps.creds.outputs.available == 'true' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        uses: theholocron/.github/.github/actions/holocron@main
+        with:
+          command: run delivery.previewDeploy
+          args: --cwd=${{ inputs.cwd }}
+
+      - name: Extract and validate the preview URL
+        id: extract
+        # Only after a real deploy — false both when the step above
+        # failed and when it skipped cleanly (fork PR, no credential).
+        if: ${{ steps.deploy.outcome == 'success' }}
+        env:
+          LOG_FILE: ${{ steps.deploy.outputs.log-file }}
+        run: |
+          # A loose https://\S+ grab would match whatever text follows an
+          # attacker-chosen URL this log happens to contain; grabbing
+          # candidate text here and separately requiring the PARSED
+          # hostname end in .vercel.app (below) closes that regardless of
+          # how the candidate text is shaped — e.g. a userinfo trick like
+          # "https://x.vercel.app@127.0.0.1/" would satisfy almost any
+          # hand-written regex character class while actually parsing to
+          # host 127.0.0.1, which a naive regex-only check already missed
+          # once.
+          candidate=$(grep -oE 'https://[^[:space:]"]+' "$LOG_FILE" | tail -1)
+          if [ -z "$candidate" ]; then
+            echo "::error::deploy succeeded but no https:// URL was found in its output"
+            exit 1
+          fi
+          host=$(node -e 'try { process.stdout.write(new URL(process.argv[1]).hostname) } catch { process.exit(1) }' "$candidate") || host=""
+          if [[ "$host" != *.vercel.app ]]; then
+            echo "::error::extracted URL '$candidate' does not parse to a *.vercel.app host (parsed host: '${host:-<unparseable>}')"
+            exit 1
+          fi
+          echo "url=$candidate" >> "$GITHUB_OUTPUT"
+
+  report:
+    name: Report deployment status
+    needs: deploy
+    if: ${{ needs.deploy.outputs.url != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      deployments: write
+    steps:
+      - name: Create GitHub deployment and report status
+        env:
+          # gh reads GH_TOKEN as its auto-auth env var by its own
+          # convention -- the secret feeding it is named
+          # HOLOCRON_DEPLOYMENTS_TOKEN, matching this org's
+          # HOLOCRON_<FEATURE>_TOKEN naming (docs/tokens.md).
+          GH_TOKEN: ${{ secrets.HOLOCRON_DEPLOYMENTS_TOKEN }}
+          # The PR's head BRANCH, not its SHA — GitHub's PR "Environments"
+          # widget associates a Deployment with a PR by matching `ref` to
+          # the PR's own branch name, not by SHA. GitHub resolves the
+          # branch to whatever commit it points to AT CREATION TIME,
+          # though, which is a separate moment from the deploy job's own
+          # checkout (below, SHA) -- cross-checked after creation rather
+          # than assumed.
+          REF: ${{ github.event.pull_request.head.ref }}
+          # The exact commit the deploy job checked out and built,
+          # captured from the same frozen event payload this whole run
+          # was triggered by -- stays constant for the run's lifetime
+          # even if the PR branch itself moves while this job is running.
+          SHA: ${{ github.event.pull_request.head.sha }}
+          URL: ${{ needs.deploy.outputs.url }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::HOLOCRON_DEPLOYMENTS_TOKEN secret is not set -- posting this status with the default GITHUB_TOKEN would not trigger a deployment_status-triggered check"
+            exit 1
+          fi
+
+          post_status() {
+            gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" \
+              --method POST --field state="$1" --field environment_url="$URL" >/dev/null
+          }
+          latest_status() {
+            gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}/statuses" --jq '.[0].state // empty' 2>/dev/null
+          }
+          # A deployment this very run may have already created
+          # server-side on an earlier attempt whose client-side response
+          # got lost (e.g. a dropped connection) -- reused instead of
+          # creating a second one, which would leave the first
+          # permanently pending (nothing ever posts its status). Scoped
+          # to the last 2 minutes so an OLDER deployment for the same
+          # ref/environment (a previous, unrelated run) is never
+          # mistaken for this one.
+          find_recent_deployment() {
+            gh api "repos/${GITHUB_REPOSITORY}/deployments" --method GET -f ref="$REF" -f environment=Preview --jq '
+              [.[] | select((now - (.created_at | fromdateiso8601)) < 120)] | sort_by(.created_at) | last | .id // empty' 2>/dev/null
+          }
+
+          # jq, not a hand-built string -- a branch name containing a
+          # literal double quote (git allows it; GitHub's branch-naming
+          # rules don't forbid it either) would otherwise break out of a
+          # printf-constructed JSON string and produce an invalid payload
+          # gh api can't send.
+          payload=$(jq -n --arg ref "$REF" '{
+            ref: $ref,
+            environment: "Preview",
+            description: "Vercel Preview (file deploy)",
+            production_environment: false,
+            auto_merge: false,
+            required_contexts: []
+          }')
+          deploy_id=""
+          for attempt in 1 2 3; do
+            deploy_id=$(find_recent_deployment)
+            if [ -n "$deploy_id" ]; then
+              echo "reusing deployment ${deploy_id} created by an earlier attempt of this run" >&2
+              break
+            fi
+            deploy_id=$(echo "$payload" | gh api "repos/${GITHUB_REPOSITORY}/deployments" --method POST --input - | jq -r '.id // empty')
+            if [ -n "$deploy_id" ]; then break; fi
+            echo "deployment creation failed (attempt ${attempt}/3) -- retrying..." >&2
+            sleep 5
+          done
+          if [ -z "$deploy_id" ]; then
+            echo "::error::failed to create a GitHub deployment after 3 attempts -- Vercel already has the preview, but nothing will report or check it"
+            exit 1
+          fi
+
+          # `ref` resolves to the branch's CURRENT tip at creation time --
+          # only guaranteed to be the commit this job actually built if
+          # the branch hasn't moved since the triggering push. A push to
+          # the same PR while this job was still running would otherwise
+          # silently associate the preview URL (built from the OLD
+          # commit) with the NEW commit's deployment. A newer workflow
+          # run already covers that new commit (cancel-in-progress:
+          # false queues rather than cancels), so failing this stale one
+          # loses nothing.
+          deployed_sha=$(gh api "repos/${GITHUB_REPOSITORY}/deployments/${deploy_id}" --jq '.sha // empty')
+          if [ "$deployed_sha" != "$SHA" ]; then
+            echo "::error::deployment ${deploy_id} resolved to ${deployed_sha}, not the deployed commit ${SHA} -- the PR branch moved while this job was running; a newer run already covers the new commit"
+            exit 1
+          fi
+
+          for attempt in 1 2 3; do
+            if post_status success; then
+              exit 0
+            fi
+            # The POST may have actually succeeded server-side even though
+            # this client call reported failure (e.g. a dropped connection
+            # after GitHub processed it) — checked before retrying, so a
+            # transient client-side error never posts a second success and
+            # fires delivery.previewCheck twice for the same preview.
+            if [ "$(latest_status)" = "success" ]; then
+              exit 0
+            fi
+            echo "status POST failed (attempt ${attempt}/3) for deployment ${deploy_id} -- retrying..." >&2
+            sleep 5
+          done
+
+          # Exhausted retries — one last attempt to mark the deployment
+          # failed rather than leaving it permanently "pending" in GitHub's
+          # UI; best-effort, its own failure doesn't change this step's
+          # already-failed outcome.
+          post_status error || true
+          echo "::error::failed to post a success status for deployment ${deploy_id} after 3 attempts -- marked it failed instead of leaving it pending"
+          exit 1

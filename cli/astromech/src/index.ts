@@ -23,6 +23,7 @@
 
 export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
+export { localize } from "./generators/ci-ref/index.js";
 export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";
 export {
 	codecovComponentBlock,
@@ -34,6 +35,7 @@ export {
 	readWorkspacePackages,
 } from "./generators/codecov/index.js";
 export {
+	hostedReusableWorkflows,
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
 	reusableTemplates,
