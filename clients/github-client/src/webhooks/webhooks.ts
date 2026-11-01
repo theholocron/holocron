@@ -109,9 +109,15 @@ export interface GitHubPullRequestWebhookPayload {
 	/** For an `edited` action, the fields that changed (each holds the previous value); absent for other actions. */
 	changes?: {
 		/** Present when the title was edited. */
-		title?: { from: string };
+		title?: {
+			/** The title before the edit. */
+			from: string;
+		};
 		/** Present when the description was edited. */
-		body?: { from: string | null };
+		body?: {
+			/** The description before the edit; `null` when it was empty. */
+			from: string | null;
+		};
 	};
 	/** The installation the delivery is about, when sent. */
 	installation?: {
