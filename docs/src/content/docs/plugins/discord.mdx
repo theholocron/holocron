@@ -109,6 +109,10 @@ holocron notifications setup             # apply
 holocron notifications channel add sync --category AUTOMATION --with-webhook
 ```
 
+## Forum channels
+
+A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that carry an emoji, which is how a status shows on a post. See [Forum channels](/holocron/commands/notifications-setup/#forum-channels) for the layout, the limits and why `setup` stops when a text channel already has the name. The bot's client calls for forum posts are `threads.*` in [`@theholocron/discord-client`](/holocron/clients/discord/).
+
 ## Channel content from a file
 
 What a channel says can live in a file of the repository instead of in the config. A pinned message names the file, and `notifications setup` pins whatever the file says:

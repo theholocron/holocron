@@ -9,7 +9,7 @@ import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
-import { feedProblem, runNotificationsSetup } from "./notifications-setup.js";
+import { feedProblem, forumLayoutProblem, runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -2405,6 +2405,102 @@ describe("the relay Worker", () => {
 			const cannot = collaborators();
 			const report = await setup(withTracker(), { relay: cannot }).run();
 			expect(report.status).toBe("ok");
+		});
+	});
+});
+
+describe("forum channels", () => {
+	const TAGS = [
+		{ name: "draft", emoji: "✏️", moderated: true },
+		{ name: "proposed", emoji: "💬", moderated: true },
+	];
+	const forumLayout = (channel: object, extra: object = {}): NotificationsLayout => ({
+		categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum", tags: TAGS, ...channel }] }],
+		...extra,
+	});
+
+	it("passes the kind and the tags to the provider, and a text channel neither", async () => {
+		const ensureChannel = vi.fn(async (_input: { name: string }) => ({ id: "1", created: true }));
+		const layout: NotificationsLayout = {
+			categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum", tags: TAGS }, { name: "dev" }] }],
+		};
+
+		const report = await setup(fakeNotifications({ layout, ensureChannel })).run();
+
+		expect(report.status).toBe("ok");
+		expect(ensureChannel).toHaveBeenNthCalledWith(
+			1,
+			expect.objectContaining({ name: "ideas", kind: "forum", tags: TAGS })
+		);
+		expect(ensureChannel.mock.calls[1]?.[0]).not.toHaveProperty("kind");
+		expect(ensureChannel.mock.calls[1]?.[0]).not.toHaveProperty("tags");
+	});
+
+	it("refuses an inconsistent forum before anything is created", async () => {
+		const n = fakeNotifications({ layout: forumLayout({ webhook: true }) });
+
+		const report = await setup(n).run();
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/a forum takes no `webhook` or `feeds`/);
+		expect(n.ensureCategory).not.toHaveBeenCalled();
+	});
+
+	describe("forumLayoutProblem", () => {
+		it("accepts a forum with tags, a text channel, and a layout with no categories", () => {
+			expect(forumLayoutProblem(forumLayout({}))).toBeUndefined();
+			expect(forumLayoutProblem({ categories: [{ name: "A", channels: [{ name: "dev" }] }] })).toBeUndefined();
+			expect(forumLayoutProblem({})).toBeUndefined();
+			expect(forumLayoutProblem({ categories: [{ name: "A" }] })).toBeUndefined();
+		});
+
+		it("accepts a forum with no tags", () => {
+			expect(forumLayoutProblem(forumLayout({ tags: undefined }))).toBeUndefined();
+		});
+
+		it("refuses tags on a text channel, whether it says so or not", () => {
+			const text = { categories: [{ name: "A", channels: [{ name: "dev", tags: TAGS }] }] };
+			const explicit = {
+				categories: [{ name: "A", channels: [{ name: "dev", kind: "text" as const, tags: TAGS }] }],
+			};
+
+			expect(forumLayoutProblem(text)).toMatch(/channel `dev`: `tags` belong to a forum/);
+			expect(forumLayoutProblem(explicit)).toMatch(/`tags` belong to a forum/);
+		});
+
+		it("refuses a webhook, a monitoring feed or an errors feed on a forum", () => {
+			expect(forumLayoutProblem(forumLayout({ webhook: true }))).toMatch(/takes no `webhook` or `feeds`/);
+			expect(forumLayoutProblem(forumLayout({ feeds: { monitoring: true } }))).toMatch(
+				/takes no `webhook` or `feeds`/
+			);
+			expect(forumLayoutProblem(forumLayout({ feeds: { errors: true } }))).toMatch(
+				/takes no `webhook` or `feeds`/
+			);
+			expect(forumLayoutProblem(forumLayout({ feeds: {} }))).toBeUndefined();
+		});
+
+		it("refuses a tag with no name, and two tags with one name in any case", () => {
+			expect(forumLayoutProblem(forumLayout({ tags: [{ name: "  " }] }))).toMatch(/a tag has no name/);
+			expect(forumLayoutProblem(forumLayout({ tags: [{ name: "Draft" }, { name: "draft" }] }))).toMatch(
+				/two tags are named `draft`/
+			);
+		});
+
+		it("refuses a pinned message for a forum, and allows one for a text channel", () => {
+			const pinned = (channel: string) => ({ pinned: [{ channel, content: "hi" }] });
+			const layout = {
+				categories: [
+					{
+						name: "BUILD",
+						channels: [{ name: "ideas", kind: "forum" as const }, { name: "dev" }],
+					},
+				],
+			};
+
+			expect(forumLayoutProblem({ ...layout, ...pinned("Ideas") })).toMatch(
+				/`Ideas` is a forum; a message is pinned in a post/
+			);
+			expect(forumLayoutProblem({ ...layout, ...pinned("dev") })).toBeUndefined();
 		});
 	});
 });

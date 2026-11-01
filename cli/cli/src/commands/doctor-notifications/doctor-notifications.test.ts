@@ -1926,6 +1926,117 @@ describe("runDoctorNotifications — pinned messages from a file", () => {
 	});
 });
 
+describe("runDoctorNotifications — forum channels", () => {
+	const TAGS = [
+		{ name: "draft", emoji: "✏️", moderated: true },
+		{ name: "proposed", emoji: "💬", moderated: true },
+	];
+	const FORUM_LAYOUT: NotificationsLayout = {
+		categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum", tags: TAGS }] }],
+	};
+	const run = (channel: object) =>
+		setup(
+			fakeNotifications({
+				layout: FORUM_LAYOUT,
+				found: {
+					categories: ["BUILD"],
+					channels: [{ name: "ideas", category: "BUILD", webhooks: [], ...channel }],
+					roles: [],
+				},
+			}),
+			{ secretNames: [] }
+		).run();
+	const problems = async (channel: object) => byId(await run(channel), "channels").problems;
+
+	it("passes when the forum has every tag as declared", async () => {
+		const report = await run({ kind: "forum", tags: TAGS });
+		expect(byId(report, "channels")).toMatchObject({ status: "pass", detail: "1 of 1 as declared" });
+	});
+
+	it("passes when the forum has more tags than the layout lists", async () => {
+		expect(await problems({ kind: "forum", tags: [...TAGS, { name: "custom", moderated: false }] })).toEqual([]);
+	});
+
+	it("says a text channel is where a forum should be, and the other way round, with the fix", async () => {
+		expect(await problems({})).toEqual([
+			"#ideas: is a text channel, and the layout says forum; delete it so `setup` can make it again",
+		]);
+		const reverse = await setup(
+			fakeNotifications({
+				layout: { categories: [{ name: "BUILD", channels: [{ name: "ideas" }] }] },
+				found: {
+					categories: ["BUILD"],
+					channels: [{ name: "ideas", category: "BUILD", kind: "forum", webhooks: [] }],
+					roles: [],
+				},
+			}),
+			{ secretNames: [] }
+		).run();
+		expect(byId(reverse, "channels").problems).toEqual([
+			"#ideas: is a forum, and the layout says text; delete it so `setup` can make it again",
+		]);
+	});
+
+	it("names a tag that is missing, and one whose emoji or moderated flag differs", async () => {
+		expect(await problems({ kind: "forum", tags: [{ name: "Draft", emoji: "✏️", moderated: true }] })).toEqual([
+			'#ideas: tag "proposed" is missing',
+		]);
+		expect(
+			await problems({
+				kind: "forum",
+				tags: [
+					{ name: "draft", emoji: "🙂", moderated: true },
+					{ name: "proposed", emoji: "💬", moderated: false },
+				],
+			})
+		).toEqual([
+			'#ideas: tag "draft" differs from the layout (emoji or moderated)',
+			'#ideas: tag "proposed" differs from the layout (emoji or moderated)',
+		]);
+	});
+
+	it("has nothing to check for a forum that declares no tags", async () => {
+		const report = await setup(
+			fakeNotifications({
+				layout: { categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" }] }] },
+				found: {
+					categories: ["BUILD"],
+					channels: [{ name: "ideas", category: "BUILD", kind: "forum", webhooks: [] }],
+					roles: [],
+				},
+			}),
+			{ secretNames: [] }
+		).run();
+
+		expect(byId(report, "channels").status).toBe("pass");
+	});
+
+	it("takes a forum with no tag list as having none, and a tag with no emoji or flag as plain", async () => {
+		expect(await problems({ kind: "forum" })).toEqual([
+			'#ideas: tag "draft" is missing',
+			'#ideas: tag "proposed" is missing',
+		]);
+		const plain = await setup(
+			fakeNotifications({
+				layout: {
+					categories: [
+						{ name: "BUILD", channels: [{ name: "ideas", kind: "forum", tags: [{ name: "plain" }] }] },
+					],
+				},
+				found: {
+					categories: ["BUILD"],
+					channels: [
+						{ name: "ideas", category: "BUILD", kind: "forum", tags: [{ name: "plain" }], webhooks: [] },
+					],
+					roles: [],
+				},
+			}),
+			{ secretNames: [] }
+		).run();
+		expect(byId(plain, "channels").status).toBe("pass");
+	});
+});
+
 describe("runDoctorNotifications — the monitoring feed", () => {
 	const FEED_LAYOUT: NotificationsLayout = {
 		categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
