@@ -81,6 +81,29 @@ describe("countSymbols", () => {
 		]);
 	});
 
+	it("leaves out a symbol, and its members, whose source is another package's build output", () => {
+		const symbols = countSymbols(
+			[
+				{
+					name: "client",
+					kind: 1024,
+					sources: [{ fileName: "clients/x-client/dist/index.d.mts", line: 8 }],
+					children: [
+						{
+							name: "get",
+							kind: 1024,
+							sources: [{ fileName: "clients/x-client/dist/index.d.mts", line: 9 }],
+						},
+					],
+				},
+				{ name: "own", kind: 64, signatures: [{ sources: [{ fileName: "pkg/src/own.ts", line: 2 }] }] },
+				{ name: "distinct", kind: 64, sources: [{ fileName: "pkg/src/distinct/a.ts", line: 1 }] },
+			],
+			"pkg/src/index.ts"
+		);
+		expect(symbols.map((s) => s.name)).toEqual(["own", "distinct"]);
+	});
+
 	it("is empty for a project with no exports", () => {
 		expect(countSymbols(undefined, "x.ts")).toEqual([]);
 	});

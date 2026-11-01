@@ -13,6 +13,9 @@ const KINDS: Record<number, string> = {
 	2097152: "TypeAlias",
 };
 
+/** A path inside a `dist/` folder: compiled output, not a package's own source. */
+const BUILD_OUTPUT = /(^|\/)dist\//;
+
 function hasComment(comment: TypedocComment | undefined): boolean {
 	return Boolean(comment?.summary?.length || comment?.blockTags?.length);
 }
@@ -29,14 +32,17 @@ function isDocumented(r: TypedocReflection): boolean {
 /**
  * The symbols a package exports that should carry a doc comment, from TypeDoc's JSON model: functions, classes,
  * interfaces, type aliases, variables, enums, and the public members of those. Private, inherited and external
- * members are not counted. `fallbackFile` stands in for a symbol TypeDoc gives no source for.
+ * members are not counted, nor is a symbol whose source is a build output (`dist/`): a package that re-exports another
+ * one sees that package's compiled declarations, which lose the member comments the source has, and the symbol is
+ * measured in its own package. `fallbackFile` stands in for a symbol TypeDoc gives no source for.
  */
 export function countSymbols(children: TypedocReflection[] | undefined, fallbackFile: string): DocSymbol[] {
 	const out: DocSymbol[] = [];
 	const walk = (r: TypedocReflection): void => {
 		const kind = KINDS[r.kind];
+		const source = r.sources?.[0] ?? r.signatures?.[0]?.sources?.[0];
+		if (source && BUILD_OUTPUT.test(source.fileName)) return;
 		if (kind && !r.flags?.isPrivate && !r.flags?.isExternal && !r.inheritedFrom) {
-			const source = r.sources?.[0] ?? r.signatures?.[0]?.sources?.[0];
 			out.push({
 				kind,
 				name: r.name,
