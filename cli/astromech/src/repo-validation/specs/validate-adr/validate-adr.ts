@@ -6,7 +6,7 @@ import type { SpecFinding } from "../specs.type.js";
 /**
  * The findings for one ADR's text. Errors: no frontmatter; a missing `id`, or one that is not `ADR-<the filename's
  * four-digit prefix>`; a missing or empty `title`; a missing or unknown `status`; a missing or malformed `date`. A
- * warning: an `accepted` ADR whose `discussion.github` is not set.
+ * warning: an `accepted` ADR with neither `discussion.url` (the address of its discussion post, written by `holocron specs sync`) nor the older `discussion.github` set.
  */
 export function validateAdr(file: string, content: string): SpecFinding[] {
 	const findings: SpecFinding[] = [];
@@ -44,8 +44,14 @@ export function validateAdr(file: string, content: string): SpecFinding[] {
 		add("date", `invalid date "${date.value}" — must be YYYY-MM-DD`, date.line);
 	}
 
-	if (status?.value === "accepted" && !fm.get("discussion.github")?.value && !fm.get("discussion")?.value) {
-		add("discussion", "status is accepted but `discussion.github` is not set", status.line, "warning");
+	const linked = ["discussion.url", "discussion.github", "discussion"].some((key) => fm.get(key)?.value);
+	if (status?.value === "accepted" && !linked) {
+		add(
+			"discussion",
+			"status is accepted but neither `discussion.url` nor `discussion.github` is set",
+			status.line,
+			"warning"
+		);
 	}
 
 	return findings;

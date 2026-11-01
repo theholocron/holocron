@@ -1,4 +1,4 @@
-/** The longest title an announcement carries. */
+/** The longest title a discussion post carries. */
 const MAX_TITLE = 100;
 
 /** Text with the characters that format or link in a chat message removed, runs of whitespace collapsed, and a cap on its length. */

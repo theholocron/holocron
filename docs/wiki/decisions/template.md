@@ -6,7 +6,7 @@ date: YYYY-MM-DD
 owners: []
 specs: []
 discussion:
-  github:
+  url:
 supersedes: []
 superseded-by: []
 tags: []

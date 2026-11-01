@@ -7,15 +7,3 @@ export interface SpecsIo {
 	/** A path as the person typed it (relative to the working folder, or absolute) as a repo-relative path with `/` separators. */
 	repoPath(arg: string): string;
 }
-
-/** What the `specs announce` probe reads from git and the environment, and where it writes its outputs, so a test can supply all three. */
-export interface SpecsAnnounceIo {
-	/** The environment: `SPEC_EVENT`, `BEFORE_SHA`, `AFTER_SHA`, `PR_NUMBER` and `PR_URL`. */
-	env: Record<string, string | undefined>;
-	/** The paths that differ between two revisions, including ones the later revision removed. Throws when git cannot say. */
-	changedFiles(before: string, after: string): string[];
-	/** A file's text at a revision, or `undefined` when the revision has no such file. */
-	readAt(rev: string, path: string): string | undefined;
-	/** Sets a step output for the workflow to read. Does nothing outside GitHub Actions. */
-	setOutput(name: string, value: string): void;
-}

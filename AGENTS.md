@@ -53,10 +53,6 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   or spec (`.notes`, `docs/wiki/specifications`) whose frontmatter is wrong and reports a warning as an `info` row. The rules
   are `checkSpecs()` in `@theholocron/astromech/repo-validation`; the probe reads the files through an injected `SpecsIo`,
   and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
-  `specs announce` decides whether a PR event on a spec is worth a post to #ideas and writes it as the step outputs
-  `post` and `message` (`describeSpecChange()` and `specAnnouncementMessage()`, same package); the hand-maintained
-  `.github/workflows/knowledge.specsToIdeas.yml` runs it and sends the message through `./ci/actions/notify`
-  (#1534, spec `tech-specs-to-ideas`).
   `specs sync` keeps a forum post per ADR and spec (`SPEC:` / `ADR:`, tagged with its status) in step with the files
   (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
   (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
