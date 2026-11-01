@@ -3,31 +3,38 @@ import { createRestClient, ProviderApiError, type RestClient } from "@theholocro
 import { DEFAULT_BASE_URL } from "../utils.js";
 import type {
 	CreateChannelInput,
+	CreateForumPostInput,
 	CreateGuildInput,
 	CreateInviteInput,
 	CreateMessageInput,
 	CreateRoleInput,
 	DiscordApplication,
+	DiscordArchivedThreads,
 	DiscordBotClientOptions,
 	DiscordChannel,
 	DiscordChannelMessage,
 	DiscordChannelWebhook,
 	DiscordEmoji,
+	DiscordForumPost,
 	DiscordGuild,
 	DiscordGuildMember,
 	DiscordInvite,
 	DiscordMessage,
 	DiscordOnboarding,
 	DiscordRole,
+	DiscordThread,
 	DiscordUser,
 	DiscordUserGuild,
 	DiscordWelcomeScreen,
+	EditMessageInput,
+	ListArchivedThreadsInput,
 	ListMembersInput,
 	ListUserGuildsInput,
 	ModifyApplicationInput,
 	ModifyChannelInput,
 	ModifyGuildInput,
 	ModifyRoleInput,
+	ModifyThreadInput,
 	ModifyWebhookInput,
 	ModifyWelcomeScreenInput,
 } from "./bot.type.js";
@@ -38,6 +45,8 @@ const DEFAULT_MAX_RETRIES = 3;
 const MAX_RETRY_WAIT_MS = 10_000;
 /** A guard on `membersWithRole`, so a runaway cursor cannot loop forever. */
 const MAX_MEMBER_PAGES = 50;
+/** A guard on `threads.inChannel`, so a runaway `before` cursor cannot loop forever. */
+const MAX_THREAD_PAGES = 50;
 
 /** Discord ids are snowflakes; anything else would be spliced into a URL path. */
 function id(value: string): string {
@@ -51,6 +60,21 @@ function bodyIds(...values: Array<string | null | undefined | readonly string[]>
 		if (value === undefined || value === null) continue;
 		for (const one of typeof value === "string" ? [value] : value) id(one);
 	}
+}
+
+/**
+ * A message body with its mention ids checked and mentions switched off unless asked for. The default is applied
+ * after the spread, so an explicit `allowed_mentions: undefined` still means "no mentions".
+ */
+function withMentionsOff<T extends Pick<CreateMessageInput, "allowed_mentions">>(body: T): T {
+	bodyIds(body.allowed_mentions?.roles, body.allowed_mentions?.users);
+	return { ...body, allowed_mentions: body.allowed_mentions ?? { parse: [] } };
+}
+
+/** An ISO 8601 timestamp that travels in a query, so a malformed one fails here and not at Discord. */
+function timestamp(value: string): string {
+	if (Number.isNaN(Date.parse(value))) throw new Error(`invalid timestamp: ${JSON.stringify(value)}`);
+	return value;
 }
 
 /** How long Discord asks us to wait after a 429, in ms (header first, then the JSON body). */
@@ -253,14 +277,20 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 			webhooks: async (channelId: string) =>
 				(await rest.request<DiscordChannelWebhook[]>(`/channels/${id(channelId)}/webhooks`)).map(withUrl),
 			/** `POST /channels/:id/messages` as the bot. Mentions are off unless `allowed_mentions` asks for them. */
-			createMessage: (channelId: string, body: CreateMessageInput) => {
-				bodyIds(body.allowed_mentions?.roles, body.allowed_mentions?.users);
-				return rest.request<DiscordMessage>(`/channels/${id(channelId)}/messages`, {
+			createMessage: (channelId: string, body: CreateMessageInput) =>
+				rest.request<DiscordMessage>(`/channels/${id(channelId)}/messages`, {
 					method: "POST",
-					// After the spread, so an explicit `allowed_mentions: undefined` still means "no mentions".
-					body: { ...body, allowed_mentions: body.allowed_mentions ?? { parse: [] } },
-				});
-			},
+					body: withMentionsOff(body),
+				}),
+			/** `GET /channels/:id/messages/:id` — one message, e.g. the first message of a forum post (its id is the post's). */
+			message: (channelId: string, messageId: string) =>
+				rest.request<DiscordChannelMessage>(`/channels/${id(channelId)}/messages/${id(messageId)}`),
+			/** `PATCH /channels/:id/messages/:id` — a message this bot posted. Mentions are off unless `allowed_mentions` asks for them. */
+			editMessage: (channelId: string, messageId: string, body: EditMessageInput) =>
+				rest.request<DiscordMessage>(`/channels/${id(channelId)}/messages/${id(messageId)}`, {
+					method: "PATCH",
+					body: withMentionsOff(body),
+				}),
 			/** `POST /channels/:id/invites` — a join link for the server, e.g. to hand over a newly created one. */
 			createInvite: (channelId: string, body: CreateInviteInput = {}) =>
 				rest.request<DiscordInvite>(`/channels/${id(channelId)}/invites`, { method: "POST", body }),
@@ -287,6 +317,60 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 						body,
 					})
 				),
+		},
+		threads: {
+			/**
+			 * `POST /channels/:id/threads` in a forum channel — a new post with its first message. Not idempotent: look
+			 * the post up (`inChannel`) before retrying. Mentions in the first message are off unless asked for.
+			 */
+			createForumPost: (channelId: string, body: CreateForumPostInput) => {
+				bodyIds(body.applied_tags);
+				return rest.request<DiscordForumPost>(`/channels/${id(channelId)}/threads`, {
+					method: "POST",
+					body: { ...body, message: withMentionsOff(body.message) },
+				});
+			},
+			/** `PATCH /channels/:id` on a thread — its title, tags, archived or locked state. Writing to an archived post unarchives it. */
+			modify: (threadId: string, body: ModifyThreadInput) => {
+				bodyIds(body.applied_tags);
+				return rest.request<DiscordThread>(`/channels/${id(threadId)}`, { method: "PATCH", body });
+			},
+			/** `GET /guilds/:id/threads/active` — every active thread in the server, across channels. */
+			active: async (guildId: string): Promise<DiscordThread[]> =>
+				(await rest.request<{ threads: DiscordThread[] }>(`/guilds/${id(guildId)}/threads/active`)).threads,
+			/** `GET /channels/:id/threads/archived/public` — one page of a channel's archived threads, newest archived first. */
+			archived: (channelId: string, opts: ListArchivedThreadsInput = {}) => {
+				const query: Record<string, string> = { limit: String(Math.min(Math.max(opts.limit ?? 100, 1), 100)) };
+				if (opts.before !== undefined) query.before = timestamp(opts.before);
+				return rest.request<DiscordArchivedThreads>(`/channels/${id(channelId)}/threads/archived/public`, {
+					query,
+				});
+			},
+			/**
+			 * Every post in a forum channel, active and archived: Discord hides a post that has been quiet for a while, so
+			 * a lookup that read only the active ones would miss it and make it again.
+			 */
+			inChannel: async (guildId: string, channelId: string): Promise<DiscordThread[]> => {
+				const parent = id(channelId);
+				const { threads } = await rest.request<{ threads: DiscordThread[] }>(
+					`/guilds/${id(guildId)}/threads/active`
+				);
+				const found = threads.filter((t) => t.parent_id === parent);
+				let before: string | undefined;
+				for (let page = 0; page < MAX_THREAD_PAGES; page++) {
+					const batch = await rest.request<DiscordArchivedThreads>(
+						`/channels/${parent}/threads/archived/public`,
+						{
+							query: { limit: "100", ...(before === undefined ? {} : { before: timestamp(before) }) },
+						}
+					);
+					found.push(...batch.threads);
+					const last = batch.threads[batch.threads.length - 1];
+					if (!batch.has_more || last === undefined) return found;
+					before = last.thread_metadata.archive_timestamp;
+				}
+				throw new Error(`more than ${MAX_THREAD_PAGES * 100} archived threads; refusing to read them all`);
+			},
 		},
 		application: {
 			/** `GET /applications/@me` — the bot's own application: description, tags, install settings, URLs. */

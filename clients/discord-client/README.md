@@ -99,19 +99,20 @@ the resource, look it up by name before creating it again. A webhook created
 that way cannot have its URL read back, since Discord returns the token only on
 the create response.
 
-| Resource             | Methods                                                                                                                                                                                                                                                                |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.users`       | `me()` — `GET /users/@me`, a cheap token check; `get(id)` — a user's name; `guilds({ limit, after })` — `GET /users/@me/guilds`, the servers the bot is in and whether it owns each (look here before retrying `guilds.create`)                                        |
-| `client.application` | `get`, `modify` (the bot's own application: description, tags, install settings, URLs, and `flags` for the privileged-intent toggles; `redirect_uris` can be read but not written, so add them in the developer portal)                                                |
-| `client.guilds`      | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `create`, `delete`, `emojis`, `member`, `members`, `membersWithRole`, `addMemberRole`, `removeMemberRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding` |
-| `client.channels`    | `modify`, `webhooks`, `createWebhook`, `createMessage`, `createInvite`, `messages`, `pin`, `deleteMessage`                                                                                                                                                             |
-| `client.webhooks`    | `modify` (name, avatar), `delete`                                                                                                                                                                                                                                      |
+| Resource             | Methods                                                                                                                                                                                                                                                                                              |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client.users`       | `me()` — `GET /users/@me`, a cheap token check; `get(id)` — a user's name; `guilds({ limit, after })` — `GET /users/@me/guilds`, the servers the bot is in and whether it owns each (look here before retrying `guilds.create`)                                                                      |
+| `client.application` | `get`, `modify` (the bot's own application: description, tags, install settings, URLs, and `flags` for the privileged-intent toggles; `redirect_uris` can be read but not written, so add them in the developer portal)                                                                              |
+| `client.guilds`      | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `create`, `delete`, `emojis`, `member`, `members`, `membersWithRole`, `addMemberRole`, `removeMemberRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding`                               |
+| `client.channels`    | `modify`, `webhooks`, `createWebhook`, `createMessage`, `message`, `editMessage`, `createInvite`, `messages`, `pin`, `deleteMessage`                                                                                                                                                                 |
+| `client.threads`     | `createForumPost` — a post in a forum channel with its tags and first message; `modify` — a thread's title, tags, archived and locked state; `active` — the server's active threads; `archived` — one page of a channel's archived threads; `inChannel` — every post of a forum, active and archived |
+| `client.webhooks`    | `modify` (name, avatar), `delete`                                                                                                                                                                                                                                                                    |
 
 `permissions([...names])` builds the decimal-string bitfield Discord expects, and
 `permissionNames(bitfield)` reads one back; `Permission` holds the bits themselves.
 Welcome screen and onboarding only work once the server has the community
 features on, and `modifyOnboarding` is a `PUT` that replaces the whole config.
-`channels.createMessage` turns every mention off unless `allowed_mentions` says
+`channels.createMessage`, `channels.editMessage` and the first message of `threads.createForumPost` turn every mention off unless `allowed_mentions` says
 otherwise.
 
 The bot needs Manage Channels, Manage Roles, Manage Webhooks and (for server settings, welcome screen and onboarding) Manage Server in the server, plus View Channel and Send Messages in any channel it posts to with `channels.createMessage`.
@@ -134,6 +135,10 @@ Members Intent**, switched on in the developer portal. `guilds.member(guildId, u
 hands it over, `channels.createInvite` makes the link to join it, and `guilds.delete` removes it. On the webhook resource,
 `executeAndWait` posts and returns the message id and `deleteMessage` removes it, so a check can post a line, read it back
 with `channels.messages`, and clean up. `channels.pin` pins a message.
+
+### Forum posts
+
+`guilds.createChannel` with `type: ChannelType.Forum` and `available_tags` makes a forum; `channels.modify` replaces its tags (send the whole list, with each kept tag's `id`). `threads.createForumPost(channelId, { name, applied_tags, message })` makes a post, and `message.flags: MessageFlag.SuppressNotifications` posts it without notifying anyone, as a backfill should. `threads.modify` retitles or retags a post, and writing to an archived post unarchives it. Discord hides a post that has been quiet for a while, so `threads.inChannel(guildId, forumId)` reads the archived pages too before you decide a post does not exist. Creating a post is not idempotent: look it up first. Only the bot, which owns its posts, and members with Manage Threads can change a post's tags.
 
 Discord only returns a webhook's `token`/`url` for webhooks the same
 application created, so a pre-existing webhook can be found by name but its URL

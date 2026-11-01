@@ -74,7 +74,8 @@ the create response.
 | `client.users`       | The bot's identity and the servers it is in (look here before retrying `guilds.create`) |
 | `client.application` | The bot's own application: description, tags, install settings, URLs, intent flags      |
 | `client.guilds`      | Servers: settings, channels, roles, emojis, members, welcome screen and onboarding      |
-| `client.channels`    | Webhooks, messages, invites and pins on a channel                                       |
+| `client.channels`    | Webhooks, messages (read, post, edit), invites and pins on a channel                    |
+| `client.threads`     | Forum posts and threads: create, retitle, retag, archive; active and archived listings  |
 | `client.webhooks`    | Renaming and deleting a webhook                                                         |
 
 `application.modify` cannot write `redirect_uris` (it can be read), so add those in the developer portal.
@@ -83,7 +84,7 @@ the create response.
 `permissionNames(bitfield)` reads one back; `Permission` holds the bits themselves.
 Welcome screen and onboarding only work once the server has the community
 features on, and `modifyOnboarding` is a `PUT` that replaces the whole config.
-`channels.createMessage` turns every mention off unless `allowed_mentions` says
+`channels.createMessage`, `channels.editMessage` and the first message of `threads.createForumPost` turn every mention off unless `allowed_mentions` says
 otherwise.
 
 The bot needs Manage Channels, Manage Roles, Manage Webhooks and (for server settings, welcome screen and onboarding) Manage Server in the server, plus View Channel and Send Messages in any channel it posts to with `channels.createMessage`.
@@ -106,6 +107,10 @@ Members Intent**, switched on in the developer portal. `guilds.member(guildId, u
 hands it over, `channels.createInvite` makes the link to join it, and `guilds.delete` removes it. On the webhook resource,
 `executeAndWait` posts and returns the message id and `deleteMessage` removes it, so a check can post a line, read it back
 with `channels.messages`, and clean up. `channels.pin` pins a message.
+
+### Forum posts
+
+`guilds.createChannel` with `type: ChannelType.Forum` and `available_tags` makes a forum; `channels.modify` replaces its tags (send the whole list, with each kept tag's `id`). `threads.createForumPost(channelId, { name, applied_tags, message })` makes a post, and `message.flags: MessageFlag.SuppressNotifications` posts it without notifying anyone. `threads.modify` retitles or retags a post, and writing to an archived post unarchives it. Discord hides a post that has been quiet for a while, so `threads.inChannel(guildId, forumId)` reads the archived pages too before you decide a post does not exist. Creating a post is not idempotent: look it up first.
 
 Discord only returns a webhook's `token`/`url` for webhooks the same
 application created, so a pre-existing webhook can be found by name but its URL
