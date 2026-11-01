@@ -1,3 +1,20 @@
+## [1.58.0-alpha.4](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.3...clients-v1.58.0-alpha.4) (2026-11-01)
+
+### Refactoring
+
+* **sentinel:** ♻️ run the docs-presence check on the shared rules ([#1526](https://github.com/theholocron/holocron/issues/1526)) ([c2d8cec](https://github.com/theholocron/holocron/commit/c2d8cece9c79b8519749ddc5e9b98770d15929e5)), closes [#929](https://github.com/theholocron/holocron/issues/929)
+
+### Documentation
+
+* **clients:** 📝 document the checkly, postman and netlify clients with TSDoc ([#1490](https://github.com/theholocron/holocron/issues/1490)) ([939d4b4](https://github.com/theholocron/holocron/commit/939d4b448420e7c2e35d83b7981e392522c3749f))
+* **clients:** 📝 document the clerk and cloudflare clients with TSDoc ([#1496](https://github.com/theholocron/holocron/issues/1496)) ([596c41a](https://github.com/theholocron/holocron/commit/596c41a0dcedf972a6b20f7037b654054d7cbb9d))
+* **clients:** 📝 document the remaining clients with TSDoc ([#1503](https://github.com/theholocron/holocron/issues/1503)) ([a5fb573](https://github.com/theholocron/holocron/commit/a5fb57357f65e76f200943205e4c593f74be4bbf))
+* **clients:** 📝 document the vercel, sentry and jira clients with TSDoc ([#1502](https://github.com/theholocron/holocron/issues/1502)) ([6555e53](https://github.com/theholocron/holocron/commit/6555e53b07325fc9d307bb0fe44369ff9d6bf5e5))
+* **clients:** 📝 trim the client pages the generated reference duplicates ([#1520](https://github.com/theholocron/holocron/issues/1520)) ([5645029](https://github.com/theholocron/holocron/commit/56450296a9ae723f71a2e447e0a987b9b417af48)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+* **discord-client:** 📝 document the public API with TSDoc ([#1494](https://github.com/theholocron/holocron/issues/1494)) ([f668053](https://github.com/theholocron/holocron/commit/f668053448e20a8745889d6de45033cb1c260f0c))
+* **github-client:** 📝 document the public API with TSDoc ([#1501](https://github.com/theholocron/holocron/issues/1501)) ([fae3b9f](https://github.com/theholocron/holocron/commit/fae3b9fabc0e7dabf5009a67ccde960e4083c72b))
+* **zendesk-client:** 📝 document the public API with TSDoc ([#1491](https://github.com/theholocron/holocron/issues/1491)) ([e5f70a2](https://github.com/theholocron/holocron/commit/e5f70a2c60909ee54873922faaa61f39589d2566))
+
 ## [1.58.0-alpha.3](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.2...clients-v1.58.0-alpha.3) (2026-10-31)
 
 ### Features
