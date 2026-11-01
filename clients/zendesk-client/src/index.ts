@@ -48,6 +48,7 @@ export {
 export { mockUser } from "./user/index.js";
 
 // ── Factory ───────────────────────────────────────────────────────────────────
+/** Creates a Zendesk client with the `activities`, `comments`, `fields`, `search`, `status` and `tickets` resources, all sharing one REST client built from `opts`. */
 export function createZendeskClient(opts: ZendeskClientOptions) {
 	const rest = createZendeskRestClient(opts);
 	return {

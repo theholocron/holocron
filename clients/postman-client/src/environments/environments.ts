@@ -1,16 +1,24 @@
 import type { RestClient } from "../utils.js";
 
+/** A Postman environment, as listed by the API. */
 export interface PostmanEnvironment {
+	/** The environment's id. */
 	id: string;
+	/** The environment's unique id, prefixed with its owner's id. */
 	uid: string;
+	/** The environment's name. */
 	name: string;
 }
 
+/** The response of listing environments. */
 export interface PostmanEnvironmentsResponse {
+	/** The environments returned. */
 	environments: PostmanEnvironment[];
 }
 
+/** The response of fetching or creating one environment. */
 export interface PostmanEnvironmentResponse {
+	/** The environment. */
 	environment: PostmanEnvironment;
 }
 

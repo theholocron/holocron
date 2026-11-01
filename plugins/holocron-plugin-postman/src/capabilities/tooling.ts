@@ -50,8 +50,11 @@ export interface PostmanToolingOptions {
 	repoRoot?: string;
 }
 
+/** The Postman implementation of the `tooling` capability: syncs an OpenAPI spec, collection and environments into a workspace. */
 export class PostmanTooling implements Tooling {
+	/** The capability this class provides, always `"tooling"`. */
 	readonly key = "tooling" as const;
+	/** The provider name, `"postman"`. */
 	readonly providerName = "postman";
 
 	private readonly opts: PostmanToolingOptions;
@@ -131,6 +134,7 @@ export class PostmanTooling implements Tooling {
 		}
 	}
 
+	/** Checks the key and the configured workspace; reports the authenticated user and the workspace, or why either failed. */
 	async doctor(): Promise<ToolingDoctorReport> {
 		try {
 			const me = await this.getMyself();
@@ -156,25 +160,30 @@ export class PostmanTooling implements Tooling {
 
 	// ── Postman-specific methods ───────────────────────────────────────
 
+	/** Returns the authenticated Postman user. */
 	async getMyself(): Promise<PostmanUser> {
 		const res = await this.client().me.get();
 		return res.user ?? {};
 	}
 
+	/** Lists the workspaces the key can see. */
 	async listWorkspaces(): Promise<PostmanWorkspace[]> {
 		const { workspaces } = await this.client().workspaces.list();
 		return workspaces;
 	}
 
+	/** Finds a collection in the workspace by exact name, or `null` when there is none. */
 	async findCollectionByName(input: { workspaceId: string; name: string }): Promise<PostmanCollection | null> {
 		const { collections } = await this.client().collections.list(input.workspaceId);
 		return collections.find((c) => c.name === input.name) ?? null;
 	}
 
+	/** Deletes the collection with this uid. */
 	async deleteCollection(uid: string): Promise<void> {
 		await this.client().collections.delete(uid);
 	}
 
+	/** Imports an OpenAPI document into the workspace as a collection; throws when Postman returns none. */
 	async importOpenApi(input: { workspaceId: string; spec: unknown }): Promise<PostmanCollection> {
 		const { collections } = await this.client().import.openapi(input.workspaceId, input.spec);
 		const created = collections[0];
@@ -188,31 +197,37 @@ export class PostmanTooling implements Tooling {
 		return created;
 	}
 
+	/** Lists the workspace's environments. */
 	async listEnvironments(input: { workspaceId: string }): Promise<PostmanEnvironment[]> {
 		const { environments } = await this.client().environments.list(input.workspaceId);
 		return environments;
 	}
 
+	/** Finds an environment in the workspace by exact name, or `null` when there is none. */
 	async findEnvironmentByName(input: { workspaceId: string; name: string }): Promise<PostmanEnvironment | null> {
 		const envs = await this.listEnvironments(input);
 		return envs.find((e) => e.name === input.name) ?? null;
 	}
 
+	/** Creates an environment in the workspace. */
 	async createEnvironment(input: { workspaceId: string; environment: unknown }): Promise<PostmanEnvironment> {
 		const { environment } = await this.client().environments.create(input.workspaceId, input.environment);
 		return environment;
 	}
 
+	/** Replaces the environment with this uid. */
 	async updateEnvironment(input: { uid: string; environment: unknown }): Promise<PostmanEnvironment> {
 		const { environment } = await this.client().environments.update(input.uid, input.environment);
 		return environment;
 	}
 
+	/** Finds an API spec in the workspace by exact name, or `null` when there is none. */
 	async findSpecByName(input: { workspaceId: string; name: string }): Promise<PostmanSpec | null> {
 		const { specs } = await this.client().specs.list(input.workspaceId);
 		return specs.find((s) => s.name === input.name) ?? null;
 	}
 
+	/** Creates an API spec in the workspace from the given file content. */
 	async createSpec(input: {
 		workspaceId: string;
 		name: string;
@@ -228,6 +243,7 @@ export class PostmanTooling implements Tooling {
 		});
 	}
 
+	/** Writes new content to a file of an existing spec. */
 	async upsertSpecFile(input: { specId: string; filePath: string; content: string }): Promise<void> {
 		await this.client().specs.updateFile(input.specId, input.filePath, input.content);
 	}

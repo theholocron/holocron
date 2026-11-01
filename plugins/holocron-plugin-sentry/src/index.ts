@@ -7,6 +7,7 @@ import { sentryProbes } from "./probes/index.js";
 import { createSentryClient, type SentryClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Sentry plugin: token resolution, the organization and team, and test overrides. */
 export interface SentryPluginOptions extends ResolveTokenInput, SentryErrorsOptions {
 	/**
 	 * Sentry organization slug. Optional at load time — the `errors` capability
@@ -16,16 +17,21 @@ export interface SentryPluginOptions extends ResolveTokenInput, SentryErrorsOpti
 	org?: string;
 	/** Override base URL for tests. */
 	baseUrl?: string;
+	/** Override `fetch` for tests. */
 	fetch?: typeof fetch;
 }
 
+/** What the plugin's capabilities share: the options and two lazily built clients. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: SentryPluginOptions;
+	/** Builds the Sentry client on first call and reuses it; the token is resolved then, not at plugin load. */
 	client: () => SentryClient;
 	/** The client for the Comlink relay: its own token (`sentry.comlink`), the general one only as a last resort. */
 	relayClient: () => SentryClient;
 }
 
+/** Creates the shared context for the given options; no token is resolved until a client is first called. */
 export function createContext(options: SentryPluginOptions): PluginContext {
 	let client: SentryClient | undefined;
 	let relayClient: SentryClient | undefined;
@@ -46,10 +52,12 @@ export function createContext(options: SentryPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `errors` capability from a plugin context, using the relay client for the Comlink relay. */
 export function errors(ctx: PluginContext): Errors {
 	return new SentryErrors(ctx.client, { org: ctx.options.org, team: ctx.options.team }, ctx.relayClient);
 }
 
+/** Creates the Sentry plugin: its probes, a `connection` probe and the `errors` capability. */
 export function createPlugin(options: SentryPluginOptions) {
 	const ctx = createContext(options);
 	return {
@@ -70,6 +78,7 @@ export function createPlugin(options: SentryPluginOptions) {
 	};
 }
 
+/** One-line hint shown by `holocron auth set sentry` when no token is given or the token is rejected. */
 export const AUTH_HINT =
 	"generate an auth token at https://sentry.io/settings/account/api/auth-tokens/ " +
 	"with project:read, project:write, and org:read scopes, " +

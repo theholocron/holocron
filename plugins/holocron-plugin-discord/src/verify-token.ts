@@ -8,6 +8,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Discord webhook URL by fetching the webhook; resolves to its name and id, or the failure message. */
 export async function verifyToken(webhookUrl: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	try {
 		const { id, token } = parseWebhookUrl(webhookUrl);

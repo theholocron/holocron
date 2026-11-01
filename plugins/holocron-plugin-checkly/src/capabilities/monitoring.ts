@@ -115,8 +115,11 @@ export interface ChecklyMonitoringOptions {
 	checks?: MonitoringCheckInput[];
 }
 
+/** The Checkly implementation of the `monitoring` capability: ensures the configured API checks and alert channels exist. */
 export class ChecklyMonitoring implements Monitoring {
+	/** The capability this class provides, always `"monitoring"`. */
 	readonly key = "monitoring" as const;
+	/** The provider name, `"checkly"`. */
 	readonly providerName = "checkly";
 	readonly icon = CHECKLY_ICON;
 	readonly checks: readonly MonitoringCheckInput[];

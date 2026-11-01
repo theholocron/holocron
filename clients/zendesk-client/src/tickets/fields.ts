@@ -4,6 +4,7 @@ import type { ITicketField, TTicketFieldResponse, TTicketFieldsResponse } from "
 
 const PATH = "/api/v2/ticket_fields";
 
+/** Builds the ticket fields resource of the Zendesk API (`/api/v2/ticket_fields`) on top of a REST client. */
 export function fields(rest: RestClient) {
 	return {
 		list: (): Promise<TTicketFieldsResponse> => rest.request<TTicketFieldsResponse>(PATH),

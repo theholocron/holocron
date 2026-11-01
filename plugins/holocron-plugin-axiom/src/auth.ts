@@ -3,6 +3,7 @@ import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput
 export { AuthError };
 export type { ResolveTokenInput };
 
+/** Resolves the Axiom token from `--token`, `HOLOCRON_AXIOM_TOKEN`, `AXIOM_TOKEN` or the keyring, and throws an `AuthError` when none is set. */
 export const resolveToken = createResolveToken({
 	envName: "HOLOCRON_AXIOM_TOKEN",
 	vendorEnvName: "AXIOM_TOKEN",

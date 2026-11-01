@@ -13,6 +13,7 @@ import { VercelDeployment } from "./capabilities/deployment.js";
 import { createVercelClient, type VercelClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Vercel plugin: token resolution, team, defaults for new projects and test overrides. */
 export interface VercelPluginOptions extends ResolveTokenInput {
 	/** Vercel team id. Set when working with a team-owned project. */
 	teamId?: string;
@@ -26,11 +27,15 @@ export interface VercelPluginOptions extends ResolveTokenInput {
 	fetch?: typeof fetch;
 }
 
+/** What the plugin's capabilities share: the options and a lazily built client. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: VercelPluginOptions;
+	/** Builds the Vercel client on first call and reuses it; the token is resolved then, not at plugin load. */
 	client: () => VercelClient;
 }
 
+/** Creates the shared context for the given options; no token is resolved until `client()` is first called. */
 export function createContext(options: VercelPluginOptions = {}): PluginContext {
 	let client: VercelClient | undefined;
 	return {
@@ -45,6 +50,7 @@ export function createContext(options: VercelPluginOptions = {}): PluginContext 
 	};
 }
 
+/** Builds the `deployment` capability from a plugin context, passing on `defaultFramework` and `domain` when set. */
 export function deployment(ctx: PluginContext): Deployment {
 	const opts: ConstructorParameters<typeof VercelDeployment>[1] = {};
 	if (ctx.options.defaultFramework !== undefined) {
@@ -56,6 +62,7 @@ export function deployment(ctx: PluginContext): Deployment {
 	return new VercelDeployment(ctx.client, opts);
 }
 
+/** Creates the Vercel plugin: a `connection` probe and the `deployment` capability. */
 export function createPlugin(options: VercelPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {

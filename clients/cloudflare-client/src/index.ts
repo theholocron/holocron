@@ -23,6 +23,7 @@ export type { CfEnvelope, CloudflareClientOptions } from "./utils.js";
 export type { CfWorkerRoute, CfWorkerScript, CfWorkerSecret } from "./workers/workers.js";
 export type { CfZone } from "./zones/zones.js";
 
+/** Creates a Cloudflare API client with `dns`, `pages`, `zones`, `tunnels`, `tokens` and `workers` groups. */
 export function createCloudflareClient(opts: CloudflareClientOptions) {
 	const rest = createCloudflareRestClient(opts);
 	return {
@@ -35,4 +36,5 @@ export function createCloudflareClient(opts: CloudflareClientOptions) {
 	};
 }
 
+/** The client returned by `createCloudflareClient`. */
 export type CloudflareClient = ReturnType<typeof createCloudflareClient>;

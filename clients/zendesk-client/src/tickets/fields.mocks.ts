@@ -1,17 +1,21 @@
 import type { ICustomField, ITicketField, TTicketFieldResponse, TTicketFieldsResponse } from "./fields.types.js";
 
+/** Fixture for a first custom field value on a ticket, for use in tests. */
 export const mockCustomField1: ICustomField = {
 	id: 27642,
 	value: "745",
 };
 
+/** Fixture for a second custom field value on a ticket, for use in tests. */
 export const mockCustomField2: ICustomField = {
 	id: 27648,
 	value: "yes",
 };
 
+/** Fixture for a list of custom field values, for use in tests. */
 export const mockCustomFields: ICustomField[] = [mockCustomField1, mockCustomField2];
 
+/** Fixture for a ticket field definition, for use in tests. */
 export const mockTicketField: ITicketField = {
 	active: true,
 	agent_description: "Agent only description",
@@ -36,11 +40,13 @@ export const mockTicketField: ITicketField = {
 	visible_in_portal: true,
 };
 
+/** Fixture for a list-of-ticket-fields response, for use in tests. */
 export const mockTicketFieldsResponse: TTicketFieldsResponse = {
 	count: 1,
 	ticket_fields: [mockTicketField],
 };
 
+/** Fixture for a single ticket field response, for use in tests. */
 export const mockTicketFieldResponse: TTicketFieldResponse = {
 	count: 1,
 	ticket_field: mockTicketField,

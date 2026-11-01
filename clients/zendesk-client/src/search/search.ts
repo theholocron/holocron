@@ -4,6 +4,7 @@ import type { ISearchResponse } from "./search.types.js";
 
 const PATH = "/api/v2/search";
 
+/** Builds the search resource of the Zendesk API (`/api/v2/search`) on top of a REST client; `query` sorts descending by default. */
 export function search(rest: RestClient) {
 	return {
 		query: (q: string, params?: Record<string, string>): Promise<ISearchResponse> =>

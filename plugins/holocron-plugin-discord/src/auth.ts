@@ -4,6 +4,7 @@ export { AuthError };
 export type { ResolveTokenInput };
 
 // For Discord, the "token" stored in the keyring is the full webhook URL.
+/** Resolves the Discord webhook URL from `--token`, `HOLOCRON_DISCORD_WEBHOOK`, `DISCORD_WEBHOOK_URL` or the keyring, and throws an `AuthError` when none is set. */
 export const resolveToken = createResolveToken({
 	envName: "HOLOCRON_DISCORD_WEBHOOK",
 	vendorEnvName: "DISCORD_WEBHOOK_URL",
@@ -14,6 +15,7 @@ export const resolveToken = createResolveToken({
 });
 
 // Provisioning (channels, roles, webhooks) needs a bot token, not a webhook URL.
+/** Resolves the Discord bot token used to provision channels, roles and webhooks, from `HOLOCRON_DISCORD_BOT_TOKEN`, `DISCORD_BOT_TOKEN` or the keyring. */
 export const resolveBotToken = createResolveToken({
 	envName: "HOLOCRON_DISCORD_BOT_TOKEN",
 	vendorEnvName: "DISCORD_BOT_TOKEN",
@@ -26,6 +28,7 @@ export const resolveBotToken = createResolveToken({
 });
 
 // Signing members in (`notifications link`) needs the application's OAuth client secret, a third credential.
+/** Resolves the Discord application's OAuth client secret used to sign members in, from `HOLOCRON_DISCORD_CLIENT_SECRET`, `DISCORD_CLIENT_SECRET` or the keyring. */
 export const resolveClientSecret = createResolveToken({
 	envName: "HOLOCRON_DISCORD_CLIENT_SECRET",
 	vendorEnvName: "DISCORD_CLIENT_SECRET",

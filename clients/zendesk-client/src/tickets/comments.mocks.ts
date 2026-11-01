@@ -2,6 +2,7 @@ import { mockAttachment } from "../attachments/attachments.mocks.js";
 import type { IComment, ICommentResponse } from "./comments.types.js";
 import { mockMetadata } from "./tickets.mocks.js";
 
+/** Fixture for a ticket comment, for use in tests. */
 export const mockComment: IComment = {
 	attachments: [mockAttachment],
 	audit_id: 432567,
@@ -14,6 +15,7 @@ export const mockComment: IComment = {
 	type: "Comment",
 };
 
+/** Fixture for a ticket comments response, for use in tests. */
 export const mockCommentResponse: ICommentResponse = {
 	comments: [mockComment],
 };

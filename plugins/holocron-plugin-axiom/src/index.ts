@@ -14,6 +14,7 @@ import { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
 import { type AxiomClient, createAxiomClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Axiom plugin: token resolution, the target dataset and test overrides. */
 export interface AxiomPluginOptions extends ResolveTokenInput, AxiomLogsOptions {
 	/** Override base URL for tests. */
 	baseUrl?: string;
@@ -21,7 +22,9 @@ export interface AxiomPluginOptions extends ResolveTokenInput, AxiomLogsOptions 
 	fetch?: typeof fetch;
 }
 
+/** What the plugin's capabilities share: the resolved options and a lazily built client. */
 export interface PluginContext {
+	/** The options, with `dataset` resolved from config, `HOLOCRON_AXIOM_DATASET` or `AXIOM_DATASET` (in that order). */
 	options: AxiomPluginOptions & { dataset?: string };
 	/**
 	 * Lazily builds (and memoizes) the REST client. The token is resolved
@@ -32,6 +35,7 @@ export interface PluginContext {
 	client: () => AxiomClient;
 }
 
+/** Creates the shared context for the given options; no token is resolved until `client()` is first called. */
 export function createContext(options: AxiomPluginOptions): PluginContext {
 	const env = options.env ?? process.env;
 	// `HOLOCRON_AXIOM_DATASET` is not a secret — resolve it like the token's
@@ -49,10 +53,12 @@ export function createContext(options: AxiomPluginOptions): PluginContext {
 	};
 }
 
+/** Builds the `logs` capability from a plugin context. */
 export function logs(ctx: PluginContext): Logs {
 	return new AxiomLogs(ctx.client, { dataset: ctx.options.dataset });
 }
 
+/** Creates the Axiom plugin: a `connection` probe and the `logs` capability. */
 export function createPlugin(options: AxiomPluginOptions) {
 	const ctx = createContext(options);
 	return {

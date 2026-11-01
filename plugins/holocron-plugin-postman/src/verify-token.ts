@@ -14,6 +14,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Postman API key by fetching the authenticated user; resolves to the user's email, username or name, or the failure message. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createPostmanClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {
