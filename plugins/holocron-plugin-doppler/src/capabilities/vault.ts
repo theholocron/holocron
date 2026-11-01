@@ -47,8 +47,11 @@ export interface DopplerVaultOptions {
  */
 const DOPPLER_INJECTED_KEYS = new Set(["DOPPLER_PROJECT", "DOPPLER_CONFIG", "DOPPLER_ENVIRONMENT"]);
 
+/** `vault` capability for Doppler, with references shaped `doppler://<project>/<config>/<name>`. */
 export class DopplerVault implements Vault {
+	/** Capability key; always `"vault"`. */
 	readonly key = "vault" as const;
+	/** Provider name; always `"doppler"`. */
 	readonly providerName = "doppler";
 
 	private readonly project: string;

@@ -28,8 +28,11 @@ export interface InfisicalVaultOptions {
 	environment: string;
 }
 
+/** `vault` capability for Infisical, with references shaped `infisical://<workspaceId>/<environment>/<name>`. */
 export class InfisicalVault implements Vault {
+	/** Capability key; always `"vault"`. */
 	readonly key = "vault" as const;
+	/** Provider name; always `"infisical"`. */
 	readonly providerName = "infisical";
 
 	private readonly workspace: string;

@@ -25,8 +25,11 @@ export interface StorageOptions {
 	projectId: string;
 }
 
+/** `storage` capability for Neon, bound to the single project named by the `projectId` option. */
 export class NeonStorage implements Storage {
+	/** Capability key; always `"storage"`. */
 	readonly key = "storage" as const;
+	/** Provider name; always `"neon"`. */
 	readonly providerName = "neon";
 
 	constructor(
@@ -53,11 +56,13 @@ export class NeonStorage implements Storage {
 
 	// ── branch ops ──────────────────────────────────────────────────────
 
+	/** Lists every branch of the bound project, mapped to `StorageBranch`. */
 	async listBranches(): Promise<StorageBranch[]> {
 		const { branches } = await this.client().branches.list(this.opts.projectId);
 		return branches.map(mapBranch);
 	}
 
+	/** Creates a branch (optionally from the `from` parent branch id) with a read-write endpoint, so its connection string works at once. */
 	async createBranch(input: { name: string; from?: string }): Promise<StorageBranch> {
 		// Provision a read_write endpoint inline. Without it, /connection_uri
 		// returns "endpoint not found" on a freshly-created branch.
@@ -69,6 +74,7 @@ export class NeonStorage implements Storage {
 		return mapBranch(branch);
 	}
 
+	/** Deletes the branch with the given id from the bound project. */
 	async destroyBranch(branch: string): Promise<void> {
 		await this.client().branches.destroy(this.opts.projectId, branch);
 	}

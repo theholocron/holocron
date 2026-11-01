@@ -38,8 +38,11 @@ import type { ClerkClient } from "../rest.js";
 
 export type ClerkAuthOptions = Record<string, never>;
 
+/** `auth` capability for Clerk, backed by Clerk's Backend REST API. */
 export class ClerkAuth implements Auth {
+	/** Capability key; always `"auth"`. */
 	readonly key = "auth" as const;
+	/** Provider name; always `"clerk"`. */
 	readonly providerName = "clerk";
 
 	constructor(
