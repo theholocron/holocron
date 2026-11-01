@@ -1,10 +1,13 @@
+import {
+	evaluateDocsPresence,
+	isAddedDocComment,
+	isFeat,
+	packageOf,
+	parseSkipDocs,
+} from "@theholocron/astromech/repo-validation";
+
 import type { Probe } from "../../../plugin/index.js";
 import type { DocsPresenceIo } from "./docs-presence.type.js";
-import { evaluateDocsPresence } from "./evaluate-docs-presence.js";
-import { isAddedDocComment } from "./is-added-doc-comment.js";
-import { isFeat } from "./is-feat.js";
-import { packageOf } from "./package-of.js";
-import { parseSkipDocs } from "./parse-skip-docs.js";
 
 /** The public packages a PR added, by folder name: an added `<package>/src/index.ts` whose `package.json` is not private. */
 function newPublicPackages(addedFiles: readonly string[], io: DocsPresenceIo): string[] {

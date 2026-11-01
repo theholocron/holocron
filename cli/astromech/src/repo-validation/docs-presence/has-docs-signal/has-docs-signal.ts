@@ -1,4 +1,4 @@
-import { pageNames } from "./page-names.js";
+import { pageNames } from "../page-names/index.js";
 
 /**
  * Whether the PR touches a package's documentation: a doc comment added in its source, its `README.md`, or a docs

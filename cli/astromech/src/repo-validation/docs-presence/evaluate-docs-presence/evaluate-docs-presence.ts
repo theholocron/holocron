@@ -1,6 +1,6 @@
-import type { DocsPresenceResult, SkipDocs } from "./docs-presence.type.js";
-import { hasDocsSignal } from "./has-docs-signal.js";
-import { pageNames } from "./page-names.js";
+import type { DocsPresenceResult, SkipDocs } from "../docs-presence.type.js";
+import { hasDocsSignal } from "../has-docs-signal/index.js";
+import { pageNames } from "../page-names/index.js";
 
 /**
  * Sorts the packages a feature changed into those that need a warning (no docs signal, and no `[skip docs]` marker

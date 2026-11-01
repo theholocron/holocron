@@ -1,4 +1,4 @@
-import type { SkipDocs } from "./docs-presence.type.js";
+import type { SkipDocs } from "../docs-presence.type.js";
 
 /**
  * Finds `[skip docs] reason`, or `[skip docs: pkg-a, pkg-b] reason`, on one line of a PR description or commit
