@@ -53,7 +53,8 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   or spec (`.notes`, `docs/wiki/specifications`) whose frontmatter is wrong and reports a warning as an `info` row. The rules
   are `checkSpecs()` in `@theholocron/astromech/repo-validation`; the probe reads the files through an injected `SpecsIo`,
   and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
-  `specs sync` keeps a forum post per ADR and spec (`SPEC:` / `ADR:`, tagged with its status) in step with the files
+  `specs sync` numbers each spec (`id: SPEC-0007`; ADRs have `ADR-0009`) and keeps a forum post per ADR and spec (titled
+  `💡 New spec:` / `📐 New ADR:`, tagged with its status) in step with the files
   (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
   (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
   post, the file's `status:` into the working tree only (the workflow commits it to a pull request), and decides by

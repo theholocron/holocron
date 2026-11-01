@@ -1,5 +1,6 @@
 import {
 	ADR_STATUSES,
+	discussionBody,
 	discussionTitle,
 	parseFrontmatter,
 	reconcileSpecStatus,
@@ -12,15 +13,8 @@ import {
 import type { DiscussionPost } from "../../plugin/index.js";
 import type { SpecDocument, SpecSyncOutcome, SyncDocumentDeps } from "./specs-sync.type.js";
 
-/** The first message of a document's post: its summary, then a link to the file when the address is known. */
-function postBody(doc: SpecDocument, link: string | undefined): string {
-	const summary = specSummary(doc.text);
-	const read = link ? `[Read the ${doc.kind === "adr" ? "ADR" : "spec"}](<${link}>)` : "";
-	return [summary, read].filter(Boolean).join("\n\n");
-}
-
 /**
- * Bring one ADR or spec and its discussion post in step. The post is found or made; then the document's status, the
+ * Bring one ADR or spec and its discussion post in step. A spec with no `id` is numbered. The post is found or made, opening with the id, a short description and the pull request that added the document; then the document's status, the
  * tag on the post and the status last synced decide what to do (`reconcileSpecStatus`): put the file's status on the tag,
  * remember that they agree, or, when someone retagged the post, change the file's `status:`. The post's address is written
  * into the file as `discussion.url`.
@@ -41,16 +35,24 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 	const did: string[] = [];
 	const say = (done: string, would: string): void => void did.push(dryRun ? would : done);
 
+	let text = doc.text;
+	const id = front?.get("id")?.value || deps.assignedId;
+	if (!id) return unsynced("has no id in its front matter; `holocron probe specs check` says more");
+	if (deps.assignedId && !front?.get("id")?.value) {
+		text = updateFrontmatter(text, { id });
+		say(`numbered it ${id}`, `would number it ${id}`);
+	}
+
 	let post: DiscussionPost | undefined;
 	if (dryRun) {
 		post = await notifications.readDiscussion!(channel, doc.path);
-		if (!post) return { path: doc.path, did: ["would make the post and link it"], text: doc.text };
+		if (!post) return { path: doc.path, did: [...did, "would make the post and link it"], text };
 	} else {
 		const ensured = await notifications.ensureDiscussion!({
 			channel,
 			key: doc.path,
 			title: discussionTitle(doc.kind, specTitle(doc.path, doc.text)),
-			body: postBody(doc, deps.linkTo(doc.path)),
+			body: discussionBody({ id, summary: specSummary(doc.text), ...(deps.pr ? { pr: deps.pr } : {}) }),
 			state: status,
 			quiet: deps.quiet,
 		});
@@ -58,7 +60,6 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		if (ensured.created) did.push("made the post");
 	}
 
-	let text = doc.text;
 	const decision = reconcileSpecStatus({ file: status, tag: post.state, synced: post.synced });
 	switch (decision.action) {
 		case "none":

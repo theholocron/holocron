@@ -11,7 +11,7 @@ Every ADR (`docs/wiki/decisions`) and spec (`.notes`, `docs/wiki/specifications`
 
 ```
 ADRs and specs → #ideas
-  .notes/tech-discord-channel-content.spec.md: made the post; linked the post
+  .notes/tech-discord-channel-content.spec.md: numbered it SPEC-0061; made the post; linked the post
   .notes/tech-specs-to-ideas.spec.md: in step
   docs/wiki/decisions/0009-task-manifest.md: moved status to accepted, as the tag asks; linked the post
   .notes/tech-doctor-relay-checks.spec.md: the file moved to accepted and the tag to archived since they last agreed on proposed
@@ -21,9 +21,10 @@ ADRs and specs → #ideas
 
 ## What a run does for each document
 
-1. **Finds or makes the post.** It is titled `SPEC: <title>` or `ADR: <title>`, opens with the document's summary (the first paragraph under Problem, Why or Context) and a link to the file on the default branch, and carries the document's status as its one tag. Posts are made without notifying anyone unless you pass `--notify`, so the first run, which is the backfill, pings no one.
-2. **Writes the post's address into the file** as `discussion.url`. The `github:` link beside it, if there is one, stays.
-3. **Keeps the status in step.** Three values decide it: the status in the file, the tag on the post, and the status they last agreed on (recorded on the post). Comparing only the first two cannot tell "someone retagged" from "the file changed and the tag has not caught up".
+1. **Numbers a spec that has no `id`** (`SPEC-0007`; ADRs already have theirs): the next numbers after the highest in use, oldest file first, written as the first line of the front matter. Authors never pick a number, so two pull requests cannot take the same one.
+2. **Finds or makes the post.** It is titled `💡 New spec: <title>` or `📐 New ADR: <title>` (plain text, since a title cannot be formatted) and carries the document's status as its one tag. Its first message is the id, a short description (the first paragraph under Problem, Why or Context) and the pull request that added the file, `PR: [#1538](url)`, a paragraph each. Posts are made without notifying anyone unless you pass `--notify`, so the first run, which is the backfill, pings no one.
+3. **Writes the post's address into the file** as `discussion.url`. The `github:` link beside it, if there is one, stays.
+4. **Keeps the status in step.** Three values decide it: the status in the file, the tag on the post, and the status they last agreed on (recorded on the post). Comparing only the first two cannot tell "someone retagged" from "the file changed and the tag has not caught up".
 
 | The file                | The tag                               | What the run does                                                        |
 | ----------------------- | ------------------------------------- | ------------------------------------------------------------------------ |

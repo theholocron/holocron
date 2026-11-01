@@ -1,4 +1,5 @@
 ---
+id: SPEC-0001
 status: archived
 issue: theholocron/holocron#74
 ---

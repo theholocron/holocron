@@ -69,8 +69,35 @@ export type StatusReconciliation =
 
 /** The front matter fields `updateFrontmatter` can set. A field left out is left alone. */
 export interface FrontmatterChanges {
+	/** The new `id`, such as `SPEC-0007`. Added as the first field when the document has none. */
+	id?: string;
 	/** The new `status`. */
 	status?: string;
 	/** The address of the document's discussion post, written as `discussion.url`. */
 	discussionUrl?: string;
+}
+
+/** A spec, as `assignSpecIds` numbers it. */
+export interface SpecToNumber {
+	/** The spec's repo-relative path. */
+	path: string;
+	/** The `id` it has, or `undefined` when it has none yet. */
+	id: string | undefined;
+	/** When its file was first committed, in seconds since the epoch; `undefined` when that is not known. */
+	time: number | undefined;
+}
+
+/** What goes in the first message of a document's discussion post. */
+export interface DiscussionBodyInput {
+	/** The document's id, such as `SPEC-0007` or `ADR-0009`. */
+	id: string;
+	/** A short description of the document; empty when it has none. */
+	summary: string;
+	/** The pull request that added the document, when it is known. */
+	pr?: {
+		/** The pull request's number. */
+		number: number;
+		/** The pull request's address. */
+		url: string;
+	};
 }
