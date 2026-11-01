@@ -122,11 +122,12 @@ describe("createAstromech().run", () => {
 		const report = createAstromech({
 			...fs({ "package.json": PKG }),
 			exec,
-			lookPath: (_cwd, bin) => (bin === "node" ? "/usr/bin/node" : null),
 			print: () => {},
 		}).run("platform.repoValidation", { job: "adrs" });
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith("/usr/bin/node", ["scripts/validate-adrs.mjs"], { cwd: "/repo" });
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "specs", "check"], {
+			cwd: "/repo",
+		});
 	});
 
 	it("routes a structured logger through to run lines", () => {

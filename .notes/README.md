@@ -12,5 +12,5 @@ Once the design is settled, the spec **moves to
 - `archived` / `superseded` — the work shipped, or the exploration was dropped
   or replaced.
 
-`scripts/validate-adrs.mjs` validates frontmatter in both directories (runs in
-the Lint workflow).
+`holocron probe specs check` validates frontmatter in both directories (the
+`adrs` job of `platform.repoValidation`).

@@ -232,6 +232,7 @@ describe("runProbeCommand", () => {
 			"deps",
 			"docs",
 			"generated",
+			"specs",
 		]);
 		expect(text()).toBe("");
 	});

@@ -189,7 +189,7 @@ export const TASKS: Record<string, TaskDef> = {
 		retiredJobs: ["registry"],
 		jobs: {
 			adrs: {
-				local: { tool: "node", args: ["scripts/validate-adrs.mjs"] },
+				local: { command: "probe specs check" },
 				checkContext: "platform.repoValidation / Validate ADRs and specs",
 			},
 			// Warns (never fails — `holocron probe docs presence` reports, it does not

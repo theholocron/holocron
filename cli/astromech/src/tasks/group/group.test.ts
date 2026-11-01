@@ -76,7 +76,7 @@ describe("runGroup", () => {
 			"platform"
 		);
 		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([["scripts/validate-adrs.mjs"]]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
 	});
 
 	it("aggregates fail when any matched task fails, but still runs every one of them", () => {

@@ -33,7 +33,7 @@ export default defineConfig({
 		// `run-performance` never being enabled here).
 		{ name: "sourceQuality.deadCodeAnalysis", required: true },
 		{ name: "delivery.bundleSize", required: true },
-		// Repo/spec validation (validate-adrs.mjs, `holocron probe docs presence`) —
+		// Repo/spec validation (`holocron probe specs check`, `holocron probe docs presence`) —
 		// used to ride inside the old `lint` job with no linter connection at
 		// all; now its own task (#675).
 		{ name: "platform.repoValidation", required: true },

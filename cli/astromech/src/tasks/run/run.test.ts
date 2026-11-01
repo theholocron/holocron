@@ -2,6 +2,7 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { TASKS } from "../../registry/index.js";
 import { noopLogger } from "../../utils/index.js";
 import { runTask } from "./run.js";
 import type { RunTaskInput } from "./run.type.js";
@@ -454,24 +455,49 @@ describe("runTask — sub-jobs", () => {
 		(_cwd: string, bin: string): string | null =>
 			bins.includes(bin) ? `/usr/local/bin/${bin}` : null;
 
-	it("runs one named job — `platform.repoValidation adrs` → node scripts/validate-adrs.mjs", () => {
-		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+	/**
+	 * Both repoValidation jobs are holocron subcommands, which always run. Gives `adrs` a `tool` runner for the length
+	 * of `fn`, for the tests of what happens when a job's tool is not installed.
+	 */
+	function withToolJob<T>(fn: () => T): T {
+		const job = TASKS["platform.repoValidation"]!.jobs!["adrs"]!;
+		const original = job.local;
+		job.local = { tool: "node", args: ["scripts/check.mjs"] };
+		try {
+			return fn();
+		} finally {
+			job.local = original;
+		}
+	}
+
+	it("runs one named job — `platform.repoValidation adrs` → holocron probe specs check", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
 		const report = call("platform.repoValidation", { job: "adrs" });
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/validate-adrs.mjs"], { cwd: CWD });
-	});
-
-	it("forwards passthrough args to the job's tool", () => {
-		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		call("platform.repoValidation", { job: "adrs", passthrough: ["--strict"] });
-		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/validate-adrs.mjs", "--strict"], {
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "specs", "check"], {
 			cwd: CWD,
 		});
 	});
 
+	it("forwards passthrough args to the job's command, so `adrs -- <files>` checks only those files", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
+		call("platform.repoValidation", { job: "adrs", passthrough: [".notes/a.spec.md"] });
+		expect(exec).toHaveBeenCalledWith(
+			process.execPath,
+			[process.argv[1], "probe", "specs", "check", ".notes/a.spec.md"],
+			{ cwd: CWD }
+		);
+	});
+
+	it("forwards passthrough args to the job's tool", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
+		withToolJob(() => call("platform.repoValidation", { job: "adrs", passthrough: ["--strict"] }));
+		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/check.mjs", "--strict"], { cwd: CWD });
+	});
+
 	it("skips a job whose tool isn't installed locally — enforced in CI", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }); // nothing on PATH
-		const report = call("platform.repoValidation", { job: "adrs" });
+		const report = withToolJob(() => call("platform.repoValidation", { job: "adrs" }));
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/node not installed locally.*enforced in CI/);
@@ -479,7 +505,7 @@ describe("runTask — sub-jobs", () => {
 
 	it("--required turns a missing job tool into a failure", () => {
 		const { call } = makeRun({ "package.json": PKG() });
-		const report = call("platform.repoValidation", { job: "adrs", required: true });
+		const report = withToolJob(() => call("platform.repoValidation", { job: "adrs", required: true }));
 		expect(report.status).toBe("fail");
 	});
 
@@ -528,7 +554,7 @@ describe("runTask — sub-jobs", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
 		const report = call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } });
 		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([["scripts/validate-adrs.mjs"]]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
 		expect(lines.join("\n")).toMatch(
 			/Validate docs presence — off in this repo's config \(jobs\.docsEnforcement: false\)/
 		);
@@ -566,7 +592,7 @@ describe("runTask — sub-jobs", () => {
 		const report = call("platform.repoValidation");
 		expect(report.status).toBe("ok");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
-			["scripts/validate-adrs.mjs"],
+			[process.argv[1], "probe", "specs", "check"],
 			[process.argv[1], "probe", "docs", "presence"],
 		]);
 		const out = lines.join("\n");
@@ -580,13 +606,13 @@ describe("runTask — sub-jobs", () => {
 		const report = call("platform.repoValidation", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/would run: .*validate-adrs\.mjs[\s\S]*would run: .*probe docs presence/);
+		expect(lines.join("\n")).toMatch(/would run: .*probe specs check[\s\S]*would run: .*probe docs presence/);
 	});
 
 	it("`holocron run platform.repoValidation` is a clean skip when no job is runnable locally", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
 		// the docs presence job is a holocron subcommand, so it always runs: switch it off to leave nothing runnable
-		const report = call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } });
+		const report = withToolJob(() => call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } }));
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
 		expect(report.message).toMatch(/no platform.repoValidation job has a local equivalent/);
