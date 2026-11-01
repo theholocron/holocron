@@ -18,6 +18,7 @@ interface StarlightPlugin {
 	};
 }
 
+/** A Starlight plugin that puts the theme's stylesheet ahead of the site's own custom CSS. */
 export function docsTheme(): StarlightPlugin {
 	return {
 		name: "@theholocron/docs-theme",

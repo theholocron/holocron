@@ -1,5 +1,6 @@
 import type { PackageJson } from "./package-json.type.ts";
 
+/** A `package.json` field that maps dependency names to ranges. */
 export type DependencyField = "dependencies" | "devDependencies" | "peerDependencies" | "optionalDependencies";
 
 /**

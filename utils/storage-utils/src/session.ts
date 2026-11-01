@@ -8,12 +8,19 @@ type AppStorageData = {
 	};
 };
 
+/** The API of a session store. */
 export type TSessionStorage = {
+	/** Registers an app and makes it the target of later writes. */
 	registerApp: (appName: string) => void;
+	/** Writes `value` under the dotted `key` in the most recently registered app; throws when no app is registered. */
 	sendTo: (key: string, value: unknown) => void;
+	/** Returns everything stored. */
 	getAll: () => object;
+	/** Returns the data stored under `key`, or `null` when there is none. */
 	getFrom: (key: string) => NamespacedStorageData | null;
+	/** Removes the data stored under `key`. */
 	removeFrom: (key: string) => void;
+	/** Removes everything stored. */
 	clear: () => void;
 };
 
@@ -28,6 +35,7 @@ const isSessionStorageAvailable: boolean = typeof window !== "undefined" && "ses
  * `console.error` so behavior is unchanged when nothing is injected.
  */
 export interface StorageLogger {
+	/** Logs an error. */
 	error(message: string, meta?: unknown): void;
 }
 
@@ -176,5 +184,6 @@ function createStorage(namespace = "theholocron", logger: StorageLogger = consol
 }
 
 export const session = {
+	/** Creates a store for an optional namespace (default `theholocron`) and logger. */
 	create: createStorage,
 };

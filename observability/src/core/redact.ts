@@ -40,7 +40,9 @@ export const REDACT_CENSOR = "[Redacted]";
 
 /** Ready-to-use Pino `redact` option. */
 export const redactOptions = {
+	/** The field paths to redact, a copy of {@link REDACTED_PATHS}. */
 	paths: [...REDACTED_PATHS],
+	/** The string written in place of each redacted value, {@link REDACT_CENSOR}. */
 	censor: REDACT_CENSOR,
 } as const;
 

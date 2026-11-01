@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { PackageJson } from "./package-json.type.ts";
 import { parsePackageJson } from "./parse-package-json.ts";
 
+/** Options for {@link readPackageJsonSync}. */
 export interface ReadPackageJsonOptions {
 	/** Replaces the file read — for callers with an injected or in-memory filesystem. */
 	readFile?: (path: string) => string;

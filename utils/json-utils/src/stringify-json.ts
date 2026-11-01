@@ -1,3 +1,4 @@
+/** Options for {@link stringifyJson}. */
 export interface StringifyJsonOptions {
 	/**
 	 * Indent for each level: a number of spaces (a non-negative integer) or a

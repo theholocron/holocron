@@ -4,6 +4,7 @@ import { dirname, join, resolve } from "node:path";
 
 import { findUpward } from "./find-upward.ts";
 
+/** Options for {@link findRoot} and {@link findRootSync}. */
 export interface FindRootOptions {
 	/**
 	 * `"start"` returns the start directory instead of `undefined` when no
