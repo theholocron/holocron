@@ -42,12 +42,12 @@ Generate an API token at **Atlassian account settings → Security → API token
 
 ## Namespaces
 
-| Namespace     | Methods                                                       |
-| ------------- | ------------------------------------------------------------- |
-| `issues`      | `create`, `get`, `getMany`, `update`, `getProperty`, `search` |
-| `links`       | `create`, `createMany`, `getLinkTypes`                        |
-| `projects`    | `get`                                                         |
-| `transitions` | `create`, `get`, `getResolutions`                             |
-| `versions`    | `create`, `get`, `getMany`, `update`, `delete`                |
+| Namespace     | Covers                                  |
+| ------------- | --------------------------------------- |
+| `issues`      | Issues: create, read, update and search |
+| `links`       | Links between issues                    |
+| `projects`    | Projects                                |
+| `transitions` | Workflow transitions and resolutions    |
+| `versions`    | Project versions                        |
 
 The full [API reference](/holocron/clients/jira-client/api/readme/) is generated from the package's TSDoc comments.

@@ -30,11 +30,11 @@ const uri = await client.connection.uri({
 
 ## Namespaces
 
-| Namespace    | Methods                                |
-| ------------ | -------------------------------------- |
-| `branches`   | `list`, `create`, `destroy`, `restore` |
-| `connection` | `uri`                                  |
-| `databases`  | `list`, `runSql`                       |
-| `users`      | `me`                                   |
+| Namespace    | Covers                                    |
+| ------------ | ----------------------------------------- |
+| `branches`   | Project branches, including restoring one |
+| `connection` | Connection URIs                           |
+| `databases`  | Databases and running SQL against them    |
+| `users`      | The authenticated user                    |
 
 The full [API reference](/holocron/clients/neon-client/api/readme/) is generated from the package's TSDoc comments.

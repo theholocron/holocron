@@ -29,29 +29,6 @@ Discord webhooks authenticate via the id+token embedded in the URL itself,
 not an `Authorization` header — `createDiscordClient` takes no `token`
 option; each call supplies its own.
 
-## API
-
-### `createDiscordClient(opts?)`
-
-| Option    | Type           | Default                       | Description                   |
-| --------- | -------------- | ----------------------------- | ----------------------------- |
-| `baseUrl` | `string`       | `https://discord.com/api/v10` | Override base URL for testing |
-| `fetch`   | `typeof fetch` | `globalThis.fetch`            | Override fetch for testing    |
-
-Returns a client with one resource namespace:
-
-#### `client.webhooks`
-
-| Method                        | Description                                    |
-| ----------------------------- | ---------------------------------------------- |
-| `get(id, token)`              | `GET /webhooks/{id}/{token}` — webhook info    |
-| `execute(id, token, content)` | `POST /webhooks/{id}/{token}` — post a message |
-
-### `parseWebhookUrl(url)`
-
-Parses a Discord webhook URL (e.g. `https://discord.com/api/webhooks/<id>/<token>`)
-into `{ id, token }`.
-
 ## Bot client — provisioning a server
 
 `createDiscordBotClient` authenticates as a bot (`Authorization: Bot <token>`)
@@ -80,16 +57,6 @@ const hook = await bot.channels.createWebhook(channel.id, {
 console.log(hook.url); // a secret -- Discord returns it only for webhooks this bot created
 ```
 
-### `createDiscordBotClient(opts)`
-
-| Option       | Type           | Default                       | Description                   |
-| ------------ | -------------- | ----------------------------- | ----------------------------- |
-| `botToken`   | `string`       | _(required)_                  | Bot token                     |
-| `baseUrl`    | `string`       | `https://discord.com/api/v10` | Override base URL for testing |
-| `fetch`      | `typeof fetch` | `globalThis.fetch`            | Override fetch for testing    |
-| `timeoutMs`  | `number`       | `15000`                       | Per-request deadline          |
-| `maxRetries` | `number`       | `3`                           | Retries after a 429           |
-
 `baseUrl` is a test seam: the bot token is sent to whatever host it names, so
 never derive it from untrusted input. Ids passed to any method must be Discord
 snowflakes (digits only); anything else throws before a request is made.
@@ -102,13 +69,15 @@ the resource, look it up by name before creating it again. A webhook created
 that way cannot have its URL read back, since Discord returns the token only on
 the create response.
 
-| Resource             | Methods                                                                                                                                                                                                                                                                |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client.users`       | `me()` — `GET /users/@me`, a cheap token check; `get(id)` — a user's name; `guilds({ limit, after })` — `GET /users/@me/guilds`, the servers the bot is in and whether it owns each (look here before retrying `guilds.create`)                                        |
-| `client.application` | `get`, `modify` (the bot's own application: description, tags, install settings, URLs, and `flags` for the privileged-intent toggles; `redirect_uris` can be read but not written, so add them in the developer portal)                                                |
-| `client.guilds`      | `get`, `modify`, `channels`, `createChannel`, `roles`, `createRole`, `modifyRole`, `create`, `delete`, `emojis`, `member`, `members`, `membersWithRole`, `addMemberRole`, `removeMemberRole`, `welcomeScreen`, `modifyWelcomeScreen`, `onboarding`, `modifyOnboarding` |
-| `client.channels`    | `modify`, `webhooks`, `createWebhook`, `createMessage`, `createInvite`, `messages`, `pin`, `deleteMessage`                                                                                                                                                             |
-| `client.webhooks`    | `modify` (name, avatar), `delete`                                                                                                                                                                                                                                      |
+| Resource             | Covers                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| `client.users`       | The bot's identity and the servers it is in (look here before retrying `guilds.create`) |
+| `client.application` | The bot's own application: description, tags, install settings, URLs, intent flags      |
+| `client.guilds`      | Servers: settings, channels, roles, emojis, members, welcome screen and onboarding      |
+| `client.channels`    | Webhooks, messages, invites and pins on a channel                                       |
+| `client.webhooks`    | Renaming and deleting a webhook                                                         |
+
+`application.modify` cannot write `redirect_uris` (it can be read), so add those in the developer portal.
 
 `permissions([...names])` builds the decimal-string bitfield Discord expects, and
 `permissionNames(bitfield)` reads one back; `Permission` holds the bits themselves.

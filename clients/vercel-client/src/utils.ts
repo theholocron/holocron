@@ -7,7 +7,11 @@ export type { RestClient };
 export interface VercelClientOptions {
 	/** Vercel API token. */
 	token: string;
-	/** Team ID — appended as `?teamId=` on every request. Omit for personal accounts. */
+	/**
+	 * Team ID — appended as `?teamId=` on every request. Omit for personal accounts.
+	 * Required for team-owned resources (projects, deployments, env vars); without it, requests
+	 * target personal account resources only. Find it in Vercel dashboard → Team Settings → General.
+	 */
 	teamId?: string;
 	/** Override base URL for testing. Defaults to https://api.vercel.com. */
 	baseUrl?: string;

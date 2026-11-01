@@ -25,13 +25,13 @@ await client.import.openapi({ workspaceId: "ws-123", spec: myOpenApiSpec });
 
 ## Namespaces
 
-| Namespace      | Methods                        |
-| -------------- | ------------------------------ |
-| `collections`  | `list`, `delete`               |
-| `environments` | `list`, `create`, `update`     |
-| `import`       | `openapi`                      |
-| `me`           | `get`                          |
-| `specs`        | `list`, `create`, `updateFile` |
-| `workspaces`   | `list`                         |
+| Namespace      | Covers                          |
+| -------------- | ------------------------------- |
+| `collections`  | Collections                     |
+| `environments` | Environments                    |
+| `import`       | Importing an OpenAPI definition |
+| `me`           | The authenticated user          |
+| `specs`        | API specs and their files       |
+| `workspaces`   | Workspaces                      |
 
 The full [API reference](/holocron/clients/postman-client/api/readme/) is generated from the package's TSDoc comments.

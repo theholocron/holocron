@@ -12,6 +12,7 @@ export interface SlackAuthTest {
 
 export function auth(rest: SlackRestClient) {
 	return {
+		/** Verify the token's identity (`POST auth.test`). */
 		test: (): Promise<SlackAuthTest> => rest.call<SlackAuthTest>("auth.test", {}),
 	};
 }

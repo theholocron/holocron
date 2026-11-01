@@ -22,8 +22,10 @@ const PATH = "/v2/datasets";
 
 export function datasets(rest: RestClient) {
 	return {
+		/** Get one dataset by name (`GET /v2/datasets/{name}`); the name is URL-encoded. */
 		get: (name: string): Promise<AxiomDataset> => rest.request<AxiomDataset>(`${PATH}/${encodeURIComponent(name)}`),
 
+		/** Create a dataset (`POST /v2/datasets`). */
 		create: (input: CreateAxiomDatasetInput): Promise<AxiomDataset> =>
 			rest.request<AxiomDataset>(PATH, { method: "POST", body: input }),
 	};
