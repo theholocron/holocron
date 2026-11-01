@@ -146,7 +146,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
         if: ${{ steps.filter.outputs.relevant == 'true' }}
 
@@ -183,7 +183,7 @@ jobs:
         if: ${{ steps.creds.outputs.available == 'true' }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        uses: theholocron/.github/.github/actions/holocron@main
+        uses: theholocron/holocron/ci/actions/holocron@ci-v1
         with:
           command: run delivery.previewDeploy
           args: --cwd=${{ inputs.cwd }}

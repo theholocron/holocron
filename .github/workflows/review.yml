@@ -34,7 +34,7 @@ jobs:
 
       - name: Setup
         if: ${{ hashFiles('pnpm-lock.yaml') != '' }}
-        uses: theholocron/.github/.github/actions/setup@main
+        uses: theholocron/holocron/ci/actions/setup@ci-v1
 
       - name: Install ReviewDog
         uses: reviewdog/action-setup@d8a7baabd7f3e8544ee4dbde3ee41d0011c3a93f # v1

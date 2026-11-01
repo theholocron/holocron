@@ -39,7 +39,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
       - name: Build the CLI
@@ -55,6 +55,6 @@ jobs:
         if: >-
           ${{ !cancelled() && hashFiles('coverage/docs.lcov') != '' &&
           (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
-        uses: theholocron/.github/.github/actions/codecov-upload@main
+        uses: theholocron/holocron/ci/actions/codecov-upload@ci-v1
         with:
           uploads: '[{"flag":"documentation","files":"coverage/docs.lcov"}]'

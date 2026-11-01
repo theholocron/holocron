@@ -39,10 +39,10 @@ jobs:
           # --affected needs the base commit, which a depth-1 checkout does not have.
           fetch-depth: ${{ inputs.affected && '0' || '1' }}
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Build
         with:
           task: delivery.build

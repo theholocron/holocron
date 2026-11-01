@@ -25,10 +25,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Validate ADR and spec frontmatter
         with:
           task: platform.repoValidation
@@ -46,10 +46,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Validate docs presence for new packages
         with:
           task: platform.repoValidation

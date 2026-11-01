@@ -28,10 +28,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Run knip
         with:
           task: sourceQuality.deadCodeAnalysis

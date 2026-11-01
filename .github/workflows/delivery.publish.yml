@@ -156,7 +156,7 @@ jobs:
           # built-in github.token cannot push through branch protection rulesets.
           token: ${{ secrets.HOLOCRON_RELEASE_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || github.token }}
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
       - name: Configure git identity
@@ -228,7 +228,7 @@ jobs:
           HUSKY: "0"
           NPM_CONFIG_PROVENANCE: true
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Coverage for the release commit
         if: ${{ steps.release.outputs.commit != '' }}
         with:
@@ -299,10 +299,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Deploy packages that deploy on release
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

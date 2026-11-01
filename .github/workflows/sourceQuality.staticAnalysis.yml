@@ -57,7 +57,7 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token || github.token }}
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
       # actionlint has no npm distribution — install the prebuilt binary via
@@ -79,12 +79,12 @@ jobs:
             exit 1
           fi
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Run eslint and actionlint
         with:
           task: sourceQuality.staticAnalysis
 
-      - uses: theholocron/.github/.github/actions/auto-commit@main
+      - uses: theholocron/holocron/ci/actions/auto-commit@ci-v1
         name: Commit and push eslint --fix
         if: >
           inputs.enable-auto-commit == true &&
