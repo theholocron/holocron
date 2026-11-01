@@ -38,8 +38,11 @@ export interface DeploymentOptions {
 	domain?: string;
 }
 
+/** The `deployment` capability for Vercel: projects, environment variables, deployments, functions and custom domains. */
 export class VercelDeployment implements Deployment {
+	/** The capability key, always `deployment`. */
 	readonly key = "deployment" as const;
+	/** The provider name, `vercel`. */
 	readonly providerName = "vercel";
 	readonly domain?: string;
 
@@ -55,6 +58,7 @@ export class VercelDeployment implements Deployment {
 
 	// ── projects ────────────────────────────────────────────────────────
 
+	/** Lists the projects the token can see, mapped to the provider-neutral shape. */
 	async listProjects(): Promise<DeploymentProject[]> {
 		const { projects } = await this.client().projects.list();
 		return projects.map(mapProject);
@@ -78,6 +82,7 @@ export class VercelDeployment implements Deployment {
 		return mapProject(result);
 	}
 
+	/** Updates a project's preview-deployment and Git-provider deployment settings and returns the updated project. */
 	async updateProjectSettings(projectId: string, settings: DeploymentProjectSettings): Promise<DeploymentProject> {
 		const result = await this.client().projects.update(projectId, {
 			previewDeploymentsDisabled: settings.previewDeploymentsDisabled,
@@ -94,6 +99,7 @@ export class VercelDeployment implements Deployment {
 
 	// ── env vars ────────────────────────────────────────────────────────
 
+	/** Lists the names of the project's environment variables that apply to `target`. */
 	async listEnvVars(projectId: string, target: DeploymentTarget): Promise<string[]> {
 		const { envs } = await this.client().env.list(projectId);
 		return envs
@@ -101,6 +107,7 @@ export class VercelDeployment implements Deployment {
 			.map((e) => e.key);
 	}
 
+	/** Creates or updates (upsert) an environment variable on the project for `target`. */
 	async setEnvVar(projectId: string, target: DeploymentTarget, name: string, value: string): Promise<void> {
 		await this.client().env.set(projectId, target as "production" | "preview" | "development", name, value);
 	}
@@ -130,6 +137,7 @@ export class VercelDeployment implements Deployment {
 		return mapDeployment(raw, input.branch);
 	}
 
+	/** Fetches a deployment by id; the record's branch is the deployment's Git commit ref, or `null` when it has none. */
 	async getDeployment(deploymentId: string): Promise<DeploymentRecord> {
 		const raw = await this.client().deployments.get(deploymentId);
 		return mapDeployment(raw, raw.meta?.githubCommitRef ?? null);
