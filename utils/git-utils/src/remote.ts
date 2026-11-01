@@ -23,7 +23,17 @@ export interface GitRemote {
  * `#fragment`) makes it `undefined`.
  *
  * `undefined` for anything else (a local path, an empty string, a URL with
- * fewer than two path segments).
+ * fewer than two path segments). Nested groups stay in `owner`.
+ *
+ * @example
+ * ```ts
+ * import { parseGitRemoteUrl } from "@theholocron/git-utils";
+ *
+ * parseGitRemoteUrl("git@github.com:theholocron/holocron.git");
+ * // { host: "github.com", owner: "theholocron", repo: "holocron", slug: "theholocron/holocron" }
+ *
+ * parseGitRemoteUrl("/Users/me/code/repo"); // undefined
+ * ```
  */
 export function parseGitRemoteUrl(url: string): GitRemote | undefined {
 	const input = url.trim();

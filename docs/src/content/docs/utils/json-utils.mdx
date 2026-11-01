@@ -9,16 +9,7 @@ description: Stringify JSON with a trailing newline, preserving a file's own ind
 pnpm add @theholocron/json-utils
 ```
 
-## API
-
-### `stringifyJson(value, options?)`
-
-`JSON.stringify` pretty-printed, ending in exactly one newline.
-
-| Option   | Effect                                                                                                                                                             |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `indent` | A number of spaces or a literal string (`"\t"`). Default `2`.                                                                                                      |
-| `like`   | The existing file's text. Its detected indent and line endings (`\n` vs `\r\n`) are used instead of `indent`; falls back to `indent` when nothing can be detected. |
+## Usage
 
 ```ts
 import { stringifyJson } from "@theholocron/json-utils";
@@ -30,19 +21,6 @@ const original = await readFile("package.json", "utf8");
 const pkg = JSON.parse(original);
 pkg.version = "2.0.0";
 await writeFile("package.json", stringifyJson(pkg, { like: original }));
-```
-
-Throws a `TypeError` for a value with no JSON representation (`undefined`, a function, a symbol).
-
-### `detectIndent(text)`
-
-The leading space of the first indented line (spaces or a tab), or `undefined` for an empty, single-line or unindented document.
-
-```ts
-import { detectIndent } from "@theholocron/json-utils";
-
-detectIndent('{\n\t"a": 1\n}'); // "\t"
-detectIndent('{"a":1}'); // undefined
 ```
 
 The full [API reference](/holocron/utils/json-utils/api/readme/) is generated from the package's TSDoc comments.

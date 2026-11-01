@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 
 /** Options for {@link walkFilesSync}. */
 export interface WalkFilesOptions {
-	/** Directory names not descended into, at any depth (files with these names are still listed). Defaults to `.git` and `node_modules`. */
+	/** Directory names not descended into, at any depth (files with these names are still listed). Defaults to `.git` and `node_modules`; passing a list replaces that default. */
 	skip?: Iterable<string>;
 }
 
@@ -32,6 +32,13 @@ function entryKind(entry: Dirent, full: string): "directory" | "file" | "other" 
  * itself must be readable — its error propagates, since a typo'd root is a bug
  * to surface, not an empty result. The tree is assumed not to change while it
  * is walked: an entry swapped for a symlink mid-walk is not detected.
+ *
+ * @example
+ * ```ts
+ * import { walkFilesSync } from "@theholocron/fs-utils";
+ *
+ * const sources = walkFilesSync(repoRoot, { skip: [".git", "node_modules", "dist"] });
+ * ```
  */
 export function walkFilesSync(dir: string, options: WalkFilesOptions = {}): string[] {
 	const skip = new Set(options.skip ?? DEFAULT_SKIP);

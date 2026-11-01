@@ -44,6 +44,13 @@ function defaultListDirs(dir: string): string[] {
  * `TypeError`, and so does any listing error other than "not there"
  * (`ENOENT`/`ENOTDIR`). A single-package repo has no roots; read its root manifest with
  * `readPackageJson` instead.
+ *
+ * @example
+ * ```ts
+ * import { listWorkspacePackagesSync } from "@theholocron/pkg-utils";
+ *
+ * const publishable = listWorkspacePackagesSync(repoRoot).filter((p) => !p.manifest.private && p.name);
+ * ```
  */
 export function listWorkspacePackagesSync(
 	repoRoot: string,

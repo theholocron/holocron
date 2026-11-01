@@ -31,7 +31,15 @@ const LOCKFILES: ReadonlyArray<readonly [file: string, manager: PackageManager]>
 /**
  * The package manager `dir` uses: the name in `package.json#packageManager`
  * (`pnpm@10.0.0` → `pnpm`) when it's one of pnpm, npm, yarn or bun, else the
- * first lockfile found, else `options.fallback`.
+ * first lockfile found (`pnpm-lock.yaml`, `bun.lockb`, `bun.lock`, `yarn.lock`, `npm-shrinkwrap.json`,
+ * `package-lock.json`, in that order), else `options.fallback`.
+ *
+ * @example
+ * ```ts
+ * import { detectPackageManager } from "@theholocron/pkg-utils";
+ *
+ * detectPackageManager(process.cwd()); // "pnpm" | "npm" | "yarn" | "bun"
+ * ```
  */
 export function detectPackageManager(dir: string, options: DetectPackageManagerOptions = {}): PackageManager {
 	const read = options.readFile ?? ((path: string) => readFileSync(path, "utf8"));

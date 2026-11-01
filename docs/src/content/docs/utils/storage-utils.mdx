@@ -9,45 +9,27 @@ description: Namespaced session storage.
 pnpm add @theholocron/storage-utils
 ```
 
-## API
-
-### `storage.session`
-
-A pre-built namespaced session storage instance (under the `@theholocron` namespace).
+## Usage
 
 ```ts
 import { storage } from "@theholocron/storage-utils";
 
-// Register your app first
-storage.session.registerApp("my-app");
+// Create a store (the namespace defaults to "theholocron")
+const store = storage.session.create("my-namespace");
 
-// Write a value (dot-separated key supports nesting)
-storage.session.sendTo("user.name", "Alice");
+// Register your app first: later writes go to the most recently registered app
+store.registerApp("my-app");
 
-// Read a namespace
-const data = storage.session.getFrom("my-app");
+// Write a value (a dot-separated key nests)
+store.sendTo("user.name", "Alice");
 
-// Read everything
-const all = storage.session.getAll();
+// Read it back
+store.getFrom("user"); // { name: "Alice" }
 
-// Remove a namespace
-storage.session.removeFrom("my-app");
-
-// Clear all storage
-storage.session.clear();
-```
-
-### `TSessionStorage` interface
-
-```ts
-interface TSessionStorage {
-  registerApp: (appName: string) => void;
-  sendTo: (key: string, value: unknown) => void;
-  getAll: () => object;
-  getFrom: (key: string) => object | null;
-  removeFrom: (key: string) => void;
-  clear: () => void;
-}
+// Read everything, remove one key, or clear it all
+store.getAll();
+store.removeFrom("user");
+store.clear();
 ```
 
 ## Notes

@@ -31,7 +31,10 @@ export interface BumpCatalogPinsOptions {
 	include?: (pkg: string) => boolean;
 }
 
-/** Parse the `catalog:` and `catalogs:` blocks of `pnpm-workspace.yaml` (the generated, flat format). */
+/**
+ * Parse the `catalog:` and `catalogs:` blocks of `pnpm-workspace.yaml` (the generated, flat format), as
+ * `{ default: {...}, <name>: {...} }` of package name to range. Entries outside a catalog are ignored.
+ */
 export function parseCatalogs(text: string): Catalogs {
 	const catalogs: Catalogs = { default: {} };
 	let current: string | null = null;
@@ -121,7 +124,8 @@ const CATALOG_LINE =
 
 /**
  * Rewrite the pins of the `catalog:` and every named `catalogs.*` entry to the latest published version,
- * keeping the range prefix (`^`, `~`). Never downgrades; a package with no answer from `fetchLatest` is left
+ * keeping the range prefix (`^`, `~`) and the quoting. `options.include` limits which
+ * packages are looked up. Never downgrades; a package with no answer from `fetchLatest` is left
  * alone. `fetchLatest` is called once per package.
  */
 export async function bumpCatalogPins(

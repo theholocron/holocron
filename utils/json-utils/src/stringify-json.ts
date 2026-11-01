@@ -23,6 +23,14 @@ export interface StringifyJsonOptions {
  *
  * Raw newlines can't occur inside a JSON string, so any line that starts with
  * whitespace is structural indentation.
+ *
+ * @example
+ * ```ts
+ * import { detectIndent } from "@theholocron/json-utils";
+ *
+ * detectIndent('{\n\t"a": 1\n}'); // "\t"
+ * detectIndent('{"a":1}'); // undefined
+ * ```
  */
 export function detectIndent(text: string): string | undefined {
 	const lines = text.split(/\r?\n/);
@@ -70,6 +78,19 @@ function resolveIndent(indent: number | string): string {
  * function, a symbol) — `JSON.stringify` would return `undefined` for it — or
  * when `indent` isn't a non-negative integer or a string of spaces and tabs
  * (anything else would produce text no JSON parser accepts).
+ *
+ * @example
+ * ```ts
+ * import { stringifyJson } from "@theholocron/json-utils";
+ *
+ * stringifyJson({ a: 1 }); // '{\n  "a": 1\n}\n'
+ *
+ * // rewrite a file without reformatting it
+ * const original = await readFile("package.json", "utf8");
+ * const pkg = JSON.parse(original);
+ * pkg.version = "2.0.0";
+ * await writeFile("package.json", stringifyJson(pkg, { like: original }));
+ * ```
  */
 export function stringifyJson(value: unknown, options: StringifyJsonOptions = {}): string {
 	let indent = resolveIndent(options.indent ?? 2);

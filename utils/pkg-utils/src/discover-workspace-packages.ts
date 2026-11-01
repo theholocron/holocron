@@ -46,6 +46,13 @@ const GLOB_CHARS = /[*?[\]{}!]/;
  *
  * Nothing is filtered by `name`, `version` or `private`; that is the caller's
  * call, as for `listWorkspacePackagesSync()`.
+ *
+ * @example
+ * ```ts
+ * import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
+ *
+ * const names = discoverWorkspacePackages(repoRoot, { group: "clients" }).map((p) => p.name);
+ * ```
  */
 export function discoverWorkspacePackages(
 	repoRoot: string,
