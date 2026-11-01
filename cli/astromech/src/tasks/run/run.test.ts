@@ -508,6 +508,22 @@ describe("runTask — sub-jobs", () => {
 		expect(exec).toHaveBeenCalledTimes(1);
 	});
 
+	it("runs a job that is a holocron subcommand through this CLI, with no tool lookup", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
+		const report = call("platform.repoValidation", { job: "docsPresence" });
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "docs", "presence"], {
+			cwd: CWD,
+		});
+		const forwarded = call("platform.repoValidation", { job: "docsPresence", passthrough: ["--verbose"] });
+		expect(forwarded.status).toBe("ok");
+		expect(exec).toHaveBeenLastCalledWith(
+			process.execPath,
+			[...[process.argv[1], "probe", "docs", "presence"], "--verbose"],
+			{ cwd: CWD }
+		);
+	});
+
 	it("leaves a switched-off job out of a whole-task run and still runs the others", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
 		const report = call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } });
@@ -524,7 +540,7 @@ describe("runTask — sub-jobs", () => {
 		expect(one).toMatchObject({ status: "skip", message: expect.stringMatching(/\(jobs\.adrs: false\)/) });
 		const all = call("platform.repoValidation", { jobSwitches: { adrs: false } });
 		expect(all.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([["scripts/validate-docs-presence.mjs"]]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "docs", "presence"]]);
 		expect(lines.join("\n")).toMatch(/Validate ADRs and specs — off in this repo's config \(jobs\.adrs: false\)/);
 	});
 
@@ -551,7 +567,7 @@ describe("runTask — sub-jobs", () => {
 		expect(report.status).toBe("ok");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			["scripts/validate-adrs.mjs"],
-			["scripts/validate-docs-presence.mjs"],
+			[process.argv[1], "probe", "docs", "presence"],
 		]);
 		const out = lines.join("\n");
 		expect(out.indexOf("platform.repoValidation / Validate ADRs and specs")).toBeLessThan(
@@ -564,14 +580,13 @@ describe("runTask — sub-jobs", () => {
 		const report = call("platform.repoValidation", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(
-			/would run: .*validate-adrs\.mjs[\s\S]*would run: .*validate-docs-presence\.mjs/
-		);
+		expect(lines.join("\n")).toMatch(/would run: .*validate-adrs\.mjs[\s\S]*would run: .*probe docs presence/);
 	});
 
 	it("`holocron run platform.repoValidation` is a clean skip when no job is runnable locally", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		const report = call("platform.repoValidation");
+		// the docs presence job is a holocron subcommand, so it always runs: switch it off to leave nothing runnable
+		const report = call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } });
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
 		expect(report.message).toMatch(/no platform.repoValidation job has a local equivalent/);

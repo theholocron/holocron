@@ -49,11 +49,11 @@ sub-jobs.
 Some tasks are a bundle of smaller jobs. `platform.repoValidation` is the one
 that matters today — spec/ADR frontmatter and docs-presence, not linters:
 
-| `holocron run …`                       | Runs                                      |
-| -------------------------------------- | ----------------------------------------- |
-| `platform.repoValidation adrs`         | `node scripts/validate-adrs.mjs`          |
-| `platform.repoValidation docsPresence` | `node scripts/validate-docs-presence.mjs` |
-| `platform.repoValidation` (no job)     | each of the above, in that order          |
+| `holocron run …`                       | Runs                             |
+| -------------------------------------- | -------------------------------- |
+| `platform.repoValidation adrs`         | `node scripts/validate-adrs.mjs` |
+| `platform.repoValidation docsPresence` | `holocron probe docs presence`   |
+| `platform.repoValidation` (no job)     | each of the above, in that order |
 
 A sub-job whose tool isn't installed is skipped with a note — CI enforces it
 regardless. `--required` turns "can't run this here" into a failure.

@@ -234,8 +234,10 @@ function runUnit(
 		return { status: input.required ? "fail" : "skip", message: msg };
 	};
 
-	// Jobs are always `tool` / `detect` runners — no `command` (holocron-subcommand)
-	// form; add that branch here if a future job needs it.
+	// A job that is a holocron subcommand (`probe docs presence`) runs this CLI, as a task's `command` does:
+	// each word is its own argv entry. The CLI is always there, so unlike a `tool` it is never "not installed".
+	if (local?.command) return run(process.execPath, [process.argv[1]!, ...local.command.split(" "), ...passthrough]);
+
 	if (local) {
 		const runner = resolveRunner(local, cwd, listDir, readFile);
 		if (!runner) return skip(`no ${label} runner for this repo`);

@@ -26,7 +26,6 @@
     "lint": "turbo run sourceQuality.staticAnalysis",
     "prepare": "husky",
     "test": "turbo run verification.unitTests -- --coverage",
-    "test:scripts": "node --test scripts/*.test.mjs",
     "typecheck": "turbo run verification.typeSafety"
   },
   "devDependencies": {

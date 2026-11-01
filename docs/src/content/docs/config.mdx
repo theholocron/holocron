@@ -221,7 +221,7 @@ with `jobs:` on its entry in `astromech.config.ts`:
 A job left out runs. A switched-off job still reports in CI (green, "off in this repo's config"), so a required
 check never goes missing, and `holocron run platform.repoValidation` prints which jobs it skipped.
 
-The `docsEnforcement` job only ever warns. It warns for a new public package with no docs change, and for a `feat`
+The `docsEnforcement` job runs `holocron probe docs presence` and only ever warns. It warns for a new public package with no docs change, and for a `feat`
 that changes a public package's source (`src/**`, or a root `index.ts`) without a docs signal for that package: its
 README, a docs page named after it, or a doc comment in the diff. When no docs change is needed, say why in the pull
 request description or in a commit message:
