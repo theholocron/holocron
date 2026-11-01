@@ -10,6 +10,7 @@ import type { EnvLoader } from "./types.js";
  * if you ever need Vault, AWS SSM, dotenvx, etc.
  */
 export class DotenvLoader implements EnvLoader {
+	/** Loads `.env` through dotenv (on import) and returns `process.env`. */
 	load(): Record<string, string | undefined> {
 		return process.env;
 	}

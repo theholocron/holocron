@@ -2,6 +2,7 @@ import { accessSync, constants, statSync } from "node:fs";
 import { access, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
+/** Options for {@link findExecutable} and {@link findExecutableSync}. */
 export interface FindExecutableOptions {
 	/**
 	 * Directories to search, delimited the way `PATH` is on `platform` (`:` on

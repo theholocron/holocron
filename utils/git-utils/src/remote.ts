@@ -1,7 +1,10 @@
+/** A parsed remote URL. */
 export interface GitRemote {
+	/** The host name, without credentials, port or IPv6 brackets. */
 	host: string;
 	/** Everything before the repo name: `owner`, or `group/subgroup` on hosts with nested groups. */
 	owner: string;
+	/** The repository name, without a trailing `.git`. */
 	repo: string;
 	/** `owner/repo`. */
 	slug: string;
@@ -61,7 +64,9 @@ const defaultExec: GitExec = async (args, { cwd }) => {
 	return (await promisify(execFile)("git", args, { cwd })).stdout;
 };
 
+/** Options for {@link readGitRemote}. */
 export interface ReadGitRemoteOptions {
+	/** Replaces the `git` invocation, mainly for tests. */
 	exec?: GitExec;
 	/** Remote name. Default `"origin"`. */
 	remote?: string;

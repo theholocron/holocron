@@ -15,6 +15,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Neon API key by calling `/users/me` and reports who it belongs to, or why it was rejected. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createNeonClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

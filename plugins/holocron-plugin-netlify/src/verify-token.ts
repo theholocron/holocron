@@ -19,6 +19,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Netlify token by fetching the current user and reports who it belongs to, or why it was rejected. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createNetlifyClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

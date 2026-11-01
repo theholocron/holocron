@@ -8,6 +8,7 @@ export interface VerifyTokenOptions {
 	fetch?: typeof fetch;
 }
 
+/** Checks a Slack bot token with `auth.test` and reports the bot user and workspace, or why it was rejected. */
 export async function verifyToken(token: string, opts: VerifyTokenOptions = {}): Promise<VerifyTokenResult> {
 	const client = createSlackClient({ token, baseUrl: opts.baseUrl, fetch: opts.fetch });
 	try {

@@ -1,3 +1,4 @@
+/** Chooses between `singular` and its plural for `count`; the plural defaults to a regular English form (`es`, `ies` or `s`) when not given. */
 export function toPlural(count: number, singular: string, plural?: string): string {
 	if (count === 1) return singular;
 

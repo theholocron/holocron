@@ -28,24 +28,28 @@ export class ConsoleLogger implements Logger {
 		this.#bindings = options.bindings ?? {};
 	}
 
+	/** Logs at `debug` level through `console.debug`. */
 	debug(obj: Record<string, unknown>, msg?: string): void;
 	debug(msg: string): void;
 	debug(objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		this.#emit("debug", objOrMsg, msg);
 	}
 
+	/** Logs at `info` level through `console.info`. */
 	info(obj: Record<string, unknown>, msg?: string): void;
 	info(msg: string): void;
 	info(objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		this.#emit("info", objOrMsg, msg);
 	}
 
+	/** Logs at `warn` level through `console.warn`. */
 	warn(obj: Record<string, unknown>, msg?: string): void;
 	warn(msg: string): void;
 	warn(objOrMsg: Record<string, unknown> | string, msg?: string): void {
 		this.#emit("warn", objOrMsg, msg);
 	}
 
+	/** Logs at `error` level through `console.error`. */
 	error(obj: Record<string, unknown>, msg?: string): void;
 	error(msg: string): void;
 	error(objOrMsg: Record<string, unknown> | string, msg?: string): void {

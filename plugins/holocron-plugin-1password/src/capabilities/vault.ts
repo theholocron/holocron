@@ -32,8 +32,11 @@ interface OpItem {
 	vault?: { id: string; name: string };
 }
 
+/** `vault` capability for 1Password, implemented by shelling out to the `op` CLI against one vault. */
 export class OpVault implements Vault {
+	/** Capability key; always `"vault"`. */
 	readonly key = "vault" as const;
+	/** Provider name; always `"1password"`. */
 	readonly providerName = "1password";
 
 	private readonly vaultName: string;

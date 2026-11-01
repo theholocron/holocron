@@ -2,7 +2,9 @@ import { PACKAGES_KEY } from "./pnpm-workspace.ts";
 
 /** The `packages:` entries of a `pnpm-workspace.yaml`, split by whether they include or exclude (`!pattern`) packages. */
 export interface WorkspaceGlobs {
+	/** Globs of packages to include. */
 	include: string[];
+	/** Globs of packages to leave out, written with a leading `!` in the file. */
 	exclude: string[];
 }
 

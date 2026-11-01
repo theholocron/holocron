@@ -1,3 +1,19 @@
+## [5.0.0-alpha.278](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.277...v5.0.0-alpha.278) (2026-10-31)
+
+### Features
+
+* **cli:** ✨ add repoValidation.docsCoverage to switch the docs gate ([#1483](https://github.com/theholocron/holocron/issues/1483)) ([038ee35](https://github.com/theholocron/holocron/commit/038ee35d64d7904061545ed50ad539e82442d5de)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **cli:** ✨ upload doc-comment coverage to Codecov with probe --lcov ([#1482](https://github.com/theholocron/holocron/issues/1482)) ([0c99e8f](https://github.com/theholocron/holocron/commit/0c99e8fa606ec62036d72d339d2ac72b4761fe28)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+
+### Documentation
+
+* **array-utils:** 📝 generate the API reference from TSDoc ([#1374](https://github.com/theholocron/holocron/issues/1374)) ([13e2205](https://github.com/theholocron/holocron/commit/13e2205f3e4b2fdaeed21cc4d4fd4ef2462a1d49)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **astromech:** 📝 document the codecov generator's package types ([#1488](https://github.com/theholocron/holocron/issues/1488)) ([549dae8](https://github.com/theholocron/holocron/commit/549dae88c8a63f4b9ac67cc9d067fe11834381e8)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **astromech:** 📝 document the public API with TSDoc ([#1487](https://github.com/theholocron/holocron/issues/1487)) ([5101949](https://github.com/theholocron/holocron/commit/5101949448a675105e1a194a5bb7b2948b366e73)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **cli:** 📝 document the presets and drop the holocron-config requirement ([#1471](https://github.com/theholocron/holocron/issues/1471)) ([260e98b](https://github.com/theholocron/holocron/commit/260e98b1f91475347276e1fdf1d5541eaedbe557)), closes [#1271](https://github.com/theholocron/holocron/issues/1271)
+* **notes:** 📝 spec for API docs as a measured CI gate ([#1472](https://github.com/theholocron/holocron/issues/1472)) ([50859ff](https://github.com/theholocron/holocron/commit/50859ff093a0ab6dd406b00eec6b54cc1bf11b63)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **platform:** 📝 spec for hosting workflows in holocron ([#1479](https://github.com/theholocron/holocron/issues/1479)) ([c121b12](https://github.com/theholocron/holocron/commit/c121b123724cf366f766f74eafc701cd848371c0)), closes [#1215](https://github.com/theholocron/holocron/issues/1215)
+
 ## [5.0.0-alpha.277](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.276...v5.0.0-alpha.277) (2026-10-31)
 
 ### Features

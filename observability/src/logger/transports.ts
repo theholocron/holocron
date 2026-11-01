@@ -5,10 +5,13 @@ import type { LogLevel } from "../core/logger.js";
 /** Axiom credentials. The token comes from env vars or the OS keyring — never
  *  a committed config file; the dataset name may come from config. */
 export interface AxiomTransportConfig {
+	/** The Axiom dataset the lines are sent to. */
 	dataset: string;
+	/** The Axiom API token. */
 	token: string;
 }
 
+/** Inputs for {@link buildTransport}. */
 export interface BuildTransportInput {
 	/** Resolved log level — applied uniformly to every transport. */
 	level: LogLevel;

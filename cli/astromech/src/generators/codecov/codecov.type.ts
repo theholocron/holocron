@@ -11,8 +11,11 @@ export interface CodecovConfigOptions {
 	docsCoverage?: DocsCoverageMode;
 }
 
+/** A workspace package as the `codecov.yml` generator sees it: the flag and component it gets, and where it lives. */
 export interface WorkspacePackage {
+	/** The package's folder name, used as its Codecov flag and component id. */
 	slug: string;
+	/** The package's npm name. */
 	name: string;
 	/** The workspace root the package was discovered under (`packages`, `apps`, `clients`, ...). Defaults to `"packages"`. */
 	dir?: string;

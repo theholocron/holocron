@@ -13,6 +13,7 @@ import { ClerkAuth } from "./capabilities/auth.js";
 import { type ClerkClient, createClerkClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
+/** Options for the Clerk plugin: the token lookup inputs plus test overrides. */
 export interface ClerkPluginOptions extends ResolveTokenInput {
 	/** Override base URL for tests. */
 	baseUrl?: string;
@@ -20,11 +21,15 @@ export interface ClerkPluginOptions extends ResolveTokenInput {
 	fetch?: typeof fetch;
 }
 
+/** Shared state for one Clerk plugin instance: its options and a lazily created client. */
 export interface PluginContext {
+	/** The options the plugin was created with. */
 	options: ClerkPluginOptions;
+	/** Returns the memoized Clerk client; the token is resolved on the first call, not at plugin load. */
 	client: () => ClerkClient;
 }
 
+/** Builds the plugin context from its options. */
 export function createContext(options: ClerkPluginOptions = {}): PluginContext {
 	let client: ClerkClient | undefined;
 	return {
@@ -38,10 +43,12 @@ export function createContext(options: ClerkPluginOptions = {}): PluginContext {
 	};
 }
 
+/** Builds the `auth` capability for the context. */
 export function auth(ctx: PluginContext): Auth {
 	return new ClerkAuth(ctx.client);
 }
 
+/** Creates the Clerk plugin: its `connection` probe and the `auth` capability. */
 export function createPlugin(options: ClerkPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
