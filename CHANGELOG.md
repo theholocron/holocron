@@ -1,3 +1,19 @@
+## [5.0.0-alpha.281](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.280...v5.0.0-alpha.281) (2026-11-01)
+
+### Features
+
+* **astro-config:** ✨ add skipErrorChecking to apiReference ([#1510](https://github.com/theholocron/holocron/issues/1510)) ([9257051](https://github.com/theholocron/holocron/commit/9257051b2092ac7a90254793459dd68293e88aaf)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+
+### Refactoring
+
+* **astromech:** ♻️ one place that says where the hosted workflows live ([#1508](https://github.com/theholocron/holocron/issues/1508)) ([f39a587](https://github.com/theholocron/holocron/commit/f39a587a13a2ab4a6a51abc3dd2586d483413e14))
+
+### Documentation
+
+* 📝 generate the API reference for configs, plugins and the CLI packages ([#1509](https://github.com/theholocron/holocron/issues/1509)) ([e8717af](https://github.com/theholocron/holocron/commit/e8717af264cddc242bac29cb7d44359786b50c4a))
+* **clients:** 📝 generate the API reference for every client package ([#1507](https://github.com/theholocron/holocron/issues/1507)) ([acf6db9](https://github.com/theholocron/holocron/commit/acf6db9394d28e3c7ef55f3221e062aaf1b18441))
+* **utils:** 📝 generate the API reference for every utils package ([#1506](https://github.com/theholocron/holocron/issues/1506)) ([fcc26de](https://github.com/theholocron/holocron/commit/fcc26de73ea8d0b23482ad356cb4e5394131befd))
+
 ## [5.0.0-alpha.280](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.279...v5.0.0-alpha.280) (2026-11-01)
 
 ### Bug Fixes
