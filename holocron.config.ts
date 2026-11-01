@@ -75,9 +75,8 @@ export default defineConfig({
 		"Dependency catalogs / Check",
 		"Generated files / Check",
 	],
-	// Doc-comment coverage of the public API (#1368): the Docs coverage check fails for an export a PR adds or
-	// changes without a comment, and the `documentation` Codecov flag posts its statuses without marking them
-	// informational. `codecov/patch/documentation` is a required check (`extraRequiredChecks` above); the value
+	// Doc-comment coverage of the public API (#1368): the `documentation` Codecov flag fails a PR that adds or
+	// changes an export without a comment, and posts its statuses without marking them informational. `codecov/patch/documentation` is a required check (`extraRequiredChecks` above); the value
 	// itself never touches the ruleset.
 	repoValidation: { docsCoverage: "required" },
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be

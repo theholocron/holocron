@@ -91,8 +91,8 @@ function summarise(ctx: ProbeContext, packages: PackageDocs[]): void {
  * `docs coverage`: how much of each public package's exported API has a doc comment (functions, classes, interfaces,
  * types, constants and their public members), measured with the repo's TypeDoc. `docs lcov` writes the same
  * numbers as `coverage/docs.lcov`, for a coverage service to read. `docs patch` fails for each export a PR adds or
- * changes without a doc comment, which is the check CI runs. `docs coverage` and `docs patch` also write that
- * report wherever `--lcov <path>` says, from the same measurement, so CI gates and uploads with one command.
+ * changes without a doc comment, for a person to run before pushing (in CI the Codecov status gates). `docs coverage`
+ * and `docs patch` also write that report wherever `--lcov <path>` says, from the same measurement.
  *
  * `mode` is the repo's `repoValidation.docsCoverage`, and only `docs patch` follows it: `off` skips it (nothing is
  * measured or written), `warn` reports an undocumented export without failing, `required` fails for it.
