@@ -66,10 +66,19 @@ export default defineConfig({
 	// per-component statuses; they are informational, not required (#1223).
 	// "Dependency catalogs / Check" is the hand-maintained
 	// `.github/workflows/sourceQuality.dependencyCatalogs.yml` (`holocron probe deps check`, #1380).
-	extraRequiredChecks: ["codecov/patch", "codecov/project", "Dependency catalogs / Check", "Generated files / Check"],
+	// "codecov/patch/documentation" is the doc-comment gate (#1368): the `documentation` flag's patch status, which
+	// fails a PR that adds or changes an exported symbol without a comment. Its project status is not required.
+	extraRequiredChecks: [
+		"codecov/patch",
+		"codecov/project",
+		"codecov/patch/documentation",
+		"Dependency catalogs / Check",
+		"Generated files / Check",
+	],
 	// Doc-comment coverage of the public API (#1368): the Docs coverage check fails for an export a PR adds or
 	// changes without a comment, and the `documentation` Codecov flag posts its statuses without marking them
-	// informational. Neither is a required check yet (that is `extraRequiredChecks` above, and a ruleset change).
+	// informational. `codecov/patch/documentation` is a required check (`extraRequiredChecks` above); the value
+	// itself never touches the ruleset.
 	repoValidation: { docsCoverage: "required" },
 	// The decomposed intent vocabulary (epic #672, D3/#675) — what used to be
 	// `docsPreset()`'s bundled `lint` (8 linters) is now 5 separately-gated
