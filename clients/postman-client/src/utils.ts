@@ -5,6 +5,7 @@ import { detectPlanLimit, PostmanPlanLimitError } from "./errors.js";
 
 export type { RestClient };
 
+/** Options for `createPostmanClient`. */
 export interface PostmanClientOptions {
 	/** Postman API key. */
 	token: string;

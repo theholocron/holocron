@@ -1,7 +1,9 @@
 import type { RestClient } from "../utils.js";
 
+/** The kinds of alert channel Checkly supports. */
 export type AlertChannelType = "EMAIL" | "SLACK" | "SLACK_APP" | "WEBHOOK" | "SMS" | "PAGERDUTY" | "OPSGENIE" | "CALL";
 
+/** The HTTP methods a webhook alert channel can use. */
 export type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD";
 
 /**
@@ -11,23 +13,33 @@ export type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD"
 export type WebhookType =
 	"WEBHOOK_DISCORD" | "WEBHOOK_MSTEAMS" | "WEBHOOK_TELEGRAM" | "WEBHOOK_GITHUB" | "WEBHOOK_SPIKE";
 
+/** A header or query parameter on a webhook channel. */
 export interface WebhookKeyValue {
+	/** The header or parameter name. */
 	key: string;
+	/** The header or parameter value. */
 	value: string;
+	/** Whether the value is locked. */
 	locked?: boolean;
 }
 
 /** The `config` of a `WEBHOOK` channel, as Checkly returns it. */
 export interface WebhookConfig {
+	/** The channel's display name. */
 	name: string;
 	/** Where Checkly posts. For Discord this is a webhook URL and is a secret: anyone holding it can post to the channel. */
 	url: string;
+	/** The HTTP method Checkly uses when it posts. */
 	method: WebhookMethod;
 	/** Handlebars body template with Checkly's `{{VARIABLES}}`. */
 	template?: string;
+	/** Extra headers sent with the request. */
 	headers?: WebhookKeyValue[];
+	/** Extra query parameters appended to the URL. */
 	queryParameters?: WebhookKeyValue[];
+	/** The service the webhook is formatted for, when it is not a plain webhook. */
 	webhookType?: WebhookType;
+	/** A secret Checkly sends with the request so the receiver can recognise it. */
 	webhookSecret?: string;
 }
 
@@ -56,6 +68,7 @@ type WebhookChannelBody = { type: "WEBHOOK"; config: WebhookConfig };
 type PassThroughChannelBody = { type: Exclude<AlertChannelType, "WEBHOOK">; config: Record<string, unknown> };
 type AlertChannelBody = WebhookChannelBody | PassThroughChannelBody;
 
+/** What to send to Checkly to create or replace an alert channel: its settings plus its type and `config`. */
 export type AlertChannelInput = AlertChannelSettings & AlertChannelBody;
 
 interface AlertChannelRecord {
@@ -71,6 +84,7 @@ interface AlertChannelRecord {
 	updated_at: string | null;
 }
 
+/** An alert channel as Checkly returns it: the stored record plus its type and `config`. */
 export type AlertChannel = AlertChannelRecord & AlertChannelBody;
 
 /**

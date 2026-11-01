@@ -16,6 +16,7 @@ export type { NetlifyUser } from "./user/user.js";
 export type { NetlifyClientOptions } from "./utils.js";
 export { buildZip } from "./zip.js";
 
+/** Creates a Netlify client with `sites`, `deploys`, `env` and `user` groups sharing one REST client. */
 export function createNetlifyClient(opts: NetlifyClientOptions) {
 	const rest = createNetlifyRestClient(opts);
 	return {
@@ -26,4 +27,5 @@ export function createNetlifyClient(opts: NetlifyClientOptions) {
 	};
 }
 
+/** The client `createNetlifyClient` returns. */
 export type NetlifyClient = ReturnType<typeof createNetlifyClient>;
