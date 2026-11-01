@@ -174,8 +174,8 @@ export interface RepoSecretsSync {
 /** Per-repo switches for the repo-validation checks (spec `tech-api-docs`, #1368). */
 export interface RepoValidationConfig {
 	/**
-	 * How strictly this repo enforces doc-comment coverage of its public API (`holocron probe docs patch`, the
-	 * `Docs coverage` workflow and the `documentation` Codecov flag). `"off"` (the default) does nothing; `"warn"`
+	 * How strictly this repo enforces doc-comment coverage of its public API (`holocron probe docs patch` and
+	 * the `documentation` Codecov flag). `"off"` (the default) does nothing; `"warn"`
 	 * reports without failing and posts informational Codecov statuses; `"required"` fails the check and posts statuses
 	 * that are not informational. It never adds a status to the branch-protection required checks: that stays in
 	 * `extraRequiredChecks`.
