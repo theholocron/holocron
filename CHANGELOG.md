@@ -1,3 +1,17 @@
+## [5.0.0-alpha.282](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.281...v5.0.0-alpha.282) (2026-11-01)
+
+### Refactoring
+
+* **cli:** ♻️ warn on a feat without docs, as holocron probe docs presence ([#1518](https://github.com/theholocron/holocron/issues/1518)) ([97c2420](https://github.com/theholocron/holocron/commit/97c2420487960c0a261720b9eb3fb4bfd2f0baa3)), closes [#1515](https://github.com/theholocron/holocron/issues/1515)
+
+### Documentation
+
+* 📝 trim the config, datapad and docs-theme pages the generated reference duplicates ([#1517](https://github.com/theholocron/holocron/issues/1517)) ([34007c4](https://github.com/theholocron/holocron/commit/34007c414446b400155800dd3c234bd5b280fdc6)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+* **clients:** 📝 trim the client pages the generated reference duplicates ([#1520](https://github.com/theholocron/holocron/issues/1520)) ([5645029](https://github.com/theholocron/holocron/commit/56450296a9ae723f71a2e447e0a987b9b417af48)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+* **notes:** 📝 mark the API docs spec accepted and move it to the wiki ([#1516](https://github.com/theholocron/holocron/issues/1516)) ([00816b8](https://github.com/theholocron/holocron/commit/00816b8e41053876fec09de48c8283c2b477e549)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **plugins:** 📝 trim the plugin pages the generated reference duplicates ([#1519](https://github.com/theholocron/holocron/issues/1519)) ([2ddca97](https://github.com/theholocron/holocron/commit/2ddca97460005e2bce01a2e52ac4cf637f7d7882)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+* **utils:** 📝 trim the utils pages the generated reference duplicates ([#1521](https://github.com/theholocron/holocron/issues/1521)) ([5ff11f9](https://github.com/theholocron/holocron/commit/5ff11f9f5e8af1486d1bd096ef12d8b70af22dc7)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+
 ## [5.0.0-alpha.281](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.280...v5.0.0-alpha.281) (2026-11-01)
 
 ### Features
