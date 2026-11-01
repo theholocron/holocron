@@ -17,23 +17,13 @@ import { getPlugins } from "../../../lib/registry.ts";
 ```ts
 providers: {
   vault: ["infisical", {
-    // Required: Infisical project/workspace id
-    projectId: "abc123",
-    // Required: Environment slug
+    // Required: Infisical workspace (project) id
+    workspace: "abc123",
+    // Required: Environment slug (e.g. "dev", "stg", "prd")
     environment: "prod",
-    // Optional: Secret path (default: "/")
-    path: "/",
   }],
 }
 ```
-
-### Options
-
-| Option        | Required | Description                               |
-| ------------- | -------- | ----------------------------------------- |
-| `projectId`   | Yes      | Infisical workspace/project id            |
-| `environment` | Yes      | Environment slug (e.g. `"prod"`, `"dev"`) |
-| `path`        | No       | Secret folder path (default: `"/"`)       |
 
 ## Authentication
 
