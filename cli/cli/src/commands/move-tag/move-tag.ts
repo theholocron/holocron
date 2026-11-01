@@ -8,7 +8,9 @@ import type { MoveTagReport, RunGit, RunMoveTagInput } from "./move-tag.type.js"
 const STABLE = /^(\d+)\.(\d+)\.(\d+)$/;
 
 /** Spawns `git` without a shell, so a version or group can never be read as anything but an argument. */
-const defaultGit: RunGit = (args, cwd) => execFileSync("git", [...args], { cwd, encoding: "utf8" }).trim();
+const defaultGit: RunGit = (args, cwd) =>
+	// stderr is piped, not shown: git narrates a push, and a failure is in the thrown error's message.
+	execFileSync("git", [...args], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 
 /** Orders stable versions, newest last. */
 function compare(a: string, b: string): number {

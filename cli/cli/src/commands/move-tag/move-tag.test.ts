@@ -1,5 +1,10 @@
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { fakeLogger } from "@theholocron/observability/testing";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runMoveTag } from "./move-tag.js";
 import type { RunGit } from "./move-tag.type.js";
@@ -90,5 +95,66 @@ describe("runMoveTag", () => {
 	it("reports a failed push as a failure", async () => {
 		const { report } = await run(["ci-v1.4.0"], {}, "push");
 		expect(report).toMatchObject({ status: "fail", message: "git push failed" });
+	});
+});
+
+describe("runMoveTag with the real git", () => {
+	const dirs: string[] = [];
+	afterEach(() => {
+		vi.restoreAllMocks();
+		for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+	});
+
+	const git = (cwd: string, ...args: string[]) =>
+		execFileSync(
+			"git",
+			["-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", ...args],
+			{
+				cwd,
+				encoding: "utf8",
+			}
+		).trim();
+
+	/** A clone with one commit tagged ci-v1.2.0, whose `origin` is a bare repo. */
+	function clone(): { work: string; remote: string } {
+		const base = mkdtempSync(join(tmpdir(), "move-tag-"));
+		dirs.push(base);
+		const remote = join(base, "remote.git");
+		const work = join(base, "work");
+		execFileSync("git", ["init", "-q", "--bare", remote]);
+		execFileSync("git", ["init", "-q", work]);
+		git(work, "remote", "add", "origin", remote);
+		writeFileSync(join(work, "a.txt"), "a");
+		git(work, "add", ".");
+		git(work, "commit", "-q", "-m", "one");
+		git(work, "tag", "ci-v1.2.0");
+		return { work, remote };
+	}
+
+	it("tags and pushes with git, printing and logging by default, from the working directory it is given", async () => {
+		const { work, remote } = clone();
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const report = await runMoveTag({ group: "ci", cwd: work });
+		expect(report).toEqual({ status: "ok", tag: "ci-v1", target: "ci-v1.2.0" });
+		expect(git(work, "rev-parse", "ci-v1^{commit}")).toBe(git(work, "rev-parse", "ci-v1.2.0^{commit}"));
+		expect(git(remote, "rev-parse", "ci-v1^{commit}")).toBe(git(work, "rev-parse", "ci-v1.2.0^{commit}"));
+		expect(log.mock.calls.flat().join("\n")).toContain("✓ ci-v1 →");
+	});
+
+	it("uses the process's working directory when it is not given one", async () => {
+		// Run where the tests run: a git checkout with no tags for this group, so it fails before touching anything.
+		vi.spyOn(console, "log").mockImplementation(() => {});
+		const report = await runMoveTag({ group: "no-such-group", dryRun: true });
+		expect(report).toMatchObject({
+			status: "fail",
+			message: "no stable no-such-group-v<version> tag to move no-such-group-v<major> to",
+		});
+	});
+
+	it("fails when the real git cannot find the tag", async () => {
+		const { work } = clone();
+		vi.spyOn(console, "log").mockImplementation(() => {});
+		const report = await runMoveTag({ group: "ci", cwd: work, version: "1.9.0" });
+		expect(report).toMatchObject({ status: "fail", message: expect.stringContaining("no tag ci-v1.9.0") });
 	});
 });
