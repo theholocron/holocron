@@ -1,3 +1,14 @@
+## [8.9.0-alpha.5](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.4...configs-v8.9.0-alpha.5) (2026-11-01)
+
+### Features
+
+* **astro-config:** ✨ add skipErrorChecking to apiReference ([#1510](https://github.com/theholocron/holocron/issues/1510)) ([9257051](https://github.com/theholocron/holocron/commit/9257051b2092ac7a90254793459dd68293e88aaf)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+
+### Documentation
+
+* **array-utils:** 📝 generate the API reference from TSDoc ([#1374](https://github.com/theholocron/holocron/issues/1374)) ([13e2205](https://github.com/theholocron/holocron/commit/13e2205f3e4b2fdaeed21cc4d4fd4ef2462a1d49)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **configs:** 📝 document the shareable config packages with TSDoc ([#1492](https://github.com/theholocron/holocron/issues/1492)) ([1b95008](https://github.com/theholocron/holocron/commit/1b950081f05d5c92ed7811060229629f446ba450))
+
 ## [8.9.0-alpha.4](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.3...configs-v8.9.0-alpha.4) (2026-10-31)
 
 ### Bug Fixes

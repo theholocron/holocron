@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/stylelint-config",
-  "version": "8.9.0-alpha.4",
+  "version": "8.9.0-alpha.5",
   "description": "A StyleLint configuration for writing well-formed CSS within the Galaxy.",
   "keywords": [
     "stylelint",
