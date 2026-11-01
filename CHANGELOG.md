@@ -1,3 +1,14 @@
+## [5.0.0-alpha.280](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.279...v5.0.0-alpha.280) (2026-11-01)
+
+### Bug Fixes
+
+* **cli:** 🐛 leave symbols from another package's dist out of docs coverage ([#1505](https://github.com/theholocron/holocron/issues/1505)) ([b53a661](https://github.com/theholocron/holocron/commit/b53a661a07dcf178ccb0b5f2edf80d22a5d60c65))
+
+### Documentation
+
+* **astromech:** 📝 say what a TaskDef holds in its doc comment ([#1504](https://github.com/theholocron/holocron/issues/1504)) ([dc7a679](https://github.com/theholocron/holocron/commit/dc7a679ecdbba1256448869f1afb5a9cd8ee27b4))
+* **cli:** 📝 document the config, probe and datapad API with TSDoc ([#1500](https://github.com/theholocron/holocron/issues/1500)) ([28bc6f2](https://github.com/theholocron/holocron/commit/28bc6f23a5de5b02e13dafb615eee1b44f1273d6))
+
 ## [5.0.0-alpha.279](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.278...v5.0.0-alpha.279) (2026-11-01)
 
 ### Features
