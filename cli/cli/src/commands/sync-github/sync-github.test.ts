@@ -168,6 +168,14 @@ describe("runSyncGithub: the files that moved to holocron", () => {
 		expect(report.status).toBe("ok");
 	});
 
+	it("does not read or stamp anything in a repo other than the primary one", async () => {
+		const { fn, calls } = makeFetch({ [workflow]: "oldsha" }, undefined, undefined, { [workflow]: live });
+		const report = await run(fn, { repo: "acme/other" });
+		expect(report.status).toBe("ok");
+		expect(calls.some((c) => c.method === "GET" && c.url.includes("/contents/"))).toBe(false);
+		expect(calls.some((c) => c.method === "POST" && c.url.includes("/git/blobs"))).toBe(false);
+	});
+
 	it("does nothing for a frozen file that is not in the repo", async () => {
 		const { fn, calls } = makeFetch();
 		await run(fn);

@@ -67,6 +67,12 @@ describe("frozen copies in theholocron/.github", () => {
 		expect(stamped.endsWith("\n\nname: Setup\n")).toBe(true);
 	});
 
+	it("name a path that is neither a workflow nor an action as it is, rather than guess", () => {
+		expect(stampDeprecated("name: x\n", "somewhere/else.yml")).toContain(
+			"use theholocron/holocron/.github/workflows/somewhere/else.yml@ci-v1."
+		);
+	});
+
 	it("are stamped once: a stamped file is returned as it is", () => {
 		const once = stampDeprecated("# h\n\nname: x\n", ".github/workflows/stale.yml");
 		expect(isDeprecated(once)).toBe(true);
