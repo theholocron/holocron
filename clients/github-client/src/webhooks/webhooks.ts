@@ -106,6 +106,19 @@ export interface GitHubPushWebhookPayload {
 export interface GitHubPullRequestWebhookPayload {
 	/** What happened to the pull request, e.g. `opened` or `closed`. */
 	action: string;
+	/** For an `edited` action, the fields that changed (each holds the previous value); absent for other actions. */
+	changes?: {
+		/** Present when the title was edited. */
+		title?: {
+			/** The title before the edit. */
+			from: string;
+		};
+		/** Present when the description was edited. */
+		body?: {
+			/** The description before the edit; `null` when it was empty. */
+			from: string | null;
+		};
+	};
 	/** The installation the delivery is about, when sent. */
 	installation?: {
 		/** The installation id. */

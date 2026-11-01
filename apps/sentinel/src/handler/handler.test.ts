@@ -1065,7 +1065,24 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 			type: "pull_request.opened" as const,
 			repo: "acme/demo",
 			installationId: 42,
-			raw: { repository: { default_branch: "main" }, pull_request: { number: 9, head: { sha: "pr-head-sha" } } },
+			raw: {
+				repository: { default_branch: "main" },
+				pull_request: {
+					number: 9,
+					title: "feat: add a thing",
+					body: "[skip docs] why",
+					head: { sha: "pr-head-sha" },
+				},
+			},
+		};
+	}
+
+	function editedEvent(body: string | null = "edited") {
+		const event = prEvent();
+		return {
+			...event,
+			type: "pull_request.edited" as const,
+			raw: { ...event.raw, pull_request: { ...event.raw.pull_request, body } },
 		};
 	}
 
@@ -1077,6 +1094,10 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 	const DOCS_RESULT = {
 		newPackages: [{ name: "widget", entry: "packages/widget/src/index.ts" }],
 		hasDocsChange: true,
+		isFeat: true,
+		featWarnings: [{ dir: "utils/array-utils", path: "utils/array-utils/src/a.ts" }],
+		skipped: [],
+		missingReason: false,
 		valid: true,
 	};
 
@@ -1104,7 +1125,11 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 
 		const lintInput = { client: FAKE_CLIENT, repo: "acme/demo", pullNumber: 9, ref: "pr-head-sha" };
 		expect(validateAdrs).toHaveBeenCalledWith(lintInput);
-		expect(validateDocsPresence).toHaveBeenCalledWith(lintInput);
+		expect(validateDocsPresence).toHaveBeenCalledWith({
+			...lintInput,
+			prTitle: "feat: add a thing",
+			prBody: "[skip docs] why",
+		});
 		expect(postAdrsCheck).toHaveBeenCalledWith({
 			client: FAKE_CLIENT,
 			repo: "acme/demo",
@@ -1155,6 +1180,75 @@ describe("handler — repo validation pipeline (holocron#913, #925)", () => {
 		await handleWebhookRequest(req(), ENV);
 
 		expect(validateAdrs).not.toHaveBeenCalled();
+		expect(validateDocsPresence).not.toHaveBeenCalled();
+	});
+
+	it("passes empty strings when the payload carries no title or description", async () => {
+		withTasks(["platform.repoValidation"]);
+		const event = prEvent();
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: {
+				...event,
+				raw: { ...event.raw, pull_request: { number: 9, body: null, head: { sha: "pr-head-sha" } } },
+			},
+		});
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(validateDocsPresence).toHaveBeenCalledWith(expect.objectContaining({ prTitle: "", prBody: "" }));
+	});
+
+	it("re-runs only docs presence when the title or description is edited", async () => {
+		withTasks(["platform.repoValidation"]);
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: editedEvent() });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(validateDocsPresence).toHaveBeenCalledWith(
+			expect.objectContaining({ pullNumber: 9, prTitle: "feat: add a thing", prBody: "edited" })
+		);
+		expect(postDocsPresenceCheck).toHaveBeenCalled();
+		expect(validateAdrs).not.toHaveBeenCalled();
+		expect(postCheckRun).not.toHaveBeenCalled();
+		expect(await res.json()).toEqual({
+			handled: true,
+			type: "pull_request.edited",
+			docsPresenceCheckRun: { checkRunId: 51, conclusion: "success", htmlUrl: "https://x/51" },
+		});
+	});
+
+	it("does nothing on an edit when the config doesn't declare platform.repoValidation or isn't valid", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: editedEvent() });
+
+		withTasks(["lint"]);
+		await handleWebhookRequest(req(), ENV);
+		vi.mocked(validateConfig).mockResolvedValue({ status: "missing" } as never);
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(validateDocsPresence).not.toHaveBeenCalled();
+		expect(((await res.json()) as { docsPresenceCheckRun?: unknown }).docsPresenceCheckRun).toBeUndefined();
+	});
+
+	it("does nothing on an edit when the valid config declares no tasks at all", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: editedEvent() });
+		vi.mocked(validateConfig).mockResolvedValue({ status: "valid", filepath: "x", config: {} as never });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(validateDocsPresence).not.toHaveBeenCalled();
+	});
+
+	it("does nothing on an edit of a payload without a PR number", async () => {
+		withTasks(["platform.repoValidation"]);
+		const event = editedEvent();
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: { ...event, raw: { repository: { default_branch: "main" }, pull_request: { head: { sha: "s" } } } },
+		});
+
+		await handleWebhookRequest(req(), ENV);
+
 		expect(validateDocsPresence).not.toHaveBeenCalled();
 	});
 

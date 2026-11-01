@@ -3,7 +3,8 @@ export type SentinelEventType =
 	| "installation.deleted"
 	| "push.default-branch"
 	| "pull_request.opened"
-	| "pull_request.synchronize";
+	| "pull_request.synchronize"
+	| "pull_request.edited";
 
 export interface SentinelEvent {
 	type: SentinelEventType;
