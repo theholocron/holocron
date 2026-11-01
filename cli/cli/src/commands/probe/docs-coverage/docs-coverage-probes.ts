@@ -7,6 +7,8 @@ import { dirname, join, resolve } from "node:path";
 import type { DocsCoverageMode } from "@theholocron/astromech";
 
 import type { PluginProbes, ProbeContext } from "../../../plugin/index.js";
+import type { DocsPresenceIo } from "../docs-presence/index.js";
+import { docsPresenceProbe, realDocsPresenceIo } from "../docs-presence/index.js";
 import { addedLines } from "./added-lines.js";
 import type { MeasureDocsCoverageInput, PackageDocs } from "./docs-coverage.type.js";
 import { measureDocsCoverage } from "./measure-docs-coverage.js";
@@ -94,6 +96,9 @@ function summarise(ctx: ProbeContext, packages: PackageDocs[]): void {
  * changes without a doc comment, for a person to run before pushing (in CI the Codecov status gates). `docs coverage`
  * and `docs patch` also write that report wherever `--lcov <path>` says, from the same measurement.
  *
+ * `docs presence` is a different kind of check (does a feature come with docs?), kept in this group with the others: see
+ * `docsPresenceProbe`. `presenceIo` is what it reads from git and the filesystem.
+ *
  * `mode` is the repo's `repoValidation.docsCoverage`, and only `docs patch` follows it: `off` skips it (nothing is
  * measured or written), `warn` reports an undocumented export without failing, `required` fails for it.
  */
@@ -101,7 +106,8 @@ export function docsCoverageProbes(
 	repoRoot: string,
 	typedoc: MeasureDocsCoverageInput["typedoc"] = runTypedoc(repoRoot),
 	diff: () => string = realDiff(repoRoot),
-	mode: DocsCoverageMode = "required"
+	mode: DocsCoverageMode = "required",
+	presenceIo: DocsPresenceIo = realDocsPresenceIo(repoRoot)
 ): PluginProbes {
 	const measure = (): PackageDocs[] => measureDocsCoverage({ repoRoot, typedoc });
 	return {
@@ -156,6 +162,7 @@ export function docsCoverageProbes(
 				}
 			},
 		},
+		presence: docsPresenceProbe(presenceIo),
 		lcov: {
 			summary: "Write coverage/docs.lcov: the doc-comment coverage as an lcov report.",
 			writes: true,
