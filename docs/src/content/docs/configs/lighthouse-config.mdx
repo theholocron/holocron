@@ -29,15 +29,6 @@ module.exports = defineConfig({
 });
 ```
 
-## Exports
-
-| Export                    | Description                                                             |
-| ------------------------- | ----------------------------------------------------------------------- |
-| `defineConfig`            | Factory that produces a typed `lighthouserc` config object              |
-| `defaultAssertions`       | Pre-set assertion thresholds covering core Web Vitals and common audits |
-| `LighthouseAssertion`     | Type for the `assertions` map                                           |
-| `LighthouseConfigOptions` | Options type for `defineConfig`                                         |
-
 ## Default assertions
 
 The bundled `defaultAssertions` warn on the following audits falling below `0.9` (or exceeding `0` bytes where applicable):

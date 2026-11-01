@@ -37,12 +37,6 @@ import labelerBody from "./labeler.yml";
 | `.json`                | Even inside `dirs`                 | Not transformed: bundlers import JSON natively |
 | `.ts`, `.tsx`          | Even inside `dirs`                 | Not transformed: source files, not templates   |
 
-## Options
-
-| Option | Type       | Default | Description                                                                                    |
-| ------ | ---------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `dirs` | `string[]` | `[]`    | Path substrings; a matching file that is not `.json`, `.ts` or `.tsx` is turned into a string. |
-
 ## TypeScript
 
 Add `@theholocron/rollup-plugin-transform-template/client` to `types` in your `tsconfig.json` so `*.yml` and `*.md` imports are typed as strings.
