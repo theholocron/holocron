@@ -46,7 +46,10 @@ export interface JobDef {
 	alias?: string;
 }
 
-/** One registry task: how `holocron run <task>` resolves, runs and reports it. */
+/**
+ * One registry task: its built-in runner (`local`), the sub-jobs it splits into, its org-default flags and its
+ * Turborepo fan-out. `holocron run <task>` and `holocron run ci` start from this definition.
+ */
 export interface TaskDef {
 	/**
 	 * Sub-job slugs that no longer exist but that a reusable workflow synced earlier may still pass:
