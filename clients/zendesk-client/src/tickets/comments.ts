@@ -4,6 +4,7 @@ import type { ICommentResponse } from "./comments.types.js";
 
 const PATH = "/api/v2/tickets";
 
+/** Builds the ticket comments resource of the Zendesk API (`/api/v2/tickets/{id}/comments`) on top of a REST client. */
 export function comments(rest: RestClient) {
 	return {
 		list: (ticketId: number): Promise<ICommentResponse> =>

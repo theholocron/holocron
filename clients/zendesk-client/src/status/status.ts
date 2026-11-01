@@ -4,6 +4,7 @@ import type { ICustomStatus, ICustomStatusesResponse, ICustomStatusResponse } fr
 
 const PATH = "/api/v2/custom_statuses";
 
+/** Builds the custom ticket statuses resource of the Zendesk API (`/api/v2/custom_statuses`) on top of a REST client. */
 export function status(rest: RestClient) {
 	return {
 		list: (): Promise<ICustomStatusesResponse> => rest.request<ICustomStatusesResponse>(PATH),

@@ -1,6 +1,7 @@
 import { mockUser } from "../user/user.mocks.js";
 import type { IActivity, IActivityResponse } from "./activities.types.js";
 
+/** Fixture for a single ticket activity, for use in tests. */
 export const mockActivity: IActivity = {
 	actor: mockUser,
 	actor_id: 158488612,
@@ -26,6 +27,7 @@ export const mockActivity: IActivity = {
 	verb: "tickets.assignment",
 };
 
+/** Fixture for a Zendesk activities list response containing `mockActivity`. */
 export const mockActivityResponse: IActivityResponse = {
 	activities: [mockActivity],
 	actors: [mockUser],

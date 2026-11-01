@@ -1,5 +1,6 @@
 import type { IAttachment, IImage } from "./attachments.types.js";
 
+/** Fixture for an image record, for use in tests. */
 export const mockImage: IImage = {
 	content_type: "image/gif",
 	content_url: "https://example.zendesk.com/system/photos/8730791/1f84950b8d7949b3.gif",
@@ -14,6 +15,7 @@ export const mockImage: IImage = {
 	width: 80,
 };
 
+/** Fixture for an attachment thumbnail image, for use in tests. */
 export const mockThumbnail: IImage = {
 	content_type: "image/gif",
 	content_url: "https://example.zendesk.com/system/photos/8730801/1f84950b8d7949b3_thumb.gif",
@@ -28,6 +30,7 @@ export const mockThumbnail: IImage = {
 	width: 32,
 };
 
+/** Fixture for an attachment that carries a thumbnail, for use in tests. */
 export const mockAttachment: IAttachment = {
 	...mockImage,
 	thumbnails: [mockThumbnail],

@@ -1,6 +1,7 @@
 import { mockCustomFields } from "./fields.mocks.js";
 import type { IMetadata, ITicket, IVia, TTicketResponse, TTicketsResponse } from "./tickets.types.js";
 
+/** Fixture for a ticket's `via` object, for use in tests. */
 export const mockVia: IVia = {
 	channel: "web",
 	source: {
@@ -10,6 +11,7 @@ export const mockVia: IVia = {
 	},
 };
 
+/** Fixture for a ticket's metadata, for use in tests. */
 export const mockMetadata: IMetadata = {
 	system: {
 		client: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
@@ -21,6 +23,7 @@ export const mockMetadata: IMetadata = {
 	via: mockVia,
 };
 
+/** Fixture for a ticket, for use in tests. */
 export const mockTicket: ITicket = {
 	assignee_id: 235323,
 	collaborator_ids: [35334, 234],
@@ -57,11 +60,13 @@ export const mockTicket: ITicket = {
 	via: mockVia,
 };
 
+/** Fixture for a list-of-tickets response, for use in tests. */
 export const mockTicketsResponse: TTicketsResponse = {
 	count: 1,
 	tickets: [mockTicket],
 };
 
+/** Fixture for a single ticket response, for use in tests. */
 export const mockTicketResponse: TTicketResponse = {
 	count: 1,
 	ticket: mockTicket,
