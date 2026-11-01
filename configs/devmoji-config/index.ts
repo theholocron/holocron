@@ -1,12 +1,20 @@
+/** One devmoji mapping from a commit type or scope to the emoji it gets. */
 export interface DevmojiEntry {
+	/** The commit type or scope the entry applies to (for example `feat`). */
 	code: string;
+	/** The name of the emoji devmoji uses for the code (for example `boom`). */
 	emoji?: string;
+	/** The name of the gitmoji devmoji uses for the code (for example `wrench`). */
 	gitmoji?: string;
+	/** A short note on when to use the code. */
 	description?: string;
 }
 
+/** The shape of a devmoji configuration file. */
 export interface DevmojiConfig {
+	/** Extra commit types devmoji recognises, added to the defaults. */
 	types?: string[];
+	/** Mappings from a commit code to an emoji, added to or overriding the defaults. */
 	devmoji?: DevmojiEntry[];
 }
 
