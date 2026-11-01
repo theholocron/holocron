@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
+	frozenReusablePaths,
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
 	reusableTemplates,
@@ -21,11 +22,14 @@ import { gitBlobSha as _gitBlobSha, runSyncGithub } from "./sync-github.js";
 // .properties.json per keyed template. Secondary repos get nothing —
 // their thin callers are managed by `holocron repo sync --steps workflows`.
 const PROPS_COUNT = Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
+// The reusables and actions that moved to holocron are frozen copies, no longer pushed.
+const FROZEN = frozenReusablePaths();
 const PRIMARY_FILE_COUNT =
 	Object.keys(REUSABLE_ACTIONS).length +
 	Object.keys(REUSABLE_WORKFLOWS).length +
 	Object.keys(WORKFLOW_TEMPLATES).length +
-	PROPS_COUNT;
+	PROPS_COUNT -
+	FROZEN.length;
 
 type FetchCall = { method: string; url: string; body?: Record<string, unknown> };
 
@@ -34,7 +38,13 @@ type FetchCall = { method: string; url: string; body?: Record<string, unknown> }
  * Files not in the map are treated as new (not in the tree).
  * configJson is the parsed content of holocron.config.json to serve from the repo.
  */
-function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unknown, configTs?: string) {
+function makeFetch(
+	existingBlobs: Record<string, string> = {},
+	configJson?: unknown,
+	configTs?: string,
+	/** The text of files the contents API serves, by path; a path not here is a 404. */
+	contents: Record<string, string> = {}
+) {
 	const calls: FetchCall[] = [];
 	const fn = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
 		const urlStr = url.toString();
@@ -65,6 +75,12 @@ function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unkn
 			if (!configTs) return new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
 			const content = Buffer.from(configTs).toString("base64");
 			return new Response(JSON.stringify({ content }), { status: 200 });
+		}
+		// A file's current text, for the frozen copies
+		const contentsPath = /\/contents\/([^?]+)/.exec(urlStr)?.[1];
+		if (method === "GET" && contentsPath && contentsPath in contents) {
+			const content = Buffer.from(contents[contentsPath]!).toString("base64");
+			return new Response(JSON.stringify({ content, encoding: "base64" }), { status: 200 });
 		}
 		// Tree (recursive)
 		if (method === "GET" && urlStr.includes("/git/trees/")) {
@@ -100,6 +116,90 @@ function makeFetch(existingBlobs: Record<string, string> = {}, configJson?: unkn
 	};
 	return { fn: fn as typeof globalThis.fetch, calls };
 }
+
+describe("runSyncGithub: the files that moved to holocron", () => {
+	const workflow = ".github/workflows/verification.unitTests.yml";
+	const action = ".github/actions/setup/action.yml";
+	const live = "# AUTO-GENERATED — do not edit in theholocron/.github directly.\n# Source:  x\n\nname: Test\n";
+	const blobsOf = (calls: FetchCall[]) => calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
+	const run = (fetch: typeof globalThis.fetch, extra: Partial<Parameters<typeof runSyncGithub>[0]> = {}) =>
+		runSyncGithub({ token: "t", branch: "chore/sync", print: () => {}, fetch, logger: fakeLogger(), ...extra });
+
+	it("freezes the moved reusables and actions: they are not in what is pushed", () => {
+		expect(FROZEN.length).toBeGreaterThan(30);
+		expect(FROZEN).toContain(workflow);
+		expect(FROZEN).toContain(action);
+		// still pushed: the ones that run where they live, and the starters
+		expect(FROZEN).not.toContain(".github/workflows/sync-dispatch.yml");
+		expect(FROZEN).not.toContain(".github/workflows/tag.yml");
+		expect(FROZEN.some((path) => path.startsWith("workflow-templates/"))).toBe(false);
+	});
+
+	it("stamps a frozen copy that is still there with the deprecation notice, once, keeping the rest", async () => {
+		const { fn, calls } = makeFetch({ [workflow]: "oldsha" }, undefined, undefined, { [workflow]: live });
+		const report = await run(fn);
+		expect(report.status).toBe("ok");
+		const stamped = blobsOf(calls).map((c) => c.body!["content"] as string);
+		const notice = stamped.find((text) => text.includes("# DEPRECATED — frozen copy."));
+		expect(notice).toBeDefined();
+		expect(notice).toContain("use theholocron/holocron/.github/workflows/verification.unitTests.yml@ci-v1");
+		expect(notice!.startsWith(live.split("\n\n")[0]!)).toBe(true);
+		expect(notice!.endsWith("name: Test\n")).toBe(true);
+	});
+
+	it("points a frozen action at the action's folder in holocron", async () => {
+		const { fn, calls } = makeFetch({ [action]: "oldsha" }, undefined, undefined, { [action]: live });
+		await run(fn);
+		const notice = blobsOf(calls).find((c) => String(c.body!["content"]).includes("DEPRECATED"));
+		expect(String(notice!.body!["content"])).toContain("use theholocron/holocron/ci/actions/setup@ci-v1");
+	});
+
+	it("leaves a copy that is already stamped exactly as it is", async () => {
+		const stamped = `${live.split("\n\n")[0]}\n\n# DEPRECATED — frozen copy.\n# ...\n\nname: Test\n`;
+		const { fn, calls } = makeFetch({ [workflow]: "oldsha" }, undefined, undefined, { [workflow]: stamped });
+		const lines: string[] = [];
+		const report = await run(fn, { print: (line) => lines.push(line) });
+		expect(
+			blobsOf(calls)
+				.map((c) => c.body!["content"] as string)
+				.some((t) => t.includes("DEPRECATED"))
+		).toBe(false);
+		expect(lines.join("\n")).toContain("1 frozen copies already marked deprecated");
+		expect(report.status).toBe("ok");
+	});
+
+	it("does not read or stamp anything in a repo other than the primary one", async () => {
+		const { fn, calls } = makeFetch({ [workflow]: "oldsha" }, undefined, undefined, { [workflow]: live });
+		const report = await run(fn, { repo: "acme/other" });
+		expect(report.status).toBe("ok");
+		expect(calls.some((c) => c.method === "GET" && c.url.includes("/contents/"))).toBe(false);
+		expect(calls.some((c) => c.method === "POST" && c.url.includes("/git/blobs"))).toBe(false);
+	});
+
+	it("does nothing for a frozen file that is not in the repo", async () => {
+		const { fn, calls } = makeFetch();
+		await run(fn);
+		expect(calls.some((c) => c.method === "GET" && c.url.includes(`/contents/${workflow}`))).toBe(false);
+		expect(blobsOf(calls).some((c) => String(c.body!["content"]).includes("DEPRECATED"))).toBe(false);
+	});
+
+	it("announces the stamp on a dry run and pushes nothing", async () => {
+		const { fn, calls } = makeFetch({ [workflow]: "oldsha" }, undefined, undefined, { [workflow]: live });
+		const lines: string[] = [];
+		const report = await run(fn, { dryRun: true, print: (line) => lines.push(line) });
+		expect(report.status).toBe("dry-run");
+		expect(lines.join("\n")).toContain(`deprecated  ${workflow}`);
+		expect(calls.some((c) => c.method === "POST")).toBe(false);
+	});
+
+	it("fails, without pushing, when a frozen copy cannot be read", async () => {
+		const { fn, calls } = makeFetch({ [workflow]: "oldsha" });
+		const report = await run(fn);
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain(`failed to read ${workflow}`);
+		expect(calls.some((c) => c.method === "POST")).toBe(false);
+	});
+});
 
 describe("runSyncGithub", () => {
 	it(`pushes all ${PRIMARY_FILE_COUNT} files in a single commit to the primary .github repo`, async () => {
@@ -188,10 +288,10 @@ describe("runSyncGithub", () => {
 	it("skips a file whose existing blob SHA matches and omits it from the commit tree", async () => {
 		// The header carries no timestamp, so a template's content is deterministic
 		// run-to-run — seed the tree with the real git blob SHA of one file.
-		const releaseContent = reusableTemplates().get(".github/workflows/delivery.publish.yml")!;
+		const releaseContent = reusableTemplates().get(".github/workflows/tag.yml")!;
 		const releaseSha = _gitBlobSha(releaseContent);
 
-		const { fn, calls } = makeFetch({ ".github/workflows/delivery.publish.yml": releaseSha });
+		const { fn, calls } = makeFetch({ ".github/workflows/tag.yml": releaseSha });
 		const report = await runSyncGithub({
 			token: "ghp_test",
 			branch: "chore/sync",
@@ -204,12 +304,12 @@ describe("runSyncGithub", () => {
 		expect(report.created).toBe(PRIMARY_FILE_COUNT - 1);
 		const blobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
 		expect(blobs).toHaveLength(PRIMARY_FILE_COUNT - 1);
-		expect(blobs.some((c) => (c.body?.content as string)?.includes("Semantic release"))).toBe(false);
+		expect(blobs.some((c) => (c.body?.content as string)?.includes("name: Tag"))).toBe(false);
 	});
 
 	it("reports a file whose blob SHA differs as updated", async () => {
 		const { fn, calls } = makeFetch({
-			".github/workflows/delivery.publish.yml": "0000000000000000000000000000000000000000",
+			".github/workflows/tag.yml": "0000000000000000000000000000000000000000",
 		});
 		const report = await runSyncGithub({
 			token: "ghp_test",
@@ -290,12 +390,12 @@ describe("runSyncGithub", () => {
 			(c) =>
 				typeof c.body?.content === "string" &&
 				(c.body.content as string).includes("AUTO-GENERATED") &&
-				(c.body.content as string).includes("Semantic release")
+				(c.body.content as string).includes("name: Tag")
 		);
 		expect(releaseBlob).toBeDefined();
 	});
 
-	it("includes sigstore in the release workflow blob content", async () => {
+	it("does not push the release workflow any more, because it moved to holocron", async () => {
 		const { fn, calls } = makeFetch();
 		await runSyncGithub({
 			token: "ghp_test",
@@ -304,12 +404,7 @@ describe("runSyncGithub", () => {
 			fetch: fn,
 		});
 		const allBlobs = calls.filter((c) => c.method === "POST" && c.url.includes("/git/blobs"));
-		const releaseBlob = allBlobs.find(
-			(c) =>
-				typeof c.body?.content === "string" &&
-				(c.body.content as string).includes("npm install -g npm@11 sigstore")
-		);
-		expect(releaseBlob).toBeDefined();
+		expect(allBlobs.some((c) => String(c.body?.content).includes("npm install -g npm@11 sigstore"))).toBe(false);
 	});
 
 	it("fails when the ref fetch returns an error", async () => {
@@ -474,7 +569,7 @@ describe("runSyncGithub", () => {
 			const report = await runSyncGithub({ token: "unused", outputDir: tmpOut, print: () => {} });
 			expect(report.status).toBe("ok");
 			expect(report.created).toBe(PRIMARY_FILE_COUNT);
-			expect(existsSync(join(tmpOut, ".github/workflows/delivery.publish.yml"))).toBe(true);
+			expect(existsSync(join(tmpOut, ".github/workflows/tag.yml"))).toBe(true);
 		} finally {
 			await rm(tmpOut, { recursive: true });
 		}
@@ -507,10 +602,10 @@ describe("runSyncGithub", () => {
 		try {
 			// Generate files to disk with frozen time to get deterministic content.
 			await runSyncGithub({ token: "unused", outputDir: tmpOut, print: () => {} });
-			const content = readFileSync(join(tmpOut, ".github/workflows/delivery.publish.yml"), "utf8");
+			const content = readFileSync(join(tmpOut, ".github/workflows/tag.yml"), "utf8");
 			const sha = _gitBlobSha(content);
 
-			const { fn } = makeFetch({ ".github/workflows/delivery.publish.yml": sha });
+			const { fn } = makeFetch({ ".github/workflows/tag.yml": sha });
 			const report = await runSyncGithub({
 				token: "t",
 				branch: "chore/sync",

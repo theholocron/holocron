@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { reusableTemplates } from "@theholocron/astromech";
+import { frozenReusablePaths, isDeprecated, reusableTemplates, stampDeprecated } from "@theholocron/astromech";
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { errorMessage } from "@theholocron/misc-utils";
@@ -23,7 +23,10 @@ const DEFAULT_REPO = "theholocron/.github";
  */
 function buildBatch(repo: string): FileBatch {
 	if (repo !== DEFAULT_REPO) return [];
-	return [...reusableTemplates()].map(([path, content]) => ({ path, content }));
+	// The reusables and actions that moved to holocron are frozen copies now: they are no longer pushed, only
+	// stamped once as deprecated (see `frozenReusablePaths`).
+	const frozen = new Set(frozenReusablePaths());
+	return [...reusableTemplates()].filter(([path]) => !frozen.has(path)).map(([path, content]) => ({ path, content }));
 }
 
 /** Git blob SHA: sha1("blob {len}\0{content}") — used to detect unchanged files. */
@@ -122,11 +125,41 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	// Secondary-repo thin callers are managed by `holocron repo sync --steps workflows`.
 	const batch = buildBatch(repo);
 
+	// ── 4. Frozen copies ─────────────────────────────────────────────────────
+	// A file that moved to holocron is never pushed again. One that is still here, and does not yet say it is
+	// deprecated, is read and stamped once; after that it is left exactly as it is.
+	const stamps: FileBatch = [];
+	let frozen = 0;
+	if (repo === DEFAULT_REPO) {
+		for (const path of frozenReusablePaths()) {
+			if (!existingBlobs.has(path)) continue;
+			let current: string;
+			try {
+				const file = await client.git.getContents(repo, path, baseBranch);
+				current = Buffer.from(file.content, "base64").toString("utf8");
+			} catch (err) {
+				const msg = `failed to read ${path}: ${errorMessage(err)}`;
+				print(`  ✗ ${msg}`);
+				return done({ status: "fail", created: 0, updated: 0, unchanged: 0, message: msg });
+			}
+			if (isDeprecated(current)) frozen++;
+			else stamps.push({ path, content: stampDeprecated(current, path) });
+		}
+	}
+
 	// ── 5. Detect changes ────────────────────────────────────────────────────
 	let created = 0;
 	let updated = 0;
 	let unchanged = 0;
 	const changedFiles: Array<{ path: string; content: string }> = [];
+
+	for (const file of stamps) {
+		print(`  ${dryRun ? "~" : "✓"} deprecated  ${file.path}`);
+		logger.debug({ file: file.path, change: "deprecated" }, "sync-github: file");
+		updated++;
+		if (!dryRun) changedFiles.push(file);
+	}
+	if (frozen > 0) print(`  · ${frozen} frozen copies already marked deprecated, left as they are`);
 
 	for (const file of batch) {
 		const localSha = gitBlobSha(file.content);

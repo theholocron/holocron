@@ -14,7 +14,7 @@
 
 import { ACTIONS, WORKFLOWS } from "@theholocron/ci";
 
-import { rehomeAll } from "../ci-ref/index.js";
+import { CI_TARGET, rehomeAll } from "../ci-ref/index.js";
 import { WORKFLOW_TEMPLATES, workflowTriggers } from "../github-action-thin-callers/index.js";
 
 /** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
@@ -93,4 +93,51 @@ export function reusableTemplates(): Map<string, string> {
 	}
 
 	return out;
+}
+
+/**
+ * The files in `theholocron/.github` that moved to holocron and are frozen: every reusable workflow
+ * {@link hostedReusableWorkflows} hosts, and every composite action. `holocron sync github` stops pushing them and
+ * stamps each once with {@link stampDeprecated}; repos still calling them keep working, and the copies never change
+ * again. (A forwarding shim would nest a job and rename every required check of its callers, so the copies are
+ * frozen instead; spec `tech-workflows-in-holocron`, issue #1477.)
+ */
+export function frozenReusablePaths(): string[] {
+	return [
+		...[...hostedReusableWorkflows().keys()].map((name) => `.github/workflows/${name}.yml`),
+		...Object.keys(REUSABLE_ACTIONS).map((name) => `.github/actions/${name}.yml`),
+	];
+}
+
+/** The first line of the notice {@link stampDeprecated} adds, and how {@link isDeprecated} recognises it. */
+const DEPRECATED = "# DEPRECATED — frozen copy.";
+
+/** Whether `content` already carries the deprecation notice. */
+export function isDeprecated(content: string): boolean {
+	return content.includes(DEPRECATED);
+}
+
+/**
+ * `content` of a frozen file with the deprecation notice added below its AUTO-GENERATED header: what it was replaced
+ * by, the removal condition and the tracking issue. Already stamped content is returned as it is.
+ */
+export function stampDeprecated(content: string, path: string): string {
+	if (isDeprecated(content)) return content;
+	const action = /^\.github\/actions\/([^/]+)\/action\.yml$/.exec(path);
+	const workflow = /^\.github\/workflows\/([^/]+\.yml)$/.exec(path);
+	const replacement = action
+		? `${CI_TARGET.actions}/${action[1]}@${CI_TARGET.ref}`
+		: `${CI_TARGET.workflows}/${workflow?.[1] ?? path}@${CI_TARGET.ref}`;
+	const notice = [
+		DEPRECATED,
+		`# This file no longer changes. It moved to theholocron/holocron; use ${replacement}.`,
+		"# It is kept until `holocron probe ci refs` finds no reference to it, then removed.",
+		"# Tracking: https://github.com/theholocron/holocron/issues/1215",
+	];
+	// Below the leading comment block (the AUTO-GENERATED header), set off by a blank line on each side.
+	const lines = content.split("\n");
+	let end = 0;
+	while (lines[end]?.startsWith("#")) end++;
+	const rest = lines.slice(lines[end] === "" ? end + 1 : end);
+	return [...lines.slice(0, end), ...(end > 0 ? [""] : []), ...notice, "", ...rest].join("\n");
 }

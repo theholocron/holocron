@@ -29,6 +29,16 @@ export const TEMPLATE_HOME: CiHome = {
  */
 export const CI_HOME: CiHome = { ...TEMPLATE_HOME };
 
+/**
+ * Where the hosted files will live once `ci-v1` exists, and where a frozen copy in `theholocron/.github` tells its
+ * users to go. Not used to generate anything yet: {@link CI_HOME} follows when the tag does.
+ */
+export const CI_TARGET: CiHome = {
+	workflows: "theholocron/holocron/.github/workflows",
+	actions: "theholocron/holocron/ci/actions",
+	ref: "ci-v1",
+};
+
 const REFERENCE = /theholocron\/\.github\/\.github\/(workflows|actions)\/([\w.-]+)@main/g;
 
 /** `text` with every hosted-workflow and hosted-action reference moved from the templates' spelling to `home`. */
