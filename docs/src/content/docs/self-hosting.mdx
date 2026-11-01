@@ -95,6 +95,21 @@ It wraps `defineConfig()` from `@theholocron/semantic-release-config`, so rules,
 
 `@semantic-release/commit-analyzer`, `@semantic-release/release-notes-generator` and `@theholocron/semantic-release-config` are optional peers of `@theholocron/astromech`; install them where a release runs.
 
+#### A group that publishes nothing (tag-only)
+
+`ci` is a folder of reusable workflows and composite actions (`@theholocron/ci`, private), not an npm package. It is still a version group, so that callers outside the repo can pin it:
+
+- **Immutable tags** `ci-v1.4.0`, one per release, that never move.
+- **A moving major tag** `ci-v1` that follows the latest stable release. A caller writes `uses: theholocron/holocron/.github/workflows/<name>.yml@ci-v1` and takes every minor and patch release without editing its files.
+- **A release only when the folder changed.** The analyzer sees only commits under `ci/`, so a change elsewhere neither releases the group nor moves the tag.
+- **From `main` only.** The group's `branches` is `["main"]`, so a run on `alpha` releases nothing and cannot move a tag that outside repos follow.
+
+`release.config.ts` gives it a config of its own: `prepareCmd` runs `package bump-versions --group ci --include-private` (the one package is private, and its version is what the release records), and `publishCmd` runs [`package move-tag`](/commands/package-move-tag/) instead of `package publish`. Nothing goes to npm. In `delivery.publish` it is listed as `{ name: "ci", "run-build": false }`, because it has nothing to build.
+
+Moving to a new major (`ci-v2`) is a breaking change to the workflows' inputs or secrets. The first release after a `feat!`/`BREAKING CHANGE` commit tags `ci-v2.0.0` and creates `ci-v2`. `ci-v1` stays where it was, so callers pinned to it keep working until they change it on purpose.
+
+To repair or move a major tag by hand: `git fetch --tags && holocron package move-tag ci` (`--dry-run` first).
+
 #### Releasing every group in CI
 
 List the groups on the `delivery.publish` task and `holocron repo sync` generates a caller that releases each one:

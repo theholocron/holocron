@@ -4,6 +4,17 @@ import { yamlScalar } from "./yaml-scalar.js";
 /** The reusable's inputs a group may set for itself; everything else is shared by all releases. */
 const GROUP_INPUTS = ["deploy-on-release", "post-release", "run-build", "sentry-project"] as const;
 
+/**
+ * What each boolean input is when a group does not set it: the default the reusable workflow declares. The matrix
+ * entry names every per-group boolean explicitly, because `matrix.run-build == true` is false for a group that
+ * omits it, and would switch off a build the reusable runs by default.
+ */
+const BOOLEAN_DEFAULTS: Record<string, boolean> = {
+	"deploy-on-release": false,
+	"post-release": false,
+	"run-build": true,
+};
+
 /** Same rule as `groupReleaseConfig()`: the name is a tag prefix and a folder. */
 const GROUP_NAME = /^[a-z][a-z0-9-]*$/;
 
@@ -139,7 +150,15 @@ export function groupedPublishCaller(
 		}),
 	];
 
-	const matrixJson = JSON.stringify(entries).replaceAll("'", "''");
+	const withDefaults = entries.map((entry) => ({
+		...entry,
+		...Object.fromEntries(
+			perGroup
+				.filter((key) => key in BOOLEAN_DEFAULTS && !(key in entry))
+				.map((key) => [key, BOOLEAN_DEFAULTS[key]])
+		),
+	}));
+	const matrixJson = JSON.stringify(withDefaults).replaceAll("'", "''");
 	const uses = `    uses: ${reusableWorkflowRef("delivery.publish.yml")}`;
 
 	const ungroupedJob = ungroupedInputs

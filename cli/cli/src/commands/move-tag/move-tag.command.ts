@@ -7,7 +7,7 @@ import { runMoveTag } from "./index.js";
 import { type MoveTagArgs, moveTagArgs } from "./move-tag.args.js";
 
 export const moveTagCommand: CommandModule<GlobalArgs, MoveTagArgs> = {
-	command: "move-tag [group] [version]",
+	command: "move-tag [group] [release]",
 	describe: "Move a version group's major tag (ci-v1) to its latest stable release (semantic-release publishCmd)",
 	builder: moveTagArgs,
 	handler: async (argv) => {
@@ -17,7 +17,7 @@ export const moveTagCommand: CommandModule<GlobalArgs, MoveTagArgs> = {
 			cwd: argv.cwd,
 			dryRun: argv.dryRun,
 			remote: argv.remote,
-			...(argv.version ? { version: argv.version } : {}),
+			...(argv.release ? { version: argv.release } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},

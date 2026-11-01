@@ -8,7 +8,7 @@ export const moveTagArgs = (y: Argv<GlobalArgs>) =>
 			type: "string",
 			describe: "The version group whose major tag moves: a folder of the repo (ci)",
 		})
-		.positional("version", {
+		.positional("release", {
 			type: "string",
 			describe:
 				"The stable release the major tag should point at (1.4.0). Default: the group's latest stable tag.",

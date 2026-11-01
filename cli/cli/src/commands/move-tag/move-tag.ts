@@ -57,7 +57,12 @@ export async function runMoveTag(input: RunMoveTagInput): Promise<MoveTagReport>
 		logger.info({ group, tag, target, dryRun: dryRun || undefined }, "package move-tag: start");
 
 		// The release tag must exist locally, so the commit it names is the one the major tag gets.
-		const commit = git(["rev-parse", "--verify", `refs/tags/${target}^{commit}`], cwd);
+		let commit: string;
+		try {
+			commit = git(["rev-parse", "--verify", `refs/tags/${target}^{commit}`], cwd);
+		} catch {
+			return fail(`no tag ${target} in this clone; fetch the tags first (git fetch --tags)`);
+		}
 		if (dryRun) {
 			print(`  ~ ${tag} → ${commit.slice(0, 9)} (${target}), then push --force ${remote}`);
 			return { status: "dry-run", tag, target };

@@ -57,6 +57,19 @@ describe("groupedPublishCaller", () => {
 		expect(caller(["utils"])).not.toMatch(/matrix\.(sentry-project|deploy-on-release|post-release|run-build)/);
 	});
 
+	it("names a boolean input in every matrix entry, with the reusable's default for a group that omits it", () => {
+		// `matrix.run-build == true` is false for an entry without the key, which would turn off the build the
+		// reusable runs by default for every group that did not ask to skip it.
+		const out = caller(["utils", { name: "ci", "run-build": false }]);
+		expect(out).toContain(`ALL_GROUPS: '[{"group":"utils","run-build":true},{"group":"ci","run-build":false}]'`);
+		const matrix = (JSON.parse(/ALL_GROUPS: '(.*)'/.exec(out)![1]!) as Array<Record<string, unknown>>).map(
+			(entry) => entry["run-build"] == true
+		);
+		expect(matrix).toEqual([true, false]);
+		const other = caller([{ name: "utils", "post-release": true }, "clients"]);
+		expect(other).toContain(`[{"group":"utils","post-release":true},{"group":"clients","post-release":false}]`);
+	});
+
 	it("escapes a single quote in the group list for the YAML scalar", () => {
 		expect(caller([{ name: "cli", "sentry-project": "it's" }])).toContain(`"sentry-project":"it''s"`);
 	});

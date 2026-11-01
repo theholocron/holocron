@@ -18,13 +18,13 @@ import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
 import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring-check.entry.js";
+import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
 import { notificationsChannelAddEntry } from "../../commands/notifications-channel-add/notifications-channel-add.entry.js";
 import { notificationsCreateServerEntry } from "../../commands/notifications-create-server/notifications-create-server.entry.js";
 import { notificationsLinkEntry } from "../../commands/notifications-link/notifications-link.entry.js";
 import { notificationsSetupEntry } from "../../commands/notifications-setup/notifications-setup.entry.js";
 import { notificationsSyncRolesEntry } from "../../commands/notifications-sync-roles/notifications-sync-roles.entry.js";
-import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { npmBumpVersionsEntry } from "../../commands/npm-bump-versions/npm-bump-versions.entry.js";
 import { pluginCreateEntry } from "../../commands/plugin-create/plugin-create.entry.js";
 import { probeEntry } from "../../commands/probe/probe.entry.js";

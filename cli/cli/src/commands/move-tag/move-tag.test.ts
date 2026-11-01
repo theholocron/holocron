@@ -83,7 +83,7 @@ describe("runMoveTag", () => {
 
 	it("fails when the release tag is not there, without tagging", async () => {
 		const { report, calls } = await run(["ci-v1.4.0"], { version: "1.9.0" });
-		expect(report.status).toBe("fail");
+		expect(report).toMatchObject({ status: "fail", message: expect.stringContaining("no tag ci-v1.9.0") });
 		expect(calls.some((c) => c[0] === "tag" && c[1] === "--force")).toBe(false);
 	});
 
