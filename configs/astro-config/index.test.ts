@@ -141,6 +141,14 @@ describe("apiReference", () => {
 		expect(result.group).toBe(group);
 	});
 
+	it("passes skipErrorChecking to TypeDoc only when asked", () => {
+		const input = { createPlugin, root: new URL("file:///repo/"), package: "configs/astro-config" };
+		expect(apiReference(input).plugin).not.toHaveProperty("options.typeDoc");
+		expect(apiReference({ ...input, skipErrorChecking: true }).plugin).toMatchObject({
+			options: { typeDoc: { skipErrorChecking: true } },
+		});
+	});
+
 	it("takes the root as a string, several entry points and a label", () => {
 		const result = apiReference({
 			createPlugin,
