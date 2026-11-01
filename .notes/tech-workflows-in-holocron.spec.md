@@ -25,7 +25,7 @@ Part of `tech-monorepo-consolidation.spec.md`. This is the detailed plan for #12
 
 ## Problem
 
-The reusable workflows and composite actions are written here (`cli/astromech/src/templates/reusable/`) and pushed by `holocron sync github` to `theholocron/.github`, which is documented as a pure sync target. Every repo calls them as `theholocron/.github/.github/workflows/<x>.yml@main`.
+The reusable workflows and composite actions were written in `cli/astromech/src/templates/reusable/` (now `ci/`, #1480) and are pushed by `holocron sync github` to `theholocron/.github`, which is documented as a pure sync target. Every repo calls them as `theholocron/.github/.github/workflows/<x>.yml@main`.
 
 - A change takes three hops: astromech here, `.github`, each repo.
 - A new reusable cannot resolve until it is on `.github`'s `main` (the "bootstrap" note in `platform.syncTemplates`).

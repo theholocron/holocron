@@ -66,6 +66,7 @@
     "@commitlint/config-conventional": "catalog:",
     "@semantic-release/commit-analyzer": "catalog:cli",
     "@semantic-release/release-notes-generator": "catalog:cli",
+    "@theholocron/ci": "workspace:*",
     "@theholocron/commitlint-config": "workspace:^",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/rollup-plugin-transform-template": "workspace:^",

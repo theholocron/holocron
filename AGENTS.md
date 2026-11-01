@@ -62,7 +62,8 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `holocron repo setup`), `package.json` scripts, the linter set, the
   branch-protection required checks, and the reusable `workflow_call`
   implementations pushed to `theholocron/.github`
-  (`astromech.reusableTemplates()`, consumed by `holocron sync github`).
+  (`astromech.reusableTemplates()`, consumed by `holocron sync github`; their
+  source files are in `ci/`, the `@theholocron/ci` package).
   The loop closes both ways: the reusable `typecheck` / `test` / `audit`
   workflows run their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a
