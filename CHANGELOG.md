@@ -1,3 +1,9 @@
+## [5.0.0-alpha.286](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.285...v5.0.0-alpha.286) (2026-11-01)
+
+### Features
+
+* **platform:** ✨ release ci as a tag-only version group ([#1525](https://github.com/theholocron/holocron/issues/1525)) ([dc25fa6](https://github.com/theholocron/holocron/commit/dc25fa6e3c34deb847465625907cd99098e3d1c3)), closes [#1481](https://github.com/theholocron/holocron/issues/1481) [#1215](https://github.com/theholocron/holocron/issues/1215)
+
 ## [5.0.0-alpha.285](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.284...v5.0.0-alpha.285) (2026-11-01)
 
 ### Refactoring
