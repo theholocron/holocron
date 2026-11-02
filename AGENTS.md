@@ -57,6 +57,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `post` and `message` (`describeSpecChange()` and `specAnnouncementMessage()`, same package); the hand-maintained
   `.github/workflows/knowledge.specsToIdeas.yml` runs it and sends the message through `./ci/actions/notify`
   (#1534, spec `tech-specs-to-ideas`).
+  `specs sync` keeps a forum post per ADR and spec (`SPEC:` / `ADR:`, tagged with its status) in step with the files
+  (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
+  (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
+  post, the file's `status:` into the working tree only (the workflow commits it to a pull request), and decides by
+  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

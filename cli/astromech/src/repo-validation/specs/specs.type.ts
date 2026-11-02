@@ -109,3 +109,11 @@ export type StatusReconciliation =
 	| { action: "set-tag"; status: string }
 	| { action: "request"; status: string }
 	| { action: "conflict"; reason: string };
+
+/** The front matter fields `updateFrontmatter` can set. A field left out is left alone. */
+export interface FrontmatterChanges {
+	/** The new `status`. */
+	status?: string;
+	/** The address of the document's discussion post, written as `discussion.url`. */
+	discussionUrl?: string;
+}
