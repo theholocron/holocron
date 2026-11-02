@@ -136,9 +136,6 @@ catalogs:
     '@vitest/eslint-plugin':
       specifier: ^1.6.27
       version: 1.6.27
-    alexjs:
-      specifier: ^1.0.0
-      version: 1.0.0
     astro:
       specifier: ^7.3.3
       version: 7.4.2
@@ -354,9 +351,6 @@ importers:
       '@vitest/eslint-plugin':
         specifier: 'catalog:'
         version: 1.6.27(@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@5.0.5)
-      alexjs:
-        specifier: 'catalog:'
-        version: 1.0.0
       astro:
         specifier: 'catalog:'
         version: 7.4.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)
@@ -7373,9 +7367,6 @@ packages:
   alex@11.0.1:
     resolution: {integrity: sha512-rKLBZxD/lvuykdC6XB8ma9YjDl46j9ayHROZUtC1yJ2jlGpoP7RZR1tBBSjtlr260ixIW6iCkqAnHzmti5Q6CQ==}
     hasBin: true
-
-  alexjs@1.0.0:
-    resolution: {integrity: sha512-6qmF0lX4yIYTudDZ+V7xLXIFVETu0k5T+DxxK62zUELiHrUeePQImvReSC6fMguasuGq31z8y+QiZS2UKm0ZwA==}
 
   am-i-vibing@0.5.0:
     resolution: {integrity: sha512-KLcsDhqf1XRrJmJr+9I/C0EX2K+sGrAGZFgkmd84c8TJO9zJBu+/kFInjazu1KfJWFhWDKdRWkpBzEs7s35DVA==}
@@ -17038,8 +17029,6 @@ snapshots:
       vfile-sort: 3.0.1
     transitivePeerDependencies:
       - supports-color
-
-  alexjs@1.0.0: {}
 
   am-i-vibing@0.5.0:
     dependencies:
