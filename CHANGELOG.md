@@ -1,3 +1,17 @@
+## [5.0.0-alpha.302](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.301...v5.0.0-alpha.302) (2026-11-02)
+
+### Features
+
+* **auth:** 💬 auth set says which variable to add to the credentials environment ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1629](https://github.com/theholocron/holocron/issues/1629)) ([b7fa115](https://github.com/theholocron/holocron/commit/b7fa1152e56590d6c4944ebcc64a63266ec99058))
+
+### Bug Fixes
+
+* **notifications:** 🔔 name the failing jobs in the failed-run post ([#1628](https://github.com/theholocron/holocron/issues/1628)) ([c8d2020](https://github.com/theholocron/holocron/commit/c8d2020a381df7eb436107f906618496add1ba6d)), closes [#1614](https://github.com/theholocron/holocron/issues/1614)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#1626](https://github.com/theholocron/holocron/issues/1626)) ([28728d6](https://github.com/theholocron/holocron/commit/28728d699eb7da4f3c5634c7b1be236873f4bc92))
+
 ## [5.0.0-alpha.301](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.300...v5.0.0-alpha.301) (2026-11-02)
 
 ### Features
