@@ -1,3 +1,9 @@
+## [1.58.0-alpha.5](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.4...clients-v1.58.0-alpha.5) (2026-11-02)
+
+### Features
+
+* **discord-client:** 🧵 add forum posts and threads to the bot client ([#1539](https://github.com/theholocron/holocron/issues/1539)) ([cbd4e0b](https://github.com/theholocron/holocron/commit/cbd4e0bb6c14a44fcc5c0a0ae6f7ed4dba594754)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+
 ## [1.58.0-alpha.4](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.3...clients-v1.58.0-alpha.4) (2026-11-01)
 
 ### Refactoring
