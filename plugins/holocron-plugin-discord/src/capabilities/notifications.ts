@@ -1052,8 +1052,8 @@ export class DiscordNotifications implements Notifications {
 	}
 
 	/** The post for a document in a forum channel, or `undefined`. */
-	readDiscussion(channel: string, key: string): Promise<DiscussionPost | undefined> {
-		return this.discussions().read(channel, key);
+	readDiscussion(channel: string, key: string, url?: string): Promise<DiscussionPost | undefined> {
+		return this.discussions().read(channel, key, url);
 	}
 
 	/** Changes a document's post: its title, its tag, the state last synced. */

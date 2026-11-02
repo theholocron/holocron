@@ -22,7 +22,7 @@ function provider(existing: DiscussionPost | undefined) {
 		key: "notifications",
 		providerName: "discord",
 		readDiscussion: vi.fn(async () => existing),
-		ensureDiscussion: vi.fn(async () => ({
+		ensureDiscussion: vi.fn(async (_input: { url?: string }) => ({
 			post: existing ?? { url: URL, state: "proposed", synced: "proposed" },
 			created: existing === undefined,
 		})),
@@ -266,6 +266,57 @@ describe("syncDocument", () => {
 			expect(reopen.did).toEqual(["would reopen the post"]);
 			expect(toClose.n.updateDiscussion).not.toHaveBeenCalled();
 			expect(toReopen.n.updateDiscussion).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("when the file has moved", () => {
+		it("passes the address the file records, and says the post followed the file", async () => {
+			const { n, notifications } = provider({ url: URL, state: "proposed", synced: "proposed" });
+			n.ensureDiscussion.mockResolvedValue({
+				post: { url: URL, state: "proposed", synced: "proposed" },
+				created: false,
+				rekeyed: true,
+			} as never);
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications));
+
+			expect(n.ensureDiscussion).toHaveBeenCalledWith(expect.objectContaining({ url: URL }));
+			expect(out.did).toEqual(["followed the file to its new path"]);
+		});
+
+		it("gives no address for a file that records none", async () => {
+			const { n, notifications } = provider(undefined);
+
+			await syncDocument(spec("proposed"), deps(notifications));
+
+			expect(n.ensureDiscussion.mock.calls[0]![0]).not.toHaveProperty("url");
+		});
+
+		it("on a dry run, finds the post by that address and says it would follow the file", async () => {
+			const { n, notifications } = provider({
+				url: URL,
+				key: ".notes/old.spec.md",
+				state: "proposed",
+				synced: "proposed",
+			});
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications, { dryRun: true }));
+
+			expect(n.readDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", URL);
+			expect(out.did).toEqual(["would follow the file to its new path"]);
+		});
+
+		it("on a dry run, says nothing about a post that records this path", async () => {
+			const { notifications } = provider({
+				url: URL,
+				key: ".notes/tech-x.spec.md",
+				state: "proposed",
+				synced: "proposed",
+			});
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications, { dryRun: true }));
+
+			expect(out.did).toEqual([]);
 		});
 	});
 
