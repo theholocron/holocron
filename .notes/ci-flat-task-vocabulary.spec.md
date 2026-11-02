@@ -47,24 +47,41 @@ for `build`, `lint`, `test` and `typecheck` (#1262).
 4. **Sources in `ci/` are grouped by suite** (`ci/workflows/test/unit.yml`) and generated flat into
    `.github/workflows`, because GitHub reads workflows only from that one folder and a reusable ref must point there.
 5. **The six intent groups stop being workflow names.** They survive only as documentation and `--help` grouping.
-6. **Scripts delegate to `holocron run`.** Root `test` is `holocron run test`, root `test:unit` is `holocron run test unit`,
-   and so on; pnpm appends extra arguments, so there is no `$1`. A package's leaf scripts hold the real tool command.
+6. **Scripts delegate, in one direction.** In a monorepo with a `turbo.json` (holocron included) the root scripts call
+   turbo directly (`"test": "turbo run test"`, `"test:unit": "turbo run test:unit"`), because `holocron` is built from
+   this repo and its bin does not exist on a fresh clone, while turbo is an ordinary devDependency. A suite is an
+   aggregator task in the generated `turbo.json`. A single-package repo without turbo uses `holocron run <task>`.
+   `holocron run` stays the CLI and CI front door and already prefers `turbo run` when `turbo.json` defines the task. A
+   package's leaf scripts hold the real tool command. pnpm appends extra arguments, so there is no `$1`.
 7. **`format` is a standalone verb, not a suite and not under `lint`**: prettier only, writes by default, `--check` is the
    read-only form. editorconfig-checker and markdownlint are linters and become `lint` leaves.
 8. **`publish` is renamed `release`**, which has no meaning to npm or pnpm.
-9. **One stable aggregate required check per repo**, which must be debuggable: it lists the failing jobs with links.
+9. **One stable aggregate required check per repo**, which must be debuggable: it lists the failing jobs with links. It is
+   a polling job (Sentinel is down, #1100); Sentinel posting the check is a documented later option. `DCO` stays its own
+   required context; `ci` waits on `codecov/*`.
+10. **Unit tests always run with coverage.** There is no `--coverage` flag anywhere.
+11. **A hyphen compound takes a colon only as an npm script** (`deploy:preview`, `sync:repo`); everywhere else it keeps
+    its hyphen (`deploy-preview`). No non-runnable suites are created for them.
 
 ## The naming rules
 
 - **An id is `<verb>`, `<verb>-<object>` or `<suite>:<leaf>`**, lowercase ASCII letters and digits. A colon means "member
   of the suite named before it"; a hyphen is part of a verb phrase (`deploy-preview`, `check-tokens`) and never implies a
   suite. No dots, no camelCase.
+- **The one exception to one spelling: a hyphen compound's npm script.** `scriptName(id)` replaces the first hyphen
+  with a colon for an id that has a script, so the task `deploy-preview` is the script `deploy:preview`, `sync-repo` is
+  `sync:repo` and `sync-templates` is `sync:templates`. A turbo key must equal the package script it runs, so turbo uses
+  the script spelling too. The CLI accepts both (`holocron run deploy-preview`, `deploy:preview`, `deploy preview`);
+  files, workflow names, check names and `tasks:` keep the hyphen. This does not make `deploy` or `sync` a suite: there
+  is no `dependsOn` between `deploy` and `deploy:preview`, and `holocron run deploy` still means the one leaf. CI-only
+  ids with no script (`check-tokens`, `release`, `publish-wiki`) have no script spelling.
 - **Why a colon and not a hyphen.** A hyphen was this spec's first choice, because a file name cannot carry a colon and
   one spelling everywhere was easiest to keep with one character. The colon wins because npm and pnpm already use it for
   a variant of a script (`test:watch`, `lint:fix`), `pnpm test:unit` works unquoted, a suite and its members then read as
   a family (`pnpm run "/^lint:/"` selects one), and the id says which names are a suite's members without a lookup.
   The cost is one deterministic mapping at the file boundary (below), and a uniqueness rule: a colon id and a hyphen id
-  must never flatten to the same file name (`deploy:preview` and `deploy-preview` cannot both exist; a test fails).
+  must never flatten to the same file name (a suite `lint` with a leaf `code` and an id `lint-code` cannot both exist;
+  a test fails).
 - **Colons are confirmed to work in the tools.** Turbo accepts them as task keys and `turbo run test:unit lint:code`
   runs them (tried on a throwaway two-file workspace with turbo, scripts `test:unit` and `lint:code`; both ran). The
   `pkg#task` form uses `#`, so it is not affected. In GitHub Actions a colon is fine in a workflow `name:`, a job
@@ -178,7 +195,7 @@ becomes `validate:plugin` and joins the suite as a package-scoped leaf.
   decision 3. As two leaves, a repo that does not want `validate:docs` does not list it and no check exists. This also
   removes the `jobs:` switch and `retiredJobs` from the registry. It is a behavior change, so it is its own phase.
 - **`deploy-docs`, `deploy-components`, `publish-wiki`** replace the noun-only `knowledge.*`. `docs` and `components`
-  already deploy through the shared `preview.yml`; the verb says so (see open question 3).
+  already deploy through the shared `preview.yml`; the verb says so (see open question 2).
 - **Qualifier words** (`unit`, `visual`, `perf`, `code`, `editorconfig`, `markdown`, `data`, `unused`, `commits`,
   `secrets`, `specs`) are what the leaf acts on or the tool's own name where the tool is the thing (`editorconfig`).
   Tool names like `eslint` and `vitest` stay inside the registry, as #675 decided.
@@ -192,8 +209,9 @@ becomes `validate:plugin` and joins the suite as a package-scoped leaf.
 - **From a package directory** `holocron run <suite>` runs only the package-scoped members for that package (turbo
   `--filter=.`) and reports the repo-scoped ones as `skipped (repo-wide, run from the root)`.
 - `--affected`, `--filter`, `--base` and `-- <args>` apply to every member that is turbo-delegated, as in `runGroup`.
-  Because pnpm appends arguments without `--`, an unknown flag after the task (`pnpm test --coverage`) is forwarded to
-  the tool when exactly one leaf is selected, and is an error for a suite of several (open question 7).
+  Because pnpm appends arguments without `--`, an unknown flag after a leaf (`holocron run lint code --fix`) is
+  forwarded to its tool, and after a suite of several leaves it is an error that says so. None of this is needed for
+  coverage: unit tests always run with coverage and there is no `--coverage` flag.
 - `holocron run ci` is unchanged in spirit: the `required: true` tasks in `CI_ORDER`, with the ids translated, and
   `format` in its read-only `--check` form (cheap, local only). A suite name is not accepted in `ci`'s list.
 
@@ -218,89 +236,141 @@ What it means for this vocabulary:
 - **`deploy` is the remaining trap.** `apps/sentinel` already has a `delivery.deploy` script; as `deploy` it is called
   with `pnpm run deploy` or `holocron run deploy` and never `pnpm deploy`. The generated README development table
   (`sync-readme`) must print `pnpm run <script>` for any script on the pnpm built-in list, not `pnpm <script>`.
-- **`test` is safe and wanted**: the root `test` script is the suite alias.
+- **`test` is safe and wanted**: the root `test` script is the suite entry point.
 
 ## Scripts: exactly what carries what
 
-Scripts delegate in one direction only: root and suite scripts call `holocron run`, which fans out through turbo to the
-leaf scripts, which are the real tool commands.
+The script bodies differ by repo type, and they are generated (`repo sync`, `syncScripts`) from one rule that lives in one
+place: `scriptsFor(config, registry)` in astromech, next to the `turbo.json` generator, which is the same function the
+validation uses. A hand edit that disagrees is a `probe generated check` failure. The rule, by repo type:
 
-### Root `package.json`
+| Repo type                                                       | Root scripts call                                                      | Suites are                                     |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
+| Monorepo with a `turbo.json` (holocron, the monorepo templates) | `turbo run <id>` (the real tool command for a repo-scoped leaf, below) | aggregator tasks in the generated `turbo.json` |
+| Single package, no turbo                                        | `holocron run <task>` (the CLI comes from the registry install there)  | the runner (`holocron run <suite>`)            |
 
-Generated by `repo sync` where `syncScripts` is on (merge, never clobber), validated everywhere. A root script exists
-for each task the repo lists in `tasks:` that can run locally, plus each suite that has at least one such member:
+Why turbo directly in a monorepo: `holocron` is built from this repo, so on a fresh clone its bin does not exist until
+the CLI is built (a fresh worktree here had no `node_modules/.bin/holocron` after install), while turbo is an ordinary
+devDependency. Scripts that need the CLI to exist would fail the first `pnpm test` of a new contributor. `holocron run`
+stays the CLI and CI front door and already prefers `turbo run` when `turbo.json` defines the task, so the two never
+disagree.
+
+### Suites as turbo tasks (tried, works)
+
+The generator writes each suite as a task with no script of its own that `dependsOn` its leaves:
+
+```json
+{
+  "tasks": {
+    "test:unit": {},
+    "lint:code": {},
+    "//#lint:markdown": {},
+    "test": { "dependsOn": ["test:unit"] },
+    "lint": { "dependsOn": ["lint:code", "//#lint:markdown"] }
+  }
+}
+```
+
+Tried on a throwaway workspace with the repo's turbo: colon task names work as keys, in `dependsOn` and on the command
+line; `turbo run test` ran each package's `test:unit` and ran nothing for `test` itself, because no package has a `test`
+script; a package without the leaf's script is skipped, not an error; `turbo run lint` ran `lint:code` in the packages
+that have it and the root's `lint:markdown` through the `//#` key. `--filter` that matches no package prints "No tasks
+were executed" and exits 0. Not tried: the interaction of `--affected` with a suite, and caching of the `//#` root tasks.
+
+### Root `package.json` (monorepo with turbo)
+
+A root script exists for each task the repo lists in `tasks:` that can run locally, plus each suite with at least one such
+member. The body depends on the leaf's scope:
 
 ```json
 {
   "build": "turbo run build",
-  "typecheck": "holocron run typecheck",
-  "test": "holocron run test",
-  "test:unit": "holocron run test unit",
-  "test:visual": "holocron run test visual",
-  "lint": "holocron run lint",
-  "lint:code": "holocron run lint code",
-  "lint:markdown": "holocron run lint markdown",
-  "format": "holocron run format"
+  "typecheck": "turbo run typecheck",
+  "test": "turbo run test",
+  "test:unit": "turbo run test:unit",
+  "lint": "turbo run lint",
+  "lint:code": "turbo run lint:code",
+  "lint:markdown": "markdownlint-cli2 \"**/*.md\"",
+  "lint:editorconfig": "editorconfig-checker",
+  "format": "prettier --write ."
 }
 ```
 
-- `pnpm test unit` and `pnpm test --coverage` work because pnpm appends arguments; there is no `$1`.
-- `pnpm format --check` is the read-only form; there is no `format:check` script.
-- `build` stays `turbo run build` because the built CLI does not exist before the first build, and this repo's own
-  `holocron` script (`node cli/cli/dist/cli.mjs`) is the bootstrap; see open question 6 for the `holocron` bin in this repo.
-- `deps`, `deps:check`, `holocron` and `prepare: husky` are unchanged and are not tasks.
+- **A package-scoped leaf or a suite** (`build`, `typecheck`, `test:unit`, `lint:code`, `test`, `lint`) is `turbo run <id>`.
+- **A repo-scoped leaf with a local tool** (`lint:markdown`, `lint:editorconfig`, `lint:data`, `lint:unused`,
+  `scan:secrets`, `format`) holds the real tool command at the root, with a `//#<id>` key in `turbo.json` so a suite can
+  depend on it. It is not `turbo run <id>`, which would call itself.
+- **A CI-only leaf** (`scan:code`, `lint:commits`, `release`, ...) has no script.
+- `pnpm test unit` is not valid here: there is no qualifier word in a turbo script. Use `pnpm test:unit`. The spaced form
+  is a `holocron run` feature (`holocron run test unit`), and pnpm appends extra arguments (`pnpm test:unit --watch`), so
+  there is no `$1`.
+- **`format` writes** (`prettier --write .`). The read-only form is `holocron run format --check`, or
+  `prettier --check .`; whether prettier accepts `--check` appended to a `--write` script was not tried and is not relied on.
+- `deps`, `deps:check`, `holocron` (`node cli/cli/dist/cli.mjs`) and `prepare: husky` are unchanged and are not tasks.
+
+### Root `package.json` (single package, no turbo)
+
+The same ids, with the CLI as the front door, because there is no turbo to call and the CLI is a normal dependency of
+that repo: `"test": "holocron run test"`, `"test:unit": "holocron run test unit"`, `"lint": "holocron run lint"`,
+`"lint:code": "holocron run lint code"`, `"format": "holocron run format"`, `"typecheck": "holocron run typecheck"`.
+`pnpm test --watch` appends to it. A repo like this has no packages, so there are no leaf scripts to recurse into: the
+runner runs the tools from its registry.
 
 ### Each package's `package.json`
 
-| Script                                                          | Value                                           | Owner                    |
-| --------------------------------------------------------------- | ----------------------------------------------- | ------------------------ |
-| `build`                                                         | the build tool (`tsdown`)                       | the package (validated)  |
-| `typecheck`                                                     | `tsc --noEmit`                                  | the package (validated)  |
-| `test:unit`                                                     | `vitest run` (or `node --test ...` in `skills`) | the package (validated)  |
-| `lint:code`                                                     | `eslint .`                                      | the package (validated)  |
-| `test`                                                          | exactly `holocron run test`                     | generated by `repo sync` |
-| `lint`                                                          | exactly `holocron run lint`                     | generated by `repo sync` |
-| `test:watch`                                                    | `vitest`                                        | dev script, hand-written |
-| `deploy`, `deploy-preview`, `validate:plugin`, `dev`, `preview` | their own commands where the package has them   | the package              |
+| Script                                                          | Value                                                      | Owner                    |
+| --------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------ |
+| `build`                                                         | the build tool (`tsdown`)                                  | the package (validated)  |
+| `typecheck`                                                     | `tsc --noEmit`                                             | the package (validated)  |
+| `test:unit`                                                     | `vitest run --coverage` (or `node --test ...` in `skills`) | the package (validated)  |
+| `lint:code`                                                     | `eslint .`                                                 | the package (validated)  |
+| `test:watch`                                                    | `vitest`                                                   | dev script, hand-written |
+| `deploy`, `deploy:preview`, `validate:plugin`, `dev`, `preview` | their own commands where the package has them              | the package              |
 
-- A package carries a leaf script only for a leaf it takes part in, and the suite aliases `test` and `lint` only when it
-  has at least one package-scoped leaf of that suite. **No other aliases**: no `format`, no `lint:data`, no `scan`.
-- Repo-scoped leaves (`lint:markdown`, `scan:secrets`, ...) never appear in a package; they run from the root.
+- A package carries a leaf script only for a leaf it takes part in. **No suite aliases** (`test`, `lint`) in a
+  package of a turbo repo: turbo runs every package's script of the name it is asked for, so a package `test` script
+  would be run by `turbo run test` as well as the aggregator (tried: it ran), and one that called turbo would loop. This
+  reverses the earlier draft, which generated them. A contributor inside a package uses the leaf (`pnpm test:unit`).
+- Repo-scoped leaves never appear in a package; they run from the root.
 - The dev scripts are a short fixed list (`dev`, `preview`, `test:watch`) that is neither a task nor a check.
+- **Coverage is in the script**, not a flag: `test:unit` is `vitest run --coverage` (the shared vitest config is the
+  alternative home; open question 4). The registry's `flags: { vitest: ["--coverage"] }` org default and the root's
+  `-- --coverage` are removed, so no caller passes it.
 - `repo sync` migrates an old dotted key to the new one in place when its value is untouched, and reports one that was
-  edited. Today `syncScripts` is `false` in this repo (`astromech.config.ts`), so these are hand-maintained here and the
-  check below enforces them; whether to turn it on is open question 6.
+  edited. Today `syncScripts` is `false` in this repo (`astromech.config.ts`); it is turned on here by the phase that
+  adds `scriptsFor`, because the root scripts above are now computed.
 
 ### The recursion hazard
 
-`pnpm test` at the root runs `holocron run test`, which runs `turbo run test:unit`, which runs each package's
-`test:unit` script. Anything that sends that chain back into a script that calls `holocron run` loops forever. Rules:
+`pnpm test` at the root runs `turbo run test`, which runs the `test` aggregator, which runs each package's `test:unit`
+script. A loop needs a script that sends the chain back into turbo or the CLI. Rules:
 
-1. **A leaf script never calls `holocron run` or `turbo run`.** `"test:unit": "holocron run test unit"` in a package would
-   run turbo, which would run that same script, which would run turbo. The leaf holds the tool (`vitest run`, `tsc --noEmit`).
-2. **A suite alias is exactly `holocron run <suite>`** and nothing else; the validation compares the value.
-3. **A suite name is never a task for the runner or turbo.** `turbo.json` has no key `test` or `lint`, and the runner's
-   "use the package's script of that name" fallback is never applied to a suite name. Otherwise `turbo run test` would run
-   every package's `test` alias, which calls `holocron run test`, which calls turbo.
-4. **The root is not a turbo package for these tasks**: turbo runs a root script only through a `//#task` key, and none
-   is defined for a leaf. A `//#test:unit` key would make root `test:unit` call itself; the generator never writes one
-   and `probe generated check` fails on it.
-5. **The runner resolves a suite to its leaves and then delegates the leaves only.** From a package directory it adds
-   `--filter=.`, so `pnpm test` inside a package tests that package, not the repo.
+1. **A package leaf script holds the real tool command.** It never calls `holocron run` or `turbo run`:
+   `"test:unit": "turbo run test:unit"` in a package would run turbo, which would run that same script. The validation
+   rejects a leaf value that starts with either.
+2. **Root suite and package-scoped leaf scripts call turbo; a repo-scoped leaf's root script holds its tool.** The
+   generator computes both, so a hand edit that makes a root script call itself is caught.
+3. **A suite name is a turbo task with no script.** No package may have a script named like a suite (`test`, `lint`,
+   `scan`, `validate`); the validation fails it. Otherwise `turbo run test` runs that script too.
+4. **A `//#<id>` key exists only for a repo-scoped leaf.** A `//#test:unit` key would make root `test:unit` call itself;
+   the generator never writes one and `probe generated check` fails on it.
+5. **In a single-package repo `holocron run <suite>` resolves to leaves, and the runner never looks up a package script
+   named like a suite** (its "use the package's script of that name" fallback does not apply to a suite).
 
 ### The README development table
 
-`sync-readme` builds each package's `holocron:development` table from its real `scripts`, in this order: the suite
-aliases, the leaves, then the dev scripts. Each row shows the command (`pnpm test`, or `pnpm run deploy` for a pnpm
-built-in) and the equivalent `holocron run ...`. It fails (not warns) when a row names a script the package lacks, and
-the generated block is checked by `probe generated check`, so a package whose README lists `pnpm test` without a `test`
-script is caught (the problem #1262 started from).
+`sync-readme` builds each package's `holocron:development` table from its real `scripts`, in this order: the leaves, then
+the dev scripts. Each row shows the command (`pnpm test:unit`, or `pnpm run deploy` for a pnpm built-in) and the
+equivalent `holocron run ...`. It fails (not warns) when a row names a script the package lacks, and the generated block
+is checked by `probe generated check`, so a package whose README lists `pnpm test` without a `test` script is caught
+(the problem #1262 started from). The root README lists the suites and the leaves.
 
 ### The check that keeps them aligned
 
 `holocron probe generated check` (or a sibling probe in the same required check) fails when a package script is a dotted
-old name, is a reserved name, is neither a known id nor a dev script, breaks a recursion rule, or when a leaf-shaped
-script exists whose id is not in the registry (so `test:unt` is caught).
+old name, is a reserved name, is named like a suite, is neither a known id (in its script spelling) nor a dev script,
+breaks a recursion rule, differs from what `scriptsFor` would write, or is leaf-shaped with an id not in the registry
+(so `test:unt` is caught).
 
 ## What each other surface looks like
 
@@ -316,9 +386,11 @@ in the list is what makes its workflow and check exist). Old names are accepted 
 
 ### `turbo.json`
 
-Generated from the registry (`cli/astromech/src/generators/turbo`): keys are the package-scoped ids, `dependsOn` is
-`["build", "^build"]`, and the per-package override in `holocron.config.ts` becomes `@theholocron/eslint-config#build`.
-`holocron probe generated check` already fails on a stale `turbo.json`.
+Generated from the registry (`cli/astromech/src/generators/turbo`): keys are the package-scoped ids in their script
+spelling (`deploy:preview`), a `//#<id>` key per repo-scoped leaf with a local tool, and one aggregator task per suite
+that `dependsOn` its leaves (see "Suites as turbo tasks"). `dependsOn` for the leaves is `["build", "^build"]` where it
+was `["delivery.build", "^delivery.build"]`, and the per-package override in `holocron.config.ts` becomes
+`@theholocron/eslint-config#build`. `holocron probe generated check` already fails on a stale `turbo.json`.
 
 **Gotcha.** Turbo runs `build` in every package that has a `build` script. `docs/package.json` has `build`
 (`astro build --root ..`), which `delivery.build` never touched. Renamed tasks would start building the docs site in
@@ -366,16 +438,17 @@ So `format` gets **no workflow file, no caller, no check name and no required co
 `enable-auto-commit: true` for formatting (holocron's own does not; the 7 others' callers were not read); (b) whether
 the linters ever write files in CI, since the registry runs them in check mode and `auto-commit` commits only what the
 workspace has changed, so the auto-fix may be dormant today; (c) the host (`lint:code`) is this spec's choice, and the
-alternatives are a platform workflow or leaving prettier in `lint:editorconfig`'s workflow (open question 2).
+alternatives are a platform workflow or leaving prettier in `lint:editorconfig`'s workflow (open question 1).
 
 ## The aggregate required check
 
 Today a ruleset lists 13 contexts, each of the form `<caller job> / <called job>`, matched as exact strings. Every
 rename, split or workflow addition orphans one in every repo until its ruleset is resynced (#1547). This spec ends that.
 
-**One required check per repo, `ci`**, replaces every per-task context. `holocron repo setup` writes a ruleset of `ci`
-plus the contexts the CI does not control: `DCO` and the three `codecov/*` statuses. The per-task checks still run and
-still show on the PR; they are no longer individually required.
+**One required check per repo, `ci`**, replaces every per-task context and the `codecov/*` statuses. `holocron repo
+setup` writes a ruleset of `ci` and `DCO`. `DCO` stays its own required context: it comes from the DCO app, not from this
+repo's workflows, and a missing sign-off should be named by itself, not by the aggregate. The per-task checks still run
+and still show on the PR; they are no longer individually required.
 
 ### What `ci` does
 
@@ -389,16 +462,28 @@ the hand-written ones, generated from the same list `requiredChecks()` reads tod
 2. An id with no check run at the timeout fails as "never posted". This is the case where the old setup waited for an
    "expected" check forever.
 3. `success`, `skipped` and `neutral` pass; anything else fails.
+   3a. **It also waits on `codecov/*`.** Those are commit statuses, not check runs, so a second input `statuses` (the
+   `codecov/` entries of `extraRequiredChecks`: `codecov/patch`, `codecov/project`, `codecov/patch/documentation`) is
+   polled through the commit-status API, and each must reach `success`; one that is still `pending` keeps it waiting,
+   and one that never appears at the timeout fails as "never posted". Codecov posts after the test uploads, so this is
+   the long pole of the wait. Not confirmed: that `codecov/patch/documentation` posts on every PR (it depends on the
+   docs-coverage workflow), which decides whether it can be in `statuses` for every repo.
 4. **Debuggable by construction.** On failure the job summary (`GITHUB_STEP_SUMMARY`) is a table of every expected id
    with its conclusion and a link to the check run, failing ones first. Each failing or missing id is also emitted as an
    `::error title=<id>::<conclusion> <link>` annotation, so the PR's checks tab and the file view show it, and the job's
    exit message names them. A passing run writes the same table, so the summary is the one place to look.
-5. Permissions: `checks: read`, `contents: read`. It never waits for itself.
+5. Permissions: `checks: read`, `statuses: read`, `contents: read`. It never waits for itself.
 
-It runs from the PR's own workflow file, not from the default branch. That is deliberate: a `workflow_run`-triggered
-aggregate would run the default branch's version, which would still expect the old names inside the rename PR and
-block it. (Open question 1 asks whether the polling job is acceptable, or whether a `workflow_run` or Sentinel
-implementation is preferred.)
+**Decided: a polling job.** Sentinel is down (#1100), so it cannot post the check. The job runs from the PR's own
+workflow file, not from the default branch, which also matters for the rename: a `workflow_run`-triggered aggregate
+would run the default branch's version, which would still expect the old names inside the rename PR and block it.
+
+**Known limitation, accepted:** re-running one failed leaf does not update `ci`, which stays red until `ci` is re-run
+too. The summary says so on a failure.
+
+**Documented later option:** once Sentinel is healthy it can post the same check from its webhooks (no idle runner, no
+re-run gap). The `ci` context name and the `expected`/`statuses` lists are the contract, so swapping the implementation
+changes no ruleset. Not built now.
 
 ### The failed-run post must name the job
 
@@ -558,23 +643,24 @@ there is no clash with the new `release.yml`, but docs must not blur the two.
 The check names stay `<caller job> / <called job>`. With the aggregate they are no longer required one by one, so this
 table is what changes in the ruleset **once**, and what a person sees.
 
-| Old required context (holocron ruleset today)                            | New check the aggregate waits on                                                                                                 | Fate in the ruleset             |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `Typecheck / Run tsc --noEmit`                                           | `typecheck / Run tsc --noEmit`                                                                                                   | replaced by `ci`                |
-| `Static Analysis / Run eslint and actionlint`                            | `lint:code / Run eslint and actionlint` (+ prettier via action)                                                                  | replaced by `ci`                |
-| `Formatting / Run prettier, editorconfig-checker, markdownlint`          | `lint:editorconfig / Run editorconfig-checker` and `lint:markdown / Run markdownlint` (prettier moves into `lint:code`'s action) | replaced by `ci`                |
-| `Structured Data Validation / Run yamllint`                              | `lint:data / Run yamllint`                                                                                                       | replaced by `ci`                |
-| `Secret Detection / Run gitleaks`                                        | `scan:secrets / Run gitleaks`                                                                                                    | replaced by `ci`                |
-| `Commit Standards / Run commitlint`                                      | `lint:commits / Run commitlint`                                                                                                  | replaced by `ci`                |
-| `Repo Validation / Conclusion`                                           | `validate:specs / Validate ADRs and specs` (and `validate:docs`, which warns)                                                    | replaced by `ci`                |
-| `Test / Conclusion`                                                      | `test:unit / Conclusion`                                                                                                         | replaced by `ci`                |
-| `Build / Build every workspace`                                          | `build / Build every workspace`                                                                                                  | replaced by `ci`                |
-| `Dead Code Analysis / Run knip`                                          | `lint:unused / Run knip`                                                                                                         | replaced by `ci`                |
-| `Audit the Bundle Size / Upload bundle stats to Codecov`                 | `measure-bundle / Upload bundle stats to Codecov`                                                                                | replaced by `ci`                |
-| `Dependency catalogs / Check`                                            | `validate:deps / Check`                                                                                                          | replaced by `ci`                |
-| `Generated files / Check`                                                | `validate:generated / Check`                                                                                                     | replaced by `ci`                |
-| (new)                                                                    | `ci`                                                                                                                             | the one required context        |
-| `DCO`, `codecov/patch`, `codecov/project`, `codecov/patch/documentation` | unchanged                                                                                                                        | stay required (open question 5) |
+| Old required context (holocron ruleset today)                     | New check the aggregate waits on                                                                                                 | Fate in the ruleset             |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `Typecheck / Run tsc --noEmit`                                    | `typecheck / Run tsc --noEmit`                                                                                                   | replaced by `ci`                |
+| `Static Analysis / Run eslint and actionlint`                     | `lint:code / Run eslint and actionlint` (+ prettier via action)                                                                  | replaced by `ci`                |
+| `Formatting / Run prettier, editorconfig-checker, markdownlint`   | `lint:editorconfig / Run editorconfig-checker` and `lint:markdown / Run markdownlint` (prettier moves into `lint:code`'s action) | replaced by `ci`                |
+| `Structured Data Validation / Run yamllint`                       | `lint:data / Run yamllint`                                                                                                       | replaced by `ci`                |
+| `Secret Detection / Run gitleaks`                                 | `scan:secrets / Run gitleaks`                                                                                                    | replaced by `ci`                |
+| `Commit Standards / Run commitlint`                               | `lint:commits / Run commitlint`                                                                                                  | replaced by `ci`                |
+| `Repo Validation / Conclusion`                                    | `validate:specs / Validate ADRs and specs` (and `validate:docs`, which warns)                                                    | replaced by `ci`                |
+| `Test / Conclusion`                                               | `test:unit / Conclusion`                                                                                                         | replaced by `ci`                |
+| `Build / Build every workspace`                                   | `build / Build every workspace`                                                                                                  | replaced by `ci`                |
+| `Dead Code Analysis / Run knip`                                   | `lint:unused / Run knip`                                                                                                         | replaced by `ci`                |
+| `Audit the Bundle Size / Upload bundle stats to Codecov`          | `measure-bundle / Upload bundle stats to Codecov`                                                                                | replaced by `ci`                |
+| `Dependency catalogs / Check`                                     | `validate:deps / Check`                                                                                                          | replaced by `ci`                |
+| `Generated files / Check`                                         | `validate:generated / Check`                                                                                                     | replaced by `ci`                |
+| (new)                                                             | `ci`                                                                                                                             | the one required context        |
+| `codecov/patch`, `codecov/project`, `codecov/patch/documentation` | the same statuses, polled by `ci` (`statuses` input)                                                                             | replaced by `ci`                |
+| `DCO`                                                             | unchanged                                                                                                                        | stays required, its own context |
 
 The not-required checks follow the same one-segment rule (`Release / Semantic release` to `release / Semantic release`,
 `Deploy / Deploy` to `deploy / Deploy`, `Code Scanning / Analyze (...)` to `scan:code / Analyze (...)`,
@@ -583,23 +669,23 @@ split (a later phase), `Repo Validation / Conclusion` becomes `validate / Conclu
 
 ### npm scripts
 
-| Old script (every package unless noted)                       | New script                                                   |
-| ------------------------------------------------------------- | ------------------------------------------------------------ |
-| `delivery.build`                                              | `build`                                                      |
-| `sourceQuality.staticAnalysis`                                | `lint:code`                                                  |
-| `verification.typeSafety`                                     | `typecheck`                                                  |
-| `verification.unitTests`                                      | `test:unit`                                                  |
-| `test:watch`                                                  | `test:watch` (unchanged dev script)                          |
-| (new, generated)                                              | `test` and `lint` suite aliases, `holocron run <suite>`      |
-| `delivery.deploy`, `delivery.previewDeploy` (`apps/sentinel`) | `deploy`, `deploy-preview`                                   |
-| `validate` (16 plugins)                                       | `validate:plugin`                                            |
-| `build`, `dev`, `preview` (`docs`)                            | `build-docs`, `dev`, `preview`                               |
-| root `build`: `turbo run delivery.build`                      | `turbo run build`                                            |
-| root `lint`: `turbo run sourceQuality.staticAnalysis`         | `holocron run lint`; plus `lint:code`, `lint:markdown`, ...  |
-| root `test`: `turbo run verification.unitTests -- --coverage` | `holocron run test`; plus `test:unit`                        |
-| root `typecheck`: `turbo run verification.typeSafety`         | `holocron run typecheck`                                     |
-| root `format`: `prettier --write .`                           | `holocron run format` (same effect; `--check` for read-only) |
-| `skills`: `verification.unitTests` (node --test)              | `test:unit` (same command)                                   |
+| Old script (every package unless noted)                       | New script                                                                                                                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `delivery.build`                                              | `build`                                                                                                                                                    |
+| `sourceQuality.staticAnalysis`                                | `lint:code`                                                                                                                                                |
+| `verification.typeSafety`                                     | `typecheck`                                                                                                                                                |
+| `verification.unitTests` (`vitest run`)                       | `test:unit` (`vitest run --coverage`)                                                                                                                      |
+| `test:watch`                                                  | `test:watch` (unchanged dev script)                                                                                                                        |
+| `delivery.deploy`, `delivery.previewDeploy` (`apps/sentinel`) | `deploy`, `deploy:preview` (script spelling of `deploy-preview`)                                                                                           |
+| `validate` (16 plugins)                                       | `validate:plugin`                                                                                                                                          |
+| `build`, `dev`, `preview` (`docs`)                            | `build-docs`, `dev`, `preview`                                                                                                                             |
+| root `build`: `turbo run delivery.build`                      | `turbo run build`                                                                                                                                          |
+| root `lint`: `turbo run sourceQuality.staticAnalysis`         | `turbo run lint` (the suite aggregator); plus `lint:code` (`turbo run lint:code`), `lint:markdown` and the other repo-scoped leaves as their tool commands |
+| root `test`: `turbo run verification.unitTests -- --coverage` | `turbo run test`; plus `turbo run test:unit` (no `-- --coverage`)                                                                                          |
+| root `typecheck`: `turbo run verification.typeSafety`         | `turbo run typecheck`                                                                                                                                      |
+| root `format`: `prettier --write .`                           | unchanged                                                                                                                                                  |
+| (single-package repos, no turbo)                              | `holocron run <task>` bodies, see "Root `package.json` (single package, no turbo)"                                                                         |
+| `skills`: `verification.unitTests` (node --test)              | `test:unit` (same command)                                                                                                                                 |
 
 Root `lint` changes meaning: it ran one leaf and now runs the suite (code, editorconfig, markdown, data, unused,
 commits), which is what `pnpm lint` means to a contributor. It is slower; `pnpm lint:code` is the old behavior.
@@ -673,7 +759,8 @@ commits), which is what `pnpm lint` means to a contributor. It is slower; `pnpm 
   ruleset still lists. So each needs the maintainer's merge with the ruleset edited around it (replace the per-task
   contexts with `ci`, in the same sitting), once. It is the last time. `holocron repo setup` (strict) writes the
   derived list, so the edit is `repo setup` run once per repo after the merge.
-- **What is not affected**: Codecov contexts, DCO, and any check posted by Sentinel.
+- **What is not affected**: `DCO`, and any check posted by Sentinel. The `codecov/*` statuses leave the ruleset and are
+  waited on by `ci`.
 - **If the promotion slips**: steps 2 to 5 are still worth landing. Holocron's own checks and ruleset change once, now.
 
 ### Deprecation alias
@@ -714,21 +801,21 @@ Needed, for two reasons that are independent of the check names: the frozen reus
 Suggested issues. None are created by this spec. Each is one PR unless noted; every PR carries its own tests and docs
 (org rule), so there are no "docs follow-up" issues.
 
-| #   | Issue                                                                                             | Depends on           | Notes                                                                                                                                                                     |
-| --- | ------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G   | `feat(ci): ✅ one stable required check: the ci aggregate with a failing-job summary`             | spec accepted        | `ci/workflows/ci.yml`, generator, `expected` from `required: true`, summary and annotations, `requiredChecks()`, holocron ruleset swap (13 contexts to `ci`)              |
-| H   | `fix(notifications): 🔔 name the failing jobs in the failed-run post`                             | none                 | `actions: read`, job names and links, max five; independent of every rename                                                                                               |
-| A   | `refactor(astromech): 🏷️ flat verb-first task ids and suites in the registry, runner and config`  | spec accepted        | colon ids, suites, `[job]` resolution, `format` leaf, `release`, `LEGACY_NAMES`, aliases in `run` and `tasks:`, `--help` grouping, reserved names, package-scope behavior |
-| B   | `refactor(astromech): ♻️ generate turbo.json and package scripts from the flat ids`               | A                    | turbo keys, `repo sync` script migration and generated `test`/`lint` aliases, recursion rules, README `sync-readme` check, `pnpm run` for built-ins                       |
-| C   | `refactor(repo): ♻️ rename scripts and tasks across this monorepo` (mechanical)                   | A, B                 | 73 packages, root scripts, `docs` `build-docs`, plugin `validate:plugin`, `tasks:` lists                                                                                  |
-| D   | `feat(cli): ✅ holocron probe tasks names and the doctor ruleset comparison`                      | A                    | leftover detection; lands before C so C is verified by it                                                                                                                 |
-| E   | `refactor(ci): 🗂️ group ci/ sources by suite and generate flat reusables`                         | A                    | `idFromSource`/`workflowFile`, glob templates, `release.config.ts` paths, layout and uniqueness tests                                                                     |
-| F   | `refactor(ci): 🏷️ workflow, job and file names are the task id; replace the grouping guard`       | E, G                 | caller generator + legacy gate, `ci.<id>.yml`, `platform.notifications.yml`, identity tests; **no ruleset step** once G is in                                             |
-| I   | `refactor(ci): ✂️ split the formatting workflow: lint:editorconfig, lint:markdown, format action` | F                    | the `ci/actions/format` composite (check plus existing auto-commit-fix, unchanged behavior), prettier hosted by `lint:code`                                               |
-| J   | `refactor(astromech): ✂️ split repoValidation into validate:specs and validate:docs`              | F                    | drops `jobs:`, `retiredJobs` and the `Conclusion` aggregator                                                                                                              |
-| K   | `refactor(ci): 🧭 flip CI_HOME to ci-v1 and repoint the 8 repos on the flat names`                | #1101, `ci-v1`, F, G | this is #1478 with the rename and the aggregate folded in; one PR per repo, one ruleset swap per repo                                                                     |
-| L   | `chore(astromech): 🔥 remove the dotted aliases and LEGACY_NAMES`                                 | K, #1216             | breaking                                                                                                                                                                  |
-| M   | `feat(configs): 🧩 presets speak the flat ids`                                                    | A                    | ships with the next natural configs release, not a forced one                                                                                                             |
+| #   | Issue                                                                                             | Depends on           | Notes                                                                                                                                                                                                                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| G   | `feat(ci): ✅ one stable required check: the ci aggregate with a failing-job summary`             | spec accepted        | `ci/workflows/ci.yml` (polling job), generator, `expected` from `required: true` and `statuses` from the `codecov/` extras, summary and annotations, `requiredChecks()` returns `ci` and `DCO`, holocron ruleset swap (13 contexts and `codecov/*` to `ci`)                                                        |
+| H   | `fix(notifications): 🔔 name the failing jobs in the failed-run post`                             | none                 | `actions: read`, job names and links, max five; independent of every rename                                                                                                                                                                                                                                        |
+| A   | `refactor(astromech): 🏷️ flat verb-first task ids and suites in the registry, runner and config`  | spec accepted        | colon ids, suites, `[job]` resolution, `format` leaf, `release`, `LEGACY_NAMES`, aliases in `run` and `tasks:`, `--help` grouping, reserved names, package-scope behavior                                                                                                                                          |
+| B   | `refactor(astromech): ♻️ generate turbo.json and package scripts from the flat ids`               | A                    | `scriptsFor` (turbo-direct root scripts, `holocron run` bodies for single-package repos), suite aggregator and `//#` keys in `turbo.json`, `syncScripts` on here, script-spelling colon rule, recursion checks, `sync-readme` check, `pnpm run` for built-ins, `--coverage` flag removed (coverage in `test:unit`) |
+| C   | `refactor(repo): ♻️ rename scripts and tasks across this monorepo` (mechanical)                   | A, B                 | 73 packages, root scripts, `docs` `build-docs`, plugin `validate:plugin`, `tasks:` lists                                                                                                                                                                                                                           |
+| D   | `feat(cli): ✅ holocron probe tasks names and the doctor ruleset comparison`                      | A                    | leftover detection; lands before C so C is verified by it                                                                                                                                                                                                                                                          |
+| E   | `refactor(ci): 🗂️ group ci/ sources by suite and generate flat reusables`                         | A                    | `idFromSource`/`workflowFile`, glob templates, `release.config.ts` paths, layout and uniqueness tests                                                                                                                                                                                                              |
+| F   | `refactor(ci): 🏷️ workflow, job and file names are the task id; replace the grouping guard`       | E, G                 | caller generator + legacy gate, `ci.<id>.yml`, `platform.notifications.yml`, identity tests; **no ruleset step** once G is in                                                                                                                                                                                      |
+| I   | `refactor(ci): ✂️ split the formatting workflow: lint:editorconfig, lint:markdown, format action` | F                    | the `ci/actions/format` composite (check plus existing auto-commit-fix, unchanged behavior), prettier hosted by `lint:code`                                                                                                                                                                                        |
+| J   | `refactor(astromech): ✂️ split repoValidation into validate:specs and validate:docs`              | F                    | drops `jobs:`, `retiredJobs` and the `Conclusion` aggregator                                                                                                                                                                                                                                                       |
+| K   | `refactor(ci): 🧭 flip CI_HOME to ci-v1 and repoint the 8 repos on the flat names`                | #1101, `ci-v1`, F, G | this is #1478 with the rename and the aggregate folded in; one PR per repo, one ruleset swap per repo                                                                                                                                                                                                              |
+| L   | `chore(astromech): 🔥 remove the dotted aliases and LEGACY_NAMES`                                 | K, #1216             | breaking                                                                                                                                                                                                                                                                                                           |
+| M   | `feat(configs): 🧩 presets speak the flat ids`                                                    | A                    | ships with the next natural configs release, not a forced one                                                                                                                                                                                                                                                      |
 
 Docs (`config.mdx` "Task vocabulary", command pages, `AGENTS.md`, READMEs) are part of A, B, C, F and G, each updating
 its own part. #1547 is subsumed by G and F: its "decide the target label per task" is answered here (the id), and its
@@ -737,36 +824,36 @@ for the Sentinel-posted checks.
 
 ## Open questions
 
-1. **How the aggregate waits.** The spec picks one polling job in the PR's own workflow (simple, testable inside the
-   rename PR, free on a public repo, a runner idle for the length of the CI). The alternatives are a `workflow_run`
-   workflow (no idle runner, but it runs the default branch's file, so it breaks inside a rename PR) or Sentinel posting
-   the check (fits the app, but a new dependency for every repo). Also: re-running one failed leaf leaves `ci` red until
-   `ci` is re-run too; is that acceptable, or should the aggregate re-run itself?
-2. **Where prettier's CI check lives.** `format` has no workflow of its own; this spec hosts the existing check and the
+Resolved and folded into the decisions: the colon spelling, `format` as a verb, `release`, the aggregate check and its
+mechanism (a polling job, with Sentinel posting it as a documented later option), `DCO` separate and `codecov/*` inside
+`ci`, hyphen compounds as colon scripts only, no `--coverage` flag, and turbo-direct scripts in turbo repos.
+
+1. **Where prettier's CI check lives.** `format` has no workflow of its own; this spec hosts the existing check and the
    opt-in auto-commit-fix in an action called by `lint:code`. Confirm that, and confirm (see "not confirmed" above) that
    no repo enables the auto-fix and whether the linters ever write in CI.
-3. **`preview.yml`.** One reusable for `deploy-docs`, `deploy-components` and the workflow-only `preview`. Keep it as the
+2. **`preview.yml`.** One reusable for `deploy-docs`, `deploy-components` and the workflow-only `preview`. Keep it as the
    one shared exception to "one file per leaf", or give each its own file?
-4. **Sentinel's checks** (`Platform / Compliance / ...`, five lint-split checks) are named by the app. Align them with
-   the ids, or leave them under #989? Should the aggregate also wait on them?
-5. **DCO and `codecov/*` in the aggregate.** They are external statuses, not check runs. Leave them required next to
-   `ci` (this spec), or let `ci` wait on them too so the ruleset is exactly one context?
-6. **The `holocron` bin in this repo, and `syncScripts`.** Root scripts spelled `holocron run ...` need the bin on the
-   path, but in a fresh checkout it is not linked until the CLI is built (the `holocron` script exists for that bootstrap).
-   Spell the scripts `pnpm holocron run ...` here, link the bin earlier, or both? And turn `syncScripts` on in this repo so
-   the root and package scripts are generated, not only validated?
-7. **Arguments after a suite.** `pnpm test --coverage` forwards to one tool for a leaf, but means what for a suite of
-   several? This spec errors; the alternative is to forward to every member that accepts it.
+3. **Sentinel's checks** (`Platform / Compliance / ...`, five lint-split checks) are named by the app. Align them with
+   the ids, or leave them under #989? When Sentinel is healthy (#1100), should it post `ci` itself?
+4. **Where coverage lives.** The spec puts `--coverage` in each package's `test:unit` script (73 packages are edited for
+   the rename anyway). The alternative is `coverage.enabled` in the shared `@theholocron/vitest-config`, one place, but
+   it ships with the configs group's next natural release. Which?
+5. **No suite alias inside a package.** In a turbo repo a package cannot carry `test` or `lint` (turbo would run it too,
+   and it would loop), so `pnpm test` inside a package fails and the contributor types `pnpm test:unit`. Acceptable?
+6. **Reading prettier without writing.** The root `format` script writes. Spell the read-only form `holocron run format
+--check` only, or add a root `format:check` script (`prettier --check .`)? Also untried: whether `--check` appended to
+   a `--write` script works.
+7. **Things tried only in part.** The suite aggregator was tried with colon names, a leaf missing from a package, a
+   `//#` root task and `--filter`; `--affected` with a suite and the cache behavior of `//#` tasks were not. The
+   `workflow_run.workflows` filter with a colon-bearing name was not either, and whether `codecov/patch/documentation`
+   posts on every PR decides if it can be in `ci`'s `statuses` everywhere.
 8. **The Storybook, interaction and user-flow jobs** inside `test:unit` are gated by `run-*` inputs behind a `Conclusion`
    job, which is the shape decision 3 rules out. Split them into `test:storybook`, `test:a11y` and `test:flow` leaves in a
    later phase, or accept them as jobs?
-9. **Hyphen compounds.** `deploy-preview`, `check-tokens` and `sync-repo` stay hyphenated because they are not suite
-   members. Confirm, or make them suites with colons (`deploy:preview`, `check:tokens`), which would make `check` and
-   `deploy` suites and needs a rule that some suites are not runnable as a whole.
-10. **The `[job]` argument.** `holocron run test unit storybook` needs the longest-match rule; confirm no existing
-    `holocron run <task> <job>` call has a job named like a qualifier (only `adrs` and `docsPresence` are used today, and
-    both go away with the `validate` split).
-11. **The `notify` workflow filter.** Replace the `workflows:` list with the ids, or generate it from the registry so it
-    cannot drift? And test that a colon-bearing workflow name matches in `workflow_run.workflows`.
-12. **Does the repoint PR need a ruleset bypass actor** on every one of the 8 repos? The one-time swap in each needs the
+9. **The `[job]` argument.** `holocron run test unit storybook` needs the longest-match rule; confirm no existing
+   `holocron run <task> <job>` call has a job named like a qualifier (only `adrs` and `docsPresence` are used today, and
+   both go away with the `validate` split).
+10. **The `notify` workflow filter.** Replace the `workflows:` list with the ids, or generate it from the registry so it
+    cannot drift?
+11. **Does the repoint PR need a ruleset bypass actor** on every one of the 8 repos? The one-time swap in each needs the
     maintainer to be able to merge a PR that posts `ci` and not the old contexts.
