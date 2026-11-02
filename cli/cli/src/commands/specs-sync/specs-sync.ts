@@ -21,6 +21,7 @@ import { describeProviderError, logReason } from "../../ui/provider-error/index.
 import { style } from "../../ui/style/index.js";
 import { notificationProviders, pickProvider } from "../notifications-channel-add/index.js";
 import { forumChannel } from "./forum-channel.js";
+import { rateLimitedFor } from "./rate-limit.js";
 import { readDocuments } from "./read-documents.js";
 import type { RunSpecsSyncInput, SpecsSyncReport, SpecSyncOutcome } from "./specs-sync.type.js";
 import { syncDocument } from "./sync-document.js";
@@ -94,6 +95,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	let ok = 0;
 	let skipped = 0;
 	let failed = 0;
+	let rateLimited: SpecsSyncReport["rateLimited"];
 	print(`\n${style.header(`ADRs and specs → #${forum.channel}`)}`);
 	for (const doc of documents) {
 		let outcome: SpecSyncOutcome;
@@ -114,6 +116,13 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 					: {}),
 			});
 		} catch (err) {
+			// A rate limit is not about this document. Stop here instead of firing calls that will be refused too: what is left
+			// is made on the next run, which finds what this one made.
+			const wait = rateLimitedFor(err);
+			if (wait !== undefined) {
+				rateLimited = { left: documents.length - files.length, retryAfter: wait };
+				break;
+			}
 			outcome = { path: doc.path, did: [], problem: describeProviderError(err), text: doc.text };
 			logger.warn({ path: doc.path, reason: logReason(err) }, "specs sync");
 		}
@@ -133,6 +142,14 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		}
 	}
 
+	if (rateLimited) {
+		const after = rateLimited.retryAfter > 0 ? `; it asks for ${rateLimited.retryAfter} seconds` : "";
+		print(
+			`  ${style.skip(`stopped: the provider is rate limiting${after}. ${rateLimited.left} document(s) are left for the next run`)}`
+		);
+		skipped += rateLimited.left;
+	}
+
 	const status = failed > 0 ? "fail" : dryRun ? "dry-run" : "ok";
 	print("");
 	print(style.header(`${ok} ok, ${failed} fail, ${skipped} skipped`));
@@ -140,5 +157,5 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		{ provider: notifications.providerName, channel: forum.channel, files: files.length, failed, status },
 		"specs sync"
 	);
-	return { status, files };
+	return { status, files, ...(rateLimited ? { rateLimited } : {}) };
 }

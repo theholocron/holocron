@@ -233,6 +233,46 @@ describe("runSpecsSync", () => {
 		expect(body(noPr)).toBe("SPEC-0001\n\nAbout A.");
 	});
 
+	it("stops at the first rate limit instead of trying the rest, and does not fail the run", async () => {
+		const files = {
+			".notes/a.spec.md": spec("A", "proposed", "SPEC-0001"),
+			".notes/b.spec.md": spec("B", "proposed", "SPEC-0002"),
+			".notes/c.spec.md": spec("C", "proposed", "SPEC-0003"),
+			".notes/d.spec.md": spec("D", "proposed", "SPEC-0004"),
+		};
+		const { io, written } = makeIo(files);
+		const ensureDiscussion = vi
+			.fn()
+			.mockResolvedValueOnce({ post: { url: URL, state: "proposed", synced: "proposed" }, created: true })
+			.mockRejectedValue(new ProviderApiError("Discord 429", 429, '{"retry_after":253.2}'));
+		const { run, lines } = setup(fakeNotifications({ ensureDiscussion }), io);
+
+		const report = await run();
+
+		expect(report.status).toBe("ok");
+		expect(report.rateLimited).toEqual({ left: 3, retryAfter: 254 });
+		expect(ensureDiscussion).toHaveBeenCalledTimes(2);
+		expect(Object.keys(written)).toEqual([".notes/a.spec.md"]);
+		const out = lines.join("\n");
+		expect(out).toContain(
+			"stopped: the provider is rate limiting; it asks for 254 seconds. 3 document(s) are left for the next run"
+		);
+		expect(out).toContain("1 ok, 0 fail, 3 skipped");
+	});
+
+	it("stops at a rate limit that does not say for how long, without naming a time", async () => {
+		const { io } = makeIo({ ".notes/a.spec.md": spec("A", "proposed") });
+		const ensureDiscussion = vi.fn().mockRejectedValue(new ProviderApiError("Discord 429", 429, "slow down"));
+		const { run, lines } = setup(fakeNotifications({ ensureDiscussion }), io);
+
+		const report = await run();
+
+		expect(report.rateLimited).toEqual({ left: 1, retryAfter: 0 });
+		expect(lines.join("\n")).toContain(
+			"stopped: the provider is rate limiting. 1 document(s) are left for the next run"
+		);
+	});
+
 	it("prints to the console, and logs with the shared logger, when none is given", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		const { run } = setup(fakeNotifications(), makeIo({ ".notes/a.spec.md": spec("A", "proposed") }).io, {
