@@ -1262,6 +1262,49 @@ describe("runSetup", () => {
 		});
 	});
 
+	it("requires only `ci` and `DCO` in the repo that hosts the ci aggregate", async () => {
+		const dir = await mkdtemp(join(tmpdir(), "holo-aggregate-"));
+		await mkdir(join(dir, "ci"));
+		await writeFile(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }), "utf8");
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			extraRequiredChecks: ["codecov/patch"],
+			tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: dir }, loader, print: () => {} });
+		await rm(dir, { recursive: true, force: true });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		expect(checksRule?.parameters).toMatchObject({
+			required_status_checks: [{ context: "ci" }, { context: "DCO" }],
+		});
+	});
+
 	it("deduplicates workflow names when building required checks", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({

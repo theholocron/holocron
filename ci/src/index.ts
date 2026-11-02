@@ -11,6 +11,7 @@ import notifyAction from "../actions/notify/action.yml";
 import setupAction from "../actions/setup/action.yml";
 import setupNodeAction from "../actions/setup-node/action.yml";
 import bookkeepingWorkflow from "../workflows/bookkeeping.yml";
+import ciWorkflow from "../workflows/ci.yml";
 import buildWorkflow from "../workflows/delivery.build.yml";
 import bundleSizeWorkflow from "../workflows/delivery.bundleSize.yml";
 import deployWorkflow from "../workflows/delivery.deploy.yml";
@@ -74,6 +75,7 @@ export const WORKFLOWS: Record<string, string> = {
 	"platform.dispatchedCheck": dispatchedCheckWorkflow,
 	"knowledge.wiki": wikiWorkflow,
 	bookkeeping: bookkeepingWorkflow,
+	ci: ciWorkflow,
 	dependencies: dependenciesWorkflow,
 	preview: previewWorkflow,
 	greetings: greetingsWorkflow,

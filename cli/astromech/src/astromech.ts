@@ -9,6 +9,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import type { Astromech, AstromechOptions } from "./astromech.type.js";
 import { normalizeTaskEntry, type TaskEntry } from "./config/schema/index.js";
 import {
+	aggregateCaller as resolveAggregateCaller,
+	aggregateChecks,
 	codecovConfig as resolveCodecovConfig,
 	type CodecovConfigOptions,
 	deriveDeployPaths,
@@ -207,7 +209,12 @@ export function createAstromech(options: AstromechOptions): Astromech {
 
 		reusableTemplates: () => resolveReusableTemplates(),
 
-		requiredChecks: () => resolveRequiredChecks(options.config ?? {}),
+		requiredChecks: (aggregate: boolean) => resolveRequiredChecks(options.config ?? {}, aggregate),
+
+		aggregateCaller: () => {
+			const checks = aggregateChecks(options.config ?? {});
+			return checks.expected.length === 0 && checks.statuses.length === 0 ? null : resolveAggregateCaller(checks);
+		},
 
 		codecovConfig: (existing: string | null, codecov?: CodecovConfigOptions) =>
 			resolveCodecovConfig(options.cwd, existing, codecov),

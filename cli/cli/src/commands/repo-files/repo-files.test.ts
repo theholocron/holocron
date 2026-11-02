@@ -163,7 +163,9 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 
 	it("names the callers ci.<name>.yml and has them call the reusable in the same checkout", () => {
 		host();
-		const callers = generate().filter((entry) => entry.kind === "file" && entry.path.includes("/ci."));
+		const callers = generate().filter(
+			(entry) => entry.kind === "file" && entry.path.includes("/ci.") && entry.step.startsWith("write workflow")
+		);
 		expect(callers.map((entry) => entry.kind === "file" && entry.workflow.filename)).toEqual([
 			"ci.stale.yml",
 			"ci.verification.unitTests.yml",
@@ -196,6 +198,59 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		expect(stale.content).toContain("# Source package: .\n");
 		expect(stale.content).toMatch(/^on: # yamllint disable-line rule:truthy\n {2}workflow_call:/m);
 		expect(stale.workflow).toEqual({ task: "stale", filename: "stale.yml" });
+	});
+
+	describe("the ci aggregate caller", () => {
+		const aggregate = () =>
+			generateWorkflowFiles({
+				loaded: loadedFrom({
+					name: "x",
+					tasks: ["stale", { name: "verification.typeSafety", required: true }],
+					extraRequiredChecks: ["codecov/patch", "Generated files / Check"],
+				}),
+				repoRoot: root,
+				logger: getLogger(),
+			});
+
+		it("is written as ci.ci.yml, calling the reusable in the same checkout, with what the manifest requires", () => {
+			host();
+			const entry = aggregate().find((e) => e.kind === "file" && e.path === ".github/workflows/ci.ci.yml");
+			if (!entry || entry.kind !== "file") throw new Error("expected ci.ci.yml");
+			expect(entry.workflow).toEqual({ task: "ci", filename: "ci.ci.yml" });
+			expect(entry.step).toBe("write workflow ci");
+			expect(entry.syncStep).toBe("sync workflow ci");
+			expect(entry.content).toContain("# Source package: .\n");
+			expect(entry.content).toContain("    uses: ./.github/workflows/ci.yml\n");
+			expect(entry.content).toContain(`      expected: '["Typecheck","Generated files"]'\n`);
+			expect(entry.content).toContain(`      statuses: '["codecov/patch"]'\n`);
+		});
+
+		it("is not written when nothing is required", () => {
+			host();
+			expect(generate().some((e) => e.kind === "file" && e.path.endsWith("ci.ci.yml"))).toBe(false);
+		});
+
+		it("is not written in a repo that does not host the reusables", () => {
+			expect(aggregate().some((e) => e.kind === "file" && e.path.endsWith("ci.yml"))).toBe(false);
+		});
+
+		it("is not written from a package's own config", () => {
+			host();
+			mkdirSync(join(root, "apps"));
+			mkdirSync(join(root, "apps", "web"));
+			const entries = generateWorkflowFiles({
+				loaded: {
+					...loadedFrom({
+						name: "x",
+						tasks: [{ name: "verification.typeSafety", required: true }],
+					}),
+					filepath: join(root, "apps", "web", "holocron.config.json"),
+				},
+				repoRoot: root,
+				logger: getLogger(),
+			});
+			expect(entries.some((e) => e.kind === "file" && e.path.endsWith("ci.ci.yml"))).toBe(false);
+		});
 	});
 
 	it("leaves a repo without the ci package alone: plain names, references, no reusables", () => {

@@ -23,6 +23,8 @@
 
 export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
+export type { AggregateChecks } from "./generators/aggregate-checks/index.js";
+export { aggregateChecks } from "./generators/aggregate-checks/index.js";
 export { localize } from "./generators/ci-ref/index.js";
 export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";
 export {
@@ -55,7 +57,7 @@ export {
 	WORKFLOW_CHECK_CONTEXTS,
 	WORKFLOW_TEMPLATES,
 } from "./generators/github-action-thin-callers/index.js";
-export { requiredChecks } from "./generators/required-checks/index.js";
+export { AGGREGATE_CHECK, requiredChecks } from "./generators/required-checks/index.js";
 export type { TsconfigOptions } from "./generators/tsconfig/index.js";
 export { createTsconfig } from "./generators/tsconfig/index.js";
 export type { JobDef, LocalRunner, TaskDef } from "./registry/index.js";

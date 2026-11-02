@@ -5,6 +5,7 @@ import type { ResolvedHolocronConfig } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plugin/index.js";
 import { declaredVsActual } from "../doctor-checks/index.js";
+import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { RULESET_NAME } from "../setup/branch-protection.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "../setup/labels.js";
 import { BALANCED_REPO_SETTINGS } from "../setup/repo-settings.js";
@@ -258,5 +259,7 @@ function declaredProperties(config: ResolvedHolocronConfig): Map<string, string>
 function strictChecks(config: ResolvedHolocronConfig, repoRoot: string): string[] {
 	const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
 	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
-	return ["DCO", ...createAstromech({ cwd: repoRoot, config: tasksConfig, logger: getLogger() }).requiredChecks()];
+	return createAstromech({ cwd: repoRoot, config: tasksConfig, logger: getLogger() }).requiredChecks(
+		hostsReusables(repoRoot)
+	);
 }

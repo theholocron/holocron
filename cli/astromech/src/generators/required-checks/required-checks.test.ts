@@ -1,78 +1,38 @@
 import { describe, expect, it } from "vitest";
 
-import { requiredChecks } from "./required-checks.js";
+import { AGGREGATE_CHECK, requiredChecks } from "./required-checks.js";
 
 describe("requiredChecks", () => {
-	it("returns [] with no config", () => {
-		expect(requiredChecks({})).toEqual([]);
+	it("names the aggregate check `ci`", () => {
+		expect(AGGREGATE_CHECK).toBe("ci");
 	});
 
-	it("returns [] when tasks exist but none are required", () => {
+	it("is `ci` and `DCO` with the aggregate, whatever the manifest holds", () => {
+		expect(requiredChecks({}, true)).toEqual(["ci", "DCO"]);
 		expect(
-			requiredChecks({
-				tasks: ["sourceQuality.staticAnalysis", "verification.unitTests", { name: "verification.typeSafety" }],
-			})
-		).toEqual([]);
+			requiredChecks(
+				{
+					tasks: [{ name: "verification.typeSafety", required: true }],
+					extraRequiredChecks: ["codecov/patch", "Generated files / Check"],
+				},
+				true
+			)
+		).toEqual(["ci", "DCO"]);
 	});
 
-	it("maps each required task to its check context", () => {
+	it("is `DCO` then the per-task contexts then the extras without the aggregate", () => {
 		expect(
-			requiredChecks({
-				tasks: [
-					{ name: "sourceQuality.staticAnalysis", required: true },
-					{ name: "verification.unitTests", required: true },
-					{ name: "verification.typeSafety", required: true },
-				],
-			})
-		).toEqual(["Typecheck / Run tsc --noEmit", "Static Analysis / Run eslint and actionlint", "Test / Conclusion"]);
+			requiredChecks(
+				{
+					tasks: [{ name: "verification.typeSafety", required: true }],
+					extraRequiredChecks: ["codecov/patch"],
+				},
+				false
+			)
+		).toEqual(["DCO", "Typecheck / Run tsc --noEmit", "codecov/patch"]);
 	});
 
-	it("orders task contexts by CI_ORDER regardless of manifest order", () => {
-		expect(
-			requiredChecks({
-				tasks: [
-					{ name: "verification.unitTests", required: true },
-					{ name: "verification.typeSafety", required: true },
-					{ name: "sourceQuality.staticAnalysis", required: true },
-					{ name: "delivery.bundleSize", required: true },
-				],
-			})
-		).toEqual([
-			"Typecheck / Run tsc --noEmit",
-			"Static Analysis / Run eslint and actionlint",
-			"Test / Conclusion",
-			"Audit the Bundle Size / Upload bundle stats to Codecov",
-		]);
-	});
-
-	it("appends extraRequiredChecks after the task contexts, in declared order", () => {
-		expect(
-			requiredChecks({
-				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
-				extraRequiredChecks: ["codecov/patch", "codecov/project", "tsdown (every workspace)"],
-			})
-		).toEqual([
-			"Static Analysis / Run eslint and actionlint",
-			"codecov/patch",
-			"codecov/project",
-			"tsdown (every workspace)",
-		]);
-	});
-
-	it("de-duplicates a context that appears as both a task context and an extra", () => {
-		expect(
-			requiredChecks({
-				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
-				extraRequiredChecks: ["Static Analysis / Run eslint and actionlint", "codecov/patch"],
-			})
-		).toEqual(["Static Analysis / Run eslint and actionlint", "codecov/patch"]);
-	});
-
-	it("ignores a required task with no known check context", () => {
-		expect(requiredChecks({ tasks: [{ name: "delivery.deploy", required: true }] })).toEqual([]);
-	});
-
-	it("accepts a bare string task (never required)", () => {
-		expect(requiredChecks({ tasks: ["sourceQuality.staticAnalysis"], extraRequiredChecks: ["X"] })).toEqual(["X"]);
+	it("lists `DCO` once when an extra repeats it", () => {
+		expect(requiredChecks({ extraRequiredChecks: ["DCO", "X"] }, false)).toEqual(["DCO", "X"]);
 	});
 });

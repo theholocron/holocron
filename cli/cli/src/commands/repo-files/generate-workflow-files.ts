@@ -27,12 +27,13 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	const pkgRelPath = resolvePkgRelPath(gitRoot, input.loaded.filepath);
 	// A previewDeploy with a non-root cwd and no `with.paths` gets one from its workspace dependencies (holocron#1023).
 	const tasks = withAutoPreviewDeployPaths(config.tasks, gitRoot);
-	const files = createAstromech({
+	const astromech = createAstromech({
 		cwd: input.repoRoot,
-		config: { tasks: tasks as TasksConfig["tasks"] },
+		config: { tasks: tasks as TasksConfig["tasks"], extraRequiredChecks: config.extraRequiredChecks },
 		orgContext: { org: config.org, domain: config.domain },
 		logger: input.logger ?? getLogger(),
-	}).thinCallers();
+	});
+	const files = astromech.thinCallers();
 
 	// A package's own config (apps/sentinel) generates callers with the reusables' names too, so all of them move.
 	const hosting = hostsReusables(gitRoot);
@@ -70,6 +71,20 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 
 	// Written once, by the root config; a package's config would stamp them with its own `# Source package:`.
 	if (hosting && pkgRelPath === ".") {
+		// The `ci` aggregate (#1613): one caller that waits on everything the manifest marks required. Only here, in the
+		// repo that hosts `ci.yml`; the other repos call frozen copies that have none until `CI_HOME` moves.
+		const aggregate = astromech.aggregateCaller();
+		if (aggregate !== null) {
+			const filename = `${HOSTED_CALLER_PREFIX}ci.yml`;
+			entries.push({
+				kind: "file",
+				path: `.github/workflows/${filename}`,
+				content: thinCallerFile(pkgRelPath, localize(aggregate)),
+				step: "write workflow ci",
+				syncStep: "sync workflow ci",
+				workflow: { task: "ci", filename },
+			});
+		}
 		for (const [name, content] of hostedReusableWorkflows()) {
 			entries.push({
 				kind: "file",

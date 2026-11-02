@@ -1,0 +1,27 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: CI
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  checks: read
+  statuses: read
+  contents: read
+
+jobs:
+  ci:
+    name: ci
+    uses: ./.github/workflows/ci.yml
+    with:
+      expected: '["Typecheck","Static Analysis","Formatting","Structured Data Validation","Secret Detection","Commit Standards","Repo Validation","Test","Build","Dead Code Analysis","Audit the Bundle Size","Dependency catalogs","Generated files"]'
+      statuses: '["codecov/patch","codecov/project","codecov/patch/documentation"]'

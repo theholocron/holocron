@@ -48,6 +48,7 @@ import {
 	type Workers,
 } from "../../plugin/index.js";
 import { style, withSpinner } from "../../ui/index.js";
+import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
@@ -155,14 +156,11 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
 			const requiredChecks =
 				effectivePreset === "strict"
-					? [
-							"DCO",
-							...createAstromech({
-								cwd: input.context.repoRoot,
-								config: tasksConfig,
-								logger,
-							}).requiredChecks(),
-						]
+					? createAstromech({
+							cwd: input.context.repoRoot,
+							config: tasksConfig,
+							logger,
+						}).requiredChecks(hostsReusables(input.context.repoRoot))
 					: [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
 			print(formatStep(steps[steps.length - 1]!));

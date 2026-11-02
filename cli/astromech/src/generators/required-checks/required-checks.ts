@@ -1,39 +1,23 @@
 /**
- * `requiredChecks(config)` — the branch-protection required-status-check list,
- * derived from the task manifest. Every `required: true` task contributes its
- * {@link WORKFLOW_CHECK_CONTEXTS} entry; `config.extraRequiredChecks` adds
- * contexts not backed by a task (codecov, DCO is prepended by the caller).
+ * `requiredChecks(config, aggregate)` — the branch-protection required-status-check list.
  *
- * `@theholocron/cli`'s `holocron repo setup` calls this instead of the old
- * hand-maintained `repo.requiredChecks` array. Policy-free — it only knows the
- * manifest.
+ * With the `ci` aggregate (the repo hosts it) the ruleset is `ci` and `DCO`: `ci` waits on every `required: true` task,
+ * the hand-written checks and the `codecov/*` statuses ({@link aggregateChecks}), and `DCO` stays its own context
+ * because it comes from the DCO app. Without it, the list is what it was before the aggregate: `DCO`, the per-task
+ * contexts, then `extraRequiredChecks` ({@link taskCheckContexts}); a repo that has no `ci` caller yet must not be told
+ * to require a check nobody posts.
+ *
+ * `@theholocron/cli`'s `holocron repo setup` calls this. Policy-free — it only knows the manifest.
  */
 
-import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
-import { CI_ORDER } from "../../registry/index.js";
-import { WORKFLOW_CHECK_CONTEXTS } from "../github-action-thin-callers/index.js";
+import type { TasksConfig } from "../../config/schema/index.js";
+import { taskCheckContexts } from "../task-check-contexts/index.js";
 
-/** Ordered (task contexts in {@link CI_ORDER}, then extras), de-duplicated. */
-export function requiredChecks(config: TasksConfig): string[] {
-	const entries = (config.tasks ?? []).map(normalizeTaskEntry);
-	const seen = new Set<string>();
-	const out: string[] = [];
+/** The name of the aggregate check. */
+export const AGGREGATE_CHECK = "ci";
 
-	for (const name of CI_ORDER) {
-		const required = entries.some((e) => e.name === name && e.required === true);
-		const context = required ? WORKFLOW_CHECK_CONTEXTS[name] : undefined;
-		if (context && !seen.has(context)) {
-			seen.add(context);
-			out.push(context);
-		}
-	}
-
-	for (const context of config.extraRequiredChecks ?? []) {
-		if (!seen.has(context)) {
-			seen.add(context);
-			out.push(context);
-		}
-	}
-
-	return out;
+/** Ordered, de-duplicated. */
+export function requiredChecks(config: TasksConfig, aggregate: boolean): string[] {
+	if (aggregate) return [AGGREGATE_CHECK, "DCO"];
+	return [...new Set(["DCO", ...taskCheckContexts(config)])];
 }

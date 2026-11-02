@@ -248,7 +248,13 @@ posts, instead of reporting pass/fail.
 `holocron repo setup` builds the branch-protection required-check list from the
 manifest, not a hand-maintained array:
 
-- `"DCO"` (hard-prepended), then
+In the repo that hosts the reusable workflows (holocron itself) the list is `ci` and `DCO`. `ci` is the aggregate
+check (`ci/workflows/ci.yml`, written by `repo setup` / `repo sync` as `.github/workflows/ci.ci.yml`): it waits on
+every `{ required: true }` task, the hand-written checks in `extraRequiredChecks` and its `codecov/*` statuses, and its
+job summary lists each of them with a link, failing ones first. `DCO` stays its own required context. In any other
+repo, which has no `ci` caller yet, the list is:
+
+- `"DCO"`, then
 - every `{ required: true }` task's workflow check context (`Lint / Conclusion`,
   `Test / Conclusion`, `Typecheck / Conclusion`, `audit / Conclusion`), walked
   in CI order, then

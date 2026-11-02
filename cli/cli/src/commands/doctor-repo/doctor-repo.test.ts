@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 
 import { fakeLogger } from "@theholocron/observability/testing";
@@ -24,7 +27,11 @@ const loadedWith = (extra: Record<string, unknown> = {}): LoadedConfig => ({
 	filepath: "/tmp/test/holocron.config.json",
 });
 
-function loaderWith(loaded: LoadedConfig, source: Record<string, unknown> | null): PluginLoader {
+function loaderWith(
+	loaded: LoadedConfig,
+	source: Record<string, unknown> | null,
+	repoRoot = "/tmp/test"
+): PluginLoader {
 	const importer = vi.fn(async (pkg: string) => {
 		if (pkg !== "@theholocron/holocron-plugin-github" || !source) throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
 		return {
@@ -34,15 +41,15 @@ function loaderWith(loaded: LoadedConfig, source: Record<string, unknown> | null
 			}),
 		} as unknown as Awaited<ReturnType<PluginImporter>>;
 	});
-	return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter);
+	return new PluginLoader(loaded.resolved, { repoRoot }, importer as unknown as PluginImporter);
 }
 
-async function run(loaded: LoadedConfig, source: Record<string, unknown> | null) {
+async function run(loaded: LoadedConfig, source: Record<string, unknown> | null, repoRoot = "/tmp/test") {
 	const lines: string[] = [];
 	const report = await runDoctorRepo({
 		loaded,
-		context: { repoRoot: "/tmp/test" },
-		loader: loaderWith(loaded, source),
+		context: { repoRoot },
+		loader: loaderWith(loaded, source, repoRoot),
 		print: (l) => lines.push(stripVTControlCharacters(l)),
 		logger: fakeLogger(),
 	});
@@ -300,6 +307,33 @@ describe("doctor repo — branch protection", () => {
 		expect(problems).toContain("missing ruleset rule required_status_checks");
 		expect(problems).toContain("missing required check DCO");
 		expect(problems).toContain("unexpected required check Stale / Check");
+	});
+
+	it("expects only `ci` and `DCO` in the repo that hosts the ci aggregate", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "doctor-aggregate-"));
+		mkdirSync(join(dir, "ci"));
+		writeFileSync(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }));
+		const { report } = await run(
+			strict,
+			{
+				...base,
+				getProperties: async () => ({}),
+				listRulesets: async () => [RULESET],
+				getRulesetDetail: async () => ({
+					name: RULESET.name,
+					enforcement: "active",
+					ruleTypes: ["deletion", "non_fast_forward", "pull_request", "required_status_checks"],
+					requiredChecks: ["DCO", "Test / Conclusion", "Extra / Check"],
+				}),
+			},
+			dir
+		);
+		rmSync(dir, { recursive: true, force: true });
+		const problems = byId(report.rows, "repo-protection").problems;
+		expect(problems).toContain("missing required check ci");
+		expect(problems).toContain("unexpected required check Test / Conclusion");
+		expect(problems).toContain("unexpected required check Extra / Check");
+		expect(problems).not.toContain("missing required check DCO");
 	});
 
 	it("passes a strict ruleset whose rules and checks match what setup derives", async () => {
