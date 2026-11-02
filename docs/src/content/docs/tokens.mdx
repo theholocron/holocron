@@ -15,6 +15,8 @@ For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.),
 → keyring("github.<feature>") (stored via `holocron auth set`)
 ```
 
+Each keyring entry is read once per command: the answer, a missing entry included, is remembered until the command ends, so the OS keychain is asked once per token and not on every lookup. Nothing is cached between commands.
+
 No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command differs: `sync-wiki` takes the token from the environment (`HOLOCRON_READ_TOKEN`, then `GH_TOKEN`, then `GITHUB_TOKEN`) and only then from the keyring entry `github.read`, so it works in a GitHub Actions job with no extra setup and from a token stored with `holocron auth set github.read`.
 
 ## Provider token resolution

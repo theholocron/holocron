@@ -22,14 +22,35 @@ import { Entry, findCredentials } from "@napi-rs/keyring";
 const SERVICE = "com.theholocron.cli";
 
 /**
+ * What `getToken` has already read, by provider, for the life of this process. A miss (`null`) is remembered too, so
+ * a token that is not stored, or a keyring that is unavailable, is asked about once, not on every lookup. The OS
+ * keyring can prompt on each read, and several resolvers ask for the same entry in one command.
+ *
+ * It lives in memory only. A cache that outlived the process would mean writing tokens somewhere else, which is
+ * what the keyring is there to avoid.
+ */
+const cache = new Map<string, string | null>();
+
+/**
+ * Forget every token `getToken` has remembered, so the next read asks the keyring again. `setToken` and
+ * `deleteToken` already keep the cache right for what they change; this is for a test, or after the keyring was
+ * changed from outside the process.
+ */
+export function clearTokenCache(): void {
+	cache.clear();
+}
+
+/**
  * Store or overwrite a bootstrap token for a provider. Returns true on
  * success, false when the underlying keyring is unsupported or errored.
  */
 export function setToken(provider: string, token: string): boolean {
 	try {
 		new Entry(SERVICE, provider).setPassword(token);
+		cache.set(provider, token);
 		return true;
 	} catch {
+		cache.delete(provider);
 		return false;
 	}
 }
@@ -37,14 +58,20 @@ export function setToken(provider: string, token: string): boolean {
 /**
  * Read the bootstrap token for a provider. Returns `null` for both
  * "not stored" and "keyring unavailable" — callers can treat them the
- * same way (fall through to env-var precedence).
+ * same way (fall through to env-var precedence). The answer is
+ * remembered for the rest of the process, so the keyring is asked once
+ * per provider.
  */
 export function getToken(provider: string): string | null {
+	if (cache.has(provider)) return cache.get(provider)!;
+	let token: string | null;
 	try {
-		return new Entry(SERVICE, provider).getPassword();
+		token = new Entry(SERVICE, provider).getPassword();
 	} catch {
-		return null;
+		token = null;
 	}
+	cache.set(provider, token);
+	return token;
 }
 
 /**
@@ -55,8 +82,11 @@ export function getToken(provider: string): string | null {
  */
 export function deleteToken(provider: string): boolean {
 	try {
-		return new Entry(SERVICE, provider).deletePassword();
+		const removed = new Entry(SERVICE, provider).deletePassword();
+		cache.set(provider, null);
+		return removed;
 	} catch {
+		cache.delete(provider);
 		return false;
 	}
 }
