@@ -1,3 +1,21 @@
+## [5.0.0-alpha.288](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.287...v5.0.0-alpha.288) (2026-11-02)
+
+### Features
+
+* **cli:** 🔄 add holocron specs sync to keep a forum post per ADR and spec ([#1542](https://github.com/theholocron/holocron/issues/1542)) ([7b4c131](https://github.com/theholocron/holocron/commit/7b4c131f8e1070ee4fe959b7ec6809212bcf91a3)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+* **discord-client:** 🧵 add forum posts and threads to the bot client ([#1539](https://github.com/theholocron/holocron/issues/1539)) ([cbd4e0b](https://github.com/theholocron/holocron/commit/cbd4e0bb6c14a44fcc5c0a0ae6f7ed4dba594754)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+* **notifications:** 🗂️ declare a forum channel with status tags in the layout ([#1540](https://github.com/theholocron/holocron/issues/1540)) ([e452cb2](https://github.com/theholocron/holocron/commit/e452cb2c1ea07f57e51c2de95569aa4f9f4213ca)), closes [#ideas](https://github.com/theholocron/holocron/issues/ideas) [#1535](https://github.com/theholocron/holocron/issues/1535)
+* **notifications:** 🧵 find, make and change a document's discussion post ([#1541](https://github.com/theholocron/holocron/issues/1541)) ([71314af](https://github.com/theholocron/holocron/commit/71314af4a0ab8dd5e99e6a3f0538683f25c0774c)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+* **specs:** 🔢 number the specs and open each discussion post with its id and pull request ([#1544](https://github.com/theholocron/holocron/issues/1544)) ([b3660a8](https://github.com/theholocron/holocron/commit/b3660a85bf1fa32a0ee75057912ffa7c8c514036)), closes [#1538](https://github.com/theholocron/holocron/issues/1538) [#1535](https://github.com/theholocron/holocron/issues/1535)
+
+### Bug Fixes
+
+* **notifications:** 🗂️ fix forum setup: welcome, onboarding, and the Manage Threads grant ([#1546](https://github.com/theholocron/holocron/issues/1546)) ([4846277](https://github.com/theholocron/holocron/commit/4846277f28f9418ab892fa236619a217ba2af8fe)), closes [#ideas](https://github.com/theholocron/holocron/issues/ideas) [#1535](https://github.com/theholocron/holocron/issues/1535)
+
+### Documentation
+
+* **specs:** 📝 propose a forum post for each ADR and spec, kept in step by a batch job ([#1538](https://github.com/theholocron/holocron/issues/1538)) ([6f535cc](https://github.com/theholocron/holocron/commit/6f535cc2c37ab3414ee78ae18bb05622c87aad12))
+
 ## [5.0.0-alpha.287](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.286...v5.0.0-alpha.287) (2026-11-01)
 
 ### Features
