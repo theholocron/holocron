@@ -1,3 +1,21 @@
+## [5.0.0-alpha.294](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.293...v5.0.0-alpha.294) (2026-11-02)
+
+### Features
+
+* **cli:** 🩺 doctor dns checks Sentinel's record, the docs domain and the mail records ([#1583](https://github.com/theholocron/holocron/issues/1583)) ([d878d47](https://github.com/theholocron/holocron/commit/d878d473ac882f71e87abacae22af4a570293b1d)), closes [#1568](https://github.com/theholocron/holocron/issues/1568)
+
+### Documentation
+
+* 🌐 inventory of the theholocron.dev names, records and who serves them ([#1584](https://github.com/theholocron/holocron/issues/1584)) ([d33e6de](https://github.com/theholocron/holocron/commit/d33e6de3b4a84f7d315284c4a8ce46a77a4bc039))
+* **notifications:** 📚 document notify, the HOLOCRON_NOTIFY_* secrets, notifyCheck and the Notifications workflow ([#1592](https://github.com/theholocron/holocron/issues/1592)) ([fa1930d](https://github.com/theholocron/holocron/commit/fa1930db59ce6868466cf53b6599c7e40c7b21c3)), closes [#1576](https://github.com/theholocron/holocron/issues/1576)
+* **notifications:** 📝 list what reaches Discord on its own ([#1159](https://github.com/theholocron/holocron/issues/1159)) ([#1588](https://github.com/theholocron/holocron/issues/1588)) ([70b6067](https://github.com/theholocron/holocron/commit/70b60679cb0d893fcce9501a9defef5dc75f8e1e))
+* **specs:** 🧵 finish the move off GitHub Discussions ([#1589](https://github.com/theholocron/holocron/issues/1589)) ([ae23cf0](https://github.com/theholocron/holocron/commit/ae23cf0fe492a8051a985c39fb2f93bd591af3c0)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+
+### Chores
+
+* **notifications:** 🧪 add rules and welcome to platform.notifyCheck ([#1590](https://github.com/theholocron/holocron/issues/1590)) ([80af39a](https://github.com/theholocron/holocron/commit/80af39a061deaa6089cf7f1b12342cb1a9ddfcbb)), closes [#1574](https://github.com/theholocron/holocron/issues/1574)
+* **notifications:** 🧹 make the spec-post title wording agree with the code ([#1591](https://github.com/theholocron/holocron/issues/1591)) ([bdbaa36](https://github.com/theholocron/holocron/commit/bdbaa36ea9bebd35b195ee77c1c7fc38f902ac49)), closes [#1160](https://github.com/theholocron/holocron/issues/1160) [#ideas](https://github.com/theholocron/holocron/issues/ideas) [#1575](https://github.com/theholocron/holocron/issues/1575)
+
 ## [5.0.0-alpha.293](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.292...v5.0.0-alpha.293) (2026-11-02)
 
 ### Features
