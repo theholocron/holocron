@@ -1,3 +1,13 @@
+## [5.0.0-alpha.300](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.299...v5.0.0-alpha.300) (2026-11-02)
+
+### Features
+
+* **auth:** 🔐 a credentials capability that reads tokens from a 1Password Environment ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1611](https://github.com/theholocron/holocron/issues/1611)) ([7fa2757](https://github.com/theholocron/holocron/commit/7fa27572373cd5e84efca149de6f77b0c65176fa))
+
+### Documentation
+
+* **ci:** 📐 spec: a flat verb vocabulary for tasks, workflows and scripts ([#1610](https://github.com/theholocron/holocron/issues/1610)) ([05c6fa5](https://github.com/theholocron/holocron/commit/05c6fa570b4e915a1f50dc746d5afeefbe9ef8fa)), closes [#1262](https://github.com/theholocron/holocron/issues/1262) [#1262](https://github.com/theholocron/holocron/issues/1262)
+
 ## [5.0.0-alpha.299](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.298...v5.0.0-alpha.299) (2026-11-02)
 
 ### Bug Fixes
