@@ -1,3 +1,9 @@
+## [5.0.0-alpha.292](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.291...v5.0.0-alpha.292) (2026-11-02)
+
+### Features
+
+* **notifications:** 📣 post the doctor result to Discord with --post ([#1585](https://github.com/theholocron/holocron/issues/1585)) ([#1586](https://github.com/theholocron/holocron/issues/1586)) ([fc11f9a](https://github.com/theholocron/holocron/commit/fc11f9a0e435cae2290e3bf2743b198bbea9ad3e))
+
 ## [5.0.0-alpha.291](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.290...v5.0.0-alpha.291) (2026-11-02)
 
 ### Features
