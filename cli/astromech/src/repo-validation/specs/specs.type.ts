@@ -7,7 +7,7 @@ export interface SpecField {
 }
 
 /**
- * A file's frontmatter by key. One level of nesting is keyed `parent.child` (`discussion.github`), and the parent
+ * A file's frontmatter by key. One level of nesting is keyed `parent.child` (`discussion.url`), and the parent
  * key is there too.
  */
 export type SpecFrontmatter = Map<string, SpecField>;

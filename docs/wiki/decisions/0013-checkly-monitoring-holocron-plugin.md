@@ -8,7 +8,6 @@ specs:
   - docs/wiki/specifications/tool-checkly-sourcery-adoption.spec.md
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618658535374918
-  github: https://github.com/theholocron/holocron/pull/997
 supersedes: []
 superseded-by: []
 tags: [monitoring, checkly, plugin, sentinel]

@@ -13,7 +13,7 @@ const GOOD_ADR = md(
 	"status: accepted",
 	"date: 2026-05-01",
 	"discussion:",
-	"  github: https://github.com/o/r/pull/1",
+	"  url: https://discord.com/channels/1/2",
 	"---"
 );
 const GOOD_SPEC = md("---", "id: SPEC-0001", "status: draft", "issue: theholocron/holocron#1", "---");
