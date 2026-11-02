@@ -4,7 +4,7 @@ description: Check the declared layout against the server and the secrets store,
 ---
 
 ```bash
-holocron doctor notifications [--scope <scope>] [--provider <name>] [--built-only] [--deliver]
+holocron doctor notifications [--scope <scope>] [--provider <name>] [--built-only] [--deliver] [--post [channel]]
 ```
 
 Compares the `layout` a `notifications` provider declares in `holocron.config.ts` with what is actually on the server and in the secrets store, and prints one line per step. A plain run changes nothing except one labelled test message it leaves in the layout's `testChannel` (see `post-works`); `--built-only` is fully read-only, so it is safe to run at any time. It exits non-zero while any step fails.
@@ -93,11 +93,14 @@ The steps use the tokens the providers already take, so nothing new is needed. T
 
 ## Options
 
-| Option              | Default | Description                                                                                                                               |
-| ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `--scope <scope>`   | the org | Where the layout's secrets live: `repo`, `env=<name>`, or `org=<name>`                                                                    |
-| `--provider <name>` | —       | Which `notifications` provider, when more than one can inspect                                                                            |
-| `--built-only`      | `false` | Post no test message (a routine drift check, fully read-only)                                                                             |
-| `--deliver`         | `false` | Post a test message through every channel's webhook, read it back and remove it. Works with `--built-only`, which otherwise posts nothing |
+| Option              | Default | Description                                                                                                                                                                                                                                                                   |
+| ------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--scope <scope>`   | the org | Where the layout's secrets live: `repo`, `env=<name>`, or `org=<name>`                                                                                                                                                                                                        |
+| `--provider <name>` | —       | Which `notifications` provider, when more than one can inspect                                                                                                                                                                                                                |
+| `--built-only`      | `false` | Post no test message (a routine drift check, fully read-only)                                                                                                                                                                                                                 |
+| `--deliver`         | `false` | Post a test message through every channel's webhook, read it back and remove it. Works with `--built-only`, which otherwise posts nothing                                                                                                                                     |
+| `--post [channel]`  | off     | After the run, post the result to a channel as the bot (`alerts` when no channel is named). A run with failures posts each failing step and its problems; a clean run posts only the summary line. A post that cannot be made is reported and does not change the exit status |
+
+`--post` is for sharing a drift check you ran yourself: the provider tokens it reads with stay on your machine, and the bot token is the only credential that posts. Every Monday a scheduled workflow (`platform.doctorReminder.yml`) posts a reminder to run `holocron doctor notifications --built-only --post`.
 
 Terminal control characters in anything read from the server are stripped, and the structured log records only each step's verdict, never what was found.

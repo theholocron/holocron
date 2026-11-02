@@ -7,6 +7,7 @@ export interface DoctorNotificationsArgs extends GlobalArgs {
 	provider?: string;
 	"built-only": boolean;
 	deliver: boolean;
+	post?: string;
 }
 
 export const doctorNotificationsArgs = (y: Argv<GlobalArgs>): Argv<DoctorNotificationsArgs> =>
@@ -29,4 +30,9 @@ export const doctorNotificationsArgs = (y: Argv<GlobalArgs>): Argv<DoctorNotific
 			default: false,
 			describe:
 				"Post a test message through every channel's webhook, read it back and remove it (works with --built-only)",
+		})
+		.option("post", {
+			type: "string",
+			describe:
+				"After the run, post the result to a channel as the bot: the failing steps, or only the summary when none failed (default channel: alerts)",
 		});

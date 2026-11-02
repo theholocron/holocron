@@ -13,6 +13,13 @@ export const doctorNotificationsEntry: CommandEntry = {
 			default: false,
 			message: "Post a test message through every channel's webhook (each removes itself)?",
 		},
+		{
+			key: "post",
+			flag: "--post",
+			type: "confirm",
+			default: false,
+			message: "Post the result to #alerts (the failures, or just the summary)?",
+		},
 	],
 	supportsDryRun: false,
 };

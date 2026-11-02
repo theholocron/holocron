@@ -34,6 +34,7 @@ import {
 } from "../notifications-channel-add/index.js";
 import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
+import { postDoctorReport } from "../post-doctor-report/index.js";
 import { relayChecks } from "../relay-checks/index.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { sentryRelayChecks } from "../sentry-relay-checks/index.js";
@@ -974,5 +975,8 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	}
 	const summary = summarise();
 	printCheckSummary({ ok: summary.pass, fail: summary.fail, skip: summary.skip }, print);
+	if (input.post !== undefined) {
+		print(`  ${style.skip(await postDoctorReport(notifications, input.post, { checks, summary }))}`);
+	}
 	return finish();
 }

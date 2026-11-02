@@ -26,6 +26,8 @@ export const doctorNotificationsCommand: CommandModule<GlobalArgs, DoctorNotific
 			...(argv.provider ? { provider: argv.provider } : {}),
 			...(argv.builtOnly ? { builtOnly: true } : {}),
 			...(argv.deliver ? { deliver: true } : {}),
+			// A bare `--post` is an empty string: the default channel.
+			...(argv.post !== undefined ? { post: argv.post || "alerts" } : {}),
 		});
 		if (report.status === "fail") process.exitCode = 1;
 	},
