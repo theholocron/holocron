@@ -6,8 +6,11 @@
 # Tells Discord about the runs nobody is watching (#1159, epic #1160):
 #
 # - A workflow that fails on `alpha` or `main` (not a pull request) posts to #alerts and pings the gatekeepers. A failed
-#   Deploy, Preview, Preview Deploy or Sentinel Deploy goes to #deploys instead. The daily Token Expiry run is in the
+#   Deploy, Preview, Preview Deploy, Preview Check or Sentinel Deploy goes to #deploys instead. The daily Token Expiry run is in the
 #   list, so a token close to expiring reaches #alerts the day it is found.
+# - A deploy, preview or Preview Check that succeeds posts to #deploys too (#1578), on any branch and for a pull
+#   request, so the channel shows every deploy and not only the broken ones. That is deliberately noisy; narrow the
+#   `deployed` job's `if` to dial it back.
 # - A release (the Delivery run of `delivery.publish.yml`) that succeeds posts the tags it made to #releases. The tags
 #   come from git, not from GitHub releases: a package line (`clients-v*`, `utils-v*`) is tagged but has no release.
 #
@@ -61,17 +64,46 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: "Notify #deploys"
-        if: ${{ contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml') }}
+        if: ${{ contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml') || endsWith(github.event.workflow_run.path, 'delivery.previewCheck.yml') }}
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS }}
           message: ${{ steps.message.outputs.text }}
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: "Notify #alerts"
-        if: ${{ !(contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml')) }}
+        if: ${{ !(contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml') || endsWith(github.event.workflow_run.path, 'delivery.previewCheck.yml')) }}
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
           mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
+          message: ${{ steps.message.outputs.text }}
+
+  deployed:
+    name: Notify of a deploy
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      (contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) ||
+      endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml') ||
+      endsWith(github.event.workflow_run.path, 'delivery.previewCheck.yml'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      WORKFLOW: ${{ github.event.workflow_run.name }}
+      FILE: ${{ github.event.workflow_run.path }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      EVENT: ${{ github.event.workflow_run.event }}
+      URL: ${{ github.event.workflow_run.html_url }}
+    steps:
+      - name: Word the message
+        id: message
+        run: |
+          where="on $BRANCH"
+          if [ "$EVENT" = "pull_request" ]; then where="for a pull request ($BRANCH)"; fi
+          echo "text=✅ ${GITHUB_REPOSITORY}: $WORKFLOW (${FILE##*/}) succeeded $where — $URL" >> "$GITHUB_OUTPUT"
+
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: "Notify #deploys"
+        with:
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS }}
           message: ${{ steps.message.outputs.text }}
 
   released:
