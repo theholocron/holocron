@@ -1,0 +1,32 @@
+---
+title: Domains
+description: Every name under theholocron.dev, what it points at, whether Cloudflare proxies it, what serves it and where it is declared.
+---
+
+DNS for `theholocron.dev` lives in one place: Cloudflare (the zone's nameservers are `rosalyn.ns.cloudflare.com` and `dan.ns.cloudflare.com`). Other providers serve traffic, but none of them holds a DNS zone for the domain. Sentinel's compute is on Vercel; its record is still a Cloudflare record.
+
+This page is the inventory. It was written from `dig` and `curl` on 2026-11-02; the full Cloudflare record list was not read. The last column says which names [`holocron doctor dns`](/holocron/commands/doctor-dns/) checks, so a drift in those is caught rather than found by a visitor.
+
+## Names
+
+| Name                        | Record                                                                                | Proxied by Cloudflare | Served by                           | Declared in                                                                              | `doctor dns`                           |
+| --------------------------- | ------------------------------------------------------------------------------------- | --------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------- |
+| `wiki.theholocron.dev`      | `CNAME`, set by the `wiki` provider                                                   | yes                   | Fern, through a Cloudflare Worker   | `providers.wiki` (`fern`, `domain`) in `holocron.config.ts`                              | yes (record and proxy flag)            |
+| `comlink.theholocron.dev`   | `AAAA 100::` (placeholder)                                                            | yes                   | the Comlink Worker (`apps/comlink`) | `relay` in the notifications layout in `holocron.config.ts`                              | yes (record and proxy flag)            |
+| `preview.theholocron.dev`   | `CNAME` to `theholocron-preview.pages.dev`                                            | no                    | Cloudflare Pages                    | the preview domain of `delivery.deploy` / `knowledge.docs` tasks (`holocron repo setup`) | yes                                    |
+| `*.preview.theholocron.dev` | `CNAME` to `theholocron-preview.pages.dev`                                            | no                    | Cloudflare Pages                    | same as `preview`                                                                        | yes                                    |
+| `sentinel.theholocron.dev`  | `CNAME` to a Vercel target                                                            | no, and must stay off | Vercel (Sentinel's compute only)    | `providers.deployment` (`vercel`, `domain`) in `apps/sentinel/holocron.config.ts`        | yes: target read from Vercel, DNS-only |
+| `docs.theholocron.dev`      | `CNAME` to `theholocron.github.io`                                                    | no                    | GitHub Pages                        | open: see below                                                                          | only when `docs.domain` is declared    |
+| `theholocron.dev` (apex)    | `MX` to `mx01` and `mx02.mail.icloud.com`, `TXT` SPF `v=spf1 include:icloud.com ~all` | not applicable        | iCloud Mail                         | `doctor.mail: "icloud"` in `holocron.config.ts` (the records themselves are set by hand) | yes                                    |
+
+A proxied record hides the target behind Cloudflare, so `dig` shows Cloudflare addresses for `wiki` and `comlink`; that is how the proxy flag was read for those two. The Sentinel record has to stay DNS-only: a proxied record breaks the certificate Vercel issues for it. `doctor dns` reads the expected target from Vercel (read-only) and fails the row when the record is gone, points elsewhere or is proxied.
+
+The apex also carries a verification `TXT` record for Apple. Any change to the apex must keep it and the mail records above.
+
+## Open
+
+- **Who owns the `docs` record, and where it is declared.** The name resolves to GitHub Pages, but no `holocron.config.ts` sets `docs.domain` for it, so `doctor dns` does not check it. Setting `docs.domain` would also change what `repo setup` does to GitHub Pages, so it is left for the maintainer to decide. Tracked in the domains epic (#1572).
+- **The registrar.** Not recorded anywhere yet (#1571).
+- **The full Cloudflare record list.** Names above are the ones found live; a record that is in the zone but not here has not been looked for.
+
+Sentinel being down is not a DNS matter (Vercel returns 402, a billing issue, #1100).
