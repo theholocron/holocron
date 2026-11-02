@@ -58,6 +58,7 @@ describe("DiscordDiscussions.ensure", () => {
 			created: true,
 			post: {
 				url: `https://discord.com/channels/${GUILD}/5`,
+				key: INPUT.key,
 				state: "proposed",
 				synced: "proposed",
 			},
@@ -104,6 +105,7 @@ describe("DiscordDiscussions.ensure", () => {
 		expect(result.created).toBe(false);
 		expect(result.post).toEqual({
 			url: `https://discord.com/channels/${GUILD}/6`,
+			key: INPUT.key,
 			state: "proposed",
 			synced: "draft",
 		});
@@ -186,6 +188,7 @@ describe("DiscordDiscussions.read", () => {
 	it("gives the address, the one tag as the state, and what it last synced", async () => {
 		expect(await post(["903"]).read("ideas", INPUT.key)).toEqual({
 			url: `https://discord.com/channels/${GUILD}/5`,
+			key: INPUT.key,
 			state: "accepted",
 			synced: "proposed",
 		});
@@ -214,7 +217,7 @@ describe("DiscordDiscussions.read", () => {
 
 	it("has no synced state when the footer records none", async () => {
 		const found = await post(["902"], "").read("ideas", INPUT.key);
-		expect(found).toEqual({ url: `https://discord.com/channels/${GUILD}/5`, state: "proposed" });
+		expect(found).toEqual({ url: `https://discord.com/channels/${GUILD}/5`, key: INPUT.key, state: "proposed" });
 	});
 
 	it("is undefined for a document with no post", async () => {
@@ -387,5 +390,95 @@ describe("DiscordDiscussions — closed posts", () => {
 
 		expect(closed.calls).toHaveLength(3);
 		expect(idle.calls).toHaveLength(3);
+	});
+});
+
+describe("DiscordDiscussions — a document whose file moved", () => {
+	const OLD = ".notes/old.spec.md";
+	const NEW = "docs/wiki/specifications/old.spec.md";
+	const ADDRESS = `https://discord.com/channels/${GUILD}/5`;
+	const existing = () => make([...listing([thread("5")]), first("5", `About A.\n\n${footer(OLD, "proposed")}`)]);
+
+	it("finds the post by the address the file records and points it at the new path, instead of making a second post", async () => {
+		const { discussions, calls } = make([
+			...listing([thread("5")]),
+			first("5", `About A.\n\n${footer(OLD, "proposed")}`),
+			{ body: { id: "5", channel_id: "5", content: "" } },
+		]);
+
+		const result = await discussions.ensure({ ...INPUT, key: NEW, url: ADDRESS });
+
+		expect(result).toMatchObject({ created: false, rekeyed: true, post: { url: ADDRESS, key: NEW } });
+		expect(calls.filter((c) => c.method === "POST")).toHaveLength(0);
+		expect(calls.at(-1)).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/channels/5/messages/5`,
+			body: { content: `About A.\n\n${footer(NEW, "proposed")}` },
+		});
+		expect((await discussions.read("ideas", NEW))?.url).toBe(ADDRESS);
+		expect(await discussions.read("ideas", OLD)).toBeUndefined();
+	});
+
+	it("uses the key when it finds one, whatever address the file records", async () => {
+		const { discussions, calls } = make([
+			...listing([thread("5")]),
+			first("5", `About A.\n\n${footer(INPUT.key, "proposed")}`),
+		]);
+
+		const result = await discussions.ensure({ ...INPUT, url: "https://discord.com/channels/111/999" });
+
+		expect(result).toEqual({ created: false, post: expect.objectContaining({ key: INPUT.key }) });
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
+	it("makes a post when the recorded address names no post of this forum, or is not an address", async () => {
+		for (const url of ["https://discord.com/channels/111/999", "not an address", ""]) {
+			const { discussions } = make([
+				...listing([thread("5")]),
+				first("5", `About A.\n\n${footer(OLD, "proposed")}`),
+				{ body: thread("8") },
+			]);
+
+			expect((await discussions.ensure({ ...INPUT, key: NEW, url })).created).toBe(true);
+		}
+	});
+
+	it("reads the post by the address without writing, and says which path it records", async () => {
+		const { discussions, calls } = existing();
+
+		const post = await discussions.read("ideas", NEW, ADDRESS);
+
+		expect(post).toMatchObject({ url: ADDRESS, key: OLD });
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+		expect(await discussions.read("ideas", NEW)).toBeUndefined();
+	});
+
+	it("changes a post's key together with what it last synced, in one edit", async () => {
+		const { discussions, calls } = make([
+			...listing([thread("5")]),
+			first("5", `About A.\n\n${footer(OLD, "draft")}`),
+			{ body: { id: "5", channel_id: "5", content: "" } },
+		]);
+
+		await discussions.update("ideas", OLD, { key: NEW, synced: "accepted" });
+
+		expect(calls.filter((c) => c.method === "PATCH")).toHaveLength(1);
+		expect(calls.at(-1)?.body).toMatchObject({ content: `About A.\n\n${footer(NEW, "accepted")}` });
+		expect((await discussions.read("ideas", NEW))?.synced).toBe("accepted");
+	});
+
+	it("keeps an empty synced state empty when only the key changes", async () => {
+		const { discussions, calls } = make([
+			...listing([thread("5")]),
+			first("5", `About A.\n\n${footer(OLD, "")}`),
+			{ body: { id: "5", channel_id: "5", content: "" } },
+		]);
+
+		await discussions.update("ideas", OLD, { key: NEW });
+
+		expect((calls.at(-1)?.body as { content: string }).content).toMatch(
+			/-# sync: docs\/wiki\/specifications\/old\.spec\.md \| $/
+		);
+		expect((await discussions.read("ideas", NEW))?.synced).toBeUndefined();
 	});
 });

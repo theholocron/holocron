@@ -1506,6 +1506,8 @@ export interface EnsuredResource {
 export interface DiscussionPost {
 	/** The post's address, for the document's `discussion.url`. */
 	url: string;
+	/** The key the post records: the path of the document it was made for, which is not the document's path now when the file moved. */
+	key?: string;
 	/**
 	 * The post's state: the name of the one tag it carries. `undefined` when it carries none, or more than one, so there
 	 * is no single state to read.
@@ -1533,6 +1535,11 @@ export interface EnsureDiscussionInput {
 	quiet?: boolean;
 	/** Close the post as it is made, for a document that is already finished with. */
 	closed?: boolean;
+	/**
+	 * The address the document already records for its post. A post is found by `key`; when none has it, the one this
+	 * address names is the document's, moved, and its key is changed to `key` instead of a second post being made.
+	 */
+	url?: string;
 }
 
 /** What {@link Notifications.ensureDiscussion} found or made. */
@@ -1541,10 +1548,14 @@ export interface EnsuredDiscussion {
 	post: DiscussionPost;
 	/** Whether the post was made now rather than already existing. */
 	created: boolean;
+	/** Whether the post was found under the path the document had before it moved, and now records the new one. */
+	rekeyed?: boolean;
 }
 
 /** What {@link Notifications.updateDiscussion} changes; a field left out is left alone. */
 export interface DiscussionPatch {
+	/** A new key: the document moved, and the post records its new path. */
+	key?: string;
 	/** A new title. */
 	title?: string;
 	/** A new state: the name of one of the forum's tags. It replaces the post's tags. */
@@ -2123,8 +2134,11 @@ export interface Notifications extends ProviderIdentity {
 	 * {@link Notifications.updateDiscussion}. Idempotent, and the lookup reads archived posts too.
 	 */
 	ensureDiscussion?(input: EnsureDiscussionInput): Promise<EnsuredDiscussion>;
-	/** The discussion post for `key` in a forum channel, or `undefined` when there is none. */
-	readDiscussion?(channel: string, key: string): Promise<DiscussionPost | undefined>;
+	/**
+	 * The discussion post for `key` in a forum channel, or `undefined` when there is none. When none has `key`, the one the
+	 * document's recorded address (`url`) names is it, moved; its `key` then differs from the one asked for.
+	 */
+	readDiscussion?(channel: string, key: string, url?: string): Promise<DiscussionPost | undefined>;
 	/** Change the discussion post for `key`: its title, its state (the tag) and the state last synced. Throws when there is no post. */
 	updateDiscussion?(channel: string, key: string, patch: DiscussionPatch): Promise<void>;
 

@@ -14,6 +14,8 @@ const FOOTER = /^-# sync: (.+) \| (\S*)$/m;
 
 /** One post found in a forum: the thread, and the text of its first message. */
 interface Entry {
+	/** The key the footer records: the path of the document the post was made for. */
+	key: string;
 	thread: DiscordThread;
 	/** The first message's text, which holds the footer. */
 	content: string;
@@ -86,7 +88,12 @@ export class DiscordDiscussions {
 			const first = await bot.channels.message(thread.id, thread.id).catch(() => undefined);
 			const footer = first ? FOOTER.exec(first.content) : null;
 			if (first && footer) {
-				entries.set(footer[1]!, { thread, content: first.content, synced: footer[2] || undefined });
+				entries.set(footer[1]!, {
+					key: footer[1]!,
+					thread,
+					content: first.content,
+					synced: footer[2] || undefined,
+				});
 			}
 		}
 		return entries;
@@ -100,6 +107,7 @@ export class DiscordDiscussions {
 		const state = names.length === 1 ? names[0] : undefined;
 		return {
 			url: `https://discord.com/channels/${this.deps.guild()}/${entry.thread.id}`,
+			key: entry.key,
 			...(state ? { state } : {}),
 			...(entry.synced ? { synced: entry.synced } : {}),
 			...(entry.thread.thread_metadata.locked ? { closed: true } : {}),
@@ -114,12 +122,28 @@ export class DiscordDiscussions {
 		return `${text}\n\n${footer}`;
 	}
 
+	/**
+	 * The post for `key`; failing that, the one a recorded address names, which is the document's post when its file has
+	 * moved. Only a post of this forum is found, and a malformed or foreign address names none.
+	 */
+	private static find(posts: Map<string, Entry>, key: string, url: string | undefined): Entry | undefined {
+		const direct = posts.get(key);
+		if (direct) return direct;
+		const thread = url ? /\/channels\/\d+\/(\d+)\/?$/.exec(url)?.[1] : undefined;
+		return thread === undefined ? undefined : [...posts.values()].find((e) => e.thread.id === thread);
+	}
+
 	/** Find the post for `key`, or make it in the state asked for. */
 	async ensure(input: EnsureDiscussionInput): Promise<EnsuredDiscussion> {
 		const forum = await this.forum(input.channel);
 		const posts = await this.posts(forum);
-		const existing = posts.get(input.key);
-		if (existing) return { post: this.view(forum, existing), created: false };
+		const existing = DiscordDiscussions.find(posts, input.key, input.url);
+		if (existing) {
+			// Found by its address, not its key: the file moved, so the post follows it instead of being made again.
+			const moved = existing.key !== input.key;
+			if (moved) await this.update(input.channel, existing.key, { key: input.key });
+			return { post: this.view(forum, existing), created: false, ...(moved ? { rekeyed: true } : {}) };
+		}
 
 		const tag = this.tagId(forum, input.state);
 		const content = DiscordDiscussions.message(input.body, input.key, input.state);
@@ -132,26 +156,28 @@ export class DiscordDiscussions {
 		const thread = input.closed
 			? { ...made, ...(await this.deps.bot().threads.modify(made.id, { archived: true, locked: true })) }
 			: made;
-		const entry: Entry = { thread, content, synced: input.state };
+		const entry: Entry = { key: input.key, thread, content, synced: input.state };
 		posts.set(input.key, entry);
 		return { post: this.view(forum, entry), created: true };
 	}
 
-	/** The post for `key`, or `undefined`. */
-	async read(channel: string, key: string): Promise<DiscussionPost | undefined> {
+	/** The post for `key` (or the one `url` names, when the file moved), or `undefined`. It writes nothing. */
+	async read(channel: string, key: string, url?: string): Promise<DiscussionPost | undefined> {
 		const forum = await this.forum(channel);
-		const entry = (await this.posts(forum)).get(key);
+		const entry = DiscordDiscussions.find(await this.posts(forum), key, url);
 		return entry ? this.view(forum, entry) : undefined;
 	}
 
 	/**
-	 * Change the post for `key`: its title, its tag, whether it is closed, and the state it records as last synced. A
+	 * Change the post for `key`: its key (the file moved), its title, its tag, whether it is closed, and the state it
+	 * records as last synced. A
 	 * closed post is archived and locked. To write to one it is unarchived first and closed again after, and one that is
 	 * being reopened is unarchived and unlocked.
 	 */
 	async update(channel: string, key: string, patch: DiscussionPatch): Promise<void> {
 		const forum = await this.forum(channel);
-		const entry = (await this.posts(forum)).get(key);
+		const posts = await this.posts(forum);
+		const entry = posts.get(key);
 		if (!entry) throw new Error(`no discussion post for \`${key}\` in \`${channel}\``);
 		const bot = this.deps.bot();
 		const thread = entry.thread;
@@ -162,7 +188,8 @@ export class DiscordDiscussions {
 		const change: Parameters<DiscordBotClient["threads"]["modify"]>[1] = {};
 		if (patch.title !== undefined && patch.title !== thread.name) change.name = patch.title;
 		if (patch.state !== undefined) change.applied_tags = [this.tagId(forum, patch.state)];
-		const edited = patch.synced !== undefined && patch.synced !== entry.synced;
+		const nextKey = patch.key ?? key;
+		const edited = nextKey !== key || (patch.synced !== undefined && patch.synced !== entry.synced);
 		// An archived post is written to by unarchiving it, and it is only unarchived for that: one Discord archived for
 		// being quiet stays archived when there is nothing to write.
 		if ((Object.keys(change).length > 0 || edited || reopening) && thread.thread_metadata.archived) {
@@ -173,10 +200,16 @@ export class DiscordDiscussions {
 			entry.thread = { ...thread, ...(await bot.threads.modify(thread.id, change)) };
 		}
 		if (edited) {
-			const content = entry.content.replace(FOOTER, `-# sync: ${key} | ${patch.synced}`);
+			const synced = patch.synced ?? entry.synced ?? "";
+			const content = entry.content.replace(FOOTER, () => `-# sync: ${nextKey} | ${synced}`);
 			await bot.channels.editMessage(thread.id, thread.id, { content });
 			entry.content = content;
-			entry.synced = patch.synced || undefined;
+			entry.synced = synced || undefined;
+			if (nextKey !== key) {
+				posts.delete(key);
+				entry.key = nextKey;
+				posts.set(nextKey, entry);
+			}
 		}
 		// Closed last, so the writes above are not refused; again if they had to unarchive it.
 		if (wantClosed && (!wasClosed || change.archived === false)) {

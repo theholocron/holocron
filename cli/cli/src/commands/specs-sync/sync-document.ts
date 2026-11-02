@@ -44,10 +44,14 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		say(`numbered it ${id}`, `would number it ${id}`);
 	}
 
+	// The post is found by the path it was made for; when the file has moved, by the address the file records.
+	const url = front?.get("discussion.url")?.value || undefined;
+
 	let post: DiscussionPost | undefined;
 	if (dryRun) {
-		post = await notifications.readDiscussion!(channel, doc.path);
+		post = await notifications.readDiscussion!(channel, doc.path, url);
 		if (!post) return { path: doc.path, did: [...did, "would make the post and link it"], text };
+		if (post.key !== undefined && post.key !== doc.path) did.push("would follow the file to its new path");
 	} else {
 		const ensured = await notifications.ensureDiscussion!({
 			channel,
@@ -57,9 +61,11 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 			state: status,
 			quiet: deps.quiet,
 			closed: CLOSED_STATUSES.includes(status),
+			...(url ? { url } : {}),
 		});
 		post = ensured.post;
 		if (ensured.created) did.push("made the post");
+		if (ensured.rekeyed) did.push("followed the file to its new path");
 	}
 
 	const decision = reconcileSpecStatus({ file: status, tag: post.state, synced: post.synced });
