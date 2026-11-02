@@ -118,7 +118,7 @@ holocron.
 
 ```
 
-- `vault` (required) — the 1Password vault name items live in.
+- `vault` (optional) — the 1Password vault name items live in. Only `list()` needs it (`read` and `write` take the vault from the `op://` reference), and Environments are not in a vault, so a project that only reads an Environment can leave it out.
 - `account` (optional) — 1P account UUID. Passes `--account <UUID>`
   on every `op` call so the integration targets a specific account
   even when the developer has multiple signed in (e.g., work +
@@ -126,13 +126,12 @@ holocron.
 
 ## What's implemented
 
-| Method                | What it does                                                                       |
-| --------------------- | ---------------------------------------------------------------------------------- |
-| `read(reference)`     | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.          |
-| `write(reference, v)` | Probe + `op item edit` if exists, else `op item create --category=API Credential`. |
-| `list()`              | `op item list --vault=<vault> --format=json` — names of items in the vault.        |
-| `environments()`      | `op environment list --format=json` — names of 1P Environments.                    |
-| `readEnvironment(id)` | `op environment read <id>` — parses `KEY=VALUE` lines into a record.               |
+| Method                        | What it does                                                                                                                                                                                              |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read(reference)`             | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.                                                                                                                                 |
+| `write(reference, v)`         | Probe + `op item edit` if exists, else `op item create --category=API Credential`.                                                                                                                        |
+| `list()`                      | `op item list --vault=<vault> --format=json` — names of items in the vault.                                                                                                                               |
+| `readEnvironment(name or id)` | `op environment secret list <name or id> --reveal --format=dotenv` — parses the variables into a record. `op environment read` takes only an id, so this reads through `secret list`, which takes either. |
 
 Plugin-level exports (not capability methods, per the auth-bootstrap
 convention):

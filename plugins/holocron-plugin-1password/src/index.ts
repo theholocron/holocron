@@ -15,8 +15,11 @@ import { verifyToken } from "./verify-token.js";
 
 /** Options for the 1Password plugin: the vault and account to use plus the `op` binary overrides. */
 export interface OpPluginOptions extends VerifyInput {
-	/** 1P vault name items live in. Required. */
-	vault: string;
+	/**
+	 * 1P vault name items live in. Only listing a vault's items needs it; Environments are not in a vault, so a
+	 * project that only reads an Environment can leave it out.
+	 */
+	vault?: string;
 	/** Optional 1P account UUID; passed as `--account` on every op call. Useful when several accounts are signed in. */
 	account?: string;
 }
@@ -29,11 +32,8 @@ export interface PluginContext {
 	shell: OpShell;
 }
 
-/** Builds the plugin context; throws when `vault` is missing or the `op` binary is not installed. */
+/** Builds the plugin context; throws when the `op` binary is not installed. */
 export function createContext(options: OpPluginOptions): PluginContext {
-	if (!options.vault) {
-		throw new Error("@theholocron/holocron-plugin-1password requires `vault` in options");
-	}
 	// Fail fast if op isn't installed — better than a mystery error on
 	// the first capability call.
 	const verifyOpts: VerifyInput = {};
@@ -53,11 +53,11 @@ export function createContext(options: OpPluginOptions): PluginContext {
 
 /** Builds the `vault` capability for the configured vault. */
 export function vault(ctx: PluginContext): Vault {
-	return new OpVault(ctx.shell, { vault: ctx.options.vault });
+	return new OpVault(ctx.shell, ctx.options.vault !== undefined ? { vault: ctx.options.vault } : {});
 }
 
 /** Creates the 1Password plugin: its `connection` probe and the `vault` capability. */
-export function createPlugin(options: OpPluginOptions) {
+export function createPlugin(options: OpPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
 		name: "@theholocron/holocron-plugin-1password",
