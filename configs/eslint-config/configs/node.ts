@@ -1,6 +1,10 @@
 import type { Linter } from "eslint";
 import n from "eslint-plugin-n";
 
+/**
+ * ESLint rules for Node code: the `n` plugin's recommended ES module set, with the checks TypeScript already makes
+ * turned off.
+ */
 export function node(): Linter.FlatConfig[] {
 	return [
 		n.configs["flat/recommended-module"],

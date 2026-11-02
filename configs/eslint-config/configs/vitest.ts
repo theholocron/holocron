@@ -1,6 +1,7 @@
 import vitest from "@vitest/eslint-plugin";
 import type { Linter } from "eslint";
 
+/** ESLint rules for Vitest test and setup files. */
 export function vitestConfig(): Linter.Config[] {
 	return [
 		{

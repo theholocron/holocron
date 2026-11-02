@@ -21,4 +21,8 @@
 
 import { ALEX_IGNORE_PATTERNS } from "../alex-ignore-patterns/index.js";
 
+/**
+ * The paths Prettier skips in every repo: the ones inclusive-language checking skips, plus the pnpm lockfile, which
+ * pnpm writes itself.
+ */
 export const PRETTIER_IGNORE_PATTERNS: string[] = [...ALEX_IGNORE_PATTERNS, "pnpm-lock.yaml"];

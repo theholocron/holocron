@@ -2,6 +2,10 @@ import { type StorybookConfig } from "@storybook/react-vite";
 
 export type { StorybookConfig };
 
+/**
+ * The shared Storybook `main` config: the accessibility, coverage, essentials, interactions and links add-ons, on
+ * the React and Vite framework.
+ */
 export const storybookConfig: StorybookConfig = {
 	addons: [
 		"@storybook/addon-a11y",

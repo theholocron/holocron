@@ -9,6 +9,10 @@ import { storybook } from "../configs/storybook.js";
 import { typescript } from "../configs/typescript.js";
 import { vitest } from "../configs/vitest.js";
 
+/**
+ * The ESLint bundle for a Next.js application: the base, TypeScript, React, Storybook, Cypress, Next.js and Vitest
+ * rules, plus the `package.json` rules.
+ */
 export function nextApp(): Linter.FlatConfig[] {
 	return [
 		...base(),

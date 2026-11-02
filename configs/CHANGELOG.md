@@ -1,3 +1,9 @@
+## [8.9.0-alpha.6](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.5...configs-v8.9.0-alpha.6) (2026-11-02)
+
+### Features
+
+* **docs:** 📚 measure every package export, not only the root ([#1531](https://github.com/theholocron/holocron/issues/1531)) ([#1555](https://github.com/theholocron/holocron/issues/1555)) ([ac983a2](https://github.com/theholocron/holocron/commit/ac983a26faaacba3bb8980dd8c98c8677c5ab649))
+
 ## [8.9.0-alpha.5](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.4...configs-v8.9.0-alpha.5) (2026-11-01)
 
 ### Features

@@ -1,3 +1,4 @@
+/** One commitlint rule a commit message broke. */
 export interface CommitMessageViolation {
 	/** Rule name, e.g. `"subject-empty"`. */
 	rule: string;

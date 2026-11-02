@@ -1,5 +1,6 @@
 import type { Capability } from "../../config/compose/index.js";
 
+/** Options for the React capability. */
 export interface ReactOptions {
 	/** Extra `with:` inputs merged into the `test` workflow entry (e.g. run-chromatic). */
 	test?: Record<string, unknown>;

@@ -4,7 +4,9 @@ import { docs } from "../capabilities/docs.js";
 import { node } from "../capabilities/node.js";
 import { typecheck } from "../capabilities/typecheck.js";
 
+/** A composed preset for a TypeScript library that also publishes a documentation site. */
 export type DocsPreset = ComposedPreset;
+/** A composed preset for a documentation-only site with no TypeScript source. */
 export type DocsSitePreset = ComposedPreset;
 
 /**
