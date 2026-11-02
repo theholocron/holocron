@@ -11,6 +11,8 @@ related:
   - theholocron/holocron#1215
   - theholocron/holocron#1216
   - theholocron/holocron#672
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618559398805535
 ---
 
 # Affected-only CI with Turborepo and Codecov flags

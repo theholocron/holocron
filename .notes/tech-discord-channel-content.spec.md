@@ -9,6 +9,8 @@ related:
   - theholocron/holocron#1135
   - theholocron/holocron#1139
   - theholocron/holocron#1534
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618561265402017
 ---
 
 # Discord: channel content from files in the repository

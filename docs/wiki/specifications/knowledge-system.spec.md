@@ -10,6 +10,8 @@ related:
   - theholocron/.github-private#65
   - theholocron/holocron/docs/wiki/specifications/docs-architecture.spec.md
   - theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618718862053457
 ---
 
 # Engineering knowledge system — Git-canonical ADRs with Fern presentation

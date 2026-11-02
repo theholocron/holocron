@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#452
   - theholocron/holocron#521
   - theholocron/holocron/docs/wiki/decisions/0007-structured-logging-pino-axiom.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618720053502014
 ---
 
 # `@theholocron/logger` — structured logging package

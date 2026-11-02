@@ -6,6 +6,8 @@ blocked-by: []
 related:
   - theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md
   - theholocron/holocron/docs/wiki/specifications/knowledge-system.spec.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618741519941722
 ---
 
 # Process enforcement — three-layer feedback loop

@@ -11,6 +11,8 @@ related:
   - theholocron/holocron#680
   - theholocron/holocron#787
   - theholocron/holocron#789
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618572770250916
 ---
 
 # Sentinel as centralized CI runner

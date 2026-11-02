@@ -6,6 +6,8 @@ blocked-by: []
 related:
   - theholocron/holocron#996
   - theholocron/holocron/decisions/0013-checkly-monitoring-holocron-plugin.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620446156394496
 ---
 
 # Per-PR preview monitoring check

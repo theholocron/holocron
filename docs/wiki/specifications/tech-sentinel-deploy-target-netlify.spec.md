@@ -5,6 +5,8 @@ issue: theholocron/holocron#940
 blocked-by: [theholocron/holocron#945]
 related:
   - theholocron/holocron#679
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620403961692273
 ---
 
 # Sentinel's deploy target: Netlify Functions over Vercel Functions

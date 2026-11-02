@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#676
   - theholocron/holocron#678
   - theholocron/holocron#679
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620444797182153
 ---
 
 # Vocabulary + registry rename — astromech `TASKS`

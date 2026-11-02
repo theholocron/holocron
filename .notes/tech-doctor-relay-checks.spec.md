@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#1155
   - theholocron/holocron#1110
   - theholocron/holocron#1166
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618563580661916
 ---
 
 # Doctor: check the Checkly feed and the Comlink relay

@@ -4,6 +4,8 @@ status: archived
 issue: theholocron/holocron#992
 blocked-by: []
 related: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618740521435176
 ---
 
 # Move `holocron-plugin-*` packages to a top-level `plugins/` directory

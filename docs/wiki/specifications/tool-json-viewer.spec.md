@@ -4,6 +4,8 @@ status: archived
 issue: theholocron/holocron#971
 blocked-by: []
 related: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620484563505333
 ---
 
 # Built-in collapsible JSON viewer

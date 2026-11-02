@@ -6,6 +6,7 @@ date: 2026-10-13
 owners: []
 specs: []
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618661484105969
   github: https://github.com/theholocron/holocron/pull/83
 supersedes: []
 superseded-by: []

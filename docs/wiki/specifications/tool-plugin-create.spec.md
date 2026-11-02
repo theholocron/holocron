@@ -3,6 +3,8 @@ id: SPEC-0009
 status: archived
 issue: theholocron/holocron#77
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620485293449399
 ---
 
 <!-- editorconfig-checker-disable-file -->

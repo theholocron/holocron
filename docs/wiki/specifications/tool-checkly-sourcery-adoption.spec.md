@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#998
   - theholocron/clients#393
   - theholocron/clients#394
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620447200514088
 ---
 
 # Checkly + Sourcery adoption

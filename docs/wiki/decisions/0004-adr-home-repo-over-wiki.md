@@ -8,6 +8,7 @@ specs:
   - docs/wiki/specifications/docs-architecture.spec.md
   - docs/wiki/specifications/knowledge-system.spec.md
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618618857267314
   github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []

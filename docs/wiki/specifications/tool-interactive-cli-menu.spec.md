@@ -3,6 +3,8 @@ id: SPEC-0013
 status: accepted
 issue: theholocron/holocron#438
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620483246620754
 ---
 
 # Interactive CLI menu — no-args and missing-positional fallback

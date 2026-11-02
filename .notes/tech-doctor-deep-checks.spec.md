@@ -9,6 +9,8 @@ related:
   - theholocron/holocron#1108
   - theholocron/holocron#1145
   - theholocron/holocron#1166
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618562536149073
 ---
 
 # Doctor: deep checks for every capability

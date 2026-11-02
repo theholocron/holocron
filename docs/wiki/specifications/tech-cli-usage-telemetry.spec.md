@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#537
   - theholocron/holocron/docs/wiki/decisions/0007-structured-logging-pino-axiom.md
   - theholocron/holocron/docs/wiki/decisions/0008-cli-usage-telemetry-posthog.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620348252684399
 ---
 
 # CLI usage telemetry — PostHog

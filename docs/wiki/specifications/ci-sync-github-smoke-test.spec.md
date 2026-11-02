@@ -2,6 +2,8 @@
 id: SPEC-0003
 status: archived
 issue: theholocron/holocron#115
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618699950063667
 ---
 
 <!-- editorconfig-checker-disable-file -->

@@ -7,6 +7,8 @@ related:
   - theholocron/holocron#440
   - theholocron/.github-private#65
   - theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618715972304906
 ---
 
 # Documentation architecture — Astro docs, README, Wiki, and Issues

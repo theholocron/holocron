@@ -7,6 +7,7 @@ owners: []
 specs:
   - docs/wiki/specifications/tech-sentinel-v1.spec.md
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618654647386273
   github: https://github.com/theholocron/holocron/pull/730
 supersedes: []
 superseded-by: []

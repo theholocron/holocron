@@ -5,6 +5,8 @@ issue: theholocron/holocron#1051
 blocked-by: []
 related:
   - theholocron/holocron#992
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620436140400780
 ---
 
 # Move Sentinel from `packages/` to `apps/`

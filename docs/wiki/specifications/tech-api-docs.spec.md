@@ -19,6 +19,8 @@ related:
   - theholocron/holocron#1513
   - theholocron/holocron#1514
   - theholocron/holocron#1515
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618746808705144
 ---
 
 # API documentation as a measured CI gate, generated from TSDoc

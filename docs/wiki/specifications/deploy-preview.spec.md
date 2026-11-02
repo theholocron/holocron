@@ -3,6 +3,8 @@ id: SPEC-0012
 status: archived
 issue: theholocron/holocron#420
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618702009335948
 ---
 
 # Deploy preview — Cloudflare Pages per-PR previews

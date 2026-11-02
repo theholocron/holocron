@@ -7,6 +7,8 @@ related:
   - theholocron/holocron/docs/wiki/specifications/wiki-capability.spec.md
   - theholocron/holocron/docs/wiki/specifications/knowledge-system.spec.md
   - theholocron/.github-private#65
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618742878638211
 ---
 
 # `sync --steps wiki` — auto-generated Fern products switcher

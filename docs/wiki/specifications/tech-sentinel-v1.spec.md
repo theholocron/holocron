@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#674
   - theholocron/holocron#675
   - theholocron/holocron#677
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620439164485683
 ---
 
 # Sentinel — minimal GitHub App v1

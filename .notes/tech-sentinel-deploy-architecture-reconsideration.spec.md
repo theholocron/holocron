@@ -5,6 +5,8 @@ issue: theholocron/holocron#945
 blocked-by: []
 related:
   - theholocron/holocron#940
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618603959095409
 ---
 
 # Sentinel's deploy architecture: is a redeploy-on-every-release serverless Function still the right shape?

@@ -7,6 +7,7 @@ owners: []
 specs:
   - docs/wiki/specifications/tech-auth-bootstrap.spec.md
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618617565417473
   github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []

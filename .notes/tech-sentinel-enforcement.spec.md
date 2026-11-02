@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#674
   - theholocron/holocron#679
   - theholocron/holocron#680
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618606698107030
 ---
 
 # Sentinel as central enforcer — commit-message linting first
