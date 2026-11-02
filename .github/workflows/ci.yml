@@ -99,7 +99,7 @@ jobs:
           failing=$(jq -r 'map(select(.state != "success") | .id) | join(", ")' <<<"$rows")
           total=$(jq 'length' <<<"$rows")
 
-          {
+          summary() {
             echo "## ci"
             echo
             echo "| Check | Result | Link |"
@@ -112,7 +112,8 @@ jobs:
               echo
               echo "Re-running one failed check does not update this one: re-run **ci** as well."
             fi
-          } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+          }
+          if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then summary >> "$GITHUB_STEP_SUMMARY"; else summary; fi
 
           # Colons and commas in an annotation title must be escaped.
           jq -r '.[] | select(.state != "success")
