@@ -1,3 +1,9 @@
+## [5.0.0-alpha.301](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.300...v5.0.0-alpha.301) (2026-11-02)
+
+### Features
+
+* **auth:** 🗝️ read the repo's .env as its own step in the token chain ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1627](https://github.com/theholocron/holocron/issues/1627)) ([edb0bbb](https://github.com/theholocron/holocron/commit/edb0bbb377bb107034fc814778ee3258c75a2fa8))
+
 ## [5.0.0-alpha.300](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.299...v5.0.0-alpha.300) (2026-11-02)
 
 ### Features
