@@ -1,4 +1,4 @@
-name: Visual Regression
+name: Verification
 
 on: # yamllint disable-line rule:truthy
   push:
