@@ -1,4 +1,4 @@
-import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
+import { normalizeTaskEntry, type TasksConfig } from "../schema/index.js";
 
 /**
  * The version groups a repo releases on their own: the folder names listed under `groups`

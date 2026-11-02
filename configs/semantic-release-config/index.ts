@@ -1,71 +1,7 @@
-interface ExecOptions {
-	prepareCmd?: string;
-	publishCmd?: string;
-}
-interface NpmOptions {
-	access?: "public" | "restricted";
-	pkgRoot?: string;
-	tarballDir?: string;
-}
-interface Options {
-	branches?: Array<string | Record<string, unknown>>;
-	exec?: ExecOptions;
-	npm?: boolean | NpmOptions;
-	assets?: string[];
-}
-
-const releaseRules = [
-	{ type: "feat", release: "minor" },
-	{ type: "fix", release: "patch" },
-	{ type: "perf", release: "patch" },
-	{ type: "refactor", release: "patch" },
-	{ type: "chore", scope: "deps", release: "patch" },
-	{ breaking: true, release: "major" },
-];
-
-const types = [
-	{ type: "feat", section: "Features" },
-	{ type: "fix", section: "Bug Fixes" },
-	{ type: "perf", section: "Performance" },
-	{ type: "refactor", section: "Refactoring" },
-	{ type: "docs", section: "Documentation", hidden: false },
-	{ type: "chore", section: "Chores", hidden: false },
-	{ type: "ci", section: "CI", hidden: true },
-	{ type: "test", section: "Tests", hidden: true },
-];
-
-/** The `@semantic-release/commit-analyzer` plugin with the Conventional Commits preset: `feat` releases a minor, `fix`, `perf`, `refactor` and `chore(deps)` a patch, and a breaking change a major. */
-export const commitAnalyzer = ["@semantic-release/commit-analyzer", { preset: "conventionalcommits", releaseRules }];
-
-/** The `@semantic-release/release-notes-generator` plugin with the Conventional Commits preset, grouping commits into changelog sections by type. */
-export const releaseNotesGenerator = [
-	"@semantic-release/release-notes-generator",
-	{ preset: "conventionalcommits", presetConfig: { types } },
-];
-
-const defaultAssets = ["CHANGELOG.md", "package.json", "packages/*/package.json"];
-const defaultSingleAssets = ["CHANGELOG.md", "package.json"];
-const defaultMessage =
-	"chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}\n\nSigned-off-by: Newton <5769156+iamnewton@users.noreply.github.com>";
-
-/**
- * @see https://semantic-release.gitbook.io/semantic-release/usage/configuration
- */
-export function defineConfig({ branches = ["main"], exec, npm, assets }: Options = {}): object {
-	const npmOptions: NpmOptions = npm === true ? { access: "public" } : npm || {};
-	const resolvedAssets = assets ?? (npm ? defaultSingleAssets : defaultAssets);
-
-	return {
-		branches,
-		plugins: [
-			commitAnalyzer,
-			releaseNotesGenerator,
-			"@semantic-release/changelog",
-			...(npm ? [["@semantic-release/npm", npmOptions]] : []),
-			...(exec ? [["@semantic-release/exec", exec]] : []),
-			["@semantic-release/git", { assets: resolvedAssets, message: defaultMessage }],
-			// One `released` label on every branch. The default adds `released on @<channel>` on a prerelease branch, a label `repo setup` removes.
-			["@semantic-release/github", { releasedLabels: ["released"] }],
-		],
-	};
-}
+export * from "./commit-files/index.js";
+export * from "./define-config/index.js";
+export * from "./folder-scoped/index.js";
+export * from "./group-release-config/index.js";
+export * from "./in-scope/index.js";
+export type * from "./release.type.js";
+export * from "./ungrouped-release-config/index.js";

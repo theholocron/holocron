@@ -77,8 +77,6 @@ catalogs:
   cli:
     "@inquirer/prompts": ^8.5.2
     "@inquirer/search": ^4.3.3
-    "@semantic-release/commit-analyzer": ^13.0.1
-    "@semantic-release/release-notes-generator": ^14.1.1
     "@types/yargs": ^17.0.35
     ora: ^9.4.1
     yargs: ^18.1.0
@@ -96,6 +94,8 @@ catalogs:
     "@codecov/vite-plugin": ^2.0.0
     "@eslint/compat": ^2.1.0
     "@eslint/js": ^10.0.0
+    "@semantic-release/commit-analyzer": ^13.0.1
+    "@semantic-release/release-notes-generator": ^14.1.1
     eslint-package-json: ^0.3.0
     react: ^19.0.0
     react-dom: ^19.0.0

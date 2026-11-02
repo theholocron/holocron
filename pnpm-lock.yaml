@@ -34,12 +34,6 @@ catalogs:
     '@inquirer/search':
       specifier: ^4.3.3
       version: 4.3.3
-    '@semantic-release/commit-analyzer':
-      specifier: ^13.0.1
-      version: 13.0.1
-    '@semantic-release/release-notes-generator':
-      specifier: ^14.1.1
-      version: 14.1.1
     '@types/yargs':
       specifier: ^17.0.35
       version: 17.0.35
@@ -75,6 +69,12 @@ catalogs:
     '@eslint/js':
       specifier: ^10.0.0
       version: 10.0.1
+    '@semantic-release/commit-analyzer':
+      specifier: ^13.0.1
+      version: 13.0.1
+    '@semantic-release/release-notes-generator':
+      specifier: ^14.1.1
+      version: 14.1.1
     eslint-package-json:
       specifier: ^0.3.0
       version: 0.3.0
@@ -653,12 +653,6 @@ importers:
       '@commitlint/config-conventional':
         specifier: 'catalog:'
         version: 21.2.4
-      '@semantic-release/commit-analyzer':
-        specifier: catalog:cli
-        version: 13.0.1(semantic-release@25.0.9(typescript@5.9.3))
-      '@semantic-release/release-notes-generator':
-        specifier: catalog:cli
-        version: 14.1.1(semantic-release@25.0.9(typescript@5.9.3))
       '@theholocron/ci':
         specifier: workspace:*
         version: link:../../ci
@@ -671,9 +665,6 @@ importers:
       '@theholocron/rollup-plugin-transform-template':
         specifier: workspace:^
         version: link:../../configs/rollup-plugin-transform-template
-      '@theholocron/semantic-release-config':
-        specifier: workspace:^
-        version: link:../../configs/semantic-release-config
       '@theholocron/tsconfig':
         specifier: workspace:^
         version: link:../../configs/tsconfig
@@ -2167,9 +2158,6 @@ importers:
       '@semantic-release/changelog':
         specifier: ^6
         version: 6.0.3(semantic-release@25.0.9(typescript@5.9.3))
-      '@semantic-release/commit-analyzer':
-        specifier: ^13
-        version: 13.0.1(semantic-release@25.0.9(typescript@5.9.3))
       '@semantic-release/exec':
         specifier: ^7
         version: 7.1.0(semantic-release@25.0.9(typescript@5.9.3))
@@ -2179,16 +2167,16 @@ importers:
       '@semantic-release/github':
         specifier: ^11 || ^12
         version: 12.0.9(semantic-release@25.0.9(typescript@5.9.3))
-      '@semantic-release/release-notes-generator':
-        specifier: ^14
-        version: 14.1.1(semantic-release@25.0.9(typescript@5.9.3))
-      conventional-changelog-conventionalcommits:
-        specifier: 9.3.1
-        version: 9.3.1
       semantic-release:
         specifier: ^24 || ^25
         version: 25.0.9(typescript@5.9.3)
     devDependencies:
+      '@semantic-release/commit-analyzer':
+        specifier: catalog:configs
+        version: 13.0.1(semantic-release@25.0.9(typescript@5.9.3))
+      '@semantic-release/release-notes-generator':
+        specifier: catalog:configs
+        version: 14.1.1(semantic-release@25.0.9(typescript@5.9.3))
       '@theholocron/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
@@ -2198,6 +2186,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.5(@vitest/browser@5.0.5)(vitest@5.0.5)
+      conventional-changelog-conventionalcommits:
+        specifier: 9.3.1
+        version: 9.3.1
       tsdown:
         specifier: 'catalog:'
         version: 0.23.3(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)

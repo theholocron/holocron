@@ -1,4 +1,4 @@
-import type { defineConfig } from "@theholocron/semantic-release-config";
+import type { defineConfig } from "../define-config/index.js";
 
 /** What `defineConfig()` from `@theholocron/semantic-release-config` accepts. */
 export type DefineConfigOptions = NonNullable<Parameters<typeof defineConfig>[0]>;

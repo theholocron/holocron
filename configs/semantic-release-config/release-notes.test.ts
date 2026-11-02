@@ -1,6 +1,6 @@
-import { releaseNotesGenerator } from "@theholocron/semantic-release-config";
 import { describe, expect, it } from "vitest";
 
+import { releaseNotesGenerator } from "./define-config/index.js";
 import { folderScoped, ungroupedScoped } from "./folder-scoped/index.js";
 
 /**

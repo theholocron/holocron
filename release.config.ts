@@ -1,6 +1,6 @@
 import { hostedReusableWorkflows } from "@theholocron/astromech";
-import { loadTasksConfig } from "@theholocron/astromech/config";
-import { groupReleaseConfig, releaseGroups, ungroupedReleaseConfig } from "@theholocron/astromech/release";
+import { loadTasksConfig, releaseGroups } from "@theholocron/astromech/config";
+import { groupReleaseConfig, ungroupedReleaseConfig } from "@theholocron/semantic-release-config";
 
 const branches = ["main", { name: "alpha", prerelease: true }];
 const holocron = "node cli/cli/dist/cli.mjs";

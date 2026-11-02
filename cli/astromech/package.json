@@ -37,11 +37,6 @@
       "import": "./dist/lint/index.mjs",
       "default": "./dist/lint/index.mjs"
     },
-    "./release": {
-      "types": "./dist/release/index.d.mts",
-      "import": "./dist/release/index.mjs",
-      "default": "./dist/release/index.mjs"
-    },
     "./repo-validation": {
       "types": "./dist/repo-validation/index.d.mts",
       "import": "./dist/repo-validation/index.mjs",
@@ -69,13 +64,10 @@
   },
   "devDependencies": {
     "@commitlint/config-conventional": "catalog:",
-    "@semantic-release/commit-analyzer": "catalog:cli",
-    "@semantic-release/release-notes-generator": "catalog:cli",
     "@theholocron/ci": "workspace:*",
     "@theholocron/commitlint-config": "workspace:^",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/rollup-plugin-transform-template": "workspace:^",
-    "@theholocron/semantic-release-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
@@ -89,22 +81,6 @@
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
-  },
-  "peerDependencies": {
-    "@semantic-release/commit-analyzer": "^13",
-    "@semantic-release/release-notes-generator": "^14",
-    "@theholocron/semantic-release-config": ">=8.8.2"
-  },
-  "peerDependenciesMeta": {
-    "@semantic-release/commit-analyzer": {
-      "optional": true
-    },
-    "@semantic-release/release-notes-generator": {
-      "optional": true
-    },
-    "@theholocron/semantic-release-config": {
-      "optional": true
-    }
   },
   "engines": {
     "node": ">=22"

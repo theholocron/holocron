@@ -1,5 +1,4 @@
-import { defineConfig } from "@theholocron/semantic-release-config";
-
+import { defineConfig } from "../define-config/index.js";
 import { commentOnlyFor, folderScoped } from "../folder-scoped/index.js";
 import type { GroupReleaseOptions } from "./group-release-config.type.js";
 

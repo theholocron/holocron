@@ -68,11 +68,11 @@ Holocron uses `semantic-release` with lockstep versioning — all packages in th
 
 ### Releasing a version group
 
-A monorepo that holds several former repos releases each folder on its own line: `clients` at 1.43, `utils` at 1.16. Each folder is a **version group**: lockstep inside, independent of the others. `groupReleaseConfig()` from `@theholocron/astromech/release` builds the semantic-release config for one:
+A monorepo that holds several former repos releases each folder on its own line: `clients` at 1.43, `utils` at 1.16. Each folder is a **version group**: lockstep inside, independent of the others. `groupReleaseConfig()` from `@theholocron/semantic-release-config` builds the semantic-release config for one:
 
 ```ts
 // release.config.ts
-import { groupReleaseConfig } from "@theholocron/astromech/release";
+import { groupReleaseConfig } from "@theholocron/semantic-release-config";
 
 const group = process.env["RELEASE_GROUP"] ?? "clients";
 
@@ -150,8 +150,8 @@ with: {
 `ungrouped: true` takes no inputs of its own; an object sets the same per-release inputs a group can, which is how the repo-wide release keeps its Sentry and deploy settings off the groups' releases. It runs **after** the groups, from the branch tip they have moved: the packages in no group depend on the groups' packages through `workspace:` ranges, which are rewritten to concrete versions at publish time, so the groups must be on npm first (list `groups` in dependency order: a group before the groups that depend on it). It is skipped if a group errored. A manual `group` choice of `ungrouped` runs only it. The repo-wide release must leave the groups alone, or it would bump and publish them at its own version: `release.config.ts` reads the group list with `releaseGroups()` and passes `--exclude-group` for each (`package bump-versions` and `package publish` both take it), and releases a single group when `RELEASE_GROUP` is set. The repo-wide release also ignores commits confined to a group's folder, including a group's imported history, so a change that only touches a group neither releases the repo nor lands in its changelog (`ungroupedReleaseConfig()` builds it, the mirror of `groupReleaseConfig()`):
 
 ```ts
-import { loadTasksConfig } from "@theholocron/astromech/config";
-import { groupReleaseConfig, releaseGroups, ungroupedReleaseConfig } from "@theholocron/astromech/release";
+import { loadTasksConfig, releaseGroups } from "@theholocron/astromech/config";
+import { groupReleaseConfig, ungroupedReleaseConfig } from "@theholocron/semantic-release-config";
 
 const groups = releaseGroups(await loadTasksConfig(process.cwd()));
 const group = process.env["RELEASE_GROUP"];
