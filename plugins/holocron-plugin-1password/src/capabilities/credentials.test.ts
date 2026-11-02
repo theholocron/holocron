@@ -79,3 +79,31 @@ describe("OpCredentials.read", () => {
 		expect(calls[0]?.args.slice(0, 2)).toEqual(["--account", "ACCT"]);
 	});
 });
+
+describe("OpCredentials.inspect", () => {
+	const CONCEALED = "HOLOCRON_ORG_TOKEN=<concealed by 1Password>\nexport B=<concealed by 1Password>\n# a note\n";
+
+	it("lists the variable names without --reveal and without reading a value", async () => {
+		const { credentials, calls } = makeCredentials([{ status: 0, stdout: CONCEALED }]);
+		expect(await credentials.inspect("Holocron")).toEqual({
+			environment: "Holocron",
+			names: ["HOLOCRON_ORG_TOKEN", "B"],
+		});
+		expect(calls[0]?.args).toEqual(["environment", "secret", "list", "Holocron", "--format=dotenv"]);
+	});
+
+	it("says which spelling matched", async () => {
+		const { credentials } = makeCredentials([NOT_FOUND, { status: 0, stdout: "T=<concealed by 1Password>" }]);
+		expect(await credentials.inspect("holocron")).toEqual({ environment: "Holocron", names: ["T"] });
+	});
+
+	it("has no names for an empty environment", async () => {
+		const { credentials } = makeCredentials([{ status: 0, stdout: "" }]);
+		expect((await credentials.inspect("Holocron")).names).toEqual([]);
+	});
+
+	it("names every spelling it tried when none is found", async () => {
+		const { credentials } = makeCredentials([NOT_FOUND, NOT_FOUND, NOT_FOUND]);
+		await expect(credentials.inspect("holocron")).rejects.toThrow('"holocron", "Holocron", "HOLOCRON"');
+	});
+});

@@ -28,6 +28,12 @@ vi.mock("../doctor-tokens/index.js", async (importActual) => ({
 	runDoctorTokens,
 }));
 
+const runDoctorCredentials = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-credentials/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-credentials/index.js")>()),
+	runDoctorCredentials,
+}));
+
 const runDoctorEnvironments = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-environments/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../doctor-environments/index.js")>()),

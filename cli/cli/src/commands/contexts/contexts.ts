@@ -57,6 +57,7 @@ export const COMMAND_CONTEXTS = {
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor environments": "workspace",
+	"doctor credentials": "workspace",
 	"doctor dns": "workspace",
 	"doctor repo": "workspace",
 	"doctor secrets": "workspace",

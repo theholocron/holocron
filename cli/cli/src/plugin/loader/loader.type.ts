@@ -65,3 +65,12 @@ export interface PluginLoadFailure {
 	packageName: string;
 	error: Error;
 }
+
+/** Options for {@link PluginLoader}. */
+export interface PluginLoaderOptions {
+	/**
+	 * When `false`, the `credentials` providers are loaded but not asked for their variables, so no value is read
+	 * into the process. `holocron doctor credentials` uses it: it only needs the providers' `inspect`. Default `true`.
+	 */
+	readCredentials?: boolean;
+}

@@ -5,7 +5,7 @@
  * no token of its own, which is what lets it be asked for the others.
  */
 
-import type { Credentials } from "@theholocron/cli";
+import type { Credentials, CredentialsInspection } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
 import { parseDotenv } from "../parse-dotenv.js";
@@ -40,12 +40,25 @@ export class OpCredentials implements Credentials {
 	 * any other failure (not signed in, a prompt that timed out) is thrown at once.
 	 */
 	async read(environment: string): Promise<Record<string, string>> {
+		return parseDotenv((await this.list(environment, ["--reveal"])).stdout);
+	}
+
+	/**
+	 * The Environment as `op` spells it and the names of its variables, asked without `--reveal` so no value is
+	 * printed or kept: `op` shows a placeholder for each value, which is not read. Tries the same spellings as `read`.
+	 */
+	async inspect(environment: string): Promise<CredentialsInspection> {
+		const { name, stdout } = await this.list(environment, []);
+		return { environment: name, names: variableNames(stdout) };
+	}
+
+	private async list(environment: string, flags: string[]): Promise<{ name: string; stdout: string }> {
 		const tried = spellings(environment);
 		for (const name of tried) {
-			const result = this.shell.run(["environment", "secret", "list", name, "--reveal", "--format=dotenv"], {
+			const result = this.shell.run(["environment", "secret", "list", name, ...flags, "--format=dotenv"], {
 				timeoutMs: READ_TIMEOUT_MS,
 			});
-			if (result.ok) return parseDotenv(result.stdout);
+			if (result.ok) return { name, stdout: result.stdout };
 			if (!NOT_FOUND.test(result.stderr)) {
 				throw new ProviderApiError(
 					`1Password environment secret list ${name} failed: ${result.stderr || "no stderr"}`,
@@ -61,4 +74,12 @@ export class OpCredentials implements Credentials {
 			undefined
 		);
 	}
+}
+
+/** The variable names in dotenv text, taken from the start of each line so a value is never looked at. */
+function variableNames(text: string): string[] {
+	return text
+		.split(/\r?\n/)
+		.map((line) => /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*=/.exec(line)?.[1])
+		.filter((name): name is string => name !== undefined);
 }

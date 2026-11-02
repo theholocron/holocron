@@ -53,6 +53,10 @@ Each variable in the Environment is named for the env var the command already re
 4. Put `providers.credentials` and `credentials.environment` in `holocron.config.ts` as shown.
 5. Check it prints only the variable names: `op environment secret list Holocron` (add `--reveal` only when you want the values).
 
+### Checking it
+
+`holocron doctor credentials` reads names only, never a value, and compares them with the tokens the configured plugins take: it fails when the Environment cannot be found (listing the spellings tried) or lacks a variable, and says which spelling of the name matched. See [`doctor credentials`](/holocron/commands/doctor-credentials/).
+
 ### Adding a token later
 
 `holocron auth set` stores the token in the keyring as before. When the config names a `credentials` provider it also prints the variable to add there, because `op` cannot write to an Environment:
