@@ -1,4 +1,7 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -754,5 +757,87 @@ describe("PluginLoader — credentials", () => {
 		expect(getCredential("T")).toBe("first");
 		expect(getCredential("U")).toBe("u");
 		expect(loader.get("credentials")).toEqual([first, second]);
+	});
+});
+
+describe("PluginLoader — the repo's .env", () => {
+	afterEach(clearCredentials);
+
+	const load = async (
+		root: string,
+		rawConfig: Parameters<typeof resolveConfig>[0],
+		modules: Record<string, unknown>
+	) => {
+		const importer = (async (pkg: string) => modules[pkg]) as PluginImporter;
+		await new PluginLoader(resolveConfig(rawConfig), { repoRoot: root }, importer).load();
+	};
+	const root = () => mkdtempSync(join(tmpdir(), "holocron-loader-"));
+
+	it("puts the file's variables in the store when it exists, with no config", async () => {
+		const dir = root();
+		writeFileSync(join(dir, ".env"), "HOLOCRON_ORG_TOKEN=from-file\n");
+		await load(
+			dir,
+			{ name: "demo", providers: { source: "github" } },
+			{
+				"@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }),
+			}
+		);
+		expect(getCredential("HOLOCRON_ORG_TOKEN")).toBe("from-file");
+	});
+
+	it("does nothing when there is no file", async () => {
+		await load(
+			root(),
+			{ name: "demo", providers: { source: "github" } },
+			{
+				"@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }),
+			}
+		);
+		expect(getCredential("HOLOCRON_ORG_TOKEN")).toBeUndefined();
+	});
+
+	it("ignores a .env in a subdirectory of the repo root", async () => {
+		const dir = root();
+		mkdirSync(join(dir, "sub"));
+		writeFileSync(join(dir, "sub", ".env"), "HOLOCRON_ORG_TOKEN=from-sub\n");
+		await load(
+			dir,
+			{ name: "demo", providers: { source: "github" } },
+			{
+				"@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }),
+			}
+		);
+		expect(getCredential("HOLOCRON_ORG_TOKEN")).toBeUndefined();
+	});
+
+	it("is read once per process: a second loader on the same root does not read it again", async () => {
+		const dir = root();
+		writeFileSync(join(dir, ".env"), "T=first\n");
+		const cfg = { name: "demo", providers: { source: "github" } } as const;
+		const modules = { "@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }) };
+		await load(dir, cfg, modules);
+		writeFileSync(join(dir, ".env"), "T=second\n");
+		await load(dir, cfg, modules);
+		expect(getCredential("T")).toBe("first");
+	});
+
+	it("wins over a credentials provider, which fills in what the file lacks", async () => {
+		const dir = root();
+		writeFileSync(join(dir, ".env"), "T=from-file\n");
+		const impl = {
+			key: "credentials",
+			providerName: "1password",
+			read: vi.fn(async () => ({ T: "from-op", U: "u" })),
+		};
+		await load(
+			dir,
+			{ name: "demo", providers: { credentials: ["1password"] }, credentials: { environment: "Holocron" } },
+			{
+				"@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }),
+			}
+		);
+		expect(getCredential("T")).toBe("from-file");
+		expect(getCredential("U")).toBe("u");
 	});
 });

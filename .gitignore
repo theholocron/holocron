@@ -120,6 +120,9 @@ lcov.info
 # Sentry Config File
 .env.sentry-build-plugin
 
+# A developer's own tokens, read by the CLI when it exists (docs: tokens)
+.env
+
 # managed by holocron setup — prompts
 /.agents/prompts/
 # end managed by holocron setup — prompts
