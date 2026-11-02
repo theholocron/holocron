@@ -71,3 +71,21 @@ holocron doctor notifications
 ```
 
 It compares the live server with the layout step by step, posts one `🧪 test:` message in the test channel (`--built-only` skips that, `--deliver` posts to every channel and removes the posts), and names the command that fixes each failure. It also checks the two feeds that reach Discord from outside it, the Checkly alert channel and the Comlink relay (the Worker, its route and bindings, and the error tracker's integration and alert rule), without posting anything. See [`doctor notifications`](/holocron/commands/doctor-notifications/).
+
+To share a result you ran yourself, add `--post [channel]`: the bot posts the failing steps (or just the counts when none failed) to `#alerts`, with each `#channel` linked. Provider tokens stay on your machine. A weekly reminder in `#alerts` says when to run it.
+
+## What reaches Discord on its own
+
+Every message below is posted by a workflow, through the channel's webhook. A channel whose webhook secret is missing is skipped, never failed.
+
+| Event                                                                       | Channel                                | Posted by                                                    |
+| --------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
+| A repo-sync pull request, or one that needs a person                        | `#sync`, `#alerts`                     | `platform.repoSync`                                          |
+| A workflow failed on `alpha` or `main` (a pull request run is never posted) | `#alerts`, with the gatekeepers pinged | `platform.notifications`                                     |
+| A deploy, preview or Sentinel deploy failed                                 | `#deploys`                             | `platform.notifications`                                     |
+| A release succeeded, with the tags it made                                  | `#releases`                            | `platform.notifications`                                     |
+| A token is close to expiring                                                | `#alerts`                              | the daily `Token Expiry` run, through the failure rule above |
+| Time to run the drift check                                                 | `#alerts`                              | `platform.doctorReminder`, Mondays                           |
+| Sentry errors, Checkly up/down                                              | `#errors`, `#uptime`                   | their own webhooks (Comlink relay, Checkly)                  |
+
+`platform.notifyCheck` (run it from the Actions tab) posts one labelled test message per channel and fails the job of any channel that does not deliver.
