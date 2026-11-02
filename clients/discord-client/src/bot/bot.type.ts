@@ -32,6 +32,12 @@ export const ChannelType = {
 	Forum: 15,
 } as const;
 
+/** Bits of a message's `flags` that a bot may set when it posts. */
+export const MessageFlag = {
+	/** Posts without notifying anyone, as a backfill of many messages should. */
+	SuppressNotifications: 1 << 12,
+} as const;
+
 /** A Discord account, as the API returns it. */
 export interface DiscordUser {
 	/** The user id. */
@@ -240,6 +246,119 @@ export interface DiscordChannel {
 	position?: number;
 	/** Permission overrides set on this channel. */
 	permission_overwrites?: DiscordPermissionOverwrite[];
+	/** The tags a post in this forum channel can carry; present on forum channels only. */
+	available_tags?: DiscordForumTag[];
+}
+
+/** A tag a forum post can carry, with the emoji shown beside its name. */
+export interface DiscordForumTag {
+	/** The tag id. */
+	id: string;
+	/** The tag name, up to 20 characters. */
+	name: string;
+	/** Whether only members with Manage Threads can apply the tag. */
+	moderated: boolean;
+	/** Id of the tag's custom emoji, or `null` when it has none. */
+	emoji_id: string | null;
+	/** Name of the tag's Unicode emoji, or `null` when it has none. */
+	emoji_name: string | null;
+}
+
+/**
+ * A tag as sent when a forum is created or its tags are replaced. Send the whole list every time: Discord replaces
+ * the tags with it, and a tag keeps its id only when `id` is given.
+ */
+export interface ForumTagInput {
+	/** The id of a tag that already exists; leave it out to make a new one. */
+	id?: string;
+	/** The tag name, up to 20 characters. */
+	name: string;
+	/** Whether only members with Manage Threads can apply the tag. */
+	moderated?: boolean;
+	/** Id of a custom emoji for the tag. */
+	emoji_id?: string | null;
+	/** Name of a Unicode emoji for the tag, such as `💬`. */
+	emoji_name?: string | null;
+}
+
+/** What Discord says about a thread's state. */
+export interface DiscordThreadMetadata {
+	/** Whether the thread is archived (hidden from the active list until it is used again). */
+	archived: boolean;
+	/** Minutes of silence after which the thread archives: 60, 1440, 4320 or 10080. */
+	auto_archive_duration: number;
+	/** When the archived state last changed, as an ISO 8601 timestamp. */
+	archive_timestamp: string;
+	/** Whether only members with Manage Threads can unarchive and post in the thread. */
+	locked: boolean;
+}
+
+/** A thread, which in a forum channel is a post. */
+export interface DiscordThread extends DiscordChannel {
+	/** Id of the forum or text channel the thread belongs to. */
+	parent_id: string;
+	/** Id of the user who made the thread. */
+	owner_id?: string;
+	/** Ids of the forum tags applied to the post. */
+	applied_tags?: string[];
+	/** The thread's archive state. */
+	thread_metadata: DiscordThreadMetadata;
+}
+
+/** What `POST /channels/{id}/threads` takes to make a post in a forum channel. */
+export interface CreateForumPostInput {
+	/** The post's title, up to 100 characters. */
+	name: string;
+	/** Minutes of silence after which the post archives: 60, 1440, 4320 or 10080. */
+	auto_archive_duration?: number;
+	/** Ids of the forum tags to apply. */
+	applied_tags?: string[];
+	/** The post's first message. */
+	message: CreateMessageInput;
+}
+
+/** What making a forum post returns: the new thread, with the first message that opens it. */
+export interface DiscordForumPost extends DiscordThread {
+	/** The post's first message; its id is the thread's id. */
+	message?: DiscordMessage;
+}
+
+/** What `PATCH /channels/{id}` takes to change a thread. A field left out is left alone. */
+export interface ModifyThreadInput {
+	/** A new title, up to 100 characters. */
+	name?: string;
+	/** Ids of the forum tags to apply, replacing the current ones. */
+	applied_tags?: string[];
+	/** Whether the thread is archived. Writing to an archived thread unarchives it. */
+	archived?: boolean;
+	/** Whether only members with Manage Threads can unarchive and post in the thread. */
+	locked?: boolean;
+	/** Minutes of silence after which the thread archives: 60, 1440, 4320 or 10080. */
+	auto_archive_duration?: number;
+}
+
+/** One page of the archived threads of a channel. */
+export interface DiscordArchivedThreads {
+	/** The threads on this page, newest archived first. */
+	threads: DiscordThread[];
+	/** Whether more archived threads remain after this page. */
+	has_more: boolean;
+}
+
+/** What `GET /channels/{id}/threads/archived/public` takes. */
+export interface ListArchivedThreadsInput {
+	/** Only threads archived before this ISO 8601 timestamp. */
+	before?: string;
+	/** The page size, 1 to 100. Defaults to 100. */
+	limit?: number;
+}
+
+/** What `PATCH /channels/{id}/messages/{id}` takes. A field left out is left alone. */
+export interface EditMessageInput {
+	/** The new message text. */
+	content: string;
+	/** Defaults to no mentions, so editing in a pasted `@everyone` cannot ping anyone. */
+	allowed_mentions?: CreateMessageInput["allowed_mentions"];
 }
 
 /** What `POST /guilds/{id}/channels` takes. */
@@ -254,6 +373,8 @@ export interface CreateChannelInput {
 	parent_id?: string;
 	/** Permission overrides to set on the new channel. */
 	permission_overwrites?: DiscordPermissionOverwrite[];
+	/** The tags of a forum channel (`ChannelType.Forum`). */
+	available_tags?: ForumTagInput[];
 }
 
 /** `null` clears `topic` or detaches the channel from its category. */
@@ -266,6 +387,8 @@ export interface ModifyChannelInput {
 	parent_id?: string | null;
 	/** The full list of permission overrides, replacing the existing ones. */
 	permission_overwrites?: DiscordPermissionOverwrite[];
+	/** The full list of a forum channel's tags, replacing the existing ones; give a tag's `id` to keep it. */
+	available_tags?: ForumTagInput[];
 }
 
 /** A member of a server. Only what provisioning needs: who they are and which roles they hold. */
@@ -355,6 +478,8 @@ export interface CreateMessageInput {
 	nonce?: string | number;
 	/** Turns on the nonce de-duplication for `nonce`. */
 	enforce_nonce?: boolean;
+	/** Message flags; see `MessageFlag`. */
+	flags?: number;
 	/** Defaults to no mentions, so a pasted `@everyone` cannot ping anyone. */
 	allowed_mentions?: {
 		/** Which mention types Discord may resolve into pings. */

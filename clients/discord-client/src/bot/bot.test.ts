@@ -1,7 +1,7 @@
 import { stubFetch } from "@theholocron/http-client/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApplicationFlag, ChannelType, createDiscordBotClient } from "../index.js";
+import { ApplicationFlag, ChannelType, createDiscordBotClient, MessageFlag } from "../index.js";
 
 const BASE = "https://discord.test/api/v10";
 
@@ -739,5 +739,160 @@ describe("server settings", () => {
 		await expect(client.webhooks.delete("../x")).rejects.toThrow(/invalid Discord id/);
 		expect(() => client.guilds.modifyRole("111", "a/b", {})).toThrow(/invalid Discord id/);
 		expect(calls).toHaveLength(0);
+	});
+});
+
+describe("forum posts and threads", () => {
+	const thread = (id: string, over: Record<string, unknown> = {}) => ({
+		id,
+		name: `SPEC: ${id}`,
+		type: 11,
+		parent_id: "222",
+		applied_tags: ["101"],
+		thread_metadata: {
+			archived: false,
+			auto_archive_duration: 10080,
+			archive_timestamp: `2026-10-0${id}T00:00:00.000Z`,
+			locked: false,
+		},
+		...over,
+	});
+
+	it("guilds.createChannel: makes a forum with its tags and their emoji", async () => {
+		const { client, calls } = makeClient([{ body: { id: "222", name: "ideas", type: ChannelType.Forum } }]);
+		await client.guilds.createChannel("111", {
+			name: "ideas",
+			type: ChannelType.Forum,
+			available_tags: [{ name: "proposed", emoji_name: "💬", moderated: true }],
+		});
+		expect(calls[0]).toMatchObject({
+			url: `${BASE}/guilds/111/channels`,
+			method: "POST",
+			body: {
+				type: 15,
+				available_tags: [{ name: "proposed", emoji_name: "💬", moderated: true }],
+			},
+		});
+	});
+
+	it("channels.modify: replaces a forum's tags, keeping the ones that carry an id", async () => {
+		const { client, calls } = makeClient([{ body: { id: "222", name: "ideas", type: 15 } }]);
+		await client.channels.modify("222", { available_tags: [{ id: "9", name: "draft" }, { name: "new" }] });
+		expect(calls[0]).toMatchObject({
+			url: `${BASE}/channels/222`,
+			method: "PATCH",
+			body: { available_tags: [{ id: "9", name: "draft" }, { name: "new" }] },
+		});
+	});
+
+	it("threads.createForumPost: POST /channels/:id/threads with tags and a first message that pings no one", async () => {
+		const { client, calls } = makeClient([
+			{ body: { ...thread("5"), message: { id: "5", channel_id: "5", content: "hi" } } },
+		]);
+		const post = await client.threads.createForumPost("222", {
+			name: "SPEC: Channel content",
+			applied_tags: ["101"],
+			message: { content: "hi", flags: MessageFlag.SuppressNotifications },
+		});
+		expect(post.message?.id).toBe("5");
+		expect(calls[0]).toMatchObject({
+			url: `${BASE}/channels/222/threads`,
+			method: "POST",
+			body: {
+				name: "SPEC: Channel content",
+				applied_tags: ["101"],
+				message: { content: "hi", flags: 4096, allowed_mentions: { parse: [] } },
+			},
+		});
+	});
+
+	it("threads.createForumPost: refuses a tag id that is not a snowflake, and a mention id that is not one", async () => {
+		const { client, calls } = makeClient([]);
+		expect(() =>
+			client.threads.createForumPost("222", { name: "x", applied_tags: ["bad"], message: { content: "x" } })
+		).toThrow(/invalid Discord id/);
+		expect(() =>
+			client.threads.createForumPost("222", {
+				name: "x",
+				message: { content: "x", allowed_mentions: { roles: ["bad"] } },
+			})
+		).toThrow(/invalid Discord id/);
+		expect(calls).toHaveLength(0);
+	});
+
+	it("threads.modify: PATCH /channels/:id sets the title, tags and archived state", async () => {
+		const { client, calls } = makeClient([{ body: thread("5") }]);
+		await client.threads.modify("5", { name: "SPEC: x", applied_tags: ["7"], archived: false });
+		expect(calls[0]).toMatchObject({
+			url: `${BASE}/channels/5`,
+			method: "PATCH",
+			body: { name: "SPEC: x", applied_tags: ["7"], archived: false },
+		});
+		expect(() => client.threads.modify("5", { applied_tags: ["bad"] })).toThrow(/invalid Discord id/);
+	});
+
+	it("channels.message and channels.editMessage: read a message, and edit it with mentions off", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "5", channel_id: "5", content: "old" } },
+			{ body: { id: "5", channel_id: "5", content: "new" } },
+		]);
+		expect((await client.channels.message("5", "5")).content).toBe("old");
+		await client.channels.editMessage("5", "5", { content: "new" });
+		expect(calls[0]).toMatchObject({ url: `${BASE}/channels/5/messages/5` });
+		expect(calls[1]).toMatchObject({
+			url: `${BASE}/channels/5/messages/5`,
+			method: "PATCH",
+			body: { content: "new", allowed_mentions: { parse: [] } },
+		});
+	});
+
+	it("threads.active: the active threads of the server", async () => {
+		const { client, calls } = makeClient([{ body: { threads: [thread("1")], members: [] } }]);
+		expect((await client.threads.active("111")).map((t) => t.id)).toEqual(["1"]);
+		expect(calls[0]?.url).toBe(`${BASE}/guilds/111/threads/active`);
+	});
+
+	it("threads.archived: one page of public archived threads, with the page size clamped and `before` validated", async () => {
+		const { client, calls } = makeClient([
+			{ body: { threads: [thread("1")], has_more: false } },
+			{ body: { threads: [], has_more: false } },
+		]);
+		const page = await client.threads.archived("222", { limit: 500, before: "2026-10-01T00:00:00.000Z" });
+		await client.threads.archived("222");
+		expect(page.threads).toHaveLength(1);
+		expect(calls[0]?.url).toContain("/channels/222/threads/archived/public?");
+		expect(calls[0]?.url).toContain("limit=100");
+		expect(calls[0]?.url).toContain("before=2026-10-01T00%3A00%3A00.000Z");
+		expect(calls[1]?.url).not.toContain("before=");
+		expect(() => client.threads.archived("222", { before: "not a date" })).toThrow(/invalid timestamp/);
+	});
+
+	it("threads.inChannel: the active posts of that forum only, then every archived page", async () => {
+		const { client, calls } = makeClient([
+			{ body: { threads: [thread("1"), thread("2", { parent_id: "999" })], members: [] } },
+			{ body: { threads: [thread("3")], has_more: true } },
+			{ body: { threads: [thread("4")], has_more: false } },
+		]);
+		const found = await client.threads.inChannel("111", "222");
+		expect(found.map((t) => t.id)).toEqual(["1", "3", "4"]);
+		expect(calls[1]?.url).not.toContain("before=");
+		expect(calls[2]?.url).toContain(`before=${encodeURIComponent("2026-10-03T00:00:00.000Z")}`);
+	});
+
+	it("threads.inChannel: stops when Discord says there is more but returns none", async () => {
+		const { client } = makeClient([
+			{ body: { threads: [], members: [] } },
+			{ body: { threads: [], has_more: true } },
+		]);
+		expect(await client.threads.inChannel("111", "222")).toEqual([]);
+	});
+
+	it("threads.inChannel: refuses to read an endless run of pages", async () => {
+		const page = { body: { threads: [thread("1")], has_more: true } };
+		const { client } = makeClient([
+			{ body: { threads: [], members: [] } },
+			...Array.from({ length: 50 }, () => page),
+		]);
+		await expect(client.threads.inChannel("111", "222")).rejects.toThrow(/more than 5000 archived threads/);
 	});
 });
