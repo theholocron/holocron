@@ -55,6 +55,10 @@ const GOOD: ServerInspection = {
 	roles: [{ name: "gatekeepers", id: "99", mentionable: true }],
 };
 
+// What the Notifications workflow reads, for the secrets LAYOUT fills (the failed-run webhook and the role to ping).
+const WORKFLOW_GOOD =
+	"webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}\nmention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}";
+
 const SECRETS_GOOD = ["HOLOCRON_NOTIFY_WEBHOOK_ALERTS", "HOLOCRON_NOTIFY_WEBHOOK_SYNC", "HOLOCRON_NOTIFY_ALERT_ROLE"];
 
 function fakeNotifications(over: Partial<Notifications> & { found?: ServerInspection } = {}): Notifications {
@@ -81,6 +85,8 @@ function setup(
 	opts: {
 		secretNames?: string[] | Error;
 		secrets?: boolean;
+		/** The text of `platform.notifications.yml` on the default branch; `null` when it is not there. */
+		workflow?: string | null | Error;
 		org?: string;
 		builtOnly?: boolean;
 		deliver?: boolean;
@@ -92,7 +98,16 @@ function setup(
 ) {
 	const loaded = loadedFrom({
 		name: "demo",
-		providers: { notifications: ["discord"], ...(opts.secrets === false ? {} : { secrets: "github" }) },
+		providers: {
+			notifications: ["discord"],
+			source: "github",
+			...(opts.secrets === false ? {} : { secrets: "github" }),
+		},
+	});
+	const readFile = vi.fn(async () => {
+		if (opts.workflow instanceof Error) throw opts.workflow;
+		const text = opts.workflow === undefined ? WORKFLOW_GOOD : opts.workflow;
+		return text === null ? null : { content: text, version: "v1" };
 	});
 	const setSecret = vi.fn(async () => {});
 	const deleteSecret = vi.fn(async () => {});
@@ -104,6 +119,7 @@ function setup(
 		"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications }),
 		"@theholocron/holocron-plugin-github": makePlugin("gh", {
 			secrets: { providerName: "github", listSecrets, setSecret, deleteSecret },
+			source: { providerName: "github", readFile },
 		}),
 	});
 	const lines: string[] = [];
@@ -149,6 +165,8 @@ const REAL = [
 	"app-settings",
 	"secrets",
 	"role-members",
+	"notifications-workflow",
+	"notifications-workflow-wiring",
 	"server-owner",
 ];
 
@@ -157,7 +175,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 15, fail: 0, skip: 0 });
+		expect(report.summary).toEqual({ pass: 17, fail: 0, skip: 0 });
 		expect(report.status).toBe("ok");
 	});
 
@@ -166,7 +184,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("15 ok, 0 fail, 0 skipped");
+		expect(lines.join("\n")).toContain("17 ok, 0 fail, 0 skipped");
 	});
 
 	it("renders one line per check and ends with a count", async () => {
@@ -179,7 +197,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).not.toContain("Not built yet");
 		expect(out).toContain("✓ webhook names and avatars set");
 		expect(out).toContain("✓ server owned by a person, not the bot");
-		expect(out).toContain("15 ok, 0 fail, 0 skipped");
+		expect(out).toContain("17 ok, 0 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -682,7 +700,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 14, fail: 1, skip: 0 });
+			expect(report.summary).toEqual({ pass: 16, fail: 1, skip: 0 });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {
@@ -2312,5 +2330,27 @@ describe("runDoctorNotifications --post", () => {
 		const loud = await t.run();
 		expect(loud.status).toBe(quiet.status);
 		expect(t.lines.at(-1)).toContain("not posted: channel gone");
+	});
+});
+
+describe("runDoctorNotifications — the Notifications workflow", () => {
+	it("fails when platform.notifications.yml is not on the default branch", async () => {
+		const { run } = setup(fakeNotifications(), { workflow: null, builtOnly: true });
+		const report = await run();
+		expect(byId(report, "notifications-workflow").status).toBe("fail");
+		expect(byId(report, "notifications-workflow").problems[0]).toContain("platform.notifications.yml is missing");
+		expect(byId(report, "notifications-workflow-wiring").status).toBe("skip");
+		expect(report.status).toBe("fail");
+	});
+
+	it("fails when the workflow reads a secret the layout does not fill", async () => {
+		const { run } = setup(fakeNotifications(), {
+			workflow: `${WORKFLOW_GOOD}\nx: \${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_RELEASES }}`,
+			builtOnly: true,
+		});
+		const report = await run();
+		expect(byId(report, "notifications-workflow-wiring").problems).toEqual([
+			"HOLOCRON_NOTIFY_WEBHOOK_RELEASES: the workflow reads it but the layout fills no such secret",
+		]);
 	});
 });

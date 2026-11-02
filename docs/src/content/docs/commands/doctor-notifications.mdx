@@ -91,6 +91,17 @@ None of them reads a secret value. The Worker's bindings are listed by name, the
 
 The steps use the tokens the providers already take, so nothing new is needed. They only read: the Checkly alert channels and checks, the Cloudflare Worker scripts, routes and secret names, and the Sentry integrations, projects and alert rules. For Sentry that is the Comlink token (`sentry.comlink`), as for `notifications setup`. See [tokens](/holocron/tokens/). Whether a narrower, read-only token would do for each has not been tried against the providers, so the scopes listed there are the ones `setup` needs.
 
+## The Notifications workflow
+
+Two more steps check the workflow that posts failed runs and releases ([`platform.notifications.yml`](/holocron/server-as-code/#what-reaches-discord-on-its-own)). They appear only when the layout fills the alerts, deploys or releases webhook secret (`HOLOCRON_NOTIFY_WEBHOOK_ALERTS`, `_DEPLOYS`, `_RELEASES`), and they read one file through the `source` provider without posting anything.
+
+| Step                            | Passes when                                                                                                                                                                                                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `notifications-workflow`        | `.github/workflows/platform.notifications.yml` is on the default branch. Without it a failed run or a release reaches no channel                                                                                                                                                  |
+| `notifications-workflow-wiring` | every `secrets.HOLOCRON_NOTIFY_*` name the workflow reads is a secret the layout fills (so every channel it writes to is in the layout), and each of the three webhooks the layout fills is one the workflow posts through. Skipped when the file is missing or could not be read |
+
+A missing `source` provider, or one that cannot read a file, skips both steps with the reason.
+
 ## Options
 
 | Option              | Default | Description                                                                                                                                                                                                                                                                                                          |

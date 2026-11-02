@@ -34,6 +34,7 @@ import {
 } from "../notifications-channel-add/index.js";
 import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
+import { notificationsWorkflowChecks } from "../notifications-workflow-checks/index.js";
 import { postDoctorReport } from "../post-doctor-report/index.js";
 import { relayChecks } from "../relay-checks/index.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
@@ -843,6 +844,15 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			monitoring: loader.has("monitoring") ? (loader.get("monitoring") as Monitoring) : undefined,
 			missingReason: whyMissing(loader, "monitoring", "no `monitoring` provider is configured"),
 			found,
+		}))
+	);
+
+	// The workflow that posts failed runs and releases: it is on the default branch and uses the layout's webhooks. Read-only.
+	checks.push(
+		...(await notificationsWorkflowChecks({
+			layout,
+			source: loader.has("source") ? (loader.get("source") as Source) : undefined,
+			sourceMissingReason: whyMissing(loader, "source", "no `source` provider is configured"),
 		}))
 	);
 
