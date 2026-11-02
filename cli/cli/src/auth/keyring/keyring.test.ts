@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const store = new Map<string, string>();
 let entryThrows = false;
 let findThrows = false;
+// How many times the (mocked) OS keyring was actually asked for a password.
+let reads = 0;
 
 vi.mock("@napi-rs/keyring", () => {
 	class Entry {
@@ -18,6 +20,7 @@ vi.mock("@napi-rs/keyring", () => {
 			store.set(this.key, pw);
 		}
 		getPassword(): string | null {
+			reads++;
 			if (entryThrows) throw new Error("platform unsupported");
 			return store.get(this.key) ?? null;
 		}
@@ -39,12 +42,14 @@ vi.mock("@napi-rs/keyring", () => {
 });
 
 // Import AFTER the mock so keyring.ts binds to the mocked module.
-const { setToken, getToken, deleteToken, listStoredProviders } = await import("./keyring.js");
+const { clearTokenCache, setToken, getToken, deleteToken, listStoredProviders } = await import("./keyring.js");
 
 function resetKeyring() {
 	store.clear();
 	entryThrows = false;
 	findThrows = false;
+	reads = 0;
+	clearTokenCache();
 }
 
 describe("keyring", () => {
@@ -90,6 +95,84 @@ describe("keyring", () => {
 
 	it("listStoredProviders returns empty when nothing is stored", () => {
 		expect(listStoredProviders()).toEqual([]);
+	});
+
+	describe("the in-process cache", () => {
+		it("asks the keyring once for a token read many times", () => {
+			store.set("com.theholocron.cli::doppler", "dp.pt.abc");
+			expect(getToken("doppler")).toBe("dp.pt.abc");
+			expect(getToken("doppler")).toBe("dp.pt.abc");
+			expect(getToken("doppler")).toBe("dp.pt.abc");
+			expect(reads).toBe(1);
+		});
+
+		it("remembers a miss too, so a token that is not stored is asked about once", () => {
+			expect(getToken("doppler")).toBeNull();
+			expect(getToken("doppler")).toBeNull();
+			expect(reads).toBe(1);
+		});
+
+		it("remembers that the keyring is unavailable", () => {
+			entryThrows = true;
+			expect(getToken("doppler")).toBeNull();
+			entryThrows = false;
+			store.set("com.theholocron.cli::doppler", "now-available");
+			expect(getToken("doppler")).toBeNull();
+			expect(reads).toBe(0);
+		});
+
+		it("keeps a separate answer for each provider", () => {
+			store.set("com.theholocron.cli::doppler", "a");
+			getToken("doppler");
+			getToken("infisical");
+			expect(reads).toBe(2);
+		});
+
+		it("serves a token it just stored without asking the keyring", () => {
+			setToken("doppler", "stored");
+			expect(getToken("doppler")).toBe("stored");
+			expect(reads).toBe(0);
+		});
+
+		it("forgets a token it just deleted", () => {
+			setToken("doppler", "abc");
+			deleteToken("doppler");
+			expect(getToken("doppler")).toBeNull();
+			expect(reads).toBe(0);
+		});
+
+		it("does not trust the cache after a store that failed", () => {
+			getToken("doppler");
+			entryThrows = true;
+			expect(setToken("doppler", "abc")).toBe(false);
+			entryThrows = false;
+			store.set("com.theholocron.cli::doppler", "from-outside");
+			expect(getToken("doppler")).toBe("from-outside");
+		});
+
+		it("does not trust the cache after a delete that failed", () => {
+			setToken("doppler", "abc");
+			entryThrows = true;
+			expect(deleteToken("doppler")).toBe(false);
+			entryThrows = false;
+			expect(getToken("doppler")).toBe("abc");
+		});
+
+		it("reads the keyring again after clearTokenCache", () => {
+			store.set("com.theholocron.cli::doppler", "one");
+			expect(getToken("doppler")).toBe("one");
+			store.set("com.theholocron.cli::doppler", "two");
+			expect(getToken("doppler")).toBe("one");
+			clearTokenCache();
+			expect(getToken("doppler")).toBe("two");
+		});
+
+		it("does not cache the list of stored providers", () => {
+			setToken("doppler", "a");
+			expect(listStoredProviders()).toEqual(["doppler"]);
+			setToken("infisical", "b");
+			expect(listStoredProviders().sort()).toEqual(["doppler", "infisical"]);
+		});
 	});
 
 	describe("platform-unsupported degrade path", () => {

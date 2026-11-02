@@ -37,9 +37,12 @@ vi.mock("@napi-rs/keyring", () => {
 
 const { runAuthCheck, runAuthList, runAuthSet, runAuthUnset, resolveAuthSetToken } = await import("./auth.js");
 const { fakeLogger } = await import("@theholocron/observability/testing");
+const { clearTokenCache } = await import("../../auth/keyring/index.js");
 
 function reset() {
 	store.clear();
+	// The tests below put tokens straight into the fake keyring; the real one remembers what it has read.
+	clearTokenCache();
 }
 
 function collect(): { print: (l: string) => void; lines: string[] } {
