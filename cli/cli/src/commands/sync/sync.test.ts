@@ -132,12 +132,12 @@ describe("runSync", () => {
 			"sync: sync labels"
 		);
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
-		expect(report.steps).toHaveLength(12);
+		expect(report.steps).toHaveLength(13);
 		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(7);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
 		expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
 		expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 5 });
+		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 6 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -896,6 +896,58 @@ describe("runSync", () => {
 				scripts: Record<string, string>;
 			};
 			expect(pkg.scripts).toEqual({ holocron: "holocron" });
+		});
+	});
+
+	describe("sync agents", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runAgentsStep(repoRoot: string, dryRun = false) {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot, dryRun }, loader, steps: ["agents"], print: () => {} });
+		}
+
+		it("appends the org block to AGENTS.md and keeps the repo's own text", async () => {
+			await writeFile(join(tmpDir, "AGENTS.md"), "# Demo\n\nOwn rules.\n");
+			const report = await runAgentsStep(tmpDir);
+
+			expect(report.steps.find((s) => s.step === "write AGENTS.md")?.status).toBe("ok");
+			const text = await readFile(join(tmpDir, "AGENTS.md"), "utf8");
+			expect(text).toMatch(/^# Demo\n\nOwn rules\./);
+			expect(text).toContain("BEGIN holocron org agent instructions");
+		});
+
+		it("leaves the file alone on a dry run", async () => {
+			await writeFile(join(tmpDir, "AGENTS.md"), "# Demo\n");
+			await runAgentsStep(tmpDir, true);
+			expect(await readFile(join(tmpDir, "AGENTS.md"), "utf8")).toBe("# Demo\n");
+		});
+
+		it("skips a repo with no AGENTS.md or CLAUDE.md", async () => {
+			const report = await runAgentsStep(tmpDir);
+			const step = report.steps.find((s) => s.step === "write AGENTS.md");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toBe("no AGENTS.md or CLAUDE.md");
+		});
+
+		it("skips when --cwd is a monorepo subpackage, not the git root", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			await writeFile(join(tmpDir, "AGENTS.md"), "# Demo\n");
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const report = await runAgentsStep(subpackage);
+
+			const step = report.steps.find((s) => s.step === "sync agents");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
+			expect(await readFile(join(tmpDir, "AGENTS.md"), "utf8")).toBe("# Demo\n");
 		});
 	});
 
