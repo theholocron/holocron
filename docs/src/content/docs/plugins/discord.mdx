@@ -109,4 +109,37 @@ holocron notifications setup             # apply
 holocron notifications channel add sync --category AUTOMATION --with-webhook
 ```
 
+## Forum channels
+
+A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that carry an emoji, which is how a status shows on a post. See [Forum channels](/holocron/commands/notifications-setup/#forum-channels) for the layout, the limits and why `setup` stops when a text channel already has the name. The bot's client calls for forum posts are `threads.*` in [`@theholocron/discord-client`](/holocron/clients/discord/).
+
+### Discussion posts
+
+The provider can keep one post per document (an ADR or a spec) in a forum, for `holocron specs sync`. `ensureDiscussion` finds the post for a document or makes it, `readDiscussion` returns its address, its state and the state it last synced, and `updateDiscussion` changes its title, its tag or the synced state. The three are optional methods on the `notifications` capability, so a provider for another service implements them the way it fits (a thread in a channel, a reaction for the state) and the command stays the same.
+
+On Discord:
+
+- **The key is in the post.** The last line of a post's first message is `-# sync: <path> | <state>` (small print): the document's path, and the state the post and the document last agreed on. That line is how a post is found again, and how a retag is told from an edit of the file. Do not edit it by hand.
+- **The state is the post's one tag**, matched by name to a tag of the forum (`proposed` to the tag named `proposed`). A post with no tag, or with more than one, has no state, and the sync puts the document's state back on it. A tag the forum lacks is an error that lists the tags it has.
+- **Archived posts count.** Discord hides a post that has been quiet for a while, so the lookup reads the archived posts too, and writing to an archived post unarchives it first.
+- **The forum is read once per run**: every post's first message, for its line. Two runs at once can each make a post for the same document; the next run finds both and uses the first.
+
+## Channel content from a file
+
+What a channel says can live in a file of the repository instead of in the config. A pinned message names the file, and `notifications setup` pins whatever the file says:
+
+```ts
+layout: {
+  pinned: [{ channel: "rules", file: "RULES.md" }],
+},
+```
+
+`RULES.md` at the root of this repository is the first one: edit it, merge it, run `holocron notifications setup`, and #rules shows the new text.
+
+- **The repository wins.** A pinned message that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup`. `holocron doctor notifications` reports the difference first (`#rules: the pinned messages differ from RULES.md`), and fails the `pinned` row when the file cannot be read.
+- **The text is the file, as Discord will show it.** A byte-order mark is dropped, line endings become `\n` and blank lines at the end are trimmed, so a trailing newline never counts as a change. Markdown is Discord's, not GitHub's: a single newline is a line break there, so write a blank line between paragraphs if the file is also read on GitHub.
+- **2000 characters at most.** That is Discord's limit for one message, counted after `#channel` names become links. A longer file is refused with its name and length before anything is changed; split it into two files for two messages in the same channel, or shorten it.
+- **Inside the repository.** The path is relative to the repository root, wherever the command runs. An absolute path, a `..` that climbs out and a link that leads outside are refused, and so is a file over 100 KB.
+- **One source per message.** Give `content` or `file`, not both.
+
 The full [API reference](/holocron/plugins/holocron-plugin-discord/api/readme/) is generated from the package's TSDoc comments.

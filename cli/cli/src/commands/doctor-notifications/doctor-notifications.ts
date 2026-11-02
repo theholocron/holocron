@@ -35,6 +35,7 @@ import {
 import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
 import { relayChecks } from "../relay-checks/index.js";
+import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { sentryRelayChecks } from "../sentry-relay-checks/index.js";
 import type {
 	DoctorNotificationsReport,
@@ -136,12 +137,17 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	} catch (err) {
 		return refuse(describeProviderError(err));
 	}
-	const layout = notifications.layout;
-	if (!layout) {
+	const declared = notifications.layout;
+	if (!declared) {
 		return refuse(
 			`the \`${notifications.providerName}\` provider declares no layout — add \`layout\` to its options in holocron.config.ts`
 		);
 	}
+	// A pinned message may take its text from a file in the repository. A file that cannot be read fails the
+	// pinned-messages row; everything else is still checked, without the pins.
+	const pinnedFiles = await resolvePinnedFiles(declared, input.context.repoRoot);
+	const pinnedFileProblem = "problem" in pinnedFiles ? pinnedFiles.problem : undefined;
+	const layout = "problem" in pinnedFiles ? { ...declared, pinned: [] } : pinnedFiles.layout;
 
 	// Read the server first: a provider with no `whoami` is still reachable if it can be read.
 	let found: Awaited<ReturnType<NonNullable<Notifications["inspect"]>>> | undefined;
@@ -245,6 +251,27 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				channelProblems.push(
 					`#${shown(channel.name)}: topic is "${shown(match.topic ?? "")}" but the layout says "${shown(channel.topic)}"`
 				);
+			}
+			// A text channel cannot become a forum, or back: the fix is to delete it, then run setup.
+			const isForum = channel.kind === "forum";
+			if (isForum !== (match.kind === "forum")) {
+				channelProblems.push(
+					`#${shown(channel.name)}: is ${isForum ? "a text channel, and the layout says forum" : "a forum, and the layout says text"}; delete it so \`setup\` can make it again`
+				);
+			} else if (isForum) {
+				for (const tag of channel.tags ?? []) {
+					const have = match.tags?.find((t) => same(t.name, tag.name));
+					if (!have) {
+						channelProblems.push(`#${shown(channel.name)}: tag "${shown(tag.name)}" is missing`);
+					} else if (
+						(have.emoji ?? "") !== (tag.emoji ?? "") ||
+						(have.moderated ?? false) !== (tag.moderated ?? false)
+					) {
+						channelProblems.push(
+							`#${shown(channel.name)}: tag "${shown(tag.name)}" differs from the layout (emoji or moderated)`
+						);
+					}
+				}
 			}
 		}
 		add(
@@ -604,7 +631,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		);
 
 		const wantPinned = layout.pinned ?? [];
-		const pinnedProblems: string[] = [];
+		const pinnedProblems: string[] = pinnedFileProblem ? [pinnedFileProblem] : [];
 		if (wantPinned.length > 0) {
 			if (inspected.pinnedError) {
 				pinnedProblems.push(
@@ -621,7 +648,10 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					else if (have.state === "missing") {
 						pinnedProblems.push(`#${shown(have.channel)}: no pinned message from the bot`);
 					} else if (have.state === "different") {
-						pinnedProblems.push(`#${shown(have.channel)}: the pinned messages differ from the layout`);
+						const source = wantPinned[i]!.file;
+						pinnedProblems.push(
+							`#${shown(have.channel)}: the pinned messages differ from ${source ? shown(source) : "the layout"}`
+						);
 					}
 				});
 			}

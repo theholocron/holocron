@@ -1,4 +1,5 @@
 ---
+id: SPEC-0014
 title: Holocron Config Preset System
 description: Layered configuration presets for theholocron repositories — what each preset includes, how to compose them, and what stays per-repo.
 issue: theholocron/configs#398

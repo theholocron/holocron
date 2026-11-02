@@ -1,3 +1,10 @@
+## [5.0.0-alpha.287](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.286...v5.0.0-alpha.287) (2026-11-01)
+
+### Features
+
+* **notifications:** 💡 post new and changed specs to [#ideas](https://github.com/theholocron/holocron/issues/ideas) ([#1537](https://github.com/theholocron/holocron/issues/1537)) ([6b6db10](https://github.com/theholocron/holocron/commit/6b6db10b36fe7565c5d31ee8cb619d3178185911))
+* **notifications:** 📜 pin a channel message from a repo file, starting with RULES.md ([#1536](https://github.com/theholocron/holocron/issues/1536)) ([9f19d58](https://github.com/theholocron/holocron/commit/9f19d5883e02041455503535d4e26db6ee4c23a4))
+
 ## [5.0.0-alpha.286](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.285...v5.0.0-alpha.286) (2026-11-01)
 
 ### Features

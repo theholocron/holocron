@@ -42,6 +42,7 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
+import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { avatarProblem } from "./avatar-problem.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
 import {
@@ -141,6 +142,40 @@ export function effectiveAccess(
 	return { ...category, ...channel };
 }
 
+/**
+ * The first reason a channel's `kind` and `tags` cannot work, or undefined. A forum takes no webhook or feed (its
+ * conversations are posts, which a plain webhook post cannot start) and no pinned message of its own (a pin lives in a
+ * post); tags belong to a forum; and a tag needs a name no other tag of the channel has. Checked before anything is
+ * created, so a half-applied forum is never the result.
+ */
+export function forumLayoutProblem(layout: NotificationsLayout): string | undefined {
+	const channels = (layout.categories ?? []).flatMap((c) => c.channels ?? []);
+	for (const channel of channels) {
+		const where = `channel \`${channel.name}\``;
+		if (channel.kind !== "forum") {
+			if (channel.tags) return `${where}: \`tags\` belong to a forum -- set \`kind: "forum"\` or remove them`;
+			continue;
+		}
+		if (channel.webhook || channel.feeds?.monitoring || channel.feeds?.errors) {
+			return `${where}: a forum takes no \`webhook\` or \`feeds\`; its conversations are posts`;
+		}
+		const seen = new Set<string>();
+		for (const tag of channel.tags ?? []) {
+			const name = tag.name.trim().toLowerCase();
+			if (name === "") return `${where}: a tag has no name`;
+			if (seen.has(name)) return `${where}: two tags are named \`${tag.name}\``;
+			seen.add(name);
+		}
+	}
+	const forums = new Set(channels.filter((c) => c.kind === "forum").map((c) => c.name.toLowerCase()));
+	for (const pin of layout.pinned ?? []) {
+		if (forums.has(pin.channel.toLowerCase())) {
+			return `pinned: \`${pin.channel}\` is a forum; a message is pinned in a post, not in the forum`;
+		}
+	}
+	return undefined;
+}
+
 /** The first role an `access` names that the layout does not declare, or undefined. */
 export function accessRoleProblem(layout: NotificationsLayout): string | undefined {
 	const declared = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
@@ -238,6 +273,9 @@ export function serverLayoutProblem(layout: NotificationsLayout): string | undef
 	for (const pin of layout.pinned ?? []) {
 		const problem = channel("pinned:", pin.channel);
 		if (problem) return problem;
+		if (pin.content === undefined) {
+			return `pinned: the message for \`${pin.channel}\` has no text; give it \`content\` or a \`file\``;
+		}
 		if (pin.content.trim() === "") return `pinned: the message for \`${pin.channel}\` is empty`;
 	}
 	const onboarding = layout.onboarding;
@@ -290,12 +328,17 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	} catch (err) {
 		return refuse(errorMessage(err));
 	}
-	const layout = notifications.layout;
-	if (!layout) {
+	const declared = notifications.layout;
+	if (!declared) {
 		return refuse(
 			`the \`${notifications.providerName}\` provider declares no layout — add \`layout\` to its options in holocron.config.ts`
 		);
 	}
+	// A pinned message may take its text from a file in the repository: read it now, so a file that cannot be read
+	// stops the run before anything is created, and the provider only ever sees the text.
+	const pinnedFiles = await resolvePinnedFiles(declared, input.context.repoRoot);
+	if ("problem" in pinnedFiles) return refuse(pinnedFiles.problem);
+	const layout = pinnedFiles.layout;
 
 	// Anything that writes a secret: a channel's webhook URL, or a role's id.
 	const wantsWebhook = (layout.categories ?? []).some((c) => (c.channels ?? []).some((ch) => ch.webhook));
@@ -414,6 +457,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (secretProblem) return refuse(secretProblem);
 	const accessProblem = accessRoleProblem(layout);
 	if (accessProblem) return refuse(accessProblem);
+	const forumProblem = forumLayoutProblem(layout);
+	if (forumProblem) return refuse(forumProblem);
 	const serverProblem = serverLayoutProblem(layout);
 	if (serverProblem) return refuse(serverProblem);
 	if (layout.server && !notifications.ensureServer) {
@@ -583,6 +628,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						...(effectiveAccess(category.access, channel.access)
 							? { access: effectiveAccess(category.access, channel.access)! }
 							: {}),
+						...(channel.kind ? { kind: channel.kind } : {}),
+						...(channel.tags ? { tags: channel.tags } : {}),
 						...(webhook ? { webhook } : {}),
 						...(channel.feeds?.monitoring || channel.feeds?.errors
 							? {

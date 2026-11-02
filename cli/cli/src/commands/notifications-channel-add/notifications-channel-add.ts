@@ -250,6 +250,8 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		...(spec.category ? { category: spec.category } : {}),
 		...(spec.topic ? { topic: spec.topic } : {}),
 		...(spec.access ? { access: spec.access } : {}),
+		...(spec.kind ? { kind: spec.kind } : {}),
+		...(spec.tags ? { tags: spec.tags } : {}),
 	});
 	const changed = channel.created || (channel.updated?.length ?? 0) > 0;
 	const verb = channel.created ? "created" : changed ? "updated" : "exists ";

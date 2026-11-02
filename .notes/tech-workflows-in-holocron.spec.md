@@ -1,4 +1,5 @@
 ---
+id: SPEC-0059
 status: proposed
 issue: theholocron/holocron#1215
 blocked-by: []

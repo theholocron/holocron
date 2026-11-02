@@ -229,7 +229,24 @@ export default defineConfig({
 							name: "BUILD",
 							channels: [
 								{ name: "dev", topic: "Day-to-day building talk" },
-								{ name: "ideas", topic: "Half-formed ideas and things to spec later" },
+								// A forum: one post for each ADR and spec, made from the file by `holocron specs sync`
+								// (tech-specs-discussion-threads, #1535), titled `SPEC:` or `ADR:`. A post's tag is the file's status; only the
+								// bot and members who can manage threads (gatekeepers) can change a tag, and the sync turns a change into a
+								// pull request. Half-formed ideas belong here too, as posts of their own.
+								{
+									name: "ideas",
+									kind: "forum",
+									topic: "One post for each ADR (ADR:) and spec (SPEC:), tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
+									tags: [
+										{ name: "draft", emoji: "✏️", moderated: true },
+										{ name: "proposed", emoji: "💬", moderated: true },
+										{ name: "accepted", emoji: "✅", moderated: true },
+										{ name: "rejected", emoji: "❌", moderated: true },
+										{ name: "deprecated", emoji: "🗑️", moderated: true },
+										{ name: "archived", emoji: "📦", moderated: true },
+										{ name: "superseded", emoji: "♻️", moderated: true },
+									],
+								},
 								// The test channel: the doctor's own test post is left here, never in a real channel.
 								{
 									name: "holonet",
@@ -251,7 +268,7 @@ export default defineConfig({
 						],
 					},
 					// Pinned at the top of #welcome and #rules. The layout is the whole set of messages the bot has pinned in a channel, so
-					// editing this text replaces the pinned message on the next `holocron notifications setup`.
+					// editing this text (or the file a message names) replaces the pinned message on the next `holocron notifications setup`.
 					pinned: [
 						{
 							channel: "welcome",
@@ -275,25 +292,8 @@ export default defineConfig({
 								"The maintainers hold the gatekeepers role.",
 							].join("\n"),
 						},
-						{
-							channel: "rules",
-							content: [
-								"**Rules** 📜",
-								"",
-								"The Holocron is a small, friendly place to build things. These keep it that way.",
-								"",
-								"**1. Be kind.** Disagree with the idea, not the person. No harassment, hate, slurs or personal attacks, and assume good intent until shown otherwise.",
-								"**2. Stay on topic.** Building talk goes in #dev, half-formed ideas in #ideas. Keep the bot channels (#releases, #deploys, #alerts) for the bot.",
-								"**3. No spam or self-promotion.** Share something you made if it is relevant to what we are doing, not as an ad. No unsolicited DMs.",
-								"**4. Keep private things private.** Never post tokens, passwords or other people's personal information. If you leak a secret by accident, say so and rotate it.",
-								"**5. Follow Discord's rules.** The [Terms of Service](<https://discord.com/terms>) and [Community Guidelines](<https://discord.com/guidelines>) apply here too.",
-								"",
-								"**Problems**",
-								"If something is wrong, or someone is making you uncomfortable, message anyone with the gatekeepers role. They will keep your report private and see that it is dealt with.",
-								"",
-								"Rules may change as the community grows; changes are announced here.",
-							].join("\n"),
-						},
+						// The rules live in RULES.md at the repo root; `notifications setup` pins whatever it says.
+						{ channel: "rules", file: "RULES.md" },
 					],
 					// The questions a new member answers. Not switched on: Discord needs at least 7 default channels,
 					// 5 of them open for members to post in, and the server has fewer discussion channels than that.
@@ -340,6 +340,7 @@ export default defineConfig({
 							// Kept equal to the GitHub team of the same name by `holocron notifications sync-roles`.
 							team: "gatekeepers",
 							// Everything a member can do, and nothing more: the bot can only grant what it holds itself.
+							// Manage Threads is what lets a gatekeeper change the status tag of a spec's post in #ideas.
 							permissions: [
 								"ViewChannel",
 								"SendMessages",
@@ -348,6 +349,7 @@ export default defineConfig({
 								"EmbedLinks",
 								"AttachFiles",
 								"UseExternalEmojis",
+								"ManageThreads",
 							],
 							secret: "HOLOCRON_NOTIFY_ALERT_ROLE",
 						},

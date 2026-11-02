@@ -1,5 +1,9 @@
 import {
+	type DiscussionPatch,
+	type DiscussionPost,
 	ElevationRequiredError,
+	type EnsuredDiscussion,
+	type EnsureDiscussionInput,
 	type EnsuredResource,
 	type EnsureWebhookResult,
 	type Notifications,
@@ -7,6 +11,7 @@ import {
 	type NotificationsApplicationLayout,
 	type NotificationsDelivery,
 	type NotificationsEveryoneLayout,
+	type NotificationsForumTag,
 	type NotificationsLayout,
 	type NotificationsMember,
 	type NotificationsOnboardingLayout,
@@ -25,9 +30,11 @@ import {
 	type DiscordBotClient,
 	type DiscordChannel,
 	type DiscordClient,
+	type DiscordForumTag,
 	type DiscordOAuthClient,
 	type DiscordPermissionOverwrite,
 	findVerifiedConnection,
+	type ForumTagInput,
 	type ModifyApplicationInput,
 	type ModifyGuildInput,
 	type ModifyRoleInput,
@@ -36,6 +43,7 @@ import {
 	permissionNames,
 	permissions,
 } from "../rest.js";
+import { DiscordDiscussions } from "./discussions.js";
 
 /** Discord's numeric settings, by the names the layout uses. */
 const VERIFICATION = { none: 0, low: 1, medium: 2, high: 3, highest: 4 } as const;
@@ -340,7 +348,9 @@ export class DiscordNotifications implements Notifications {
 					.map((ch) => ch.name.toLowerCase())
 			)
 		);
-		const text = channels.filter((c) => c.type === ChannelType.Text || c.type === ChannelType.Announcement);
+		const text = channels.filter(
+			(c) => c.type === ChannelType.Text || c.type === ChannelType.Announcement || c.type === ChannelType.Forum
+		);
 		const found: ServerInspection["channels"] = [];
 		for (const c of text) {
 			let webhooks: string[] = [];
@@ -363,6 +373,9 @@ export class DiscordNotifications implements Notifications {
 				name: c.name,
 				...(category ? { category } : {}),
 				...(c.topic ? { topic: c.topic } : {}),
+				...(c.type === ChannelType.Forum
+					? { kind: "forum" as const, tags: (c.available_tags ?? []).map(DiscordNotifications.tagOf) }
+					: {}),
 				webhooks,
 				webhookAvatars,
 				webhookIds,
@@ -540,9 +553,19 @@ export class DiscordNotifications implements Notifications {
 		};
 	}
 
-	/** What the bot keeps: the usual set, and Pin Messages when the layout pins messages. */
+	/**
+	 * What the bot keeps: the usual set, Pin Messages when the layout pins messages, and Manage Threads when it
+	 * declares a forum (a post's tags are applied by the bot, and a moderated tag only by someone who can manage threads).
+	 */
 	private needs(): PermissionName[] {
-		return this.opts.layout?.pinned?.length ? [...BOT_NEEDS, "PinMessages"] : BOT_NEEDS;
+		const forum = (this.opts.layout?.categories ?? []).some((c) =>
+			(c.channels ?? []).some((ch) => ch.kind === "forum")
+		);
+		return [
+			...BOT_NEEDS,
+			...(this.opts.layout?.pinned?.length ? (["PinMessages"] as PermissionName[]) : []),
+			...(forum ? (["ManageThreads"] as PermissionName[]) : []),
+		];
 	}
 
 	/** Where to re-invite the bot so its role holds what `setup` needs. Re-authorising updates the role in place. */
@@ -908,6 +931,19 @@ export class DiscordNotifications implements Notifications {
 			.join("");
 	}
 
+	/**
+	 * The text of a pinned message. The CLI reads a message's `file` into `content` before it calls the provider, so
+	 * the text is only missing when a caller skipped that.
+	 */
+	private static pinText(pin: NotificationsPinnedLayout): string {
+		if (pin.content === undefined) {
+			throw new Error(
+				`the pinned message for #${pin.channel} has no text: its \`file\` was not read before the layout reached the provider`
+			);
+		}
+		return pin.content;
+	}
+
 	/** The layout's messages grouped by channel, in the order the channels first appear, with channel names linked. */
 	private static pinsByChannel(
 		pinned: NotificationsPinnedLayout[],
@@ -916,7 +952,7 @@ export class DiscordNotifications implements Notifications {
 		const byChannel = new Map<string, string[]>();
 		for (const pin of pinned) {
 			const key = pin.channel.toLowerCase();
-			const content = DiscordNotifications.linkChannels(pin.content, channels);
+			const content = DiscordNotifications.linkChannels(DiscordNotifications.pinText(pin), channels);
 			byChannel.set(key, [...new Set([...(byChannel.get(key) ?? []), content])]);
 		}
 		return byChannel;
@@ -961,7 +997,7 @@ export class DiscordNotifications implements Notifications {
 		}
 		return pinned.map((pin) => {
 			const v = verdicts.get(pin.channel.toLowerCase())!;
-			const state = v.missing.has(DiscordNotifications.linkChannels(pin.content, channels))
+			const state = v.missing.has(DiscordNotifications.linkChannels(DiscordNotifications.pinText(pin), channels))
 				? v.anyPinned
 					? "different"
 					: "missing"
@@ -970,6 +1006,32 @@ export class DiscordNotifications implements Notifications {
 					: "ok";
 			return { channel: pin.channel, state };
 		});
+	}
+
+	private discussionStore?: DiscordDiscussions;
+
+	/** The discussion posts of this instance's forum channels, which read each forum once. */
+	private discussions(): DiscordDiscussions {
+		return (this.discussionStore ??= new DiscordDiscussions({
+			bot: () => this.bot(),
+			guild: () => this.guild(),
+			channels: () => this.channelList(),
+		}));
+	}
+
+	/** Finds the post for a document in a forum channel, or makes it. See {@link DiscordDiscussions}. */
+	ensureDiscussion(input: EnsureDiscussionInput): Promise<EnsuredDiscussion> {
+		return this.discussions().ensure(input);
+	}
+
+	/** The post for a document in a forum channel, or `undefined`. */
+	readDiscussion(channel: string, key: string): Promise<DiscussionPost | undefined> {
+		return this.discussions().read(channel, key);
+	}
+
+	/** Changes a document's post: its title, its tag, the state last synced. */
+	updateDiscussion(channel: string, key: string, patch: DiscussionPatch): Promise<void> {
+		return this.discussions().update(channel, key, patch);
 	}
 
 	async ensurePinned(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }> {
@@ -1454,9 +1516,10 @@ export class DiscordNotifications implements Notifications {
 				return `welcome: the description of \`${long.channel}\` is ${long.description.length} characters; Discord allows up to 50`;
 			}
 		}
-		const long2000 = layout.pinned?.find((p) => p.content.length > 2000);
+		const long2000 = layout.pinned?.find((p) => (p.content?.length ?? 0) > 2000);
 		if (long2000) {
-			return `pinned: the message for \`${long2000.channel}\` is ${long2000.content.length} characters; Discord allows up to 2000`;
+			const from = long2000.file ? ` (from \`${long2000.file}\`)` : "";
+			return `pinned: the message for \`${long2000.channel}\`${from} is ${long2000.content!.length} characters; Discord allows up to 2000`;
 		}
 		const server = layout.server;
 		for (const [field, map] of [
@@ -1480,6 +1543,13 @@ export class DiscordNotifications implements Notifications {
 		}
 		if (server?.community === true && server.contentFilter !== "all") {
 			return 'server: community features need `contentFilter: "all"`';
+		}
+		for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
+			const tags = channel.tags ?? [];
+			if (tags.length > 20) return `channel \`${channel.name}\`: ${tags.length} tags; Discord allows up to 20`;
+			const long = tags.find((t) => t.name.length > 20);
+			if (long)
+				return `channel \`${channel.name}\`: the tag \`${long.name}\` is ${long.name.length} characters; Discord allows up to 20`;
 		}
 		for (const role of layout.roles ?? []) {
 			try {
@@ -1715,31 +1785,96 @@ export class DiscordNotifications implements Notifications {
 	private static findChannel(
 		channels: DiscordChannel[],
 		name: string,
-		parentId?: string
+		parentId?: string,
+		forum = false
 	): DiscordChannel | undefined {
 		const named = channels.filter(
 			(c) =>
-				(c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
+				(forum
+					? c.type === ChannelType.Forum
+					: c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
 				DiscordNotifications.same(c.name, name)
 		);
 		if (!parentId) return named[0];
 		return named.find((c) => c.parent_id === parentId) ?? named.find((c) => !c.parent_id);
 	}
 
-	/** Finds the text or announcement channel with this name (under the category, when given), or creates it; reports whether it was created. */
+	/** A forum tag in the layout's terms. */
+	private static tagOf(tag: DiscordForumTag): NotificationsForumTag {
+		return {
+			name: tag.name,
+			...(tag.emoji_name ? { emoji: tag.emoji_name } : {}),
+			moderated: tag.moderated,
+		};
+	}
+
+	/** A layout tag as Discord takes it. */
+	private static tagInput(tag: NotificationsForumTag, id?: string): ForumTagInput {
+		return {
+			...(id ? { id } : {}),
+			name: tag.name,
+			moderated: tag.moderated ?? false,
+			emoji_name: tag.emoji ?? null,
+			emoji_id: null,
+		};
+	}
+
+	/**
+	 * The forum's tags once the layout's are in: every tag it has already (kept, with the emoji and `moderated` the layout
+	 * gives it) and each layout tag it lacks, added. A tag the layout does not list is never removed, since a post
+	 * carries it. Returns `undefined` when nothing differs.
+	 */
+	private static mergeTags(
+		have: readonly DiscordForumTag[],
+		want: readonly NotificationsForumTag[]
+	): ForumTagInput[] | undefined {
+		let changed = false;
+		const merged = have.map((h) => {
+			const w = want.find((t) => DiscordNotifications.same(t.name, h.name));
+			if (!w) return DiscordNotifications.tagInput(DiscordNotifications.tagOf(h), h.id);
+			if ((w.emoji ?? null) !== h.emoji_name || (w.moderated ?? false) !== h.moderated) changed = true;
+			return DiscordNotifications.tagInput(w, h.id);
+		});
+		const added = want.filter((w) => !have.some((h) => DiscordNotifications.same(h.name, w.name)));
+		if (added.length > 0) changed = true;
+		return changed ? [...merged, ...added.map((w) => DiscordNotifications.tagInput(w))] : undefined;
+	}
+
+	/**
+	 * Finds the text or announcement channel with this name (under the category, when given), or creates it; reports
+	 * whether it was created. With `kind: "forum"` it is a forum channel with the layout's tags. Discord cannot turn one
+	 * kind into the other and this never deletes, so a channel of the other kind with the name stops the run with the fix.
+	 */
 	async ensureChannel(input: {
 		name: string;
 		category?: string;
 		topic?: string;
 		access?: NotificationsAccess;
+		kind?: "text" | "forum";
+		tags?: NotificationsForumTag[];
 	}): Promise<EnsuredResource> {
+		const forum = input.kind === "forum";
 		const parent = input.category ? (await this.ensureCategory(input.category)).id : undefined;
-		const existing = DiscordNotifications.findChannel(await this.channelList(), input.name, parent);
+		const channels = await this.channelList();
+		const existing = DiscordNotifications.findChannel(channels, input.name, parent, forum);
+		if (!existing && DiscordNotifications.findChannel(channels, input.name, parent, !forum)) {
+			throw new Error(
+				`\`${input.name}\` exists as ${forum ? "a text channel" : "a forum"}, and Discord cannot turn it into ${forum ? "a forum" : "a text channel"}. Delete it in Discord (its messages go with it), then run setup again`
+			);
+		}
 		const overwrites = input.access ? await this.overwritesFor(input.access) : undefined;
 		if (existing) {
-			// Already there: reconcile what the layout asks for (category, topic, access), leave the rest.
+			// Already there: reconcile what the layout asks for (category, topic, access, tags), leave the rest.
 			const updated: string[] = [];
 			const patch: Parameters<DiscordBotClient["channels"]["modify"]>[1] = {};
+			const tags =
+				forum && input.tags
+					? DiscordNotifications.mergeTags(existing.available_tags ?? [], input.tags)
+					: undefined;
+			if (tags) {
+				patch.available_tags = tags;
+				updated.push("tags");
+			}
 			if (parent && existing.parent_id !== parent) {
 				patch.parent_id = parent;
 				updated.push("category");
@@ -1757,7 +1892,8 @@ export class DiscordNotifications implements Notifications {
 		}
 		const made = await this.createChannel({
 			name: input.name,
-			type: ChannelType.Text,
+			type: forum ? ChannelType.Forum : ChannelType.Text,
+			...(forum && input.tags ? { available_tags: input.tags.map((t) => DiscordNotifications.tagInput(t)) } : {}),
 			...(input.topic ? { topic: input.topic } : {}),
 			...(parent ? { parent_id: parent } : {}),
 			...(overwrites ? { permission_overwrites: overwrites } : {}),

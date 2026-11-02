@@ -1,0 +1,60 @@
+---
+title: "specs sync"
+description: Keep each ADR and spec in step with a post in a forum channel, and turn a retag into a pull request.
+---
+
+```bash
+holocron specs sync [--provider <name>] [--channel <forum>] [--notify] [--dry-run]
+```
+
+Every ADR (`docs/wiki/decisions`) and spec (`.notes`, `docs/wiki/specifications`) gets one post in a forum channel, made from the file. The file stays the source of truth; the post is where people talk about it. See the spec `tech-specs-discussion-threads` for the design.
+
+```
+ADRs and specs → #ideas
+  .notes/tech-discord-channel-content.spec.md: numbered it SPEC-0061; made the post; linked the post
+  .notes/tech-specs-to-ideas.spec.md: in step
+  docs/wiki/decisions/0009-task-manifest.md: moved status to accepted, as the tag asks; linked the post
+  .notes/tech-doctor-relay-checks.spec.md: the file moved to accepted and the tag to archived since they last agreed on proposed
+
+2 ok, 1 fail, 1 skipped
+```
+
+## What a run does for each document
+
+1. **Numbers a spec that has no `id`** (`SPEC-0007`; ADRs already have theirs): the next numbers after the highest in use, oldest file first, written as the first line of the front matter. Authors never pick a number, so two pull requests cannot take the same one.
+2. **Finds or makes the post.** It is titled `💡 New spec: <title>` or `📐 New ADR: <title>` (plain text, since a title cannot be formatted) and carries the document's status as its one tag. Its first message is the id, a short description (the first paragraph under Problem, Why or Context) and the pull request that added the file, `PR: [#1538](url)`, a paragraph each. Posts are made without notifying anyone unless you pass `--notify`, so the first run, which is the backfill, pings no one.
+3. **Writes the post's address into the file** as `discussion.url`. The `github:` link beside it, if there is one, stays.
+4. **Keeps the status in step.** Three values decide it: the status in the file, the tag on the post, and the status they last agreed on (recorded on the post). Comparing only the first two cannot tell "someone retagged" from "the file changed and the tag has not caught up".
+
+| The file                | The tag                               | What the run does                                                        |
+| ----------------------- | ------------------------------------- | ------------------------------------------------------------------------ |
+| is the tag's status     | is the tag's status                   | nothing (or rewrites the record of what they agree on, when it is stale) |
+| moved since they agreed | did not                               | puts the file's status on the tag                                        |
+| did not                 | moved                                 | changes the file's `status:` line to the tag's                           |
+| moved                   | moved                                 | reports a conflict and changes nothing                                   |
+| has a status            | is missing, or there is more than one | puts the file's status on the tag                                        |
+
+A retag the file cannot take (an ADR retagged `archived`, a status only specs have) is reported and changes nothing.
+
+## Who can change a status
+
+Only the bot and people who can manage threads can change a post's tag, so give that permission to the role that decides (`permissions: ["ManageThreads"]` on the role in the layout). Nothing in the command checks who retagged: Discord already refused anyone else.
+
+## What it writes
+
+Only the working tree. The command edits the `status:` and `discussion.url` lines of the files and changes the posts through the provider, and it never commits or pushes. The workflow that runs it commits the edits to a pull request, so a retag reaches the repository only through a review, and the post's record of what it last agreed on moves only after that pull request merges.
+
+## Options
+
+| Flag                | Meaning                                                                      |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `--provider <name>` | Which `notifications` provider, when several can keep discussion posts.      |
+| `--channel <forum>` | The forum the posts live in. Defaults to the only forum the layout declares. |
+| `--notify`          | Let new posts notify people.                                                 |
+| `--dry-run`         | Read, and say what would be made or changed. Makes and writes nothing.       |
+
+It exits 1 when a document could not be synced, so a run in CI fails until a conflict is settled.
+
+## Another service
+
+The command asks the provider for three things: find or make a document's post (`ensureDiscussion`), read it (`readDiscussion`), and change it (`updateDiscussion`). A provider for another service implements those the way that service fits, and the command and the rules stay the same. See [the Discord plugin](/holocron/plugins/discord/#discussion-posts).

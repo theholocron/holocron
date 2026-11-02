@@ -34,6 +34,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   follows a GitHub team through a per-provider links file in the org's private
   config repo, read and written with its own `github.user-sync` token. The
   capability methods behind it are optional on `Source` and `Notifications`. A server can also be created from the layout (`notifications create-server`): the bot makes it and applies the layout as owner, writes the new id into the config, invites a person and hands the server over; the doctor fails while the bot still owns it.
+  A pinned message can take its text from a file in the repo (`pinned: [{ channel, file }]`, `RULES.md` for `#rules`, #1533): the CLI reads the file (`resolvePinnedFiles()`) before it calls the provider, so a provider only sees `content`; the file wins over a hand edit and `doctor notifications` reports the drift (spec `tech-discord-channel-content`).
   An error tracker's alerts reach a channel through the Comlink relay Worker (`apps/comlink`): `Errors.ensureRelay` (optional) makes the tracker's integration and alert rule and returns its signing secret, which `notifications setup` hands to the Worker in the same deploy (`relay.errors` in the layout). The secret is never printed, setup never deletes, and the tracker gets its own token (`sentry.comlink`).
 - **Probes** (`holocron probe <provider> <probe>`, epic #1166). A plugin may return `probes` from `createPlugin` next to
   `capabilities`: named, on-demand pokes at a live provider (inspect, or prove something end to end). They run under
@@ -52,6 +53,12 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   or spec (`.notes`, `docs/wiki/specifications`) whose frontmatter is wrong and reports a warning as an `info` row. The rules
   are `checkSpecs()` in `@theholocron/astromech/repo-validation`; the probe reads the files through an injected `SpecsIo`,
   and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
+  `specs sync` numbers each spec (`id: SPEC-0007`; ADRs have `ADR-0009`) and keeps a forum post per ADR and spec (titled
+  `💡 New spec:` / `📐 New ADR:`, tagged with its status) in step with the files
+  (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
+  (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
+  post, the file's `status:` into the working tree only (the workflow commits it to a pull request), and decides by
+  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

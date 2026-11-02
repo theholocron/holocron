@@ -1,4 +1,5 @@
 ---
+id: SPEC-0060
 status: accepted
 issue: theholocron/holocron#1368
 blocked-by: []

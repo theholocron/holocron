@@ -1,4 +1,5 @@
 ---
+id: SPEC-0004
 status: archived
 issue:
 blocked-by: []

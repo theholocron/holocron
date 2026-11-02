@@ -217,6 +217,296 @@ describe("DiscordNotifications.ensureChannel", () => {
 	});
 });
 
+describe("DiscordNotifications.ensureChannel — forums", () => {
+	const forum = (id: string, name: string, tags: unknown[] = [], parent_id?: string) => ({
+		id,
+		name,
+		type: ChannelType.Forum,
+		parent_id,
+		available_tags: tags,
+	});
+	const tag = (id: string, name: string, emoji: string | null, moderated = false) => ({
+		id,
+		name,
+		moderated,
+		emoji_id: null,
+		emoji_name: emoji,
+	});
+	const WANT = [
+		{ name: "draft", emoji: "✏️", moderated: true },
+		{ name: "proposed", emoji: "💬", moderated: true },
+	];
+
+	it("creates a forum with its topic and its tags, each with its emoji", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: forum("2010", "ideas") }]);
+		expect(await notifs.ensureChannel({ name: "ideas", kind: "forum", topic: "guidelines", tags: WANT })).toEqual({
+			id: "2010",
+			created: true,
+		});
+		expect(calls[1]?.body).toEqual({
+			name: "ideas",
+			type: ChannelType.Forum,
+			available_tags: [
+				{ name: "draft", moderated: true, emoji_name: "✏️", emoji_id: null },
+				{ name: "proposed", moderated: true, emoji_name: "💬", emoji_id: null },
+			],
+			topic: "guidelines",
+		});
+	});
+
+	it("creates a forum with no tags when the layout lists none", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: forum("2010", "ideas") }]);
+		await notifs.ensureChannel({ name: "ideas", kind: "forum" });
+		expect(calls[1]?.body).toEqual({ name: "ideas", type: ChannelType.Forum });
+	});
+
+	it("leaves a forum alone when every tag is already as declared", async () => {
+		const have = [tag("7", "draft", "✏️", true), tag("8", "proposed", "💬", true)];
+		const { notifs, calls } = makeProvisioner([{ body: [forum("2010", "ideas", have)] }]);
+		expect(await notifs.ensureChannel({ name: "ideas", kind: "forum", tags: WANT })).toEqual({
+			id: "2010",
+			created: false,
+		});
+		expect(calls).toHaveLength(1);
+	});
+
+	it("leaves a forum's tags alone when the layout lists none", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [forum("2010", "ideas", [tag("7", "old", null)])] }]);
+		await notifs.ensureChannel({ name: "ideas", kind: "forum" });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("adds a missing tag and fixes a differing one, keeps every id, and never drops a tag the layout does not list", async () => {
+		const have = [tag("7", "Draft", null, false), tag("9", "custom", "🔥")];
+		const { notifs, calls } = makeProvisioner([
+			{ body: [forum("2010", "ideas", have)] },
+			{ body: forum("2010", "ideas") },
+		]);
+
+		expect(await notifs.ensureChannel({ name: "ideas", kind: "forum", tags: WANT })).toEqual({
+			id: "2010",
+			created: false,
+			updated: ["tags"],
+		});
+
+		expect(calls[1]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/2010` });
+		expect(calls[1]?.body).toEqual({
+			available_tags: [
+				{ id: "7", name: "draft", moderated: true, emoji_name: "✏️", emoji_id: null },
+				{ id: "9", name: "custom", moderated: false, emoji_name: "🔥", emoji_id: null },
+				{ name: "proposed", moderated: true, emoji_name: "💬", emoji_id: null },
+			],
+		});
+	});
+
+	it("fixes only an emoji, or only the moderated flag, and says tags changed", async () => {
+		const emoji = makeProvisioner([
+			{ body: [forum("2010", "ideas", [tag("7", "draft", "🙂", true)])] },
+			{ body: forum("2010", "ideas") },
+		]);
+		const flag = makeProvisioner([
+			{ body: [forum("2010", "ideas", [tag("7", "draft", "✏️", false)])] },
+			{ body: forum("2010", "ideas") },
+		]);
+		const one = [{ name: "draft", emoji: "✏️", moderated: true }];
+		expect((await emoji.notifs.ensureChannel({ name: "ideas", kind: "forum", tags: one })).updated).toEqual([
+			"tags",
+		]);
+		expect((await flag.notifs.ensureChannel({ name: "ideas", kind: "forum", tags: one })).updated).toEqual([
+			"tags",
+		]);
+	});
+
+	it("takes a tag with no emoji and no moderated flag as plain", async () => {
+		const { notifs } = makeProvisioner([{ body: [forum("2010", "ideas", [tag("7", "plain", null, false)])] }]);
+		expect(await notifs.ensureChannel({ name: "ideas", kind: "forum", tags: [{ name: "plain" }] })).toEqual({
+			id: "2010",
+			created: false,
+		});
+	});
+
+	it("stops, and says what to do, when the name is a text channel and a forum is asked for", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [text("2001", "ideas")] }]);
+		await expect(notifs.ensureChannel({ name: "ideas", kind: "forum", tags: WANT })).rejects.toThrow(
+			/`ideas` exists as a text channel, and Discord cannot turn it into a forum\. Delete it in Discord/
+		);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("stops, and says what to do, when the name is a forum and a text channel is asked for", async () => {
+		const { notifs } = makeProvisioner([{ body: [forum("2010", "ideas")] }]);
+		await expect(notifs.ensureChannel({ name: "ideas" })).rejects.toThrow(
+			/`ideas` exists as a forum, and Discord cannot turn it into a text channel/
+		);
+	});
+
+	it("inspects a forum with its tags, and a text channel with none", async () => {
+		const { notifs } = makeProvisioner([
+			{
+				body: [
+					forum("2010", "ideas", [tag("7", "draft", "✏️", true), tag("8", "plain", null)]),
+					text("2001", "dev"),
+				],
+			},
+		]);
+		const found = await notifs.inspect({
+			categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" }] }],
+		});
+		const ideas = found.channels.find((c) => c.name === "ideas");
+		expect(ideas).toMatchObject({
+			kind: "forum",
+			tags: [
+				{ name: "draft", emoji: "✏️", moderated: true },
+				{ name: "plain", moderated: false },
+			],
+		});
+		expect(found.channels.find((c) => c.name === "dev")).not.toHaveProperty("kind");
+	});
+
+	it("inspects a forum that has no tag list as having no tags", async () => {
+		const { notifs } = makeProvisioner([{ body: [{ id: "2010", name: "ideas", type: ChannelType.Forum }] }]);
+		const found = await notifs.inspect({});
+		expect(found.channels[0]).toMatchObject({ kind: "forum", tags: [] });
+	});
+
+	it("refuses more tags than Discord allows, and a tag name that is too long", () => {
+		const { notifs } = makeProvisioner([]);
+		const channel = (tags: Array<{ name: string }>) => ({
+			categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" as const, tags }] }],
+		});
+		expect(notifs.validateLayout(channel(Array.from({ length: 21 }, (_, i) => ({ name: `t${i}` }))))).toMatch(
+			/21 tags; Discord allows up to 20/
+		);
+		expect(notifs.validateLayout(channel([{ name: "x".repeat(21) }]))).toMatch(
+			/is 21 characters; Discord allows up to 20/
+		);
+		expect(notifs.validateLayout(channel([{ name: "x".repeat(20) }]))).toBeUndefined();
+	});
+
+	it("has no tag limits to check in a layout with no categories, a category with no channels, or a channel with no tags", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(notifs.validateLayout({})).toBeUndefined();
+		expect(notifs.validateLayout({ categories: [{ name: "BUILD" }] })).toBeUndefined();
+		expect(notifs.validateLayout({ categories: [{ name: "BUILD", channels: [{ name: "dev" }] }] })).toBeUndefined();
+	});
+
+	it("adds every tag to a forum that Discord returned with no tag list", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [{ id: "2010", name: "ideas", type: ChannelType.Forum }] },
+			{ body: forum("2010", "ideas") },
+		]);
+		expect(
+			(await notifs.ensureChannel({ name: "ideas", kind: "forum", tags: [{ name: "draft", moderated: true }] }))
+				.updated
+		).toEqual(["tags"]);
+		expect(calls[1]?.body).toEqual({
+			available_tags: [{ name: "draft", moderated: true, emoji_name: null, emoji_id: null }],
+		});
+	});
+
+	const FORUM_GUILD = {
+		body: {
+			id: GUILD,
+			name: "The Holocron",
+			verification_level: 0,
+			default_message_notifications: 0,
+			explicit_content_filter: 0,
+			system_channel_id: null,
+			rules_channel_id: null,
+			public_updates_channel_id: null,
+			features: ["NEWS"],
+			preferred_locale: "en-GB",
+			description: null,
+		},
+	};
+	const FORUM_CHANS = { body: [text("2001", "welcome"), text("2002", "rules"), text("2003", "community-updates")] };
+
+	it("asks for Manage Threads in the invite when the layout has a forum, and not otherwise", async () => {
+		const withForum = makeProvisioner(
+			[FORUM_GUILD, FORUM_CHANS, { status: 403, body: { message: "Missing Permissions", code: 50013 } }, bot],
+			{
+				guildId: GUILD,
+				layout: { categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" }] }] },
+			}
+		);
+		const without = makeProvisioner(
+			[FORUM_GUILD, FORUM_CHANS, { status: 403, body: { message: "Missing Permissions", code: 50013 } }, bot],
+			{ guildId: GUILD, layout: { categories: [{ name: "BUILD", channels: [{ name: "ideas" }] }] } }
+		);
+		const bare = makeProvisioner(
+			[FORUM_GUILD, FORUM_CHANS, { status: 403, body: { message: "Missing Permissions", code: 50013 } }, bot],
+			{ guildId: GUILD, layout: { categories: [{ name: "BUILD" }] } }
+		);
+		const empty = makeProvisioner(
+			[FORUM_GUILD, FORUM_CHANS, { status: 403, body: { message: "Missing Permissions", code: 50013 } }, bot],
+			{ guildId: GUILD, layout: {} }
+		);
+		const bitsOf = async (p: typeof withForum) => {
+			const err = (await p.notifs.ensureServer({ verification: "high" }).catch((e: Error) => e)) as Error;
+			return BigInt(
+				new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]).searchParams.get(
+					"permissions"
+				)!
+			);
+		};
+		const manage = BigInt(permissions(["ManageThreads"]));
+		expect(((await bitsOf(withForum)) & manage) !== 0n).toBe(true);
+		expect(((await bitsOf(without)) & manage) !== 0n).toBe(false);
+		expect(((await bitsOf(bare)) & manage) !== 0n).toBe(false);
+		expect(((await bitsOf(empty)) & manage) !== 0n).toBe(false);
+	});
+});
+
+describe("DiscordNotifications discussions", () => {
+	const tag = (id: string, name: string) => ({ id, name, moderated: true, emoji_id: null, emoji_name: null });
+	const FORUM = {
+		id: "2010",
+		name: "ideas",
+		type: ChannelType.Forum,
+		available_tags: [tag("901", "draft"), tag("902", "proposed")],
+	};
+	const post = {
+		id: "5",
+		name: "SPEC: A",
+		type: 11,
+		parent_id: "2010",
+		applied_tags: ["902"],
+		thread_metadata: {
+			archived: false,
+			auto_archive_duration: 10080,
+			archive_timestamp: "2026-10-01T00:00:00.000Z",
+			locked: false,
+		},
+	};
+
+	it("makes, reads and changes a post through the provider, reading the forum once", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [FORUM] },
+			{ body: { threads: [], members: [] } },
+			{ body: { threads: [], has_more: false } },
+			{ body: post },
+			{ body: { ...post, applied_tags: ["901"] } },
+			{ body: { id: "5", channel_id: "5", content: "" } },
+		]);
+		const key = ".notes/a.spec.md";
+
+		const made = await notifs.ensureDiscussion({
+			channel: "ideas",
+			key,
+			title: "SPEC: A",
+			body: "About A.",
+			state: "proposed",
+		});
+		const read = await notifs.readDiscussion("ideas", key);
+		await notifs.updateDiscussion("ideas", key, { state: "draft", synced: "draft" });
+
+		expect(made.created).toBe(true);
+		expect(read).toMatchObject({ state: "proposed", synced: "proposed" });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "POST", "PATCH", "PATCH"]);
+		expect((await notifs.readDiscussion("ideas", key))?.state).toBe("draft");
+	});
+});
+
 describe("DiscordNotifications server creation and ownership", () => {
 	const NEW = "9000000000000000001";
 
@@ -3811,6 +4101,32 @@ describe("DiscordNotifications pinned messages", () => {
 			/2001 characters; Discord allows up to 2000/
 		);
 		expect(notifs.validateLayout({ pinned: pins })).toBeUndefined();
+	});
+
+	it("names the file a too-long message came from", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(
+			notifs.validateLayout({ pinned: [{ channel: "rules", file: "RULES.md", content: "x".repeat(2001) }] })
+		).toMatch(/message for `rules` \(from `RULES.md`\) is 2001 characters; Discord allows up to 2000/);
+	});
+
+	it("leaves a message with no text yet to the step that reads its file", () => {
+		const { notifs } = makeProvisioner([]);
+		expect(notifs.validateLayout({ pinned: [{ channel: "rules", file: "RULES.md" }] })).toBeUndefined();
+	});
+
+	it("refuses to post a message whose file was never read into its text", async () => {
+		const { notifs } = makeProvisioner([chans, me]);
+		await expect(notifs.ensurePinned([{ channel: "welcome", file: "RULES.md" }])).rejects.toThrow(
+			/pinned message for #welcome has no text: its `file` was not read/
+		);
+	});
+
+	it("reports a message whose file was never read as unreadable, not as missing", async () => {
+		const { notifs } = makeProvisioner([chans, me]);
+		const found = await notifs.inspect({ categories: [], pinned: [{ channel: "welcome", file: "RULES.md" }] });
+		expect(found.pinnedError).toMatch(/has no text/);
+		expect(found.pinned).toBeUndefined();
 	});
 });
 

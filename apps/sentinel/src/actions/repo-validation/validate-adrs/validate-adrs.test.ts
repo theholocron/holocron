@@ -40,7 +40,7 @@ const GOOD_ADR = md(
 	"# Body"
 );
 
-const GOOD_SPEC = md("---", "status: draft", "issue: theholocron/holocron#913", "---", "", "# Spec");
+const GOOD_SPEC = md("---", "id: SPEC-0001", "status: draft", "issue: theholocron/holocron#913", "---", "", "# Spec");
 
 describe("validateAdrs", () => {
 	it("reads only the PR's non-removed ADRs and specs, at the PR's own ref", async () => {
@@ -61,7 +61,7 @@ describe("validateAdrs", () => {
 			},
 			{ status: 200, body: contentsBody(GOOD_ADR) },
 			{ status: 200, body: contentsBody(GOOD_SPEC) },
-			{ status: 200, body: contentsBody(GOOD_SPEC) },
+			{ status: 200, body: contentsBody(GOOD_SPEC.replace("SPEC-0001", "SPEC-0002")) },
 		]);
 
 		const result = await validateAdrs({ client, repo: "acme/demo", pullNumber: 4, ref: "pr-head" });
@@ -86,6 +86,7 @@ describe("validateAdrs", () => {
 		expect(result.valid).toBe(false);
 		expect(result.messages.map((m) => [m.file, m.rule, m.severity])).toEqual([
 			["docs/wiki/decisions/0009-task-manifest.md", "id", "error"],
+			[".notes/tech-x.spec.md", "id", "warning"],
 			[".notes/tech-x.spec.md", "issue", "warning"],
 		]);
 	});
@@ -125,7 +126,7 @@ describe("validateAdrs", () => {
 	it("is not valid for a warning alone, which the check run reports as neutral", async () => {
 		const { client } = makeClient([
 			{ status: 200, body: [file(".notes/tech-x.spec.md")] },
-			{ status: 200, body: contentsBody(md("---", "status: draft", "---")) },
+			{ status: 200, body: contentsBody(md("---", "id: SPEC-0001", "status: draft", "---")) },
 		]);
 
 		const result = await validateAdrs({ client, repo: "acme/demo", pullNumber: 4, ref: "sha" });

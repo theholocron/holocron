@@ -9,7 +9,7 @@ import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
-import { feedProblem, runNotificationsSetup } from "./notifications-setup.js";
+import { feedProblem, forumLayoutProblem, runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -1421,6 +1421,74 @@ describe("pinned messages", () => {
 		const cannot = await setup(fakeNotifications({ layout: PINNED_LAYOUT })).run();
 		expect(cannot.message).toMatch(/cannot manage them/);
 	});
+
+	describe("from a file in the repository", () => {
+		const FILE_LAYOUT = (pinned: NotificationsLayout["pinned"]): NotificationsLayout => ({
+			categories: [{ name: "A", channels: [{ name: "rules" }] }],
+			pinned,
+		});
+
+		it("hands the provider the file's text, and the file's name with it", async () => {
+			const root = await mkdtemp(join(tmpdir(), "setup-pinned-"));
+			await writeFile(join(root, "RULES.md"), "**Rules**\r\nBe kind.\r\n\r\n");
+			const ensurePinned = vi.fn(async () => ({ updated: ["#rules"] }));
+			const n = fakeNotifications({
+				layout: FILE_LAYOUT([{ channel: "rules", file: "RULES.md" }]),
+				ensurePinned,
+			});
+
+			const report = await setup(n, { repoRoot: root }).run();
+
+			expect(report.status).toBe("ok");
+			expect(ensurePinned).toHaveBeenCalledWith([
+				{ channel: "rules", file: "RULES.md", content: "**Rules**\nBe kind." },
+			]);
+		});
+
+		it("stops before anything is created when the file cannot be read", async () => {
+			const root = await mkdtemp(join(tmpdir(), "setup-pinned-"));
+			const n = fakeNotifications({
+				layout: FILE_LAYOUT([{ channel: "rules", file: "RULES.md" }]),
+				ensurePinned: vi.fn(),
+			});
+
+			const report = await setup(n, { repoRoot: root }).run();
+
+			expect(report.status).toBe("fail");
+			expect(report.message).toBe("pinned: `RULES.md` (for #rules) could not be read: it does not exist");
+			expect(n.ensureCategory).not.toHaveBeenCalled();
+		});
+
+		it("refuses a message that gives both content and file, or neither", async () => {
+			const both = await setup(
+				fakeNotifications({
+					layout: FILE_LAYOUT([{ channel: "rules", content: "x", file: "RULES.md" }]),
+					ensurePinned: vi.fn(),
+				})
+			).run();
+			const neither = await setup(
+				fakeNotifications({ layout: FILE_LAYOUT([{ channel: "rules" }]), ensurePinned: vi.fn() })
+			).run();
+
+			expect(both.message).toMatch(/sets both `content` and `file`/);
+			expect(neither.message).toMatch(/message for `rules` has no text; give it `content` or a `file`/);
+		});
+
+		it("refuses a file that is empty once read", async () => {
+			const root = await mkdtemp(join(tmpdir(), "setup-pinned-"));
+			await writeFile(join(root, "RULES.md"), "\n\n");
+
+			const report = await setup(
+				fakeNotifications({
+					layout: FILE_LAYOUT([{ channel: "rules", file: "RULES.md" }]),
+					ensurePinned: vi.fn(),
+				}),
+				{ repoRoot: root }
+			).run();
+
+			expect(report.message).toMatch(/message for `rules` is empty/);
+		});
+	});
 });
 
 describe("a permission given for one edit", () => {
@@ -2337,6 +2405,102 @@ describe("the relay Worker", () => {
 			const cannot = collaborators();
 			const report = await setup(withTracker(), { relay: cannot }).run();
 			expect(report.status).toBe("ok");
+		});
+	});
+});
+
+describe("forum channels", () => {
+	const TAGS = [
+		{ name: "draft", emoji: "✏️", moderated: true },
+		{ name: "proposed", emoji: "💬", moderated: true },
+	];
+	const forumLayout = (channel: object, extra: object = {}): NotificationsLayout => ({
+		categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum", tags: TAGS, ...channel }] }],
+		...extra,
+	});
+
+	it("passes the kind and the tags to the provider, and a text channel neither", async () => {
+		const ensureChannel = vi.fn(async (_input: { name: string }) => ({ id: "1", created: true }));
+		const layout: NotificationsLayout = {
+			categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum", tags: TAGS }, { name: "dev" }] }],
+		};
+
+		const report = await setup(fakeNotifications({ layout, ensureChannel })).run();
+
+		expect(report.status).toBe("ok");
+		expect(ensureChannel).toHaveBeenNthCalledWith(
+			1,
+			expect.objectContaining({ name: "ideas", kind: "forum", tags: TAGS })
+		);
+		expect(ensureChannel.mock.calls[1]?.[0]).not.toHaveProperty("kind");
+		expect(ensureChannel.mock.calls[1]?.[0]).not.toHaveProperty("tags");
+	});
+
+	it("refuses an inconsistent forum before anything is created", async () => {
+		const n = fakeNotifications({ layout: forumLayout({ webhook: true }) });
+
+		const report = await setup(n).run();
+
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/a forum takes no `webhook` or `feeds`/);
+		expect(n.ensureCategory).not.toHaveBeenCalled();
+	});
+
+	describe("forumLayoutProblem", () => {
+		it("accepts a forum with tags, a text channel, and a layout with no categories", () => {
+			expect(forumLayoutProblem(forumLayout({}))).toBeUndefined();
+			expect(forumLayoutProblem({ categories: [{ name: "A", channels: [{ name: "dev" }] }] })).toBeUndefined();
+			expect(forumLayoutProblem({})).toBeUndefined();
+			expect(forumLayoutProblem({ categories: [{ name: "A" }] })).toBeUndefined();
+		});
+
+		it("accepts a forum with no tags", () => {
+			expect(forumLayoutProblem(forumLayout({ tags: undefined }))).toBeUndefined();
+		});
+
+		it("refuses tags on a text channel, whether it says so or not", () => {
+			const text = { categories: [{ name: "A", channels: [{ name: "dev", tags: TAGS }] }] };
+			const explicit = {
+				categories: [{ name: "A", channels: [{ name: "dev", kind: "text" as const, tags: TAGS }] }],
+			};
+
+			expect(forumLayoutProblem(text)).toMatch(/channel `dev`: `tags` belong to a forum/);
+			expect(forumLayoutProblem(explicit)).toMatch(/`tags` belong to a forum/);
+		});
+
+		it("refuses a webhook, a monitoring feed or an errors feed on a forum", () => {
+			expect(forumLayoutProblem(forumLayout({ webhook: true }))).toMatch(/takes no `webhook` or `feeds`/);
+			expect(forumLayoutProblem(forumLayout({ feeds: { monitoring: true } }))).toMatch(
+				/takes no `webhook` or `feeds`/
+			);
+			expect(forumLayoutProblem(forumLayout({ feeds: { errors: true } }))).toMatch(
+				/takes no `webhook` or `feeds`/
+			);
+			expect(forumLayoutProblem(forumLayout({ feeds: {} }))).toBeUndefined();
+		});
+
+		it("refuses a tag with no name, and two tags with one name in any case", () => {
+			expect(forumLayoutProblem(forumLayout({ tags: [{ name: "  " }] }))).toMatch(/a tag has no name/);
+			expect(forumLayoutProblem(forumLayout({ tags: [{ name: "Draft" }, { name: "draft" }] }))).toMatch(
+				/two tags are named `draft`/
+			);
+		});
+
+		it("refuses a pinned message for a forum, and allows one for a text channel", () => {
+			const pinned = (channel: string) => ({ pinned: [{ channel, content: "hi" }] });
+			const layout = {
+				categories: [
+					{
+						name: "BUILD",
+						channels: [{ name: "ideas", kind: "forum" as const }, { name: "dev" }],
+					},
+				],
+			};
+
+			expect(forumLayoutProblem({ ...layout, ...pinned("Ideas") })).toMatch(
+				/`Ideas` is a forum; a message is pinned in a post/
+			);
+			expect(forumLayoutProblem({ ...layout, ...pinned("dev") })).toBeUndefined();
 		});
 	});
 });

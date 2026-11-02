@@ -1,4 +1,5 @@
 ---
+id: SPEC-0010
 status: archived
 issue: theholocron/holocron#74
 blocked-by: []
