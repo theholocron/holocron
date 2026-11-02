@@ -1,3 +1,13 @@
+## [8.9.0-alpha.7](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.6...configs-v8.9.0-alpha.7) (2026-11-02)
+
+### Refactoring
+
+* **release:** ♻️ move groupReleaseConfig into semantic-release-config ([#1558](https://github.com/theholocron/holocron/issues/1558)) ([f11b63c](https://github.com/theholocron/holocron/commit/f11b63c5558115426c4afb0c9e3d3574a1e071d6)), closes [#1246](https://github.com/theholocron/holocron/issues/1246) [#1592](https://github.com/theholocron/holocron/issues/1592) [#1576](https://github.com/theholocron/holocron/issues/1576)
+
+### Documentation
+
+* 📝 clear the alex inclusive-language hits across the markdown ([#1559](https://github.com/theholocron/holocron/issues/1559)) ([573580e](https://github.com/theholocron/holocron/commit/573580ee02d288ce5184d69ee8cc09acbdb95042)), closes [#1263](https://github.com/theholocron/holocron/issues/1263) [#868](https://github.com/theholocron/holocron/issues/868) [#1311](https://github.com/theholocron/holocron/issues/1311) [#1354](https://github.com/theholocron/holocron/issues/1354)
+
 ## [8.9.0-alpha.6](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.5...configs-v8.9.0-alpha.6) (2026-11-02)
 
 ### Features
