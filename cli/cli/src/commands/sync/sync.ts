@@ -11,7 +11,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader, type Source } from "../../plugin/index.js";
-import { generateTurboFiles, generateWorkflowFiles } from "../repo-files/index.js";
+import { generateAgentFiles, generateTurboFiles, generateWorkflowFiles } from "../repo-files/index.js";
 import {
 	CANONICAL_LABELS,
 	deriveCapabilities,
@@ -40,6 +40,7 @@ export const SYNC_STEPS = [
 	"workflows",
 	"scripts",
 	"turbo",
+	"agents",
 	"wiki",
 ] as const;
 
@@ -52,6 +53,7 @@ const LOCAL_STEPS = new Set<SyncStep>([
 	"workflows",
 	"scripts",
 	"turbo",
+	"agents",
 	"wiki",
 ]);
 
@@ -290,6 +292,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		"workflows",
 		"scripts",
 		"turbo",
+		"agents",
 		"wiki",
 	] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
@@ -493,6 +496,36 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 				if (entry.kind === "skip") {
 					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
 				} else {
+					steps.push(
+						await runSyncStep("local", entry.syncStep, dryRun, async () => {
+							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+						})
+					);
+				}
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
+		if (stepName === "agents") {
+			// The org agent instructions block in AGENTS.md: one file at the git root, like turbo.json.
+			if (resolvedRepoRoot !== gitRoot) {
+				steps.push({
+					capability: "local",
+					step: "sync agents",
+					status: "skip",
+					message: "--cwd is a monorepo subpackage, not the git root — run from the root",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+				continue;
+			}
+			for (const entry of await generateAgentFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				logger,
+			})) {
+				if (entry.kind === "skip") {
+					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
+				} else if (entry.kind === "file") {
 					steps.push(
 						await runSyncStep("local", entry.syncStep, dryRun, async () => {
 							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");

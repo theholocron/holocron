@@ -1,3 +1,4 @@
+import { generateAgentFiles } from "./generate-agent-files.js";
 import { generateConfigFiles } from "./generate-config-files.js";
 import { generateTurboFiles } from "./generate-turbo-files.js";
 import { generateWorkflowFiles } from "./generate-workflow-files.js";
@@ -13,6 +14,7 @@ export async function generateRepoFiles(input: RepoFilesInput): Promise<RepoFile
 	return [
 		...generateWorkflowFiles(input),
 		...(await generateConfigFiles(input)),
+		...(await generateAgentFiles(input)),
 		...(await generateTurboFiles(input)),
 	];
 }

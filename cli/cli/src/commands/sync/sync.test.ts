@@ -132,12 +132,12 @@ describe("runSync", () => {
 			"sync: sync labels"
 		);
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
-		expect(report.steps).toHaveLength(12);
+		expect(report.steps).toHaveLength(13);
 		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(7);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
 		expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
 		expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 5 });
+		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 6 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {

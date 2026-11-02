@@ -1,0 +1,1 @@
+../cli/cli/src/templates/org.md
