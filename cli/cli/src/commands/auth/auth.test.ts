@@ -277,6 +277,61 @@ describe("runAuthSet", () => {
 		expect(result.status).toBe("fail");
 		expect(lines.join("\n")).not.toMatch(/HOLOCRON_GITHUB/);
 	});
+
+	describe("when the config names a credentials provider", () => {
+		const credentials = { provider: "1password", environment: "Holocron" };
+
+		it("says which variable to add, named by the plugin's own token", async () => {
+			const { print, lines } = collect();
+			await runAuthSet({
+				provider: "cloudflare",
+				positional: "cf-secret",
+				env: {},
+				importer: async () => ({
+					tokens: [{ envName: "HOLOCRON_CLOUDFLARE_TOKEN", keyringKey: "cloudflare" }],
+				}),
+				print,
+				credentials,
+			});
+			const out = lines.join("\n");
+			expect(out).toMatch(
+				/1password cannot be written to from the CLI: add HOLOCRON_CLOUDFLARE_TOKEN to its "Holocron"/
+			);
+			expect(out).not.toContain("cf-secret");
+		});
+
+		it("names the variable HOLOCRON_<PROVIDER>_TOKEN when the plugin lists none", async () => {
+			const { print, lines } = collect();
+			await runAuthSet({
+				provider: "sentry",
+				positional: "tok",
+				env: {},
+				importer: async () => ({}),
+				print,
+				credentials,
+			});
+			expect(lines.join("\n")).toMatch(/add HOLOCRON_SENTRY_TOKEN to/);
+		});
+
+		it("names a feature key's variable HOLOCRON_<FEATURE>_TOKEN", async () => {
+			const { print, lines } = collect();
+			await runAuthSet({ provider: "github.read", positional: "tok", env: {}, print, credentials });
+			expect(lines.join("\n")).toMatch(/add HOLOCRON_READ_TOKEN to/);
+		});
+
+		it("says nothing when no token was stored", async () => {
+			const { print, lines } = collect();
+			store.clear();
+			await runAuthSet({ provider: "github.read", env: {}, print, credentials });
+			expect(lines.join("\n")).not.toMatch(/cannot be written/);
+		});
+	});
+
+	it("says nothing about a credentials provider when the config names none", async () => {
+		const { print, lines } = collect();
+		await runAuthSet({ provider: "github.read", positional: "tok", env: {}, print });
+		expect(lines.join("\n")).not.toMatch(/cannot be written/);
+	});
 });
 
 describe("runAuthUnset", () => {
