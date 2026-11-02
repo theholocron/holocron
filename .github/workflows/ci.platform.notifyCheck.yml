@@ -9,6 +9,9 @@ name: Platform
 on: # yamllint disable-line rule:truthy
   workflow_dispatch: {}
 
+# The channels it checks, and why ideas, holonet and dev are left out, are in the reusable
+# workflow this calls (`ci/workflows/platform.notifyCheck.yml` in theholocron/holocron).
+
 permissions: {}
 
 jobs:
