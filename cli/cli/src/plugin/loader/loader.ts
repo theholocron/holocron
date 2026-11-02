@@ -48,7 +48,13 @@ import {
 	type ResolvedCapability,
 } from "../capabilities/index.js";
 import type { PluginProbes } from "../probe/index.js";
-import type { PluginImporter, PluginLoadFailure, PluginModule, RuntimeContext } from "./loader.type.js";
+import type {
+	PluginImporter,
+	PluginLoaderOptions,
+	PluginLoadFailure,
+	PluginModule,
+	RuntimeContext,
+} from "./loader.type.js";
 
 export class LoaderError extends Error {
 	override name = "LoaderError";
@@ -63,7 +69,8 @@ export class PluginLoader {
 	constructor(
 		private readonly config: ResolvedHolocronConfig,
 		private readonly context: RuntimeContext,
-		private readonly importer: PluginImporter = defaultImporter
+		private readonly importer: PluginImporter = defaultImporter,
+		private readonly options: PluginLoaderOptions = {}
 	) {}
 
 	/**
@@ -138,7 +145,10 @@ export class PluginLoader {
 				const impl = (await this.loadOne("credentials", tuple)) as Credentials;
 				impls.push(impl);
 				const source = `${tuple.provider}:${environment}`;
-				if (!hasCredentials(source)) setCredentials(source, await impl.read(environment));
+				// `readCredentials: false` loads the providers without asking them for a single value (`doctor credentials`).
+				if (this.options.readCredentials !== false && !hasCredentials(source)) {
+					setCredentials(source, await impl.read(environment));
+				}
 			} catch (err) {
 				this.recordFailure("credentials", tuple, err);
 			}

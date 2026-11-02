@@ -2365,6 +2365,20 @@ export interface Credentials extends ProviderIdentity {
 	 * Rejects when the environment cannot be read; the CLI then falls through to the next source.
 	 */
 	read(environment: string): Promise<Record<string, string>>;
+	/**
+	 * Which environment `environment` really is and the names of its variables, without reading any value. Used by
+	 * `holocron doctor credentials`. Optional: a provider that cannot list names without values leaves it out and
+	 * the check is skipped for it. Rejects when the environment cannot be found.
+	 */
+	inspect?(environment: string): Promise<CredentialsInspection>;
+}
+
+/** What {@link Credentials.inspect} found: the environment as the provider spells it, and its variable names. */
+export interface CredentialsInspection {
+	/** The environment's name as the provider matched it, which can differ in case from the configured one. */
+	environment: string;
+	/** The names of its variables, never their values. */
+	names: string[];
 }
 
 // ───────────────────────────────────────────────────────────────────────

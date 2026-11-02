@@ -694,6 +694,21 @@ describe("PluginLoader — credentials", () => {
 		expect(loader.has("source")).toBe(true);
 	});
 
+	it("loads the providers without asking them for a value when readCredentials is false", async () => {
+		const impl = creds(async () => ({ T: "x" }));
+		const importer = (async (pkg: string) =>
+			pkg === "@theholocron/holocron-plugin-1password"
+				? makePlugin("1password", { credentials: impl })
+				: undefined) as unknown as PluginImporter;
+		const loader = new PluginLoader(resolveConfig(config()), { repoRoot: "/tmp/test-repo" }, importer, {
+			readCredentials: false,
+		});
+		await loader.load();
+		expect(impl.read).not.toHaveBeenCalled();
+		expect(getCredential("T")).toBeUndefined();
+		expect(loader.get("credentials")).toEqual([impl]);
+	});
+
 	it("does not read a source again that an earlier loader already read", async () => {
 		const impl = creds(async () => ({ T: "x" }));
 		const modules = { "@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }) };
