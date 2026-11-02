@@ -199,6 +199,19 @@ Send messages. Implemented by: [Discord](./plugins/discord), [Slack](./plugins/s
 | ------------------------ | --------------------------- |
 | `send(channel, message)` | Send a message to a channel |
 
+`send` is the only required method. Everything else is optional, so a provider that only posts omits it. The optional methods group by what they serve:
+
+| Group                        | Methods                                                                                                                                                                                                     | Used by                                                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server as code               | `ensureCategory`, `ensureChannel`, `ensureWebhook`, `ensureRole`, `ensureServer`, `ensureWelcome`, `ensureOnboarding`, `ensureApplication`, `ensureEveryone`, `ensurePinned`, `preflight`, `validateLayout` | [`notifications setup`](/holocron/commands/notifications-setup/) and `channel add`. All are idempotent: they look a resource up by name and change only what differs |
+| Server lifecycle and members | `createServer`, `inviteLink`, `hasMember`, `transferServer`, `serverOwner`, `roleMembers`, `addRoleMember`, `removeRoleMember`, `signIn`                                                                    | `notifications create-server`, `sync-roles` and `link`                                                                                                               |
+| Checks                       | `whoami`, `checkDelivery`, `holdsPermission`, `postMessage`                                                                                                                                                 | [`doctor notifications`](/holocron/commands/doctor-notifications/), including `--post`                                                                               |
+| Discussion posts             | `ensureDiscussion`, `readDiscussion`, `updateDiscussion`                                                                                                                                                    | [`specs sync`](/holocron/commands/specs-sync/)                                                                                                                       |
+
+The provisioning methods use the provider's **bot** credential, and `send` uses a **webhook URL**: for Discord they are `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_DISCORD_WEBHOOK`.
+
+Workflows do not call the capability at all. They post with the `notify` action and the `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` secrets that `notifications setup` stores. Which workflow writes to which channel, the `notify` action's inputs, `platform.notifyCheck` and the `workflow_run` Notifications workflow are on the [Discord plugin page](/holocron/plugins/discord/#posting-from-github-actions).
+
 ### `analytics`
 
 Project provisioning and tracking token retrieval for product analytics. Implemented by: [PostHog](./plugins/posthog).
