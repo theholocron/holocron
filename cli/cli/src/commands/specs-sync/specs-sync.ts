@@ -12,6 +12,7 @@
  * reads and previews, and changes nothing.
  */
 
+import { assignSpecIds, parseFrontmatter } from "@theholocron/astromech/repo-validation";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -69,22 +70,32 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	const forum = forumChannel(layout, input.channel);
 	if ("problem" in forum) return refuse(forum.problem);
 
-	// A link to the file on the default branch, when the repo is known: the post says where the document is.
+	// The pull request that added a document is linked from its post, when the repo is known.
 	const repo =
 		input.context.repo ??
 		(input.context.org && input.loaded.resolved.name
 			? `${input.context.org}/${input.loaded.resolved.name}`
 			: undefined);
-	const branch = input.loaded.resolved.repo?.defaultBranch ?? "main";
-	const linkTo = (path: string): string | undefined =>
-		repo ? `https://github.com/${repo}/blob/${branch}/${path}` : undefined;
+
+	const documents = readDocuments(input.io);
+	const origins = new Map(documents.map((d) => [d.path, input.io.origin(d.path)]));
+	// Specs are numbered here, oldest first, so a new spec takes the next number and the order never depends on who ran it.
+	const ids = assignSpecIds(
+		documents
+			.filter((d) => d.kind === "spec")
+			.map((d) => ({
+				path: d.path,
+				id: parseFrontmatter(d.text)?.get("id")?.value || undefined,
+				time: origins.get(d.path)?.time,
+			}))
+	);
 
 	const files: SpecSyncOutcome[] = [];
 	let ok = 0;
 	let skipped = 0;
 	let failed = 0;
 	print(`\n${style.header(`ADRs and specs → #${forum.channel}`)}`);
-	for (const doc of readDocuments(input.io)) {
+	for (const doc of documents) {
 		let outcome: SpecSyncOutcome;
 		try {
 			outcome = await syncDocument(doc, {
@@ -92,7 +103,15 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				channel: forum.channel,
 				dryRun,
 				quiet: !input.notify,
-				linkTo,
+				...(ids.has(doc.path) ? { assignedId: ids.get(doc.path)! } : {}),
+				...(repo && origins.get(doc.path)?.pr
+					? {
+							pr: {
+								number: origins.get(doc.path)!.pr!,
+								url: `https://github.com/${repo}/pull/${origins.get(doc.path)!.pr}`,
+							},
+						}
+					: {}),
 			});
 		} catch (err) {
 			outcome = { path: doc.path, did: [], problem: describeProviderError(err), text: doc.text };

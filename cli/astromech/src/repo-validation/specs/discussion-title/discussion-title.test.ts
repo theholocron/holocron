@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest";
 import { discussionTitle } from "./discussion-title.js";
 
 describe("discussionTitle", () => {
-	it("opens with SPEC: or ADR:", () => {
-		expect(discussionTitle("spec", "Channel content")).toBe("SPEC: Channel content");
-		expect(discussionTitle("adr", "Task manifest")).toBe("ADR: Task manifest");
+	it("opens with 💡 New spec: or 📐 New ADR:", () => {
+		expect(discussionTitle("spec", "Channel content")).toBe("💡 New spec: Channel content");
+		expect(discussionTitle("adr", "Task manifest")).toBe("📐 New ADR: Task manifest");
 	});
 
 	it("keeps a title that fits in exactly 100 characters", () => {
-		const title = "a".repeat(100 - "SPEC: ".length);
+		const title = "a".repeat(100 - "💡 New spec: ".length);
 
-		expect(discussionTitle("spec", title)).toBe(`SPEC: ${title}`);
+		expect(discussionTitle("spec", title)).toBe(`💡 New spec: ${title}`);
 		expect(discussionTitle("spec", title)).toHaveLength(100);
 	});
 
@@ -19,7 +19,7 @@ describe("discussionTitle", () => {
 		const cut = discussionTitle("adr", "b".repeat(200));
 
 		expect(cut).toHaveLength(100);
-		expect(cut.startsWith("ADR: bbb")).toBe(true);
+		expect(cut.startsWith("📐 New ADR: bbb")).toBe(true);
 		expect(cut.endsWith("…")).toBe(true);
 	});
 });

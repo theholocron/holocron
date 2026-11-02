@@ -1,4 +1,5 @@
 ---
+id: SPEC-0005
 status: archived
 completed: 2026-07-15
 prs:

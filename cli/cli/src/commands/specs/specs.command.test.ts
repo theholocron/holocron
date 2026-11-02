@@ -43,6 +43,7 @@ describe("specs sync", () => {
 			list: expect.any(Function),
 			read: expect.any(Function),
 			write: expect.any(Function),
+			origin: expect.any(Function),
 		});
 		expect("provider" in input).toBe(false);
 		expect("channel" in input).toBe(false);

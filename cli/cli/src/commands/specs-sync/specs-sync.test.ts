@@ -5,20 +5,20 @@ import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { DiscussionPost, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { pickDiscussionProvider, runSpecsSync } from "./specs-sync.js";
-import type { SpecsSyncIo } from "./specs-sync.type.js";
+import type { SpecOrigin, SpecsSyncIo } from "./specs-sync.type.js";
 
 const URL = "https://discord.com/channels/1/2";
 const LAYOUT: NotificationsLayout = {
 	categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" }] }],
 };
-const spec = (title: string, status: string): string =>
-	`---\nstatus: ${status}\nissue: o/r#1\n---\n\n# ${title}\n\n## Problem\n\nAbout ${title}.\n`;
+const spec = (title: string, status: string, id: string | null = "SPEC-0001"): string =>
+	`---\n${id ? `id: ${id}\n` : ""}status: ${status}\nissue: o/r#1\n---\n\n# ${title}\n\n## Problem\n\nAbout ${title}.\n`;
 
 function loadedFrom(raw: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(raw), filepath: "/tmp/test/holocron.config.json" };
 }
 
-function makeIo(files: Record<string, string>) {
+function makeIo(files: Record<string, string>, origins: Record<string, SpecOrigin> = {}) {
 	const written: Record<string, string> = {};
 	const io: SpecsSyncIo = {
 		list: (dir) =>
@@ -29,6 +29,7 @@ function makeIo(files: Record<string, string>) {
 		write: (path, text) => {
 			written[path] = text;
 		},
+		origin: (path) => origins[path],
 	};
 	return { io, written };
 }
@@ -59,7 +60,6 @@ function setup(
 		channel?: string;
 		repo?: string;
 		org?: string;
-		defaultBranch?: string;
 		/** Leave out `print` and `logger`, as the command does. */
 		bare?: boolean;
 	} = {}
@@ -67,7 +67,6 @@ function setup(
 	const loaded = loadedFrom({
 		name: "holocron",
 		providers: { notifications: ["discord"] },
-		...(opts.defaultBranch ? { repo: { defaultBranch: opts.defaultBranch } } : {}),
 	});
 	const importer = vi.fn(async (pkg: string) => {
 		if (pkg !== "@theholocron/holocron-plugin-discord") throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
@@ -122,7 +121,7 @@ describe("runSpecsSync", () => {
 	});
 
 	it("says a document already in step is, and writes nothing for it", async () => {
-		const text = `---\nstatus: proposed\ndiscussion:\n  url: ${URL}\n---\n\n# A\n`;
+		const text = `---\nid: SPEC-0001\nstatus: proposed\ndiscussion:\n  url: ${URL}\n---\n\n# A\n`;
 		const { io, written } = makeIo({ ".notes/a.spec.md": text });
 		const n = fakeNotifications({
 			ensureDiscussion: vi.fn(async () => ({
@@ -193,20 +192,45 @@ describe("runSpecsSync", () => {
 		expect(loud.ensureDiscussion).toHaveBeenCalledWith(expect.objectContaining({ quiet: false }));
 	});
 
-	it("links each post to its file on the default branch, from the repo it is run in", async () => {
+	it("numbers the specs that have no id, oldest first, after the highest number in use", async () => {
+		const files = {
+			".notes/old.spec.md": spec("Old", "proposed", "SPEC-0007"),
+			".notes/b.spec.md": spec("B", "proposed", null),
+			".notes/a.spec.md": spec("A", "proposed", null),
+		};
+		const { io, written } = makeIo(files, {
+			".notes/a.spec.md": { time: 200 },
+			".notes/b.spec.md": { time: 100 },
+		});
+
+		const report = await setup(fakeNotifications(), io).run();
+
+		expect(report.status).toBe("ok");
+		expect(written[".notes/b.spec.md"]).toContain("id: SPEC-0008\n");
+		expect(written[".notes/a.spec.md"]).toContain("id: SPEC-0009\n");
+		expect(report.files.find((f) => f.path === ".notes/old.spec.md")?.did).not.toContain("numbered it SPEC-0007");
+	});
+
+	it("opens each post with the pull request that added the document, from the repo it is run in", async () => {
 		const files = { ".notes/a.spec.md": spec("A", "proposed") };
+		const origins = { ".notes/a.spec.md": { time: 1, pr: 1538 } };
 		const named = fakeNotifications();
 		const given = fakeNotifications();
 		const unknown = fakeNotifications();
-		await setup(named, makeIo(files).io, { defaultBranch: "alpha" }).run();
-		await setup(given, makeIo(files).io, { repo: "acme/widgets" }).run();
-		await setup(unknown, makeIo(files).io, { org: "" }).run();
+		const noPr = fakeNotifications();
+		await setup(named, makeIo(files, origins).io).run();
+		await setup(given, makeIo(files, origins).io, { repo: "acme/widgets" }).run();
+		await setup(unknown, makeIo(files, origins).io, { org: "" }).run();
+		await setup(noPr, makeIo(files, { ".notes/a.spec.md": { time: 1 } }).io).run();
 
 		const body = (n: Notifications) =>
 			(n.ensureDiscussion as ReturnType<typeof vi.fn>).mock.calls[0]![0].body as string;
-		expect(body(named)).toContain("<https://github.com/theholocron/holocron/blob/alpha/.notes/a.spec.md>");
-		expect(body(given)).toContain("<https://github.com/acme/widgets/blob/main/.notes/a.spec.md>");
-		expect(body(unknown)).not.toContain("Read the spec");
+		expect(body(named)).toBe(
+			"SPEC-0001\n\nAbout A.\n\nPR: [#1538](<https://github.com/theholocron/holocron/pull/1538>)"
+		);
+		expect(body(given)).toContain("PR: [#1538](<https://github.com/acme/widgets/pull/1538>)");
+		expect(body(unknown)).toBe("SPEC-0001\n\nAbout A.");
+		expect(body(noPr)).toBe("SPEC-0001\n\nAbout A.");
 	});
 
 	it("prints to the console, and logs with the shared logger, when none is given", async () => {

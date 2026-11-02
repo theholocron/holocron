@@ -12,6 +12,7 @@ function makeIo(files: Record<string, string>): SpecsSyncIo {
 				.map((f) => f.slice(dir.length + 1)),
 		read: (path) => files[path],
 		write: () => {},
+		origin: () => undefined,
 	};
 }
 

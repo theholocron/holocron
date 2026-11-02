@@ -12,6 +12,16 @@ export interface SpecsSyncIo {
 	read(path: string): string | undefined;
 	/** Replaces a repo-relative file's text. */
 	write(path: string, text: string): void;
+	/** When a file was first committed and the pull request that added it, or `undefined` when its history cannot say. */
+	origin(path: string): SpecOrigin | undefined;
+}
+
+/** Where a document came from, as its history says. */
+export interface SpecOrigin {
+	/** When the file was first committed, in seconds since the epoch. */
+	time: number;
+	/** The number of the pull request that added it, when the commit's subject names one (`(#1538)`). */
+	pr?: number;
 }
 
 export interface RunSpecsSyncInput {
@@ -70,6 +80,8 @@ export interface SyncDocumentDeps {
 	dryRun: boolean;
 	/** Post without notifying anyone. */
 	quiet: boolean;
-	/** The address of a document's file on the default branch, or `undefined` when it is not known. */
-	linkTo(path: string): string | undefined;
+	/** The pull request that added the document, with its address, when both are known. */
+	pr?: { number: number; url: string };
+	/** The id `assignSpecIds` gave the document, when it had none. */
+	assignedId?: string;
 }

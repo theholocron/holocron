@@ -5,11 +5,11 @@ import type { SpecDocument } from "./specs-sync.type.js";
 import { syncDocument } from "./sync-document.js";
 
 const URL = "https://discord.com/channels/1/2";
-const LINK = "https://github.com/o/r/blob/alpha";
+const PR = { number: 1538, url: "https://github.com/o/r/pull/1538" };
 const spec = (status: string, extra: string[] = []): SpecDocument => ({
 	path: ".notes/tech-x.spec.md",
 	kind: "spec",
-	text: `---\nstatus: ${status}\nissue: o/r#1\n${extra.join("\n")}${extra.length ? "\n" : ""}---\n\n# Channel content\n\n## Problem\n\nContent is typed by hand.\n`,
+	text: `---\nid: SPEC-0001\nstatus: ${status}\nissue: o/r#1\n${extra.join("\n")}${extra.length ? "\n" : ""}---\n\n# Channel content\n\n## Problem\n\nContent is typed by hand.\n`,
 });
 const adr = (status: string): SpecDocument => ({
 	path: "docs/wiki/decisions/0001-x.md",
@@ -35,13 +35,13 @@ const deps = (notifications: Notifications, over: object = {}) => ({
 	channel: "ideas",
 	dryRun: false,
 	quiet: true,
-	linkTo: (path: string) => `${LINK}/${path}`,
+	pr: PR,
 	...over,
 });
 const linked = (doc: SpecDocument) => doc.text.replace("issue: o/r#1\n", `issue: o/r#1\ndiscussion:\n  url: ${URL}\n`);
 
 describe("syncDocument", () => {
-	it("makes the post, with its title, summary and a link to the file, and links it in the file", async () => {
+	it("makes the post: a title, then its id, a short description and the pull request; and links it in the file", async () => {
 		const { n, notifications } = provider(undefined);
 
 		const out = await syncDocument(spec("proposed"), deps(notifications));
@@ -49,8 +49,8 @@ describe("syncDocument", () => {
 		expect(n.ensureDiscussion).toHaveBeenCalledWith({
 			channel: "ideas",
 			key: ".notes/tech-x.spec.md",
-			title: "SPEC: Channel content",
-			body: `Content is typed by hand.\n\n[Read the spec](<${LINK}/.notes/tech-x.spec.md>)`,
+			title: "💡 New spec: Channel content",
+			body: `SPEC-0001\n\nContent is typed by hand.\n\nPR: [#1538](<${PR.url}>)`,
 			state: "proposed",
 			quiet: true,
 		});
@@ -60,22 +60,50 @@ describe("syncDocument", () => {
 		expect(n.updateDiscussion).not.toHaveBeenCalled();
 	});
 
-	it("titles an ADR with ADR:, and leaves out the link when the repo is not known", async () => {
+	it("titles an ADR 📐 New ADR:, opens with its id, and leaves out the pull request when it is not known", async () => {
 		const { n, notifications } = provider(undefined);
 
-		await syncDocument(adr("accepted"), deps(notifications, { linkTo: () => undefined }));
+		await syncDocument(adr("accepted"), deps(notifications, { pr: undefined }));
 
 		expect(n.ensureDiscussion).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "ADR: Use X", body: "We need X.", state: "accepted" })
+			expect.objectContaining({ title: "📐 New ADR: Use X", body: "ADR-0001\n\nWe need X.", state: "accepted" })
 		);
 	});
 
-	it("says an ADR link is to the ADR", async () => {
+	it("numbers a spec that has no id, writes it first in the front matter, and opens the post with it", async () => {
 		const { n, notifications } = provider(undefined);
-		await syncDocument(adr("accepted"), deps(notifications));
+		const bare: SpecDocument = {
+			...spec("proposed"),
+			text: spec("proposed").text.replace("id: SPEC-0001\n", ""),
+		};
+
+		const out = await syncDocument(bare, deps(notifications, { assignedId: "SPEC-0042" }));
+
+		expect(out.did).toEqual(["numbered it SPEC-0042", "made the post", "linked the post"]);
+		expect(out.text.startsWith("---\nid: SPEC-0042\nstatus: proposed\n")).toBe(true);
 		expect(n.ensureDiscussion).toHaveBeenCalledWith(
-			expect.objectContaining({ body: expect.stringContaining("[Read the ADR]") })
+			expect.objectContaining({ body: expect.stringMatching(/^SPEC-0042\n\n/) })
 		);
+	});
+
+	it("says it would number a spec on a dry run, and writes nothing", async () => {
+		const { n, notifications } = provider(undefined);
+		const bare: SpecDocument = { ...spec("proposed"), text: spec("proposed").text.replace("id: SPEC-0001\n", "") };
+
+		const out = await syncDocument(bare, deps(notifications, { dryRun: true, assignedId: "SPEC-0042" }));
+
+		expect(out.did).toEqual(["would number it SPEC-0042", "would make the post and link it"]);
+		expect(n.ensureDiscussion).not.toHaveBeenCalled();
+	});
+
+	it("cannot sync a document that has no id and is given none", async () => {
+		const { n, notifications } = provider(undefined);
+		const bare: SpecDocument = { ...spec("proposed"), text: spec("proposed").text.replace("id: SPEC-0001\n", "") };
+
+		const out = await syncDocument(bare, deps(notifications));
+
+		expect(out.problem).toMatch(/has no id in its front matter/);
+		expect(n.ensureDiscussion).not.toHaveBeenCalled();
 	});
 
 	it("lets a new post notify people only when asked to", async () => {

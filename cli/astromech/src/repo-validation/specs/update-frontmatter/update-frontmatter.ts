@@ -3,10 +3,13 @@ import type { FrontmatterChanges } from "../specs.type.js";
 /** The lines of the front matter block, between the two `---` lines. */
 const BLOCK = /^---\n([\s\S]*?)\n---/;
 
-/** Sets `key: value` on its own line, replacing the line that has the key or adding one at the end of the block. */
-function setField(lines: string[], key: string, value: string): string[] {
+/**
+ * Sets `key: value` on its own line, replacing the line that has the key or adding one: at the end of the block, or at the
+ * start with `first`.
+ */
+function setField(lines: string[], key: string, value: string, first = false): string[] {
 	const at = lines.findIndex((line) => new RegExp(`^${key}:`).test(line));
-	if (at === -1) return [...lines, `${key}: ${value}`];
+	if (at === -1) return first ? [`${key}: ${value}`, ...lines] : [...lines, `${key}: ${value}`];
 	return lines.map((line, i) => (i === at ? `${key}: ${value}` : line));
 }
 
@@ -33,7 +36,7 @@ function setDiscussionUrl(lines: string[], url: string): string[] {
 }
 
 /**
- * A document's text with its front matter changed: `status` set, and `discussion.url` set to the address of its discussion
+ * A document's text with its front matter changed: `id` and `status` set, and `discussion.url` set to the address of its discussion
  * post. Nothing else in the file moves: the other fields, their order and the body are left as they were. A document
  * with no front matter is returned unchanged.
  */
@@ -41,6 +44,7 @@ export function updateFrontmatter(text: string, changes: FrontmatterChanges): st
 	const match = BLOCK.exec(text);
 	if (!match) return text;
 	let lines = match[1]!.split("\n");
+	if (changes.id !== undefined) lines = setField(lines, "id", changes.id, true);
 	if (changes.status !== undefined) lines = setField(lines, "status", changes.status);
 	if (changes.discussionUrl !== undefined) lines = setDiscussionUrl(lines, changes.discussionUrl);
 	return `---\n${lines.join("\n")}\n---${text.slice(match[0].length)}`;

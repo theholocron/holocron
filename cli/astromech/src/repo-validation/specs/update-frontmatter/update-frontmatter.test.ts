@@ -69,6 +69,15 @@ describe("updateFrontmatter", () => {
 		);
 	});
 
+	it("sets the id: replaces one, or adds it as the first field", () => {
+		expect(updateFrontmatter(doc("id: SPEC-0001", "status: draft"), { id: "SPEC-0002" })).toBe(
+			doc("id: SPEC-0002", "status: draft")
+		);
+		expect(updateFrontmatter(doc("status: draft", "issue: x#1"), { id: "SPEC-0007" })).toBe(
+			doc("id: SPEC-0007", "status: draft", "issue: x#1")
+		);
+	});
+
 	it("returns the text as it is when nothing is asked for, or the document has no front matter", () => {
 		const text = doc("status: draft");
 

@@ -16,7 +16,7 @@ const GOOD_ADR = md(
 	"  github: https://github.com/o/r/pull/1",
 	"---"
 );
-const GOOD_SPEC = md("---", "status: draft", "issue: theholocron/holocron#1", "---");
+const GOOD_SPEC = md("---", "id: SPEC-0001", "status: draft", "issue: theholocron/holocron#1", "---");
 
 /** An in-memory repo: path to text. A folder is the files that start with `<dir>/` and have no further `/`. */
 function makeIo(files: Record<string, string>): SpecsIo {
@@ -58,7 +58,7 @@ describe("specsCheckProbe", () => {
 				"docs/wiki/decisions/README.md": "no frontmatter",
 				".notes/tech-x.spec.md": GOOD_SPEC,
 				".notes/README.md": "no frontmatter",
-				"docs/wiki/specifications/tool-y.spec.md": GOOD_SPEC,
+				"docs/wiki/specifications/tool-y.spec.md": GOOD_SPEC.replace("SPEC-0001", "SPEC-0002"),
 			})
 		);
 		expect(rows).toEqual([
@@ -78,7 +78,7 @@ describe("specsCheckProbe", () => {
 		const rows = await run(
 			makeIo({
 				"docs/wiki/decisions/0009-task-manifest.md": GOOD_ADR.replace("ADR-0009", "ADR-0010"),
-				".notes/tech-x.spec.md": md("---", "status: shipped", "issue: x#1", "---"),
+				".notes/tech-x.spec.md": md("---", "id: SPEC-0001", "status: shipped", "issue: x#1", "---"),
 			})
 		);
 		expect(rows.filter((r) => r.status === "fail")).toEqual([
@@ -89,7 +89,7 @@ describe("specsCheckProbe", () => {
 			},
 			{
 				status: "fail",
-				label: ".notes/tech-x.spec.md:2",
+				label: ".notes/tech-x.spec.md:3",
 				detail: 'invalid status "shipped" — must be one of: draft, proposed, accepted, archived, superseded [status]',
 			},
 		]);
@@ -97,10 +97,16 @@ describe("specsCheckProbe", () => {
 	});
 
 	it("reports a warning as an info row and still passes", async () => {
-		const rows = await run(makeIo({ ".notes/tech-x.spec.md": md("---", "status: draft", "---") }));
+		const rows = await run(makeIo({ ".notes/tech-x.spec.md": md("---", "id: SPEC-0001", "status: draft", "---") }));
 		expect(labels(rows)).toEqual(["heading: ADRs and specs", "info: .notes/tech-x.spec.md:1", "ok: frontmatter"]);
 		expect(rows[1]?.detail).toMatch(/missing `issue` field.*\[issue\]/);
 		expect(rows.at(-1)?.detail).toBe("1 file(s) checked, 0 error(s), 1 warning(s)");
+	});
+
+	it("warns on a spec with no id, which specs sync numbers", async () => {
+		const rows = await run(makeIo({ ".notes/tech-x.spec.md": md("---", "status: archived", "---") }));
+		expect(rows[1]).toMatchObject({ status: "info", label: ".notes/tech-x.spec.md:1" });
+		expect(rows[1]?.detail).toMatch(/missing `id`.*\[id\]/);
 	});
 
 	it("reads files in name order", async () => {

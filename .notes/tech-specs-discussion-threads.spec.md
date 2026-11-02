@@ -1,4 +1,5 @@
 ---
+id: SPEC-0063
 status: proposed
 issue: theholocron/holocron#1535
 blocked-by: []
@@ -33,14 +34,20 @@ A forum rejects a plain webhook post, so the "Specs to ideas" workflow (#1537) c
 
 ### One post per file
 
-| Part          | Content                                                                                                                        |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Title         | `SPEC: <title>` for a spec, `ADR: <title>` for an ADR, the title being the first heading (`specTitle`), at most 100 characters |
-| Tag           | the file's `status`, with its emoji (below)                                                                                    |
-| First message | a short summary, a link to the file on the default branch, and a last line with the file's path and the status last synced     |
-| Notifications | suppressed on the backfill, so 53 new posts ping no one                                                                        |
+| Part          | Content                                                                                                                                                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title         | `💡 New spec: <title>` for a spec, `📐 New ADR: <title>` for an ADR, in plain text (a title cannot be formatted): the title being the first heading (`specTitle`), at most 100 characters                                    |
+| Tag           | the file's `status`, with its emoji (below)                                                                                                                                                                                  |
+| First message | the document's id (`SPEC-0007`, `ADR-0009`), a short description, and the pull request that added it (`PR: [#1538](url)`), a paragraph each, then a last line of small print with the file's path and the status last synced |
+| Notifications | suppressed on the backfill, so 53 new posts ping no one                                                                                                                                                                      |
 
-The title prefix makes the kind clear in the forum list without opening a post. The summary is the first paragraph under `Problem`, `Why` or `Context`, else the first paragraph, cut at 1000 characters (`specSummary`, a pure rule). Edits to the file's body are not mirrored: the post links to the file, which is what the issue's third option ("mirror full text") was rejected for.
+The title says what the post is in the forum list without opening it, and the id in the first message is what people say when they refer to a document. The description is the first paragraph under `Problem`, `Why` or `Context`, else the first paragraph, cut at 1000 characters (`specSummary`, a pure rule). The pull request is the one named by the subject of the commit that first added the file (`(#1538)`, which a squash merge puts there); a file added in a bulk commit (an import, a move) names that commit's pull request, and a file whose history names none has no `PR:` line. Edits to the file's body are not mirrored: the post links to the pull request, which is what the issue's third option ("mirror full text") was rejected for.
+
+### Numbering
+
+ADRs have always carried an id (`ADR-0009`, matching the number in the file name). Specs now do too: `id: SPEC-0007` in the front matter, four digits or more, unique. File names do not change, so no link breaks.
+
+`holocron specs sync` numbers a spec that has no id, so authors never pick a number and two pull requests can never take the same one: it gives the spec without an id the next numbers after the highest in use, oldest first (by when the file was first committed, then by path), and writes the id as the first line of the front matter, in the same pull request as the `discussion.url` it writes. The 63 specs that existed were numbered in that order in one change. `specs check` warns on a spec with no id, errors on one that is not `SPEC-` and digits, and errors on two specs with the same id.
 
 ### Status as a tag
 
