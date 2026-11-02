@@ -772,7 +772,7 @@ the local override exists to exempt.
 
 ## What's in here
 
-- `src/plugin/capabilities.ts` — the 18 capability interfaces that
+- `src/plugin/capabilities.ts` — the 19 capability interfaces that
   providers implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
   `CapabilityConfigPackage`

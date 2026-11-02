@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { stubSpawn } from "./helpers.js";
-import { AuthError, createPlugin, OpVault } from "./index.js";
+import { AuthError, createPlugin, OpCredentials, OpVault } from "./index.js";
 
 describe("createPlugin", () => {
 	it("does not need a `vault` option", () => {
@@ -13,6 +13,12 @@ describe("createPlugin", () => {
 	it("throws AuthError when `op` is missing from PATH", () => {
 		const { spawn } = stubSpawn([{ error: new Error("spawn ENOENT") }]);
 		expect(() => createPlugin({ vault: "rando", spawn })).toThrow(AuthError);
+	});
+
+	it("wires the credentials capability", () => {
+		const { spawn } = stubSpawn([{ status: 0, stdout: "2.30.0" }]);
+		const plugin = createPlugin({ spawn });
+		expect(plugin.capabilities.credentials()).toBeInstanceOf(OpCredentials);
 	});
 
 	it("wires the vault capability", () => {

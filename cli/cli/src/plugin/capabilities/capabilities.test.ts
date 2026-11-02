@@ -26,14 +26,14 @@ describe("CARDINALITY", () => {
 	});
 
 	it("marks multi-provider capabilities as many", () => {
-		const multis = ["tooling", "notifications", "analytics"] as const;
+		const multis = ["tooling", "notifications", "analytics", "credentials"] as const;
 		for (const key of multis) {
 			expect(CARDINALITY[key]).toBe("many");
 		}
 	});
 
 	it("covers every capability key", () => {
-		expect(Object.keys(CARDINALITY)).toHaveLength(18);
+		expect(Object.keys(CARDINALITY)).toHaveLength(19);
 	});
 });
 
@@ -56,6 +56,7 @@ describe("isMulti", () => {
 		expect(isMulti("tooling")).toBe(true);
 		expect(isMulti("notifications")).toBe(true);
 		expect(isMulti("analytics")).toBe(true);
+		expect(isMulti("credentials")).toBe(true);
 	});
 });
 

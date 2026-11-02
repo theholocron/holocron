@@ -30,7 +30,8 @@ export type CapabilityKey =
 	| "logs"
 	| "monitoring"
 	| "wiki"
-	| "workers";
+	| "workers"
+	| "credentials";
 
 /** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
 export type Cardinality = "single" | "many";
@@ -2341,6 +2342,32 @@ export interface Workers extends ProviderIdentity {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// credentials — where this machine gets its own tokens
+// ───────────────────────────────────────────────────────────────────────
+
+/**
+ * A place this machine reads its own tokens from, as named variables (`HOLOCRON_ORG_TOKEN`, ...).
+ *
+ * Not the same job as {@link Vault}, the source of truth `holocron secrets sync` fans out to other services. A
+ * credentials provider answers a plugin asking "where do I get my token?" before it can talk to anything, so it must
+ * authenticate without a token of its own: 1Password does (the desktop app and Touch ID on a laptop, a service
+ * account in CI). A provider that needs a stored token to be read cannot be one.
+ *
+ * `holocron.config` names the environment with `credentials.environment`. Several providers can be configured and
+ * are tried in order. A token the process environment or a `.env` file already has wins over all of them.
+ */
+export interface Credentials extends ProviderIdentity {
+	/** Identifies this provider as the `credentials` capability. */
+	readonly key: "credentials";
+	/**
+	 * Every variable of the environment `environment`, by name. The CLI reads it once per process and looks each
+	 * token up in the result, so a provider that prompts (Touch ID) prompts once for all of them.
+	 * Rejects when the environment cannot be read; the CLI then falls through to the next source.
+	 */
+	read(environment: string): Promise<Record<string, string>>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // Capability map (key → implementation type) + cardinality helpers
 // ───────────────────────────────────────────────────────────────────────
 
@@ -2382,6 +2409,8 @@ export interface CapabilityImpls {
 	wiki: Wiki;
 	/** The `workers` provider. */
 	workers: Workers;
+	/** The `credentials` providers. */
+	credentials: Credentials;
 }
 
 /** The cardinality (`"single"` or `"many"`) of the capability `K`. */

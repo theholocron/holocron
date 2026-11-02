@@ -5,10 +5,11 @@
  * README for the why-shell-out reasoning + prerequisites.
  */
 
-import type { Vault } from "@theholocron/cli";
+import type { Credentials, Vault } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 
 import { type VerifyInput, verifyOpInstalled } from "./auth.js";
+import { OpCredentials } from "./capabilities/credentials.js";
 import { OpVault } from "./capabilities/vault.js";
 import { OpShell } from "./shell.js";
 import { verifyToken } from "./verify-token.js";
@@ -56,7 +57,12 @@ export function vault(ctx: PluginContext): Vault {
 	return new OpVault(ctx.shell, ctx.options.vault !== undefined ? { vault: ctx.options.vault } : {});
 }
 
-/** Creates the 1Password plugin: its `connection` probe and the `vault` capability. */
+/** Builds the `credentials` capability: the variables of a 1Password Environment, read for the token resolvers. */
+export function credentials(ctx: PluginContext): Credentials {
+	return new OpCredentials(ctx.shell);
+}
+
+/** Creates the 1Password plugin: its `connection` probe and the `vault` and `credentials` capabilities. */
 export function createPlugin(options: OpPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
@@ -71,6 +77,7 @@ export function createPlugin(options: OpPluginOptions = {}) {
 		},
 		capabilities: {
 			vault: () => vault(ctx),
+			credentials: () => credentials(ctx),
 		},
 	};
 }
@@ -88,6 +95,7 @@ export const AUTH_HINT =
 // ── Public re-exports ────────────────────────────────────────────────
 
 export * from "./auth.js";
+export { OpCredentials } from "./capabilities/credentials.js";
 export { OpVault } from "./capabilities/vault.js";
 export { OpShell } from "./shell.js";
 export { verifyToken } from "./verify-token.js";

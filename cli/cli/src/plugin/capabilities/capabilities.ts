@@ -38,6 +38,8 @@ export const CARDINALITY = {
 	wiki: "single",
 	/** `workers` has exactly one provider. */
 	workers: "single",
+	/** `credentials` can have several providers, tried in order. */
+	credentials: "many",
 } as const satisfies Record<CapabilityKey, Cardinality>;
 
 /**

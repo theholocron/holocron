@@ -19,7 +19,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
 
 ## Architecture
 
-- **Capability/provider model.** 18 capabilities defined in
+- **Capability/provider model.** 19 capabilities defined in
   `cli/cli/src/plugin/capabilities/capabilities.type.ts`. Vendors implement N
   capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
   up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
@@ -38,6 +38,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   The runs nobody watches reach Discord through one hand-maintained workflow, `platform.notifications.yml` (#1159): a run that errors on `alpha`/`main` posts to #alerts with the gatekeepers ping (to #deploys for a deploy), a deploy, preview or Preview Check that succeeds posts to #deploys on any branch (deliberately noisy, #1578), and a release posts the tags it made to #releases. It triggers on `workflow_run` of the caller workflows, so it sees the caller's name (`Delivery`) and tells runs apart by their file (`workflow_run.path`); a release's tags are read from git, because a package line is tagged without a GitHub release. `doctor notifications` checks that the file is on the default branch and that the `HOLOCRON_NOTIFY_*` secrets it reads are the ones the layout fills (`notificationsWorkflowChecks`, #1581).
   `doctor notifications --post [channel]` shares a drift check you ran yourself (#1585): the bot posts the failing steps, or only the summary line when none failed, through the optional `Notifications.postMessage`; the provider tokens it reads with stay local. A weekly `platform.doctorReminder.yml` post reminds a maintainer to run it.
   An error tracker's alerts reach a channel through the Comlink relay Worker (`apps/comlink`): `Errors.ensureRelay` (optional) makes the tracker's integration and alert rule and returns its signing secret, which `notifications setup` hands to the Worker in the same deploy (`relay.errors` in the layout). The secret is never printed, setup never deletes, and the tracker gets its own token (`sentry.comlink`).
+- **Credentials** (`credentials` capability, #1606). Where this machine reads its own tokens, ahead of the keyring: a provider that needs no token of its own (1Password, through `op`) returns the variables of the environment `credentials.environment` names in `holocron.config.ts`, which stays out of the plugin options so the plugin stays about the provider. `PluginLoader.load()` loads the `credentials` providers first and reads each into the in-process credential store (`auth/credential-store`) once, and the token resolvers (`createResolveToken`, `createFeatureResolver`) look a token up there after the flag and the process environment and before the keyring. A provider that fails to load or read is recorded and skipped. It is separate from `vault`, the source of truth `secrets sync` fans out from.
 - **Probes** (`holocron probe <provider> <probe>`, epic #1166). A plugin may return `probes` from `createPlugin` next to
   `capabilities`: named, on-demand pokes at a live provider (inspect, or prove something end to end). They run under
   `runProbe`: output is scrubbed of secrets, a change goes through `ctx.write` (skipped on `--dry-run`, refused for a probe
@@ -454,7 +455,7 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
 <!-- prettier-ignore -->
 ```text
 cli/                              — core infrastructure (the CLI and its runtime)
-  cli/                            — @theholocron/cli                       (binary + runtime + 18 capability interfaces)
+  cli/                            — @theholocron/cli                       (binary + runtime + 19 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
 apps/                             — deployable applications (not published to npm; private, version 0.0.0 — deployed, not versioned: the deploy-on-release job deploys the commit, and their changes land in the root CHANGELOG)

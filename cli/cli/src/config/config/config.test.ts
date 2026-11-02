@@ -219,6 +219,46 @@ describe("resolveConfig", () => {
 		expect(resolveConfig({ ...minimal, repoValidation: {} }).repoValidation).toEqual({});
 	});
 
+	it("passes the credentials environment through, and leaves it unset by default", () => {
+		expect(resolveConfig({ ...minimal, credentials: { environment: "Holocron" } }).credentials).toEqual({
+			environment: "Holocron",
+		});
+		expect(resolveConfig(minimal).credentials).toBeUndefined();
+	});
+
+	it("accepts a credentials provider when the environment is named", () => {
+		const resolved = resolveConfig({
+			...minimal,
+			providers: { ...minimal.providers, credentials: ["1password"] },
+			credentials: { environment: "Holocron" },
+		});
+		expect(resolved.providers.credentials).toMatchObject({ cardinality: "many" });
+	});
+
+	it("rejects a credentials provider with no environment to read", () => {
+		const err = (() => {
+			try {
+				resolveConfig({ ...minimal, providers: { ...minimal.providers, credentials: ["1password"] } });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(ConfigError);
+		expect((err as Error).message).toMatch(/credentials\.environment/);
+	});
+
+	it("rejects an empty credentials environment", () => {
+		const err = (() => {
+			try {
+				resolveConfig({ ...minimal, credentials: { environment: "  " } });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(ConfigError);
+		expect((err as Error).message).toMatch(/empty/);
+	});
+
 	it("rejects a docsCoverage value that is not off, warn or required", () => {
 		const err = (() => {
 			try {

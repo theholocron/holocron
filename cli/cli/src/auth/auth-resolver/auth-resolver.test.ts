@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { clearCredentials, setCredentials } from "../credential-store/index.js";
+import { getToken } from "../keyring/index.js";
 import { AuthError, createFeatureResolver, createResolveToken } from "./auth-resolver.js";
+
+// The real keyring is never asked: a test that reaches it says what it returns.
+vi.mock("../keyring/index.js", () => ({ getToken: vi.fn(() => null) }));
+
+afterEach(clearCredentials);
 
 const noKeyring = () => null;
 
@@ -179,5 +186,52 @@ describe("createFeatureResolver, where it looks", () => {
 		});
 		expect(resolver.token).toEqual({ envName: "HOLOCRON_SENTRY_COMLINK_TOKEN", keyringKey: "sentry.comlink" });
 		expect(resolver({ cliToken: "t", env: {}, keyring: () => null })).toBe("t");
+	});
+});
+
+// The `credentials` providers' variables sit after the flag and the process environment and before the keyring. These
+// tests give no `keyring`, so a value found in the store proves the real keyring was never asked.
+describe("the credentials providers in the chain", () => {
+	const feature = createFeatureResolver({
+		envName: "HOLOCRON_TEST_FEATURE_TOKEN",
+		keyringKey: "test.feature",
+	});
+
+	it("createResolveToken finds the project's variable in the store", () => {
+		setCredentials("1password:Holocron", { HOLOCRON_TEST_TOKEN: "stored" });
+		expect(resolveToken({ env: {} })).toBe("stored");
+	});
+
+	it("createResolveToken falls back to the vendor's variable name in the store", () => {
+		setCredentials("1password:Holocron", { TEST_TOKEN: "stored-vendor" });
+		expect(resolveToken({ env: {} })).toBe("stored-vendor");
+	});
+
+	it("createResolveToken lets the flag and the process environment win over the store", () => {
+		setCredentials("1password:Holocron", { HOLOCRON_TEST_TOKEN: "stored" });
+		expect(resolveToken({ cliToken: "cli-tok", env: {} })).toBe("cli-tok");
+		expect(resolveToken({ env: { HOLOCRON_TEST_TOKEN: "env-tok" } })).toBe("env-tok");
+	});
+
+	it("createFeatureResolver finds its variable in the store", () => {
+		setCredentials("1password:Holocron", { HOLOCRON_TEST_FEATURE_TOKEN: "stored" });
+		expect(feature({ env: {} })).toBe("stored");
+	});
+
+	it("createFeatureResolver lets the flag and the process environment win over the store", () => {
+		setCredentials("1password:Holocron", { HOLOCRON_TEST_FEATURE_TOKEN: "stored" });
+		expect(feature({ cliToken: "cli-tok", env: {} })).toBe("cli-tok");
+		expect(feature({ env: { HOLOCRON_TEST_FEATURE_TOKEN: "env-tok" } })).toBe("env-tok");
+	});
+
+	it("an injected keyring replaces the store and the real keyring, as before", () => {
+		setCredentials("1password:Holocron", { HOLOCRON_TEST_TOKEN: "stored" });
+		expect(resolveToken({ env: {}, keyring: () => "kr-tok" })).toBe("kr-tok");
+	});
+
+	it("asks the keyring when the store has nothing", () => {
+		vi.mocked(getToken).mockReturnValueOnce("kr-tok").mockReturnValueOnce("kr-feature");
+		expect(resolveToken({ env: {} })).toBe("kr-tok");
+		expect(feature({ env: {} })).toBe("kr-feature");
 	});
 });

@@ -1,7 +1,8 @@
 import { createRequire } from "node:module";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { clearCredentials, getCredential } from "../../auth/credential-store/index.js";
 import { resolveConfig } from "../../config/config/index.js";
 import { cardinalityOf, LoaderError, PluginLoader } from "./loader.js";
 import type { PluginImporter } from "./loader.type.js";
@@ -650,5 +651,108 @@ describe("PluginLoader — probes", () => {
 		);
 		await loader.load();
 		expect(loader.probes().size).toBe(0);
+	});
+});
+
+describe("PluginLoader — credentials", () => {
+	afterEach(clearCredentials);
+
+	const config = (extra: Record<string, unknown> = {}) => ({
+		name: "demo",
+		providers: { credentials: ["1password" as const], source: "github" as const },
+		credentials: { environment: "Holocron" },
+		...extra,
+	});
+	const creds = (read: (environment: string) => Promise<Record<string, string>>) => ({
+		key: "credentials",
+		providerName: "1password",
+		read: vi.fn(read),
+	});
+
+	it("reads the environment into the store before any other plugin is created", async () => {
+		const impl = creds(async () => ({ HOLOCRON_ORG_TOKEN: "from-op" }));
+		let seenWhenSourceCreated: string | undefined;
+		const { loader } = loaderWith(config(), {
+			"@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }),
+			"@theholocron/holocron-plugin-github": {
+				createPlugin: () => {
+					seenWhenSourceCreated = getCredential("HOLOCRON_ORG_TOKEN");
+					return { name: "github", capabilities: { source: () => ({}) } };
+				},
+			},
+		});
+
+		await loader.load();
+
+		expect(impl.read).toHaveBeenCalledExactlyOnceWith("Holocron");
+		expect(seenWhenSourceCreated).toBe("from-op");
+		expect(loader.has("credentials")).toBe(true);
+		expect(loader.get("credentials")).toEqual([impl]);
+		expect(loader.has("source")).toBe(true);
+	});
+
+	it("does not read a source again that an earlier loader already read", async () => {
+		const impl = creds(async () => ({ T: "x" }));
+		const modules = { "@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }) };
+		const cfg = {
+			name: "demo",
+			providers: { credentials: ["1password" as const] },
+			credentials: { environment: "Holocron" },
+		};
+		await loaderWith(cfg, modules).loader.load();
+		await loaderWith(cfg, modules).loader.load();
+		expect(impl.read).toHaveBeenCalledTimes(1);
+	});
+
+	it("records a failed read and still loads the other plugins", async () => {
+		const impl = creds(async () => {
+			throw new Error("op is locked");
+		});
+		const { loader } = loaderWith(config(), {
+			"@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }),
+			"@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }),
+		});
+
+		await loader.load();
+
+		expect(loader.loadFailures().map((f) => [f.key, f.provider, f.error.message])).toEqual([
+			["credentials", "1password", "op is locked"],
+		]);
+		expect(getCredential("HOLOCRON_ORG_TOKEN")).toBeUndefined();
+		expect(loader.has("source")).toBe(true);
+	});
+
+	it("records a provider that is not installed and keeps going", async () => {
+		const { loader } = loaderWith(config(), {
+			"@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }),
+		});
+		await loader.load();
+		expect(loader.loadFailures()[0]?.key).toBe("credentials");
+		expect(loader.has("credentials")).toBe(false);
+		expect(loader.has("source")).toBe(true);
+	});
+
+	it("fails the provider when the config names no environment", async () => {
+		const impl = creds(async () => ({}));
+		const loaded = resolveConfig(config());
+		delete loaded.credentials;
+		const loader = new PluginLoader(loaded, { repoRoot: "/tmp/test-repo" }, (async () =>
+			makePlugin("1password", { credentials: impl })) as PluginImporter);
+		await loader.load();
+		expect(loader.loadFailures()[0]?.error.message).toMatch(/credentials\.environment/);
+		expect(impl.read).not.toHaveBeenCalled();
+	});
+
+	it("tries several providers in the order the config lists them", async () => {
+		const first = creds(async () => ({ T: "first" }));
+		const second = creds(async () => ({ T: "second", U: "u" }));
+		const { loader } = loaderWith(config({ providers: { credentials: ["1password", "doppler"] } }), {
+			"@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: first }),
+			"@theholocron/holocron-plugin-doppler": makePlugin("doppler", { credentials: second }),
+		});
+		await loader.load();
+		expect(getCredential("T")).toBe("first");
+		expect(getCredential("U")).toBe("u");
+		expect(loader.get("credentials")).toEqual([first, second]);
 	});
 });
