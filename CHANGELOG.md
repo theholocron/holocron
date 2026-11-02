@@ -1,3 +1,13 @@
+## [5.0.0-alpha.289](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.288...v5.0.0-alpha.289) (2026-11-02)
+
+### Bug Fixes
+
+* **cli:** 🚦 stop specs sync at the first rate limit ([#1549](https://github.com/theholocron/holocron/issues/1549)) ([39e2034](https://github.com/theholocron/holocron/commit/39e20346f1e529805586a5046e628bfd95f0e11a)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+
+### Chores
+
+* **specs:** 🔄 link every spec and ADR to its discussion post ([#1548](https://github.com/theholocron/holocron/issues/1548)) ([6a200e8](https://github.com/theholocron/holocron/commit/6a200e8d4e9882ec263a067bd4b1040c6a499aa7))
+
 ## [5.0.0-alpha.288](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.287...v5.0.0-alpha.288) (2026-11-02)
 
 ### Features
