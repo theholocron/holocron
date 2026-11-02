@@ -2695,6 +2695,17 @@ describe("DiscordNotifications — server settings, review fixes", () => {
 
 // ── welcome screen and onboarding ──────────────────────────────────────
 
+describe("DiscordNotifications — a forum is not a channel for pins or the server's own settings", () => {
+	const forumOnly = { body: [{ id: "2003", name: "ideas", type: ChannelType.Forum }] };
+
+	it("refuses to pin in a forum", async () => {
+		const { notifs } = makeProvisioner([forumOnly]);
+		await expect(notifs.ensurePinned([{ channel: "ideas", content: "x" }])).rejects.toThrow(
+			/pinned messages name the channel `ideas`, which does not exist on the server yet/
+		);
+	});
+});
+
 describe("DiscordNotifications.ensureWelcome", () => {
 	const chans = { body: [text("2001", "rules"), text("2002", "dev")] };
 	const guild = (features: string[] = ["COMMUNITY", "WELCOME_SCREEN_ENABLED"]) => ({
@@ -2717,6 +2728,21 @@ describe("DiscordNotifications.ensureWelcome", () => {
 			{ channel: "dev", description: "Build" },
 		],
 	};
+
+	it("features a forum channel by name, as it does a text channel", async () => {
+		const forum = { id: "2003", name: "ideas", type: ChannelType.Forum };
+		const withForum = screen({
+			welcome_channels: [{ channel_id: "2003", description: "Ideas", emoji_id: null, emoji_name: null }],
+		});
+		const { notifs, calls } = makeProvisioner([{ body: [...chans.body, forum] }, guild(), withForum]);
+
+		expect(
+			await notifs.ensureWelcome({ description: "Hello", channels: [{ channel: "ideas", description: "Ideas" }] })
+		).toEqual({
+			updated: [],
+		});
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+	});
 
 	it("sends nothing when the screen already matches", async () => {
 		const { notifs, calls } = makeProvisioner([chans, guild(), screen()]);
@@ -2944,6 +2970,21 @@ describe("DiscordNotifications.ensureOnboarding", () => {
 			},
 		],
 	};
+
+	it("takes a forum channel as a default channel and as an answer's channel", async () => {
+		const forum = { id: "2003", name: "ideas", type: ChannelType.Forum };
+		const withForum = { body: [text("2001", "rules"), text("2002", "dev"), forum] };
+		const { notifs, calls } = makeProvisioner([
+			withForum,
+			roles("Readers"),
+			onboarding({ default_channel_ids: ["2003", "2002"] }),
+		]);
+
+		expect(await notifs.ensureOnboarding({ ...wanted, defaultChannels: ["ideas", "dev"] })).toEqual({
+			updated: [],
+		});
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET"]);
+	});
 
 	it("sends nothing when onboarding already matches, whatever the order or the ids", async () => {
 		const { notifs, calls } = makeProvisioner([chans, roles("Readers"), onboarding()]);
