@@ -36,10 +36,14 @@ describe("rehome", () => {
 		expect(rehome(text, MOVED)).toBe(text);
 	});
 
-	it("is the identity while the home is the templates' own spelling", () => {
-		const text = "uses: theholocron/.github/.github/workflows/stale.yml@main";
-		expect(rehome(text)).toBe(text);
-		expect(CI_HOME).toEqual(TEMPLATE_HOME);
+	it("moves the templates' own spelling to holocron at the moving `ci-v1` tag", () => {
+		expect(rehome("uses: theholocron/.github/.github/workflows/stale.yml@main")).toBe(
+			"uses: theholocron/holocron/.github/workflows/stale.yml@ci-v1"
+		);
+		expect(rehome("uses: theholocron/.github/.github/actions/setup@main")).toBe(
+			"uses: theholocron/holocron/ci/actions/setup@ci-v1"
+		);
+		expect(CI_HOME).not.toEqual(TEMPLATE_HOME);
 	});
 
 	it("rehomeAll keeps the keys", () => {
@@ -48,13 +52,13 @@ describe("rehome", () => {
 
 	it("builds a reusable workflow reference", () => {
 		expect(reusableWorkflowRef("preview.yml", MOVED)).toBe("acme/central/.github/workflows/preview.yml@ci-v1");
-		expect(reusableWorkflowRef("preview.yml")).toBe("theholocron/.github/.github/workflows/preview.yml@main");
+		expect(reusableWorkflowRef("preview.yml")).toBe("theholocron/holocron/.github/workflows/preview.yml@ci-v1");
 	});
 });
 
 describe("localize", () => {
 	it("points a reference to a hosted workflow at the file in the same checkout", () => {
-		expect(localize("    uses: theholocron/.github/.github/workflows/verification.unitTests.yml@main")).toBe(
+		expect(localize("    uses: theholocron/holocron/.github/workflows/verification.unitTests.yml@ci-v1")).toBe(
 			"    uses: ./.github/workflows/verification.unitTests.yml"
 		);
 		expect(localize("uses: acme/central/.github/workflows/stale.yml@ci-v1", MOVED)).toBe(
@@ -63,7 +67,7 @@ describe("localize", () => {
 	});
 
 	it("leaves a composite action on its full ref, since a called reusable cannot see this checkout", () => {
-		const action = "uses: theholocron/.github/.github/actions/setup@main";
+		const action = "uses: theholocron/holocron/ci/actions/setup@ci-v1";
 		expect(localize(action)).toBe(action);
 	});
 

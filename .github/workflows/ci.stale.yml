@@ -4,7 +4,7 @@
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Stale
+name: Platform
 
 on: # yamllint disable-line rule:truthy
   schedule:

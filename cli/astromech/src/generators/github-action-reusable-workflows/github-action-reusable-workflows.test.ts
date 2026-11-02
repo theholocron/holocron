@@ -159,7 +159,7 @@ describe("reusableTemplates()", () => {
 
 	it("platform.repoSync.yml runs `holocron repo sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
 		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toMatch(/command: repo sync/);
 		expect(wf).not.toContain("node cli/cli/dist/cli.mjs");
 		// the standalone `pnpm build` step is gone — the action handles it
@@ -195,14 +195,14 @@ describe("reusableTemplates()", () => {
 describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	it("verification.typeSafety.yml runs the task through the holocron action", () => {
 		const wf = REUSABLE_WORKFLOWS["verification.typeSafety"]!;
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toMatch(/task: verification\.typeSafety/);
 		expect(wf).not.toContain("run: pnpm typecheck");
 	});
 
 	it("verification.unitTests.yml unit job runs the task through the holocron action", () => {
 		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toMatch(/task: verification\.unitTests/);
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
@@ -301,7 +301,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		const unit = REUSABLE_WORKFLOWS["verification.unitTests"]!.split("\n  storybook:\n")[0]!;
 		expect(unit).toMatch(/uploads:\s*\n\s*description:[^\n]*\n\s*type: string\n\s*required: false\n\s*default: ""/);
 		expect(unit).toContain("if: ${{ inputs.uploads != '' }}");
-		expect(unit).toContain("uses: theholocron/.github/.github/actions/codecov-upload@main");
+		expect(unit).toContain("uses: theholocron/holocron/ci/actions/codecov-upload@ci-v1");
 		expect(unit).toContain("allow-empty: ${{ inputs.affected }}");
 		expect(unit).toContain(
 			"if: ${{ inputs.uploads == '' && (!inputs.affected || steps.reports.outputs.coverage == 'true') }}"
@@ -650,7 +650,7 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 	});
 
 	it("runs the dispatched task through the holocron action, not a hard-coded command", () => {
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toContain("task: ${{ inputs.task }}");
 	});
 
@@ -746,7 +746,7 @@ describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notifica
 
 	it("posts to each channel with the strict notify action, so one bad channel fails its own job and not the others", () => {
 		expect(wf).toContain("fail-fast: false");
-		expect(wf).toContain("theholocron/.github/.github/actions/notify@main");
+		expect(wf).toContain("theholocron/holocron/ci/actions/notify@ci-v1");
 		expect(wf).toContain('strict: "true"');
 		expect(wf).toContain("fromJSON(inputs.channels)");
 	});

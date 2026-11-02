@@ -127,20 +127,20 @@ const EXPECTED_WORKFLOW_NAMES: Record<string, string> = {
 	"platform.repoSync": "Platform",
 	"platform.repoValidation": "Platform",
 	"platform.syncTemplates": "Platform",
-	preview: "Preview",
+	preview: "Knowledge",
 	review: "Source Quality",
 	"security.codeScanning": "Security",
 	"security.secretDetection": "Security",
-	"security.tokenExpiry": "Token Expiry",
+	"security.tokenExpiry": "Security",
 	"sourceQuality.deadCodeAnalysis": "Source Quality",
 	"sourceQuality.formatting": "Source Quality",
 	"sourceQuality.staticAnalysis": "Source Quality",
 	"sourceQuality.structuredDataValidation": "Source Quality",
-	stale: "Stale",
+	stale: "Platform",
 	"verification.performance": "Verification",
 	"verification.typeSafety": "Verification",
 	"verification.unitTests": "Verification",
-	"verification.visualRegression": "Visual Regression",
+	"verification.visualRegression": "Verification",
 };
 
 describe("check names of the generated callers", () => {
@@ -166,5 +166,31 @@ describe("check names of the generated callers", () => {
 		// every repo sees.
 		const actual = Object.fromEntries(tasks.map((task) => [task, workflowName(WORKFLOW_TEMPLATES[task]!)]));
 		expect(actual).toEqual(EXPECTED_WORKFLOW_NAMES);
+	});
+
+	it("groups every caller under one of the six intents", () => {
+		// The Actions tab groups runs by workflow name, so a name outside the intents (`Stale`, `Token Expiry`) scatters
+		// the list. A task named `<intent>.<task>` belongs to that intent; the few unprefixed ones are placed by hand.
+		const unprefixed: Record<string, string> = {
+			bookkeeping: "Platform",
+			dependencies: "Platform",
+			greetings: "Platform",
+			stale: "Platform",
+			preview: "Knowledge",
+			review: "Source Quality",
+		};
+		const group: Record<string, string> = {
+			delivery: "Delivery",
+			knowledge: "Knowledge",
+			platform: "Platform",
+			security: "Security",
+			sourceQuality: "Source Quality",
+			verification: "Verification",
+		};
+		for (const task of tasks) {
+			const expected = unprefixed[task] ?? group[task.split(".")[0]!];
+			expect(expected, `${task} has no intent`).toBeDefined();
+			expect({ task, name: workflowName(WORKFLOW_TEMPLATES[task]!) }).toEqual({ task, name: expected });
+		}
 	});
 });

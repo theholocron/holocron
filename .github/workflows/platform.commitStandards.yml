@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
       # No local equivalent (linters.ts: commitlint has no localBin — enforced

@@ -4,7 +4,7 @@
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: Token Expiry
+name: Security
 
 on: # yamllint disable-line rule:truthy
   schedule:

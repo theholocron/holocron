@@ -106,7 +106,7 @@ jobs:
           # later step in this job needs to push or pull authenticated.
           persist-credentials: false
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
       - name: Resolve author trust
@@ -170,7 +170,7 @@ jobs:
         # VERCEL_PROTECTION_BYPASS_SECRET live only on the step below,
         # which never loads this repo's config and so never runs a
         # single line of PR-authored code.
-        uses: theholocron/.github/.github/actions/holocron@main
+        uses: theholocron/holocron/ci/actions/holocron@ci-v1
         with:
           command: monitoring resolve-checks
           args: --cwd=${{ inputs.cwd }} --out=${{ runner.temp }}/monitoring-checks.json
@@ -195,7 +195,7 @@ jobs:
           # request. An untrusted deployment gets neither secret.
           VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
           VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
-        uses: theholocron/.github/.github/actions/holocron@main
+        uses: theholocron/holocron/ci/actions/holocron@ci-v1
         with:
           command: monitoring run-resolved
           # vercel-project is NOT gated on trust (sourcery review on
