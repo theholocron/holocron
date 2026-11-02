@@ -23,7 +23,7 @@ If `value` is omitted, the CLI reads, in order:
 
 ## How it works
 
-The command loads the provider's plugin (`@theholocron/holocron-plugin-<provider>`) and calls its `verifyToken` before storing. A token the provider rejects is not stored, and the reason is printed.
+The command loads the provider's plugin (`@theholocron/holocron-plugin-<provider>`) and calls its `verifyToken` before storing. A token the provider refuses is not stored, and the reason is printed.
 
 `holocron auth set 1password` stores nothing: the `op` CLI manages its own sign-in, so the command prints the plugin's `AUTH_HINT` instead.
 

@@ -14,6 +14,8 @@ superseded-by: []
 tags: [telemetry, analytics, posthog, cli]
 ---
 
+<!-- alex disable failed fires kill -->
+
 # ADR-0008 — CLI usage telemetry: PostHog
 
 ## Status

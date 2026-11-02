@@ -1,3 +1,5 @@
+<!-- alex disable postman-postwoman -->
+
 # `@theholocron/postman-client`
 
 TypeScript client for the [Postman API](https://www.postman.com/postman/postman-public-workspace/documentation/8kv5pif/postman-api).

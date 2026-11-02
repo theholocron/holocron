@@ -2,7 +2,7 @@
 
 The Holocron is a small, friendly place to build things. These keep it that way.
 
-**1. Be kind.** Disagree with the idea, not the person. No harassment, hate, slurs or personal attacks, and assume good intent until shown otherwise.
+**1. Be kind.** Disagree with the idea, not the person. No harassment, hate, slurs or personal insults, and assume good intent until shown otherwise.
 
 **2. Stay on topic.** Building talk goes in #dev, half-formed ideas in #ideas. Keep the bot channels (#releases, #deploys, #alerts) for the bot.
 

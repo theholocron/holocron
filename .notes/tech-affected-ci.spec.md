@@ -15,6 +15,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618559398805535
 ---
 
+<!-- alex disable dirty -->
+
 # Affected-only CI with Turborepo and Codecov flags
 
 > Epic #1200. Detail for the "Core requirement" section of `tech-monorepo-consolidation.spec.md` (ADR-0009, spec #672 D9). Measured 2026-10-29 on `alpha` @ `e95008ef5`, Node 22.23.3, turbo 2.10.12, 76 workspace packages. Commands are in "Evidence".

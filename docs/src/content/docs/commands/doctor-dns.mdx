@@ -36,7 +36,7 @@ A record that `deployment.ensureCustomDomain()` returns is **not** checked: aski
 ## Skips
 
 - **Nothing expected**: the one row says `none declared`.
-- **Records expected but no `dns` provider** (or it failed to load): each zone's row is a skip with the reason.
+- **Records expected but no `dns` provider** (or it could not load): each zone's row is a skip with the reason.
 - **No token for the read**: that zone is a skip with the message.
 - Any other provider error fails that zone's row with its message.
 

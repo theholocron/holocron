@@ -65,7 +65,7 @@ Ranked by what actually matters for this project:
   we need.
 - **Pricing**: free "Developer" tier covers personal use — 5 users,
   unlimited projects, unlimited secrets.
-- **Auth**: service tokens per project/config, easy to scope for CI.
+- **Auth**: service tokens per project/config, quick to scope for CI.
 - **Downsides**: SaaS-only (no self-host). Company acquisition risk
   (personal-tier features could get pulled behind a paywall).
 - **Plugin shape**: standard REST plugin. Auth precedence
@@ -195,7 +195,7 @@ Because the 1P plugin STAYS alive (issue #96 clarified scope), the
 implications for #76 / #78 are the OPPOSITE of what an earlier draft
 of this spec suggested:
 
-- **#76** (per-plugin `transport` option) — 1P remains the reference
+- **#76** (per-plugin `transport` option) — 1P stays the reference
   CLI-transport plugin, so #76 keeps its concrete grounding.
 - **#78** (CLI-transport sibling skill) — same reason; 1P is the
   working example a CLI-transport skill would point at.

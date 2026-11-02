@@ -14,6 +14,8 @@ superseded-by: []
 tags: [monitoring, checkly, plugin, sentinel]
 ---
 
+<!-- alex disable rejects -->
+
 # ADR-0013 — Checkly uptime monitoring: holocron plugin over monitoring-as-code CLI
 
 ## Status

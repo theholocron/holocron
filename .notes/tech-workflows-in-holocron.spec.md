@@ -22,6 +22,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618610099560518
 ---
 
+<!-- alex disable faith host-hostess hostesses-hosts -->
+
 # Host the reusable workflows and composite actions in holocron
 
 Part of `tech-monorepo-consolidation.spec.md`. This is the detailed plan for #1215 and #1216.

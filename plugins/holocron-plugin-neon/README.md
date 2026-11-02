@@ -49,7 +49,7 @@ Token resolution order:
 | `resetBranch`         | Restores one branch to match another (Neon "restore branch" endpoint).                                                                          |
 | `enableExtension`     | Runs `CREATE EXTENSION IF NOT EXISTS "..."` against the branch's default database via Neon's run_sql endpoint. Used for PostGIS, pgvector, etc. |
 
-Vercel-managed Neon orgs reject project-create at the Neon API level
+Vercel-managed Neon orgs refuse project-create at the Neon API level
 ("organization is managed by Vercel"). For those setups, provision
 the project via Vercel's marketplace integration (`vercel install
 neon`) — the project becomes visible to Neon's API afterward and

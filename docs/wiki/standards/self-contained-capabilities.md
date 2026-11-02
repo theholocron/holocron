@@ -1,3 +1,5 @@
+<!-- alex disable kill -->
+
 # Self-contained capabilities
 
 Some capabilities are cross-cutting infrastructure — active everywhere the relevant
@@ -81,7 +83,7 @@ is checked first (`HOLOCRON_TELEMETRY=false` → `config.telemetry.enabled` →
 default on); the config field only ever _narrows_ what env + fallback turned
 on, never re-enables. It is applied after config load, so it is the right
 tool for a repo-wide committed choice, not for a zero-leak kill switch — that
-remains `HOLOCRON_TELEMETRY=false`, which gates before the CLI emits anything.
+stays `HOLOCRON_TELEMETRY=false`, which gates before the CLI emits anything.
 
 ## Contrast with standard capabilities
 

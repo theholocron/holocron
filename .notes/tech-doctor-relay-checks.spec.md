@@ -12,6 +12,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618563580661916
 ---
 
+<!-- alex disable host-hostess invalid -->
+
 # Doctor: check the Checkly feed and the Comlink relay
 
 ## Problem
@@ -58,7 +60,7 @@ Each is optional on its capability, like `Monitoring.listChecks`; a provider wit
 
 ### The Worker request
 
-An unsigned request is safe: the Worker rejects it before reading the body. Use a short timeout (5 s) and no retries. It is the only network call these steps make that is not to a provider API, so it goes through an injectable `fetch` for tests.
+An unsigned request is safe: the Worker refuses it before reading the body. Use a short timeout (5 s) and no retries. It is the only network call these steps make that is not to a provider API, so it goes through an injectable `fetch` for tests.
 
 ### Interaction with `doctor --all`
 

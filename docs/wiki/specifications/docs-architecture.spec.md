@@ -11,6 +11,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618715972304906
 ---
 
+<!-- alex disable dives nuts -->
+
 # Documentation architecture — Astro docs, README, Wiki, and Issues
 
 Defines what each documentation surface is authoritative for across the
@@ -248,10 +250,10 @@ Good signal: the repo is accumulating ADRs, design specs, operational
 runbooks, or architectural history that contributors need to understand but
 that would clutter the user-facing docs.
 
-No signal: template repos, simple utility packages, or repos where all
+No signal: template repos, plain utility packages, or repos where all
 relevant knowledge fits cleanly in the README and Astro docs.
 
-Leaving a Wiki empty is completely reasonable. Enabling it just because
+Leaving a Wiki empty is completely reasonable. Enabling it only because
 GitHub provides the feature and then leaving it empty — or letting it fill
 with content that should be elsewhere — is worse than not enabling it.
 
@@ -269,7 +271,7 @@ as defined in §Canonical Wiki structure above.
 
 **theholocron/holocron#440** — ADR format decision. This spec recommends
 the Wiki as the home for accepted ADRs based on the repo-vs-Wiki rule in
-§ADRs. Format (MADR vs Nygard vs other) remains open in that issue.
+§ADRs. Format (MADR vs Nygard vs other) stays open in that issue.
 
 **theholocron/holocron/docs/wiki/specifications/ai-engineering-workflow.spec.md** — the
 "Where documentation lives" section of that spec is the condensed version

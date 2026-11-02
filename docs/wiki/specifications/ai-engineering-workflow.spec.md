@@ -9,6 +9,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618697651462154
 ---
 
+<!-- alex disable buried pros -->
+
 # AI-assisted engineering workflow
 
 A lightweight engineering process for using AI effectively across design,
@@ -801,7 +803,7 @@ Do not silently invent a new design.
 ### Review Agent
 
 Reviews in a separate context — does not evaluate its own implementation.
-Compares the implementation against the original requirements, not just code
+Compares the implementation against the original requirements, not only code
 quality.
 
 **Prompt:**
@@ -998,7 +1000,7 @@ See theholocron/skills for implementation.
 Issue → Implementation Plan → Code → PR
 ```
 
-Examples: bug fixes, dependency updates, simple UI changes, minor refactors,
+Examples: bug fixes, dependency updates, minor UI changes, minor refactors,
 documentation fixes.
 
 ---
@@ -1027,7 +1029,7 @@ significant API redesign, cross-repository protocols, infrastructure changes.
 
 ## Avoiding process theater
 
-The workflow provides clarity, not bureaucracy. Do not require an ADR simply
+The workflow provides clarity, not bureaucracy. Do not require an ADR merely
 because the workflow contains an ADR stage.
 
 Ask: is there an architectural decision here that future engineers will care

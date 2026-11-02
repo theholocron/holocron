@@ -1,3 +1,5 @@
+<!-- alex disable postman-postwoman -->
+
 # `@theholocron/holocron-plugin-postman`
 
 Postman plugin for [Holocron](../cli). Implements the **multi-cardinality**

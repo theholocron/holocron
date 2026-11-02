@@ -12,6 +12,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618609030271199
 ---
 
+<!-- alex disable failed rejects -->
+
 # Post new and changed specs to #ideas
 
 > **Superseded** by `tech-specs-discussion-threads` (SPEC-0063, #1535). This spec posted a line to #ideas through a

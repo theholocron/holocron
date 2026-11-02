@@ -5,6 +5,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618698687586384
 ---
 
+<!-- alex disable add color colors -->
+
 <!-- Implementation: holocron#138 (label sync), holocron#139 (bookkeeping-pr permissions fix) -->
 <!-- Docs: .github#40 (public label table), .github-private runbook updated, 2026-07-15 -->
 <!-- Follow-up: repo metadata config (properties + topics) — docs/wiki/specifications/tech-repo-metadata.spec.md -->
@@ -262,7 +264,7 @@ be done manually in the UI.
 
 ## Open questions
 
-- Should `syncLabels` hard-delete stale labels or just warn? (Deleting removes
+- Should `syncLabels` hard-delete stale labels or only warn? (Deleting removes
   the label from all issues/PRs silently — a warning-then-confirm flow may be
   safer for the first run.)
 - Should repos be able to ADD extra labels via config, or is the canonical set

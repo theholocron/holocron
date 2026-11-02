@@ -10,6 +10,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566620446156394496
 ---
 
+<!-- alex disable attack executed failed fires firing -->
+
 # Per-PR preview monitoring check
 
 Extends the Checkly uptime monitoring (#996, ADR-0013) to run the same

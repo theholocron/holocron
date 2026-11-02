@@ -11,6 +11,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618742878638211
 ---
 
+<!-- alex disable fires remains -->
+
 # `sync --steps wiki` — auto-generated Fern products switcher
 
 Extends `holocron sync` with a `wiki` step that discovers all org repos

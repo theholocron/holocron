@@ -17,6 +17,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566620487776207050
 ---
 
+<!-- alex disable host-hostess -->
+
 # Wiki capability — engineering knowledge publishing
 
 Defines the `wiki` capability in the holocron provider system: a swappable
@@ -184,7 +186,7 @@ docs/
     runbooks/         ← Operational runbooks
 ```
 
-Content not published (remains in the repository only):
+Content not published (stays in the repository only):
 
 - `.notes/` — draft specs and working documents
 - `docs/` consumer-facing content — served by the Pages (`docs`) config,

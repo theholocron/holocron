@@ -31,7 +31,7 @@ An environment that exists but is not expected is never a problem. Names are com
 ## Skips
 
 - **No `environments` provider, and no environment named in `repo.secrets.environments`**: the row says `none declared`, since `repo setup` would create nothing.
-- **No provider, but `repo.secrets.environments` names some**: a **skip** with the reason (or, if the plugin failed to load, why).
+- **No provider, but `repo.secrets.environments` names some**: a **skip** with the reason (or, if the plugin could not load, why).
 - **The provider has no token for the read**: a skip with the message.
 - Any other error from the provider fails the row with its message.
 

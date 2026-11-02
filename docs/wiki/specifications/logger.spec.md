@@ -12,6 +12,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618720053502014
 ---
 
+<!-- alex disable fire just -->
+
 # `@theholocron/logger` — structured logging package
 
 New `packages/logger` package that provides a `Logger` adapter interface
@@ -100,7 +102,7 @@ export interface Logger {
 ```
 
 The overloads allow both structured (`logger.info({ repo }, 'sync complete')`)
-and simple string (`logger.info('sync complete')`) calls — matching Pino's
+and plain string (`logger.info('sync complete')`) calls — matching Pino's
 native API so the implementation is a thin wrapper.
 
 ---
@@ -136,7 +138,7 @@ in the command layer before calling `createLogger`, and is passed as `config.lev
 ### Axiom opt-out
 
 If `HOLOCRON_TELEMETRY=false`, the Axiom transport is not added regardless of
-whether `config.axiom` is provided. The logger still works — it just writes
+whether `config.axiom` is provided. The logger still works — it only writes
 locally only.
 
 ---

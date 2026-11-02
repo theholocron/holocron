@@ -9,6 +9,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618603959095409
 ---
 
+<!-- alex disable conservative fire fires pros -->
+
 # Sentinel's deploy architecture: is a redeploy-on-every-release serverless Function still the right shape?
 
 ## Context

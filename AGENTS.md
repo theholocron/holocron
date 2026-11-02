@@ -137,7 +137,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `launch-menu`.
     A `CommandEntry` can also declare `options` (spec
     `tech-interactive-menu-options.spec.md`, #1052) so its yargs options are
-    offered through the menu too, not just required positionals — required
+    offered through the menu too, not only required positionals — required
     options are always prompted like positionals; everything else goes
     through one `checkbox()` ("set any options?") and only the picked ones
     are then prompted, in declaration order, honouring each option's `when`
