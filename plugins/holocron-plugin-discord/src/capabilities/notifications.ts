@@ -605,11 +605,22 @@ export class DiscordNotifications implements Notifications {
 		return found[0]!.id;
 	}
 
-	/** The one text or announcement channel with this name, or an error saying why not. */
-	private static pickChannelId(channels: readonly DiscordChannel[], name: string, who: string): string {
+	/**
+	 * The one text or announcement channel with this name, or an error saying why not. A forum counts only for a
+	 * setting that can point at one (`forums`): the welcome screen and onboarding can; a pinned message and the server's
+	 * own channels cannot.
+	 */
+	private static pickChannelId(
+		channels: readonly DiscordChannel[],
+		name: string,
+		who: string,
+		forums = false
+	): string {
 		const named = channels.filter(
 			(c) =>
-				(c.type === ChannelType.Text || c.type === ChannelType.Announcement) &&
+				(c.type === ChannelType.Text ||
+					c.type === ChannelType.Announcement ||
+					(forums && c.type === ChannelType.Forum)) &&
 				DiscordNotifications.same(c.name, name)
 		);
 		if (named.length === 0)
@@ -639,6 +650,22 @@ export class DiscordNotifications implements Notifications {
 		} catch {
 			return undefined;
 		}
+	}
+
+	/**
+	 * Changing a role's permissions is refused (403) when the role would gain one the bot does not hold itself: Discord
+	 * lets a bot give only what it has. The bot's own role is managed by its integration, so it cannot be edited by
+	 * hand; re-authorising the bot with the permissions setup needs updates it in place.
+	 */
+	private async rolePermissionsHint(role: string, err: unknown): Promise<unknown> {
+		if (!DiscordNotifications.missingPermissions(err)) return err;
+		const link = await this.inviteOrNothing();
+		return new Error(
+			`role \`${role}\`: Discord refused to change its permissions: a bot can give a role only permissions it holds itself, ` +
+				"and the bot's own role is managed by its integration, so it cannot be edited by hand. Re-invite the bot with the " +
+				`permissions setup needs${link ? ` (this updates its role in place): ${link}` : " (this updates its role in place)"}`,
+			{ cause: err }
+		);
 	}
 
 	/** Turning community on or off needs Administrator, which is more than the bot should keep. */
@@ -1151,7 +1178,8 @@ export class DiscordNotifications implements Notifications {
 	async ensureWelcome(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }> {
 		const bot = this.bot();
 		const channels = await this.channelList();
-		const idOf = (name: string): string => DiscordNotifications.pickChannelId(channels, name, "the welcome screen");
+		const idOf = (name: string): string =>
+			DiscordNotifications.pickChannelId(channels, name, "the welcome screen", true);
 		const wanted = {
 			enabled: welcome.enabled ?? true,
 			description: welcome.description,
@@ -1249,7 +1277,8 @@ export class DiscordNotifications implements Notifications {
 	async ensureOnboarding(onboarding: NotificationsOnboardingLayout): Promise<{ updated: string[] }> {
 		const bot = this.bot();
 		const channels = await this.channelList();
-		const channelId = (name: string): string => DiscordNotifications.pickChannelId(channels, name, "onboarding");
+		const channelId = (name: string): string =>
+			DiscordNotifications.pickChannelId(channels, name, "onboarding", true);
 		const needsRoles = (onboarding.prompts ?? []).some((p) => p.options.some((o) => (o.roles ?? []).length > 0));
 		const roles = needsRoles ? await this.roleList() : [];
 		const roleId = (name: string): string => DiscordNotifications.pickRole(roles, name, "onboarding");
@@ -2197,7 +2226,11 @@ export class DiscordNotifications implements Notifications {
 			}
 			if (updated.length > 0) {
 				this.roleLoad = undefined;
-				const after = await bot.guilds.modifyRole(this.guild(), existing.id, patch);
+				const after = await bot.guilds
+					.modifyRole(this.guild(), existing.id, patch)
+					.catch(async (err: unknown) => {
+						throw patch.permissions === undefined ? err : await this.rolePermissionsHint(input.name, err);
+					});
 				// Discord answers with the role as it now is. If a field we sent is not what comes back, something
 				// else changed the role at the same time (or the server dropped it): say so, do not report success.
 				const stuck = (
