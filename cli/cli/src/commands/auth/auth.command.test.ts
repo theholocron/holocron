@@ -5,7 +5,9 @@ const runAuthUnset = vi.hoisted(() => vi.fn());
 const runAuthCheck = vi.hoisted(() => vi.fn(async () => ({ status: "ok" })));
 const runAuthList = vi.hoisted(() => vi.fn(async () => {}));
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
+const loadConfig = vi.hoisted(() => vi.fn(async (_cwd: string): Promise<unknown> => ({ resolved: { providers: {} } })));
 vi.mock("./index.js", () => ({ runAuthSet, runAuthUnset, runAuthCheck, runAuthList }));
+vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("../../ui/index.js", () => ({
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["provider"]],
 }));
@@ -32,6 +34,29 @@ describe("auth commands", () => {
 		runAuthSet.mockClear();
 		await runCommand(authCommand, ["auth", "set", "github"]);
 		expect(runAuthSet).toHaveBeenCalledWith({ provider: "github" });
+	});
+
+	it("`auth set` passes the credentials provider and environment the config names", async () => {
+		loadConfig.mockResolvedValueOnce({
+			resolved: {
+				providers: { credentials: { cardinality: "many", tuples: [{ provider: "1password" }] } },
+				credentials: { environment: "Holocron" },
+			},
+		});
+		await runCommand(authCommand, ["auth", "set", "github"]);
+		expect(runAuthSet).toHaveBeenCalledWith({
+			provider: "github",
+			credentials: { provider: "1password", environment: "Holocron" },
+		});
+	});
+
+	it("`auth set` passes no credentials when the config has none or there is no config", async () => {
+		loadConfig.mockResolvedValueOnce({ resolved: { providers: {} } });
+		await runCommand(authCommand, ["auth", "set", "github"]);
+		expect(runAuthSet).toHaveBeenLastCalledWith({ provider: "github" });
+		loadConfig.mockRejectedValueOnce(new Error("no holocron.config found"));
+		await runCommand(authCommand, ["auth", "set", "github"]);
+		expect(runAuthSet).toHaveBeenLastCalledWith({ provider: "github" });
 	});
 
 	it("`auth set` exits 1 when storing failed", async () => {

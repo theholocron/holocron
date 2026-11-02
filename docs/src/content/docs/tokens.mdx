@@ -53,6 +53,17 @@ Each variable in the Environment is named for the env var the command already re
 4. Put `providers.credentials` and `credentials.environment` in `holocron.config.ts` as shown.
 5. Check it prints only the variable names: `op environment secret list Holocron` (add `--reveal` only when you want the values).
 
+### Adding a token later
+
+`holocron auth set` stores the token in the keyring as before. When the config names a `credentials` provider it also prints the variable to add there, because `op` cannot write to an Environment:
+
+```text
+stored cloudflare token (account: acme)
+  1password cannot be written to from the CLI: add HOLOCRON_CLOUDFLARE_TOKEN to its "Holocron" environment yourself, so the token follows you to other machines
+```
+
+The name is the one the plugin lists for that keyring entry (`holocron doctor tokens` shows them), or `HOLOCRON_<PROVIDER>_TOKEN`, and `HOLOCRON_<FEATURE>_TOKEN` for a key such as `github.read`. Nothing is printed outside a repo, or in a repo whose config names no `credentials` provider, and the token itself is never printed.
+
 Names are matched exactly and `op` cannot list Environments, so the provider tries the name as written, then lowercase, Title case and UPPERCASE. A name with other casing, or the Environment's id (which `secret list` also accepts), has to be written exactly. With several accounts signed in, set `account` in the provider's options so `op` looks in the right one.
 
 ## Provider token resolution

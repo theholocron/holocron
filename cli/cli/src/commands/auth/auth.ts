@@ -33,6 +33,7 @@ import type {
 	AuthCommandStatus,
 	AuthImporter,
 	AuthPluginModule,
+	PluginToken,
 	RunAuthCheckInput,
 	RunAuthListInput,
 	RunAuthSetInput,
@@ -64,6 +65,18 @@ export function resolveAuthSetToken(input: {
 }): string | null {
 	const e = withEnvPrefix(makeEnv(input.env), "HOLOCRON");
 	return input.positional || e.get(`${input.provider.toUpperCase()}_TOKEN`) || null;
+}
+
+/**
+ * The environment variable a stored token is named by in a `credentials` environment: the plugin's own `envName` for
+ * the keyring entry when it lists one, else `HOLOCRON_<PROVIDER>_TOKEN` (`HOLOCRON_<FEATURE>_TOKEN` for a feature
+ * key such as `github.read`), which is what the token resolvers read first.
+ */
+function credentialVariable(provider: string, keyringKey: string, listed: PluginToken[]): string {
+	const entry = listed.find((t) => t.keyringKey === keyringKey) ?? listed.find((t) => t.keyringKey === provider);
+	if (entry) return entry.envName;
+	const name = provider.includes(".") ? provider.slice(provider.lastIndexOf(".") + 1) : provider;
+	return `HOLOCRON_${name.toUpperCase()}_TOKEN`;
 }
 
 export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandStatus> {
@@ -98,9 +111,11 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 
 	// Verify via the plugin if it exports verifyToken (skipped for feature sub-keys).
 	let subject: string | undefined;
+	let listed: PluginToken[] = [];
 	if (!isFeatureKey && packageName) {
 		try {
 			const module = await importer(packageName);
+			listed = module.tokens ?? [];
 			if (typeof module.verifyToken === "function") {
 				const verified = await module.verifyToken(token);
 				if (!verified.ok) {
@@ -133,6 +148,15 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 	}
 
 	print(style.success(`stored ${keyringKey} token${subject ? ` (${subject})` : ""}`));
+	if (input.credentials) {
+		const { provider: from, environment } = input.credentials;
+		const variable = credentialVariable(provider, keyringKey, listed);
+		print(
+			style.hint(
+				`  ${from} cannot be written to from the CLI: add ${variable} to its "${environment}" environment yourself, so the token follows you to other machines`
+			)
+		);
+	}
 	logger.info(
 		{ provider, keyringKey, verified: subject !== undefined, ...(subject ? { subject } : {}), status: "ok" },
 		`auth set: ${keyringKey}`
