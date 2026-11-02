@@ -174,6 +174,30 @@ describe("the environments entry", () => {
 	});
 });
 
+describe("the credentials entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const credentials = DEEP_CHECKS.find((c) => c.name === "credentials")!;
+
+	it("reports the run's status and counts", async () => {
+		runDoctorCredentials.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 1, fail: 0, skip: 0 } });
+		expect(await credentials.run(input)).toEqual({ status: "ok", summary: { ok: 1, fail: 0, skip: 0 } });
+	});
+
+	it("carries the reason every row was skipped", async () => {
+		runDoctorCredentials.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `credentials` provider is configured",
+		});
+		expect(await credentials.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `credentials` provider is configured",
+		});
+	});
+});
+
 describe("the dns entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const dns = DEEP_CHECKS.find((c) => c.name === "dns")!;
