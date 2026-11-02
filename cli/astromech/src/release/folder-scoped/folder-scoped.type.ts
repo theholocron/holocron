@@ -1,5 +1,6 @@
 import type { commitFiles } from "../commit-files/index.js";
 
+/** What the folder-scoped release plugin depends on, each replaceable in a test. */
 export interface FolderScopedDeps {
 	/**
 	 * Loads a plugin module by specifier, resolved from `cwd` (the repo being released). Defaults to a

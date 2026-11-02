@@ -16,6 +16,10 @@ interface Annotations {
 	beforeAll?(): Promise<void> | void;
 }
 
+/**
+ * Registers Vitest hooks that start a Mock Service Worker `worker` before the tests, reset its handlers after each
+ * test and stop it afterwards. `annotations.beforeAll` runs first.
+ */
 export function setupMSWBrowser(worker: Worker, annotations?: Annotations) {
 	beforeAll(async () => {
 		await annotations?.beforeAll?.();
@@ -29,6 +33,10 @@ export function setupMSWBrowser(worker: Worker, annotations?: Annotations) {
 	});
 }
 
+/**
+ * Registers Vitest hooks that start a Mock Service Worker `server` before the tests, reset its handlers after each
+ * test and close it afterwards. `annotations.beforeAll` runs first.
+ */
 export function setupMSWNode(server: Server, annotations?: Annotations) {
 	beforeAll(async () => {
 		await annotations?.beforeAll?.();

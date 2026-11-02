@@ -1,6 +1,7 @@
 import type { Capability } from "../../config/compose/index.js";
 import { react } from "./react.js";
 
+/** Options for the Next.js preset. */
 export interface NextjsOptions {
 	/** Extra `with:` inputs merged into the `test` workflow entry. */
 	test?: Record<string, unknown>;

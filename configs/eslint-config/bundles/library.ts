@@ -6,6 +6,7 @@ import { packageJson } from "../configs/package-json.js";
 import { typescript } from "../configs/typescript.js";
 import { vitest } from "../configs/vitest.js";
 
+/** Options for the `library()` ESLint bundle. */
 export interface LibraryOptions {
 	/**
 	 * Package (or path) globs whose code runs in the browser, not Node —

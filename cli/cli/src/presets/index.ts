@@ -26,13 +26,21 @@ export { compose } from "../config/compose/index.js";
 // ── Capability factories ────────────────────────────────────────────────────
 /** The capability factories, for composing your own preset with compose(). */
 export const withCapabilities = {
+	/** Bundle size auditing, with Knip and Lighthouse when asked. */
 	withAudit: audit,
+	/** A documentation site deployed to Cloudflare Pages with pull request previews. */
 	withDocs: docs,
+	/** Settings for a monorepo's workspaces. */
 	withMonorepo: monorepo,
+	/** A Next.js application: Vercel deployment and Cypress tests on top of React. */
 	withNextjs: nextjs,
+	/** The base library tasks for a Node project, without type-checking. */
 	withNode: node,
+	/** Adds React and Storybook UI testing. */
 	withReact: react,
+	/** Adds TypeScript type-checking. */
 	withTypecheck: typecheck,
+	/** Publishes the engineering wiki. */
 	withWiki: wiki,
 };
 export type { AuditOptions } from "./capabilities/audit.js";

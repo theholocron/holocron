@@ -1,6 +1,7 @@
 import type { Linter } from "eslint";
 import jsdoc from "eslint-plugin-jsdoc";
 
+/** ESLint rules for JSDoc comments: the plugin's recommended TypeScript set, plus this repo's own rules. */
 export function jsdocConfig(): Linter.Config[] {
 	return [
 		{

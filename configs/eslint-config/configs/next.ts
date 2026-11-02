@@ -1,6 +1,7 @@
 import next from "@next/eslint-plugin-next";
 import type { Linter } from "eslint";
 
+/** ESLint rules for a Next.js app: the plugin's recommended and Core Web Vitals sets. */
 export function nextConfig(): Linter.FlatConfig[] {
 	return [
 		{
