@@ -1,8 +1,7 @@
 import { ADR_DIR, checkSpecs, SPEC_DIRS, type SpecFile } from "@theholocron/astromech/repo-validation";
 
 import type { PluginProbes, Probe } from "../../../plugin/index.js";
-import type { SpecsAnnounceIo, SpecsIo } from "./specs.type.js";
-import { specsAnnounceProbe } from "./specs-announce-probe.js";
+import type { SpecsIo } from "./specs.type.js";
 
 /** The group of probes that check the repo's written decisions and designs. */
 export const SPECS_PROVIDER = "specs";
@@ -55,7 +54,7 @@ export function specsCheckProbe(io: SpecsIo): Probe {
 	};
 }
 
-/** The `specs` probes: the ADR and spec frontmatter check, over `io`, and the #ideas announcement, over `announceIo`. */
-export function specsProbes(io: SpecsIo, announceIo: SpecsAnnounceIo): PluginProbes {
-	return { check: specsCheckProbe(io), announce: specsAnnounceProbe(announceIo) };
+/** The `specs` probes: the ADR and spec frontmatter check, over `io`. */
+export function specsProbes(io: SpecsIo): PluginProbes {
+	return { check: specsCheckProbe(io) };
 }

@@ -91,7 +91,7 @@ Optional methods on `Notifications`, the way `ensurePinned` is, rather than a ni
 
 - **On demand:** `holocron specs sync`, with the global `--dry-run`. A real run is a write to Discord and to a branch, so it asks as a writer does. The backfill is `specs sync --dry-run`, a read of the plan, then `specs sync`.
 - **On a schedule, hourly:** a retag becomes a pull request within the hour. A hand-maintained workflow runs the command with the bot token and a token that can open pull requests.
-- **On a spec pull request** (replacing #1537's webhook step): the same command, limited to the files that pull request changes, read from git as the probe does today. A spec that is only in an open pull request gets its post then, tagged with the status in the pull request, and is found again by path after the merge.
+- **When a spec or ADR lands on `alpha`:** a push that changes one runs the command, so its post exists straight away. (Built: the workflow's three triggers are this, the hour and on demand.)
 
 A rerun is safe because every step first looks for the post and the tag it would make. There is still no memory of a _message_ sent, which #1102 notes; the job posts nothing but forum posts and tags, so it has nothing to repeat.
 
@@ -119,7 +119,8 @@ One pull request each, in order:
 ## Open questions
 
 - **Onboarding.** `#ideas` is one of the onboarding default channels. Discord may not accept a forum there; `setup` will say. If it does not, `#ideas` leaves the default list.
-- **A post for a spec in a pull request that never merges.** It stays, tagged with its pull request's last status. Probably worth a `closed` tag set by the job when the pull request closes unmerged; left out until it is wanted.
+- **A post while the pull request is still open.** Not built. The first design made a post when a spec pull request opened, replacing #1537's webhook step; the posts now appear when the file lands on `alpha`, because a post made earlier needs the command to read the files from the pull request's ref instead of the working tree, to be limited to the files that pull request changes (a stale branch would otherwise retag posts back to old statuses), and to run only for pull requests from this repository (a post carries text the author wrote). Worth doing if the wait for a merge turns out to hide specs under review.
+- **A post for a spec in a pull request that never merges** (only relevant if the above is built). It stays, tagged with its pull request's last status. Probably worth a `closed` tag set by the job when the pull request closes unmerged; left out until it is wanted.
 - **A retagged status the validator rejects** (an ADR retagged to a spec-only status). The job opens no pull request for it and reports it.
 - **Rate limits.** 53 posts in the backfill are well inside Discord's limits; the client already waits on a 429 up to 10 seconds, and the job stops cleanly past that and continues on the next run.
 

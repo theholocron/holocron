@@ -77,7 +77,7 @@ describe("validateAdr", () => {
 				file,
 				line: 4,
 				rule: "discussion",
-				reason: "status is accepted but `discussion.github` is not set",
+				reason: "status is accepted but neither `discussion.url` nor `discussion.github` is set",
 				severity: "warning",
 			},
 		]);
@@ -86,6 +86,16 @@ describe("validateAdr", () => {
 	it("accepts the template's nested discussion.github link", () => {
 		const nested = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  github: https://github.com/o/r/pull/1");
 		expect(validateAdr(file, nested)).toEqual([]);
+	});
+
+	it("accepts a nested discussion.url, the address sync writes", () => {
+		const nested = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  url: https://discord.com/channels/1/2");
+		expect(validateAdr(file, nested)).toEqual([]);
+	});
+
+	it("still warns when discussion.url is empty and there is no other link", () => {
+		const empty = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  url:");
+		expect(validateAdr(file, empty).map((f) => [f.rule, f.severity])).toEqual([["discussion", "warning"]]);
 	});
 
 	it("still warns when the nested discussion.github is empty", () => {
