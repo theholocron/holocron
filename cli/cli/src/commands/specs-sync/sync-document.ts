@@ -1,5 +1,6 @@
 import {
 	ADR_STATUSES,
+	CLOSED_STATUSES,
 	discussionBody,
 	discussionTitle,
 	parseFrontmatter,
@@ -55,6 +56,7 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 			body: discussionBody({ id, summary: specSummary(doc.text), ...(deps.pr ? { pr: deps.pr } : {}) }),
 			state: status,
 			quiet: deps.quiet,
+			closed: CLOSED_STATUSES.includes(status),
 		});
 		post = ensured.post;
 		if (ensured.created) did.push("made the post");
@@ -88,6 +90,18 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 			break;
 		case "conflict":
 			return unsynced(decision.reason);
+	}
+
+	// A post follows the status its tag shows: a finished status is closed and locked, any other is open. A retag to a
+	// finished status closes the post at once, though the file only changes when its pull request merges.
+	const shown = decision.action === "request" ? decision.status : status;
+	const closed = CLOSED_STATUSES.includes(shown);
+	if ((post.closed ?? false) !== closed) {
+		say(
+			closed ? "closed the post" : "reopened the post",
+			closed ? "would close the post" : "would reopen the post"
+		);
+		if (!dryRun) await notifications.updateDiscussion!(channel, doc.path, { closed });
 	}
 
 	if (front?.get("discussion.url")?.value !== post.url) {

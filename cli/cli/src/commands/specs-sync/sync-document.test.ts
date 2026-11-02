@@ -53,6 +53,7 @@ describe("syncDocument", () => {
 			body: `SPEC-0001\n\nContent is typed by hand.\n\nPR: [#1538](<${PR.url}>)`,
 			state: "proposed",
 			quiet: true,
+			closed: false,
 		});
 		expect(out.did).toEqual(["made the post", "linked the post"]);
 		expect(out.text).toContain(`discussion:\n  url: ${URL}`);
@@ -201,6 +202,71 @@ describe("syncDocument", () => {
 		expect(wrong.problem).toBe("status `rejected` is not a status of an SPEC");
 		expect(n.ensureDiscussion).not.toHaveBeenCalled();
 		expect(n.readDiscussion).not.toHaveBeenCalled();
+	});
+
+	describe("closing finished posts", () => {
+		const open = { url: URL, state: "proposed", synced: "proposed" } as const;
+
+		it("makes the post closed for a document that is already finished with, and open for any other", async () => {
+			const finished = provider(undefined);
+			const live = provider(undefined);
+
+			await syncDocument(spec("archived"), deps(finished.notifications));
+			await syncDocument(adr("rejected"), deps(live.notifications));
+			await syncDocument(spec("accepted"), deps(live.notifications));
+
+			expect(finished.n.ensureDiscussion).toHaveBeenCalledWith(expect.objectContaining({ closed: true }));
+			expect(live.n.ensureDiscussion).toHaveBeenNthCalledWith(1, expect.objectContaining({ closed: true }));
+			expect(live.n.ensureDiscussion).toHaveBeenNthCalledWith(2, expect.objectContaining({ closed: false }));
+		});
+
+		it("closes an open post whose document is finished with, and leaves one already closed alone", async () => {
+			const stillOpen = provider({ url: URL, state: "archived", synced: "archived" });
+			const closed = provider({ url: URL, state: "archived", synced: "archived", closed: true });
+
+			const out = await syncDocument(linkedDoc(spec("archived")), deps(stillOpen.notifications));
+			const quiet = await syncDocument(linkedDoc(spec("archived")), deps(closed.notifications));
+
+			expect(out.did).toEqual(["closed the post"]);
+			expect(stillOpen.n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", {
+				closed: true,
+			});
+			expect(quiet.did).toEqual([]);
+			expect(closed.n.updateDiscussion).not.toHaveBeenCalled();
+		});
+
+		it("reopens a closed post whose document is back in an open status", async () => {
+			const { n, notifications } = provider({ ...open, closed: true });
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications));
+
+			expect(out.did).toEqual(["reopened the post"]);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", { closed: false });
+		});
+
+		it("follows the tag at once when a gatekeeper retags to a finished status, before the file's pull request merges", async () => {
+			const { n, notifications } = provider({ url: URL, state: "archived", synced: "proposed" });
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications));
+
+			expect(out.did).toEqual(["moved status to archived, as the tag asks", "closed the post"]);
+			expect(n.updateDiscussion).toHaveBeenCalledTimes(1);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", { closed: true });
+		});
+
+		it("says what it would do on a dry run, and does it for neither", async () => {
+			const toClose = provider({ url: URL, state: "archived", synced: "archived" });
+			const toReopen = provider({ ...open, closed: true });
+			const dry = { dryRun: true };
+
+			const close = await syncDocument(linkedDoc(spec("archived")), deps(toClose.notifications, dry));
+			const reopen = await syncDocument(linkedDoc(spec("proposed")), deps(toReopen.notifications, dry));
+
+			expect(close.did).toEqual(["would close the post"]);
+			expect(reopen.did).toEqual(["would reopen the post"]);
+			expect(toClose.n.updateDiscussion).not.toHaveBeenCalled();
+			expect(toReopen.n.updateDiscussion).not.toHaveBeenCalled();
+		});
 	});
 
 	describe("on a dry run", () => {

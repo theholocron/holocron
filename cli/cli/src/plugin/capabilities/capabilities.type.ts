@@ -1513,6 +1513,8 @@ export interface DiscussionPost {
 	state?: string;
 	/** The state the post was last in step with the document, as the post records it; `undefined` when it records none. */
 	synced?: string;
+	/** Whether the post is closed: finished with, and locked so that only people who manage it can reply or reopen it. Absent when it is open. */
+	closed?: boolean;
 }
 
 /** What {@link Notifications.ensureDiscussion} takes. */
@@ -1529,6 +1531,8 @@ export interface EnsureDiscussionInput {
 	state: string;
 	/** Post without notifying anyone, as a backfill of many posts should. */
 	quiet?: boolean;
+	/** Close the post as it is made, for a document that is already finished with. */
+	closed?: boolean;
 }
 
 /** What {@link Notifications.ensureDiscussion} found or made. */
@@ -1547,6 +1551,8 @@ export interface DiscussionPatch {
 	state?: string;
 	/** The state the post and the document now agree on. */
 	synced?: string;
+	/** Close the post (archive and lock it) or reopen it (unlock and unarchive it). */
+	closed?: boolean;
 }
 
 /** A webhook (or equivalent inbound URL) for a channel. */

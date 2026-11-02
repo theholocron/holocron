@@ -303,3 +303,89 @@ describe("DiscordDiscussions.update", () => {
 		);
 	});
 });
+
+describe("DiscordDiscussions — closed posts", () => {
+	const meta = (over: object) => ({ ...thread("5").thread_metadata, ...over });
+	const closedThread = (over: object = {}) =>
+		thread("5", { thread_metadata: meta({ archived: true, locked: true }), ...over });
+	const body = (id: string) => first(id, `About A.\n\n${footer(INPUT.key, "proposed")}`);
+
+	it("closes a post it has just made, and says so when it is read", async () => {
+		const { discussions, calls } = make([...listing([]), { body: thread("5") }, { body: closedThread() }]);
+
+		const result = await discussions.ensure({ ...INPUT, closed: true });
+
+		expect(result.post.closed).toBe(true);
+		expect(calls[3]).toMatchObject({
+			method: "PATCH",
+			url: `${BASE}/channels/5`,
+			body: { archived: true, locked: true },
+		});
+	});
+
+	it("does not close a post unless asked to", async () => {
+		const { discussions, calls } = make([...listing([]), { body: thread("5") }]);
+		const result = await discussions.ensure(INPUT);
+		expect(result.post).not.toHaveProperty("closed");
+		expect(calls).toHaveLength(3);
+	});
+
+	it("reports a locked post as closed, and an open one, or one Discord only archived, as not", async () => {
+		const locked = make([...listing([closedThread()]), body("5")]);
+		const idle = make([...listing([thread("5", { thread_metadata: meta({ archived: true }) })]), body("5")]);
+
+		expect((await locked.discussions.read("ideas", INPUT.key))?.closed).toBe(true);
+		expect(await idle.discussions.read("ideas", INPUT.key)).not.toHaveProperty("closed");
+	});
+
+	it("closes an open post by archiving and locking it", async () => {
+		const { discussions, calls } = make([...listing([thread("5")]), body("5"), { body: closedThread() }]);
+
+		await discussions.update("ideas", INPUT.key, { closed: true });
+
+		expect(calls).toHaveLength(4);
+		expect(calls[3]?.body).toEqual({ archived: true, locked: true });
+		expect((await discussions.read("ideas", INPUT.key))?.closed).toBe(true);
+	});
+
+	it("reopens a closed post by unarchiving and unlocking it, and a locked one that is not archived by unlocking it", async () => {
+		const archived = make([...listing([closedThread()]), body("5"), { body: thread("5") }]);
+		const lockedOnly = make([
+			...listing([thread("5", { thread_metadata: meta({ locked: true }) })]),
+			body("5"),
+			{ body: thread("5") },
+		]);
+
+		await archived.discussions.update("ideas", INPUT.key, { closed: false });
+		await lockedOnly.discussions.update("ideas", INPUT.key, { closed: false });
+
+		expect(archived.calls[3]?.body).toEqual({ archived: false, locked: false });
+		expect(lockedOnly.calls[3]?.body).toEqual({ locked: false });
+		expect(archived.calls).toHaveLength(4);
+	});
+
+	it("writes to a closed post open, then closes it again", async () => {
+		const { discussions, calls } = make([
+			...listing([closedThread()]),
+			body("5"),
+			{ body: closedThread({ thread_metadata: meta({ archived: false, locked: true }), applied_tags: ["903"] }) },
+			{ body: closedThread() },
+		]);
+
+		await discussions.update("ideas", INPUT.key, { state: "accepted" });
+
+		expect(calls[3]?.body).toEqual({ applied_tags: ["903"], archived: false });
+		expect(calls[4]?.body).toEqual({ archived: true, locked: true });
+	});
+
+	it("does nothing to a closed post it is told to close, or to an idle archived post it is told to open", async () => {
+		const closed = make([...listing([closedThread()]), body("5")]);
+		const idle = make([...listing([thread("5", { thread_metadata: meta({ archived: true }) })]), body("5")]);
+
+		await closed.discussions.update("ideas", INPUT.key, { closed: true });
+		await idle.discussions.update("ideas", INPUT.key, { closed: false });
+
+		expect(closed.calls).toHaveLength(3);
+		expect(idle.calls).toHaveLength(3);
+	});
+});

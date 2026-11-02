@@ -65,6 +65,8 @@ ADRs have always carried an id (`ADR-0009`, matching the number in the file name
 
 The union of the ADR and spec statuses (`ADR_STATUSES` and `SPEC_STATUSES` in astromech) is seven tags, under Discord's limit of 20. A new status is a new line in one table and a tag; the layout creates the tags.
 
+A document with a **finished** status (`archived`, `superseded`, `rejected`, `deprecated`) has its post **closed**: archived and locked, so it leaves the active list and only gatekeepers can reply to it or reopen it, and a discussion that has ended does not start up again. `draft`, `proposed` and `accepted` stay open, since an accepted document is still asked about. The post follows the status its tag shows, so a gatekeeper's retag to a finished status closes it at once, before the file's pull request merges, and a retag back reopens it. Discord has no server-side mute for a thread (muting is each member's own setting), so there is nothing to add there.
+
 ### Who can change a status
 
 The bot owns every post, so only the bot and people with **Manage Threads** can change a post's tags. The layout gives that permission to the gatekeepers role and no one else. That is the whole access rule: nothing in the job checks who retagged, because Discord already refused anyone else.
