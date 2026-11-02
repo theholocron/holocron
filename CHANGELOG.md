@@ -1,3 +1,13 @@
+## [5.0.0-alpha.295](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.294...v5.0.0-alpha.295) (2026-11-02)
+
+### Refactoring
+
+* **release:** ♻️ move groupReleaseConfig into semantic-release-config ([#1558](https://github.com/theholocron/holocron/issues/1558)) ([f11b63c](https://github.com/theholocron/holocron/commit/f11b63c5558115426c4afb0c9e3d3574a1e071d6)), closes [#1246](https://github.com/theholocron/holocron/issues/1246) [#1592](https://github.com/theholocron/holocron/issues/1592) [#1576](https://github.com/theholocron/holocron/issues/1576)
+
+### Chores
+
+* **notifications:** 🔧 give welcome and rules a webhook so notifyCheck can post to them ([#1594](https://github.com/theholocron/holocron/issues/1594)) ([03d381f](https://github.com/theholocron/holocron/commit/03d381f0e540b8cd60350e31fbb832566c043fea)), closes [#1574](https://github.com/theholocron/holocron/issues/1574)
+
 ## [5.0.0-alpha.294](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.293...v5.0.0-alpha.294) (2026-11-02)
 
 ### Features
