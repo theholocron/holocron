@@ -1,3 +1,25 @@
+## [5.0.0-alpha.291](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.290...v5.0.0-alpha.291) (2026-11-02)
+
+### Features
+
+* **docs:** 📚 measure every package export, not only the root ([#1531](https://github.com/theholocron/holocron/issues/1531)) ([#1555](https://github.com/theholocron/holocron/issues/1555)) ([ac983a2](https://github.com/theholocron/holocron/commit/ac983a26faaacba3bb8980dd8c98c8677c5ab649))
+* **notifications:** 🔔 post failed runs and releases to Discord ([#1159](https://github.com/theholocron/holocron/issues/1159)) ([#1557](https://github.com/theholocron/holocron/issues/1557)) ([3fe0189](https://github.com/theholocron/holocron/commit/3fe0189911ca6c5b65fd96ca3fd17be44d079647)), closes [#alerts](https://github.com/theholocron/holocron/issues/alerts) [#deploys](https://github.com/theholocron/holocron/issues/deploys) [#releases](https://github.com/theholocron/holocron/issues/releases)
+
+### Bug Fixes
+
+* **specs:** 🔗 find a discussion post by its recorded address when its file moves ([#1554](https://github.com/theholocron/holocron/issues/1554)) ([16bc32c](https://github.com/theholocron/holocron/commit/16bc32ce9e6ede82b62e00a53b457a9864d078ac)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+
+### Documentation
+
+* 📝 clear the alex inclusive-language hits across the markdown ([#1559](https://github.com/theholocron/holocron/issues/1559)) ([573580e](https://github.com/theholocron/holocron/commit/573580ee02d288ce5184d69ee8cc09acbdb95042)), closes [#1263](https://github.com/theholocron/holocron/issues/1263) [#868](https://github.com/theholocron/holocron/issues/868) [#1311](https://github.com/theholocron/holocron/issues/1311) [#1354](https://github.com/theholocron/holocron/issues/1354)
+* **specs:** 📝 mark tech-specs-to-ideas superseded by the forum design ([#1553](https://github.com/theholocron/holocron/issues/1553)) ([d160248](https://github.com/theholocron/holocron/commit/d1602488a9f9b12a3ecb718ab86c5e43bdc59431))
+
+### Chores
+
+* **specs:** ⏪ put tech-specs-to-ideas back to proposed ([#1552](https://github.com/theholocron/holocron/issues/1552)) ([288b755](https://github.com/theholocron/holocron/commit/288b755a47d3e9f46272996fbb6ab4cb2001fa21)), closes [#1551](https://github.com/theholocron/holocron/issues/1551) [#1535](https://github.com/theholocron/holocron/issues/1535)
+* **specs:** 📦 move the superseded specs-to-ideas spec out of .notes ([#1535](https://github.com/theholocron/holocron/issues/1535)) ([#1556](https://github.com/theholocron/holocron/issues/1556)) ([9b40457](https://github.com/theholocron/holocron/commit/9b4045792a1227ef130abde314c6d10f39ab3a94))
+* **specs:** 🔧 🔄 sync spec discussions ([#1551](https://github.com/theholocron/holocron/issues/1551)) ([e73394a](https://github.com/theholocron/holocron/commit/e73394ad39ff40977112cbffff2224f40572dc09))
+
 ## [5.0.0-alpha.290](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.289...v5.0.0-alpha.290) (2026-11-02)
 
 ### Features
