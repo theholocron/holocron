@@ -14,6 +14,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618718862053457
 ---
 
+<!-- alex disable remains -->
+
 # Engineering knowledge system — Git-canonical ADRs with Fern presentation
 
 Defines the complete architecture for capturing, storing, and surfacing
@@ -317,7 +319,7 @@ ADR PR → docs/decisions/0045-something.md
 Merge → Fern renders it
 ```
 
-The Discussion remains as historical record. The committed ADR is the canonical
+The Discussion stays as historical record. The committed ADR is the canonical
 statement.
 
 ---

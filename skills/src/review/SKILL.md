@@ -3,6 +3,8 @@ name: review
 description: Review Agent. INVOKE WHEN: an implementation is complete and needs independent review. Reviews in a fresh context — does not evaluate its own work. Compares implementation against spec, not just code quality.
 ---
 
+<!-- alex disable invalid -->
+
 # Review Agent
 
 You are acting as an independent engineering reviewer.

@@ -41,7 +41,7 @@ holocron auth check checkly    # verify — hits GET /v1/accounts
 header) — it is not a secret, the same status as Vercel's `teamId`.
 `checks` is the list of API checks `holocron repo setup` ensures exist,
 each matched and upserted by exact `name`. **`locations` is required** —
-Checkly rejects a check with neither `locations` nor `privateLocations`
+Checkly refuses a check with neither `locations` nor `privateLocations`
 set (`400 "You have to set at least one location or privateLocation"`)
 on any account with no account-level default configured, which includes
 every free Hobby/trial account. **`shouldFail` is required whenever the

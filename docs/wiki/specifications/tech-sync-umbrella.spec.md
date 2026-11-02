@@ -5,6 +5,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566620442486243378
 ---
 
+<!-- alex disable fires -->
+
 <!-- editorconfig-checker-disable-file -->
 <!-- markdownlint-disable MD013 MD040 -->
 
@@ -58,7 +60,7 @@ The `readme` step is local-only (no provider token needed) — same as `keywords
 
 ### Open question
 
-Should `sync-readme` remain as a standalone command (for direct invocation) and also be callable as a step inside `sync`? **Yes** — keep `sync-readme` as a direct command; `sync readme` just delegates to the same `runSyncReadme` function.
+Should `sync-readme` remain as a standalone command (for direct invocation) and also be callable as a step inside `sync`? **Yes** — keep `sync-readme` as a direct command; `sync readme` only delegates to the same `runSyncReadme` function.
 
 ---
 

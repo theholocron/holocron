@@ -12,6 +12,8 @@ superseded-by: []
 tags: []
 ---
 
+<!-- alex disable pros -->
+
 # [Short title of the decision]
 
 - Status: [proposed | accepted | rejected | deprecated | superseded by ADR-XXXX]

@@ -83,7 +83,7 @@ Each step reads from a different provider, and a provider that is missing is a *
 
 ### With `--built-only` and `doctor --all`
 
-These steps run under `--built-only`, and so under [`holocron doctor --all`](/holocron/commands/doctor/), which runs notifications that way. They post nothing: the request to the Worker is unsigned and the Worker rejects it before it reads anything, and every other read is a listing. The delivery proofs that do post (a labelled message sent through a feed and read back) are [probes](/holocron/commands/probe/), not part of `doctor`.
+These steps run under `--built-only`, and so under [`holocron doctor --all`](/holocron/commands/doctor/), which runs notifications that way. They post nothing: the request to the Worker is unsigned and the Worker refuses it before it reads anything, and every other read is a listing. The delivery proofs that do post (a labelled message sent through a feed and read back) are [probes](/holocron/commands/probe/), not part of `doctor`.
 
 None of them reads a secret value. The Worker's bindings are listed by name, the alert channel's URL stays inside the Checkly plugin, and the integration's signing secret is never requested.
 

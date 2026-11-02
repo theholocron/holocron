@@ -36,13 +36,13 @@ When no configured plugin lists any token, the one row says so.
 
 ## Expiry
 
-GitHub returns a fine-grained token's expiry in the `github-authentication-token-expiration` response header of any authenticated call; the GitHub plugin reads it from the `/user` call it already makes to verify the token and passes it on as `expiresAt`. A token with no expiry (a classic token set to never expire) shows nothing extra. A token that has already expired is simply rejected by GitHub.
+GitHub returns a fine-grained token's expiry in the `github-authentication-token-expiration` response header of any authenticated call; the GitHub plugin reads it from the `/user` call it already makes to verify the token and passes it on as `expiresAt`. A token with no expiry (a classic token set to never expire) shows nothing extra. A token that has already expired is rejected by GitHub.
 
 A warning is a failure: the check has three statuses (ok, fail, skip) and no fourth, and a failure is what turns a scheduled run red. A token inside the 7-day window therefore fails its row with a problem line, until it is renewed.
 
 ### Running it on a schedule
 
-The `security.tokenExpiry` task runs this check daily from CI (a generated `.github/workflows/security.tokenExpiry.yml` calling a reusable workflow in `theholocron/.github`; `ci.security.tokenExpiry.yml` in holocron itself, which calls the reusable in its own checkout), so GitHub's failed-workflow notification reaches the team before an operation breaks. It runs daily rather than weekly: the window is 7 days, so a weekly run could land just outside it and the next one just after the token lapsed, whereas a daily run fails every day inside the window until the token is renewed. Add `"security.tokenExpiry"` to `tasks` and run `holocron repo sync`; the GitHub tokens are read from the organization secrets of the same names (see the [Token Reference](/holocron/tokens/)). A token with no secret is skipped, not failed. Tokens of other plugins are not passed to the job yet.
+The `security.tokenExpiry` task runs this check daily from CI (a generated `.github/workflows/security.tokenExpiry.yml` calling a reusable workflow in `theholocron/.github`; `ci.security.tokenExpiry.yml` in holocron itself, which calls the reusable in its own checkout), so GitHub's notification for a workflow that errored reaches the team before an operation breaks. It runs daily rather than weekly: the window is 7 days, so a weekly run could land right outside it and the next one right after the token lapsed, whereas a daily run fails every day inside the window until the token is renewed. Add `"security.tokenExpiry"` to `tasks` and run `holocron repo sync`; the GitHub tokens are read from the organization secrets of the same names (see the [Token Reference](/holocron/tokens/)). A token with no secret is skipped, not an error. Tokens of other plugins are not passed to the job yet.
 
 ## What it does not check
 

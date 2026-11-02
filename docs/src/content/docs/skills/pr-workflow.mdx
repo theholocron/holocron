@@ -31,7 +31,7 @@ Squash-merge only. The PR title becomes the single commit on the base branch and
 
 ## Closing / discarding
 
-**Delete the branch when closing — never just close the PR.** A closed-but-existing branch blocks future PR creation for the same branch name (GitHub returns 422).
+**Delete the branch when closing — never close the PR and leave the branch.** A closed-but-existing branch blocks future PR creation for the same branch name (GitHub returns 422).
 
 ```bash
 gh pr close <n> --repo <owner>/<repo> --delete-branch

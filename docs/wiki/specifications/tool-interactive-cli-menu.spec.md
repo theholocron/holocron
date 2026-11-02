@@ -7,6 +7,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566620483246620754
 ---
 
+<!-- alex disable fires hang -->
+
 # Interactive CLI menu — no-args and missing-positional fallback
 
 Replace every "run --help to see commands" dead end with an interactive
@@ -203,7 +205,7 @@ function spawnChild(args: string[]): Promise<number> {
 
 `@inquirer/prompts` and `@inquirer/search` don't hang on a closed/non-TTY
 stdin — they throw `ExitPromptError` the moment stdin ends. But that's a
-confusing message for a CI pipeline or script that simply forgot a required
+confusing message for a CI pipeline or script that merely forgot a required
 arg. Every prompt path checks `process.stdin.isTTY` first and throws
 `NonInteractiveError` instead — a small class this module exports, added to
 `cli.ts`'s existing `USER_FACING_ERRORS` set (from #576's graceful-error

@@ -23,6 +23,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618746808705144
 ---
 
+<!-- alex disable failed hang laid -->
+
 # API documentation as a measured CI gate, generated from TSDoc
 
 TSDoc comments on the public API are the one source of truth. The API reference is generated from them with TypeDoc
@@ -233,7 +235,7 @@ settled with the tradeoff, so the choice can be reversed in one place.
    calling `docs lcov` with no CLI change but a second entry point to keep in step. `docs lcov` stays as it is.
 3. **The switch is a top-level `repoValidation.docsCoverage: "off" | "warn" | "required"`, default `off`.** This repo sets
    `"required"`: `docs patch` fails on a miss and the Codecov statuses are not informational. The value does not touch
-   the ruleset's required checks (decision 9 does). _Tradeoff:_ a top-level key is easy to find and to document and
+   the ruleset's required checks (decision 9 does). _Tradeoff:_ a top-level key is quick to find and to document and
    holds three states; the alternative, a string in the existing `jobs` map, avoids a new key but stretches a boolean map
    and hides the setting among task options.
 4. **Generated pages are built at docs-build time and not committed.** The reference then cannot drift from the source,

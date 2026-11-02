@@ -13,6 +13,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618562536149073
 ---
 
+<!-- alex disable host-hostess -->
+
 # Doctor: deep checks for every capability
 
 ## Problem

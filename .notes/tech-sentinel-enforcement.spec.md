@@ -12,6 +12,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618606698107030
 ---
 
+<!-- alex disable failed -->
+
 # Sentinel as central enforcer — commit-message linting first
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672).

@@ -15,6 +15,8 @@ superseded-by:
 tags: [holocron-config, presets, ci]
 ---
 
+<!-- alex disable failed -->
+
 # Holocron config preset system
 
 - Status: superseded by ADR-0018

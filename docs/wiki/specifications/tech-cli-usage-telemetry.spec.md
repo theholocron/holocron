@@ -12,6 +12,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566620348252684399
 ---
 
+<!-- alex disable failed fire fires kill -->
+
 # CLI usage telemetry — PostHog
 
 Route Holocron CLI command usage to a Holocron-owned PostHog project so

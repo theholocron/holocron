@@ -14,6 +14,8 @@ superseded-by: []
 tags: [license, monorepo, consolidation]
 ---
 
+<!-- alex disable simple -->
+
 # ADR-0016 — License: MIT for the whole monorepo
 
 - Status: accepted

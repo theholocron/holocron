@@ -12,6 +12,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566620447200514088
 ---
 
+<!-- alex disable failed fires -->
+
 # Checkly + Sourcery adoption
 
 Practical implementation details for the two devtool decisions covered
@@ -212,7 +214,7 @@ secrets sync`), the Checkly key is a provisioning-time credential
      `shouldFail` update.
 6. ~~Add a second check covering signature verification, not only
    reachability.~~ Done — a POST with no signature header, asserting
-   401 (`handler.ts`'s `parseWebhookEvent()` always rejects an
+   401 (`handler.ts`'s `parseWebhookEvent()` always refuses an
    unsigned request). This is the only check that actually proves
    `SENTINEL_WEBHOOK_SECRET` is correctly wired end-to-end in the
    deployed environment — the uptime check's 405 fires before

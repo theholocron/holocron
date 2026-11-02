@@ -67,7 +67,6 @@
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@vitest/eslint-plugin": "catalog:",
-    "alexjs": "catalog:",
     "astro": "catalog:",
     "conventional-changelog-conventionalcommits": "catalog:",
     "eslint": "catalog:",

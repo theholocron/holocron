@@ -13,6 +13,8 @@ superseded-by: []
 tags: [tooling, postman, api-client, retroactive]
 ---
 
+<!-- alex disable insomnia postman-postwoman -->
+
 # ADR-0015 — Tooling capability: Postman over Bruno, Insomnia, and Stoplight Elements
 
 ## Status

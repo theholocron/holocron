@@ -1,3 +1,5 @@
+<!-- alex disable fires -->
+
 <!-- editorconfig-checker-disable-file -->
 
 # Self-hosting — npm publishing via Trusted Publishing
@@ -122,4 +124,4 @@ holocron secrets set SOME_ORG_SECRET --scope org=theholocron
 
 Replaces clicking through GH Settings → Secrets → Actions → New for
 any CI secret that isn't covered by OIDC. Same pattern across your
-projects, not just this one.
+projects, not only this one.

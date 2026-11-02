@@ -44,7 +44,7 @@ Not compared: GitHub Pages, `CODEOWNERS` and the generated files (`holocron prob
 
 ## Skips
 
-A row is a **skip**, not a failure, when it cannot be read: no `source` provider is configured or it failed to load, the provider lacks the read method for that group, the token is missing, the plan has no rulesets API (403), or the provider reports none of the security settings.
+A row is a **skip**, not a failure, when it cannot be read: no `source` provider is configured or it could not load, the provider lacks the read method for that group, the token is missing, the plan has no rulesets API (403), or the provider reports none of the security settings.
 
 A row **fails** when something differs and when the provider reports an error for that group.
 

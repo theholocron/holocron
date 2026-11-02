@@ -1,3 +1,5 @@
+<!-- alex disable fire -->
+
 <!-- editorconfig-checker-disable-file -->
 
 # `@theholocron/holocron-plugin-1password`

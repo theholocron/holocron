@@ -1,3 +1,5 @@
+<!-- alex disable host-hostess -->
+
 <!-- editorconfig-checker-disable-file -->
 
 # `@theholocron/holocron-plugin-discord`

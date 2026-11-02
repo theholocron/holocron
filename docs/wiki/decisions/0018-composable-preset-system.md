@@ -15,6 +15,8 @@ superseded-by: []
 tags: [holocron-config, presets, ci]
 ---
 
+<!-- alex disable explosion -->
+
 # Composable preset system
 
 - Status: accepted
@@ -256,6 +258,6 @@ values (account IDs, domains, check names).
 
 ## What this replaces
 
-- `nodeDocsSite()` — never needs to exist; it's just `compose(node(), docs())`
+- `nodeDocsSite()` — never needs to exist; it's only `compose(node(), docs())`
 - The `workflows.filter(…)` workaround in `skills/holocron.config.ts`
 - Any future `nodeDocsMonorepo()`, `nodeReact()`, etc. variants
