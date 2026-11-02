@@ -1253,6 +1253,48 @@ describe("DiscordNotifications.ensureRole — an existing role that disagrees", 
 		expect(calls[1]?.body).toEqual({ color: 0xf0b232, hoist: true, permissions: "3072" });
 	});
 
+	it("explains a refused permissions change, with a link that re-invites the bot, and rethrows any other refusal", async () => {
+		const forum = {
+			guildId: GUILD,
+			layout: { categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" as const }] }] },
+		};
+		const denied = { status: 403, body: { message: "Missing Permissions", code: 50013 } };
+		const perms = makeProvisioner([{ body: [role()] }, denied, bot], forum);
+
+		const err = (await perms.notifs
+			.ensureRole({ name: "gatekeepers", permissions: ["ManageThreads"] })
+			.catch((e: Error) => e)) as Error;
+
+		expect(err.message).toMatch(
+			/role `gatekeepers`: Discord refused to change its permissions: a bot can give a role only permissions it holds itself/
+		);
+		expect(err.message).toMatch(/managed by its integration, so it cannot be edited by hand/);
+		const url = new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]);
+		expect(url.searchParams.get("guild_id")).toBe(GUILD);
+		expect((BigInt(url.searchParams.get("permissions")!) & BigInt(permissions(["ManageThreads"]))) !== 0n).toBe(
+			true
+		);
+
+		const other = makeProvisioner([{ body: [role()] }, { status: 500, body: { message: "boom" } }]);
+		await expect(other.notifs.ensureRole({ name: "gatekeepers", permissions: ["ManageThreads"] })).rejects.toThrow(
+			/500/
+		);
+		const notPermissions = makeProvisioner([{ body: [role()] }, denied]);
+		const same = (await notPermissions.notifs
+			.ensureRole({ name: "gatekeepers", mentionable: true })
+			.catch((e: Error) => e)) as Error;
+		expect(same.message).not.toMatch(/re-invite/i);
+	});
+
+	it("gives the link-less explanation when the bot's own id cannot be read", async () => {
+		const denied = { status: 403, body: { message: "Missing Permissions", code: 50013 } };
+		const { notifs } = makeProvisioner([{ body: [role()] }, denied, { status: 500, body: { message: "no" } }]);
+		const err = (await notifs
+			.ensureRole({ name: "gatekeepers", permissions: ["ManageThreads"] })
+			.catch((e: Error) => e)) as Error;
+		expect(err.message).toMatch(/\(this updates its role in place\)$/);
+	});
+
 	it("sends nothing when the role already matches, or when the layout does not say", async () => {
 		const match = makeProvisioner([
 			{ body: [role({ mentionable: true, color: 0xf0b232, hoist: true, permissions: "3072" })] },
