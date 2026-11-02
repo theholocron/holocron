@@ -26,6 +26,12 @@ beforeEach(() => {
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe("withOrgBlock", () => {
+	it("appends a fresh block when the begin marker has lost its end marker", () => {
+		const out = withOrgBlock(`# repo\n\n${ORG_BLOCK_BEGIN}\n\ntruncated\n`);
+		expect(out.endsWith(`${ORG_BLOCK_END}\n`)).toBe(true);
+		expect(out).toContain("truncated");
+	});
+
 	it("appends the block to a file that has none", () => {
 		const out = withOrgBlock("# repo\n\nown rules\n");
 		expect(out.startsWith("# repo\n\nown rules\n\n")).toBe(true);
