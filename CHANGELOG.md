@@ -1,3 +1,10 @@
+## [5.0.0-alpha.296](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.295...v5.0.0-alpha.296) (2026-11-02)
+
+### Features
+
+* **cli:** 📚 move the org agent instructions into holocron and sync them into each repo ([#1593](https://github.com/theholocron/holocron/issues/1593)) ([812c64d](https://github.com/theholocron/holocron/commit/812c64d1755a1cd1496918dd256044d10ad353e3)), closes [#1217](https://github.com/theholocron/holocron/issues/1217)
+* **notifications:** 🩺 doctor checks the Notifications workflow and the secrets it reads ([#1581](https://github.com/theholocron/holocron/issues/1581)) ([#1602](https://github.com/theholocron/holocron/issues/1602)) ([f9ebd6c](https://github.com/theholocron/holocron/commit/f9ebd6cdd409cb6d61d853e46fbc5c469e929688))
+
 ## [5.0.0-alpha.295](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.294...v5.0.0-alpha.295) (2026-11-02)
 
 ### Refactoring
