@@ -5,6 +5,7 @@ import type {
 	Monitoring,
 	Notifications,
 	NotificationsAccess,
+	NotificationsForumTag,
 	PluginLoader,
 	RuntimeContext,
 	Secrets,
@@ -96,6 +97,10 @@ export interface ChannelSpec {
 	topic?: string;
 	/** The access this channel should end up with (its own, over its category's). */
 	access?: NotificationsAccess;
+	/** `"forum"` for a forum channel; a text channel when absent. */
+	kind?: "text" | "forum";
+	/** The tags of a forum. */
+	tags?: NotificationsForumTag[];
 	/** `avatar` is the image itself, as a `data:` URI. */
 	webhook?: false | { name?: string; secret?: string; avatar?: string };
 	/** The monitoring provider's alerts, already resolved to the names to use. */

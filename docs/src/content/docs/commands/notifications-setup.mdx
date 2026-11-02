@@ -123,6 +123,26 @@ A webhook's picture comes from `webhookAvatar` on the layout (every webhook), or
 A layout belongs to the server, not to a repo. Put it in **one** repo's config (the one that owns the server), never in a shared preset, or every repo would apply it.
 :::
 
+## Forum channels
+
+A channel is a text channel unless it says `kind: "forum"`. A forum is a channel where every conversation is a post of its own, and a post can carry tags:
+
+```ts
+{
+  name: "ideas",
+  kind: "forum",
+  topic: "One post for each ADR and spec. Gatekeepers change a tag to change the status.",   // the guidelines above the posts
+  tags: [
+    { name: "draft", emoji: "✏️", moderated: true },
+    { name: "proposed", emoji: "💬", moderated: true },
+  ],
+},
+```
+
+- **Tags.** `setup` adds a tag the forum lacks and corrects the emoji or `moderated` of one that differs. It never removes a tag the layout does not list, because posts carry them. A `moderated` tag can be applied only by the bot and by members who can manage threads, so give a role that right (`permissions: ["ManageThreads"]`) to decide who may change a status. The bot needs Manage Threads itself, to apply the tag and to grant it; `setup` asks for it in the invite link when the layout has a forum. A forum holds at most 20 tags of 20 characters.
+- **No webhook, no feed.** A plain webhook post cannot start a post, so a forum takes no `webhook` or `feeds`, and `setup` refuses a layout that gives it one. For the same reason a `pinned` message cannot name a forum: pin in a post.
+- **A text channel cannot become a forum**, or the reverse, and `setup` never deletes. If a channel of the other kind already has the name, `setup` stops with `exists as a text channel, and Discord cannot turn it into a forum`. Delete it in Discord (its messages go with it), then run `setup` again. `holocron doctor notifications` reports the same mismatch.
+
 ## Channels fed by another service
 
 A service that has its own alerting can post into a channel directly, without a workflow in between. Declare it on the channel:

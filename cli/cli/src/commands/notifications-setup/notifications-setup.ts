@@ -142,6 +142,40 @@ export function effectiveAccess(
 	return { ...category, ...channel };
 }
 
+/**
+ * The first reason a channel's `kind` and `tags` cannot work, or undefined. A forum takes no webhook or feed (its
+ * conversations are posts, which a plain webhook post cannot start) and no pinned message of its own (a pin lives in a
+ * post); tags belong to a forum; and a tag needs a name no other tag of the channel has. Checked before anything is
+ * created, so a half-applied forum is never the result.
+ */
+export function forumLayoutProblem(layout: NotificationsLayout): string | undefined {
+	const channels = (layout.categories ?? []).flatMap((c) => c.channels ?? []);
+	for (const channel of channels) {
+		const where = `channel \`${channel.name}\``;
+		if (channel.kind !== "forum") {
+			if (channel.tags) return `${where}: \`tags\` belong to a forum -- set \`kind: "forum"\` or remove them`;
+			continue;
+		}
+		if (channel.webhook || channel.feeds?.monitoring || channel.feeds?.errors) {
+			return `${where}: a forum takes no \`webhook\` or \`feeds\`; its conversations are posts`;
+		}
+		const seen = new Set<string>();
+		for (const tag of channel.tags ?? []) {
+			const name = tag.name.trim().toLowerCase();
+			if (name === "") return `${where}: a tag has no name`;
+			if (seen.has(name)) return `${where}: two tags are named \`${tag.name}\``;
+			seen.add(name);
+		}
+	}
+	const forums = new Set(channels.filter((c) => c.kind === "forum").map((c) => c.name.toLowerCase()));
+	for (const pin of layout.pinned ?? []) {
+		if (forums.has(pin.channel.toLowerCase())) {
+			return `pinned: \`${pin.channel}\` is a forum; a message is pinned in a post, not in the forum`;
+		}
+	}
+	return undefined;
+}
+
 /** The first role an `access` names that the layout does not declare, or undefined. */
 export function accessRoleProblem(layout: NotificationsLayout): string | undefined {
 	const declared = new Set((layout.roles ?? []).map((r) => r.name.toLowerCase()));
@@ -423,6 +457,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	if (secretProblem) return refuse(secretProblem);
 	const accessProblem = accessRoleProblem(layout);
 	if (accessProblem) return refuse(accessProblem);
+	const forumProblem = forumLayoutProblem(layout);
+	if (forumProblem) return refuse(forumProblem);
 	const serverProblem = serverLayoutProblem(layout);
 	if (serverProblem) return refuse(serverProblem);
 	if (layout.server && !notifications.ensureServer) {
@@ -592,6 +628,8 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 						...(effectiveAccess(category.access, channel.access)
 							? { access: effectiveAccess(category.access, channel.access)! }
 							: {}),
+						...(channel.kind ? { kind: channel.kind } : {}),
+						...(channel.tags ? { tags: channel.tags } : {}),
 						...(webhook ? { webhook } : {}),
 						...(channel.feeds?.monitoring || channel.feeds?.errors
 							? {

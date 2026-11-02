@@ -229,9 +229,24 @@ export default defineConfig({
 							name: "BUILD",
 							channels: [
 								{ name: "dev", topic: "Day-to-day building talk" },
-								// New and changed specs are posted here by the "Specs to ideas" workflow (#1534), through this webhook
-								// (HOLOCRON_NOTIFY_WEBHOOK_IDEAS).
-								{ name: "ideas", topic: "Half-formed ideas and things to spec later", webhook: true },
+								// A forum: one post for each ADR and spec, made from the file by `holocron specs sync`
+								// (tech-specs-discussion-threads, #1535), titled `SPEC:` or `ADR:`. A post's tag is the file's status; only the
+								// bot and members who can manage threads (gatekeepers) can change a tag, and the sync turns a change into a
+								// pull request. Half-formed ideas belong here too, as posts of their own.
+								{
+									name: "ideas",
+									kind: "forum",
+									topic: "One post for each ADR (ADR:) and spec (SPEC:), tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
+									tags: [
+										{ name: "draft", emoji: "✏️", moderated: true },
+										{ name: "proposed", emoji: "💬", moderated: true },
+										{ name: "accepted", emoji: "✅", moderated: true },
+										{ name: "rejected", emoji: "❌", moderated: true },
+										{ name: "deprecated", emoji: "🗑️", moderated: true },
+										{ name: "archived", emoji: "📦", moderated: true },
+										{ name: "superseded", emoji: "♻️", moderated: true },
+									],
+								},
 								// The test channel: the doctor's own test post is left here, never in a real channel.
 								{
 									name: "holonet",
@@ -325,6 +340,7 @@ export default defineConfig({
 							// Kept equal to the GitHub team of the same name by `holocron notifications sync-roles`.
 							team: "gatekeepers",
 							// Everything a member can do, and nothing more: the bot can only grant what it holds itself.
+							// Manage Threads is what lets a gatekeeper change the status tag of a spec's post in #ideas.
 							permissions: [
 								"ViewChannel",
 								"SendMessages",
@@ -333,6 +349,7 @@ export default defineConfig({
 								"EmbedLinks",
 								"AttachFiles",
 								"UseExternalEmojis",
+								"ManageThreads",
 							],
 							secret: "HOLOCRON_NOTIFY_ALERT_ROLE",
 						},

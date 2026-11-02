@@ -1527,12 +1527,34 @@ export interface NotificationsAccess {
 	post?: "everyone" | string[];
 }
 
+/** A tag a post in a forum channel can carry. */
+export interface NotificationsForumTag {
+	/** The tag's name, up to 20 characters. */
+	name: string;
+	/** An emoji shown beside the name, such as `💬`. */
+	emoji?: string;
+	/** Whether only members who can manage threads (and the provider's own bot) may apply the tag. Defaults to `false`. */
+	moderated?: boolean;
+}
+
 /** One channel in a {@link NotificationsLayout}. */
 export interface NotificationsChannelLayout {
 	/** The channel's name. */
 	name: string;
-	/** The channel's topic text. */
+	/** The channel's topic text. For a forum, this is the guidelines shown above its posts. */
 	topic?: string;
+	/**
+	 * What kind of channel it is: `"text"` (the default) or `"forum"`, where every conversation is a post of its own
+	 * and cannot take a webhook post. A text channel cannot be turned into a forum or back: if the other kind already
+	 * has this name, `setup` stops and says to delete it first. A forum takes no `webhook` or `feeds`.
+	 */
+	kind?: "text" | "forum";
+	/**
+	 * The tags a forum's posts can carry, each with an emoji. Only for `kind: "forum"`. `setup` adds the ones that are
+	 * missing and fixes the emoji and `moderated` of the ones that differ, and never removes a tag the layout does not
+	 * list, so a post keeps the tags it has.
+	 */
+	tags?: NotificationsForumTag[];
 	/** Who may see and post. Overrides the category's, field by field. */
 	access?: NotificationsAccess;
 	/**
@@ -1853,6 +1875,10 @@ export interface ServerInspection {
 		/** The category it sits under, if any. */
 		category?: string;
 		topic?: string;
+		/** `"forum"` for a forum channel; absent for a text channel. */
+		kind?: "text" | "forum";
+		/** The tags of a forum, in the layout's terms. Absent for a text channel. */
+		tags?: NotificationsForumTag[];
 		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook or a feed. */
 		webhooks: string[];
 		/** Which of those webhooks have a picture of their own. */
@@ -1952,6 +1978,10 @@ export interface Notifications extends ProviderIdentity {
 		category?: string;
 		topic?: string;
 		access?: NotificationsAccess;
+		/** `"forum"` for a forum channel; a text channel when absent. */
+		kind?: "text" | "forum";
+		/** The tags of a forum; see {@link NotificationsChannelLayout.tags}. */
+		tags?: NotificationsForumTag[];
 	}): Promise<EnsuredResource>;
 	/** Find or create a webhook named `name` on the channel, creating the channel first if it is missing. */
 	ensureWebhook?(input: {

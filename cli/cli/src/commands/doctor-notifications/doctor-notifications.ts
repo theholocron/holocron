@@ -252,6 +252,27 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					`#${shown(channel.name)}: topic is "${shown(match.topic ?? "")}" but the layout says "${shown(channel.topic)}"`
 				);
 			}
+			// A text channel cannot become a forum, or back: the fix is to delete it, then run setup.
+			const isForum = channel.kind === "forum";
+			if (isForum !== (match.kind === "forum")) {
+				channelProblems.push(
+					`#${shown(channel.name)}: is ${isForum ? "a text channel, and the layout says forum" : "a forum, and the layout says text"}; delete it so \`setup\` can make it again`
+				);
+			} else if (isForum) {
+				for (const tag of channel.tags ?? []) {
+					const have = match.tags?.find((t) => same(t.name, tag.name));
+					if (!have) {
+						channelProblems.push(`#${shown(channel.name)}: tag "${shown(tag.name)}" is missing`);
+					} else if (
+						(have.emoji ?? "") !== (tag.emoji ?? "") ||
+						(have.moderated ?? false) !== (tag.moderated ?? false)
+					) {
+						channelProblems.push(
+							`#${shown(channel.name)}: tag "${shown(tag.name)}" differs from the layout (emoji or moderated)`
+						);
+					}
+				}
+			}
 		}
 		add(
 			"channels",
