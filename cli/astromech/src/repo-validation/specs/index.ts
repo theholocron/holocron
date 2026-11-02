@@ -1,10 +1,13 @@
 export * from "./check-specs/index.js";
 export * from "./classify-spec-path/index.js";
 export * from "./describe-spec-change/index.js";
+export * from "./discussion-title/index.js";
 export * from "./is-valid-iso-date/index.js";
 export * from "./parse-frontmatter/index.js";
+export * from "./reconcile-spec-status/index.js";
 export * from "./spec-announcement-message/index.js";
 export * from "./spec-locations/index.js";
+export * from "./spec-summary/index.js";
 export * from "./spec-title/index.js";
 export type * from "./specs.type.js";
 export * from "./validate-adr/index.js";

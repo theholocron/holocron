@@ -87,3 +87,25 @@ export interface SpecPullRequest {
 	/** The pull request's address. */
 	url: string;
 }
+
+/** The three statuses of a spec that its discussion post is reconciled by. */
+export interface StatusTriple {
+	/** The `status` in the file; `undefined` when it has none. */
+	file: string | undefined;
+	/** The status the post's tag shows; `undefined` when it has no status tag, or more than one. */
+	tag: string | undefined;
+	/** The status the file and the tag last agreed on, as written on the post; `undefined` when it carries none yet. */
+	synced: string | undefined;
+}
+
+/**
+ * What to do about a spec's status: `none` (in step), `record` (in step, but the post's last-synced line is stale: just
+ * rewrite it), `set-tag` (the file is right: put its status on the tag), `request` (the tag was changed on purpose: ask
+ * for the file to change) or `conflict` (both moved, or there is no way to tell: change nothing and say why).
+ */
+export type StatusReconciliation =
+	| { action: "none" }
+	| { action: "record"; status: string }
+	| { action: "set-tag"; status: string }
+	| { action: "request"; status: string }
+	| { action: "conflict"; reason: string };

@@ -457,6 +457,56 @@ describe("DiscordNotifications.ensureChannel — forums", () => {
 	});
 });
 
+describe("DiscordNotifications discussions", () => {
+	const tag = (id: string, name: string) => ({ id, name, moderated: true, emoji_id: null, emoji_name: null });
+	const FORUM = {
+		id: "2010",
+		name: "ideas",
+		type: ChannelType.Forum,
+		available_tags: [tag("901", "draft"), tag("902", "proposed")],
+	};
+	const post = {
+		id: "5",
+		name: "SPEC: A",
+		type: 11,
+		parent_id: "2010",
+		applied_tags: ["902"],
+		thread_metadata: {
+			archived: false,
+			auto_archive_duration: 10080,
+			archive_timestamp: "2026-10-01T00:00:00.000Z",
+			locked: false,
+		},
+	};
+
+	it("makes, reads and changes a post through the provider, reading the forum once", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [FORUM] },
+			{ body: { threads: [], members: [] } },
+			{ body: { threads: [], has_more: false } },
+			{ body: post },
+			{ body: { ...post, applied_tags: ["901"] } },
+			{ body: { id: "5", channel_id: "5", content: "" } },
+		]);
+		const key = ".notes/a.spec.md";
+
+		const made = await notifs.ensureDiscussion({
+			channel: "ideas",
+			key,
+			title: "SPEC: A",
+			body: "About A.",
+			state: "proposed",
+		});
+		const read = await notifs.readDiscussion("ideas", key);
+		await notifs.updateDiscussion("ideas", key, { state: "draft", synced: "draft" });
+
+		expect(made.created).toBe(true);
+		expect(read).toMatchObject({ state: "proposed", synced: "proposed" });
+		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "POST", "PATCH", "PATCH"]);
+		expect((await notifs.readDiscussion("ideas", key))?.state).toBe("draft");
+	});
+});
+
 describe("DiscordNotifications server creation and ownership", () => {
 	const NEW = "9000000000000000001";
 
