@@ -1,6 +1,6 @@
-import { defineConfig } from "@theholocron/semantic-release-config";
 import { describe, expect, it } from "vitest";
 
+import { defineConfig } from "../define-config/index.js";
 import { ungroupedReleaseConfig } from "./ungrouped-release-config.js";
 
 type Config = { branches?: unknown; tagFormat?: string; plugins: (string | [unknown, Record<string, unknown>?])[] };

@@ -51,6 +51,20 @@ export default defineConfig();
 | `exec`     | `{ prepareCmd?, publishCmd? }` | `undefined`                                                   | Commands for `@semantic-release/exec`. Omit if not needed.                                                                        |
 | `assets`   | `string[]`                     | `['CHANGELOG.md', 'package.json', 'packages/*/package.json']` | Files committed by `@semantic-release/git` after release.                                                                         |
 
+## Releasing a version group
+
+A monorepo that releases several folders on their own lines uses `groupReleaseConfig()`. It builds on `defineConfig()` (same rules, notes and plugin order) and takes the same options plus a `group`: tags are `<group>-v<version>`, the analyzer and notes generator see only commits that touched the group's `paths` (default `[group]`), and the changelog, release commit assets and message are the group's.
+
+```js
+import { groupReleaseConfig, ungroupedReleaseConfig } from "@theholocron/semantic-release-config";
+
+export default process.env.RELEASE_GROUP
+  ? groupReleaseConfig({ group: process.env.RELEASE_GROUP, branches: ["main"] })
+  : ungroupedReleaseConfig({ groups: ["clients"], branches: ["main"] });
+```
+
+`ungroupedReleaseConfig()` is the mirror for everything in no group: it skips commits confined to the `groups` folders. `folderScoped`, `ungroupedScoped`, `commitFiles` and `inScope` are exported too.
+
 ## Plugin pipeline
 
 The config wires up this fixed plugin order:

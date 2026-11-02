@@ -7,5 +7,6 @@
 export { defineConfig } from "./define/index.js";
 export { loadTasksConfig } from "./load/index.js";
 export { mergeTasksLayers } from "./merge-tasks-layers/index.js";
+export { releaseGroups } from "./release-groups/index.js";
 export type { TaskConfigItem, TaskEntry, TasksConfig } from "./schema/index.js";
 export { normalizeTaskEntry } from "./schema/index.js";

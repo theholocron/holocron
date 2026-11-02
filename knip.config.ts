@@ -112,6 +112,12 @@ const config: KnipConfig = {
 			"eslint-plugin-react",
 			"eslint-plugin-storybook",
 		]),
+		// the stock plugins folderScoped() loads at release time, which its tests and the notes test run for real
+		"configs/semantic-release-config": configPackage([
+			"@semantic-release/commit-analyzer",
+			"@semantic-release/release-notes-generator",
+			"conventional-changelog-conventionalcommits",
+		]),
 		"configs/storybook-config": configPackage([
 			"@storybook/addon-viewport",
 			"axe-playwright",

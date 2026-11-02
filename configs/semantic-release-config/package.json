@@ -40,9 +40,12 @@
     "verification.unitTests": "vitest run"
   },
   "devDependencies": {
+    "@semantic-release/commit-analyzer": "catalog:cli",
+    "@semantic-release/release-notes-generator": "catalog:cli",
     "@theholocron/tsconfig": "workspace:*",
     "@theholocron/vitest-config": "workspace:*",
     "@vitest/coverage-v8": "catalog:",
+    "conventional-changelog-conventionalcommits": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
