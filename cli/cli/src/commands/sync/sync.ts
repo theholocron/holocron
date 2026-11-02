@@ -525,7 +525,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			})) {
 				if (entry.kind === "skip") {
 					steps.push({ capability: "local", step: entry.syncStep, status: "skip", message: entry.message });
-				} else if (entry.kind === "file") {
+				} else {
 					steps.push(
 						await runSyncStep("local", entry.syncStep, dryRun, async () => {
 							await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
