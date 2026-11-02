@@ -22,7 +22,7 @@ Token resolution order:
 5. Keyring `clerk` — unnamespaced fallback; set via `holocron auth set clerk <key>`
 
 > **Why not the `clerk` CLI?** Rando's adapter shells out to `npx clerk@latest
-api …`, but the `clerk` CLI just wraps the same REST API holocron talks to.
+api …`, but the `clerk` CLI only wraps the same REST API holocron talks to.
 > Direct REST drops a system-binary dependency and matches the uniform auth/REST
 > pattern across the other holocron plugins.
 

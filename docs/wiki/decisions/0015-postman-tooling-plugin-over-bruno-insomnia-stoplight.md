@@ -7,11 +7,12 @@ owners: []
 specs: []
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618661484105969
-  github: https://github.com/theholocron/holocron/pull/83
 supersedes: []
 superseded-by: []
 tags: [tooling, postman, api-client, retroactive]
 ---
+
+<!-- alex disable insomnia postman-postwoman -->
 
 # ADR-0015 — Tooling capability: Postman over Bruno, Insomnia, and Stoplight Elements
 

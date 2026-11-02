@@ -36,7 +36,7 @@ Names are compared without regard to case, as GitHub does. Values are plain text
 
 A row is a **skip**, not a failure, when it cannot be read:
 
-- no `source` provider is configured or it failed to load,
+- no `source` provider is configured or it could not load,
 - the provider cannot list variables, or
 - the organization row needs the org token (`HOLOCRON_ORG_TOKEN`, or `holocron auth set github.org`) and there is none.
 

@@ -1,3 +1,5 @@
+<!-- alex disable invalid -->
+
 # `@theholocron/comlink`
 
 Holocron's alert relay: one Cloudflare Worker that takes webhooks from services whose alerts Discord cannot read, checks

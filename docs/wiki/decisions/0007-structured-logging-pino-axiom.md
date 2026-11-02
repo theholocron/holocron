@@ -7,7 +7,6 @@ owners: []
 specs: []
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618649387606046
-  github: https://github.com/theholocron/holocron/pull/523
 supersedes: []
 superseded-by: []
 tags: [logging, observability, pino, axiom]

@@ -26,7 +26,7 @@ describe("updateFrontmatter", () => {
 		expect(parseFrontmatter(result)?.get("discussion.url")?.value).toBe("https://discord.com/channels/1/2");
 	});
 
-	it("adds the address under an existing discussion block, keeping the github link beside it", () => {
+	it("adds the address under an existing discussion block, keeping the other lines beside it", () => {
 		const text = doc(
 			"status: accepted",
 			"discussion:",
@@ -53,14 +53,12 @@ describe("updateFrontmatter", () => {
 		);
 	});
 
-	it("turns a plain discussion value into a block that keeps it as the github link", () => {
+	it("replaces a plain discussion value (an old GitHub Discussion link) with a block holding the address", () => {
 		const result = updateFrontmatter(doc("discussion: https://github.com/o/r/discussions/9", "status: draft"), {
 			discussionUrl: "https://d/1",
 		});
 
-		expect(result).toBe(
-			doc("discussion:", "  github: https://github.com/o/r/discussions/9", "  url: https://d/1", "status: draft")
-		);
+		expect(result).toBe(doc("discussion:", "  url: https://d/1", "status: draft"));
 	});
 
 	it("sets both fields at once", () => {

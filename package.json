@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron",
-  "version": "5.0.0-alpha.290",
+  "version": "5.0.0-alpha.293",
   "private": true,
   "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
   "keywords": [
@@ -67,7 +67,6 @@
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@vitest/eslint-plugin": "catalog:",
-    "alexjs": "catalog:",
     "astro": "catalog:",
     "conventional-changelog-conventionalcommits": "catalog:",
     "eslint": "catalog:",

@@ -33,14 +33,14 @@ Ownership can only go to someone who is already in the server, which is why the 
 
 ## When something stops halfway
 
-- **The layout fails to apply.** The server exists and the bot owns it. Nothing is handed over. Fix what failed and run `notifications setup`, then `create-server --resume --owner <id>`.
+- **The layout fails to apply.** The server exists and the bot owns it. Nothing is handed over. Fix what went wrong and run `notifications setup`, then `create-server --resume --owner <id>`.
 - **The owner does not join in time.** Same state. Open the invite (or run `--resume` for a new one) and run `create-server --resume --owner <id>`.
 - **The config file could not be edited** (unreadable, unwritable, or no single live `guildId`; a commented-out one is ignored). The command carries on and prints the id to set by hand. Set it before `--resume`, which uses the server the config names.
 - **The hand-over answer is lost.** If the request went through, the command asks who owns the server and counts it as done when that is the owner.
 
 ## One run at a time
 
-A run takes a lock file next to the config (`holocron.config.ts.create-server.lock`) and removes it when it ends, however it ends. A second run while it exists stops at once, so two runs cannot create two servers and overwrite each other's `guildId`. If a run was killed and left the file behind, delete it.
+A run takes a lock file next to the config (`holocron.config.ts.create-server.lock`) and removes it when it ends, however it ends. A second run while it exists stops at once, so two runs cannot create two servers and overwrite each other's `guildId`. If a run was stopped abruptly and left the file behind, delete it.
 
 ## Limits
 

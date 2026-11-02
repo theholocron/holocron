@@ -7,7 +7,6 @@ owners: []
 specs: []
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618656270721054
-  github: https://github.com/theholocron/holocron/pull/967
 supersedes: []
 superseded-by: []
 tags: [logging, observability, axiom, execution-context]

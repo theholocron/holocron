@@ -1,3 +1,5 @@
+<!-- alex disable fires -->
+
 # @theholocron/http-client
 
 Shared HTTP primitives for theholocron tooling — REST client factory, token resolver, and base error types. Used internally by `@theholocron/cli` and all plugin packages; publish your own clients on top of it.

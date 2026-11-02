@@ -80,7 +80,7 @@ command. Locally:
   equivalent, ever, since there's no PR commit range to diff against
   outside CI), the task is skipped even when `--required` — the same
   carve-out a `local: null` task gets. It only fails when a linter _could_
-  run locally but its tool just isn't installed.
+  run locally but its tool is not installed.
 
 ```bash
 $ holocron run sourceQuality.staticAnalysis

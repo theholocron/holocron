@@ -7,6 +7,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618739443499108
 ---
 
+<!-- alex disable just -->
+
 # New plugins — observability, notifications, dns, analytics
 
 Four capability slots defined in `capabilities/index.ts` have no implementing
@@ -247,13 +249,13 @@ readonly providerName = "discord";
 
 Discord supports both a full Bot API and per-channel Incoming Webhooks. Webhooks
 are the right choice here: they require no bot in a server, no OAuth2
-application, and no `MANAGE_WEBHOOKS` permission — just a URL the channel owner
+application, and no `MANAGE_WEBHOOKS` permission — only a URL the channel owner
 generates in Discord's UI. The `send()` interface maps cleanly: `channel` is
 the webhook URL (or a named alias resolved from plugin options), `message` is
 the content.
 
 Bot tokens are out of scope for v1. They add complexity (guild membership,
-intent declarations, permission grants) without benefit for a simple
+intent declarations, permission grants) without benefit for a plain
 notification use case.
 
 ### Plugin options

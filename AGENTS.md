@@ -35,7 +35,8 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   config repo, read and written with its own `github.user-sync` token. The
   capability methods behind it are optional on `Source` and `Notifications`. A server can also be created from the layout (`notifications create-server`): the bot makes it and applies the layout as owner, writes the new id into the config, invites a person and hands the server over; the doctor fails while the bot still owns it.
   A pinned message can take its text from a file in the repo (`pinned: [{ channel, file }]`, `RULES.md` for `#rules`, #1533): the CLI reads the file (`resolvePinnedFiles()`) before it calls the provider, so a provider only sees `content`; the file wins over a hand edit and `doctor notifications` reports the drift (spec `tech-discord-channel-content`).
-  The runs nobody watches reach Discord through one hand-maintained workflow, `platform.notifications.yml` (#1159): a failed run on `alpha`/`main` posts to #alerts with the gatekeepers ping (to #deploys for a deploy), and a release posts the tags it made to #releases. It triggers on `workflow_run` of the caller workflows, so it sees the caller's name (`Delivery`) and tells runs apart by their file (`workflow_run.path`); a release's tags are read from git, because a package line is tagged without a GitHub release.
+  The runs nobody watches reach Discord through one hand-maintained workflow, `platform.notifications.yml` (#1159): a run that errors on `alpha`/`main` posts to #alerts with the gatekeepers ping (to #deploys for a deploy), and a release posts the tags it made to #releases. It triggers on `workflow_run` of the caller workflows, so it sees the caller's name (`Delivery`) and tells runs apart by their file (`workflow_run.path`); a release's tags are read from git, because a package line is tagged without a GitHub release.
+  `doctor notifications --post [channel]` shares a drift check you ran yourself (#1585): the bot posts the failing steps, or only the summary line when none failed, through the optional `Notifications.postMessage`; the provider tokens it reads with stay local. A weekly `platform.doctorReminder.yml` post reminds a maintainer to run it.
   An error tracker's alerts reach a channel through the Comlink relay Worker (`apps/comlink`): `Errors.ensureRelay` (optional) makes the tracker's integration and alert rule and returns its signing secret, which `notifications setup` hands to the Worker in the same deploy (`relay.errors` in the layout). The secret is never printed, setup never deletes, and the tracker gets its own token (`sentry.comlink`).
 - **Probes** (`holocron probe <provider> <probe>`, epic #1166). A plugin may return `probes` from `createPlugin` next to
   `capabilities`: named, on-demand pokes at a live provider (inspect, or prove something end to end). They run under
@@ -139,7 +140,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `launch-menu`.
     A `CommandEntry` can also declare `options` (spec
     `tech-interactive-menu-options.spec.md`, #1052) so its yargs options are
-    offered through the menu too, not just required positionals — required
+    offered through the menu too, not only required positionals — required
     options are always prompted like positionals; everything else goes
     through one `checkbox()` ("set any options?") and only the picked ones
     are then prompted, in declaration order, honouring each option's `when`

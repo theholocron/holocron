@@ -149,6 +149,6 @@ Key implementation decisions made during development:
 ## Resolved open questions
 
 - **String form kept permanently?** No — dropped entirely once all repos migrated.
-- **`uses_external_packages` auto-derived?** No — remains manual config for now.
-- **Org schema automation?** Remains a one-time scripted step; no `setup-org` command.
+- **`uses_external_packages` auto-derived?** No — stays manual config for now.
+- **Org schema automation?** Stays a one-time scripted step; no `setup-org` command.
 - **Ruleset targeting via properties?** Deferred pending GitHub Team+ upgrade (issue #142).

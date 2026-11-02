@@ -857,6 +857,13 @@ export interface Deployment extends ProviderIdentity {
 	 * pattern `setup` already uses for `Wiki.dnsRecord()`.
 	 */
 	ensureCustomDomain?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
+	/**
+	 * The DNS record that points `hostname` at the project, read without changing anything: the read-only half of
+	 * {@link Deployment.ensureCustomDomain}, which attaches the domain. Unlike `ensureCustomDomain` it returns the
+	 * record even when the domain already resolves, so `holocron doctor dns` can compare it with the zone. `null`
+	 * when the provider has no record to recommend. Optional: a provider that cannot be asked omits it.
+	 */
+	expectedDomainRecord?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -2125,6 +2132,11 @@ export interface Notifications extends ProviderIdentity {
 	/** Bring the welcome screen in line with the layout, changing only what differs. Returns what it changed. */
 	ensureWelcome?(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }>;
 
+	/**
+	 * Posts `content` in a channel of the layout as the provider's own bot, mentioning no one. For a result a person
+	 * asked to share (`doctor notifications --post`); a notification goes through a webhook (`send`).
+	 */
+	postMessage?(channel: string, content: string): Promise<void>;
 	/** Post and pin the layout's messages, replacing any that differ. Returns the channels it changed. */
 	ensurePinned?(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }>;
 

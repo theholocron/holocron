@@ -94,7 +94,7 @@ Signed-off-by: Your Name <you@example.com>
 
 Never skip `-s`. Branch protection and CI enforce DCO.
 
-## Validate before committing, don't just guess
+## Validate before committing, don't only guess
 
 Per [commitlint's own AI-agent guidance](https://commitlint.js.org/guides/ai-agents.html):
 treat the resolved commitlint config as a contract, not a memory exercise — verify a
@@ -118,7 +118,7 @@ directly rather than relying on auto-discovery (same pattern this org's own
 printf '%s' "<message>" | npx commitlint --config node_modules/@theholocron/commitlint-config/dist/index.js
 ```
 
-If the `commit-msg` hook rejects a commit, the rejected rule name is in the error —
+If the `commit-msg` hook refuses a commit, the rejected rule name is in the error —
 fix the message and retry. **Don't reach for `git commit --no-verify` to get past an
 actual commit-message failure** — fix the message. (This is scoped to the message
 itself: bypassing a hook for a separately-confirmed, pre-existing, unrelated failure

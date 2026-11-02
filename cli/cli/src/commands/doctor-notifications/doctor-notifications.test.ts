@@ -84,6 +84,7 @@ function setup(
 		org?: string;
 		builtOnly?: boolean;
 		deliver?: boolean;
+		post?: string;
 		scope?: { kind: "repo" };
 		fetch?: typeof fetch;
 		repoRoot?: string;
@@ -125,6 +126,7 @@ function setup(
 				logger: log,
 				...(opts.builtOnly ? { builtOnly: true } : {}),
 				...(opts.deliver ? { deliver: true } : {}),
+				...(opts.post !== undefined ? { post: opts.post } : {}),
 				...(opts.scope ? { scope: opts.scope } : {}),
 				...(opts.fetch ? { fetch: opts.fetch } : {}),
 			}),
@@ -2267,5 +2269,48 @@ describe("runDoctorNotifications — the error tracker's side of the relay", () 
 	it("skips both steps when the provider cannot read its relay", async () => {
 		const report = await trackerRun({});
 		expect(["relay-integration", "relay-rule"].map((id) => byId(report, id).status)).toEqual(["skip", "skip"]);
+	});
+});
+
+describe("runDoctorNotifications --post", () => {
+	it("posts only the summary when every step held, and says where", async () => {
+		const postMessage = vi.fn(async () => {});
+		const t = setup(fakeNotifications({ postMessage, serverOwner: undefined }), {
+			builtOnly: true,
+			post: "alerts",
+		});
+		const report = await t.run();
+		expect(report.summary.fail).toBe(0);
+		expect(postMessage).toHaveBeenCalledWith(
+			"alerts",
+			expect.stringMatching(/^### ✅ `holocron doctor notifications`\n\*\*\d+\*\* ok · \*\*0\*\* fail/)
+		);
+		expect(t.lines.at(-1)).toContain("posted to #alerts");
+	});
+
+	it("posts each failing step when one failed", async () => {
+		const postMessage = vi.fn(async () => {});
+		const serverOwner = vi.fn(async () => ({ id: "1", isBot: true }));
+		const report = await setup(fakeNotifications({ postMessage, serverOwner }), {
+			builtOnly: true,
+			post: "ops",
+		}).run();
+		expect(report.status).toBe("fail");
+		const [channel, text] = postMessage.mock.calls[0] as unknown as [string, string];
+		expect(channel).toBe("ops");
+		expect(text).toMatch(/^### ❌ `holocron doctor notifications`/);
+		expect(text).toContain("server owned by a person, not the bot");
+	});
+
+	it("posts nothing unless asked, and a failed post changes neither the result nor the exit status", async () => {
+		const postMessage = vi.fn(async () => {
+			throw new Error("channel gone");
+		});
+		const quiet = await setup(fakeNotifications({ postMessage }), { builtOnly: true }).run();
+		expect(postMessage).not.toHaveBeenCalled();
+		const t = setup(fakeNotifications({ postMessage }), { builtOnly: true, post: "alerts" });
+		const loud = await t.run();
+		expect(loud.status).toBe(quiet.status);
+		expect(t.lines.at(-1)).toContain("not posted: channel gone");
 	});
 });

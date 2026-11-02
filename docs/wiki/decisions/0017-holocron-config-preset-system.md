@@ -8,12 +8,13 @@ specs:
   - docs/wiki/specifications/tech-holocron-config-presets.spec.md
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618695080611972
-  github: https://github.com/theholocron/configs/issues/398
 supersedes: []
 superseded-by:
   - ADR-0018
 tags: [holocron-config, presets, ci]
 ---
+
+<!-- alex disable failed -->
 
 # Holocron config preset system
 

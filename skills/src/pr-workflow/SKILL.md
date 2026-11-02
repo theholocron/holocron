@@ -40,7 +40,7 @@ it automatically; `git push --no-verify` bypasses that hook for one push.
 
 ## closing / discarding
 
-**Delete the branch when closing, never just close the PR.** A closed-but-existing
+**Delete the branch when closing, never close the PR and leave the branch.** A closed-but-existing
 branch blocks future PR creation for the same branch name — GitHub returns 422
 "A pull request already exists" and the sync silently skips opening a new one.
 

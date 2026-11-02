@@ -1,6 +1,6 @@
 ---
 id: SPEC-0063
-status: proposed
+status: accepted
 issue: theholocron/holocron#1535
 blocked-by: []
 related:
@@ -13,6 +13,8 @@ related:
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618607914582016
 ---
+
+<!-- alex disable threeway -->
 
 # ADRs and specs: a Discord forum post for each, kept in step by a batch job
 
@@ -32,7 +34,7 @@ The whole thing is one **idempotent batch job**, `holocron specs sync`, that tal
 
 `#ideas` has no history, so it is recreated as a forum channel rather than kept as text. The layout says so (`kind: "forum"` with the tags below), `notifications setup` creates it, and the forum's guidelines say what a post is. Discord cannot turn a text channel into a forum, and `setup` never deletes: if `#ideas` exists as a text channel, `setup` stops and says to delete it first (a one-time step for the maintainer), then recreates it.
 
-A forum rejects a plain webhook post, so the "Specs to ideas" workflow (#1537) can no longer post to `#ideas` through the webhook. It is replaced as described under _Triggers_; the `ideas` webhook and its secret go unused (`setup` leaves them; delete by hand).
+A forum refuses a plain webhook post, so the "Specs to ideas" workflow (#1537) can no longer post to `#ideas` through the webhook. It is replaced as described under _Triggers_; the `ideas` webhook and its secret go unused (`setup` leaves them; delete by hand).
 
 ### One post per file
 
@@ -82,11 +84,11 @@ For each file the job holds three values: the status in the **file**, the status
 | same         | changed     | a gatekeeper retagged          | open or update the sync pull request (below)     |
 | changed      | changed     | both moved                     | report a conflict; change nothing                |
 
-A retag therefore never edits the file directly. It goes into **one pull request** the job keeps open on a branch of its own (`chore/specs-sync`): the `status:` lines it was asked to change and the `discussion:` links it has just made. The maintainer merges it like any other, and on the next run the file has moved, so the tag and the last-synced line catch up. The job never pushes to `alpha`, and no one's retag can change the repo without a review.
+A retag therefore never edits the file directly. It goes into **one pull request** the job keeps open on a branch of its own (`chore/specs-sync`): the `status:` lines it was asked to change and the `discussion:` links it has only made. The maintainer merges it like any other, and on the next run the file has moved, so the tag and the last-synced line catch up. The job never pushes to `alpha`, and no one's retag can change the repo without a review.
 
 ### The link in the front matter
 
-The post's address goes into the file as `discussion.url`, replacing `discussion.github` in the ADR and spec templates and in the check (`validate-adr` warns on an accepted ADR with neither field; it will warn on neither `discussion.url` nor `discussion.github`, so the 20 existing links keep passing until the job replaces them). The job finds a file's post by `discussion.url` when it has one, else by the path on the last line of a post's first message, so a post made while a pull request was still open is found and linked after the merge, and a lost link is repaired.
+The post's address goes into the file as `discussion.url`, replacing `discussion.github` in the ADR and spec templates and in the check (`validate-adr` warns on an accepted ADR with no `discussion.url`; a GitHub Discussion link no longer counts, and the `github:` line is gone from all 18 ADRs, #1535). The job finds a file's post by `discussion.url` when it has one, else by the path on the last line of a post's first message, so a post made while a pull request was still open is found and linked after the merge, and a lost link is repaired.
 
 ### The provider interface
 
@@ -132,7 +134,7 @@ One pull request each, in order:
 - **Onboarding.** `#ideas` is one of the onboarding default channels. Discord may not accept a forum there; `setup` will say. If it does not, `#ideas` leaves the default list.
 - **A post while the pull request is still open.** Not built. The first design made a post when a spec pull request opened, replacing #1537's webhook step; the posts now appear when the file lands on `alpha`, because a post made earlier needs the command to read the files from the pull request's ref instead of the working tree, to be limited to the files that pull request changes (a stale branch would otherwise retag posts back to old statuses), and to run only for pull requests from this repository (a post carries text the author wrote). Worth doing if the wait for a merge turns out to hide specs under review.
 - **A post for a spec in a pull request that never merges** (only relevant if the above is built). It stays, tagged with its pull request's last status. Probably worth a `closed` tag set by the job when the pull request closes unmerged; left out until it is wanted.
-- **A retagged status the validator rejects** (an ADR retagged to a spec-only status). The job opens no pull request for it and reports it.
+- **A retagged status the validator refuses** (an ADR retagged to a spec-only status). The job opens no pull request for it and reports it.
 - **Rate limits.** 53 posts in the backfill are well inside Discord's limits; the client already waits on a 429 up to 10 seconds, and the job stops cleanly past that and continues on the next run.
 
 ## Out of scope

@@ -19,7 +19,7 @@ discussion:
 wall of skips — with a raw `Cannot find package
 '@theholocron/holocron-plugin-*'` because plugins are resolved as
 siblings of the CLI and a global install has none. But most of the
-command surface needs no plugins and runs fine globally; the CLI just
+command surface needs no plugins and runs fine globally; the CLI only
 did not distinguish the two.
 
 ## Three contexts (as built)

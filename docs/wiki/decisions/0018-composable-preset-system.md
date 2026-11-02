@@ -8,12 +8,13 @@ specs:
   - docs/wiki/specifications/tech-holocron-config-presets.spec.md
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618696515063931
-  github: https://github.com/theholocron/configs/issues/398
 supersedes:
   - ADR-0017
 superseded-by: []
 tags: [holocron-config, presets, ci]
 ---
+
+<!-- alex disable explosion -->
 
 # Composable preset system
 
@@ -256,6 +257,6 @@ values (account IDs, domains, check names).
 
 ## What this replaces
 
-- `nodeDocsSite()` — never needs to exist; it's just `compose(node(), docs())`
+- `nodeDocsSite()` — never needs to exist; it's only `compose(node(), docs())`
 - The `workflows.filter(…)` workaround in `skills/holocron.config.ts`
 - Any future `nodeDocsMonorepo()`, `nodeReact()`, etc. variants

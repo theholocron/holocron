@@ -14,6 +14,15 @@ name: Notify Check
 # id fails that job instead of passing quietly. Whether Discord lets that role be
 # mentioned at all is checked by `holocron doctor notifications`, not here.
 #
+# The default list is every channel a workflow or the bot writes to through a
+# webhook: alerts, errors, uptime, releases, deploys and sync, plus rules and
+# welcome, the two read-only START HERE channels. Three channels are left out on
+# purpose. `ideas` is a forum: `holocron specs sync` writes its posts
+# through the bot token (HOLOCRON_DISCORD_BOT_TOKEN), and a forum has no webhook
+# post to prove. `holonet` is the doctor's own test channel, written by
+# `holocron doctor notifications`, never by a workflow. `dev` is for people
+# talking, and nothing posts there.
+#
 # Secrets reach this workflow through `secrets: inherit`, so any secret named in
 # `channels` is readable; the declared list below is for callers that pass secrets
 # explicitly.
@@ -35,7 +44,9 @@ on: # yamllint disable-line rule:truthy
           {"name":"errors","secret":"HOLOCRON_NOTIFY_WEBHOOK_ERRORS"},
           {"name":"uptime","secret":"HOLOCRON_NOTIFY_WEBHOOK_UPTIME"},
           {"name":"releases","secret":"HOLOCRON_NOTIFY_WEBHOOK_RELEASES"},
-          {"name":"deploys","secret":"HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS"}]
+          {"name":"deploys","secret":"HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS"},
+          {"name":"rules","secret":"HOLOCRON_NOTIFY_WEBHOOK_RULES"},
+          {"name":"welcome","secret":"HOLOCRON_NOTIFY_WEBHOOK_WELCOME"}]
     secrets:
       HOLOCRON_NOTIFY_WEBHOOK_SYNC:
         description: Webhook for the sync channel.
@@ -54,6 +65,12 @@ on: # yamllint disable-line rule:truthy
         required: false
       HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS:
         description: Webhook for the deploys channel.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_RULES:
+        description: Webhook for the rules channel.
+        required: false
+      HOLOCRON_NOTIFY_WEBHOOK_WELCOME:
+        description: Webhook for the welcome channel.
         required: false
       HOLOCRON_NOTIFY_ALERT_ROLE:
         description: Id of the role to mention on the alerts channel's test message. Optional.

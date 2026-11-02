@@ -215,8 +215,6 @@ const config: KnipConfig = {
 		"@theholocron/lint-staged-config",
 		// required in devmoji.config.cjs via require() — not a static import Knip can trace
 		"@theholocron/devmoji-config",
-		// binary tools — invoked via CLI or hooks, not module imports
-		"alexjs",
 		// invoked by @theholocron/lint-staged-config's package.json rule
 		// ("package.json": "sort-package-json"), not a module import
 		"sort-package-json",

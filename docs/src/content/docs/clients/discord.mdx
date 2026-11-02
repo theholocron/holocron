@@ -57,7 +57,7 @@ const hook = await bot.channels.createWebhook(channel.id, {
 console.log(hook.url); // a secret -- Discord returns it only for webhooks this bot created
 ```
 
-`baseUrl` is a test seam: the bot token is sent to whatever host it names, so
+`baseUrl` is a test seam: the bot token is sent to whatever hostname it names, so
 never derive it from untrusted input. Ids passed to any method must be Discord
 snowflakes (digits only); anything else throws before a request is made.
 

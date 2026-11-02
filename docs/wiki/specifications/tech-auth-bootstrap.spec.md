@@ -7,6 +7,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566620345136451644
 ---
 
+<!-- alex disable just -->
+
 <!-- editorconfig-checker-disable-file -->
 
 # Bootstrap credentials — keyring-backed token store
@@ -193,7 +195,7 @@ the auth precedence:
 
 `@napi-rs/keyring` gracefully returns platform-unsupported errors
 in headless environments; the keyring lookup at precedence step 4
-simply returns `null` when unsupported. No CI code path breaks.
+merely returns `null` when unsupported. No CI code path breaks.
 
 ## Migration strategy
 

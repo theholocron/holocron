@@ -9,6 +9,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618564859920424
 ---
 
+<!-- alex disable rejects remains -->
+
 # Interactive menu: prompt for command options
 
 ## Status

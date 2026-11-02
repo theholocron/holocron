@@ -11,7 +11,7 @@ discussion:
 
 # Extend `holocron setup` — repo policy, branch protection, config ergonomics
 
-> **Decision.** Broaden #82's scope beyond just "repo policy + branch
+> **Decision.** Broaden #82's scope beyond only "repo policy + branch
 > protection" to also cover config ergonomics discovered during the
 > alpha migration:
 >
@@ -117,7 +117,7 @@ block:
   `listRulesets` → `updateRuleset`.
 
 Both operations already exist on the `Source` interface
-(`packages/cli/src/capabilities/index.ts`). Just needs orchestrator
+(`packages/cli/src/capabilities/index.ts`). Only needs orchestrator
 wiring + a place to declare the policy shape.
 
 Open question: does the policy shape live in the top-level config

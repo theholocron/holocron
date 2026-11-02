@@ -1,3 +1,5 @@
+<!-- alex disable failed -->
+
 # tsdown Config
 
 Shared [tsdown](https://tsdown.dev) configurations for `@theholocron` packages.

@@ -3843,6 +3843,34 @@ describe("application intents and redirect URIs in inspect and validateLayout", 
 	});
 });
 
+describe("DiscordNotifications postMessage", () => {
+	const chans = { body: [text("2001", "alerts")] };
+
+	it("posts as the bot in the named channel, mentioning no one, and cuts a long message at 2000 characters", async () => {
+		const { notifs, calls } = makeProvisioner([chans, { body: { id: "9", channel_id: "2001", content: "x" } }]);
+		await notifs.postMessage("alerts", "x".repeat(2500));
+		expect(calls[1]).toMatchObject({
+			method: "POST",
+			url: `${BASE}/channels/2001/messages`,
+			body: { content: "x".repeat(2000), allowed_mentions: { parse: [] } },
+		});
+	});
+
+	it("links each #channel of the server in the message and leaves an unknown one as written", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "alerts"), text("2002", "rules")] },
+			{ body: { id: "9", channel_id: "2001", content: "x" } },
+		]);
+		await notifs.postMessage("alerts", "- #rules: differs, see #nowhere");
+		expect(calls[1]).toMatchObject({ body: { content: "- <#2002>: differs, see #nowhere" } });
+	});
+
+	it("says so when the channel is not there", async () => {
+		const { notifs } = makeProvisioner([chans]);
+		await expect(notifs.postMessage("nope", "hi")).rejects.toThrow(/a posted message name the channel `nope`/);
+	});
+});
+
 describe("DiscordNotifications pinned messages", () => {
 	const chans = { body: [text("2001", "welcome"), text("2002", "rules")] };
 	const me = { body: { id: BOT, username: "holonet" } };

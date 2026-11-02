@@ -28,7 +28,7 @@ For each option:
 
 # Recommended Direction
 
-State the recommendation clearly as a proposal, not a decision.
+State the recommendation as a proposal, not a decision.
 
 # Open Questions
 

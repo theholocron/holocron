@@ -28,15 +28,21 @@ Only records that can be worked out from the config alone, without asking a prov
 | `CNAME <domain>` and `CNAME *.<domain>` to `<project>.pages.dev`                       | a `delivery.deploy`, `knowledge.docs` or `knowledge.components` task has a preview domain, on a Cloudflare deployment |
 | the record a `wiki` provider returns from `dnsRecord()`, proxied when the wiki proxies | a `wiki` provider is configured                                                                                       |
 | `AAAA <relay.host>` to `100::`, proxied                                                | a notifications layout declares a `relay`; the zone is `relay.zone`, or the host's own                                |
+| `CNAME <docs.domain>` to `<org>.github.io`, DNS-only (GitHub Pages)                    | `docs.domain` is set                                                                                                  |
+| `MX <domain>` to `mx01.mail.icloud.com` and `mx02.mail.icloud.com`, and the SPF `TXT`  | `doctor: { mail: "icloud" }` is set; the zone is `domain`                                                             |
 
 A record is found by its type and name (case and a final dot do not matter). The target must match; where the record must be proxied, it must be. A record in the zone that is not expected is never a problem.
 
-A record that `deployment.ensureCustomDomain()` returns is **not** checked: asking for it creates the custom domain at the provider, so it cannot be read without writing.
+A name can hold several `MX` or `TXT` records, so for those two types the value is part of what identifies a record; a `TXT` value is compared without its quotes.
+
+## A deployment's custom domain
+
+A record that `deployment.ensureCustomDomain()` returns is not in the table, because asking for it creates the custom domain at the provider. It has a row of its own, `<host> points at the deployment, DNS-only`, which reads the target with the provider's read-only `expectedDomainRecord()` (Vercel: `domains.config()`) and then checks that the record exists, points at that target and is not proxied. A proxied record breaks the provider's certificate issuance, so for Sentinel's `sentinel.theholocron.dev` a proxied record fails the row. No token for the provider, or no record it recommends, is a skip.
 
 ## Skips
 
 - **Nothing expected**: the one row says `none declared`.
-- **Records expected but no `dns` provider** (or it failed to load): each zone's row is a skip with the reason.
+- **Records expected but no `dns` provider** (or it could not load): each zone's row is a skip with the reason.
 - **No token for the read**: that zone is a skip with the message.
 - Any other provider error fails that zone's row with its message.
 

@@ -198,6 +198,19 @@ export class VercelDeployment implements Deployment {
 		return { zone: apexName, record: { type: "CNAME", name: hostname, content: cname } };
 	}
 
+	/**
+	 * Read-only: the CNAME Vercel recommends for `hostname`, whether or not the domain already resolves. Unlike
+	 * `ensureCustomDomain` it never attaches the domain, and it keeps the answer when `misconfigured` is false, so
+	 * `holocron doctor dns` can compare it with the zone. The record is DNS-only: a proxied record breaks Vercel's
+	 * certificate issuance.
+	 */
+	async expectedDomainRecord(projectId: string, hostname: string): Promise<DnsRecordRequest | null> {
+		const config = await this.client().domains.config(hostname, projectId);
+		const cname = config.recommendedCNAME[0]?.value;
+		if (!cname) return null;
+		return { zone: hostname, record: { type: "CNAME", name: hostname, content: cname, proxied: false } };
+	}
+
 	// ── internals ───────────────────────────────────────────────────────
 
 	private async getProjectByName(name: string): Promise<DeploymentProject | null> {

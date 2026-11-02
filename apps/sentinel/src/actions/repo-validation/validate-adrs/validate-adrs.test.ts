@@ -34,7 +34,8 @@ const GOOD_ADR = md(
 	"title: Task manifest",
 	"status: accepted",
 	"date: 2026-05-01",
-	"discussion: https://github.com/theholocron/holocron/discussions/1",
+	"discussion:",
+	"  url: https://discord.com/channels/1/2",
 	"---",
 	"",
 	"# Body"

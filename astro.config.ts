@@ -134,6 +134,7 @@ export default defineConfig({
 			{ label: "Token Reference", slug: "tokens" },
 			{ label: "Server as Code", slug: "server-as-code" },
 			{ label: "Self-hosting", slug: "self-hosting" },
+			{ label: "Domains", slug: "domains" },
 			{
 				label: "Commands",
 				items: [

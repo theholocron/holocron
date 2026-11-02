@@ -8,7 +8,6 @@ specs:
   - docs/wiki/specifications/tech-vault-choice.spec.md
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618613149077625
-  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [vault, plugins, secrets]
@@ -21,7 +20,7 @@ tags: [vault, plugins, secrets]
 
 > This ADR predates the Git-based ADR process (ADR-0004) itself — it
 > was authored on the GitHub Wiki and bulk-migrated into this repo by
-> #490. The linked discussion is that migration, not the original
+> #490. That pull request is the migration, not the original
 > decision conversation; no single PR captures the latter.
 
 ## Context and Problem Statement

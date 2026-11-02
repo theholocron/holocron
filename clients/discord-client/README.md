@@ -1,3 +1,5 @@
+<!-- alex disable host-hostess -->
+
 # @theholocron/discord-client
 
 A TypeScript client for Discord — posts messages through webhooks, and (with a bot token) provisions a server's channels, roles and webhooks.

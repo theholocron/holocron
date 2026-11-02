@@ -15,16 +15,15 @@ function setField(lines: string[], key: string, value: string, first = false): s
 
 /**
  * Sets `discussion.url`. The block under `discussion:` is kept: a `url:` line there is replaced, else one is added right
- * under the key, so a `github:` link beside it stays. A `discussion:` that holds a plain value becomes a block that keeps
- * the value as `github:`, and a document with no `discussion:` gets one at the end of the front matter.
+ * under the key, so any other line there stays. A `discussion:` that holds a plain value (an old GitHub Discussion link)
+ * becomes a block with the address instead, and a document with no `discussion:` gets one at the end of the front matter.
  */
 function setDiscussionUrl(lines: string[], url: string): string[] {
 	const at = lines.findIndex((line) => /^discussion:/.test(line));
 	if (at === -1) return [...lines, "discussion:", `  url: ${url}`];
 
-	const inline = lines[at]!.slice("discussion:".length).trim();
-	if (inline !== "")
-		return [...lines.slice(0, at), "discussion:", `  github: ${inline}`, `  url: ${url}`, ...lines.slice(at + 1)];
+	if (lines[at]!.slice("discussion:".length).trim() !== "")
+		return [...lines.slice(0, at), "discussion:", `  url: ${url}`, ...lines.slice(at + 1)];
 
 	let end = at + 1;
 	while (end < lines.length && /^\s+\S/.test(lines[end]!)) end++;

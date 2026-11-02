@@ -1,3 +1,5 @@
+<!-- alex disable whitespace -->
+
 # Markdownlint Config
 
 A [markdownlint configuration](https://github.com/DavidAnson/markdownlint) for consistent markdown documentation, compatible with `@theholocron/prettier-config`.

@@ -10,6 +10,8 @@ discussion:
   url: https://discord.com/channels/1303969001822486568/1566618741519941722
 ---
 
+<!-- alex disable blind fire straightforward -->
+
 # Process enforcement — three-layer feedback loop
 
 Defines how process rules get enforced so they are not merely aspirational.

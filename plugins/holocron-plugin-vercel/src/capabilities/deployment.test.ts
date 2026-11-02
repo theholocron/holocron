@@ -488,3 +488,43 @@ describe("VercelDeployment.ensureCustomDomain", () => {
 		expect(result).toBeNull();
 	});
 });
+
+describe("VercelDeployment.expectedDomainRecord", () => {
+	it("returns Vercel's recommended CNAME, DNS-only, with a single GET and no write", async () => {
+		const { deployment, calls } = makeDeployment([
+			{
+				status: 200,
+				body: {
+					configuredBy: "CNAME",
+					misconfigured: false,
+					recommendedCNAME: [{ rank: 1, value: "d1d4fc829fe7bc7c.vercel-dns-017.com" }],
+					recommendedIPv4: [],
+				},
+			},
+		]);
+		const result = await deployment.expectedDomainRecord("prj_123", "sentinel.theholocron.dev");
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/v6/domains/sentinel.theholocron.dev/config");
+		expect(calls[0]?.url).toContain("projectIdOrName=prj_123");
+		expect(result).toEqual({
+			zone: "sentinel.theholocron.dev",
+			record: {
+				type: "CNAME",
+				name: "sentinel.theholocron.dev",
+				content: "d1d4fc829fe7bc7c.vercel-dns-017.com",
+				proxied: false,
+			},
+		});
+	});
+
+	it("returns null when Vercel recommends no CNAME", async () => {
+		const { deployment } = makeDeployment([
+			{
+				status: 200,
+				body: { configuredBy: null, misconfigured: true, recommendedCNAME: [], recommendedIPv4: [] },
+			},
+		]);
+		expect(await deployment.expectedDomainRecord("prj_123", "theholocron.dev")).toBeNull();
+	});
+});

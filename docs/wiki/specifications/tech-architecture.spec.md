@@ -105,7 +105,7 @@ a **sync destination**, not a source. The `deployment` capability owns
 runtime env vars for the same reason: those are populated from the
 vault at deploy time, not authored independently.
 
-This split is the architectural answer to "why isn't 1Password just
+This split is the architectural answer to "why isn't 1Password merely
 another `secrets` provider?" — it plays a different role in the data
 flow.
 
@@ -285,7 +285,7 @@ recommended + a small handful of overrides.
 that imports `@theholocron/cli` as a library could be forced to GPL
 their project. Since the whole point of v2 is that other projects
 should be able to install it (and `cli-utils` is genuinely a library
-of helpers, not just a CLI binary), GPL is incompatible with the
+of helpers, not only a CLI binary), GPL is incompatible with the
 audience we want. MIT matches the npm ecosystem norm for tooling.
 
 The license switch happens at the same time as the v2 restructure;
@@ -390,7 +390,7 @@ export default {
 **Level 2 — whole-config presets** (`defineConfig` in
 `define-config.ts`, JS/TS loader in `load-config.ts`). The config file
 can be JS/TS; the `defineConfig` pass-through gives typed autocomplete.
-A shared base is just an import — no special mechanism needed:
+A shared base is only an import — no extra mechanism needed:
 
 <!-- prettier-ignore -->
 ```ts
