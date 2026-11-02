@@ -1,3 +1,9 @@
+## [5.0.0-alpha.299](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.298...v5.0.0-alpha.299) (2026-11-02)
+
+### Bug Fixes
+
+* **plugin-1password:** 🩹 make vault optional and read Environments by name ([#1607](https://github.com/theholocron/holocron/issues/1607)) ([#1609](https://github.com/theholocron/holocron/issues/1609)) ([f7f6113](https://github.com/theholocron/holocron/commit/f7f61135b73a0955d8ec943bebabc0656e56ccb3))
+
 ## [5.0.0-alpha.298](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.297...v5.0.0-alpha.298) (2026-11-02)
 
 ### Features
