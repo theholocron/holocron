@@ -1,6 +1,6 @@
 ---
 title: Discord Plugin
-description: Implements the notifications capability via Discord incoming webhooks.
+description: Implements the notifications capability through Discord incoming webhooks and the Holonet bot.
 ---
 
 import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
@@ -10,9 +10,25 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 <Installation package={getPlugins()["holocron-plugin-discord"].package} dev />
 
-<CapabilitiesTable rows={[{ capability: "notifications", token: "HOLOCRON_DISCORD_WEBHOOK (discord)" }]} />
+<CapabilitiesTable
+  rows={[
+    { capability: "notifications (posting)", token: "HOLOCRON_DISCORD_WEBHOOK (discord): the full webhook URL" },
+    {
+      capability: "notifications (server as code, forum posts)",
+      token: "HOLOCRON_DISCORD_BOT_TOKEN (discord.holonet): the Holonet bot token",
+    },
+    {
+      capability: "notifications (member sign-in)",
+      token: "HOLOCRON_DISCORD_CLIENT_SECRET (discord.holonet.oauth): the OAuth client secret",
+    },
+    {
+      capability: "GitHub Actions posting",
+      token: "HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL> (a GitHub secret): not read by the plugin, see below",
+    },
+  ]}
+/>
 
-The "token" for Discord is the full webhook URL, not a separate API key.
+The "token" for `send()` is the full webhook URL, not a separate API key. The bot token and the client secret are for provisioning and sign-in, and the `HOLOCRON_NOTIFY_*` secrets are for workflows. [Tokens](/holocron/tokens/#discord) says what each one is for.
 
 ## Config
 
@@ -108,6 +124,70 @@ holocron notifications setup --dry-run   # preview
 holocron notifications setup             # apply
 holocron notifications channel add sync --category AUTOMATION --with-webhook
 ```
+
+## Posting from GitHub Actions
+
+A workflow does not use the plugin or `holocron auth`. It posts through the **`notify` action**, a composite action in `theholocron/.github` (`.github/actions/notify`, synced from `ci/actions/notify/action.yml` in this repository), with one webhook secret for the channel the message belongs in.
+
+| Input      | Default    | What it does                                                                                                                                                         |
+| ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webhook`  | _(empty)_  | The channel's webhook URL, normally `secrets.HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>`. A webhook posts to exactly one channel. Empty means skip                            |
+| `message`  | _required_ | The text, cut to 2000 characters                                                                                                                                     |
+| `mention`  | _(empty)_  | A role id (digits only) to ping, normally `secrets.HOLOCRON_NOTIFY_ALERT_ROLE`. Message text can never ping `@everyone` or a role: only this one role is let through |
+| `username` | `Holocron` | The name the post shows                                                                                                                                              |
+| `strict`   | `false`    | `true` makes the step fail when the webhook is missing, the role id is not digits or Discord rejects the post. Only `platform.notifyCheck` sets it                   |
+
+By default the action never fails the job it reports on: a missing webhook is a notice and a rejected post is a warning. The body is Discord's shape (`content`, `username`, `allowed_mentions`), so the webhook has to accept that.
+
+### The `HOLOCRON_NOTIFY_*` secrets
+
+`holocron notifications setup` writes them; nobody creates them by hand. Discord shows a webhook's URL once, when it is made, so `setup` stores it straight into GitHub as an **organization** secret that every repository can read (use `--scope repo` for one repository; see [Security](/holocron/commands/notifications-setup/#security)).
+
+| Secret                              | Holds                                                                                                                                                                      | Written for                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` | The webhook URL of a layout channel with `webhook: true`. The name is the channel in capitals with each run of other characters as `_`; `webhook: { secret }` overrides it | `alerts`, `errors`, `uptime`, `releases`, `deploys`, `sync` and `holonet` in this repository's layout |
+| `HOLOCRON_NOTIFY_ALERT_ROLE`        | The id of the `gatekeepers` role (the role's `secret` in the layout). Not sensitive, kept as a secret so the same token writes it                                          | The ping on #alerts                                                                                   |
+
+Without `HOLOCRON_NOTIFY_ALERT_ROLE` the #alerts posts are made without a ping. The bot token is a separate credential and never goes to a workflow as a notify secret.
+
+### Which workflow writes to which channel
+
+| Workflow (file)                                                             | Channel and what it posts                                                                                                                                                                          | Credential                                                                              |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Repo sync (`platform.repoSync.yml`)                                         | **#sync**: a sync pull request was opened and what happened to its auto-merge. **#alerts**, with the ping: the sync run failed or timed out, or the pull request needs a manual merge              | `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `_ALERTS`, `HOLOCRON_NOTIFY_ALERT_ROLE`                 |
+| [Notifications](#the-notifications-workflow) (`platform.notifications.yml`) | **#alerts**, with the ping: a watched workflow failed on `alpha` or `main`. **#deploys**: the same for Deploy, Preview, Preview Deploy and Sentinel Deploy. **#releases**: the tags a release made | `HOLOCRON_NOTIFY_WEBHOOK_ALERTS`, `_DEPLOYS`, `_RELEASES`, `HOLOCRON_NOTIFY_ALERT_ROLE` |
+| Doctor reminder (`platform.doctorReminder.yml`)                             | **#alerts**, no ping: a weekly line (Mondays, 14:00 UTC) naming `holocron doctor notifications --built-only --post`                                                                                | `HOLOCRON_NOTIFY_WEBHOOK_ALERTS`                                                        |
+| Notify Check (`platform.notifyCheck.yml`, run by hand)                      | **Every channel in its list**: `sync`, `alerts` (with the ping), `errors`, `uptime`, `releases`, `deploys`, `rules` and `welcome`, one `🧪 notify check` message each, in `strict` mode            | one `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` per channel, `HOLOCRON_NOTIFY_ALERT_ROLE`       |
+| Spec discussions (`knowledge.specsToIdeas.yml`)                             | **#ideas**, a forum: one post per ADR and spec, written through the **bot token**, not a webhook                                                                                                   | `HOLOCRON_DISCORD_BOT_TOKEN`                                                            |
+
+Two more feeds reach Discord without a workflow: Sentry alerts go to #errors through the Comlink relay and Checkly alerts go to #uptime through a webhook of their own. [Server as code](/holocron/server-as-code/) covers both.
+
+### The repo-sync wiring
+
+`platform.repoSync` is a reusable workflow (`ci/workflows/platform.repoSync.yml`, copied to `theholocron/.github`). It declares `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `HOLOCRON_NOTIFY_WEBHOOK_ALERTS` and `HOLOCRON_NOTIFY_ALERT_ROLE` as optional secrets, and a repository's generated caller passes them with `secrets: inherit`, so a repository that has the org secrets posts and one that does not stays quiet. The notify steps run after the pull request step, and a separate `notify-failure` job reports a sync that errored or timed out, so a run the sync job's own timeout cuts short still gets reported. A superseded run (cancelled by a newer one) is not reported.
+
+### Checking the wiring: `platform.notifyCheck`
+
+`platform.notifyCheck` is a manual workflow (`workflow_dispatch`, from the Actions tab). Its reusable half posts one labelled test message to each channel of its `channels` input, using the real org secrets, and each channel is its own job (`Check <channel>`), so one red job names the channel to fix and the others still run. A channel marked `mention` (alerts) also needs `HOLOCRON_NOTIFY_ALERT_ROLE` and pings it, and a missing or malformed role id fails that job. A caller can pass its own `channels` (a JSON array of `{ name, secret, mention }`).
+
+Three channels are left out on purpose. `ideas` is a forum that `specs sync` writes through the bot token, so there is no webhook post to prove. `holonet` is the channel `holocron doctor notifications` uses for its own test post. Nothing posts in `dev`. `rules` and `welcome` are in the list, so their jobs fail until the layout gives them `webhook: true` and `setup` has stored the secrets.
+
+It is a different check from `holocron doctor notifications`: the doctor compares the server with the layout and can post through the webhook it finds on the channel, while this workflow proves that the **stored secret** holds a working URL and that the role ping resolves. A run started from `alpha` that goes red is also reported by the Notifications workflow, because its caller is named `Platform`.
+
+### The Notifications workflow
+
+`.github/workflows/platform.notifications.yml` (`name: Notifications`) tells Discord about runs nobody is watching, instead of each workflow carrying its own notify step. It starts on `workflow_run` when one of these finishes: Verification, Source Quality, Security, Delivery, Platform, Knowledge, Token Expiry, Deploy, Preview, Sentinel Deploy or Spec discussions.
+
+- **A failure goes to #alerts**, with the ping, when the run ended in failure, was not a pull request and ran on `alpha` or `main`. **Deploy, Preview, Sentinel Deploy and the preview-deploy file go to #deploys** instead. The message names the workflow, its file, the branch and the run, and adds `(attempt N)` on a rerun. Token Expiry is in the list, so a token close to expiring reaches #alerts the day it is found.
+- **A release goes to #releases.** When the Delivery run of `delivery.publish.yml` succeeds, the job lists the tags made since the run began (from git, newest first, at most ten). A package line such as `clients-v*` is tagged without a GitHub release, which is why the tags come from git. No new tag, no post.
+- **Left out on purpose:** repo sync, which posts its own result, and this workflow, so a failure here cannot loop.
+- **A missing webhook secret is not an error.** The notify action skips and the run stays green.
+
+:::caution
+`workflow_run` only starts a run from the **default branch**, which is `alpha` here. Editing `platform.notifications.yml` in a pull request changes nothing until it is merged, and the run you see is always the version on `alpha`. Because of the same rule, a failure on a branch other than `alpha` or `main` is never reported.
+:::
+
+This workflow is hand-maintained in this repository. It is not part of the generated workflow set and is not copied to other repositories.
 
 ## Forum channels
 
