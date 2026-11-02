@@ -230,13 +230,13 @@ export default defineConfig({
 							channels: [
 								{ name: "dev", topic: "Day-to-day building talk" },
 								// A forum: one post for each ADR and spec, made from the file by `holocron specs sync`
-								// (tech-specs-discussion-threads, #1535), titled `SPEC:` or `ADR:`. A post's tag is the file's status; only the
+								// (tech-specs-discussion-threads, #1535), titled `💡 New spec:` or `📐 New ADR:`. A post's tag is the file's status; only the
 								// bot and members who can manage threads (gatekeepers) can change a tag, and the sync turns a change into a
 								// pull request. Half-formed ideas belong here too, as posts of their own.
 								{
 									name: "ideas",
 									kind: "forum",
-									topic: "One post for each ADR (ADR:) and spec (SPEC:), tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
+									topic: "One post for each ADR (📐 New ADR:) and spec (💡 New spec:), tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
 									tags: [
 										{ name: "draft", emoji: "✏️", moderated: true },
 										{ name: "proposed", emoji: "💬", moderated: true },
