@@ -152,6 +152,12 @@ export default defineConfig({
     logs: "axiom",
   },
 
+  // Which environment the `credentials` providers (`providers.credentials`) read
+  // this machine's tokens from. A name, not a secret, so it is committed. It is
+  // required when `providers.credentials` is set, and kept out of the provider's
+  // options so swapping the provider is one line in `providers`.
+  credentials: { environment: "Holocron" },
+
   // Structured-logging config. `level` is the lowest-priority level source:
   // --verbose/--quiet and HOLOCRON_LOG_LEVEL both outrank it. `axiom.dataset`
   // opts local runs into Axiom shipping without exporting HOLOCRON_AXIOM_DATASET
@@ -330,6 +336,7 @@ Any repo with a docs site gets the structure — it costs nothing and is ready w
 | `tooling`       | **many**    | Sync external tool state                                                                                                          |
 | `notifications` | **many**    | Send messages                                                                                                                     |
 | `analytics`     | **many**    | Analytics providers                                                                                                               |
+| `credentials`   | **many**    | Where this machine reads its own tokens (a 1Password Environment), tried in order before the keyring                              |
 
 `many` capabilities accept a list of providers; `single` accept exactly one.
 

@@ -12,12 +12,38 @@ For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.),
 ```text
 --token flag
 → HOLOCRON_<FEATURE>_TOKEN (feature-specific env var)
+→ the same variable in a credentials provider (a 1Password Environment, see below)
 → keyring("github.<feature>") (stored via `holocron auth set`)
 ```
 
 Each keyring entry is read once per command: the answer, a missing entry included, is remembered until the command ends, so the OS keychain is asked once per token and not on every lookup. Nothing is cached between commands.
 
 No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command differs: `sync-wiki` takes the token from the environment (`HOLOCRON_READ_TOKEN`, then `GH_TOKEN`, then `GITHUB_TOKEN`) and only then from the keyring entry `github.read`, so it works in a GitHub Actions job with no extra setup and from a token stored with `holocron auth set github.read`.
+
+## Credentials providers
+
+A `credentials` provider is a second place to keep these tokens, ahead of the keyring: one 1Password Environment holds them all, signs you in with Touch ID, and follows you to another machine. The keyring stays as the fallback. A token set in the process environment (or passed with `--token`) still wins, so a CI job that sets its own never asks 1Password.
+
+```ts title="holocron.config.ts"
+export default defineConfig({
+  providers: { credentials: ["1password"] },
+  credentials: { environment: "Holocron" },
+});
+```
+
+Each variable in the Environment is named for the env var the command already reads (`HOLOCRON_ORG_TOKEN`, `HOLOCRON_DISCORD_BOT_TOKEN`, `CLOUDFLARE_API_TOKEN`, ...), so there is no mapping to keep. The Environment is read once per command, so Touch ID asks once for all of them. If `op` is missing, locked or gives no answer within 60 seconds, the provider is skipped and the keyring is tried.
+
+### First-time setup, once per project
+
+`op` cannot create an Environment or set a variable (checked on `op` 2.43.0-beta.02: `op environment` only has `read` and `secret list`), so this part is by hand:
+
+1. Install the CLI and turn on the desktop-app integration: `brew install 1password-cli`, then in the 1Password app, Settings, Developer, "Integrate with the 1Password CLI". `op environment secret list` needs a recent `op`: it is in 2.43.0-beta.02, and 2.35.0-beta.01 did not have it.
+2. In the 1Password app: Developer, View Environments, then create an Environment. Name it as `credentials.environment` says (`Holocron`).
+3. Add one variable per token, named for the env var, for example `HOLOCRON_ORG_TOKEN`. The names each command reads are in the [provider table](#provider-tokens) and the GitHub feature-token table above.
+4. Put `providers.credentials` and `credentials.environment` in `holocron.config.ts` as shown.
+5. Check it prints only the variable names: `op environment secret list Holocron` (add `--reveal` only when you want the values).
+
+Names are matched exactly and `op` cannot list Environments, so the provider tries the name as written, then lowercase, Title case and UPPERCASE. A name with other casing, or the Environment's id (which `secret list` also accepts), has to be written exactly. With several accounts signed in, set `account` in the provider's options so `op` looks in the right one.
 
 ## Provider token resolution
 
@@ -27,6 +53,7 @@ For every other provider plugin (Axiom, Cloudflare, Sentry, Slack, Vercel, etc.)
 --token flag
   → the plugin's own env var    (e.g. HOLOCRON_CLOUDFLARE_TOKEN)
   → the vendor's native env var (e.g. CLOUDFLARE_API_TOKEN)
+  → either variable in a credentials provider (a 1Password Environment, see below)
   → keyring("<provider>.<org>") (org-scoped — only when an org is active)
   → keyring("<provider>")       (unnamespaced fallback)
 ```

@@ -144,6 +144,14 @@ Secret source-of-truth — read, write, list, and manage environments. Implement
 | `ensureProject?(name)`              | Create the project container if it doesn't exist  |
 | `ensureEnvironment?(project, name)` | Create a named environment inside a project       |
 
+### `credentials`
+
+Where this machine gets its own tokens, before a plugin can talk to anything. Not the same job as `vault`, the source of truth that `holocron secrets sync` fans out to other services. A provider must authenticate without a token of its own, so it can be asked for the others: 1Password does (the desktop app and Touch ID on a laptop, a service account in CI). Implemented by: [1Password](./plugins/1password). Several providers can be listed; they are tried in order, after the flag, the process environment and a `.env` file, and before the keyring. See [Credentials providers](./tokens/#credentials-providers).
+
+| Method              | Description                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `read(environment)` | Every variable of the named environment, read once per process and looked up by name |
+
 ### `dns`
 
 DNS record management. Implemented by: [Cloudflare](./plugins/cloudflare).

@@ -247,6 +247,16 @@ export interface DoctorConfig {
 	mail?: "icloud";
 }
 
+/** The `credentials` block: which environment the `credentials` providers read this machine's tokens from. */
+export interface CredentialsConfig {
+	/**
+	 * The name of the environment each `credentials` provider reads (a 1Password Environment, for 1Password). It is
+	 * a name, not a secret, so it is committed. A provider that matches names exactly may be tried with other
+	 * letter cases of it; see the provider's page.
+	 */
+	environment: string;
+}
+
 /** The `env` block: how the project's environment variables are named and documented. */
 export interface EnvConfig {
 	/**
@@ -579,6 +589,15 @@ export interface HolocronConfig {
 	 */
 	env?: EnvConfig;
 	/**
+	 * Which environment the `credentials` providers (`providers.credentials`) read this machine's tokens from.
+	 * Kept out of the provider's options so the provider stays about the provider: swapping it is one line in
+	 * `providers`. Required when `providers.credentials` is set.
+	 *
+	 * @example
+	 * { environment: "Holocron" }
+	 */
+	credentials?: CredentialsConfig;
+	/**
 	 * Structured-logging config. Only the level belongs here — Axiom
 	 * credentials come from env vars, never a committed file.
 	 *
@@ -684,6 +703,8 @@ export interface ResolvedHolocronConfig {
 	docs?: PagesConfig;
 	/** Environment-variable settings. */
 	env?: EnvConfig;
+	/** The environment the `credentials` providers read, validated by `resolveConfig`. */
+	credentials?: CredentialsConfig;
 	/** Logging settings. */
 	log?: LogConfig;
 	/** Telemetry settings. */

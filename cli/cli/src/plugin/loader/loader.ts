@@ -32,6 +32,7 @@ import { pathToFileURL } from "node:url";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { hasCredentials, setCredentials } from "../../auth/credential-store/index.js";
 import {
 	type CapabilityConfigPackage,
 	type ResolvedHolocronConfig,
@@ -42,6 +43,7 @@ import {
 	type CapabilityKey,
 	CARDINALITY,
 	type CardinalityFor,
+	type Credentials,
 	type ResolvedCapability,
 } from "../capabilities/index.js";
 import type { PluginProbes } from "../probe/index.js";
@@ -75,12 +77,15 @@ export class PluginLoader {
 	 * in their summary. Inspect {@link loadFailures} for the full list.
 	 */
 	async load(): Promise<void> {
+		// The `credentials` providers go first: what they return is where the other plugins find their tokens.
+		await this.loadCredentials();
+
 		const entries = Object.entries(this.config.providers) as Array<
 			[CapabilityKey, ResolvedHolocronConfig["providers"][CapabilityKey]]
 		>;
 
 		for (const [key, entry] of entries) {
-			if (!entry) continue;
+			if (!entry || key === "credentials") continue;
 			if (entry.cardinality === "single") {
 				try {
 					this.registry.set(key, await this.loadOne(key, entry.tuple));
@@ -99,6 +104,32 @@ export class PluginLoader {
 				if (impls.length > 0) this.registry.set(key, impls);
 			}
 		}
+	}
+
+	/**
+	 * Loads the `credentials` providers in the order the config lists them and reads each one's environment into the
+	 * credential store, once per process: a second loader finds the source already there and does not ask again, so a
+	 * provider that prompts (Touch ID) prompts once. A provider that fails to load or to read is recorded and skipped.
+	 */
+	private async loadCredentials(): Promise<void> {
+		const entry = this.config.providers.credentials;
+		if (!entry || entry.cardinality !== "many") return;
+		const environment = this.config.credentials?.environment;
+		const impls: Credentials[] = [];
+		for (const tuple of entry.tuples) {
+			try {
+				if (!environment) {
+					throw new LoaderError("`providers.credentials` is set but `credentials.environment` is not");
+				}
+				const impl = (await this.loadOne("credentials", tuple)) as Credentials;
+				impls.push(impl);
+				const source = `${tuple.provider}:${environment}`;
+				if (!hasCredentials(source)) setCredentials(source, await impl.read(environment));
+			} catch (err) {
+				this.recordFailure("credentials", tuple, err);
+			}
+		}
+		if (impls.length > 0) this.registry.set("credentials", impls);
 	}
 
 	private recordFailure(key: CapabilityKey, tuple: ResolvedTuple, err: unknown): void {

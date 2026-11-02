@@ -39,6 +39,8 @@ export interface OpShellOptions {
 export interface RunOptions {
 	/** Skip `--account` injection for commands that operate above the account level (e.g., `account list`). */
 	skipAccount?: boolean;
+	/** Stop waiting for `op` after this many milliseconds. `op` can wait on the desktop app (a Touch ID prompt) without end. */
+	timeoutMs?: number;
 }
 
 /** Thin wrapper around `spawnSync` that runs the `op` CLI and returns a uniform result. */
@@ -61,6 +63,7 @@ export class OpShell {
 		const out = this.spawnImpl(this.binary, fullArgs, {
 			encoding: "utf-8",
 			stdio: ["inherit", "pipe", "pipe"],
+			...(opts.timeoutMs !== undefined ? { timeout: opts.timeoutMs } : {}),
 		});
 		if (out.error) {
 			return { ok: false, stdout: "", stderr: out.error.message };

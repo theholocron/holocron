@@ -150,6 +150,18 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		);
 	}
 
+	if (raw.credentials !== undefined) {
+		const environment = raw.credentials.environment;
+		if (typeof environment !== "string" || environment.trim() === "") {
+			throw new ConfigError("`credentials.environment` must be the name of an environment, got an empty value");
+		}
+	}
+	if (providers.credentials && !raw.credentials) {
+		throw new ConfigError(
+			"`providers.credentials` is set but `credentials.environment` is not: name the environment to read"
+		);
+	}
+
 	// Derive homepage from docs.domain when not explicitly set
 	const homepage = raw.homepage ?? (docs?.domain ? `https://${docs.domain}/` : undefined);
 
@@ -173,6 +185,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		skills: raw.skills,
 		docs,
 		env: raw.env,
+		credentials: raw.credentials,
 		log: raw.log,
 		telemetry: raw.telemetry,
 		eslint: raw.eslint,
