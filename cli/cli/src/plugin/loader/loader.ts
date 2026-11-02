@@ -33,6 +33,7 @@ import { pathToFileURL } from "node:url";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { hasCredentials, setCredentials } from "../../auth/credential-store/index.js";
+import { DOTENV_FILE, readDotenvFile } from "../../auth/dotenv-file/index.js";
 import {
 	type CapabilityConfigPackage,
 	type ResolvedHolocronConfig,
@@ -77,7 +78,9 @@ export class PluginLoader {
 	 * in their summary. Inspect {@link loadFailures} for the full list.
 	 */
 	async load(): Promise<void> {
-		// The `credentials` providers go first: what they return is where the other plugins find their tokens.
+		// The repo's `.env` and then the `credentials` providers go first: what they return is where the other
+		// plugins find their tokens, and the file is listed first so it wins over a provider.
+		this.loadDotenv();
 		await this.loadCredentials();
 
 		const entries = Object.entries(this.config.providers) as Array<
@@ -104,6 +107,17 @@ export class PluginLoader {
 				if (impls.length > 0) this.registry.set(key, impls);
 			}
 		}
+	}
+
+	/**
+	 * Reads `<repoRoot>/.env` into the credential store when the file exists, once per process. It is optional and
+	 * needs no config; the token chain tries it after the process environment and before the `credentials` providers.
+	 */
+	private loadDotenv(): void {
+		const source = `${DOTENV_FILE}:${this.context.repoRoot}`;
+		if (hasCredentials(source)) return;
+		const variables = readDotenvFile(this.context.repoRoot);
+		if (variables) setCredentials(source, variables);
 	}
 
 	/**

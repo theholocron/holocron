@@ -12,6 +12,7 @@ For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.),
 ```text
 --token flag
 → HOLOCRON_<FEATURE>_TOKEN (feature-specific env var)
+→ the same variable in the repo's .env file (optional, see below)
 → the same variable in a credentials provider (a 1Password Environment, see below)
 → keyring("github.<feature>") (stored via `holocron auth set`)
 ```
@@ -19,6 +20,15 @@ For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.),
 Each keyring entry is read once per command: the answer, a missing entry included, is remembered until the command ends, so the OS keychain is asked once per token and not on every lookup. Nothing is cached between commands.
 
 No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command differs: `sync-wiki` takes the token from the environment (`HOLOCRON_READ_TOKEN`, then `GH_TOKEN`, then `GITHUB_TOKEN`) and only then from the keyring entry `github.read`, so it works in a GitHub Actions job with no extra setup and from a token stored with `holocron auth set github.read`.
+
+## The repo's `.env` file
+
+A `.env` file at the repo root is optional and needs no config. If it is there, the CLI reads it and its variables sit in the chain after the process environment and before the `credentials` providers, so a token written in it wins over 1Password and the keyring. It is for a developer who wants plain tokens on disk (or a file that 1Password, OpenShell or AWS Secrets Manager mounts), and a project that keeps its tokens elsewhere never creates one.
+
+- Only `<repo root>/.env` is read, never a `.env` in the directory you ran the command from, so a checkout you cloned and ran the CLI in is not trusted.
+- Use the same variable names as everywhere else (`HOLOCRON_ORG_TOKEN=...`). A blank value is skipped.
+- Keep it out of git. The repo's `.gitignore` lists `.env`; check that yours does before you create one.
+- The file is read once per command.
 
 ## Credentials providers
 
@@ -53,6 +63,7 @@ For every other provider plugin (Axiom, Cloudflare, Sentry, Slack, Vercel, etc.)
 --token flag
   → the plugin's own env var    (e.g. HOLOCRON_CLOUDFLARE_TOKEN)
   → the vendor's native env var (e.g. CLOUDFLARE_API_TOKEN)
+  → either variable in the repo's .env file (optional, see below)
   → either variable in a credentials provider (a 1Password Environment, see below)
   → keyring("<provider>.<org>") (org-scoped — only when an org is active)
   → keyring("<provider>")       (unnamespaced fallback)
