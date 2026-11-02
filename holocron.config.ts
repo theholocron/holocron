@@ -168,8 +168,8 @@ export default defineConfig({
 							// Read-only for everyone: these channels are posted to by the bot and by owners.
 							access: { post: [] },
 							channels: [
-								{ name: "welcome", topic: "What this server is and how to get help" },
-								{ name: "rules", topic: "How we treat each other here" },
+								{ name: "welcome", topic: "What this server is and how to get help", webhook: true },
+								{ name: "rules", topic: "How we treat each other here", webhook: true },
 							],
 						},
 						{
