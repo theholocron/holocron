@@ -1262,7 +1262,7 @@ describe("runSetup", () => {
 		});
 	});
 
-	it("requires only `ci` and `DCO` in the repo that hosts the ci aggregate", async () => {
+	it("requires only `ci / Required checks` and `DCO` in the repo that hosts the ci aggregate", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "holo-aggregate-"));
 		await mkdir(join(dir, "ci"));
 		await writeFile(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }), "utf8");
@@ -1301,7 +1301,7 @@ describe("runSetup", () => {
 		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
 		const checksRule = rules.find((r) => r.type === "required_status_checks");
 		expect(checksRule?.parameters).toMatchObject({
-			required_status_checks: [{ context: "ci" }, { context: "DCO" }],
+			required_status_checks: [{ context: "ci / Required checks" }, { context: "DCO" }],
 		});
 	});
 

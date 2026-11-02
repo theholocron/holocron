@@ -34,7 +34,9 @@ permissions:
 
 jobs:
   ci:
-    name: ci
+    # The check is `<caller job> / <called job>`, so with the caller job `ci` the required context is
+    # `ci / Required checks`.
+    name: Required checks
     permissions:
       checks: read
       statuses: read
@@ -45,7 +47,7 @@ jobs:
       - name: Wait for the expected checks
         run: |
           set -euo pipefail
-          # Never wait for ourselves.
+          # Never wait for ourselves: this run is `ci / Required checks`, which an expected `ci` would match.
           expected=$(jq -c 'map(select(. != "ci"))' <<<"$EXPECTED")
           deadline=$(( $(date +%s) + TIMEOUT_MINUTES * 60 ))
           timed_out=false

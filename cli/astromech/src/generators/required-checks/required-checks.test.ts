@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { AGGREGATE_CHECK, requiredChecks } from "./required-checks.js";
 
 describe("requiredChecks", () => {
-	it("names the aggregate check `ci`", () => {
-		expect(AGGREGATE_CHECK).toBe("ci");
+	it("names the aggregate check by its caller and called job", () => {
+		expect(AGGREGATE_CHECK).toBe("ci / Required checks");
 	});
 
-	it("is `ci` and `DCO` with the aggregate, whatever the manifest holds", () => {
-		expect(requiredChecks({}, true)).toEqual(["ci", "DCO"]);
+	it("is `ci / Required checks` and `DCO` with the aggregate, whatever the manifest holds", () => {
+		expect(requiredChecks({}, true)).toEqual(["ci / Required checks", "DCO"]);
 		expect(
 			requiredChecks(
 				{
@@ -17,7 +17,7 @@ describe("requiredChecks", () => {
 				},
 				true
 			)
-		).toEqual(["ci", "DCO"]);
+		).toEqual(["ci / Required checks", "DCO"]);
 	});
 
 	it("is `DCO` then the per-task contexts then the extras without the aggregate", () => {

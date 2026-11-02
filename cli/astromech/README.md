@@ -144,7 +144,7 @@ const astromech = createAstromech({ cwd, config, orgContext: { org, domain } });
 
 astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-enabled task
 astromech.packageScripts(); // { holocron: "holocron", "verification.unitTests": "holocron run verification.unitTests", … }
-astromech.requiredChecks(true); // ["ci", "DCO"]  — branch-protection contexts (false: "DCO", then the per-task contexts, then extras)
+astromech.requiredChecks(true); // ["ci / Required checks", "DCO"]  — branch-protection contexts (false: "DCO", then the per-task contexts, then extras)
 astromech.aggregateCaller(); // the thin caller of the `ci` aggregate check, or null when nothing is required
 astromech.codecovConfig(existing); // codecov.yml content — merges into `existing`, or scaffolds fresh when null
 astromech.ci({ scope: "required" }); // CiReport — run the gating checks locally, in CI order
@@ -172,7 +172,7 @@ plus one `"<task>": "holocron run <task>"` per runnable task; it skips
 ### Required checks
 
 `requiredChecks(aggregate)` is the branch-protection required-status-check list. With the `ci` aggregate (the repo
-hosts it, see below) it is `["ci", "DCO"]`. Without it, it is `"DCO"`, then every `{ required: true }` task's check
+hosts it, see below) it is `["ci / Required checks", "DCO"]`. Without it, it is `"DCO"`, then every `{ required: true }` task's check
 context, ordered by `CI_ORDER`, then `config.extraRequiredChecks` (codecov gates, …), de-duplicated. Most tasks are
 single always-run jobs now, so their context
 names that job directly (`"Typecheck / tsc --noEmit"`) — the `… /
@@ -186,7 +186,7 @@ applies the list for `protection: "strict"` repos. Policy-free — manifest only
 `aggregateChecks(config)` derives what the reusable `ci.yml` (in `ci/workflows/`) waits on, from the same list: the
 `expected` ids are the part before `/` of each required task's context and of each `extraRequiredChecks` entry that
 is not a `codecov/` status (the hand-written `Generated files / Check` becomes `Generated files`), and `statuses` are
-the `codecov/` entries. `aggregateCaller()` renders the `pull_request` caller, whose one job is named `ci`.
+the `codecov/` entries. `aggregateCaller()` renders the `pull_request` caller, whose job `ci` calls the reusable's `Required checks` job.
 `holocron repo sync` writes it only in the repo that hosts the reusables. The ids are today's check names; the later
 rename changes them here and costs no ruleset edit.
 

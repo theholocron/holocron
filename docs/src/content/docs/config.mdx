@@ -60,7 +60,7 @@ export default defineConfig({
     // Branch protection preset applied by `holocron repo setup`.
     // "balanced" — squash merge only, delete branch on merge, no force-push.
     // "strict"   — same + required status checks. In a repo that hosts the `ci`
-    //              aggregate the list is `ci` and `DCO`: `ci` waits on every
+    //              aggregate the list is `ci / Required checks` and `DCO`: the aggregate waits on every
     //              `{ required: true }` task, the hand-written checks and the
     //              codecov statuses in `extraRequiredChecks`. In any other repo it
     //              is `DCO`, every required task's check context (in CI order) and

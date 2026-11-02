@@ -559,8 +559,8 @@ describe("createAstromech().reusableTemplates", () => {
 });
 
 describe("createAstromech().requiredChecks", () => {
-	it("is `ci` and `DCO` with the aggregate", () => {
-		expect(createAstromech({ cwd: "/repo" }).requiredChecks(true)).toEqual(["ci", "DCO"]);
+	it("is `ci / Required checks` and `DCO` with the aggregate", () => {
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks(true)).toEqual(["ci / Required checks", "DCO"]);
 	});
 
 	it("without the aggregate, derives contexts from required tasks + extraRequiredChecks after `DCO`", () => {

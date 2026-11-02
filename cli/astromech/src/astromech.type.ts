@@ -111,13 +111,13 @@ export interface Astromech {
 	runnableTasks(): string[];
 	/**
 	 * The branch-protection required-status-check contexts for this repo. With `aggregate` (the repo hosts the `ci`
-	 * check, see {@link aggregateCaller}) they are `ci` and `DCO`; without it, `DCO`, every `required: true` task's
+	 * check, see {@link aggregateCaller}) they are `ci / Required checks` and `DCO`; without it, `DCO`, every `required: true` task's
 	 * check context and `extraRequiredChecks`, ordered and de-duplicated. `holocron repo setup` applies the list; this
 	 * method is policy-free (manifest only).
 	 */
 	requiredChecks(aggregate: boolean): string[];
 	/**
-	 * The thin caller of the `ci` aggregate check (a `pull_request` workflow whose one job, `ci`, waits on every
+	 * The thin caller of the `ci` aggregate check (a `pull_request` workflow whose job `ci` calls the `Required checks` job that waits on every
 	 * `required: true` task, the hand-written checks and the `codecov/*` statuses), or `null` when the manifest has
 	 * nothing to wait on. Only a repo that hosts the reusable `ci.yml` writes it; the others have no `ci` yet.
 	 */

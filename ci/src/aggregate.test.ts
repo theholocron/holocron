@@ -205,7 +205,9 @@ describe.skipIf(!hasJq)("ci workflow script", () => {
 	});
 
 	it("never waits for itself", () => {
-		const r = run([{ runs: [done("Typecheck / a", "success")] }], { EXPECTED: '["Typecheck","ci"]' });
+		// Its own run is in progress while it polls; an expected `ci` would match it, so `ci` is never waited on.
+		const own: Run = { name: "ci / Required checks", status: "in_progress", conclusion: null };
+		const r = run([{ runs: [done("Typecheck / a", "success"), own] }], { EXPECTED: '["Typecheck","ci"]' });
 		expect(r.code).toBe(0);
 		expect(r.out).toContain("all 1 expected checks");
 	});

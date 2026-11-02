@@ -309,7 +309,7 @@ describe("doctor repo — branch protection", () => {
 		expect(problems).toContain("unexpected required check Stale / Check");
 	});
 
-	it("expects only `ci` and `DCO` in the repo that hosts the ci aggregate", async () => {
+	it("expects only `ci / Required checks` and `DCO` in the repo that hosts the ci aggregate", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "doctor-aggregate-"));
 		mkdirSync(join(dir, "ci"));
 		writeFileSync(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }));
@@ -330,7 +330,7 @@ describe("doctor repo — branch protection", () => {
 		);
 		rmSync(dir, { recursive: true, force: true });
 		const problems = byId(report.rows, "repo-protection").problems;
-		expect(problems).toContain("missing required check ci");
+		expect(problems).toContain("missing required check ci / Required checks");
 		expect(problems).toContain("unexpected required check Test / Conclusion");
 		expect(problems).toContain("unexpected required check Extra / Check");
 		expect(problems).not.toContain("missing required check DCO");
