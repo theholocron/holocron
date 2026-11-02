@@ -1,3 +1,9 @@
+## [5.0.0-alpha.298](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.297...v5.0.0-alpha.298) (2026-11-02)
+
+### Features
+
+* **auth:** 🧠 read each stored token from the keyring once per process ([#1605](https://github.com/theholocron/holocron/issues/1605)) ([#1608](https://github.com/theholocron/holocron/issues/1608)) ([0bc46bd](https://github.com/theholocron/holocron/commit/0bc46bde736d630657f07c5e4a226a8436b7ee84))
+
 ## [5.0.0-alpha.297](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.296...v5.0.0-alpha.297) (2026-11-02)
 
 ### Features
