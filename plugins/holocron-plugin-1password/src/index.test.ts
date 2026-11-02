@@ -4,10 +4,10 @@ import { stubSpawn } from "./helpers.js";
 import { AuthError, createPlugin, OpVault } from "./index.js";
 
 describe("createPlugin", () => {
-	it("throws when `vault` option is missing", () => {
+	it("does not need a `vault` option", () => {
 		const { spawn } = stubSpawn([{ status: 0, stdout: "2.30.0" }]);
-		// @ts-expect-error — deliberately missing required field
-		expect(() => createPlugin({ spawn })).toThrow(/vault/);
+		const plugin = createPlugin({ spawn });
+		expect(plugin.capabilities.vault()).toBeInstanceOf(OpVault);
 	});
 
 	it("throws AuthError when `op` is missing from PATH", () => {

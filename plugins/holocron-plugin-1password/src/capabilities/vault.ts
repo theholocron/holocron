@@ -14,16 +14,15 @@
 import type { Vault } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
+import { parseDotenv } from "../parse-dotenv.js";
 import type { OpShell } from "../shell.js";
 
 export interface OpVaultOptions {
-	/** 1P vault name items live in. Required — list/write default here. */
-	vault: string;
-}
-
-interface OpEnvironment {
-	id: string;
-	name: string;
+	/**
+	 * 1P vault name items live in. `list()` needs it; `read` and `write` take it from the `op://` reference, and
+	 * Environments are not in a vault, so a project that only reads an Environment can leave it out.
+	 */
+	vault?: string;
 }
 
 interface OpItem {
@@ -39,16 +38,13 @@ export class OpVault implements Vault {
 	/** Provider name; always `"1password"`. */
 	readonly providerName = "1password";
 
-	private readonly vaultName: string;
+	private readonly vaultName: string | undefined;
 
 	constructor(
 		private readonly shell: OpShell,
-		opts: OpVaultOptions
+		opts: OpVaultOptions = {}
 	) {
-		if (!opts.vault) {
-			throw new Error("OpVault requires `vault` (1P vault name) in options");
-		}
-		this.vaultName = opts.vault;
+		this.vaultName = opts.vault || undefined;
 	}
 
 	// ── read / write ────────────────────────────────────────────────────
@@ -84,6 +80,13 @@ export class OpVault implements Vault {
 	// ── list ────────────────────────────────────────────────────────────
 
 	async list(): Promise<string[]> {
+		if (!this.vaultName) {
+			throw new ProviderApiError(
+				"1Password `list` needs a `vault` in the plugin options: it lists the items in one vault",
+				400,
+				undefined
+			);
+		}
 		const stdout = this.shell.runOrThrow(
 			["item", "list", `--vault=${this.vaultName}`, "--format=json"],
 			`item list --vault=${this.vaultName}`
@@ -95,19 +98,17 @@ export class OpVault implements Vault {
 
 	// ── environments ────────────────────────────────────────────────────
 
-	async environments(): Promise<string[]> {
-		const stdout = this.shell.runOrThrow(["environment", "list", "--format=json"], "environment list");
-		if (!stdout) return [];
-		const parsed = JSON.parse(stdout) as OpEnvironment[];
-		return parsed.map((e) => e.name);
-	}
-
-	async readEnvironment(environmentId: string): Promise<Record<string, string>> {
+	/**
+	 * Every variable of a 1Password Environment, by its name or id. `op environment read` takes only an id, while
+	 * `op environment secret list` takes either, so this reads through the latter with the values revealed. There is
+	 * no `op` command that lists Environments, so this vault has no `environments()`.
+	 */
+	async readEnvironment(environment: string): Promise<Record<string, string>> {
 		const stdout = this.shell.runOrThrow(
-			["environment", "read", environmentId],
-			`environment read ${environmentId}`
+			["environment", "secret", "list", environment, "--reveal", "--format=dotenv"],
+			`environment secret list ${environment}`
 		);
-		return parseEnvironmentDump(stdout);
+		return parseDotenv(stdout);
 	}
 }
 
@@ -139,25 +140,4 @@ function parseReference(reference: string): ParsedReference {
 	}
 	const [vault, item, ...fieldParts] = parts;
 	return { vault: vault!, item: item!, field: fieldParts.join("/") };
-}
-
-/**
- * Parse `op environment read`'s stdout (KEY=VALUE per line) into a
- * record. Skips blank lines + `# comment` lines. Per-line format is
- * intentionally minimal — no quoting, no escaping; if a value contains
- * a literal newline, that's a problem for the underlying environment,
- * not this parser.
- */
-function parseEnvironmentDump(stdout: string): Record<string, string> {
-	const out: Record<string, string> = {};
-	for (const line of stdout.split("\n")) {
-		const trimmed = line.trim();
-		if (!trimmed || trimmed.startsWith("#")) continue;
-		const eq = trimmed.indexOf("=");
-		if (eq < 0) continue;
-		const key = trimmed.slice(0, eq);
-		const value = trimmed.slice(eq + 1);
-		out[key] = value;
-	}
-	return out;
 }

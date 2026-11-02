@@ -145,32 +145,15 @@ describe("OpVault.list", () => {
 // environments
 // ──────────────────────────────────────────────────────────────────────
 
-describe("OpVault.environments — empty output", () => {
-	it("returns [] when op environment list outputs nothing", async () => {
-		const { vault } = makeVault([{ status: 0, stdout: "" }]);
-		expect(await vault.environments!()).toEqual([]);
-	});
-});
-
 describe("OpVault.environments", () => {
-	it("runs `op environment list --format=json` and returns names", async () => {
-		const { vault, calls } = makeVault([
-			{
-				status: 0,
-				stdout: JSON.stringify([
-					{ id: "env_1", name: "local" },
-					{ id: "env_2", name: "staging" },
-				]),
-			},
-		]);
-		const result = await vault.environments!();
-		expect(calls[0]?.args).toEqual(["environment", "list", "--format=json"]);
-		expect(result).toEqual(["local", "staging"]);
+	it("is not offered: no `op` command lists Environments", () => {
+		const { vault } = makeVault([]);
+		expect("environments" in vault).toBe(false);
 	});
 });
 
 describe("OpVault.readEnvironment", () => {
-	it("parses KEY=VALUE lines from `op environment read`", async () => {
+	it("reads by name or id through `op environment secret list --reveal --format=dotenv`", async () => {
 		const stdout = [
 			"CLERK_SECRET_KEY=sk_test_xxx",
 			"NEON_DATABASE_URL=postgresql://...",
@@ -179,8 +162,8 @@ describe("OpVault.readEnvironment", () => {
 			"EMPTY_VALUE=",
 		].join("\n");
 		const { vault, calls } = makeVault([{ status: 0, stdout }]);
-		const result = await vault.readEnvironment!("env_1");
-		expect(calls[0]?.args).toEqual(["environment", "read", "env_1"]);
+		const result = await vault.readEnvironment!("holocron");
+		expect(calls[0]?.args).toEqual(["environment", "secret", "list", "holocron", "--reveal", "--format=dotenv"]);
 		expect(result).toEqual({
 			CLERK_SECRET_KEY: "sk_test_xxx",
 			NEON_DATABASE_URL: "postgresql://...",
@@ -188,17 +171,26 @@ describe("OpVault.readEnvironment", () => {
 		});
 	});
 
-	it("throws ProviderApiError when op fails", async () => {
-		const { vault } = makeVault([{ status: 1, stderr: "environment not found" }]);
-		await expect(vault.readEnvironment!("missing_id")).rejects.toThrow(/environment not found/);
+	it("passes --account first when the vault was made with one", async () => {
+		const { vault, calls } = makeVault([{ status: 0, stdout: "A=1" }], { account: "ACCT" });
+		await vault.readEnvironment!("holocron");
+		expect(calls[0]?.args.slice(0, 2)).toEqual(["--account", "ACCT"]);
 	});
 
-	it("skips lines without an = sign", async () => {
-		const stdout = ["VALID=value", "NO_EQUALS_HERE", "ANOTHER=good"].join("\n");
-		const { vault } = makeVault([{ status: 0, stdout }]);
-		const result = await vault.readEnvironment!("env_x");
-		expect(result).toEqual({ VALID: "value", ANOTHER: "good" });
-		expect("NO_EQUALS_HERE" in result).toBe(false);
+	it("unquotes quoted values", async () => {
+		const { vault } = makeVault([{ status: 0, stdout: "A=\"x y\"\nB='raw $1'" }]);
+		expect(await vault.readEnvironment!("holocron")).toEqual({ A: "x y", B: "raw $1" });
+	});
+
+	it("throws ProviderApiError when op fails", async () => {
+		const { vault } = makeVault([{ status: 1, stderr: "environment not found" }]);
+		await expect(vault.readEnvironment!("missing")).rejects.toThrow(/environment not found/);
+	});
+
+	it("works with no vault configured", async () => {
+		const { spawn } = stubSpawn([{ status: 0, stdout: "A=1" }]);
+		const vault = new OpVault(new OpShell({ spawn }), {});
+		expect(await vault.readEnvironment!("holocron")).toEqual({ A: "1" });
 	});
 });
 
@@ -207,9 +199,18 @@ describe("OpVault.readEnvironment", () => {
 // ──────────────────────────────────────────────────────────────────────
 
 describe("OpVault construction", () => {
-	it("throws when `vault` is empty", () => {
+	it("needs no `vault`", () => {
 		const { spawn } = stubSpawn([]);
-		const shell = new OpShell({ spawn });
-		expect(() => new OpVault(shell, { vault: "" })).toThrow(/vault/);
+		expect(() => new OpVault(new OpShell({ spawn }), {})).not.toThrow();
+		expect(() => new OpVault(new OpShell({ spawn }), { vault: "" })).not.toThrow();
+	});
+
+	it("refuses to list items without a vault", async () => {
+		const { spawn, calls } = stubSpawn([]);
+		const vault = new OpVault(new OpShell({ spawn }), {});
+		const err = await vault.list().catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).message).toMatch(/needs a `vault`/);
+		expect(calls).toEqual([]);
 	});
 });
