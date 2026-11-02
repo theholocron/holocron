@@ -1,7 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { clearCredentials, setCredentials } from "../credential-store/index.js";
+import { getToken } from "../keyring/index.js";
 import { AuthError, createFeatureResolver, createResolveToken } from "./auth-resolver.js";
+
+// The real keyring is never asked: a test that reaches it says what it returns.
+vi.mock("../keyring/index.js", () => ({ getToken: vi.fn(() => null) }));
 
 afterEach(clearCredentials);
 
@@ -223,5 +227,11 @@ describe("the credentials providers in the chain", () => {
 	it("an injected keyring replaces the store and the real keyring, as before", () => {
 		setCredentials("1password:Holocron", { HOLOCRON_TEST_TOKEN: "stored" });
 		expect(resolveToken({ env: {}, keyring: () => "kr-tok" })).toBe("kr-tok");
+	});
+
+	it("asks the keyring when the store has nothing", () => {
+		vi.mocked(getToken).mockReturnValueOnce("kr-tok").mockReturnValueOnce("kr-feature");
+		expect(resolveToken({ env: {} })).toBe("kr-tok");
+		expect(feature({ env: {} })).toBe("kr-feature");
 	});
 });
