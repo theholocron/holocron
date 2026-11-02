@@ -1,3 +1,7 @@
+/**
+ * One entry of the task manifest: a registry task by name, with the options that change how it is generated and
+ * run.
+ */
 export interface TaskEntry {
 	/** Registry task name — `verification.unitTests`, `sourceQuality.staticAnalysis`, `delivery.build`, … */
 	name: string;
@@ -60,6 +64,7 @@ export interface TaskEntry {
 /** A task is either its bare name (all defaults) or an entry object. */
 export type TaskConfigItem = string | TaskEntry;
 
+/** The part of `holocron.config` that holds the task manifest and the switches around it. */
 export interface TasksConfig {
 	/** The manifest. */
 	tasks?: TaskConfigItem[];

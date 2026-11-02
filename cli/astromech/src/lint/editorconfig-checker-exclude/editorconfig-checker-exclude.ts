@@ -17,4 +17,8 @@
 
 import editorconfigChecker from "../../templates/configs/editorconfig-checker/editorconfig-checker.json" with { type: "json" };
 
+/**
+ * The paths editorconfig-checker skips, as regular-expression sources matched against a repo-relative path; the
+ * list `holocron repo setup` writes into `.editorconfig-checker.json`.
+ */
 export const EDITORCONFIG_CHECKER_EXCLUDE: readonly string[] = editorconfigChecker.Exclude;

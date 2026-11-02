@@ -8,6 +8,10 @@ import { vitest } from "../configs/vitest.js";
 
 // docsSrcConfig re-asserted after node() -- see library.ts's own composition
 // for why (node()'s recommended-module preset otherwise clobbers it).
+/**
+ * The ESLint bundle for a Node application: the base, Node, TypeScript and Vitest rules, plus the `package.json`
+ * rules.
+ */
 export function nodeApp(): Linter.Config[] {
 	return [...base(), ...node(), docsSrcConfig, ...typescript(), ...vitest(), ...packageJson()];
 }

@@ -1,6 +1,10 @@
 import type { Linter } from "eslint";
 import storybook from "eslint-plugin-storybook";
 
+/**
+ * ESLint rules for Storybook: the plugin's recommended set, with this repo's overrides for `.storybook/` and
+ * stories.
+ */
 export function storybookConfig(): Linter.FlatConfig[] {
 	return [
 		...(storybook.configs["flat/recommended"] as unknown as Linter.FlatConfig[]),

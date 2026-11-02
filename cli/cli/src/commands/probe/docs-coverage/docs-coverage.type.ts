@@ -42,8 +42,11 @@ export interface MeasureDocsCoverageInput {
 	repoRoot: string;
 	/** Runs TypeDoc for one entry point and returns its `--json` model. */
 	typedoc: (entry: string, tsconfig: string | undefined) => { children?: TypedocReflection[] };
-	/** The public packages and where their entry point is; replaces the workspace scan. */
-	packages?: { name: string; dir: string; entry: string; tsconfig?: string }[];
+	/**
+	 * The public packages and where their entry point is; replaces the workspace scan. `also` are the package's other
+	 * entry points (its subpath exports), measured with the root one.
+	 */
+	packages?: { name: string; dir: string; entry: string; also?: string[]; tsconfig?: string }[];
 	/** Measure only the packages this keeps, by directory. */
 	only?: (dir: string) => boolean;
 }

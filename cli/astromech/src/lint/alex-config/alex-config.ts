@@ -15,4 +15,11 @@
 
 import alexrc from "../../templates/configs/alexjs/alexrc.json" with { type: "json" };
 
-export const ALEX_CONFIG: { allow: string[] } = alexrc;
+/**
+ * The org's canonical `alex` (inclusive-language) config as data: the words it allows, from the one JSON file
+ * `holocron repo setup` writes into each repo's `.alexrc.json`.
+ */
+export const ALEX_CONFIG: {
+	/** The words `alex` accepts despite its default rules. */
+	allow: string[];
+} = alexrc;

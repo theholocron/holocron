@@ -19,6 +19,10 @@ import load from "@commitlint/load";
 import { lintCommitMessage } from "../lint-message/index.js";
 import type { LintCommitMsgFileResult } from "./lint-commit-msg-file.type.js";
 
+/**
+ * Lints the commit message in `filePath` (what git's `commit-msg` hook passes as `$1`) against the commitlint
+ * config found by searching up from `cwd`.
+ */
 export async function lintCommitMsgFile(filePath: string, cwd = process.cwd()): Promise<LintCommitMsgFileResult> {
 	const message = await readFile(filePath, "utf8");
 	const loaded = await load({}, { cwd });

@@ -7,6 +7,10 @@ export type { Preview };
 
 // `layout` is valid storybook v9 runtime config but absent from
 // ProjectAnnotations<ReactRenderer> in the type definitions — cast to accept it.
+/**
+ * The shared Storybook preview: a centered layout, the Mock Service Worker loader, viewports and the `autodocs`
+ * tag.
+ */
 export const preview = {
 	layout: "centered",
 	loaders: [mswLoader],

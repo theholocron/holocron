@@ -7,7 +7,9 @@ export interface ReleaseCommit {
 
 /** The slice of a semantic-release plugin context this module reads; everything else passes through untouched. */
 export interface ReleaseContext {
+	/** The directory semantic-release runs in: the repo being released. */
 	cwd?: string;
+	/** The commits analysed for this release. */
 	commits?: ReleaseCommit[];
 	[key: string]: unknown;
 }

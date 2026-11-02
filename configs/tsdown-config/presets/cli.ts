@@ -25,4 +25,5 @@ export function cli(options: UserConfig = {}) {
 	});
 }
 
+/** The CLI preset with its defaults, for a package that needs no options. */
 export default cli();
