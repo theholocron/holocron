@@ -84,4 +84,32 @@ describe("expectedDnsRecords", () => {
 			},
 		]);
 	});
+
+	it("expects a DNS-only CNAME from the GitHub Pages docs domain to the org's github.io", () => {
+		const docs = { build: "workflow", domain: "docs.example.dev" };
+		expect(expectedDnsRecords(configOf({ org: "acme", docs }), { layouts: [] })).toEqual([
+			{
+				zone: "docs.example.dev",
+				record: { type: "CNAME", name: "docs.example.dev", content: "acme.github.io", proxied: false },
+			},
+		]);
+		expect(expectedDnsRecords(configOf({ docs }), { layouts: [] })).toEqual([]);
+		expect(expectedDnsRecords(configOf({ org: "acme", docs: { build: "workflow" } }), { layouts: [] })).toEqual([]);
+	});
+
+	it("expects iCloud's MX and SPF records at the apex when the config says mail is iCloud", () => {
+		const apex = (type: "MX" | "TXT", content: string) => ({
+			zone: "example.dev",
+			record: { type, name: "example.dev", content },
+		});
+		expect(
+			expectedDnsRecords(configOf({ domain: "example.dev", doctor: { mail: "icloud" } }), { layouts: [] })
+		).toEqual([
+			apex("MX", "mx01.mail.icloud.com"),
+			apex("MX", "mx02.mail.icloud.com"),
+			apex("TXT", "v=spf1 include:icloud.com ~all"),
+		]);
+		expect(expectedDnsRecords(configOf({ domain: "example.dev" }), { layouts: [] })).toEqual([]);
+		expect(expectedDnsRecords(configOf({ doctor: { mail: "icloud" } }), { layouts: [] })).toEqual([]);
+	});
 });

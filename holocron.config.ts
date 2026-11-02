@@ -32,6 +32,8 @@ export default defineConfig({
 	org,
 	domain,
 	docs,
+	// The apex carries iCloud Mail's MX and SPF records; `holocron doctor dns` keeps watch on them (#1569).
+	doctor: { mail: "icloud" },
 	repo: {
 		...repo,
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],

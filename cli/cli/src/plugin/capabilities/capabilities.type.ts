@@ -857,6 +857,13 @@ export interface Deployment extends ProviderIdentity {
 	 * pattern `setup` already uses for `Wiki.dnsRecord()`.
 	 */
 	ensureCustomDomain?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
+	/**
+	 * The DNS record that points `hostname` at the project, read without changing anything: the read-only half of
+	 * {@link Deployment.ensureCustomDomain}, which attaches the domain. Unlike `ensureCustomDomain` it returns the
+	 * record even when the domain already resolves, so `holocron doctor dns` can compare it with the zone. `null`
+	 * when the provider has no record to recommend. Optional: a provider that cannot be asked omits it.
+	 */
+	expectedDomainRecord?(projectId: string, hostname: string): Promise<DnsRecordRequest | null>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
