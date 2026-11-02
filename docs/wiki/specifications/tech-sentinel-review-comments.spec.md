@@ -9,6 +9,8 @@ related:
   - theholocron/holocron#858
   - theholocron/holocron#859
   - theholocron/holocron#864
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620437709062216
 ---
 
 # Static analysis errors as PR reviews, not only check annotations

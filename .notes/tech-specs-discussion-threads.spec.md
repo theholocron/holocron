@@ -10,6 +10,8 @@ related:
   - theholocron/holocron#1534
   - theholocron/holocron#1102
   - theholocron/holocron#929
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618607914582016
 ---
 
 # ADRs and specs: a Discord forum post for each, kept in step by a batch job

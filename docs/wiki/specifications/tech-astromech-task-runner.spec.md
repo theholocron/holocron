@@ -13,6 +13,8 @@ related:
   - theholocron/holocron#588
   - theholocron/holocron#589
   - theholocron/holocron#576
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620343597146266
 ---
 
 # Astromech — `@theholocron/astromech`

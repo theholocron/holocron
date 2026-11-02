@@ -5,6 +5,8 @@ issue: theholocron/holocron#1052
 blocked-by: []
 related:
   - theholocron/holocron#438
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618564859920424
 ---
 
 # Interactive menu: prompt for command options

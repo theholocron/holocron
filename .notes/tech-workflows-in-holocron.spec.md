@@ -18,6 +18,8 @@ related:
   - theholocron/holocron#1478
   - theholocron/holocron#1480
   - theholocron/holocron#1481
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618610099560518
 ---
 
 # Host the reusable workflows and composite actions in holocron

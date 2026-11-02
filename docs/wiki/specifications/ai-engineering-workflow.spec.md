@@ -5,6 +5,8 @@ issue: theholocron/holocron#440
 blocked-by: []
 related:
   - theholocron/holocron#440
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618697651462154
 ---
 
 # AI-assisted engineering workflow

@@ -4,6 +4,8 @@ title: Holocron Config Preset System
 description: Layered configuration presets for theholocron repositories — what each preset includes, how to compose them, and what stays per-repo.
 issue: theholocron/configs#398
 status: accepted
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620389075980308
 ---
 
 > **Moved from `theholocron/configs`.** The presets are moving from `@theholocron/holocron-config` into the CLI as `@theholocron/cli/presets` (#1272 shipped the export; #1271 deprecates the package). Re-check this spec, and archive it if it no longer describes a package, when #1271 lands. The design record is [ADR-0017](../decisions/0017-holocron-config-preset-system.md) and [ADR-0018](../decisions/0018-composable-preset-system.md).

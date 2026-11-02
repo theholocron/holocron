@@ -7,6 +7,8 @@ related:
   - theholocron/holocron#633
   - theholocron/holocron#634
   - theholocron/holocron#638
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618567997263992
 ---
 
 # `@theholocron/observability` — browser, edge and React Native adapters (Phase B)

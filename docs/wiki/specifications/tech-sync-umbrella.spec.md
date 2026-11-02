@@ -1,6 +1,8 @@
 ---
 id: SPEC-0056
 status: archived
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620442486243378
 ---
 
 <!-- editorconfig-checker-disable-file -->

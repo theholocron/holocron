@@ -5,6 +5,8 @@ issue: theholocron/holocron#582
 blocked-by: []
 related:
   - theholocron/holocron#581
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620364661063850
 ---
 
 # Datapad — `@theholocron/datapad`

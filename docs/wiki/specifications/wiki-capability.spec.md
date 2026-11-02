@@ -13,6 +13,8 @@ research:
   - Fern docs.yml JSON schema: https://schema.buildwithfern.dev/docs-yml.json
   - Fern multi-source example: NVIDIA/OpenShell fern/docs.yml
   - Password protection: https://buildwithfern.com/learn/docs/authentication/setup/password-protection
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620487776207050
 ---
 
 # Wiki capability — engineering knowledge publishing

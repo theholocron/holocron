@@ -6,6 +6,8 @@ blocked-by: []
 related:
   - theholocron/holocron#576
   - theholocron/holocron#438
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620346130366494
 ---
 
 # CLI command structure: regroup by noun, full interactive-menu coverage

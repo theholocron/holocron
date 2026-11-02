@@ -7,6 +7,7 @@ owners: []
 specs:
   - docs/wiki/specifications/tech-cli-usage-telemetry.spec.md
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618650675257524
   github: https://github.com/theholocron/holocron/pull/560
 supersedes: []
 superseded-by: []

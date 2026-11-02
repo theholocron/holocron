@@ -3,6 +3,8 @@ id: SPEC-0022
 status: archived
 issue: theholocron/holocron#453
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620489902727301
 ---
 
 # Workflow config audit — what moves into `holocron.config`

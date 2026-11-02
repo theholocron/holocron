@@ -7,6 +7,7 @@ owners: []
 specs:
   - docs/wiki/specifications/tech-datapad-config-loader.spec.md
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618653544157324
   github: https://github.com/theholocron/holocron/pull/580
 supersedes: []
 superseded-by: []

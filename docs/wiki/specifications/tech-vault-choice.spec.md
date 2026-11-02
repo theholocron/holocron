@@ -3,6 +3,8 @@ id: SPEC-0008
 status: archived
 issue:
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620443811651705
 ---
 
 <!-- editorconfig-checker-disable-file -->

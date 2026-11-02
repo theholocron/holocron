@@ -10,6 +10,8 @@ related:
   - theholocron/holocron#637
   - theholocron/holocron#638
   - theholocron/holocron#454
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620395405320394
 ---
 
 # `@theholocron/observability` — extraction plan

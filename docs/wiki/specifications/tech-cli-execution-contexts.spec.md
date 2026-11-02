@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#451
   - theholocron/holocron#438
   - theholocron/holocron#566
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620347187470357
 ---
 
 # CLI execution contexts — global vs workspace

@@ -5,6 +5,8 @@ issue: theholocron/holocron#938
 blocked-by: []
 related:
   - theholocron/holocron#369
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620369023017183
 ---
 
 # Org-scoping GitHub's per-capability token resolvers

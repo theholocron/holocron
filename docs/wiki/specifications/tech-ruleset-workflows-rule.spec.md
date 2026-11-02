@@ -9,6 +9,8 @@ related:
   - theholocron/holocron#667
   - theholocron/holocron#668
   - theholocron/holocron#669
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620402837364796
 ---
 
 # Ruleset investigation — GitHub `workflows` rule type

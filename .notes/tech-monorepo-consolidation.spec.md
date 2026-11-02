@@ -8,6 +8,8 @@ related:
   - theholocron/holocron#633
   - theholocron/holocron#668
   - theholocron/holocron#669
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618566017552395
 ---
 
 # Consolidate the core org repos into the `holocron` monorepo

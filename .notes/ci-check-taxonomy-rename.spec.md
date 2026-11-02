@@ -5,6 +5,8 @@ issue: theholocron/holocron#989
 blocked-by: []
 related:
   - theholocron/holocron#678
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618556827963482
 ---
 
 # CI / Sentinel check-name taxonomy rename

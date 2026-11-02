@@ -7,6 +7,7 @@ owners: []
 specs:
   - .notes/tech-monorepo-consolidation.spec.md
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618693297905754
   github: https://github.com/theholocron/holocron/issues/1206
 supersedes: []
 superseded-by: []

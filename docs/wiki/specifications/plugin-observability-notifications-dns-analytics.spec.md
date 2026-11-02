@@ -3,6 +3,8 @@ id: SPEC-0010
 status: archived
 issue: theholocron/holocron#74
 blocked-by: []
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618739443499108
 ---
 
 # New plugins — observability, notifications, dns, analytics

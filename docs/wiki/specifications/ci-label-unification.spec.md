@@ -1,6 +1,8 @@
 ---
 id: SPEC-0002
 status: archived
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566618698687586384
 ---
 
 <!-- Implementation: holocron#138 (label sync), holocron#139 (bookkeeping-pr permissions fix) -->

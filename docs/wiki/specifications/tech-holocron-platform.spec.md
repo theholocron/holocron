@@ -12,6 +12,8 @@ related:
   - theholocron/holocron#668
   - theholocron/holocron#669
   - theholocron/holocron#674
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566620390812553338
 ---
 
 # Holocron Platform — intent vocabulary, custom-properties sync, minimal GitHub App
