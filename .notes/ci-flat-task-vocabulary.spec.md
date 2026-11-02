@@ -1,4 +1,5 @@
 ---
+id: SPEC-0064
 status: draft
 issue: theholocron/holocron#1262
 blocked-by: []
@@ -10,6 +11,8 @@ related:
   - theholocron/holocron#1236
   - theholocron/holocron#1478
   - theholocron/holocron#1547
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1566940897038569545
 ---
 
 # A flat, verb-first vocabulary for tasks
