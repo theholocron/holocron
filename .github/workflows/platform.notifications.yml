@@ -8,6 +8,8 @@
 # - A workflow that fails on `alpha` or `main` (not a pull request) posts to #alerts and pings the gatekeepers. A failed
 #   Deploy, Preview, Preview Deploy, Preview Check or Sentinel Deploy goes to #deploys instead. The daily Token Expiry run is in the
 #   list, so a token close to expiring reaches #alerts the day it is found.
+#   The post names the failing jobs of that run with links (five at most, then "and N more"), read with `actions: read`
+#   (#1614); when they cannot be read the post is just the run's line.
 # - A deploy, preview or Preview Check that succeeds posts to #deploys too (#1578), on any branch and for a pull
 #   request, so the channel shows every deploy and not only the broken ones. That is deliberately noisy; narrow the
 #   `deployed` job's `if` to dial it back.
@@ -48,19 +50,39 @@ jobs:
       contains(fromJSON('["alpha","main"]'), github.event.workflow_run.head_branch)
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    permissions:
+      actions: read
     env:
       WORKFLOW: ${{ github.event.workflow_run.name }}
       FILE: ${{ github.event.workflow_run.path }}
       BRANCH: ${{ github.event.workflow_run.head_branch }}
       URL: ${{ github.event.workflow_run.html_url }}
       ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Word the message
         id: message
         run: |
           retry=""
           if [ "$ATTEMPT" -gt 1 ]; then retry=" (attempt $ATTEMPT)"; fi
-          echo "text=❌ ${GITHUB_REPOSITORY}: $WORKFLOW (${FILE##*/}) failed on $BRANCH — $URL$retry" >> "$GITHUB_OUTPUT"
+          text="❌ ${GITHUB_REPOSITORY}: $WORKFLOW (${FILE##*/}) failed on $BRANCH — $URL$retry"
+          # The jobs of this attempt that failed, five at most, then "and N more". A name loses its brackets and is cut
+          # to 80 characters, so the message stays inside Discord's 2000. If the jobs cannot be read, or none failed
+          # (a cancelled run), the message is the line above.
+          failed=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/attempts/${ATTEMPT}/jobs?per_page=100" 2>/dev/null |
+            jq -r '[.jobs[] | select(.conclusion == "failure" or .conclusion == "timed_out")] as $f
+              | ($f[:5][] | "• [\(.name | gsub("[\\[\\]\r\n]"; " ") | .[:80])](<\(.html_url)>)"),
+                (if ($f | length) > 5 then "and \($f | length - 5) more" else empty end)' 2>/dev/null) || failed=""
+          {
+            echo "text<<HOLOCRON_EOF"
+            echo "$text"
+            if [ -n "$failed" ]; then
+              echo "Failed jobs:"
+              echo "$failed"
+            fi
+            echo "HOLOCRON_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: "Notify #deploys"
