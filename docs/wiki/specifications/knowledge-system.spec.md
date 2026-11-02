@@ -33,7 +33,7 @@ human and agent discovery.
 ## Core principle
 
 > No architectural knowledge is canonical merely because it exists in a docs
-> platform, a Discussion, an Issue, Slack, or an AI conversation. Accepted
+> platform, a forum post, an Issue, Discord, Slack, or an AI conversation. Accepted
 > architectural decisions become canonical only when merged as an ADR into Git.
 
 The presentation layer is replaceable. The workflow and the files are not.
@@ -106,17 +106,17 @@ directly rather than an MCP endpoint.
 ## Full architecture
 
 ```
-                        GITHUB
-                           │
-        ┌──────────────────┼────────────────────┐
-        │                  │                    │
-        ▼                  ▼                    ▼
-      Issues          Discussions              PRs
-        │                  │                    │
-      Ideas             Proposed             Specs /
-      Tasks                ADRs               ADRs
-        │                  │                    │
-        └──────────────────┴─────────┬──────────┘
+             GITHUB                     DISCORD
+                │                          │
+        ┌───────┴──────────┐               │
+        │                  │               │
+        ▼                  ▼               ▼
+      Issues              PRs          #ideas forum
+        │                  │               │
+      Ideas             Specs /         Proposed
+      Tasks              ADRs         ADRs and specs
+        │                  │               │
+        └──────────────────┴─────────┬─────┘
                                      │
                                      ▼
                               Repository
@@ -143,8 +143,6 @@ where decisions are created or stored.
 
 ```
 .github/
-├── DISCUSSION_TEMPLATE/
-│   └── architecture-decision.yml
 ├── ISSUE_TEMPLATE/
 │   ├── idea.yml
 │   ├── specification.yml
@@ -207,7 +205,7 @@ specs:
   - SPEC-0018
 
 discussion:
-  github: 183 # GitHub Discussion number
+  url: https://discord.com/channels/<guild>/<post> # written by `holocron specs sync`
 
 supersedes: []
 superseded-by: []
@@ -259,58 +257,26 @@ Mintlify, Starlight, GitHub Actions, and agents all consume the same file.
 
 ---
 
-## GitHub Discussion template for ADRs
+## Discussion posts for ADRs
 
-Architectural debate happens in a dedicated Discussion category
-(`Architecture Decisions`) before the ADR is committed. The Discussion is
-the messy deliberation; the ADR is the clean conclusion.
+> **Superseded: GitHub Discussions.** This spec first named a GitHub
+> Discussion category (`Architecture Decisions`, with a
+> `DISCUSSION_TEMPLATE/architecture-decision.yml`) as the place to debate an ADR.
+> The conversation now lives in Discord, and `discussion.github` is gone from
+> the ADRs and the checks (#1535, spec `tech-specs-discussion-threads`).
 
-Template for `DISCUSSION_TEMPLATE/architecture-decision.yml`:
+Architectural debate happens in a post in the `#ideas` forum. `holocron specs
+sync` makes one post for each ADR and spec (`📐 New ADR: <title>`), tags it with
+the document's status, and writes its address into the file as `discussion.url`.
+The post is the messy deliberation; the ADR is the clean conclusion, and the file
+in Git stays the source of truth. A post carries the context, the options and the
+open questions in whatever form the people in the thread need; no template is
+enforced.
 
-```markdown
-# Proposed Decision
-
-## Context
-
-What architectural question are we trying to answer?
-
-## Drivers
-
-What constraints or goals influence the decision?
-
-## Options Considered
-
-### Option A
-
-### Option B
-
-### Option C
-
-## Proposed Decision
-
-What are we currently leaning toward, and why?
-
-## Consequences
-
-### Positive
-
-### Negative
-
-### Risks
-
-## Related Specification
-
-#<issue>
-
-## Related ADRs
-
-ADR-XXXX
-```
-
-When the Discussion reaches consensus:
+When the discussion reaches consensus:
 
 ```
-Discussion (accepted)
+Forum post (accepted)
       │
       ▼
 ADR PR → docs/decisions/0045-something.md
@@ -319,8 +285,8 @@ ADR PR → docs/decisions/0045-something.md
 Merge → Fern renders it
 ```
 
-The Discussion stays as historical record. The committed ADR is the canonical
-statement.
+The post stays as historical record, retagged with the ADR's status. The
+committed ADR is the canonical statement.
 
 ---
 
@@ -338,10 +304,10 @@ When researching architecture or implementation:
 2. Search the relevant specification — desired behavior.
 3. Inspect the current implementation — current reality.
 4. Check linked issues for active work.
-5. Use GitHub Discussions for context and rationale, but do not treat
+5. Use the forum post (`discussion.url`) for context and rationale, but do not treat
    proposals as accepted decisions.
 
-Accepted ADRs override unresolved Discussion proposals.
+Accepted ADRs override unresolved proposals in a forum post.
 
 If implementation conflicts with an accepted ADR, flag the discrepancy
 rather than assuming the implementation represents the intended architecture.
@@ -366,7 +332,7 @@ Checks to run:
 - `id` is present and unique across all ADR files
 - `status` is one of: `proposed | accepted | rejected | deprecated | superseded`
 - `title` is non-empty
-- `discussion.github` references an existing Discussion (optional but warned if absent for `accepted`)
+- `discussion.url` is set (warned if absent for `accepted`; a GitHub Discussion link no longer counts)
 - `supersedes` entries reference existing ADR IDs
 - No duplicate sequential numbers in filenames
 
@@ -374,7 +340,7 @@ Example passing output:
 
 ```
 ✓ ADR-0042 valid
-✓ Linked discussion #183
+✓ Linked discussion post
 ✓ Linked specification SPEC-0018
 ✓ Status: accepted
 ✓ No duplicate ADR IDs
@@ -387,23 +353,22 @@ Example passing output:
 ### theholocron/holocron — `holocron setup`
 
 Provision the `docs/decisions/` directory structure, the ADR template,
-and the GitHub Issue and Discussion templates when setting up a new repo.
+and the GitHub Issue templates when setting up a new repo.
 
 Relates to: issue #442 (prompt directory provisioning — same setup step, can
 be delivered together or as a follow-on).
 
 ### theholocron/.github
 
-Add `DISCUSSION_TEMPLATE/architecture-decision.yml` and update
-`ISSUE_TEMPLATE/` with `idea.yml`, `specification.yml`, and
+Update `ISSUE_TEMPLATE/` with `idea.yml`, `specification.yml`, and
 `implementation.yml` at the org level so all repos inherit them.
 
 ### theholocron/skills — `/adr` skill
 
 The `/adr` skill (theholocron/skills#66) should:
 
-1. Accept a GitHub Discussion number
-2. Fetch the Discussion body via `gh api`
+1. Accept the address of the forum post (`discussion.url`)
+2. Fetch the post's text (the Discord client reads a forum post's messages)
 3. Apply the ADR Author prompt
 4. Write output to `docs/decisions/<next-id>-<slug>.md` with correct frontmatter
 

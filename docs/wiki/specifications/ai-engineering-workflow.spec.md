@@ -88,7 +88,7 @@ Design
     │         └── Yes               │
     │              │                │
     │              ▼                │
-    │      GitHub Discussion        │
+    │     Discord forum post        │
     │              │                │
     │              ▼                │
     │          Accepted             │
@@ -138,14 +138,17 @@ specifications.
 
 ---
 
-### GitHub Discussions
+### Discord forum posts
 
 **Question answered: what should we decide?**
 
-Discussions are the deliberation layer. Use them when a problem requires
+The forum post is the deliberation layer. The conversation lives in Discord, not
+in GitHub Discussions (#1535): `holocron specs sync` makes one post in the
+`#ideas` forum for each ADR and spec (`📐 New ADR:` / `💡 New spec:`), and the file
+carries its address as `discussion.url`. Use the post when a problem requires
 meaningful technical or architectural discussion before a decision is made.
 
-A Discussion may contain:
+A post may contain:
 
 - Current architecture and constraints
 - Candidate solutions with pros and cons
@@ -154,9 +157,9 @@ A Discussion may contain:
 - Open questions
 - Proposed decision
 
-The Discussion is intentionally allowed to be messy — it captures the
+The post is intentionally allowed to be messy — it captures the
 reasoning process. Once a decision is accepted, the important conclusions are
-distilled into an ADR. The Discussion itself is not the canonical ADR.
+distilled into an ADR. The post itself is not the canonical ADR.
 
 ---
 
@@ -194,7 +197,7 @@ Create an ADR when a future engineer might reasonably ask:
 #### ADR lifecycle
 
 ```
-Proposed → GitHub Discussion → Accepted → Wiki ADR → Deprecated / Superseded
+Proposed → Forum post → Accepted → ADR in Git → Deprecated / Superseded
 ```
 
 Do not rewrite old ADRs when architecture changes. Create a new ADR that
@@ -207,7 +210,7 @@ supersedes the previous one and update its status field.
 
 **Status:** Accepted
 **Date:** YYYY-MM-DD
-**Discussion:** <GitHub Discussion link>
+**Discussion:** <forum post link>
 
 ## Context
 
@@ -580,16 +583,16 @@ ask why one approach was selected over another.
 
 ---
 
-### GitHub Discussion / RFC
+### Discussion / RFC
 
 When architectural discussion is warranted, the design analysis becomes a
-Discussion that invites engineering review rather than pretending the decision
+discussion post that invites engineering review rather than pretending the decision
 is already final.
 
 **Prompt:**
 
 ```
-Convert the design analysis into a GitHub Discussion suitable for engineering
+Convert the design analysis into a discussion post suitable for engineering
 review.
 
 Include:
@@ -620,7 +623,7 @@ architectural choice.
 
 ### ADR Author
 
-Once a Discussion reaches an accepted decision, distills the conclusion into an
+Once a discussion reaches an accepted decision, distills the conclusion into an
 ADR. Summarizes rather than reproduces the entire debate.
 
 **Prompt:**
@@ -628,7 +631,7 @@ ADR. Summarizes rather than reproduces the entire debate.
 ```
 Create an Architecture Decision Record from the accepted engineering decision.
 
-Use the accepted GitHub Discussion as the primary source of decision history.
+Use the accepted discussion post as the primary source of decision history.
 
 Capture the final architectural conclusion, not the full discussion.
 
@@ -641,14 +644,14 @@ Include:
 - Rationale
 - Alternatives considered
 - Consequences
-- Related issue, Discussion, and specifications
+- Related issue, discussion post, and specifications
 
 Clearly distinguish between the final decision, supporting rationale, and
 alternatives that were rejected.
 
 Do not introduce new architectural decisions.
 
-If the Discussion does not contain enough information to state a decision
+If the discussion post does not contain enough information to state a decision
 confidently, identify the missing information instead of inventing it.
 ```
 
@@ -910,7 +913,7 @@ Unexpected architectural issue
     ▼
 Return to design
     │
-    ├── GitHub Discussion if needed
+    ├── Forum post if needed
     ▼
 New or amended ADR
     │
@@ -979,7 +982,7 @@ Proposed command set (to be implemented as Claude Code skills):
 ```
 /discover <issue>    → Discovery Agent
 /design   <issue>    → Design Agent
-/discuss  <design>   → GitHub Discussion draft
+/discuss  <design>   → discussion post draft
 /adr      <decision> → ADR Author
 /spec     <issue>    → Specification Agent
 /plan     <spec>     → Implementation Planner
@@ -1018,7 +1021,7 @@ No ADR unless an architectural decision exists.
 ### Full architectural — major system changes
 
 ```
-Issue → Discovery → Design → GitHub Discussion → ADR → Spec
+Issue → Discovery → Design → Forum post → ADR → Spec
      → Implementation Plan → Implementation → Review → Verification
 ```
 
@@ -1060,7 +1063,7 @@ Implementation plans define how this repository achieves it.
 **Make AI surface uncertainty.** AI should not silently invent requirements or
 architecture. Unresolved decisions should be explicitly surfaced.
 
-**Preserve decision history.** GitHub Discussions preserve the debate. ADRs
+**Preserve decision history.** Forum posts preserve the debate. ADRs
 preserve the conclusion.
 
 **Use specifications as contracts.** The implementation is judged against the

@@ -8,7 +8,6 @@ specs:
   - docs/wiki/specifications/tool-checkly-sourcery-adoption.spec.md
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618660154642603
-  github: https://github.com/theholocron/holocron/issues/998
 supersedes: []
 superseded-by: []
 tags: [sourcery, code-review, github-app]

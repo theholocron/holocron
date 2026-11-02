@@ -9,7 +9,6 @@ specs:
   - docs/wiki/specifications/knowledge-system.spec.md
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618618857267314
-  github: https://github.com/theholocron/holocron/pull/490
 supersedes: []
 superseded-by: []
 tags: [adr, documentation, knowledge-system]
@@ -22,9 +21,9 @@ tags: [adr, documentation, knowledge-system]
 
 > This is the ADR that establishes the Git-based ADR process itself, so it
 > predates its own convention by definition — it was authored on the GitHub
-> Wiki and bulk-migrated into this repo by #490. The linked discussion is
-> that migration, not the original decision conversation; no single PR
-> captures the latter.
+> Wiki and bulk-migrated into this repo by #490. That pull request is the migration,
+> not the original decision conversation; no single PR captures the
+> latter.
 
 ## Context and Problem Statement
 

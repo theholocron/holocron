@@ -10,7 +10,8 @@ const GOOD_ADR = md(
 	"title: Task manifest",
 	"status: accepted",
 	"date: 2026-05-01",
-	"discussion: https://github.com/theholocron/holocron/discussions/1",
+	"discussion:",
+	"  url: https://discord.com/channels/1/2",
 	"---",
 	"",
 	"# Body"
@@ -72,39 +73,44 @@ describe("validateAdr", () => {
 	});
 
 	it("warns (not errors) when an accepted ADR has no discussion link", () => {
-		expect(validateAdr(file, GOOD_ADR.replace(/^discussion: .*\n/m, ""))).toEqual([
+		expect(validateAdr(file, GOOD_ADR.replace(/^discussion:\n {2}url: .*\n/m, ""))).toEqual([
 			{
 				file,
 				line: 4,
 				rule: "discussion",
-				reason: "status is accepted but neither `discussion.url` nor `discussion.github` is set",
+				reason: "status is accepted but `discussion.url` is not set",
 				severity: "warning",
 			},
 		]);
 	});
 
-	it("accepts the template's nested discussion.github link", () => {
-		const nested = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  github: https://github.com/o/r/pull/1");
-		expect(validateAdr(file, nested)).toEqual([]);
+	it("does not accept a GitHub Discussion link", () => {
+		const nested = GOOD_ADR.replace(
+			/^discussion:\n {2}url: .*$/m,
+			"discussion:\n  github: https://github.com/o/r/pull/1"
+		);
+		expect(validateAdr(file, nested).map((f) => [f.rule, f.severity])).toEqual([["discussion", "warning"]]);
+		const plain = GOOD_ADR.replace(
+			/^discussion:\n {2}url: .*$/m,
+			"discussion: https://github.com/o/r/discussions/1"
+		);
+		expect(validateAdr(file, plain).map((f) => [f.rule, f.severity])).toEqual([["discussion", "warning"]]);
 	});
 
 	it("accepts a nested discussion.url, the address sync writes", () => {
-		const nested = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  url: https://discord.com/channels/1/2");
-		expect(validateAdr(file, nested)).toEqual([]);
+		expect(validateAdr(file, GOOD_ADR)).toEqual([]);
 	});
 
 	it("still warns when discussion.url is empty and there is no other link", () => {
-		const empty = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  url:");
-		expect(validateAdr(file, empty).map((f) => [f.rule, f.severity])).toEqual([["discussion", "warning"]]);
-	});
-
-	it("still warns when the nested discussion.github is empty", () => {
-		const empty = GOOD_ADR.replace(/^discussion: .*$/m, "discussion:\n  github:");
+		const empty = GOOD_ADR.replace(/^ {2}url: .*$/m, "  url:");
 		expect(validateAdr(file, empty).map((f) => [f.rule, f.severity])).toEqual([["discussion", "warning"]]);
 	});
 
 	it("does not ask for a discussion link on an ADR that is not accepted", () => {
-		const proposed = GOOD_ADR.replace("status: accepted", "status: proposed").replace(/^discussion: .*\n/m, "");
+		const proposed = GOOD_ADR.replace("status: accepted", "status: proposed").replace(
+			/^discussion:\n {2}url: .*\n/m,
+			""
+		);
 		expect(validateAdr(file, proposed)).toEqual([]);
 	});
 
