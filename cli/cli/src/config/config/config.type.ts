@@ -240,6 +240,11 @@ export interface AppConfig {
 export interface DoctorConfig {
 	/** Names of the checks `doctor` runs. */
 	checks?: string[];
+	/**
+	 * The mail provider that serves the apex of `domain`. `holocron doctor dns` then expects that provider's MX and SPF
+	 * records in the zone, so a change that would break mail is caught. Nothing writes them; they are set up by hand.
+	 */
+	mail?: "icloud";
 }
 
 /** The `env` block: how the project's environment variables are named and documented. */

@@ -4,6 +4,10 @@ import { relayZone } from "../notifications-setup/relay.js";
 import { previewConfigOf } from "../setup/preview-config-of.js";
 import type { ExpectedDnsRecord } from "./doctor-dns.type.js";
 
+/** iCloud Mail's exchangers and the SPF record that authorises it. */
+const ICLOUD_MX = ["mx01.mail.icloud.com", "mx02.mail.icloud.com"];
+const ICLOUD_SPF = "v=spf1 include:icloud.com ~all";
+
 /** What the providers loaded for the config can say about the records they cause. */
 export interface DnsRecordSources {
 	deployment?: Pick<Deployment, "providerName">;
@@ -14,8 +18,10 @@ export interface DnsRecordSources {
 /**
  * The DNS records the config makes `holocron repo setup` and `notifications setup` write, as far as they can be
  * known without writing anything: the preview domain's apex and wildcard CNAMEs (on a Cloudflare deployment), the
- * docs host a wiki provider asks for, and the relay Worker's proxied placeholder. A record that
- * `Deployment.ensureCustomDomain()` returns is left out, since asking for it creates the domain.
+ * docs host a wiki provider asks for, the relay Worker's proxied placeholder, the GitHub Pages docs domain
+ * (`docs.domain`, a DNS-only CNAME to `<org>.github.io`) and the mail provider's apex records (`doctor.mail`). A record that
+ * `Deployment.ensureCustomDomain()` returns is left out, since asking for it creates the domain; `doctor dns` reads
+ * it with `Deployment.expectedDomainRecord()` instead (see `deployment-domains.ts`).
  */
 export function expectedDnsRecords(config: ResolvedHolocronConfig, sources: DnsRecordSources): ExpectedDnsRecord[] {
 	const expected: ExpectedDnsRecord[] = [];
@@ -35,6 +41,20 @@ export function expectedDnsRecords(config: ResolvedHolocronConfig, sources: DnsR
 			zone: docs.zone,
 			record: { type, name, content, ...(sources.wiki?.proxyConfig?.() ? { proxied: true } : {}) },
 		});
+	}
+
+	if (config.docs?.domain && config.org) {
+		expected.push({
+			zone: config.docs.domain,
+			record: { type: "CNAME", name: config.docs.domain, content: `${config.org}.github.io`, proxied: false },
+		});
+	}
+
+	if (config.doctor.mail === "icloud" && config.domain) {
+		for (const content of ICLOUD_MX) {
+			expected.push({ zone: config.domain, record: { type: "MX", name: config.domain, content } });
+		}
+		expected.push({ zone: config.domain, record: { type: "TXT", name: config.domain, content: ICLOUD_SPF } });
 	}
 
 	for (const { relay } of sources.layouts) {
