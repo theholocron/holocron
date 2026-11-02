@@ -1,6 +1,6 @@
 ---
 id: SPEC-0062
-status: proposed
+status: superseded
 issue: theholocron/holocron#1534
 blocked-by: []
 related:
@@ -13,6 +13,9 @@ discussion:
 ---
 
 # Post new and changed specs to #ideas
+
+> **Superseded** by `tech-specs-discussion-threads` (SPEC-0063, #1535). This spec posted a line to #ideas through a
+> webhook when a spec pull request opened or merged (#1537). #ideas became a forum, which rejects a plain webhook post, and a post for each document with its status as a tag says more than a line for each pull request, so the webhook post, the `specs announce` probe and the rules behind it were removed (#1543). The design below is what was built first and is kept for the reasoning.
 
 ## Problem
 
