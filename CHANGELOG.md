@@ -1,3 +1,9 @@
+## [5.0.0-alpha.293](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.292...v5.0.0-alpha.293) (2026-11-02)
+
+### Features
+
+* **notifications:** 💅 format the doctor post in markdown and link its channels ([#1585](https://github.com/theholocron/holocron/issues/1585)) ([#1587](https://github.com/theholocron/holocron/issues/1587)) ([a7dea06](https://github.com/theholocron/holocron/commit/a7dea060e9b26a597bad523f64c9e36bc1145dbd))
+
 ## [5.0.0-alpha.292](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.291...v5.0.0-alpha.292) (2026-11-02)
 
 ### Features
