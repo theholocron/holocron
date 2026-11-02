@@ -36,6 +36,8 @@ ADRs and specs → #ideas
 
 A retag the file cannot take (an ADR retagged `archived`, a status only specs have) is reported and changes nothing.
 
+A document with a **finished** status (`archived`, `superseded`, `rejected`, `deprecated`) has its post **closed**: archived and locked, so it leaves the active list and only gatekeepers can reply to it or reopen it, and a discussion that has ended does not start up again. `draft`, `proposed` and `accepted` stay open, since an accepted document is still asked about. The post follows the status its tag shows, so a gatekeeper's retag to a finished status closes it at once, before the file's pull request merges, and a retag back reopens it. Discord has no server-side mute for a thread (muting is each member's own setting), so there is nothing to add there.
+
 ## Who can change a status
 
 Only the bot and people who can manage threads can change a post's tag, so give that permission to the role that decides (`permissions: ["ManageThreads"]` on the role in the layout). Nothing in the command checks who retagged: Discord already refused anyone else.

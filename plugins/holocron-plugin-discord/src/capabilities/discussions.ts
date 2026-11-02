@@ -102,6 +102,7 @@ export class DiscordDiscussions {
 			url: `https://discord.com/channels/${this.deps.guild()}/${entry.thread.id}`,
 			...(state ? { state } : {}),
 			...(entry.synced ? { synced: entry.synced } : {}),
+			...(entry.thread.thread_metadata.locked ? { closed: true } : {}),
 		};
 	}
 
@@ -127,7 +128,11 @@ export class DiscordDiscussions {
 			applied_tags: [tag],
 			message: { content, ...(input.quiet ? { flags: MessageFlag.SuppressNotifications } : {}) },
 		});
-		const entry: Entry = { thread: made, content, synced: input.state };
+		// A closed post is made open and closed straight after: a post cannot be made archived.
+		const thread = input.closed
+			? { ...made, ...(await this.deps.bot().threads.modify(made.id, { archived: true, locked: true })) }
+			: made;
+		const entry: Entry = { thread, content, synced: input.state };
 		posts.set(input.key, entry);
 		return { post: this.view(forum, entry), created: true };
 	}
@@ -139,20 +144,31 @@ export class DiscordDiscussions {
 		return entry ? this.view(forum, entry) : undefined;
 	}
 
-	/** Change the post for `key`: its title, its tag, the state it records as last synced. */
+	/**
+	 * Change the post for `key`: its title, its tag, whether it is closed, and the state it records as last synced. A
+	 * closed post is archived and locked. To write to one it is unarchived first and closed again after, and one that is
+	 * being reopened is unarchived and unlocked.
+	 */
 	async update(channel: string, key: string, patch: DiscussionPatch): Promise<void> {
 		const forum = await this.forum(channel);
 		const entry = (await this.posts(forum)).get(key);
 		if (!entry) throw new Error(`no discussion post for \`${key}\` in \`${channel}\``);
 		const bot = this.deps.bot();
 		const thread = entry.thread;
+		const wasClosed = thread.thread_metadata.locked;
+		const wantClosed = patch.closed ?? wasClosed;
+		const reopening = wasClosed && !wantClosed;
 
 		const change: Parameters<DiscordBotClient["threads"]["modify"]>[1] = {};
 		if (patch.title !== undefined && patch.title !== thread.name) change.name = patch.title;
 		if (patch.state !== undefined) change.applied_tags = [this.tagId(forum, patch.state)];
 		const edited = patch.synced !== undefined && patch.synced !== entry.synced;
-		// An archived post is written to by unarchiving it; Discord archives it again after a while.
-		if ((Object.keys(change).length > 0 || edited) && thread.thread_metadata.archived) change.archived = false;
+		// An archived post is written to by unarchiving it, and it is only unarchived for that: one Discord archived for
+		// being quiet stays archived when there is nothing to write.
+		if ((Object.keys(change).length > 0 || edited || reopening) && thread.thread_metadata.archived) {
+			change.archived = false;
+		}
+		if (reopening) change.locked = false;
 		if (Object.keys(change).length > 0) {
 			entry.thread = { ...thread, ...(await bot.threads.modify(thread.id, change)) };
 		}
@@ -161,6 +177,13 @@ export class DiscordDiscussions {
 			await bot.channels.editMessage(thread.id, thread.id, { content });
 			entry.content = content;
 			entry.synced = patch.synced || undefined;
+		}
+		// Closed last, so the writes above are not refused; again if they had to unarchive it.
+		if (wantClosed && (!wasClosed || change.archived === false)) {
+			entry.thread = {
+				...entry.thread,
+				...(await bot.threads.modify(thread.id, { archived: true, locked: true })),
+			};
 		}
 	}
 }
