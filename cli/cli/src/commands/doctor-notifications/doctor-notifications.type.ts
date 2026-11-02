@@ -31,6 +31,8 @@ export interface RunDoctorNotificationsInput {
 	 * Without it, a full run leaves one test post in the layout's `testChannel`, and `builtOnly` posts nothing.
 	 */
 	deliver?: boolean;
+	/** Post the result to this channel as the provider's bot once the run is done: the failures, or just the summary. */
+	post?: string;
 	/** Test seam for the requests to the hosted sign-in service and to the relay Worker. */
 	fetch?: typeof fetch;
 	loader?: PluginLoader;

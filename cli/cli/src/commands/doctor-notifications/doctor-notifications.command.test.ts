@@ -34,13 +34,24 @@ describe("doctor notifications command", () => {
 			loaded: { resolved: { org: "acme" }, filepath: "/x" },
 			context: { repoRoot: "/repo", org: "acme" },
 		});
-		await run({ scope: "env=stg", provider: "discord", builtOnly: true, deliver: true });
+		await run({ scope: "env=stg", provider: "discord", builtOnly: true, deliver: true, post: "ops" });
 		expect(runDoctorNotifications.mock.calls[1]![0]).toMatchObject({
 			scope: { parsed: "env=stg" },
 			provider: "discord",
 			builtOnly: true,
 			deliver: true,
+			post: "ops",
 		});
+	});
+
+	it("posts to #alerts for a bare --post, and not at all without it", async () => {
+		await yargs(["notifications", "--post"])
+			.option("cwd", { type: "string", default: "/repo" })
+			.command(doctorNotificationsCommand as never)
+			.parseAsync();
+		expect(runDoctorNotifications.mock.calls[0]![0]).toMatchObject({ post: "alerts" });
+		await run();
+		expect(runDoctorNotifications.mock.calls[1]![0]).not.toHaveProperty("post");
 	});
 
 	it("reads its options from the command line, --built-only included", async () => {

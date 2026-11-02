@@ -2125,6 +2125,11 @@ export interface Notifications extends ProviderIdentity {
 	/** Bring the welcome screen in line with the layout, changing only what differs. Returns what it changed. */
 	ensureWelcome?(welcome: NotificationsWelcomeLayout): Promise<{ updated: string[] }>;
 
+	/**
+	 * Posts `content` in a channel of the layout as the provider's own bot, mentioning no one. For a result a person
+	 * asked to share (`doctor notifications --post`); a notification goes through a webhook (`send`).
+	 */
+	postMessage?(channel: string, content: string): Promise<void>;
 	/** Post and pin the layout's messages, replacing any that differ. Returns the channels it changed. */
 	ensurePinned?(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }>;
 
