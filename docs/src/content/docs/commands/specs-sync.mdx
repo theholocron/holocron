@@ -55,6 +55,8 @@ Only the working tree. The command edits the `status:` and `discussion.url` line
 
 It exits 1 when a document could not be synced, so a run in CI fails until a conflict is settled.
 
+Discord limits how fast posts can be made (about 46 in a row, then it asks for several minutes). When the provider rate limits a run, the command stops there instead of trying the rest, says how many documents are left and how long it was asked to wait, and exits 0: what it did is kept, and the next run (the hourly one, or yours) finds those posts and makes the rest. The first run, which makes about 80, takes two or three of these.
+
 ## Another service
 
 The command asks the provider for three things: find or make a document's post (`ensureDiscussion`), read it (`readDiscussion`), and change it (`updateDiscussion`). A provider for another service implements those the way that service fits, and the command and the rules stay the same. See [the Discord plugin](/holocron/plugins/discord/#discussion-posts).

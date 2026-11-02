@@ -68,6 +68,13 @@ export interface SpecsSyncReport {
 	files: SpecSyncOutcome[];
 	/** Why the run did not start. */
 	message?: string;
+	/** Set when the provider's rate limit stopped the run early: how many documents were left, and how many seconds it asked to be left alone for (`0` when it did not say). */
+	rateLimited?: {
+		/** The documents not yet tried. */
+		left: number;
+		/** Seconds the provider asked for. */
+		retryAfter: number;
+	};
 }
 
 /** What `syncDocument` needs besides the document. */
