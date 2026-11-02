@@ -1,3 +1,9 @@
+## [5.0.0-alpha.290](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.289...v5.0.0-alpha.290) (2026-11-02)
+
+### Features
+
+* **specs:** 🔒 close and lock the discussion of a finished document ([#1550](https://github.com/theholocron/holocron/issues/1550)) ([ab31a7c](https://github.com/theholocron/holocron/commit/ab31a7cca665e02d0f1a9c0aa5da81be8499941b)), closes [#1535](https://github.com/theholocron/holocron/issues/1535)
+
 ## [5.0.0-alpha.289](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.288...v5.0.0-alpha.289) (2026-11-02)
 
 ### Bug Fixes
