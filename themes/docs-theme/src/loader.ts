@@ -7,6 +7,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import type { Loader, LoaderContext } from "astro/loaders";
 import matter from "gray-matter";
 
+/**
+ * Where a docs collection reads its pages from: a directory in the repo, or the docs of a package, under a URL
+ * `slug`.
+ */
 export type DocsSource = { dir: string; slug: string } | { package: string; slug: string };
 
 const EXTENSIONS = new Set([".md", ".mdx"]);

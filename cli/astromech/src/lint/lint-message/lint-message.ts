@@ -22,6 +22,10 @@ function selectParserOpts(parserPreset: ParserPreset | undefined): ParserPreset[
 	return parserPreset?.parserOpts;
 }
 
+/**
+ * Lints one commit message against an already-loaded commitlint config and returns each rule it breaks; an empty
+ * list means it is valid.
+ */
 export async function lintCommitMessage(message: string, loaded: QualifiedConfig): Promise<CommitMessageViolation[]> {
 	const opts: LintOptions = {
 		// `@theholocron/commitlint-config` sets no parserPreset of its own

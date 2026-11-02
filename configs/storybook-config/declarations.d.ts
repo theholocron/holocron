@@ -9,6 +9,7 @@ declare module "@storybook/addon-viewport" {
 declare module "msw-storybook-addon" {
 	import type { LoaderFunction } from "@storybook/react";
 	export const mswLoader: LoaderFunction;
+	/** Starts Mock Service Worker for Storybook. A stand-in type for the optional peer `msw-storybook-addon`. */
 	export function initialize(...args: unknown[]): void;
 }
 

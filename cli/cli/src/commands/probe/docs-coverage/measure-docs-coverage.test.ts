@@ -27,6 +27,55 @@ describe("measureDocsCoverage", () => {
 		]);
 	});
 
+	it("measures a package's subpath exports with its root entry, and counts a shared symbol once", () => {
+		const symbol = (name: string, file: string, line: number) => ({
+			name,
+			kind: 64,
+			sources: [{ fileName: file, line }],
+			signatures: [{ comment: { summary: [{}] } }],
+		});
+		const typedoc = vi.fn((entry: string) => ({
+			children:
+				entry === "/repo/p/src/index.ts"
+					? [symbol("root", "p/src/index.ts", 3), symbol("shared", "p/src/shared.ts", 1)]
+					: [symbol("sub", "p/src/sub.ts", 2), symbol("shared", "p/src/shared.ts", 1)],
+		}));
+
+		const out = measureDocsCoverage({
+			repoRoot: "/repo",
+			typedoc,
+			packages: [{ name: "@s/p", dir: "p", entry: "/repo/p/src/index.ts", also: ["/repo/p/src/sub.ts"] }],
+		});
+
+		expect(typedoc).toHaveBeenCalledTimes(2);
+		expect(out[0]!.symbols.map((s) => s.name)).toEqual(["root", "shared", "sub"]);
+	});
+
+	it("finds a workspace package's subpath exports from its manifest, and never the root entry twice", () => {
+		const root = mkdtempSync(join(tmpdir(), "docs-cov-"));
+		writeFileSync(join(root, "pnpm-workspace.yaml"), 'packages:\n  - "libs/*"\n');
+		mkdirSync(join(root, "libs", "multi", "src", "config"), { recursive: true });
+		writeFileSync(
+			join(root, "libs", "multi", "package.json"),
+			JSON.stringify({
+				name: "@s/multi",
+				exports: {
+					".": { import: "./dist/index.mjs" },
+					"./config": { import: "./dist/config/index.mjs" },
+					"./same": { import: "./dist/index.mjs" },
+					"./package.json": "./package.json",
+				},
+			})
+		);
+		for (const f of ["src/index.ts", "src/config/index.ts"]) writeFileSync(join(root, "libs", "multi", f), "");
+		const typedoc = vi.fn(() => ({ children: [] }));
+
+		measureDocsCoverage({ repoRoot: root, typedoc });
+
+		const entries = typedoc.mock.calls.map((c) => (c as unknown as [string])[0]);
+		expect(entries).toEqual([join(root, "libs/multi/src/index.ts"), join(root, "libs/multi/src/config/index.ts")]);
+	});
+
 	it("finds the public workspace packages that have an entry point", () => {
 		const root = mkdtempSync(join(tmpdir(), "docs-cov-"));
 		writeFileSync(join(root, "pnpm-workspace.yaml"), 'packages:\n  - "libs/*"\n');

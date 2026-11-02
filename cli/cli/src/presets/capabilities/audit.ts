@@ -1,5 +1,6 @@
 import type { Capability } from "../../config/compose/index.js";
 
+/** Options for the audit capability. */
 export interface AuditOptions {
 	/** Enable Knip unused-export analysis (default: false). */
 	knip?: boolean;

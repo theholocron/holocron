@@ -3,13 +3,22 @@
  * config-file `coverage.exclude` entry. */
 import { vi } from "vitest";
 
+/** One request a stubbed `fetch` received. */
 export interface FetchCall {
+	/** The address that was requested. */
 	url: string;
+	/** The HTTP method, upper-cased; `GET` when none was given. */
 	method: string;
+	/** The request headers, as given. */
 	headers: Record<string, string>;
+	/** The body: parsed when it was a JSON string, as given otherwise, and `null` when there was none. */
 	body: unknown;
 }
 
+/**
+ * A `fetch` that answers each call with the next of `responses` (a 200 with an empty body once they run out) and
+ * records every call it receives.
+ */
 export function stubFetch(
 	responses: Array<{ status?: number; body?: unknown; text?: string; headers?: Record<string, string> }>
 ) {
