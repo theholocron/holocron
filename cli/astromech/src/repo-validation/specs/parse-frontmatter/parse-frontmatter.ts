@@ -2,7 +2,7 @@ import type { SpecFrontmatter } from "../specs.type.js";
 
 /**
  * Reads a leading `---` block of `key: value` lines, with the line each one is on, plus one level of nesting keyed
- * `parent.child` (the ADR template's `discussion:` / `  github:`). Any other line is skipped. Returns `null` when the
+ * `parent.child` (the ADR template's `discussion:` / `  url:`). Any other line is skipped. Returns `null` when the
  * text does not open with such a block.
  */
 export function parseFrontmatter(content: string): SpecFrontmatter | null {

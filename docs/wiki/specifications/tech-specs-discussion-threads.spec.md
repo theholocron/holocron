@@ -1,6 +1,6 @@
 ---
 id: SPEC-0063
-status: proposed
+status: accepted
 issue: theholocron/holocron#1535
 blocked-by: []
 related:
@@ -88,7 +88,7 @@ A retag therefore never edits the file directly. It goes into **one pull request
 
 ### The link in the front matter
 
-The post's address goes into the file as `discussion.url`, replacing `discussion.github` in the ADR and spec templates and in the check (`validate-adr` warns on an accepted ADR with neither field; it will warn on neither `discussion.url` nor `discussion.github`, so the 20 existing links keep passing until the job replaces them). The job finds a file's post by `discussion.url` when it has one, else by the path on the last line of a post's first message, so a post made while a pull request was still open is found and linked after the merge, and a lost link is repaired.
+The post's address goes into the file as `discussion.url`, replacing `discussion.github` in the ADR and spec templates and in the check (`validate-adr` warns on an accepted ADR with no `discussion.url`; a GitHub Discussion link no longer counts, and the `github:` line is gone from all 18 ADRs, #1535). The job finds a file's post by `discussion.url` when it has one, else by the path on the last line of a post's first message, so a post made while a pull request was still open is found and linked after the merge, and a lost link is repaired.
 
 ### The provider interface
 

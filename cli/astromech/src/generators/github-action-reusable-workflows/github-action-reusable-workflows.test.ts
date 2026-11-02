@@ -732,13 +732,30 @@ describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notifica
 	it("lists the default channels as objects that name their own secret, with only alerts marked to ping", () => {
 		const folded = /default: >-\n([\s\S]*?)\n {4}secrets:/.exec(wf)![1]!.replace(/\s*\n\s*/g, " ");
 		const channels = JSON.parse(folded) as Array<{ name: string; secret: string; mention?: boolean }>;
-		expect(channels.map((c) => c.name)).toEqual(["sync", "alerts", "errors", "uptime", "releases", "deploys"]);
+		expect(channels.map((c) => c.name)).toEqual([
+			"sync",
+			"alerts",
+			"errors",
+			"uptime",
+			"releases",
+			"deploys",
+			"rules",
+			"welcome",
+		]);
 		for (const c of channels) expect(c.secret).toBe(`HOLOCRON_NOTIFY_WEBHOOK_${c.name.toUpperCase()}`);
 		expect(channels.filter((c) => c.mention).map((c) => c.name)).toEqual(["alerts"]);
 	});
 
+	it("leaves out ideas, holonet and dev, and says why", () => {
+		const folded = /default: >-\n([\s\S]*?)\n {4}secrets:/.exec(wf)![1]!;
+		for (const channel of ["ideas", "holonet", "dev"]) expect(folded).not.toContain(`"name":"${channel}"`);
+		expect(wf).toMatch(/`ideas` is a forum/);
+		expect(wf).toMatch(/`holonet` is the doctor's own test channel/);
+		expect(wf).toMatch(/`dev` is for people/);
+	});
+
 	it("declares every default channel's webhook secret plus the role secret, for callers that pass secrets explicitly", () => {
-		for (const channel of ["SYNC", "ALERTS", "ERRORS", "UPTIME", "RELEASES", "DEPLOYS"]) {
+		for (const channel of ["SYNC", "ALERTS", "ERRORS", "UPTIME", "RELEASES", "DEPLOYS", "RULES", "WELCOME"]) {
 			expect(wf).toContain(`HOLOCRON_NOTIFY_WEBHOOK_${channel}:`);
 		}
 		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE:");

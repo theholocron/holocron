@@ -8,7 +8,6 @@ specs:
   - docs/wiki/specifications/tech-astromech-task-runner.spec.md
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618652067762236
-  github: https://github.com/theholocron/holocron/pull/580
 supersedes: []
 superseded-by: []
 tags: [astromech, tasks, ci]

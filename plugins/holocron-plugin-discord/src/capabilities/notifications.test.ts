@@ -3856,6 +3856,15 @@ describe("DiscordNotifications postMessage", () => {
 		});
 	});
 
+	it("links each #channel of the server in the message and leaves an unknown one as written", async () => {
+		const { notifs, calls } = makeProvisioner([
+			{ body: [text("2001", "alerts"), text("2002", "rules")] },
+			{ body: { id: "9", channel_id: "2001", content: "x" } },
+		]);
+		await notifs.postMessage("alerts", "- #rules: differs, see #nowhere");
+		expect(calls[1]).toMatchObject({ body: { content: "- <#2002>: differs, see #nowhere" } });
+	});
+
 	it("says so when the channel is not there", async () => {
 		const { notifs } = makeProvisioner([chans]);
 		await expect(notifs.postMessage("nope", "hi")).rejects.toThrow(/a posted message name the channel `nope`/);

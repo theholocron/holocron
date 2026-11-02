@@ -1,8 +1,8 @@
 /**
  * `holocron specs sync` -- keep each ADR and spec in step with a post in a forum channel.
  *
- * Every document under `docs/wiki/decisions`, `.notes` and `docs/wiki/specifications` gets one post (titled `SPEC:` or
- * `ADR:`) made from the file, tagged with its status, and the post's address is written into the file as
+ * Every document under `docs/wiki/decisions`, `.notes` and `docs/wiki/specifications` gets one post (titled `💡 New spec:` or
+ * `📐 New ADR:`) made from the file, tagged with its status, and the post's address is written into the file as
  * `discussion.url`. The file stays the source of truth. A gatekeeper who changes a post's tag is asking for a status
  * change, and the run turns that into an edit of the file's `status:` line in the working tree; the workflow that runs
  * it commits the edit to a pull request, so nothing reaches the default branch without a review.
