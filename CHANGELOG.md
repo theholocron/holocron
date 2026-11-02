@@ -1,3 +1,10 @@
+## [5.0.0-alpha.297](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.296...v5.0.0-alpha.297) (2026-11-02)
+
+### Features
+
+* **cli:** 🔑 sync-wiki reads its token from the keyring too ([#1598](https://github.com/theholocron/holocron/issues/1598)) ([#1603](https://github.com/theholocron/holocron/issues/1603)) ([638ca2b](https://github.com/theholocron/holocron/commit/638ca2b6746429ce0244923888a31073256e9fa6))
+* **notifications:** 🚀 post successful deploys and Preview Check results to [#deploys](https://github.com/theholocron/holocron/issues/deploys) ([#1578](https://github.com/theholocron/holocron/issues/1578)) ([#1604](https://github.com/theholocron/holocron/issues/1604)) ([11fdd0e](https://github.com/theholocron/holocron/commit/11fdd0eb286eac0aa2142c05e1ac02f71d29e23f))
+
 ## [5.0.0-alpha.296](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.295...v5.0.0-alpha.296) (2026-11-02)
 
 ### Features
