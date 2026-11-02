@@ -15,7 +15,7 @@ For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.),
 → keyring("github.<feature>") (stored via `holocron auth set`)
 ```
 
-No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command differs: `sync-wiki` reads only the environment (`HOLOCRON_READ_TOKEN`, then `GH_TOKEN`, then `GITHUB_TOKEN`) and does not look in the keyring, so it works in a GitHub Actions job with no extra setup but not from a token stored with `holocron auth set github.read`.
+No broad-token fallback. If none of the above is set, the command exits with an error naming the exact env var to configure. One command differs: `sync-wiki` takes the token from the environment (`HOLOCRON_READ_TOKEN`, then `GH_TOKEN`, then `GITHUB_TOKEN`) and only then from the keyring entry `github.read`, so it works in a GitHub Actions job with no extra setup and from a token stored with `holocron auth set github.read`.
 
 ## Provider token resolution
 

@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { buildNavbarLinks, discoverWikiRepos, mergeWikiConfig, runSyncWiki, validateWikiConfig } from "./sync-wiki.js";
@@ -672,14 +672,68 @@ describe("runSyncWiki", () => {
 				org: "org",
 				providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
 			});
-			const result = await runSyncWiki({ loaded, context: { repoRoot: tmpDir, repo: "org/myrepo" } });
+			const result = await runSyncWiki({
+				loaded,
+				context: { repoRoot: tmpDir, repo: "org/myrepo" },
+				keyring: () => null,
+			});
 			expect(result.status).toBe("skip");
 			expect(result.message).toContain("no GitHub token");
+			expect(result.message).toContain("holocron auth set github.read");
 		} finally {
 			if (origRead !== undefined) process.env.HOLOCRON_READ_TOKEN = origRead;
 			if (origGh !== undefined) process.env.GH_TOKEN = origGh;
 			if (origGithub !== undefined) process.env.GITHUB_TOKEN = origGithub;
 		}
+	});
+
+	describe("the keyring", () => {
+		const NAMES = ["HOLOCRON_READ_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"] as const;
+		const loaded = () =>
+			loadedFrom({
+				name: "demo",
+				org: "org",
+				providers: { wiki: ["fern", { domain: "wiki.example.com/myrepo" }] },
+			});
+		const withEnv = async (values: Partial<Record<(typeof NAMES)[number], string>>, body: () => Promise<void>) => {
+			const saved = NAMES.map((n) => [n, process.env[n]] as const);
+			for (const n of NAMES) delete process.env[n];
+			Object.assign(process.env, values);
+			try {
+				await body();
+			} finally {
+				for (const [n, v] of saved) {
+					if (v === undefined) delete process.env[n];
+					else process.env[n] = v;
+				}
+			}
+		};
+
+		it("supplies the token when no flag or environment variable does", async () => {
+			const keyring = vi.fn(() => "from-keyring");
+			await withEnv({}, async () => {
+				const result = await runSyncWiki({
+					loaded: loaded(),
+					context: { repoRoot: tmpDir, dryRun: true, repo: "org/myrepo" },
+					keyring,
+				});
+				expect(result.status).toBe("dry-run");
+			});
+			expect(keyring).toHaveBeenCalledExactlyOnceWith("github.read");
+		});
+
+		it("is not read when an environment variable already has the token", async () => {
+			const keyring = vi.fn(() => "from-keyring");
+			await withEnv({ GH_TOKEN: "from-env" }, async () => {
+				const result = await runSyncWiki({
+					loaded: loaded(),
+					context: { repoRoot: tmpDir, dryRun: true, repo: "org/myrepo" },
+					keyring,
+				});
+				expect(result.status).toBe("dry-run");
+			});
+			expect(keyring).not.toHaveBeenCalled();
+		});
 	});
 
 	it("skips when repo is not in owner/name format", async () => {

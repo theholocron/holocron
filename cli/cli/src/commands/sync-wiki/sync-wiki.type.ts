@@ -16,6 +16,8 @@ export interface RunSyncWikiInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
 	token?: string;
+	/** Test seam for the keyring read. Defaults to the OS keyring; returns `null` when nothing is stored. */
+	keyring?: (key: string) => string | null;
 	fetch?: typeof globalThis.fetch;
 }
 

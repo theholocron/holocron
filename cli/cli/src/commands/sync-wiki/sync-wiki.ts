@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { firstEnv } from "@theholocron/env-utils";
 import { createRestClient } from "@theholocron/http-client";
 
+import { getToken as getKeyringToken } from "../../auth/index.js";
 import { env } from "../../env/index.js";
 import type { SetupStepResult } from "../setup/index.js";
 import type { FileContents, OrgRepo, RunSyncWikiInput, WikiRepo } from "./sync-wiki.type.js";
@@ -12,8 +13,17 @@ import type { FileContents, OrgRepo, RunSyncWikiInput, WikiRepo } from "./sync-w
 // Token resolution
 // ---------------------------------------------------------------------------
 
+/** The keyring entry `holocron auth set github.read` fills; the last place `sync-wiki` looks. */
+export const READ_TOKEN_KEYRING_KEY = "github.read";
+
 function resolveToken(input: RunSyncWikiInput): string | undefined {
-	return input.token ?? input.context.cliToken ?? firstEnv(env, ["HOLOCRON_READ_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"]);
+	return (
+		input.token ??
+		input.context.cliToken ??
+		firstEnv(env, ["HOLOCRON_READ_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"]) ??
+		(input.keyring ?? getKeyringToken)(READ_TOKEN_KEYRING_KEY) ??
+		undefined
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -286,7 +296,7 @@ export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepRes
 			capability: "local",
 			step: "sync wiki",
 			status: "skip",
-			message: "no GitHub token available (set HOLOCRON_READ_TOKEN or GH_TOKEN)",
+			message: `no GitHub token available (set HOLOCRON_READ_TOKEN or GH_TOKEN, or run: holocron auth set ${READ_TOKEN_KEYRING_KEY} <token>)`,
 		};
 	}
 
