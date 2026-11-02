@@ -2283,7 +2283,7 @@ describe("runDoctorNotifications --post", () => {
 		expect(report.summary.fail).toBe(0);
 		expect(postMessage).toHaveBeenCalledWith(
 			"alerts",
-			expect.stringMatching(/^✅ holocron doctor notifications: \d+ ok, 0 fail/)
+			expect.stringMatching(/^### ✅ `holocron doctor notifications`\n\*\*\d+\*\* ok · \*\*0\*\* fail/)
 		);
 		expect(t.lines.at(-1)).toContain("posted to #alerts");
 	});
@@ -2298,7 +2298,7 @@ describe("runDoctorNotifications --post", () => {
 		expect(report.status).toBe("fail");
 		const [channel, text] = postMessage.mock.calls[0] as unknown as [string, string];
 		expect(channel).toBe("ops");
-		expect(text).toMatch(/^❌ holocron doctor notifications:/);
+		expect(text).toMatch(/^### ❌ `holocron doctor notifications`/);
 		expect(text).toContain("server owned by a person, not the bot");
 	});
 

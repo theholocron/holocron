@@ -1061,10 +1061,16 @@ export class DiscordNotifications implements Notifications {
 		return this.discussions().update(channel, key, patch);
 	}
 
-	/** Posts `content` (up to 2000 characters) in a text channel as the bot, without letting it mention anyone. */
+	/**
+	 * Posts `content` (up to 2000 characters) in a text channel as the bot, without letting it mention anyone. A `#name`
+	 * that is one of the server's channels is linked.
+	 */
 	async postMessage(channel: string, content: string): Promise<void> {
-		const channelId = DiscordNotifications.pickChannelId(await this.channelList(), channel, "a posted message");
-		await this.bot().channels.createMessage(channelId, { content: content.slice(0, 2000) });
+		const channels = await this.channelList();
+		const channelId = DiscordNotifications.pickChannelId(channels, channel, "a posted message");
+		// Each `#name` that is a channel of the server becomes a link; the cut comes after, so a link is never split.
+		const linked = DiscordNotifications.linkChannels(content, channels);
+		await this.bot().channels.createMessage(channelId, { content: linked.slice(0, 2000) });
 	}
 
 	async ensurePinned(pinned: NotificationsPinnedLayout[]): Promise<{ updated: string[] }> {

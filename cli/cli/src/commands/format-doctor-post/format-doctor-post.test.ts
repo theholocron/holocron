@@ -18,7 +18,7 @@ describe("formatDoctorPost", () => {
 			checks: [check({}), check({ status: "skip", title: "skipped step" })],
 			summary: { pass: 25, fail: 0, skip: 1 },
 		});
-		expect(out).toBe("✅ holocron doctor notifications: 25 ok, 0 fail, 1 skipped");
+		expect(out).toBe("### ✅ `holocron doctor notifications`\n**25** ok · **0** fail · **1** skipped");
 	});
 
 	it("lists each failing step with its problems, and leaves out the ones that held or were skipped", () => {
@@ -38,10 +38,13 @@ describe("formatDoctorPost", () => {
 		});
 		expect(out).toBe(
 			[
-				"❌ holocron doctor notifications: 1 ok, 2 fail, 1 skipped",
-				"• pinned messages in place — 1 problem(s)",
-				"  – #rules differs",
-				"• server owned by a person — no owner",
+				"### ❌ `holocron doctor notifications`",
+				"**1** ok · **2** fail · **1** skipped",
+				"",
+				"**pinned messages in place** — 1 problem(s)",
+				"- #rules differs",
+				"",
+				"**server owned by a person** — no owner",
 			].join("\n")
 		);
 	});
@@ -52,7 +55,7 @@ describe("formatDoctorPost", () => {
 			summary: { pass: 0, fail: 1, skip: 0 },
 		});
 		expect(out.includes("\u001b")).toBe(false);
-		expect(out.split("\n")).toHaveLength(3);
+		expect(out.split("\n")).toHaveLength(5);
 	});
 
 	it("cuts a message that would not fit in one post", () => {

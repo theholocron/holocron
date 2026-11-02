@@ -11,7 +11,10 @@ describe("postDoctorReport", () => {
 	it("posts the formatted result to the channel", async () => {
 		const postMessage = vi.fn().mockResolvedValue(undefined);
 		expect(await postDoctorReport(provider(postMessage), "alerts", report)).toBe("posted to #alerts");
-		expect(postMessage).toHaveBeenCalledWith("alerts", "✅ holocron doctor notifications: 3 ok, 0 fail, 0 skipped");
+		expect(postMessage).toHaveBeenCalledWith(
+			"alerts",
+			"### ✅ `holocron doctor notifications`\n**3** ok · **0** fail · **0** skipped"
+		);
 	});
 
 	it("says so when the provider cannot post as the bot", async () => {
