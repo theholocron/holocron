@@ -67,9 +67,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   opt-in repairs that patch one field of existing posts (the `PR:` line, the title); `--refresh` (#1658) runs both and the id
   repair in one pass. The id opening a post's first message is a link to the file on the default branch
   (`discussionIdLine()`, `repo.defaultBranch`, else `HEAD`) once the file is there, and plain text while `--pr` names an
-  open pull request; a file the sync follows to a new path has the link rewritten in the same step, and `--refresh` rewrites
-  an existing post's id line through `DiscussionPatch.idLine` (only the first line of the message; `DiscussionPost.idLine`
-  is what a post has now). A Discord rate limit (429) stops a run
+  open pull request. The normal sync (the hourly `Spec discussions` run) rewrites a post's id line whenever it is not what
+  `discussionIdLine()` gives and the run has no `--pr` (#1663): a file followed to a new path, a post made while its pull
+  request was open. It compares `DiscussionPost.idLine`, which comes with the post, so a run where every post is right
+  adds no request, and writes through `DiscussionPatch.idLine` (only the first line of the message); `--refresh` does the
+  same for any run and also takes a link off. A Discord rate limit (429) stops a run
   cleanly (`rateLimited` in the report, `left` documents) and the next run continues. `--files` limits a run to the given
   paths and `--pr` names a pull request on the posts: `knowledge.specsOnPullRequest.yml` uses both to post while a
   same-repository pull request is still open (#1600), and throws the edits away; the post is linked after the merge.

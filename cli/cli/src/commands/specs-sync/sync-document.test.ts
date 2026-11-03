@@ -498,77 +498,11 @@ describe("syncDocument", () => {
 			);
 		});
 
-		describe("when the file has moved", () => {
-			const moved = (idLine: string | undefined) => {
-				const made = provider(post({ idLine }));
-				made.n.ensureDiscussion.mockResolvedValue({
-					post: post({ idLine }),
-					created: false,
-					rekeyed: true,
-				} as never);
-				return made;
-			};
-
-			it("rewrites a link to the new path in the same step, touching nothing else", async () => {
-				const { n, notifications } = moved(OLD_PATH);
-
-				const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications, { link: LINK }));
-
-				expect(n.updateDiscussion).toHaveBeenCalledTimes(1);
-				expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", {
-					idLine: AT_PATH,
-				});
-				expect(out.did).toEqual(["followed the file to its new path", "pointed the id at the new path"]);
-				expect(out.idLineRewritten).toBe(true);
-			});
-
-			it("leaves the id alone when it already names the path, or the message starts with no id", async () => {
-				const same = moved(AT_PATH);
-				const none = moved(undefined);
-
-				const a = await syncDocument(linkedDoc(spec("proposed")), deps(same.notifications, { link: LINK }));
-				const b = await syncDocument(linkedDoc(spec("proposed")), deps(none.notifications, { link: LINK }));
-
-				expect(same.n.updateDiscussion).not.toHaveBeenCalled();
-				expect(none.n.updateDiscussion).not.toHaveBeenCalled();
-				expect(a.idLineRewritten).toBeUndefined();
-				expect(b.did).toEqual(["followed the file to its new path"]);
-			});
-
-			it("leaves the id alone while a pull request is open (no link)", async () => {
-				const { n, notifications } = moved(OLD_PATH);
-
-				await syncDocument(linkedDoc(spec("proposed")), deps(notifications));
-
-				expect(n.updateDiscussion).not.toHaveBeenCalled();
-			});
-
-			it("on a dry run, says it would point the id at the new path, and changes nothing", async () => {
-				const moving = provider(post({ idLine: OLD_PATH, key: ".notes/old.spec.md" }));
-				const same = provider(post({ idLine: AT_PATH, key: ".notes/old.spec.md" }));
-				const open = provider(post({ idLine: OLD_PATH, key: ".notes/old.spec.md" }));
-				const dry = { dryRun: true, link: LINK };
-
-				const a = await syncDocument(linkedDoc(spec("proposed")), deps(moving.notifications, dry));
-				const b = await syncDocument(linkedDoc(spec("proposed")), deps(same.notifications, dry));
-				const c = await syncDocument(linkedDoc(spec("proposed")), deps(open.notifications, { dryRun: true }));
-
-				expect(a.did).toEqual(["would follow the file to its new path", "would point the id at the new path"]);
-				expect(a.idLineRewritten).toBe(true);
-				expect(b.did).toEqual(["would follow the file to its new path"]);
-				expect(c.did).toEqual(["would follow the file to its new path"]);
-				expect(moving.n.updateDiscussion).not.toHaveBeenCalled();
-			});
-		});
-
-		describe("refreshLinks", () => {
-			it("links a plain id, patching only the id line", async () => {
+		describe("a post whose id line is not the rule's, once the file is on the default branch", () => {
+			it("links a plain id, patching only the id line, without any flag", async () => {
 				const { n, notifications } = provider(post());
 
-				const out = await syncDocument(
-					linkedDoc(spec("proposed")),
-					deps(notifications, { refreshLinks: true, link: LINK })
-				);
+				const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications, { link: LINK }));
 
 				expect(n.updateDiscussion).toHaveBeenCalledTimes(1);
 				expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", { idLine: AT_PATH });
@@ -576,6 +510,85 @@ describe("syncDocument", () => {
 				expect(out.idLineRewritten).toBe(true);
 			});
 
+			it("makes no further call for a post that is already right, nor for a message that starts with no id", async () => {
+				const same = provider(post({ idLine: AT_PATH }));
+				const none = provider(post({ idLine: undefined }));
+
+				const a = await syncDocument(linkedDoc(spec("proposed")), deps(same.notifications, { link: LINK }));
+				const b = await syncDocument(linkedDoc(spec("proposed")), deps(none.notifications, { link: LINK }));
+
+				expect(same.n.updateDiscussion).not.toHaveBeenCalled();
+				expect(none.n.updateDiscussion).not.toHaveBeenCalled();
+				expect(same.n.readDiscussion).not.toHaveBeenCalled();
+				expect(same.n.ensureDiscussion).toHaveBeenCalledTimes(1);
+				expect(a.did).toEqual([]);
+				expect(a.idLineRewritten).toBeUndefined();
+				expect(b.idLineRewritten).toBeUndefined();
+			});
+
+			it("leaves the id alone while a pull request is open (no link)", async () => {
+				const { n, notifications } = provider(post());
+
+				const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications));
+
+				expect(n.updateDiscussion).not.toHaveBeenCalled();
+				expect(out.idLineRewritten).toBeUndefined();
+			});
+
+			it("rewrites a link to the old path of a file that moved, in the same step, touching nothing else", async () => {
+				const made = provider(post({ idLine: OLD_PATH }));
+				made.n.ensureDiscussion.mockResolvedValue({
+					post: post({ idLine: OLD_PATH }),
+					created: false,
+					rekeyed: true,
+				} as never);
+
+				const out = await syncDocument(linkedDoc(spec("proposed")), deps(made.notifications, { link: LINK }));
+
+				expect(made.n.updateDiscussion).toHaveBeenCalledTimes(1);
+				expect(made.n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", {
+					idLine: AT_PATH,
+				});
+				expect(out.did).toEqual(["followed the file to its new path", "linked the id to the file"]);
+			});
+
+			it("leaves a moved file's id alone while a pull request is open", async () => {
+				const made = provider(post({ idLine: OLD_PATH }));
+				made.n.ensureDiscussion.mockResolvedValue({
+					post: post({ idLine: OLD_PATH }),
+					created: false,
+					rekeyed: true,
+				} as never);
+
+				const out = await syncDocument(linkedDoc(spec("proposed")), deps(made.notifications));
+
+				expect(made.n.updateDiscussion).not.toHaveBeenCalled();
+				expect(out.did).toEqual(["followed the file to its new path"]);
+			});
+
+			it("on a dry run, says it would link the id and changes nothing", async () => {
+				const plain = provider(post({ key: ".notes/tech-x.spec.md" }));
+				const moving = provider(post({ idLine: OLD_PATH, key: ".notes/old.spec.md" }));
+				const same = provider(post({ idLine: AT_PATH }));
+				const open = provider(post());
+				const dry = { dryRun: true, link: LINK };
+
+				const a = await syncDocument(linkedDoc(spec("proposed")), deps(plain.notifications, dry));
+				const b = await syncDocument(linkedDoc(spec("proposed")), deps(moving.notifications, dry));
+				const c = await syncDocument(linkedDoc(spec("proposed")), deps(same.notifications, dry));
+				const d = await syncDocument(linkedDoc(spec("proposed")), deps(open.notifications, { dryRun: true }));
+
+				expect(a.did).toEqual(["would link the id to the file"]);
+				expect(a.idLineRewritten).toBe(true);
+				expect(b.did).toEqual(["would follow the file to its new path", "would link the id to the file"]);
+				expect(c.did).toEqual([]);
+				expect(d.did).toEqual([]);
+				expect(plain.n.updateDiscussion).not.toHaveBeenCalled();
+				expect(moving.n.updateDiscussion).not.toHaveBeenCalled();
+			});
+		});
+
+		describe("refreshLinks", () => {
 			it("takes the link off while a pull request is open", async () => {
 				const { n, notifications } = provider(post({ idLine: AT_PATH }));
 
@@ -588,41 +601,14 @@ describe("syncDocument", () => {
 				expect(out.did).toEqual(["took the link off the id"]);
 			});
 
-			it("leaves an id that is already the rule's, and a message that starts with no id", async () => {
-				const same = provider(post({ idLine: AT_PATH }));
-				const none = provider(post({ idLine: undefined }));
-				const on = { refreshLinks: true, link: LINK };
-
-				const a = await syncDocument(linkedDoc(spec("proposed")), deps(same.notifications, on));
-				const b = await syncDocument(linkedDoc(spec("proposed")), deps(none.notifications, on));
-
-				expect(same.n.updateDiscussion).not.toHaveBeenCalled();
-				expect(none.n.updateDiscussion).not.toHaveBeenCalled();
-				expect(a.did).toEqual([]);
-				expect(b.idLineRewritten).toBeUndefined();
-			});
-
-			it("never rewrites without the flag", async () => {
-				const { n, notifications } = provider(post());
-
-				await syncDocument(linkedDoc(spec("proposed")), deps(notifications, { link: LINK }));
-
-				expect(n.updateDiscussion).not.toHaveBeenCalled();
-			});
-
-			it("does not write twice for a file that moved, and on a dry run says what it would link", async () => {
-				const made = provider(post({ idLine: OLD_PATH }));
-				made.n.ensureDiscussion.mockResolvedValue({
-					post: post({ idLine: OLD_PATH }),
-					created: false,
-					rekeyed: true,
-				} as never);
+			it("writes once when both asked for and the link is on, and on a dry run says what it would do", async () => {
+				const once = provider(post());
 				const dry = provider(post());
 				const dryOpen = provider(post({ idLine: AT_PATH }));
 
 				await syncDocument(
 					linkedDoc(spec("proposed")),
-					deps(made.notifications, { refreshLinks: true, link: LINK })
+					deps(once.notifications, { refreshLinks: true, link: LINK })
 				);
 				const out = await syncDocument(
 					linkedDoc(spec("proposed")),
@@ -633,7 +619,7 @@ describe("syncDocument", () => {
 					deps(dryOpen.notifications, { refreshLinks: true, dryRun: true })
 				);
 
-				expect(made.n.updateDiscussion).toHaveBeenCalledTimes(1);
+				expect(once.n.updateDiscussion).toHaveBeenCalledTimes(1);
 				expect(out.did).toEqual(["would link the id to the file"]);
 				expect(open.did).toEqual(["would take the link off the id"]);
 				expect(dry.n.updateDiscussion).not.toHaveBeenCalled();

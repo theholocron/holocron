@@ -106,7 +106,7 @@ export interface SpecsSyncReport {
 	rewritten?: number;
 	/** With `refreshTitles`: how many posts were (on a dry run, would be) renamed. */
 	renamed?: number;
-	/** With `refresh`: how many posts had (or, on a dry run, would have) their id line rewritten. */
+	/** With `refresh`, or a run for documents on the default branch (no `pr`): how many posts had (or, on a dry run, would have) their id line rewritten. */
 	linked?: number;
 	/** Why the run did not start. */
 	message?: string;
@@ -136,14 +136,14 @@ export interface SyncDocumentDeps {
 	/** Rename the post when its title differs from the one the current rule writes. */
 	refreshTitles?: boolean;
 	/**
-	 * Rewrite the post's id line when it differs from the one `repo` and `branch` give. A file that moved is given its new
-	 * address without it.
+	 * Rewrite the post's id line when it differs from the rule's even without `link`, which takes a link off a post (the
+	 * repair `--refresh` asks for). With `link` the id line is rewritten whether or not this is set.
 	 */
 	refreshLinks?: boolean;
 	/**
 	 * The repository (`owner/name`) and default branch the document's id links to, when the document is on that branch.
-	 * Absent while a pull request is open, or when the repository is not known: the id is then plain text, and a file that
-	 * moved keeps whatever id line its post has.
+	 * Absent while a pull request is open, or when the repository is not known: the id is then plain text, and an
+	 * existing post keeps whatever id line it has. Present, a post whose id line differs is rewritten (only that line).
 	 */
 	link?: { repo: string; branch: string };
 	/** The id `assignSpecIds` gave the document, when it had none. */
