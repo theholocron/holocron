@@ -40,8 +40,8 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * task per concern), so the context names that job directly; a single job's own conclusion already *is* the workflow's
  * conclusion. `Conclusion` fan-in jobs are kept only where a task has several conditionally-run jobs feeding one
  * check: `test:unit` (unit / Storybook / Chromatic / interaction / user-flow, each gated by its own `run-*` input) and
- * `validate` (its script jobs all must pass). The formatting workflow carries three ids (`lint:editorconfig`,
- * `lint:markdown`, `format`) and is listed under the one it is filed as. Only merge-gating workflows are listed.
+ * `validate` (its script jobs all must pass). `format` has no workflow of its own: its check is a step of `lint:code`
+ * (the `ci/actions/format` action), so it is listed under that. Only merge-gating workflows are listed.
  * `astromech.requiredChecks()` reads this for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
@@ -49,8 +49,9 @@ export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 	"test:unit": "test:unit / Conclusion",
 	typecheck: "typecheck / Run tsc --noEmit",
 	"test:perf": "test:perf / Run Lighthouse CI",
-	"lint:code": "lint:code / Run eslint and actionlint",
-	"lint:editorconfig": "lint:editorconfig / Run prettier, editorconfig-checker, markdownlint",
+	"lint:code": "lint:code / Run eslint, actionlint and prettier",
+	"lint:editorconfig": "lint:editorconfig / Run editorconfig-checker",
+	"lint:markdown": "lint:markdown / Run markdownlint",
 	"lint:data": "lint:data / Run yamllint",
 	"lint:unused": "lint:unused / Run knip",
 	"scan:secrets": "scan:secrets / Run gitleaks",

@@ -24,7 +24,11 @@ describe("taskCheckContexts", () => {
 					{ name: "verification.typeSafety", required: true },
 				],
 			})
-		).toEqual(["typecheck / Run tsc --noEmit", "lint:code / Run eslint and actionlint", "test:unit / Conclusion"]);
+		).toEqual([
+			"typecheck / Run tsc --noEmit",
+			"lint:code / Run eslint, actionlint and prettier",
+			"test:unit / Conclusion",
+		]);
 	});
 
 	it("orders task contexts by CI_ORDER regardless of manifest order", () => {
@@ -39,7 +43,7 @@ describe("taskCheckContexts", () => {
 			})
 		).toEqual([
 			"typecheck / Run tsc --noEmit",
-			"lint:code / Run eslint and actionlint",
+			"lint:code / Run eslint, actionlint and prettier",
 			"test:unit / Conclusion",
 			"measure-bundle / Upload bundle stats to Codecov",
 		]);
@@ -52,7 +56,7 @@ describe("taskCheckContexts", () => {
 				extraRequiredChecks: ["codecov/patch", "codecov/project", "tsdown (every workspace)"],
 			})
 		).toEqual([
-			"lint:code / Run eslint and actionlint",
+			"lint:code / Run eslint, actionlint and prettier",
 			"codecov/patch",
 			"codecov/project",
 			"tsdown (every workspace)",
@@ -63,16 +67,16 @@ describe("taskCheckContexts", () => {
 		expect(
 			taskCheckContexts({
 				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
-				extraRequiredChecks: ["lint:code / Run eslint and actionlint", "codecov/patch"],
+				extraRequiredChecks: ["lint:code / Run eslint, actionlint and prettier", "codecov/patch"],
 			})
-		).toEqual(["lint:code / Run eslint and actionlint", "codecov/patch"]);
+		).toEqual(["lint:code / Run eslint, actionlint and prettier", "codecov/patch"]);
 	});
 
 	it("ignores a required task with no known check context", () => {
 		expect(taskCheckContexts({ tasks: [{ name: "delivery.deploy", required: true }] })).toEqual([]);
 	});
 
-	it("gives a task spelled with a flat id the context of the workflow it still posts under", () => {
+	it("gives a task spelled with a flat id the context of its own workflow", () => {
 		expect(
 			taskCheckContexts({
 				tasks: [
@@ -80,9 +84,23 @@ describe("taskCheckContexts", () => {
 					{ name: "lint:markdown", required: true },
 				],
 			})
+		).toEqual(["typecheck / Run tsc --noEmit", "lint:markdown / Run markdownlint"]);
+	});
+
+	it("gives each half of the old formatting workflow its own context, and `format` the one of `lint:code`", () => {
+		expect(
+			taskCheckContexts({
+				tasks: [
+					{ name: "format", required: true },
+					{ name: "lint:markdown", required: true },
+					{ name: "lint:editorconfig", required: true },
+					{ name: "lint:code", required: true },
+				],
+			})
 		).toEqual([
-			"typecheck / Run tsc --noEmit",
-			"lint:editorconfig / Run prettier, editorconfig-checker, markdownlint",
+			"lint:code / Run eslint, actionlint and prettier",
+			"lint:editorconfig / Run editorconfig-checker",
+			"lint:markdown / Run markdownlint",
 		]);
 	});
 

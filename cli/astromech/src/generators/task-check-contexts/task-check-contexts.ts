@@ -20,7 +20,7 @@ export function taskCheckContexts(config: TasksConfig): string[] {
 
 	for (const id of CI_ORDER) {
 		const required = entries.some((e) => e.required === true && isTask(e.name, id));
-		// The workflow of `lint:markdown` and `format` is the formatting one, filed under `lint:editorconfig`.
+		// `format` has no workflow of its own: its check is a step of `lint:code`, so it adds that context (de-duplicated).
 		const context = required ? WORKFLOW_CHECK_CONTEXTS[workflowKey(id)] : undefined;
 		if (context && !seen.has(context)) {
 			seen.add(context);

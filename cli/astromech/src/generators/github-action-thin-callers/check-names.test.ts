@@ -1,7 +1,14 @@
 import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
-import { flatFile, legacyCaller, legacyCallerFile, legacyName, RESERVED_SCRIPT_NAMES } from "../../vocabulary/index.js";
+import {
+	flatFile,
+	legacyCaller,
+	legacyCallerFile,
+	legacyName,
+	RESERVED_SCRIPT_NAMES,
+	workflowKey,
+} from "../../vocabulary/index.js";
 import { REUSABLE_WORKFLOWS } from "../github-action-reusable-workflows/index.js";
 import { WORKFLOW_CHECK_CONTEXTS, WORKFLOW_TEMPLATES } from "./github-action-thin-callers.js";
 
@@ -82,10 +89,11 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"deploy-preview": ["deploy-preview / Deploy preview", "deploy-preview / Report deployment status"],
 	greet: ["greet / Greet first-time contributors"],
 	label: ["label / Apply Labels"],
-	"lint:code": ["lint:code / Run eslint and actionlint"],
+	"lint:code": ["lint:code / Run eslint, actionlint and prettier"],
 	"lint:commits": ["lint:commits / Run commitlint"],
 	"lint:data": ["lint:data / Run yamllint"],
-	"lint:editorconfig": ["lint:editorconfig / Run prettier, editorconfig-checker, markdownlint"],
+	"lint:editorconfig": ["lint:editorconfig / Run editorconfig-checker"],
+	"lint:markdown": ["lint:markdown / Run markdownlint"],
 	"lint:unused": ["lint:unused / Run knip"],
 	"mark-stale": ["mark-stale / Mark stale issues and pull requests"],
 	"measure-bundle": ["measure-bundle / Upload bundle stats to Codecov"],
@@ -157,8 +165,16 @@ describe("the workflow, the job and the file are the task id", () => {
 		}
 	});
 
-	it("has no template for `format`, an action rather than a workflow", () => {
+	it("has no template for `format`, an action rather than a workflow, and no context: `lint:code` runs it", () => {
 		expect(WORKFLOW_TEMPLATES).not.toHaveProperty("format");
+		expect(WORKFLOW_CHECK_CONTEXTS).not.toHaveProperty("format");
+		expect(workflowKey("format")).toBe("lint:code");
+	});
+
+	it("splits the old formatting workflow into one workflow per linter, each posting its own check", () => {
+		expect(workflowKey("lint:markdown")).toBe("lint:markdown");
+		expect(checkNames("lint:editorconfig")).toEqual(["lint:editorconfig / Run editorconfig-checker"]);
+		expect(checkNames("lint:markdown")).toEqual(["lint:markdown / Run markdownlint"]);
 	});
 
 	it("files no two ids as one file", () => {

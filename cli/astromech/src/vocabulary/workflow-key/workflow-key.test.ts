@@ -15,9 +15,13 @@ describe("workflowKey", () => {
 		expect(workflowKey("sourceQuality.formatting")).toBe("lint:editorconfig");
 	});
 
-	it("the other successors of a shared workflow map to the id it is filed under", () => {
-		expect(workflowKey("format")).toBe("lint:editorconfig");
-		expect(workflowKey("lint:markdown")).toBe("lint:editorconfig");
+	it("a split successor of the old formatting workflow has a workflow of its own", () => {
+		expect(workflowKey("lint:markdown")).toBe("lint:markdown");
+		expect(workflowKey("lint:editorconfig")).toBe("lint:editorconfig");
+	});
+
+	it("a task with no workflow of its own maps to the workflow that hosts its check", () => {
+		expect(workflowKey("format")).toBe("lint:code");
 	});
 
 	it("a name with no old name (preview, unknown) is its own key", () => {

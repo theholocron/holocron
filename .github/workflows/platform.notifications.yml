@@ -30,6 +30,7 @@ on: # yamllint disable-line rule:truthy
       - typecheck
       - lint:code
       - lint:editorconfig
+      - lint:markdown
       - lint:data
       - lint:unused
       - annotate

@@ -97,6 +97,7 @@ export {
 	legacyCaller,
 	legacyCallerFile,
 	legacyName,
+	legacyWorkflowKey,
 	PNPM_BUILTIN_COMMANDS,
 	RESERVED_SCRIPT_NAMES,
 	resolveTaskName,

@@ -146,11 +146,12 @@ export const TASKS: Record<string, TaskDef> = {
 		linterGroup: ["commitlint"],
 	},
 	// Not a suite and not a linter: the one task that writes by default (`--check` is the read-only form). It has no
-	// workflow of its own; the formatting check stays in the formatting workflow until the later phases move it.
+	// workflow of its own; its check is the `ci/actions/format` action, which the `lint:code` workflow calls.
 	format: {
 		group: "Source Quality",
 		scope: "repo",
 		workflow: false,
+		host: "lint:code",
 		local: { tool: "prettier", args: ["--write", "."] },
 		checkArgs: ["--check", "."],
 	},

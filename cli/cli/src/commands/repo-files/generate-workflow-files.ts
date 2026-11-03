@@ -1,11 +1,15 @@
 import {
 	createAstromech,
+	generateThinCallerContent,
 	hostedReusableWorkflows,
 	KNOWN_WORKFLOWS,
 	legacyCaller,
 	legacyCallerFile,
 	legacyGate,
+	legacyWorkflowKey,
 	localize,
+	resolveTaskName,
+	TASKS,
 	workflowFile,
 	workflowKey,
 } from "@theholocron/astromech";
@@ -51,11 +55,17 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	// A package's own config (apps/sentinel) generates callers with the reusables' names too, so all of them move.
 	const hosting = hostsReusables(gitRoot);
 
+	const legacy = !hosting && legacyGate();
+
 	const entries: (GeneratedWorkflowFile | SkippedRepoFile)[] = [];
 	for (const entry of tasks) {
 		const name = typeof entry === "string" ? entry : entry.name;
+		// A task with no workflow of its own (`format`, a step of `lint:code`) writes no caller.
+		const ids = resolveTaskName(name);
+		if (ids.length > 0 && ids.every(({ id }) => TASKS[id]?.workflow === false)) continue;
 		// deploy-docs / deploy-components have no static template: their content is always generated.
-		const key = workflowKey(name);
+		// A repo on the legacy gate has one formatting caller for what is now two workflows, filed under `lint:editorconfig`.
+		const key = legacy ? legacyWorkflowKey(name) : workflowKey(name);
 		const isCombinedContentOnly = key === "deploy-docs" || key === "deploy-components";
 		if (!KNOWN_WORKFLOWS.has(key) && !isCombinedContentOnly) {
 			entries.push({
@@ -68,9 +78,17 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 		}
 
 		// Keyed by task id alone, whichever package's config generated it.
-		const flat = files.get(`${key}.yml`);
+		let flat = files.get(`${key}.yml`);
+		// `lint:markdown` listed without `lint:editorconfig` still needs the one formatting caller (generated under its own key)
+		if (
+			flat === undefined &&
+			legacy &&
+			key !== workflowKey(name) &&
+			!(typeof entry === "object" && entry.ci === false)
+		) {
+			flat = generateThinCallerContent(key);
+		}
 		if (flat === undefined) continue; // ci: false, or no workflow of its own — nothing to write
-		const legacy = !hosting && legacyGate();
 		const content = legacy ? legacyCaller(key, flat) : flat;
 		const filename = hosting
 			? `${HOSTED_CALLER_PREFIX}${workflowFile(key)}`

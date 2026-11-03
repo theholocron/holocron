@@ -8,6 +8,7 @@ export * from "./legacy-callers/index.js";
 export * from "./legacy-file/index.js";
 export * from "./legacy-name/index.js";
 export * from "./legacy-names/index.js";
+export * from "./legacy-workflow-key/index.js";
 export * from "./reserved-script-names/index.js";
 export * from "./resolve-task-name/index.js";
 export * from "./resolve-words/index.js";

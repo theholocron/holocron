@@ -16,7 +16,9 @@ export const LEGACY_NAMES: Record<string, LegacyTarget[]> = {
 	"verification.performance": [{ id: "test:perf" }],
 	"verification.typeSafety": [{ id: "typecheck" }],
 	"sourceQuality.staticAnalysis": [{ id: "lint:code" }],
-	// Prettier checked, editorconfig-checker and markdownlint reported: one workflow, three successors.
+	// Prettier checked, editorconfig-checker and markdownlint reported: one workflow, three successors. The frozen
+	// reusable runs this name, so it keeps all three; a new workflow is one each (`lint:editorconfig`, `lint:markdown`,
+	// and `format` inside `lint:code`).
 	"sourceQuality.formatting": [
 		{ id: "lint:editorconfig" },
 		{ id: "lint:markdown" },

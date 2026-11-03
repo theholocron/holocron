@@ -27,7 +27,7 @@ on: # yamllint disable-line rule:truthy
 
 jobs:
   static-analysis:
-    name: Run eslint and actionlint
+    name: Run eslint, actionlint and prettier
     permissions:
       contents: write
       statuses: write
@@ -98,3 +98,13 @@ jobs:
           branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
           commit-message: "chore: fix static-analysis issues"
           commit-options: "--no-verify"
+
+      # prettier's check (and its opt-in fix commit, the same App token as above) is the `format` action, not a workflow
+      # of its own. It is called by path because the action is new and `theholocron/.github` is frozen, so no
+      # remote copy of it exists; the path resolves in the repo that hosts the reusables, which is the only caller of
+      # this file until `ci-v1` exists (then it becomes `theholocron/holocron/ci/actions/format@ci-v1`).
+      - uses: ./ci/actions/format
+        name: Run prettier
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
