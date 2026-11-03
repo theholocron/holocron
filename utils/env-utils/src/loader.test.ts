@@ -1,77 +1,60 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DotenvLoader } from "./loader.js";
 
-// dotenv/config is a side-effect — mock it so tests never touch the filesystem
-vi.mock("dotenv/config", () => ({}));
+const KEY = "ENV_UTILS_LOADER_TEST_KEY";
 
 describe("DotenvLoader", () => {
+	let dir: string;
+
 	beforeEach(() => {
-		vi.unstubAllEnvs();
+		dir = mkdtempSync(join(tmpdir(), "env-utils-"));
+		writeFileSync(join(dir, ".env"), `${KEY}=from-dotenv\n`);
+		vi.spyOn(process, "cwd").mockReturnValue(dir);
+		delete process.env[KEY];
 	});
 
 	afterEach(() => {
+		vi.restoreAllMocks();
 		vi.unstubAllEnvs();
+		delete process.env[KEY];
+		rmSync(dir, { recursive: true, force: true });
 	});
 
-	it("implements the EnvLoader interface — load() returns a record", () => {
-		const loader = new DotenvLoader();
-		const result = loader.load();
-		expect(result).toBeDefined();
-		expect(typeof result).toBe("object");
+	it("loads the .env in the working directory on load() and returns process.env", () => {
+		const result = new DotenvLoader().load();
+
+		expect(result).toBe(process.env);
+		expect(result[KEY]).toBe("from-dotenv");
 	});
 
-	it("returns process.env after loading", () => {
-		vi.stubEnv("TEST_VAR", "hello");
+	it("does not read a .env until load() is called", () => {
+		new DotenvLoader();
 
-		const loader = new DotenvLoader();
-		const result = loader.load();
-
-		expect(result["TEST_VAR"]).toBe("hello");
+		expect(process.env[KEY]).toBeUndefined();
 	});
 
-	it("reflects all stubbed env vars in the returned record", () => {
-		vi.stubEnv("FOO", "foo-value");
-		vi.stubEnv("BAR", "bar-value");
-
+	it("reads the file once per loader, however often load() is called", () => {
 		const loader = new DotenvLoader();
-		const result = loader.load();
+		loader.load();
+		delete process.env[KEY];
 
-		expect(result["FOO"]).toBe("foo-value");
-		expect(result["BAR"]).toBe("bar-value");
+		loader.load();
+
+		expect(process.env[KEY]).toBeUndefined();
 	});
 
-	it("returns undefined for keys not present in process.env", () => {
-		const loader = new DotenvLoader();
-		const result = loader.load();
+	it("leaves a variable that is already set alone", () => {
+		vi.stubEnv(KEY, "from-process");
 
-		expect(result["DEFINITELY_NOT_SET_XYZ"]).toBeUndefined();
+		expect(new DotenvLoader().load()[KEY]).toBe("from-process");
 	});
 
-	it("calls dotenv/config as a side effect", async () => {
-		// Verify the mock was called — i.e. the require("dotenv/config")
-		// inside load() executed without throwing
-		const loader = new DotenvLoader();
-		expect(() => loader.load()).not.toThrow();
-
-		const dotenv = await import("dotenv/config");
-		expect(dotenv).toBeDefined();
-	});
-
-	it("is safe to call load() multiple times — dotenv is a no-op on repeat calls", () => {
-		const loader = new DotenvLoader();
-
-		expect(() => {
-			loader.load();
-			loader.load();
-			loader.load();
-		}).not.toThrow();
-	});
-
-	it("satisfies the EnvLoader interface structurally", () => {
-		const loader = new DotenvLoader();
-		// Type-level check — if this compiles, the interface is satisfied.
-		// At runtime, verify the shape explicitly.
-		expect(typeof loader.load).toBe("function");
+	it("returns undefined for keys that are in neither", () => {
+		expect(new DotenvLoader().load()["DEFINITELY_NOT_SET_XYZ"]).toBeUndefined();
 	});
 });

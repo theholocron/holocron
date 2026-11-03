@@ -9,12 +9,12 @@ describe("@theholocron/env-utils/lookup", () => {
 	it("does not load dotenv when imported", async () => {
 		let loaded = false;
 		vi.resetModules();
-		vi.doMock("dotenv/config", () => {
+		vi.doMock("dotenv", () => {
 			loaded = true;
 			return {};
 		});
 		await import("./lookup.js");
 		expect(loaded).toBe(false);
-		vi.doUnmock("dotenv/config");
+		vi.doUnmock("dotenv");
 	});
 });
