@@ -63,7 +63,9 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
   (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
   post, the file's `status:` into the working tree only (the workflow commits it to a pull request), and decides by
-  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status.
+  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status. `--files` limits a run to the given
+  paths and `--pr` names a pull request on the posts: `knowledge.specsOnPullRequest.yml` uses both to post while a
+  same-repository pull request is still open (#1600), and throws the edits away; the post is linked after the merge.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

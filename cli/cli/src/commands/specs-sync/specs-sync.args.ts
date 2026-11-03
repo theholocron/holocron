@@ -12,6 +12,15 @@ export const specsSyncArgs = (y: Argv<GlobalArgs>) =>
 			type: "string",
 			describe: "The forum channel the posts live in (default: the only forum the layout declares)",
 		})
+		.option("files", {
+			type: "string",
+			array: true,
+			describe: "Sync only these ADR and spec files (a pull request's changed files)",
+		})
+		.option("pr", {
+			type: "number",
+			describe: "Name this pull request on the posts, for a pull request that is still open",
+		})
 		.option("notify", {
 			type: "boolean",
 			default: false,

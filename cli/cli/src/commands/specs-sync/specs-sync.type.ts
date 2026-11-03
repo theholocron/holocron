@@ -33,6 +33,13 @@ export interface RunSpecsSyncInput {
 	provider?: string;
 	/** The forum channel the posts live in; defaults to the one forum the layout declares. */
 	channel?: string;
+	/**
+	 * Sync only these repo-relative paths (a pull request's changed files); a path that is not an ADR or spec is ignored.
+	 * Unset, every document is synced.
+	 */
+	files?: string[];
+	/** The pull request to name on a post, instead of the one the file's history names (a pull request still open). */
+	pr?: number;
 	/** Let a new post notify people. Off by default, so a backfill of many posts pings no one. */
 	notify?: boolean;
 	loader?: PluginLoader;

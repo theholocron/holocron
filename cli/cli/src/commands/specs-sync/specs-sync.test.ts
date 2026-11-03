@@ -60,6 +60,8 @@ function setup(
 		channel?: string;
 		repo?: string;
 		org?: string;
+		files?: string[];
+		pr?: number;
 		/** Leave out `print` and `logger`, as the command does. */
 		bare?: boolean;
 	} = {}
@@ -90,6 +92,8 @@ function setup(
 				io,
 				loader,
 				...(opts.notify ? { notify: true } : {}),
+				...(opts.files ? { files: opts.files } : {}),
+				...(opts.pr ? { pr: opts.pr } : {}),
 				...(opts.provider ? { provider: opts.provider } : {}),
 				...(opts.channel ? { channel: opts.channel } : {}),
 				...(opts.bare ? {} : { print: (l: string) => lines.push(l), logger: fakeLogger() }),
@@ -231,6 +235,36 @@ describe("runSpecsSync", () => {
 		expect(body(given)).toContain("PR: [#1538](<https://github.com/acme/widgets/pull/1538>)");
 		expect(body(unknown)).toBe("SPEC-0001\n\nAbout A.");
 		expect(body(noPr)).toBe("SPEC-0001\n\nAbout A.");
+	});
+
+	it("syncs only the files asked for, numbering a new spec as the whole tree would", async () => {
+		const files = {
+			".notes/old.spec.md": spec("Old", "proposed", "SPEC-0007"),
+			".notes/new.spec.md": spec("New", "proposed", null),
+			".notes/other.spec.md": spec("Other", "proposed", "SPEC-0008"),
+		};
+		const { io, written } = makeIo(files);
+		const n = fakeNotifications();
+
+		const report = await setup(n, io, { files: [".notes/new.spec.md", "README.md"] }).run();
+
+		expect(report.files.map((f) => f.path)).toEqual([".notes/new.spec.md"]);
+		expect(n.ensureDiscussion).toHaveBeenCalledTimes(1);
+		expect(written[".notes/new.spec.md"]).toContain("id: SPEC-0009\n");
+	});
+
+	it("names the pull request it was given instead of the one the file's history names", async () => {
+		const files = { ".notes/a.spec.md": spec("A", "proposed") };
+		const origins = { ".notes/a.spec.md": { time: 1, pr: 1538 } };
+		const given = fakeNotifications();
+		const open = fakeNotifications();
+		await setup(given, makeIo(files, origins).io, { pr: 1700 }).run();
+		await setup(open, makeIo(files).io, { pr: 1700 }).run();
+
+		const body = (n: Notifications) =>
+			(n.ensureDiscussion as ReturnType<typeof vi.fn>).mock.calls[0]![0].body as string;
+		expect(body(given)).toContain("PR: [#1700](<https://github.com/theholocron/holocron/pull/1700>)");
+		expect(body(open)).toContain("PR: [#1700](");
 	});
 
 	it("stops at the first rate limit instead of trying the rest, and does not fail the run", async () => {
