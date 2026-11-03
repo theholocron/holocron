@@ -10,7 +10,7 @@ holocron auth export --from-env
 
 Writes each token a configured plugin takes as a `NAME=value` line, to import them into a [credentials environment](/holocron/tokens/#credentials-providers). The CLI cannot write to a 1Password Environment (`op` has no command that sets a variable), so the last step is the app: open the Environment, **Import .env file**, and choose the file this command wrote. The import reads the file line by line, so every token lands as its own variable (pasting the same text into one field does not).
 
-The names are the ones the plugins list for `doctor tokens` and `doctor credentials`, so they are the names the Environment is expected to hold. Each value comes from the OS keyring. A name listed by two plugins is written once.
+The names are the ones the plugins list for `doctor tokens` and `doctor credentials`, so they are the names the Environment is expected to hold, except the ones a plugin marks optional because it only falls back to them (marked `(optional)` in the list, and not expected by `doctor credentials`). Each value comes from the OS keyring. A name listed by two plugins is written once.
 
 ```text
 exported 16 of 18:
@@ -20,7 +20,7 @@ exported 16 of 18:
   ✓ HOLOCRON_CLOUDFLARE_TOKEN
   ...
   ✓ HOLOCRON_USER_SYNC_TOKEN
-  · HOLOCRON_DISCORD_WEBHOOK
+  · HOLOCRON_DISCORD_WEBHOOK  (optional)
 
 wrote /path/to/repo/.credentials (readable only by you)
 import it in the 1Password app: Developer, View Environments, the Environment, Import .env file

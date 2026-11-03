@@ -43,4 +43,49 @@ describe("connection probe", () => {
 		});
 		expect(rows.find((r) => r.label === "token")).toMatchObject({ status: "fail" });
 	});
+
+	describe("when there is no webhook", () => {
+		const BASE = "https://discord.test/api/v10";
+		const stubbed = (urls: string[]) =>
+			(async (input: string | URL) => {
+				urls.push(String(input));
+				return new Response(JSON.stringify({ id: "9", name: "Holonet" }), { status: 200 });
+			}) as typeof fetch;
+
+		it("checks the bot token instead, so a missing fallback webhook is not a failed connection", async () => {
+			const urls: string[] = [];
+			const { rows, secrets } = await connection({
+				env: { HOLOCRON_DISCORD_BOT_TOKEN: "bot-tok" },
+				keyring: () => null,
+				baseUrl: BASE,
+				unsafeBotBaseUrl: true,
+				fetch: stubbed(urls),
+			});
+			expect(rows.find((r) => r.label === "token")).toMatchObject({ status: "ok" });
+			expect(rows.at(-1)).toMatchObject({ label: "accepted", status: "ok" });
+			expect(JSON.stringify(rows.at(-1))).toContain("bot: Holonet (id: 9)");
+			expect(urls).toContain(`${BASE}/applications/@me`);
+			expect(secrets).toEqual(["bot-tok"]);
+		});
+
+		it("still checks the webhook when there is one, and does not ask about the bot", async () => {
+			const urls: string[] = [];
+			await connection({
+				cliToken: "https://discord.com/api/webhooks/111/abc",
+				env: { HOLOCRON_DISCORD_BOT_TOKEN: "bot-tok" },
+				keyring: () => null,
+				baseUrl: BASE,
+				fetch: stubbed(urls),
+			});
+			expect(urls.some((u) => u.includes("/applications/@me"))).toBe(false);
+			expect(urls.some((u) => u.includes("/webhooks/111/abc"))).toBe(true);
+		});
+
+		it("fails on the missing webhook, naming where to put one, when there is no bot token either", async () => {
+			const { rows } = await connection({ env: {}, keyring: () => null, fetch: stubbed([]) });
+			const token = rows.find((r) => r.label === "token");
+			expect(token).toMatchObject({ status: "fail" });
+			expect(JSON.stringify(token)).toContain("webhook");
+		});
+	});
 });

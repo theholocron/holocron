@@ -675,6 +675,13 @@ The resolution chain per capability is:
 
 See [`docs/tokens.md`](../../docs/tokens.md) for required PAT scopes per feature.
 
+A plugin lists the tokens it takes in a `tokens: PluginToken[]` export (each resolver exposes its own as `.token`), as
+`{ envName, vendorEnvName?, keyringKey, verifiable?, optional? }`, so `holocron doctor tokens`, `doctor credentials` and
+`auth export` can find them. Set `optional: true` on a token the plugin only falls back to, such as the Discord
+webhook a post uses when it names no channel: the checks that expect every listed token do not expect it, and
+`auth export` marks it `(optional)` when it has no value. `verifiable: false` marks a token `verifyToken` does not
+apply to.
+
 Additional `auth` subcommands:
 
 ```sh

@@ -169,6 +169,25 @@ describe("auth export — what it writes", () => {
 		expect(stored.out.join("")).toBe("A_TOKEN=1\nB_WEBHOOK=hook\n");
 	});
 
+	it("marks a name optional only when every plugin that declares it says so", async () => {
+		const declared = (...optionals: Array<boolean | undefined>): AuthImporter => {
+			let n = 0;
+			return async () => ({ tokens: [{ envName: "SHARED", keyringKey: "s", optional: optionals[n++] }] });
+		};
+		const optionalFirst = run({
+			importer: declared(true, undefined),
+			keyring: () => null,
+		});
+		await optionalFirst.result;
+		expect(optionalFirst.err).toContain("  · SHARED");
+		const bothOptional = run({ importer: declared(true, true), keyring: () => null });
+		await bothOptional.result;
+		expect(bothOptional.err).toContain("  · SHARED  (optional)");
+		const requiredFirst = run({ importer: declared(undefined, true), keyring: () => null });
+		await requiredFirst.result;
+		expect(requiredFirst.err).toContain("  · SHARED");
+	});
+
 	it("colours the ✓ green and dims the · but leaves the name as it is", async () => {
 		const previous = chalk.level;
 		chalk.level = 1;

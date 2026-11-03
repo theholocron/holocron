@@ -3,8 +3,10 @@
  *
  * Read-only, and it never reads a value: the providers are loaded without being asked for their variables, and each
  * one lists only the names (`Credentials.inspect`). The names expected are the `envName` of every token the configured
- * plugins list (their `tokens` export, the same list `doctor tokens` checks). A variable the environment lacks is a
- * failure; one it has beyond those is not a problem. The row says which spelling of the environment's name matched,
+ * plugins list (their `tokens` export, the same list `doctor tokens` checks), except the ones a plugin marks `optional`
+ * because it only falls back to them (the Discord webhook): those are not expected, and the row says when one is not
+ * set. A name any plugin needs is expected even if another plugin lists it as optional. A variable the environment
+ * lacks is a failure; one it has beyond those is not a problem. The row says which spelling of the environment's name matched,
  * since a provider that matches names exactly may find it under a different case than the config writes.
  */
 
@@ -93,16 +95,17 @@ async function checkProvider(impl: Credentials, environment: string, expected: E
 		);
 		// A token the plugin only falls back to is not expected, but the row says when it is not there.
 		const absent = expected.optional.filter((name) => !found.names.includes(name));
+		const optionalNote = absent.length > 0 ? `; optional, not set: ${absent.join(", ")}` : "";
 		const spelled =
 			found.environment === environment
 				? `"${found.environment}"`
 				: `"${found.environment}" (the config writes "${environment}")`;
 		return problems.length > 0
-			? row(impl.providerName, "fail", `${spelled}: ${problems.length} problem(s)`, problems)
+			? row(impl.providerName, "fail", `${spelled}: ${problems.length} problem(s)${optionalNote}`, problems)
 			: row(
 					impl.providerName,
 					"ok",
-					`${spelled} has ${found.names.length} variable(s), ${expected.required.length} of ${expected.required.length} expected present${absent.length > 0 ? `; optional, not set: ${absent.join(", ")}` : ""}`
+					`${spelled} has ${found.names.length} variable(s), ${expected.required.length} of ${expected.required.length} expected present${optionalNote}`
 				);
 	} catch (err) {
 		return row(impl.providerName, "fail", errorMessage(err));

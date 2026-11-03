@@ -141,6 +141,8 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 			const first = tokens.get(token.envName);
 			if (!first) tokens.set(token.envName, token);
 			else if (first.keyringKey !== token.keyringKey) conflicts.add(token.envName);
+			// The same token declared again: it is optional only if every plugin that declares it says so.
+			else tokens.set(token.envName, { ...first, optional: first.optional === true && token.optional === true });
 		}
 	}
 	// With every plugin unresolvable the list is empty for a reason the user can fix, not because there is nothing to do.

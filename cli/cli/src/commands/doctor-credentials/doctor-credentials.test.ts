@@ -116,6 +116,15 @@ describe("doctor credentials", () => {
 			expect(report.rows[0]?.detail).toBe('"Holocron" has 2 variable(s), 1 of 1 expected present');
 		});
 
+		it("is still named when the row fails for another variable", async () => {
+			const { report } = await run(loadedWith(), inspecting("Holocron", "SOMETHING_ELSE"), withOptional);
+			expect(report.status).toBe("fail");
+			expect(report.rows[0]?.detail).toBe(
+				'"Holocron": 1 problem(s); optional, not set: HOLOCRON_FALLBACK_WEBHOOK'
+			);
+			expect(report.rows[0]?.problems).toEqual(["missing variable HOLOCRON_ORG_TOKEN"]);
+		});
+
 		it("is expected after all when another plugin lists the same name as needed", async () => {
 			const both: AuthImporter = async (pkg) =>
 				pkg.endsWith("github")
