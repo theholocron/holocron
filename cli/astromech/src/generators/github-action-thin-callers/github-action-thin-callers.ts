@@ -320,7 +320,7 @@ export function generateCombinedDeployContent(
 	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
 
 	return [
-		`name: Deploy`,
+		`name: Knowledge`,
 		``,
 		`on: # yamllint disable-line rule:truthy`,
 		`  push:`,

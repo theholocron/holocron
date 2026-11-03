@@ -23,17 +23,10 @@ export const TEMPLATE_HOME: CiHome = {
 };
 
 /**
- * Where generated workflows call the hosted files today. No change from the templates' own spelling until the files
- * move (#1475, #1480); the target is `theholocron/holocron/.github/workflows` and `theholocron/holocron/ci/actions` at
- * `ci-v1`.
+ * Where generated workflows call the hosted files: `theholocron/holocron`, at the moving `ci-v1` tag (#1478). The
+ * frozen copies in `theholocron/.github` point here too.
  */
-export const CI_HOME: CiHome = { ...TEMPLATE_HOME };
-
-/**
- * Where the hosted files will live once `ci-v1` exists, and where a frozen copy in `theholocron/.github` tells its
- * users to go. Not used to generate anything yet: {@link CI_HOME} follows when the tag does.
- */
-export const CI_TARGET: CiHome = {
+export const CI_HOME: CiHome = {
 	workflows: "theholocron/holocron/.github/workflows",
 	actions: "theholocron/holocron/ci/actions",
 	ref: "ci-v1",

@@ -14,7 +14,7 @@
 
 import { ACTIONS, WORKFLOWS } from "@theholocron/ci";
 
-import { CI_TARGET, rehomeAll } from "../ci-ref/index.js";
+import { CI_HOME, rehomeAll } from "../ci-ref/index.js";
 import { WORKFLOW_TEMPLATES, workflowTriggers } from "../github-action-thin-callers/index.js";
 
 /** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
@@ -126,8 +126,8 @@ export function stampDeprecated(content: string, path: string): string {
 	const action = /^\.github\/actions\/([^/]+)\/action\.yml$/.exec(path);
 	const workflow = /^\.github\/workflows\/([^/]+\.yml)$/.exec(path);
 	const replacement = action
-		? `${CI_TARGET.actions}/${action[1]}@${CI_TARGET.ref}`
-		: `${CI_TARGET.workflows}/${workflow?.[1] ?? path}@${CI_TARGET.ref}`;
+		? `${CI_HOME.actions}/${action[1]}@${CI_HOME.ref}`
+		: `${CI_HOME.workflows}/${workflow?.[1] ?? path}@${CI_HOME.ref}`;
 	const notice = [
 		DEPRECATED,
 		`# This file no longer changes. It moved to theholocron/holocron; use ${replacement}.`,

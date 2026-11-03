@@ -14,7 +14,7 @@ describe("groupedPublishCaller", () => {
 		expect(out).toContain("    needs: plan\n");
 		expect(out).toContain("      fail-fast: false\n      max-parallel: 1\n");
 		expect(out).toContain("        include: ${{ fromJSON(needs.plan.outputs.groups) }}\n");
-		expect(out).toContain("    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main\n");
+		expect(out).toContain("    uses: theholocron/holocron/.github/workflows/delivery.publish.yml@ci-v1\n");
 		expect(out).toContain("    name: Release ${{ matrix.group }}\n");
 		expect(out).toContain("      group: ${{ matrix.group }}\n");
 		expect(out.endsWith("    secrets: inherit\n")).toBe(true);
@@ -93,7 +93,7 @@ describe("groupedPublishCaller", () => {
 			const release = ungroupedJob();
 			expect(out().indexOf("  release-groups:")).toBeLessThan(out().indexOf("  release:\n"));
 			expect(release).toContain("    name: Release\n");
-			expect(release).toContain("uses: theholocron/.github/.github/workflows/delivery.publish.yml@main");
+			expect(release).toContain("uses: theholocron/holocron/.github/workflows/delivery.publish.yml@ci-v1");
 			expect(release).not.toContain("group:");
 			expect(release).not.toContain("matrix");
 			expect(release.trimEnd().endsWith("secrets: inherit")).toBe(true);

@@ -386,7 +386,7 @@ describe("WORKFLOW_TEMPLATES['platform.notifyCheck']", () => {
 		const yaml = generateThinCallerContent("platform.notifyCheck");
 		expect(yaml).toContain("workflow_dispatch");
 		expect(yaml).not.toMatch(/\n {2}(push|pull_request|schedule):/);
-		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/platform.notifyCheck.yml@main");
+		expect(yaml).toContain("uses: theholocron/holocron/.github/workflows/platform.notifyCheck.yml@ci-v1");
 		expect(yaml).toContain("secrets: inherit");
 		expect(yaml).toContain("permissions: {}");
 	});
@@ -464,7 +464,7 @@ describe("WORKFLOW_TEMPLATES['security.tokenExpiry']", () => {
 		expect(yaml).toContain('cron: "17 6 * * *"');
 		expect(yaml).toContain("workflow_dispatch: {}");
 		expect(yaml).toContain("contents: read");
-		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/security.tokenExpiry.yml@main");
+		expect(yaml).toContain("uses: theholocron/holocron/.github/workflows/security.tokenExpiry.yml@ci-v1");
 		expect(yaml).toContain("secrets: inherit");
 	});
 });

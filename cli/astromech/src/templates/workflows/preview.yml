@@ -1,4 +1,4 @@
-name: Preview
+name: Knowledge
 
 on: # yamllint disable-line rule:truthy
   pull_request:

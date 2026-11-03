@@ -57,7 +57,7 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token || github.token }}
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
       # editorconfig-checker has no npm distribution — install the prebuilt
@@ -69,12 +69,12 @@ jobs:
           curl -sSL https://github.com/editorconfig-checker/editorconfig-checker/releases/latest/download/editorconfig-checker-linux-amd64.tar.gz \
             | tar xz -C /usr/local/bin editorconfig-checker
 
-      - uses: theholocron/.github/.github/actions/holocron@main
+      - uses: theholocron/holocron/ci/actions/holocron@ci-v1
         name: Run prettier, editorconfig-checker, markdownlint
         with:
           task: sourceQuality.formatting
 
-      - uses: theholocron/.github/.github/actions/auto-commit@main
+      - uses: theholocron/holocron/ci/actions/auto-commit@ci-v1
         name: Commit and push formatting fixes
         if: >
           inputs.enable-auto-commit == true &&

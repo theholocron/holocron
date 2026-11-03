@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         name: Checkout repository
 
-      - uses: theholocron/.github/.github/actions/setup@main
+      - uses: theholocron/holocron/ci/actions/setup@ci-v1
         name: Setup
 
       - name: Run holocron sync github
@@ -51,7 +51,7 @@ jobs:
         # unbuilt workspace checkout — the holocron repo itself) runs this
         # ref's own build, including any postinstall/build-time script a
         # malicious push could carry. Neither sees a write credential.
-        uses: theholocron/.github/.github/actions/holocron@main
+        uses: theholocron/holocron/ci/actions/holocron@ci-v1
         env:
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
         with:
