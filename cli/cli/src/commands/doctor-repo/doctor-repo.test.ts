@@ -306,7 +306,7 @@ describe("doctor repo — branch protection", () => {
 		expect(problems).toContain("missing ruleset rule non_fast_forward");
 		expect(problems).toContain("missing ruleset rule required_status_checks");
 		expect(problems).toContain("missing required check DCO");
-		expect(problems).toContain("unexpected required check Stale / Check");
+		expect(problems).toContain("stale context Stale / Check (not in the derived required checks)");
 	});
 
 	it("expects only `ci / Required checks` and `DCO` in the repo that hosts the ci aggregate", async () => {
@@ -331,8 +331,8 @@ describe("doctor repo — branch protection", () => {
 		rmSync(dir, { recursive: true, force: true });
 		const problems = byId(report.rows, "repo-protection").problems;
 		expect(problems).toContain("missing required check ci / Required checks");
-		expect(problems).toContain("unexpected required check Test / Conclusion");
-		expect(problems).toContain("unexpected required check Extra / Check");
+		expect(problems).toContain("stale context Test / Conclusion (not in the derived required checks)");
+		expect(problems).toContain("stale context Extra / Check (not in the derived required checks)");
 		expect(problems).not.toContain("missing required check DCO");
 	});
 
