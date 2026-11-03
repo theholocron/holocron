@@ -19,6 +19,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import {
 	copyToClipboard,
 	dotenvLine,
+	type FileIdentity,
 	getToken,
 	isGitIgnored,
 	isKeyringAvailable,
@@ -35,6 +36,13 @@ import type { AuthExportReport, RunAuthExportInput } from "./auth-export.type.js
 
 const COMMAND = "auth export";
 
+/** Signals that end the wait for the import, with the exit status each is conventionally reported as. */
+const INTERRUPTS = [
+	["SIGINT", 130],
+	["SIGTERM", 143],
+	["SIGHUP", 129],
+] as const;
+
 /** The file the lines go to on a terminal when none is named. */
 const DEFAULT_FILE = ".credentials";
 
@@ -48,29 +56,48 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	};
 
 	// Once the lines are in the file, say what to do with it and, on a terminal, delete it when the import is done.
-	const finishFile = async (path: string): Promise<void> => {
+	// Returns whether the file is gone (or was left on purpose): `false` means plaintext tokens are still on disk.
+	const finishFile = async (path: string, identity: FileIdentity): Promise<boolean> => {
 		print(`wrote ${path} (readable only by you)`);
 		print("import it in the 1Password app: Developer, View Environments, the Environment, Import .env file");
 		if (input.keep || !input.interactive) {
-			print(`it holds your tokens in plain text: delete it when you are done (rm ${path})`);
-			return;
+			print(`it holds your tokens in plain text: delete it when you are done: ${path}`);
+			return true;
 		}
-		const remove = () => (input.shred ?? shredFile)(path);
-		// Ctrl-C must not leave the file behind.
-		const onInterrupt = () => {
-			remove();
-			process.exit(130);
+		// Reports what happened to the file honestly: "deleted" only when it was, and what to do when it was not.
+		const cleanup = (): boolean => {
+			try {
+				const outcome = (input.shred ?? shredFile)(path, identity);
+				if (outcome === "deleted") print(`deleted ${path}`);
+				else if (outcome === "missing") print(`${path} was already gone`);
+				else print(`left ${path} alone: it is no longer the file this command wrote`);
+				return true;
+			} catch (err) {
+				print(`could not delete ${path}: ${errorMessage(err)}`);
+				print(`it holds your tokens in plain text: delete it yourself: ${path}`);
+				return false;
+			}
 		};
-		process.once("SIGINT", onInterrupt);
+		// Ctrl-C, a terminated process and a closed terminal must not leave the file behind.
+		const handlers = INTERRUPTS.map(([signal, code]) => {
+			const handler = () => {
+				cleanup();
+				process.exit(code);
+			};
+			process.once(signal, handler);
+			return [signal, handler] as const;
+		});
+		let cleaned: boolean;
 		try {
 			await (input.waitForImport ?? waitForEnter)(
 				"press Enter when the import is done and the file will be deleted: "
 			);
 		} finally {
-			process.off("SIGINT", onInterrupt);
-			remove();
+			for (const [signal, handler] of handlers) process.off(signal, handler);
+			// Also when the wait threw: the file must not outlive the command.
+			cleaned = cleanup();
 		}
-		print(`deleted ${path}`);
+		return cleaned;
 	};
 
 	if (!input.to && input.outKind === "other") {
@@ -139,6 +166,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	const target = input.to ?? (input.outKind === "terminal" ? "file" : undefined);
 	let destination: AuthExportReport["destination"];
 	let file: string | undefined;
+	let identity: FileIdentity | undefined;
 	if (lines.length > 0) {
 		const text = `${lines.join("\n")}\n`;
 		if (target === "clipboard") {
@@ -153,16 +181,27 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 			}
 			destination = "clipboard";
 		} else if (target === "file") {
+			if ((input.platform ?? process.platform) === "win32") {
+				return refuse(
+					"windows",
+					"cannot make the file private on Windows: its mode bits are not enforced, so other users may read it",
+					"use `holocron auth export --copy`, or pipe the output to a tool"
+				);
+			}
 			file = resolve(dirname(input.loaded.filepath), input.file || DEFAULT_FILE);
-			if ((input.isIgnored ?? isGitIgnored)(file) === false) {
+			// Only a positive answer lets the file be written: if git cannot say, it might be committed.
+			const git = (input.isIgnored ?? isGitIgnored)(file);
+			if (git === "tracked" || git === "unknown") {
 				return refuse(
 					"not-ignored",
-					`refusing to write tokens to ${file}: git does not ignore it, so it could be committed`,
+					git === "tracked"
+						? `refusing to write tokens to ${file}: git does not ignore it, so it could be committed`
+						: `refusing to write tokens to ${file}: git could not say whether it ignores it`,
 					"add it to .gitignore, or choose a path outside the repository with --file"
 				);
 			}
 			try {
-				(input.writeFile ?? writeCredentialsFile)(file, text, input.force === true);
+				identity = (input.writeFile ?? writeCredentialsFile)(file, text, input.force === true);
 			} catch (err) {
 				return refuse(
 					"write",
@@ -189,8 +228,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		print(`could not load, so the tokens they take are not listed: ${unavailable.join(", ")}`);
 	}
 	if (destination === "clipboard") print("copied to the clipboard: paste it, then clear the clipboard");
-	if (destination === "file" && file) await finishFile(file);
-	const status = exported.length > 0 ? "ok" : "skip";
+	// A file that could not be deleted is a failure even though the export worked: tokens are still on disk.
+	const cleaned = destination === "file" && file && identity ? await finishFile(file, identity) : true;
+	const status = !cleaned ? "fail" : exported.length > 0 ? "ok" : "skip";
 	logger.info(
 		{
 			exported: exported.length,

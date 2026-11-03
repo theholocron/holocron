@@ -1,5 +1,6 @@
 import type { Logger } from "@theholocron/observability/core";
 
+import type { FileIdentity, GitIgnoreState, ShredOutcome } from "../../auth/index.js";
 import type { LoadedConfig } from "../../config/index.js";
 import type { AuthImporter } from "../auth/index.js";
 
@@ -35,14 +36,16 @@ export interface RunAuthExportInput {
 	interactive?: boolean;
 	/** Puts text on the system clipboard. Defaults to `clipboardy`, which uses the platform's own tool. */
 	copy?: (text: string) => Promise<void>;
-	/** Writes the private file. Defaults to {@link writeCredentialsFile}. */
-	writeFile?: (path: string, text: string, force: boolean) => void;
-	/** Overwrites and removes the file. Defaults to {@link shredFile}. */
-	shred?: (path: string) => void;
-	/** Whether git ignores the path (`null` outside a repository). Defaults to asking git. */
-	isIgnored?: (path: string) => boolean | null;
+	/** Writes the private file and says which file it is. Defaults to {@link writeCredentialsFile}. */
+	writeFile?: (path: string, text: string, force: boolean) => FileIdentity;
+	/** Overwrites and removes the file it was written as. Defaults to {@link shredFile}. */
+	shred?: (path: string, identity: FileIdentity) => ShredOutcome;
+	/** What git says about the path. Defaults to asking git. */
+	isIgnored?: (path: string) => GitIgnoreState;
+	/** The platform, for refusing the file where its mode means nothing. Defaults to the running one. */
+	platform?: string;
 	/** Waits for the user to finish importing. Defaults to waiting for Enter on the terminal. */
-	waitForImport?: (message: string) => Promise<void>;
+	waitForImport?: (message: string) => Promise<unknown>;
 	/** Also take a token that is set in the environment, ahead of the keyring. */
 	fromEnv?: boolean;
 	/** Loads a plugin package for its `tokens`. Defaults to resolving from the directory of the loaded config. */
