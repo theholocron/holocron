@@ -1,0 +1,20 @@
+name: Source Quality
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+concurrency:
+  group: source-quality-formatting-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  formatting:
+    name: Formatting
+    uses: theholocron/.github/.github/workflows/lint-editorconfig.yml@main
+    secrets: inherit

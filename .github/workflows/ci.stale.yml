@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   stale:
-    uses: ./.github/workflows/stale.yml
+    uses: ./.github/workflows/mark-stale.yml
     with:
       exempt-issue-labels: "in-progress,wip"
       exempt-all-issue-milestones: true

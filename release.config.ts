@@ -1,4 +1,4 @@
-import { hostedReusableWorkflows } from "@theholocron/astromech";
+import { hostedReusableWorkflows, workflowFile } from "@theholocron/astromech";
 import { loadTasksConfig, releaseGroups } from "@theholocron/astromech/config";
 import { groupReleaseConfig, ungroupedReleaseConfig } from "@theholocron/semantic-release-config";
 
@@ -20,10 +20,10 @@ const exclude = groups.map((name) => ` --exclude-group ${name}`).join("");
 // never moves a tag that outside callers follow.
 const tagOnly = new Set(["ci"]);
 
-// What counts as a change to `ci`: its folder, and the reusables generated from it into `.github/workflows` (a commit
-// that changes only those still changes what callers get). Not the repo's own `ci.<name>.yml` callers or its
+// What counts as a change to `ci`: its folder, and the reusables generated from it into `.github/workflows` under the
+// flat names (`workflowFile`; a commit that changes only those still changes what callers get). Not the repo's own `ci.<name>.yml` callers or its
 // hand-written workflows, which are not the group's.
-const ciPaths = ["ci", ...[...hostedReusableWorkflows().keys()].map((name) => `.github/workflows/${name}.yml`)];
+const ciPaths = ["ci", ...[...hostedReusableWorkflows().keys()].map((id) => `.github/workflows/${workflowFile(id)}`)];
 
 export default group && tagOnly.has(group)
 	? groupReleaseConfig({

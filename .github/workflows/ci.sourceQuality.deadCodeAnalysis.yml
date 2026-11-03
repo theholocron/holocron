@@ -17,5 +17,5 @@ permissions:
 jobs:
   dead-code-analysis:
     name: Dead Code Analysis
-    uses: ./.github/workflows/sourceQuality.deadCodeAnalysis.yml
+    uses: ./.github/workflows/lint-unused.yml
     secrets: inherit

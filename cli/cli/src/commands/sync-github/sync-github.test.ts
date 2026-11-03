@@ -142,7 +142,7 @@ describe("runSyncGithub: the files that moved to holocron", () => {
 		const stamped = blobsOf(calls).map((c) => c.body!["content"] as string);
 		const notice = stamped.find((text) => text.includes("# DEPRECATED — frozen copy."));
 		expect(notice).toBeDefined();
-		expect(notice).toContain("use theholocron/holocron/.github/workflows/verification.unitTests.yml@ci-v1");
+		expect(notice).toContain("use theholocron/holocron/.github/workflows/test-unit.yml@ci-v1");
 		expect(notice!.startsWith(live.split("\n\n")[0]!)).toBe(true);
 		expect(notice!.endsWith("name: Test\n")).toBe(true);
 	});

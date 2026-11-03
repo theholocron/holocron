@@ -166,7 +166,7 @@ Two more feeds reach Discord without a workflow: Sentry alerts go to #errors thr
 
 ### The repo-sync wiring
 
-`sync-repo` is a reusable workflow (`ci/workflows/platform.repoSync.yml`, copied to `theholocron/.github`). It declares `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `HOLOCRON_NOTIFY_WEBHOOK_ALERTS` and `HOLOCRON_NOTIFY_ALERT_ROLE` as optional secrets, and a repository's generated caller passes them with `secrets: inherit`, so a repository that has the org secrets posts and one that does not stays quiet. The notify steps run after the pull request step, and a separate `notify-failure` job reports a sync that errored or timed out, so a run the sync job's own timeout cuts short still gets reported. A superseded run (cancelled by a newer one) is not reported.
+`sync-repo` is a reusable workflow (`ci/workflows/sync-repo.yml`, copied to `theholocron/.github`). It declares `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `HOLOCRON_NOTIFY_WEBHOOK_ALERTS` and `HOLOCRON_NOTIFY_ALERT_ROLE` as optional secrets, and a repository's generated caller passes them with `secrets: inherit`, so a repository that has the org secrets posts and one that does not stays quiet. The notify steps run after the pull request step, and a separate `notify-failure` job reports a sync that errored or timed out, so a run the sync job's own timeout cuts short still gets reported. A superseded run (cancelled by a newer one) is not reported.
 
 ### Checking the wiring: `check-notify`
 

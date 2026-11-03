@@ -41,7 +41,7 @@ jobs:
   deploy:
     name: Deploy
     if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/delivery.deploy.yml
+    uses: ./.github/workflows/deploy.yml
     with:
       type: docs
     secrets: inherit

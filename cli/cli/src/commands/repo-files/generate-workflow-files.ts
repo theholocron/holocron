@@ -3,6 +3,7 @@ import {
 	hostedReusableWorkflows,
 	KNOWN_WORKFLOWS,
 	localize,
+	workflowFile,
 	workflowKey,
 } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
@@ -21,7 +22,7 @@ import type { GeneratedWorkflowFile, RepoFilesInput, SkippedRepoFile } from "./r
  * manifest (the linter set, deploy paths, deploy and preview), and a bad manifest throws.
  *
  * In the repo that hosts the reusables (it has the `@theholocron/ci` package) every config's callers are named
- * `ci.<name>.yml` and call `./.github/workflows/<name>.yml`, and the root config also writes the reusables beside them.
+ * `ci.<name>.yml` and call `./.github/workflows/<flat name>.yml`, and the root config also writes the reusables beside them.
  */
 export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflowFile | SkippedRepoFile)[] {
 	const config = input.loaded.resolved;
@@ -93,14 +94,15 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 				workflow: { task: "ci", filename },
 			});
 		}
-		for (const [name, content] of hostedReusableWorkflows()) {
+		for (const [id, content] of hostedReusableWorkflows()) {
+			const filename = workflowFile(id);
 			entries.push({
 				kind: "file",
-				path: `.github/workflows/${name}.yml`,
-				content: hostedReusableFile(name, content),
-				step: `write reusable workflow ${name}`,
-				syncStep: `sync reusable workflow ${name}`,
-				workflow: { task: name, filename: `${name}.yml` },
+				path: `.github/workflows/${filename}`,
+				content: hostedReusableFile(id, content),
+				step: `write reusable workflow ${id}`,
+				syncStep: `sync reusable workflow ${id}`,
+				workflow: { task: id, filename },
 			});
 		}
 	}

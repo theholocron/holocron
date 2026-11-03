@@ -17,5 +17,5 @@ permissions:
 jobs:
   bundle-size:
     name: Audit the Bundle Size
-    uses: ./.github/workflows/delivery.bundleSize.yml
+    uses: ./.github/workflows/measure-bundle.yml
     secrets: inherit

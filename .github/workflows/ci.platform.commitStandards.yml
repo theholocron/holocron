@@ -19,5 +19,5 @@ permissions:
 jobs:
   commit-standards:
     name: Commit Standards
-    uses: ./.github/workflows/platform.commitStandards.yml
+    uses: ./.github/workflows/lint-commits.yml
     secrets: inherit

@@ -12,18 +12,22 @@
  * the *thin-caller bases* written into each consumer repo's `.github/workflows/`.
  */
 
-import { ACTIONS, WORKFLOWS } from "@theholocron/ci";
+import { ACTIONS, workflowFile, WORKFLOWS } from "@theholocron/ci";
 
+import { flatFile, legacyFile } from "../../vocabulary/index.js";
 import { CI_TARGET, rehomeAll } from "../ci-ref/index.js";
 import { WORKFLOW_TEMPLATES, workflowTriggers } from "../github-action-thin-callers/index.js";
 
-/** `workflow_call` implementations → `.github/workflows/<name>.yml`. */
+/**
+ * The workflows by task id (`test:unit`): a hosting repo writes one as `.github/workflows/<workflowFile(id)>` and
+ * `theholocron/.github` holds the frozen copy under its old name ({@link legacyFile}).
+ */
 export const REUSABLE_WORKFLOWS: Record<string, string> = rehomeAll(WORKFLOWS);
 
 /**
- * The reusables a repo that hosts them keeps in its own `.github/workflows`, by name: the ones that only run when
+ * The reusables a repo that hosts them keeps in its own `.github/workflows`, by id: the ones that only run when
  * another workflow calls them. A reusable that is also started by an event or by hand (`tag`, `sync-dispatch`,
- * `platform.dispatchedCheck`) would become a live workflow of the hosting repo, and runs where it is dispatched, so
+ * `check-dispatched`) would become a live workflow of the hosting repo, and runs where it is dispatched, so
  * it stays out (spec `tech-workflows-in-holocron`, #1216).
  */
 export function hostedReusableWorkflows(): Map<string, string> {
@@ -33,6 +37,14 @@ export function hostedReusableWorkflows(): Map<string, string> {
 			return triggers.length === 1 && triggers[0] === "workflow_call";
 		})
 	);
+}
+
+/**
+ * The path in `theholocron/.github` of the reusable workflow `id`: the old file name, because the frozen copies and the
+ * workflows still dispatched by name (`platform.dispatchedCheck.yml`, which Sentinel calls) live there under it.
+ */
+function remotePath(id: string): string {
+	return `.github/workflows/${legacyFile(workflowFile(id))}`;
 }
 
 /** Composite actions → `.github/actions/<name>/action.yml` (key includes `/action`). */
@@ -83,8 +95,8 @@ export function reusableTemplates(): Map<string, string> {
 	for (const [name, body] of Object.entries(REUSABLE_ACTIONS)) {
 		out.set(`.github/actions/${name}.yml`, `${header}${body}`);
 	}
-	for (const [name, body] of Object.entries(REUSABLE_WORKFLOWS)) {
-		out.set(`.github/workflows/${name}.yml`, `${header}${body}`);
+	for (const [id, body] of Object.entries(REUSABLE_WORKFLOWS)) {
+		out.set(remotePath(id), `${header}${body}`);
 	}
 	for (const [name, body] of Object.entries(WORKFLOW_TEMPLATES)) {
 		out.set(`workflow-templates/${name}.yml`, `${header}${body}`);
@@ -104,7 +116,7 @@ export function reusableTemplates(): Map<string, string> {
  */
 export function frozenReusablePaths(): string[] {
 	return [
-		...[...hostedReusableWorkflows().keys()].map((name) => `.github/workflows/${name}.yml`),
+		...[...hostedReusableWorkflows().keys()].map(remotePath),
 		...Object.keys(REUSABLE_ACTIONS).map((name) => `.github/actions/${name}.yml`),
 	];
 }
@@ -127,7 +139,7 @@ export function stampDeprecated(content: string, path: string): string {
 	const workflow = /^\.github\/workflows\/([^/]+\.yml)$/.exec(path);
 	const replacement = action
 		? `${CI_TARGET.actions}/${action[1]}@${CI_TARGET.ref}`
-		: `${CI_TARGET.workflows}/${workflow?.[1] ?? path}@${CI_TARGET.ref}`;
+		: `${CI_TARGET.workflows}/${flatFile(workflow?.[1] ?? path)}@${CI_TARGET.ref}`;
 	const notice = [
 		DEPRECATED,
 		`# This file no longer changes. It moved to theholocron/holocron; use ${replacement}.`,

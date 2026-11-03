@@ -24,7 +24,7 @@ permissions:
 jobs:
   build:
     name: Build
-    uses: ./.github/workflows/delivery.build.yml
+    uses: ./.github/workflows/build.yml
     with:
       affected: true
     secrets: inherit

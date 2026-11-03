@@ -3,8 +3,10 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
+import { legacyFile } from "../../vocabulary/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 import {
 	frozenReusablePaths,
@@ -17,9 +19,9 @@ import {
 	WORKFLOW_TEMPLATE_PROPERTIES,
 } from "./github-action-reusable-workflows.js";
 
-describe("REUSABLE_WORKFLOWS['delivery.publish'] — npm provenance", () => {
+describe("REUSABLE_WORKFLOWS['release'] — npm provenance", () => {
 	it("installs sigstore next to npm 11, which the provenance step needs at module parse time", () => {
-		expect(REUSABLE_WORKFLOWS["delivery.publish"]).toContain("npm install -g npm@11 sigstore");
+		expect(REUSABLE_WORKFLOWS["release"]).toContain("npm install -g npm@11 sigstore");
 	});
 });
 
@@ -29,7 +31,9 @@ describe("frozen copies in theholocron/.github", () => {
 	it("are every hosted reusable and every composite action, at the paths `sync github` used to push", () => {
 		const pushed = new Set(reusableTemplates().keys());
 		expect(frozen.filter((path) => !pushed.has(path))).toEqual([]);
+		// the frozen copies keep the old file names
 		expect(frozen).toContain(".github/workflows/delivery.publish.yml");
+		expect(frozen).not.toContain(".github/workflows/release.yml");
 		expect(frozen).toContain(".github/actions/setup/action.yml");
 		expect(frozen.length).toBe(hostedReusableWorkflows().size + Object.keys(REUSABLE_ACTIONS).length);
 	});
@@ -54,7 +58,7 @@ describe("frozen copies in theholocron/.github", () => {
 		}
 		const stamped = stampDeprecated(`${header}name: Test\n`, ".github/workflows/verification.unitTests.yml");
 		expect(stamped).toContain("# DEPRECATED — frozen copy.");
-		expect(stamped).toContain("use theholocron/holocron/.github/workflows/verification.unitTests.yml@ci-v1.");
+		expect(stamped).toContain("use theholocron/holocron/.github/workflows/test-unit.yml@ci-v1.");
 		expect(stamped).toContain("`holocron probe ci refs` finds no reference");
 		expect(stamped).toContain("issues/1215");
 	});
@@ -93,7 +97,7 @@ describe("hostedReusableWorkflows()", () => {
 	});
 
 	it("leaves out the ones that are also started by an event or by hand, which run where they live", () => {
-		const left = ["tag", "sync-dispatch", "platform.dispatchedCheck"];
+		const left = ["tag", "sync-dispatch", "check-dispatched"];
 		expect(left.filter((name) => !(name in REUSABLE_WORKFLOWS))).toEqual([]);
 		expect(left.filter((name) => hosted.has(name))).toEqual([]);
 	});
@@ -117,8 +121,9 @@ describe("reusableTemplates()", () => {
 		for (const name of Object.keys(REUSABLE_ACTIONS)) {
 			expect(batch.has(`.github/actions/${name}.yml`)).toBe(true);
 		}
-		for (const name of Object.keys(REUSABLE_WORKFLOWS)) {
-			expect(batch.has(`.github/workflows/${name}.yml`)).toBe(true);
+		// in theholocron/.github the reusables keep their old file names
+		for (const id of Object.keys(REUSABLE_WORKFLOWS)) {
+			expect(batch.has(`.github/workflows/${legacyFile(workflowFile(id))}`)).toBe(true);
 		}
 		for (const name of Object.keys(WORKFLOW_TEMPLATES)) {
 			expect(batch.has(`workflow-templates/${name}.yml`)).toBe(true);
@@ -158,7 +163,7 @@ describe("reusableTemplates()", () => {
 	});
 
 	it("platform.repoSync.yml runs `holocron repo sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
-		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
+		const wf = REUSABLE_WORKFLOWS["sync-repo"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
 		expect(wf).toMatch(/command: repo sync/);
 		expect(wf).not.toContain("node cli/cli/dist/cli.mjs");
@@ -194,14 +199,14 @@ describe("reusableTemplates()", () => {
 
 describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	it("verification.typeSafety.yml runs the task through the holocron action", () => {
-		const wf = REUSABLE_WORKFLOWS["verification.typeSafety"]!;
+		const wf = REUSABLE_WORKFLOWS["typecheck"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
 		expect(wf).toMatch(/task: verification\.typeSafety/);
 		expect(wf).not.toContain("run: pnpm typecheck");
 	});
 
 	it("verification.unitTests.yml unit job runs the task through the holocron action", () => {
-		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
+		const wf = REUSABLE_WORKFLOWS["test:unit"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
 		expect(wf).toMatch(/task: verification\.unitTests/);
 		expect(wf).not.toContain("run: pnpm test:coverage");
@@ -216,7 +221,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// gets when it lists the task; verification.unitTests itself must
 		// never regain a run-chromatic/chromatic-projects input or a
 		// visual-and-composition job.
-		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
+		const wf = REUSABLE_WORKFLOWS["test:unit"]!;
 		expect(wf).not.toContain("run-chromatic");
 		expect(wf).not.toContain("chromatic-projects");
 		expect(wf).not.toContain("visual-and-composition");
@@ -224,14 +229,14 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("verification.visualRegression.yml runs one matrix job per chromatic-projects entry, with no if: gate (holocron#394/#1062)", () => {
-		const wf = REUSABLE_WORKFLOWS["verification.visualRegression"]!;
+		const wf = REUSABLE_WORKFLOWS["test:visual"]!;
 		expect(wf).toContain("chromaui/action");
 		expect(wf).toMatch(/chromatic-projects:[\s\S]*?required: true/);
 		expect(wf).not.toMatch(/visual-and-composition:\s*\n\s*if:/);
 	});
 
 	it("every Codecov upload fails its step when it fails, instead of passing silently (holocron#934)", () => {
-		for (const name of ["verification.unitTests", "delivery.publish"] as const) {
+		for (const name of ["test:unit", "release"] as const) {
 			const uploads = REUSABLE_WORKFLOWS[name]!.split("- uses: codecov/codecov-action@").slice(1);
 			expect(uploads.length).toBeGreaterThan(0);
 			for (const step of uploads) {
@@ -240,11 +245,11 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		}
 		// coverage + test results in the unit and Storybook jobs, the empty upload, plus the release-commit upload.
 		// The per-flag upload is the codecov-upload action, not a codecov-action step, so it isn't counted here.
-		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!.split("- uses: codecov/codecov-action@")).toHaveLength(6);
-		expect(REUSABLE_WORKFLOWS["delivery.publish"]!.split("- uses: codecov/codecov-action@")).toHaveLength(2);
+		expect(REUSABLE_WORKFLOWS["test:unit"]!.split("- uses: codecov/codecov-action@")).toHaveLength(6);
+		expect(REUSABLE_WORKFLOWS["release"]!.split("- uses: codecov/codecov-action@")).toHaveLength(2);
 	});
 
-	it.each(["verification.unitTests", "verification.typeSafety", "delivery.build"] as const)(
+	it.each(["test:unit", "typecheck", "build"] as const)(
 		"%s takes an `affected` input that is off by default and fetches full history only when it is on",
 		(name) => {
 			const wf = REUSABLE_WORKFLOWS[name]!;
@@ -258,7 +263,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	);
 
 	it("verification.unitTests posts the Codecov statuses with an empty upload when an affected run wrote no report, and only then", () => {
-		const wf = REUSABLE_WORKFLOWS["verification.unitTests"]!;
+		const wf = REUSABLE_WORKFLOWS["test:unit"]!;
 		const unit = wf.split("\n  storybook:\n")[0]!;
 		expect(unit).toContain("run_command: empty-upload");
 		expect(unit).toContain(
@@ -298,7 +303,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("verification.unitTests uploads per flag only when `uploads` is set, and the old single upload otherwise", () => {
-		const unit = REUSABLE_WORKFLOWS["verification.unitTests"]!.split("\n  storybook:\n")[0]!;
+		const unit = REUSABLE_WORKFLOWS["test:unit"]!.split("\n  storybook:\n")[0]!;
 		expect(unit).toMatch(/uploads:\s*\n\s*description:[^\n]*\n\s*type: string\n\s*required: false\n\s*default: ""/);
 		expect(unit).toContain("if: ${{ inputs.uploads != '' }}");
 		expect(unit).toContain("uses: theholocron/.github/.github/actions/codecov-upload@main");
@@ -311,18 +316,16 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("a failed Codecov upload fails the unit-test job, leaving 'required' to decide what blocks a merge (holocron#934)", () => {
-		expect(REUSABLE_WORKFLOWS["verification.unitTests"]!).not.toContain("continue-on-error");
+		expect(REUSABLE_WORKFLOWS["test:unit"]!).not.toContain("continue-on-error");
 	});
 
 	it("but a failed release-commit upload doesn't fail an already-published release or skip the Sentry steps (holocron#934)", () => {
-		const step = REUSABLE_WORKFLOWS["delivery.publish"]!.split("- uses: codecov/codecov-action@")[1]!.split(
-			"\n\n"
-		)[0]!;
+		const step = REUSABLE_WORKFLOWS["release"]!.split("- uses: codecov/codecov-action@")[1]!.split("\n\n")[0]!;
 		expect(step).toContain("continue-on-error: true");
 	});
 
 	it("delivery.publish.yml uploads coverage for the [skip ci] release commit (holocron#644)", () => {
-		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
+		const wf = REUSABLE_WORKFLOWS["release"]!;
 		// detect the release commit semantic-release just pushed
 		expect(wf).toMatch(/BEFORE=\$\(git rev-parse HEAD\)/);
 		expect(wf).toMatch(/echo "commit=\$AFTER" >> "\$GITHUB_OUTPUT"/);
@@ -333,7 +336,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.publish.yml deploys from its own job, so VERCEL_TOKEN never reaches the release job (holocron#930)", () => {
-		const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
+		const wf = REUSABLE_WORKFLOWS["release"]!;
 		const [releaseJob, rest] = wf.split("\n  deploy:\n") as [string, string];
 		const deployJob = rest.split("\n  sync-readme:")[0]!;
 
@@ -355,7 +358,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck runs `holocron monitoring resolve-checks` then `monitoring run-resolved` with the preview URL input", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		expect(previewCheck).toContain("workflow_call:");
 		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
 		expect(previewCheck).toContain("command: monitoring resolve-checks");
@@ -366,7 +369,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck validates the preview URL before forwarding it anywhere", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// Review on #1024: the triggering deployment_status event's
 		// environment_url is attacker-influenceable (anyone with
 		// `deployments: write` can set it), so it must be validated as an
@@ -383,7 +386,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck declares VERCEL_TOKEN and VERCEL_PROTECTION_BYPASS_SECRET as optional", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// Review on #1030: Vercel's Deployment Protection (on by default for
 		// Preview deployments) redirects an unauthenticated request to its
 		// own SSO login before this job's own fetch ever reaches the app --
@@ -395,7 +398,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck splits config-loading from the credentialed request into separate steps (review on #1032)", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// `resolve-checks` loads and runs a PR's own holocron.config.ts --
 		// untrusted. It must come first and must never see either secret,
 		// or a malicious config could read and exfiltrate them before the
@@ -429,7 +432,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck never sets either secret job-wide — only within the run-resolved step's own env", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// A job-level `env:` block (immediately under runs-on/timeout-minutes,
 		// before `steps:`) would hand both secrets to every step, including
 		// the untrusted resolve-checks one -- the exact leak this split
@@ -443,7 +446,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck verifies deployment ownership against vercel-project before attaching the bypass header", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// Review on #1032: a bare *.vercel.app hostname proves nothing on its
 		// own -- anyone can register their own Vercel project. --vercel-project
 		// is what `monitoring run-resolved` gates the bypass header on (see
@@ -459,7 +462,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck derives author trust itself, not from the attacker-controllable deployment payload (holocron#1057/#1058)", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// Sourcery review on #1056: confirmed live (runtime logs) that
 		// Vercel forwards x-vercel-protection-bypass straight through to
 		// the deployed function -- an untrusted PR's own code could read
@@ -498,7 +501,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck fails an untrusted deployment outright, rather than letting an unverified response report green (holocron#1058)", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// Sourcery review: the first attempt cleared --vercel-project
 		// itself for an untrusted deployment, which made
 		// resolveVercelBypassHeaders treat "no project given" as
@@ -523,7 +526,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck checks out the deployed commit explicitly, not the default branch", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		expect(previewCheck).toMatch(/sha:\s*\n\s*description:/);
 		expect(previewCheck).toMatch(
 			/actions\/checkout@[^\n]+\n\s+name: Checkout repository\n\s+with:\n\s+ref: \$\{\{ inputs\.sha \}\}/
@@ -531,14 +534,14 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewCheck's cwd input defaults to the repo root for a single-package repo", () => {
-		const previewCheck = REUSABLE_WORKFLOWS["delivery.previewCheck"]!;
+		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		expect(previewCheck).toMatch(
 			/cwd:\s*\n\s*description:[^\n]*\n\s*required: false\n\s*type: string\n\s*default: "\."/
 		);
 	});
 
 	it("delivery.previewDeploy never carries trust data through the deployment payload (holocron#1058 follow-up)", () => {
-		const previewDeploy = REUSABLE_WORKFLOWS["delivery.previewDeploy"]!;
+		const previewDeploy = REUSABLE_WORKFLOWS["deploy-preview"]!;
 		// A deployment's `payload` field is attacker-controllable by
 		// anyone with `deployments: write` -- the same precondition
 		// already needed to create a deployment_status event at all --
@@ -555,7 +558,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("delivery.previewDeploy leaves a visible notice when a fork PR has no deploy credentials (holocron#1027)", () => {
-		const previewDeploy = REUSABLE_WORKFLOWS["delivery.previewDeploy"]!;
+		const previewDeploy = REUSABLE_WORKFLOWS["deploy-preview"]!;
 		// Matched as the actual if/then/else/fi structure, not two
 		// independent substring checks -- those would each still pass
 		// (false green) if the notice moved into the token-present
@@ -576,39 +579,35 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
-		const build = REUSABLE_WORKFLOWS["delivery.bundleSize"]!;
+		const build = REUSABLE_WORKFLOWS["measure-bundle"]!;
 		expect(build).toMatch(/task: delivery\.build/);
 
-		const knip = REUSABLE_WORKFLOWS["sourceQuality.deadCodeAnalysis"]!;
+		const knip = REUSABLE_WORKFLOWS["lint:unused"]!;
 		expect(knip).toMatch(/task: sourceQuality\.deadCodeAnalysis/);
 
-		const performance = REUSABLE_WORKFLOWS["verification.performance"]!;
+		const performance = REUSABLE_WORKFLOWS["test:perf"]!;
 		expect(performance).toMatch(/task: verification\.performance\n\s+args: --config=/);
 		expect(performance).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
 	});
 
 	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
-		expect(REUSABLE_WORKFLOWS["sourceQuality.staticAnalysis"]).toMatch(/task: sourceQuality\.staticAnalysis/);
-		expect(REUSABLE_WORKFLOWS["sourceQuality.formatting"]).toMatch(/task: sourceQuality\.formatting/);
-		expect(REUSABLE_WORKFLOWS["sourceQuality.structuredDataValidation"]).toMatch(
-			/task: sourceQuality\.structuredDataValidation/
-		);
-		expect(REUSABLE_WORKFLOWS["security.secretDetection"]).toMatch(/task: security\.secretDetection/);
+		expect(REUSABLE_WORKFLOWS["lint:code"]).toMatch(/task: sourceQuality\.staticAnalysis/);
+		expect(REUSABLE_WORKFLOWS["lint:editorconfig"]).toMatch(/task: sourceQuality\.formatting/);
+		expect(REUSABLE_WORKFLOWS["lint:data"]).toMatch(/task: sourceQuality\.structuredDataValidation/);
+		expect(REUSABLE_WORKFLOWS["scan:secrets"]).toMatch(/task: security\.secretDetection/);
 		// commitlint and the repo-validation scripts have no local runner — they
 		// don't go through the holocron composite action at all.
-		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain("commitlint --from");
+		expect(REUSABLE_WORKFLOWS["lint:commits"]).toContain("commitlint --from");
 		// --config <resolved shared path> (config-resolution workstream, #676),
 		// guarded so it falls back to auto-discovery when the shared package
 		// isn't installed.
-		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain(
+		expect(REUSABLE_WORKFLOWS["lint:commits"]).toContain(
 			'COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"'
 		);
-		expect(REUSABLE_WORKFLOWS["platform.commitStandards"]).toContain('if [ -f "$COMMITLINT_CONFIG" ]; then');
-		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(/task: platform\.repoValidation\n\s+job: adrs/);
-		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).not.toContain("job: registry");
-		expect(REUSABLE_WORKFLOWS["platform.repoValidation"]).toMatch(
-			/task: platform\.repoValidation\n\s+job: docsPresence/
-		);
+		expect(REUSABLE_WORKFLOWS["lint:commits"]).toContain('if [ -f "$COMMITLINT_CONFIG" ]; then');
+		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: platform\.repoValidation\n\s+job: adrs/);
+		expect(REUSABLE_WORKFLOWS["validate"]).not.toContain("job: registry");
+		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: platform\.repoValidation\n\s+job: docsPresence/);
 	});
 
 	it("no reusable workflow invokes the super-linter action anymore (D12)", () => {
@@ -618,8 +617,8 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 });
 
-describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2 dispatch target (holocron#794)", () => {
-	const wf = REUSABLE_WORKFLOWS["platform.dispatchedCheck"]!;
+describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatch target (holocron#794)", () => {
+	const wf = REUSABLE_WORKFLOWS["check-dispatched"]!;
 
 	it("is workflow_dispatch-triggered, not workflow_call — Sentinel invokes it directly via the Actions API", () => {
 		expect(wf).toContain("workflow_dispatch:");
@@ -697,8 +696,8 @@ describe("REUSABLE_WORKFLOWS['platform.dispatchedCheck'] — Sentinel's Bucket 2
 	});
 });
 
-describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", () => {
-	const wiki = REUSABLE_WORKFLOWS["knowledge.wiki"]!;
+describe("REUSABLE_WORKFLOWS['publish-wiki'] — preview deployment widget", () => {
+	const wiki = REUSABLE_WORKFLOWS["publish-wiki"]!;
 
 	it("reads the preview URL from Fern's output, not a constructed string", () => {
 		expect(wiki).toContain("id: preview");
@@ -721,8 +720,8 @@ describe("REUSABLE_WORKFLOWS['knowledge.wiki'] — preview deployment widget", (
 	});
 });
 
-describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notification check", () => {
-	const wf = REUSABLE_WORKFLOWS["platform.notifyCheck"]!;
+describe("REUSABLE_WORKFLOWS['check-notify'] — the end-to-end notification check", () => {
+	const wf = REUSABLE_WORKFLOWS["check-notify"]!;
 
 	it("is registered and reusable", () => {
 		expect(wf).toMatch(/^name: Notify Check/);
@@ -785,9 +784,9 @@ describe("REUSABLE_WORKFLOWS['platform.notifyCheck'] — the end-to-end notifica
 	});
 });
 
-describe("REUSABLE_WORKFLOWS['platform.repoSync'] — the role id comes from a secret", () => {
+describe("REUSABLE_WORKFLOWS['sync-repo'] — the role id comes from a secret", () => {
 	it("mentions the role through secrets, not variables, and declares the secret", () => {
-		const wf = REUSABLE_WORKFLOWS["platform.repoSync"]!;
+		const wf = REUSABLE_WORKFLOWS["sync-repo"]!;
 		expect(wf).toContain("HOLOCRON_NOTIFY_ALERT_ROLE:");
 		expect(wf).toContain("mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}");
 		expect(wf).not.toContain("vars.HOLOCRON_NOTIFY_ALERT_ROLE");
@@ -795,7 +794,7 @@ describe("REUSABLE_WORKFLOWS['platform.repoSync'] — the role id comes from a s
 });
 
 describe("delivery.publish.yml version groups", () => {
-	const wf = REUSABLE_WORKFLOWS["delivery.publish"]!;
+	const wf = REUSABLE_WORKFLOWS["release"]!;
 
 	it("takes an optional `group` string input, empty by default", () => {
 		expect(wf).toMatch(/\n {6}group:\n(?: {8}.*\n)*? {8}type: string\n {8}required: false\n {8}default: ""\n/);
@@ -901,8 +900,8 @@ describe("delivery.publish.yml version groups", () => {
 	});
 });
 
-describe("REUSABLE_WORKFLOWS['security.tokenExpiry'] — the scheduled token check", () => {
-	const wf = REUSABLE_WORKFLOWS["security.tokenExpiry"]!;
+describe("REUSABLE_WORKFLOWS['check-tokens'] — the scheduled token check", () => {
+	const wf = REUSABLE_WORKFLOWS["check-tokens"]!;
 
 	it("runs the task through the holocron action", () => {
 		expect(wf).toMatch(/task: security\.tokenExpiry/);
