@@ -9,6 +9,8 @@
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { fetchAvatarBytes } from "./fetch-avatar.js";
+
 /** Providers cap avatars well below this; it only keeps a wrong file from filling memory. */
 export const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
 const FETCH_TIMEOUT_MS = 15_000;
@@ -72,10 +74,7 @@ export async function loadAvatar(
 		if (base64 === undefined) throw new Error("it is not a base64 data URI");
 		bytes = Buffer.from(base64, "base64");
 	} else if (/^https:\/\//i.test(source)) {
-		const res = await fetchImpl(source, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-		if (!res.ok) throw new Error(`fetching it answered ${res.status}`);
-		if (Number(res.headers.get("content-length")) > MAX_AVATAR_BYTES) throw tooBig();
-		bytes = Buffer.from(await res.arrayBuffer());
+		bytes = await fetchAvatarBytes(source, fetchImpl, MAX_AVATAR_BYTES, FETCH_TIMEOUT_MS, tooBig);
 	} else {
 		const path = resolve(baseDir, source);
 		if ((await stat(path)).size > MAX_AVATAR_BYTES) throw tooBig();
