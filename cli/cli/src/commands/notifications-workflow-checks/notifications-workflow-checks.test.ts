@@ -32,13 +32,14 @@ describe("notificationsWorkflowChecks", () => {
 		expect(rows.map((r) => [r.id, r.status, r.detail])).toEqual([
 			["notifications-workflow", "pass", "found"],
 			["notifications-workflow-wiring", "pass", "3 of 3 wired"],
+			["notifications-workflow-names", "pass", "task ids"],
 		]);
 		expect(src.readFile).toHaveBeenCalledExactlyOnceWith(NOTIFICATIONS_WORKFLOW_PATH);
 	});
 
 	it("fails when the file is missing, and does not check its wiring", async () => {
 		const rows = await run(source(async () => null));
-		expect(rows.map((r) => r.status)).toEqual(["fail", "skip"]);
+		expect(rows.map((r) => r.status)).toEqual(["fail", "skip", "skip"]);
 		expect(rows[0]!.problems[0]).toContain("is missing");
 		expect(rows[1]!.detail).toBe("not checked: the workflow is missing");
 	});
@@ -74,13 +75,23 @@ describe("notificationsWorkflowChecks", () => {
 		]);
 	});
 
+	it("fails the names row for a workflow that lists an old group name", async () => {
+		const listing =
+			"on:\n  workflow_run:\n    workflows:\n      - Delivery\n      - test:unit\n    types: [completed]\n";
+		const rows = await run(source(file(`${WORKFLOW}\n${listing}`)));
+		expect(rows[2]!.status).toBe("fail");
+		expect(rows[2]!.problems).toEqual([
+			"Delivery: an old group name; a caller's workflow is named for its task id",
+		]);
+	});
+
 	it("fails the file row, and skips the wiring, when the provider throws", async () => {
 		const rows = await run(
 			source(async () => {
 				throw new Error("boom");
 			})
 		);
-		expect(rows.map((r) => r.status)).toEqual(["fail", "skip"]);
+		expect(rows.map((r) => r.status)).toEqual(["fail", "skip", "skip"]);
 		expect(rows[0]!.detail).toContain("boom");
 	});
 
@@ -88,6 +99,7 @@ describe("notificationsWorkflowChecks", () => {
 		const rows = await run(undefined);
 		expect(rows.map((r) => [r.status, r.detail])).toEqual([
 			["skip", "no `source` provider"],
+			["skip", "not checked: the workflow could not be read"],
 			["skip", "not checked: the workflow could not be read"],
 		]);
 	});

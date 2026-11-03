@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
-import { legacyFile } from "../../vocabulary/index.js";
+import { legacyFile, legacyName } from "../../vocabulary/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 import {
 	frozenReusablePaths,
@@ -125,9 +125,17 @@ describe("reusableTemplates()", () => {
 		for (const id of Object.keys(REUSABLE_WORKFLOWS)) {
 			expect(batch.has(`.github/workflows/${legacyFile(workflowFile(id))}`)).toBe(true);
 		}
-		for (const name of Object.keys(WORKFLOW_TEMPLATES)) {
+		for (const id of Object.keys(WORKFLOW_TEMPLATES)) {
+			const name = legacyName(id) ?? id;
 			expect(batch.has(`workflow-templates/${name}.yml`)).toBe(true);
 		}
+	});
+
+	it("keeps the old names in the starter workflows and the file Sentinel dispatches by name (the legacy-name gate)", () => {
+		expect(batch.get("workflow-templates/stale.yml")).toMatch(/^name: Stale$/m);
+		expect(batch.get("workflow-templates/verification.unitTests.yml")).toMatch(/^ {2}test:\n {4}name: Test$/m);
+		expect(batch.has("workflow-templates/test:unit.yml")).toBe(false);
+		expect(batch.has(".github/workflows/platform.dispatchedCheck.yml")).toBe(true);
 	});
 
 	it("ships the holocron composite action that CI jobs use to run a task", () => {
@@ -201,14 +209,14 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	it("verification.typeSafety.yml runs the task through the holocron action", () => {
 		const wf = REUSABLE_WORKFLOWS["typecheck"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toMatch(/task: verification\.typeSafety/);
+		expect(wf).toMatch(/task: typecheck/);
 		expect(wf).not.toContain("run: pnpm typecheck");
 	});
 
 	it("verification.unitTests.yml unit job runs the task through the holocron action", () => {
 		const wf = REUSABLE_WORKFLOWS["test:unit"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toMatch(/task: verification\.unitTests/);
+		expect(wf).toMatch(/task: test:unit/);
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
 
@@ -580,21 +588,21 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		const build = REUSABLE_WORKFLOWS["measure-bundle"]!;
-		expect(build).toMatch(/task: delivery\.build/);
+		expect(build).toMatch(/task: build/);
 
 		const knip = REUSABLE_WORKFLOWS["lint:unused"]!;
-		expect(knip).toMatch(/task: sourceQuality\.deadCodeAnalysis/);
+		expect(knip).toMatch(/task: lint:unused/);
 
 		const performance = REUSABLE_WORKFLOWS["test:perf"]!;
-		expect(performance).toMatch(/task: verification\.performance\n\s+args: --config=/);
+		expect(performance).toMatch(/task: test:perf\n\s+args: --config=/);
 		expect(performance).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
 	});
 
 	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
-		expect(REUSABLE_WORKFLOWS["lint:code"]).toMatch(/task: sourceQuality\.staticAnalysis/);
+		expect(REUSABLE_WORKFLOWS["lint:code"]).toMatch(/task: lint:code/);
 		expect(REUSABLE_WORKFLOWS["lint:editorconfig"]).toMatch(/task: sourceQuality\.formatting/);
-		expect(REUSABLE_WORKFLOWS["lint:data"]).toMatch(/task: sourceQuality\.structuredDataValidation/);
-		expect(REUSABLE_WORKFLOWS["scan:secrets"]).toMatch(/task: security\.secretDetection/);
+		expect(REUSABLE_WORKFLOWS["lint:data"]).toMatch(/task: lint:data/);
+		expect(REUSABLE_WORKFLOWS["scan:secrets"]).toMatch(/task: scan:secrets/);
 		// commitlint and the repo-validation scripts have no local runner — they
 		// don't go through the holocron composite action at all.
 		expect(REUSABLE_WORKFLOWS["lint:commits"]).toContain("commitlint --from");
@@ -605,9 +613,9 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 			'COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"'
 		);
 		expect(REUSABLE_WORKFLOWS["lint:commits"]).toContain('if [ -f "$COMMITLINT_CONFIG" ]; then');
-		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: platform\.repoValidation\n\s+job: adrs/);
+		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: validate\n\s+job: adrs/);
 		expect(REUSABLE_WORKFLOWS["validate"]).not.toContain("job: registry");
-		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: platform\.repoValidation\n\s+job: docsPresence/);
+		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: validate\n\s+job: docsPresence/);
 	});
 
 	it("no reusable workflow invokes the super-linter action anymore (D12)", () => {
@@ -904,7 +912,7 @@ describe("REUSABLE_WORKFLOWS['check-tokens'] — the scheduled token check", () 
 	const wf = REUSABLE_WORKFLOWS["check-tokens"]!;
 
 	it("runs the task through the holocron action", () => {
-		expect(wf).toMatch(/task: security\.tokenExpiry/);
+		expect(wf).toMatch(/task: check-tokens/);
 	});
 
 	it("declares every GitHub token as an optional secret and hands each to the job as its env var", () => {

@@ -29,7 +29,7 @@ describe("requiredChecks", () => {
 				},
 				false
 			)
-		).toEqual(["DCO", "Typecheck / Run tsc --noEmit", "codecov/patch"]);
+		).toEqual(["DCO", "typecheck / Run tsc --noEmit", "codecov/patch"]);
 	});
 
 	it("lists `DCO` once when an extra repeats it", () => {

@@ -7,7 +7,7 @@ describe("aggregateChecks", () => {
 		expect(aggregateChecks({})).toEqual({ expected: [], statuses: [] });
 	});
 
-	it("takes the id of each required task: the caller job name before ` / `", () => {
+	it("takes the id of each required task: the caller job name (the id) before ` / `", () => {
 		expect(
 			aggregateChecks({
 				tasks: [
@@ -16,7 +16,7 @@ describe("aggregateChecks", () => {
 					{ name: "sourceQuality.formatting" },
 				],
 			})
-		).toEqual({ expected: ["Typecheck", "Test"], statuses: [] });
+		).toEqual({ expected: ["typecheck", "test:unit"], statuses: [] });
 	});
 
 	it("sends the `codecov/` extras to `statuses` and the other extras to `expected` by their id", () => {
@@ -32,7 +32,7 @@ describe("aggregateChecks", () => {
 				],
 			})
 		).toEqual({
-			expected: ["Typecheck", "Dependency catalogs", "Generated files"],
+			expected: ["typecheck", "Dependency catalogs", "Generated files"],
 			statuses: ["codecov/patch", "codecov/project", "codecov/patch/documentation"],
 		});
 	});

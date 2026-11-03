@@ -8,7 +8,7 @@ const STATUS_PREFIX = "codecov/";
 /**
  * The `expected` ids and `statuses` the `ci` aggregate waits on, derived from the same list `requiredChecks()` read
  * before the aggregate: every `required: true` task, then the `extraRequiredChecks`. `DCO` is left out because it stays
- * its own required context. The ids use today's names; a later rename changes them here and costs no ruleset edit.
+ * its own required context. The ids are the callers' job names, which GitHub puts before the " / " of each check they post.
  */
 export function aggregateChecks(config: TasksConfig): AggregateChecks {
 	const expected = new Set<string>();

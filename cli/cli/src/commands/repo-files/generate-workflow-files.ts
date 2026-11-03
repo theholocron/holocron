@@ -2,6 +2,9 @@ import {
 	createAstromech,
 	hostedReusableWorkflows,
 	KNOWN_WORKFLOWS,
+	legacyCaller,
+	legacyCallerFile,
+	legacyGate,
 	localize,
 	workflowFile,
 	workflowKey,
@@ -21,8 +24,11 @@ import type { GeneratedWorkflowFile, RepoFilesInput, SkippedRepoFile } from "./r
  * skipped entry, and a task with `ci: false` has no file. Nothing here is remote: astromech renders every file from the
  * manifest (the linter set, deploy paths, deploy and preview), and a bad manifest throws.
  *
- * In the repo that hosts the reusables (it has the `@theholocron/ci` package) every config's callers are named
- * `ci.<name>.yml` and call `./.github/workflows/<flat name>.yml`, and the root config also writes the reusables beside them.
+ * In the repo that hosts the reusables (it has the `@theholocron/ci` package) every config's callers are named for their
+ * task id, in the workflow, the job and the file (`ci.test-unit.yml`, the id with its colon a hyphen), and call
+ * `./.github/workflows/<flat name>.yml`; the root config also writes the reusables beside them. Every other repo
+ * still calls the frozen reusables in `theholocron/.github`, so while that is so (`legacyGate()`) its callers keep the
+ * names they had (`verification.unitTests.yml`, workflow `Verification`): its ruleset lists the checks they post.
  */
 export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflowFile | SkippedRepoFile)[] {
 	const config = input.loaded.resolved;
@@ -48,9 +54,9 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	const entries: (GeneratedWorkflowFile | SkippedRepoFile)[] = [];
 	for (const entry of tasks) {
 		const name = typeof entry === "string" ? entry : entry.name;
-		// knowledge.docs / knowledge.components have no static template: their content is always generated.
+		// deploy-docs / deploy-components have no static template: their content is always generated.
 		const key = workflowKey(name);
-		const isCombinedContentOnly = key === "knowledge.docs" || key === "knowledge.components";
+		const isCombinedContentOnly = key === "deploy-docs" || key === "deploy-components";
 		if (!KNOWN_WORKFLOWS.has(key) && !isCombinedContentOnly) {
 			entries.push({
 				kind: "skip",
@@ -61,11 +67,16 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 			continue;
 		}
 
-		// Keyed by task name alone, whichever package's config generated it.
-		// (until the workflow files take the flat ids, a flat id names the file of the old name it replaced)
-		const content = files.get(`${key}.yml`);
-		if (content === undefined) continue; // ci: false, or no workflow of its own — nothing to write
-		const filename = `${hosting ? HOSTED_CALLER_PREFIX : ""}${key}.yml`;
+		// Keyed by task id alone, whichever package's config generated it.
+		const flat = files.get(`${key}.yml`);
+		if (flat === undefined) continue; // ci: false, or no workflow of its own — nothing to write
+		const legacy = !hosting && legacyGate();
+		const content = legacy ? legacyCaller(key, flat) : flat;
+		const filename = hosting
+			? `${HOSTED_CALLER_PREFIX}${workflowFile(key)}`
+			: legacy
+				? legacyCallerFile(key)
+				: workflowFile(key);
 
 		const preview = content.includes("workflows/preview.yml@main") ? " (with preview)" : "";
 		entries.push({

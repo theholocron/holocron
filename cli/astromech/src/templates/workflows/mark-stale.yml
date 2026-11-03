@@ -1,4 +1,4 @@
-name: Stale
+name: mark-stale
 
 on: # yamllint disable-line rule:truthy
   schedule:
@@ -10,7 +10,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  stale:
+  mark-stale:
+    name: mark-stale
     uses: theholocron/.github/.github/workflows/mark-stale.yml@main
     with:
       exempt-issue-labels: "in-progress,wip"

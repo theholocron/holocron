@@ -6,7 +6,16 @@ import { describe, expect, it } from "vitest";
 
 import { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS } from "../github-action-reusable-workflows/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
-import { CI_HOME, type CiHome, localize, rehome, rehomeAll, reusableWorkflowRef, TEMPLATE_HOME } from "./ci-ref.js";
+import {
+	CI_HOME,
+	type CiHome,
+	legacyGate,
+	localize,
+	rehome,
+	rehomeAll,
+	reusableWorkflowRef,
+	TEMPLATE_HOME,
+} from "./ci-ref.js";
 
 const MOVED: CiHome = {
 	workflows: "acme/central/.github/workflows",
@@ -16,6 +25,14 @@ const MOVED: CiHome = {
 
 /** What a template spells today; only this module may. */
 const LITERAL = "theholocron/.github/.github/";
+
+describe("legacyGate", () => {
+	it("holds while the callers call the frozen reusables on main, and opens at ci-v1", () => {
+		expect(legacyGate()).toBe(true);
+		expect(legacyGate(TEMPLATE_HOME)).toBe(true);
+		expect(legacyGate(MOVED)).toBe(false);
+	});
+});
 
 describe("rehome", () => {
 	it("moves a workflow reference and an action reference, keeping the name", () => {

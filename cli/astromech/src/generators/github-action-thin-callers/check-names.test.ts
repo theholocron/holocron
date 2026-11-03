@@ -1,14 +1,16 @@
 import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
-import { flatFile } from "../../vocabulary/index.js";
+import { flatFile, legacyCaller, legacyCallerFile, legacyName, RESERVED_SCRIPT_NAMES } from "../../vocabulary/index.js";
 import { REUSABLE_WORKFLOWS } from "../github-action-reusable-workflows/index.js";
 import { WORKFLOW_CHECK_CONTEXTS, WORKFLOW_TEMPLATES } from "./github-action-thin-callers.js";
 
 /**
- * Required checks are matched by string, and a reusable's check is `<caller job name> / <called job name>`. These tests
+ * A reusable's check is `<caller job name> / <called job name>`, and the caller job name is the task id. These tests
  * derive every name from the templates and pin it, so a rename, or a move of a reusable that changes a job name, fails
- * here before it blocks merges in every repo (tracking issue #1476, spec `tech-workflows-in-holocron`).
+ * here (tracking issue #1476, spec `tech-workflows-in-holocron`). Only the `ci` aggregate is a required check now, and
+ * it waits for the ids that start a check's name, so what must hold is that the workflow, the job and the file are the
+ * task id (spec `ci-flat-task-vocabulary`, "The guard test that replaces the grouping test").
  */
 
 interface Job {
@@ -69,83 +71,43 @@ function checkNames(task: string): string[] {
 	return names;
 }
 
-/**
- * The check names of every task today. Change an entry only with a migration for the required contexts of every repo
- * (rulesets match these strings), never as a side effect of moving a file.
- */
+/** The check names of every task, the record of what each check is called (not a ruleset guard: only `ci` is required). */
 const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
-	bookkeeping: ["Bookkeeping / Apply Labels"],
-	"delivery.build": ["Build / Build every workspace"],
-	"delivery.bundleSize": ["Audit the Bundle Size / Upload bundle stats to Codecov"],
-	"delivery.deploy": ["Deploy / Deploy"],
-	"delivery.previewCheck": ["Preview Check / Run monitoring checks against the preview deployment"],
-	"delivery.previewDeploy": ["Preview Deploy / Deploy preview", "Preview Deploy / Report deployment status"],
-	"delivery.publish": ["Release / Semantic release", "Release / Deploy", "Release / Post-release readme sync"],
-	dependencies: ["Dependencies / Update the dependencies"],
-	greetings: ["Greetings / Greet first-time contributors"],
-	"knowledge.wiki": ["Publish / Publish to Fern", "Preview / Publish to Fern"],
-	"platform.commitStandards": ["Commit Standards / Run commitlint"],
-	"platform.notifyCheck": ["Notify Check / Check ${{ matrix.channel.name }}"],
-	"platform.repoSync": ["Sync / Run holocron repo sync", "Sync / Notify of a failed sync"],
-	"platform.repoValidation": [
-		"Repo Validation / Validate ADRs and specs",
-		"Repo Validation / Validate docs presence",
-		"Repo Validation / Conclusion",
+	annotate: ["annotate / Post inline lint annotations"],
+	build: ["build / Build every workspace"],
+	"check-notify": ["check-notify / Check ${{ matrix.channel.name }}"],
+	"check-preview": ["check-preview / Run monitoring checks against the preview deployment"],
+	"check-tokens": ["check-tokens / Run holocron doctor tokens"],
+	deploy: ["deploy / Deploy"],
+	"deploy-preview": ["deploy-preview / Deploy preview", "deploy-preview / Report deployment status"],
+	greet: ["greet / Greet first-time contributors"],
+	label: ["label / Apply Labels"],
+	"lint:code": ["lint:code / Run eslint and actionlint"],
+	"lint:commits": ["lint:commits / Run commitlint"],
+	"lint:data": ["lint:data / Run yamllint"],
+	"lint:editorconfig": ["lint:editorconfig / Run prettier, editorconfig-checker, markdownlint"],
+	"lint:unused": ["lint:unused / Run knip"],
+	"mark-stale": ["mark-stale / Mark stale issues and pull requests"],
+	"measure-bundle": ["measure-bundle / Upload bundle stats to Codecov"],
+	preview: ["preview / Preview", "preview / Clean up Preview"],
+	"publish-wiki": ["publish-wiki / Publish to Fern", "publish-wiki / Publish to Fern"],
+	release: ["release / Semantic release", "release / Deploy", "release / Post-release readme sync"],
+	"scan:code": ["scan:code / Analyze (${{ inputs.language }})"],
+	"scan:secrets": ["scan:secrets / Run gitleaks"],
+	"sync-repo": ["sync-repo / Run holocron repo sync", "sync-repo / Notify of a failed sync"],
+	"sync-templates": ["sync-templates / Run holocron sync github"],
+	"test:perf": ["test:perf / Run Lighthouse CI"],
+	"test:unit": [
+		"test:unit / Run unit tests and collect coverage",
+		"test:unit / Run Storybook interaction tests",
+		"test:unit / Run interactions and accessibility tests",
+		"test:unit / Run user flow tests",
+		"test:unit / Conclusion",
 	],
-	"platform.syncTemplates": ["Sync Templates / Run holocron sync github"],
-	preview: ["Preview / Preview", "Preview / Clean up Preview"],
-	review: ["Annotations / Post inline lint annotations"],
-	"security.codeScanning": ["Code Scanning / Analyze (${{ inputs.language }})"],
-	"security.secretDetection": ["Secret Detection / Run gitleaks"],
-	"security.tokenExpiry": ["Token Expiry / Run holocron doctor tokens"],
-	"sourceQuality.deadCodeAnalysis": ["Dead Code Analysis / Run knip"],
-	"sourceQuality.formatting": ["Formatting / Run prettier, editorconfig-checker, markdownlint"],
-	"sourceQuality.staticAnalysis": ["Static Analysis / Run eslint and actionlint"],
-	"sourceQuality.structuredDataValidation": ["Structured Data Validation / Run yamllint"],
-	stale: ["stale / Mark stale issues and pull requests"],
-	"verification.performance": ["Audit the Performance / Run Lighthouse CI"],
-	"verification.typeSafety": ["Typecheck / Run tsc --noEmit"],
-	"verification.unitTests": [
-		"Test / Run unit tests and collect coverage",
-		"Test / Run Storybook interaction tests",
-		"Test / Run interactions and accessibility tests",
-		"Test / Run user flow tests",
-		"Test / Conclusion",
-	],
-	"verification.visualRegression": ["Visual Regression / Run visual and composition tests"],
-};
-
-/** The workflow `name:` of every caller, the run name each repo sees. */
-const EXPECTED_WORKFLOW_NAMES: Record<string, string> = {
-	bookkeeping: "Platform",
-	"delivery.build": "Delivery",
-	"delivery.bundleSize": "Delivery",
-	"delivery.deploy": "Delivery",
-	"delivery.previewCheck": "Delivery",
-	"delivery.previewDeploy": "Delivery",
-	"delivery.publish": "Delivery",
-	dependencies: "Platform",
-	greetings: "Platform",
-	"knowledge.wiki": "Knowledge",
-	"platform.commitStandards": "Platform",
-	"platform.notifyCheck": "Platform",
-	"platform.repoSync": "Platform",
-	"platform.repoValidation": "Platform",
-	"platform.syncTemplates": "Platform",
-	preview: "Preview",
-	review: "Source Quality",
-	"security.codeScanning": "Security",
-	"security.secretDetection": "Security",
-	"security.tokenExpiry": "Token Expiry",
-	"sourceQuality.deadCodeAnalysis": "Source Quality",
-	"sourceQuality.formatting": "Source Quality",
-	"sourceQuality.staticAnalysis": "Source Quality",
-	"sourceQuality.structuredDataValidation": "Source Quality",
-	stale: "Stale",
-	"verification.performance": "Verification",
-	"verification.typeSafety": "Verification",
-	"verification.unitTests": "Verification",
-	"verification.visualRegression": "Visual Regression",
+	"test:visual": ["test:visual / Run visual and composition tests"],
+	typecheck: ["typecheck / Run tsc --noEmit"],
+	"update-deps": ["update-deps / Update the dependencies"],
+	validate: ["validate / Validate ADRs and specs", "validate / Validate docs presence", "validate / Conclusion"],
 };
 
 describe("check names of the generated callers", () => {
@@ -160,16 +122,57 @@ describe("check names of the generated callers", () => {
 		expect(actual).toEqual(EXPECTED_CHECK_NAMES);
 	});
 
-	it("posts every required context", () => {
+	it("posts every context the aggregate waits on, under the id it waits for", () => {
 		for (const [task, context] of Object.entries(WORKFLOW_CHECK_CONTEXTS)) {
 			expect(checkNames(task), `${task} must post "${context}"`).toContain(context);
+			// `ci` matches a check by the prefix `<id> / `
+			expect(context!.startsWith(`${task} / `), `${task}'s context starts with its id`).toBe(true);
+		}
+	});
+});
+
+describe("the workflow, the job and the file are the task id", () => {
+	const ids = Object.keys(WORKFLOW_TEMPLATES).sort();
+
+	it("names the workflow and every caller job for the id, and the first job and the file for workflowFile(id)", () => {
+		for (const id of ids) {
+			const yaml = WORKFLOW_TEMPLATES[id]!;
+			const jobs = jobsOf(yaml);
+			expect(workflowName(yaml), `${id}: workflow name`).toBe(id);
+			expect(
+				jobs.map((job) => job.name),
+				`${id}: every job name`
+			).toEqual(jobs.map(() => id));
+			expect(jobs[0]!.id, `${id}: first job id`).toBe(workflowFile(id).replace(/\.yml$/, ""));
+			// the other jobs of one caller (the wiki's preview) keep the id as their prefix
+			for (const job of jobs.slice(1))
+				expect(job.id.startsWith(`${jobs[0]!.id}-`), `${id}: ${job.id}`).toBe(true);
 		}
 	});
 
-	it("keeps each caller's workflow name", () => {
-		// A check is named by the caller's job, not its workflow, but a workflow rename still changes the run name that
-		// every repo sees.
-		const actual = Object.fromEntries(tasks.map((task) => [task, workflowName(WORKFLOW_TEMPLATES[task]!)]));
-		expect(actual).toEqual(EXPECTED_WORKFLOW_NAMES);
+	it("gives every id no dot and no capital, and none a package manager would run as a lifecycle script", () => {
+		for (const id of ids) {
+			expect(id).toMatch(/^[a-z][a-z0-9]*(?:[-:][a-z0-9]+)*$/);
+			expect(RESERVED_SCRIPT_NAMES.has(id), `${id} is a reserved script name`).toBe(false);
+		}
+	});
+
+	it("has no template for `format`, an action rather than a workflow", () => {
+		expect(WORKFLOW_TEMPLATES).not.toHaveProperty("format");
+	});
+
+	it("files no two ids as one file", () => {
+		expect(new Set(ids.map(workflowFile)).size).toBe(ids.length);
+	});
+
+	it("keeps the old names for a repo that still calls the frozen reusables (the legacy-name gate)", () => {
+		for (const id of ids) {
+			const old = legacyCaller(id, WORKFLOW_TEMPLATES[id]!);
+			// every id keeps a unique old file, named for the old task (or its own id when it had none)
+			expect(legacyCallerFile(id)).toBe(`${legacyName(id) ?? id}.yml`);
+			// a legacy caller no longer carries the id as its workflow name
+			expect(workflowName(old)).not.toBe(id);
+			expect(jobsOf(old).length, `${id}: the same jobs`).toBe(jobsOf(WORKFLOW_TEMPLATES[id]!).length);
+		}
 	});
 });

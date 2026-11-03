@@ -18,7 +18,7 @@ jobs:
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-      # Read by the bundle-stats uploader inside `holocron run delivery.build`.
+      # Read by the bundle-stats uploader inside `holocron run build`.
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -30,4 +30,4 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Build and upload bundle stats
         with:
-          task: delivery.build
+          task: build

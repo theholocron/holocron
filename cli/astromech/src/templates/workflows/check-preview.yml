@@ -1,4 +1,4 @@
-name: Delivery
+name: check-preview
 
 on: # yamllint disable-line rule:truthy
   deployment_status:
@@ -13,8 +13,8 @@ permissions:
   pull-requests: read
 
 jobs:
-  preview-check:
-    name: Preview Check
+  check-preview:
+    name: check-preview
     # environment_url is the only field documented to point at the live
     # app — target_url can point at a deployment-details page instead,
     # so there's no safe fallback to it. No environment_url means

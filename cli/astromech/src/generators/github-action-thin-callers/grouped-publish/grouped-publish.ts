@@ -29,11 +29,11 @@ function parseInputs(label: string, inputs: Record<string, unknown>): Inputs {
 	for (const [key, value] of Object.entries(inputs)) {
 		if (!(GROUP_INPUTS as readonly string[]).includes(key)) {
 			throw new TypeError(
-				`delivery.publish: ${label} sets "${key}", which is not per-release; use one of ${GROUP_INPUTS.join(", ")}`
+				`release: ${label} sets "${key}", which is not per-release; use one of ${GROUP_INPUTS.join(", ")}`
 			);
 		}
 		if (typeof value !== "string" && typeof value !== "boolean") {
-			throw new TypeError(`delivery.publish: ${label} input "${key}" must be a string or a boolean`);
+			throw new TypeError(`release: ${label} input "${key}" must be a string or a boolean`);
 		}
 	}
 	return inputs as Inputs;
@@ -47,7 +47,7 @@ function parseInputs(label: string, inputs: Record<string, unknown>): Inputs {
  */
 function parseGroups(groups: unknown): Entry[] {
 	if (!Array.isArray(groups) || groups.length === 0) {
-		throw new TypeError("delivery.publish: `groups` must be a non-empty list of version-group folders");
+		throw new TypeError("release: `groups` must be a non-empty list of version-group folders");
 	}
 	const seen = new Set<string>();
 	return groups.map((raw: unknown): Entry => {
@@ -55,10 +55,10 @@ function parseGroups(groups: unknown): Entry[] {
 			typeof raw === "string" ? { name: raw } : ((raw ?? {}) as Record<string, unknown> & { name?: unknown });
 		if (typeof name !== "string" || !GROUP_NAME.test(name) || RESERVED.includes(name)) {
 			throw new TypeError(
-				`delivery.publish: a group is a lowercase folder name like "clients" (not ${RESERVED.map((r) => `"${r}"`).join(" or ")}), got ${JSON.stringify(name)}`
+				`release: a group is a lowercase folder name like "clients" (not ${RESERVED.map((r) => `"${r}"`).join(" or ")}), got ${JSON.stringify(name)}`
 			);
 		}
-		if (seen.has(name)) throw new TypeError(`delivery.publish: group "${name}" is listed twice`);
+		if (seen.has(name)) throw new TypeError(`release: group "${name}" is listed twice`);
 		seen.add(name);
 		return { group: name, ...parseInputs(`group "${name}"`, inputs) };
 	});
@@ -102,15 +102,13 @@ export function groupedPublishCaller(
 				? parseInputs("`ungrouped`", ungrouped as Record<string, unknown>)
 				: undefined;
 	if (ungrouped !== false && ungrouped !== undefined && ungroupedInputs === undefined) {
-		throw new TypeError("delivery.publish: `ungrouped` must be true, or an object of per-release inputs");
+		throw new TypeError("release: `ungrouped` must be true, or an object of per-release inputs");
 	}
 
 	const perGroup = GROUP_INPUTS.filter((key) => entries.some((entry) => key in entry));
 	const clash = [...perGroup, ...Object.keys(ungroupedInputs ?? {})].filter((key) => key in shared);
 	if (clash.length > 0) {
-		throw new TypeError(
-			`delivery.publish: ${[...new Set(clash)].join(", ")} is set both for every release and for one`
-		);
+		throw new TypeError(`release: ${[...new Set(clash)].join(", ")} is set both for every release and for one`);
 	}
 
 	const groupInput = [
@@ -159,12 +157,12 @@ export function groupedPublishCaller(
 		),
 	}));
 	const matrixJson = JSON.stringify(withDefaults).replaceAll("'", "''");
-	const uses = `    uses: ${reusableWorkflowRef("delivery.publish.yml")}`;
+	const uses = `    uses: ${reusableWorkflowRef("release.yml")}`;
 
 	const ungroupedJob = ungroupedInputs
 		? [
 				"  release:",
-				"    name: Release",
+				"    name: release",
 				"    # last: the packages in no group depend on the groups' packages, which must be on npm first.",
 				"    # Runs even if the groups were skipped (a manual run picked `ungrouped`), but not if one failed.",
 				"    needs: [plan, release-groups]",
@@ -204,7 +202,7 @@ export function groupedPublishCaller(
 		'          echo "groups=$groups" >> "$GITHUB_OUTPUT"',
 		"",
 		`  ${ungroupedInputs ? "release-groups" : "release"}:`,
-		"    name: Release ${{ matrix.group }}",
+		"    name: release ${{ matrix.group }}",
 		...(ungroupedInputs
 			? [
 					"    # Choosing `ungrouped` by hand leaves the plan empty, and a matrix with no entries fails the run.",

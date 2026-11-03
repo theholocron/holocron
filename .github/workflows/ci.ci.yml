@@ -4,7 +4,7 @@
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: CI
+name: ci
 
 on: # yamllint disable-line rule:truthy
   pull_request:
@@ -23,5 +23,5 @@ jobs:
     name: ci
     uses: ./.github/workflows/ci.yml
     with:
-      expected: '["Typecheck","Static Analysis","Formatting","Structured Data Validation","Secret Detection","Commit Standards","Repo Validation","Test","Build","Dead Code Analysis","Audit the Bundle Size","Dependency catalogs","Generated files"]'
+      expected: '["typecheck","lint:code","lint:editorconfig","lint:data","scan:secrets","lint:commits","validate","test:unit","build","lint:unused","measure-bundle","Dependency catalogs","Generated files"]'
       statuses: '["codecov/patch","codecov/project","codecov/patch/documentation"]'

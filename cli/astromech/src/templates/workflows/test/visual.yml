@@ -1,4 +1,4 @@
-name: Visual Regression
+name: test:visual
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -10,7 +10,7 @@ permissions:
   statuses: write
 
 jobs:
-  visual-and-composition:
-    name: Visual Regression
+  test-visual:
+    name: test:visual
     uses: theholocron/.github/.github/workflows/test-visual.yml@main
     secrets: inherit

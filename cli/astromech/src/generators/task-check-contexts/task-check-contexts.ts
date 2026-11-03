@@ -9,7 +9,7 @@
 
 import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
 import { CI_ORDER } from "../../registry/index.js";
-import { isTask, legacyName } from "../../vocabulary/index.js";
+import { isTask, workflowKey } from "../../vocabulary/index.js";
 import { WORKFLOW_CHECK_CONTEXTS } from "../github-action-thin-callers/index.js";
 
 /** Ordered (task contexts in {@link CI_ORDER}, then extras), de-duplicated. */
@@ -20,9 +20,8 @@ export function taskCheckContexts(config: TasksConfig): string[] {
 
 	for (const id of CI_ORDER) {
 		const required = entries.some((e) => e.required === true && isTask(e.name, id));
-		// Until the workflows are renamed, a check is still posted under the old name's workflow.
-		const legacy = legacyName(id);
-		const context = required && legacy !== undefined ? WORKFLOW_CHECK_CONTEXTS[legacy] : undefined;
+		// The workflow of `lint:markdown` and `format` is the formatting one, filed under `lint:editorconfig`.
+		const context = required ? WORKFLOW_CHECK_CONTEXTS[workflowKey(id)] : undefined;
 		if (context && !seen.has(context)) {
 			seen.add(context);
 			out.push(context);

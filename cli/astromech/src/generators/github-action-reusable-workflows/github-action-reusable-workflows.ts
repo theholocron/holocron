@@ -14,7 +14,7 @@
 
 import { ACTIONS, workflowFile, WORKFLOWS } from "@theholocron/ci";
 
-import { flatFile, legacyFile } from "../../vocabulary/index.js";
+import { flatFile, legacyCaller, legacyFile, legacyName } from "../../vocabulary/index.js";
 import { CI_TARGET, rehomeAll } from "../ci-ref/index.js";
 import { WORKFLOW_TEMPLATES, workflowTriggers } from "../github-action-thin-callers/index.js";
 
@@ -98,7 +98,10 @@ export function reusableTemplates(): Map<string, string> {
 	for (const [id, body] of Object.entries(REUSABLE_WORKFLOWS)) {
 		out.set(remotePath(id), `${header}${body}`);
 	}
-	for (const [name, body] of Object.entries(WORKFLOW_TEMPLATES)) {
+	// The starter workflows in `.github` keep the old names, and so do the callers they are copied as (the legacy-name gate).
+	for (const [id, template] of Object.entries(WORKFLOW_TEMPLATES)) {
+		const name = legacyName(id) ?? id;
+		const body = legacyCaller(id, template);
 		out.set(`workflow-templates/${name}.yml`, `${header}${body}`);
 		const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
 		if (props) out.set(`workflow-templates/${name}.properties.json`, props);

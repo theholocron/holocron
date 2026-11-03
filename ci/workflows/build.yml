@@ -39,5 +39,5 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Build
         with:
-          task: delivery.build
+          task: build
           affected: ${{ inputs.affected }}

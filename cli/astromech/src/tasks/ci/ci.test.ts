@@ -66,9 +66,9 @@ describe("runCi", () => {
 		expect(report.status).toBe("ok");
 		expect(report.jobs.map((j) => j.task)).toEqual(["typecheck", "lint:code", "test:unit"]);
 		expect(report.jobs.map((j) => j.checkContext)).toEqual([
-			"Typecheck / Run tsc --noEmit",
-			"Static Analysis / Run eslint and actionlint",
-			"Test / Conclusion",
+			"typecheck / Run tsc --noEmit",
+			"lint:code / Run eslint and actionlint",
+			"test:unit / Conclusion",
 		]);
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {
 			cwd: CWD,
@@ -153,7 +153,7 @@ describe("runCi", () => {
 		const report = run({ tasks: [{ name: "platform.repoValidation", required: true }] });
 		expect(report.status).toBe("ok");
 		const out = lines.join("\n");
-		expect(out).toContain("▶ platform.repoValidation");
+		expect(out).toContain("▶ validate");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			[process.argv[1], "probe", "specs", "check"],
 			[process.argv[1], "probe", "docs", "presence"],
@@ -282,8 +282,12 @@ describe("runCi", () => {
 		const report = run({ tasks: [{ name: "sourceQuality.formatting", required: true }] });
 		expect(report.status).toBe("ok");
 		expect(report.jobs.map((j) => j.task)).toEqual(["lint:editorconfig", "lint:markdown", "format"]);
-		// one workflow carried three checks, so none of them is that workflow's check context
-		expect(report.jobs.map((j) => j.checkContext)).toEqual([null, null, null]);
+		// one workflow carried three checks: the first id has its context, the others have none
+		expect(report.jobs.map((j) => j.checkContext)).toEqual([
+			"lint:editorconfig / Run prettier, editorconfig-checker, markdownlint",
+			null,
+			null,
+		]);
 		expect(exec).toHaveBeenCalledTimes(1);
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/prettier$/), ["--check", "."], { cwd: CWD });
 	});
@@ -300,8 +304,8 @@ describe("runCi", () => {
 			],
 		});
 		expect(report.jobs.map((j) => [j.task, j.checkContext])).toEqual([
-			["typecheck", "Typecheck / Run tsc --noEmit"],
-			["test:unit", "Test / Conclusion"],
+			["typecheck", "typecheck / Run tsc --noEmit"],
+			["test:unit", "test:unit / Conclusion"],
 		]);
 	});
 

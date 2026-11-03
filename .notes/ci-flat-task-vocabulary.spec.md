@@ -897,7 +897,7 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
 - **Sources** moved to `ci/workflows/<suite>/<leaf>.yml` or `ci/workflows/<id>.yml`; the thin-caller templates mirror them
   under `cli/astromech/src/templates/workflows/`. `@theholocron/ci` builds `WORKFLOWS` (keyed by id) with one
   `import.meta.glob` and `idFromSource()`; astromech does the same for `WORKFLOW_TEMPLATES`, keyed by `workflowKey(id)`
-  (still the old name, since phase F moves the callers). The per-file `*.yml.d.ts` of the templates are gone.
+  (the old name until phase F, which keys it by id). The per-file `*.yml.d.ts` of the templates are gone.
 - **`idFromSource` and `workflowFile`** are two files in `ci/src/` (one function per file), not one module. `idFromSource`
   strips everything up to `workflows/`, so it reads a repo path, the glob key and a templates path alike.
 - **Templates are written against the flat name** (`.../test-unit.yml@main`). `rehome` spells it with the old name for a
@@ -912,6 +912,33 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
   waits for its phase.
 - **Tests:** `ci-layout.test.ts` (unique ids, no two ids flatten to one file, the folder is the registry suite), the
   `rehome` and `localize` tests for both spellings, and the hosted-reusables test for the grouped source header.
+
+### Phase F as built (#1620)
+
+- **Names are the id.** Every template under `cli/astromech/src/templates/workflows/` has `name: <id>`, one job per file
+  named `workflowFile(id)` without `.yml` (`test-unit`) and `name: <id>`; the wiki's second job is `publish-wiki-preview`, and
+  the generated combined deploy caller (`deploy`, `deploy-docs`, `deploy-components`) has `<id>` and `<id>-preview`, both
+  named `<id>`. The grouped release names its matrix job `release ${{ matrix.group }}`. In holocron the file is
+  `ci.<workflowFile(id)>` (`ci.test-unit.yml`), the `ci` aggregate caller is `name: ci`.
+- **`workflowKey(name)` is the flat id** of the template that carries the name's workflow: an old name maps to its first
+  successor, `lint:markdown` and `format` to `lint:editorconfig`. `WORKFLOW_TEMPLATES`, `KNOWN_WORKFLOWS`,
+  `WORKFLOW_CHECK_CONTEXTS` and the keys of `thinCallers()` are all by id.
+- **The legacy-name gate** is `legacyGate()` (true while `CI_HOME.ref` is `main`). A repo that does not host the reusables
+  gets `legacyCaller(id, yaml)` (the `LEGACY_CALLERS` table: old workflow name, old job id and name, and the grouped
+  release's matrix name) and the file `legacyCallerFile(id)` (`verification.unitTests.yml`), because its ruleset still lists
+  the checks those post. The starter workflows `sync github` pushes to `.github` are legacy too. Phase K opens the gate
+  (`CI_HOME` to `ci-v1`) and deletes the table with the aliases.
+- **Check contexts** are `<id> / <called job>` (`WORKFLOW_CHECK_CONTEXTS`), so the `ci` aggregate's `expected` are the ids
+  and match by the prefix `<id> / `; `lint:markdown` and `format` have no context of their own (the formatting workflow is
+  listed under `lint:editorconfig`). The hand-written `Dependency catalogs` and `Generated files` keep their names.
+- **Reusables** run flat ids in their `task:` inputs, except `lint/editorconfig.yml` (`sourceQuality.formatting`, three
+  successors until phase I) and `validate.yml` keeps its two jobs until phase J.
+- **`platform.notifications.yml`** lists the ids and tests the flat file names (`ci.release.yml`, `ci.sync-repo.yml`,
+  `ci.deploy-preview.yml`, `ci.check-preview.yml`); `doctor notifications` has a third row, `notifications-workflow-names`,
+  that fails on an old group name, an old dotted name or an id no task has (`workflowNameProblems`). Not confirmed: that
+  GitHub's `workflow_run.workflows` filter matches a colon-bearing name; the first `alpha` run of `test:unit` shows it.
+- **Tests:** `check-names.test.ts` now has the identity invariants and the legacy-gate round trip in place of
+  `EXPECTED_WORKFLOW_NAMES`; `EXPECTED_CHECK_NAMES` is keyed by id.
 
 ## Open questions
 

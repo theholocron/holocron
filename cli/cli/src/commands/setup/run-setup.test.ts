@@ -1212,9 +1212,9 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Typecheck / Run tsc --noEmit" },
-				{ context: "Static Analysis / Run eslint and actionlint" },
-				{ context: "Test / Conclusion" },
+				{ context: "typecheck / Run tsc --noEmit" },
+				{ context: "lint:code / Run eslint and actionlint" },
+				{ context: "test:unit / Conclusion" },
 			],
 		});
 	});
@@ -1256,7 +1256,7 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "Static Analysis / Run eslint and actionlint" },
+				{ context: "lint:code / Run eslint and actionlint" },
 				{ context: "some-extra-check" },
 			],
 		});
@@ -1346,7 +1346,7 @@ describe("runSetup", () => {
 		const contexts = (
 			checksRule?.parameters as { required_status_checks: Array<{ context: string }> }
 		)?.required_status_checks.map((c) => c.context);
-		expect(contexts?.filter((c) => c === "Test / Conclusion")).toHaveLength(1);
+		expect(contexts?.filter((c) => c === "test:unit / Conclusion")).toHaveLength(1);
 	});
 
 	function hookLoader(loaded: LoadedConfig, repoFiles: Array<[string, string]>): PluginLoader {

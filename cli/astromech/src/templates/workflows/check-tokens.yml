@@ -1,4 +1,4 @@
-name: Token Expiry
+name: check-tokens
 
 on: # yamllint disable-line rule:truthy
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  token-expiry:
-    name: Token Expiry
+  check-tokens:
+    name: check-tokens
     uses: theholocron/.github/.github/workflows/check-tokens.yml@main
     secrets: inherit

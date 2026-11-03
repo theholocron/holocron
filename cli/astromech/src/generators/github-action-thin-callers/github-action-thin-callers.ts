@@ -8,7 +8,6 @@
 
 import { idFromSource } from "@theholocron/ci";
 
-import { workflowKey } from "../../vocabulary/index.js";
 import { rehomeAll, reusableWorkflowRef } from "../ci-ref/index.js";
 import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
 import { groupedPublishCaller } from "./grouped-publish/index.js";
@@ -21,46 +20,43 @@ const TEMPLATE_SOURCES = import.meta.glob<string>("../../templates/workflows/**/
 });
 
 /**
- * The reusable-workflow thin-caller templates, by task key. A template's id is its path under `templates/workflows/`
- * (`lint/code.yml` is `lint:code`, see `idFromSource`); the key is the name the workflow tables and the generated file
- * names still use ({@link workflowKey}) until the later phases flip them.
+ * The reusable-workflow thin-caller templates, by task id. A template's id is its path under `templates/workflows/`
+ * (`lint/code.yml` is `lint:code`, see `idFromSource`). The workflow `name:`, the job id and the job `name:` of each are
+ * the id (see `legacyCaller` for the names they had before).
  */
 export const WORKFLOW_TEMPLATES: Record<string, string> = rehomeAll(
-	Object.fromEntries(Object.entries(TEMPLATE_SOURCES).map(([path, text]) => [workflowKey(idFromSource(path)), text]))
+	Object.fromEntries(Object.entries(TEMPLATE_SOURCES).map(([path, text]) => [idFromSource(path), text]))
 );
 
 /** The task names that have a thin-caller workflow template. */
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
 
 /**
- * The GitHub status-check context a `required` task contributes to branch
- * protection. Format: `"{workflow name} / {job name}"`.
+ * The GitHub status-check context a `required` task contributes, by task id. Format: `"{caller job name} / {called job
+ * name}"`, and the caller job name is the id, so the `ci` aggregate (which waits for a check starting with `<id> / `)
+ * reads the id from the part before the slash.
  *
- * Most of these are single-job workflows now (D3's decomposition split what
- * used to be multi-job `lint`/`audit` into one task per concern) — the
- * context names that job directly, no `Conclusion` aggregator needed; a
- * single job's own conclusion already *is* the workflow's conclusion.
- * `Conclusion` fan-in jobs are kept only where a task genuinely has several
- * conditionally-run jobs feeding one required check:
- * `verification.unitTests` (unit / Storybook / Chromatic / interaction /
- * user-flow, each gated by its own `run-*` input) and
- * `platform.repoValidation` (its three script jobs all must pass). Only
- * merge-gating workflows are listed. `astromech.requiredChecks()` reads this
- * for every `required` task.
+ * Most of these are single-job workflows (D3's decomposition split what used to be multi-job `lint`/`audit` into one
+ * task per concern), so the context names that job directly; a single job's own conclusion already *is* the workflow's
+ * conclusion. `Conclusion` fan-in jobs are kept only where a task has several conditionally-run jobs feeding one
+ * check: `test:unit` (unit / Storybook / Chromatic / interaction / user-flow, each gated by its own `run-*` input) and
+ * `validate` (its script jobs all must pass). The formatting workflow carries three ids (`lint:editorconfig`,
+ * `lint:markdown`, `format`) and is listed under the one it is filed as. Only merge-gating workflows are listed.
+ * `astromech.requiredChecks()` reads this for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
-	"delivery.build": "Build / Build every workspace",
-	"verification.unitTests": "Test / Conclusion",
-	"verification.typeSafety": "Typecheck / Run tsc --noEmit",
-	"verification.performance": "Audit the Performance / Run Lighthouse CI",
-	"sourceQuality.staticAnalysis": "Static Analysis / Run eslint and actionlint",
-	"sourceQuality.formatting": "Formatting / Run prettier, editorconfig-checker, markdownlint",
-	"sourceQuality.structuredDataValidation": "Structured Data Validation / Run yamllint",
-	"sourceQuality.deadCodeAnalysis": "Dead Code Analysis / Run knip",
-	"security.secretDetection": "Secret Detection / Run gitleaks",
-	"platform.commitStandards": "Commit Standards / Run commitlint",
-	"platform.repoValidation": "Repo Validation / Conclusion",
-	"delivery.bundleSize": "Audit the Bundle Size / Upload bundle stats to Codecov",
+	build: "build / Build every workspace",
+	"test:unit": "test:unit / Conclusion",
+	typecheck: "typecheck / Run tsc --noEmit",
+	"test:perf": "test:perf / Run Lighthouse CI",
+	"lint:code": "lint:code / Run eslint and actionlint",
+	"lint:editorconfig": "lint:editorconfig / Run prettier, editorconfig-checker, markdownlint",
+	"lint:data": "lint:data / Run yamllint",
+	"lint:unused": "lint:unused / Run knip",
+	"scan:secrets": "scan:secrets / Run gitleaks",
+	"lint:commits": "lint:commits / Run commitlint",
+	validate: "validate / Conclusion",
+	"measure-bundle": "measure-bundle / Upload bundle stats to Codecov",
 };
 
 /**
@@ -145,7 +141,7 @@ export function generateThinCallerContent(
 	const base = withCacheMode(template);
 
 	// A repo that releases several version groups gets a matrix caller (see groupedPublishCaller).
-	if (name === "delivery.publish" && withOverrides && "groups" in withOverrides) {
+	if (name === "release" && withOverrides && "groups" in withOverrides) {
 		const { groups, ungrouped, ...shared } = withOverrides;
 		return groupedPublishCaller(base, groups, shared, ungrouped);
 	}
@@ -260,7 +256,9 @@ export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgConte
 export function generateCombinedDeployContent(
 	deployWith: Record<string, unknown>,
 	paths: string[],
-	preview: Pick<PreviewConfig, "project">
+	preview: Pick<PreviewConfig, "project">,
+	/** The task id the caller is for: the workflow name, and the name of both jobs (`deploy`, `deploy-docs`, `deploy-components`). */
+	id = "deploy"
 ): string {
 	const withLines = (entries: Record<string, unknown>) =>
 		Object.entries(entries)
@@ -276,7 +274,7 @@ export function generateCombinedDeployContent(
 	const previewWithBlock = `    with:\n${withLines(previewWith)}\n`;
 
 	return [
-		`name: Deploy`,
+		`name: ${id}`,
 		``,
 		`on: # yamllint disable-line rule:truthy`,
 		`  push:`,
@@ -300,15 +298,15 @@ export function generateCombinedDeployContent(
 		`  pull-requests: write`,
 		``,
 		`jobs:`,
-		`  deploy:`,
-		`    name: Deploy`,
+		`  ${id}:`,
+		`    name: ${id}`,
 		`    if: \${{ github.event_name != 'pull_request' }}`,
 		`    uses: ${reusableWorkflowRef("deploy.yml")}`,
 		...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
 		`    secrets: inherit`,
 		``,
-		`  preview:`,
-		`    name: Preview`,
+		`  ${id}-preview:`,
+		`    name: ${id}`,
 		`    if: \${{ github.event_name == 'pull_request' }}`,
 		`    uses: ${reusableWorkflowRef("preview.yml")}`,
 		previewWithBlock.trimEnd(),

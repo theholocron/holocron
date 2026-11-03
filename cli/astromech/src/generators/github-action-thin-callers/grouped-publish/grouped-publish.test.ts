@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { generateThinCallerContent, normalizeWorkflowWith, WORKFLOW_TEMPLATES } from "../github-action-thin-callers.js";
 import { groupedPublishCaller } from "./grouped-publish.js";
 
-const base = WORKFLOW_TEMPLATES["delivery.publish"]!;
+const base = WORKFLOW_TEMPLATES["release"]!;
 const caller = (groups: unknown, shared: Record<string, unknown> = {}) => groupedPublishCaller(base, groups, shared);
 
 describe("groupedPublishCaller", () => {
@@ -15,7 +15,7 @@ describe("groupedPublishCaller", () => {
 		expect(out).toContain("      fail-fast: false\n      max-parallel: 1\n");
 		expect(out).toContain("        include: ${{ fromJSON(needs.plan.outputs.groups) }}\n");
 		expect(out).toContain("    uses: theholocron/.github/.github/workflows/delivery.publish.yml@main\n");
-		expect(out).toContain("    name: Release ${{ matrix.group }}\n");
+		expect(out).toContain("    name: release ${{ matrix.group }}\n");
 		expect(out).toContain("      group: ${{ matrix.group }}\n");
 		expect(out.endsWith("    secrets: inherit\n")).toBe(true);
 	});
@@ -92,7 +92,7 @@ describe("groupedPublishCaller", () => {
 		it("releases the packages in no group last, under the repo's own tags and without a group", () => {
 			const release = ungroupedJob();
 			expect(out().indexOf("  release-groups:")).toBeLessThan(out().indexOf("  release:\n"));
-			expect(release).toContain("    name: Release\n");
+			expect(release).toContain("    name: release\n");
 			expect(release).toContain("uses: theholocron/.github/.github/workflows/delivery.publish.yml@main");
 			expect(release).not.toContain("group:");
 			expect(release).not.toContain("matrix");
@@ -156,7 +156,7 @@ describe("groupedPublishCaller", () => {
 		it("is absent unless asked for: the matrix job keeps the id `release`", () => {
 			for (const flag of [undefined, false]) {
 				const without = groupedPublishCaller(base, ["observability"], {}, flag);
-				expect(without).toContain("  release:\n    name: Release ${{ matrix.group }}");
+				expect(without).toContain("  release:\n    name: release ${{ matrix.group }}");
 				expect(without).not.toContain("release-groups");
 				expect(without).not.toContain("- ungrouped");
 			}
@@ -218,18 +218,18 @@ describe("groupedPublishCaller", () => {
 	});
 });
 
-describe("generateThinCallerContent for delivery.publish", () => {
+describe("generateThinCallerContent for release", () => {
 	it("is unchanged without groups", () => {
-		expect(generateThinCallerContent("delivery.publish")).toBe(base);
-		expect(generateThinCallerContent("delivery.publish", { "sentry-project": "x" })).toContain(
+		expect(generateThinCallerContent("release")).toBe(base);
+		expect(generateThinCallerContent("release", { "sentry-project": "x" })).toContain(
 			"      sentry-project: x\n    secrets: inherit\n"
 		);
-		expect(generateThinCallerContent("delivery.publish", { "sentry-project": "x" })).not.toContain("matrix");
+		expect(generateThinCallerContent("release", { "sentry-project": "x" })).not.toContain("matrix");
 	});
 
 	it("switches to the grouped caller when `groups` is set, keeping the other with: values for every group", () => {
 		const out = generateThinCallerContent(
-			"delivery.publish",
+			"release",
 			normalizeWorkflowWith({ groups: ["utils", "clients"], "post-release": true })
 		);
 		expect(out).toContain("fromJSON(needs.plan.outputs.groups)");
@@ -238,7 +238,7 @@ describe("generateThinCallerContent for delivery.publish", () => {
 
 	it("takes `ungrouped` as the repo-wide release's own inputs rather than passing it on to the reusable", () => {
 		const out = generateThinCallerContent(
-			"delivery.publish",
+			"release",
 			normalizeWorkflowWith({ groups: ["utils"], ungrouped: { "sentry-project": "holocron-cli" } })
 		);
 		expect(out).toContain("  release-groups:");

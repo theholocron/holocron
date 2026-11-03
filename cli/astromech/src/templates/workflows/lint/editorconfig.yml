@@ -1,4 +1,4 @@
-name: Source Quality
+name: lint:editorconfig
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -14,7 +14,7 @@ permissions:
   statuses: write
 
 jobs:
-  formatting:
-    name: Formatting
+  lint-editorconfig:
+    name: lint:editorconfig
     uses: theholocron/.github/.github/workflows/lint-editorconfig.yml@main
     secrets: inherit

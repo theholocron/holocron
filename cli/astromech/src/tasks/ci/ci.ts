@@ -14,19 +14,16 @@
 import { normalizeTaskEntry } from "../../config/schema/index.js";
 import { WORKFLOW_CHECK_CONTEXTS } from "../../generators/index.js";
 import { CI_ORDER } from "../../registry/index.js";
-import { legacyName, resolveTaskName } from "../../vocabulary/index.js";
+import { resolveTaskName } from "../../vocabulary/index.js";
 import { runTask } from "../run/index.js";
 import type { CiInput, CiJobReport, CiReport } from "./ci.type.js";
 
 /**
- * The check context of a flat id: the one its workflow posts. A workflow that carries several of the new ids (the
- * formatting one) is not one id's context, so those report none.
+ * The check context of a flat id: the one its workflow posts. A workflow that carries several of the ids (the formatting
+ * one: `lint:markdown` and `format` with `lint:editorconfig`) is listed under one of them, so the others report none.
  */
 function checkContextOf(id: string): string | null {
-	const legacy = legacyName(id);
-	return legacy !== undefined && resolveTaskName(legacy).length === 1
-		? (WORKFLOW_CHECK_CONTEXTS[legacy] ?? null)
-		: null;
+	return WORKFLOW_CHECK_CONTEXTS[id] ?? null;
 }
 
 /** Runs the merge-gating tasks in CI order and reports each job and an overall `ok` or `fail`. */

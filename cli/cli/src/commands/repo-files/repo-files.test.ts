@@ -14,10 +14,13 @@ import { hooksEnabled } from "./hooks-enabled.js";
 
 // `codecovConfig` is tolerant of a bad file on disk, so a failure in it is made on demand.
 const codecov = vi.hoisted(() => ({ fail: false }));
+// The legacy-name gate is shut while `CI_HOME` points at the frozen copies; a test opens it as `ci-v1` will.
+const gate = vi.hoisted(() => ({ open: false }));
 vi.mock("@theholocron/astromech", async (importOriginal) => {
 	const real = await importOriginal<typeof import("@theholocron/astromech")>();
 	return {
 		...real,
+		legacyGate: () => !gate.open,
 		createAstromech: (...args: Parameters<typeof real.createAstromech>) => {
 			const astromech = real.createAstromech(...args);
 			return {
@@ -46,6 +49,7 @@ beforeEach(() => {
 });
 afterEach(() => {
 	codecov.fail = false;
+	gate.open = false;
 	rmSync(root, { recursive: true, force: true });
 });
 
@@ -140,7 +144,7 @@ describe("generateWorkflowFiles", () => {
 			path: ".github/workflows/stale.yml",
 			step: "write workflow stale",
 			syncStep: "sync workflow stale",
-			workflow: { task: "stale", filename: "stale.yml" },
+			workflow: { task: "mark-stale", filename: "stale.yml" },
 		});
 		expect(entries[1]).toMatchObject({
 			kind: "skip",
@@ -167,17 +171,23 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			(entry) => entry.kind === "file" && entry.path.includes("/ci.") && entry.step.startsWith("write workflow")
 		);
 		expect(callers.map((entry) => entry.kind === "file" && entry.workflow.filename)).toEqual([
-			"ci.stale.yml",
-			"ci.verification.unitTests.yml",
+			"ci.mark-stale.yml",
+			"ci.test-unit.yml",
 		]);
 		const stale = callers[0]!;
 		if (stale.kind !== "file") throw new Error("expected a file");
-		expect(stale.path).toBe(".github/workflows/ci.stale.yml");
+		expect(stale.path).toBe(".github/workflows/ci.mark-stale.yml");
 		expect(stale.content).toContain("    uses: ./.github/workflows/mark-stale.yml\n");
 		expect(stale.content).not.toContain("theholocron/.github/.github/workflows");
-		expect(stale.workflow).toEqual({ task: "stale", filename: "ci.stale.yml" });
-		// the caller's job and workflow names are what a required check is named from: unchanged
-		expect(stale.content).toMatch(/^name: Stale$/m);
+		expect(stale.workflow).toEqual({ task: "mark-stale", filename: "ci.mark-stale.yml" });
+		// the workflow, the job and the file are all named for the task id
+		expect(stale.content).toMatch(/^name: mark-stale$/m);
+		expect(stale.content).toMatch(/^ {2}mark-stale:\n {4}name: mark-stale$/m);
+		const unit = callers[1]!;
+		if (unit.kind !== "file") throw new Error("expected a file");
+		expect(unit.content).toMatch(/^name: test:unit$/m);
+		expect(unit.content).toMatch(/^ {2}test-unit:\n {4}name: test:unit$/m);
+		expect(unit.content).toContain("    uses: ./.github/workflows/test-unit.yml\n");
 	});
 
 	it("writes each reusable that only runs when called, under its own name, from ci/workflows", () => {
@@ -211,7 +221,7 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			generateWorkflowFiles({
 				loaded: loadedFrom({
 					name: "x",
-					tasks: ["stale", { name: "verification.typeSafety", required: true }],
+					tasks: ["stale", { name: "typecheck", required: true }],
 					extraRequiredChecks: ["codecov/patch", "Generated files / Check"],
 				}),
 				repoRoot: root,
@@ -227,7 +237,7 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			expect(entry.syncStep).toBe("sync workflow ci");
 			expect(entry.content).toContain("# Source package: .\n");
 			expect(entry.content).toContain("    uses: ./.github/workflows/ci.yml\n");
-			expect(entry.content).toContain(`      expected: '["Typecheck","Generated files"]'\n`);
+			expect(entry.content).toContain(`      expected: '["typecheck","Generated files"]'\n`);
 			expect(entry.content).toContain(`      statuses: '["codecov/patch"]'\n`);
 		});
 
@@ -248,7 +258,7 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 				loaded: {
 					...loadedFrom({
 						name: "x",
-						tasks: [{ name: "verification.typeSafety", required: true }],
+						tasks: [{ name: "typecheck", required: true }],
 					}),
 					filepath: join(root, "apps", "web", "holocron.config.json"),
 				},
@@ -268,6 +278,27 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		const stale = entries[0]!;
 		if (stale.kind !== "file") throw new Error("expected a file");
 		expect(stale.content).toContain("theholocron/.github/.github/workflows/stale.yml@main");
+		// the legacy-name gate: the callers of a repo that still calls the frozen reusables keep their old names
+		expect(stale.content).toMatch(/^name: Stale$/m);
+		expect(stale.content).toMatch(/^ {2}stale:\n/m);
+		const unit = entries[1]!;
+		if (unit.kind !== "file") throw new Error("expected a file");
+		expect(unit.content).toMatch(/^name: Verification$/m);
+		expect(unit.content).toMatch(/^ {2}test:\n {4}name: Test$/m);
+		expect(unit.workflow).toEqual({ task: "test:unit", filename: "verification.unitTests.yml" });
+	});
+
+	it("gives every repo the flat names once the gate is open (callers on ci-v1)", () => {
+		gate.open = true;
+		const entries = generate();
+		expect(entries.map((entry) => (entry.kind === "file" ? entry.path : ""))).toEqual([
+			".github/workflows/mark-stale.yml",
+			".github/workflows/test-unit.yml",
+		]);
+		const unit = entries[1]!;
+		if (unit.kind !== "file") throw new Error("expected a file");
+		expect(unit.content).toMatch(/^name: test:unit$/m);
+		expect(unit.workflow).toEqual({ task: "test:unit", filename: "test-unit.yml" });
 	});
 
 	it("does not take another package named ci for the hosting package", () => {
@@ -288,7 +319,7 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			logger: getLogger(),
 		});
 		expect(entries.map((entry) => (entry.kind === "file" ? entry.path : ""))).toEqual([
-			".github/workflows/ci.stale.yml",
+			".github/workflows/ci.mark-stale.yml",
 		]);
 	});
 });

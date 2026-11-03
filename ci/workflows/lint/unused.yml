@@ -28,4 +28,4 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run knip
         with:
-          task: sourceQuality.deadCodeAnalysis
+          task: lint:unused

@@ -1,4 +1,4 @@
-name: Knowledge
+name: publish-wiki
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -15,14 +15,14 @@ permissions:
   deployments: write
 
 jobs:
-  publish:
-    name: Publish
+  publish-wiki:
+    name: publish-wiki
     if: ${{ github.event_name != 'pull_request' }}
     uses: theholocron/.github/.github/workflows/publish-wiki.yml@main
     secrets: inherit
 
-  preview:
-    name: Preview
+  publish-wiki-preview:
+    name: publish-wiki
     if: ${{ github.event_name == 'pull_request' }}
     uses: theholocron/.github/.github/workflows/publish-wiki.yml@main
     with:

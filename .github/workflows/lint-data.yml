@@ -37,4 +37,4 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run yamllint
         with:
-          task: sourceQuality.structuredDataValidation
+          task: lint:data

@@ -54,8 +54,8 @@ function run(reply: string | null, attempt = "1") {
 			PATH: `${dir}:${process.env["PATH"]}`,
 			GITHUB_REPOSITORY: "o/r",
 			GITHUB_OUTPUT: out,
-			WORKFLOW: "Delivery",
-			FILE: ".github/workflows/delivery.publish.yml",
+			WORKFLOW: "release",
+			FILE: ".github/workflows/ci.release.yml",
 			BRANCH: "alpha",
 			URL: "https://github.com/o/r/actions/runs/9",
 			ATTEMPT: attempt,
@@ -70,7 +70,7 @@ function run(reply: string | null, attempt = "1") {
 }
 
 const jobs = (list: Job[]) => JSON.stringify({ total_count: list.length, jobs: list });
-const line = "❌ o/r: Delivery (delivery.publish.yml) failed on alpha — https://github.com/o/r/actions/runs/9";
+const line = "❌ o/r: release (ci.release.yml) failed on alpha — https://github.com/o/r/actions/runs/9";
 
 describe("platform.notifications.yml", () => {
 	it("grants actions: read to the failed-run job, and to no other job or the workflow", () => {

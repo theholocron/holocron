@@ -1,4 +1,4 @@
-name: Platform
+name: label
 
 on: # yamllint disable-line rule:truthy
   pull_request:
@@ -12,7 +12,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  bookkeeping:
-    name: Bookkeeping
+  label:
+    name: label
     uses: theholocron/.github/.github/workflows/label.yml@main
     secrets: inherit

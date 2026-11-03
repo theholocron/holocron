@@ -1,0 +1,20 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: update-deps
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-deps:
+    name: update-deps
+    uses: ./.github/workflows/update-deps.yml
+    secrets: inherit

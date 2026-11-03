@@ -2,10 +2,13 @@ import { legacyName } from "../legacy-name/index.js";
 import { LEGACY_NAMES } from "../legacy-names/index.js";
 
 /**
- * The key a manifest name has in the workflow tables (`WORKFLOW_TEMPLATES`, `WORKFLOW_CHECK_CONTEXTS`) and in the
- * generated file names: the old name, until the later phases flip them. An old name is its own key; a flat id maps back
- * to the old name it replaced; a name with neither (`preview`) is its own key.
+ * The key a manifest name has in the workflow tables (`WORKFLOW_TEMPLATES`, `WORKFLOW_CHECK_CONTEXTS`): the flat id of
+ * the template that carries its workflow. A flat id is its own key; an old name maps to the first id that replaced it
+ * (`sourceQuality.formatting` is `lint:editorconfig`, the id its template is filed under); the other successors of a
+ * shared workflow (`lint:markdown`, `format`) map to that same id; a name with no old name (`preview`, an unknown one)
+ * is its own key.
  */
 export function workflowKey(name: string): string {
-	return LEGACY_NAMES[name] ? name : (legacyName(name) ?? name);
+	const legacy = LEGACY_NAMES[name] ? name : legacyName(name);
+	return legacy === undefined ? name : LEGACY_NAMES[legacy]![0]!.id;
 }

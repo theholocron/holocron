@@ -1,4 +1,4 @@
-name: Platform
+name: sync-repo
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -23,8 +23,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  sync:
-    name: Sync
+  sync-repo:
+    name: sync-repo
     uses: theholocron/.github/.github/workflows/sync-repo.yml@main
     with:
       steps: ${{ inputs.steps }}
