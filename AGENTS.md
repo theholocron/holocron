@@ -351,6 +351,10 @@ apps/` must return **nothing** (source). The CLI's
   `observability/resolve-telemetry.ts` (the Holocron-specific DSN / key
   resolution, which stays here). A vendor swap or a
   test fake is one file — in `observability/`.
+- **Read env through `@theholocron/env-utils/lookup`, never the package entry.** The entry also exports `DotenvLoader`, whose
+  module runs `import "dotenv/config"` and so loads the working directory's `.env` into `process.env` on import. `/lookup` has
+  `createEnvLookup`, `firstEnv` and `withEnvPrefix` with no side effects; the root ESLint config forbids the bare import
+  (`no-restricted-imports`, #1640).
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-skill-plugin` skill at `.claude/skills/holocron-skill-plugin/`. The
   skill produces ~14 files in the right shape; only the capability

@@ -20,7 +20,7 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import { withEnvPrefix } from "@theholocron/env-utils";
+import { withEnvPrefix } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { deleteToken, getToken, listStoredProviders, setToken } from "../../auth/index.js";

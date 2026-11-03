@@ -12,6 +12,26 @@ export default [
 		settings: { node: { version: ">=22.0.0" } },
 	},
 	{
+		// The package entry also exports `DotenvLoader`, which loads a `.env` from the working directory on import.
+		// `/lookup` has the same lookups with no side effects, so nothing here reaches for the entry (#1640).
+		files: ["**/*.ts"],
+		ignores: ["utils/env-utils/**"],
+		rules: {
+			"no-restricted-imports": [
+				"error",
+				{
+					paths: [
+						{
+							name: "@theholocron/env-utils",
+							message:
+								'Import from "@theholocron/env-utils/lookup": the package entry loads a .env on import.',
+						},
+					],
+				},
+			],
+		},
+	},
+	{
 		files: ["docs/src/**"],
 		rules: {
 			// docs/src imports live in root package.json, not docs/package.json
