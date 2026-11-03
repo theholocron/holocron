@@ -1,9 +1,11 @@
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { verifyBotToken } from "./verify-bot-token.js";
 
 const BASE = "https://discord.test/api/v10";
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe("verifyBotToken", () => {
 	it("returns ok:true with the application's name and id, asking only for its own application", async () => {
@@ -23,5 +25,15 @@ describe("verifyBotToken", () => {
 		const { fetch, calls } = stubFetch([{ status: 200, body: { id: "9", name: "Holonet" } }]);
 		await verifyBotToken("bot-tok", { baseUrl: BASE, fetch });
 		expect(calls[0]?.url).toBe("https://discord.com/api/v10/applications/@me");
+	});
+
+	it("uses the global fetch when it is given none", async () => {
+		const seen: string[] = [];
+		vi.stubGlobal("fetch", async (input: string | URL) => {
+			seen.push(String(input));
+			return new Response(JSON.stringify({ id: "9", name: "Holonet" }), { status: 200 });
+		});
+		expect(await verifyBotToken("bot-tok")).toEqual({ ok: true, subject: "bot: Holonet (id: 9)" });
+		expect(seen).toEqual(["https://discord.com/api/v10/applications/@me"]);
 	});
 });
