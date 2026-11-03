@@ -1,3 +1,15 @@
+## [5.0.0-alpha.312](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.311...v5.0.0-alpha.312) (2026-11-03)
+
+### Features
+
+* **notifications:** 🔄 Sentinel-hosted role sync ([#1595](https://github.com/theholocron/holocron/issues/1595)) ([#1649](https://github.com/theholocron/holocron/issues/1649)) ([336962e](https://github.com/theholocron/holocron/commit/336962e758e4343dd8c5b507a797325441a13ee0))
+* **specs:** 📬 post to the forum while the pull request is still open ([#1600](https://github.com/theholocron/holocron/issues/1600)) ([#1645](https://github.com/theholocron/holocron/issues/1645)) ([b0c3ec3](https://github.com/theholocron/holocron/commit/b0c3ec3243f97efa21be44766ac5399f0794da68))
+
+### Bug Fixes
+
+* **notifications:** 🛡️ harden the avatar loader: follow redirects safely, cap the download ([#1597](https://github.com/theholocron/holocron/issues/1597)) ([#1644](https://github.com/theholocron/holocron/issues/1644)) ([966edd9](https://github.com/theholocron/holocron/commit/966edd967c91374d268a49740de5366bbb4d7b49))
+* **specs:** 🔖 name no pull request on a forum post for specs added in bulk ([#1601](https://github.com/theholocron/holocron/issues/1601)) ([#1642](https://github.com/theholocron/holocron/issues/1642)) ([1609d7d](https://github.com/theholocron/holocron/commit/1609d7d82e8c5450b62f169dbbfbbda903bbc138))
+
 ## [5.0.0-alpha.311](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.310...v5.0.0-alpha.311) (2026-11-03)
 
 ### Features
