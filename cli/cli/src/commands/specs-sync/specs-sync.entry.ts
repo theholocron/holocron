@@ -38,6 +38,13 @@ export const specsSyncEntry: CommandEntry = {
 				"Rewrite the PR line of existing posts to what the current rule names (a repair; no other change)?",
 		},
 		{
+			key: "refreshTitles",
+			flag: "--refresh-titles",
+			type: "confirm",
+			default: false,
+			message: "Rename existing posts to the title the current rule writes (a repair; no other change)?",
+		},
+		{
 			key: "withdraw",
 			flag: "--withdraw",
 			type: "confirm",

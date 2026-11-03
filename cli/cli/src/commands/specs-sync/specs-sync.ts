@@ -1,8 +1,7 @@
 /**
  * `holocron specs sync` -- keep each ADR and spec in step with a post in a forum channel.
  *
- * Every document under `docs/wiki/decisions`, `.notes` and `docs/wiki/specifications` gets one post (titled `💡 New spec:` or
- * `📐 New ADR:`) made from the file, tagged with its status, and the post's address is written into the file as
+ * Every document under `docs/wiki/decisions`, `.notes` and `docs/wiki/specifications` gets one post (titled with the document's own title) made from the file, tagged with its status, and the post's address is written into the file as
  * `discussion.url`. The file stays the source of truth. A gatekeeper who changes a post's tag is asking for a status
  * change, and the run turns that into an edit of the file's `status:` line in the working tree; the workflow that runs
  * it commits the edit to a pull request, so nothing reaches the default branch without a review.
@@ -82,7 +81,9 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	let documents: SpecDocument[];
 	let syncOne: (doc: SpecDocument) => Promise<SpecSyncOutcome>;
 	if (input.withdraw) {
-		if (input.refreshOrigin) return refuse("`--withdraw` and `--refresh-origin` cannot be combined");
+		if (input.refreshOrigin || input.refreshTitles) {
+			return refuse("`--withdraw` cannot be combined with `--refresh-origin` or `--refresh-titles`");
+		}
 		if (!input.files) return refuse("`--withdraw` needs `--files`: the paths of the pull request's specs and ADRs");
 		// The files are not in the working tree (it is the base branch), so the documents are the paths asked for.
 		documents = [...new Set(input.files)].sort().flatMap((path) => {
@@ -124,6 +125,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				dryRun,
 				quiet: !input.notify,
 				...(input.refreshOrigin ? { refreshOrigin: true } : {}),
+				...(input.refreshTitles ? { refreshTitles: true } : {}),
 				...(ids.has(doc.path) ? { assignedId: ids.get(doc.path)! } : {}),
 				...(repo && prNumber(doc.path)
 					? {
@@ -141,6 +143,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	let skipped = 0;
 	let failed = 0;
 	let rewritten = 0;
+	let renamed = 0;
 	let rateLimited: SpecsSyncReport["rateLimited"];
 	print(`\n${style.header(`ADRs and specs → #${forum.channel}`)}`);
 	for (const doc of documents) {
@@ -160,6 +163,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		}
 		files.push(outcome);
 		if (outcome.prLineRewritten) rewritten++;
+		if (outcome.titleRenamed) renamed++;
 		if (outcome.problem) {
 			print(`  ${style.fail(`${outcome.path}: ${outcome.problem}`)}`);
 			failed++;
@@ -186,6 +190,9 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	if (input.refreshOrigin) {
 		print(style.header(`${rewritten} PR line(s) ${dryRun ? "would be rewritten" : "rewritten"}`));
 	}
+	if (input.refreshTitles) {
+		print(style.header(`${renamed} title(s) ${dryRun ? "would be renamed" : "renamed"}`));
+	}
 	const status = failed > 0 ? "fail" : dryRun ? "dry-run" : "ok";
 	print("");
 	print(style.header(`${ok} ok, ${failed} fail, ${skipped} skipped`));
@@ -193,5 +200,11 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		{ provider: notifications.providerName, channel: forum.channel, files: files.length, failed, status },
 		"specs sync"
 	);
-	return { status, files, ...(input.refreshOrigin ? { rewritten } : {}), ...(rateLimited ? { rateLimited } : {}) };
+	return {
+		status,
+		files,
+		...(input.refreshOrigin ? { rewritten } : {}),
+		...(input.refreshTitles ? { renamed } : {}),
+		...(rateLimited ? { rateLimited } : {}),
+	};
 }

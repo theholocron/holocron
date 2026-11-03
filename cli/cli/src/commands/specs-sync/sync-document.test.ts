@@ -49,7 +49,7 @@ describe("syncDocument", () => {
 		expect(n.ensureDiscussion).toHaveBeenCalledWith({
 			channel: "ideas",
 			key: ".notes/tech-x.spec.md",
-			title: "💡 New spec: Channel content",
+			title: "Channel content",
 			body: `SPEC-0001\n\nContent is typed by hand.\n\nPR: [#1538](<${PR.url}>)`,
 			state: "proposed",
 			quiet: true,
@@ -61,13 +61,13 @@ describe("syncDocument", () => {
 		expect(n.updateDiscussion).not.toHaveBeenCalled();
 	});
 
-	it("titles an ADR 📐 New ADR:, opens with its id, and leaves out the pull request when it is not known", async () => {
+	it("titles an ADR with its own title, opens with its id, and leaves out the pull request when it is not known", async () => {
 		const { n, notifications } = provider(undefined);
 
 		await syncDocument(adr("accepted"), deps(notifications, { pr: undefined }));
 
 		expect(n.ensureDiscussion).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "📐 New ADR: Use X", body: "ADR-0001\n\nWe need X.", state: "accepted" })
+			expect.objectContaining({ title: "Use X", body: "ADR-0001\n\nWe need X.", state: "accepted" })
 		);
 	});
 
@@ -388,6 +388,81 @@ describe("syncDocument", () => {
 			expect(recorded.did).toEqual(["would record that the post and the file agree"]);
 			expect(asked.did).toEqual(["would move status to accepted, as the tag asks"]);
 			for (const p of [tag, record, request]) expect(p.n.updateDiscussion).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("refreshTitles", () => {
+		const post = (over: Partial<DiscussionPost> = {}): DiscussionPost => ({
+			url: URL,
+			state: "proposed",
+			synced: "proposed",
+			title: "💡 New spec: Channel content",
+			...over,
+		});
+
+		it("renames a post whose title differs, patching only the title", async () => {
+			const { n, notifications } = provider(post());
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications, { refreshTitles: true }));
+
+			expect(n.updateDiscussion).toHaveBeenCalledTimes(1);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", {
+				title: "Channel content",
+			});
+			expect(out.did).toEqual(['renamed the post to "Channel content"']);
+			expect(out.titleRenamed).toBe(true);
+		});
+
+		it("renames a closed or withdrawn post like any other, and does not reopen it", async () => {
+			const { n, notifications } = provider(post({ state: "withdrawn", synced: "proposed", closed: true }));
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications, { refreshTitles: true }));
+
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", {
+				title: "Channel content",
+			});
+			expect(out.titleRenamed).toBe(true);
+		});
+
+		it("leaves a post whose title is already the rule's, and one whose title the provider does not say", async () => {
+			const same = provider(post({ title: "Channel content" }));
+			const unknown = provider(post({ title: undefined }));
+
+			const a = await syncDocument(
+				linkedDoc(spec("proposed")),
+				deps(same.notifications, { refreshTitles: true })
+			);
+			const b = await syncDocument(
+				linkedDoc(spec("proposed")),
+				deps(unknown.notifications, { refreshTitles: true })
+			);
+
+			expect(same.n.updateDiscussion).not.toHaveBeenCalled();
+			expect(unknown.n.updateDiscussion).not.toHaveBeenCalled();
+			expect(a.titleRenamed).toBeUndefined();
+			expect(b.did).toEqual([]);
+		});
+
+		it("never renames without the flag", async () => {
+			const { n, notifications } = provider(post());
+
+			const out = await syncDocument(linkedDoc(spec("proposed")), deps(notifications));
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(out.titleRenamed).toBeUndefined();
+		});
+
+		it("on a dry run says what it would rename and changes nothing", async () => {
+			const { n, notifications } = provider(post());
+
+			const out = await syncDocument(
+				linkedDoc(spec("proposed")),
+				deps(notifications, { refreshTitles: true, dryRun: true })
+			);
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(out.did).toEqual(['would rename the post to "Channel content"']);
+			expect(out.titleRenamed).toBe(true);
 		});
 	});
 });

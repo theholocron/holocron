@@ -59,11 +59,13 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
   `tasks names` (#1618, spec SPEC-0064) lists the hand-written places (workflows, scripts, docs, `turbo.json`, `package.json`, configs, hooks) that still use an old dotted task name, with file, line and the flat id to use; `info` rows, or failures with `--fail`. Its old-to-new table is data (`probe/tasks/legacy-task-names.ts`) until astromech's `LEGACY_NAMES` exists. `doctor repo` compares the ruleset's required contexts with `requiredChecks()` (`compareRequiredContexts`): `missing required check` and `stale context` rows.
   `specs sync` numbers each spec (`id: SPEC-0007`; ADRs have `ADR-0009`) and keeps a forum post per ADR and spec (titled
-  `💡 New spec:` / `📐 New ADR:`, tagged with its status) in step with the files
+  with the document's own title, tagged with its status) in step with the files
   (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
   (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
   post, the file's `status:` into the working tree only (the workflow commits it to a pull request), and decides by
-  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status. `--files` limits a run to the given
+  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status. `--refresh-origin` and `--refresh-titles` (#1654, #1657) are
+  opt-in repairs that patch one field of existing posts (the `PR:` line, the title); a Discord rate limit (429) stops a run
+  cleanly (`rateLimited` in the report, `left` documents) and the next run continues. `--files` limits a run to the given
   paths and `--pr` names a pull request on the posts: `knowledge.specsOnPullRequest.yml` uses both to post while a
   same-repository pull request is still open (#1600), and throws the edits away; the post is linked after the merge.
   `--refresh-origin` (#1652) is an opt-in repair, never a standing behaviour: it compares each post's `PR:` line

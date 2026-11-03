@@ -266,7 +266,7 @@ Mintlify, Starlight, GitHub Actions, and agents all consume the same file.
 > the ADRs and the checks (#1535, spec `tech-specs-discussion-threads`).
 
 Architectural debate happens in a post in the `#ideas` forum. `holocron specs
-sync` makes one post for each ADR and spec (`📐 New ADR: <title>`), tags it with
+sync` makes one post for each ADR and spec (titled `<title>`), tags it with
 the document's status, and writes its address into the file as `discussion.url`.
 The post is the messy deliberation; the ADR is the clean conclusion, and the file
 in Git stays the source of truth. A post carries the context, the options and the

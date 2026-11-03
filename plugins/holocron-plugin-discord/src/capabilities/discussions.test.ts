@@ -59,6 +59,7 @@ describe("DiscordDiscussions.ensure", () => {
 			post: {
 				url: `https://discord.com/channels/${GUILD}/5`,
 				key: INPUT.key,
+				title: "SPEC: 5",
 				state: "proposed",
 				synced: "proposed",
 			},
@@ -106,6 +107,7 @@ describe("DiscordDiscussions.ensure", () => {
 		expect(result.post).toEqual({
 			url: `https://discord.com/channels/${GUILD}/6`,
 			key: INPUT.key,
+			title: "SPEC: 6",
 			state: "proposed",
 			synced: "draft",
 		});
@@ -189,6 +191,7 @@ describe("DiscordDiscussions.read", () => {
 		expect(await post(["903"]).read("ideas", INPUT.key)).toEqual({
 			url: `https://discord.com/channels/${GUILD}/5`,
 			key: INPUT.key,
+			title: "SPEC: 5",
 			state: "accepted",
 			synced: "proposed",
 		});
@@ -217,7 +220,12 @@ describe("DiscordDiscussions.read", () => {
 
 	it("has no synced state when the footer records none", async () => {
 		const found = await post(["902"], "").read("ideas", INPUT.key);
-		expect(found).toEqual({ url: `https://discord.com/channels/${GUILD}/5`, key: INPUT.key, state: "proposed" });
+		expect(found).toEqual({
+			url: `https://discord.com/channels/${GUILD}/5`,
+			key: INPUT.key,
+			title: "SPEC: 5",
+			state: "proposed",
+		});
 	});
 
 	it("is undefined for a document with no post", async () => {
@@ -250,6 +258,35 @@ describe("DiscordDiscussions.update", () => {
 			body: { content: `About A.\n\n${footer(INPUT.key, "accepted")}`, allowed_mentions: { parse: [] } },
 		});
 		expect((await discussions.read("ideas", INPUT.key))?.synced).toBe("accepted");
+	});
+
+	it("renames a closed (archived and locked) post by unarchiving it, and closes it again", async () => {
+		const closed = (over: object = {}) =>
+			thread("5", {
+				thread_metadata: { ...thread("5").thread_metadata, archived: true, locked: true },
+				...over,
+			});
+		const { discussions, calls } = make([
+			...listing([closed()]),
+			first("5", `About A.\n\n${footer(INPUT.key, "proposed")}`),
+			{ body: closed({ name: "Renamed", thread_metadata: { ...thread("5").thread_metadata, locked: true } }) },
+			{ body: closed({ name: "Renamed" }) },
+		]);
+
+		await discussions.update("ideas", INPUT.key, { title: "Renamed" });
+
+		expect(calls).toHaveLength(5);
+		expect(calls[3]?.body).toEqual({ name: "Renamed", archived: false });
+		expect(calls[4]?.body).toEqual({ archived: true, locked: true });
+		expect(await discussions.read("ideas", INPUT.key)).toMatchObject({ title: "Renamed", closed: true });
+	});
+
+	it("does not rename a post whose title is already the one asked for", async () => {
+		const { discussions, calls } = existing();
+
+		await discussions.update("ideas", INPUT.key, { title: "SPEC: 5" });
+
+		expect(calls).toHaveLength(3);
 	});
 
 	it("changes only the tag, or only the synced line, when only that is asked", async () => {

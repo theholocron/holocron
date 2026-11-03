@@ -46,6 +46,12 @@ export interface RunSpecsSyncInput {
 	 */
 	refreshOrigin?: boolean;
 	/**
+	 * Rename each existing post whose title differs from the one the current rule writes, and change nothing else in it.
+	 * A repair for posts made under an older rule; off by default, so a title a gatekeeper changed by hand is not
+	 * overwritten on every run. A rate limit stops it cleanly, and the next run continues.
+	 */
+	refreshTitles?: boolean;
+	/**
 	 * Withdraw the posts of `files` instead of syncing them: tag each `withdrawn` and close it, for a pull request that was
 	 * closed unmerged. The files need not exist in the working tree, which is the base branch's, and a path that does exist
 	 * there keeps its post. Needs `files`.
@@ -76,6 +82,8 @@ export interface SpecSyncOutcome {
 	did: string[];
 	/** Set when the post's pull request line was (on a dry run, would be) rewritten by `refreshOrigin`. */
 	prLineRewritten?: boolean;
+	/** Set when the post was (on a dry run, would be) renamed by `refreshTitles`. */
+	titleRenamed?: boolean;
 	/** Why the document could not be synced; absent when it could. */
 	problem?: string;
 	/** The document's text after the sync; the same as before when the file needs no change. */
@@ -88,6 +96,8 @@ export interface SpecsSyncReport {
 	files: SpecSyncOutcome[];
 	/** With `refreshOrigin`: how many posts had (or, on a dry run, would have) their pull request line rewritten. */
 	rewritten?: number;
+	/** With `refreshTitles`: how many posts were (on a dry run, would be) renamed. */
+	renamed?: number;
 	/** Why the run did not start. */
 	message?: string;
 	/** Set when the provider's rate limit stopped the run early: how many documents were left, and how many seconds it asked to be left alone for (`0` when it did not say). */
@@ -113,6 +123,8 @@ export interface SyncDocumentDeps {
 	pr?: { number: number; url: string };
 	/** Rewrite the post's pull request line when it differs from the one `pr` gives (or, with no `pr`, take it out). */
 	refreshOrigin?: boolean;
+	/** Rename the post when its title differs from the one the current rule writes. */
+	refreshTitles?: boolean;
 	/** The id `assignSpecIds` gave the document, when it had none. */
 	assignedId?: string;
 }
