@@ -34,6 +34,8 @@ export default defineConfig({
 	docs,
 	// The apex carries iCloud Mail's MX and SPF records; `holocron doctor dns` keeps watch on them (#1569).
 	doctor: { mail: "icloud" },
+	// The 1Password Environment the `credentials` provider reads (its name is matched exactly; see docs: tokens).
+	credentials: { environment: "Holocron" },
 	repo: {
 		...repo,
 		teams: [{ slug: "gatekeepers", permission: "maintain" }],
@@ -118,6 +120,9 @@ export default defineConfig({
 	providers: {
 		...providers,
 		secrets: "github",
+		// Credentials: this machine reads its own tokens from the 1Password Environment named below, ahead of the
+		// keyring (#1606). A token in the process environment or a repo-root `.env` still wins, and CI sets its own.
+		credentials: ["1password"],
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
 		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
