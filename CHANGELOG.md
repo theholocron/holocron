@@ -1,3 +1,9 @@
+## [5.0.0-alpha.317](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.316...v5.0.0-alpha.317) (2026-11-03)
+
+### Refactoring
+
+* **env-utils:** 🧹 import the side-effect-free /lookup subpath ([#1640](https://github.com/theholocron/holocron/issues/1640)) ([#1670](https://github.com/theholocron/holocron/issues/1670)) ([c356c71](https://github.com/theholocron/holocron/commit/c356c71b02bb10aacf56976fb4113a8b69ef06b5))
+
 ## [5.0.0-alpha.316](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.315...v5.0.0-alpha.316) (2026-11-03)
 
 ### Features
