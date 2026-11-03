@@ -1,3 +1,13 @@
+## [5.0.0-alpha.320](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.319...v5.0.0-alpha.320) (2026-11-03)
+
+### Features
+
+* **sentinel:** 🔐 keep Sentinel's and Comlink's secrets in 1Password ([#1671](https://github.com/theholocron/holocron/issues/1671)) ([#1673](https://github.com/theholocron/holocron/issues/1673)) ([229e398](https://github.com/theholocron/holocron/commit/229e398e2fc334dd81a98d44421a1e8c9c5e30d2))
+
+### Refactoring
+
+* **ci:** ✂️ split formatting into lint:editorconfig, lint:markdown and a format action ([#1675](https://github.com/theholocron/holocron/issues/1675)) ([9aaee79](https://github.com/theholocron/holocron/commit/9aaee792c72115fe4047ef78e1dcf672a0914932)), closes [#1621](https://github.com/theholocron/holocron/issues/1621)
+
 ## [5.0.0-alpha.319](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.318...v5.0.0-alpha.319) (2026-11-03)
 
 ### Refactoring
