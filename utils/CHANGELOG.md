@@ -1,3 +1,15 @@
+## [1.16.1-alpha.4](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.3...utils-v1.16.1-alpha.4) (2026-11-03)
+
+### Refactoring
+
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
+### Documentation
+
+* **array-utils:** 📝 generate the API reference from TSDoc ([#1374](https://github.com/theholocron/holocron/issues/1374)) ([13e2205](https://github.com/theholocron/holocron/commit/13e2205f3e4b2fdaeed21cc4d4fd4ef2462a1d49)), closes [#1368](https://github.com/theholocron/holocron/issues/1368)
+* **utils:** 📝 document observability and the utils packages with TSDoc ([#1495](https://github.com/theholocron/holocron/issues/1495)) ([69333e2](https://github.com/theholocron/holocron/commit/69333e291421b9c74822fbca7736217e7a307a0d))
+* **utils:** 📝 trim the utils pages the generated reference duplicates ([#1521](https://github.com/theholocron/holocron/issues/1521)) ([5ff11f9](https://github.com/theholocron/holocron/commit/5ff11f9f5e8af1486d1bd096ef12d8b70af22dc7)), closes [#1512](https://github.com/theholocron/holocron/issues/1512)
+
 ## [1.16.1-alpha.3](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.2...utils-v1.16.1-alpha.3) (2026-10-31)
 
 ### Refactoring
