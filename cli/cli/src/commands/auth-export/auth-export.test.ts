@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
@@ -247,6 +247,78 @@ describe("auth export — what it writes", () => {
 	it("passes over a plugin that lists no tokens", async () => {
 		const { result } = run({ importer: async (pkg) => (pkg.endsWith("github") ? {} : importer(pkg)) });
 		expect((await result).exported).toEqual(["HOLOCRON_ORG_TOKEN", "HOLOCRON_SENTRY_TOKEN"]);
+	});
+});
+
+describe("auth export — only", () => {
+	it("exports just the token asked for, by its variable name, and copies it on a terminal", async () => {
+		const copy = vi.fn(async (_text: string) => {});
+		const { result, out, err } = run({ outKind: "terminal", only: ["HOLOCRON_SENTRY_TOKEN"], copy });
+		const report = await result;
+		expect(copy).toHaveBeenCalledExactlyOnceWith("HOLOCRON_SENTRY_TOKEN=sntry_1\n");
+		expect(report).toMatchObject({ status: "ok", destination: "clipboard", exported: ["HOLOCRON_SENTRY_TOKEN"] });
+		expect(out).toEqual([]);
+		expect(err[0]).toBe("exported 1 of 1:");
+		expect(JSON.stringify(err)).not.toContain("sntry_1");
+	});
+
+	it("finds a token by the vendor's own name or by its keyring entry", async () => {
+		const byVendor = run({ only: ["SENTRY_AUTH_TOKEN"] });
+		expect((await byVendor.result).exported).toEqual(["HOLOCRON_SENTRY_TOKEN"]);
+		const byKeyring = run({ only: ["github.org"] });
+		expect((await byKeyring.result).exported).toEqual(["HOLOCRON_ORG_TOKEN"]);
+	});
+
+	it("takes several, and a name given twice is one token", async () => {
+		const { result, out } = run({ only: ["HOLOCRON_ORG_TOKEN", "github.org", "HOLOCRON_SENTRY_TOKEN"] });
+		expect((await result).exported).toEqual(["HOLOCRON_ORG_TOKEN", "HOLOCRON_SENTRY_TOKEN"]);
+		expect(out.join("")).toBe("HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
+	});
+
+	it("refuses a name that matches no token, lists the names there are, and copies nothing", async () => {
+		const copy = vi.fn(async (_text: string) => {});
+		const { result, out, err } = run({ outKind: "terminal", only: ["NOPE", "HOLOCRON_ORG_TOKEN"], copy });
+		expect((await result).status).toBe("fail");
+		expect(copy).not.toHaveBeenCalled();
+		expect(out).toEqual([]);
+		expect(err).toEqual([
+			"no token named NOPE",
+			"the names are: HOLOCRON_ORG_TOKEN, HOLOCRON_READ_TOKEN, HOLOCRON_SENTRY_TOKEN",
+		]);
+	});
+
+	it("still goes to a pipe or an explicit file the way the whole set does", async () => {
+		const piped = run({ outKind: "pipe", only: ["HOLOCRON_ORG_TOKEN"] });
+		expect((await piped.result).destination).toBe("out");
+		const filed = run({
+			outKind: "terminal",
+			only: ["HOLOCRON_ORG_TOKEN"],
+			to: "file",
+			isIgnored: () => "ignored",
+			writeFile: () => ({ fd: openSync("/dev/null", "r"), dev: 1, ino: 1 }) as never,
+			keep: true,
+		});
+		expect((await filed.result).destination).toBe("file");
+	});
+
+	it("still reports a conflict for a name that was asked for", async () => {
+		const clash: AuthImporter = async (pkg) =>
+			pkg.endsWith("sentry")
+				? { tokens: [{ envName: "HOLOCRON_ORG_TOKEN", keyringKey: "other.org" }] }
+				: importer(pkg);
+		const { result } = run({ importer: clash, only: ["HOLOCRON_ORG_TOKEN"] });
+		const report = await result;
+		expect(report.conflicts).toEqual(["HOLOCRON_ORG_TOKEN"]);
+		expect(report.exported).toEqual([]);
+	});
+
+	it("leaves a name out of the conflicts when it was not asked for", async () => {
+		const clash: AuthImporter = async (pkg) =>
+			pkg.endsWith("sentry")
+				? { tokens: [{ envName: "HOLOCRON_ORG_TOKEN", keyringKey: "other.org" }] }
+				: importer(pkg);
+		const { result } = run({ importer: clash, only: ["HOLOCRON_READ_TOKEN"] });
+		expect((await result).conflicts).toEqual([]);
 	});
 });
 
