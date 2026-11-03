@@ -64,14 +64,13 @@ describe("runGroup", () => {
 		expect(exec).toHaveBeenCalledTimes(2);
 	});
 
-	it("passes a member's job switches and passthrough to the task it runs", () => {
-		const { run, exec } = makeGroup(
-			{ "package.json": PKG },
-			{ lookPath: (_cwd, bin) => (bin === "node" ? "/bin/node" : null) }
-		);
-		const report = run([{ task: "validate", jobSwitches: { docsEnforcement: false } }], "validate");
+	it("passes a member's passthrough to the task it runs", () => {
+		const { run, exec } = makeGroup({ "package.json": PKG });
+		const report = run([{ task: "validate:specs", passthrough: [".notes/a.spec.md"] }], "validate");
 		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([
+			[process.argv[1], "probe", "specs", "check", ".notes/a.spec.md"],
+		]);
 	});
 
 	it("aggregates fail when any member fails, but still runs every one of them", () => {

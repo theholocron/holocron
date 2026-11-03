@@ -11,7 +11,13 @@ describe("planTasks", () => {
 				t.kind,
 			])
 		);
-		expect(kinds).toEqual({ build: "turbo", "lint:markdown": "tool", validate: "cli", "lint:commits": "cli" });
+		expect(kinds).toEqual({
+			build: "turbo",
+			"lint:markdown": "tool",
+			"validate:specs": "cli",
+			"validate:docs": "cli",
+			"lint:commits": "cli",
+		});
 	});
 
 	it("carries the key of the entry's spelling, the script name and the command of a tool leaf", () => {

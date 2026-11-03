@@ -1,8 +1,7 @@
 import { TASKS } from "../../registry/index.js";
 
 /**
- * The suites the registry declares, in the order their first leaf appears: `test`, `lint` and `scan` today (`validate`
- * joins when it is split into `validate:specs` and `validate:docs`). A suite is declared by the `suite` field of its
+ * The suites the registry declares, in the order their first leaf appears: `test`, `lint`, `scan` and `validate`. A suite is declared by the `suite` field of its
  * leaves; it is never a task id.
  */
 export const SUITES: readonly string[] = [

@@ -42,18 +42,17 @@ export interface AstromechOptions {
 	lookPath?: (cwd: string, bin: string) => string | null;
 }
 
-/** Options for `Astromech.run`: which sub-job, what to forward, and how to scope the turbo run. */
+/** Options for `Astromech.run`: which word follows the task, what to forward, and how to scope the turbo run. */
 export interface RunOptions {
 	/**
-	 * Sub-job within the task — `performance` in `holocron run audit
-	 * performance`. Only meaningful for tasks that declare `jobs` (`audit`);
-	 * ignored otherwise. Omit to run every job the task has.
+	 * The word after `task`, part of the task's name when the two together name a leaf (`unit` in `holocron run test
+	 * unit`), else forwarded to the task as an argument.
 	 */
 	job?: string;
 	/**
 	 * Further positional words after `task` and `job`. All the words together name the task: `holocron run test unit
 	 * storybook` is `task: "test"`, `job: "unit"`, `args: ["storybook"]`, and the longest match against the registry
-	 * (`test:unit`) leaves `storybook` as the `[job]` argument.
+	 * (`test:unit`) leaves `storybook` as an argument for the task.
 	 */
 	args?: string[];
 	/** Args after `--`, forwarded to the tool / turbo / script. */
@@ -77,8 +76,8 @@ export interface Astromech {
 	/**
 	 * Run a task, a suite or an old name locally. The words (`task`, `opts.job`, `opts.args`) are joined with `:` and the
 	 * longest match against the registry wins: `test:unit` and `test unit` are one leaf, `test` is the suite (every
-	 * configured leaf, in registry order, as a {@link GroupReport}), and what is left over is the task's `[job]`
-	 * argument. An old dotted name (`verification.unitTests`) still works and prints a deprecation notice; one that
+	 * configured leaf, in registry order, as a {@link GroupReport}), and what is left over is forwarded to the
+	 * task. An old dotted name (`verification.unitTests`) still works and prints a deprecation notice; one that
 	 * stood for several tasks (`sourceQuality.formatting`) or an old group name (`"sourceQuality"`) runs each in
 	 * sequence as a {@link GroupReport}.
 	 */

@@ -26,9 +26,12 @@ describe("LEGACY_NAMES", () => {
 		expect(ids.filter((id) => TASKS[id] === undefined && !workflowOnly.has(id))).toEqual([]);
 	});
 
-	it("lists no flat id under two old names", () => {
-		const ids = Object.values(LEGACY_NAMES).flatMap((targets) => targets.map((t) => t.id));
+	it("lists no flat id under two old names, except the interim `validate` that names what platform.repoValidation did", () => {
+		const ids = Object.entries(LEGACY_NAMES).flatMap(([legacy, targets]) =>
+			legacy === "validate" ? [] : targets.map((t) => t.id)
+		);
 		expect(new Set(ids).size).toBe(ids.length);
+		expect(LEGACY_NAMES["validate"]).toEqual(LEGACY_NAMES["platform.repoValidation"]);
 	});
 
 	it("never lists a flat id as an old name (an old name is dotted or a workflow key)", () => {

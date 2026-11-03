@@ -33,11 +33,12 @@ describe("WORKFLOW_TEMPLATES", () => {
 	});
 
 	it("uses the Conclusion aggregate only for genuinely multi-job tasks", () => {
-		// test:unit (5 conditional jobs) and validate
-		// (2 jobs that both must pass) need a fan-in; every other task is a
+		// test:unit (5 conditional jobs) needs a fan-in; every other task is a
 		// single always-run job, so its own conclusion already is the check.
 		expect(WORKFLOW_CHECK_CONTEXTS["test:unit"]).toBe("test:unit / Conclusion");
-		expect(WORKFLOW_CHECK_CONTEXTS["validate"]).toBe("validate / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["validate:specs"]).toBe("validate:specs / Validate ADRs and specs");
+		expect(WORKFLOW_CHECK_CONTEXTS["validate:docs"]).toBe("validate:docs / Validate docs presence");
+		expect(WORKFLOW_CHECK_CONTEXTS["validate"]).toBeUndefined();
 		expect(WORKFLOW_CHECK_CONTEXTS["lint:code"]).toBe("lint:code / Run eslint, actionlint and prettier");
 		expect(WORKFLOW_CHECK_CONTEXTS["measure-bundle"]).toBe("measure-bundle / Upload bundle stats to Codecov");
 	});

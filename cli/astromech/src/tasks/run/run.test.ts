@@ -2,7 +2,6 @@ import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { TASKS } from "../../registry/index.js";
 import { noopLogger } from "../../utils/index.js";
 import { runTask } from "./run.js";
 import type { RunTaskInput } from "./run.type.js";
@@ -460,200 +459,66 @@ describe("runTask", () => {
 	});
 });
 
-describe("runTask — sub-jobs", () => {
-	const onPath =
-		(...bins: string[]) =>
-		(_cwd: string, bin: string): string | null =>
-			bins.includes(bin) ? `/usr/local/bin/${bin}` : null;
+describe("runTask — the validate leaves", () => {
+	const specs = [process.argv[1], "probe", "specs", "check"];
+	const docs = [process.argv[1], "probe", "docs", "presence"];
 
-	/**
-	 * Both repoValidation jobs are holocron subcommands, which always run. Gives `adrs` a `tool` runner for the length
-	 * of `fn`, for the tests of what happens when a job's tool is not installed.
-	 */
-	function withToolJob<T>(fn: () => T): T {
-		const job = TASKS["validate"]!.jobs!["adrs"]!;
-		const original = job.local;
-		job.local = { tool: "node", args: ["scripts/check.mjs"] };
-		try {
-			return fn();
-		} finally {
-			job.local = original;
-		}
-	}
-
-	it("runs one named job — `validate adrs` → holocron probe specs check", () => {
+	it("`validate:specs` runs holocron probe specs check through this CLI, with no tool lookup", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		const report = call("validate", { job: "adrs" });
+		const report = call("validate:specs");
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "specs", "check"], {
-			cwd: CWD,
-		});
+		expect(exec).toHaveBeenCalledWith(process.execPath, specs, { cwd: CWD });
 	});
 
-	it("forwards passthrough args to the job's command, so `adrs -- <files>` checks only those files", () => {
+	it("`validate:docs` runs holocron probe docs presence through this CLI", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		call("validate", { job: "adrs", passthrough: [".notes/a.spec.md"] });
-		expect(exec).toHaveBeenCalledWith(
-			process.execPath,
-			[process.argv[1], "probe", "specs", "check", ".notes/a.spec.md"],
-			{ cwd: CWD }
-		);
+		const report = call("validate:docs");
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(process.execPath, docs, { cwd: CWD });
 	});
 
-	it("forwards passthrough args to the job's tool", () => {
-		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		withToolJob(() => call("validate", { job: "adrs", passthrough: ["--strict"] }));
-		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/check.mjs", "--strict"], { cwd: CWD });
-	});
-
-	it("skips a job whose tool isn't installed locally — enforced in CI", () => {
-		const { call, exec, lines } = makeRun({ "package.json": PKG() }); // nothing on PATH
-		const report = withToolJob(() => call("validate", { job: "adrs" }));
-		expect(report.status).toBe("skip");
-		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/node not installed locally.*enforced in CI/);
-	});
-
-	it("--required turns a missing job tool into a failure", () => {
-		const { call } = makeRun({ "package.json": PKG() });
-		const report = withToolJob(() => call("validate", { job: "adrs", required: true }));
-		expect(report.status).toBe("fail");
-	});
-
-	it("skips a job the repo's config switched off, by its alias, and says so — even with --required", () => {
-		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("validate", {
-			job: "docsPresence",
-			required: true,
-			jobSwitches: { docsEnforcement: false },
-		});
-		expect(report.status).toBe("skip");
-		expect(report.message).toMatch(/off in this repo's config \(jobs\.docsEnforcement: false\)/);
-		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/off in this repo's config/);
-	});
-
-	it("also honours the job's own key, and runs a job whose switch is not false", () => {
-		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		expect(call("validate", { job: "docsPresence", jobSwitches: { docsPresence: false } }).status).toBe("skip");
-		expect(exec).not.toHaveBeenCalled();
-		expect(call("validate", { job: "docsPresence", jobSwitches: { docsEnforcement: true } }).status).toBe("ok");
-		expect(exec).toHaveBeenCalledTimes(1);
-	});
-
-	it("runs a job that is a holocron subcommand through this CLI, with no tool lookup", () => {
+	it("forwards passthrough args to the probe, so `validate:specs -- <files>` checks only those files", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		const report = call("validate", { job: "docsPresence" });
-		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "docs", "presence"], {
-			cwd: CWD,
-		});
-		const forwarded = call("validate", { job: "docsPresence", passthrough: ["--verbose"] });
-		expect(forwarded.status).toBe("ok");
-		expect(exec).toHaveBeenLastCalledWith(
-			process.execPath,
-			[...[process.argv[1], "probe", "docs", "presence"], "--verbose"],
-			{ cwd: CWD }
-		);
+		call("validate:specs", { passthrough: [".notes/a.spec.md"] });
+		expect(exec).toHaveBeenCalledWith(process.execPath, [...specs, ".notes/a.spec.md"], { cwd: CWD });
 	});
 
-	it("leaves a switched-off job out of a whole-task run and still runs the others", () => {
-		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("validate", { jobSwitches: { docsEnforcement: false } });
-		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
-		expect(lines.join("\n")).toMatch(
-			/Validate docs presence — off in this repo's config \(jobs\.docsEnforcement: false\)/
-		);
-	});
-
-	it("names a job without an alias by its own key when it is switched off", () => {
-		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const one = call("validate", { job: "adrs", jobSwitches: { adrs: false } });
-		expect(one).toMatchObject({ status: "skip", message: expect.stringMatching(/\(jobs\.adrs: false\)/) });
-		const all = call("validate", { jobSwitches: { adrs: false } });
-		expect(all.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "docs", "presence"]]);
-		expect(lines.join("\n")).toMatch(/Validate ADRs and specs — off in this repo's config \(jobs\.adrs: false\)/);
-	});
-
-	it("skips a retired job (`registry`) cleanly, so a reusable workflow synced before its removal still passes", () => {
-		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("validate", { job: "registry", required: true });
-		expect(report.status).toBe("skip");
-		expect(report.message).toMatch(/registry was retired/);
-		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/was retired/);
-	});
-
-	it("rejects an unknown job with the known list, exit 1", () => {
-		const { call, lines } = makeRun({ "package.json": PKG() });
-		const report = call("validate", { job: "frobnicate" });
-		expect(report.status).toBe("unknown");
-		expect(report.message).toBe('unknown job "validate frobnicate"');
-		expect(lines.join("\n")).toMatch(/known: adrs, docsPresence/);
-	});
-
-	it("`holocron run validate` with no job runs every job in declared order", () => {
-		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("validate");
-		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([
-			[process.argv[1], "probe", "specs", "check"],
-			[process.argv[1], "probe", "docs", "presence"],
-		]);
-		const out = lines.join("\n");
-		expect(out.indexOf("validate / Validate ADRs and specs")).toBeLessThan(
-			out.indexOf("validate / Validate docs presence")
-		);
-	});
-
-	it("`holocron run validate --dry-run` plans every job and runs nothing", () => {
-		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("validate", { dryRun: true });
+	it("plans the probe on a dry run and runs nothing", () => {
+		const { call, exec, lines } = makeRun({ "package.json": PKG() });
+		const report = call("validate:docs", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/would run: .*probe specs check[\s\S]*would run: .*probe docs presence/);
+		expect(lines.join("\n")).toMatch(/would run: .*probe docs presence/);
 	});
 
-	it("`holocron run validate` is a clean skip when no job is runnable locally", () => {
-		const { call, exec } = makeRun({ "package.json": PKG() });
-		// the docs presence job is a holocron subcommand, so it always runs: switch it off to leave nothing runnable
-		const report = withToolJob(() => call("validate", { jobSwitches: { docsEnforcement: false } }));
-		expect(report.status).toBe("skip");
-		expect(exec).not.toHaveBeenCalled();
-		expect(report.message).toMatch(/no validate job has a local equivalent/);
+	it("fails when the probe exits non-zero", () => {
+		const { call } = makeRun({ "package.json": PKG() }, { exec: () => ({ exitCode: 1 }) });
+		expect(call("validate:specs").status).toBe("fail");
 	});
 
-	it("`holocron run validate` fails the run when one job fails", () => {
-		const { call } = makeRun(
-			{ "package.json": PKG() },
-			{ lookPath: onPath("node"), exec: () => ({ exitCode: 1 }) }
-		);
-		const report = call("validate");
-		expect(report.status).toBe("fail");
-		expect(report.message).toMatch(/one or more validate jobs failed/);
+	it("an explicit script of the leaf's name still wins over the probe", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG({ scripts: { "validate:specs": "node scripts/validate-specs.mjs" } }),
+		});
+		const report = call("validate:specs");
+		expect(report.status).toBe("ok");
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "validate:specs"], { cwd: CWD });
 	});
 
-	it("folds a job-position arg into passthrough for a task with no jobs (`build src/`)", () => {
+	it("a package's own `validate` script is not a task of this suite", () => {
+		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { validate: "node scripts/other.mjs" } }) });
+		call("validate:docs");
+		expect(exec).toHaveBeenCalledWith(process.execPath, docs, { cwd: CWD });
+	});
+
+	it("folds extra words into passthrough (`build src/`)", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
 			"tsdown.config.ts": "",
 			"node_modules/.bin/tsdown": "",
 		});
-		call("build", { job: "src/" });
+		call("build", { passthrough: ["src/"] });
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/tsdown"), ["src/"], { cwd: CWD });
-	});
-
-	it("an explicit script still wins over job expansion", () => {
-		const { call, exec } = makeRun({
-			"package.json": PKG({ scripts: { "platform.repoValidation": "node scripts/validate-all.mjs" } }),
-		});
-		const report = call("validate");
-		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "platform.repoValidation"], {
-			cwd: CWD,
-		});
 	});
 });
 

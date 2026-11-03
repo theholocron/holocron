@@ -1,0 +1,28 @@
+name: Validate Specs
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  validate-specs:
+    name: Validate ADRs and specs
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Validate ADR and spec frontmatter
+        with:
+          task: validate:specs

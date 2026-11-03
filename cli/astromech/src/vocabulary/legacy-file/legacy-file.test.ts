@@ -23,7 +23,14 @@ describe("legacyFile", () => {
 
 	it("is undone by flatFile for every old name", () => {
 		for (const legacy of Object.keys(LEGACY_NAMES)) {
+			// `validate` is an alias of `platform.repoValidation`, whose file the reusable had
+			if (legacy === "validate") continue;
 			expect(legacyFile(flatFile(`${legacy}.yml`))).toBe(`${legacy}.yml`);
 		}
+	});
+
+	it("gives the validate workflow's old name to its first leaf, and none to the second", () => {
+		expect(legacyFile("validate-specs.yml")).toBe("platform.repoValidation.yml");
+		expect(legacyFile("validate-docs.yml")).toBe("validate-docs.yml");
 	});
 });

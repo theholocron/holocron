@@ -115,7 +115,8 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"test:visual": ["test:visual / Run visual and composition tests"],
 	typecheck: ["typecheck / Run tsc --noEmit"],
 	"update-deps": ["update-deps / Update the dependencies"],
-	validate: ["validate / Validate ADRs and specs", "validate / Validate docs presence", "validate / Conclusion"],
+	"validate:docs": ["validate:docs / Validate docs presence"],
+	"validate:specs": ["validate:specs / Validate ADRs and specs"],
 };
 
 describe("check names of the generated callers", () => {

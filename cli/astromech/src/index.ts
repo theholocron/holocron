@@ -76,7 +76,7 @@ export {
 } from "./generators/scripts/index.js";
 export type { TsconfigOptions } from "./generators/tsconfig/index.js";
 export { createTsconfig } from "./generators/tsconfig/index.js";
-export type { JobDef, LocalRunner, TaskDef } from "./registry/index.js";
+export type { LocalRunner, TaskDef } from "./registry/index.js";
 export type { TaskGroup, TaskScope } from "./registry/index.js";
 export { CI_ORDER, TASKS } from "./registry/index.js";
 export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci/index.js";
@@ -106,6 +106,7 @@ export {
 	SUITES,
 	taskKey,
 	workflowKey,
+	workflowKeys,
 } from "./vocabulary/index.js";
 export { idFromSource, workflowFile } from "@theholocron/ci";
 // Aliased: codecov's own, differently-shaped WorkspacePackage ({ slug, name,

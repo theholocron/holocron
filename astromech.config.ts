@@ -36,7 +36,8 @@ export default defineConfig({
 		// Repo/spec validation (`holocron probe specs check`, `holocron probe docs presence`) —
 		// used to ride inside the old `lint` job with no linter connection at
 		// all; now its own task (#675).
-		{ name: "validate", required: true },
+		{ name: "validate:specs", required: true },
+		{ name: "validate:docs", required: true },
 		// Publish: tag Sentry releases for the CLI package, and run the
 		// post-release `deploy` job for packages whose `deploy` task is
 		// `on: release` (Sentinel, #928, #930).

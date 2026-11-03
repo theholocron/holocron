@@ -31,7 +31,7 @@ import {
 import { TASKS } from "./registry/index.js";
 import { runCi, type RunDeps, runWords } from "./tasks/index.js";
 import { noopLogger, realExec, realLookPath } from "./utils/index.js";
-import { resolveTaskName, workflowKey } from "./vocabulary/index.js";
+import { resolveTaskName, workflowKeys } from "./vocabulary/index.js";
 
 export function createAstromech(options: AstromechOptions): Astromech {
 	const deps: RunDeps = {
@@ -61,11 +61,11 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		const out: string[] = [];
 		for (const entry of items()) {
 			// `local: null` alone means genuinely no local equivalent
-			// (scan:code, deploy); a `linterGroup` or `jobs`
+			// (scan:code, deploy); a `linterGroup`
 			// task still runs locally even though its own `local` is null.
 			const runnable = resolveTaskName(entry.name).some(({ id }) => {
 				const def = TASKS[id];
-				return def !== undefined && !(def.local === null && !def.linterGroup && !def.jobs);
+				return def !== undefined && !(def.local === null && !def.linterGroup);
 			});
 			if (entry.local === false || !runnable) continue;
 			out.push(entry.name);
@@ -107,7 +107,9 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		thinCallers: () => {
 			const orgCtx = options.orgContext ?? {};
 			const out = new Map<string, string>();
-			for (const entry of items()) {
+			// One caller per workflow an entry needs: `validate` has two, each leaf its own.
+			const wanted = items().flatMap((entry) => workflowKeys(entry.name).map((key) => ({ entry, key })));
+			for (const { entry, key } of wanted) {
 				// `deploy`, `deploy-docs`, and `deploy-components` all
 				// share the same combined production+preview reusable pair
 				// (`deploy.yml` / `preview.yml`) — the two new tasks are
@@ -125,7 +127,6 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				// `KNOWN_WORKFLOWS` gate explicitly since neither is in it.
 				// The workflow tables are keyed by the flat id of the template that carries the workflow, so an entry spelled with an
 				// old name finds it, and a task that has no workflow of its own (`format`) generates no caller.
-				const key = workflowKey(entry.name);
 				const isDocsSite = key === "deploy-docs";
 				const isComponents = key === "deploy-components";
 				if (resolveTaskName(entry.name).every(({ id }) => TASKS[id]?.workflow === false)) continue;

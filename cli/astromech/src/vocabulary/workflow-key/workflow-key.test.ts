@@ -24,6 +24,13 @@ describe("workflowKey", () => {
 		expect(workflowKey("format")).toBe("lint:code");
 	});
 
+	it("a successor with a workflow of its own is its own key, and the old names map to the first", () => {
+		expect(workflowKey("validate:specs")).toBe("validate:specs");
+		expect(workflowKey("validate:docs")).toBe("validate:docs");
+		expect(workflowKey("validate")).toBe("validate:specs");
+		expect(workflowKey("platform.repoValidation")).toBe("validate:specs");
+	});
+
 	it("a name with no old name (preview, unknown) is its own key", () => {
 		expect(workflowKey("preview")).toBe("preview");
 		expect(workflowKey("nope")).toBe("nope");

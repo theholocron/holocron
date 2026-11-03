@@ -4,7 +4,7 @@ import type { LegacyTarget } from "../legacy-names/index.js";
 export interface ResolvedTask {
 	kind: "task";
 	targets: LegacyTarget[];
-	/** The words left after the name: the `[job]` argument and the passthrough. */
+	/** The words left after the name: forwarded to the task, with the passthrough. */
 	rest: string[];
 	/** The old dotted name that was used, when one was (for the deprecation notice). */
 	legacy?: string;

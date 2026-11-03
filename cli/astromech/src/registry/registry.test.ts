@@ -21,8 +21,8 @@ describe("TASKS registry", () => {
 		expect(SUITES.filter((suite) => TASKS[suite] !== undefined)).toEqual([]);
 	});
 
-	it("declares the three suites that have leaves, in registry order", () => {
-		expect(SUITES).toEqual(["test", "lint", "scan"]);
+	it("declares the four suites that have leaves, in registry order", () => {
+		expect(SUITES).toEqual(["test", "lint", "scan", "validate"]);
 	});
 
 	it("a colon id and a hyphen id never flatten to the same file name", () => {
@@ -58,26 +58,20 @@ describe("TASKS registry", () => {
 	});
 
 	it("every runner has exactly one of tool / detect / command (or local is null)", () => {
-		const runners = Object.entries(TASKS).flatMap(([name, def]) => [
-			[name, def.local] as const,
-			...Object.entries(def.jobs ?? {}).map(([j, jd]) => [`${name}/${j}`, jd.local] as const),
-		]);
-		for (const [name, local] of runners) {
+		for (const [name, { local }] of Object.entries(TASKS)) {
 			if (local === null) continue;
 			const forms = [local.tool, local.detect, local.command].filter((v) => v !== undefined);
 			expect(forms, `${name}.local`).toHaveLength(1);
 		}
 	});
 
-	it("a sub-job that is a holocron subcommand is a probe", () => {
+	it("a task that is a holocron subcommand is a probe or a plain command", () => {
 		const commands = Object.entries(TASKS).flatMap(([name, def]) =>
-			Object.entries(def.jobs ?? {}).flatMap(([job, jd]) =>
-				jd.local?.command ? [[`${name}/${job}`, jd.local.command]] : []
-			)
+			name.startsWith("validate:") && def.local?.command ? [[name, def.local.command]] : []
 		);
 		expect(commands).toEqual([
-			["validate/adrs", "probe specs check"],
-			["validate/docsPresence", "probe docs presence"],
+			["validate:specs", "probe specs check"],
+			["validate:docs", "probe docs presence"],
 		]);
 	});
 
@@ -144,12 +138,21 @@ describe("TASKS registry", () => {
 		expect(TASKS["test:perf"]!.local!.detect![0]!.when.test("lighthouse.config.cjs")).toBe(true);
 	});
 
-	it("validate bundles the process/governance scripts as jobs, not a linterGroup, until it is split", () => {
-		const jobs = TASKS["validate"]!.jobs!;
-		expect(Object.keys(jobs)).toEqual(["adrs", "docsPresence"]);
-		expect(jobs.adrs!.local).toEqual({ command: "probe specs check" });
-		expect(jobs.docsPresence!.local).toEqual({ command: "probe docs presence" });
-		expect(TASKS["validate"]!.suite).toBeUndefined();
+	it("validate is a suite of two probe leaves, with no sub-jobs", () => {
+		expect(TASKS["validate"]).toBeUndefined();
+		expect(TASKS["validate:specs"]!.suite).toBe("validate");
+		expect(TASKS["validate:docs"]!.suite).toBe("validate");
+		// the plugins' own `validate:plugin` script is the third, package-scoped leaf: no runner, no workflow, not in ci
+		expect(TASKS["validate:plugin"]).toMatchObject({
+			suite: "validate",
+			scope: "package",
+			local: null,
+			workflow: false,
+		});
+		expect(CI_ORDER).not.toContain("validate:plugin");
+		expect(TASKS["validate:specs"]!.local).toEqual({ command: "probe specs check" });
+		expect(TASKS["validate:docs"]!.local).toEqual({ command: "probe docs presence" });
+		expect(Object.values(TASKS).filter((def) => "jobs" in def || "retiredJobs" in def)).toEqual([]);
 	});
 
 	it("preview-carrying tasks are flagged, not their own namespace (cross-cutting feature, not a task)", () => {

@@ -932,7 +932,7 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
   and match by the prefix `<id> / `; `lint:markdown` and `format` have no context of their own (the formatting workflow is
   listed under `lint:editorconfig`). The hand-written `Dependency catalogs` and `Generated files` keep their names.
 - **Reusables** run flat ids in their `task:` inputs, except `lint/editorconfig.yml` (`sourceQuality.formatting`, three
-  successors until phase I) and `validate.yml` keeps its two jobs until phase J.
+  successors until phase I) and `validate.yml` kept its two jobs until phase J (#1622).
 - **`platform.notifications.yml`** lists the ids and tests the flat file names (`ci.release.yml`, `ci.sync-repo.yml`,
   `ci.deploy-preview.yml`, `ci.check-preview.yml`); `doctor notifications` has a third row, `notifications-workflow-names`,
   that fails on an old group name, an old dotted name or an id no task has (`workflowNameProblems`). Not confirmed: that
@@ -967,6 +967,32 @@ markdownlint`, and `lint:code`'s is `lint:code / Run eslint, actionlint and pret
   as a file and exists so the legacy round-trip test holds for every template.
 - **Not done here:** nothing in `holocron.config.ts` changed; the starter workflows and the other repos' callers keep
   the old names until phase K.
+
+### Phase J as built (#1622)
+
+- **`validate` is a suite** of `validate:specs` (`probe specs check`) and `validate:docs` (`probe docs presence`), both
+  repo-scoped with a holocron subcommand as their runner, plus `validate:plugin`, a package-scoped leaf with no runner
+  and no workflow (the 16 plugins' own `tsx scripts/validate.mjs`; it is not in `CI_ORDER`). The `jobs:` switch on a
+  task entry, `TaskDef.jobs`, `JobDef`, `retiredJobs`, `RunTaskInput.job` / `jobSwitches` and the `Conclusion` fan-in
+  job are gone. A word after a task name is now only an argument (`holocron run validate:specs -- <files>`); the
+  frozen `theholocron/.github` `platform.repoValidation.yml`, which runs `holocron run platform.repoValidation adrs`,
+  therefore runs both probes in each of its jobs (noisy, never wrong).
+- **Reusables and callers.** `ci/workflows/validate/{specs,docs}.yml` (one job each, `Validate ADRs and specs` and
+  `Validate docs presence`) with the templates under `templates/workflows/validate/`; the checks are
+  `validate:specs / Validate ADRs and specs` and `validate:docs / Validate docs presence`, and the `ci` aggregate
+  waits for the two ids. The docs-coverage gate (`docs patch`, `repoValidation.docsCoverage`) stays its own
+  hand-maintained workflow; `validate:docs` is only the presence probe.
+- **Aliases.** `LEGACY_NAMES` lists `validate` and `platform.repoValidation`, each standing for both leaves. Since phase I
+  every id is its own workflow, so `workflowKey()` is unchanged and `workflowKeys(name)` gives the distinct keys of a
+  name (leaving out a task with no workflow, `format`): one `validate` entry writes two callers, and the old
+  `sourceQuality.formatting` name now writes `lint:editorconfig` and `lint:markdown`, the same files its flat ids give.
+  While `legacyGate()` is shut an entry writes one caller, under `legacyWorkflowKey()` (the first successor), because the
+  frozen workflow carries them all: `LEGACY_CALLERS` has an entry for each leaf, the caller file is
+  `platform.repoValidation.yml` and the check keeps its old name. The starter workflows in `.github` get one
+  `platform.repoValidation.yml` (the existing `legacyWorkflowKey(id) !== id` skip).
+- **Tests:** the registry, `workflowKey`, `workflowKeys`, `check-names.test.ts` (new contexts), the legacy tables,
+  `generateWorkflowFiles` for a hosting repo, the legacy gate and an open gate, and the runner and `ci` for the leaves
+  and for both aliases.
 
 ## Open questions
 

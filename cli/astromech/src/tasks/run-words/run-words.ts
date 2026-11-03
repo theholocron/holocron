@@ -2,14 +2,14 @@
  * `holocron run <words…>` — turns the words of the command line into a task, a suite or an old name and runs it.
  *
  * The words are joined with `:` and the longest match against the registry wins (`test unit` is `test:unit`), and what
- * is left is the existing `[job]` argument. A suite (`test`) runs the leaves the repo lists, in registry order. An old
+ * is left is forwarded to the task. A suite (`test`) runs the leaves the repo lists, in registry order. An old
  * dotted name still works and says so on stderr; so does an old intent-group name (`sourceQuality`). Spec
  * `ci-flat-task-vocabulary`, "Suite behavior in the runner".
  */
 
 import { normalizeTaskEntry } from "../../config/schema/index.js";
 import { TASKS } from "../../registry/index.js";
-import { isTask, resolveTaskName, resolveWords, suiteMembers } from "../../vocabulary/index.js";
+import { resolveTaskName, resolveWords, suiteMembers } from "../../vocabulary/index.js";
 import type { GroupMember, GroupReport } from "../group/index.js";
 import { runGroup } from "../group/index.js";
 import { matchNamespace } from "../match-namespace/index.js";
@@ -40,11 +40,6 @@ export function runWords(input: RunWordsInput): RunTaskReport | GroupReport {
 		...(input.base ? { base: input.base } : {}),
 		...(input.env ? { env: input.env } : {}),
 	};
-	/** The `jobs` switches of the manifest entry that stands for a task. */
-	const jobSwitchesOf = (id: string): { jobSwitches?: Record<string, boolean> } => {
-		const jobs = entries.find((e) => isTask(e.name, id))?.jobs;
-		return jobs ? { jobSwitches: jobs } : {};
-	};
 	const resolved = resolveWords(words);
 
 	if (resolved.kind === "unknown") {
@@ -56,7 +51,6 @@ export function runWords(input: RunWordsInput): RunTaskReport | GroupReport {
 			const members = namespace.map((t) => ({
 				task: t.id,
 				...(t.passthrough ? { passthrough: t.passthrough } : {}),
-				...jobSwitchesOf(t.id),
 			}));
 			return runGroup({ ...deps, cwd, label: first, members, dryRun, ...scope });
 		}
@@ -81,22 +75,18 @@ export function runWords(input: RunWordsInput): RunTaskReport | GroupReport {
 			const members = targets.map((t) => ({
 				task: t.id,
 				...(t.passthrough ? { passthrough: t.passthrough } : {}),
-				...jobSwitchesOf(t.id),
 			}));
 			return runGroup({ ...deps, cwd, label: words.join(" "), members, dryRun, ...scope });
 		}
 		const { id, passthrough: implied = [] } = targets[0]!;
-		const [job, ...more] = rest;
 		return runTask({
 			...deps,
 			task: id,
 			cwd,
-			...(job !== undefined ? { job } : {}),
-			passthrough: [...more, ...passthrough, ...implied, ...(input.check ? ["--check"] : [])],
+			passthrough: [...rest, ...passthrough, ...implied, ...(input.check ? ["--check"] : [])],
 			dryRun,
 			required,
 			...scope,
-			...jobSwitchesOf(id),
 		});
 	}
 
@@ -130,7 +120,6 @@ export function runWords(input: RunWordsInput): RunTaskReport | GroupReport {
 	const members: GroupMember[] = chosen.map((task) => ({
 		task,
 		...(extra.length > 0 ? { passthrough: extra } : {}),
-		...jobSwitchesOf(task),
 	}));
 	return runGroup({ ...deps, cwd, label: suite, members, skipped, dryRun, ...scope });
 }

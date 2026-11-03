@@ -16,4 +16,4 @@ Once the design is settled, the spec **moves to
   or replaced.
 
 `holocron probe specs check` validates frontmatter in both directories (the
-`adrs` job of `platform.repoValidation`).
+`validate:specs` task).

@@ -55,8 +55,9 @@ describe("createAstromech() with the flat task ids", () => {
 		const old = createAstromech({ cwd: "/repo", config: { tasks: legacy } });
 		const next = createAstromech({ cwd: "/repo", config: { tasks: flat } });
 		const callers = (a: typeof old) => [...a.thinCallers().entries()].sort(([x], [y]) => x.localeCompare(y));
-		// the old formatting name is one caller, now two: `lint:markdown` is the one the old name does not generate
-		expect(callers(next).filter(([file]) => file !== "lint:markdown.yml")).toEqual(callers(old));
+		// the old formatting name is two callers now (`lint:editorconfig` and `lint:markdown`; `format` is a step of
+		// `lint:code`), the same two the flat ids give
+		expect(callers(next)).toEqual(callers(old));
 		expect([...next.thinCallers().keys()]).toContain("test:unit.yml");
 		// turbo.json and the package scripts follow the spelling of the list: flat ids give flat keys.
 		expect(Object.keys(JSON.parse(old.turboConfig()!).tasks)).toContain("verification.unitTests");

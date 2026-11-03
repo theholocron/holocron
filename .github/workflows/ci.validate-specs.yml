@@ -4,7 +4,7 @@
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: validate
+name: validate:specs
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  validate:
-    name: validate
-    uses: ./.github/workflows/validate.yml
+  validate-specs:
+    name: validate:specs
+    uses: ./.github/workflows/validate-specs.yml
     secrets: inherit

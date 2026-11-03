@@ -86,12 +86,19 @@ describe("runWords — a suite", () => {
 		});
 	});
 
-	it("passes a task entry's job switches to its leaf", () => {
-		const { run, exec } = setup({ "package.json": PKG }, { lookPath: () => "/bin/node" });
-		run(["validate"], {
-			config: { tasks: [{ name: "platform.repoValidation", jobs: { docsEnforcement: false } }] },
-		});
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
+	it("runs the validate suite's configured leaves, and the old names for it run both", () => {
+		const both = [
+			[process.argv[1], "probe", "specs", "check"],
+			[process.argv[1], "probe", "docs", "presence"],
+		];
+		for (const name of ["validate", "platform.repoValidation"]) {
+			const { run, exec } = setup({ "package.json": PKG });
+			run(["validate"], { config: { tasks: [name] } });
+			expect(exec.mock.calls.map((c) => c[1])).toEqual(both);
+		}
+		const { run, exec } = setup({ "package.json": PKG });
+		run(["validate"], { config: { tasks: ["validate:docs"] } });
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "docs", "presence"]]);
 	});
 
 	it("from a package directory runs only the package-scoped leaves, for that package, and reports the rest", () => {
@@ -176,10 +183,16 @@ describe("runWords — a task", () => {
 		expect(exec).toHaveBeenLastCalledWith(expect.stringMatching(/prettier$/), ["--check", "."], { cwd: CWD });
 	});
 
-	it("an old name with a job reaches the job of the interim validate task", () => {
-		const { run, exec } = setup({ "package.json": PKG });
-		expect(run(["platform.repoValidation", "adrs"]).status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "specs", "check"], { cwd: CWD });
+	it("an old name that stood for the two validate leaves runs both and says it is deprecated", () => {
+		const { run, exec, warnings } = setup({ "package.json": PKG });
+		expect(run(["platform.repoValidation"]).status).toBe("ok");
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([
+			[process.argv[1], "probe", "specs", "check"],
+			[process.argv[1], "probe", "docs", "presence"],
+		]);
+		expect(warnings).toEqual([
+			'"platform.repoValidation" is a deprecated task name: use validate:specs, validate:docs',
+		]);
 	});
 
 	it("an old intent-group name runs the configured tasks that were under it, and says it is deprecated", () => {

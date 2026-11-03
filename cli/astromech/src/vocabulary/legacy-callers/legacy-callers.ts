@@ -188,10 +188,19 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"update-deps": { id: "dependencies", name: "Dependencies" },
 		},
 	},
-	validate: {
+	// The frozen `platform.repoValidation.yml` ran both leaves in one workflow, so while callers are legacy-named only the
+	// first successor of `validate`, `validate:specs`, gets a caller (the generators skip the rest); `validate:docs` keeps
+	// the entry so that every template has one.
+	"validate:specs": {
 		name: "Platform",
 		jobs: {
-			validate: { id: "repo-validation", name: "Repo Validation" },
+			"validate-specs": { id: "repo-validation", name: "Repo Validation" },
+		},
+	},
+	"validate:docs": {
+		name: "Platform",
+		jobs: {
+			"validate-docs": { id: "repo-validation", name: "Repo Validation" },
 		},
 	},
 	"deploy-docs": {

@@ -82,7 +82,8 @@ documents, not a naming convention repos need to follow.
 | `check-notify`                       | _(none — manual workflow)_                                                                                                                                       | posts a labelled test message to every notification channel; fails per channel that does not work         |
 | `sync-repo`                          | `holocron repo sync`                                                                                                                                             | keeps generated files current                                                                             |
 | `lint:commits`                       | commitlint                                                                                                                                                       | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI         |
-| `validate`                           | `holocron probe specs check`, `holocron probe docs presence`                                                                                                     | a job-bearing task — spec/ADR frontmatter and docs-presence, not linters                                  |
+| `validate:specs`                     | `holocron probe specs check`                                                                                                                                     | spec/ADR frontmatter — a leaf of the `validate` suite, not a linter                                       |
+| `validate:docs`                      | `holocron probe docs presence`                                                                                                                                   | docs presence, warns only — a leaf of the `validate` suite, not a linter                                  |
 | `publish-wiki`                       | Fern                                                                                                                                                             | publishes `docs/wiki/*.md` — not a sync, a publish; carries `preview`                                     |
 | `deploy-docs`                        | Astro build                                                                                                                                                      | the docs site itself; carries `preview` (defaults on)                                                     |
 | `deploy-components`                  | Storybook build                                                                                                                                                  | a browsable component catalog — "Storybook" is the tool, not the intent; carries `preview` (defaults on)  |
@@ -209,7 +210,7 @@ single always-run jobs now, so their context
 names that job directly (`"Typecheck / tsc --noEmit"`) — the `… /
 Conclusion` fan-in aggregate is only used where a task genuinely has
 several conditionally-run jobs feeding one check
-(`test:unit`, `validate`). `holocron repo setup`
+(`test:unit`). `holocron repo setup`
 applies the list for `protection: "strict"` repos. Policy-free — manifest only.
 
 ### The `ci` aggregate
@@ -291,7 +292,7 @@ writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
 
 ## Repo validation — `@theholocron/astromech/repo-validation`
 
-The rules of the `validate` checks, once, as pure functions over plain data (changed files, commit
+The rules of the `validate:specs` and `validate:docs` checks, once, as pure functions over plain data (changed files, commit
 subjects, the PR description, a manifest) that return findings. They do no git, no filesystem and no network, so the two
 interfaces that run them only supply the data: the CLI (`holocron probe docs presence` and `holocron probe specs check`, the two jobs of
 `holocron run validate`) from git and the filesystem, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the

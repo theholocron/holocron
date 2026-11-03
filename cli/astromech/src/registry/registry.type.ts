@@ -1,4 +1,4 @@
-/** How to run one task (or job) locally. */
+/** How to run one task locally. */
 export interface LocalRunner {
 	/** Binary to invoke — resolved from `node_modules/.bin` then PATH. */
 	tool?: string;
@@ -33,27 +33,8 @@ export type TaskGroup = "Verification" | "Source Quality" | "Security" | "Delive
 /** Where a task runs: once per package that has it, or once at the repo root. */
 export type TaskScope = "package" | "repo";
 
-/** One sub-job of a task — `performance` in `holocron run audit performance`. */
-export interface JobDef {
-	/** How the job runs locally; `null` → no local equivalent (enforced in CI). */
-	local: LocalRunner | null;
-	/**
-	 * The CI status-check context this job reports as (e.g.
-	 * `platform.repoValidation / Validate docs presence`) — every sub-job is a CI job.
-	 * `holocron run <task>` and `holocron run ci` label each job line with it;
-	 * the task-level `… / Conclusion` context (only for tasks with several
-	 * jobs) lives in `WORKFLOW_CHECK_CONTEXTS`.
-	 */
-	checkContext: string;
-	/**
-	 * The name a repo's config uses to switch this job off (`jobs: { docsEnforcement: false }`),
-	 * where the job's own key is vague or fixed by the reusable workflow. The key itself works too.
-	 */
-	alias?: string;
-}
-
 /**
- * One registry task: its built-in runner (`local`), the sub-jobs it splits into, and its
+ * One registry task: its built-in runner (`local`) and its
  * Turborepo fan-out. `holocron run <task>` and `holocron run ci` start from this definition.
  */
 export interface TaskDef {
@@ -82,11 +63,6 @@ export interface TaskDef {
 	 */
 	host?: string;
 	/**
-	 * Sub-job slugs that no longer exist but that a reusable workflow synced earlier may still pass:
-	 * `holocron run <task> <retired>` is a clean skip instead of an unknown-job failure.
-	 */
-	retiredJobs?: string[];
-	/**
 	 * `null` — the registry has no built-in runner (CodeQL, deploys, the
 	 * bundle-size job). An explicit turbo task or `package.json` script still
 	 * runs (resolution steps 1–2); with neither, `holocron run` does nothing
@@ -94,11 +70,6 @@ export interface TaskDef {
 	 * `required` (a CI-only check isn't a local one).
 	 */
 	local: LocalRunner | null;
-	/**
-	 * Sub-jobs, keyed by slug. Declared order is run order: `holocron run
-	 * <task>` (no job) runs each in turn.
-	 */
-	jobs?: Record<string, JobDef>;
 	/**
 	 * This task is a linter-group aggregate: `holocron run <task>` resolves
 	 * this fixed set of `linters.ts` entries (still gated by each linter's

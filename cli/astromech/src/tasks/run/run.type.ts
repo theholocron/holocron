@@ -37,11 +37,6 @@ export interface RunDeps {
 export interface RunTaskInput extends RunDeps {
 	/** Registry task name, e.g. `"test"`. */
 	task: string;
-	/**
-	 * Sub-job within the task, e.g. `"performance"` in `holocron run audit
-	 * performance`. Ignored (folded into `passthrough`) for tasks with no `jobs`.
-	 */
-	job?: string;
 	/** Directory to run in. */
 	cwd: string;
 	/** Args after `--` on the command line, forwarded to the tool / turbo / script. */
@@ -58,8 +53,6 @@ export interface RunTaskInput extends RunDeps {
 	base?: string;
 	/** Environment `affected` reads (`GITHUB_EVENT_NAME`, `GITHUB_REF_NAME`, `TURBO_SCM_BASE`). Defaults to empty. */
 	env?: Record<string, string | undefined>;
-	/** The task entry's `jobs` switches: a sub-job set to `false` (by key or alias) is not run. */
-	jobSwitches?: Record<string, boolean>;
 }
 
 /** The result of `runTask`. */

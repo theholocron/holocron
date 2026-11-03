@@ -100,7 +100,7 @@ export function reusableTemplates(): Map<string, string> {
 	}
 	// The starter workflows in `.github` keep the old names, and so do the callers they are copied as (the legacy-name gate).
 	// A caller that shares its old name with another (`lint:markdown` with `lint:editorconfig`: the old formatting
-	// workflow) has no starter of its own, because the frozen reusables have no file for it.
+	// workflow; `validate:docs` with `validate:specs`) has no starter of its own, because the frozen reusables have no file for it.
 	for (const [id, template] of Object.entries(WORKFLOW_TEMPLATES)) {
 		if (legacyWorkflowKey(id) !== id) continue;
 		const name = legacyName(id) ?? id;

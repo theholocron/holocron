@@ -45,7 +45,7 @@ holocron run ci — required checks (3)
 - Most tasks are a single always-run job now, so their check context names
   that job directly (`Typecheck / Run tsc --noEmit`) — the `… / Conclusion`
   fan-in is only used where a task genuinely has several conditionally-run
-  jobs feeding one check (`test:unit`, `validate`).
+  jobs feeding one check (`test:unit`).
 - Order comes from `CI_ORDER` in `@theholocron/astromech` — cheapest signal
   first (`typecheck → static analysis → … → test → …`).
 
