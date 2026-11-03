@@ -1,3 +1,9 @@
+## [5.0.0-alpha.316](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.315...v5.0.0-alpha.316) (2026-11-03)
+
+### Features
+
+* **specs:** 🔗 link a plain id in the normal sync once its file is on the default branch ([#1663](https://github.com/theholocron/holocron/issues/1663)) ([#1664](https://github.com/theholocron/holocron/issues/1664)) ([899cce4](https://github.com/theholocron/holocron/commit/899cce442ad72b3da9dde5b2ed2188867fafa985))
+
 ## [5.0.0-alpha.315](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.314...v5.0.0-alpha.315) (2026-11-03)
 
 ### Features
