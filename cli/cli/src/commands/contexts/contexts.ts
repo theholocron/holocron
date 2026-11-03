@@ -51,6 +51,8 @@ export const COMMAND_CONTEXTS = {
 	"secrets list": "workspace",
 	"secrets set": "workspace",
 	"secrets sync": "workspace",
+	// `tunnel up` calls the `tunnels` and `dns` providers, so their packages must be resolvable.
+	"tunnel up": "workspace",
 	"notifications channel add": "workspace",
 	"notifications setup": "workspace",
 	"notifications link": "workspace",
