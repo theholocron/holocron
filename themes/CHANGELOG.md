@@ -1,3 +1,9 @@
+## [1.11.0-alpha.2](https://github.com/theholocron/holocron/compare/themes-v1.11.0-alpha.1...themes-v1.11.0-alpha.2) (2026-11-03)
+
+### Refactoring
+
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
 ## [1.11.0-alpha.1](https://github.com/theholocron/holocron/compare/themes-v1.10.5-alpha.1...themes-v1.11.0-alpha.1) (2026-11-02)
 
 ### Features
