@@ -46,18 +46,16 @@ Deploying it is `holocron notifications setup`'s job, through the `workers` capa
 
 ## Secrets
 
-`apps/comlink/holocron.config.ts` keeps the signing secrets in Doppler (project `comlink`, config `prd`), the same way Sentinel does, so there is one place to rotate them and nothing is pasted into a shell.
+`apps/comlink/holocron.config.ts` keeps the signing secrets in the 1Password Environment `Comlink`, the same way Sentinel does, so there is one place to rotate them and nothing is pasted into a shell.
 
 ```bash
-# once: create the Doppler project and its dev/stg/prd configs
-holocron repo setup --cwd apps/comlink
-
-# add COMLINK_SENTRY_SECRET (the Sentry integration's client secret) to the `prd` config in Doppler, then:
-holocron secrets sync prd --cwd apps/comlink --worker comlink
+# once, by hand (`op` cannot create an Environment): make the Environment `Comlink` and add
+# COMLINK_SENTRY_SECRET (the Sentry integration's client secret) to it, then:
+holocron secrets sync Comlink --cwd apps/comlink --worker comlink
 ```
 
-With `relay.errors` in the root `holocron.config.ts`, `holocron notifications setup` creates the Sentry integration and alert rule itself and deploys the Worker with the integration's client secret, so the Doppler step above is only needed to keep the secret somewhere else too (or for a source `setup` does not create).
+With `relay.errors` in the root `holocron.config.ts`, `holocron notifications setup` creates the Sentry integration and alert rule itself and deploys the Worker with the integration's client secret, so the Environment above is only needed to keep the secret somewhere else too (or for a source `setup` does not create).
 
-`holocron probe comlink deliver` reads the signing secret from this config's vault (so from the `prd` config above, with the Doppler token in the keyring), unless `COMLINK_SENTRY_SECRET` is set in the environment.
+`holocron probe comlink deliver` reads the signing secret from this config's vault (so from the `Comlink` Environment above, signed in with `op`), unless `COMLINK_SENTRY_SECRET` is set in the environment.
 
-`COMLINK_<SOURCE>_WEBHOOK` is not kept in Doppler: `holocron notifications setup` makes each channel's webhook and sets its URL on the Worker directly. Run `setup` before `secrets sync`, since a secret can only be set on a Worker that exists.
+`COMLINK_<SOURCE>_WEBHOOK` is not kept in the Environment: `holocron notifications setup` makes each channel's webhook and sets its URL on the Worker directly. Run `setup` before `secrets sync`, since a secret can only be set on a Worker that exists.

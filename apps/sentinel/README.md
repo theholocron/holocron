@@ -245,8 +245,8 @@ A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
 SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Two more
-Doppler-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)
-feed the module-level logger directly, via `@theholocron/env-utils`
+Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)
+feed the module-level logger directly, via `@theholocron/env-utils/lookup`
 (never bare `process.env`, this org's own convention) — see
 `src/handler/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
 acknowledged only — no per-installation action is defined in v1.
@@ -267,8 +267,8 @@ V8-isolate model has. See `docs/wiki/specifications/tech-sentinel-v1.spec.md`'s
 `holocron.config.ts` in this directory — separate from the monorepo
 root's own config, since Sentinel is deployed as its own product, not
 built/released the way the CLI or the plugins are — wires the
-`deployment` (Vercel), `dns` (Cloudflare), and `vault` (Doppler)
-providers.
+`deployment` (Vercel), `dns` (Cloudflare), and `vault` (the 1Password
+Environment `Sentinel`) providers.
 
 ```bash
 pnpm run deploy
@@ -472,30 +472,31 @@ read-only boundary that makes a PR-branch read safe).
   per-deployment `*.vercel.app` URL.
 - **Webhook secret** — generate one (e.g. `openssl rand -hex 32`) and
   set it in the App's "Webhook secret" field. This becomes
-  `SENTINEL_WEBHOOK_SECRET` in the deploy env — save it to the Doppler
-  `sentinel`/`prd` config right away so it isn't lost.
+  `SENTINEL_WEBHOOK_SECRET` in the deploy env — save it to the 1Password
+  Environment `Sentinel` right away so it isn't lost.
 - **Where to install it** — this org (`theholocron`) to start;
   D10 (org-portability) means installing it on another org/account
   later needs zero code changes.
 
 ### Role sync settings (optional)
 
-Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in Doppler's `sentinel`/`prd` config and run `holocron secrets sync`.
+Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron secrets sync Sentinel`.
 
 ### Private key
 
 Generate one from the App's settings page after creation — that's
-`GITHUB_APP_PRIVATE_KEY`, also destined for Doppler's `sentinel`/`prd`
-config. Generating a new key at any point invalidates the previous
+`GITHUB_APP_PRIVATE_KEY`, also destined for the 1Password Environment
+`Sentinel`. Generating a new key at any point invalidates the previous
 one, so only do this once and store the result immediately.
 
 ### After registration
 
 Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
 the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
-Doppler first — see `holocron.config.ts` in this directory for the
-`vault` provider wiring — then out to Vercel's env vars. Two more keys
-already live in the same Doppler config for the Axiom log-shipping
+the 1Password Environment `Sentinel` first (made by hand: `op` cannot create
+one) — see `holocron.config.ts` in this directory for the `vault` provider
+wiring — then out to Vercel's env vars. Two more keys already live in the
+same Environment for the Axiom log-shipping
 transport (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a
 narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
@@ -503,7 +504,7 @@ credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
 way for one source of truth).
 
 ```sh
-holocron secrets sync prd --cwd apps/sentinel --project-id sentinel --target production \
+holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \
   --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
   --org theholocron --token github=$(gh auth token)
 ```
@@ -516,7 +517,12 @@ registration, again only when a secret rotates" below). Uses a dedicated
 has no equivalent of a human's already-authenticated session — see
 the token reference's "Organization secrets" section
 (`docs/src/content/docs/tokens.mdx`) for why a new, narrowly-scoped token rather than widening an existing
-one.
+one. The 1Password side is a service account with read access to the
+`Sentinel` Environment, stored as the repo secret
+`SENTINEL_OP_SERVICE_ACCOUNT_TOKEN`; the workflow installs the `op` CLI and
+sets `OP_SERVICE_ACCOUNT_TOKEN` from it. If a service account cannot read
+Environments with the CLI you have (1Password documents it; a Feb 2026
+community report says otherwise), run the same command locally instead.
 
 - **`--target production` only, deliberately still one target.**
   `deploy-preview` (holocron#1010/#1022/#1024/#1028) now gives
@@ -525,7 +531,7 @@ one.
   — its own Vercel preview deployment, built from that PR's own,
   not-yet-reviewed code. `secrets sync`'s `deployment` destination has
   no per-key allowlist (unlike `secrets`/GH-Actions below, which does)
-  — passing `--target preview` would sync **all 5** Doppler keys to
+  — passing `--target preview` would sync **all 5** runtime keys to
   Vercel's preview environment, `GITHUB_APP_PRIVATE_KEY` included. A PR
   that adds one line reading and exfiltrating that env var would hand
   an attacker the ability to fully impersonate this GitHub App across
@@ -537,10 +543,10 @@ one.
   preview function has no actual use for any of these 5 secrets in the
   first place. Same class of exposure #1057/#1058 closed for the
   Vercel Deployment Protection bypass secret, applied here to
-  Doppler's production credentials instead: keep them out of a
+  the production credentials instead: keep them out of a
   PR-controlled deploy target entirely, rather than narrow what's
   synced there.
-- **`--github-secret`/`--github-secret-scope`.** Of the 5 Doppler keys,
+- **`--github-secret`/`--github-secret-scope`.** Of the 5 runtime keys,
   only `SENTINEL_AXIOM_INGEST_TOKEN` has a GH Actions consumer
   (`theholocron/.github`'s `platform.dispatchedCheck.yml`) — and it
   needs **org** scope, since any repo with Bucket 2 dispatch enabled
@@ -562,9 +568,9 @@ one.
   doesn't pick up a sync until the next deploy. Run
   `pnpm run deploy` right after syncing if the App needs the
   new value immediately, not on its next unrelated deploy.
-- Doppler's own auto-injected bookkeeping (`DOPPLER_PROJECT`,
-  `DOPPLER_CONFIG`, `DOPPLER_ENVIRONMENT`) is filtered out before
-  anything reaches Vercel — only real secrets cross over.
+- Only the Environment's own variables cross over: nothing is added to it
+  by the vault (Doppler injected `DOPPLER_*` bookkeeping keys that had to be
+  filtered; a 1Password Environment has none).
 
 ## Development
 

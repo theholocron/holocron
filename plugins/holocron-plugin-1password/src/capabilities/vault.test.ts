@@ -194,6 +194,32 @@ describe("OpVault.readEnvironment", () => {
 	});
 });
 
+describe("OpVault.readSecret", () => {
+	it("reads one variable of the configured Environment by its bare name", async () => {
+		const { spawn, calls } = stubSpawn([{ status: 0, stdout: "A=1\nCOMLINK_SENTRY_SECRET=s3cret" }]);
+		const vault = new OpVault(new OpShell({ spawn }), { environment: "Comlink" });
+		expect(await vault.readSecret("COMLINK_SENTRY_SECRET")).toBe("s3cret");
+		expect(calls[0]?.args).toEqual(["environment", "secret", "list", "Comlink", "--reveal", "--format=dotenv"]);
+	});
+
+	it("says which variable is missing from the Environment", async () => {
+		const { spawn } = stubSpawn([{ status: 0, stdout: "A=1" }]);
+		const vault = new OpVault(new OpShell({ spawn }), { environment: "Comlink" });
+		const err = await vault.readSecret("B").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).message).toMatch(/Comlink has no variable B/);
+	});
+
+	it("refuses without an `environment`, and does not call op", async () => {
+		const { spawn, calls } = stubSpawn([]);
+		const vault = new OpVault(new OpShell({ spawn }), {});
+		const err = await vault.readSecret("A").catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ProviderApiError);
+		expect((err as ProviderApiError).message).toMatch(/needs an `environment`/);
+		expect(calls).toEqual([]);
+	});
+});
+
 // ──────────────────────────────────────────────────────────────────────
 // Construction
 // ──────────────────────────────────────────────────────────────────────

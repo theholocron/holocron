@@ -23,6 +23,11 @@ export interface OpVaultOptions {
 	 * Environments are not in a vault, so a project that only reads an Environment can leave it out.
 	 */
 	vault?: string;
+	/**
+	 * The 1Password Environment `readSecret` looks a variable up in. An app keeps its secrets in one Environment, so
+	 * its config names it here and a caller can ask for a variable by its bare name.
+	 */
+	environment?: string;
 }
 
 interface OpItem {
@@ -39,12 +44,14 @@ export class OpVault implements Vault {
 	readonly providerName = "1password";
 
 	private readonly vaultName: string | undefined;
+	private readonly environmentName: string | undefined;
 
 	constructor(
 		private readonly shell: OpShell,
 		opts: OpVaultOptions = {}
 	) {
 		this.vaultName = opts.vault || undefined;
+		this.environmentName = opts.environment || undefined;
 	}
 
 	// ── read / write ────────────────────────────────────────────────────
@@ -109,6 +116,26 @@ export class OpVault implements Vault {
 			`environment secret list ${environment}`
 		);
 		return parseDotenv(stdout);
+	}
+
+	/** One variable of the Environment this vault was set up with, by its bare name. */
+	async readSecret(name: string): Promise<string> {
+		if (!this.environmentName) {
+			throw new ProviderApiError(
+				"1Password `readSecret` needs an `environment` in the plugin options: it reads one variable of that Environment",
+				400,
+				undefined
+			);
+		}
+		const value = (await this.readEnvironment(this.environmentName))[name];
+		if (value === undefined) {
+			throw new ProviderApiError(
+				`1Password Environment ${this.environmentName} has no variable ${name}`,
+				404,
+				undefined
+			);
+		}
+		return value;
 	}
 }
 

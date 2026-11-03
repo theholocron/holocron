@@ -10,7 +10,7 @@
  * actually needs. Falls back to no Axiom transport (not a throw) when either
  * var is unset, matching `createLogger()`'s own "absent → no transport"
  * contract — true in every test run, and in any environment before the two
- * Doppler-sourced values have been synced to Vercel.
+ * Vault-sourced values have been synced to Vercel.
  *
  * Its own module, not inline in `handler.ts`, so this rule is tested directly.
  * It used to be tested by re-importing `handler.ts` per case, which loaded

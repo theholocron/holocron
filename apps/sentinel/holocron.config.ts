@@ -38,11 +38,12 @@
  * credential — same non-secret-identifier status as Cloudflare's
  * `accountId` elsewhere in this org — safe to commit directly.
  *
- * `vault`: Doppler (holocron#781) — `project: "sentinel"`, `config:
- * "prd"`, confirmed against the real Doppler project. All 5 runtime
- * secrets live there; `holocron secrets sync` fans them out.
+ * `vault`: the 1Password Environment `Sentinel` (holocron#1671; it was
+ * Doppler's `sentinel`/`prd` before, holocron#781). The 5 runtime secrets
+ * and the role-sync settings live there; `holocron secrets sync Sentinel`
+ * fans them out. The Environment is made by hand — `op` cannot create one.
  *
- * `secrets`: GitHub — only ONE of the 5 Doppler keys has a GH Actions
+ * `secrets`: GitHub — only ONE of the 5 runtime keys has a GH Actions
  * consumer at all (`SENTINEL_AXIOM_INGEST_TOKEN`, read by
  * `theholocron/.github`'s `platform.dispatchedCheck.yml`, org-wide since
  * any repo with Bucket 2 dispatch enabled needs it there, not only this
@@ -62,7 +63,7 @@
  * infra, since Sentry/Axiom are both reactive (they only see traffic
  * that reaches the function) and wouldn't notice if the deployment
  * stopped receiving traffic at all. `accountId` is not a secret (same
- * status as Vercel's `teamId`); the API token is Doppler-sourced like
+ * status as Vercel's `teamId`); the API token is vault-sourced like
  * every other secret here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by
  * `holocron secrets sync` the same way `vault` already handles the
  * other 5 keys. `locations: ["us-east-1"]` is required on both —
@@ -92,7 +93,7 @@
  * actually proves `SENTINEL_WEBHOOK_SECRET` made it into the deployed
  * environment correctly: the uptime check's 405 happens before signature
  * verification ever runs, so it can't catch a secret drifting out of
- * sync between Doppler and Vercel — this one can. `body: "{}"`
+ * sync between the vault and Vercel — this one can. `body: "{}"`
  * (holocron#996, via `@theholocron/checkly-client`'s request-body
  * support, clients#396) is sent as Checkly's `bodyType: "RAW"`; its
  * exact content doesn't matter — the handler checks the signature
@@ -188,6 +189,6 @@ export default defineConfig({
 			},
 		],
 		secrets: "github",
-		vault: ["doppler", { project: "sentinel", config: "prd" }],
+		vault: ["1password", { environment: "Sentinel" }],
 	},
 });

@@ -21,6 +21,8 @@ export interface OpPluginOptions extends VerifyInput {
 	 * project that only reads an Environment can leave it out.
 	 */
 	vault?: string;
+	/** The Environment `readSecret` reads a variable from by its bare name; the one an app keeps its secrets in. */
+	environment?: string;
 	/** Optional 1P account UUID; passed as `--account` on every op call. Useful when several accounts are signed in. */
 	account?: string;
 }
@@ -54,7 +56,10 @@ export function createContext(options: OpPluginOptions): PluginContext {
 
 /** Builds the `vault` capability for the configured vault. */
 export function vault(ctx: PluginContext): Vault {
-	return new OpVault(ctx.shell, ctx.options.vault !== undefined ? { vault: ctx.options.vault } : {});
+	return new OpVault(ctx.shell, {
+		...(ctx.options.vault !== undefined ? { vault: ctx.options.vault } : {}),
+		...(ctx.options.environment !== undefined ? { environment: ctx.options.environment } : {}),
+	});
 }
 
 /** Builds the `credentials` capability: the variables of a 1Password Environment, read for the token resolvers. */

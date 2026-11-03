@@ -21,6 +21,15 @@ describe("createPlugin", () => {
 		expect(plugin.capabilities.credentials()).toBeInstanceOf(OpCredentials);
 	});
 
+	it("hands the `environment` option to the vault, so a variable is read by its bare name", async () => {
+		const { spawn } = stubSpawn([
+			{ status: 0, stdout: "2.30.0" },
+			{ status: 0, stdout: "COMLINK_SENTRY_SECRET=s3cret" },
+		]);
+		const plugin = createPlugin({ environment: "Comlink", spawn });
+		expect(await plugin.capabilities.vault().readSecret?.("COMLINK_SENTRY_SECRET")).toBe("s3cret");
+	});
+
 	it("wires the vault capability", () => {
 		const { spawn } = stubSpawn([{ status: 0, stdout: "2.30.0" }]);
 		const plugin = createPlugin({ vault: "rando", spawn });
