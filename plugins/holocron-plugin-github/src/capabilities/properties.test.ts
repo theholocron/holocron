@@ -4,7 +4,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
-import { syncProperties } from "./properties.js";
+import { checkPropertyValues, syncProperties } from "./properties.js";
 
 const REPO = "theholocron/holocron";
 
@@ -177,5 +177,103 @@ describe("syncProperties", () => {
 		const err = await syncProperties(client, REPO, { monorepo: "true" }).catch((e: unknown) => e);
 
 		expect(err).toBe(boom);
+	});
+
+	describe("telling you how to fix a refused value", () => {
+		const SCHEMA = [
+			{
+				property_name: "holocron_capabilities",
+				value_type: "multi_select",
+				allowed_values: ["ci", "source"],
+			},
+		];
+		const NOT_ALLOWED = JSON.stringify({
+			message: "Value 'credentials' is not allowed for property 'holocron_capabilities'",
+		});
+		const capture = (fn: () => Promise<unknown>) => fn().catch((e: unknown) => e);
+
+		it("adds the fix from GitHub's own message even when the definitions cannot be read", async () => {
+			const { rest } = makeRest([
+				{ status: 422, text: NOT_ALLOWED },
+				{ status: 403, body: { message: "Resource not accessible" } },
+			]);
+
+			const err = await capture(() =>
+				syncProperties(rest, REPO, { holocron_capabilities: ["ci", "credentials"] })
+			);
+
+			const message = (err as Error).message;
+			expect(message).toContain("they could not be read");
+			expect(message).toContain(
+				'To fix it: add "credentials" to the allowed values of the organization custom property holocron_capabilities'
+			);
+			expect(message).toContain("Settings, Custom properties");
+		});
+
+		it("says the same when the definitions can be read, alongside the allowed values", async () => {
+			const { rest } = makeRest([
+				{ status: 422, text: NOT_ALLOWED },
+				{ status: 200, body: SCHEMA },
+			]);
+
+			const err = await capture(() =>
+				syncProperties(rest, REPO, { holocron_capabilities: ["ci", "credentials"] })
+			);
+
+			const message = (err as Error).message;
+			expect(message).toContain(
+				'holocron_capabilities has "credentials", which is not one of its allowed values (ci, source)'
+			);
+			expect(message).toContain('To fix it: add "credentials"');
+		});
+
+		it("reads the definitions with the organization client when it is given one", async () => {
+			const repoSide = makeRest([{ status: 422, text: NOT_ALLOWED }]);
+			const orgSide = makeRest([{ status: 200, body: SCHEMA }]);
+
+			const err = await capture(() =>
+				syncProperties(repoSide.rest, REPO, { holocron_capabilities: ["credentials"] }, orgSide.rest)
+			);
+
+			expect(orgSide.calls[0]?.url).toContain("/orgs/theholocron/properties/schema");
+			expect(repoSide.calls).toHaveLength(1);
+			expect((err as Error).message).toContain("which is not one of its allowed values");
+		});
+
+		it("gives no fix when GitHub names no refused value", async () => {
+			const { rest } = makeRest([
+				{ status: 422, text: JSON.stringify({ message: "Validation Failed" }) },
+				{ status: 200, body: SCHEMA },
+			]);
+
+			const err = await capture(() => syncProperties(rest, REPO, { holocron_capabilities: ["ci"] }));
+
+			expect((err as Error).message).not.toContain("To fix it");
+		});
+	});
+
+	describe("checkPropertyValues", () => {
+		it("lists the values the organization does not allow", async () => {
+			const { rest } = makeRest([
+				{
+					status: 200,
+					body: [
+						{ property_name: "holocron_capabilities", value_type: "multi_select", allowed_values: ["ci"] },
+					],
+				},
+			]);
+			expect(await checkPropertyValues(rest, REPO, { holocron_capabilities: ["ci", "credentials"] })).toEqual([
+				'holocron_capabilities has "credentials", which is not one of its allowed values (ci)',
+			]);
+		});
+
+		it("is empty when every value is allowed, and undefined when the definitions cannot be read", async () => {
+			const ok = makeRest([
+				{ status: 200, body: [{ property_name: "lifecycle", value_type: "string", allowed_values: null }] },
+			]);
+			expect(await checkPropertyValues(ok.rest, REPO, { lifecycle: "active" })).toEqual([]);
+			const denied = makeRest([{ status: 403, body: { message: "Resource not accessible" } }]);
+			expect(await checkPropertyValues(denied.rest, REPO, { lifecycle: "active" })).toBeUndefined();
+		});
 	});
 });

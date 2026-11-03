@@ -275,6 +275,37 @@ describe("GitHubSource — REST methods", () => {
 		expect(typeof result).toBe("string");
 	});
 
+	it("checkPropertyValues → compares with the organization's definitions, read with the org client when there is one", async () => {
+		const SCHEMA = [{ property_name: "holocron_capabilities", value_type: "multi_select", allowed_values: ["ci"] }];
+		const { fetch, calls } = stubFetch([{ status: 200, body: SCHEMA }]);
+		const withOrg = new GitHubSource(createGitHubClient({ token: "pat", fetch: stubFetch([]).fetch }), {
+			repo: REPO,
+			repoRoot: process.cwd(),
+			orgClient: createGitHubClient({ token: "org-pat", fetch }),
+		});
+		expect(await withOrg.checkPropertyValues({ holocron_capabilities: ["ci", "credentials"] })).toEqual([
+			'holocron_capabilities has "credentials", which is not one of its allowed values (ci)',
+		]);
+		expect(calls[0]?.url).toContain("/properties/schema");
+
+		const { source } = makeSource([{ status: 200, body: SCHEMA }]);
+		expect(await source.checkPropertyValues({ holocron_capabilities: ["ci"] })).toEqual([]);
+	});
+
+	it("syncProperties → asks the org client for the definitions when GitHub refuses a value", async () => {
+		const orgSide = stubFetch([{ status: 200, body: [] }]);
+		const repoSide = stubFetch([{ status: 422, text: JSON.stringify({ message: "Validation Failed" }) }]);
+		const withOrg = new GitHubSource(createGitHubClient({ token: "pat", fetch: repoSide.fetch }), {
+			repo: REPO,
+			repoRoot: process.cwd(),
+			orgClient: createGitHubClient({ token: "org-pat", fetch: orgSide.fetch }),
+		});
+		await expect(withOrg.syncProperties({ lifecycle: "active" })).rejects.toThrow(
+			/GitHub refused the custom properties/
+		);
+		expect(orgSide.calls[0]?.url).toContain("/properties/schema");
+	});
+
 	it("syncTopics → PUT /repos/{repo}/topics", async () => {
 		const { source, calls } = makeSource([{ status: 200, body: { names: ["cli", "tool"] } }]);
 		const result = await source.syncTopics(["cli", "tool"]);

@@ -322,6 +322,15 @@ export interface Source extends ProviderIdentity {
 	getProperties?(): Promise<Record<string, string | string[]>>;
 
 	/**
+	 * What is wrong with `values` when compared with the organization's custom property definitions: one sentence per
+	 * value a `single_select` or `multi_select` property does not allow, per property the organization does not
+	 * define, or per `true_false` property that is not `true` or `false`. Empty when every value is allowed, and
+	 * `undefined` when the definitions cannot be read (the token lacks the organization's custom properties
+	 * permission). Read-only. Optional — providers without custom properties omit this.
+	 */
+	checkPropertyValues?(values: Record<string, string | string[]>): Promise<string[] | undefined>;
+
+	/**
 	 * The repository's labels as they are now. Read-only.
 	 * Optional — providers without labels omit this.
 	 */

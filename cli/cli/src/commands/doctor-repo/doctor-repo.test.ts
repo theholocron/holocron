@@ -78,15 +78,17 @@ const byId = (rows: CheckRow[], id: string) => rows.find((r) => r.id === id)!;
 describe("doctor repo — what is checked", () => {
 	it("checks only labels and security when the config declares nothing else", async () => {
 		const { report, lines } = await run(loadedWith(), {
+			checkPropertyValues: async () => [],
 			listLabels: async () => labels(),
 			getSecurity: async () => ALL_ON,
 		});
 		expect(report.rows.map((r) => [r.id, r.status])).toEqual([
+			["repo-property-values", "ok"],
 			["repo-labels", "ok"],
 			["repo-security", "ok"],
 		]);
 		expect(report.status).toBe("ok");
-		expect(lines.at(-1)).toBe("2 ok, 0 fail, 0 skipped");
+		expect(lines.at(-1)).toBe("3 ok, 0 fail, 0 skipped");
 	});
 
 	it("checks every group the config declares", async () => {
@@ -109,6 +111,7 @@ describe("doctor repo — what is checked", () => {
 			"repo-settings",
 			"repo-topics",
 			"repo-properties",
+			"repo-property-values",
 			"repo-labels",
 			"repo-teams",
 			"repo-protection",
@@ -137,10 +140,11 @@ describe("doctor repo — description, settings and topics", () => {
 				requiredChecks: [],
 			}),
 			getProperties: async () => ({ holocron_branch_protection_level: "balanced" }),
+			checkPropertyValues: async () => [],
 			listLabels: async () => labels(),
 			getSecurity: async () => ALL_ON,
 		});
-		expect(report.rows.map((r) => r.status)).toEqual(["ok", "ok", "ok", "ok", "ok", "ok", "ok"]);
+		expect(report.rows.map((r) => r.status)).toEqual(["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok"]);
 		expect(byId(report.rows, "repo-description").detail).toBe("2 of 2 match");
 	});
 
@@ -186,7 +190,7 @@ describe("doctor repo — description, settings and topics", () => {
 
 	it("takes the protection preset `none` as no settings to apply", async () => {
 		const { report } = await run(loadedWith({ repo: { protection: "none" } }), {});
-		expect(report.rows.map((r) => r.id)).toEqual(["repo-labels", "repo-security"]);
+		expect(report.rows.map((r) => r.id)).toEqual(["repo-property-values", "repo-labels", "repo-security"]);
 	});
 });
 
@@ -229,6 +233,47 @@ describe("doctor repo — custom properties", () => {
 			getSecurity: async () => ALL_ON,
 		});
 		expect(byId(report.rows, "repo-properties").status).toBe("ok");
+	});
+});
+
+describe("doctor repo — custom property values the organization allows", () => {
+	it("passes the capabilities the config wires, and the declared values, to the provider", async () => {
+		const checkPropertyValues = vi.fn(async (_values: Record<string, string | string[]>) => []);
+		const { report } = await run(
+			loadedWith({
+				providers: { source: "github", credentials: ["1password"] },
+				credentials: { environment: "H" },
+				repo: { properties: { lifecycle: "active" } },
+			}),
+			{ checkPropertyValues }
+		);
+		expect(checkPropertyValues).toHaveBeenCalledExactlyOnceWith({
+			lifecycle: "active",
+			holocron_capabilities: ["credentials", "source"],
+		});
+		expect(byId(report.rows, "repo-property-values")).toMatchObject({ status: "ok", detail: "2 of 2 match" });
+	});
+
+	it("names a capability the organization's property does not allow, and where to add it", async () => {
+		const { report } = await run(loadedWith(), {
+			checkPropertyValues: async () => [
+				'holocron_capabilities has "credentials", which is not one of its allowed values (ci, source)',
+			],
+		});
+		const row = byId(report.rows, "repo-property-values");
+		expect(row.status).toBe("fail");
+		expect(row.problems).toEqual([
+			'holocron_capabilities has "credentials", which is not one of its allowed values (ci, source); add it in the organization\'s Settings, Custom properties',
+		]);
+		expect(report.status).toBe("fail");
+	});
+
+	it("skips, saying what the token needs, when the definitions cannot be read", async () => {
+		const { report } = await run(loadedWith(), { checkPropertyValues: async () => undefined });
+		const row = byId(report.rows, "repo-property-values");
+		expect(row.status).toBe("skip");
+		expect(row.detail).toContain("cannot be read with this token");
+		expect(row.detail).toContain("Custom properties: read");
 	});
 });
 
@@ -473,13 +518,14 @@ describe("doctor repo — what cannot be read", () => {
 		expect(report.status).toBe("skip");
 		expect(report.rows.every((r) => r.status === "skip" && r.detail.includes("source"))).toBe(true);
 		expect(report.reason).toContain("source");
-		expect(lines.at(-1)).toBe("0 ok, 0 fail, 2 skipped");
+		expect(lines.at(-1)).toBe("0 ok, 0 fail, 3 skipped");
 	});
 
 	it("skips a row whose read method the provider lacks, without hiding the rows it can read", async () => {
 		const { report } = await run(loadedWith({ repo: { topics: ["a"] } }), { getSecurity: async () => ALL_ON });
 		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
 			["repo-topics", "skip", "provider does not implement getRepoInfo"],
+			["repo-property-values", "skip", "provider does not implement checkPropertyValues"],
 			["repo-labels", "skip", "provider does not implement listLabels"],
 			["repo-security", "ok", "6 of 6 match"],
 		]);

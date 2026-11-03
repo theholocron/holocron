@@ -44,7 +44,13 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 | Sync teams                             | Grants team access from `repo.teams`                                    |
 | Write `CODEOWNERS`                     | Generated for teams with write-or-higher permission                     |
 
-**Sync properties** sends the repo's custom properties in one request, so one value the organization's property does not allow (a capability whose key is not in `holocron_capabilities`' allowed values) fails the whole step and sets none of them. When GitHub answers `422` the step names the value, from the organization's property definitions (read-only; needs read access to the organization's custom properties, otherwise the step says it could not read them), and quotes GitHub's message. Fix it in the organization's property definitions, not in the repo.
+**Sync properties** sends the repo's custom properties in one request, so one value the organization's property does not allow (a capability whose key is not in `holocron_capabilities`' allowed values) fails the whole step and sets none of them. When GitHub answers `422` the step names the value, from the organization's property definitions (read-only, with the organization token when there is one; it needs read access to the organization's custom properties, otherwise the step says it could not read them), quotes GitHub's message, and says how to fix it, which does not need the definitions to be readable:
+
+```text
+✗ sync properties  (GitHub refused the custom properties (422), so none was set: ... GitHub said: Value 'credentials' is not allowed for property 'holocron_capabilities'. To fix it: add "credentials" to the allowed values of the organization custom property holocron_capabilities (the organization's Settings, Custom properties), then run repo setup again)
+```
+
+Fix it in the organization's property definitions, not in the repo: a new capability (the ones a `holocron.config` wires are listed in `holocron_capabilities`) is a value to add there once, and every repo can then use it. [`holocron doctor repo`](/holocron/commands/doctor-repo/) checks the values against the definitions before you run setup.
 
 **Required checks** (`protection: "strict"`) are derived from the task manifest. In a repo that hosts the `ci`
 aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DCO` stays its own context because the DCO app posts it, and
