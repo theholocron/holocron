@@ -236,6 +236,24 @@ describe.skipIf(!hasJq)("ci workflow script", () => {
 		expect(r.summary).toContain("| `codecov/patch` | pass: success | [open](https://codecov.test) |");
 	});
 
+	it("counts a codecov context posted as a check run, which is how the Codecov app posts it", () => {
+		const base = [done("Typecheck / a", "success"), done("Test / a", "success")];
+		const env = { STATUSES: '["codecov/patch"]' };
+		const waiting = run(
+			[
+				{ runs: [...base, { name: "codecov/patch", status: "in_progress", conclusion: null }] },
+				{ runs: [...base, done("codecov/patch", "success")] },
+			],
+			env
+		);
+		expect(waiting.code).toBe(0);
+		expect(waiting.polled).toBe(2);
+		expect(waiting.summary).toContain("| `codecov/patch` | pass: success |");
+		const failed = run([{ runs: [...base, done("codecov/patch", "failure")] }], env);
+		expect(failed.code).toBe(1);
+		expect(failed.out).toContain("::error title=codecov/patch::failure");
+	});
+
 	it("fails a status that failed, and one that never posted", () => {
 		const runs = [done("Typecheck / a", "success"), done("Test / a", "success")];
 		const failed = run(

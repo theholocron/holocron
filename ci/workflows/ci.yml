@@ -12,7 +12,7 @@ on: # yamllint disable-line rule:truthy
         type: string
         required: true
       statuses:
-        description: JSON array of commit-status contexts (`codecov/patch`, ...) that must reach success.
+        description: JSON array of contexts (`codecov/patch`, ...) that must reach success, as a check run or a commit status.
         type: string
         required: false
         default: "[]"
@@ -75,8 +75,15 @@ jobs:
                   elif ($bad | length) > 0 then row($id; "check"; "failure"; ($bad[0].conclusion // "none"); $bad[0].url)
                   else row($id; "check"; "success"; $found[0].conclusion; $found[0].url) end))
               + ($wanted | map(. as $context
+                # Codecov posts through its GitHub App as a check run named like the context; a plain commit status is
+                # the fallback, so either shape counts.
+                | ($runs | map(select(.name == $context)) | .[0]) as $c
                 | ($posted | map(select(.context == $context)) | .[0]) as $s
-                | if $s == null then row($context; "status"; "missing"; "never posted"; null)
+                | if $c != null then
+                    (if $c.status != "completed" then expire(row($context; "status"; "pending"; "still running"; $c.url))
+                     elif ($c.conclusion // "") | ok then row($context; "status"; "success"; $c.conclusion; $c.url)
+                     else row($context; "status"; "failure"; ($c.conclusion // "none"); $c.url) end)
+                  elif $s == null then row($context; "status"; "missing"; "never posted"; null)
                   elif $s.state == "pending" then expire(row($context; "status"; "pending"; "still pending"; $s.url))
                   elif $s.state == "success" then row($context; "status"; "success"; "success"; $s.url)
                   else row($context; "status"; "failure"; $s.state; $s.url) end))')
