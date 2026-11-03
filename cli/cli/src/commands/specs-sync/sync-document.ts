@@ -20,7 +20,7 @@ import type { SpecDocument, SpecSyncOutcome, SyncDocumentDeps } from "./specs-sy
  * tag on the post and the status last synced decide what to do (`reconcileSpecStatus`): put the file's status on the tag,
  * remember that they agree, or, when someone retagged the post, change the file's `status:`. The post's address is written
  * into the file as `discussion.url`. With `refreshOrigin` it also rewrites the post's pull request line when that differs from what
- * the current rule writes.
+ * the current rule writes, and with `refreshTitles` it renames the post when its title differs from the current rule's.
  *
  * It returns the document's text after the sync and never writes it: the caller decides whether to. On a dry run it makes
  * and changes nothing, and `did` says what it would. A document that cannot be synced comes back with a `problem`.
@@ -49,6 +49,7 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 	// The post is found by the path it was made for; when the file has moved, by the address the file records.
 	const url = front?.get("discussion.url")?.value || undefined;
 
+	const wantedTitle = discussionTitle(specTitle(doc.path, doc.text));
 	let post: DiscussionPost | undefined;
 	if (dryRun) {
 		post = await notifications.readDiscussion!(channel, doc.path, url);
@@ -58,7 +59,7 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		const ensured = await notifications.ensureDiscussion!({
 			channel,
 			key: doc.path,
-			title: discussionTitle(doc.kind, specTitle(doc.path, doc.text)),
+			title: wantedTitle,
 			body: discussionBody({ id, summary: specSummary(doc.text), ...(deps.pr ? { pr: deps.pr } : {}) }),
 			state: status,
 			quiet: deps.quiet,
@@ -68,6 +69,16 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		post = ensured.post;
 		if (ensured.created) did.push("made the post");
 		if (ensured.rekeyed) did.push("followed the file to its new path");
+	}
+
+	// A repair, asked for: give the post the title the current rule writes. Only the title moves, whatever the post's tag or
+	// state, so a withdrawn or closed post is renamed like any other. A provider that does not say a post's title leaves
+	// nothing to compare, so nothing is renamed.
+	let titleRenamed = false;
+	if (deps.refreshTitles && post.title !== undefined && post.title !== wantedTitle) {
+		titleRenamed = true;
+		say(`renamed the post to "${wantedTitle}"`, `would rename the post to "${wantedTitle}"`);
+		if (!dryRun) await notifications.updateDiscussion!(channel, doc.path, { title: wantedTitle });
 	}
 
 	// A repair, asked for: put the pull request line the current rule would write on a post made under an older one. Only
@@ -131,5 +142,11 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		text = updateFrontmatter(text, { discussionUrl: post.url });
 		say("linked the post", "would link the post");
 	}
-	return { path: doc.path, did, text, ...(prLineRewritten ? { prLineRewritten } : {}) };
+	return {
+		path: doc.path,
+		did,
+		text,
+		...(prLineRewritten ? { prLineRewritten } : {}),
+		...(titleRenamed ? { titleRenamed } : {}),
+	};
 }

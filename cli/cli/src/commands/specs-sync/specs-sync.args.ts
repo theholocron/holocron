@@ -27,6 +27,12 @@ export const specsSyncArgs = (y: Argv<GlobalArgs>) =>
 			describe:
 				"Rewrite the PR line of each existing post to the one the current rule names, and nothing else in it (a repair; combine with --dry-run to preview)",
 		})
+		.option("refresh-titles", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Rename each existing post whose title differs from the current rule's, and change nothing else in it (a repair; combine with --dry-run to preview; stops cleanly at a rate limit)",
+		})
 		.option("withdraw", {
 			type: "boolean",
 			default: false,

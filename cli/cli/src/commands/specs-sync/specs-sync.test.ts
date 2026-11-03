@@ -63,6 +63,7 @@ function setup(
 		files?: string[];
 		pr?: number;
 		refreshOrigin?: boolean;
+		refreshTitles?: boolean;
 		withdraw?: boolean;
 		/** Leave out `print` and `logger`, as the command does. */
 		bare?: boolean;
@@ -97,6 +98,7 @@ function setup(
 				...(opts.files ? { files: opts.files } : {}),
 				...(opts.pr ? { pr: opts.pr } : {}),
 				...(opts.refreshOrigin ? { refreshOrigin: true } : {}),
+				...(opts.refreshTitles ? { refreshTitles: true } : {}),
 				...(opts.withdraw ? { withdraw: true } : {}),
 				...(opts.provider ? { provider: opts.provider } : {}),
 				...(opts.channel ? { channel: opts.channel } : {}),
@@ -383,6 +385,103 @@ describe("runSpecsSync", () => {
 		});
 	});
 
+	describe("--refresh-titles", () => {
+		const files = {
+			".notes/a.spec.md": spec("A", "proposed", "SPEC-0001"),
+			".notes/b.spec.md": spec("B", "proposed", "SPEC-0002"),
+			".notes/c.spec.md": spec("C", "proposed", "SPEC-0003"),
+		};
+		const old = (title: string): DiscussionPost => ({
+			url: URL,
+			state: "proposed",
+			synced: "proposed",
+			title,
+		});
+		const withPosts = (titles: Record<string, string>, updateDiscussion = vi.fn(async () => {})) =>
+			fakeNotifications({
+				ensureDiscussion: vi.fn(async (input: { key: string }) => ({
+					post: old(titles[input.key]!),
+					created: false,
+				})),
+				readDiscussion: vi.fn(async (_c: string, key: string) => old(titles[key]!)),
+				updateDiscussion,
+			});
+
+		it("renames each post whose title differs, one row each, and counts them", async () => {
+			const n = withPosts({
+				".notes/a.spec.md": "💡 New spec: A",
+				".notes/b.spec.md": "B",
+				".notes/c.spec.md": "💡 New spec: C",
+			});
+			const { run, lines } = setup(n, makeIo(files).io, { refreshTitles: true });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).toHaveBeenCalledTimes(2);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { title: "A" });
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/c.spec.md", { title: "C" });
+			expect(report.renamed).toBe(2);
+			expect(report.files.map((f) => f.titleRenamed ?? false)).toEqual([true, false, true]);
+			const out = lines.join("\n");
+			expect(out).toContain('.notes/a.spec.md: renamed the post to "A"');
+			expect(out).toContain("2 title(s) renamed");
+		});
+
+		it("is idempotent: a second run over renamed posts changes nothing", async () => {
+			const n = withPosts({ ".notes/a.spec.md": "A", ".notes/b.spec.md": "B", ".notes/c.spec.md": "C" });
+			const titled = vi.mocked(n.updateDiscussion!);
+			const { run } = setup(n, makeIo(files).io, { refreshTitles: true });
+
+			const report = await run();
+
+			expect(report.renamed).toBe(0);
+			expect(titled.mock.calls.filter((c) => "title" in (c[2] as object))).toEqual([]);
+		});
+
+		it("on a dry run says what it would rename and renames nothing", async () => {
+			const n = withPosts({ ".notes/a.spec.md": "x", ".notes/b.spec.md": "B", ".notes/c.spec.md": "C" });
+			const { run, lines } = setup(n, makeIo(files).io, { refreshTitles: true, dryRun: true });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.status).toBe("dry-run");
+			expect(report.renamed).toBe(1);
+			expect(lines.join("\n")).toContain("1 title(s) would be renamed");
+		});
+
+		it("stops cleanly at a rate limit, says how many are left, and does not fail the run", async () => {
+			const updateDiscussion = vi
+				.fn()
+				.mockResolvedValueOnce(undefined)
+				.mockRejectedValue(new ProviderApiError("Discord 429", 429, '{"retry_after":540.1}'));
+			const n = withPosts(
+				{ ".notes/a.spec.md": "x", ".notes/b.spec.md": "x", ".notes/c.spec.md": "x" },
+				updateDiscussion
+			);
+			const { run, lines } = setup(n, makeIo(files).io, { refreshTitles: true });
+
+			const report = await run();
+
+			expect(report.status).toBe("ok");
+			expect(report.renamed).toBe(1);
+			expect(report.rateLimited).toEqual({ left: 2, retryAfter: 541 });
+			expect(updateDiscussion).toHaveBeenCalledTimes(2);
+			const out = lines.join("\n");
+			expect(out).toContain("it asks for 541 seconds. 2 document(s) are left for the next run");
+			expect(out).toContain("1 title(s) renamed");
+		});
+
+		it("leaves titles alone without the flag", async () => {
+			const n = withPosts({ ".notes/a.spec.md": "x", ".notes/b.spec.md": "x", ".notes/c.spec.md": "x" });
+
+			const report = await setup(n, makeIo(files).io).run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.renamed).toBeUndefined();
+		});
+	});
+
 	it("stops at the first rate limit instead of trying the rest, and does not fail the run", async () => {
 		const files = {
 			".notes/a.spec.md": spec("A", "proposed", "SPEC-0001"),
@@ -529,6 +628,17 @@ describe("runSpecsSync", () => {
 			const report = await run();
 
 			expect(report.files[0]!.did).toEqual(["withdrew the post"]);
+		});
+
+		it("is refused with --refresh-titles too", async () => {
+			const { run } = setup(fakeNotifications(), makeIo({}).io, {
+				withdraw: true,
+				refreshTitles: true,
+				files: [NEW],
+			});
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/cannot be combined/);
 		});
 
 		it("is refused with --refresh-origin, which repairs the posts of a synced tree", async () => {

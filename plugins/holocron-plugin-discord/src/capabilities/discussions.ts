@@ -111,6 +111,7 @@ export class DiscordDiscussions {
 		return {
 			url: `https://discord.com/channels/${this.deps.guild()}/${entry.thread.id}`,
 			key: entry.key,
+			title: entry.thread.name,
 			...(state ? { state } : {}),
 			...(entry.synced ? { synced: entry.synced } : {}),
 			...(PR_LINE.test(entry.content) ? { prLine: PR_LINE.exec(entry.content)![0] } : {}),

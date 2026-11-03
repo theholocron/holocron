@@ -144,7 +144,7 @@ specifications.
 
 The forum post is the deliberation layer. The conversation lives in Discord, not
 in GitHub Discussions (#1535): `holocron specs sync` makes one post in the
-`#ideas` forum for each ADR and spec (`📐 New ADR:` / `💡 New spec:`), and the file
+`#ideas` forum for each ADR and spec (titled with the document's own title), and the file
 carries its address as `discussion.url`. Use the post when a problem requires
 meaningful technical or architectural discussion before a decision is made.
 

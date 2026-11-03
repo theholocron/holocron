@@ -1560,6 +1560,8 @@ export interface EnsuredResource {
 export interface DiscussionPost {
 	/** The post's address, for the document's `discussion.url`. */
 	url: string;
+	/** The post's title as it is now; `undefined` when the provider does not say. */
+	title?: string;
 	/** The key the post records: the path of the document it was made for, which is not the document's path now when the file moved. */
 	key?: string;
 	/**

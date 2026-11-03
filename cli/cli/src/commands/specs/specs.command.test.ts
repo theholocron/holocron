@@ -66,6 +66,14 @@ describe("specs sync", () => {
 		expect(runSpecsSync.mock.calls[1]![0]).toMatchObject({ refreshOrigin: false });
 	});
 
+	it("passes --refresh-titles only when given", async () => {
+		await go(["sync", "--refresh-titles"]);
+		await go(["sync"]);
+
+		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({ refreshTitles: true });
+		expect(runSpecsSync.mock.calls[1]![0]).toMatchObject({ refreshTitles: false });
+	});
+
 	it("passes --files and --pr for a pull request that is still open", async () => {
 		await go(["sync", "--files", ".notes/a.spec.md", ".notes/b.spec.md", "--pr", "1700"]);
 
