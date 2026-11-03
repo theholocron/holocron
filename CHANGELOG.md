@@ -1,3 +1,17 @@
+## [5.0.0-alpha.315](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.314...v5.0.0-alpha.315) (2026-11-03)
+
+### Features
+
+* **configs:** 🧩 presets speak the flat ids ([#1662](https://github.com/theholocron/holocron/issues/1662)) ([f951745](https://github.com/theholocron/holocron/commit/f951745c281d73c7db5d20acc47ab812595854c1)), closes [#1625](https://github.com/theholocron/holocron/issues/1625)
+* **specs:** 🏷️ drop the New spec / New ADR prefix from forum post titles ([#1657](https://github.com/theholocron/holocron/issues/1657)) ([#1659](https://github.com/theholocron/holocron/issues/1659)) ([989f1e4](https://github.com/theholocron/holocron/commit/989f1e4e120b138358e24306386be73a800f8aec))
+* **specs:** 🔗 link the SPEC / ADR id on a forum post to its file ([#1658](https://github.com/theholocron/holocron/issues/1658)) ([#1660](https://github.com/theholocron/holocron/issues/1660)) ([0b2e76c](https://github.com/theholocron/holocron/commit/0b2e76c6eaa171af8c28ab7347c103568ab262ca))
+
+### Refactoring
+
+* **astromech:** ♻️ generate turbo.json and package scripts from the flat ids ([#1641](https://github.com/theholocron/holocron/issues/1641)) ([683f9ed](https://github.com/theholocron/holocron/commit/683f9ede1506288ad9d1a2a581814b9a36bbb3c3)), closes [#1616](https://github.com/theholocron/holocron/issues/1616) [#1616](https://github.com/theholocron/holocron/issues/1616) [#1616](https://github.com/theholocron/holocron/issues/1616) [#1616](https://github.com/theholocron/holocron/issues/1616)
+* **ci:** 🗂️ group ci/ sources by suite and generate flat reusables ([#1661](https://github.com/theholocron/holocron/issues/1661)) ([b79d9d9](https://github.com/theholocron/holocron/commit/b79d9d9bc3d30c7104c1da03c036f7518d3e7c55)), closes [#1619](https://github.com/theholocron/holocron/issues/1619)
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
 ## [5.0.0-alpha.314](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.313...v5.0.0-alpha.314) (2026-11-03)
 
 ### Features
