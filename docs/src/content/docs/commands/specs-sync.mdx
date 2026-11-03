@@ -4,7 +4,7 @@ description: Keep each ADR and spec in step with a post in a forum channel, and 
 ---
 
 ```bash
-holocron specs sync [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--notify] [--dry-run]
+holocron specs sync [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--refresh-origin] [--notify] [--dry-run]
 ```
 
 Every ADR (`docs/wiki/decisions`) and spec (`.notes`, `docs/wiki/specifications`) gets one post in a forum channel, made from the file. The file stays the source of truth; the post is where people talk about it. See the spec `tech-specs-discussion-threads` for the design.
@@ -56,12 +56,19 @@ Only the working tree. The command edits the `status:` and `discussion.url` line
 | `--channel <forum>`  | The forum the posts live in. Defaults to the only forum the layout declares.               |
 | `--files <paths...>` | Sync only these ADR and spec files; a path that is neither is ignored. Unset, all of them. |
 | `--pr <number>`      | Name this pull request on the posts, for one that is still open.                           |
+| `--refresh-origin`   | Repair: rewrite the `PR:` line of existing posts. See below.                               |
 | `--notify`           | Let new posts notify people.                                                               |
 | `--dry-run`          | Read, and say what would be made or changed. Makes and writes nothing.                     |
 
 It exits 1 when a document could not be synced, so a run in CI fails until a conflict is settled.
 
 Discord limits how fast posts can be made (about 46 in a row, then it asks for several minutes). When the provider rate limits a run, the command stops there instead of trying the rest, says how many documents are left and how long it was asked to wait, and exits 0: what it did is kept, and the next run (the hourly one, or yours) finds those posts and makes the rest. The first run, which makes about 80, takes two or three of these.
+
+## Repairing the `PR:` line of existing posts
+
+A post's first message is written once, so a post made before the rule for naming the pull request changed keeps the old `PR:` line. `--refresh-origin` is a one-off repair for that, not something to run every time. For each existing post it works out the line the current rule would write (the pull request the file's history names, or the one `--pr` gives, or none) and, only when the post's line differs, rewrites that line, or adds or removes it. Everything else in the message stays as it is, above all the small print that records the status last synced, and the post's tag, title and open or closed state are not touched. A closed post is unarchived to be edited and closed again.
+
+Run `holocron specs sync --refresh-origin --dry-run` first: each post that would change is listed (`would rewrite the PR line to #1538`, `would take the PR line out`), the rest read `in step`, and the last line counts them. Run it again without `--dry-run` to edit the posts. A second run changes nothing. Without the flag the command never edits a post's first message.
 
 ## While the pull request is still open
 

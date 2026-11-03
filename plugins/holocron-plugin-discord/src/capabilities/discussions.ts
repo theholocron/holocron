@@ -12,6 +12,9 @@ const MAX_MESSAGE = 2000;
  */
 const FOOTER = /^-# sync: (.+) \| (\S*)$/m;
 
+/** The paragraph of a first message that names the pull request, as `discussionBody` writes it. */
+const PR_LINE = /^PR: \[#\d+\]\(<[^>]*>\)$/m;
+
 /** One post found in a forum: the thread, and the text of its first message. */
 interface Entry {
 	/** The key the footer records: the path of the document the post was made for. */
@@ -110,6 +113,7 @@ export class DiscordDiscussions {
 			key: entry.key,
 			...(state ? { state } : {}),
 			...(entry.synced ? { synced: entry.synced } : {}),
+			...(PR_LINE.test(entry.content) ? { prLine: PR_LINE.exec(entry.content)![0] } : {}),
 			...(entry.thread.thread_metadata.locked ? { closed: true } : {}),
 		};
 	}
@@ -120,6 +124,22 @@ export class DiscordDiscussions {
 		const room = MAX_MESSAGE - footer.length - 2;
 		const text = body.length > room ? `${body.slice(0, room - 1)}…` : body;
 		return `${text}\n\n${footer}`;
+	}
+
+	/**
+	 * `content` with its pull request line set to `line`: replaced where it is, added after the other paragraphs when the
+	 * message names none, taken out when `line` is empty. Every other paragraph and the footer stay as they were.
+	 */
+	private static withPrLine(content: string, line: string): string {
+		const footer = FOOTER.exec(content)!;
+		const body = content.slice(0, footer.index).trimEnd();
+		const paragraphs = (body ? body.split("\n\n") : []).filter((p) => !PR_LINE.test(p));
+		if (line) paragraphs.push(line);
+		const next = [...paragraphs, footer[0]].join("\n\n");
+		if (next.length > MAX_MESSAGE) {
+			throw new Error(`the pull request line would take the first message past ${MAX_MESSAGE} characters`);
+		}
+		return next;
 	}
 
 	/**
@@ -169,9 +189,8 @@ export class DiscordDiscussions {
 	}
 
 	/**
-	 * Change the post for `key`: its key (the file moved), its title, its tag, whether it is closed, and the state it
-	 * records as last synced. A
-	 * closed post is archived and locked. To write to one it is unarchived first and closed again after, and one that is
+	 * Change the post for `key`: its key (the file moved), its title, its tag, whether it is closed, the state it
+	 * records as last synced, and the line that names the pull request. A closed post is archived and locked. To write to one it is unarchived first and closed again after, and one that is
 	 * being reopened is unarchived and unlocked.
 	 */
 	async update(channel: string, key: string, patch: DiscussionPatch): Promise<void> {
@@ -189,7 +208,10 @@ export class DiscordDiscussions {
 		if (patch.title !== undefined && patch.title !== thread.name) change.name = patch.title;
 		if (patch.state !== undefined) change.applied_tags = [this.tagId(forum, patch.state)];
 		const nextKey = patch.key ?? key;
-		const edited = nextKey !== key || (patch.synced !== undefined && patch.synced !== entry.synced);
+		const footerEdited = nextKey !== key || (patch.synced !== undefined && patch.synced !== entry.synced);
+		const withPr =
+			patch.prLine === undefined ? entry.content : DiscordDiscussions.withPrLine(entry.content, patch.prLine);
+		const edited = footerEdited || withPr !== entry.content;
 		// An archived post is written to by unarchiving it, and it is only unarchived for that: one Discord archived for
 		// being quiet stays archived when there is nothing to write.
 		if ((Object.keys(change).length > 0 || edited || reopening) && thread.thread_metadata.archived) {
@@ -201,7 +223,7 @@ export class DiscordDiscussions {
 		}
 		if (edited) {
 			const synced = patch.synced ?? entry.synced ?? "";
-			const content = entry.content.replace(FOOTER, () => `-# sync: ${nextKey} | ${synced}`);
+			const content = withPr.replace(FOOTER, () => `-# sync: ${nextKey} | ${synced}`);
 			await bot.channels.editMessage(thread.id, thread.id, { content });
 			entry.content = content;
 			entry.synced = synced || undefined;

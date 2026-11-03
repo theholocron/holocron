@@ -66,6 +66,9 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `reconcileSpecStatus()` over the file's, the tag's and the last-synced status. `--files` limits a run to the given
   paths and `--pr` names a pull request on the posts: `knowledge.specsOnPullRequest.yml` uses both to post while a
   same-repository pull request is still open (#1600), and throws the edits away; the post is linked after the merge.
+  `--refresh-origin` (#1652) is an opt-in repair, never a standing behaviour: it compares each post's `PR:` line
+  (`DiscussionPost.prLine`) with `discussionPrLine()` and passes `DiscussionPatch.prLine` to `updateDiscussion`, which
+  swaps only that paragraph of the bot's first message and leaves the synced footer, tag, title and closed state alone.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

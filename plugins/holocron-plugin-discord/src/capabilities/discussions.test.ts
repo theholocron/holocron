@@ -297,6 +297,90 @@ describe("DiscordDiscussions.update", () => {
 		expect(syncedOnly.calls[3]?.body).toEqual({ archived: false });
 	});
 
+	describe("the pull request line", () => {
+		const OLD = "PR: [#9](<https://github.com/o/r/pull/9>)";
+		const NEW = "PR: [#10](<https://github.com/o/r/pull/10>)";
+		const withContent = (content: string, over: Record<string, unknown> = {}) =>
+			make([
+				...listing([thread("5", over)]),
+				first("5", content),
+				{ body: thread("5", over) },
+				{ body: { id: "5", channel_id: "5", content: "" } },
+			]);
+		const sent = (calls: { body?: unknown }[]) => (calls[3]?.body as { content: string }).content;
+
+		it("shows the line a post names, and none when it names none", async () => {
+			const named = withContent(`SPEC-1\n\nAbout A.\n\n${OLD}\n\n${footer(INPUT.key, "proposed")}`);
+			const bare = withContent(`SPEC-1\n\n${footer(INPUT.key, "proposed")}`);
+
+			expect((await named.discussions.read("ideas", INPUT.key))?.prLine).toBe(OLD);
+			expect((await bare.discussions.read("ideas", INPUT.key))?.prLine).toBeUndefined();
+		});
+
+		it("replaces the line and keeps the rest of the first message, the synced line above all", async () => {
+			const { discussions, calls } = withContent(
+				`SPEC-1\n\nAbout A.\n\n${OLD}\n\n${footer(INPUT.key, "accepted")}`
+			);
+
+			await discussions.update("ideas", INPUT.key, { prLine: NEW });
+
+			expect(calls).toHaveLength(4);
+			expect(calls[3]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/5/messages/5` });
+			expect(sent(calls)).toBe(`SPEC-1\n\nAbout A.\n\n${NEW}\n\n${footer(INPUT.key, "accepted")}`);
+			expect(await discussions.read("ideas", INPUT.key)).toMatchObject({ synced: "accepted", prLine: NEW });
+		});
+
+		it("adds the line when the message names none, even to a message that is only its footer", async () => {
+			const some = withContent(`SPEC-1\n\nAbout A.\n\n${footer(INPUT.key, "proposed")}`);
+			const empty = withContent(footer(INPUT.key, "proposed"));
+
+			await some.discussions.update("ideas", INPUT.key, { prLine: NEW });
+			await empty.discussions.update("ideas", INPUT.key, { prLine: NEW });
+
+			expect(sent(some.calls)).toBe(`SPEC-1\n\nAbout A.\n\n${NEW}\n\n${footer(INPUT.key, "proposed")}`);
+			expect(sent(empty.calls)).toBe(`${NEW}\n\n${footer(INPUT.key, "proposed")}`);
+		});
+
+		it("takes the line out when given an empty one", async () => {
+			const { discussions, calls } = withContent(`SPEC-1\n\n${OLD}\n\n${footer(INPUT.key, "proposed")}`);
+
+			await discussions.update("ideas", INPUT.key, { prLine: "" });
+
+			expect(sent(calls)).toBe(`SPEC-1\n\n${footer(INPUT.key, "proposed")}`);
+			expect((await discussions.read("ideas", INPUT.key))?.prLine).toBeUndefined();
+		});
+
+		it("edits nothing when the line is already the one asked for, or none is wanted", async () => {
+			const same = withContent(`SPEC-1\n\n${OLD}\n\n${footer(INPUT.key, "proposed")}`);
+			const none = withContent(`SPEC-1\n\n${footer(INPUT.key, "proposed")}`);
+
+			await same.discussions.update("ideas", INPUT.key, { prLine: OLD });
+			await none.discussions.update("ideas", INPUT.key, { prLine: "" });
+
+			expect(same.calls).toHaveLength(3);
+			expect(none.calls).toHaveLength(3);
+		});
+
+		it("does not touch the tag or title, and unarchives then re-closes a closed post to write", async () => {
+			const closed = { thread_metadata: { ...thread("5").thread_metadata, archived: true, locked: true } };
+			const { discussions, calls } = withContent(`SPEC-1\n\n${OLD}\n\n${footer(INPUT.key, "proposed")}`, closed);
+
+			await discussions.update("ideas", INPUT.key, { prLine: NEW });
+
+			expect(calls[3]?.body).toEqual({ archived: false });
+			expect(calls[4]).toMatchObject({ url: `${BASE}/channels/5/messages/5` });
+			expect(calls[5]?.body).toEqual({ archived: true, locked: true });
+		});
+
+		it("refuses a line that would take the message past Discord's limit", async () => {
+			const { discussions } = withContent(`${"x".repeat(1950)}\n\n${footer(INPUT.key, "proposed")}`);
+
+			await expect(discussions.update("ideas", INPUT.key, { prLine: NEW })).rejects.toThrow(
+				/past 2000 characters/
+			);
+		});
+	});
+
 	it("refuses a state the forum has no tag for, and a document with no post", async () => {
 		await expect(existing().discussions.update("ideas", INPUT.key, { state: "rejected" })).rejects.toThrow(
 			/has no tag named `rejected`/

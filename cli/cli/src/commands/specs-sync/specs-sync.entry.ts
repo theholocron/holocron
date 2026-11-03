@@ -30,6 +30,14 @@ export const specsSyncEntry: CommandEntry = {
 			message: "Name this pull request on the posts (blank = the one each file's history names):",
 		},
 		{
+			key: "refreshOrigin",
+			flag: "--refresh-origin",
+			type: "confirm",
+			default: false,
+			message:
+				"Rewrite the PR line of existing posts to what the current rule names (a repair; no other change)?",
+		},
+		{
 			key: "notify",
 			flag: "--notify",
 			type: "confirm",

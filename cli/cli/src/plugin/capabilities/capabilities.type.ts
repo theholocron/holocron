@@ -1532,6 +1532,8 @@ export interface DiscussionPost {
 	state?: string;
 	/** The state the post was last in step with the document, as the post records it; `undefined` when it records none. */
 	synced?: string;
+	/** The line of the post's first message that names the pull request (`PR: [#1538](<address>)`); `undefined` when it names none. */
+	prLine?: string;
 	/** Whether the post is closed: finished with, and locked so that only people who manage it can reply or reopen it. Absent when it is open. */
 	closed?: boolean;
 }
@@ -1579,6 +1581,12 @@ export interface DiscussionPatch {
 	state?: string;
 	/** The state the post and the document now agree on. */
 	synced?: string;
+	/**
+	 * The line that names the pull request in the post's first message. The provider rewrites that line and keeps the rest
+	 * of the message, the synced line above all; an empty string takes the line out. For repairing posts made under an
+	 * older rule, not for every sync.
+	 */
+	prLine?: string;
 	/** Close the post (archive and lock it) or reopen it (unlock and unarchive it). */
 	closed?: boolean;
 }
@@ -2161,7 +2169,7 @@ export interface Notifications extends ProviderIdentity {
 	 * document's recorded address (`url`) names is it, moved; its `key` then differs from the one asked for.
 	 */
 	readDiscussion?(channel: string, key: string, url?: string): Promise<DiscussionPost | undefined>;
-	/** Change the discussion post for `key`: its title, its state (the tag) and the state last synced. Throws when there is no post. */
+	/** Change the discussion post for `key`: its title, its state (the tag), the state last synced and the pull request line. Throws when there is no post. */
 	updateDiscussion?(channel: string, key: string, patch: DiscussionPatch): Promise<void>;
 
 	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */

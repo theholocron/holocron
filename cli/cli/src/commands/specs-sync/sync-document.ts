@@ -2,6 +2,7 @@ import {
 	ADR_STATUSES,
 	CLOSED_STATUSES,
 	discussionBody,
+	discussionPrLine,
 	discussionTitle,
 	parseFrontmatter,
 	reconcileSpecStatus,
@@ -18,7 +19,8 @@ import type { SpecDocument, SpecSyncOutcome, SyncDocumentDeps } from "./specs-sy
  * Bring one ADR or spec and its discussion post in step. A spec with no `id` is numbered. The post is found or made, opening with the id, a short description and the pull request that added the document; then the document's status, the
  * tag on the post and the status last synced decide what to do (`reconcileSpecStatus`): put the file's status on the tag,
  * remember that they agree, or, when someone retagged the post, change the file's `status:`. The post's address is written
- * into the file as `discussion.url`.
+ * into the file as `discussion.url`. With `refreshOrigin` it also rewrites the post's pull request line when that differs from what
+ * the current rule writes.
  *
  * It returns the document's text after the sync and never writes it: the caller decides whether to. On a dry run it makes
  * and changes nothing, and `did` says what it would. A document that cannot be synced comes back with a `problem`.
@@ -68,6 +70,21 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		if (ensured.rekeyed) did.push("followed the file to its new path");
 	}
 
+	// A repair, asked for: put the pull request line the current rule would write on a post made under an older one. Only
+	// that line moves; the tag, the title, the open or closed state and the synced status are left as they are.
+	let prLineRewritten = false;
+	if (deps.refreshOrigin) {
+		const wanted = discussionPrLine(deps.pr);
+		if ((post.prLine ?? "") !== wanted) {
+			prLineRewritten = true;
+			say(
+				wanted ? `rewrote the PR line to #${deps.pr!.number}` : "took the PR line out",
+				wanted ? `would rewrite the PR line to #${deps.pr!.number}` : "would take the PR line out"
+			);
+			if (!dryRun) await notifications.updateDiscussion!(channel, doc.path, { prLine: wanted });
+		}
+	}
+
 	const decision = reconcileSpecStatus({ file: status, tag: post.state, synced: post.synced });
 	switch (decision.action) {
 		case "none":
@@ -114,5 +131,5 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		text = updateFrontmatter(text, { discussionUrl: post.url });
 		say("linked the post", "would link the post");
 	}
-	return { path: doc.path, did, text };
+	return { path: doc.path, did, text, ...(prLineRewritten ? { prLineRewritten } : {}) };
 }

@@ -21,6 +21,12 @@ export const specsSyncArgs = (y: Argv<GlobalArgs>) =>
 			type: "number",
 			describe: "Name this pull request on the posts, for a pull request that is still open",
 		})
+		.option("refresh-origin", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Rewrite the PR line of each existing post to the one the current rule names, and nothing else in it (a repair; combine with --dry-run to preview)",
+		})
 		.option("notify", {
 			type: "boolean",
 			default: false,
