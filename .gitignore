@@ -123,6 +123,9 @@ lcov.info
 # A developer's own tokens, read by the CLI when it exists (docs: tokens)
 .env
 
+# The short-lived file `holocron auth export` writes, to import into a credentials environment
+.credentials*
+
 # managed by holocron setup — prompts
 /.agents/prompts/
 # end managed by holocron setup — prompts

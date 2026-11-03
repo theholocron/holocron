@@ -1,3 +1,7 @@
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -8,6 +12,12 @@ vi.mock("../../auth/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../auth/index.js")>()),
 	getToken: () => null,
 	isKeyringAvailable: () => true,
+}));
+
+const waitForEnter = vi.hoisted(() => vi.fn(async (_message: string) => {}));
+vi.mock("../../ui/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../ui/index.js")>()),
+	waitForEnter,
 }));
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
@@ -128,9 +138,9 @@ describe("auth export — what it writes", () => {
 });
 
 describe("auth export — where it writes", () => {
-	it("puts the lines on the clipboard, and prints none, when stdout is a terminal", async () => {
+	it("puts the lines on the clipboard, and prints none, when asked for it", async () => {
 		const copy = vi.fn(async (_text: string) => {});
-		const { result, out, err } = run({ outKind: "terminal", copy });
+		const { result, out, err } = run({ outKind: "terminal", to: "clipboard", copy });
 		const report = await result;
 		expect(copy).toHaveBeenCalledExactlyOnceWith("HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
 		expect(out).toEqual([]);
@@ -141,14 +151,14 @@ describe("auth export — where it writes", () => {
 
 	it("copies with clipboardy by default", async () => {
 		write.mockClear();
-		const { result } = run({ outKind: "terminal" });
+		const { result } = run({ outKind: "terminal", to: "clipboard" });
 		await result;
 		expect(write).toHaveBeenCalledExactlyOnceWith("HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
 	});
 
 	it("copies nothing when no token is found, even on a terminal", async () => {
 		const copy = vi.fn(async (_text: string) => {});
-		const { result } = run({ outKind: "terminal", copy, keyring: () => null });
+		const { result } = run({ outKind: "terminal", to: "clipboard", copy, keyring: () => null });
 		expect((await result).status).toBe("skip");
 		expect(copy).not.toHaveBeenCalled();
 	});
@@ -156,23 +166,23 @@ describe("auth export — where it writes", () => {
 	it("fails with a way out when the clipboard cannot be written, and writes nothing", async () => {
 		const logger = fakeLogger();
 		const copy = vi.fn(async () => Promise.reject(new Error("no clipboard tool")));
-		const { result, out, err } = run({ outKind: "terminal", copy, logger });
+		const { result, out, err } = run({ outKind: "terminal", to: "clipboard", copy, logger });
 		const report = await result;
 		expect(report.status).toBe("fail");
 		expect(report.exported).toEqual([]);
 		expect(out).toEqual([]);
 		expect(err[0]).toBe("could not copy to the clipboard: no clipboard tool");
-		expect(err[1]).toMatch(/auth export \| some-tool/);
+		expect(err[1]).toMatch(/auth export --file/);
 		expect(logger.warn).toHaveBeenCalledWith({ status: "fail", reason: "clipboard" }, "auth export");
 	});
 
-	it("refuses a regular file, without reading the keyring or writing anything", async () => {
+	it("refuses a redirect to a regular file, without reading the keyring or writing anything", async () => {
 		const keyring = vi.fn(() => "x");
 		const { result, out, err } = run({ outKind: "other", keyring });
 		expect((await result).status).toBe("fail");
 		expect(keyring).not.toHaveBeenCalled();
 		expect(out).toEqual([]);
-		expect(err[0]).toMatch(/refusing to write tokens to a file/);
+		expect(err[0]).toMatch(/refusing to write tokens to a redirected file/);
 	});
 });
 
@@ -262,5 +272,215 @@ describe("auth export — defaults", () => {
 		} finally {
 			spy.mockRestore();
 		}
+	});
+});
+
+describe("auth export — the private file", () => {
+	const fresh = () => {
+		const dir = mkdtempSync(join(tmpdir(), "holocron-export-"));
+		const here: LoadedConfig = { ...loaded, filepath: join(dir, "holocron.config.json") };
+		return { dir, here, file: join(dir, ".credentials") };
+	};
+	const CONTENT = "HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n";
+	const gone = (): "deleted" => "deleted";
+	const base = {
+		outKind: "terminal" as const,
+		interactive: true,
+		isIgnored: () => "ignored" as const,
+		waitForImport: async () => {},
+		shred: gone,
+	};
+
+	it("on a terminal writes a private .credentials next to the config, prints no value, then deletes it", async () => {
+		const { here, file } = fresh();
+		const remove = vi.fn((p: string, identity: { dev: number; ino: number; fd: number }) => {
+			expect(readFileSync(p, "utf8")).toBe(CONTENT);
+			expect(statSync(p).mode & 0o777).toBe(0o600);
+			// It is handed the identity of the file it wrote, so it can tell that file from a replacement.
+			expect(identity).toMatchObject({ dev: statSync(p).dev, ino: statSync(p).ino });
+			expect(typeof identity.fd).toBe("number");
+			return gone();
+		});
+		const { result, out, err } = run({ ...base, loaded: here, shred: remove });
+		const report = await result;
+		expect(report).toMatchObject({ status: "ok", destination: "file", file });
+		expect(remove).toHaveBeenCalledOnce();
+		expect(out).toEqual([]);
+		expect(JSON.stringify(err)).not.toMatch(/ghp_org|sntry_1/);
+		expect(err).toContain(`wrote ${file} (readable only by you)`);
+		expect(err.at(-1)).toBe(`deleted ${file}`);
+	});
+
+	it("keeps the file until the import is released, and deletes it only after", async () => {
+		const { here } = fresh();
+		let release: () => void = () => {};
+		const waiting = new Promise<void>((resolve) => (release = resolve));
+		const remove = vi.fn(gone);
+		const { result, err } = run({ ...base, loaded: here, shred: remove, waitForImport: () => waiting });
+		let done = false;
+		void result.then(() => (done = true));
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(done).toBe(false);
+		expect(remove).not.toHaveBeenCalled();
+		expect(err.some((l) => l.startsWith("deleted "))).toBe(false);
+		release();
+		await result;
+		expect(remove).toHaveBeenCalledOnce();
+	});
+
+	it("deletes the file even when waiting fails", async () => {
+		const { here } = fresh();
+		const remove = vi.fn(gone);
+		const { result } = run({
+			...base,
+			loaded: here,
+			shred: remove,
+			waitForImport: async () => Promise.reject(new Error("stdin closed")),
+		});
+		await expect(result).rejects.toThrow("stdin closed");
+		expect(remove).toHaveBeenCalledOnce();
+	});
+
+	it.each([
+		["SIGINT", 130],
+		["SIGTERM", 143],
+		["SIGHUP", 129],
+	] as const)("deletes the file on %s and exits %i, leaving no handler behind", async (signal, code) => {
+		const { here } = fresh();
+		const before = process.listenerCount(signal);
+		const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+		const remove = vi.fn(gone);
+		try {
+			const { result } = run({
+				...base,
+				loaded: here,
+				shred: remove,
+				waitForImport: async () => void process.emit(signal),
+			});
+			await result;
+			expect(exit).toHaveBeenCalledWith(code);
+			expect(remove).toHaveBeenCalled();
+			expect(process.listenerCount(signal)).toBe(before);
+		} finally {
+			exit.mockRestore();
+		}
+	});
+
+	it("does not say it deleted a file that was already gone, or that someone else replaced", async () => {
+		const { here, file } = fresh();
+		const missing = run({ ...base, loaded: here, shred: () => "missing" });
+		expect((await missing.result).status).toBe("ok");
+		expect(missing.err.at(-1)).toBe(`${file} was already gone`);
+		const other = fresh();
+		const replaced = run({ ...base, loaded: other.here, shred: () => "replaced" });
+		expect((await replaced.result).status).toBe("ok");
+		expect(replaced.err.at(-1)).toBe(`left ${other.file} alone: it is no longer the file this command wrote`);
+	});
+
+	it("fails, and never says deleted, when the file could not be deleted", async () => {
+		const { here, file } = fresh();
+		const { result, err } = run({
+			...base,
+			loaded: here,
+			shred: () => {
+				throw new Error("EPERM: operation not permitted");
+			},
+		});
+		expect((await result).status).toBe("fail");
+		expect(err.some((l) => l.startsWith("deleted "))).toBe(false);
+		expect(err).toContain(`could not delete ${file}: EPERM: operation not permitted`);
+		expect(err.at(-1)).toBe(`it holds your tokens in plain text: delete it yourself: ${file}`);
+	});
+
+	it("keeps the file with --keep, and says to delete it", async () => {
+		const { here, file } = fresh();
+		const remove = vi.fn(gone);
+		const { result, err } = run({ ...base, loaded: here, shred: remove, keep: true });
+		await result;
+		expect(remove).not.toHaveBeenCalled();
+		expect(existsSync(file)).toBe(true);
+		expect(err.at(-1)).toBe(`it holds your tokens in plain text: delete it when you are done: ${file}`);
+	});
+
+	it("keeps the file, and says so, when there is no terminal to ask on", async () => {
+		const { here, file } = fresh();
+		const remove = vi.fn(gone);
+		const waitForImport = vi.fn(async () => {});
+		const { result, err } = run({ ...base, loaded: here, shred: remove, waitForImport, interactive: false });
+		await result;
+		expect(waitForImport).not.toHaveBeenCalled();
+		expect(remove).not.toHaveBeenCalled();
+		expect(err.at(-1)).toContain(`delete it when you are done: ${file}`);
+	});
+
+	it.each([
+		["tracked", "git does not ignore it, so it could be committed"],
+		["unknown", "git could not say whether it ignores it"],
+	] as const)("refuses a path git reports as %s, and writes nothing", async (state, reason) => {
+		const { here, file } = fresh();
+		const { result, err } = run({ ...base, loaded: here, isIgnored: () => state });
+		expect((await result).status).toBe("fail");
+		expect(existsSync(file)).toBe(false);
+		expect(err[0]).toContain(reason);
+	});
+
+	it.each(["ignored", "no-repo"] as const)("writes when git says %s", async (state) => {
+		const { here, file } = fresh();
+		const { result } = run({ ...base, loaded: here, isIgnored: () => state, keep: true });
+		expect((await result).status).toBe("ok");
+		expect(existsSync(file)).toBe(true);
+	});
+
+	it("refuses on Windows, where the mode does not make a file private, and points at the other ways", async () => {
+		const { here, file } = fresh();
+		const { result, err } = run({ ...base, loaded: here, platform: "win32" });
+		expect((await result).status).toBe("fail");
+		expect(existsSync(file)).toBe(false);
+		expect(err[0]).toContain("cannot make the file private on Windows");
+		expect(err[1]).toContain("--copy");
+	});
+
+	it("never overwrites a file that is there, and says how to replace it", async () => {
+		const { here, file } = fresh();
+		writeFileSync(file, "keep me");
+		const { result, err } = run({ ...base, loaded: here });
+		expect((await result).status).toBe("fail");
+		expect(readFileSync(file, "utf8")).toBe("keep me");
+		expect(err[0]).toContain(`could not write ${file}`);
+		expect(err[1]).toContain("--force");
+	});
+
+	it("replaces it with --force", async () => {
+		const { here, file } = fresh();
+		writeFileSync(file, "old");
+		const { result } = run({ ...base, loaded: here, force: true, keep: true });
+		expect((await result).status).toBe("ok");
+		expect(readFileSync(file, "utf8")).toBe(CONTENT);
+	});
+
+	it("writes the file when asked even if stdout is a pipe, at a path given relative to the config", async () => {
+		const { dir, here } = fresh();
+		const { result, out } = run({
+			...base,
+			loaded: here,
+			outKind: "pipe",
+			to: "file",
+			file: "sub.env",
+			keep: true,
+		});
+		const report = await result;
+		expect(report.file).toBe(join(dir, "sub.env"));
+		expect(readFileSync(join(dir, "sub.env"), "utf8")).toBe(CONTENT);
+		expect(out).toEqual([]);
+	});
+
+	it("uses the real writer, git check and remover, and the terminal prompt, by default", async () => {
+		const { here, file } = fresh();
+		waitForEnter.mockClear();
+		const { result } = run({ outKind: "terminal", interactive: true, loaded: here });
+		expect((await result).status).toBe("ok");
+		expect(waitForEnter).toHaveBeenCalledOnce();
+		// Not a git repository, so there is no objection, and the real remover has deleted it.
+		expect(existsSync(file)).toBe(false);
 	});
 });

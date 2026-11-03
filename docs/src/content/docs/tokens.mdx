@@ -60,14 +60,14 @@ Each variable in the Environment is named for the env var the command already re
 
 ### Moving the tokens you already have
 
-`op` cannot set a variable, so the Environment is filled in the 1Password app. To get tokens that are already in the keyring there without copying each by hand, [`holocron auth export`](/holocron/commands/auth-export/) prints them as `NAME=value` lines, named for the env vars the plugins read:
+`op` cannot set a variable, so the Environment is filled in the 1Password app. To get tokens that are already in the keyring there without copying each by hand, [`holocron auth export`](/holocron/commands/auth-export/) writes them as `NAME=value` lines, named for the env vars the plugins read, to a private file the app can import:
 
 ```sh
-holocron auth export             # the keyring, onto the clipboard
+holocron auth export             # the keyring, to .credentials
 holocron auth export --from-env  # also what is set in this shell
 ```
 
-Paste into the Environment's editor, then clear the clipboard and run `holocron doctor credentials` to see what is still missing. On a terminal the command copies and prints nothing, so no value reaches the screen, scrollback or the log; the names and counts go to stderr. Piped, it writes the lines to stdout instead; it refuses a file, which would leave the tokens on disk.
+In the app: Developer, View Environments, `Holocron`, **Import .env file**, and choose `.credentials`. Back in the terminal, press Enter and the file is overwritten and deleted. It is created readable by you alone, refused unless git ignores it, never overwrites a file, and is deleted on Ctrl-C too, so the plain text exists only for the minutes the import takes. Then run `holocron doctor credentials` to see what is still missing. Piped, the command writes the lines to stdout instead; `--copy` puts them on the clipboard.
 
 ### Adding a token later
 
