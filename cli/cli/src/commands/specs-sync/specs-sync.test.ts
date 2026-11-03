@@ -64,6 +64,9 @@ function setup(
 		pr?: number;
 		refreshOrigin?: boolean;
 		refreshTitles?: boolean;
+		refresh?: boolean;
+		/** The default branch the config declares. */
+		defaultBranch?: string;
 		withdraw?: boolean;
 		/** Leave out `print` and `logger`, as the command does. */
 		bare?: boolean;
@@ -72,6 +75,7 @@ function setup(
 	const loaded = loadedFrom({
 		name: "holocron",
 		providers: { notifications: ["discord"] },
+		...(opts.defaultBranch ? { repo: { defaultBranch: opts.defaultBranch } } : {}),
 	});
 	const importer = vi.fn(async (pkg: string) => {
 		if (pkg !== "@theholocron/holocron-plugin-discord") throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
@@ -99,6 +103,7 @@ function setup(
 				...(opts.pr ? { pr: opts.pr } : {}),
 				...(opts.refreshOrigin ? { refreshOrigin: true } : {}),
 				...(opts.refreshTitles ? { refreshTitles: true } : {}),
+				...(opts.refresh ? { refresh: true } : {}),
 				...(opts.withdraw ? { withdraw: true } : {}),
 				...(opts.provider ? { provider: opts.provider } : {}),
 				...(opts.channel ? { channel: opts.channel } : {}),
@@ -236,11 +241,13 @@ describe("runSpecsSync", () => {
 		const body = (n: Notifications) =>
 			(n.ensureDiscussion as ReturnType<typeof vi.fn>).mock.calls[0]![0].body as string;
 		expect(body(named)).toBe(
-			"SPEC-0001\n\nAbout A.\n\nPR: [#1538](<https://github.com/theholocron/holocron/pull/1538>)"
+			"[SPEC-0001](<https://github.com/theholocron/holocron/blob/HEAD/.notes/a.spec.md>)\n\nAbout A.\n\nPR: [#1538](<https://github.com/theholocron/holocron/pull/1538>)"
 		);
 		expect(body(given)).toContain("PR: [#1538](<https://github.com/acme/widgets/pull/1538>)");
 		expect(body(unknown)).toBe("SPEC-0001\n\nAbout A.");
-		expect(body(noPr)).toBe("SPEC-0001\n\nAbout A.");
+		expect(body(noPr)).toBe(
+			"[SPEC-0001](<https://github.com/theholocron/holocron/blob/HEAD/.notes/a.spec.md>)\n\nAbout A."
+		);
 	});
 
 	it("syncs only the files asked for, numbering a new spec as the whole tree would", async () => {
@@ -482,6 +489,134 @@ describe("runSpecsSync", () => {
 		});
 	});
 
+	describe("the id link", () => {
+		const files = { ".notes/a.spec.md": spec("A", "proposed") };
+		const body = (n: Notifications) =>
+			(n.ensureDiscussion as ReturnType<typeof vi.fn>).mock.calls[0]![0].body as string;
+
+		it("links the id to the file on the default branch the config declares", async () => {
+			const n = fakeNotifications();
+
+			await setup(n, makeIo(files).io, { defaultBranch: "alpha" }).run();
+
+			expect(body(n)).toBe(
+				"[SPEC-0001](<https://github.com/theholocron/holocron/blob/alpha/.notes/a.spec.md>)\n\nAbout A."
+			);
+		});
+
+		it("leaves the id plain while a pull request is open (--pr): its PR line is the link", async () => {
+			const n = fakeNotifications();
+
+			await setup(n, makeIo(files).io, { pr: 7, defaultBranch: "alpha" }).run();
+
+			expect(body(n)).toBe("SPEC-0001\n\nAbout A.\n\nPR: [#7](<https://github.com/theholocron/holocron/pull/7>)");
+		});
+	});
+
+	describe("--refresh", () => {
+		const files = { ".notes/a.spec.md": spec("A", "proposed") };
+		const origins = { ".notes/a.spec.md": { time: 1, pr: 5 } };
+		const NEW_LINE = "[SPEC-0001](<https://github.com/theholocron/holocron/blob/alpha/.notes/a.spec.md>)";
+		const OLD_PR = "PR: [#4](<https://github.com/theholocron/holocron/pull/4>)";
+		const post = (over: Partial<DiscussionPost> = {}): DiscussionPost => ({
+			url: URL,
+			state: "proposed",
+			synced: "proposed",
+			title: "💡 New spec: A",
+			prLine: OLD_PR,
+			idLine: "SPEC-0001",
+			...over,
+		});
+		const withPost = (current: DiscussionPost) =>
+			fakeNotifications({
+				ensureDiscussion: vi.fn(async () => ({ post: current, created: false })),
+				readDiscussion: vi.fn(async () => current),
+			});
+
+		it("does the three repairs in one pass, each patching only its own part, and counts each", async () => {
+			const n = withPost(post());
+			const { run, lines } = setup(n, makeIo(files, origins).io, { refresh: true, defaultBranch: "alpha" });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { title: "A" });
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", {
+				prLine: "PR: [#5](<https://github.com/theholocron/holocron/pull/5>)",
+			});
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { idLine: NEW_LINE });
+			expect(report).toMatchObject({ rewritten: 1, renamed: 1, linked: 1 });
+			expect(report.files[0]!.idLineRewritten).toBe(true);
+			const out = lines.join("\n");
+			expect(out).toContain("linked the id to the file");
+			expect(out).toContain("1 PR line(s) rewritten");
+			expect(out).toContain("1 title(s) renamed");
+			expect(out).toContain("1 id line(s) rewritten");
+		});
+
+		it("is idempotent: a second run over repaired posts changes nothing", async () => {
+			const n = withPost(
+				post({
+					title: "A",
+					idLine: NEW_LINE,
+					prLine: "PR: [#5](<https://github.com/theholocron/holocron/pull/5>)",
+				})
+			);
+			const { run } = setup(n, makeIo(files, origins).io, { refresh: true, defaultBranch: "alpha" });
+
+			const report = await run();
+
+			expect(report).toMatchObject({ rewritten: 0, renamed: 0, linked: 0 });
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+		});
+
+		it("on a dry run says what it would do, one row per post and a count, and edits nothing", async () => {
+			const n = withPost(post());
+			const { run, lines } = setup(n, makeIo(files, origins).io, {
+				refresh: true,
+				dryRun: true,
+				defaultBranch: "alpha",
+			});
+
+			const report = await run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.linked).toBe(1);
+			const out = lines.join("\n");
+			expect(out).toContain("would link the id to the file");
+			expect(out).toContain("1 id line(s) would be rewritten");
+		});
+
+		it("stops cleanly at a rate limit, like --refresh-titles", async () => {
+			const updateDiscussion = vi
+				.fn()
+				.mockRejectedValue(new ProviderApiError("Discord 429", 429, '{"retry_after":3}'));
+			const n = fakeNotifications({
+				ensureDiscussion: vi.fn(async () => ({ post: post(), created: false })),
+				updateDiscussion,
+			});
+
+			const report = await setup(n, makeIo(files, origins).io, { refresh: true }).run();
+
+			expect(report.status).toBe("ok");
+			expect(report.rateLimited).toEqual({ left: 1, retryAfter: 3 });
+		});
+
+		it("is the same as the individual flags together, which still each do only their own repair", async () => {
+			const onlyTitles = withPost(post());
+			const onlyOrigin = withPost(post());
+
+			await setup(onlyTitles, makeIo(files, origins).io, { refreshTitles: true, defaultBranch: "alpha" }).run();
+			await setup(onlyOrigin, makeIo(files, origins).io, { refreshOrigin: true, defaultBranch: "alpha" }).run();
+
+			expect(onlyTitles.updateDiscussion).toHaveBeenCalledTimes(1);
+			expect(onlyTitles.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { title: "A" });
+			expect(onlyOrigin.updateDiscussion).toHaveBeenCalledTimes(1);
+			expect(onlyOrigin.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", {
+				prLine: "PR: [#5](<https://github.com/theholocron/holocron/pull/5>)",
+			});
+		});
+	});
+
 	it("stops at the first rate limit instead of trying the rest, and does not fail the run", async () => {
 		const files = {
 			".notes/a.spec.md": spec("A", "proposed", "SPEC-0001"),
@@ -645,6 +780,17 @@ describe("runSpecsSync", () => {
 			const { run } = setup(fakeNotifications(), makeIo({}).io, {
 				withdraw: true,
 				refreshOrigin: true,
+				files: [NEW],
+			});
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/cannot be combined/);
+		});
+
+		it("is refused with --refresh, the one flag for all the repairs", async () => {
+			const { run } = setup(fakeNotifications(), makeIo({}).io, {
+				withdraw: true,
+				refresh: true,
 				files: [NEW],
 			});
 			const report = await run();

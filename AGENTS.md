@@ -64,7 +64,12 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
   post, the file's `status:` into the working tree only (the workflow commits it to a pull request), and decides by
   `reconcileSpecStatus()` over the file's, the tag's and the last-synced status. `--refresh-origin` and `--refresh-titles` (#1654, #1657) are
-  opt-in repairs that patch one field of existing posts (the `PR:` line, the title); a Discord rate limit (429) stops a run
+  opt-in repairs that patch one field of existing posts (the `PR:` line, the title); `--refresh` (#1658) runs both and the id
+  repair in one pass. The id opening a post's first message is a link to the file on the default branch
+  (`discussionIdLine()`, `repo.defaultBranch`, else `HEAD`) once the file is there, and plain text while `--pr` names an
+  open pull request; a file the sync follows to a new path has the link rewritten in the same step, and `--refresh` rewrites
+  an existing post's id line through `DiscussionPatch.idLine` (only the first line of the message; `DiscussionPost.idLine`
+  is what a post has now). A Discord rate limit (429) stops a run
   cleanly (`rateLimited` in the report, `left` documents) and the next run continues. `--files` limits a run to the given
   paths and `--pr` names a pull request on the posts: `knowledge.specsOnPullRequest.yml` uses both to post while a
   same-repository pull request is still open (#1600), and throws the edits away; the post is linked after the merge.

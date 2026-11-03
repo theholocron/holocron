@@ -2,6 +2,7 @@ export * from "./assign-spec-ids/index.js";
 export * from "./check-specs/index.js";
 export * from "./classify-spec-path/index.js";
 export * from "./discussion-body/index.js";
+export * from "./discussion-id-line/index.js";
 export * from "./discussion-pr-line/index.js";
 export * from "./discussion-title/index.js";
 export * from "./is-valid-iso-date/index.js";

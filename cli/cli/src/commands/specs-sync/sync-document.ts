@@ -2,6 +2,7 @@ import {
 	ADR_STATUSES,
 	CLOSED_STATUSES,
 	discussionBody,
+	discussionIdLine,
 	discussionPrLine,
 	discussionTitle,
 	parseFrontmatter,
@@ -20,7 +21,10 @@ import type { SpecDocument, SpecSyncOutcome, SyncDocumentDeps } from "./specs-sy
  * tag on the post and the status last synced decide what to do (`reconcileSpecStatus`): put the file's status on the tag,
  * remember that they agree, or, when someone retagged the post, change the file's `status:`. The post's address is written
  * into the file as `discussion.url`. With `refreshOrigin` it also rewrites the post's pull request line when that differs from what
- * the current rule writes, and with `refreshTitles` it renames the post when its title differs from the current rule's.
+ * the current rule writes, and with `refreshTitles` it renames the post when its title differs from the current rule's. The id opens the first message
+ * as a link to the file on the default branch (`link`; plain while a pull request is open), and a post that follows its
+ * file to a new path has that link rewritten in the same step, so it never points at the old path; with `refreshLinks` an
+ * existing post whose id line differs from the current rule's is rewritten too.
  *
  * It returns the document's text after the sync and never writes it: the caller decides whether to. On a dry run it makes
  * and changes nothing, and `did` says what it would. A document that cannot be synced comes back with a `problem`.
@@ -49,18 +53,32 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 	// The post is found by the path it was made for; when the file has moved, by the address the file records.
 	const url = front?.get("discussion.url")?.value || undefined;
 
+	const file = deps.link ? { ...deps.link, path: doc.path } : undefined;
+	const wantedIdLine = discussionIdLine(id, file);
 	const wantedTitle = discussionTitle(specTitle(doc.path, doc.text));
 	let post: DiscussionPost | undefined;
+	let idLineRewritten = false;
 	if (dryRun) {
 		post = await notifications.readDiscussion!(channel, doc.path, url);
 		if (!post) return { path: doc.path, did: [...did, "would make the post and link it"], text };
-		if (post.key !== undefined && post.key !== doc.path) did.push("would follow the file to its new path");
+		if (post.key !== undefined && post.key !== doc.path) {
+			did.push("would follow the file to its new path");
+			if (deps.link && post.idLine !== undefined && post.idLine !== wantedIdLine) {
+				idLineRewritten = true;
+				did.push("would point the id at the new path");
+			}
+		}
 	} else {
 		const ensured = await notifications.ensureDiscussion!({
 			channel,
 			key: doc.path,
 			title: wantedTitle,
-			body: discussionBody({ id, summary: specSummary(doc.text), ...(deps.pr ? { pr: deps.pr } : {}) }),
+			body: discussionBody({
+				id,
+				summary: specSummary(doc.text),
+				...(deps.pr ? { pr: deps.pr } : {}),
+				...(file ? { file } : {}),
+			}),
 			state: status,
 			quiet: deps.quiet,
 			closed: CLOSED_STATUSES.includes(status),
@@ -68,7 +86,16 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		});
 		post = ensured.post;
 		if (ensured.created) did.push("made the post");
-		if (ensured.rekeyed) did.push("followed the file to its new path");
+		if (ensured.rekeyed) {
+			did.push("followed the file to its new path");
+			// The link names the path, so a moved file's link is rewritten with it. Only when the file is on the default
+			// branch: a pull request still open leaves the id as it is.
+			if (deps.link && post.idLine !== undefined && post.idLine !== wantedIdLine) {
+				idLineRewritten = true;
+				did.push("pointed the id at the new path");
+				await notifications.updateDiscussion!(channel, doc.path, { idLine: wantedIdLine });
+			}
+		}
 	}
 
 	// A repair, asked for: give the post the title the current rule writes. Only the title moves, whatever the post's tag or
@@ -94,6 +121,18 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 			);
 			if (!dryRun) await notifications.updateDiscussion!(channel, doc.path, { prLine: wanted });
 		}
+	}
+
+	// A repair, asked for: put the id line the current rule would write on a post made under an older one (the id as plain
+	// text, or linked to a path or branch it no longer has). Only that line moves. A message that does not start with an id
+	// says nothing to compare, so nothing is rewritten.
+	if (deps.refreshLinks && !idLineRewritten && post.idLine !== undefined && post.idLine !== wantedIdLine) {
+		idLineRewritten = true;
+		say(
+			file ? "linked the id to the file" : "took the link off the id",
+			file ? "would link the id to the file" : "would take the link off the id"
+		);
+		if (!dryRun) await notifications.updateDiscussion!(channel, doc.path, { idLine: wantedIdLine });
 	}
 
 	const decision = reconcileSpecStatus({ file: status, tag: post.state, synced: post.synced });
@@ -148,5 +187,6 @@ export async function syncDocument(doc: SpecDocument, deps: SyncDocumentDeps): P
 		text,
 		...(prLineRewritten ? { prLineRewritten } : {}),
 		...(titleRenamed ? { titleRenamed } : {}),
+		...(idLineRewritten ? { idLineRewritten } : {}),
 	};
 }

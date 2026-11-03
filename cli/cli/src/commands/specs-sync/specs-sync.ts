@@ -78,11 +78,16 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 			? `${input.context.org}/${input.loaded.resolved.name}`
 			: undefined);
 
+	// The default branch the id links to: the one the config declares, else `HEAD`, which GitHub resolves to the default branch.
+	const branch = input.loaded.resolved.repo?.defaultBranch ?? "HEAD";
+	const refreshOrigin = input.refresh || input.refreshOrigin;
+	const refreshTitles = input.refresh || input.refreshTitles;
+
 	let documents: SpecDocument[];
 	let syncOne: (doc: SpecDocument) => Promise<SpecSyncOutcome>;
 	if (input.withdraw) {
-		if (input.refreshOrigin || input.refreshTitles) {
-			return refuse("`--withdraw` cannot be combined with `--refresh-origin` or `--refresh-titles`");
+		if (refreshOrigin || refreshTitles) {
+			return refuse("`--withdraw` cannot be combined with `--refresh`, `--refresh-origin` or `--refresh-titles`");
 		}
 		if (!input.files) return refuse("`--withdraw` needs `--files`: the paths of the pull request's specs and ADRs");
 		// The files are not in the working tree (it is the base branch), so the documents are the paths asked for.
@@ -124,8 +129,11 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				channel: forum.channel,
 				dryRun,
 				quiet: !input.notify,
-				...(input.refreshOrigin ? { refreshOrigin: true } : {}),
-				...(input.refreshTitles ? { refreshTitles: true } : {}),
+				...(refreshOrigin ? { refreshOrigin: true } : {}),
+				...(refreshTitles ? { refreshTitles: true } : {}),
+				...(input.refresh ? { refreshLinks: true } : {}),
+				// The id links to the file on the default branch, which a pull request still open is not on yet: its `PR:` line is the link.
+				...(repo && input.pr === undefined ? { link: { repo, branch } } : {}),
 				...(ids.has(doc.path) ? { assignedId: ids.get(doc.path)! } : {}),
 				...(repo && prNumber(doc.path)
 					? {
@@ -144,6 +152,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	let failed = 0;
 	let rewritten = 0;
 	let renamed = 0;
+	let linked = 0;
 	let rateLimited: SpecsSyncReport["rateLimited"];
 	print(`\n${style.header(`ADRs and specs → #${forum.channel}`)}`);
 	for (const doc of documents) {
@@ -164,6 +173,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		files.push(outcome);
 		if (outcome.prLineRewritten) rewritten++;
 		if (outcome.titleRenamed) renamed++;
+		if (outcome.idLineRewritten) linked++;
 		if (outcome.problem) {
 			print(`  ${style.fail(`${outcome.path}: ${outcome.problem}`)}`);
 			failed++;
@@ -187,11 +197,14 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		skipped += rateLimited.left;
 	}
 
-	if (input.refreshOrigin) {
+	if (refreshOrigin) {
 		print(style.header(`${rewritten} PR line(s) ${dryRun ? "would be rewritten" : "rewritten"}`));
 	}
-	if (input.refreshTitles) {
+	if (refreshTitles) {
 		print(style.header(`${renamed} title(s) ${dryRun ? "would be renamed" : "renamed"}`));
+	}
+	if (input.refresh) {
+		print(style.header(`${linked} id line(s) ${dryRun ? "would be rewritten" : "rewritten"}`));
 	}
 	const status = failed > 0 ? "fail" : dryRun ? "dry-run" : "ok";
 	print("");
@@ -203,8 +216,9 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	return {
 		status,
 		files,
-		...(input.refreshOrigin ? { rewritten } : {}),
-		...(input.refreshTitles ? { renamed } : {}),
+		...(refreshOrigin ? { rewritten } : {}),
+		...(refreshTitles ? { renamed } : {}),
+		...(input.refresh ? { linked } : {}),
 		...(rateLimited ? { rateLimited } : {}),
 	};
 }

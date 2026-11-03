@@ -52,6 +52,12 @@ export interface RunSpecsSyncInput {
 	 */
 	refreshTitles?: boolean;
 	/**
+	 * The three repairs in one pass: `refreshOrigin`, `refreshTitles` and the id line, which becomes a link to the file on
+	 * the default branch (plain text while `pr` names a pull request that is still open). Each only edits its own part of a
+	 * post. A rate limit stops it cleanly, and the next run continues.
+	 */
+	refresh?: boolean;
+	/**
 	 * Withdraw the posts of `files` instead of syncing them: tag each `withdrawn` and close it, for a pull request that was
 	 * closed unmerged. The files need not exist in the working tree, which is the base branch's, and a path that does exist
 	 * there keeps its post. Needs `files`.
@@ -84,6 +90,8 @@ export interface SpecSyncOutcome {
 	prLineRewritten?: boolean;
 	/** Set when the post was (on a dry run, would be) renamed by `refreshTitles`. */
 	titleRenamed?: boolean;
+	/** Set when the post's id line was (on a dry run, would be) rewritten by `refresh`. */
+	idLineRewritten?: boolean;
 	/** Why the document could not be synced; absent when it could. */
 	problem?: string;
 	/** The document's text after the sync; the same as before when the file needs no change. */
@@ -98,6 +106,8 @@ export interface SpecsSyncReport {
 	rewritten?: number;
 	/** With `refreshTitles`: how many posts were (on a dry run, would be) renamed. */
 	renamed?: number;
+	/** With `refresh`: how many posts had (or, on a dry run, would have) their id line rewritten. */
+	linked?: number;
 	/** Why the run did not start. */
 	message?: string;
 	/** Set when the provider's rate limit stopped the run early: how many documents were left, and how many seconds it asked to be left alone for (`0` when it did not say). */
@@ -125,6 +135,17 @@ export interface SyncDocumentDeps {
 	refreshOrigin?: boolean;
 	/** Rename the post when its title differs from the one the current rule writes. */
 	refreshTitles?: boolean;
+	/**
+	 * Rewrite the post's id line when it differs from the one `repo` and `branch` give. A file that moved is given its new
+	 * address without it.
+	 */
+	refreshLinks?: boolean;
+	/**
+	 * The repository (`owner/name`) and default branch the document's id links to, when the document is on that branch.
+	 * Absent while a pull request is open, or when the repository is not known: the id is then plain text, and a file that
+	 * moved keeps whatever id line its post has.
+	 */
+	link?: { repo: string; branch: string };
 	/** The id `assignSpecIds` gave the document, when it had none. */
 	assignedId?: string;
 }

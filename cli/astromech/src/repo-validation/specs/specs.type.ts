@@ -100,4 +100,13 @@ export interface DiscussionBodyInput {
 		/** The pull request's address. */
 		url: string;
 	};
+	/** Where the document is on the default branch, when it is there: the id then links to it. Left out, the id is plain text. */
+	file?: {
+		/** The repository, `owner/name`. */
+		repo: string;
+		/** The default branch. */
+		branch: string;
+		/** The document's repo-relative path. */
+		path: string;
+	};
 }
