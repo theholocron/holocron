@@ -12,6 +12,7 @@
  * refused, because it would leave plaintext tokens on disk without any of those protections.
  */
 
+import { closeSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { errorMessage } from "@theholocron/misc-utils";
@@ -61,6 +62,8 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		print(`wrote ${path} (readable only by you)`);
 		print("import it in the 1Password app: Developer, View Environments, the Environment, Import .env file");
 		if (input.keep || !input.interactive) {
+			// The file stays, so the descriptor held for its cleanup is no longer needed.
+			closeSync(identity.fd);
 			print(`it holds your tokens in plain text: delete it when you are done: ${path}`);
 			return true;
 		}

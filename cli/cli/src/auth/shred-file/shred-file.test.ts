@@ -1,9 +1,10 @@
 import {
-	chmodSync,
 	existsSync,
+	fstatSync,
+	linkSync,
 	mkdtempSync,
+	openSync,
 	readFileSync,
-	statSync,
 	symlinkSync,
 	unlinkSync,
 	writeFileSync,
@@ -16,9 +17,12 @@ import { describe, expect, it } from "vitest";
 import { shredFile } from "./shred-file.js";
 
 const dir = () => mkdtempSync(join(tmpdir(), "holocron-shred-"));
-const identityOf = (path: string) => {
-	const { dev, ino } = statSync(path);
-	return { dev, ino };
+
+/** The file at `path` as the writer hands it over: its device and inode, and a descriptor held open. */
+const held = (path: string, flags = "r+") => {
+	const fd = openSync(path, flags);
+	const { dev, ino } = fstatSync(fd);
+	return { dev, ino, fd };
 };
 
 describe("shredFile", () => {
@@ -26,7 +30,7 @@ describe("shredFile", () => {
 		const path = join(dir(), ".credentials");
 		writeFileSync(path, "SECRET=value\n");
 		let seen: string | undefined;
-		const outcome = shredFile(path, identityOf(path), (p) => {
+		const outcome = shredFile(path, held(path), (p) => {
 			seen = readFileSync(p).toString("latin1");
 			unlinkSync(p);
 		});
@@ -35,22 +39,36 @@ describe("shredFile", () => {
 		expect(existsSync(path)).toBe(false);
 	});
 
-	it("is missing, not an error, when the file is already gone", () => {
+	it("closes the descriptor it was handed", () => {
 		const path = join(dir(), ".credentials");
 		writeFileSync(path, "x");
-		const identity = identityOf(path);
+		const identity = held(path);
+		shredFile(path, identity);
+		expect(() => fstatSync(identity.fd)).toThrow(/EBADF/);
+	});
+
+	it("is missing, not an error, when the path is already gone", () => {
+		const path = join(dir(), ".credentials");
+		writeFileSync(path, "x");
+		const identity = held(path);
 		unlinkSync(path);
 		expect(shredFile(path, identity)).toBe("missing");
 	});
 
-	it("leaves a different file at the same path alone", () => {
-		const path = join(dir(), ".credentials");
-		writeFileSync(path, "first");
-		const first = identityOf(path);
+	it("leaves a different file at the same path alone, even one created straight after, and still zeroes the original", () => {
+		const d = dir();
+		const path = join(d, ".credentials");
+		writeFileSync(path, "SECRET=first");
+		// A second name keeps the original's blocks reachable, so the test can see what was left in them.
+		const survivor = join(d, "survivor");
+		linkSync(path, survivor);
+		const first = held(path);
 		unlinkSync(path);
+		// Created immediately: without the held descriptor a filesystem may hand this file the first one's inode.
 		writeFileSync(path, "someone else's");
 		expect(shredFile(path, first)).toBe("replaced");
 		expect(readFileSync(path, "utf8")).toBe("someone else's");
+		expect(readFileSync(survivor).toString("latin1")).toBe("\0".repeat("SECRET=first".length));
 	});
 
 	it("does not follow a symlink put in its place, so the target is never zeroed", () => {
@@ -58,7 +76,7 @@ describe("shredFile", () => {
 		const path = join(d, ".credentials");
 		const victim = join(d, "victim");
 		writeFileSync(path, "mine");
-		const mine = identityOf(path);
+		const mine = held(path);
 		writeFileSync(victim, "important");
 		unlinkSync(path);
 		symlinkSync(victim, path);
@@ -69,8 +87,8 @@ describe("shredFile", () => {
 	it("still removes a file it cannot overwrite", () => {
 		const path = join(dir(), ".credentials");
 		writeFileSync(path, "SECRET");
-		chmodSync(path, 0o400);
-		expect(shredFile(path, identityOf(path))).toBe("deleted");
+		// A read-only descriptor: the overwrite fails, the removal does not depend on it.
+		expect(shredFile(path, held(path, "r"))).toBe("deleted");
 		expect(existsSync(path)).toBe(false);
 	});
 
@@ -78,7 +96,7 @@ describe("shredFile", () => {
 		const path = join(dir(), ".credentials");
 		writeFileSync(path, "SECRET");
 		expect(() =>
-			shredFile(path, identityOf(path), () => {
+			shredFile(path, held(path), () => {
 				throw new Error("EPERM");
 			})
 		).toThrow("EPERM");
@@ -86,8 +104,15 @@ describe("shredFile", () => {
 	});
 
 	it("throws on a path it cannot even inspect", () => {
-		const path = join(dir(), "file", "child");
-		writeFileSync(join(path, ".."), "a file where a directory would be");
-		expect(() => shredFile(path, { dev: 0, ino: 0 })).toThrow();
+		const d = dir();
+		const file = join(d, "file");
+		writeFileSync(file, "a file where a directory would be");
+		expect(() => shredFile(join(file, "child"), held(file))).toThrow(/ENOTDIR/);
+	});
+
+	it("is not an error when the descriptor is already closed", () => {
+		const path = join(dir(), ".credentials");
+		writeFileSync(path, "x");
+		expect(shredFile(path, { ...held(path), fd: 9999 })).toBe("deleted");
 	});
 });

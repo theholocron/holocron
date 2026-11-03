@@ -293,11 +293,12 @@ describe("auth export — the private file", () => {
 
 	it("on a terminal writes a private .credentials next to the config, prints no value, then deletes it", async () => {
 		const { here, file } = fresh();
-		const remove = vi.fn((p: string, identity: { dev: number; ino: number }) => {
+		const remove = vi.fn((p: string, identity: { dev: number; ino: number; fd: number }) => {
 			expect(readFileSync(p, "utf8")).toBe(CONTENT);
 			expect(statSync(p).mode & 0o777).toBe(0o600);
 			// It is handed the identity of the file it wrote, so it can tell that file from a replacement.
-			expect(identity).toEqual({ dev: statSync(p).dev, ino: statSync(p).ino });
+			expect(identity).toMatchObject({ dev: statSync(p).dev, ino: statSync(p).ino });
+			expect(typeof identity.fd).toBe("number");
 			return gone();
 		});
 		const { result, out, err } = run({ ...base, loaded: here, shred: remove });

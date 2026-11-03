@@ -1,4 +1,15 @@
-import { existsSync, linkSync, mkdtempSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+	closeSync,
+	existsSync,
+	fstatSync,
+	linkSync,
+	mkdtempSync,
+	readFileSync,
+	statSync,
+	symlinkSync,
+	writeFileSync,
+	writeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -14,7 +25,11 @@ describe("writeCredentialsFile", () => {
 		const identity = writeCredentialsFile(path, "A=1\n");
 		expect(readFileSync(path, "utf8")).toBe("A=1\n");
 		expect(statSync(path).mode & 0o777).toBe(0o600);
-		expect(identity).toEqual({ dev: statSync(path).dev, ino: statSync(path).ino });
+		expect(identity).toMatchObject({ dev: statSync(path).dev, ino: statSync(path).ino });
+		// The descriptor is still open, and is the file that was written, so cleanup can reach it through the path's replacement.
+		expect(fstatSync(identity.fd).ino).toBe(identity.ino);
+		writeSync(identity.fd, "B", 0);
+		closeSync(identity.fd);
 	});
 
 	it("will not replace a file that is already there, and leaves it as it was", () => {
