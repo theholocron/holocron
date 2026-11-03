@@ -124,7 +124,7 @@ lcov.info
 .env
 
 # The short-lived file `holocron auth export` writes, to import into a credentials environment
-.credentials
+.credentials*
 
 # managed by holocron setup — prompts
 /.agents/prompts/

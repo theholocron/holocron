@@ -6,5 +6,6 @@ export * from "./dotenv-file/index.js";
 export * from "./dotenv-line/index.js";
 export * from "./git-ignored/index.js";
 export * from "./keyring/index.js";
+export * from "./private-file/index.js";
 export * from "./shred-file/index.js";
 export * from "./token-args/index.js";
