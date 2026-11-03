@@ -1,3 +1,9 @@
+## [5.0.0-alpha.318](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.317...v5.0.0-alpha.318) (2026-11-03)
+
+### Features
+
+* **comlink:** 📡 name the Sentry project from the webhook and document relaying more ([#1665](https://github.com/theholocron/holocron/issues/1665)) ([#1667](https://github.com/theholocron/holocron/issues/1667)) ([8035a44](https://github.com/theholocron/holocron/commit/8035a44168d5333fd328fd5acf1522c91b8df4a1)), closes [#1580](https://github.com/theholocron/holocron/issues/1580)
+
 ## [5.0.0-alpha.317](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.316...v5.0.0-alpha.317) (2026-11-03)
 
 ### Refactoring
