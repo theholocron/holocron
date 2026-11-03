@@ -67,4 +67,13 @@ describe("reconcileSpecStatus", () => {
 			reason: "the file has no status to sync",
 		});
 	});
+
+	it("never reads a withdrawn tag as a retag: the file's status goes back on the tag (#1653)", () => {
+		for (const synced of ["proposed", "accepted", undefined]) {
+			expect(reconcileSpecStatus({ file: "proposed", tag: "withdrawn", synced })).toEqual({
+				action: "set-tag",
+				status: "proposed",
+			});
+		}
+	});
 });

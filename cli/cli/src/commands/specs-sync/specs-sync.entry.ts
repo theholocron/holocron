@@ -38,6 +38,13 @@ export const specsSyncEntry: CommandEntry = {
 				"Rewrite the PR line of existing posts to what the current rule names (a repair; no other change)?",
 		},
 		{
+			key: "withdraw",
+			flag: "--withdraw",
+			type: "confirm",
+			default: false,
+			message: "Withdraw the posts of these files (a pull request closed without merging)?",
+		},
+		{
 			key: "notify",
 			flag: "--notify",
 			type: "confirm",

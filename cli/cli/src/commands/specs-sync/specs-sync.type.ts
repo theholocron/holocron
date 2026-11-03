@@ -45,6 +45,12 @@ export interface RunSpecsSyncInput {
 	 * A repair for posts made under an older rule; off by default, so a normal run never edits a post's first message.
 	 */
 	refreshOrigin?: boolean;
+	/**
+	 * Withdraw the posts of `files` instead of syncing them: tag each `withdrawn` and close it, for a pull request that was
+	 * closed unmerged. The files need not exist in the working tree, which is the base branch's, and a path that does exist
+	 * there keeps its post. Needs `files`.
+	 */
+	withdraw?: boolean;
 	/** Let a new post notify people. Off by default, so a backfill of many posts pings no one. */
 	notify?: boolean;
 	loader?: PluginLoader;
@@ -109,4 +115,16 @@ export interface SyncDocumentDeps {
 	refreshOrigin?: boolean;
 	/** The id `assignSpecIds` gave the document, when it had none. */
 	assignedId?: string;
+}
+
+/** What `withdrawDocument` needs besides the document. */
+export interface WithdrawDocumentDeps {
+	/** The provider; it must implement the discussion methods. */
+	notifications: Notifications;
+	/** The forum channel's name. */
+	channel: string;
+	/** Preview: read, but change nothing. */
+	dryRun: boolean;
+	/** Whether the working tree (the base branch) already has the file, so its post is the merged file's. */
+	onBase: boolean;
 }

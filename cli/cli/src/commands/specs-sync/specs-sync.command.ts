@@ -29,6 +29,7 @@ export const specsSyncCommand: CommandModule<GlobalArgs, SpecsSyncArgs> = {
 			...(argv.files ? { files: argv.files as string[] } : {}),
 			...(argv.pr !== undefined ? { pr: argv.pr as number } : {}),
 			refreshOrigin: argv.refreshOrigin as boolean,
+			withdraw: argv.withdraw as boolean,
 			notify: argv.notify as boolean,
 		});
 		if (report.status === "fail") process.exitCode = 1;

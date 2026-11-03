@@ -5,3 +5,4 @@ export * from "./real-specs-sync-io.js";
 export * from "./specs-sync.js";
 export type * from "./specs-sync.type.js";
 export * from "./sync-document.js";
+export * from "./withdraw-document.js";

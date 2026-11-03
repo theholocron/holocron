@@ -27,6 +27,12 @@ export const specsSyncArgs = (y: Argv<GlobalArgs>) =>
 			describe:
 				"Rewrite the PR line of each existing post to the one the current rule names, and nothing else in it (a repair; combine with --dry-run to preview)",
 		})
+		.option("withdraw", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Tag the posts of --files withdrawn and close them, for a pull request closed without merging (run on the base branch)",
+		})
 		.option("notify", {
 			type: "boolean",
 			default: false,

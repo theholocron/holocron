@@ -11,8 +11,12 @@
 # by the path it records and links it through its sync pull request.
 #
 # - Only for a pull request from this repository: a post carries text the author wrote, and a fork gets no secrets.
-# - Only when the pull request changes a spec or an ADR; a closed pull request does nothing (a post for a pull request
-#   that never merges stays, tagged with its last status).
+# - Only when the pull request changes a spec or an ADR.
+# - When the pull request is CLOSED WITHOUT MERGING, its posts are tagged `withdrawn` and closed (#1653,
+#   `specs sync --withdraw`); reopening it, or the same file coming back in a new pull request, puts the file's own status
+#   back on the post and reopens it. A merged pull request does nothing here. Nothing from a closed pull request's head
+#   runs with the bot token: that event checks out and builds the BASE branch, and takes only the list of paths from the
+#   pull request through the API.
 # - It shares the `spec-discussions` concurrency group with `knowledge.specsToIdeas.yml`, so a post is never made twice
 #   by two runs at once; the post is also found by its path before it is made, so a rerun is safe.
 #
@@ -21,7 +25,7 @@ name: Spec discussions (pull request)
 
 on: # yamllint disable-line rule:truthy
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, closed]
     paths:
       - ".notes/*.spec.md"
       - "docs/wiki/specifications/*.spec.md"
@@ -29,6 +33,7 @@ on: # yamllint disable-line rule:truthy
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: spec-discussions
@@ -37,13 +42,14 @@ concurrency:
 jobs:
   sync:
     name: Sync
-    if: github.repository == 'theholocron/holocron' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.repository == 'theholocron/holocron' && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action != 'closed' || github.event.pull_request.merged == false)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       HOLOCRON_DISCORD_BOT_TOKEN: ${{ secrets.HOLOCRON_DISCORD_BOT_TOKEN }}
       BASE_REF: ${{ github.event.pull_request.base.sha }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      WITHDRAW: ${{ github.event.action == 'closed' }}
     steps:
       - name: Warn that there is no Discord token
         if: env.HOLOCRON_DISCORD_BOT_TOKEN == ''
@@ -51,9 +57,12 @@ jobs:
           echo "::warning::HOLOCRON_DISCORD_BOT_TOKEN is not set, so no spec discussion was made for this pull request. Add it as an Actions secret."
 
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        name: Checkout the pull request
+        name: Checkout the pull request (the base branch, when it was closed)
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != ''
         with:
+          # A closed pull request is never checked out: its head is not needed beyond the list of paths, and the bot token
+          # must not run its code. The base branch's tip is trusted code.
+          ref: ${{ github.event.action == 'closed' && github.event.pull_request.base.ref || '' }}
           # The whole history: a spec is numbered by when its file was first committed, and the base is needed to see
           # which files this pull request changes.
           fetch-depth: 0
@@ -61,9 +70,20 @@ jobs:
       - name: List the specs and ADRs this pull request changes
         id: files
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
           # Added or modified, not deleted: a file that is gone has nothing to post.
-          files=$(git diff --name-only --diff-filter=AM "$BASE_REF"...HEAD -- '.notes/*.spec.md' 'docs/wiki/specifications/*.spec.md' 'docs/wiki/decisions/*.md' | tr '\n' ' ')
+          if [ "$WITHDRAW" = "true" ]; then
+            # The head is not checked out, so the pull request's paths come from the API (names only, and only those of a
+            # plain shape, since the list becomes arguments).
+            files=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files" --jq '.[] | select(.status != "removed") | .filename' \
+              | grep -E '^(\.notes/[A-Za-z0-9._-]+\.spec\.md|docs/wiki/specifications/[A-Za-z0-9._-]+\.spec\.md|docs/wiki/decisions/[A-Za-z0-9._-]+\.md)$' \
+              | tr '\n' ' ' || true)
+          else
+            files=$(git diff --name-only --diff-filter=AM "$BASE_REF"...HEAD -- '.notes/*.spec.md' 'docs/wiki/specifications/*.spec.md' 'docs/wiki/decisions/*.md' | tr '\n' ' ')
+          fi
           echo "list=$files" >> "$GITHUB_OUTPUT"
           if [ -z "$files" ]; then echo "No spec or ADR is added or changed here."; fi
 
@@ -75,11 +95,15 @@ jobs:
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && steps.files.outputs.list != ''
         run: pnpm turbo run delivery.build --filter=@theholocron/cli...
 
-      - name: Sync the discussions for these files
+      - name: Sync the discussions for these files (withdraw them, when it was closed)
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && steps.files.outputs.list != ''
         env:
           FILES: ${{ steps.files.outputs.list }}
         run: |
           # The list is file names from this repository's own pull request; word splitting is what turns it into arguments.
           # shellcheck disable=SC2086
-          node cli/cli/dist/cli.mjs specs sync --pr "$PR_NUMBER" --files $FILES
+          if [ "$WITHDRAW" = "true" ]; then
+            node cli/cli/dist/cli.mjs specs sync --withdraw --files $FILES
+          else
+            node cli/cli/dist/cli.mjs specs sync --pr "$PR_NUMBER" --files $FILES
+          fi
