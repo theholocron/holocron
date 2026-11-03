@@ -94,6 +94,16 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   implementations pushed to `theholocron/.github`
   (`astromech.reusableTemplates()`, consumed by `holocron sync github`; their
   source files are in `ci/`, the `@theholocron/ci` package).
+  Root `package.json` scripts and `turbo.json` come from one function, `scriptsFor()` (spec `ci-flat-task-vocabulary`,
+  #1616): in a pnpm workspace each script calls turbo directly (`"test": "turbo run test"`, because the `holocron` bin is
+  built from this repo and does not exist on a fresh clone), a repo-scoped leaf holds its tool's own command, a suite
+  (`test`, `lint`, `scan`) is a script-less aggregator task in `turbo.json`, and a repo-scoped suite leaf is a `//#<id>`
+  root task; a single package uses `holocron run <words> --`. A package's leaf script holds the real tool command and never
+  calls turbo or `holocron run`, and no package has a script named like a suite or an npm lifecycle word.
+  `holocron repo sync` writes the scripts (`syncScripts` is on here) and `holocron probe generated check` fails on a root
+  script that differs and on a package script that breaks those rules. Unit tests always run with coverage (the `test:unit`
+  command carries `--coverage`; there is no flag). Until a repo rewrites `tasks:` to flat ids, its turbo keys and package
+  scripts keep the old dotted names the entries are spelled with (`taskKey()`).
   The loop closes both ways: the reusable `typecheck` / `test` / `audit`
   workflows run their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a

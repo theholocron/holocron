@@ -850,6 +850,50 @@ Where the spec left room, phase A settled these, so later phases start from them
 - **From a package directory** a suite runs the package-scoped leaves directly (there is no `turbo.json` in that
   directory to delegate to) and reports the repo-wide ones as skipped.
 
+### Phase B as built (#1616)
+
+What phase B settled where the spec left room:
+
+- **The spelling of `turbo.json` keys and package scripts follows the `tasks:` entry, not the registry.** This reverses
+  phase A's "a manifest spelled with either vocabulary generates the same files" for these two surfaces only. Flipping the
+  keys for every manifest would have broken this repo (and the other seven) the moment phase B merged: the 73 packages still
+  hold `verification.unitTests`, so `turbo run test:unit` would find no task and exit 0. `taskKey(entry, id)` gives the
+  script spelling for a flat entry and the old name for an entry written with one, so rewriting a repo's `tasks:` (phase C
+  here, phase K elsewhere) is what moves its turbo keys, package scripts and root scripts together. Workflow files, caller
+  job names and check contexts are untouched (still `workflowKey()`).
+- **`scriptsFor(config, registry, { monorepo })`** returns the task scripts only (`holocron` and `prepare` stay with
+  `packageScripts()`). "Monorepo" is a `pnpm-workspace.yaml` next to the config plus a `turbo.json` that would be generated.
+  Root scripts in one are named by the flat id, whatever the entry's spelling (`test:unit` calls `turbo run
+verification.unitTests` while the entry is old). A single package keeps an old-named entry's `holocron run <name> --`
+  wrapper as it was and gets no suite scripts until its list is flat; with flat entries it gets `holocron run test unit --`
+  and the suite script `holocron run test --`. The trailing `--` stays: pnpm appends arguments as typed and yargs is strict.
+- **A leaf with no local command has no script in a workspace**, and neither does a holocron subcommand (`sync-repo`,
+  `validate`, `publish-wiki`, `check-tokens`) or a set of sub-jobs: a root script that called `holocron run` would loop
+  through the runner's script step, and those tasks need the CLI anyway.
+- **`//#<id>` keys are `cache: false`** (the spec's example is `{}`): a root task is hashed from the root package's files
+  only, so a cached `//#lint:markdown` would pass on a stale hash after a package's markdown changed. They exist only for a
+  repo-scoped leaf that belongs to a suite; `format` has none.
+- **The runner prefers the registry to the generated root script** of a repo-scoped leaf, so `holocron run ci` on a machine
+  without `yamllint` still reports "not on PATH (enforced in CI)" instead of failing a `pnpm run`. `pnpm lint` itself, being
+  the generated script, needs the tools of its leaves installed (editorconfig-checker, markdownlint-cli2, yamllint, knip).
+- **Coverage.** `test:unit` is `vitest run --coverage` in the registry and no flag exists. Package scripts that are still
+  `vitest run` (all 73 until phase C) get `--coverage` from `legacyForward` when the runner delegates to turbo under the old
+  key; phase C removes the field when it puts the flag in the scripts. A root `pnpm test` therefore runs without coverage
+  until then.
+- **The check** (`checkScripts()` in the `generated` probe, built on `checkPackageScripts()` and `mergeScripts()` in
+  astromech): fails a differing root script, a reserved name (other than the root's `prepare`), a package script named like a
+  suite, a package leaf that calls `turbo run` or `holocron run`, and a `test:unt`-shaped name under a suite
+  (`test:watch` and `lint:fix` are variants). A dotted old name is one `info` line for the whole repo, not a failure, until
+  phase L. The spec's "neither a known id nor a dev script" rule is not enforced as written, since it would fail every
+  package's own scripts.
+- **`mergeScripts`** keeps #747's guard: a root script that holds a real command for a task turbo fans out is left alone.
+  The generated bodies (`turbo run …`, `… run … --`) are recognized by shape (`isGeneratedScript`).
+- **README table.** Columns are `Script | Command | Same as`; suites and leaves in registry order, then dev scripts, and `pnpm
+run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when the README names `pnpm <task>` for a task or
+  suite script the package lacks (`pnpm deploy` alone is pnpm's own command and is not read as the script).
+- **This repo.** `syncScripts` is on with `holocronScript: "node cli/cli/dist/cli.mjs"`, which also changes the generated
+  `.husky/commit-msg` and `.husky/pre-push` to call it instead of `pnpm exec holocron`.
+
 ## Open questions
 
 Resolved and folded into the decisions: the colon spelling, `format` as a verb, `release`, the aggregate check and its

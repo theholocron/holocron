@@ -50,6 +50,36 @@
       "outputs": ["dist/**"],
       "dependsOn": ["^delivery.build"],
       "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
+    },
+    "//#lint:editorconfig": {
+      "cache": false
+    },
+    "//#lint:markdown": {
+      "cache": false
+    },
+    "//#lint:data": {
+      "cache": false
+    },
+    "//#lint:unused": {
+      "cache": false
+    },
+    "//#scan:secrets": {
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["verification.unitTests"]
+    },
+    "lint": {
+      "dependsOn": [
+        "sourceQuality.staticAnalysis",
+        "//#lint:editorconfig",
+        "//#lint:markdown",
+        "//#lint:data",
+        "//#lint:unused"
+      ]
+    },
+    "scan": {
+      "dependsOn": ["//#scan:secrets"]
     }
   }
 }

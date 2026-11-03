@@ -350,8 +350,10 @@ export default defineConfig({
 });
 ```
 
-Writes `"holocron": "<holocronScript ?? 'holocron'>"` plus one
-`"<task>": "holocron run <task>"` per runnable task. `syncScripts: false`
+Writes `"holocron": "<holocronScript ?? 'holocron'>"` plus one script per runnable task, named by the task id
+(`test:unit`) and one per suite (`test`, `lint`, `scan`): `turbo run <task>` in a pnpm workspace with a `turbo.json`
+(or the tool's own command for a task that runs once at the root), `holocron run <task> --` in a single package.
+`holocron probe generated check` fails on a root script that differs from what is generated. `syncScripts: false`
 opts out entirely.
 
 ### Splitting the task manifest — `astromech.config.ts`
@@ -401,8 +403,7 @@ workflows call the `holocron` composite action
 (`theholocron/.github/.github/actions/holocron@main`), whose body is
 `holocron run <task> [job]`. So `holocron run test` locally and the `Test` CI
 job execute the same thing — at a turbo root both are
-`turbo run <task> -- --coverage` (the registry's org-default flags flow through
-turbo's `--`).
+`turbo run <task>`. `test:unit` always runs with coverage (`vitest run --coverage`); there is no `--coverage` flag.
 
 ### `holocron deploy on-release`
 

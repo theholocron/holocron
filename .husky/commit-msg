@@ -4,4 +4,4 @@
 # Source:  theholocron/holocron · cli/astromech/src/templates/configs/commit-msg/create-config.ts
 # Tool:    holocron repo setup
 # Changes: edit source in theholocron/holocron
-pnpm exec holocron run lint commit-msg "$1"
+node cli/cli/dist/cli.mjs run lint commit-msg "$1"

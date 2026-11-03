@@ -18,20 +18,20 @@ holocron repo sync                               # run all steps
 holocron repo sync labels properties             # run only labels and properties
 ```
 
-| Step          | What it syncs                                                                               | Requires provider token      |
-| ------------- | ------------------------------------------------------------------------------------------- | ---------------------------- |
-| `labels`      | GitHub labels — upserts canonical set, deletes stale ones                                   | Yes (`HOLOCRON_ADMIN_TOKEN`) |
-| `properties`  | Org-level custom properties (`repo.properties`)                                             | Yes                          |
-| `teams`       | Team repository access (`repo.teams`)                                                       | Yes                          |
-| `topics`      | GitHub topics (`repo.topics`)                                                               | Yes                          |
-| `keywords`    | `package.json#keywords` — set from `repo.topics`                                            | No                           |
-| `description` | `package.json#description` and GitHub repo description                                      | No (local) / Yes (GitHub)    |
-| `homepage`    | `package.json#homepage` and GitHub repo website field                                       | No (local) / Yes (GitHub)    |
-| `readme`      | Regenerates the README Installation/Usage block                                             | No                           |
-| `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`                                         | No                           |
-| `scripts`     | `package.json#scripts` — the `holocron` entry + `holocron run <task>` wrappers from `tasks` | No                           |
-| `turbo`       | `turbo.json` — generated from the fan-out-eligible tasks in `tasks`                         | No                           |
-| `wiki`        | Publishes engineering docs to the wiki                                                      | No                           |
+| Step          | What it syncs                                                                                                                                                                            | Requires provider token      |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `labels`      | GitHub labels — upserts canonical set, deletes stale ones                                                                                                                                | Yes (`HOLOCRON_ADMIN_TOKEN`) |
+| `properties`  | Org-level custom properties (`repo.properties`)                                                                                                                                          | Yes                          |
+| `teams`       | Team repository access (`repo.teams`)                                                                                                                                                    | Yes                          |
+| `topics`      | GitHub topics (`repo.topics`)                                                                                                                                                            | Yes                          |
+| `keywords`    | `package.json#keywords` — set from `repo.topics`                                                                                                                                         | No                           |
+| `description` | `package.json#description` and GitHub repo description                                                                                                                                   | No (local) / Yes (GitHub)    |
+| `homepage`    | `package.json#homepage` and GitHub repo website field                                                                                                                                    | No (local) / Yes (GitHub)    |
+| `readme`      | Regenerates the README Installation/Usage block and the scripts table; fails when the README tells the reader to run a task script the package lacks (`pnpm test` with no `test` script) | No                           |
+| `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`                                                                                                                                      | No                           |
+| `scripts`     | `package.json#scripts` — the `holocron` entry + one script per runnable task in `tasks`                                                                                                  | No                           |
+| `turbo`       | `turbo.json` — generated from the fan-out-eligible tasks in `tasks`                                                                                                                      | No                           |
+| `wiki`        | Publishes engineering docs to the wiki                                                                                                                                                   | No                           |
 
 Local steps (everything except `labels`, `properties`, `teams`, `topics`) write to the local filesystem. `description` and `homepage` also push to GitHub when a `source` plugin is configured; running without a token skips the GitHub push but still updates local files.
 
@@ -40,13 +40,18 @@ Local steps (everything except `labels`, `properties`, `teams`, `topics`) write 
 Merges into `package.json#scripts` — only the managed keys are touched, every other script is left alone:
 
 - `holocron` → the value of `holocronScript` (default `"holocron"`, the installed bin)
-- one `"<task>": "holocron run <task>"` per runnable task in `tasks`
+- one script per runnable task in `tasks`, named by the task id in its script spelling (`test:unit`, `deploy:preview`) and one per suite (`test`, `lint`, `scan`):
+  - in a pnpm workspace with a `turbo.json`, `turbo run <task>` for a task that runs in each package and for each suite, and the tool's own command (`prettier --write .`, `knip`) for a task that runs once at the root. The `holocron` bin is built from this repo, so on a fresh clone it does not exist yet while turbo does;
+  - in a single package, `holocron run <task> --` (`holocron run test unit --` for a suite member). The trailing `--` is there because pnpm appends arguments as typed.
+- a task with no local command (`scan:code`, `release`) has no script in a workspace.
 
-Set `syncScripts: false` in `holocron.config.ts` to disable the step entirely (the Holocron repo itself does this — its root scripts must stay bootstrap-safe).
+A root script that already holds a real command for a task turbo runs in each package (a root that is itself a package) is left alone, because turbo would call the root script, which would call turbo again. Any other hand edit of a script this step owns is overwritten, and `holocron probe generated check` fails until it is. That check also fails a package script named like an npm lifecycle word (`publish`, `install`) or a suite (`test`, `lint`), and a leaf script in a package that calls `turbo run` or `holocron run`.
+
+Set `syncScripts: false` in `holocron.config.ts` to disable the step entirely.
 
 ### `turbo`
 
-Generates `turbo.json` — full ownership, never hand-edited. Only tasks with real per-workspace fan-out (a build/compile/test step — `delivery.build`, `verification.typeSafety`, `verification.unitTests`, `sourceQuality.staticAnalysis` today) get an entry; whole-repo, single-run tools (prettier, gitleaks, commitlint, yamllint, …) stay off the file and run once, un-fanned-out, the same way they already do. Skipped with no write when nothing in `tasks` is fan-out-eligible.
+Generates `turbo.json` — full ownership, never hand-edited. In a pnpm workspace it also writes each suite (`test`, `lint`, `scan`) as a task with no script that depends on its leaves, and a `//#<task>` root task (uncached) for each task of a suite that runs once at the root, such as `lint:markdown`. Only tasks with real per-workspace fan-out (a build/compile/test step — `delivery.build`, `verification.typeSafety`, `verification.unitTests`, `sourceQuality.staticAnalysis` today) get an entry; whole-repo, single-run tools (prettier, gitleaks, commitlint, yamllint, …) stay off the file and run once, un-fanned-out, the same way they already do. Skipped with no write when nothing in `tasks` is fan-out-eligible.
 
 A task entry's `turbo.passThroughEnv` appends extra env vars to that task's cache-key hashing, on top of the registry default (a no-op on a task with no fan-out config to add onto):
 
