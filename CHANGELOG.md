@@ -1,3 +1,9 @@
+## [5.0.0-alpha.303](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.302...v5.0.0-alpha.303) (2026-11-03)
+
+### Features
+
+* **doctor:** 🩺 doctor credentials checks the environment holds the tokens the plugins take ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1631](https://github.com/theholocron/holocron/issues/1631)) ([884880b](https://github.com/theholocron/holocron/commit/884880b160edd69cc38f845a0da69322c4d3b05c))
+
 ## [5.0.0-alpha.302](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.301...v5.0.0-alpha.302) (2026-11-02)
 
 ### Features
