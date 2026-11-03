@@ -5,9 +5,10 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import type { Astromech, AstromechOptions } from "./astromech.type.js";
-import { normalizeTaskEntry, type TaskEntry } from "./config/schema/index.js";
+import { normalizeTaskEntry, type TaskEntry, type TasksConfig } from "./config/schema/index.js";
 import {
 	aggregateCaller as resolveAggregateCaller,
 	aggregateChecks,
@@ -21,8 +22,10 @@ import {
 	generateThinCallerContent,
 	KNOWN_WORKFLOWS,
 	normalizeWorkflowWith,
+	planTasks,
 	requiredChecks as resolveRequiredChecks,
 	reusableTemplates as resolveReusableTemplates,
+	scriptsFor,
 	turboConfig as resolveTurboConfig,
 } from "./generators/index.js";
 import { TASKS } from "./registry/index.js";
@@ -69,6 +72,11 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		}
 		return out;
 	};
+
+	/** A pnpm workspace: its root scripts call turbo, and `turbo.json` carries the suite and root tasks. */
+	const hasWorkspaceFile = (): boolean => deps.fileExists(join(options.cwd, "pnpm-workspace.yaml"));
+	const isMonorepo = (config: TasksConfig): boolean =>
+		hasWorkspaceFile() && resolveTurboConfig(config, { monorepo: true }) !== null;
 
 	return {
 		run: (task, opts = {}) =>
@@ -174,15 +182,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			const out: Record<string, string> = {};
 			if (!options.config || options.config.syncScripts === false) return out;
 			out.holocron = options.config.holocronScript ?? "holocron";
-			for (const name of runnableTaskNames()) {
-				// Trailing `--` matters: turbo/pnpm append extra args to a script's
-				// command text directly, without inserting their own `--` — e.g.
-				// `pnpm run <task> --coverage`, not `pnpm run <task> -- --coverage`.
-				// Without it here, that lands as an argument to `holocron run`
-				// itself ("Unknown argument: coverage"), not as passthrough to the
-				// tool. A bare trailing `--` is a no-op when nothing gets appended.
-				out[name] = `holocron run ${name} --`;
-			}
+			Object.assign(out, scriptsFor(options.config, TASKS, { monorepo: isMonorepo(options.config) }));
 			// Enabled hooks need `husky` to run on install to register the hook path.
 			const hooks = options.config.hooks;
 			const hooksOn = hooks === true || (typeof hooks === "object" && hooks.prePush !== false);
@@ -204,11 +204,13 @@ export function createAstromech(options: AstromechOptions): Astromech {
 		codecovConfig: (existing: string | null, codecov?: CodecovConfigOptions) =>
 			resolveCodecovConfig(options.cwd, existing, codecov),
 
-		turboConfig: () => resolveTurboConfig(options.config ?? {}),
+		turboConfig: () => resolveTurboConfig(options.config ?? {}, { monorepo: hasWorkspaceFile() }),
 
 		ensureRootWorkspaceMember: (workspaceYaml: string, rootScripts: Readonly<Record<string, string>>) => {
-			const entries = (options.config?.tasks ?? []).map(normalizeTaskEntry);
-			const taskNames = entries.filter((e) => e.local !== false).map((e) => e.name);
+			// The scripts a task fanned out by turbo can already have at the root: under its key, or its flat name.
+			const taskNames = planTasks(options.config ?? {}, TASKS)
+				.filter((task) => task.kind === "turbo")
+				.flatMap((task) => [task.key, task.script]);
 			return resolveEnsureRootWorkspaceMember(workspaceYaml, rootScripts, taskNames);
 		},
 

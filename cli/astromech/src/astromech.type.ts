@@ -103,11 +103,12 @@ export interface Astromech {
 	 */
 	reusableTemplates(): Map<string, string>;
 	/**
-	 * `package.json` scripts for this repo's manifest — the `"holocron"` entry
-	 * (`config.holocronScript ?? "holocron"`) plus `"<task>": "holocron run
-	 * <task>"` for every `config.tasks` item that is a runnable registry task
-	 * and not `local: false`. Merge into `package.json`; never clobber. Empty
-	 * when there is no config or `syncScripts: false`.
+	 * `package.json` scripts for this repo's manifest, from `scriptsFor()`: the `"holocron"` entry
+	 * (`config.holocronScript ?? "holocron"`), `prepare` when hooks are on, and one script per task the repo can run
+	 * locally. In a pnpm workspace with a generated `turbo.json` those call `turbo run <key>` (a suite is a turbo task
+	 * of its own) or, for a repo-scoped leaf, hold the tool's command; in a single package they are `holocron run
+	 * <words> --`. Merge into `package.json` with `mergeScripts()`; never clobber. Empty when there is no config or
+	 * `syncScripts: false`.
 	 */
 	packageScripts(): Record<string, string>;
 	/**
@@ -142,7 +143,8 @@ export interface Astromech {
 	codecovConfig(existing: string | null, options?: CodecovConfigOptions): string;
 	/**
 	 * The generated `turbo.json` for this repo's manifest, pretty-printed —
-	 * write directly, no merge. `null` when no manifest task has turbo fan-out
+	 * write directly, no merge. In a pnpm workspace it also holds the suite aggregator tasks and a `//#<id>` root task
+	 * per repo-scoped leaf with a local tool. `null` when no manifest task has turbo fan-out
 	 * config (nothing to write). See {@link TurboTaskConfig} in `registry.ts`.
 	 */
 	turboConfig(): string | null;

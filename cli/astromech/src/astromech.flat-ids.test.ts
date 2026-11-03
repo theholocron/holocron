@@ -50,13 +50,15 @@ describe("createAstromech() with the flat task ids", () => {
 		"mark-stale",
 	];
 
-	it("generates the same thin callers, turbo.json and required checks as the old names, so no file changes", () => {
+	it("generates the same thin callers and required checks as the old names, so no workflow or check changes", () => {
 		const old = createAstromech({ cwd: "/repo", config: { tasks: legacy } });
 		const next = createAstromech({ cwd: "/repo", config: { tasks: flat } });
 		const callers = (a: typeof old) => [...a.thinCallers().entries()].sort(([x], [y]) => x.localeCompare(y));
 		expect(callers(next)).toEqual(callers(old));
 		expect([...next.thinCallers().keys()]).toContain("verification.unitTests.yml");
-		expect(next.turboConfig()).toBe(old.turboConfig());
+		// turbo.json and the package scripts follow the spelling of the list: flat ids give flat keys.
+		expect(Object.keys(JSON.parse(old.turboConfig()!).tasks)).toContain("verification.unitTests");
+		expect(Object.keys(JSON.parse(next.turboConfig()!).tasks)).toContain("test:unit");
 		expect(next.requiredChecks(false)).toEqual(old.requiredChecks(false));
 		expect(next.requiredChecks(true)).toEqual(old.requiredChecks(true));
 	});
@@ -80,12 +82,57 @@ describe("createAstromech() with the flat task ids", () => {
 		expect(names(["sourceQuality.formatting", "delivery.deploy"])).toEqual(["sourceQuality.formatting"]);
 	});
 
-	it("writes a `holocron run <name>` script for a flat id, named as the manifest names it", () => {
+	it("writes a `holocron run <words>` script for a flat id, and one for its suite", () => {
 		const scripts = createAstromech({
 			cwd: "/repo",
 			config: { tasks: ["test:unit", "deploy-preview"] },
 		}).packageScripts();
-		expect(scripts["test:unit"]).toBe("holocron run test:unit --");
+		expect(scripts["test:unit"]).toBe("holocron run test unit --");
+		expect(scripts["test"]).toBe("holocron run test --");
+	});
+
+	describe("in a workspace", () => {
+		const WORKSPACE = { "package.json": PKG, "pnpm-workspace.yaml": "packages:\n  - packages/*\n" };
+		const tasks = ["build", "test:unit", "lint:markdown", "format"];
+
+		it("writes turbo-direct root scripts, the tool's command for a repo-scoped leaf, and turbo.json to match", () => {
+			const astromech = createAstromech({ ...fs(WORKSPACE), config: { tasks, holocronScript: "node cli.mjs" } });
+			expect(astromech.packageScripts()).toEqual({
+				holocron: "node cli.mjs",
+				build: "turbo run build",
+				"test:unit": "turbo run test:unit",
+				"lint:markdown": 'markdownlint-cli2 "**/*.md"',
+				format: "prettier --write .",
+				test: "turbo run test",
+				lint: "turbo run lint",
+			});
+			expect(Object.keys(JSON.parse(astromech.turboConfig()!).tasks)).toEqual([
+				"build",
+				"test:unit",
+				"//#lint:markdown",
+				"test",
+				"lint",
+			]);
+		});
+
+		it("calls `holocron run` when the repo has no workspace file", () => {
+			const astromech = createAstromech({ ...fs({ "package.json": PKG }), config: { tasks } });
+			expect(astromech.packageScripts()["build"]).toBe("holocron run build --");
+			expect(Object.keys(JSON.parse(astromech.turboConfig()!).tasks)).toEqual(["build", "test:unit"]);
+		});
+
+		it("calls `holocron run` when the workspace has nothing turbo can run", () => {
+			const astromech = createAstromech({ ...fs(WORKSPACE), config: { tasks: ["lint:commits"] } });
+			expect(astromech.packageScripts()["lint:commits"]).toBe("holocron run lint commits --");
+		});
+
+		it("does not take the generated root scripts for a directly buildable root", () => {
+			const astromech = createAstromech({ ...fs(WORKSPACE), config: { tasks } });
+			const yaml = "packages:\n  - packages/*\n";
+			expect(astromech.ensureRootWorkspaceMember(yaml, { build: "turbo run build" }).changed).toBe(false);
+			expect(astromech.ensureRootWorkspaceMember(yaml, { build: "tsdown" }).changed).toBe(true);
+			expect(astromech.ensureRootWorkspaceMember(yaml, { format: "prettier --write ." }).changed).toBe(false);
+		});
 	});
 
 	it("reports an old task name on stderr by default", () => {

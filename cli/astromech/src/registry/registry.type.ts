@@ -53,7 +53,7 @@ export interface JobDef {
 }
 
 /**
- * One registry task: its built-in runner (`local`), the sub-jobs it splits into, its org-default flags and its
+ * One registry task: its built-in runner (`local`), the sub-jobs it splits into, and its
  * Turborepo fan-out. `holocron run <task>` and `holocron run ci` start from this definition.
  */
 export interface TaskDef {
@@ -94,8 +94,12 @@ export interface TaskDef {
 	 * <task>` (no job) runs each in turn.
 	 */
 	jobs?: Record<string, JobDef>;
-	/** Org-default flags injected by tool name. Removed by a repo override. */
-	flags?: Record<string, string[]>;
+	/**
+	 * Arguments the runner passes to a package script that is still spelled with the task's old dotted name, when it
+	 * delegates to turbo. Such a script predates the flat ids and has no copy of what the registry's own command does
+	 * (`test:unit` always runs with coverage). A script spelled with the flat id carries it itself and gets nothing.
+	 */
+	legacyForward?: string[];
 	/**
 	 * This task is a linter-group aggregate: `holocron run <task>` resolves
 	 * this fixed set of `linters.ts` entries (still gated by each linter's
