@@ -1,3 +1,9 @@
+## [8.9.0-alpha.8](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.7...configs-v8.9.0-alpha.8) (2026-11-03)
+
+### Refactoring
+
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
 ## [8.9.0-alpha.7](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.6...configs-v8.9.0-alpha.7) (2026-11-02)
 
 ### Refactoring
