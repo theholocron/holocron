@@ -1,3 +1,9 @@
+## [5.0.0-alpha.319](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.318...v5.0.0-alpha.319) (2026-11-03)
+
+### Refactoring
+
+* **ci:** 🏷️ workflow, job and file names are the task id; replace the grouping guard ([#1668](https://github.com/theholocron/holocron/issues/1668)) ([bedd951](https://github.com/theholocron/holocron/commit/bedd95108518ae50ad204d84bc4436f7cc887cca)), closes [#1620](https://github.com/theholocron/holocron/issues/1620)
+
 ## [5.0.0-alpha.318](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.317...v5.0.0-alpha.318) (2026-11-03)
 
 ### Features
