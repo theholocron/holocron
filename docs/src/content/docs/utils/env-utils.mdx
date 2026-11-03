@@ -63,7 +63,9 @@ env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
 
 ### Importing without side effects
 
-The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"`, so importing the entry loads `.env` into `process.env`. Import from `@theholocron/env-utils/lookup` when you only need to read variables, for example in a library that must not touch its consumers' environment. It exports `createEnvLookup`, `EnvLookup`, `firstEnv` and `withEnvPrefix`, and never loads dotenv. `dotenv` is an optional peer dependency: install it if you import the package entry, and skip it if you only use `/lookup`.
+Importing the package reads no file, so `process.env` is not changed because the package was imported. A `.env` in the working directory is loaded only when `DotenvLoader.load()` runs, which `createEnvParser` does when you pass no `loader`, once per loader (variables already set win). `createEnvLookup`, `firstEnv` and `withEnvPrefix` only read `process.env`. Import from `@theholocron/env-utils/lookup` in a library that only reads variables: it exports `createEnvLookup`, `EnvLookup`, `firstEnv` and `withEnvPrefix` and does not import `dotenv`, which is an optional peer dependency you install only for the package entry.
+
+Before 2.0.0 the entry ran `import "dotenv/config"`, which loaded a `.env` from the working directory on import. If you relied on that, call `createEnvParser` or `dotenv.config()` yourself.
 
 ```ts
 import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
