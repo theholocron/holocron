@@ -1,3 +1,9 @@
+## [5.0.0-alpha.311](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.310...v5.0.0-alpha.311) (2026-11-03)
+
+### Features
+
+* **cli:** 🩺 print one doctor credentials row per variable ([#1643](https://github.com/theholocron/holocron/issues/1643)) ([c6b676a](https://github.com/theholocron/holocron/commit/c6b676ab2ea566a10dafd792695618074c222c5d)), closes [#1606](https://github.com/theholocron/holocron/issues/1606)
+
 ## [5.0.0-alpha.310](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.309...v5.0.0-alpha.310) (2026-11-03)
 
 ### Features
