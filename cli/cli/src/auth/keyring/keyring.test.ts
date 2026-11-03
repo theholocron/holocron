@@ -42,7 +42,8 @@ vi.mock("@napi-rs/keyring", () => {
 });
 
 // Import AFTER the mock so keyring.ts binds to the mocked module.
-const { clearTokenCache, setToken, getToken, deleteToken, listStoredProviders } = await import("./keyring.js");
+const { clearTokenCache, setToken, getToken, deleteToken, isKeyringAvailable, listStoredProviders } =
+	await import("./keyring.js");
 
 function resetKeyring() {
 	store.clear();
@@ -194,6 +195,12 @@ describe("keyring", () => {
 		it("listStoredProviders returns empty when findCredentials throws", () => {
 			findThrows = true;
 			expect(listStoredProviders()).toEqual([]);
+		});
+
+		it("isKeyringAvailable tells a keyring that cannot be reached from an empty one", () => {
+			expect(isKeyringAvailable()).toBe(true);
+			findThrows = true;
+			expect(isKeyringAvailable()).toBe(false);
 		});
 	});
 });

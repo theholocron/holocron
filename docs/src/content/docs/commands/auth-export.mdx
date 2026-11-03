@@ -1,0 +1,49 @@
+---
+title: "auth export"
+description: Copy the tokens in the keyring as NAME=value lines, to move them into a credentials environment. Values are never printed.
+---
+
+```bash
+holocron auth export
+holocron auth export --from-env
+```
+
+Puts each token a configured plugin takes on the clipboard as a `NAME=value` line, to move them into a [credentials environment](/holocron/tokens/#credentials-providers). The CLI cannot write to a 1Password Environment (`op` has no command that sets a variable), so the last step is the app: paste the lines into the Environment's editor, or save them to a `.env` and use its import.
+
+The names are the ones the plugins list for `doctor tokens` and `doctor credentials`, so they are the names the Environment is expected to hold. Each value comes from the OS keyring. A name listed by two plugins is written once.
+
+## Where the values go
+
+- **To the clipboard, never the screen.** When stdout is a terminal the lines are copied with [`clipboardy`](https://github.com/sindresorhus/clipboardy), which uses the platform's own tool (`pbcopy`, `xclip` or `wl-copy`, `clip`), so nothing is printed or left in scrollback. Clear the clipboard after pasting.
+- **To a pipe when there is one.** `holocron auth export | some-tool` writes the lines to stdout instead. If there is no clipboard tool (a headless machine), the command says so and suggests that.
+- **Never to a file.** When stdout is a regular file (`> tokens.env`) the command refuses and reads nothing, because it would leave the tokens on disk in plain text. If you want a `.env` to import, paste the clipboard into your editor and delete it after.
+- **Never to anything else.** The names, how many were written and which had no value go to stderr, the log gets counts only, and no value is stored or sent anywhere by the command.
+- A value with a space, quote, `#` or backslash is wrapped in the first of `'`, `"` and `` ` `` it does not contain, which is how a dotenv parser reads it back as written (dotenv has no escape for a quote or a backslash, so none is added). A value with a line break is written as `\n` inside double quotes. A value that fits none of these is not exported and is named, so you add it by hand instead of importing a different token.
+
+```text
+exported 12 of 18: HOLOCRON_ADMIN_TOKEN, HOLOCRON_ORG_TOKEN, HOLOCRON_SENTRY_TOKEN, ...
+not found: HOLOCRON_AXIOM_TOKEN, HOLOCRON_FERN_TOKEN, ...
+copied to the clipboard: paste it, then clear the clipboard
+```
+
+Anything that makes the list incomplete is said, not hidden:
+
+- **The OS keyring cannot be reached**: the command fails, rather than reporting every token as not found.
+- **A plugin cannot be loaded**: its package is named, because the tokens it takes are not in the list. With every configured plugin unresolvable it stops with the same workspace error as the other commands that need the plugins.
+- **Two plugins list the same variable under different keyring entries**: the name is reported and not exported, because one variable cannot hold both.
+
+The plugins are resolved from the directory of the config that was loaded, so `--cwd` finds the plugins installed there.
+
+## Options
+
+| Option       | Description                                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--from-env` | Also take a token that is set in the environment (`HOLOCRON_<X>`, then the vendor's own name), and let it win over the keyring for that token. |
+
+A token stored per organization (`auth set --org`) is not exported: only the plain keyring entry is. A token that is in neither place (a GitHub Actions secret cannot be read back) has to come from wherever you first got it.
+
+## Exit status
+
+`0` when at least one token was written or none was found, `1` when it refused or could not write (stdout is a file, the clipboard failed, the keyring cannot be reached). It needs a `holocron.config` to know which plugins to ask, so run it in the repo.
+
+Related: [`auth list`](/holocron/commands/auth-list/), [`doctor credentials`](/holocron/commands/doctor-credentials/), [`auth set`](/holocron/commands/auth-set/).

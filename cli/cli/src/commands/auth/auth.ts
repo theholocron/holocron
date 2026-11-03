@@ -40,16 +40,25 @@ import type {
 	RunAuthUnsetInput,
 } from "./auth.type.js";
 
+/**
+ * An importer that loads a plugin package for its module-level exports (`verifyToken`, `tokens`), resolving it from
+ * `dir` first (the working directory by default) and from the CLI's own install after that. A command run with `--cwd`
+ * passes the directory of the config it loaded, so it finds the plugins installed there.
+ */
+export function createDefaultImporter(dir?: string): AuthImporter {
+	return async (pkg) => {
+		try {
+			const localRequire = createRequire((dir ?? process.cwd()) + "/");
+			const resolved = localRequire.resolve(pkg);
+			return (await import(pathToFileURL(resolved).href)) as AuthPluginModule;
+		} catch {
+			return (await import(pkg)) as AuthPluginModule;
+		}
+	};
+}
+
 /** Loads a plugin package for its module-level exports (`verifyToken`, `tokens`), from the working directory first. */
-export const defaultImporter: AuthImporter = async (pkg) => {
-	try {
-		const localRequire = createRequire(process.cwd() + "/");
-		const resolved = localRequire.resolve(pkg);
-		return (await import(pathToFileURL(resolved).href)) as AuthPluginModule;
-	} catch {
-		return (await import(pkg)) as AuthPluginModule;
-	}
-};
+export const defaultImporter: AuthImporter = (pkg) => createDefaultImporter()(pkg);
 
 // ── Token resolution ─────────────────────────────────────────────────
 

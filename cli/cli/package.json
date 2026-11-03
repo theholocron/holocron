@@ -70,6 +70,7 @@
     "@theholocron/observability": "workspace:^",
     "@theholocron/pkg-utils": "workspace:^",
     "chalk": "catalog:",
+    "clipboardy": "catalog:cli",
     "dotenv": "catalog:",
     "ora": "catalog:cli",
     "pino": "catalog:",
