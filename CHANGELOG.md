@@ -1,3 +1,13 @@
+## [5.0.0-alpha.309](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.308...v5.0.0-alpha.309) (2026-11-03)
+
+### Bug Fixes
+
+* **auth:** 🔎 auth export finds org-scoped tokens and lists each token on its own row ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1638](https://github.com/theholocron/holocron/issues/1638)) ([80aff2d](https://github.com/theholocron/holocron/commit/80aff2d82f83f1b8e158bc1fe7bd5ffb9070771a))
+
+### Refactoring
+
+* **astromech:** 🏷️ flat verb-first task ids and suites in the registry, runner and config ([#1637](https://github.com/theholocron/holocron/issues/1637)) ([d56288d](https://github.com/theholocron/holocron/commit/d56288d8d5b5d4d52089048527d15f9782757c15)), closes [#1612](https://github.com/theholocron/holocron/issues/1612) [#1615](https://github.com/theholocron/holocron/issues/1615)
+
 ## [5.0.0-alpha.308](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.307...v5.0.0-alpha.308) (2026-11-03)
 
 ### Features
