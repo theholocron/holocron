@@ -58,6 +58,22 @@ describe("compose()", () => {
 		).toHaveLength(1);
 	});
 
+	it("lets an old dotted name override the flat id it became, and the reverse", () => {
+		const flat: Capability = { id: "flat", tasks: [{ name: "test:unit", required: true }] };
+		const dotted: Capability = {
+			id: "dotted",
+			tasks: [{ name: "verification.unitTests", with: { affected: true } }],
+		};
+		expect(compose(flat, dotted).tasks).toEqual([{ name: "verification.unitTests", with: { affected: true } }]);
+		expect(compose(dotted, flat).tasks).toEqual([{ name: "test:unit", required: true }]);
+	});
+
+	it("keys a name that is several ids (or none) by itself", () => {
+		const a: Capability = { id: "a", tasks: ["sourceQuality.formatting", "not-a-task"] };
+		const b: Capability = { id: "b", tasks: ["lint:markdown", "not-a-task"] };
+		expect(compose(a, b).tasks).toEqual(["sourceQuality.formatting", "not-a-task", "lint:markdown"]);
+	});
+
 	it("unions extraRequiredChecks without duplicates", () => {
 		const preset = compose(node(), typecheck(), docs(), audit());
 		expect(preset.extraRequiredChecks).toEqual([

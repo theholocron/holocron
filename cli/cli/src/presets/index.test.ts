@@ -21,33 +21,34 @@ describe("withNode() capability", () => {
 
 	it("marks lint and test required (branch-protection checks are derived from these)", () => {
 		const byName = new Map((withNode().tasks ?? []).map((t) => (typeof t === "string" ? [t, {}] : [t.name, t])));
-		expect(byName.get("lint")).toMatchObject({ required: true });
-		expect(byName.get("test")).toMatchObject({ required: true });
+		for (const id of [
+			"lint:code",
+			"lint:editorconfig",
+			"lint:markdown",
+			"format",
+			"lint:data",
+			"scan:secrets",
+			"lint:commits",
+			"test:unit",
+		]) {
+			expect(byName.get(id)).toMatchObject({ required: true });
+		}
 	});
 
 	it("contributes the baseline workflow set without typecheck", () => {
 		const names = (withNode().tasks ?? []).map((w) => (typeof w === "string" ? w : w.name));
-		for (const expected of [
-			"lint",
-			"test",
-			"security",
-			"review",
-			"stale",
-			"greetings",
-			"dependencies",
-			"bookkeeping",
-		]) {
+		for (const expected of ["scan:code", "annotate", "mark-stale", "greet", "update-deps", "label"]) {
 			expect(names).toContain(expected);
 		}
 		expect(names).not.toContain("typecheck");
 	});
 
-	it("carries the org linter list on the lint task", () => {
-		const lint = (withNode().tasks ?? []).find((w) => typeof w !== "string" && w.name === "lint");
-		expect(lint).toMatchObject({ name: "lint" });
-		expect((lint as { linters: string[] }).linters).toEqual(
-			expect.arrayContaining(["eslint", "prettier", "yamllint", "actionlint", "gitleaks"])
-		);
+	it("speaks only flat ids: no dotted names, no suite names, no pre-flat workflow keys", () => {
+		const names = (withNode().tasks ?? []).map((w) => (typeof w === "string" ? w : w.name));
+		for (const old of ["lint", "test", "security", "review", "stale", "greetings", "dependencies", "bookkeeping"]) {
+			expect(names).not.toContain(old);
+		}
+		expect(names.filter((n) => n.includes("."))).toEqual([]);
 	});
 });
 
@@ -77,8 +78,8 @@ describe("compose(withNode())", () => {
 
 	it("includes deploy when withDocs() is composed in", () => {
 		const { tasks } = compose(withNode(), withDocs());
-		const deploy = tasks.find((w) => typeof w !== "string" && w.name === "deploy");
-		expect(deploy).toMatchObject({ name: "deploy", with: { docs: true, preview: true } });
+		const deploy = tasks.find((w) => typeof w !== "string" && w.name === "deploy-docs");
+		expect(deploy).toMatchObject({ name: "deploy-docs", with: { preview: true } });
 	});
 });
 
@@ -113,8 +114,8 @@ describe("docsPreset()", () => {
 	describe("required checks", () => {
 		it("marks lint / test / typecheck required so their Conclusion checks are derived", () => {
 			const byName = new Map(docsPreset().tasks.map((t) => (typeof t === "string" ? [t, {}] : [t.name, t])));
-			expect(byName.get("lint")).toMatchObject({ required: true });
-			expect(byName.get("test")).toMatchObject({ required: true });
+			expect(byName.get("lint:code")).toMatchObject({ required: true });
+			expect(byName.get("test:unit")).toMatchObject({ required: true });
 			expect(byName.get("typecheck")).toMatchObject({ required: true });
 		});
 
@@ -130,15 +131,15 @@ describe("docsPreset()", () => {
 		it("includes all withNode() baseline tasks and typecheck", () => {
 			const { tasks } = docsPreset();
 			const names = tasks.map((w) => (typeof w === "string" ? w : w.name));
-			expect(names).toContain("lint");
-			expect(names).toContain("test");
+			expect(names).toContain("lint:code");
+			expect(names).toContain("test:unit");
 			expect(names).toContain("typecheck");
 		});
 
-		it("includes deploy with docs and preview", () => {
+		it("includes deploy-docs with preview", () => {
 			const { tasks } = docsPreset();
-			const deploy = tasks.find((w) => typeof w !== "string" && w.name === "deploy");
-			expect(deploy).toMatchObject({ name: "deploy", with: { docs: true, preview: true } });
+			const deploy = tasks.find((w) => typeof w !== "string" && w.name === "deploy-docs");
+			expect(deploy).toMatchObject({ name: "deploy-docs", with: { preview: true } });
 		});
 
 		it("does not include audit workflow (stays repo-specific)", () => {
@@ -188,26 +189,27 @@ describe("nextjsPreset()", () => {
 	});
 
 	describe("tasks", () => {
-		it("includes audit with knip and performance", () => {
+		it("includes lint:unused (knip) and test:perf (lighthouse)", () => {
 			const { tasks } = nextjsPreset();
-			const audit = tasks.find((w) => typeof w !== "string" && w.name === "audit");
-			expect(audit).toMatchObject({ name: "audit", with: { "run-knip": true, "run-performance": true } });
+			expect(tasks).toContain("lint:unused");
+			const perf = tasks.find((w) => typeof w !== "string" && w.name === "test:perf");
+			expect(perf).toMatchObject({ name: "test:perf", with: { "lighthouse-config": "lighthouse.config.cjs" } });
 		});
 
 		it("includes test with storybook, interaction, and user-flow", () => {
 			const { tasks } = nextjsPreset();
-			const test = tasks.find((w) => typeof w !== "string" && w.name === "test");
+			const test = tasks.find((w) => typeof w !== "string" && w.name === "test:unit");
 			expect(test).toMatchObject({
-				name: "test",
+				name: "test:unit",
 				with: { "run-storybook": true, "run-interaction": true, "run-user-flow": true, "run-unit": false },
 			});
 		});
 
 		it("merges test overrides into the single test entry", () => {
 			const { tasks } = nextjsPreset({ test: { "wait-on-url": "http://localhost:3000", "run-chromatic": true } });
-			const test = tasks.find((w) => typeof w !== "string" && w.name === "test");
+			const test = tasks.find((w) => typeof w !== "string" && w.name === "test:unit");
 			expect(test).toMatchObject({
-				name: "test",
+				name: "test:unit",
 				with: {
 					"run-unit": false,
 					"run-storybook": true,
@@ -217,7 +219,7 @@ describe("nextjsPreset()", () => {
 					"run-chromatic": true,
 				},
 			});
-			expect(tasks.filter((w) => typeof w !== "string" && w.name === "test")).toHaveLength(1);
+			expect(tasks.filter((w) => typeof w !== "string" && w.name === "test:unit")).toHaveLength(1);
 		});
 	});
 });
@@ -238,36 +240,43 @@ describe("reactPreset()", () => {
 	describe("tasks", () => {
 		it("includes test without run-user-flow", () => {
 			const { tasks } = reactPreset();
-			const test = tasks.find((w) => typeof w !== "string" && w.name === "test");
-			expect(test).toMatchObject({ name: "test", with: { "run-storybook": true, "run-interaction": true } });
+			const test = tasks.find((w) => typeof w !== "string" && w.name === "test:unit");
+			expect(test).toMatchObject({ name: "test:unit", with: { "run-storybook": true, "run-interaction": true } });
 			expect(test).not.toMatchObject({ with: { "run-user-flow": expect.anything() } });
 		});
 	});
 });
 
 describe("withAudit() capability", () => {
-	it("contributes a required audit task when no options given", () => {
+	it("contributes only a required measure-bundle task when no options given", () => {
 		const cap = withAudit();
-		expect(cap.tasks).toContainEqual({ name: "audit", required: true });
+		expect(cap.tasks).toEqual([{ name: "measure-bundle", required: true }]);
 	});
 
-	it("contributes a required audit task with run-knip when knip: true", () => {
+	it("adds a required lint:unused task when knip: true", () => {
 		const cap = withAudit({ knip: true });
-		expect(cap.tasks).toContainEqual({ name: "audit", required: true, with: { "run-knip": true } });
+		expect(cap.tasks).toContainEqual({ name: "lint:unused", required: true });
+		expect(cap.tasks).not.toContainEqual(expect.objectContaining({ name: "test:perf" }));
 	});
 
-	it("contributes a required audit task with run-performance when performance: true", () => {
+	it("adds a required test:perf task when performance: true", () => {
 		const cap = withAudit({ performance: true });
-		expect(cap.tasks).toContainEqual({ name: "audit", required: true, with: { "run-performance": true } });
+		expect(cap.tasks).toContainEqual({ name: "test:perf", required: true });
+		expect(cap.tasks).not.toContainEqual(expect.objectContaining({ name: "lint:unused" }));
 	});
 
-	it("includes lighthouseConfig in with block", () => {
+	it("passes lighthouseConfig to test:perf", () => {
 		const cap = withAudit({ knip: true, performance: true, lighthouseConfig: "lighthouse.config.cjs" });
 		expect(cap.tasks).toContainEqual({
-			name: "audit",
+			name: "test:perf",
 			required: true,
-			with: { "run-knip": true, "run-performance": true, "lighthouse-config": "lighthouse.config.cjs" },
+			with: { "lighthouse-config": "lighthouse.config.cjs" },
 		});
+	});
+
+	it("ignores lighthouseConfig without performance", () => {
+		const cap = withAudit({ lighthouseConfig: "lighthouse.config.cjs" });
+		expect(cap.tasks).toEqual([{ name: "measure-bundle", required: true }]);
 	});
 });
 
@@ -285,10 +294,10 @@ describe("docsSitePreset()", () => {
 		expect(names).not.toContain("audit");
 	});
 
-	it("includes deploy with docs and preview", () => {
+	it("includes deploy-docs with preview", () => {
 		const { tasks } = docsSitePreset();
-		const deploy = tasks.find((w) => typeof w !== "string" && w.name === "deploy");
-		expect(deploy).toMatchObject({ name: "deploy", with: { docs: true, preview: true } });
+		const deploy = tasks.find((w) => typeof w !== "string" && w.name === "deploy-docs");
+		expect(deploy).toMatchObject({ name: "deploy-docs", with: { preview: true } });
 	});
 
 	it("does not carry Typecheck or audit required checks", () => {
@@ -337,7 +346,7 @@ describe("withWiki() capability", () => {
 
 	it("includes wiki workflow", () => {
 		const tasks = (withWiki().tasks ?? []).map((w) => (typeof w === "string" ? w : w.name));
-		expect(tasks).toContain("wiki");
+		expect(tasks).toContain("publish-wiki");
 	});
 });
 

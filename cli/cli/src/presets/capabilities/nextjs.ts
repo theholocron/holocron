@@ -3,7 +3,7 @@ import { react } from "./react.js";
 
 /** Options for the Next.js preset. */
 export interface NextjsOptions {
-	/** Extra `with:` inputs merged into the `test` workflow entry. */
+	/** Extra `with:` inputs merged into the `test:unit` task entry. */
 	test?: Record<string, unknown>;
 }
 
@@ -27,7 +27,7 @@ export function nextjs({ test: testOverrides = {} }: NextjsOptions = {}): Capabi
 		providers: { deployment: "vercel" },
 		tasks: [
 			{
-				name: "test",
+				name: "test:unit",
 				with: {
 					"run-unit": false,
 					"run-storybook": true,
