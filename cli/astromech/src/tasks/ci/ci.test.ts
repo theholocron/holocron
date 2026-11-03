@@ -64,11 +64,7 @@ describe("runCi", () => {
 			],
 		});
 		expect(report.status).toBe("ok");
-		expect(report.jobs.map((j) => j.task)).toEqual([
-			"verification.typeSafety",
-			"sourceQuality.staticAnalysis",
-			"verification.unitTests",
-		]);
+		expect(report.jobs.map((j) => j.task)).toEqual(["typecheck", "lint:code", "test:unit"]);
 		expect(report.jobs.map((j) => j.checkContext)).toEqual([
 			"Typecheck / Run tsc --noEmit",
 			"Static Analysis / Run eslint and actionlint",
@@ -103,7 +99,7 @@ describe("runCi", () => {
 				{ name: "verification.typeSafety", required: true },
 			],
 		});
-		expect(report.jobs.map((j) => j.task)).toEqual(["verification.typeSafety", "verification.unitTests"]);
+		expect(report.jobs.map((j) => j.task)).toEqual(["typecheck", "test:unit"]);
 	});
 
 	it("--all runs every ci:true known task", () => {
@@ -122,11 +118,7 @@ describe("runCi", () => {
 			},
 			{ scope: "all" }
 		);
-		expect(report.jobs.map((j) => j.task).sort()).toEqual([
-			"delivery.build",
-			"verification.typeSafety",
-			"verification.unitTests",
-		]);
+		expect(report.jobs.map((j) => j.task).sort()).toEqual(["build", "test:unit", "typecheck"]);
 	});
 
 	it("falls back to all ci:true tasks when nothing is required", () => {
@@ -135,7 +127,7 @@ describe("runCi", () => {
 			"turbo.json": TURBO(["verification.unitTests", "sourceQuality.staticAnalysis"]),
 		});
 		const report = run({ tasks: ["verification.unitTests", "sourceQuality.staticAnalysis"] });
-		expect(report.jobs.map((j) => j.task)).toEqual(["sourceQuality.staticAnalysis", "verification.unitTests"]);
+		expect(report.jobs.map((j) => j.task)).toEqual(["lint:code", "test:unit"]);
 		expect(lines.join("\n")).toMatch(/no required tasks in the manifest/);
 	});
 
@@ -148,7 +140,7 @@ describe("runCi", () => {
 			],
 		});
 		expect(report.status).toBe("ok");
-		const codeScanning = report.jobs.find((j) => j.task === "security.codeScanning")!;
+		const codeScanning = report.jobs.find((j) => j.task === "scan:code")!;
 		expect(codeScanning.status).toBe("skip");
 		expect(codeScanning.message).toMatch(/enforced in CI/);
 	});
@@ -167,7 +159,7 @@ describe("runCi", () => {
 			[process.argv[1], "probe", "docs", "presence"],
 		]);
 		// still one task-level row in the report
-		expect(report.jobs.find((j) => j.task === "platform.repoValidation")!.status).toBe("ok");
+		expect(report.jobs.find((j) => j.task === "validate")!.status).toBe("ok");
 	});
 
 	it("does not fail `holocron run ci` when a jobs-bearing task is required but no sub-job runs locally", () => {
@@ -178,7 +170,7 @@ describe("runCi", () => {
 		});
 		expect(report.status).toBe("ok");
 		expect(exec).not.toHaveBeenCalled();
-		expect(report.jobs.find((j) => j.task === "platform.repoValidation")!.status).toBe("skip");
+		expect(report.jobs.find((j) => j.task === "validate")!.status).toBe("skip");
 	});
 
 	it("runs a local:null task via an explicit package.json script", () => {
@@ -270,7 +262,7 @@ describe("runCi", () => {
 		const report = run({
 			tasks: [{ name: "verification.unitTests" }, { name: "verification.unitTests", required: true }],
 		});
-		expect(report.jobs.map((j) => j.task)).toEqual(["verification.unitTests"]);
+		expect(report.jobs.map((j) => j.task)).toEqual(["test:unit"]);
 	});
 
 	it("resolves a linterGroup task's fixed tool set natively when no turbo/script entry exists", () => {
@@ -279,7 +271,38 @@ describe("runCi", () => {
 			{ lookPath: (_c, b) => (b === "prettier" ? `/usr/local/bin/${b}` : null) }
 		);
 		run({ tasks: [{ name: "sourceQuality.formatting", required: true }] });
-		expect(exec).toHaveBeenCalledWith("/usr/local/bin/prettier", ["--check", "."], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/prettier$/), ["--check", "."], { cwd: CWD });
+	});
+
+	it("runs the formatting workflow as its three successors, prettier read-only, and never fails for a missing tool", () => {
+		const { run, exec } = makeCi(
+			{ "package.json": PKG },
+			{ lookPath: (_c, b) => (b === "prettier" ? `/usr/local/bin/${b}` : null) }
+		);
+		const report = run({ tasks: [{ name: "sourceQuality.formatting", required: true }] });
+		expect(report.status).toBe("ok");
+		expect(report.jobs.map((j) => j.task)).toEqual(["lint:editorconfig", "lint:markdown", "format"]);
+		// one workflow carried three checks, so none of them is that workflow's check context
+		expect(report.jobs.map((j) => j.checkContext)).toEqual([null, null, null]);
+		expect(exec).toHaveBeenCalledTimes(1);
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/prettier$/), ["--check", "."], { cwd: CWD });
+	});
+
+	it("accepts the flat ids in the manifest, in the same order", () => {
+		const { run } = makeCi({
+			"package.json": PKG,
+			"turbo.json": TURBO(["verification.unitTests", "verification.typeSafety"]),
+		});
+		const report = run({
+			tasks: [
+				{ name: "test:unit", required: true },
+				{ name: "typecheck", required: true },
+			],
+		});
+		expect(report.jobs.map((j) => [j.task, j.checkContext])).toEqual([
+			["typecheck", "Typecheck / Run tsc --noEmit"],
+			["test:unit", "Test / Conclusion"],
+		]);
 	});
 
 	it("nothing to run → status ok, notice printed", () => {

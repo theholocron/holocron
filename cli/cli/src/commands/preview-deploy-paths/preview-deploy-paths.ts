@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { defaultListDirs, defaultPaths, defaultReadJson, workspacePackages } from "@theholocron/astromech";
+import { defaultListDirs, defaultPaths, defaultReadJson, isTask, workspacePackages } from "@theholocron/astromech";
 
 import type { TaskEntryConfig } from "../../config/index.js";
 
@@ -47,7 +47,7 @@ export function withAutoPreviewDeployPaths(
 	gitRoot: string
 ): Array<string | TaskEntryConfig> {
 	return tasks.map((entry) => {
-		if (typeof entry === "string" || entry.name !== "delivery.previewDeploy") return entry;
+		if (typeof entry === "string" || !isTask(entry.name, "deploy-preview")) return entry;
 		const cwdValue = entry.with?.["cwd"];
 		if (typeof cwdValue !== "string" || entry.with?.["paths"] !== undefined) return entry;
 		const paths = resolvePreviewDeployPaths(gitRoot, cwdValue);

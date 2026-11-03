@@ -1,3 +1,4 @@
+import { isTask } from "../../vocabulary/is-task/index.js";
 import { normalizeTaskEntry, type TasksConfig } from "../schema/index.js";
 
 /**
@@ -7,7 +8,7 @@ import { normalizeTaskEntry, type TasksConfig } from "../schema/index.js";
  * `[]` for a repo that releases as one.
  */
 export function releaseGroups(config: Pick<TasksConfig, "tasks">): string[] {
-	const publish = (config.tasks ?? []).map(normalizeTaskEntry).find((entry) => entry.name === "delivery.publish");
+	const publish = (config.tasks ?? []).map(normalizeTaskEntry).find((entry) => isTask(entry.name, "release"));
 	const groups = publish?.with?.["groups"];
 	if (!Array.isArray(groups)) return [];
 	return groups.flatMap((group: unknown) => {

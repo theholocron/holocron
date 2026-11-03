@@ -1,4 +1,5 @@
 import { normalizeTaskEntry, type TasksConfig } from "../../../config/schema/index.js";
+import { isTask } from "../../../vocabulary/is-task/index.js";
 import { DEPLOY_TASK, MAIN_CHANNEL } from "../constants.js";
 import type { WorkspacePackage } from "../workspace-packages/index.js";
 import type { DeployTarget } from "./deploy-targets.type.js";
@@ -11,7 +12,7 @@ export function deployTargets(packages: WorkspacePackage[], manifests: Map<strin
 	return packages.flatMap((pkg) =>
 		(manifests.get(pkg.dir)?.tasks ?? []).flatMap((item) => {
 			const entry = normalizeTaskEntry(item);
-			if (entry.name !== DEPLOY_TASK || entry.with?.["on"] !== "release") return [];
+			if (!isTask(entry.name, DEPLOY_TASK) || entry.with?.["on"] !== "release") return [];
 			const { channel, paths } = entry.with;
 			return [
 				{

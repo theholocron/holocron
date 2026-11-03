@@ -58,28 +58,26 @@ describe("runTask", () => {
 	it("delegates to turbo at a monorepo root, forwarding the org-default flags", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {}, "delivery.build": {} } }),
+			"turbo.json": JSON.stringify({ tasks: { "test:unit": {}, build: {} } }),
 			"pnpm-lock.yaml": "",
 		});
-		const report = call("verification.unitTests");
+		const report = call("test:unit");
 		expect(report.status).toBe("ok");
-		// `verification.unitTests` carries `flags: { vitest: ["--coverage"] }` —
-		// forwarded through `--` so `holocron run verification.unitTests` at a
+		// `test:unit` carries `flags: { vitest: ["--coverage"] }` —
+		// forwarded through `--` so `holocron run test:unit` at a
 		// turbo root still produces coverage.
-		expect(exec).toHaveBeenCalledWith(
-			expect.stringMatching(/turbo$/),
-			["run", "verification.unitTests", "--", "--coverage"],
-			{ cwd: CWD }
-		);
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test:unit", "--", "--coverage"], {
+			cwd: CWD,
+		});
 	});
 
 	it("delegates a flag-less task to turbo with no trailing --", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "verification.typeSafety": {} } }),
+			"turbo.json": JSON.stringify({ tasks: { typecheck: {} } }),
 		});
-		call("verification.typeSafety");
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {
+		call("typecheck");
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "typecheck"], {
 			cwd: CWD,
 		});
 	});
@@ -87,12 +85,12 @@ describe("runTask", () => {
 	it("forwards passthrough args to turbo after the org-default flags", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }),
+			"turbo.json": JSON.stringify({ tasks: { "test:unit": {} } }),
 		});
-		call("verification.unitTests", { passthrough: ["--filter", "@scope/x"] });
+		call("test:unit", { passthrough: ["--filter", "@scope/x"] });
 		expect(exec).toHaveBeenCalledWith(
 			expect.any(String),
-			["run", "verification.unitTests", "--", "--coverage", "--filter", "@scope/x"],
+			["run", "test:unit", "--", "--coverage", "--filter", "@scope/x"],
 			{ cwd: CWD }
 		);
 	});
@@ -100,22 +98,21 @@ describe("runTask", () => {
 	describe("--affected", () => {
 		const TURBO_FILES = {
 			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "verification.typeSafety": {} } }),
+			"turbo.json": JSON.stringify({ tasks: { typecheck: {} } }),
 		};
 
 		it("adds --affected to turbo and hands it the base through TURBO_SCM_BASE", () => {
 			const { call, exec } = makeRun(TURBO_FILES);
-			call("verification.typeSafety", { affected: true, base: "abc123" });
-			expect(exec).toHaveBeenCalledWith(
-				expect.stringMatching(/turbo$/),
-				["run", "verification.typeSafety", "--affected"],
-				{ cwd: CWD, env: { TURBO_SCM_BASE: "abc123" } }
-			);
+			call("typecheck", { affected: true, base: "abc123" });
+			expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "typecheck", "--affected"], {
+				cwd: CWD,
+				env: { TURBO_SCM_BASE: "abc123" },
+			});
 		});
 
 		it("combines with --filter, in front of the passthrough", () => {
 			const { call, exec } = makeRun(TURBO_FILES);
-			call("verification.typeSafety", {
+			call("typecheck", {
 				affected: true,
 				base: "abc",
 				filter: "@scope/x",
@@ -123,21 +120,21 @@ describe("runTask", () => {
 			});
 			expect(exec).toHaveBeenCalledWith(
 				expect.any(String),
-				["run", "verification.typeSafety", "--filter=@scope/x", "--affected", "--", "--force"],
+				["run", "typecheck", "--filter=@scope/x", "--affected", "--", "--force"],
 				{ cwd: CWD, env: { TURBO_SCM_BASE: "abc" } }
 			);
 		});
 
 		it("runs everything and says why when the base is missing", () => {
 			const { call, exec, lines } = makeRun(TURBO_FILES);
-			call("verification.typeSafety", { affected: true });
-			expect(exec).toHaveBeenCalledWith(expect.any(String), ["run", "verification.typeSafety"], { cwd: CWD });
+			call("typecheck", { affected: true });
+			expect(exec).toHaveBeenCalledWith(expect.any(String), ["run", "typecheck"], { cwd: CWD });
 			expect(lines.join("\n")).toMatch(/--affected ignored: no base/);
 		});
 
 		it("says so when the repo has no turbo task to apply it to", () => {
-			const { call, lines } = makeRun({ "package.json": PKG({ scripts: { "verification.typeSafety": "tsc" } }) });
-			call("verification.typeSafety", { affected: true, base: "abc" });
+			const { call, lines } = makeRun({ "package.json": PKG({ scripts: { typecheck: "tsc" } }) });
+			call("typecheck", { affected: true, base: "abc" });
 			expect(lines.join("\n")).toMatch(/--affected ignored: this repo has no turbo task/);
 		});
 	});
@@ -147,13 +144,13 @@ describe("runTask", () => {
 			"package.json": PKG(),
 			"node_modules/.bin/vitest": "#!/bin/sh",
 		});
-		call("verification.unitTests");
+		call("test:unit");
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/vitest"), ["run", "--coverage"], { cwd: CWD });
 	});
 
 	it("resolves the build tool from a detect[] match", () => {
 		const { call, exec } = makeRun({ "package.json": PKG(), "tsdown.config.ts": "" });
-		call("delivery.build");
+		call("build");
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
@@ -165,12 +162,12 @@ describe("runTask", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG({ devDependencies: { tsdown: "^0.22.0" } }),
 		});
-		call("delivery.build");
+		call("build");
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
 	it("doesn't let tsconfig.json's own fallback rule win over an earlier candidate's dependency match, just because tsconfig.json always exists (regression)", () => {
-		// The real bug this caught: delivery.build's detect[] ends with
+		// The real bug this caught: build's detect[] ends with
 		// { when: /^tsconfig\.json$/, tool: "tsc" } as its last-resort
 		// fallback -- and tsconfig.json exists in essentially every real
 		// package regardless of build tool. A "check every candidate's
@@ -187,7 +184,7 @@ describe("runTask", () => {
 			"package.json": PKG({ devDependencies: { tsdown: "^0.22.0" } }),
 			"tsconfig.json": "{}",
 		});
-		call("delivery.build");
+		call("build");
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
@@ -195,7 +192,7 @@ describe("runTask", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG({ dependencies: { vite: "^7.0.0" } }),
 		});
-		call("delivery.build");
+		call("build");
 		expect(exec).toHaveBeenCalledWith("vite", ["build"], { cwd: CWD });
 	});
 
@@ -211,20 +208,20 @@ describe("runTask", () => {
 			"package.json": PKG({ devDependencies: { tsdown: "^0.22.0" } }),
 			"rollup.config.ts": "",
 		});
-		call("delivery.build");
+		call("build");
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
-	it("reports no local delivery.build runner when neither a config file nor a known dependency exists", () => {
+	it("reports no local build runner when neither a config file nor a known dependency exists", () => {
 		const { call } = makeRun({ "package.json": PKG() });
-		const report = call("delivery.build");
-		expect(report).toEqual({ status: "skip", message: "no delivery.build task for this repo" });
+		const report = call("build");
+		expect(report).toEqual({ status: "skip", message: "no build task for this repo" });
 	});
 
 	it("still reports no runner when package.json itself is missing (dependency fallback degrades gracefully)", () => {
 		const { call } = makeRun({});
-		const report = call("delivery.build");
-		expect(report).toEqual({ status: "skip", message: "no delivery.build task for this repo" });
+		const report = call("build");
+		expect(report).toEqual({ status: "skip", message: "no build task for this repo" });
 	});
 
 	it("adds --config <resolved shared path> when the tool's shared config package is installed (vitest)", () => {
@@ -236,7 +233,7 @@ describe("runTask", () => {
 			}),
 			"node_modules/@theholocron/vitest-config/dist/bundles/library.js": "export default {};",
 		});
-		call("verification.unitTests");
+		call("test:unit");
 		expect(exec).toHaveBeenCalledWith(
 			join(CWD, "node_modules/.bin/vitest"),
 			[
@@ -263,70 +260,70 @@ describe("runTask", () => {
 			}),
 			"node_modules/@theholocron/tsdown-config/dist/presets/library.js": "export default {};",
 		});
-		call("delivery.build");
+		call("build");
 		expect(exec).toHaveBeenCalledWith("tsdown", [], { cwd: CWD });
 	});
 
 	it("adds no --config flag when the shared config package isn't installed — falls back to auto-discovery", () => {
 		const { call, exec } = makeRun({ "package.json": PKG(), "node_modules/.bin/vitest": "#!/bin/sh" });
-		call("verification.unitTests");
+		call("test:unit");
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/vitest"), ["run", "--coverage"], { cwd: CWD });
 	});
 
 	it("prefers vite when vite.config is present", () => {
 		const { call, exec } = makeRun({ "package.json": PKG(), "vite.config.ts": "" });
-		call("delivery.build");
+		call("build");
 		expect(exec).toHaveBeenCalledWith("vite", ["build"], { cwd: CWD });
 	});
 
 	it("an explicit package.json script wins over the registry default", () => {
 		const { call, exec } = makeRun({
-			"package.json": PKG({ scripts: { "delivery.build": "make" }, packageManager: "pnpm@10.0.0" }),
+			"package.json": PKG({ scripts: { build: "make" }, packageManager: "pnpm@10.0.0" }),
 			"tsdown.config.ts": "", // registry would pick tsdown — the script overrides
 		});
-		const report = call("delivery.build");
+		const report = call("build");
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "delivery.build"], { cwd: CWD });
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "build"], { cwd: CWD });
 	});
 
 	it("ignores a `holocron run` thin-caller script and uses the registry (no recursion)", () => {
 		const { call, exec } = makeRun({
-			"package.json": PKG({ scripts: { "verification.unitTests": "holocron run verification.unitTests" } }),
+			"package.json": PKG({ scripts: { "test:unit": "holocron run test:unit" } }),
 			"node_modules/.bin/vitest": "",
 		});
-		call("verification.unitTests");
+		call("test:unit");
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/vitest"), ["run", "--coverage"], { cwd: CWD });
 	});
 
 	it("forwards `-- <passthrough>` to a package.json script", () => {
 		const { call, exec } = makeRun({
-			"package.json": PKG({ scripts: { "verification.unitTests": "vitest" } }),
+			"package.json": PKG({ scripts: { "test:unit": "vitest" } }),
 			"pnpm-lock.yaml": "",
 		});
-		call("verification.unitTests", { passthrough: ["--watch"] });
-		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "verification.unitTests", "--", "--watch"], { cwd: CWD });
+		call("test:unit", { passthrough: ["--watch"] });
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "test:unit", "--", "--watch"], { cwd: CWD });
 	});
 
 	it("resolves a registry task with no package.json at all", () => {
 		const { call, exec } = makeRun({ "node_modules/.bin/tsc": "" });
-		const report = call("verification.typeSafety");
+		const report = call("typecheck");
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/tsc"), ["--noEmit"], { cwd: CWD });
 	});
 
 	it("detects the package manager from the lockfile when packageManager is absent", () => {
 		const { call, exec } = makeRun({
-			"package.json": PKG({ scripts: { "verification.typeSafety": "tsc -p ." } }),
+			"package.json": PKG({ scripts: { typecheck: "tsc -p ." } }),
 			"bun.lockb": "",
 		});
-		call("verification.typeSafety");
-		expect(exec).toHaveBeenCalledWith("bun", ["run", "verification.typeSafety"], { cwd: CWD });
+		call("typecheck");
+		expect(exec).toHaveBeenCalledWith("bun", ["run", "typecheck"], { cwd: CWD });
 	});
 
 	it("defaults the package manager to pnpm with no field and no lockfile", () => {
-		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { "verification.typeSafety": "tsc -p ." } }) });
-		call("verification.typeSafety");
-		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "verification.typeSafety"], { cwd: CWD });
+		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { typecheck: "tsc -p ." } }) });
+		call("typecheck");
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "typecheck"], { cwd: CWD });
 	});
 
 	it("treats a listDir failure as 'no runner' for a detect[] task", () => {
@@ -338,22 +335,22 @@ describe("runTask", () => {
 				},
 			}
 		);
-		const report = call("delivery.build");
+		const report = call("build");
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
 	});
 
 	it("skips (exit 0) a known task the repo can't run", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }); // no build tooling, no script
-		const report = call("delivery.build");
+		const report = call("build");
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toContain("no delivery.build task for this repo");
+		expect(lines.join("\n")).toContain("no build task for this repo");
 	});
 
 	it("fails (exit 1) on a can't-run known task when --required", () => {
 		const { call } = makeRun({ "package.json": PKG() });
-		const report = call("delivery.build", { required: true });
+		const report = call("build", { required: true });
 		expect(report.status).toBe("fail");
 	});
 
@@ -369,14 +366,14 @@ describe("runTask", () => {
 			{ "package.json": PKG(), "node_modules/.bin/tsc": "" },
 			{ exec: () => ({ exitCode: 2 }) }
 		);
-		const report = call("verification.typeSafety");
+		const report = call("typecheck");
 		expect(report.status).toBe("fail");
 		expect(report.message).toMatch(/exited 2/);
 	});
 
 	it("invokes the CLI itself for a task backed by a holocron subcommand", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		call("platform.repoSync", { passthrough: ["--steps", "readme"] });
+		call("sync-repo", { passthrough: ["--steps", "readme"] });
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "sync", "--steps", "readme"], {
 			cwd: CWD,
 		});
@@ -384,21 +381,21 @@ describe("runTask", () => {
 
 	it("splits a multi-word holocron subcommand into separate argv entries, not one string with a space", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		call("platform.syncTemplates");
+		call("sync-templates");
 		// "sync github" is a nested yargs command path — must be two tokens,
 		// not one string containing a space, or yargs can't resolve it.
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "sync", "github"], { cwd: CWD });
 	});
 
-	it("runs `holocron doctor tokens` for security.tokenExpiry, as two argv entries", () => {
+	it("runs `holocron doctor tokens` for check-tokens, as two argv entries", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		call("security.tokenExpiry");
+		call("check-tokens");
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "doctor", "tokens"], { cwd: CWD });
 	});
 
 	it("reports a task with no local equivalent as skipped — even when --required", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() });
-		const report = call("security.codeScanning", { required: true });
+		const report = call("scan:code", { required: true });
 		expect(report.status).toBe("skip");
 		expect(report.message).toMatch(/enforced in CI/);
 		expect(lines.join("\n")).not.toContain("✗");
@@ -406,10 +403,10 @@ describe("runTask", () => {
 	});
 
 	it("still runs an explicit package.json script for a local:null task", () => {
-		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { "security.codeScanning": "some-scan" } }) });
-		const report = call("security.codeScanning", { required: true });
+		const { call, exec } = makeRun({ "package.json": PKG({ scripts: { "scan:code": "some-scan" } }) });
+		const report = call("scan:code", { required: true });
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "security.codeScanning"], {
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "scan:code"], {
 			cwd: CWD,
 		});
 	});
@@ -432,7 +429,7 @@ describe("runTask", () => {
 			"turbo.json": "{ also not json",
 			"node_modules/.bin/tsc": "",
 		});
-		const report = call("verification.typeSafety");
+		const report = call("typecheck");
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/tsc"), ["--noEmit"], { cwd: CWD });
 	});
@@ -440,12 +437,12 @@ describe("runTask", () => {
 	it("--dry-run prints the resolved command and runs nothing", () => {
 		const { call, exec, lines } = makeRun({
 			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ pipeline: { "verification.unitTests": {} } }),
+			"turbo.json": JSON.stringify({ pipeline: { "test:unit": {} } }),
 		});
-		const report = call("verification.unitTests", { dryRun: true });
+		const report = call("test:unit", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/would run: .*turbo run verification\.unitTests/);
+		expect(lines.join("\n")).toMatch(/would run: .*turbo run test:unit/);
 	});
 });
 
@@ -460,7 +457,7 @@ describe("runTask — sub-jobs", () => {
 	 * of `fn`, for the tests of what happens when a job's tool is not installed.
 	 */
 	function withToolJob<T>(fn: () => T): T {
-		const job = TASKS["platform.repoValidation"]!.jobs!["adrs"]!;
+		const job = TASKS["validate"]!.jobs!["adrs"]!;
 		const original = job.local;
 		job.local = { tool: "node", args: ["scripts/check.mjs"] };
 		try {
@@ -470,9 +467,9 @@ describe("runTask — sub-jobs", () => {
 		}
 	}
 
-	it("runs one named job — `platform.repoValidation adrs` → holocron probe specs check", () => {
+	it("runs one named job — `validate adrs` → holocron probe specs check", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		const report = call("platform.repoValidation", { job: "adrs" });
+		const report = call("validate", { job: "adrs" });
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "specs", "check"], {
 			cwd: CWD,
@@ -481,7 +478,7 @@ describe("runTask — sub-jobs", () => {
 
 	it("forwards passthrough args to the job's command, so `adrs -- <files>` checks only those files", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		call("platform.repoValidation", { job: "adrs", passthrough: [".notes/a.spec.md"] });
+		call("validate", { job: "adrs", passthrough: [".notes/a.spec.md"] });
 		expect(exec).toHaveBeenCalledWith(
 			process.execPath,
 			[process.argv[1], "probe", "specs", "check", ".notes/a.spec.md"],
@@ -491,13 +488,13 @@ describe("runTask — sub-jobs", () => {
 
 	it("forwards passthrough args to the job's tool", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		withToolJob(() => call("platform.repoValidation", { job: "adrs", passthrough: ["--strict"] }));
+		withToolJob(() => call("validate", { job: "adrs", passthrough: ["--strict"] }));
 		expect(exec).toHaveBeenCalledWith("/usr/local/bin/node", ["scripts/check.mjs", "--strict"], { cwd: CWD });
 	});
 
 	it("skips a job whose tool isn't installed locally — enforced in CI", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }); // nothing on PATH
-		const report = withToolJob(() => call("platform.repoValidation", { job: "adrs" }));
+		const report = withToolJob(() => call("validate", { job: "adrs" }));
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/node not installed locally.*enforced in CI/);
@@ -505,13 +502,13 @@ describe("runTask — sub-jobs", () => {
 
 	it("--required turns a missing job tool into a failure", () => {
 		const { call } = makeRun({ "package.json": PKG() });
-		const report = withToolJob(() => call("platform.repoValidation", { job: "adrs", required: true }));
+		const report = withToolJob(() => call("validate", { job: "adrs", required: true }));
 		expect(report.status).toBe("fail");
 	});
 
 	it("skips a job the repo's config switched off, by its alias, and says so — even with --required", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("platform.repoValidation", {
+		const report = call("validate", {
 			job: "docsPresence",
 			required: true,
 			jobSwitches: { docsEnforcement: false },
@@ -524,24 +521,20 @@ describe("runTask — sub-jobs", () => {
 
 	it("also honours the job's own key, and runs a job whose switch is not false", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		expect(
-			call("platform.repoValidation", { job: "docsPresence", jobSwitches: { docsPresence: false } }).status
-		).toBe("skip");
+		expect(call("validate", { job: "docsPresence", jobSwitches: { docsPresence: false } }).status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
-		expect(
-			call("platform.repoValidation", { job: "docsPresence", jobSwitches: { docsEnforcement: true } }).status
-		).toBe("ok");
+		expect(call("validate", { job: "docsPresence", jobSwitches: { docsEnforcement: true } }).status).toBe("ok");
 		expect(exec).toHaveBeenCalledTimes(1);
 	});
 
 	it("runs a job that is a holocron subcommand through this CLI, with no tool lookup", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
-		const report = call("platform.repoValidation", { job: "docsPresence" });
+		const report = call("validate", { job: "docsPresence" });
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "docs", "presence"], {
 			cwd: CWD,
 		});
-		const forwarded = call("platform.repoValidation", { job: "docsPresence", passthrough: ["--verbose"] });
+		const forwarded = call("validate", { job: "docsPresence", passthrough: ["--verbose"] });
 		expect(forwarded.status).toBe("ok");
 		expect(exec).toHaveBeenLastCalledWith(
 			process.execPath,
@@ -552,7 +545,7 @@ describe("runTask — sub-jobs", () => {
 
 	it("leaves a switched-off job out of a whole-task run and still runs the others", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } });
+		const report = call("validate", { jobSwitches: { docsEnforcement: false } });
 		expect(report.status).toBe("ok");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
 		expect(lines.join("\n")).toMatch(
@@ -562,9 +555,9 @@ describe("runTask — sub-jobs", () => {
 
 	it("names a job without an alias by its own key when it is switched off", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const one = call("platform.repoValidation", { job: "adrs", jobSwitches: { adrs: false } });
+		const one = call("validate", { job: "adrs", jobSwitches: { adrs: false } });
 		expect(one).toMatchObject({ status: "skip", message: expect.stringMatching(/\(jobs\.adrs: false\)/) });
-		const all = call("platform.repoValidation", { jobSwitches: { adrs: false } });
+		const all = call("validate", { jobSwitches: { adrs: false } });
 		expect(all.status).toBe("ok");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "docs", "presence"]]);
 		expect(lines.join("\n")).toMatch(/Validate ADRs and specs — off in this repo's config \(jobs\.adrs: false\)/);
@@ -572,7 +565,7 @@ describe("runTask — sub-jobs", () => {
 
 	it("skips a retired job (`registry`) cleanly, so a reusable workflow synced before its removal still passes", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("platform.repoValidation", { job: "registry", required: true });
+		const report = call("validate", { job: "registry", required: true });
 		expect(report.status).toBe("skip");
 		expect(report.message).toMatch(/registry was retired/);
 		expect(exec).not.toHaveBeenCalled();
@@ -581,15 +574,15 @@ describe("runTask — sub-jobs", () => {
 
 	it("rejects an unknown job with the known list, exit 1", () => {
 		const { call, lines } = makeRun({ "package.json": PKG() });
-		const report = call("platform.repoValidation", { job: "frobnicate" });
+		const report = call("validate", { job: "frobnicate" });
 		expect(report.status).toBe("unknown");
-		expect(report.message).toBe('unknown job "platform.repoValidation frobnicate"');
+		expect(report.message).toBe('unknown job "validate frobnicate"');
 		expect(lines.join("\n")).toMatch(/known: adrs, docsPresence/);
 	});
 
-	it("`holocron run platform.repoValidation` with no job runs every job in declared order", () => {
+	it("`holocron run validate` with no job runs every job in declared order", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("platform.repoValidation");
+		const report = call("validate");
 		expect(report.status).toBe("ok");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			[process.argv[1], "probe", "specs", "check"],
@@ -601,40 +594,40 @@ describe("runTask — sub-jobs", () => {
 		);
 	});
 
-	it("`holocron run platform.repoValidation --dry-run` plans every job and runs nothing", () => {
+	it("`holocron run validate --dry-run` plans every job and runs nothing", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("node") });
-		const report = call("platform.repoValidation", { dryRun: true });
+		const report = call("validate", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/would run: .*probe specs check[\s\S]*would run: .*probe docs presence/);
 	});
 
-	it("`holocron run platform.repoValidation` is a clean skip when no job is runnable locally", () => {
+	it("`holocron run validate` is a clean skip when no job is runnable locally", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
 		// the docs presence job is a holocron subcommand, so it always runs: switch it off to leave nothing runnable
-		const report = withToolJob(() => call("platform.repoValidation", { jobSwitches: { docsEnforcement: false } }));
+		const report = withToolJob(() => call("validate", { jobSwitches: { docsEnforcement: false } }));
 		expect(report.status).toBe("skip");
 		expect(exec).not.toHaveBeenCalled();
-		expect(report.message).toMatch(/no platform.repoValidation job has a local equivalent/);
+		expect(report.message).toMatch(/no validate job has a local equivalent/);
 	});
 
-	it("`holocron run platform.repoValidation` fails the run when one job fails", () => {
+	it("`holocron run validate` fails the run when one job fails", () => {
 		const { call } = makeRun(
 			{ "package.json": PKG() },
 			{ lookPath: onPath("node"), exec: () => ({ exitCode: 1 }) }
 		);
-		const report = call("platform.repoValidation");
+		const report = call("validate");
 		expect(report.status).toBe("fail");
-		expect(report.message).toMatch(/one or more platform.repoValidation jobs failed/);
+		expect(report.message).toMatch(/one or more validate jobs failed/);
 	});
 
-	it("folds a job-position arg into passthrough for a task with no jobs (`delivery.build src/`)", () => {
+	it("folds a job-position arg into passthrough for a task with no jobs (`build src/`)", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
 			"tsdown.config.ts": "",
 			"node_modules/.bin/tsdown": "",
 		});
-		call("delivery.build", { job: "src/" });
+		call("build", { job: "src/" });
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/tsdown"), ["src/"], { cwd: CWD });
 	});
 
@@ -642,7 +635,7 @@ describe("runTask — sub-jobs", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG({ scripts: { "platform.repoValidation": "node scripts/validate-all.mjs" } }),
 		});
-		const report = call("platform.repoValidation");
+		const report = call("validate");
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "platform.repoValidation"], {
 			cwd: CWD,
@@ -660,14 +653,14 @@ describe("runTask — linterGroup aggregate", () => {
 		const { call, exec } = makeRun(
 			{
 				"package.json": PKG(),
-				"turbo.json": JSON.stringify({ tasks: { "sourceQuality.staticAnalysis": {} } }),
+				"turbo.json": JSON.stringify({ tasks: { "lint:code": {} } }),
 				"eslint.config.ts": "",
 			},
 			{ lookPath: onPath("eslint") }
 		);
-		const report = call("sourceQuality.staticAnalysis");
+		const report = call("lint:code");
 		expect(report.status).toBe("ok");
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "sourceQuality.staticAnalysis"], {
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "lint:code"], {
 			cwd: CWD,
 		});
 		// turbo owns the whole task — no separate native eslint invocation
@@ -679,7 +672,7 @@ describe("runTask — linterGroup aggregate", () => {
 			{ "package.json": PKG(), "eslint.config.ts": "" },
 			{ lookPath: onPath("eslint") }
 		);
-		const report = call("sourceQuality.staticAnalysis");
+		const report = call("lint:code");
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
 		expect(lines.join("\n")).toMatch(/! actionlint — actionlint not on PATH\. brew install actionlint/);
@@ -698,7 +691,7 @@ describe("runTask — linterGroup aggregate", () => {
 			},
 			{ lookPath: onPath("eslint") }
 		);
-		call("sourceQuality.staticAnalysis");
+		call("lint:code");
 		expect(exec).toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
 	});
 
@@ -719,7 +712,7 @@ describe("runTask — linterGroup aggregate", () => {
 			},
 			{ lookPath: onPath("eslint") }
 		);
-		call("sourceQuality.staticAnalysis");
+		call("lint:code");
 		expect(exec).toHaveBeenCalledWith(
 			"/usr/local/bin/eslint",
 			["--config", join(CWD, "node_modules/@theholocron/eslint-config/dist/bundles/library.js"), "."],
@@ -729,18 +722,18 @@ describe("runTask — linterGroup aggregate", () => {
 
 	it("an explicit package.json script for the task wins over per-linter native execution", () => {
 		const { call, exec } = makeRun({
-			"package.json": PKG({ scripts: { "sourceQuality.staticAnalysis": "biome check" } }),
+			"package.json": PKG({ scripts: { "lint:code": "biome check" } }),
 			"eslint.config.ts": "",
 		});
-		call("sourceQuality.staticAnalysis");
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "sourceQuality.staticAnalysis"], {
+		call("lint:code");
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/pnpm$/), ["run", "lint:code"], {
 			cwd: CWD,
 		});
 	});
 
 	it("eslint is skipped (not run) without a config file — no config, no candidate", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("eslint") });
-		call("sourceQuality.staticAnalysis");
+		call("lint:code");
 		expect(exec).not.toHaveBeenCalledWith("/usr/local/bin/eslint", ["."], { cwd: CWD });
 	});
 
@@ -755,7 +748,7 @@ describe("runTask — linterGroup aggregate", () => {
 			},
 			{ lookPath: onPath("eslint") }
 		);
-		const report = call("sourceQuality.staticAnalysis");
+		const report = call("lint:code");
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith(
 			"/usr/local/bin/eslint",
@@ -767,7 +760,7 @@ describe("runTask — linterGroup aggregate", () => {
 	it("reports fail when any linter exits non-zero (and treats an unreadable root as no config files)", () => {
 		const exec = vi.fn((_c: string, _a: string[], _o: { cwd: string }) => ({ exitCode: 1 }));
 		const report = runTask({
-			task: "security.secretDetection",
+			task: "scan:secrets",
 			cwd: CWD,
 			print: () => {},
 			logger: noopLogger,
@@ -789,9 +782,9 @@ describe("runTask — linterGroup aggregate", () => {
 		// commitlint has no localBin, ever — no PR commit range to diff
 		// locally. Structurally CI-only, not "happens to be uninstalled".
 		const base = { "package.json": PKG() };
-		const skip = makeRun(base).call("platform.commitStandards");
+		const skip = makeRun(base).call("lint:commits");
 		expect(skip.status).toBe("skip");
-		const stillSkip = makeRun(base).call("platform.commitStandards", { required: true });
+		const stillSkip = makeRun(base).call("lint:commits", { required: true });
 		expect(stillSkip.status).toBe("skip");
 	});
 
@@ -799,15 +792,15 @@ describe("runTask — linterGroup aggregate", () => {
 		// gitleaks has a localBin — this is an actionable "go install it" gap,
 		// not a structurally CI-only task, so --required does fail it.
 		const base = { "package.json": PKG() };
-		const skip = makeRun(base).call("security.secretDetection");
+		const skip = makeRun(base).call("scan:secrets");
 		expect(skip.status).toBe("skip");
-		const fail = makeRun(base).call("security.secretDetection", { required: true });
+		const fail = makeRun(base).call("scan:secrets", { required: true });
 		expect(fail.status).toBe("fail");
 	});
 
 	it("--dry-run lists every command and runs nothing", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() }, { lookPath: onPath("gitleaks") });
-		const report = call("security.secretDetection", { dryRun: true });
+		const report = call("scan:secrets", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
 		expect(lines.join("\n")).toMatch(/would run: .*gitleaks/);
@@ -815,7 +808,7 @@ describe("runTask — linterGroup aggregate", () => {
 
 	it("forwards passthrough to each linter", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() }, { lookPath: onPath("gitleaks") });
-		call("security.secretDetection", { passthrough: ["--verbose"] });
+		call("scan:secrets", { passthrough: ["--verbose"] });
 		expect(exec.mock.calls[0]![1]).toContain("--verbose");
 	});
 });

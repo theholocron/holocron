@@ -26,6 +26,8 @@ export interface AstromechOptions {
 	logger?: RunLogger;
 	/** User-facing line printer. Defaults to `console.log`. */
 	print?: (line: string) => void;
+	/** Where a deprecation notice goes (an old task name, a group name). Defaults to `console.error`, so it is on stderr. */
+	warn?: (line: string) => void;
 	/** Injectable subprocess runner (tests). Defaults to `spawnSync` (stdio inherit). */
 	exec?: ExecFn;
 	/** Injectable fs (tests). Default to `node:fs`. */
@@ -48,8 +50,16 @@ export interface RunOptions {
 	 * ignored otherwise. Omit to run every job the task has.
 	 */
 	job?: string;
+	/**
+	 * Further positional words after `task` and `job`. All the words together name the task: `holocron run test unit
+	 * storybook` is `task: "test"`, `job: "unit"`, `args: ["storybook"]`, and the longest match against the registry
+	 * (`test:unit`) leaves `storybook` as the `[job]` argument.
+	 */
+	args?: string[];
 	/** Args after `--`, forwarded to the tool / turbo / script. */
 	passthrough?: string[];
+	/** The read-only form of a task that writes by default: `format --check` runs prettier without writing. */
+	check?: boolean;
 	/** Print the resolved command without running it. */
 	dryRun?: boolean;
 	/** Fail (exit 1) instead of skipping when the repo has no such task. */
@@ -65,12 +75,12 @@ export interface RunOptions {
 /** The task runner: one manifest drives local runs, the CI pre-flight and the generated workflows and scripts. */
 export interface Astromech {
 	/**
-	 * Run one task — or one of its sub-jobs (`opts.job`) — locally. When
-	 * `task` isn't an exact registry task but matches the prefix of one or
-	 * more configured tasks (`"sourceQuality"` against `sourceQuality.*`),
-	 * runs every matching task in sequence instead ({@link GroupReport}) —
-	 * `opts.job` is ignored for a namespace match, since a job belongs to
-	 * one task, not a namespace.
+	 * Run a task, a suite or an old name locally. The words (`task`, `opts.job`, `opts.args`) are joined with `:` and the
+	 * longest match against the registry wins: `test:unit` and `test unit` are one leaf, `test` is the suite (every
+	 * configured leaf, in registry order, as a {@link GroupReport}), and what is left over is the task's `[job]`
+	 * argument. An old dotted name (`verification.unitTests`) still works and prints a deprecation notice; one that
+	 * stood for several tasks (`sourceQuality.formatting`) or an old group name (`"sourceQuality"`) runs each in
+	 * sequence as a {@link GroupReport}.
 	 */
 	run(task: string, opts?: RunOptions): RunTaskReport | GroupReport;
 	/**

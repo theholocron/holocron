@@ -27,6 +27,12 @@ export interface TurboTaskConfig {
 	dependsOn: string[];
 }
 
+/** The six intent groups. They survive only as documentation and `--help` grouping. */
+export type TaskGroup = "Verification" | "Source Quality" | "Security" | "Delivery" | "Platform" | "Knowledge";
+
+/** Where a task runs: once per package that has it, or once at the repo root. */
+export type TaskScope = "package" | "repo";
+
 /** One sub-job of a task — `performance` in `holocron run audit performance`. */
 export interface JobDef {
 	/** How the job runs locally; `null` → no local equivalent (enforced in CI). */
@@ -51,6 +57,25 @@ export interface JobDef {
  * Turborepo fan-out. `holocron run <task>` and `holocron run ci` start from this definition.
  */
 export interface TaskDef {
+	/** The intent group: documentation and `--help` grouping only. It is no longer part of any name. */
+	group: TaskGroup;
+	/**
+	 * `package` — runs in each package that has the script (turbo-delegated); `repo` — runs once at the root (a linter
+	 * group, a probe, a workflow). `holocron run <suite>` from a package directory runs only the package-scoped members.
+	 */
+	scope: TaskScope;
+	/**
+	 * The suite this task is a leaf of (`test` for `test:unit`). A suite is declared here, by its leaves; it is never a
+	 * task id of its own, and `holocron run <suite>` runs the repo's configured members in registry order.
+	 */
+	suite?: string;
+	/**
+	 * Args that replace {@link LocalRunner.args} when `--check` is given, for a task that writes by default (`format`):
+	 * `holocron run format --check` runs `prettier --check .` instead of `prettier --write .`.
+	 */
+	checkArgs?: string[];
+	/** `false` — the task has no workflow of its own, so no thin caller is generated for it (`format`). */
+	workflow?: false;
 	/**
 	 * Sub-job slugs that no longer exist but that a reusable workflow synced earlier may still pass:
 	 * `holocron run <task> <retired>` is a clean skip instead of an unknown-job failure.

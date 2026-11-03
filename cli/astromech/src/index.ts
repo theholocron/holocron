@@ -61,7 +61,8 @@ export { AGGREGATE_CHECK, requiredChecks } from "./generators/required-checks/in
 export type { TsconfigOptions } from "./generators/tsconfig/index.js";
 export { createTsconfig } from "./generators/tsconfig/index.js";
 export type { JobDef, LocalRunner, TaskDef } from "./registry/index.js";
-export { CI_ORDER, KNOWN_TASKS, TASKS } from "./registry/index.js";
+export type { TaskGroup, TaskScope } from "./registry/index.js";
+export { CI_ORDER, TASKS } from "./registry/index.js";
 export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci/index.js";
 export { runCi } from "./tasks/ci/index.js";
 export { defaultPaths } from "./tasks/deploy-on-release/default-paths/index.js";
@@ -71,6 +72,21 @@ export type {
 	DeployOnReleaseResult,
 } from "./tasks/deploy-on-release/index.js";
 export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
+export type { LegacyTarget } from "./vocabulary/index.js";
+export {
+	describeTasks,
+	isTask,
+	KNOWN_TASKS,
+	LEGACY_NAMES,
+	legacyName,
+	PNPM_BUILTIN_COMMANDS,
+	RESERVED_SCRIPT_NAMES,
+	resolveTaskName,
+	scriptName,
+	suiteMembers,
+	SUITES,
+	workflowKey,
+} from "./vocabulary/index.js";
 // Aliased: codecov's own, differently-shaped WorkspacePackage ({ slug, name,
 // dir }) already owns the unqualified name above (line 26) — this one
 // carries { name, dir, version, dependencies, devDependencies }, what

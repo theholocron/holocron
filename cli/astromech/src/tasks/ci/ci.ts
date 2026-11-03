@@ -11,21 +11,41 @@
  * `required` (it's a CI-only check, not a local one).
  */
 
-import { normalizeTaskEntry, type TaskEntry } from "../../config/schema/index.js";
+import { normalizeTaskEntry } from "../../config/schema/index.js";
 import { WORKFLOW_CHECK_CONTEXTS } from "../../generators/index.js";
 import { CI_ORDER } from "../../registry/index.js";
+import { legacyName, resolveTaskName } from "../../vocabulary/index.js";
 import { runTask } from "../run/index.js";
 import type { CiInput, CiJobReport, CiReport } from "./ci.type.js";
+
+/**
+ * The check context of a flat id: the one its workflow posts. A workflow that carries several of the new ids (the
+ * formatting one) is not one id's context, so those report none.
+ */
+function checkContextOf(id: string): string | null {
+	const legacy = legacyName(id);
+	return legacy !== undefined && resolveTaskName(legacy).length === 1
+		? (WORKFLOW_CHECK_CONTEXTS[legacy] ?? null)
+		: null;
+}
 
 /** Runs the merge-gating tasks in CI order and reports each job and an overall `ok` or `fail`. */
 export function runCi(input: CiInput): CiReport {
 	const { print } = input;
 
-	// de-dup task entries by name (last wins); keep only the merge-gating tasks
-	// (`CI_ORDER` — excludes `platform.repoSync` / `knowledge.wiki`, which
+	// de-dup task entries by id (last wins), an old name standing for several ids (`sourceQuality.formatting`) counts
+	// as each of them; keep only the merge-gating tasks (`CI_ORDER` — excludes `sync-repo` / `publish-wiki`, which
 	// aren't checks).
 	const byName = new Map<string, ReturnType<typeof normalizeTaskEntry>>();
-	for (const item of input.config?.tasks ?? []) byName.set(taskName(item), normalizeTaskEntry(item));
+	const split = new Set<string>();
+	for (const item of input.config?.tasks ?? []) {
+		const entry = normalizeTaskEntry(item);
+		const targets = resolveTaskName(entry.name);
+		for (const { id } of targets) {
+			byName.set(id, { ...entry, name: id });
+			if (targets.length > 1) split.add(id);
+		}
+	}
 	const gating = [...byName.values()].filter((e) => CI_ORDER.includes(e.name));
 
 	const all = gating.filter((e) => e.ci !== false);
@@ -43,13 +63,13 @@ export function runCi(input: CiInput): CiReport {
 
 	const jobs: CiJobReport[] = [];
 	for (const entry of ordered) {
-		const context = WORKFLOW_CHECK_CONTEXTS[entry.name] ?? null;
+		const context = checkContextOf(entry.name);
 		print(`▶ ${context ?? entry.name}`);
 
-		// `local: null` tasks (security.codeScanning, delivery.deploy) have no
+		// `local: null` tasks (scan:code, deploy) have no
 		// built-in runner — but `runTask` steps 1–2 still honour an explicit
 		// turbo task / `package.json` script, and a job-bearing task
-		// (`platform.repoValidation`) with no such script expands into its
+		// (`validate`) with no such script expands into its
 		// sub-jobs, each printed under its own `▶ platform.repoValidation / <Job>`
 		// check context. `runTask` returns "skip" when nothing runs.
 		const r = runTask({
@@ -61,10 +81,14 @@ export function runCi(input: CiInput): CiReport {
 			listDir: input.listDir,
 			lookPath: input.lookPath,
 			task: entry.name,
+			// `format` is run in its read-only form here: `holocron run ci` never writes.
+			passthrough: entry.name === "format" ? ["--check"] : [],
 			...(entry.jobs ? { jobSwitches: entry.jobs } : {}),
 			cwd: input.cwd,
 			dryRun: input.dryRun ?? false,
-			required: entry.required === true,
+			// An old name that stood for several ids (the formatting workflow) passed when any of its tools ran, so a
+			// missing one of them (editorconfig-checker) is not a failure of the others.
+			required: entry.required === true && !split.has(entry.name),
 			...(input.filter ? { filter: input.filter } : {}),
 			...(input.affected ? { affected: true } : {}),
 			...(input.base ? { base: input.base } : {}),
@@ -91,8 +115,4 @@ export function runCi(input: CiInput): CiReport {
 	}
 
 	return { status: failed > 0 ? "fail" : "ok", jobs };
-}
-
-function taskName(item: string | TaskEntry): string {
-	return typeof item === "string" ? item : item.name;
 }

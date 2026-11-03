@@ -1,4 +1,10 @@
-import { createAstromech, hostedReusableWorkflows, KNOWN_WORKFLOWS, localize } from "@theholocron/astromech";
+import {
+	createAstromech,
+	hostedReusableWorkflows,
+	KNOWN_WORKFLOWS,
+	localize,
+	workflowKey,
+} from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync } from "@theholocron/fs-utils";
 
@@ -42,8 +48,9 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	for (const entry of tasks) {
 		const name = typeof entry === "string" ? entry : entry.name;
 		// knowledge.docs / knowledge.components have no static template: their content is always generated.
-		const isCombinedContentOnly = name === "knowledge.docs" || name === "knowledge.components";
-		if (!KNOWN_WORKFLOWS.has(name) && !isCombinedContentOnly) {
+		const key = workflowKey(name);
+		const isCombinedContentOnly = key === "knowledge.docs" || key === "knowledge.components";
+		if (!KNOWN_WORKFLOWS.has(key) && !isCombinedContentOnly) {
 			entries.push({
 				kind: "skip",
 				step: `write workflow ${name}`,
@@ -54,9 +61,10 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 		}
 
 		// Keyed by task name alone, whichever package's config generated it.
-		const content = files.get(`${name}.yml`);
-		if (content === undefined) continue; // ci: false — nothing to write
-		const filename = `${hosting ? HOSTED_CALLER_PREFIX : ""}${name}.yml`;
+		// (until the workflow files take the flat ids, a flat id names the file of the old name it replaced)
+		const content = files.get(`${key}.yml`);
+		if (content === undefined) continue; // ci: false, or no workflow of its own — nothing to write
+		const filename = `${hosting ? HOSTED_CALLER_PREFIX : ""}${key}.yml`;
 
 		const preview = content.includes("workflows/preview.yml@main") ? " (with preview)" : "";
 		entries.push({
@@ -65,7 +73,7 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 			content: thinCallerFile(pkgRelPath, hosting ? localize(content) : content),
 			step: `write workflow ${name}${preview}`,
 			syncStep: `sync workflow ${name}${preview}`,
-			workflow: { task: name, filename },
+			workflow: { task: key, filename },
 		});
 	}
 

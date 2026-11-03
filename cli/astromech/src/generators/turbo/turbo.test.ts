@@ -101,6 +101,29 @@ describe("turboConfig", () => {
 		]);
 	});
 
+	it("writes the old task names, so turbo.json does not change, whichever spelling the manifest uses", () => {
+		const old = turboConfig({ tasks: ["verification.typeSafety", "verification.unitTests", "delivery.build"] });
+		const flat = turboConfig({ tasks: ["typecheck", "test:unit", "build"] });
+		expect(flat).toBe(old);
+		expect(JSON.parse(flat!).tasks["verification.unitTests"].dependsOn).toEqual([
+			"delivery.build",
+			"^delivery.build",
+		]);
+	});
+
+	it("translates a flat id in a dependsOn override, and leaves a leaf with no old name alone", () => {
+		const content = turboConfig({
+			tasks: [{ name: "lint:code", turbo: { dependsOn: ["@x/config#build", "//#lint:markdown", "^typecheck"] } }],
+		});
+		const parsed = JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> };
+		expect(parsed.tasks["sourceQuality.staticAnalysis"]?.dependsOn).toEqual([
+			"^delivery.build",
+			"@x/config#delivery.build",
+			"//#lint:markdown",
+			"^verification.typeSafety",
+		]);
+	});
+
 	it("keeps the registry dependsOn when no override is given", () => {
 		const content = turboConfig({ tasks: ["sourceQuality.staticAnalysis"] });
 		const parsed = JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> };

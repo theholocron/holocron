@@ -21,7 +21,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, readWorkspacePackages } from "@theholocron/astromech";
+import { createAstromech, isTask, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
@@ -124,7 +124,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		const usesAdvancedCodeQL = (config.tasks ?? [])
 			.map((e) => (typeof e === "string" ? e : e.name))
-			.includes("security.codeScanning");
+			.some((name) => isTask(name, "scan:code"));
 		steps.push(
 			await runStep(
 				"source",

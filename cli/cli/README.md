@@ -381,24 +381,27 @@ and the "what this repo runs" manifest in separate files (this repo does).
 ### `holocron run`
 
 ```bash
-holocron run <task> [job] [--required] [--filter <pkg>] [--dry-run] [-- <passthrough>]
+holocron run <task | suite> [qualifier | job] [--check] [--required] [--filter <pkg>] [--dry-run] [-- <passthrough>]
 ```
 
-Runs one task locally — resolving turbo vs the package manager vs the tool
-itself. A `job` argument targets a sub-job of tasks that have them: `holocron
-run audit performance` runs Lighthouse CI, `holocron run audit knip` runs Knip,
-`holocron run audit` (no job) runs every audit sub-job in declared order. A
-sub-job whose tool isn't installed, or that has no local equivalent
-(`bundle-size`), is skipped with a note — `--required` makes that a failure. For
-a task with no sub-jobs the `job` slot is the first passthrough arg
-(`holocron run build src/`).
+Runs one task, or a suite, locally — resolving turbo vs the package manager vs the tool
+itself. Ids are flat and verb-first: `typecheck`, `build`, `test:unit`, `lint:code`.
+`holocron run test` runs the `test` suite (every `test:*` leaf the repo lists, in registry order, each reported),
+`holocron run test unit` and `holocron run test:unit` run one leaf. The words are joined with `:` and the longest match
+wins, so `deploy preview` is `deploy-preview`; the rest is the `job` argument. A `job` targets a sub-job of the tasks
+that have them: `holocron run validate adrs` runs `holocron probe specs check`, `holocron run validate` (no job) runs
+every sub-job in declared order. A sub-job whose tool isn't installed, or that has no local equivalent, is skipped with
+a note — `--required` makes that a failure. For a task with no sub-jobs the `job` slot is the first passthrough arg
+(`holocron run build src/`). `holocron run format` writes (prettier), `holocron run format --check` is read-only.
+`holocron run --help` lists the tasks grouped under the six intent groups. The old dotted names
+(`verification.unitTests`, `sourceQuality.formatting`, …) still work and print a deprecation notice on stderr.
 
 **CI runs the identical command.** The reusable `typecheck` / `test` / `audit`
 workflows call the `holocron` composite action
 (`theholocron/.github/.github/actions/holocron@main`), whose body is
 `holocron run <task> [job]`. So `holocron run test` locally and the `Test` CI
 job execute the same thing — at a turbo root both are
-`turbo run test -- --coverage` (the registry's org-default flags flow through
+`turbo run <task> -- --coverage` (the registry's org-default flags flow through
 turbo's `--`).
 
 ### `holocron deploy on-release`

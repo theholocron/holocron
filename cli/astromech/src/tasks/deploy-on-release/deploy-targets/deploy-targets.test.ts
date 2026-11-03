@@ -35,6 +35,11 @@ describe("deployTargets", () => {
 		expect(target).toMatchObject({ channel: "main", paths: undefined });
 	});
 
+	it("picks a release-time deploy spelled `deploy` as well as `delivery.deploy`", () => {
+		const targets = deployTargets(all, manifest([{ name: "deploy", with: { on: "release" } }]));
+		expect(targets).toHaveLength(1);
+	});
+
 	it("ignores a bare delivery.deploy and packages with no manifest", () => {
 		expect(deployTargets(all, manifest(["delivery.deploy"]))).toEqual([]);
 		expect(deployTargets(all, new Map())).toEqual([]);
