@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthError, createResolveToken } from "./auth-resolver.js";
 
@@ -161,5 +165,33 @@ describe("createResolveToken — org-scoped keyring", () => {
 				keyring: (p) => (p === "test" ? "unscoped" : null),
 			})
 		).toBe("unscoped");
+	});
+});
+
+describe("a .env in the working directory", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.resetModules();
+	});
+
+	it("is not read: the token comes from the environment passed in, else it is missing (#1640)", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "http-client-"));
+		try {
+			writeFileSync(join(dir, ".env"), "TEST_TOKEN=from-cwd-dotenv\n");
+			vi.spyOn(process, "cwd").mockReturnValue(dir);
+			vi.resetModules();
+			const fresh = await import("./auth-resolver.js");
+			const resolve = fresh.createResolveToken({
+				envName: "HOLOCRON_TEST_TOKEN",
+				vendorEnvName: "TEST_TOKEN",
+				keyringService: "test",
+				errorMessage: "no token",
+			});
+
+			expect(() => resolve({ env: {}, keyring: noKeyring })).toThrow("no token");
+			expect(resolve({ env: { TEST_TOKEN: "from-env" }, keyring: noKeyring })).toBe("from-env");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

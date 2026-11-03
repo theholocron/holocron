@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { holocronEnv, makeEnv } from "./env.js";
 
@@ -49,5 +53,29 @@ describe("holocronEnv", () => {
 		vi.stubEnv("HOLOCRON_PREFIX_PROBE", "");
 		expect(holocronEnv.get("PREFIX_PROBE")).toBe("bare");
 		vi.unstubAllEnvs();
+	});
+});
+
+describe("a .env in the working directory", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.resetModules();
+		delete process.env["ENV_CWD_PROBE_TOKEN"];
+	});
+
+	it("is not read when the CLI env is imported (#1640)", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "cli-env-"));
+		try {
+			writeFileSync(join(dir, ".env"), "ENV_CWD_PROBE_TOKEN=from-cwd-dotenv\n");
+			vi.spyOn(process, "cwd").mockReturnValue(dir);
+			vi.resetModules();
+			const fresh = await import("./env.js");
+
+			expect(process.env["ENV_CWD_PROBE_TOKEN"]).toBeUndefined();
+			expect(fresh.env.get("ENV_CWD_PROBE_TOKEN")).toBeUndefined();
+			expect(fresh.holocronEnv.get("ENV_CWD_PROBE_TOKEN")).toBeUndefined();
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });
