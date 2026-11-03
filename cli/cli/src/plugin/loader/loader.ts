@@ -36,6 +36,7 @@ import { hasCredentials, setCredentials } from "../../auth/credential-store/inde
 import { DOTENV_FILE, readDotenvFile } from "../../auth/dotenv-file/index.js";
 import {
 	type CapabilityConfigPackage,
+	credentialsEnvironment,
 	type ResolvedHolocronConfig,
 	type ResolvedTuple,
 	resolvePluginPackage,
@@ -135,12 +136,14 @@ export class PluginLoader {
 	private async loadCredentials(): Promise<void> {
 		const entry = this.config.providers.credentials;
 		if (!entry || entry.cardinality !== "many") return;
-		const environment = this.config.credentials?.environment;
 		const impls: Credentials[] = [];
 		for (const tuple of entry.tuples) {
 			try {
+				const environment = credentialsEnvironment(tuple, this.config);
 				if (!environment) {
-					throw new LoaderError("`providers.credentials` is set but `credentials.environment` is not");
+					throw new LoaderError(
+						`the ${tuple.provider} credentials provider has no \`environment\` option and \`credentials.environment\` is not set`
+					);
 				}
 				const impl = (await this.loadOne("credentials", tuple)) as Credentials;
 				impls.push(impl);

@@ -250,8 +250,9 @@ export interface DoctorConfig {
 /** The `credentials` block: which environment the `credentials` providers read this machine's tokens from. */
 export interface CredentialsConfig {
 	/**
-	 * The name of the environment each `credentials` provider reads (a 1Password Environment, for 1Password). It is
-	 * a name, not a secret, so it is committed. A provider that matches names exactly may be tried with other
+	 * The name of the environment the `credentials` providers read (a 1Password Environment, for 1Password), for
+	 * every provider that does not give its own with an `environment` option
+	 * (`credentials: ["1password", { environment: "Holocron" }]`). It is a name, not a secret, so it is committed. A provider that matches names exactly may be tried with other
 	 * letter cases of it; see the provider's page.
 	 */
 	environment: string;
@@ -590,8 +591,9 @@ export interface HolocronConfig {
 	env?: EnvConfig;
 	/**
 	 * Which environment the `credentials` providers (`providers.credentials`) read this machine's tokens from.
-	 * Kept out of the provider's options so the provider stays about the provider: swapping it is one line in
-	 * `providers`. Required when `providers.credentials` is set.
+	 * The default for every provider; one provider can name its own with an `environment` option in its
+	 * `providers.credentials` entry, which wins. The plugin never stores the name: the CLI passes it to `read`.
+	 * Each provider needs one or the other when `providers.credentials` is set.
 	 *
 	 * @example
 	 * { environment: "Holocron" }

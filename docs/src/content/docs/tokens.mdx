@@ -36,10 +36,11 @@ A `credentials` provider is a second place to keep these tokens, ahead of the ke
 
 ```ts title="holocron.config.ts"
 export default defineConfig({
-  providers: { credentials: ["1password"] },
-  credentials: { environment: "Holocron" },
+  providers: { credentials: ["1password", { environment: "Holocron" }] },
 });
 ```
+
+Each provider names the environment it reads in its own `environment` option, because several providers may be listed and a 1Password Environment and an AWS secret are not called the same thing. A provider with no option falls back to the shared `credentials: { environment }` block, so one name can serve them all. Either way the CLI passes the name to the plugin when it reads; the plugin does not store it.
 
 Each variable in the Environment is named for the env var the command already reads (`HOLOCRON_ORG_TOKEN`, `HOLOCRON_DISCORD_BOT_TOKEN`, `CLOUDFLARE_API_TOKEN`, ...), so there is no mapping to keep. The Environment is read once per command, so Touch ID asks once for all of them. If `op` is missing, locked or gives no answer within 60 seconds, the provider is skipped and the keyring is tried.
 
@@ -48,9 +49,9 @@ Each variable in the Environment is named for the env var the command already re
 `op` cannot create an Environment or set a variable (checked on `op` 2.43.0-beta.02: `op environment` only has `read` and `secret list`), so this part is by hand:
 
 1. Install the CLI and turn on the desktop-app integration: `brew install 1password-cli`, then in the 1Password app, Settings, Developer, "Integrate with the 1Password CLI". `op environment secret list` needs a recent `op`: it is in 2.43.0-beta.02, and 2.35.0-beta.01 did not have it.
-2. In the 1Password app: Developer, View Environments, then create an Environment. Name it as `credentials.environment` says (`Holocron`).
+2. In the 1Password app: Developer, View Environments, then create an Environment. Name it as the provider's `environment` option says (`Holocron`).
 3. Add one variable per token, named for the env var, for example `HOLOCRON_ORG_TOKEN`. The names each command reads are in the [provider table](#provider-tokens) and the GitHub feature-token table above.
-4. Put `providers.credentials` and `credentials.environment` in `holocron.config.ts` as shown.
+4. Put `providers.credentials` with its `environment` option in `holocron.config.ts` as shown.
 5. Check it prints only the variable names: `op environment secret list Holocron` (add `--reveal` only when you want the values).
 
 ### Checking it

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ConfigError, resolveConfig, resolveEntry, resolvePluginPackage } from "./config.js";
+import { ConfigError, credentialsEnvironment, resolveConfig, resolveEntry, resolvePluginPackage } from "./config.js";
 
 describe("resolvePluginPackage", () => {
 	it("expands a short name to the @theholocron-scoped plugin package", () => {
@@ -247,6 +247,42 @@ describe("resolveConfig", () => {
 		expect((err as Error).message).toMatch(/credentials\.environment/);
 	});
 
+	it("accepts a credentials provider that names its own environment, with no shared one", () => {
+		const resolved = resolveConfig({
+			...minimal,
+			providers: { ...minimal.providers, credentials: [["1password", { environment: "Holocron" }]] },
+		});
+		const entry = resolved.providers.credentials;
+		expect(entry?.cardinality === "many" && credentialsEnvironment(entry.tuples[0]!, resolved)).toBe("Holocron");
+	});
+
+	it("rejects an empty environment option on a credentials provider", () => {
+		const err = (() => {
+			try {
+				resolveConfig({
+					...minimal,
+					providers: { ...minimal.providers, credentials: [["1password", { environment: " " }]] },
+					credentials: { environment: "Holocron" },
+				});
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect(err).toBeInstanceOf(ConfigError);
+		expect((err as Error).message).toMatch(/1password.*environment.*empty/);
+	});
+
+	it("names the provider that has no environment to read", () => {
+		const err = (() => {
+			try {
+				resolveConfig({ ...minimal, providers: { ...minimal.providers, credentials: ["1password"] } });
+			} catch (e) {
+				return e;
+			}
+		})();
+		expect((err as Error).message).toMatch(/`1password` credentials provider has no environment/);
+	});
+
 	it("rejects an empty credentials environment", () => {
 		const err = (() => {
 			try {
@@ -271,5 +307,26 @@ describe("resolveConfig", () => {
 		expect((err as ConfigError).message).toMatch(
 			/repoValidation\.docsCoverage.*"off", "warn", "required".*"strict"/
 		);
+	});
+});
+
+describe("credentialsEnvironment", () => {
+	const tuple = (options: Record<string, unknown>) => ({ provider: "1password", packageName: "p", options });
+
+	it("is the provider's own environment option when it has one", () => {
+		expect(credentialsEnvironment(tuple({ environment: "Own" }), { credentials: { environment: "Shared" } })).toBe(
+			"Own"
+		);
+	});
+
+	it("is the shared environment otherwise, or when the option is empty", () => {
+		expect(credentialsEnvironment(tuple({}), { credentials: { environment: "Shared" } })).toBe("Shared");
+		expect(credentialsEnvironment(tuple({ environment: " " }), { credentials: { environment: "Shared" } })).toBe(
+			"Shared"
+		);
+	});
+
+	it("is undefined when neither is set", () => {
+		expect(credentialsEnvironment(tuple({}), {})).toBeUndefined();
 	});
 });

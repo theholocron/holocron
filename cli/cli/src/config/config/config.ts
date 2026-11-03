@@ -7,6 +7,7 @@ import {
 	type TeamPermission,
 } from "../../plugin/capabilities/index.js";
 import type {
+	CredentialsConfig,
 	HolocronConfig,
 	ProviderOptions,
 	RawProviderEntry,
@@ -113,6 +114,19 @@ export function resolveEntry(key: CapabilityKey, raw: RawProviderEntry): Resolve
 /** The values `repoValidation.docsCoverage` accepts. */
 const DOCS_COVERAGE_MODES: readonly string[] = ["off", "warn", "required"];
 
+/**
+ * The environment a `credentials` provider reads: its own `environment` option when it has one, else the shared
+ * `credentials.environment`, else `undefined`. The option lets each of several providers name its own (a 1Password
+ * Environment and an AWS secret are not called the same thing) without the plugin storing the name.
+ */
+export function credentialsEnvironment(
+	tuple: ResolvedTuple,
+	config: { credentials?: CredentialsConfig }
+): string | undefined {
+	const own = tuple.options.environment;
+	return typeof own === "string" && own.trim() !== "" ? own : config.credentials?.environment;
+}
+
 /** Validates a raw `holocron.config` and resolves its provider entries; throws `ConfigError` when `name` or `providers` is missing or an entry is malformed. */
 export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (!raw.name) {
@@ -156,10 +170,21 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 			throw new ConfigError("`credentials.environment` must be the name of an environment, got an empty value");
 		}
 	}
-	if (providers.credentials && !raw.credentials) {
-		throw new ConfigError(
-			"`providers.credentials` is set but `credentials.environment` is not: name the environment to read"
-		);
+	const credentialsEntry = providers.credentials;
+	if (credentialsEntry?.cardinality === "many") {
+		for (const tuple of credentialsEntry.tuples) {
+			const own = tuple.options.environment;
+			if (own !== undefined && (typeof own !== "string" || own.trim() === "")) {
+				throw new ConfigError(
+					`the \`environment\` option of the \`${tuple.provider}\` credentials provider must be the name of an environment, got an empty value`
+				);
+			}
+			if (credentialsEnvironment(tuple, raw) === undefined) {
+				throw new ConfigError(
+					`the \`${tuple.provider}\` credentials provider has no environment to read: give it an \`environment\` option or set \`credentials.environment\``
+				);
+			}
+		}
 	}
 
 	// Derive homepage from docs.domain when not explicitly set

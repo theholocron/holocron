@@ -143,11 +143,50 @@ describe("doctor credentials", () => {
 		expect(report.reason).toBe("no `credentials` provider is configured");
 	});
 
-	it("skips when the config names a provider but no environment", async () => {
+	it("fails a provider that has neither its own environment option nor a shared one", async () => {
 		const loaded = loadedWith();
 		const noEnvironment = { ...loaded, resolved: { ...loaded.resolved, credentials: undefined } };
 		const { report } = await run(noEnvironment, inspecting("Holocron"));
-		expect(report.reason).toBe("`credentials.environment` is not set");
+		expect(report.status).toBe("fail");
+		expect(report.rows[0]?.detail).toContain("no `environment` option and `credentials.environment` is not set");
+	});
+
+	it("skips a loaded provider the config gives no environment", async () => {
+		const loaded = loadedWith();
+		const loader = {
+			load: async () => {},
+			loadedKeys: () => ["credentials"],
+			loadFailures: () => [],
+			has: () => true,
+			get: () => [
+				{
+					key: "credentials",
+					providerName: "stranger",
+					inspect: async () => ({ environment: "x", names: [] }),
+				},
+			],
+		} as unknown as PluginLoader;
+		const lines: string[] = [];
+		const report = await runDoctorCredentials({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			importer: tokensImporter,
+			print: (l) => lines.push(l),
+			logger: fakeLogger(),
+		});
+		expect(report.status).toBe("skip");
+		expect(report.reason).toBe("no `environment` option and `credentials.environment` is not set");
+	});
+
+	it("reads the environment a provider names itself, ahead of the shared one", async () => {
+		const impl = inspecting("Own", "HOLOCRON_ORG_TOKEN");
+		const loaded = loadedWith({
+			providers: { credentials: [["1password", { environment: "Own" }]], source: "github" },
+		});
+		const { report } = await run(loaded, impl);
+		expect(impl.inspect).toHaveBeenCalledWith("Own");
+		expect(report.status).toBe("ok");
 	});
 
 	it("takes a plugin that lists no tokens as expecting none", async () => {
@@ -155,16 +194,29 @@ describe("doctor credentials", () => {
 		expect(report.rows[0]?.status).toBe("ok");
 	});
 
-	it("prints to the console and builds its own loader and importer when it is given none", async () => {
+	it("prints to the console and loads the plugins' tokens itself when it is given neither", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
 		try {
-			const loaded = loadedWith({ providers: { credentials: ["1password"] } });
+			const loaded = loadedWith();
 			const report = await runDoctorCredentials({
 				loaded,
 				context: { repoRoot: "/tmp/test" },
+				loader: loaderWith(loaded, inspecting("Holocron")),
 			});
-			expect(report.rows.length).toBeGreaterThan(0);
+			// The real plugins' tokens are expected here, so a stub environment with none of them fails: only the row matters.
+			expect(report.rows[0]).toMatchObject({ id: "1password", status: "fail" });
 			expect(log).toHaveBeenCalled();
+		} finally {
+			log.mockRestore();
+		}
+	});
+
+	it("builds its own loader when it is given none, and runs no provider when none is configured", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const loaded = loadedWith({ providers: { source: "github" }, credentials: undefined });
+			const report = await runDoctorCredentials({ loaded, context: { repoRoot: "/tmp/test" } });
+			expect(report.reason).toBe("no `credentials` provider is configured");
 		} finally {
 			log.mockRestore();
 		}
