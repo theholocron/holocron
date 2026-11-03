@@ -7,3 +7,4 @@ export * from "./prompt-options/index.js";
 export * from "./prompt-positionals/index.js";
 export * from "./status-row/index.js";
 export * from "./style/index.js";
+export * from "./wait-for-enter/index.js";

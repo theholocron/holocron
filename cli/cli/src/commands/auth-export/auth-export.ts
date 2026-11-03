@@ -1,27 +1,42 @@
 /**
  * `holocron auth export` — print the tokens a configured plugin takes as `NAME=value` lines, to move them into a
- * credentials environment (`op` cannot write to a 1Password Environment, so the last step is the app's import or a paste).
+ * credentials environment (`op` cannot write to a 1Password Environment, so the last step is the app's import).
  *
  * The names come from the plugins' `tokens` (the list `doctor tokens` and `doctor credentials` use) and each value from
  * the OS keyring, or, with `--from-env`, from the environment first. Nothing but the lines ever carries a value: the
- * names, counts and what was not found go to stderr and the log gets counts only. The lines go to the clipboard when
- * stdout is a terminal (`clipboardy`, cross-platform), so they never land on a screen or in scrollback, to stdout when
- * it is a pipe, and nowhere when it is anything else (a regular file would leave plaintext tokens on disk).
+ * names, counts and what was not found go to stderr and the log gets counts only.
+ *
+ * Where the lines go: to stdout when it is a pipe; on a terminal to a private file (`.credentials`, mode 0600, which
+ * git must ignore and which is never overwritten) that is shredded once the import is done, so tokens are never
+ * printed to a screen or left in scrollback; to the clipboard when asked. A regular file as stdout (`> file`) is
+ * refused, because it would leave plaintext tokens on disk without any of those protections.
  */
 
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { copyToClipboard, dotenvLine, getToken, isKeyringAvailable } from "../../auth/index.js";
+import {
+	copyToClipboard,
+	dotenvLine,
+	getToken,
+	isGitIgnored,
+	isKeyringAvailable,
+	shredFile,
+	writeCredentialsFile,
+} from "../../auth/index.js";
 import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
+import { waitForEnter } from "../../ui/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
 import type { AuthExportReport, RunAuthExportInput } from "./auth-export.type.js";
 
 const COMMAND = "auth export";
+
+/** The file the lines go to on a terminal when none is named. */
+const DEFAULT_FILE = ".credentials";
 
 export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExportReport> {
 	const print = input.print ?? ((line: string) => console.error(line));
@@ -32,11 +47,37 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		return { status: "fail", exported: [], missing: [], conflicts: [], unsupported: [], unavailable: [] };
 	};
 
-	if (input.outKind === "other") {
+	// Once the lines are in the file, say what to do with it and, on a terminal, delete it when the import is done.
+	const finishFile = async (path: string): Promise<void> => {
+		print(`wrote ${path} (readable only by you)`);
+		print("import it in the 1Password app: Developer, View Environments, the Environment, Import .env file");
+		if (input.keep || !input.interactive) {
+			print(`it holds your tokens in plain text: delete it when you are done (rm ${path})`);
+			return;
+		}
+		const remove = () => (input.shred ?? shredFile)(path);
+		// Ctrl-C must not leave the file behind.
+		const onInterrupt = () => {
+			remove();
+			process.exit(130);
+		};
+		process.once("SIGINT", onInterrupt);
+		try {
+			await (input.waitForImport ?? waitForEnter)(
+				"press Enter when the import is done and the file will be deleted: "
+			);
+		} finally {
+			process.off("SIGINT", onInterrupt);
+			remove();
+		}
+		print(`deleted ${path}`);
+	};
+
+	if (!input.to && input.outKind === "other") {
 		return refuse(
 			"file",
-			"refusing to write tokens to a file: it would leave them on disk in plain text",
-			"run it on a terminal to copy them, or pipe the output to a tool"
+			"refusing to write tokens to a redirected file: it would leave them on disk with no protection",
+			"run it on a terminal to write the private, short-lived .credentials file, or pipe the output to a tool"
 		);
 	}
 	if (!(input.keyringAvailable ?? isKeyringAvailable)()) {
@@ -95,20 +136,41 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		exported.push(name);
 	}
 
+	const target = input.to ?? (input.outKind === "terminal" ? "file" : undefined);
 	let destination: AuthExportReport["destination"];
+	let file: string | undefined;
 	if (lines.length > 0) {
 		const text = `${lines.join("\n")}\n`;
-		if (input.outKind === "terminal") {
+		if (target === "clipboard") {
 			try {
 				await (input.copy ?? copyToClipboard)(text);
 			} catch (err) {
 				return refuse(
 					"clipboard",
 					`could not copy to the clipboard: ${errorMessage(err)}`,
-					"pipe the output to a tool instead, for example `holocron auth export | some-tool`"
+					"write the private file instead: `holocron auth export --file`"
 				);
 			}
 			destination = "clipboard";
+		} else if (target === "file") {
+			file = resolve(dirname(input.loaded.filepath), input.file || DEFAULT_FILE);
+			if ((input.isIgnored ?? isGitIgnored)(file) === false) {
+				return refuse(
+					"not-ignored",
+					`refusing to write tokens to ${file}: git does not ignore it, so it could be committed`,
+					"add it to .gitignore, or choose a path outside the repository with --file"
+				);
+			}
+			try {
+				(input.writeFile ?? writeCredentialsFile)(file, text, input.force === true);
+			} catch (err) {
+				return refuse(
+					"write",
+					`could not write ${file}: ${errorMessage(err)}`,
+					"an existing file is never overwritten: delete it, or pass --force to replace it"
+				);
+			}
+			destination = "file";
 		} else {
 			input.out(text);
 			destination = "out";
@@ -127,6 +189,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		print(`could not load, so the tokens they take are not listed: ${unavailable.join(", ")}`);
 	}
 	if (destination === "clipboard") print("copied to the clipboard: paste it, then clear the clipboard");
+	if (destination === "file" && file) await finishFile(file);
 	const status = exported.length > 0 ? "ok" : "skip";
 	logger.info(
 		{
@@ -148,5 +211,6 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		unsupported,
 		unavailable,
 		...(destination ? { destination } : {}),
+		...(file ? { file } : {}),
 	};
 }

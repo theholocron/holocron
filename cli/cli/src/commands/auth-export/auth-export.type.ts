@@ -4,10 +4,14 @@ import type { LoadedConfig } from "../../config/index.js";
 import type { AuthImporter } from "../auth/index.js";
 
 /**
- * Where stdout goes. A token is never written to a `terminal` (it would sit in scrollback), so it is copied instead,
- * and never to `other` (a regular file, which would leave plaintext tokens on disk); only a `pipe` receives the lines.
+ * What stdout is. A token is never written to a `terminal` (it would sit in scrollback) or to `other` (a redirect to
+ * a regular file, which would leave plaintext tokens on disk without the protections of the file option); only a
+ * `pipe` receives the lines. On a terminal they go to the file option instead, or the clipboard when asked.
  */
 export type AuthExportOutKind = "terminal" | "pipe" | "other";
+
+/** Where to put the lines instead of stdout: a private file, or the clipboard. */
+export type AuthExportTarget = "file" | "clipboard";
 
 export interface RunAuthExportInput {
 	/** The loaded config: its providers say which plugins to ask for the tokens they take. */
@@ -16,8 +20,29 @@ export interface RunAuthExportInput {
 	out: (text: string) => void;
 	/** What stdout is. Required, so a caller cannot forget it and have tokens written to a terminal or a file. */
 	outKind: AuthExportOutKind;
+	/**
+	 * Where to put the lines. Unset, a terminal gets the file and a pipe gets stdout. `clipboard` copies them even
+	 * when stdout is a pipe, and `file` writes the file even then.
+	 */
+	to?: AuthExportTarget;
+	/** The file for the file option, relative to the config's directory. Defaults to `.credentials`. */
+	file?: string;
+	/** Replace the file if it is already there. Without it an existing file is never overwritten. */
+	force?: boolean;
+	/** Leave the file in place instead of deleting it once the import is done. */
+	keep?: boolean;
+	/** Whether there is a terminal to ask on (stdin). Without one the file is left and the command says to delete it. */
+	interactive?: boolean;
 	/** Puts text on the system clipboard. Defaults to `clipboardy`, which uses the platform's own tool. */
 	copy?: (text: string) => Promise<void>;
+	/** Writes the private file. Defaults to {@link writeCredentialsFile}. */
+	writeFile?: (path: string, text: string, force: boolean) => void;
+	/** Overwrites and removes the file. Defaults to {@link shredFile}. */
+	shred?: (path: string) => void;
+	/** Whether git ignores the path (`null` outside a repository). Defaults to asking git. */
+	isIgnored?: (path: string) => boolean | null;
+	/** Waits for the user to finish importing. Defaults to waiting for Enter on the terminal. */
+	waitForImport?: (message: string) => Promise<void>;
 	/** Also take a token that is set in the environment, ahead of the keyring. */
 	fromEnv?: boolean;
 	/** Loads a plugin package for its `tokens`. Defaults to resolving from the directory of the loaded config. */
@@ -38,8 +63,10 @@ export interface RunAuthExportInput {
 export interface AuthExportReport {
 	/** `fail` when it could not write (clipboard, a file, an unreachable keyring), `skip` when no token was found, otherwise `ok`. */
 	status: "ok" | "fail" | "skip";
-	/** Where the lines went: the clipboard on a terminal, `out` on a pipe. Absent when nothing was written. */
-	destination?: "clipboard" | "out";
+	/** Where the lines went. Absent when nothing was written. */
+	destination?: "clipboard" | "file" | "out";
+	/** The file the lines were written to, when `destination` is `file` (a path, not a value). */
+	file?: string;
 	/** The variable names written, in order. */
 	exported: string[];
 	/** The variable names with no value anywhere. */

@@ -37,6 +37,36 @@ describe("auth export command", () => {
 		expect(runAuthExport.mock.calls[0]![0].fromEnv).toBe(true);
 	});
 
+	it("passes no target by default, so a terminal gets the file and a pipe stdout", async () => {
+		await runCommand(authExportCommand, ["export"]);
+		const input = runAuthExport.mock.calls[0]![0];
+		expect(input.to).toBeUndefined();
+		expect(input.file).toBeUndefined();
+		expect(input.force).toBe(false);
+		expect(input.keep).toBe(false);
+		expect(typeof input.interactive).toBe("boolean");
+	});
+
+	it("--file picks the file, with its path when given, and --force and --keep pass through", async () => {
+		await runCommand(authExportCommand, ["export", "--file", "out/.credentials", "--force", "--keep"]);
+		expect(runAuthExport.mock.calls[0]![0]).toMatchObject({
+			to: "file",
+			file: "out/.credentials",
+			force: true,
+			keep: true,
+		});
+		runAuthExport.mockClear();
+		await runCommand(authExportCommand, ["export", "--file"]);
+		const bare = runAuthExport.mock.calls[0]![0];
+		expect(bare.to).toBe("file");
+		expect(bare.file).toBeUndefined();
+	});
+
+	it("--copy picks the clipboard", async () => {
+		await runCommand(authExportCommand, ["export", "--copy"]);
+		expect(runAuthExport.mock.calls[0]![0].to).toBe("clipboard");
+	});
+
 	it("exits 1 when it failed, but not on a skip", async () => {
 		runAuthExport.mockResolvedValueOnce({ status: "skip", exported: [], missing: [] });
 		await runCommand(authExportCommand, ["export"]);

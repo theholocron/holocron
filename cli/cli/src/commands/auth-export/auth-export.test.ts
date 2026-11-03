@@ -1,3 +1,7 @@
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -8,6 +12,12 @@ vi.mock("../../auth/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../auth/index.js")>()),
 	getToken: () => null,
 	isKeyringAvailable: () => true,
+}));
+
+const waitForEnter = vi.hoisted(() => vi.fn(async (_message: string) => {}));
+vi.mock("../../ui/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../ui/index.js")>()),
+	waitForEnter,
 }));
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
@@ -128,9 +138,9 @@ describe("auth export — what it writes", () => {
 });
 
 describe("auth export — where it writes", () => {
-	it("puts the lines on the clipboard, and prints none, when stdout is a terminal", async () => {
+	it("puts the lines on the clipboard, and prints none, when asked for it", async () => {
 		const copy = vi.fn(async (_text: string) => {});
-		const { result, out, err } = run({ outKind: "terminal", copy });
+		const { result, out, err } = run({ outKind: "terminal", to: "clipboard", copy });
 		const report = await result;
 		expect(copy).toHaveBeenCalledExactlyOnceWith("HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
 		expect(out).toEqual([]);
@@ -141,14 +151,14 @@ describe("auth export — where it writes", () => {
 
 	it("copies with clipboardy by default", async () => {
 		write.mockClear();
-		const { result } = run({ outKind: "terminal" });
+		const { result } = run({ outKind: "terminal", to: "clipboard" });
 		await result;
 		expect(write).toHaveBeenCalledExactlyOnceWith("HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
 	});
 
 	it("copies nothing when no token is found, even on a terminal", async () => {
 		const copy = vi.fn(async (_text: string) => {});
-		const { result } = run({ outKind: "terminal", copy, keyring: () => null });
+		const { result } = run({ outKind: "terminal", to: "clipboard", copy, keyring: () => null });
 		expect((await result).status).toBe("skip");
 		expect(copy).not.toHaveBeenCalled();
 	});
@@ -156,23 +166,23 @@ describe("auth export — where it writes", () => {
 	it("fails with a way out when the clipboard cannot be written, and writes nothing", async () => {
 		const logger = fakeLogger();
 		const copy = vi.fn(async () => Promise.reject(new Error("no clipboard tool")));
-		const { result, out, err } = run({ outKind: "terminal", copy, logger });
+		const { result, out, err } = run({ outKind: "terminal", to: "clipboard", copy, logger });
 		const report = await result;
 		expect(report.status).toBe("fail");
 		expect(report.exported).toEqual([]);
 		expect(out).toEqual([]);
 		expect(err[0]).toBe("could not copy to the clipboard: no clipboard tool");
-		expect(err[1]).toMatch(/auth export \| some-tool/);
+		expect(err[1]).toMatch(/auth export --file/);
 		expect(logger.warn).toHaveBeenCalledWith({ status: "fail", reason: "clipboard" }, "auth export");
 	});
 
-	it("refuses a regular file, without reading the keyring or writing anything", async () => {
+	it("refuses a redirect to a regular file, without reading the keyring or writing anything", async () => {
 		const keyring = vi.fn(() => "x");
 		const { result, out, err } = run({ outKind: "other", keyring });
 		expect((await result).status).toBe("fail");
 		expect(keyring).not.toHaveBeenCalled();
 		expect(out).toEqual([]);
-		expect(err[0]).toMatch(/refusing to write tokens to a file/);
+		expect(err[0]).toMatch(/refusing to write tokens to a redirected file/);
 	});
 });
 
@@ -262,5 +272,164 @@ describe("auth export — defaults", () => {
 		} finally {
 			spy.mockRestore();
 		}
+	});
+});
+
+describe("auth export — the private file", () => {
+	const fresh = () => {
+		const dir = mkdtempSync(join(tmpdir(), "holocron-export-"));
+		const here: LoadedConfig = { ...loaded, filepath: join(dir, "holocron.config.json") };
+		return { dir, here, file: join(dir, ".credentials") };
+	};
+	const CONTENT = "HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n";
+	const base = {
+		outKind: "terminal" as const,
+		interactive: true,
+		isIgnored: () => true,
+		waitForImport: async () => {},
+	};
+
+	it("on a terminal writes a private .credentials next to the config, prints no value, then removes it", async () => {
+		const { here, file } = fresh();
+		const remove = vi.fn((p: string) => {
+			expect(readFileSync(p, "utf8")).toBe(CONTENT);
+			expect(statSync(p).mode & 0o777).toBe(0o600);
+		});
+		const { result, out, err } = run({ ...base, loaded: here, shred: remove });
+		const report = await result;
+		expect(report).toMatchObject({ status: "ok", destination: "file", file });
+		expect(remove).toHaveBeenCalledWith(file);
+		expect(out).toEqual([]);
+		expect(JSON.stringify(err)).not.toMatch(/ghp_org|sntry_1/);
+		expect(err).toContain(`wrote ${file} (readable only by you)`);
+		expect(err.at(-1)).toBe(`deleted ${file}`);
+	});
+
+	it("waits for the import before it deletes the file", async () => {
+		const { here } = fresh();
+		const order: string[] = [];
+		const { result } = run({
+			...base,
+			loaded: here,
+			waitForImport: async (message) => {
+				order.push(`wait: ${message}`);
+			},
+			shred: () => void order.push("remove"),
+		});
+		await result;
+		expect(order).toEqual(["wait: press Enter when the import is done and the file will be deleted: ", "remove"]);
+	});
+
+	it("deletes the file even when waiting fails", async () => {
+		const { here, file } = fresh();
+		const remove = vi.fn();
+		const { result } = run({
+			...base,
+			loaded: here,
+			shred: remove,
+			waitForImport: async () => Promise.reject(new Error("stdin closed")),
+		});
+		await expect(result).rejects.toThrow("stdin closed");
+		expect(remove).toHaveBeenCalledWith(file);
+	});
+
+	it("deletes the file on Ctrl-C and exits 130", async () => {
+		const { here, file } = fresh();
+		const exit = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+		const remove = vi.fn();
+		try {
+			const { result } = run({
+				...base,
+				loaded: here,
+				shred: remove,
+				waitForImport: async () => void process.emit("SIGINT"),
+			});
+			await result;
+			expect(exit).toHaveBeenCalledWith(130);
+			expect(remove).toHaveBeenCalledWith(file);
+			expect(process.listenerCount("SIGINT")).toBe(0);
+		} finally {
+			exit.mockRestore();
+		}
+	});
+
+	it("keeps the file with --keep, and says to delete it", async () => {
+		const { here, file } = fresh();
+		const remove = vi.fn();
+		const { result, err } = run({ ...base, loaded: here, shred: remove, keep: true });
+		await result;
+		expect(remove).not.toHaveBeenCalled();
+		expect(existsSync(file)).toBe(true);
+		expect(err.at(-1)).toBe(`it holds your tokens in plain text: delete it when you are done (rm ${file})`);
+	});
+
+	it("keeps the file, and says so, when there is no terminal to ask on", async () => {
+		const { here, file } = fresh();
+		const remove = vi.fn();
+		const waitForImport = vi.fn(async () => {});
+		const { result, err } = run({ ...base, loaded: here, shred: remove, waitForImport, interactive: false });
+		await result;
+		expect(waitForImport).not.toHaveBeenCalled();
+		expect(remove).not.toHaveBeenCalled();
+		expect(err.at(-1)).toContain(`delete it when you are done (rm ${file})`);
+	});
+
+	it("refuses a path git would track, and writes nothing", async () => {
+		const { here, file } = fresh();
+		const { result, err } = run({ ...base, loaded: here, isIgnored: () => false });
+		expect((await result).status).toBe("fail");
+		expect(existsSync(file)).toBe(false);
+		expect(err[0]).toContain("git does not ignore it, so it could be committed");
+	});
+
+	it("writes when git has no answer (not a repository)", async () => {
+		const { here, file } = fresh();
+		const { result } = run({ ...base, loaded: here, isIgnored: () => null, keep: true });
+		expect((await result).status).toBe("ok");
+		expect(existsSync(file)).toBe(true);
+	});
+
+	it("never overwrites a file that is there, and says how to replace it", async () => {
+		const { here, file } = fresh();
+		writeFileSync(file, "keep me");
+		const { result, err } = run({ ...base, loaded: here });
+		expect((await result).status).toBe("fail");
+		expect(readFileSync(file, "utf8")).toBe("keep me");
+		expect(err[0]).toContain(`could not write ${file}`);
+		expect(err[1]).toContain("--force");
+	});
+
+	it("replaces it with --force", async () => {
+		const { here, file } = fresh();
+		writeFileSync(file, "old");
+		const { result } = run({ ...base, loaded: here, force: true, keep: true });
+		expect((await result).status).toBe("ok");
+		expect(readFileSync(file, "utf8")).toBe(CONTENT);
+	});
+
+	it("writes the file when asked even if stdout is a pipe, at a path given relative to the config", async () => {
+		const { dir, here } = fresh();
+		const { result, out } = run({
+			...base,
+			loaded: here,
+			outKind: "pipe",
+			to: "file",
+			file: "sub.env",
+			keep: true,
+		});
+		const report = await result;
+		expect(report.file).toBe(join(dir, "sub.env"));
+		expect(readFileSync(join(dir, "sub.env"), "utf8")).toBe(CONTENT);
+		expect(out).toEqual([]);
+	});
+
+	it("uses the real writer, git check and remover, and the terminal prompt, by default", async () => {
+		const { here, file } = fresh();
+		waitForEnter.mockClear();
+		const { result } = run({ outKind: "terminal", interactive: true, loaded: here });
+		expect((await result).status).toBe("ok");
+		expect(waitForEnter).toHaveBeenCalledOnce();
+		// Not a git repository, so there is no objection, and the real remover has deleted it.
+		expect(existsSync(file)).toBe(false);
 	});
 });
