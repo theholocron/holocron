@@ -83,6 +83,8 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	const refreshOrigin = input.refresh || input.refreshOrigin;
 	const refreshTitles = input.refresh || input.refreshTitles;
 
+	// The id lines are rewritten, and counted, once the files are on the default branch: no open pull request, a known repo.
+	const linking = !input.withdraw && repo !== undefined && input.pr === undefined;
 	let documents: SpecDocument[];
 	let syncOne: (doc: SpecDocument) => Promise<SpecSyncOutcome>;
 	if (input.withdraw) {
@@ -133,7 +135,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				...(refreshTitles ? { refreshTitles: true } : {}),
 				...(input.refresh ? { refreshLinks: true } : {}),
 				// The id links to the file on the default branch, which a pull request still open is not on yet: its `PR:` line is the link.
-				...(repo && input.pr === undefined ? { link: { repo, branch } } : {}),
+				...(linking ? { link: { repo: repo!, branch } } : {}),
 				...(ids.has(doc.path) ? { assignedId: ids.get(doc.path)! } : {}),
 				...(repo && prNumber(doc.path)
 					? {
@@ -203,7 +205,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	if (refreshTitles) {
 		print(style.header(`${renamed} title(s) ${dryRun ? "would be renamed" : "renamed"}`));
 	}
-	if (input.refresh) {
+	if (input.refresh || linking) {
 		print(style.header(`${linked} id line(s) ${dryRun ? "would be rewritten" : "rewritten"}`));
 	}
 	const status = failed > 0 ? "fail" : dryRun ? "dry-run" : "ok";
@@ -218,7 +220,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		files,
 		...(refreshOrigin ? { rewritten } : {}),
 		...(refreshTitles ? { renamed } : {}),
-		...(input.refresh ? { linked } : {}),
+		...(input.refresh || linking ? { linked } : {}),
 		...(rateLimited ? { rateLimited } : {}),
 	};
 }

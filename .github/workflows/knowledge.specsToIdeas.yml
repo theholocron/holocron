@@ -6,7 +6,7 @@
 # Keeps a forum post in #ideas for every ADR and spec, in step with the files (#1535, spec
 # `tech-specs-discussion-threads`). It runs `holocron specs sync`, which makes the posts (titled with the document's own title, tagged
 # with the status), writes each post's address into its file as `discussion.url`, and, when a gatekeeper changed a post's
-# tag, changes the file's `status:` line. Those are edits to the working tree only: this workflow commits them to the
+# tag, changes the file's `status:` line. It also links the id that opens a post to its file once the file is on `alpha` (#1663), which edits the post only. Those are edits to the working tree only: this workflow commits them to the
 # branch `chore/specs-sync` and opens one pull request, so a status change reaches `alpha` only through a review.
 #
 # - Every hour, so a retag becomes a pull request within the hour.

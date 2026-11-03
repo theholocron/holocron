@@ -602,8 +602,8 @@ describe("runSpecsSync", () => {
 		});
 
 		it("is the same as the individual flags together, which still each do only their own repair", async () => {
-			const onlyTitles = withPost(post());
-			const onlyOrigin = withPost(post());
+			const onlyTitles = withPost(post({ idLine: NEW_LINE }));
+			const onlyOrigin = withPost(post({ idLine: NEW_LINE }));
 
 			await setup(onlyTitles, makeIo(files, origins).io, { refreshTitles: true, defaultBranch: "alpha" }).run();
 			await setup(onlyOrigin, makeIo(files, origins).io, { refreshOrigin: true, defaultBranch: "alpha" }).run();
@@ -614,6 +614,122 @@ describe("runSpecsSync", () => {
 			expect(onlyOrigin.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", {
 				prLine: "PR: [#5](<https://github.com/theholocron/holocron/pull/5>)",
 			});
+		});
+	});
+
+	describe("the normal sync links a plain id once its file is on the default branch", () => {
+		const files = { ".notes/a.spec.md": spec("A", "proposed") };
+		const origins = { ".notes/a.spec.md": { time: 1, pr: 5 } };
+		const LINKED = "[SPEC-0001](<https://github.com/theholocron/holocron/blob/alpha/.notes/a.spec.md>)";
+		const post = (over: Partial<DiscussionPost> = {}): DiscussionPost => ({
+			url: URL,
+			state: "proposed",
+			synced: "proposed",
+			// Differs from what the rules write: neither is touched without its flag.
+			title: "Something renamed by hand",
+			prLine: "PR: [#4](<https://github.com/theholocron/holocron/pull/4>)",
+			idLine: "SPEC-0001",
+			...over,
+		});
+		const withPost = (current: DiscussionPost) =>
+			fakeNotifications({
+				ensureDiscussion: vi.fn(async () => ({ post: current, created: false })),
+				readDiscussion: vi.fn(async () => current),
+			});
+
+		it("rewrites only the id line of a plain post, with the existing row and count", async () => {
+			const n = withPost(post());
+			const { run, lines } = setup(n, makeIo(files, origins).io, { defaultBranch: "alpha" });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).toHaveBeenCalledTimes(1);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { idLine: LINKED });
+			expect(report.linked).toBe(1);
+			expect(report.rewritten).toBeUndefined();
+			expect(report.renamed).toBeUndefined();
+			const out = lines.join("\n");
+			expect(out).toContain("linked the id to the file");
+			expect(out).toContain("1 id line(s) rewritten");
+			expect(out).not.toContain("PR line(s)");
+		});
+
+		it("makes no Discord call for a run where every post is already right", async () => {
+			const two = {
+				".notes/a.spec.md": spec("A", "proposed", "SPEC-0001"),
+				".notes/b.spec.md": spec("B", "proposed", "SPEC-0002"),
+			};
+			const right = (path: string, id: string): DiscussionPost =>
+				post({
+					idLine: `[${id}](<https://github.com/theholocron/holocron/blob/alpha/${path}>)`,
+					title: "A",
+					prLine: undefined,
+				});
+			const ensureDiscussion = vi.fn(async (input: { key: string }) => ({
+				post: right(input.key, input.key.includes("/a.") ? "SPEC-0001" : "SPEC-0002"),
+				created: false,
+			}));
+			const n = fakeNotifications({ ensureDiscussion: ensureDiscussion as never });
+			const { run, lines } = setup(n, makeIo(two).io, { defaultBranch: "alpha" });
+
+			const report = await run();
+
+			// One ensure per document (it reads the posts the forum already loaded), and nothing else.
+			expect(ensureDiscussion).toHaveBeenCalledTimes(2);
+			expect(n.readDiscussion).not.toHaveBeenCalled();
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.linked).toBe(0);
+			expect(lines.join("\n")).toContain("0 id line(s) rewritten");
+		});
+
+		it("leaves the id plain for an open pull request (--pr), and prints no count", async () => {
+			const n = withPost(post());
+			const { run, lines } = setup(n, makeIo(files).io, { pr: 7, defaultBranch: "alpha" });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.linked).toBeUndefined();
+			expect(lines.join("\n")).not.toContain("id line(s)");
+		});
+
+		it("leaves the id plain when the repository is not known", async () => {
+			const n = withPost(post());
+			const { run } = setup(n, makeIo(files).io, { org: "" });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.linked).toBeUndefined();
+		});
+
+		it("on a dry run says it would link the id and counts it, and changes nothing", async () => {
+			const n = withPost(post());
+			const { run, lines } = setup(n, makeIo(files, origins).io, { dryRun: true, defaultBranch: "alpha" });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.linked).toBe(1);
+			const out = lines.join("\n");
+			expect(out).toContain("would link the id to the file");
+			expect(out).toContain("1 id line(s) would be rewritten");
+		});
+
+		it("stops cleanly at a rate limit and leaves the rest for the next run", async () => {
+			const updateDiscussion = vi
+				.fn()
+				.mockRejectedValue(new ProviderApiError("Discord 429", 429, '{"retry_after":3}'));
+			const n = fakeNotifications({
+				ensureDiscussion: vi.fn(async () => ({ post: post(), created: false })),
+				updateDiscussion,
+			});
+
+			const report = await setup(n, makeIo(files, origins).io, {}).run();
+
+			expect(report.status).toBe("ok");
+			expect(report.rateLimited).toEqual({ left: 1, retryAfter: 3 });
+			expect(report.linked).toBe(0);
 		});
 	});
 
@@ -719,6 +835,9 @@ describe("runSpecsSync", () => {
 			expect(n.ensureDiscussion).not.toHaveBeenCalled();
 			expect(written).toEqual({});
 			expect(lines.join("\n")).toContain("withdrew the post");
+			// Nothing else changes: no id line is looked at, none counted.
+			expect(report.linked).toBeUndefined();
+			expect(lines.join("\n")).not.toContain("id line(s)");
 		});
 
 		it("keeps the post of a file the base branch already has, and of a file with no post", async () => {
