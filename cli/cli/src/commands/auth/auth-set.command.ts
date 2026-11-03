@@ -1,7 +1,7 @@
 import type { CommandModule } from "yargs";
 
 import { type GlobalArgs } from "../../cli-support/index.js";
-import { loadConfig } from "../../config/index.js";
+import { credentialsEnvironment, loadConfig } from "../../config/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
 import { promptForPositionals } from "../../ui/index.js";
 import { type AuthSetArgs, authSetArgs } from "./auth-set.args.js";
@@ -15,9 +15,9 @@ async function credentialsOf(cwd: string): Promise<{ provider: string; environme
 	try {
 		const { resolved } = await loadConfig(cwd);
 		const entry = resolved.providers.credentials;
-		const environment = resolved.credentials?.environment;
-		const provider = entry?.cardinality === "many" ? entry.tuples[0]?.provider : undefined;
-		return provider && environment ? { provider, environment } : undefined;
+		const tuple = entry?.cardinality === "many" ? entry.tuples[0] : undefined;
+		const environment = tuple && credentialsEnvironment(tuple, resolved);
+		return tuple && environment ? { provider: tuple.provider, environment } : undefined;
 	} catch {
 		return undefined;
 	}

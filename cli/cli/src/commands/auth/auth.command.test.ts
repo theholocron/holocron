@@ -7,7 +7,10 @@ const runAuthList = vi.hoisted(() => vi.fn(async () => {}));
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 const loadConfig = vi.hoisted(() => vi.fn(async (_cwd: string): Promise<unknown> => ({ resolved: { providers: {} } })));
 vi.mock("./index.js", () => ({ runAuthSet, runAuthUnset, runAuthCheck, runAuthList }));
-vi.mock("../../config/index.js", () => ({ loadConfig }));
+vi.mock("../../config/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../config/index.js")>()),
+	loadConfig,
+}));
 vi.mock("../../ui/index.js", () => ({
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["provider"]],
 }));
@@ -39,7 +42,7 @@ describe("auth commands", () => {
 	it("`auth set` passes the credentials provider and environment the config names", async () => {
 		loadConfig.mockResolvedValueOnce({
 			resolved: {
-				providers: { credentials: { cardinality: "many", tuples: [{ provider: "1password" }] } },
+				providers: { credentials: { cardinality: "many", tuples: [{ provider: "1password", options: {} }] } },
 				credentials: { environment: "Holocron" },
 			},
 		});

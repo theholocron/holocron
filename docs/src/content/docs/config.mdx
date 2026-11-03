@@ -152,10 +152,10 @@ export default defineConfig({
     logs: "axiom",
   },
 
-  // Which environment the `credentials` providers (`providers.credentials`) read
-  // this machine's tokens from. A name, not a secret, so it is committed. It is
-  // required when `providers.credentials` is set, and kept out of the provider's
-  // options so swapping the provider is one line in `providers`.
+  // The default environment for the `credentials` providers (`providers.credentials`).
+  // A name, not a secret, so it is committed. A provider can name its own instead,
+  // `credentials: ["1password", { environment: "Holocron" }]`, which wins; each
+  // provider needs one or the other.
   credentials: { environment: "Holocron" },
 
   // Structured-logging config. `level` is the lowest-priority level source:

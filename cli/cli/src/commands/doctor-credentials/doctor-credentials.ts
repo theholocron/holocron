@@ -10,6 +10,7 @@
 
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { credentialsEnvironment, type ResolvedProviderEntry } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Credentials, PluginLoader } from "../../plugin/index.js";
 import { defaultImporter } from "../auth/index.js";
@@ -58,10 +59,6 @@ async function checkCredentials(input: RunDoctorCredentialsInput, loader: Plugin
 	if (!resolved.providers.credentials) {
 		return [row("credentials", "skip", "no `credentials` provider is configured")];
 	}
-	const environment = resolved.credentials?.environment;
-	if (!environment) {
-		return [row("credentials", "skip", "`credentials.environment` is not set")];
-	}
 	const rows: CheckRow[] = loader
 		.loadFailures()
 		.filter((f) => f.key === "credentials")
@@ -69,8 +66,16 @@ async function checkCredentials(input: RunDoctorCredentialsInput, loader: Plugin
 	if (!loader.has("credentials")) return rows;
 
 	const expected = await expectedNames(input);
+	// `credentials` is a many-cardinality capability, so its entry always has a list of providers.
+	const { tuples } = resolved.providers.credentials as Extract<ResolvedProviderEntry, { cardinality: "many" }>;
 	for (const impl of loader.get("credentials") as Credentials[]) {
-		rows.push(await checkProvider(impl, environment, expected));
+		const tuple = tuples.find((t) => t.provider === impl.providerName);
+		const environment = tuple && credentialsEnvironment(tuple, resolved);
+		rows.push(
+			environment
+				? await checkProvider(impl, environment, expected)
+				: row(impl.providerName, "skip", "no `environment` option and `credentials.environment` is not set")
+		);
 	}
 	return rows;
 }

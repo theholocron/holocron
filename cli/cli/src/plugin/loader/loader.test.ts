@@ -709,6 +709,16 @@ describe("PluginLoader — credentials", () => {
 		expect(loader.get("credentials")).toEqual([impl]);
 	});
 
+	it("reads the environment a provider names itself, ahead of the shared one", async () => {
+		const own = creds(async () => ({ T: "own" }));
+		const { loader } = loaderWith(config({ providers: { credentials: [["1password", { environment: "Own" }]] } }), {
+			"@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: own }),
+		});
+		await loader.load();
+		expect(own.read).toHaveBeenCalledExactlyOnceWith("Own");
+		expect(getCredential("T")).toBe("own");
+	});
+
 	it("does not read a source again that an earlier loader already read", async () => {
 		const impl = creds(async () => ({ T: "x" }));
 		const modules = { "@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }) };

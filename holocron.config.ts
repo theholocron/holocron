@@ -118,6 +118,10 @@ export default defineConfig({
 	providers: {
 		...providers,
 		secrets: "github",
+		// Credentials: this machine reads its own tokens from the 1Password Environment named here (matched exactly;
+		// see docs: tokens), ahead of the keyring (#1606). A token in the process environment or a repo-root `.env`
+		// still wins, and CI sets its own.
+		credentials: ["1password", { environment: "Holocron" }],
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
 		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
