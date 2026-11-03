@@ -1,4 +1,5 @@
 ---
+id: SPEC-0065
 status: proposed
 issue: theholocron/holocron#1595
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#1160
   - theholocron/holocron#1582
   - theholocron/holocron#1100
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1567214024330973367
 ---
 
 # Sentinel-hosted role sync

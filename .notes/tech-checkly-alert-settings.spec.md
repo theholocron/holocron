@@ -1,10 +1,13 @@
 ---
+id: SPEC-0066
 status: proposed
 issue: theholocron/holocron#1599
 blocked-by: []
 related:
   - theholocron/holocron#1160
   - theholocron/holocron#1582
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1567217176358813729
 ---
 
 # Checkly alert channels: more settings, and routing a check to chosen channels
