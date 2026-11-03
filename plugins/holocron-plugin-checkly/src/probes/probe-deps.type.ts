@@ -1,7 +1,11 @@
+import type { MonitoringCheckInput } from "@theholocron/cli";
+
 import type { ChecklyClient } from "../rest.js";
 
 export interface ChecklyProbeDeps {
 	client: () => ChecklyClient;
+	/** The checks the config declares, to know which ones are routed away from the alert channel. */
+	checks?: readonly MonitoringCheckInput[];
 	env?: Record<string, string | undefined>;
 	/** Waits between status reads. Defaults to a real timer. */
 	sleep?: (ms: number) => Promise<void>;

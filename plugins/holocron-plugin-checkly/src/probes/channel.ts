@@ -1,18 +1,19 @@
 import type { Probe } from "@theholocron/cli";
 
 import { DISCORD_TEMPLATE } from "../rest.js";
+import { routedAway } from "../routing.js";
 import { sameTemplate } from "../same-template.js";
 import { findChannel } from "./find-channel.js";
 import type { ChecklyProbeDeps } from "./probe-deps.type.js";
 
 const PAGE = 100;
 
-async function allCheckIds(client: ReturnType<ChecklyProbeDeps["client"]>): Promise<string[]> {
-	const ids: string[] = [];
+async function allChecks(client: ReturnType<ChecklyProbeDeps["client"]>): Promise<{ id: string; name: string }[]> {
+	const found: { id: string; name: string }[] = [];
 	for (let page = 1; ; page++) {
 		const batch = await client.checks.list({ limit: PAGE, page });
-		ids.push(...batch.map((c) => c.id));
-		if (batch.length < PAGE) return ids;
+		found.push(...batch.map((c) => ({ id: c.id, name: c.name })));
+		if (batch.length < PAGE) return found;
 	}
 }
 
@@ -50,7 +51,10 @@ export function channelProbe(deps: ChecklyProbeDeps): Probe {
 							detail: "run `holocron notifications setup` to put it back",
 						}
 			);
-			const [ids] = await Promise.all([allCheckIds(client)]);
+			// A check the config routes to other channels is not expected on this one.
+			const ids = (await allChecks(client))
+				.filter((c) => !routedAway(deps.checks ?? [], c.name, channel.config.name))
+				.map((c) => c.id);
 			const subscribed = new Set(
 				channel.subscriptions.filter((s) => s.checkId && s.activated !== false).map((s) => s.checkId)
 			);

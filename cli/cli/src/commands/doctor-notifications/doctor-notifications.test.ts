@@ -2127,6 +2127,7 @@ describe("runDoctorNotifications — the monitoring feed", () => {
 			discord: true,
 			webhookId: "1234567",
 			unsubscribed: [],
+			misrouted: [],
 			deactivated: [],
 			...over,
 		}));

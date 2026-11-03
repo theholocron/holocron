@@ -43,7 +43,7 @@ When no provider is configured or it declares no checks, the row says `none decl
 
 ## Not covered
 
-The alert channel and its subscriptions come from the notification layout, so they belong to [`doctor notifications`](/holocron/commands/doctor-notifications/). Whether an alert reaches the channel is a probe, not a doctor check.
+The alert channel, its alert settings (`feeds.monitoring.alerts`) and its subscriptions, including which checks are routed to it with `alertChannels`, come from the notification layout, so they belong to [`doctor notifications`](/holocron/commands/doctor-notifications/). Whether an alert reaches the channel is a probe, not a doctor check.
 
 ## Authentication
 

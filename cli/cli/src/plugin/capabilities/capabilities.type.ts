@@ -1386,6 +1386,12 @@ export interface MonitoringCheckInput {
 	 * Omitted entirely by default (no body sent).
 	 */
 	body?: string;
+	/**
+	 * Route this check to specific alert channels, by their names (the `feeds.monitoring` name of a notifications channel,
+	 * `Message to #uptime` by default). Absent, the check alerts through every alert channel; given, only through the
+	 * ones named. A name no alert channel carries is refused by `notifications setup`.
+	 */
+	alertChannels?: string[];
 }
 
 /** A check as the provider holds it. */
@@ -1394,6 +1400,23 @@ export interface MonitoringCheck {
 	id: string;
 	/** The check's name. */
 	name: string;
+}
+
+/**
+ * What an alert channel alerts about. A field left out is left alone on an existing channel and, on a new one, takes
+ * the default: `failure`, `recovery` and `degraded` on, `sslExpiry` off.
+ */
+export interface MonitoringAlertSettings {
+	/** Alert when a check fails. */
+	failure?: boolean;
+	/** Alert when a failing check recovers. */
+	recovery?: boolean;
+	/** Alert when a check turns degraded (slower than its degraded threshold). */
+	degraded?: boolean;
+	/** Alert before a certificate expires. */
+	sslExpiry?: boolean;
+	/** Days before expiry that `sslExpiry` alerts at. */
+	sslExpiryThreshold?: number;
 }
 
 /** A place the monitoring provider sends its alerts: a webhook that posts into a chat channel. */
@@ -1408,13 +1431,15 @@ export interface MonitoringAlertChannelInput {
 	 * cannot be created.
 	 */
 	url?: string;
+	/** What the channel alerts about; see {@link MonitoringAlertSettings}. */
+	alerts?: MonitoringAlertSettings;
 }
 
 /** What {@link Monitoring.ensureAlertChannel} did. */
 export interface MonitoringAlertChannelResult {
 	/** Whether the channel was made now rather than already existing. */
 	created: boolean;
-	/** For an existing channel, what was brought in line (`"url"`, `"subscriptions"`). */
+	/** For an existing channel, what was brought in line (`"url"`, `"alerts"`, `"subscriptions"`). */
 	updated: string[];
 	/** How many checks the channel is subscribed to afterwards. */
 	subscribed: number;
@@ -1431,8 +1456,18 @@ export interface MonitoringAlertChannelState {
 	discord?: boolean;
 	/** The id of the Discord webhook the channel posts through, read from its URL. Absent when the URL is not one. */
 	webhookId?: string;
-	/** Names of the checks on the account that the channel is not subscribed to. */
+	/** What the channel alerts about now. Absent when the channel does not exist. */
+	alerts?: Required<MonitoringAlertSettings>;
+	/** Names of the checks routed to the channel (all of them, unless a check names its `alertChannels`) that it is not subscribed to. */
 	unsubscribed: string[];
+	/** Names of the checks routed away from the channel (by their `alertChannels`) that it is still subscribed to. */
+	misrouted: string[];
+	/**
+	 * How many check groups the channel is subscribed to (and has switched on), reported only when some check is routed
+	 * away from the channel. A group's subscription alerts for every check in the group, including one routed elsewhere,
+	 * and which checks a group holds cannot be read, so these are named for a person to check.
+	 */
+	groupSubscriptions?: number;
 	/** Names of the checks the channel is subscribed to but has switched off. */
 	deactivated: string[];
 }
@@ -1470,8 +1505,10 @@ export interface Monitoring extends ProviderIdentity {
 	 */
 	listChecks?(): Promise<MonitoringCheckInput[]>;
 	/**
-	 * Find-or-create-or-update an alert channel by name and subscribe every check the provider has to it. Checks made
-	 * through an API are never subscribed automatically, so a later run subscribes the ones added since.
+	 * Find-or-create-or-update an alert channel by name, apply the alert settings `input.alerts` states, and subscribe the
+	 * checks routed to it: every check the provider has, except a configured check whose `alertChannels` names others.
+	 * Checks made through an API are never subscribed automatically, so a later run subscribes the ones added since.
+	 * Subscriptions are only added, never removed.
 	 * Optional — a provider with no alert channels omits it.
 	 */
 	ensureAlertChannel?(input: MonitoringAlertChannelInput): Promise<MonitoringAlertChannelResult>;
@@ -1635,6 +1672,18 @@ export interface NotificationsForumTag {
  */
 export type NotificationsPicture = string | { url?: string; image?: string };
 
+/** The object form of a channel's `feeds.monitoring`: the names, picture and alert settings of its monitoring feed. */
+export interface NotificationsMonitoringFeed {
+	/** The alert channel's name; default `Message to #<channel>`. */
+	name?: string;
+	/** The dedicated webhook's name; default the provider's name, capitalised. */
+	webhook?: string;
+	/** A picture for that webhook: a path or `https://` URL, or `{ url, image }`. */
+	avatar?: NotificationsPicture;
+	/** What the alert channel alerts about: `failure`, `recovery`, `degraded`, `sslExpiry`, `sslExpiryThreshold`. */
+	alerts?: MonitoringAlertSettings;
+}
+
 /** One channel in a {@link NotificationsLayout}. */
 export interface NotificationsChannelLayout {
 	/** The channel's name. */
@@ -1673,7 +1722,7 @@ export interface NotificationsChannelLayout {
 		 * `{ url, image }` with a fallback) in the provider's list of integrations. Left out, it wears the layout's `webhookAvatar`, as every webhook does. A picture is set only on a
 		 * webhook that has none; the posts carry the service's own name and icon either way.
 		 */
-		monitoring?: boolean | { name?: string; webhook?: string; avatar?: NotificationsPicture };
+		monitoring?: boolean | NotificationsMonitoringFeed;
 		/**
 		 * The error tracker's alerts, carried in by the relay Worker (see `relay`). The channel gets a dedicated webhook
 		 * (default the `errors` provider's name, capitalised) whose URL goes to the Worker as a secret and nowhere else.

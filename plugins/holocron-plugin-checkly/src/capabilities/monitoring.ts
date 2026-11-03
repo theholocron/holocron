@@ -15,6 +15,7 @@ import {
 	type MonitoringAlertChannelInput,
 	type MonitoringAlertChannelResult,
 	type MonitoringAlertChannelState,
+	type MonitoringAlertSettings,
 	type MonitoringAssertion,
 	type MonitoringCheck,
 	type MonitoringCheckInput,
@@ -32,6 +33,7 @@ import type {
 	ChecklyClient,
 } from "../rest.js";
 import { DISCORD_TEMPLATE } from "../rest.js";
+import { routedAway as routedAwayFrom } from "../routing.js";
 import { sameTemplate } from "../same-template.js";
 
 const SOURCE_MAP: Record<string, AssertionSource> = {
@@ -111,6 +113,19 @@ function toChecklyPayload(input: MonitoringCheckInput): ApiCheckInput {
 	};
 }
 
+/** The Checkly fields an alert channel's settings map to, for the settings the config states. */
+function alertFields(
+	alerts: MonitoringAlertSettings | undefined
+): Pick<AlertChannelInput, "sendFailure" | "sendRecovery" | "sendDegraded" | "sslExpiry" | "sslExpiryThreshold"> {
+	return {
+		...(alerts?.failure !== undefined ? { sendFailure: alerts.failure } : {}),
+		...(alerts?.recovery !== undefined ? { sendRecovery: alerts.recovery } : {}),
+		...(alerts?.degraded !== undefined ? { sendDegraded: alerts.degraded } : {}),
+		...(alerts?.sslExpiry !== undefined ? { sslExpiry: alerts.sslExpiry } : {}),
+		...(alerts?.sslExpiryThreshold !== undefined ? { sslExpiryThreshold: alerts.sslExpiryThreshold } : {}),
+	};
+}
+
 export interface ChecklyMonitoringOptions {
 	checks?: MonitoringCheckInput[];
 }
@@ -166,9 +181,12 @@ export class ChecklyMonitoring implements Monitoring {
 
 	/**
 	 * A Discord alert channel: a `WEBHOOK` Checkly formats for Discord. Found by name, so one made by hand is adopted and
-	 * kept up to date, not duplicated. Every check on the account is subscribed, since a check made through the API is
-	 * never subscribed on its own; subscriptions already there (including ones to checks outside Holocron) are kept.
-	 * An existing channel keeps its own message template and send settings.
+	 * kept up to date, not duplicated. Every check routed to the channel is subscribed (all of them, unless a configured
+	 * check names its `alertChannels`; a check the config does not declare is not subject to routing), since a check
+	 * made through the API is never subscribed on its own; subscriptions already there (including ones to checks outside
+	 * Holocron, and ones to a check routed elsewhere) are kept, never removed. The alert settings the config states
+	 * (`input.alerts`) are applied; an existing channel keeps every other send setting, and its message template only
+	 * while it is the shipped one.
 	 *
 	 * Subscriptions go through Checkly's subscriptions call and are then read back: its create and update accept a
 	 * `subscriptions` list but were seen not to apply it, so the count returned is what Checkly holds, and a check that
@@ -176,7 +194,8 @@ export class ChecklyMonitoring implements Monitoring {
 	 */
 	async ensureAlertChannel(input: MonitoringAlertChannelInput): Promise<MonitoringAlertChannelResult> {
 		const client = this.client();
-		const [channels, checkIds] = await Promise.all([client.alertChannels.list(), this.allCheckIds()]);
+		const [channels, allChecks] = await Promise.all([client.alertChannels.list(), this.allChecks()]);
+		const checkIds = this.routedTo(input.name, allChecks).routed.map((c) => c.id);
 		const existing = channels.find(
 			(c): c is Extract<AlertChannel, { type: "WEBHOOK" }> => c.type === "WEBHOOK" && c.config.name === input.name
 		);
@@ -202,6 +221,7 @@ export class ChecklyMonitoring implements Monitoring {
 				sendRecovery: true,
 				sendDegraded: true,
 				autoSubscribe: false,
+				...alertFields(input.alerts),
 			});
 			const { active } = await this.subscribeMissing(created.id, input.name, checkIds);
 			return { created: true, updated: [], subscribed: active };
@@ -212,9 +232,14 @@ export class ChecklyMonitoring implements Monitoring {
 		const formatChanged = existing.config.webhookType !== "WEBHOOK_DISCORD";
 		// The template is code like the rest of the channel: a hand edit is put back, so every run leaves the shipped one.
 		const templateChanged = !formatChanged && !sameTemplate(existing.config.template, DISCORD_TEMPLATE);
+		// Only the settings the config states are compared; one it leaves out stays as it is.
+		const wanted = alertFields(input.alerts);
+		const alertsChanged = (Object.keys(wanted) as (keyof typeof wanted)[]).some((k) => existing[k] !== wanted[k]);
 		let current: AlertChannel | undefined;
-		if (urlChanged || formatChanged || templateChanged) {
-			// Read it again just before replacing it, so a subscription added since the listing is not replaced away.
+		if (urlChanged || formatChanged || templateChanged || alertsChanged) {
+			// Read it again just before replacing it, so a subscription added since the listing is not replaced away. Checkly's
+			// update replaces the whole channel, so one added in the instant between this read and the update cannot be kept.
+			// The settings that are not declared go back as this read has them, not as the listing had them.
 			const fresh = await client.alertChannels.get(existing.id);
 			const replacement: AlertChannelInput = {
 				type: "WEBHOOK",
@@ -225,12 +250,13 @@ export class ChecklyMonitoring implements Monitoring {
 						? { webhookType: "WEBHOOK_DISCORD" as const, template: DISCORD_TEMPLATE }
 						: {}),
 				},
-				sendRecovery: existing.sendRecovery,
-				sendFailure: existing.sendFailure,
-				sendDegraded: existing.sendDegraded,
-				sslExpiry: existing.sslExpiry,
-				sslExpiryThreshold: existing.sslExpiryThreshold,
-				autoSubscribe: existing.autoSubscribe,
+				sendRecovery: fresh.sendRecovery,
+				sendFailure: fresh.sendFailure,
+				sendDegraded: fresh.sendDegraded,
+				sslExpiry: fresh.sslExpiry,
+				sslExpiryThreshold: fresh.sslExpiryThreshold,
+				autoSubscribe: fresh.autoSubscribe,
+				...wanted,
 				// An update replaces the whole channel, so what it already has goes back. Sent without the ids, as Checkly's own
 				// tooling sends them: with the ids Checkly answered 409 (a uniqueness violation).
 				subscriptions: fresh.subscriptions.map((s) =>
@@ -240,13 +266,14 @@ export class ChecklyMonitoring implements Monitoring {
 				),
 			};
 			await client.alertChannels.update(existing.id, replacement);
-			current = await this.restoreSubscriptions(existing.id, fresh.subscriptions);
+			current = await this.restoreSubscriptions(existing.id, input.name, fresh.subscriptions);
 		}
 		const { added, active } = await this.subscribeMissing(existing.id, input.name, checkIds, current);
 		const updated = [
 			...(urlChanged ? ["url"] : []),
 			...(formatChanged ? ["format"] : []),
 			...(templateChanged ? ["template"] : []),
+			...(alertsChanged ? ["alerts"] : []),
 			...(added > 0 ? ["subscriptions"] : []),
 		];
 		return { created: false, updated, subscribed: active };
@@ -255,15 +282,33 @@ export class ChecklyMonitoring implements Monitoring {
 	/**
 	 * After an update replaced the channel: read it back and put back any subscription it had that did not survive, of
 	 * every kind (a group, a check outside this account) and in the state it had (a deactivated one stays deactivated).
+	 * Then read it once more: a subscription that could not be put back is an error, not a quiet loss.
 	 */
-	private async restoreSubscriptions(channelId: number, had: AlertChannel["subscriptions"]): Promise<AlertChannel> {
+	private async restoreSubscriptions(
+		channelId: number,
+		name: string,
+		had: AlertChannel["subscriptions"]
+	): Promise<AlertChannel> {
 		const client = this.client();
+		const held = (channel: AlertChannel, s: AlertChannel["subscriptions"][number]) =>
+			channel.subscriptions.some((a) => (s.checkId ? a.checkId === s.checkId : a.groupId === s.groupId));
 		const after = await client.alertChannels.get(channelId);
-		const held = (s: AlertChannel["subscriptions"][number]) =>
-			after.subscriptions.some((a) => (s.checkId ? a.checkId === s.checkId : a.groupId === s.groupId));
-		const lost = had.filter((s) => !held(s));
-		for (const s of lost) await this.subscribeTolerating(channelId, s);
-		return lost.length > 0 ? await client.alertChannels.get(channelId) : after;
+		const lost = had.filter((s) => !held(after, s));
+		if (lost.length === 0) return after;
+		const failures: unknown[] = [];
+		for (const s of lost) {
+			const failure = await this.subscribeTolerating(channelId, s);
+			if (failure) failures.push(failure);
+		}
+		const restored = await client.alertChannels.get(channelId);
+		const gone = lost.filter((s) => !held(restored, s));
+		if (gone.length > 0) {
+			const cause = failures[0] instanceof Error ? `: ${failures[0].message}` : "";
+			throw new Error(
+				`updating alert channel "${name}" dropped ${gone.length} of its subscriptions and Checkly would not take them back${cause}; subscribe them again in Checkly's alert settings`
+			);
+		}
+		return restored;
 	}
 
 	/** One subscribe call; Checkly's 409 means the subscription is already there, which is what was wanted. */
@@ -329,27 +374,45 @@ export class ChecklyMonitoring implements Monitoring {
 	 */
 	async inspectAlertChannel(name: string): Promise<MonitoringAlertChannelState> {
 		const client = this.client();
-		const [channels, checks] = await Promise.all([client.alertChannels.list(), this.allChecks()]);
+		const [channels, allChecks] = await Promise.all([client.alertChannels.list(), this.allChecks()]);
+		const { routed, routedAway: away } = this.routedTo(name, allChecks);
 		const listed = channels.find(
 			(c): c is Extract<AlertChannel, { type: "WEBHOOK" }> => c.type === "WEBHOOK" && c.config.name === name
 		);
-		if (!listed) return { exists: false, unsubscribed: [], deactivated: [] };
+		if (!listed) return { exists: false, unsubscribed: [], misrouted: [], deactivated: [] };
 		// The list may leave subscriptions out; the channel itself is the authority.
 		const channel = await client.alertChannels.get(listed.id);
 		const subscribed = new Map(channel.subscriptions.flatMap((s) => (s.checkId ? [[s.checkId, s.activated]] : [])));
+		const groups = channel.subscriptions.filter((s) => s.groupId && s.activated).length;
 		const webhookId = DISCORD_WEBHOOK_ID.exec(listed.config.url)?.[1];
 		return {
 			exists: true,
 			discord: listed.config.webhookType === "WEBHOOK_DISCORD",
 			...(webhookId ? { webhookId } : {}),
-			unsubscribed: checks.filter((c) => !subscribed.has(c.id)).map((c) => c.name),
-			deactivated: checks.filter((c) => subscribed.get(c.id) === false).map((c) => c.name),
+			alerts: {
+				failure: channel.sendFailure,
+				recovery: channel.sendRecovery,
+				degraded: channel.sendDegraded,
+				sslExpiry: channel.sslExpiry,
+				sslExpiryThreshold: channel.sslExpiryThreshold,
+			},
+			unsubscribed: routed.filter((c) => !subscribed.has(c.id)).map((c) => c.name),
+			misrouted: away.filter((c) => subscribed.has(c.id)).map((c) => c.name),
+			// A group's subscription alerts for every check in it, routed away or not, and the client cannot read which checks
+			// a group holds: when some check is routed away, say how many groups the channel alerts for.
+			...(away.length > 0 && groups > 0 ? { groupSubscriptions: groups } : {}),
+			deactivated: routed.filter((c) => subscribed.get(c.id) === false).map((c) => c.name),
 		};
 	}
 
-	/** The id of every check on the account, read a page at a time. */
-	private async allCheckIds(): Promise<string[]> {
-		return (await this.allChecks()).map((c) => c.id);
+	/**
+	 * Which of the account's checks alert through the channel `name`: every one, except a declared check that names its
+	 * `alertChannels` without it (see {@link routedAway}). A check the config does not declare is not subject to routing:
+	 * it alerts through every channel, as one made by hand always has.
+	 */
+	private routedTo<T extends { name: string }>(name: string, checks: T[]): { routed: T[]; routedAway: T[] } {
+		const away = (c: T) => routedAwayFrom(this.checks, c.name, name);
+		return { routed: checks.filter((c) => !away(c)), routedAway: checks.filter(away) };
 	}
 
 	/** Every check on the account, read a page at a time. */

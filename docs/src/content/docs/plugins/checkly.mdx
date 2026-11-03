@@ -47,23 +47,38 @@ providers: {
 
 ### Check fields
 
-| Field        | Description                                                                                                 |
-| ------------ | ----------------------------------------------------------------------------------------------------------- |
-| `name`       | Exact name used to find the check                                                                           |
-| `url`        | URL to request                                                                                              |
-| `method`     | HTTP method, `GET` when omitted                                                                             |
-| `body`       | Request body, to simulate a real request (for example an unsigned `POST`)                                   |
-| `locations`  | Run locations. Required in practice: Checkly rejects a check with no location on an account with no default |
-| `frequency`  | How often the check runs                                                                                    |
-| `activated`  | Whether the check is enabled                                                                                |
-| `shouldFail` | Required when the healthy response is itself an HTTP error status (see below)                               |
-| `assertions` | List of `{ source, comparison, property?, target? }`                                                        |
+| Field           | Description                                                                                                 |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| `name`          | Exact name used to find the check                                                                           |
+| `url`           | URL to request                                                                                              |
+| `method`        | HTTP method, `GET` when omitted                                                                             |
+| `body`          | Request body, to simulate a real request (for example an unsigned `POST`)                                   |
+| `locations`     | Run locations. Required in practice: Checkly rejects a check with no location on an account with no default |
+| `frequency`     | How often the check runs                                                                                    |
+| `activated`     | Whether the check is enabled                                                                                |
+| `shouldFail`    | Required when the healthy response is itself an HTTP error status (see below)                               |
+| `assertions`    | List of `{ source, comparison, property?, target? }`                                                        |
+| `alertChannels` | Names of the alert channels this check alerts through. Left out, it alerts through all of them              |
 
 Assertion `source` is one of `status_code`, `response_time`, `body` or `header`. `comparison` is one of `equals`, `not_equals`, `contains`, `not_contains`, `greater_than` or `less_than`.
 
 :::caution
 Checkly classifies any response of 400 or above as a platform-level failure before assertions run. When the healthy response is an error status (a 405 or 401 that proves an endpoint is wired correctly), set `shouldFail: true`. An assertion matching that status does not override it.
 :::
+
+## Alert channels
+
+The alert channel itself is declared in the notification layout (`feeds.monitoring`), see [Server as Code](/holocron/server-as-code/). Two things about it are declared here and there:
+
+```ts
+// holocron.config.ts, notifications layout: what the channel alerts about
+feeds: { monitoring: { alerts: { degraded: false, sslExpiry: true, sslExpiryThreshold: 14 } } }
+
+// the monitoring provider's checks: which channels a check alerts through
+checks: [{ name: "Sentinel webhook uptime", url: "...", alertChannels: ["Message to #uptime"] }]
+```
+
+`alerts` takes `failure`, `recovery`, `degraded`, `sslExpiry` and `sslExpiryThreshold` (days before expiry). A new channel starts with failure, recovery and degraded on and SSL expiry off; on an existing channel a setting left out is left as it is and one given is put back if it differs. A check with no `alertChannels` (or an empty list) is subscribed to every alert channel, as before; one that names some is subscribed to those only. Names are compared without regard to case. A check that is in Checkly but not in the config is not subject to routing and stays on every channel. A check group's subscription alerts for every check in the group and the API does not say which checks a group holds, so `doctor notifications` names the groups a channel alerts for when some check is routed away from it, and it is up to you to check them. `setup` adds subscriptions and does not remove them, so a check routed away from a channel it was already on is reported by `doctor notifications`, and is unsubscribed in Checkly.
 
 ## Authentication
 
@@ -91,8 +106,8 @@ Resolution order: the `--token` flag, `HOLOCRON_CHECKLY_TOKEN`, `CHECKLY_API_KEY
 ## What `monitoring` provides
 
 - `ensureCheck(input)`: finds the check by exact name (Checkly's `search` is a case-insensitive partial match, so results are filtered client-side), then creates or updates it.
-- `ensureAlertChannel(input)`: finds an alert channel by name or creates one, and subscribes every check. This is how `holocron notifications setup` feeds a Discord channel from your checks (see [Server as Code](/holocron/server-as-code/)).
-- `inspectAlertChannel(name)`: reads an alert channel without changing it, for `holocron doctor notifications`. It returns whether the channel exists and is formatted for Discord, the id of the webhook it posts through (never the URL or its token), and the names of the checks it is not subscribed to or has switched off.
+- `ensureAlertChannel(input)`: finds an alert channel by name or creates one, applies the `alerts` settings the config states, and subscribes the checks routed to it (every check unless a check names its `alertChannels`). This is how `holocron notifications setup` feeds a Discord channel from your checks (see [Server as Code](/holocron/server-as-code/)).
+- `inspectAlertChannel(name)`: reads an alert channel without changing it, for `holocron doctor notifications`. It returns whether the channel exists and is formatted for Discord, the id of the webhook it posts through (never the URL or its token), its alert settings, and the names of the checks routed to it that it is not subscribed to or has switched off, and of the checks it is still subscribed to though they are routed elsewhere.
 - `whoami()`: a lightweight auth probe (`GET /checks?limit=1`).
 - `checks`: the configured check list, which `holocron repo setup` loops over.
 

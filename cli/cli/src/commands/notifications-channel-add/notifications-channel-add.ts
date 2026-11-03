@@ -13,6 +13,7 @@ import { randomBytes } from "node:crypto";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
+	type MonitoringAlertSettings,
 	type Notifications,
 	type NotificationsLayout,
 	PluginLoader,
@@ -375,7 +376,7 @@ async function provisionRelayFeed(
 async function provisionFeed(
 	deps: ProvisionDeps,
 	spec: ChannelSpec,
-	feed: { name: string; webhook: string; avatar?: string },
+	feed: { name: string; webhook: string; avatar?: string; alerts?: MonitoringAlertSettings },
 	outcome: ChannelOutcome
 ): Promise<void> {
 	const { notifications, monitoring, print, tally } = deps;
@@ -402,6 +403,7 @@ async function provisionFeed(
 			name: feed.name,
 			format: "discord",
 			...(hook.url ? { url: hook.url } : {}),
+			...(feed.alerts ? { alerts: feed.alerts } : {}),
 		});
 	} catch (err) {
 		// Nothing is lost: the webhook exists and, being the bot's own, hands its URL out again, so a re-run retries.

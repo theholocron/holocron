@@ -3,6 +3,7 @@ import type { Logger } from "@theholocron/observability/core";
 import type { LoadedConfig } from "../../config/index.js";
 import type {
 	Monitoring,
+	MonitoringAlertSettings,
 	Notifications,
 	NotificationsAccess,
 	NotificationsForumTag,
@@ -105,7 +106,7 @@ export interface ChannelSpec {
 	webhook?: false | { name?: string; secret?: string; avatar?: string };
 	/** The monitoring provider's alerts, already resolved to the names to use. */
 	feeds?: {
-		monitoring?: { name: string; webhook: string; avatar?: string };
+		monitoring?: { name: string; webhook: string; avatar?: string; alerts?: MonitoringAlertSettings };
 		/** The error tracker's relay webhook, already resolved to the name to use. */
 		errors?: { webhook: string; avatar?: string };
 	};
