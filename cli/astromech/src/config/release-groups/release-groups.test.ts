@@ -23,6 +23,10 @@ describe("releaseGroups", () => {
 		expect(releaseGroups({ tasks: [{ name: "verification.unitTests", with: { groups: ["a"] } }] })).toEqual([]);
 	});
 
+	it("reads the groups of a task spelled `release` as well as the old `delivery.publish`", () => {
+		expect(releaseGroups({ tasks: [{ name: "release", with: { groups: ["utils"] } }] })).toEqual(["utils"]);
+	});
+
 	it("skips entries it cannot read a name from, and a `groups` that is not a list", () => {
 		expect(releaseGroups(publish({ groups: ["a", 3, null, {}, { name: 4 }, { name: "b" }] }))).toEqual(["a", "b"]);
 		expect(releaseGroups(publish({ groups: "utils" }))).toEqual([]);

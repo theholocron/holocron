@@ -7,7 +7,7 @@ const run = vi.hoisted(() => vi.fn());
 const createAstromech = vi.hoisted(() => vi.fn(() => ({ ci, run })));
 const buildCliLogger = vi.hoisted(() => vi.fn(() => ({ logger: "logger" })));
 const reportError = vi.hoisted(() => vi.fn());
-vi.mock("@theholocron/astromech", () => ({ createAstromech }));
+vi.mock("@theholocron/astromech", () => ({ createAstromech, describeTasks: () => "the tasks" }));
 vi.mock("@theholocron/astromech/config", () => ({ loadTasksConfig }));
 vi.mock("@theholocron/astromech/lint", () => ({ lintCommitMsgFile }));
 vi.mock("../../observability/logger/index.js", () => ({ buildCliLogger, reportError }));
@@ -33,7 +33,8 @@ describe("run command", () => {
 		expect(createAstromech).toHaveBeenCalledWith({ cwd: "/repo", logger: "logger", config: { tasks: "config" } });
 		expect(run).toHaveBeenCalledWith("audit", {
 			job: "performance",
-			passthrough: ["extra", "--config=x"],
+			args: ["extra"],
+			passthrough: ["--config=x"],
 			dryRun: false,
 			required: true,
 			filter: "web",
@@ -114,6 +115,21 @@ describe("run command", () => {
 		expect(error).toHaveBeenCalledWith("✖ header-max-length: too long");
 		expect(process.exitCode).toBe(1);
 		error.mockRestore();
+	});
+
+	it("takes the commit message file as a positional too, the way the commit-msg hook passes it", async () => {
+		await go(["run", "lint", "commit-msg", ".git/COMMIT_EDITMSG"]);
+		expect(lintCommitMsgFile).toHaveBeenCalledWith(".git/COMMIT_EDITMSG", "/repo");
+	});
+
+	it("passes the words after the task as args and --check as the read-only form", async () => {
+		await go(["run", "test", "unit", "storybook"]);
+		expect(run).toHaveBeenCalledWith(
+			"test",
+			expect.objectContaining({ job: "unit", args: ["storybook"], passthrough: [] })
+		);
+		await go(["run", "format", "--check"]);
+		expect(run).toHaveBeenLastCalledWith("format", expect.objectContaining({ check: true }));
 	});
 
 	it("says the file is missing when `lint commit-msg` is given none", async () => {

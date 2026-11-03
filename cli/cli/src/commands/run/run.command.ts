@@ -10,7 +10,7 @@ import { type RunArgs, runArgs } from "./run.args.js";
 export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 	command: "run <task> [job] [passthrough..]",
 	describe:
-		"Run a task locally (test, typecheck, lint, build, audit) — figures out turbo / the tool / the package manager. `run ci` runs every merge-gating check; `run lint commit-msg <file>` lints a commit message.",
+		"Run a task or a suite locally (`test`, `test unit`, `typecheck`, `lint`, `build`, `format`) — figures out turbo / the tool / the package manager. `run ci` runs every merge-gating check; `run lint commit-msg <file>` lints a commit message.",
 	builder: runArgs,
 	handler: async (argv) => {
 		// The specific command key (not just `run`) so `contexts.ts` can scope the
@@ -22,14 +22,13 @@ export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 					? "run lint commit-msg"
 					: "run";
 		const { logger } = buildCliLogger(argv, { command: commandKey });
-		const passthrough = [
-			...((argv.passthrough as string[] | undefined) ?? []),
-			...((argv["--"] as string[] | undefined) ?? []),
-		];
+		// Positional words after the job still name the task (`run test unit storybook`); only what follows `--` is for the tool.
+		const args = (argv.passthrough as string[] | undefined) ?? [];
+		const passthrough = (argv["--"] as string[] | undefined) ?? [];
 		// `run lint commit-msg <file>` is the `.husky/commit-msg` hook: a real
 		// commit-message linter, not astromech's filesystem-driven `lint` task.
 		if (argv.task === "lint" && argv.job === "commit-msg") {
-			const file = passthrough[0];
+			const file = args[0] ?? passthrough[0];
 			if (!file) {
 				reportError("run lint commit-msg: missing <file> (the commit message file git passes as $1).");
 				process.exitCode = 1;
@@ -63,7 +62,9 @@ export const runCommand: CommandModule<GlobalArgs, RunArgs> = {
 		const astromech = createAstromech({ cwd: argv.cwd, logger, config });
 		const report = astromech.run(argv.task as string, {
 			...(argv.job !== undefined ? { job: argv.job as string } : {}),
+			...(args.length > 0 ? { args } : {}),
 			passthrough,
+			...(argv.check ? { check: true } : {}),
 			dryRun: argv.dryRun,
 			required: argv.required,
 			...(argv.filter ? { filter: argv.filter as string } : {}),

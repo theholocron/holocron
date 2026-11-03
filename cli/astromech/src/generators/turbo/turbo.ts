@@ -25,6 +25,7 @@ import { addWorkspaceMember } from "@theholocron/pkg-utils";
 import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
 import { TASKS } from "../../registry/index.js";
 import { formatJson } from "../../utils/index.js";
+import { ownLegacyName, resolveTaskName, scriptName } from "../../vocabulary/index.js";
 import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult } from "./turbo.type.js";
 
 /**
@@ -60,6 +61,22 @@ function validatedGlobList(
 	return value;
 }
 
+/** The key a task has in `turbo.json`: the old name it replaced, until the later phases rename the keys. */
+function turboKey(id: string): string {
+	return ownLegacyName(id) ?? scriptName(id);
+}
+
+/**
+ * A turbo task reference (`build`, `^build`, `@x/config#build`) with a flat id in it spelled as the key
+ * {@link turboKey} writes; anything else (an old name, a `//#` root task) is kept.
+ */
+function turboRef(ref: string): string {
+	const prefix = ref.startsWith("^") ? "^" : "";
+	const [task, ...scope] = ref.slice(prefix.length).split("#").reverse();
+	const known = TASKS[task!] ? turboKey(task!) : task!;
+	return `${prefix}${[known, ...scope].reverse().join("#")}`;
+}
+
 /**
  * `turbo.json` content for this manifest, pretty-printed — write it
  * directly, no merge (matches `thinCallers()` / `reusableTemplates()`: this
@@ -75,36 +92,42 @@ export function turboConfig(config: TasksConfig): string | null {
 
 	for (const entry of entries) {
 		if (entry.local === false) continue;
-		const turbo = TASKS[entry.name]?.turbo;
-		if (!turbo) continue;
+		for (const { id } of resolveTaskName(entry.name)) {
+			const registered = TASKS[id]?.turbo;
+			if (!registered) continue;
+			// `turbo.json` keeps the old task names until the later phases rename them, so the registry's flat ids (and
+			// the ones an override spells) are written as the names the package scripts still have.
+			const key = turboKey(id);
+			const turbo = { ...registered, dependsOn: registered.dependsOn.map(turboRef) };
 
-		const extraEnv = validatedGlobList(entry.turbo?.passThroughEnv, entry.name, "passThroughEnv");
-		const extraInputs = validatedGlobList(entry.turbo?.inputs, entry.name, "inputs");
-		const extraDependsOn = validatedGlobList(entry.turbo?.dependsOn, entry.name, "dependsOn");
+			const extraEnv = validatedGlobList(entry.turbo?.passThroughEnv, entry.name, "passThroughEnv");
+			const extraInputs = validatedGlobList(entry.turbo?.inputs, entry.name, "inputs");
+			const extraDependsOn = validatedGlobList(entry.turbo?.dependsOn, entry.name, "dependsOn").map(turboRef);
 
-		// A task declared in more than one config layer accumulates onto
-		// whatever an earlier entry for the same name already contributed,
-		// rather than a later, override-less entry silently overwriting it
-		// (review on holocron#845) — mergeLayers() concatenates `tasks`
-		// arrays rather than deduping by name, so the same task can
-		// legitimately appear twice (once from holocron.config.ts's own
-		// `tasks`, once from a dedicated astromech.config.ts merged on top).
-		const current = tasks[entry.name] ?? turbo;
-		const passThroughEnv =
-			extraEnv.length > 0 ? [...(current.passThroughEnv ?? []), ...extraEnv] : current.passThroughEnv;
-		// Appended, not replaced — a flat-layout package adds its own glob
-		// (e.g. "**/*.ts") without losing the registry's other tracked
-		// inputs (package.json, tsdown.config.ts, …).
-		const inputs = extraInputs.length > 0 ? [...current.inputs, ...extraInputs] : current.inputs;
-		// Appended too, and a task already waiting on it is not listed twice.
-		const dependsOn = [...new Set([...current.dependsOn, ...extraDependsOn])];
+			// A task declared in more than one config layer accumulates onto
+			// whatever an earlier entry for the same name already contributed,
+			// rather than a later, override-less entry silently overwriting it
+			// (review on holocron#845) — mergeLayers() concatenates `tasks`
+			// arrays rather than deduping by name, so the same task can
+			// legitimately appear twice (once from holocron.config.ts's own
+			// `tasks`, once from a dedicated astromech.config.ts merged on top).
+			const current = tasks[key] ?? turbo;
+			const passThroughEnv =
+				extraEnv.length > 0 ? [...(current.passThroughEnv ?? []), ...extraEnv] : current.passThroughEnv;
+			// Appended, not replaced — a flat-layout package adds its own glob
+			// (e.g. "**/*.ts") without losing the registry's other tracked
+			// inputs (package.json, tsdown.config.ts, …).
+			const inputs = extraInputs.length > 0 ? [...current.inputs, ...extraInputs] : current.inputs;
+			// Appended too, and a task already waiting on it is not listed twice.
+			const dependsOn = [...new Set([...current.dependsOn, ...extraDependsOn])];
 
-		tasks[entry.name] = {
-			...turbo,
-			inputs,
-			dependsOn,
-			...(passThroughEnv && passThroughEnv.length > 0 ? { passThroughEnv } : {}),
-		};
+			tasks[key] = {
+				...turbo,
+				inputs,
+				dependsOn,
+				...(passThroughEnv && passThroughEnv.length > 0 ? { passThroughEnv } : {}),
+			};
+		}
 	}
 
 	if (Object.keys(tasks).length === 0) return null;

@@ -1,4 +1,4 @@
-import { createAstromech } from "@theholocron/astromech";
+import { createAstromech, isTask } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 
 import type { ResolvedHolocronConfig } from "../../config/index.js";
@@ -236,7 +236,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 			// `repo setup` turns every one on, and turns CodeQL default setup off when an advanced workflow replaces it.
 			const advanced = (config.tasks ?? [])
 				.map((e) => (typeof e === "string" ? e : e.name))
-				.includes("security.codeScanning");
+				.some((name) => isTask(name, "scan:code"));
 			const wanted: Required<SourceSecurity> = {
 				vulnerabilityAlerts: true,
 				automatedSecurityFixes: true,

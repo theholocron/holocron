@@ -25,9 +25,10 @@ import {
 	reusableTemplates as resolveReusableTemplates,
 	turboConfig as resolveTurboConfig,
 } from "./generators/index.js";
-import { KNOWN_TASKS, TASKS } from "./registry/index.js";
-import { matchNamespace, runCi, type RunDeps, runGroup, runTask } from "./tasks/index.js";
+import { TASKS } from "./registry/index.js";
+import { runCi, type RunDeps, runWords } from "./tasks/index.js";
 import { noopLogger, realExec, realLookPath } from "./utils/index.js";
+import { resolveTaskName, workflowKey } from "./vocabulary/index.js";
 
 export function createAstromech(options: AstromechOptions): Astromech {
 	const deps: RunDeps = {
@@ -42,12 +43,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 	const env = options.env ?? process.env;
 
 	const items = (): TaskEntry[] => (options.config?.tasks ?? []).map((i) => normalizeTaskEntry(i));
-
-	/** The `jobs` switches of a task's entry in the manifest, as a `runTask` input; nothing when it has none. */
-	const jobSwitchesFor = (task: string): { jobSwitches?: Record<string, boolean> } => {
-		const jobs = items().find((e) => e.name === task)?.jobs;
-		return jobs ? { jobSwitches: jobs } : {};
-	};
+	const warn = options.warn ?? ((line: string) => console.error(line));
 
 	/**
 	 * Task names this repo's manifest can actually run locally — shared by
@@ -61,48 +57,35 @@ export function createAstromech(options: AstromechOptions): Astromech {
 	const runnableTaskNames = (): string[] => {
 		const out: string[] = [];
 		for (const entry of items()) {
-			const def = TASKS[entry.name];
 			// `local: null` alone means genuinely no local equivalent
-			// (security.codeScanning, delivery.deploy); a `linterGroup` or `jobs`
+			// (scan:code, deploy); a `linterGroup` or `jobs`
 			// task still runs locally even though its own `local` is null.
-			const hasNoLocalRunner = def?.local === null && !def.linterGroup && !def.jobs;
-			if (entry.local === false || !KNOWN_TASKS.has(entry.name) || hasNoLocalRunner) continue;
+			const runnable = resolveTaskName(entry.name).some(({ id }) => {
+				const def = TASKS[id];
+				return def !== undefined && !(def.local === null && !def.linterGroup && !def.jobs);
+			});
+			if (entry.local === false || !runnable) continue;
 			out.push(entry.name);
 		}
 		return out;
 	};
 
 	return {
-		run: (task, opts = {}) => {
-			// A bare namespace (no exact TASKS entry) that prefixes one or more
-			// configured tasks runs all of them — never shadows a real task
-			// name, since every real entry in TASKS already has a dot-suffix.
-			if (!TASKS[task] && options.config && matchNamespace(options.config, task).length > 0) {
-				return runGroup({
-					...deps,
-					cwd: options.cwd,
-					config: options.config,
-					namespace: task,
-					dryRun: opts.dryRun ?? false,
-					...(opts.filter ? { filter: opts.filter } : {}),
-					...(opts.affected ? { affected: true, env } : {}),
-					...(opts.base ? { base: opts.base } : {}),
-				});
-			}
-			return runTask({
+		run: (task, opts = {}) =>
+			runWords({
 				...deps,
-				task,
+				words: [task, ...(opts.job !== undefined ? [opts.job] : []), ...(opts.args ?? [])],
 				cwd: options.cwd,
-				...(opts.job !== undefined ? { job: opts.job } : {}),
+				...(options.config ? { config: options.config } : {}),
 				passthrough: opts.passthrough ?? [],
+				...(opts.check ? { check: true } : {}),
 				dryRun: opts.dryRun ?? false,
 				required: opts.required ?? false,
 				...(opts.filter ? { filter: opts.filter } : {}),
 				...(opts.affected ? { affected: true, env } : {}),
 				...(opts.base ? { base: opts.base } : {}),
-				...jobSwitchesFor(task),
-			});
-		},
+				warn,
+			}),
 
 		ci: (opts = {}) =>
 			runCi({
@@ -132,12 +115,17 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				// treatment these tasks exist for, unless it explicitly opts out
 				// with `preview: false`. They're allowed through the
 				// `KNOWN_WORKFLOWS` gate explicitly since neither is in it.
-				const isDocsSite = entry.name === "knowledge.docs";
-				const isComponents = entry.name === "knowledge.components";
-				if (entry.ci === false || (!KNOWN_WORKFLOWS.has(entry.name) && !isDocsSite && !isComponents)) continue;
+				// The workflow tables and the generated file names are still keyed by the old task names (they move in the
+				// later phases), so an entry spelled with a flat id is looked up by the old name it replaced, and
+				// a task that has no workflow of its own (`format`) generates no caller.
+				const key = workflowKey(entry.name);
+				const isDocsSite = key === "knowledge.docs";
+				const isComponents = key === "knowledge.components";
+				if (resolveTaskName(entry.name).every(({ id }) => TASKS[id]?.workflow === false)) continue;
+				if (entry.ci === false || (!KNOWN_WORKFLOWS.has(key) && !isDocsSite && !isComponents)) continue;
 				// A release-time deploy (`with.on: "release"`) runs from the publish
 				// job (`holocron deploy-on-release`), not a push/PR workflow.
-				if (entry.name === "delivery.deploy" && entry.with?.["on"] === "release") continue;
+				if (key === "delivery.deploy" && entry.with?.["on"] === "release") continue;
 				const rawWith: Record<string, unknown> | undefined = isDocsSite
 					? { preview: true, ...entry.with, docs: entry.with?.["docs"] ?? true }
 					: isComponents
@@ -152,7 +140,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				const withOverrides = normalized;
 
 				if (
-					entry.name === "verification.unitTests" &&
+					key === "verification.unitTests" &&
 					withOverrides?.["run-unit"] === false &&
 					withOverrides?.["run-storybook"] === false
 				) {
@@ -162,7 +150,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 					);
 				}
 
-				const isDeployFamily = entry.name === "delivery.deploy" || isDocsSite || isComponents;
+				const isDeployFamily = key === "delivery.deploy" || isDocsSite || isComponents;
 				const additionalPaths =
 					entry.paths ?? (isDeployFamily && rawWith ? deriveDeployPaths(rawWith) : undefined);
 
@@ -173,14 +161,11 @@ export function createAstromech(options: AstromechOptions): Astromech {
 						// no `?? {}` / `?? []` fallback to leave half-covered.
 						const deployWith = normalizeWorkflowWith(rawWith);
 						const deployPaths = entry.paths ?? deriveDeployPaths(rawWith);
-						out.set(`${entry.name}.yml`, generateCombinedDeployContent(deployWith, deployPaths, preview));
+						out.set(`${key}.yml`, generateCombinedDeployContent(deployWith, deployPaths, preview));
 						continue;
 					}
 				}
-				out.set(
-					`${entry.name}.yml`,
-					generateThinCallerContent(entry.name, withOverrides, additionalPaths, deps.logger)
-				);
+				out.set(`${key}.yml`, generateThinCallerContent(key, withOverrides, additionalPaths, deps.logger));
 			}
 			return out;
 		},

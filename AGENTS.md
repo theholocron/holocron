@@ -111,6 +111,21 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   the reusables. The summary lists every expected check with a link, failures first, plus `::error` annotations.
   `requiredChecks(config, aggregate)` is `ci / Required checks` and `DCO` there and the old per-task list elsewhere, so a repo with no
   `ci` caller is never told to require it. A rename or a new workflow no longer touches a ruleset.
+- **Flat task ids** (#1615, phase A of epic #1612, spec `ci-flat-task-vocabulary`). The astromech registry (`TASKS`) is
+  keyed by flat, verb-first ids: `<verb>`, `<verb>-<object>` or `<suite>:<leaf>` (`typecheck`, `build`, `test:unit`,
+  `lint:code`, `deploy-preview`, `release`). A suite (`test`, `lint`, `scan`) is declared by the `suite` field of its leaves,
+  never an id; `holocron run test` runs the leaves the repo's `tasks:` lists, in registry order, `holocron run test unit`
+  and `test:unit` run one (`resolveWords()`: words joined with `:`, longest match wins, the rest is the `[job]`
+  argument). `format` is prettier only: it writes, `--check` (the registry's `checkArgs`) reads, and `holocron run ci`
+  runs it read-only. `LEGACY_NAMES` maps every old dotted name to its successors (`sourceQuality.formatting` to
+  `lint:editorconfig`, `lint:markdown` and `format --check`); `holocron run`, `tasks:` and the manifest consumers
+  (`isTask()`, `resolveTaskName()`) accept both and the runner prints a deprecation notice on stderr. **Nothing that is
+  generated changed in this phase:** thin callers, workflow file names, check contexts, `turbo.json` keys and
+  package scripts are still the old names, reached through `workflowKey()` / `legacyName()`, so a manifest spelled either
+  way generates the same files (`probe generated check` proves it). `validate` is the interim id of the job-bearing
+  `platform.repoValidation` (it splits into `validate:specs` and `validate:docs` in phase J). `RESERVED_SCRIPT_NAMES`
+  and `PNPM_BUILTIN_COMMANDS` list the npm lifecycle words no task may take and the pnpm built-ins that need
+  `pnpm run <script>`.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
   - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
     commands branch at the orchestrator layer, not in capabilities.

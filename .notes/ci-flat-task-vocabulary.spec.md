@@ -825,6 +825,31 @@ its own part. #1547 is subsumed by G and F: its "decide the target label per tas
 ruleset-migration recipe is replaced by the one-time swap. #1478 becomes K. #989's taxonomy table is superseded except
 for the Sentinel-posted checks.
 
+### Phase A as built (#1615)
+
+Where the spec left room, phase A settled these, so later phases start from them:
+
+- **Generated output is untouched.** The registry is keyed by flat ids, but workflow files, thin-caller job names, check
+  contexts, `turbo.json` keys and package scripts are still the old names, reached through `workflowKey()`,
+  `legacyName()` and `ownLegacyName()` (an old name that stood for one id; `sourceQuality.formatting` stands for three, so
+  none of them owns it). A manifest spelled with either vocabulary generates the same files. Phase B/E/F drop those
+  translations as they flip each surface.
+- **`normalizeTaskEntry` keeps the authored name.** Consumers compare through `isTask(name, id)` /
+  `resolveTaskName(name)` instead, because Sentinel and the other repos' configs still read old names with the same
+  function. The deprecation notice is printed by `holocron run` (stderr); `config show` and `doctor` do not print one yet.
+- **`validate` is the interim id** of `platform.repoValidation` (it keeps the `adrs` and `docsPresence` jobs, `jobs:` and
+  `retiredJobs`), so `validate` is a task, not yet a suite, until phase J splits it. The three suites that exist are
+  `test`, `lint` and `scan`.
+- **`format` and `ci`.** `format` is `prettier --write .`; `--check` swaps in the registry's `checkArgs` and skips any
+  turbo task or package script, since the root script writes. `holocron run ci` runs it with `--check`, and the old
+  `sourceQuality.formatting` expands to `lint:editorconfig`, `lint:markdown` and `format --check`, none of which fails
+  `ci` for a missing tool the others do not need (it passed when any of its tools ran).
+- **Positional words name the task.** The CLI now sends the positionals after the job as `args` (part of the longest match)
+  and only what follows `--` as `passthrough`. An unknown flag after a leaf is still rejected by yargs (`.strict()`); use
+  `--` (open item for the phase that generates the suite scripts, since pnpm appends arguments without `--`).
+- **From a package directory** a suite runs the package-scoped leaves directly (there is no `turbo.json` in that
+  directory to delegate to) and reports the repo-wide ones as skipped.
+
 ## Open questions
 
 Resolved and folded into the decisions: the colon spelling, `format` as a verb, `release`, the aggregate check and its

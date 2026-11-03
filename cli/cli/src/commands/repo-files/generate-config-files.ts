@@ -17,6 +17,7 @@ import {
 	createPrePush,
 	createYamlignore,
 	createYamllint,
+	isTask,
 	readWorkspacePackages,
 } from "@theholocron/astromech";
 import { errorMessage } from "@theholocron/misc-utils";
@@ -89,7 +90,7 @@ export async function generateConfigFiles(input: RepoFilesInput): Promise<RepoFi
 	}
 
 	const existing = await readFile(join(input.repoRoot, "codecov.yml"), "utf8").catch(() => null);
-	if (!taskNames.includes("verification.unitTests") && existing == null) {
+	if (!taskNames.some((name) => isTask(name, "test:unit")) && existing == null) {
 		entries.push({
 			kind: "skip",
 			step: "write codecov.yml",

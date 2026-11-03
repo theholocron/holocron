@@ -1,25 +1,48 @@
 ---
 title: "run"
-description: Run a task locally — holocron figures out turbo vs the tool vs the package manager.
+description: Run a task or a suite locally — holocron figures out turbo vs the tool vs the package manager.
 ---
 
 ```bash
-holocron run <task> [job] [-- <passthrough>]
+holocron run <task | suite> [qualifier | job] [-- <passthrough>]
 ```
 
-`holocron run verification.unitTests` runs your tests. You don't tell it
+`holocron run test:unit` runs your unit tests, `holocron run test` runs the whole `test` suite. You don't tell it
 whether the repo uses turbo, pnpm, npm, or which test runner — it works that
 out.
 
-## Tasks
+## Tasks and suites
 
-Tasks are named by **intent**, not by tool. See the full
+Tasks are named by **intent**, not by tool, in a flat, verb-first vocabulary: `typecheck`, `build`, `test:unit`,
+`lint:code`. A colon means "member of the suite named before it". See the full
 [task vocabulary table](/holocron/config/#task-vocabulary) for every task
 name and what it actually runs — this page covers how resolution works,
-not the list itself.
+not the list itself. `holocron run --help` lists them grouped under the six intent groups.
 
-The task set matches the CI workflow names. Adding a task is a one-line
-change in the CLI — every repo gets it.
+Three suites exist, declared in the registry by their leaves: `test`, `lint` and `scan`.
+
+- `holocron run test` runs every `test:*` leaf the repo lists in its `tasks:`, in registry order, and always runs all of
+  them. A leaf the repo does not list is not run, and one with no local runner is reported `skipped (CI only)`.
+- `holocron run test unit` and `holocron run test:unit` are the same call: the words are joined with `:` and the longest
+  match against the registry wins. What is left over is the existing `[job]` argument
+  (`holocron run test unit storybook`).
+- A hyphen compound (`deploy-preview`) is accepted as `deploy-preview`, `deploy:preview` (its npm script spelling) and
+  `deploy preview`. `deploy` and `deploy-preview` are two tasks, not a suite.
+- From a package directory, `holocron run <suite>` runs only that suite's package-scoped leaves and reports the
+  repo-wide ones as `skipped (repo-wide, run from the root)`.
+- Extra arguments after a suite belong to one leaf: with more than one leaf to run, `holocron run lint --fix` is an
+  error that says so; name the leaf (`holocron run lint code -- --fix`).
+
+`format` is a verb of its own, not a suite and not a linter: prettier only. `holocron run format` writes,
+`holocron run format --check` is the read-only form (`holocron run ci` runs it that way).
+
+## Old names
+
+The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, `delivery.publish`, …) still work and
+print a one-line deprecation notice on stderr, in CI too; the reusable workflows synced to `theholocron/.github` still
+call them. A name that stood for several checks runs each of its successors in order
+(`sourceQuality.formatting` is `lint:editorconfig`, `lint:markdown` and `format --check`), and an old group name
+(`sourceQuality`) runs the configured tasks that were under it.
 
 ## How a task resolves
 
@@ -32,39 +55,42 @@ J. a job is given → the task's <job> sub-runner (unknown job → exit 1)
 3. the task registry has a local runner
    → <tool> <args> <org-flags> (e.g. --coverage)
    3b. the task is a linterGroup → the resolved linter set (see below)
-4. the task is a container of sub-jobs (`platform.repoValidation`)
+4. the task is a container of sub-jobs (`validate`)
    → run each job in declared order
 5. known task, nothing to run → "no <task> task for this repo", exit 0
 6. unknown task → error, exit 1
 
 ```
 
+`turbo.json` and `package.json` still key a task by its old name until the generated files move to the flat ids; the
+runner looks the old name up first, then the id in its script spelling (`deploy:preview`).
+
 An explicit `package.json` script always wins over the registry default — if
-you wrote `"sourceQuality.staticAnalysis": "biome check"`, that's what runs.
-Likewise a repo-level script for a job-bearing task wins over the built-in
-sub-jobs.
+you wrote `"lint:code": "biome check"`, that's what runs. Likewise a repo-level
+script for a job-bearing task wins over the built-in sub-jobs.
 
 ## Sub-jobs
 
-Some tasks are a bundle of smaller jobs. `platform.repoValidation` is the one
-that matters today — spec/ADR frontmatter and docs-presence, not linters:
+Some tasks are a bundle of smaller jobs. `validate` is the one
+that matters today — spec/ADR frontmatter and docs-presence, not linters (it becomes the `validate:specs` and
+`validate:docs` leaves in a later phase):
 
-| `holocron run …`                       | Runs                             |
-| -------------------------------------- | -------------------------------- |
-| `platform.repoValidation adrs`         | `holocron probe specs check`     |
-| `platform.repoValidation docsPresence` | `holocron probe docs presence`   |
-| `platform.repoValidation` (no job)     | each of the above, in that order |
+| `holocron run …`        | Runs                             |
+| ----------------------- | -------------------------------- |
+| `validate adrs`         | `holocron probe specs check`     |
+| `validate docsPresence` | `holocron probe docs presence`   |
+| `validate` (no job)     | each of the above, in that order |
 
 A sub-job whose tool isn't installed is skipped with a note — CI enforces it
 regardless. `--required` turns "can't run this here" into a failure.
-`holocron run platform.repoValidation frobnicate` lists the known jobs and
+`holocron run validate frobnicate` lists the known jobs and
 exits 1.
 
 ## `linterGroup` tasks
 
-`sourceQuality.staticAnalysis` and `sourceQuality.formatting` bundle more
-than one tool under a single required check — they don't map to a single
-command. Locally:
+`lint:code` bundles more than one tool under a single required check — it doesn't map to a single
+command, and `lint:editorconfig`, `lint:markdown`, `lint:data`, `lint:commits` and `scan:secrets` are linter groups of
+one tool. Locally:
 
 - runs _after_ the normal resolution above (steps 1–2) — the whole task
   delegates to turbo/a package script first, exactly like any other task
@@ -76,14 +102,14 @@ command. Locally:
   them regardless.
 - the exit code is the worst of the lot
 - **exception**: if _every_ linter in the group has no local equivalent at
-  all (e.g. `platform.commitStandards` — commitlint has no local
+  all (e.g. `lint:commits` — commitlint has no local
   equivalent, ever, since there's no PR commit range to diff against
   outside CI), the task is skipped even when `--required` — the same
   carve-out a `local: null` task gets. It only fails when a linter _could_
   run locally but its tool is not installed.
 
 ```bash
-$ holocron run sourceQuality.staticAnalysis
+$ holocron run lint:code
 → eslint .
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
 · git-merge-conflict-markers (CI only)
@@ -99,6 +125,7 @@ to run the full CI set locally.
 | ---------------- | --------------------------------------------------------------- |
 | `--dry-run`      | Print the resolved command without running it                   |
 | `--required`     | Exit 1 (instead of 0) if this repo has no such task             |
+| `--check`        | With `format`: report what prettier would change, write nothing |
 | `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                   |
 | `--all`          | With `run ci`: run every `ci: true` task, not just required     |
 | `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script |
@@ -116,19 +143,21 @@ Two names don't resolve through the task registry — `run` handles them itself:
 ## Examples
 
 ```bash
-holocron run verification.unitTests            # vitest run --coverage (or turbo run … at a root)
-holocron run verification.unitTests -- --watch # forward --watch to vitest
-holocron run delivery.build --dry-run          # show what would run
-holocron run e2e --required                    # fail if the repo has no e2e task
-holocron run verification.unitTests -- --filter web  # passthrough turbo's --filter at a monorepo root
-holocron run platform.repoValidation           # every validation sub-job in order
-holocron run verification.performance          # just Lighthouse CI
+holocron run test                    # every test leaf the repo lists
+holocron run test:unit               # vitest run --coverage (or turbo run … at a root)
+holocron run test unit -- --watch    # forward --watch to vitest
+holocron run build --dry-run         # show what would run
+holocron run lint                    # every lint leaf, each reported
+holocron run format --check          # prettier, read-only
+holocron run e2e --required          # fail if the repo has no e2e task
+holocron run validate                # every validation sub-job in order
+holocron run test:perf               # just Lighthouse CI
 ```
 
 ## Monorepos
 
-At a turbo root, `holocron run verification.unitTests` is
-`turbo run verification.unitTests` — turbo's cache and dependency graph are
+At a turbo root, `holocron run test:unit` is
+`turbo run verification.unitTests` today — turbo's cache and dependency graph are
 untouched. Inside a package, it runs the tool directly. `turbo.json` doesn't
-change (its task keys need to match the task names your
-`holocron.config.ts` uses).
+change in this phase (its task keys keep the old names; the generator and the
+package scripts move to the flat ids in a later phase).

@@ -1,41 +1,33 @@
 /**
- * `holocron run <namespace>` — run every configured task under one
- * namespace prefix (`sourceQuality.*`, `verification.*`, …) in sequence.
- * `Astromech.run()` falls back here whenever the given name isn't an exact
- * `TASKS` entry but matches the prefix of one or more configured tasks —
- * same "aggregate several real tasks into one report" shape `runCi` already
- * established, scoped to one namespace instead of the merge-gating set.
+ * `holocron run <suite>` — run a list of tasks in sequence and report each: the configured leaves of a suite
+ * (`holocron run test`) or, for an old intent-group name, the tasks that group held (`holocron run sourceQuality`).
+ * `Astromech.run()` builds the list; this runs it.
  *
- * Every task in the namespace always runs — one task's failure never skips
- * the rest, same as `runCi`'s own loop — so a single invocation surfaces
- * every problem in the namespace at once instead of stopping at the first.
+ * Every task always runs — one task's failure never skips the rest, same as `runCi`'s own loop — so a single
+ * invocation surfaces every problem in the suite at once instead of stopping at the first.
  */
 
-import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
-import { matchNamespace } from "../match-namespace/index.js";
+import { TASKS } from "../../registry/index.js";
 import { runTask } from "../run/index.js";
 import type { GroupInput, GroupJobReport, GroupReport } from "./group.type.js";
 
-/** The `jobs` switches of a task's entry, as a `runTask` input; nothing when it has none. */
-function jobSwitches(config: TasksConfig, name: string): { jobSwitches?: Record<string, boolean> } {
-	// only called for a name `matchNamespace` found in `config.tasks`, so the list exists
-	const tasks = config.tasks as NonNullable<TasksConfig["tasks"]>;
-	const jobs = tasks.map(normalizeTaskEntry).find((e) => e.name === name)?.jobs;
-	return jobs ? { jobSwitches: jobs } : {};
-}
-
-/** Runs every configured task under a namespace (`sourceQuality` runs `sourceQuality.*`) in sequence and reports each. */
+/** Runs every task of a group in sequence and reports each. */
 export function runGroup(input: GroupInput): GroupReport {
-	const { print, namespace } = input;
-	const names = matchNamespace(input.config, namespace);
-	if (names.length === 0) return { status: "unknown", jobs: [] };
+	const { print, label, members, skipped = [] } = input;
+	if (members.length === 0 && skipped.length === 0) return { status: "unknown", jobs: [] };
 
-	print(`holocron run ${namespace} — ${names.length} task(s)`);
+	print(`holocron run ${label} — ${members.length + skipped.length} task(s)`);
 	print("");
 
 	const jobs: GroupJobReport[] = [];
-	for (const name of names) {
-		print(`▶ ${name}`);
+	for (const { task, message } of skipped) {
+		print(`▶ ${task}`);
+		print(`  · ${message}`);
+		jobs.push({ task, status: "skip", message });
+	}
+	for (const member of members) {
+		const { task } = member;
+		print(`▶ ${task}`);
 		const r = runTask({
 			print: (line) => print(`  ${line}`),
 			logger: input.logger,
@@ -44,8 +36,9 @@ export function runGroup(input: GroupInput): GroupReport {
 			fileExists: input.fileExists,
 			listDir: input.listDir,
 			lookPath: input.lookPath,
-			task: name,
-			...jobSwitches(input.config, name),
+			task,
+			...(member.jobSwitches ? { jobSwitches: member.jobSwitches } : {}),
+			...(member.passthrough ? { passthrough: member.passthrough } : {}),
 			cwd: input.cwd,
 			dryRun: input.dryRun ?? false,
 			...(input.filter ? { filter: input.filter } : {}),
@@ -54,19 +47,20 @@ export function runGroup(input: GroupInput): GroupReport {
 			...(input.env ? { env: input.env } : {}),
 		});
 		// `runTask` only returns "unknown" for an unrecognised task name; every
-		// name here came from the repo's own config, so its status is a
-		// GroupJobReport status.
+		// task here came from the registry, so its status is a GroupJobReport status.
+		const ciOnly =
+			r.status === "skip" && TASKS[task]?.local === null && !TASKS[task]?.linterGroup && !TASKS[task]?.jobs;
 		jobs.push({
-			task: name,
+			task,
 			status: r.status as GroupJobReport["status"],
 			command: r.command,
-			message: r.message,
+			message: ciOnly ? "skipped (CI only)" : r.message,
 		});
 	}
 
 	const status = jobs.some((j) => j.status === "fail")
 		? "fail"
-		: jobs.every((j) => j.status === "dry-run")
+		: jobs.every((j) => j.status === "dry-run" || j.status === "skip") && jobs.some((j) => j.status === "dry-run")
 			? "dry-run"
 			: "ok";
 	return { status, jobs };

@@ -1,7 +1,6 @@
-import type { TasksConfig } from "../../config/schema/index.js";
 import type { RunDeps } from "../run/index.js";
 
-/** Options for running a namespace of tasks: a dry run and turbo scoping. */
+/** Options for running a suite: a dry run and turbo scoping. */
 export interface GroupOptions {
 	/** Print the resolved commands without running anything. */
 	dryRun?: boolean;
@@ -15,9 +14,19 @@ export interface GroupOptions {
 	env?: Record<string, string | undefined>;
 }
 
-/** The result of one task in a namespace run. */
+/** One task of a group run. */
+export interface GroupMember {
+	/** Flat id, e.g. `"lint:code"`. */
+	task: string;
+	/** Args the task is run with (`--check` for `format` when an old name asked for it). */
+	passthrough?: string[];
+	/** The `jobs` switches of the task's entry in the manifest. */
+	jobSwitches?: Record<string, boolean>;
+}
+
+/** The result of one task in a group run. */
 export interface GroupJobReport {
-	/** Registry task name, e.g. `"sourceQuality.formatting"`. */
+	/** Flat id, e.g. `"lint:code"`. */
 	task: string;
 	/** `ok`, `fail`, `skip` (nothing to run for this repo) or `dry-run` (planned, not run). */
 	status: "ok" | "fail" | "skip" | "dry-run";
@@ -27,17 +36,20 @@ export interface GroupJobReport {
 	message?: string;
 }
 
-/** The result of running every task in a namespace. */
+/** The result of running every task in a group. */
 export interface GroupReport {
-	/** `"unknown"` when the namespace matches zero configured tasks. */
+	/** `"unknown"` when the group has no task to run. */
 	status: "ok" | "fail" | "dry-run" | "unknown";
-	/** One entry per matching task. */
+	/** One entry per task. */
 	jobs: GroupJobReport[];
 }
 
 export interface GroupInput extends RunDeps, GroupOptions {
 	cwd: string;
-	config: TasksConfig;
-	/** The bare namespace, e.g. `"sourceQuality"` — matched against `"sourceQuality."`-prefixed task names. */
-	namespace: string;
+	/** What was asked for, as typed: `"test"`, `"sourceQuality"`. */
+	label: string;
+	/** The tasks to run, in order. */
+	members: GroupMember[];
+	/** Tasks reported as skipped without running, each with its reason (the repo-wide leaves, from a package directory). */
+	skipped?: Array<{ task: string; message: string }>;
 }

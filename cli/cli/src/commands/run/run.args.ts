@@ -1,3 +1,4 @@
+import { describeTasks } from "@theholocron/astromech";
 import type { Argv } from "yargs";
 
 import type { GlobalArgs, InferArgs } from "../../cli-support/index.js";
@@ -8,17 +9,23 @@ export const runArgs = (y: Argv<GlobalArgs>) =>
 			type: "string",
 			demandOption: true,
 			describe:
-				"Task name (test, typecheck, lint, build, audit, or `ci` for the merge-gating suite). See `holocron run --help`.",
+				"A task (`typecheck`, `build`, `test:unit`), a suite (`test`, `lint`, `scan`: every leaf the repo lists) or `ci` for the merge-gating suite. `test unit` and `test:unit` are the same call. See the list below.",
 		})
 		.positional("job", {
 			type: "string",
 			describe:
-				"Sub-job within the task (e.g. `holocron run audit performance`, `holocron run lint commit-msg <file>`). Omit to run every job.",
+				"The qualifier of a suite (`holocron run test unit`) or a sub-job of the task (`holocron run validate adrs`, `holocron run lint commit-msg <file>`). Omit to run every job.",
 		})
+		.epilogue(describeTasks())
 		.positional("passthrough", {
 			type: "string",
 			array: true,
 			describe: "Args forwarded to the tool — put them after `--`.",
+		})
+		.option("check", {
+			type: "boolean",
+			default: false,
+			describe: "With `format`: report what prettier would change instead of writing it.",
 		})
 		.option("required", {
 			type: "boolean",

@@ -72,6 +72,17 @@ describe("taskCheckContexts", () => {
 		expect(taskCheckContexts({ tasks: [{ name: "delivery.deploy", required: true }] })).toEqual([]);
 	});
 
+	it("gives a task spelled with a flat id the context of the workflow it still posts under", () => {
+		expect(
+			taskCheckContexts({
+				tasks: [
+					{ name: "typecheck", required: true },
+					{ name: "lint:markdown", required: true },
+				],
+			})
+		).toEqual(["Typecheck / Run tsc --noEmit", "Formatting / Run prettier, editorconfig-checker, markdownlint"]);
+	});
+
 	it("accepts a bare string task (never required)", () => {
 		expect(taskCheckContexts({ tasks: ["sourceQuality.staticAnalysis"], extraRequiredChecks: ["X"] })).toEqual([
 			"X",

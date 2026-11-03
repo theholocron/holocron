@@ -147,22 +147,27 @@ describe("createAstromech().run", () => {
 			...fs({
 				"package.json": PKG,
 				"turbo.json": JSON.stringify({
-					tasks: { "sourceQuality.staticAnalysis": {}, "sourceQuality.formatting": {} },
+					tasks: { "sourceQuality.staticAnalysis": {}, "sourceQuality.deadCodeAnalysis": {} },
 				}),
 			}),
 			exec,
-			config: { tasks: ["sourceQuality.staticAnalysis", "sourceQuality.formatting", "verification.unitTests"] },
+			config: {
+				tasks: ["sourceQuality.staticAnalysis", "sourceQuality.deadCodeAnalysis", "verification.unitTests"],
+			},
 			print: () => {},
+			warn: (line) => warnings.push(line),
 		});
+		const warnings: string[] = [];
 		const report = astromech.run("sourceQuality");
 		expect(report).toMatchObject({
 			status: "ok",
 			jobs: [
-				{ task: "sourceQuality.staticAnalysis", status: "ok" },
-				{ task: "sourceQuality.formatting", status: "ok" },
+				{ task: "lint:code", status: "ok" },
+				{ task: "lint:unused", status: "ok" },
 			],
 		});
 		expect(exec).toHaveBeenCalledTimes(2);
+		expect(warnings.join("\n")).toMatch(/"sourceQuality" is a deprecated group name/);
 	});
 
 	it("forwards opts.filter through to runGroup when running a bare namespace", () => {
@@ -233,15 +238,22 @@ describe("createAstromech().run", () => {
 		try {
 			const report = createAstromech({
 				cwd: dir,
-				config: { tasks: ["sourceQuality.formatting"] },
-			}).run("sourceQuality.formatting", { dryRun: true });
+				config: { tasks: ["lint:editorconfig", "lint:markdown", "format"] },
+			}).run("format", { dryRun: true, check: true });
 			expect(report.status).toBe("dry-run");
-			// An exact task name (not a namespace) always returns RunTaskReport;
+			// A task name (not a suite) always returns RunTaskReport;
 			// the cast narrows past run()'s RunTaskReport | GroupReport union.
-			const command = (report as { command?: string }).command;
-			expect(command).toContain(join(dir, "node_modules", ".bin", "prettier"));
-			expect(command).toContain(join(binDir, "editorconfig-checker"));
-			expect(command).not.toContain("markdownlint");
+			expect((report as { command?: string }).command).toContain(join(dir, "node_modules", ".bin", "prettier"));
+			expect((report as { command?: string }).command).toContain("--check");
+			const lint = createAstromech({
+				cwd: dir,
+				config: { tasks: ["lint:editorconfig", "lint:markdown"] },
+			}).run("lint", { dryRun: true });
+			const jobs = (lint as { jobs: Array<{ task: string; command?: string }> }).jobs;
+			expect(jobs.find((j) => j.task === "lint:editorconfig")?.command).toContain(
+				join(binDir, "editorconfig-checker")
+			);
+			expect(jobs.find((j) => j.task === "lint:markdown")?.command).toBeUndefined();
 		} finally {
 			process.env["PATH"] = savedPath;
 			log.mockRestore();
@@ -716,7 +728,7 @@ describe("createAstromech().ci", () => {
 			config: { tasks: [{ name: "verification.typeSafety", required: true }] },
 		}).ci();
 		expect(report.status).toBe("ok");
-		expect(report.jobs.map((j) => j.task)).toEqual(["verification.typeSafety"]);
+		expect(report.jobs.map((j) => j.task)).toEqual(["typecheck"]);
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {
 			cwd: "/repo",
 		});

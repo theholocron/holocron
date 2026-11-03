@@ -3,8 +3,9 @@
  * of its sub-jobs) locally.
  *
  * A `job` argument only applies to tasks that declare `jobs`; for any other
- * task it is folded back into the passthrough (`holocron run delivery.build
- * src/`).
+ * task it is folded back into the passthrough (`holocron run build
+ * src/`). `task` is a flat id (`test:unit`, `build`); `Astromech.run()` turns
+ * the words of the command line (`test unit`, an old dotted name) into one.
  *
  * Resolution:
  *
@@ -30,7 +31,8 @@
 
 import { detectPackageManager, readPackageJsonSync } from "@theholocron/pkg-utils";
 
-import { type JobDef, KNOWN_TASKS, type LocalRunner, TASKS } from "../../registry/index.js";
+import { type JobDef, type LocalRunner, TASKS } from "../../registry/index.js";
+import { ownLegacyName, scriptName } from "../../vocabulary/index.js";
 import { resolveLinters } from "./linters/index.js";
 import { resolveAffected } from "./resolve-affected/index.js";
 import { resolveBin } from "./resolve-bin/index.js";
@@ -108,11 +110,25 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 
 	const run = makeRunOne(input);
 
+	// `--check` on a task that writes by default (`format`) is its read-only form: the registry's `checkArgs` replace the
+	// tool's args, and no turbo task or package script (whose command may be the writing one) stands in for it.
+	const checkForm = def?.checkArgs !== undefined && passthrough.includes("--check");
+	if (checkForm) passthrough = passthrough.filter((arg) => arg !== "--check");
+
+	// A task is still called by its old dotted name in `turbo.json` and `package.json` until the later phases rename
+	// those keys, so the old name is looked up first, then the id in its script spelling.
+	// A container of sub-jobs (`validate`, the interim `validate` suite) is never looked up by its script spelling: a
+	// package's own `validate` script is not this task.
+	const keys = [...new Set([ownLegacyName(task), def?.jobs ? undefined : scriptName(task)])].filter(
+		(key): key is string => key !== undefined
+	);
+	const turboKey = checkForm ? undefined : keys.find((key) => turboDefinesTask(cwd, key, readFile, fileExists));
+
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
 	// The org-default flags (`test` → `--coverage`) that step 3 injects for the
 	// registry tool are forwarded through `--` here too, so `holocron run test`
 	// at a turbo root produces coverage — the same command CI runs.
-	if (turboDefinesTask(cwd, task, readFile, fileExists)) {
+	if (turboKey !== undefined) {
 		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
 		const orgFlags = def?.local && !def.local.command && def.local.tool ? (def.flags?.[def.local.tool] ?? []) : [];
 		const forwarded = [...orgFlags, ...passthrough];
@@ -125,7 +141,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		});
 		if (plan.notice) print(`· ${plan.notice}`);
 		const affectedArg = plan.affected ? ["--affected"] : [];
-		const args = ["run", task, ...filterArg, ...affectedArg, ...(forwarded.length ? ["--", ...forwarded] : [])];
+		const args = ["run", turboKey, ...filterArg, ...affectedArg, ...(forwarded.length ? ["--", ...forwarded] : [])];
 		return run(resolveBin(cwd, "turbo", fileExists), args, plan.env);
 	}
 
@@ -133,10 +149,14 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 
 	// ── 2. an explicit package.json script wins ────────────────────────
 	// (unless it's the `holocron run <task>` thin caller — that would recurse)
-	const script = readPackageJsonSync(cwd, { readFile })?.scripts?.[task];
-	if (script && !/^holocron run\b/.test(script.trim())) {
+	const scripts = checkForm ? undefined : readPackageJsonSync(cwd, { readFile })?.scripts;
+	const scriptKey = keys.find((key) => {
+		const script = scripts?.[key];
+		return script !== undefined && script !== "" && !/^holocron run\b/.test(script.trim());
+	});
+	if (scriptKey !== undefined) {
 		const pm = detectPackageManager(cwd, { readFile, fileExists });
-		const args = ["run", task, ...(passthrough.length ? ["--", ...passthrough] : [])];
+		const args = ["run", scriptKey, ...(passthrough.length ? ["--", ...passthrough] : [])];
 		return run(pm, args);
 	}
 
@@ -167,7 +187,8 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 			// in this repo's node_modules.
 			const configFlags = resolveToolConfig(runner.tool, cwd, { readFile, fileExists });
 			const bin = resolveBin(cwd, runner.tool, fileExists);
-			return run(bin, [...runner.args, ...configFlags, ...flags, ...passthrough]);
+			const args = checkForm ? def.checkArgs! : runner.args;
+			return run(bin, [...args, ...configFlags, ...flags, ...passthrough]);
 		}
 		// registry knows the task but nothing in this repo matches — fall through
 	}
@@ -194,7 +215,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	}
 
 	// ── 4b / 5. known task, nothing in this repo runs it ───────────────
-	if (KNOWN_TASKS.has(task)) {
+	if (def) {
 		const msg = `no ${task} task for this repo`;
 		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
 		logger[input.required ? "warn" : "debug"]({ task, status: input.required ? "fail" : "skip" }, `run: ${task}`);

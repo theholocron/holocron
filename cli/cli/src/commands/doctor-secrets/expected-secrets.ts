@@ -1,3 +1,5 @@
+import { isTask } from "@theholocron/astromech";
+
 import type { ResolvedHolocronConfig } from "../../config/index.js";
 import type { NotificationsLayout } from "../../plugin/index.js";
 import { layoutSecretNames } from "../notifications-channel-add/index.js";
@@ -21,7 +23,7 @@ const chromaticSecret = (tokenName: string | undefined): string =>
 export function expectedSecrets(config: ResolvedHolocronConfig, layouts: NotificationsLayout[]): ExpectedSecrets {
 	const declared = config.repo?.secrets;
 	const chromatic = (config.tasks ?? []).flatMap((task) =>
-		typeof task === "object" && task.name === "verification.visualRegression"
+		typeof task === "object" && isTask(task.name, "test:visual")
 			? (task.with?.["chromatic-projects"] ?? []).map((project) => chromaticSecret(project.tokenName))
 			: []
 	);

@@ -32,7 +32,7 @@
 import { loadTasksConfig } from "../../config/load/index.js";
 import type { TasksConfig } from "../../config/schema/index.js";
 import { defaultListDirs, defaultReadJson, defaultRun, defaultSleep } from "../../utils/index.js";
-import { DEPLOY_TASK, MAIN_CHANNEL, WAIT_TIMEOUT_MS } from "./constants.js";
+import { DEPLOY_SCRIPT, MAIN_CHANNEL, WAIT_TIMEOUT_MS } from "./constants.js";
 import { defaultPaths } from "./default-paths/index.js";
 import type {
 	DeployOnReleaseDeps,
@@ -139,7 +139,7 @@ export async function deployOnRelease(
 		}
 
 		print(`${name}: deploying because ${decision.reason}.`);
-		const result = run("pnpm", ["--filter", name, DEPLOY_TASK], { cwd, env: process.env, stdio: "inherit" });
+		const result = run("pnpm", ["--filter", name, DEPLOY_SCRIPT], { cwd, env: process.env, stdio: "inherit" });
 		if (result.status === 0) record(name, "ok", "deployed.");
 		else record(name, "fail", `the deploy failed (exit ${result.status}).`);
 	}

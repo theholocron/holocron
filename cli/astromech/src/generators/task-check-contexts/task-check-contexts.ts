@@ -9,6 +9,7 @@
 
 import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
 import { CI_ORDER } from "../../registry/index.js";
+import { isTask, legacyName } from "../../vocabulary/index.js";
 import { WORKFLOW_CHECK_CONTEXTS } from "../github-action-thin-callers/index.js";
 
 /** Ordered (task contexts in {@link CI_ORDER}, then extras), de-duplicated. */
@@ -17,9 +18,11 @@ export function taskCheckContexts(config: TasksConfig): string[] {
 	const seen = new Set<string>();
 	const out: string[] = [];
 
-	for (const name of CI_ORDER) {
-		const required = entries.some((e) => e.name === name && e.required === true);
-		const context = required ? WORKFLOW_CHECK_CONTEXTS[name] : undefined;
+	for (const id of CI_ORDER) {
+		const required = entries.some((e) => e.required === true && isTask(e.name, id));
+		// Until the workflows are renamed, a check is still posted under the old name's workflow.
+		const legacy = legacyName(id);
+		const context = required && legacy !== undefined ? WORKFLOW_CHECK_CONTEXTS[legacy] : undefined;
 		if (context && !seen.has(context)) {
 			seen.add(context);
 			out.push(context);

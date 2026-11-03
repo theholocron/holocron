@@ -3,19 +3,31 @@ import { describe, expect, it } from "vitest";
 import { matchNamespace } from "./match-namespace.js";
 
 describe("matchNamespace", () => {
-	it("returns every configured task prefixed by `<namespace>.`, in declaration order, deduped", () => {
-		const names = matchNamespace(
+	it("returns the ids of every configured task that was under the old namespace, in declaration order, deduped", () => {
+		const found = matchNamespace(
 			{
 				tasks: [
 					"sourceQuality.staticAnalysis",
 					"verification.unitTests",
-					"sourceQuality.formatting",
+					"sourceQuality.deadCodeAnalysis",
 					"sourceQuality.staticAnalysis", // duplicate entry — kept once
 				],
 			},
 			"sourceQuality"
 		);
-		expect(names).toEqual(["sourceQuality.staticAnalysis", "sourceQuality.formatting"]);
+		expect(found).toEqual([{ id: "lint:code" }, { id: "lint:unused" }]);
+	});
+
+	it("matches a task spelled with a flat id through the old name it replaced", () => {
+		expect(matchNamespace({ tasks: ["lint:code", "test:unit"] }, "verification")).toEqual([{ id: "test:unit" }]);
+	});
+
+	it("expands an old name that stood for several tasks, keeping the args it implied", () => {
+		expect(matchNamespace({ tasks: ["sourceQuality.formatting"] }, "sourceQuality")).toEqual([
+			{ id: "lint:editorconfig" },
+			{ id: "lint:markdown" },
+			{ id: "format", passthrough: ["--check"] },
+		]);
 	});
 
 	it("returns [] for a namespace with no matching tasks, and for no config at all", () => {
