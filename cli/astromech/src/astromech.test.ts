@@ -77,7 +77,7 @@ describe("createAstromech().run", () => {
 		}).run("verification.unitTests", { filter: "@scope/x" });
 		expect(exec).toHaveBeenCalledWith(
 			expect.stringMatching(/turbo$/),
-			["run", "verification.unitTests", "--filter=@scope/x", "--", "--coverage"],
+			["run", "verification.unitTests", "--filter=@scope/x"],
 			{ cwd: "/repo" }
 		);
 	});
@@ -92,7 +92,7 @@ describe("createAstromech().run", () => {
 		}).run("verification.unitTests", { affected: true, base: "abc" });
 		expect(exec).toHaveBeenCalledWith(
 			expect.stringMatching(/turbo$/),
-			["run", "verification.unitTests", "--affected", "--", "--coverage"],
+			["run", "verification.unitTests", "--affected"],
 			{ cwd: "/repo", env: { TURBO_SCM_BASE: "abc" } }
 		);
 	});

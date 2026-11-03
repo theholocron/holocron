@@ -198,8 +198,7 @@ real tool command and never calls turbo or `holocron run`, and no package carrie
 The key a package-scoped leaf has in `turbo.json`, and so the name of its script in every package, **follows how the
 manifest spells the task**: `{ name: "test:unit" }` gives `test:unit`, `{ name: "verification.unitTests" }` keeps
 `verification.unitTests`. A repo's packages hold scripts in the vocabulary its `tasks:` list speaks, so rewriting the list
-to flat ids is what moves its keys, and the package scripts with them (`taskKey()`). Until then `holocron run test:unit`
-passes `--coverage` to a script still under the old name, which has no coverage of its own (`legacyForward`).
+to flat ids is what moves its keys, and the package scripts with them (`taskKey()`).
 
 ### Required checks
 

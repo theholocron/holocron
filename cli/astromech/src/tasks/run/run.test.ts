@@ -67,30 +67,6 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test:unit"], { cwd: CWD });
 	});
 
-	it("passes legacyForward to a package script still under the old name", () => {
-		const { call, exec } = makeRun({
-			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }),
-		});
-		call("test:unit");
-		expect(exec).toHaveBeenCalledWith(
-			expect.stringMatching(/turbo$/),
-			["run", "verification.unitTests", "--", "--coverage"],
-			{ cwd: CWD }
-		);
-	});
-
-	it("passes nothing extra to an old-named task that has no legacyForward", () => {
-		const { call, exec } = makeRun({
-			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "verification.typeSafety": {} } }),
-		});
-		call("typecheck");
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {
-			cwd: CWD,
-		});
-	});
-
 	it("delegates a flag-less task to turbo with no trailing --", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
@@ -102,17 +78,15 @@ describe("runTask", () => {
 		});
 	});
 
-	it("forwards passthrough args to turbo after the legacy flags", () => {
+	it("forwards passthrough args to turbo after the task name", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }),
+			"turbo.json": JSON.stringify({ tasks: { "test:unit": {} } }),
 		});
 		call("test:unit", { passthrough: ["--filter", "@scope/x"] });
-		expect(exec).toHaveBeenCalledWith(
-			expect.any(String),
-			["run", "verification.unitTests", "--", "--coverage", "--filter", "@scope/x"],
-			{ cwd: CWD }
-		);
+		expect(exec).toHaveBeenCalledWith(expect.any(String), ["run", "test:unit", "--", "--filter", "@scope/x"], {
+			cwd: CWD,
+		});
 	});
 
 	describe("--affected", () => {

@@ -124,7 +124,7 @@ describe("runWords — a task", () => {
 		run(["test", "unit", "storybook"], { passthrough: ["--watch"] });
 		expect(exec).toHaveBeenLastCalledWith(
 			"turbo",
-			["run", "verification.unitTests", "--", "--coverage", "storybook", "--watch"],
+			["run", "verification.unitTests", "--", "storybook", "--watch"],
 			{ cwd: CWD }
 		);
 	});

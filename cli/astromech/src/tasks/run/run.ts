@@ -127,12 +127,9 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	const turboKey = checkForm ? undefined : keys.find((key) => turboDefinesTask(cwd, key, readFile, fileExists));
 
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
-	// A package script still under the task's old name has no copy of what the registry's command does (`vitest run`
-	// without `--coverage`), so `legacyForward` is passed to it through `--`; a flat-named script carries it itself.
 	if (turboKey !== undefined) {
 		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
-		const legacy = turboKey === ownLegacyName(task) ? (def?.legacyForward ?? []) : [];
-		const forwarded = [...legacy, ...passthrough];
+		const forwarded = passthrough;
 		const plan = resolveAffected({
 			affected: input.affected,
 			base: input.base,

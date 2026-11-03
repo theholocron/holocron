@@ -242,7 +242,7 @@ describe("runCi", () => {
 		run({ tasks: [{ name: "verification.unitTests", required: true }] }, { filter: "@scope/cli" });
 		expect(exec).toHaveBeenCalledWith(
 			expect.stringMatching(/turbo$/),
-			["run", "verification.unitTests", "--filter=@scope/cli", "--", "--coverage"],
+			["run", "verification.unitTests", "--filter=@scope/cli"],
 			{ cwd: CWD }
 		);
 	});
@@ -252,7 +252,7 @@ describe("runCi", () => {
 		run({ tasks: [{ name: "verification.unitTests", required: true }] }, { affected: true, base: "abc", env: {} });
 		expect(exec).toHaveBeenCalledWith(
 			expect.stringMatching(/turbo$/),
-			["run", "verification.unitTests", "--affected", "--", "--coverage"],
+			["run", "verification.unitTests", "--affected"],
 			{ cwd: CWD, env: { TURBO_SCM_BASE: "abc" } }
 		);
 	});

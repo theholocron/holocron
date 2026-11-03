@@ -158,7 +158,7 @@ describe("createAstromech() with the flat task ids", () => {
 		astromech.run("test", { job: "unit", args: ["storybook"], passthrough: ["--watch"] });
 		expect(exec).toHaveBeenCalledWith(
 			expect.stringMatching(/turbo$/),
-			["run", "verification.unitTests", "--", "--coverage", "storybook", "--watch"],
+			["run", "verification.unitTests", "--", "storybook", "--watch"],
 			{ cwd: "/repo" }
 		);
 		const dry = createAstromech({
