@@ -1,6 +1,7 @@
 import type { GitHubClient, OrgProperty } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
+import { propertyFixHints } from "./property-fix-hints.js";
 import { rejectedProperties } from "./rejected-properties.js";
 
 /** GitHub's own message from a 422 body (`{"message": ..., "errors": [...]}`), or the start of the body when it is not JSON. */
@@ -26,24 +27,42 @@ async function orgSchema(client: GitHubClient, repo: string): Promise<OrgPropert
 }
 
 /**
- * Sets the repo's custom properties. When GitHub answers 422 the error says which value it refused: the values
- * are compared with the organization's property definitions (read-only), and GitHub's own message is added.
- * One refused value fails the whole request, so none of the properties is set.
+ * The values `values` holds that the organization's property definitions do not allow, one sentence each, or
+ * `undefined` when the definitions cannot be read (the token lacks the organization's custom properties permission, or
+ * the organization defines none). `client` should be the organization-scoped one when there is one, since reading the
+ * definitions is an organization permission a repository token often lacks. Read-only.
+ */
+export async function checkPropertyValues(
+	client: GitHubClient,
+	repo: string,
+	values: Record<string, string | string[]>
+): Promise<string[] | undefined> {
+	const schema = await orgSchema(client, repo);
+	return schema ? rejectedProperties(values, schema) : undefined;
+}
+
+/**
+ * Sets the repo's custom properties. When GitHub answers 422 the error says which value it refused and what to do
+ * about it: the values are compared with the organization's property definitions (read-only, with `schemaClient`, the
+ * organization-scoped client when there is one), GitHub's own message is added, and each value GitHub says a property
+ * does not allow gets the fix, which does not need the definitions to be readable. One refused value fails the whole
+ * request, so none of the properties is set.
  */
 export async function syncProperties(
 	client: GitHubClient,
 	repo: string,
-	values: Record<string, string | string[]>
+	values: Record<string, string | string[]>,
+	schemaClient: GitHubClient = client
 ): Promise<string> {
 	try {
 		await client.properties.setProperties(repo, values);
 	} catch (err) {
 		if (!(err instanceof ProviderApiError) || err.status !== 422) throw err;
-		const schema = await orgSchema(client, repo);
-		const problems = schema ? rejectedProperties(values, schema) : [];
+		const problems = (await checkPropertyValues(schemaClient, repo, values)) ?? [];
 		const said = githubMessage(err.details);
+		const fixes = propertyFixHints(said);
 		throw new Error(
-			`GitHub refused the custom properties (422), so none was set: ${problems.length > 0 ? problems.join("; ") : "no value differs from the organization's definitions, or they could not be read"}. GitHub said: ${said}`,
+			`GitHub refused the custom properties (422), so none was set: ${problems.length > 0 ? problems.join("; ") : "no value differs from the organization's definitions, or they could not be read"}. GitHub said: ${said}${fixes.length > 0 ? `. To fix it: ${fixes.join("; ")}` : ""}`,
 			{ cause: err }
 		);
 	}

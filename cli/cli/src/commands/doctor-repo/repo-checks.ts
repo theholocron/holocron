@@ -7,6 +7,7 @@ import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plu
 import { declaredVsActual } from "../doctor-checks/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { RULESET_NAME } from "../setup/branch-protection.js";
+import { deriveCapabilities } from "../setup/derived-properties/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "../setup/labels.js";
 import { BALANCED_REPO_SETTINGS } from "../setup/repo-settings.js";
 import type { RepoCheck } from "./doctor-repo.type.js";
@@ -111,6 +112,31 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 			},
 		});
 	}
+
+	// What `repo setup` would send, checked against the organization's definitions before GitHub refuses it: the
+	// capabilities this config wires (a new capability is a value the organization's property may not allow yet) and the
+	// values the config declares.
+	const sent: Record<string, string | string[]> = {
+		...Object.fromEntries(properties),
+		holocron_capabilities: deriveCapabilities(config.providers),
+	};
+	checks.push({
+		id: "repo-property-values",
+		title: "custom property values are allowed by the organization",
+		needs: "checkPropertyValues",
+		async run(source) {
+			const problems = await source.checkPropertyValues!(sent);
+			if (problems === undefined) {
+				return {
+					skip: "the organization's custom property definitions cannot be read with this token (it needs the organization's Custom properties: read)",
+				};
+			}
+			return {
+				problems: problems.map((p) => `${p}; add it in the organization's Settings, Custom properties`),
+				checked: Object.keys(sent).length,
+			};
+		},
+	});
 
 	checks.push({
 		id: "repo-labels",
