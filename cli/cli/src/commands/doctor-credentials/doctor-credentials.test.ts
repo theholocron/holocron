@@ -87,6 +87,50 @@ describe("doctor credentials", () => {
 		expect(lines.at(-1)).toBe("1 ok, 0 fail, 0 skipped");
 	});
 
+	describe("a token a plugin only falls back to", () => {
+		const withOptional: AuthImporter = async (pkg) =>
+			pkg.endsWith("github")
+				? {
+						tokens: [
+							{ envName: "HOLOCRON_ORG_TOKEN", keyringKey: "github.org" },
+							{ envName: "HOLOCRON_FALLBACK_WEBHOOK", keyringKey: "fallback", optional: true },
+						],
+					}
+				: tokensImporter(pkg);
+
+		it("is not expected, and the row says when it is not set", async () => {
+			const { report } = await run(loadedWith(), inspecting("Holocron", "HOLOCRON_ORG_TOKEN"), withOptional);
+			expect(report.status).toBe("ok");
+			expect(report.rows[0]?.detail).toBe(
+				'"Holocron" has 1 variable(s), 1 of 1 expected present; optional, not set: HOLOCRON_FALLBACK_WEBHOOK'
+			);
+			expect(report.rows[0]?.problems).toEqual([]);
+		});
+
+		it("says nothing about it when the environment has it", async () => {
+			const { report } = await run(
+				loadedWith(),
+				inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_FALLBACK_WEBHOOK"),
+				withOptional
+			);
+			expect(report.rows[0]?.detail).toBe('"Holocron" has 2 variable(s), 1 of 1 expected present');
+		});
+
+		it("is expected after all when another plugin lists the same name as needed", async () => {
+			const both: AuthImporter = async (pkg) =>
+				pkg.endsWith("github")
+					? { tokens: [{ envName: "HOLOCRON_SHARED", keyringKey: "a", optional: true }] }
+					: { tokens: [{ envName: "HOLOCRON_SHARED", keyringKey: "a" }] };
+			const { report } = await run(
+				loadedWith({ providers: { credentials: ["1password"], source: "github", errors: "sentry" } }),
+				inspecting("Holocron", "SOMETHING_ELSE"),
+				both
+			);
+			expect(report.status).toBe("fail");
+			expect(report.rows[0]?.problems).toEqual(["missing variable HOLOCRON_SHARED"]);
+		});
+	});
+
 	it("fails and names each variable the environment lacks", async () => {
 		const { report } = await run(loadedWith(), inspecting("Holocron", "SOMETHING_ELSE"));
 		expect(report.status).toBe("fail");

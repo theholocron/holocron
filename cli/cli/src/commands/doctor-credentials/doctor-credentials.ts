@@ -65,7 +65,7 @@ async function checkCredentials(input: RunDoctorCredentialsInput, loader: Plugin
 		.map((f) => row(f.provider, "fail", `failed to load: ${errorMessage(f.error)}`));
 	if (!loader.has("credentials")) return rows;
 
-	const expected = await expectedNames(input);
+	const expected = await expectedTokens(input);
 	// `credentials` is a many-cardinality capability, so its entry always has a list of providers.
 	const { tuples } = resolved.providers.credentials as Extract<ResolvedProviderEntry, { cardinality: "many" }>;
 	for (const impl of loader.get("credentials") as Credentials[]) {
@@ -80,17 +80,19 @@ async function checkCredentials(input: RunDoctorCredentialsInput, loader: Plugin
 	return rows;
 }
 
-async function checkProvider(impl: Credentials, environment: string, expected: string[]): Promise<CheckRow> {
+async function checkProvider(impl: Credentials, environment: string, expected: ExpectedTokens): Promise<CheckRow> {
 	if (!impl.inspect) {
 		return row(impl.providerName, "skip", "cannot list the variables without reading their values");
 	}
 	try {
 		const found = await impl.inspect(environment);
 		const problems = declaredVsActual(
-			new Map(expected.map((name) => [name, true])),
+			new Map(expected.required.map((name) => [name, true])),
 			new Map(found.names.map((name) => [name, true])),
 			{ noun: "variable", flagExtra: false }
 		);
+		// A token the plugin only falls back to is not expected, but the row says when it is not there.
+		const absent = expected.optional.filter((name) => !found.names.includes(name));
 		const spelled =
 			found.environment === environment
 				? `"${found.environment}"`
@@ -100,23 +102,38 @@ async function checkProvider(impl: Credentials, environment: string, expected: s
 			: row(
 					impl.providerName,
 					"ok",
-					`${spelled} has ${found.names.length} variable(s), ${expected.length} of ${expected.length} expected present`
+					`${spelled} has ${found.names.length} variable(s), ${expected.required.length} of ${expected.required.length} expected present${absent.length > 0 ? `; optional, not set: ${absent.join(", ")}` : ""}`
 				);
 	} catch (err) {
 		return row(impl.providerName, "fail", errorMessage(err));
 	}
 }
 
-/** The `envName` of every token the configured plugins list, once each. A plugin that cannot be loaded lists none. */
-async function expectedNames(input: RunDoctorCredentialsInput): Promise<string[]> {
+/** The variable names the configured plugins take: those the environment must hold, and those it need not. */
+interface ExpectedTokens {
+	required: string[];
+	optional: string[];
+}
+
+/**
+ * The `envName` of every token the configured plugins list, once each, split into the ones expected and the ones a
+ * plugin only falls back to (`optional`). A name any plugin needs is expected. A plugin that cannot be loaded lists none.
+ */
+async function expectedTokens(input: RunDoctorCredentialsInput): Promise<ExpectedTokens> {
 	const importer = input.importer ?? defaultImporter;
-	const names = new Set<string>();
+	const optionalOnly = new Map<string, boolean>();
 	for (const pkg of configuredPackages(input)) {
 		try {
-			for (const token of (await importer(pkg)).tokens ?? []) names.add(token.envName);
+			for (const token of (await importer(pkg)).tokens ?? []) {
+				optionalOnly.set(token.envName, (optionalOnly.get(token.envName) ?? true) && token.optional === true);
+			}
 		} catch {
 			// `doctor tokens` reports a plugin that cannot be loaded; here it just lists nothing.
 		}
 	}
-	return [...names].sort();
+	const names = [...optionalOnly.keys()].sort();
+	return {
+		required: names.filter((name) => !optionalOnly.get(name)),
+		optional: names.filter((name) => optionalOnly.get(name)),
+	};
 }

@@ -150,6 +150,25 @@ describe("auth export — what it writes", () => {
 		]);
 	});
 
+	it("marks a token not found as optional when the plugin only falls back to it", async () => {
+		const withFallback: AuthImporter = async () => ({
+			tokens: [
+				{ envName: "A_TOKEN", keyringKey: "a" },
+				{ envName: "B_WEBHOOK", keyringKey: "b", optional: true },
+				{ envName: "C_TOKEN", keyringKey: "c" },
+			],
+		});
+		const { result, err, out } = run({ importer: withFallback, keyring: store({ a: "1" }) });
+		const report = await result;
+		expect(err).toEqual(["exported 1 of 3:", "  ✓ A_TOKEN", "  · B_WEBHOOK  (optional)", "  · C_TOKEN"]);
+		// Optional only changes how it is shown: it is still exported when there is a value.
+		expect(report.missing).toEqual(["B_WEBHOOK", "C_TOKEN"]);
+		expect(out.join("")).toBe("A_TOKEN=1\n");
+		const stored = run({ importer: withFallback, keyring: store({ a: "1", b: "hook" }) });
+		await stored.result;
+		expect(stored.out.join("")).toBe("A_TOKEN=1\nB_WEBHOOK=hook\n");
+	});
+
 	it("colours the ✓ green and dims the · but leaves the name as it is", async () => {
 		const previous = chalk.level;
 		chalk.level = 1;

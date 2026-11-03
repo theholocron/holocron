@@ -5,7 +5,12 @@ import { tokens } from "./index.js";
 describe("the plugin's tokens export", () => {
 	it("lists each token the plugin resolves, with where it is looked up", () => {
 		expect(tokens).toEqual([
-			{ envName: "HOLOCRON_DISCORD_WEBHOOK", vendorEnvName: "DISCORD_WEBHOOK_URL", keyringKey: "discord" },
+			{
+				envName: "HOLOCRON_DISCORD_WEBHOOK",
+				vendorEnvName: "DISCORD_WEBHOOK_URL",
+				keyringKey: "discord",
+				optional: true,
+			},
 			{
 				envName: "HOLOCRON_DISCORD_BOT_TOKEN",
 				vendorEnvName: "DISCORD_BOT_TOKEN",
