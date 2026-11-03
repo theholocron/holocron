@@ -45,7 +45,10 @@ import {
 import { roleTeamProblem } from "../notifications-sync-roles/plan.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { avatarProblem } from "./avatar-problem.js";
+import { channelWebhookAvatars } from "./channel-webhook-avatars/index.js";
+import { layoutPictureProblem } from "./layout-picture-problem/index.js";
 import type { NotificationsSetupReport, RoleOutcome, RunNotificationsSetupInput } from "./notifications-setup.type.js";
+import { pictureSources } from "./picture-sources/index.js";
 import {
 	DEFAULT_RELAY_INTEGRATION,
 	DEFAULT_RELAY_RULE,
@@ -55,36 +58,6 @@ import {
 	wantsRelay,
 } from "./relay.js";
 import { withElevation } from "./with-elevation.js";
-
-/** The sources a picture names, in the order to try them: a single path or URL, or the `url` and then the `image`. */
-function pictureSources(picture: NotificationsPicture | undefined): string[] {
-	if (picture === undefined) return [];
-	if (typeof picture === "string") return [picture];
-	return [picture.url, picture.image].filter((source): source is string => Boolean(source));
-}
-
-/**
- * The pictures a channel's webhook may wear, in order of preference: its own `avatar`, else the layout's `webhookAvatar`,
- * else none. Either may be a single source or `{ url, image }`, the URL first and the file in the repo as its fallback.
- */
-export function webhookAvatarOf(
-	layout: NotificationsLayout,
-	webhook: boolean | { avatar?: NotificationsPicture } | undefined
-): string[] {
-	return pictureSources((typeof webhook === "object" ? webhook.avatar : undefined) ?? layout.webhookAvatar);
-}
-
-/** The first reason a picture in the layout (`webhookAvatar`, a channel's `webhook.avatar`) cannot work, or undefined. */
-export function layoutPictureProblem(layout: NotificationsLayout): string | undefined {
-	const general = avatarProblem(undefined, "webhookAvatar", layout.webhookAvatar);
-	if (general) return general;
-	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
-		const own = typeof channel.webhook === "object" ? channel.webhook.avatar : undefined;
-		const problem = avatarProblem(channel.name, "webhook.avatar", own);
-		if (problem) return problem;
-	}
-	return undefined;
-}
 
 /**
  * The pictures a feed's webhook may wear, in order of preference: the config's own (a single source, or `{ url, image }`,
@@ -429,8 +402,6 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	}
 
 	// The pictures a channel's feeds may wear, in order (none when it has no feed).
-	const webhookAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
-		channel.webhook ? webhookAvatarOf(layout, channel.webhook) : [];
 	const feedAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
 		channel.feeds?.monitoring ? feedAvatarOf(layout, channel.feeds.monitoring, monitoring) : [];
 	const errorsAvatarsOf = (channel: NotificationsChannelLayout): string[] =>
@@ -441,7 +412,11 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 	const read = input.loadAvatar ?? ((source: string) => loadAvatar(source, input.context.repoRoot));
 	for (const channel of (layout.categories ?? []).flatMap((c) => c.channels ?? [])) {
 		// A picture may list fallbacks (a URL, then a file in the repo): the first that can be read is used.
-		for (const sources of [webhookAvatarsOf(channel), feedAvatarsOf(channel), errorsAvatarsOf(channel)]) {
+		for (const sources of [
+			channelWebhookAvatars(layout, channel),
+			feedAvatarsOf(channel),
+			errorsAvatarsOf(channel),
+		]) {
 			const key = JSON.stringify(sources);
 			if (sources.length > 0 && !avatars.has(key)) {
 				try {
@@ -621,7 +596,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		}
 		for (const channel of channels) {
 			await attempt(`channel ${channel.name}`, async () => {
-				const sources = webhookAvatarsOf(channel);
+				const sources = channelWebhookAvatars(layout, channel);
 				const own: { name?: string; secret?: string } | undefined =
 					channel.webhook === true ? {} : channel.webhook || undefined;
 				// The picture in the layout, which may be `{ url, image }`, becomes the image that was read.

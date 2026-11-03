@@ -9,13 +9,7 @@ import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
-import {
-	feedProblem,
-	forumLayoutProblem,
-	layoutPictureProblem,
-	runNotificationsSetup,
-	webhookAvatarOf,
-} from "./notifications-setup.js";
+import { feedProblem, forumLayoutProblem, runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -1374,33 +1368,16 @@ describe("runNotificationsSetup — webhook avatars", () => {
 		expect(await message(withAvatar({ webhookAvatar: { image: "https://cdn.example.com/a.png" } }))).toBe(
 			"`webhookAvatar.image` must be a file in the repo, not a URL"
 		);
-	});
-
-	it("accepts a webhook picture given as a path, a url, an image or both", () => {
-		for (const avatar of [
-			"media/a.png",
-			{ url: "https://cdn.example.com/a.png" },
-			{ image: "media/a.png" },
-			{ url: "https://cdn.example.com/a.png", image: "media/a.png" },
-		]) {
-			expect(layoutPictureProblem({ webhookAvatar: avatar })).toBeUndefined();
-			expect(
-				layoutPictureProblem({ categories: [{ name: "A", channels: [{ name: "x", webhook: { avatar } }] }] })
-			).toBeUndefined();
-		}
-		expect(layoutPictureProblem({})).toBeUndefined();
-		expect(
-			layoutPictureProblem({
-				categories: [{ name: "A", channels: [{ name: "x", webhook: true }, { name: "y" }] }],
-			})
-		).toBeUndefined();
-	});
-
-	it("lists the sources of a webhook's picture, its own before the layout's", () => {
-		const layout: NotificationsLayout = { webhookAvatar: { url: "https://cdn.example.com/a.png", image: "a.png" } };
-		expect(webhookAvatarOf(layout, true)).toEqual(["https://cdn.example.com/a.png", "a.png"]);
-		expect(webhookAvatarOf(layout, { avatar: "own.png" })).toEqual(["own.png"]);
-		expect(webhookAvatarOf({}, undefined)).toEqual([]);
+		expect(await message(withAvatar({ webhookAvatar: { image: "data:image/png;base64,iVBORw0KGgo=" } }))).toBe(
+			"`webhookAvatar.image` must be a file in the repo, not a URL"
+		);
+		// a null a config wrote is a refusal, not a TypeError
+		expect(await message(own(null))).toBe(
+			"channel `x`: `webhook.avatar` must be a path or an https:// URL, or `{ url, image }`"
+		);
+		expect(await message(withAvatar({ webhookAvatar: null as never }))).toBe(
+			"`webhookAvatar` must be a path or an https:// URL, or `{ url, image }`"
+		);
 	});
 });
 

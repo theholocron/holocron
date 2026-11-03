@@ -1622,7 +1622,7 @@ export interface NotificationsForumTag {
 }
 
 /**
- * A picture (PNG, JPEG or GIF) as a layout writes it: a file path (from where the CLI runs) or an `https://` URL, or
+ * A picture (PNG, JPEG or GIF) as a layout writes it: a file path (relative to the repository root) or an `https://` URL, or
  * `{ url, image }`, where the `url` is tried first and the `image`, a file in the repo, is the fallback.
  */
 export type NotificationsPicture = string | { url?: string; image?: string };
@@ -1843,7 +1843,7 @@ export interface NotificationsLayout {
 	everyone?: NotificationsEveryoneLayout;
 	/**
 	 * The picture every webhook gets unless its own `webhook.avatar` says otherwise: a path to a PNG,
-	 * JPEG or GIF (from where the CLI runs) or an `https://` URL, or `{ url, image }` (see
+	 * JPEG or GIF (a path is relative to the repository root) or an `https://` URL, or `{ url, image }` (see
 	 * {@link NotificationsPicture}), where the `url` is tried first and the `image`, a file in the repo, is the fallback.
 	 * It is set only on a webhook that has no picture yet -- a provider cannot say whether the one it holds is the same image.
 	 */
