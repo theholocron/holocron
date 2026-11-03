@@ -1,6 +1,7 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ReadableStream } from "node:stream/web";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -66,6 +67,39 @@ describe("loadAvatar", () => {
 			loadAvatar("https://x.test/a.png", undefined, reply(Buffer.alloc(MAX_AVATAR_BYTES + 1)))
 		).rejects.toThrow(/larger than 8 MB/);
 		await expect(loadAvatar("https://x.test/a.png", undefined, reply("<html>"))).rejects.toThrow(/not a PNG/);
+	});
+});
+
+describe("loadAvatar hardening", () => {
+	it("does not follow a redirect to a private address or to http", async () => {
+		const to = (location: string) =>
+			vi.fn(async () => new Response(null, { status: 302, headers: { location } })) as unknown as typeof fetch;
+		await expect(loadAvatar("https://x.test/a.png", undefined, to("https://169.254.169.254/"))).rejects.toThrow(
+			/private or local/
+		);
+		await expect(loadAvatar("https://x.test/a.png", undefined, to("http://cdn.example.com/"))).rejects.toThrow(
+			/not https/
+		);
+	});
+
+	it("refuses a data: URI that decodes to more than the cap", async () => {
+		const big = Buffer.concat([PNG, Buffer.alloc(MAX_AVATAR_BYTES)]).toString("base64");
+		await expect(loadAvatar(`data:image/png;base64,${big}`)).rejects.toThrow(/larger than 8 MB/);
+	});
+
+	it("stops downloading an endless body once it passes the cap", async () => {
+		let cancelled = false;
+		const body = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				controller.enqueue(new Uint8Array(1024 * 1024));
+			},
+			cancel() {
+				cancelled = true;
+			},
+		});
+		const fetchImpl = vi.fn(async () => new Response(body)) as unknown as typeof fetch;
+		await expect(loadAvatar("https://x.test/a.png", undefined, fetchImpl)).rejects.toThrow(/larger than 8 MB/);
+		expect(cancelled).toBe(true);
 	});
 });
 
