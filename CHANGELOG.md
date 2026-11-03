@@ -1,3 +1,9 @@
+## [5.0.0-alpha.305](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.304...v5.0.0-alpha.305) (2026-11-03)
+
+### Features
+
+* **auth:** 📋 auth export puts the stored tokens on the clipboard as NAME=value ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1633](https://github.com/theholocron/holocron/issues/1633)) ([c40c84c](https://github.com/theholocron/holocron/commit/c40c84c5fcb7e43daff9ae05dc037af372d2d80b))
+
 ## [5.0.0-alpha.304](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.303...v5.0.0-alpha.304) (2026-11-03)
 
 ### Features
