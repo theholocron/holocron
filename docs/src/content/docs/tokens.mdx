@@ -264,16 +264,16 @@ env:
 
 ### CI-only tokens
 
-These are repository secrets that a workflow reads. Storing one locally is optional. Two should stay out of the keyring: `SENTINEL_DOPPLER_TOKEN`, because the `doppler` key holds your personal login and a read-only service token would overwrite it, and `HOLOCRON_DEPLOYMENTS_TOKEN`, because nothing in the CLI reads it.
+These are repository secrets that a workflow reads. Storing one locally is optional. Two should stay out of the keyring: `SENTINEL_OP_SERVICE_ACCOUNT_TOKEN`, because `op` signs in on its own and the CLI has no key for it, and `HOLOCRON_DEPLOYMENTS_TOKEN`, because nothing in the CLI reads it.
 
-| Secret                       | Read by                                                                                           | What it is                                                                                                                   |
-| ---------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `HOLOCRON_RELEASE_TOKEN`     | `release` (the CLI never resolves it)                                                             | Fine-grained PAT for tags, releases and changelogs. The workflow falls back to `HOLOCRON_SYNC_TOKEN`, then to `github.token` |
-| `HOLOCRON_SECRETS_TOKEN`     | `sentinel.secretsSync.yml`, passed with `--token github=…`; also the `secrets` capability locally | Organization-owned PAT with only organization **Secrets: read/write**                                                        |
-| `HOLOCRON_DEPLOYMENTS_TOKEN` | `deploy-preview`, through `secrets: inherit`                                                      | PAT with only **Deployments: read/write**; creates the GitHub Deployment and posts its status for a PR preview               |
-| `VERCEL_TOKEN`               | `sentinel.deploy.yml`, `sentinel.secretsSync.yml`, the preview workflows                          | A Vercel personal access token (Vercel has no separate service token). The same one `holocron auth set vercel` stores        |
-| `SENTINEL_DOPPLER_TOKEN`     | `sentinel.secretsSync.yml`, exposed to the CLI as `DOPPLER_TOKEN`                                 | A Doppler **service token** for the `sentinel` project's `prd` config, **read** access only                                  |
-| `HOLOCRON_FERN_TOKEN`        | the `wiki` reusable workflow, which passes it to the Fern CLI as `FERN_TOKEN`                     | The Fern API token. Password protection is set in the Fern dashboard and needs no token here                                 |
+| Secret                              | Read by                                                                                           | What it is                                                                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `HOLOCRON_RELEASE_TOKEN`            | `release` (the CLI never resolves it)                                                             | Fine-grained PAT for tags, releases and changelogs. The workflow falls back to `HOLOCRON_SYNC_TOKEN`, then to `github.token` |
+| `HOLOCRON_SECRETS_TOKEN`            | `sentinel.secretsSync.yml`, passed with `--token github=…`; also the `secrets` capability locally | Organization-owned PAT with only organization **Secrets: read/write**                                                        |
+| `HOLOCRON_DEPLOYMENTS_TOKEN`        | `deploy-preview`, through `secrets: inherit`                                                      | PAT with only **Deployments: read/write**; creates the GitHub Deployment and posts its status for a PR preview               |
+| `VERCEL_TOKEN`                      | `sentinel.deploy.yml`, `sentinel.secretsSync.yml`, the preview workflows                          | A Vercel personal access token (Vercel has no separate service token). The same one `holocron auth set vercel` stores        |
+| `SENTINEL_OP_SERVICE_ACCOUNT_TOKEN` | `sentinel.secretsSync.yml`, exposed to `op` as `OP_SERVICE_ACCOUNT_TOKEN`                         | A 1Password **service account** token with read access to the `Sentinel` Environment only                                    |
+| `HOLOCRON_FERN_TOKEN`               | the `wiki` reusable workflow, which passes it to the Fern CLI as `FERN_TOKEN`                     | The Fern API token. Password protection is set in the Fern dashboard and needs no token here                                 |
 
 The release workflow is the one place a broader token is used as a fallback. The CLI never falls back from one GitHub feature token to another, except that the `secrets` capability tries `github.secrets` or `github.admin` depending on the scope it writes (see [Organization secrets](#organization-secrets)).
 
@@ -296,7 +296,7 @@ security find-generic-password -s "com.theholocron.cli" -a "vercel" -w | gh secr
 
 macOS asks once to allow the keychain access. A separate CI-only token from `vercel.com/account/tokens` works too.
 
-For `SENTINEL_DOPPLER_TOKEN`: in Doppler open the `sentinel` project → `prd` config → **Access** → **Service Tokens**, generate one named for CI with **Read** access, then `gh secret set SENTINEL_DOPPLER_TOKEN --repo theholocron/holocron`.
+For `SENTINEL_OP_SERVICE_ACCOUNT_TOKEN`: in the 1Password developer tools create a service account named for CI, give it **Read** access to the `Sentinel` Environment and nothing else, then `gh secret set SENTINEL_OP_SERVICE_ACCOUNT_TOKEN --repo theholocron/holocron`. 1Password documents service accounts reading Environments, but a Feb 2026 community report says `op environment` returned "not found" for one; if it does, run `holocron secrets sync Sentinel --cwd apps/sentinel` locally instead.
 
 ### Organization secrets
 

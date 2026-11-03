@@ -166,7 +166,7 @@
  * the still-open "Sentinel's own holocron.config.ts" PR-stack item.
  *
  * `Env` fields this handler expects, wired via `holocron secrets sync`
- * (holocron#781) from Doppler's `sentinel`/`prd` config: `GITHUB_APP_ID`,
+ * (holocron#781) from the 1Password Environment `Sentinel`: `GITHUB_APP_ID`,
  * `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`. The module-level
  * logger below reads two more via `@theholocron/env-utils` (see its own
  * comment — never bare `process.env`, this org's own convention) — not

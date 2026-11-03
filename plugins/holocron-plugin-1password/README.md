@@ -126,12 +126,13 @@ holocron.
 
 ## What's implemented
 
-| Method                        | What it does                                                                                                                                                                                              |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `read(reference)`             | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.                                                                                                                                 |
-| `write(reference, v)`         | Probe + `op item edit` if exists, else `op item create --category=API Credential`.                                                                                                                        |
-| `list()`                      | `op item list --vault=<vault> --format=json` — names of items in the vault.                                                                                                                               |
-| `readEnvironment(name or id)` | `op environment secret list <name or id> --reveal --format=dotenv` — parses the variables into a record. `op environment read` takes only an id, so this reads through `secret list`, which takes either. |
+| Method                        | What it does                                                                                                                                                                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `read(reference)`             | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.                                                                                                                                                           |
+| `write(reference, v)`         | Probe + `op item edit` if exists, else `op item create --category=API Credential`.                                                                                                                                                  |
+| `list()`                      | `op item list --vault=<vault> --format=json` — names of items in the vault.                                                                                                                                                         |
+| `readSecret(name)`            | Reads one variable of the Environment named by the `environment` option, through the same `op environment secret list`; refuses without that option. Lets a caller (the `comlink deliver` probe) ask for a secret by its bare name. |
+| `readEnvironment(name or id)` | `op environment secret list <name or id> --reveal --format=dotenv` — parses the variables into a record. `op environment read` takes only an id, so this reads through `secret list`, which takes either.                           |
 
 Plugin-level exports (not capability methods, per the auth-bootstrap
 convention):
