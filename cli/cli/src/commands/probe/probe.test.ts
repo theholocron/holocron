@@ -233,6 +233,7 @@ describe("runProbeCommand", () => {
 			"docs",
 			"generated",
 			"specs",
+			"tasks",
 		]);
 		expect(text()).toBe("");
 	});

@@ -10,6 +10,7 @@ import { RULESET_NAME } from "../setup/branch-protection.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "../setup/labels.js";
 import { BALANCED_REPO_SETTINGS } from "../setup/repo-settings.js";
 import type { RepoCheck } from "./doctor-repo.type.js";
+import { compareRequiredContexts } from "./required-contexts.js";
 
 const quote = (value: unknown): string => JSON.stringify(value);
 const onOff = (value: boolean): string => (value ? "on" : "off");
@@ -193,11 +194,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 							noun: "ruleset rule",
 						}
 					),
-					...declaredVsActual(
-						new Map(required.map((c) => [c, true])),
-						new Map(detail.requiredChecks.map((c) => [c, true])),
-						{ noun: "required check" }
-					),
+					...compareRequiredContexts(required, detail.requiredChecks),
 				];
 				return { problems, checked: 1 + rules.length + required.length };
 			},
