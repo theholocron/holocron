@@ -8,4 +8,5 @@ export * from "./resolve-task-name/index.js";
 export * from "./resolve-words/index.js";
 export * from "./script-name/index.js";
 export * from "./suites/index.js";
+export * from "./task-key/index.js";
 export * from "./workflow-key/index.js";

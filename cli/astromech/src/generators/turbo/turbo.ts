@@ -25,7 +25,10 @@ import { addWorkspaceMember } from "@theholocron/pkg-utils";
 import { normalizeTaskEntry, type TasksConfig } from "../../config/schema/index.js";
 import { TASKS } from "../../registry/index.js";
 import { formatJson } from "../../utils/index.js";
-import { ownLegacyName, resolveTaskName, scriptName } from "../../vocabulary/index.js";
+import { resolveTaskName, taskKey } from "../../vocabulary/index.js";
+import { isGeneratedScript } from "../scripts/merge-scripts/index.js";
+import { planSuites } from "../scripts/plan-suites/index.js";
+import { planTasks } from "../scripts/plan-tasks/index.js";
 import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult } from "./turbo.type.js";
 
 /**
@@ -61,20 +64,33 @@ function validatedGlobList(
 	return value;
 }
 
-/** The key a task has in `turbo.json`: the old name it replaced, until the later phases rename the keys. */
-function turboKey(id: string): string {
-	return ownLegacyName(id) ?? scriptName(id);
-}
-
 /**
- * A turbo task reference (`build`, `^build`, `@x/config#build`) with a flat id in it spelled as the key
- * {@link turboKey} writes; anything else (an old name, a `//#` root task) is kept.
+ * A turbo task reference (`build`, `^build`, `@x/config#build`) with a flat id in it spelled as the key that id has in
+ * this manifest (`keys`), or, for a task the manifest does not list, as the entry that mentions it would spell it;
+ * anything else (an old name, a `//#` root task) is kept.
  */
-function turboRef(ref: string): string {
+function turboRef(ref: string, keys: ReadonlyMap<string, string>, entryName: string): string {
 	const prefix = ref.startsWith("^") ? "^" : "";
 	const [task, ...scope] = ref.slice(prefix.length).split("#").reverse();
-	const known = TASKS[task!] ? turboKey(task!) : task!;
+	const known = TASKS[task!] ? (keys.get(task!) ?? taskKey(entryName, task!)) : task!;
 	return `${prefix}${[known, ...scope].reverse().join("#")}`;
+}
+
+/** What `turboConfig` needs to know about the repo besides its manifest. */
+export interface TurboConfigOptions {
+	/**
+	 * A workspace, where `//#<id>` root tasks and the suite aggregator tasks exist (`scriptsFor` calls them). A single
+	 * package has no use for either and turbo's single-package mode does not take root tasks.
+	 */
+	monorepo?: boolean;
+}
+
+interface TurboTask {
+	inputs?: string[];
+	outputs?: string[];
+	dependsOn?: string[];
+	passThroughEnv?: string[];
+	cache?: false;
 }
 
 /**
@@ -82,27 +98,40 @@ function turboRef(ref: string): string {
  * directly, no merge (matches `thinCallers()` / `reusableTemplates()`: this
  * file is generated, not hand-edited). `null` when no task in the manifest
  * has turbo fan-out config (nothing to write).
+ *
+ * In a workspace it also carries, for what `scriptsFor` writes as root scripts: a `//#<id>` task for each repo-scoped
+ * suite leaf whose root script holds the tool (uncached: it reads files of every package, which turbo would not hash), and
+ * one aggregator task per suite that `dependsOn` its leaves, with no script of its own.
  */
-export function turboConfig(config: TasksConfig): string | null {
+export function turboConfig(config: TasksConfig, options: TurboConfigOptions = {}): string | null {
 	const entries = (config.tasks ?? []).map(normalizeTaskEntry);
-	const tasks: Record<
-		string,
-		{ inputs: string[]; outputs: string[]; dependsOn: string[]; passThroughEnv?: string[] }
-	> = {};
+	const tasks: Record<string, TurboTask> = {};
+
+	// The key each id has: it follows how its entry is spelled (see `taskKey`).
+	const keys = new Map<string, string>();
+	for (const entry of entries) {
+		if (entry.local === false) continue;
+		for (const { id } of resolveTaskName(entry.name)) {
+			if (!keys.has(id)) keys.set(id, taskKey(entry.name, id));
+		}
+	}
 
 	for (const entry of entries) {
 		if (entry.local === false) continue;
 		for (const { id } of resolveTaskName(entry.name)) {
 			const registered = TASKS[id]?.turbo;
 			if (!registered) continue;
-			// `turbo.json` keeps the old task names until the later phases rename them, so the registry's flat ids (and
-			// the ones an override spells) are written as the names the package scripts still have.
-			const key = turboKey(id);
-			const turbo = { ...registered, dependsOn: registered.dependsOn.map(turboRef) };
+			const key = keys.get(id)!;
+			const turbo = {
+				...registered,
+				dependsOn: registered.dependsOn.map((ref) => turboRef(ref, keys, entry.name)),
+			};
 
 			const extraEnv = validatedGlobList(entry.turbo?.passThroughEnv, entry.name, "passThroughEnv");
 			const extraInputs = validatedGlobList(entry.turbo?.inputs, entry.name, "inputs");
-			const extraDependsOn = validatedGlobList(entry.turbo?.dependsOn, entry.name, "dependsOn").map(turboRef);
+			const extraDependsOn = validatedGlobList(entry.turbo?.dependsOn, entry.name, "dependsOn").map((ref) =>
+				turboRef(ref, keys, entry.name)
+			);
 
 			// A task declared in more than one config layer accumulates onto
 			// whatever an earlier entry for the same name already contributed,
@@ -117,9 +146,9 @@ export function turboConfig(config: TasksConfig): string | null {
 			// Appended, not replaced — a flat-layout package adds its own glob
 			// (e.g. "**/*.ts") without losing the registry's other tracked
 			// inputs (package.json, tsdown.config.ts, …).
-			const inputs = extraInputs.length > 0 ? [...current.inputs, ...extraInputs] : current.inputs;
+			const inputs = extraInputs.length > 0 ? [...current.inputs!, ...extraInputs] : current.inputs;
 			// Appended too, and a task already waiting on it is not listed twice.
-			const dependsOn = [...new Set([...current.dependsOn, ...extraDependsOn])];
+			const dependsOn = [...new Set([...current.dependsOn!, ...extraDependsOn])];
 
 			tasks[key] = {
 				...turbo,
@@ -127,6 +156,19 @@ export function turboConfig(config: TasksConfig): string | null {
 				dependsOn,
 				...(passThroughEnv && passThroughEnv.length > 0 ? { passThroughEnv } : {}),
 			};
+		}
+	}
+
+	if (options.monorepo) {
+		const suites = planSuites(planTasks(config, TASKS), TASKS);
+		// A root task exists so a suite can depend on it: a repo-scoped leaf outside every suite (`format`) has none.
+		for (const leaves of suites.values()) {
+			for (const leaf of leaves) {
+				if (leaf.kind === "tool") tasks[`//#${leaf.script}`] = { cache: false };
+			}
+		}
+		for (const [suite, leaves] of suites) {
+			tasks[suite] = { dependsOn: leaves.map((leaf) => (leaf.kind === "tool" ? `//#${leaf.script}` : leaf.key)) };
 		}
 	}
 
@@ -185,27 +227,11 @@ export function ensureRootWorkspaceMember(
 ): EnsureRootWorkspaceMemberResult {
 	const rootHasEligibleTask = taskNames.some((t) => {
 		const script = rootScripts[t];
-		return script !== undefined && !isGeneratedRunWrapper(script, t);
+		return script !== undefined && !isGeneratedScript(script);
 	});
 	if (!rootHasEligibleTask) return { content: workspaceYaml, changed: false };
 
 	return addWorkspaceMember(workspaceYaml, ".");
-}
-
-/**
- * Matches the exact shape `packageScripts()` generates for `taskName` —
- * `<bin> run <taskName> --`, `<bin>` normally `holocron` but substitutable
- * (`holocronScript`, itself allowed to be multi-word, e.g. `"node
- * cli/cli/dist/cli.mjs"` — see its own test). Checking the *suffix*
- * rather than the whole string means an old wrapper survives a
- * `holocronScript` rename intact — it's still recognized as a wrapper (safe
- * to update to the new one), not mistaken for a real command. Mirrors
- * `sync.ts`'s private `isGeneratedRunWrapper()` — same predicate, needed on
- * both sides of #692/#747: whether to *write* the wrapper, and here, whether
- * an *existing* one should count as "root is directly buildable".
- */
-function isGeneratedRunWrapper(command: string, taskName: string): boolean {
-	return command.endsWith(` run ${taskName} --`);
 }
 
 /**

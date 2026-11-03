@@ -101,27 +101,67 @@ describe("turboConfig", () => {
 		]);
 	});
 
-	it("writes the old task names, so turbo.json does not change, whichever spelling the manifest uses", () => {
-		const old = turboConfig({ tasks: ["verification.typeSafety", "verification.unitTests", "delivery.build"] });
-		const flat = turboConfig({ tasks: ["typecheck", "test:unit", "build"] });
-		expect(flat).toBe(old);
-		expect(JSON.parse(flat!).tasks["verification.unitTests"].dependsOn).toEqual([
-			"delivery.build",
-			"^delivery.build",
-		]);
+	it("keys a task by the spelling its manifest entry uses, so a repo's keys move when its list does", () => {
+		const old = JSON.parse(
+			turboConfig({ tasks: ["verification.typeSafety", "verification.unitTests", "delivery.build"] })!
+		) as { tasks: Record<string, { dependsOn: string[] }> };
+		const flat = JSON.parse(turboConfig({ tasks: ["typecheck", "test:unit", "build"] })!) as typeof old;
+		expect(Object.keys(old.tasks)).toEqual(["verification.typeSafety", "verification.unitTests", "delivery.build"]);
+		expect(old.tasks["verification.unitTests"]!.dependsOn).toEqual(["delivery.build", "^delivery.build"]);
+		expect(Object.keys(flat.tasks)).toEqual(["typecheck", "test:unit", "build"]);
+		expect(flat.tasks["test:unit"]!.dependsOn).toEqual(["build", "^build"]);
 	});
 
-	it("translates a flat id in a dependsOn override, and leaves a leaf with no old name alone", () => {
-		const content = turboConfig({
-			tasks: [{ name: "lint:code", turbo: { dependsOn: ["@x/config#build", "//#lint:markdown", "^typecheck"] } }],
+	it("spells a flat id in a dependsOn override like the entry, and leaves other references alone", () => {
+		const parse = (content: string | null) =>
+			(JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> }).tasks;
+		const refs = ["@x/config#build", "//#lint:markdown", "^typecheck"];
+		expect(
+			parse(turboConfig({ tasks: [{ name: "lint:code", turbo: { dependsOn: refs } }] }))["lint:code"]!.dependsOn
+		).toEqual(["^build", "@x/config#build", "//#lint:markdown", "^typecheck"]);
+		expect(
+			parse(turboConfig({ tasks: [{ name: "sourceQuality.staticAnalysis", turbo: { dependsOn: refs } }] }))[
+				"sourceQuality.staticAnalysis"
+			]!.dependsOn
+		).toEqual(["^delivery.build", "@x/config#delivery.build", "//#lint:markdown", "^verification.typeSafety"]);
+	});
+
+	describe("in a monorepo", () => {
+		const tasks = ["build", "test:unit", "lint:code", "lint:markdown", "lint:commits", "format", "scan:secrets"];
+		const parse = (content: string | null) => (JSON.parse(content!) as { tasks: Record<string, unknown> }).tasks;
+
+		it("adds an uncached //# root task per repo-scoped suite leaf with a local tool", () => {
+			const parsed = parse(turboConfig({ tasks }, { monorepo: true }));
+			expect(parsed["//#lint:markdown"]).toEqual({ cache: false });
+			expect(parsed["//#scan:secrets"]).toEqual({ cache: false });
+			expect(parsed).not.toHaveProperty("//#format");
+			expect(parsed).not.toHaveProperty("//#lint:commits");
+			expect(parsed).not.toHaveProperty("//#test:unit");
+			expect(parsed).not.toHaveProperty("//#build");
 		});
-		const parsed = JSON.parse(content!) as { tasks: Record<string, { dependsOn: string[] }> };
-		expect(parsed.tasks["sourceQuality.staticAnalysis"]?.dependsOn).toEqual([
-			"^delivery.build",
-			"@x/config#delivery.build",
-			"//#lint:markdown",
-			"^verification.typeSafety",
-		]);
+
+		it("adds an aggregator per suite that depends on its leaves, with the root task for a repo-scoped one", () => {
+			const parsed = parse(turboConfig({ tasks }, { monorepo: true }));
+			expect(parsed["test"]).toEqual({ dependsOn: ["test:unit"] });
+			expect(parsed["lint"]).toEqual({ dependsOn: ["lint:code", "//#lint:markdown"] });
+			expect(parsed["scan"]).toEqual({ dependsOn: ["//#scan:secrets"] });
+		});
+
+		it("depends on the key a legacy-spelled leaf has", () => {
+			const parsed = parse(turboConfig({ tasks: ["verification.unitTests"] }, { monorepo: true }));
+			expect(parsed["test"]).toEqual({ dependsOn: ["verification.unitTests"] });
+		});
+
+		it("writes a file when only root tasks exist", () => {
+			expect(Object.keys(parse(turboConfig({ tasks: ["lint:markdown"] }, { monorepo: true })))).toEqual([
+				"//#lint:markdown",
+				"lint",
+			]);
+		});
+
+		it("writes neither in a single package", () => {
+			expect(Object.keys(parse(turboConfig({ tasks }))).sort()).toEqual(["build", "lint:code", "test:unit"]);
+		});
 	});
 
 	it("keeps the registry dependsOn when no override is given", () => {

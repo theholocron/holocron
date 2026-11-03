@@ -12,8 +12,9 @@
  *   J. job given                              → TASKS[task].jobs[job].local (unknown job → exit 1)
  *   1. turbo.json defines the task            → `turbo run <task>`
  *   2. package.json has a `<task>` script     → `<pm> run <task>`
- *      (unless it's the `holocron run …` thin caller — that recurses)
- *   3. TASKS[task].local resolves             → `<tool> <args> <org-flags> <passthrough>`
+ *      (unless it's the `holocron run …` thin caller — that recurses — or the root script generated from the
+ *      registry's own command, which the registry then runs itself)
+ *   3. TASKS[task].local resolves             → `<tool> <args> <passthrough>`
  *   3b. TASKS[task].linterGroup               → run each resolved linter natively (see below)
  *   4. TASKS[task].jobs has entries           → run each job in declared order
  *   5. TASKS[task].local === null             → "enforced in CI" (skip, even with --required)
@@ -39,6 +40,7 @@ import { resolveBin } from "./resolve-bin/index.js";
 import { resolveRunner } from "./resolve-runner/index.js";
 import { resolveToolConfig } from "./resolve-tool-config/index.js";
 import type { RunTaskInput, RunTaskReport } from "./run.type.js";
+import { toolCommand } from "./tool-command/index.js";
 import { turboDefinesTask } from "./turbo-defines-task/index.js";
 
 /** The per-command runner — `runTask` and `runLintAggregate` share it. */
@@ -125,13 +127,12 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	const turboKey = checkForm ? undefined : keys.find((key) => turboDefinesTask(cwd, key, readFile, fileExists));
 
 	// ── 1. turbo delegation (monorepo root) ────────────────────────────
-	// The org-default flags (`test` → `--coverage`) that step 3 injects for the
-	// registry tool are forwarded through `--` here too, so `holocron run test`
-	// at a turbo root produces coverage — the same command CI runs.
+	// A package script still under the task's old name has no copy of what the registry's command does (`vitest run`
+	// without `--coverage`), so `legacyForward` is passed to it through `--`; a flat-named script carries it itself.
 	if (turboKey !== undefined) {
 		const filterArg = input.filter ? [`--filter=${input.filter}`] : [];
-		const orgFlags = def?.local && !def.local.command && def.local.tool ? (def.flags?.[def.local.tool] ?? []) : [];
-		const forwarded = [...orgFlags, ...passthrough];
+		const legacy = turboKey === ownLegacyName(task) ? (def?.legacyForward ?? []) : [];
+		const forwarded = [...legacy, ...passthrough];
 		const plan = resolveAffected({
 			affected: input.affected,
 			base: input.base,
@@ -150,9 +151,12 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	// ── 2. an explicit package.json script wins ────────────────────────
 	// (unless it's the `holocron run <task>` thin caller — that would recurse)
 	const scripts = checkForm ? undefined : readPackageJsonSync(cwd, { readFile })?.scripts;
+	// The root script generated for a repo-scoped leaf holds the registry's own command: run that natively instead, so a
+	// tool that is not installed is a note (as it is for a repo that has no such script) and not a failed `pnpm run`.
+	const generated = def ? toolCommand(def) : null;
 	const scriptKey = keys.find((key) => {
-		const script = scripts?.[key];
-		return script !== undefined && script !== "" && !/^holocron run\b/.test(script.trim());
+		const script = scripts?.[key]?.trim();
+		return script !== undefined && script !== "" && !/^holocron run\b/.test(script) && script !== generated;
 	});
 	if (scriptKey !== undefined) {
 		const pm = detectPackageManager(cwd, { readFile, fileExists });
@@ -171,24 +175,16 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		}
 		const runner = resolveRunner(def.local, cwd, listDir, readFile);
 		if (runner) {
-			// Step 1 already forwards these same org-default flags through `--`
-			// when delegating to turbo, so a leaf package whose own script is
-			// itself a `holocron run <task>` wrapper (step 2's recursion-skip)
-			// would otherwise see them twice by the time turbo's fan-out lands
-			// back here — e.g. `vitest run --coverage --coverage`. Drop any
-			// already present in passthrough rather than appending blindly.
-			const flags = (def.flags?.[runner.tool] ?? []).filter((f) => !passthrough.includes(f));
 			// `--config <resolved shared path>` (config-resolution workstream,
 			// #676) — `[]` when the tool isn't a resolvable one, the shared
 			// package isn't installed, or its built dist/ is missing; the tool
 			// then falls back to its own auto-discovery of a local file,
-			// unchanged from today. Read at run time (not from `def.flags`,
-			// which is static) since it depends on what's actually installed
-			// in this repo's node_modules.
+			// unchanged from today. Read at run time since it depends on
+			// what's actually installed in this repo's node_modules.
 			const configFlags = resolveToolConfig(runner.tool, cwd, { readFile, fileExists });
 			const bin = resolveBin(cwd, runner.tool, fileExists);
 			const args = checkForm ? def.checkArgs! : runner.args;
-			return run(bin, [...args, ...configFlags, ...flags, ...passthrough]);
+			return run(bin, [...args, ...configFlags, ...passthrough]);
 		}
 		// registry knows the task but nothing in this repo matches — fall through
 	}

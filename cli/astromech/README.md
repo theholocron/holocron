@@ -40,8 +40,9 @@ names (`LEGACY_NAMES`) are accepted in `tasks:` and by `run`, with a deprecation
 ```text
 1. turbo.json defines the task            → turbo run <task>
 2. package.json has a <task> script       → <detected pm> run <task>
-   (a "holocron run …" thin caller is skipped — no recursion)
-3. the registry has a local runner        → <tool> <args> <org-flags>   (e.g. --coverage)
+   (a "holocron run …" thin caller is skipped — no recursion; so is the root script generated from the
+   registry's own command, which step 3 runs itself)
+3. the registry has a local runner        → <tool> <args>   (`test:unit` is `vitest run --coverage`)
 3b. the task is a linterGroup             → each resolved linter, run natively
 4. the task is a container of jobs        → each job, in declared order
 5. known task, nothing to run             → "no <task> task", exit 0  (exit 1 with --required)
@@ -61,7 +62,7 @@ documents, not a naming convention repos need to follow.
 
 | Task                                 | Runs                                                                                                                                                             | Notes                                                                                                     |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `test:unit`                          | vitest                                                                                                                                                           | carries the `--coverage` org default                                                                      |
+| `test:unit`                          | vitest                                                                                                                                                           | always runs with coverage: `vitest run --coverage`, there is no flag                                      |
 | `typecheck`                          | tsc                                                                                                                                                              | `tsc --noEmit`                                                                                            |
 | `test:perf`                          | Lighthouse CI                                                                                                                                                    | only runs with a `lighthouse.config.*` present                                                            |
 | `lint:code`                          | eslint, actionlint, git-merge-conflict-markers                                                                                                                   | a `linterGroup` — see below                                                                               |
@@ -142,7 +143,7 @@ through the GitHub API).
 
 Top-level keys: `syncScripts: false` disables the `package.json` script
 writes entirely; `holocronScript` sets the command the synced `"holocron"`
-script runs (default `"holocron"`).
+script runs (default `"holocron"`) and the one the generated git hooks call.
 
 ### Generated surfaces
 
@@ -150,7 +151,7 @@ script runs (default `"holocron"`).
 const astromech = createAstromech({ cwd, config, orgContext: { org, domain } });
 
 astromech.thinCallers(); // Map<"<name>.yml", yaml>  — one per templated, ci-enabled task
-astromech.packageScripts(); // { holocron: "holocron", "verification.unitTests": "holocron run verification.unitTests", … }
+astromech.packageScripts(); // single package: { holocron: "holocron", "test:unit": "holocron run test unit --", … }; workspace: { "test:unit": "turbo run test:unit", … }
 astromech.requiredChecks(true); // ["ci / Required checks", "DCO"]  — branch-protection contexts (false: "DCO", then the per-task contexts, then extras)
 astromech.aggregateCaller(); // the thin caller of the `ci` aggregate check, or null when nothing is required
 astromech.codecovConfig(existing); // codecov.yml content — merges into `existing`, or scaffolds fresh when null
@@ -172,9 +173,33 @@ combined push-to-Pages / PR-to-preview workflow —
 `knowledge.docs`/`knowledge.components` default `preview` on, since
 neither has a plain-production-only fallback template.
 `packageScripts()` emits the `holocron` entry (`holocronScript ?? "holocron"`)
-plus one `"<task>": "holocron run <task>"` per runnable task; it skips
+plus the scripts `scriptsFor(config, registry, { monorepo })` computes; it skips
 `local: false` entries and tasks with no local runner at all, and returns
-`{}` when `syncScripts: false` or there is no config.
+`{}` when `syncScripts: false` or there is no config. The same function backs `repo sync`, which merges the result with
+`mergeScripts()`, and `probe generated check`, which fails on a root script that differs and on a script that breaks the
+rules of `checkPackageScripts()`.
+
+#### Scripts and `turbo.json`
+
+`scriptsFor()` is the one rule for what a root script calls (spec `ci-flat-task-vocabulary`):
+
+| Repo                                           | Package-scoped leaf (`build`, `test:unit`) | Repo-scoped leaf (`lint:markdown`, `format`)  | Suite (`test`, `lint`)    |
+| ---------------------------------------------- | ------------------------------------------ | --------------------------------------------- | ------------------------- |
+| a pnpm workspace with a generated `turbo.json` | `turbo run <key>`                          | the tool's own command (`prettier --write .`) | `turbo run <suite>`       |
+| a single package                               | `holocron run <words> --`                  | `holocron run <words> --`                     | `holocron run <suite> --` |
+
+A leaf with no local command (`scan:code`, `lint:commits`, `release`, a holocron subcommand) has no script in a
+workspace. `holocron` may not be built on a fresh clone while turbo is an ordinary devDependency, which is why a
+workspace calls turbo directly. In a workspace `turboConfig()` also writes each suite as a task with no script that
+`dependsOn` its leaves, and a `//#<id>` root task (`cache: false`, since it reads every package's files) for each
+repo-scoped leaf that belongs to a suite, which is how a suite reaches the root tool. A package's own leaf script holds the
+real tool command and never calls turbo or `holocron run`, and no package carries a script named like a suite.
+
+The key a package-scoped leaf has in `turbo.json`, and so the name of its script in every package, **follows how the
+manifest spells the task**: `{ name: "test:unit" }` gives `test:unit`, `{ name: "verification.unitTests" }` keeps
+`verification.unitTests`. A repo's packages hold scripts in the vocabulary its `tasks:` list speaks, so rewriting the list
+to flat ids is what moves its keys, and the package scripts with them (`taskKey()`). Until then `holocron run test:unit`
+passes `--coverage` to a script still under the old name, which has no coverage of its own (`legacyForward`).
 
 ### Required checks
 

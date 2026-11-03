@@ -165,7 +165,9 @@ describe("runWords — a task", () => {
 	});
 
 	it("`format` writes, and `--check` is the read-only form that no package script stands in for", () => {
-		const { run, exec } = setup({ "package.json": JSON.stringify({ scripts: { format: "prettier --write ." } }) });
+		const { run, exec } = setup({
+			"package.json": JSON.stringify({ scripts: { format: "prettier --write . --log-level warn" } }),
+		});
 		run(["format"]);
 		expect(exec).toHaveBeenLastCalledWith(expect.stringMatching(/pnpm$/), ["run", "format"], { cwd: CWD });
 		run(["format"], { check: true });

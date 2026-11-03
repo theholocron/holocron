@@ -115,7 +115,8 @@ export default defineConfig({
   extraRequiredChecks: ["codecov/patch", "codecov/project"],
 
   // `holocron repo sync` reconciles package.json#scripts (merge, never clobber): the
-  // `holocron` entry + a `holocron run <task>` wrapper per runnable task.
+  // `holocron` entry + a script per runnable task: `turbo run <task>` in a workspace,
+  // `holocron run <task>` in a single package.
   // `syncScripts: false` disables it; `holocronScript` sets the `holocron`
   // entry's command (default "holocron", the installed bin).
   // syncScripts: false,
@@ -201,7 +202,7 @@ spelled either way generates the same files.
 
 | Task                                 | Runs                                                              | Notes                                                                                             |
 | ------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `test:unit`                          | vitest                                                            | carries the `--coverage` org default                                                              |
+| `test:unit`                          | vitest                                                            | always runs with coverage (`vitest run --coverage`); there is no `--coverage` flag                |
 | `typecheck`                          | tsc                                                               | `tsc --noEmit`                                                                                    |
 | `test:perf`                          | Lighthouse CI                                                     | only runs with a `lighthouse.config.*` present                                                    |
 | `lint:code`                          | eslint, actionlint, git-merge-conflict-markers                    | bundles more than one tool under one required check                                               |

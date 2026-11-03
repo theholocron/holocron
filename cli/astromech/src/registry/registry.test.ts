@@ -89,8 +89,10 @@ describe("TASKS registry", () => {
 		expect(detect[1]!.when.test("vite.config.js")).toBe(true);
 	});
 
-	it("test:unit carries the --coverage org default for vitest", () => {
-		expect(TASKS["test:unit"]!.flags?.vitest).toEqual(["--coverage"]);
+	it("test:unit always runs with coverage, in its command and not as a flag", () => {
+		expect(TASKS["test:unit"]!.local).toEqual({ tool: "vitest", args: ["run", "--coverage"] });
+		expect(TASKS["test:unit"]!.legacyForward).toEqual(["--coverage"]);
+		expect(Object.values(TASKS).filter((def) => "flags" in def)).toEqual([]);
 	});
 
 	it("the turbo tasks depend on the flat build id", () => {

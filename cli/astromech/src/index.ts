@@ -58,6 +58,22 @@ export {
 	WORKFLOW_TEMPLATES,
 } from "./generators/github-action-thin-callers/index.js";
 export { AGGREGATE_CHECK, requiredChecks } from "./generators/required-checks/index.js";
+export type {
+	MergedScripts,
+	PackageRole,
+	PackageScriptProblem,
+	PlannedKind,
+	PlannedTask,
+	RepoShape,
+} from "./generators/scripts/index.js";
+export {
+	checkPackageScripts,
+	isGeneratedScript,
+	mergeScripts,
+	planSuites,
+	planTasks,
+	scriptsFor,
+} from "./generators/scripts/index.js";
 export type { TsconfigOptions } from "./generators/tsconfig/index.js";
 export { createTsconfig } from "./generators/tsconfig/index.js";
 export type { JobDef, LocalRunner, TaskDef } from "./registry/index.js";
@@ -85,6 +101,7 @@ export {
 	scriptName,
 	suiteMembers,
 	SUITES,
+	taskKey,
 	workflowKey,
 } from "./vocabulary/index.js";
 // Aliased: codecov's own, differently-shaped WorkspacePackage ({ slug, name,

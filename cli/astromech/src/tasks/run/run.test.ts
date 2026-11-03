@@ -55,7 +55,7 @@ function makeRun(files: Record<string, string>, overrides: Partial<RunTaskInput>
 const PKG = (extra: Record<string, unknown> = {}) => JSON.stringify({ name: "@scope/x", ...extra });
 
 describe("runTask", () => {
-	it("delegates to turbo at a monorepo root, forwarding the org-default flags", () => {
+	it("delegates to turbo at a monorepo root and forwards nothing to a flat-named task", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
 			"turbo.json": JSON.stringify({ tasks: { "test:unit": {}, build: {} } }),
@@ -63,10 +63,30 @@ describe("runTask", () => {
 		});
 		const report = call("test:unit");
 		expect(report.status).toBe("ok");
-		// `test:unit` carries `flags: { vitest: ["--coverage"] }` —
-		// forwarded through `--` so `holocron run test:unit` at a
-		// turbo root still produces coverage.
-		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test:unit", "--", "--coverage"], {
+		// The flat-named package script carries the coverage flag itself.
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "test:unit"], { cwd: CWD });
+	});
+
+	it("passes legacyForward to a package script still under the old name", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG(),
+			"turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }),
+		});
+		call("test:unit");
+		expect(exec).toHaveBeenCalledWith(
+			expect.stringMatching(/turbo$/),
+			["run", "verification.unitTests", "--", "--coverage"],
+			{ cwd: CWD }
+		);
+	});
+
+	it("passes nothing extra to an old-named task that has no legacyForward", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG(),
+			"turbo.json": JSON.stringify({ tasks: { "verification.typeSafety": {} } }),
+		});
+		call("typecheck");
+		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {
 			cwd: CWD,
 		});
 	});
@@ -82,15 +102,15 @@ describe("runTask", () => {
 		});
 	});
 
-	it("forwards passthrough args to turbo after the org-default flags", () => {
+	it("forwards passthrough args to turbo after the legacy flags", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
-			"turbo.json": JSON.stringify({ tasks: { "test:unit": {} } }),
+			"turbo.json": JSON.stringify({ tasks: { "verification.unitTests": {} } }),
 		});
 		call("test:unit", { passthrough: ["--filter", "@scope/x"] });
 		expect(exec).toHaveBeenCalledWith(
 			expect.any(String),
-			["run", "test:unit", "--", "--coverage", "--filter", "@scope/x"],
+			["run", "verification.unitTests", "--", "--coverage", "--filter", "@scope/x"],
 			{ cwd: CWD }
 		);
 	});
@@ -139,13 +159,33 @@ describe("runTask", () => {
 		});
 	});
 
-	it("runs the registry tool with org-default flags", () => {
+	it("runs the registry tool with coverage built into its command", () => {
 		const { call, exec } = makeRun({
 			"package.json": PKG(),
 			"node_modules/.bin/vitest": "#!/bin/sh",
 		});
 		call("test:unit");
 		expect(exec).toHaveBeenCalledWith(join(CWD, "node_modules/.bin/vitest"), ["run", "--coverage"], { cwd: CWD });
+	});
+
+	it("runs the registry itself, not the root script generated from it, so a missing tool is a note", () => {
+		const { call, exec, lines } = makeRun({
+			"package.json": PKG({ scripts: { "lint:editorconfig": "editorconfig-checker" } }),
+		});
+		call("lint:editorconfig");
+		expect(exec).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toMatch(/editorconfig-checker not on PATH/);
+	});
+
+	it("still runs a root script of the same name that is the repo's own command", () => {
+		const { call, exec } = makeRun({
+			"package.json": PKG({
+				scripts: { "lint:editorconfig": "editorconfig-checker docs" },
+				packageManager: "pnpm@10.0.0",
+			}),
+		});
+		call("lint:editorconfig");
+		expect(exec).toHaveBeenCalledWith("pnpm", ["run", "lint:editorconfig"], { cwd: CWD });
 	});
 
 	it("resolves the build tool from a detect[] match", () => {
@@ -238,9 +278,9 @@ describe("runTask", () => {
 			join(CWD, "node_modules/.bin/vitest"),
 			[
 				"run",
+				"--coverage",
 				"--config",
 				join(CWD, "node_modules/@theholocron/vitest-config/dist/bundles/library.js"),
-				"--coverage",
 			],
 			{ cwd: CWD }
 		);

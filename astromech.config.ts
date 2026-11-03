@@ -94,8 +94,8 @@ export default defineConfig({
 		// Wiki: publish the engineering wiki to wiki.theholocron.dev/holocron.
 		"knowledge.wiki",
 	],
-	// This repo's root scripts stay bootstrap-safe raw commands — `holocron`
-	// here IS the local build artifact (`node cli/cli/dist/cli.mjs`), not
-	// an installed bin — so `holocron repo sync` must not rewrite package.json scripts.
-	syncScripts: false,
+	// `holocron` here IS the local build artifact (`node cli/cli/dist/cli.mjs`), not an installed bin, so the synced
+	// `holocron` script runs that. The other root scripts need no CLI: in a workspace `scriptsFor` writes them as
+	// `turbo run <task>` (or the tool's own command), which is why the sync is on (spec ci-flat-task-vocabulary).
+	holocronScript: "node cli/cli/dist/cli.mjs",
 });
