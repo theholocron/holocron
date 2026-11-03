@@ -20,6 +20,8 @@ export const COMMAND_CONTEXTS = {
 	"auth set": "global",
 	"auth unset": "global",
 	"auth list": "global",
+	// `auth export` asks the configured plugins for the tokens they take, so their packages must be resolvable.
+	"auth export": "workspace",
 	// `auth check` loads a plugin to verify, but degrades to "token present,
 	// verification skipped" when the plugin isn't resolvable — so it's usable
 	// from a global install. See `runAuthCheck`.

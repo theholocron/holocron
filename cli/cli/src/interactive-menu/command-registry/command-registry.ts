@@ -2,6 +2,7 @@ import { authCheckEntry } from "../../commands/auth/auth-check.entry.js";
 import { authListEntry } from "../../commands/auth/auth-list.entry.js";
 import { authSetEntry } from "../../commands/auth/auth-set.entry.js";
 import { authUnsetEntry } from "../../commands/auth/auth-unset.entry.js";
+import { authExportEntry } from "../../commands/auth-export/auth-export.entry.js";
 import { cleanupPreviewEntry } from "../../commands/cleanup-preview/cleanup-preview.entry.js";
 import { cloneEntry } from "../../commands/clone/clone.entry.js";
 import { configShowEntry } from "../../commands/config-show/config-show.entry.js";
@@ -105,6 +106,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	authUnsetEntry,
 	authCheckEntry,
 	authListEntry,
+	authExportEntry,
 ];
 
 /** Look up a {@link CommandEntry} by its full name — for Layer 3 call sites in `cli.ts`. */

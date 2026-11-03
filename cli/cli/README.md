@@ -672,6 +672,7 @@ Additional `auth` subcommands:
 holocron auth check github.read   # re-verify a stored token
 holocron auth unset github.read   # remove a stored token
 holocron auth list                # show all stored providers
+holocron auth export             # copy the tokens as NAME=value lines, to paste into a credentials environment
 ```
 
 ## Logging

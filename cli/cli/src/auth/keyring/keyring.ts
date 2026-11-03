@@ -75,6 +75,19 @@ export function getToken(provider: string): string | null {
 }
 
 /**
+ * Whether the OS keyring can be used at all. `getToken` answers `null` for a missing entry and for a keyring that
+ * cannot be reached alike; a caller that must tell an outage from an empty keyring asks this first.
+ */
+export function isKeyringAvailable(): boolean {
+	try {
+		findCredentials(SERVICE);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Delete a stored token. Returns true when a token was removed, false
  * when there was nothing to delete or the keyring is unavailable.
  * Distinguishing the two cases isn't worth the surface area — the
