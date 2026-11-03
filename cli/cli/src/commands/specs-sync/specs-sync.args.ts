@@ -33,6 +33,12 @@ export const specsSyncArgs = (y: Argv<GlobalArgs>) =>
 			describe:
 				"Rename each existing post whose title differs from the current rule's, and change nothing else in it (a repair; combine with --dry-run to preview; stops cleanly at a rate limit)",
 		})
+		.option("refresh", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Run every repair in one pass: the PR line, the title and the id line (a link to the file on the default branch), each changing only its own part of a post (combine with --dry-run to preview; stops cleanly at a rate limit)",
+		})
 		.option("withdraw", {
 			type: "boolean",
 			default: false,

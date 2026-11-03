@@ -1573,6 +1573,11 @@ export interface DiscussionPost {
 	synced?: string;
 	/** The line of the post's first message that names the pull request (`PR: [#1538](<address>)`); `undefined` when it names none. */
 	prLine?: string;
+	/**
+	 * The first line of the post's first message, which names the document: its id (`SPEC-0007`), or the id as a link to
+	 * the file (`[SPEC-0007](<address>)`); `undefined` when the message does not start with an id.
+	 */
+	idLine?: string;
 	/** Whether the post is closed: finished with, and locked so that only people who manage it can reply or reopen it. Absent when it is open. */
 	closed?: boolean;
 }
@@ -1626,6 +1631,13 @@ export interface DiscussionPatch {
 	 * older rule, not for every sync.
 	 */
 	prLine?: string;
+	/**
+	 * The line that names the document in the post's first message (its first line): the id, plain or as a link to the
+	 * file. The provider rewrites that line and keeps the rest of the message, the synced line above all; it must not be
+	 * empty. A message that does not start with an id is refused. For following a file that moved and for repairing posts
+	 * made under an older rule, not for every sync.
+	 */
+	idLine?: string;
 	/** Close the post (archive and lock it) or reopen it (unlock and unarchive it). */
 	closed?: boolean;
 }
@@ -2227,7 +2239,7 @@ export interface Notifications extends ProviderIdentity {
 	 * document's recorded address (`url`) names is it, moved; its `key` then differs from the one asked for.
 	 */
 	readDiscussion?(channel: string, key: string, url?: string): Promise<DiscussionPost | undefined>;
-	/** Change the discussion post for `key`: its title, its state (the tag), the state last synced and the pull request line. Throws when there is no post. */
+	/** Change the discussion post for `key`: its title, its state (the tag), the state last synced, the pull request line and the id line. Throws when there is no post. */
 	updateDiscussion?(channel: string, key: string, patch: DiscussionPatch): Promise<void>;
 
 	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */

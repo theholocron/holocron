@@ -30,6 +30,7 @@ export const specsSyncCommand: CommandModule<GlobalArgs, SpecsSyncArgs> = {
 			...(argv.pr !== undefined ? { pr: argv.pr as number } : {}),
 			refreshOrigin: argv.refreshOrigin as boolean,
 			refreshTitles: argv.refreshTitles as boolean,
+			refresh: argv.refresh as boolean,
 			withdraw: argv.withdraw as boolean,
 			notify: argv.notify as boolean,
 		});

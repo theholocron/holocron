@@ -418,6 +418,81 @@ describe("DiscordDiscussions.update", () => {
 		});
 	});
 
+	describe("the id line", () => {
+		const PLAIN = "SPEC-1";
+		const LINKED = "[SPEC-1](<https://github.com/o/r/blob/alpha/docs/a.spec.md>)";
+		const MOVED = "[SPEC-1](<https://github.com/o/r/blob/alpha/.notes/a.spec.md>)";
+		const withContent = (content: string, over: Record<string, unknown> = {}) =>
+			make([
+				...listing([thread("5", over)]),
+				first("5", content),
+				{ body: thread("5", over) },
+				{ body: { id: "5", channel_id: "5", content: "" } },
+			]);
+		const sent = (calls: { body?: unknown }[]) => (calls[3]?.body as { content: string }).content;
+
+		it("shows the id as it stands, plain or linked, and none when the message does not start with one", async () => {
+			const plain = withContent(`${PLAIN}\n\n${footer(INPUT.key, "proposed")}`);
+			const linked = withContent(`${LINKED}\n\nAbout A.\n\n${footer(INPUT.key, "proposed")}`);
+			const other = withContent(`About A.\n\n${footer(INPUT.key, "proposed")}`);
+
+			expect((await plain.discussions.read("ideas", INPUT.key))?.idLine).toBe(PLAIN);
+			expect((await linked.discussions.read("ideas", INPUT.key))?.idLine).toBe(LINKED);
+			expect((await other.discussions.read("ideas", INPUT.key))?.idLine).toBeUndefined();
+		});
+
+		it("replaces only the first line and keeps the rest of the message, the synced line above all", async () => {
+			const body = `About A.\n\nPR: [#9](<https://github.com/o/r/pull/9>)`;
+			const { discussions, calls } = withContent(`${PLAIN}\n\n${body}\n\n${footer(INPUT.key, "accepted")}`);
+
+			await discussions.update("ideas", INPUT.key, { idLine: LINKED });
+
+			expect(calls).toHaveLength(4);
+			expect(calls[3]).toMatchObject({ method: "PATCH", url: `${BASE}/channels/5/messages/5` });
+			expect(sent(calls)).toBe(`${LINKED}\n\n${body}\n\n${footer(INPUT.key, "accepted")}`);
+			expect(await discussions.read("ideas", INPUT.key)).toMatchObject({ synced: "accepted", idLine: LINKED });
+		});
+
+		it("rewrites a link to the file's new path, with the key, in one edit", async () => {
+			const { discussions, calls } = withContent(`${MOVED}\n\n${footer(INPUT.key, "accepted")}`);
+
+			await discussions.update("ideas", INPUT.key, { key: "docs/a.spec.md", idLine: LINKED });
+
+			expect(sent(calls)).toBe(`${LINKED}\n\n${footer("docs/a.spec.md", "accepted")}`);
+		});
+
+		it("edits nothing when the line is already the one asked for", async () => {
+			const { discussions, calls } = withContent(`${LINKED}\n\n${footer(INPUT.key, "proposed")}`);
+
+			await discussions.update("ideas", INPUT.key, { idLine: LINKED });
+
+			expect(calls).toHaveLength(3);
+		});
+
+		it("unarchives then re-closes a closed post to write", async () => {
+			const closed = { thread_metadata: { ...thread("5").thread_metadata, archived: true, locked: true } };
+			const { discussions, calls } = withContent(`${PLAIN}\n\n${footer(INPUT.key, "proposed")}`, closed);
+
+			await discussions.update("ideas", INPUT.key, { idLine: LINKED });
+
+			expect(calls[3]?.body).toEqual({ archived: false });
+			expect(calls[4]).toMatchObject({ url: `${BASE}/channels/5/messages/5` });
+			expect(calls[5]?.body).toEqual({ archived: true, locked: true });
+		});
+
+		it("refuses a message that does not start with an id, and a line past Discord's limit", async () => {
+			const other = withContent(`About A.\n\n${footer(INPUT.key, "proposed")}`);
+			const long = withContent(`${PLAIN}\n${"x".repeat(1950)}\n\n${footer(INPUT.key, "proposed")}`);
+
+			await expect(other.discussions.update("ideas", INPUT.key, { idLine: LINKED })).rejects.toThrow(
+				/does not start with the document's id/
+			);
+			await expect(
+				long.discussions.update("ideas", INPUT.key, { idLine: `${LINKED}${"y".repeat(100)}` })
+			).rejects.toThrow(/past 2000 characters/);
+		});
+	});
+
 	it("refuses a state the forum has no tag for, and a document with no post", async () => {
 		await expect(existing().discussions.update("ideas", INPUT.key, { state: "rejected" })).rejects.toThrow(
 			/has no tag named `rejected`/

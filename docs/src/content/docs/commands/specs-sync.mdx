@@ -4,7 +4,7 @@ description: Keep each ADR and spec in step with a post in a forum channel, and 
 ---
 
 ```bash
-holocron specs sync [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--refresh-origin] [--refresh-titles] [--withdraw] [--notify] [--dry-run]
+holocron specs sync [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--refresh] [--refresh-origin] [--refresh-titles] [--withdraw] [--notify] [--dry-run]
 ```
 
 Every ADR (`docs/wiki/decisions`) and spec (`.notes`, `docs/wiki/specifications`) gets one post in a forum channel, made from the file. The file stays the source of truth; the post is where people talk about it. See the spec `tech-specs-discussion-threads` for the design.
@@ -57,6 +57,7 @@ Only the working tree. The command edits the `status:` and `discussion.url` line
 | `--channel <forum>`  | The forum the posts live in. Defaults to the only forum the layout declares.               |
 | `--files <paths...>` | Sync only these ADR and spec files; a path that is neither is ignored. Unset, all of them. |
 | `--pr <number>`      | Name this pull request on the posts, for one that is still open.                           |
+| `--refresh`          | Repair: the `PR:` line, the title and the id link of existing posts, in one pass.          |
 | `--refresh-origin`   | Repair: rewrite the `PR:` line of existing posts. See below.                               |
 | `--refresh-titles`   | Repair: rename existing posts to the current title rule. See below.                        |
 | `--withdraw`         | Tag the posts of `--files` `withdrawn` and close them (a pull request closed unmerged).    |
@@ -66,6 +67,18 @@ Only the working tree. The command edits the `status:` and `discussion.url` line
 It exits 1 when a document could not be synced, so a run in CI fails until a conflict is settled.
 
 Discord limits how fast posts can be made (about 46 in a row, then it asks for several minutes). When the provider rate limits a run, the command stops there instead of trying the rest, says how many documents are left and how long it was asked to wait, and exits 0: what it did is kept, and the next run (the hourly one, or yours) finds those posts and makes the rest. The first run, which makes about 80, takes two or three of these.
+
+## The id links to the file
+
+The first message of a post opens with the document's id. Once the file is on the default branch the id is a link to it, `[SPEC-0007](<https://github.com/<owner>/<repo>/blob/<default branch>/<path>>)`: the default branch is `repo.defaultBranch` in `holocron.config.ts`, or `HEAD` (which GitHub resolves to the default branch) when none is declared. While a pull request is still open (the pull-request workflow passes `--pr`) the id stays plain text, because the `PR:` line is the link and the file is not on the default branch yet. The link goes to the file, not the docs site: the wiki publishes only some documents, and a page's address cannot be worked out from the file.
+
+A spec starts in `.notes/` and moves to `docs/wiki/specifications/` when it settles, and a blob address does not follow a rename. When the sync follows a file to its new path (it finds the post by the address the file records and re-keys it) it rewrites the id link in that same step, so the link never points at the old path. A post whose id is still plain text is left as it is by that step; `--refresh` links it.
+
+## Repairing existing posts in one pass
+
+Posts made before the link, before the `PR:` rule and before the title rule changed keep what they were made with. `--refresh` is a one-off repair that does all three in one run, not something to run every time: the `PR:` line, the title and the id line, each as described in the sections below and each patching only its own part of the message (the id repair changes only the first line, never the synced status small print, the tag or the open or closed state). `--refresh-origin` and `--refresh-titles` still do only their own repair.
+
+Run `holocron specs sync --refresh --dry-run` first: each post that would change is listed (`would link the id to the file`, plus `would rename the post to "..."` and `would rewrite the PR line to #N` where those apply), the rest read `in step`, and the last lines count them (`N PR line(s)`, `N title(s)`, `N id line(s) would be rewritten`). Run it again without `--dry-run` to edit the posts. A second run changes nothing. Like `--refresh-titles` it stops cleanly at a Discord rate limit: it prints how many documents are left, exits 0 and the next run continues. Run on the default branch without `--pr`, so the ids are linked; with `--pr` it would take the link off. It cannot be combined with `--withdraw`.
 
 ## Repairing the `PR:` line of existing posts
 
