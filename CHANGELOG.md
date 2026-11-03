@@ -1,3 +1,13 @@
+## [5.0.0-alpha.308](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.307...v5.0.0-alpha.308) (2026-11-03)
+
+### Features
+
+* **auth:** 🔒 auth export writes a private, short-lived .credentials file ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1634](https://github.com/theholocron/holocron/issues/1634)) ([9b665fb](https://github.com/theholocron/holocron/commit/9b665fb4f0b802ea0f871e442b5dea5f8e3cbff1))
+
+### Bug Fixes
+
+* **setup:** 🧭 say how to fix a custom property value the org does not allow ([#1636](https://github.com/theholocron/holocron/issues/1636)) ([fa7c862](https://github.com/theholocron/holocron/commit/fa7c862c6e4298479a316ea05e60d1da7c363f87))
+
 ## [5.0.0-alpha.307](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.306...v5.0.0-alpha.307) (2026-11-03)
 
 ### Features
