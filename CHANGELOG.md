@@ -1,3 +1,9 @@
+## [5.0.0-alpha.306](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.305...v5.0.0-alpha.306) (2026-11-03)
+
+### Features
+
+* **ci:** ✅ one stable required check: the ci aggregate with a failing-job summary ([#1630](https://github.com/theholocron/holocron/issues/1630)) ([d35fbd1](https://github.com/theholocron/holocron/commit/d35fbd130defa08e1d09c4d6bc9a52a0fb68eba1)), closes [#1613](https://github.com/theholocron/holocron/issues/1613)
+
 ## [5.0.0-alpha.305](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.304...v5.0.0-alpha.305) (2026-11-03)
 
 ### Features
