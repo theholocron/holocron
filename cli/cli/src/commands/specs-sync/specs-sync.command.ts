@@ -26,6 +26,8 @@ export const specsSyncCommand: CommandModule<GlobalArgs, SpecsSyncArgs> = {
 			io: realSpecsSyncIo(argv.cwd),
 			...(argv.provider ? { provider: argv.provider as string } : {}),
 			...(argv.channel ? { channel: argv.channel as string } : {}),
+			...(argv.files ? { files: argv.files as string[] } : {}),
+			...(argv.pr !== undefined ? { pr: argv.pr as number } : {}),
 			notify: argv.notify as boolean,
 		});
 		if (report.status === "fail") process.exitCode = 1;

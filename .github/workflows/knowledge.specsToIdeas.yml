@@ -18,7 +18,7 @@
 # checks run; with the default token they do not, and the pull request needs a push to start them.
 #
 # This replaces the webhook post of #1534: a forum rejects a plain webhook post, and a post per document says more than a
-# line per pull request. A spec in a pull request that has not merged has no post yet.
+# line per pull request. A spec in a pull request that has not merged gets its post from `knowledge.specsOnPullRequest.yml` (#1600).
 name: Spec discussions
 
 on: # yamllint disable-line rule:truthy

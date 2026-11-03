@@ -47,6 +47,8 @@ describe("specs sync", () => {
 		});
 		expect("provider" in input).toBe(false);
 		expect("channel" in input).toBe(false);
+		expect("files" in input).toBe(false);
+		expect("pr" in input).toBe(false);
 		expect(process.exitCode).toBeUndefined();
 	});
 
@@ -54,6 +56,15 @@ describe("specs sync", () => {
 		await go(["sync", "--provider", "discord", "--channel", "ideas", "--notify"]);
 
 		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({ provider: "discord", channel: "ideas", notify: true });
+	});
+
+	it("passes --files and --pr for a pull request that is still open", async () => {
+		await go(["sync", "--files", ".notes/a.spec.md", ".notes/b.spec.md", "--pr", "1700"]);
+
+		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({
+			files: [".notes/a.spec.md", ".notes/b.spec.md"],
+			pr: 1700,
+		});
 	});
 
 	it("exits 1 when the sync failed", async () => {

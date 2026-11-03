@@ -18,6 +18,18 @@ export const specsSyncEntry: CommandEntry = {
 			message: "Which forum channel (blank = the only forum the layout declares):",
 		},
 		{
+			key: "files",
+			flag: "--files",
+			type: "input",
+			message: "Only these files (blank = every ADR and spec):",
+		},
+		{
+			key: "pr",
+			flag: "--pr",
+			type: "input",
+			message: "Name this pull request on the posts (blank = the one each file's history names):",
+		},
+		{
 			key: "notify",
 			flag: "--notify",
 			type: "confirm",

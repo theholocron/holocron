@@ -78,11 +78,11 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 			? `${input.context.org}/${input.loaded.resolved.name}`
 			: undefined);
 
-	const documents = readDocuments(input.io);
-	const origins = new Map(documents.map((d) => [d.path, input.io.origin(d.path)]));
+	const everything = readDocuments(input.io);
+	const origins = new Map(everything.map((d) => [d.path, input.io.origin(d.path)]));
 	// Specs are numbered here, oldest first, so a new spec takes the next number and the order never depends on who ran it.
 	const ids = assignSpecIds(
-		documents
+		everything
 			.filter((d) => d.kind === "spec")
 			.map((d) => ({
 				path: d.path,
@@ -90,6 +90,14 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				time: origins.get(d.path)?.time,
 			}))
 	);
+
+	// Numbered over every spec above, so a pull request's new spec takes the number the merged tree would give it; only the
+	// files asked for are synced.
+	const only = input.files ? new Set(input.files) : undefined;
+	const documents = only ? everything.filter((d) => only.has(d.path)) : everything;
+
+	// A pull request still open is named by the caller; a merged one, by the commit that added the file.
+	const prNumber = (path: string): number | undefined => input.pr ?? origins.get(path)?.pr;
 
 	const files: SpecSyncOutcome[] = [];
 	let ok = 0;
@@ -106,11 +114,11 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				dryRun,
 				quiet: !input.notify,
 				...(ids.has(doc.path) ? { assignedId: ids.get(doc.path)! } : {}),
-				...(repo && origins.get(doc.path)?.pr
+				...(repo && prNumber(doc.path)
 					? {
 							pr: {
-								number: origins.get(doc.path)!.pr!,
-								url: `https://github.com/${repo}/pull/${origins.get(doc.path)!.pr}`,
+								number: prNumber(doc.path)!,
+								url: `https://github.com/${repo}/pull/${prNumber(doc.path)}`,
 							},
 						}
 					: {}),

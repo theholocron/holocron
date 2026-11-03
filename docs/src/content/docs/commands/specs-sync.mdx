@@ -4,7 +4,7 @@ description: Keep each ADR and spec in step with a post in a forum channel, and 
 ---
 
 ```bash
-holocron specs sync [--provider <name>] [--channel <forum>] [--notify] [--dry-run]
+holocron specs sync [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--notify] [--dry-run]
 ```
 
 Every ADR (`docs/wiki/decisions`) and spec (`.notes`, `docs/wiki/specifications`) gets one post in a forum channel, made from the file. The file stays the source of truth; the post is where people talk about it. See the spec `tech-specs-discussion-threads` for the design.
@@ -50,16 +50,22 @@ Only the working tree. The command edits the `status:` and `discussion.url` line
 
 ## Options
 
-| Flag                | Meaning                                                                      |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `--provider <name>` | Which `notifications` provider, when several can keep discussion posts.      |
-| `--channel <forum>` | The forum the posts live in. Defaults to the only forum the layout declares. |
-| `--notify`          | Let new posts notify people.                                                 |
-| `--dry-run`         | Read, and say what would be made or changed. Makes and writes nothing.       |
+| Flag                 | Meaning                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| `--provider <name>`  | Which `notifications` provider, when several can keep discussion posts.                    |
+| `--channel <forum>`  | The forum the posts live in. Defaults to the only forum the layout declares.               |
+| `--files <paths...>` | Sync only these ADR and spec files; a path that is neither is ignored. Unset, all of them. |
+| `--pr <number>`      | Name this pull request on the posts, for one that is still open.                           |
+| `--notify`           | Let new posts notify people.                                                               |
+| `--dry-run`          | Read, and say what would be made or changed. Makes and writes nothing.                     |
 
 It exits 1 when a document could not be synced, so a run in CI fails until a conflict is settled.
 
 Discord limits how fast posts can be made (about 46 in a row, then it asks for several minutes). When the provider rate limits a run, the command stops there instead of trying the rest, says how many documents are left and how long it was asked to wait, and exits 0: what it did is kept, and the next run (the hourly one, or yours) finds those posts and makes the rest. The first run, which makes about 80, takes two or three of these.
+
+## While the pull request is still open
+
+The `Spec discussions (pull request)` workflow runs `specs sync --files <the spec and ADR files the pull request adds or changes> --pr <its number>` when a pull request opens, gets a push or reopens, so a spec under review has its post before it merges. It runs only for a pull request from the same repository (a post carries text the author wrote, and a fork gets no secrets), only for the files the pull request changes (a stale branch cannot retag the posts of files it does not touch), and only when it changes one. The edits the command makes to the checkout are discarded: the post's address reaches the file after the merge, when the `Spec discussions` workflow finds the post by the path it records and links it through its sync pull request. A spec with no `id` is numbered as the merged tree would number it. A pull request closed without merging leaves its post as it was.
 
 ## Another service
 
