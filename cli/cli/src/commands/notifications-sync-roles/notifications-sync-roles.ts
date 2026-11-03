@@ -27,11 +27,10 @@ import { EMPTY_LINKS, linksLocation, parseLinks } from "./links.js";
 import type {
 	LinksFile,
 	NotificationsSyncRolesReport,
-	RoleSyncOutcome,
-	RoleSyncPlan,
 	RunNotificationsSyncRolesInput,
 } from "./notifications-sync-roles.type.js";
-import { planRoleSync, roleTeamProblem } from "./plan.js";
+import { roleTeamProblem } from "./plan.js";
+import { syncRoles } from "./sync-roles.js";
 
 /** The provider that can list and change who holds a role. */
 export function pickRoleManager(providers: Notifications[], wanted?: string, keep = false): Notifications {
@@ -70,23 +69,6 @@ export async function readLinks(
 	} catch (err) {
 		throw new Error(`${repo}/${path}: ${errorMessage(err)}`, { cause: err });
 	}
-}
-
-/** Reads the team, the links and the role's holders, and works out what has to change. */
-export async function planForRole(args: {
-	notifications: Notifications;
-	source: Source;
-	role: string;
-	team: string;
-	/** The organisation the team is in; defaults to the source's own. */
-	org?: string;
-	links: LinksFile;
-}): Promise<RoleSyncPlan> {
-	const [team, holders] = await Promise.all([
-		args.source.teamMembers!(args.team, args.org),
-		args.notifications.roleMembers!(args.role),
-	]);
-	return planRoleSync({ team, links: args.links.links, holders });
 }
 
 export async function runNotificationsSyncRoles(
@@ -137,72 +119,23 @@ export async function runNotificationsSyncRoles(
 	if (links.links.length === 0)
 		print(`  ${style.skip("no links yet: nobody can be given a role until they link their account")}`);
 
-	const tally = { ok: 0, skip: 0 };
-	for (const role of roles) {
-		print(`\n${style.header(`${role.name} ← team ${role.team}`)}`);
-		const step = `role ${role.name}`;
-		let plan: RoleSyncPlan;
-		try {
-			plan = await planForRole({
-				notifications,
-				source: source!,
-				role: role.name,
-				team: role.team!,
-				...(input.context.org ? { org: input.context.org } : {}),
-				links,
-			});
-		} catch (err) {
-			const message = describeProviderError(err);
-			print(`  ${style.fail(`${step}: ${message}`)}`);
-			report.failures.push({ step, message });
-			continue;
-		}
-		const outcome: RoleSyncOutcome = { role: role.name, team: role.team!, plan, added: [], removed: [] };
-		report.roles.push(outcome);
-		tally.skip += plan.inSync;
-		if (plan.inSync > 0) print(`  ${style.skip(`${plan.inSync} already have it`)}`);
-
-		const act = async (verb: "add" | "remove", who: { member: string; login: string }) => {
-			const label = `${verb === "add" ? "gave" : "took"} ${role.name} ${verb === "add" ? "to" : "from"} ${who.login} (${who.member})`;
-			if (dryRun || (verb === "remove" && input.keep)) {
-				print(
-					`  ${style.skip(`would ${verb === "add" ? "give" : "take"} ${role.name} ${verb === "add" ? "to" : "from"} ${who.login} (${who.member})${input.keep && verb === "remove" ? " (kept: --keep)" : ""}`)}`
-				);
-				tally.skip++;
-				return;
-			}
-			try {
-				// Called on the provider, not pulled off it: real providers keep their client on `this`.
-				if (verb === "add") await notifications.addRoleMember!(role.name, who.member);
-				else await notifications.removeRoleMember!(role.name, who.member);
-				(verb === "add" ? outcome.added : outcome.removed).push(who.member);
-				print(`  ${style.success(label)}`);
-				tally.ok++;
-			} catch (err) {
-				const message = describeProviderError(err);
-				print(`  ${style.fail(`${step}: ${verb} ${who.login}: ${message}`)}`);
-				report.failures.push({ step: `${step} ${verb} ${who.login}`, message });
-			}
-		};
-		for (const who of plan.add) await act("add", who);
-		for (const who of plan.remove) await act("remove", who);
-
-		for (const person of plan.unlinked) {
-			print(`  ${style.skip(`${person.login} is on the team but has not linked their account`)}`);
-			tally.skip++;
-		}
-		for (const holder of plan.unknownHolders) {
-			print(
-				`  ${style.skip(`${holder.name ?? holder.member} holds ${role.name} but is not linked to anyone: left alone`)}`
-			);
-			tally.skip++;
-		}
-	}
+	const result = await syncRoles({
+		notifications,
+		source: source!,
+		links,
+		roles: roles.map((r) => ({ name: r.name, team: r.team! })),
+		...(input.context.org ? { org: input.context.org } : {}),
+		dryRun,
+		keep: input.keep ?? false,
+		print,
+	});
+	report.roles.push(...result.roles);
+	report.failures.push(...result.failures);
 
 	if (report.failures.length > 0) report.status = "fail";
 	else if (dryRun) report.status = "dry-run";
 	print("");
-	print(style.header(`${tally.ok} ok, ${report.failures.length} fail, ${tally.skip} skipped`));
+	print(style.header(`${result.ok} ok, ${report.failures.length} fail, ${result.skipped} skipped`));
 	logger.info(
 		{
 			provider: notifications.providerName,

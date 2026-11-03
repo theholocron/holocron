@@ -1,4 +1,6 @@
-export interface Env {
+import type { RoleSyncEnv } from "../actions/role-sync/load-role-sync-providers/index.js";
+
+export interface Env extends RoleSyncEnv {
 	GITHUB_APP_ID: string;
 	GITHUB_APP_PRIVATE_KEY: string;
 	SENTINEL_WEBHOOK_SECRET: string;

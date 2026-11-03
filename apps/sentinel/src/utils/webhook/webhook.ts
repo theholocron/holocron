@@ -37,7 +37,12 @@ import {
 } from "@theholocron/github-client";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import type { ParseWebhookEventInput, ParseWebhookResult } from "./webhook.type.js";
+import type {
+	GitHubMembershipWebhookPayload,
+	GitHubOrganizationWebhookPayload,
+	ParseWebhookEventInput,
+	ParseWebhookResult,
+} from "./webhook.type.js";
 
 export class WebhookVerificationError extends Error {
 	override name = "WebhookVerificationError";
@@ -125,6 +130,42 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 				event: {
 					type: p.action === "opened" ? "pull_request.opened" : "pull_request.synchronize",
 					repo: p.repository.full_name,
+					installationId: p.installation?.id ?? 0,
+					...(deliveryId ? { deliveryId } : {}),
+					raw: payload,
+				},
+			};
+		}
+		case "membership": {
+			// Someone was added to or removed from a team. Only a team's membership matters here (the event also
+			// covers an org's own "scope").
+			const p = payload as unknown as GitHubMembershipWebhookPayload;
+			if (p.scope !== "team" || (p.action !== "added" && p.action !== "removed")) {
+				return { handled: false, reason: `membership ${p.scope} ${p.action} is not handled`, githubEvent };
+			}
+			return {
+				handled: true,
+				event: {
+					type: "team.membership",
+					org: p.organization.login,
+					team: p.team.slug,
+					installationId: p.installation?.id ?? 0,
+					...(deliveryId ? { deliveryId } : {}),
+					raw: payload,
+				},
+			};
+		}
+		case "organization": {
+			// Leaving the org takes a person off every team without a `membership` delivery for each one.
+			const p = payload as unknown as GitHubOrganizationWebhookPayload;
+			if (p.action !== "member_removed") {
+				return { handled: false, reason: `organization action "${p.action}" is not handled`, githubEvent };
+			}
+			return {
+				handled: true,
+				event: {
+					type: "organization.member-removed",
+					org: p.organization.login,
 					installationId: p.installation?.id ?? 0,
 					...(deliveryId ? { deliveryId } : {}),
 					raw: payload,

@@ -30,13 +30,27 @@ Sentinel reads the same configuration the [CLI](/holocron/cli/) acts on, so a re
 
 The central checks run in the same pipeline: commit standards, DCO, inclusive language, formatting, editorconfig, markdown lint, static analysis (eslint and actionlint), repo validation, and an advisory PR config validation. The advisory docs-presence check runs the same shared rules as `holocron probe docs presence`: it warns about a new public package, or a `feat` to one, that ships without a docs change, unless `[skip docs] <reason>` is in the PR description or a commit message, and it re-runs when the PR title or description is edited. An opt-out auto-fix commit can repair the mechanical formatting, editorconfig and markdown failures. The handler's module docstring in `src/handler/handler.ts` is the source of truth for the current list.
 
+## Role sync
+
+Sentinel also keeps Discord roles equal to GitHub teams, so nobody has to run [`holocron notifications sync-roles`](/holocron/commands/notifications-sync-roles/). It acts on two org-level deliveries: a person added to or removed from a team (`membership`), and a member removed from the org (`organization`). A team delivery syncs the roles that follow that team; an org delivery syncs every role that follows a team. It runs the same `syncRoles()` function as the command, so what counts as in sync, and that a holder nobody has linked is never removed, are identical.
+
+It is off until three settings exist in Sentinel's environment:
+
+| Setting                      | What it is                                                                                              |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `SENTINEL_ROLE_SYNC_REPO`    | `owner/repo` whose default-branch `holocron.config.ts` declares the Discord layout (its `roles[].team`) |
+| `HOLOCRON_DISCORD_BOT_TOKEN` | The Holonet bot token                                                                                   |
+| `HOLOCRON_USER_SYNC_TOKEN`   | The `github.user-sync` token that reads the links file in the org's private config repo                 |
+
+The GitHub App also needs the organization permission Members: read and the `membership` and `organization` events. A sync that fails or only partly works answers HTTP 500 and logs an error, so the delivery shows as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent). Design: `.notes/tech-sentinel-role-sync.spec.md`.
+
 ## Key points
 
 - **Default branch only.** The config is read from a repo's default branch, never a fork or an unreviewed PR branch, and `validateConfig` only validates and never writes. This is the hard security boundary of the design. The exception is the auto-fix check, which reads a same-repo PR branch to see what that branch declares.
 - **Org-portable.** The repo and installation id come from the webhook payload, so one registration handles any number of orgs and accounts.
 - **Quiet on a bad config.** A missing or broken config is acknowledged without a check run.
 - **Out of scope for v1.** Autonomous fix PRs or comments triggered by an event, and dashboards, are tracked in issue 674.
-- **Environment.** `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, plus two log-shipping values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`). They live in Doppler and are fanned out with [`holocron secrets sync`](/holocron/commands/secrets-sync/).
+- **Environment.** `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, plus two log-shipping values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`), and the three optional role-sync settings above. They live in Doppler and are fanned out with [`holocron secrets sync`](/holocron/commands/secrets-sync/).
 
 ## Deployment
 
