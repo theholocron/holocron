@@ -111,11 +111,28 @@ describe("generatedProbes", () => {
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	async function run(entries: RepoFileEntry[], second: RepoFileEntry[] = entries): Promise<ProbeRow[]> {
+	async function run(
+		entries: RepoFileEntry[],
+		second: RepoFileEntry[] = entries,
+		resolved: Record<string, unknown> = { tasks: [] }
+	): Promise<ProbeRow[]> {
 		generate.mockResolvedValueOnce(entries).mockResolvedValueOnce(second);
 		const rows: ProbeRow[] = [];
-		await generatedProbes({} as LoadedConfig, root).check!.run({ say: (row: ProbeRow) => rows.push(row) } as never);
+		await generatedProbes({ resolved } as unknown as LoadedConfig, root).check!.run({
+			say: (row: ProbeRow) => rows.push(row),
+		} as never);
 		return rows;
+	}
+
+	/** A workspace with a root `package.json` and one package, so the scripts can be checked. */
+	function workspace(rootScripts: Record<string, string>, packageScripts: Record<string, string>) {
+		writeFileSync(join(root, "package.json"), JSON.stringify({ name: "root", scripts: rootScripts }));
+		writeFileSync(join(root, "pnpm-workspace.yaml"), "packages:\n  - utils/*\n");
+		mkdirSync(join(root, "utils", "a"), { recursive: true });
+		writeFileSync(
+			join(root, "utils", "a", "package.json"),
+			JSON.stringify({ name: "@x/a", scripts: packageScripts })
+		);
 	}
 
 	it("says how many files match", async () => {
@@ -145,5 +162,89 @@ describe("generatedProbes", () => {
 	it("fails when the second generation is not the first", async () => {
 		const rows = await run([file("a.json", "{}\n")], [file("a.json", "{ }\n")]);
 		expect(rows).toEqual([{ status: "fail", label: "a.json: generating it twice gives different content" }]);
+	});
+
+	describe("scripts", () => {
+		const entries = [file("a.json", "{}\n")];
+		const tasks = ["build", "test:unit", "lint:markdown"];
+
+		it("fails for a root script that differs from what holocron generates, and for one that is missing", async () => {
+			workspace({ build: "tsdown", holocron: "holocron" }, {});
+			const rows = await run(entries, entries, { tasks, holocronScript: "holocron" });
+			expect(rows.map((r) => r.label)).toEqual([
+				expect.stringMatching(/^package\.json: script "lint" is missing, holocron generates "turbo run lint"/),
+				expect.stringMatching(
+					/^package\.json: script "lint:markdown" is missing, holocron generates "markdownlint-cli2 /
+				),
+				expect.stringMatching(/^package\.json: script "test" is missing, holocron generates "turbo run test"/),
+				expect.stringMatching(/^package\.json: script "test:unit" is missing/),
+			]);
+			expect(rows.every((r) => r.status === "fail")).toBe(true);
+		});
+
+		it("prints a differing script as it is", async () => {
+			workspace(
+				{
+					build: "turbo run build",
+					holocron: "holocron",
+					"lint:markdown": "markdownlint .",
+					test: "turbo run test",
+					lint: "turbo run lint",
+					"test:unit": "turbo run test:unit",
+				},
+				{}
+			);
+			const rows = await run(entries, entries, { tasks, holocronScript: "holocron" });
+			expect(rows).toEqual([
+				expect.objectContaining({
+					status: "fail",
+					label: expect.stringMatching(/script "lint:markdown" is "markdownlint \.", holocron generates/),
+				}),
+			]);
+		});
+
+		it("fails for a package script that breaks a rule and only says so for a deprecated name", async () => {
+			workspace(
+				{
+					build: "turbo run build",
+					holocron: "holocron",
+					"lint:markdown": 'markdownlint-cli2 "**/*.md"',
+					test: "turbo run test",
+					lint: "turbo run lint",
+					"test:unit": "turbo run test:unit",
+				},
+				{ test: "vitest", "verification.unitTests": "vitest run" }
+			);
+			const rows = await run(entries, entries, { tasks, holocronScript: "holocron" });
+			expect(rows).toEqual([
+				{ status: "fail", label: expect.stringMatching(/^utils\/a\/package\.json: "test" is a suite/) },
+				{
+					status: "info",
+					label: "deprecated task names still used as scripts in 1 package.json file(s), for example utils/a/package.json (verification.unitTests): rename them to flat ids",
+				},
+			]);
+		});
+
+		it("does not compare the root's scripts when syncScripts is off, but still checks the rules", async () => {
+			workspace({ publish: "x" }, {});
+			const rows = await run(entries, entries, { tasks, syncScripts: false });
+			expect(rows.map((r) => r.label)).toEqual([
+				expect.stringMatching(/^package\.json: "publish" is a name npm and pnpm/),
+			]);
+		});
+
+		it("reads a package that has no scripts at all as having none", async () => {
+			workspace({ holocron: "holocron" }, {});
+			writeFileSync(join(root, "utils", "a", "package.json"), JSON.stringify({ name: "@x/a" }));
+			expect(await run(entries, entries, { tasks: [], holocronScript: "holocron" })).toEqual([
+				{ status: "ok", label: "1 files", detail: "all match what holocron generates" },
+			]);
+		});
+
+		it("passes with nothing to check when the checkout has no package.json", async () => {
+			expect(await run(entries)).toEqual([
+				{ status: "ok", label: "1 files", detail: "all match what holocron generates" },
+			]);
+		});
 	});
 });

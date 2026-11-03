@@ -1,10 +1,14 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { createAstromech, readWorkspacePackages } from "@theholocron/astromech";
+import type { TasksConfig } from "@theholocron/astromech/config";
 
 import type { LoadedConfig } from "../../../config/index.js";
 import type { PluginProbes } from "../../../plugin/index.js";
 import { type GeneratedRepoFile, generateRepoFiles, type RepoFilesInput } from "../../repo-files/index.js";
 import { checkGenerated } from "./check-generated.js";
+import { checkScripts, type ScriptsOfPackage } from "./check-scripts.js";
 
 /** The group of probes that check the files `repo setup` and `repo sync` generate. */
 export const GENERATED_PROVIDER = "generated";
@@ -15,6 +19,32 @@ function readText(path: string): string | null {
 	} catch {
 		return null;
 	}
+}
+
+/** The `scripts` of a `package.json` that exists; none is `{}`. */
+function readScripts(path: string): Record<string, string> {
+	return (JSON.parse(readFileSync(path, "utf8")) as { scripts?: Record<string, string> }).scripts ?? {};
+}
+
+/** The scripts of the root and of every workspace package, and the scripts the root should have. */
+function scriptsInput(loaded: LoadedConfig, repoRoot: string) {
+	const config = loaded.resolved;
+	const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
+	if (config.holocronScript !== undefined) tasksConfig.holocronScript = config.holocronScript;
+	const astromech = createAstromech({ cwd: repoRoot, config: tasksConfig });
+	const turbo = astromech.turboConfig();
+	const packages: ScriptsOfPackage[] = [];
+	const rootFile = join(repoRoot, "package.json");
+	if (existsSync(rootFile)) packages.push({ location: ".", scripts: readScripts(rootFile) });
+	for (const pkg of readWorkspacePackages(repoRoot)) {
+		const location = pkg.path ?? `${pkg.dir}/${pkg.slug}`;
+		packages.push({ location, scripts: readScripts(join(repoRoot, location, "package.json")) });
+	}
+	return {
+		packages,
+		desired: config.syncScripts === false ? null : astromech.packageScripts(),
+		turboKeys: new Set(turbo ? Object.keys((JSON.parse(turbo) as { tasks: object }).tasks) : []),
+	};
 }
 
 async function generate(input: RepoFilesInput) {
@@ -56,7 +86,10 @@ export function generatedProbes(loaded: LoadedConfig, repoRoot: string): PluginP
 						workflows,
 					}),
 				];
+				const scripts = checkScripts(scriptsInput(loaded, repoRoot));
+				problems.push(...scripts.fail);
 				for (const line of problems) ctx.say({ status: "fail", label: line });
+				for (const line of scripts.info) ctx.say({ status: "info", label: line });
 				if (problems.length === 0) {
 					ctx.say({
 						status: "ok",

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { getLogger } from "../../observability/logger/index.js";
 import { style } from "../../ui/index.js";
 import { generateReadme } from "./generate-readme.js";
+import { readmeScriptProblems } from "./readme-script-problems.js";
 import type { PackageJson, RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.type.js";
 import { workspacePackages } from "./workspace-packages.js";
 
@@ -76,7 +77,7 @@ function replaceMarkerBlock(readme: string, marker: string, content: string): st
 
 /**
  * Apply all README updates in a single read-write cycle.
- * Returns true if the README was found (even if no changes were needed).
+ * Returns the README's new text, or `null` when it was not found or has nowhere to put the installation block.
  */
 async function updateReadme(
 	repoRoot: string,
@@ -85,13 +86,13 @@ async function updateReadme(
 	dryRun: boolean,
 	readFileFn: (path: string, encoding: BufferEncoding) => Promise<string>,
 	writeFileFn: (path: string, content: string, encoding: BufferEncoding) => Promise<void>
-): Promise<boolean> {
+): Promise<string | null> {
 	const readmePath = join(repoRoot, "README.md");
 	let content: string;
 	try {
 		content = await readFileFn(readmePath, "utf8");
 	} catch {
-		return false;
+		return null;
 	}
 
 	let updated = content;
@@ -113,7 +114,7 @@ async function updateReadme(
 	} else {
 		const descEnd = lines.findIndex((l) => l.trim() === "<!-- /holocron:description -->");
 		const insertAfter = descEnd !== -1 ? descEnd : lines.findIndex((l) => /^# /.test(l));
-		if (insertAfter === -1) return false;
+		if (insertAfter === -1) return null;
 		lines.splice(insertAfter + 1, 0, "", MARKER_INSTALL_START, "", ...blockLines, "", MARKER_INSTALL_END);
 		updated = lines.join("\n");
 	}
@@ -121,7 +122,7 @@ async function updateReadme(
 	if (!dryRun) {
 		await writeFileFn(readmePath, updated, "utf8");
 	}
-	return true;
+	return updated;
 }
 
 async function updateIndexMdxDescription(
@@ -182,9 +183,9 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 
 	// Single read-write pass for all README changes
 	const installBlock = generateInstallBlock(pkg, homepage);
-	const updated = await updateReadme(repoRoot, installBlock, markerSections, dryRun, readFileFn, writeFileFn);
+	const text = await updateReadme(repoRoot, installBlock, markerSections, dryRun, readFileFn, writeFileFn);
 
-	if (!updated) {
+	if (text === null) {
 		print(style.warn("README.md not found or has no writable location for installation block"));
 		logger.warn({ repoRoot, reason: "README.md not found / no marker block" }, "sync readme: done");
 		return { status: "fail", updated: false, message: "README.md update failed" };
@@ -196,7 +197,10 @@ export async function runSyncReadme(input: RunSyncReadmeInput): Promise<SyncRead
 	}
 
 	print(dryRun ? style.hint("  would update README.md") : style.success("  updated README.md"));
+	// The table above lists only scripts that exist; this catches the ones the rest of the README tells the reader to run.
+	const problems = readmeScriptProblems(text, scripts);
+	for (const problem of problems) print(style.fail(`  ${problem}`));
 	const status = dryRun ? "dry-run" : "ok";
-	logger.info({ repoRoot, status, updated }, "sync readme: done");
-	return { status, updated };
+	logger.info({ repoRoot, status, updated: true, problems: problems.length }, "sync readme: done");
+	return { status, updated: true, ...(problems.length > 0 ? { problems } : {}) };
 }

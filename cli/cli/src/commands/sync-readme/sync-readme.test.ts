@@ -378,6 +378,41 @@ it("writes development section when marker exists", async () => {
 	expect(written["/tmp/test/README.md"]).not.toContain("pnpm release");
 });
 
+it("fails, and says which script, when the README tells the reader to run one the package lacks", async () => {
+	const lines: string[] = [];
+	const { readFileFn, writeFileFn } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": `${README_WITH_SECTIONS}\nRun \`pnpm typecheck\` before you push.\n`,
+	});
+	const report = await runSyncReadme({
+		loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: (line) => lines.push(line),
+		readFileFn,
+		writeFileFn,
+	});
+	expect(report.problems).toEqual([
+		'README.md tells the reader to run `pnpm typecheck`, but package.json has no "typecheck" script',
+	]);
+	expect(report.updated).toBe(true);
+	expect(lines.join("\n")).toContain("pnpm typecheck");
+});
+
+it("reports no problems when the README only names scripts the package has", async () => {
+	const { readFileFn, writeFileFn } = makeFs({
+		"/tmp/test/package.json": SCRIPTS_PKG,
+		"/tmp/test/README.md": README_WITH_SECTIONS,
+	});
+	const report = await runSyncReadme({
+		loaded: makeLoaded({ description: "A lib.", homepage: "https://example.com" }),
+		context: { repoRoot: "/tmp/test" },
+		print: () => {},
+		readFileFn,
+		writeFileFn,
+	});
+	expect(report).toEqual({ status: "ok", updated: true });
+});
+
 it("writes releases section when marker exists", async () => {
 	const { readFileFn, writeFileFn, written } = makeFs({
 		"/tmp/test/package.json": SCRIPTS_PKG,

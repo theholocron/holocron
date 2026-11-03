@@ -32,4 +32,6 @@ export interface SyncReadmeReport {
 	status: "ok" | "fail" | "dry-run";
 	updated: boolean;
 	message?: string;
+	/** Scripts the README tells the reader to run that `package.json` does not have; the run fails on any. */
+	problems?: string[];
 }

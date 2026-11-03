@@ -113,7 +113,7 @@ describe("generateReadme", () => {
 	describe("development section", () => {
 		it("renders a table header", () => {
 			const { development } = generateReadme(baseConfig);
-			expect(development).toContain("| Script | Command |");
+			expect(development).toContain("| Script | Command | Same as |");
 		});
 
 		it("includes allowed scripts", () => {
@@ -124,10 +124,46 @@ describe("generateReadme", () => {
 			expect(development).toContain("`pnpm typecheck`");
 		});
 
-		it("omits disallowed scripts", () => {
+		it("omits a task that only runs in CI, and scripts that are not tasks", () => {
 			const { development } = generateReadme(baseConfig);
 			expect(development).not.toContain("`pnpm release`");
 			expect(development).not.toContain("`pnpm prepare`");
+		});
+
+		it("lists a suite before its leaves, the leaves before the dev scripts, and names the holocron equivalent", () => {
+			const { development } = generateReadme({
+				...baseConfig,
+				scripts: {
+					"test:watch": "vitest",
+					"test:unit": "vitest run --coverage",
+					test: "turbo run test",
+					"lint:code": "eslint .",
+					dev: "astro dev",
+				},
+			});
+			const order = [
+				"`pnpm test`",
+				"`pnpm test:unit`",
+				"`pnpm lint:code`",
+				"`pnpm dev`",
+				"`pnpm test:watch`",
+			].map((s) => development.indexOf(s));
+			expect(order).toEqual([...order].sort((a, b) => a - b));
+			expect(order).not.toContain(-1);
+			expect(development).toContain("| `pnpm test:unit` | `vitest run --coverage` | `holocron run test unit` |");
+			expect(development).toContain("| `pnpm test` | `turbo run test` | `holocron run test` |");
+			expect(development).toContain("| `pnpm dev` | `astro dev` | — |");
+		});
+
+		it("prints `pnpm run` for a script pnpm has a command of its own for", () => {
+			const { development } = generateReadme({
+				...baseConfig,
+				scripts: { deploy: "wrangler deploy", "deploy:preview": "wrangler versions upload" },
+			});
+			expect(development).toContain("| `pnpm run deploy` | `wrangler deploy` | `holocron run deploy` |");
+			expect(development).toContain(
+				"| `pnpm deploy:preview` | `wrangler versions upload` | `holocron run deploy-preview` |"
+			);
 		});
 
 		it("renders scripts in canonical order regardless of input order", () => {
@@ -138,9 +174,10 @@ describe("generateReadme", () => {
 			const { development } = generateReadme(config);
 			const buildPos = development.indexOf("pnpm build");
 			const typecheckPos = development.indexOf("pnpm typecheck");
-			const auditPos = development.indexOf("pnpm audit");
-			expect(buildPos).toBeLessThan(typecheckPos);
-			expect(typecheckPos).toBeLessThan(auditPos);
+			const auditPos = development.indexOf("pnpm run audit");
+			// The registry's order: `typecheck` is a verification, `build` a delivery.
+			expect(typecheckPos).toBeLessThan(buildPos);
+			expect(buildPos).toBeLessThan(auditPos);
 		});
 
 		it("includes the raw command value", () => {

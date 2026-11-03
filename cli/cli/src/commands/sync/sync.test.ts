@@ -748,6 +748,36 @@ describe("runSync", () => {
 			});
 		});
 
+		it("writes turbo-direct root scripts in a workspace, and keeps a real command the root already has (#747)", async () => {
+			await writeFile(
+				join(tmpDir, "package.json"),
+				JSON.stringify({ name: "demo", scripts: { build: "tsdown", test: "turbo run old", dev: "astro dev" } })
+			);
+			await writeFile(join(tmpDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
+
+			const report = await runScriptsStep({
+				name: "demo",
+				tasks: ["build", "test:unit", "format"],
+				holocronScript: "node cli.mjs",
+				providers: {},
+			});
+
+			expect(report.steps.find((s) => s.step === "sync scripts")?.message).toBe(
+				"format, holocron, test, test:unit set"
+			);
+			const pkg = JSON.parse(await readFile(join(tmpDir, "package.json"), "utf8")) as {
+				scripts: Record<string, string>;
+			};
+			expect(pkg.scripts).toEqual({
+				build: "tsdown",
+				dev: "astro dev",
+				test: "turbo run test",
+				"test:unit": "turbo run test:unit",
+				format: "prettier --write .",
+				holocron: "node cli.mjs",
+			});
+		});
+
 		it("keeps the file's own indent and line endings when merging scripts (holocron#1033)", async () => {
 			// Tabs + CRLF -- stringifyJson's `like: content` preserves
 			// whatever the repo already used; a bare JSON.stringify(x,
@@ -1808,6 +1838,25 @@ describe("runSync", () => {
 			const step = report.steps.find((s) => s.step === "sync readme");
 			expect(step?.status).toBe("skip");
 			expect(step?.message).toBe("README.md not found");
+		});
+
+		it("fails the step, naming the scripts, when the README tells the reader to run one the package lacks", async () => {
+			const problem = 'README.md tells the reader to run `pnpm test`, but package.json has no "test" script';
+			vi.mocked(runSyncReadme).mockResolvedValueOnce({ status: "ok", updated: true, problems: [problem] });
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+
+			const report = await runSync({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader,
+				steps: ["readme"],
+				print: () => {},
+			});
+
+			const step = report.steps.find((s) => s.step === "sync readme");
+			expect(step?.status).toBe("fail");
+			expect(step?.message).toBe(problem);
 		});
 
 		it("reports dry-run status when context.dryRun is true", async () => {
