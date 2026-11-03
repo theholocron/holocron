@@ -14,7 +14,7 @@ type Raw = Parameters<typeof resolveConfig>[0];
 const loadedWith = (extra: Record<string, unknown> = {}): LoadedConfig => ({
 	resolved: resolveConfig({
 		name: "demo",
-		providers: { credentials: ["1password"], source: "github" },
+		providers: { credentials: ["1password"], source: "github", dns: "cloudflare" },
 		credentials: { environment: "Holocron" },
 		...extra,
 	} as Raw),
@@ -75,16 +75,33 @@ const inspecting = (environment: string, ...names: string[]) => ({
 });
 
 describe("doctor credentials", () => {
-	it("passes when the environment holds every variable the plugins take", async () => {
+	it("prints one ok row per variable the plugins take, in code-unit order, and counts the variables", async () => {
 		const impl = inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN", "EXTRA");
-		const { report, lines } = await run(
-			loadedWith({ providers: { credentials: ["1password"], source: "github" } }),
-			impl
-		);
+		const { report, lines } = await run(loadedWith(), impl);
 		expect(report.status).toBe("ok");
-		expect(report.rows[0]).toMatchObject({ id: "1password", status: "ok" });
-		expect(report.rows[0]?.detail).toBe('"Holocron" has 3 variable(s), 1 of 1 expected present');
-		expect(lines.at(-1)).toBe("1 ok, 0 fail, 0 skipped");
+		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
+			["1password:HOLOCRON_CLOUDFLARE_TOKEN", "ok", 'present in "Holocron"'],
+			["1password:HOLOCRON_ORG_TOKEN", "ok", 'present in "Holocron"'],
+		]);
+		expect(lines).toEqual([
+			'  ✓ 1password: HOLOCRON_CLOUDFLARE_TOKEN  present in "Holocron"',
+			'  ✓ 1password: HOLOCRON_ORG_TOKEN         present in "Holocron"',
+			"",
+			"2 ok, 0 fail, 0 skipped",
+		]);
+	});
+
+	it("sorts by code unit, not by locale", async () => {
+		const tokens: AuthImporter = async () => ({
+			tokens: ["b_TOKEN", "A_TOKEN", "a_TOKEN", "B_TOKEN"].map((envName) => ({ envName, keyringKey: envName })),
+		});
+		const { report } = await run(loadedWith(), inspecting("Holocron"), tokens);
+		expect(report.rows.map((r) => r.id)).toEqual([
+			"1password:A_TOKEN",
+			"1password:B_TOKEN",
+			"1password:a_TOKEN",
+			"1password:b_TOKEN",
+		]);
 	});
 
 	describe("a token a plugin only falls back to", () => {
@@ -98,31 +115,29 @@ describe("doctor credentials", () => {
 					}
 				: tokensImporter(pkg);
 
-		it("is not expected, and the row says when it is not set", async () => {
-			const { report } = await run(loadedWith(), inspecting("Holocron", "HOLOCRON_ORG_TOKEN"), withOptional);
-			expect(report.status).toBe("ok");
-			expect(report.rows[0]?.detail).toBe(
-				'"Holocron" has 1 variable(s), 1 of 1 expected present; optional, not set: HOLOCRON_FALLBACK_WEBHOOK'
-			);
-			expect(report.rows[0]?.problems).toEqual([]);
-		});
-
-		it("says nothing about it when the environment has it", async () => {
-			const { report } = await run(
+		it("is a skipped row that says it is optional and not set", async () => {
+			const { report, lines } = await run(
 				loadedWith(),
-				inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_FALLBACK_WEBHOOK"),
+				inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"),
 				withOptional
 			);
-			expect(report.rows[0]?.detail).toBe('"Holocron" has 2 variable(s), 1 of 1 expected present');
+			expect(report.status).toBe("ok");
+			expect(report.summary).toEqual({ ok: 2, fail: 0, skip: 1 });
+			expect(report.rows[1]).toMatchObject({
+				id: "1password:HOLOCRON_FALLBACK_WEBHOOK",
+				status: "skip",
+				detail: 'optional, not set in "Holocron"',
+			});
+			expect(lines.at(-1)).toBe("2 ok, 0 fail, 1 skipped");
 		});
 
-		it("is still named when the row fails for another variable", async () => {
-			const { report } = await run(loadedWith(), inspecting("Holocron", "SOMETHING_ELSE"), withOptional);
-			expect(report.status).toBe("fail");
-			expect(report.rows[0]?.detail).toBe(
-				'"Holocron": 1 problem(s); optional, not set: HOLOCRON_FALLBACK_WEBHOOK'
+		it("is an ok row when the environment has it", async () => {
+			const { report } = await run(
+				loadedWith(),
+				inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_FALLBACK_WEBHOOK", "HOLOCRON_CLOUDFLARE_TOKEN"),
+				withOptional
 			);
-			expect(report.rows[0]?.problems).toEqual(["missing variable HOLOCRON_ORG_TOKEN"]);
+			expect(report.summary).toEqual({ ok: 3, fail: 0, skip: 0 });
 		});
 
 		it("is expected after all when another plugin lists the same name as needed", async () => {
@@ -136,32 +151,34 @@ describe("doctor credentials", () => {
 				both
 			);
 			expect(report.status).toBe("fail");
-			expect(report.rows[0]?.problems).toEqual(["missing variable HOLOCRON_SHARED"]);
+			expect(report.rows).toHaveLength(1);
+			expect(report.rows[0]).toMatchObject({ status: "fail", detail: 'missing from "Holocron"' });
 		});
 	});
 
-	it("fails and names each variable the environment lacks", async () => {
-		const { report } = await run(loadedWith(), inspecting("Holocron", "SOMETHING_ELSE"));
+	it("fails a row for each variable the environment lacks", async () => {
+		const { report, lines } = await run(loadedWith(), inspecting("Holocron", "HOLOCRON_ORG_TOKEN"));
 		expect(report.status).toBe("fail");
-		expect(report.rows[0]?.problems).toEqual(["missing variable HOLOCRON_ORG_TOKEN"]);
+		expect(report.summary).toEqual({ ok: 1, fail: 1, skip: 0 });
+		expect(lines[0]).toBe('  ✗ 1password: HOLOCRON_CLOUDFLARE_TOKEN  missing from "Holocron"');
 	});
 
 	it("says which spelling matched when it is not the one the config writes", async () => {
 		const { report } = await run(
 			loadedWith({ credentials: { environment: "holocron" } }),
-			inspecting("Holocron", "HOLOCRON_ORG_TOKEN")
+			inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN")
 		);
-		expect(report.rows[0]?.detail).toBe(
-			'"Holocron" (the config writes "holocron") has 1 variable(s), 1 of 1 expected present'
-		);
+		expect(report.rows[0]?.detail).toBe('present in "Holocron" (the config writes "holocron")');
 	});
 
-	it("fails when the provider cannot find the environment", async () => {
+	it("fails once when the provider cannot find the environment", async () => {
 		const impl = {
 			inspect: vi.fn(async () => Promise.reject(new Error('1Password has no Environment named "Holocron"'))),
 		};
 		const { report } = await run(loadedWith(), impl);
 		expect(report.status).toBe("fail");
+		expect(report.rows).toHaveLength(1);
+		expect(report.rows[0]).toMatchObject({ id: "1password", status: "fail" });
 		expect(report.rows[0]?.detail).toContain("has no Environment");
 	});
 
@@ -171,15 +188,21 @@ describe("doctor credentials", () => {
 		expect(report.reason).toContain("without reading their values");
 	});
 
-	it("expects nothing of a plugin it cannot load, and still passes", async () => {
+	it("skips with one row when no plugin that can be loaded lists a token", async () => {
 		const impl = inspecting("Holocron");
 		const { report } = await run(loadedWith(), impl, async () => {
 			throw new Error("MODULE_NOT_FOUND");
 		});
-		expect(report.rows[0]).toMatchObject({
-			status: "ok",
-			detail: '"Holocron" has 0 variable(s), 0 of 0 expected present',
-		});
+		expect(impl.inspect).not.toHaveBeenCalled();
+		expect(report.rows).toEqual([
+			{
+				id: "1password",
+				title: "1password",
+				status: "skip",
+				detail: "no configured plugin lists the tokens it takes",
+				problems: [],
+			},
+		]);
 	});
 
 	it("fails a provider whose package did not load", async () => {
@@ -233,7 +256,7 @@ describe("doctor credentials", () => {
 	});
 
 	it("reads the environment a provider names itself, ahead of the shared one", async () => {
-		const impl = inspecting("Own", "HOLOCRON_ORG_TOKEN");
+		const impl = inspecting("Own", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN");
 		const loaded = loadedWith({
 			providers: { credentials: [["1password", { environment: "Own" }]], source: "github" },
 		});
@@ -244,7 +267,7 @@ describe("doctor credentials", () => {
 
 	it("takes a plugin that lists no tokens as expecting none", async () => {
 		const { report } = await run(loadedWith(), inspecting("Holocron", "A"), async () => ({}));
-		expect(report.rows[0]?.status).toBe("ok");
+		expect(report.rows[0]?.status).toBe("skip");
 	});
 
 	it("prints to the console and loads the plugins' tokens itself when it is given neither", async () => {
@@ -257,7 +280,7 @@ describe("doctor credentials", () => {
 				loader: loaderWith(loaded, inspecting("Holocron")),
 			});
 			// The real plugins' tokens are expected here, so a stub environment with none of them fails: only the row matters.
-			expect(report.rows[0]).toMatchObject({ id: "1password", status: "fail" });
+			expect(report.rows[0]).toMatchObject({ id: "1password:HOLOCRON_ADMIN_TOKEN", status: "fail" });
 			expect(log).toHaveBeenCalled();
 		} finally {
 			log.mockRestore();

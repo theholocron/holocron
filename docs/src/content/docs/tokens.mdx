@@ -56,7 +56,7 @@ Each variable in the Environment is named for the env var the command already re
 
 ### Checking it
 
-`holocron doctor credentials` reads names only, never a value, and compares them with the tokens the configured plugins take: it fails when the Environment cannot be found (listing the spellings tried) or lacks a variable, and says which spelling of the name matched. See [`doctor credentials`](/holocron/commands/doctor-credentials/).
+`holocron doctor credentials` reads names only, never a value, and compares them with the tokens the configured plugins take: it prints one row per variable, fails when the Environment cannot be found (listing the spellings tried) or lacks a variable, and says which spelling of the name matched. See [`doctor credentials`](/holocron/commands/doctor-credentials/).
 
 ### Moving the tokens you already have
 

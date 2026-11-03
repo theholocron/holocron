@@ -21,7 +21,7 @@ export interface RunDoctorCredentialsInput {
 }
 
 export interface DoctorCredentialsReport {
-	/** `fail` if a provider cannot find the environment or it lacks an expected variable, `skip` if nothing could be checked, otherwise `ok`. */
+	/** `fail` if a provider cannot find the environment or it lacks an expected variable (rows are per variable), `skip` if nothing could be checked, otherwise `ok`. */
 	status: CheckStatus;
 	rows: CheckRow[];
 	summary: CheckSummary;
