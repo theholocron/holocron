@@ -1,3 +1,11 @@
+## [5.0.0-alpha.313](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.312...v5.0.0-alpha.313) (2026-11-03)
+
+### Features
+
+* **notifications:** 🖼️ take { url, image } pictures for channel webhooks ([#1596](https://github.com/theholocron/holocron/issues/1596)) ([#1648](https://github.com/theholocron/holocron/issues/1648)) ([41c2af1](https://github.com/theholocron/holocron/commit/41c2af1a53b2bcf67b6404026ea8024e794b5711))
+* **specs:** 🔕 withdraw a forum post when its pull request closes unmerged ([#1653](https://github.com/theholocron/holocron/issues/1653)) ([#1655](https://github.com/theholocron/holocron/issues/1655)) ([3eea355](https://github.com/theholocron/holocron/commit/3eea355c800692092b567df387cf4d5421b4903b))
+* **specs:** 🔧 add specs sync --refresh-origin to repair the PR line on posts ([#1652](https://github.com/theholocron/holocron/issues/1652)) ([#1654](https://github.com/theholocron/holocron/issues/1654)) ([0d22bbe](https://github.com/theholocron/holocron/commit/0d22bbed2e61d243a95ac72a5948ceff0f344e3e)), closes [#1601](https://github.com/theholocron/holocron/issues/1601)
+
 ## [5.0.0-alpha.312](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.311...v5.0.0-alpha.312) (2026-11-03)
 
 ### Features
