@@ -31,6 +31,7 @@ export type CapabilityKey =
 	| "monitoring"
 	| "wiki"
 	| "workers"
+	| "tunnels"
 	| "credentials";
 
 /** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
@@ -2429,6 +2430,53 @@ export interface Workers extends ProviderIdentity {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// tunnels — a stable public address that reaches a port on this machine
+// ───────────────────────────────────────────────────────────────────────
+
+/** Where a tunnel should send the requests for a hostname. */
+export interface TunnelRoute {
+	/** The tunnel's name. The tunnel is found by it, so a second call finds the first one's tunnel. */
+	name: string;
+	/** The public hostname the tunnel serves, e.g. `sentinel-dev.example.dev`. */
+	hostname: string;
+	/** The origin the requests are sent to, e.g. `http://localhost:3000`. */
+	service: string;
+}
+
+/** What {@link Tunnels.ensureTunnel} found or made. */
+export interface EnsuredTunnel {
+	/** The tunnel's id at the provider. */
+	id: string;
+	/** The tunnel's name. */
+	name: string;
+	/** Whether the tunnel did not exist and was made. */
+	created: boolean;
+	/** Whether the tunnel's routes were changed to serve the hostname. */
+	configured: boolean;
+	/** The host a `CNAME` for the hostname points at, so the `dns` provider can finish the job. */
+	target: string;
+}
+
+/**
+ * Named tunnels: a stable public hostname that reaches a port on this machine, for a webhook that has to find a
+ * development instance. A quick tunnel changes its address on every run, which a GitHub App's webhook URL cannot.
+ * The provider makes the tunnel and its routes; the DNS record for the hostname is the `dns` provider's.
+ */
+export interface Tunnels extends ProviderIdentity {
+	/** Identifies this provider as the `tunnels` capability. */
+	readonly key: "tunnels";
+	/**
+	 * Find the tunnel by name or make it, and make it serve `route.hostname` at `route.service`. Routes for other
+	 * hostnames are kept. Idempotent: a tunnel that already serves the hostname is left alone.
+	 */
+	ensureTunnel(route: TunnelRoute): Promise<EnsuredTunnel>;
+	/** The token the tunnel's connector runs with. A credential: never print or store it. */
+	tunnelToken(tunnelId: string): Promise<string>;
+	/** A `holocron doctor` smoke check: reports how many tunnels the token can see. */
+	whoami?(): Promise<{ ok: boolean; tunnels: number }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // credentials — where this machine gets its own tokens
 // ───────────────────────────────────────────────────────────────────────
 
@@ -2510,6 +2558,8 @@ export interface CapabilityImpls {
 	wiki: Wiki;
 	/** The `workers` provider. */
 	workers: Workers;
+	/** The `tunnels` provider. */
+	tunnels: Tunnels;
 	/** The `credentials` providers. */
 	credentials: Credentials;
 }
