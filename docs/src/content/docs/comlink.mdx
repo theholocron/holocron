@@ -28,6 +28,25 @@ There is one route per source, `https://comlink.theholocron.dev/<source>`.
 | -------- | --------- | ---------------------------------------------------------------------------- | ---------------------------- |
 | `sentry` | `/sentry` | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret | issue alerts (`event_alert`) |
 
+## Relaying more Sentry projects
+
+`relay.errors.projects` in the layout is the list of Sentry projects whose issues are sent. Add a project's slug to it and run the two commands again:
+
+```ts
+relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli", "sentinel"] } },
+```
+
+```bash
+holocron notifications setup      # attaches the one alert rule to each listed project's issue stream
+holocron doctor notifications     # one problem line per listed project that has no rule, a disabled one, or one that does not send through the integration
+```
+
+`setup` is idempotent: it adds a newly listed project to the rule it already made and leaves the rest alone, and it stops before changing anything if a listed project does not exist in the Sentry organisation. It never detaches a project that is no longer listed.
+
+## The Project field
+
+Sentry's `event_alert` payload carries the project only as a number (`data.event.project`), which the embed leaves out. The Project field is taken from the event's API address instead, `data.event.url` (`.../api/0/projects/<org>/<project>/events/<id>/`), which names the project by slug. It is read only after the signature has been verified, and nothing is looked up, so the Worker needs no Sentry token.
+
 ## Secrets
 
 Each source has two bindings, never echoed: `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.

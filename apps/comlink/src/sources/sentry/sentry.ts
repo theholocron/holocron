@@ -16,6 +16,7 @@ interface SentryEvent {
 	culprit?: string;
 	level?: string;
 	web_url?: string;
+	url?: string;
 	datetime?: string;
 	environment?: string;
 	project_name?: string;
@@ -37,6 +38,14 @@ function tagValue(event: SentryEvent, name: string): string | undefined {
 		}
 	}
 	return undefined;
+}
+
+/**
+ * The project's slug as the event's API address spells it: `.../api/0/projects/<org>/<project>/events/<id>/`. The
+ * payload carries the project itself only as a number, so this is where its name is. Nothing is looked up.
+ */
+function projectFromUrl(url: unknown): string | undefined {
+	return typeof url === "string" ? /\/api\/0\/projects\/[\w.-]+\/([\w.-]+)\/events\//.exec(url)?.[1] : undefined;
 }
 
 /**
@@ -62,9 +71,14 @@ export const sentry: Source = {
 		const environment = event.environment ?? tagValue(event, "environment");
 		if (environment) fields.push({ name: "Environment", value: clip(environment, 1024), inline: true });
 		fields.push({ name: "Level", value: level, inline: true });
-		// The payload names the project only by id when it has no name; "Project 4491" says nothing, so it is left out.
+		// The payload gives the project as a number, which says nothing, so the name comes from the event's API address.
+		// A number is never shown: "Project 4491" is worse than no field.
 		const id = event.project === undefined ? undefined : String(event.project);
-		const project = event.project_name ?? tagValue(event, "project") ?? (id && !/^\d+$/.test(id) ? id : undefined);
+		const project =
+			event.project_name ??
+			tagValue(event, "project") ??
+			projectFromUrl(event.url) ??
+			(id && !/^\d+$/.test(id) ? id : undefined);
 		if (project) fields.push({ name: "Project", value: clip(project, 1024), inline: true });
 		const rule = (payload as SentryAlert).data?.triggered_rule;
 		if (rule) fields.push({ name: "Rule", value: clip(rule, 1024), inline: false });

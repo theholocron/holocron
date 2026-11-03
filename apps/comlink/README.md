@@ -28,6 +28,10 @@ Discord webhook for the channel it feeds).
 | -------- | --------- | ---------------------------------------------------------------------------- | ---------------------------- |
 | `sentry` | `/sentry` | `Sentry-Hook-Signature`: hex HMAC-SHA256 of the body under the client secret | issue alerts (`event_alert`) |
 
+## Projects
+
+The embed's Project field is the Sentry project's slug, taken from the event's API address (`data.event.url`, `.../api/0/projects/<org>/<project>/events/<id>/`) because the payload otherwise carries only a number. Which projects are relayed is the layout's `relay.errors.projects`; see the docs page for Comlink.
+
 ## Adding a source
 
 A source is one file under `src/sources/<id>/` that implements `Source` (`verify` and `format`) and one entry in the list
