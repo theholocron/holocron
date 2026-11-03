@@ -368,7 +368,7 @@ describe("thin caller permissions must be a superset of the reusable workflow's 
 		// author-trust step (holocron#1058) without the thin caller
 		// template being updated to match, and a real PR's
 		// deployment_status run hit exactly that failure.
-		const required = extractPermissionRanks(REUSABLE_WORKFLOWS["delivery.previewCheck"]!);
+		const required = extractPermissionRanks(REUSABLE_WORKFLOWS["check-preview"]!);
 		const granted = extractPermissionRanks(WORKFLOW_TEMPLATES["delivery.previewCheck"]!);
 		expect(required.size).toBeGreaterThan(0);
 		for (const [key, requiredRank] of required) {

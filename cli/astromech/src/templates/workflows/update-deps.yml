@@ -1,0 +1,14 @@
+name: Platform
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependencies:
+    name: Dependencies
+    uses: theholocron/.github/.github/workflows/update-deps.yml@main
+    secrets: inherit

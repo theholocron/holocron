@@ -17,5 +17,5 @@ permissions:
 jobs:
   token-expiry:
     name: Token Expiry
-    uses: ./.github/workflows/security.tokenExpiry.yml
+    uses: ./.github/workflows/check-tokens.yml
     secrets: inherit

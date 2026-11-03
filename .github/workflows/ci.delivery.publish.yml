@@ -80,7 +80,7 @@ jobs:
       max-parallel: 1
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.groups) }}
-    uses: ./.github/workflows/delivery.publish.yml
+    uses: ./.github/workflows/release.yml
     with:
       dry-run: ${{ inputs.dry_run == true }}
       group: ${{ matrix.group }}
@@ -95,7 +95,7 @@ jobs:
     if: >-
       ${{ !cancelled() && needs.plan.result == 'success' && needs.release-groups.result != 'failure' &&
       (inputs.group == '' || inputs.group == 'all' || inputs.group == 'ungrouped') }}
-    uses: ./.github/workflows/delivery.publish.yml
+    uses: ./.github/workflows/release.yml
     with:
       dry-run: ${{ inputs.dry_run == true }}
       from-branch-tip: true

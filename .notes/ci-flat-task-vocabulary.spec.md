@@ -892,6 +892,27 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
 - **This repo.** `syncScripts` is on with `holocronScript: "node cli/cli/dist/cli.mjs"`, which also changes the generated
   `.husky/commit-msg` and `.husky/pre-push` to call it instead of `pnpm exec holocron`.
 
+### Phase E as built (#1619)
+
+- **Sources** moved to `ci/workflows/<suite>/<leaf>.yml` or `ci/workflows/<id>.yml`; the thin-caller templates mirror them
+  under `cli/astromech/src/templates/workflows/`. `@theholocron/ci` builds `WORKFLOWS` (keyed by id) with one
+  `import.meta.glob` and `idFromSource()`; astromech does the same for `WORKFLOW_TEMPLATES`, keyed by `workflowKey(id)`
+  (still the old name, since phase F moves the callers). The per-file `*.yml.d.ts` of the templates are gone.
+- **`idFromSource` and `workflowFile`** are two files in `ci/src/` (one function per file), not one module. `idFromSource`
+  strips everything up to `workflows/`, so it reads a repo path, the glob key and a templates path alike.
+- **Templates are written against the flat name** (`.../test-unit.yml@main`). `rehome` spells it with the old name for a
+  `main` home (`legacyFile`, the first successor of each `LEGACY_NAMES` entry, so `sourceQuality.formatting` is carried by
+  `lint:editorconfig`) and leaves it flat for `ci-v1`; `localize` turns either into `./.github/workflows/<flat>.yml`
+  (`flatFile`). `reusableWorkflowRef` takes the flat name.
+- **`theholocron/.github` keeps the old names** for everything `sync github` pushes or stamps (`frozenReusablePaths`,
+  `reusableTemplates`): Sentinel dispatches `platform.dispatchedCheck.yml` by name there.
+- **`release.config.ts`** builds `ciPaths` from `workflowFile(id)` of `hostedReusableWorkflows()` (now keyed by id).
+- **Not done here:** `task:` inputs inside the reusables still hold the old names (`sourceQuality.formatting` runs three
+  successors, so it cannot take one id yet), and the one-source-per-leaf split of the formatting and validate workflows
+  waits for its phase.
+- **Tests:** `ci-layout.test.ts` (unique ids, no two ids flatten to one file, the folder is the registry suite), the
+  `rehome` and `localize` tests for both spellings, and the hosted-reusables test for the grouped source header.
+
 ## Open questions
 
 Resolved and folded into the decisions: the colon spelling, `format` as a verb, `release`, the aggregate check and its

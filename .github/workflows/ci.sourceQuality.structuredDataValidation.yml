@@ -21,5 +21,5 @@ permissions:
 jobs:
   structured-data-validation:
     name: Structured Data Validation
-    uses: ./.github/workflows/sourceQuality.structuredDataValidation.yml
+    uses: ./.github/workflows/lint-data.yml
     secrets: inherit

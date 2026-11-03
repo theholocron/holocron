@@ -1,0 +1,22 @@
+name: Security
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 * * 1"
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  security:
+    name: Code Scanning
+    uses: theholocron/.github/.github/workflows/scan-code.yml@main
+    secrets: inherit

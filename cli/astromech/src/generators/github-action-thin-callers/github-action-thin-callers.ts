@@ -6,72 +6,28 @@
  * into the thin caller `holocron repo setup` / `holocron repo sync` write locally.
  */
 
-import bookkeepingYml from "../../templates/workflows/bookkeeping.yml";
-import buildYml from "../../templates/workflows/delivery.build.yml";
-import bundleSizeYml from "../../templates/workflows/delivery.bundleSize.yml";
-import deployYml from "../../templates/workflows/delivery.deploy.yml";
-import previewCheckYml from "../../templates/workflows/delivery.previewCheck.yml";
-import previewDeployYml from "../../templates/workflows/delivery.previewDeploy.yml";
-import publishYml from "../../templates/workflows/delivery.publish.yml";
-import dependenciesYml from "../../templates/workflows/dependencies.yml";
-import greetingsYml from "../../templates/workflows/greetings.yml";
-import wikiYml from "../../templates/workflows/knowledge.wiki.yml";
-import commitStandardsYml from "../../templates/workflows/platform.commitStandards.yml";
-import notifyCheckYml from "../../templates/workflows/platform.notifyCheck.yml";
-import repoSyncYml from "../../templates/workflows/platform.repoSync.yml";
-import repoValidationYml from "../../templates/workflows/platform.repoValidation.yml";
-import syncTemplatesYml from "../../templates/workflows/platform.syncTemplates.yml";
-import previewYml from "../../templates/workflows/preview.yml";
-import reviewYml from "../../templates/workflows/review.yml";
-import codeScanningYml from "../../templates/workflows/security.codeScanning.yml";
-import secretDetectionYml from "../../templates/workflows/security.secretDetection.yml";
-import tokenExpiryYml from "../../templates/workflows/security.tokenExpiry.yml";
-import deadCodeAnalysisYml from "../../templates/workflows/sourceQuality.deadCodeAnalysis.yml";
-import formattingYml from "../../templates/workflows/sourceQuality.formatting.yml";
-import staticAnalysisYml from "../../templates/workflows/sourceQuality.staticAnalysis.yml";
-import structuredDataValidationYml from "../../templates/workflows/sourceQuality.structuredDataValidation.yml";
-import staleYml from "../../templates/workflows/stale.yml";
-import performanceYml from "../../templates/workflows/verification.performance.yml";
-import typeSafetyYml from "../../templates/workflows/verification.typeSafety.yml";
-import unitTestsYml from "../../templates/workflows/verification.unitTests.yml";
-import visualRegressionYml from "../../templates/workflows/verification.visualRegression.yml";
+import { idFromSource } from "@theholocron/ci";
+
+import { workflowKey } from "../../vocabulary/index.js";
 import { rehomeAll, reusableWorkflowRef } from "../ci-ref/index.js";
 import type { OrgContext, PreviewConfig } from "./github-action-thin-callers.type.js";
 import { groupedPublishCaller } from "./grouped-publish/index.js";
 import { yamlScalar } from "./grouped-publish/yaml-scalar.js";
 
-/** The reusable-workflow thin-caller templates, by task name. */
-export const WORKFLOW_TEMPLATES: Record<string, string> = rehomeAll({
-	"verification.unitTests": unitTestsYml,
-	"verification.visualRegression": visualRegressionYml,
-	"verification.typeSafety": typeSafetyYml,
-	"verification.performance": performanceYml,
-	"sourceQuality.staticAnalysis": staticAnalysisYml,
-	"sourceQuality.formatting": formattingYml,
-	"sourceQuality.structuredDataValidation": structuredDataValidationYml,
-	"sourceQuality.deadCodeAnalysis": deadCodeAnalysisYml,
-	"security.secretDetection": secretDetectionYml,
-	"security.codeScanning": codeScanningYml,
-	"security.tokenExpiry": tokenExpiryYml,
-	"delivery.build": buildYml,
-	"delivery.publish": publishYml,
-	"delivery.deploy": deployYml,
-	"delivery.bundleSize": bundleSizeYml,
-	"delivery.previewCheck": previewCheckYml,
-	"delivery.previewDeploy": previewDeployYml,
-	"platform.repoSync": repoSyncYml,
-	"platform.notifyCheck": notifyCheckYml,
-	"platform.commitStandards": commitStandardsYml,
-	"platform.repoValidation": repoValidationYml,
-	"platform.syncTemplates": syncTemplatesYml,
-	"knowledge.wiki": wikiYml,
-	preview: previewYml,
-	review: reviewYml,
-	stale: staleYml,
-	greetings: greetingsYml,
-	dependencies: dependenciesYml,
-	bookkeeping: bookkeepingYml,
+/** The thin-caller template sources by their path from this file (`../../templates/workflows/lint/code.yml`). */
+const TEMPLATE_SOURCES = import.meta.glob<string>("../../templates/workflows/**/*.yml", {
+	eager: true,
+	import: "default",
 });
+
+/**
+ * The reusable-workflow thin-caller templates, by task key. A template's id is its path under `templates/workflows/`
+ * (`lint/code.yml` is `lint:code`, see `idFromSource`); the key is the name the workflow tables and the generated file
+ * names still use ({@link workflowKey}) until the later phases flip them.
+ */
+export const WORKFLOW_TEMPLATES: Record<string, string> = rehomeAll(
+	Object.fromEntries(Object.entries(TEMPLATE_SOURCES).map(([path, text]) => [workflowKey(idFromSource(path)), text]))
+);
 
 /** The task names that have a thin-caller workflow template. */
 export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
@@ -347,7 +303,7 @@ export function generateCombinedDeployContent(
 		`  deploy:`,
 		`    name: Deploy`,
 		`    if: \${{ github.event_name != 'pull_request' }}`,
-		`    uses: ${reusableWorkflowRef("delivery.deploy.yml")}`,
+		`    uses: ${reusableWorkflowRef("deploy.yml")}`,
 		...(deployWithBlock ? [deployWithBlock.trimEnd()] : []),
 		`    secrets: inherit`,
 		``,

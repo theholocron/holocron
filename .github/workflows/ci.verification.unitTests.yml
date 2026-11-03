@@ -23,7 +23,7 @@ permissions:
 jobs:
   test:
     name: Test
-    uses: ./.github/workflows/verification.unitTests.yml
+    uses: ./.github/workflows/test-unit.yml
     with:
       run-unit: true
       affected: true

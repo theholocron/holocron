@@ -21,5 +21,5 @@ permissions:
 jobs:
   review:
     name: Annotations
-    uses: ./.github/workflows/review.yml
+    uses: ./.github/workflows/annotate.yml
     secrets: inherit

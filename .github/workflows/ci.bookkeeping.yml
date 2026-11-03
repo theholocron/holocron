@@ -20,5 +20,5 @@ permissions:
 jobs:
   bookkeeping:
     name: Bookkeeping
-    uses: ./.github/workflows/bookkeeping.yml
+    uses: ./.github/workflows/label.yml
     secrets: inherit

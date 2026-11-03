@@ -17,6 +17,6 @@ permissions:
 jobs:
   greetings:
     name: Greetings
-    uses: ./.github/workflows/greetings.yml
+    uses: ./.github/workflows/greet.yml
     cache-mode: read
     secrets: inherit

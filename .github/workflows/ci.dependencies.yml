@@ -16,5 +16,5 @@ permissions:
 jobs:
   dependencies:
     name: Dependencies
-    uses: ./.github/workflows/dependencies.yml
+    uses: ./.github/workflows/update-deps.yml
     secrets: inherit

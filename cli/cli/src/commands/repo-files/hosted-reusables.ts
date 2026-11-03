@@ -25,9 +25,13 @@ export function hostsReusables(gitRoot: string): boolean {
 
 /**
  * The text of a reusable workflow written to the hosting repo's own `.github/workflows`: the AUTO-GENERATED header,
- * the `# Source package:` marker `generated check` reads, and the workflow itself. Its source is `ci/workflows/`.
+ * the `# Source package:` marker `generated check` reads, and the workflow itself. Its source is
+ * `ci/workflows/<suite>/<leaf>.yml` (or `ci/workflows/<id>.yml`), the id with each colon a folder.
  */
-export function hostedReusableFile(name: string, content: string): string {
-	const { workflowHeader } = createHeader({ source: `ci/workflows/${name}.yml`, tool: "holocron repo sync" });
+export function hostedReusableFile(id: string, content: string): string {
+	const { workflowHeader } = createHeader({
+		source: `ci/workflows/${id.replaceAll(":", "/")}.yml`,
+		tool: "holocron repo sync",
+	});
 	return `${workflowHeader()}# Source package: .\n\n${content}`;
 }

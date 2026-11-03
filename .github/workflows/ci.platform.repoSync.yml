@@ -31,7 +31,7 @@ permissions:
 jobs:
   sync:
     name: Sync
-    uses: ./.github/workflows/platform.repoSync.yml
+    uses: ./.github/workflows/sync-repo.yml
     with:
       steps: ${{ inputs.steps }}
     secrets: inherit

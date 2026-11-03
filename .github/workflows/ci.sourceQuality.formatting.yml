@@ -22,5 +22,5 @@ permissions:
 jobs:
   formatting:
     name: Formatting
-    uses: ./.github/workflows/sourceQuality.formatting.yml
+    uses: ./.github/workflows/lint-editorconfig.yml
     secrets: inherit

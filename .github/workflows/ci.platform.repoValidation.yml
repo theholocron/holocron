@@ -17,5 +17,5 @@ permissions:
 jobs:
   repo-validation:
     name: Repo Validation
-    uses: ./.github/workflows/platform.repoValidation.yml
+    uses: ./.github/workflows/validate.yml
     secrets: inherit

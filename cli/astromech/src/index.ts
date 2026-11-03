@@ -104,6 +104,7 @@ export {
 	taskKey,
 	workflowKey,
 } from "./vocabulary/index.js";
+export { idFromSource, workflowFile } from "@theholocron/ci";
 // Aliased: codecov's own, differently-shaped WorkspacePackage ({ slug, name,
 // dir }) already owns the unqualified name above (line 26) — this one
 // carries { name, dir, version, dependencies, devDependencies }, what

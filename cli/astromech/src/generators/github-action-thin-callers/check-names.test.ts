@@ -1,5 +1,7 @@
+import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
+import { flatFile } from "../../vocabulary/index.js";
 import { REUSABLE_WORKFLOWS } from "../github-action-reusable-workflows/index.js";
 import { WORKFLOW_CHECK_CONTEXTS, WORKFLOW_TEMPLATES } from "./github-action-thin-callers.js";
 
@@ -42,11 +44,14 @@ function jobsOf(yaml: string): Job[] {
 	return jobs;
 }
 
-/** The reusable workflow a `uses:` reference calls, by template key. */
+/** The id of the reusable workflow a `uses:` reference calls, whichever spelling its file name has. */
 function reusableKey(uses: string): string {
-	const match = uses.match(/\/workflows\/([^@]+)\.yml@/);
+	const match = uses.match(/\/workflows\/([^@]+\.yml)@/);
 	if (!match) throw new Error(`not a reusable workflow reference: ${uses}`);
-	return match[1]!;
+	const file = flatFile(match[1]!);
+	const id = Object.keys(REUSABLE_WORKFLOWS).find((candidate) => workflowFile(candidate) === file);
+	if (id === undefined) throw new Error(`no reusable workflow for ${uses}`);
+	return id;
 }
 
 /** Every check a task's caller posts: `<caller job name> / <called job name>` for each job of the reusable it calls. */

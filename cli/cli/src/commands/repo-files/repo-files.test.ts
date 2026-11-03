@@ -173,7 +173,7 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		const stale = callers[0]!;
 		if (stale.kind !== "file") throw new Error("expected a file");
 		expect(stale.path).toBe(".github/workflows/ci.stale.yml");
-		expect(stale.content).toContain("    uses: ./.github/workflows/stale.yml\n");
+		expect(stale.content).toContain("    uses: ./.github/workflows/mark-stale.yml\n");
 		expect(stale.content).not.toContain("theholocron/.github/.github/workflows");
 		expect(stale.workflow).toEqual({ task: "stale", filename: "ci.stale.yml" });
 		// the caller's job and workflow names are what a required check is named from: unchanged
@@ -187,17 +187,23 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		);
 		const names = reusables.map((entry) => (entry.kind === "file" ? entry.path : ""));
 		expect(names.length).toBeGreaterThan(25);
-		expect(names).toContain(".github/workflows/stale.yml");
-		expect(names).toContain(".github/workflows/verification.unitTests.yml");
-		for (const unlisted of ["tag", "sync-dispatch", "platform.dispatchedCheck"]) {
+		expect(names).toContain(".github/workflows/mark-stale.yml");
+		expect(names).toContain(".github/workflows/test-unit.yml");
+		expect(names.filter((name) => /workflows\/[\w-]+\.[\w-]+\.yml$/.test(name))).toEqual([]);
+		for (const unlisted of ["tag", "sync-dispatch", "check-dispatched"]) {
 			expect(names).not.toContain(`.github/workflows/${unlisted}.yml`);
 		}
-		const stale = reusables.find((entry) => entry.kind === "file" && entry.path.endsWith("/stale.yml"));
+		const stale = reusables.find((entry) => entry.kind === "file" && entry.path.endsWith("/mark-stale.yml"));
 		if (!stale || stale.kind !== "file") throw new Error("expected stale");
-		expect(stale.content).toMatch(/^# Source: {2}theholocron\/holocron · ci\/workflows\/stale\.yml$/m);
+		expect(stale.content).toMatch(/^# Source: {2}theholocron\/holocron · ci\/workflows\/mark-stale\.yml$/m);
 		expect(stale.content).toContain("# Source package: .\n");
 		expect(stale.content).toMatch(/^on: # yamllint disable-line rule:truthy\n {2}workflow_call:/m);
-		expect(stale.workflow).toEqual({ task: "stale", filename: "stale.yml" });
+		expect(stale.workflow).toEqual({ task: "mark-stale", filename: "mark-stale.yml" });
+		// a leaf of a suite is generated from its folder: `test:unit` is `ci/workflows/test/unit.yml`
+		const unit = reusables.find((entry) => entry.kind === "file" && entry.path.endsWith("/test-unit.yml"));
+		if (!unit || unit.kind !== "file") throw new Error("expected test-unit");
+		expect(unit.content).toMatch(/^# Source: {2}theholocron\/holocron · ci\/workflows\/test\/unit\.yml$/m);
+		expect(unit.workflow).toEqual({ task: "test:unit", filename: "test-unit.yml" });
 	});
 
 	describe("the ci aggregate caller", () => {

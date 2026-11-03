@@ -21,7 +21,7 @@ permissions:
 jobs:
   typecheck:
     name: Typecheck
-    uses: ./.github/workflows/verification.typeSafety.yml
+    uses: ./.github/workflows/typecheck.yml
     with:
       affected: true
     secrets: inherit

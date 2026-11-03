@@ -24,13 +24,13 @@ jobs:
   publish:
     name: Publish
     if: ${{ github.event_name != 'pull_request' }}
-    uses: ./.github/workflows/knowledge.wiki.yml
+    uses: ./.github/workflows/publish-wiki.yml
     secrets: inherit
 
   preview:
     name: Preview
     if: ${{ github.event_name == 'pull_request' }}
-    uses: ./.github/workflows/knowledge.wiki.yml
+    uses: ./.github/workflows/publish-wiki.yml
     with:
       preview: true
       preview-id: pr-${{ github.event.pull_request.number }}
