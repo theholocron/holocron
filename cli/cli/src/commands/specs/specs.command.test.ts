@@ -58,6 +58,14 @@ describe("specs sync", () => {
 		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({ provider: "discord", channel: "ideas", notify: true });
 	});
 
+	it("passes --refresh-origin only when given", async () => {
+		await go(["sync", "--refresh-origin"]);
+		await go(["sync"]);
+
+		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({ refreshOrigin: true });
+		expect(runSpecsSync.mock.calls[1]![0]).toMatchObject({ refreshOrigin: false });
+	});
+
 	it("passes --files and --pr for a pull request that is still open", async () => {
 		await go(["sync", "--files", ".notes/a.spec.md", ".notes/b.spec.md", "--pr", "1700"]);
 

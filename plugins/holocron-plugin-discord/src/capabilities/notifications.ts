@@ -1056,7 +1056,7 @@ export class DiscordNotifications implements Notifications {
 		return this.discussions().read(channel, key, url);
 	}
 
-	/** Changes a document's post: its title, its tag, the state last synced. */
+	/** Changes a document's post: its title, its tag, the state last synced, the pull request line. */
 	updateDiscussion(channel: string, key: string, patch: DiscussionPatch): Promise<void> {
 		return this.discussions().update(channel, key, patch);
 	}

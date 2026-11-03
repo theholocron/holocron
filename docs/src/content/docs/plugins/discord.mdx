@@ -197,7 +197,7 @@ A layout channel with `kind: "forum"` becomes a Discord forum, with `tags` that 
 
 ### Discussion posts
 
-The provider can keep one post per document (an ADR or a spec) in a forum, for `holocron specs sync`. `ensureDiscussion` finds the post for a document or makes it, `readDiscussion` returns its address, its state and the state it last synced, and `updateDiscussion` changes its title, its tag or the synced state. The three are optional methods on the `notifications` capability, so a provider for another service implements them the way it fits (a thread in a channel, a reaction for the state) and the command stays the same.
+The provider can keep one post per document (an ADR or a spec) in a forum, for `holocron specs sync`. `ensureDiscussion` finds the post for a document or makes it, `readDiscussion` returns its address, its state and the state it last synced, and `updateDiscussion` changes its title, its tag or the synced state; with `prLine` it also swaps the `PR:` paragraph of the bot's own first message (a message edit that keeps every other paragraph and the footer, for `specs sync --refresh-origin`). The three are optional methods on the `notifications` capability, so a provider for another service implements them the way it fits (a thread in a channel, a reaction for the state) and the command stays the same.
 
 On Discord:
 

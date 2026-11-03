@@ -40,6 +40,11 @@ export interface RunSpecsSyncInput {
 	files?: string[];
 	/** The pull request to name on a post, instead of the one the file's history names (a pull request still open). */
 	pr?: number;
+	/**
+	 * Rewrite the pull request line of each existing post to the one the current rule would write, and nothing else in it.
+	 * A repair for posts made under an older rule; off by default, so a normal run never edits a post's first message.
+	 */
+	refreshOrigin?: boolean;
 	/** Let a new post notify people. Off by default, so a backfill of many posts pings no one. */
 	notify?: boolean;
 	loader?: PluginLoader;
@@ -63,6 +68,8 @@ export interface SpecSyncOutcome {
 	path: string;
 	/** What was done (or, on a dry run, would be): empty when the post and the file were already in step. */
 	did: string[];
+	/** Set when the post's pull request line was (on a dry run, would be) rewritten by `refreshOrigin`. */
+	prLineRewritten?: boolean;
 	/** Why the document could not be synced; absent when it could. */
 	problem?: string;
 	/** The document's text after the sync; the same as before when the file needs no change. */
@@ -73,6 +80,8 @@ export interface SpecsSyncReport {
 	status: "ok" | "fail" | "dry-run";
 	/** One entry per document, in path order. */
 	files: SpecSyncOutcome[];
+	/** With `refreshOrigin`: how many posts had (or, on a dry run, would have) their pull request line rewritten. */
+	rewritten?: number;
 	/** Why the run did not start. */
 	message?: string;
 	/** Set when the provider's rate limit stopped the run early: how many documents were left, and how many seconds it asked to be left alone for (`0` when it did not say). */
@@ -96,6 +105,8 @@ export interface SyncDocumentDeps {
 	quiet: boolean;
 	/** The pull request that added the document, with its address, when both are known. */
 	pr?: { number: number; url: string };
+	/** Rewrite the post's pull request line when it differs from the one `pr` gives (or, with no `pr`, take it out). */
+	refreshOrigin?: boolean;
 	/** The id `assignSpecIds` gave the document, when it had none. */
 	assignedId?: string;
 }

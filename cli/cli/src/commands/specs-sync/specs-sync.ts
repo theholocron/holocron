@@ -103,6 +103,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 	let ok = 0;
 	let skipped = 0;
 	let failed = 0;
+	let rewritten = 0;
 	let rateLimited: SpecsSyncReport["rateLimited"];
 	print(`\n${style.header(`ADRs and specs → #${forum.channel}`)}`);
 	for (const doc of documents) {
@@ -113,6 +114,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				channel: forum.channel,
 				dryRun,
 				quiet: !input.notify,
+				...(input.refreshOrigin ? { refreshOrigin: true } : {}),
 				...(ids.has(doc.path) ? { assignedId: ids.get(doc.path)! } : {}),
 				...(repo && prNumber(doc.path)
 					? {
@@ -135,6 +137,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 			logger.warn({ path: doc.path, reason: logReason(err) }, "specs sync");
 		}
 		files.push(outcome);
+		if (outcome.prLineRewritten) rewritten++;
 		if (outcome.problem) {
 			print(`  ${style.fail(`${outcome.path}: ${outcome.problem}`)}`);
 			failed++;
@@ -158,6 +161,9 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		skipped += rateLimited.left;
 	}
 
+	if (input.refreshOrigin) {
+		print(style.header(`${rewritten} PR line(s) ${dryRun ? "would be rewritten" : "rewritten"}`));
+	}
 	const status = failed > 0 ? "fail" : dryRun ? "dry-run" : "ok";
 	print("");
 	print(style.header(`${ok} ok, ${failed} fail, ${skipped} skipped`));
@@ -165,5 +171,5 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 		{ provider: notifications.providerName, channel: forum.channel, files: files.length, failed, status },
 		"specs sync"
 	);
-	return { status, files, ...(rateLimited ? { rateLimited } : {}) };
+	return { status, files, ...(input.refreshOrigin ? { rewritten } : {}), ...(rateLimited ? { rateLimited } : {}) };
 }

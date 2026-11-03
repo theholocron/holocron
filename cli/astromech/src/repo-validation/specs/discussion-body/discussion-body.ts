@@ -1,3 +1,4 @@
+import { discussionPrLine } from "../discussion-pr-line/index.js";
 import type { DiscussionBodyInput } from "../specs.type.js";
 
 /**
@@ -7,6 +8,6 @@ import type { DiscussionBodyInput } from "../specs.type.js";
  * be found) is left out, with its blank line.
  */
 export function discussionBody({ id, summary, pr }: DiscussionBodyInput): string {
-	const pull = pr ? `PR: [#${pr.number}](<${pr.url}>)` : "";
+	const pull = discussionPrLine(pr);
 	return [id, summary, pull].filter(Boolean).join("\n\n");
 }

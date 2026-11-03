@@ -62,6 +62,7 @@ function setup(
 		org?: string;
 		files?: string[];
 		pr?: number;
+		refreshOrigin?: boolean;
 		/** Leave out `print` and `logger`, as the command does. */
 		bare?: boolean;
 	} = {}
@@ -94,6 +95,7 @@ function setup(
 				...(opts.notify ? { notify: true } : {}),
 				...(opts.files ? { files: opts.files } : {}),
 				...(opts.pr ? { pr: opts.pr } : {}),
+				...(opts.refreshOrigin ? { refreshOrigin: true } : {}),
 				...(opts.provider ? { provider: opts.provider } : {}),
 				...(opts.channel ? { channel: opts.channel } : {}),
 				...(opts.bare ? {} : { print: (l: string) => lines.push(l), logger: fakeLogger() }),
@@ -265,6 +267,98 @@ describe("runSpecsSync", () => {
 			(n.ensureDiscussion as ReturnType<typeof vi.fn>).mock.calls[0]![0].body as string;
 		expect(body(given)).toContain("PR: [#1700](<https://github.com/theholocron/holocron/pull/1700>)");
 		expect(body(open)).toContain("PR: [#1700](");
+	});
+
+	describe("--refresh-origin", () => {
+		const files = { ".notes/a.spec.md": spec("A", "proposed") };
+		const origins = { ".notes/a.spec.md": { time: 1, pr: 1538 } };
+		const RIGHT = "PR: [#1538](<https://github.com/theholocron/holocron/pull/1538>)";
+		const WRONG = "PR: [#9](<https://github.com/theholocron/holocron/pull/9>)";
+		const post = (prLine?: string): DiscussionPost => ({
+			url: URL,
+			state: "proposed",
+			synced: "proposed",
+			...(prLine ? { prLine } : {}),
+		});
+		const withPost = (existing: DiscussionPost) =>
+			fakeNotifications({
+				ensureDiscussion: vi.fn(async () => ({ post: existing, created: false })),
+				readDiscussion: vi.fn(async () => existing),
+			});
+
+		it("rewrites a post's PR line to the one the current rule names, and counts it", async () => {
+			const n = withPost(post(WRONG));
+			const { run, lines } = setup(n, makeIo(files, origins).io, { refreshOrigin: true });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).toHaveBeenCalledTimes(1);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { prLine: RIGHT });
+			expect(report.rewritten).toBe(1);
+			expect(report.files[0]?.did).toContain("rewrote the PR line to #1538");
+			expect(lines.join("\n")).toContain("1 PR line(s) rewritten");
+		});
+
+		it("adds the line to a post that names no pull request, when the current rule names one", async () => {
+			const n = withPost(post());
+
+			await setup(n, makeIo(files, origins).io, { refreshOrigin: true }).run();
+
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { prLine: RIGHT });
+		});
+
+		it("takes the line out of a post when the current rule names no pull request", async () => {
+			const n = withPost(post(WRONG));
+
+			const report = await setup(n, makeIo(files).io, { refreshOrigin: true }).run();
+
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { prLine: "" });
+			expect(report.files[0]?.did).toContain("took the PR line out");
+		});
+
+		it("leaves a post whose line is already right, so a second run changes nothing", async () => {
+			const n = withPost(post(RIGHT));
+			const linkedFiles = {
+				".notes/a.spec.md": spec("A", "proposed").replace(
+					"issue: o/r#1\n",
+					`issue: o/r#1\ndiscussion:\n  url: ${URL}\n`
+				),
+			};
+			const { run, lines } = setup(n, makeIo(linkedFiles, origins).io, { refreshOrigin: true });
+
+			const report = await run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.rewritten).toBe(0);
+			expect(lines.join("\n")).toContain(".notes/a.spec.md: in step");
+			expect(lines.join("\n")).toContain("0 PR line(s) rewritten");
+		});
+
+		it("on a dry run says what it would rewrite and edits nothing", async () => {
+			const n = withPost(post(WRONG));
+			const none = withPost(post(WRONG));
+			const { run, lines } = setup(n, makeIo(files, origins).io, { refreshOrigin: true, dryRun: true });
+
+			const report = await run();
+			const out = await setup(none, makeIo(files).io, { refreshOrigin: true, dryRun: true }).run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(none.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.status).toBe("dry-run");
+			expect(report.rewritten).toBe(1);
+			expect(report.files[0]?.did).toEqual(["would rewrite the PR line to #1538", "would link the post"]);
+			expect(out.files[0]?.did).toContain("would take the PR line out");
+			expect(lines.join("\n")).toContain("1 PR line(s) would be rewritten");
+		});
+
+		it("leaves a post's first message alone without the flag", async () => {
+			const n = withPost(post(WRONG));
+
+			const report = await setup(n, makeIo(files, origins).io).run();
+
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(report.rewritten).toBeUndefined();
+		});
 	});
 
 	it("stops at the first rate limit instead of trying the rest, and does not fail the run", async () => {
