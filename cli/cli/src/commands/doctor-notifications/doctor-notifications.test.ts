@@ -1338,6 +1338,20 @@ describe("runDoctorNotifications — webhook avatars", () => {
 		expect(check(report)).toMatchObject({ detail: "1 of 1 set", problems: [] });
 	});
 
+	it("expects a picture given as { url, image }, in the layout or on a webhook", async () => {
+		const picture = { url: "https://cdn.example.com/a.png", image: "media/a.png" };
+		const layoutWide = await setup(
+			fakeNotifications({ layout: { ...LAYOUT, webhookAvatar: picture }, found: channelsWith(["alerts"]) })
+		).run();
+		expect(check(layoutWide).problems).toEqual(["#sync: webhook sync has no avatar"]);
+		const own: NotificationsLayout = {
+			...LAYOUT,
+			categories: [{ name: "ALERTS", channels: [{ name: "alerts", webhook: { avatar: picture } }] }],
+		};
+		const report = await setup(fakeNotifications({ layout: own, found: channelsWith(["alerts"]) })).run();
+		expect(check(report)).toMatchObject({ detail: "1 of 1 set", problems: [] });
+	});
+
 	it("reports a channel that is missing, and one whose webhooks could not be listed", async () => {
 		const found: ServerInspection = {
 			...GOOD,

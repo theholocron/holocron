@@ -54,7 +54,7 @@ export function relayProblem(
 	const channel = fed[0]!;
 	const errorsFeed = channel.feeds!.errors!;
 	const picture = typeof errorsFeed === "object" ? errorsFeed.avatar : undefined;
-	const pictureProblem = avatarProblem(channel.name, "errors", picture);
+	const pictureProblem = avatarProblem(channel.name, "feeds.errors.avatar", picture);
 	if (pictureProblem) return pictureProblem;
 	if (errors) {
 		const feed = errorsFeedWebhook(errorsFeed, errors).toLowerCase();

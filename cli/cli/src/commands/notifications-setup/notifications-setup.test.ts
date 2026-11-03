@@ -1268,6 +1268,117 @@ describe("runNotificationsSetup — webhook avatars", () => {
 			expect.objectContaining({ avatar: `data:image/png;base64,${png.toString("base64")}` })
 		);
 	});
+
+	it("falls back to the image of the layout's { url, image } picture, and says it did", async () => {
+		const n = fakeNotifications({
+			layout: withAvatar({ webhookAvatar: { url: "https://cdn.example.com/a.png", image: "media/a.png" } }),
+		});
+		const { run, lines } = setup(n, {
+			loadAvatar: async (source) => {
+				if (source.startsWith("https://")) throw new Error("fetch failed");
+				return "data:image/png;base64,LOCAL";
+			},
+		});
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(n.ensureWebhook).toHaveBeenCalledTimes(2);
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "alerts", avatar: "data:image/png;base64,LOCAL" })
+		);
+		expect(lines.join("\n")).toContain(
+			"avatar https://cdn.example.com/a.png could not be read (fetch failed); trying the next"
+		);
+	});
+
+	it("uses the url of a { url, image } picture when it can be read", async () => {
+		const load = vi.fn(async (source: string) => `data:image/png;base64,${source}`);
+		const n = fakeNotifications({
+			layout: withAvatar({ webhookAvatar: { url: "https://cdn.example.com/a.png", image: "media/a.png" } }),
+		});
+		await setup(n, { loadAvatar: load }).run();
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ avatar: "data:image/png;base64,https://cdn.example.com/a.png" })
+		);
+	});
+
+	it("lets a webhook name a { url, image } picture of its own, keeping its name and secret", async () => {
+		const n = fakeNotifications({
+			layout: withAvatar({
+				categories: [
+					{
+						name: "A",
+						channels: [
+							{
+								name: "x",
+								webhook: {
+									name: "Hook",
+									secret: "X_HOOK",
+									avatar: { url: "https://cdn.example.com/own.png", image: "own.png" },
+								},
+							},
+						],
+					},
+				],
+			}),
+		});
+		await setup(n, {
+			loadAvatar: async (source) => {
+				if (source.startsWith("https://")) throw new Error("fetch failed");
+				return `data:image/png;base64,${source}`;
+			},
+		}).run();
+		expect(n.ensureWebhook).toHaveBeenCalledWith(
+			expect.objectContaining({ channel: "x", name: "Hook", avatar: "data:image/png;base64,own.png" })
+		);
+	});
+
+	it("names every source when none of a webhook's { url, image } can be read", async () => {
+		const n = fakeNotifications({
+			layout: withAvatar({ webhookAvatar: { url: "https://cdn.example.com/a.png", image: "media/a.png" } }),
+		});
+		const report = await setup(n, {
+			loadAvatar: async (source) => {
+				throw new Error(source.startsWith("https://") ? "fetch failed" : "ENOENT");
+			},
+		}).run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toBe(
+			"webhook avatar `https://cdn.example.com/a.png`: fetch failed; `media/a.png`: ENOENT"
+		);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("refuses a webhook picture that is empty, whose url is not https, or whose image is a URL", async () => {
+		const own = (avatar: unknown): NotificationsLayout =>
+			withAvatar({
+				webhookAvatar: undefined,
+				categories: [{ name: "A", channels: [{ name: "x", webhook: { avatar } } as never] }],
+			});
+		const message = async (layout: NotificationsLayout) => {
+			const n = fakeNotifications({ layout });
+			const report = await setup(n).run();
+			expect(n.ensureChannel).not.toHaveBeenCalled();
+			return report.message;
+		};
+		expect(await message(own({}))).toBe("channel `x`: `webhook.avatar` needs a `url`, an `image`, or both");
+		expect(await message(own({ url: "http://cdn.example.com/a.png" }))).toBe(
+			"channel `x`: `webhook.avatar.url` must be an https:// URL"
+		);
+		expect(await message(withAvatar({ webhookAvatar: { image: "https://cdn.example.com/a.png" } }))).toBe(
+			"`webhookAvatar.image` must be a file in the repo, not a URL"
+		);
+		expect(await message(withAvatar({ webhookAvatar: { image: "data:image/png;base64,iVBORw0KGgo=" } }))).toBe(
+			"`webhookAvatar.image` must be a file in the repo, not a URL"
+		);
+		// a null a config wrote is a refusal, not a TypeError
+		expect(await message(own(null))).toBe(
+			"channel `x`: `webhook.avatar` must be a path or an https:// URL, or `{ url, image }`"
+		);
+		expect(await message(withAvatar({ webhookAvatar: null as never }))).toBe(
+			"`webhookAvatar` must be a path or an https:// URL, or `{ url, image }`"
+		);
+	});
 });
 
 describe("runNotificationsSetup — bot application and everyone", () => {
