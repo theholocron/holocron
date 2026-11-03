@@ -29,7 +29,7 @@ export default defineConfig({
 		},
 		// Audit, decomposed (epic #672, D3/#675 — the old single `audit` task's
 		// 3 jobs are now separate tasks). This repo has no lighthouse config,
-		// so verification.performance isn't included (matches the old
+		// so test:perf isn't included (matches the old
 		// `run-performance` never being enabled here).
 		{ name: "lint:unused", required: true },
 		{ name: "measure-bundle", required: true },

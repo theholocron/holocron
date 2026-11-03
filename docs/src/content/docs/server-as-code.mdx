@@ -80,13 +80,13 @@ Every message below is posted by a workflow, through the channel's webhook. A ch
 
 | Event                                                                             | Channel                                | Posted by                                                    |
 | --------------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
-| A repo-sync pull request, or one that needs a person                              | `#sync`, `#alerts`                     | `platform.repoSync`                                          |
-| A workflow failed on `alpha` or `main` (a pull request run is never posted)       | `#alerts`, with the gatekeepers pinged | `platform.notifications`                                     |
-| A deploy, preview or Sentinel deploy failed, or a Preview Check did               | `#deploys`                             | `platform.notifications`                                     |
-| A deploy, preview, Sentinel deploy or Preview Check succeeded (pull requests too) | `#deploys`                             | `platform.notifications`                                     |
-| A release succeeded, with the tags it made                                        | `#releases`                            | `platform.notifications`                                     |
+| A repo-sync pull request, or one that needs a person                              | `#sync`, `#alerts`                     | `sync-repo`                                                  |
+| A workflow failed on `alpha` or `main` (a pull request run is never posted)       | `#alerts`, with the gatekeepers pinged | `notify`                                                     |
+| A deploy, preview or Sentinel deploy failed, or a Preview Check did               | `#deploys`                             | `notify`                                                     |
+| A deploy, preview, Sentinel deploy or Preview Check succeeded (pull requests too) | `#deploys`                             | `notify`                                                     |
+| A release succeeded, with the tags it made                                        | `#releases`                            | `notify`                                                     |
 | A token is close to expiring                                                      | `#alerts`                              | the daily `Token Expiry` run, through the failure rule above |
-| Time to run the drift check                                                       | `#alerts`                              | `platform.doctorReminder`, Mondays                           |
+| Time to run the drift check                                                       | `#alerts`                              | `remind-doctor`, Mondays                                     |
 | Sentry errors, Checkly up/down                                                    | `#errors`, `#uptime`                   | their own webhooks (Comlink relay, Checkly)                  |
 
-`platform.notifyCheck` (run it from the Actions tab) posts one labelled test message per channel and fails the job of any channel that does not deliver.
+`check-notify` (run it from the Actions tab) posts one labelled test message per channel and fails the job of any channel that does not deliver.

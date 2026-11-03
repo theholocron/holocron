@@ -6,7 +6,7 @@
  * endpoint, and response parsing.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-neon validate <projectId>
+ *   pnpm --filter @theholocron/holocron-plugin-neon validate:plugin <projectId>
  */
 
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
@@ -14,7 +14,7 @@ import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index
 const [projectId] = process.argv.slice(2);
 
 if (!projectId) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-neon validate <projectId>");
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-neon validate:plugin <projectId>");
 	console.error("  find projectId at https://console.neon.tech → your project → Settings → General");
 	process.exit(2);
 }

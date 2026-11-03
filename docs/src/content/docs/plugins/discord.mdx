@@ -137,7 +137,7 @@ A workflow does not use the plugin or `holocron auth`. It posts through the **`n
 | `message`  | _required_ | The text, cut to 2000 characters                                                                                                                                     |
 | `mention`  | _(empty)_  | A role id (digits only) to ping, normally `secrets.HOLOCRON_NOTIFY_ALERT_ROLE`. Message text can never ping `@everyone` or a role: only this one role is let through |
 | `username` | `Holocron` | The name the post shows                                                                                                                                              |
-| `strict`   | `false`    | `true` makes the step fail when the webhook is missing, the role id is not digits or Discord rejects the post. Only `platform.notifyCheck` sets it                   |
+| `strict`   | `false`    | `true` makes the step fail when the webhook is missing, the role id is not digits or Discord rejects the post. Only `check-notify` sets it                           |
 
 By default the action never fails the job it reports on: a missing webhook is a notice and a rejected post is a warning. The body is Discord's shape (`content`, `username`, `allowed_mentions`), so the webhook has to accept that.
 
@@ -166,11 +166,11 @@ Two more feeds reach Discord without a workflow: Sentry alerts go to #errors thr
 
 ### The repo-sync wiring
 
-`platform.repoSync` is a reusable workflow (`ci/workflows/platform.repoSync.yml`, copied to `theholocron/.github`). It declares `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `HOLOCRON_NOTIFY_WEBHOOK_ALERTS` and `HOLOCRON_NOTIFY_ALERT_ROLE` as optional secrets, and a repository's generated caller passes them with `secrets: inherit`, so a repository that has the org secrets posts and one that does not stays quiet. The notify steps run after the pull request step, and a separate `notify-failure` job reports a sync that errored or timed out, so a run the sync job's own timeout cuts short still gets reported. A superseded run (cancelled by a newer one) is not reported.
+`sync-repo` is a reusable workflow (`ci/workflows/platform.repoSync.yml`, copied to `theholocron/.github`). It declares `HOLOCRON_NOTIFY_WEBHOOK_SYNC`, `HOLOCRON_NOTIFY_WEBHOOK_ALERTS` and `HOLOCRON_NOTIFY_ALERT_ROLE` as optional secrets, and a repository's generated caller passes them with `secrets: inherit`, so a repository that has the org secrets posts and one that does not stays quiet. The notify steps run after the pull request step, and a separate `notify-failure` job reports a sync that errored or timed out, so a run the sync job's own timeout cuts short still gets reported. A superseded run (cancelled by a newer one) is not reported.
 
-### Checking the wiring: `platform.notifyCheck`
+### Checking the wiring: `check-notify`
 
-`platform.notifyCheck` is a manual workflow (`workflow_dispatch`, from the Actions tab). Its reusable half posts one labelled test message to each channel of its `channels` input, using the real org secrets, and each channel is its own job (`Check <channel>`), so one red job names the channel to fix and the others still run. A channel marked `mention` (alerts) also needs `HOLOCRON_NOTIFY_ALERT_ROLE` and pings it, and a missing or malformed role id fails that job. A caller can pass its own `channels` (a JSON array of `{ name, secret, mention }`).
+`check-notify` is a manual workflow (`workflow_dispatch`, from the Actions tab). Its reusable half posts one labelled test message to each channel of its `channels` input, using the real org secrets, and each channel is its own job (`Check <channel>`), so one red job names the channel to fix and the others still run. A channel marked `mention` (alerts) also needs `HOLOCRON_NOTIFY_ALERT_ROLE` and pings it, and a missing or malformed role id fails that job. A caller can pass its own `channels` (a JSON array of `{ name, secret, mention }`).
 
 Three channels are left out on purpose. `ideas` is a forum that `specs sync` writes through the bot token, so there is no webhook post to prove. `holonet` is the channel `holocron doctor notifications` uses for its own test post. Nothing posts in `dev`. `rules` and `welcome` are in the list, so their jobs fail until the layout gives them `webhook: true` and `setup` has stored the secrets.
 

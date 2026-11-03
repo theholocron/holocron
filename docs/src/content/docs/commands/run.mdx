@@ -38,7 +38,7 @@ Three suites exist, declared in the registry by their leaves: `test`, `lint` and
 
 ## Old names
 
-The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, `delivery.publish`, …) still work and
+The old dotted names (`test:unit`, `lint:code`, `release`, …) still work and
 print a one-line deprecation notice on stderr, in CI too; the reusable workflows synced to `theholocron/.github` still
 call them. A name that stood for several checks runs each of its successors in order
 (`sourceQuality.formatting` is `lint:editorconfig`, `lint:markdown` and `format --check`), and an old group name
@@ -157,7 +157,7 @@ holocron run test:perf               # just Lighthouse CI
 ## Monorepos
 
 At a turbo root, `holocron run test:unit` is
-`turbo run verification.unitTests` today — turbo's cache and dependency graph are
+`turbo run test:unit` today — turbo's cache and dependency graph are
 untouched. Inside a package, it runs the tool directly. `turbo.json` doesn't
 change in this phase (its task keys keep the old names; the generator and the
 package scripts move to the flat ids in a later phase).

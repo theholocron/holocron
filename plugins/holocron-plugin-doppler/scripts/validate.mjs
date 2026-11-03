@@ -8,7 +8,7 @@
  * READ-ONLY. Never calls write() or bootstrap methods.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-doppler validate \
+ *   pnpm --filter @theholocron/holocron-plugin-doppler validate:plugin \
  *     <project> <config> [secretName]
  */
 
@@ -17,7 +17,9 @@ import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index
 const [project, config, secretName] = process.argv.slice(2);
 
 if (!project || !config) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-doppler validate <project> <config> [secretName]");
+	console.error(
+		"usage: pnpm --filter @theholocron/holocron-plugin-doppler validate:plugin <project> <config> [secretName]"
+	);
 	process.exit(2);
 }
 

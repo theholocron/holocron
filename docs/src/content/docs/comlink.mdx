@@ -44,7 +44,7 @@ A source is one file under `src/sources/<id>/` implementing `Source` (`verify` a
 ## Build and deploy
 
 ```bash
-pnpm --filter @theholocron/comlink delivery.build
+pnpm --filter @theholocron/comlink build
 ```
 
 This writes `dist/worker.js`, a single ES module with no imports, which is uploaded as it stands. Deployment is `holocron notifications setup`'s job, through the `workers` capability.

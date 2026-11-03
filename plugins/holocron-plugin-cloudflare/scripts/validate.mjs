@@ -6,7 +6,7 @@
  * zone resolution, and DNS record parsing.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-cloudflare validate <domain>
+ *   pnpm --filter @theholocron/holocron-plugin-cloudflare validate:plugin <domain>
  *
  *   domain — the apex zone or subdomain to look up (e.g. "example.com")
  */
@@ -23,7 +23,9 @@ const hint = (msg) => console.log(chalk.dim(`         hint: ${msg}`));
 const [domain] = process.argv.slice(2);
 
 if (!domain) {
-	console.error(chalk.red("usage:") + " pnpm --filter @theholocron/holocron-plugin-cloudflare validate <domain>");
+	console.error(
+		chalk.red("usage:") + " pnpm --filter @theholocron/holocron-plugin-cloudflare validate:plugin <domain>"
+	);
 	console.error(chalk.dim("  domain — the apex zone or subdomain to look up (e.g. example.com)"));
 	process.exit(2);
 }

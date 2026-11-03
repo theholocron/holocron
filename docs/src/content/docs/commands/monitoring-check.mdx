@@ -9,7 +9,7 @@ holocron monitoring check <url> [--vercel-project <id|name>]
 
 Runs every configured `monitoring` check against `<url>` instead of each check's own configured `url`. It makes no vendor API call: it is a plain HTTP request evaluated locally against the same `assertions` already in `holocron.config.ts`.
 
-It is built for CI. The `delivery.previewCheck` task runs it against a PR's Vercel preview deployment (triggered by `deployment_status`, not `push` or `pull_request`), reusing the production check definitions to catch a breaking change before merge instead of after.
+It is built for CI. The `check-preview` task runs it against a PR's Vercel preview deployment (triggered by `deployment_status`, not `push` or `pull_request`), reusing the production check definitions to catch a breaking change before merge instead of after.
 
 It exits non-zero when any check fails, so the job's own pass or fail is the GitHub check.
 
@@ -24,7 +24,7 @@ It exits non-zero when any check fails, so the job's own pass or fail is the Git
 
 ```ts
 export default defineConfig({
-  tasks: ["delivery.previewCheck"],
+  tasks: ["check-preview"],
   providers: {
     monitoring: ["checkly", { accountId: "...", checks: [/* ... */] }],
   },

@@ -89,7 +89,7 @@ Any path or command a skill names must exist in the repo — run it or `ls` it b
 ## 3. Validate
 
 ```bash
-pnpm --filter @theholocron/skills verification.unitTests
+pnpm --filter @theholocron/skills test:unit
 ```
 
 The smoke test (`skills/test/index.mjs`, a `node:test` suite) checks that every
@@ -148,7 +148,7 @@ There is no `AGENTS.md` skills table in this repo to update.
 ## Checklist
 
 1. Create `skills/src/<name>/SKILL.md` with correct frontmatter and body.
-2. Run `pnpm --filter @theholocron/skills verification.unitTests` — smoke test must pass.
+2. Run `pnpm --filter @theholocron/skills test:unit` — smoke test must pass.
 3. Add the row to the `skills/README.md` owned-skills table (correct section).
 4. Add the docs page, `skills/index.mdx` row and sidebar entry.
 5. `pnpm exec prettier --check` on the changed files; `holocron run ci` passes.

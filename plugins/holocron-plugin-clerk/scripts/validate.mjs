@@ -6,7 +6,7 @@
  * auth, endpoint, and the two guaranteed capability methods.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-clerk validate
+ *   pnpm --filter @theholocron/holocron-plugin-clerk validate:plugin
  */
 
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";

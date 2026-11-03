@@ -6,7 +6,7 @@
  * auth, endpoint, and response parsing.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-vercel validate [projectId]
+ *   pnpm --filter @theholocron/holocron-plugin-vercel validate:plugin [projectId]
  */
 
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";

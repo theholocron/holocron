@@ -23,7 +23,7 @@ holocron run ci — required checks (3)
 ▶ Typecheck / Run tsc --noEmit
 → tsc --noEmit
 ▶ Static Analysis / Run eslint and actionlint
-→ turbo run sourceQuality.staticAnalysis
+→ turbo run lint:code
 → prettier --check .
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
 ▶ Test / Conclusion
@@ -34,18 +34,18 @@ holocron run ci — required checks (3)
 
 - Each task runs through the same resolution as `holocron run <task>` (turbo →
   a `package.json` script → the registry tool; a `linterGroup` task like
-  `sourceQuality.staticAnalysis` runs its full resolved set).
+  `lint:code` runs its full resolved set).
 - A **`required` task whose local runner can't run is a failure** — it claims a
   CI check it can't back locally.
-- Tasks with **no local equivalent at all** (`security.codeScanning`,
-  `delivery.deploy`, `platform.commitStandards`, …) still honour an explicit
+- Tasks with **no local equivalent at all** (`scan:code`,
+  `deploy`, `lint:commits`, …) still honour an explicit
   `package.json` script when one exists. With no script they print
   `· no local equivalent — enforced in CI` and never fail the run, even when
   marked `required` (a CI-only check isn't a _local_ failure).
 - Most tasks are a single always-run job now, so their check context names
   that job directly (`Typecheck / Run tsc --noEmit`) — the `… / Conclusion`
   fan-in is only used where a task genuinely has several conditionally-run
-  jobs feeding one check (`verification.unitTests`, `platform.repoValidation`).
+  jobs feeding one check (`test:unit`, `validate`).
 - Order comes from `CI_ORDER` in `@theholocron/astromech` — cheapest signal
   first (`typecheck → static analysis → … → test → …`).
 

@@ -24,7 +24,7 @@ import { createAstromech } from "@theholocron/astromech";
 
 const astromech = createAstromech({ cwd });
 
-const report = astromech.run("verification.unitTests", { passthrough: ["--watch"] });
+const report = astromech.run("test:unit", { passthrough: ["--watch"] });
 // → { status: "ok" | "fail" | "skip" | "dry-run" | "unknown", command?, message? }
 ```
 
@@ -52,7 +52,7 @@ names (`LEGACY_NAMES`) are accepted in `tasks:` and by `run`, with a deprecation
 ## Intent → technology
 
 Tasks are named by **intent**, not by tool — a repo declares
-`test:unit`, not `vitest`. (`verification.unitTests` and the other dotted names are the old spelling; they still
+`test:unit`, not `vitest`. (`test:unit` and the other dotted names are the old spelling; they still
 work, and still name the generated workflow files, `turbo.json` keys and package scripts until the later phases of
 the flat-vocabulary spec move those.) The table below is the full
 registry (`TASKS` in `src/registry/registry.ts`): every task name astromech knows,
@@ -92,7 +92,7 @@ dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews
 docs — none of these earn their own task or verb; it's one capability any
 publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
-**`linterGroup` tasks** (`sourceQuality.staticAnalysis`,
+**`linterGroup` tasks** (`lint:code`,
 `sourceQuality.formatting`) bundle more than one tool under a single
 required check. Each tool is still gated by its own detection rule — e.g.
 `eslint` runs when either a local `eslint.config.*` is present, or the
@@ -119,9 +119,9 @@ import { defineConfig } from "@theholocron/astromech/config";
 
 export default defineConfig({
   tasks: [
-    "verification.typeSafety",
-    { name: "verification.unitTests", required: true, with: { "run-coverage": true } },
-    { name: "security.codeScanning", ci: true, local: false }, // CI-only
+    "typecheck",
+    { name: "test:unit", required: true, with: { "run-coverage": true } },
+    { name: "scan:code", ci: true, local: false }, // CI-only
   ],
 });
 ```
@@ -162,15 +162,15 @@ astromech.ci({ scope: "required" }); // CiReport — run the gating checks local
 the same resolution as `run()`, in `CI_ORDER`, and returns `{ status, jobs }`.
 A `required` task whose local runner can't run is a failure — **except** a
 task that's genuinely CI-only (`local: null`, or a `linterGroup` whose every
-member lacks a local binary entirely, like `platform.commitStandards`),
+member lacks a local binary entirely, like `lint:commits`),
 which is reported skipped even when required. `holocron run ci` sets the
 process exit code from `status`.
 
 `thinCallers()` returns the raw `.github/workflows/*.yml` content (no
-generated-by header — the caller prefixes its own). `delivery.deploy` /
-`knowledge.docs` / `knowledge.components` with `preview:` produce the
+generated-by header — the caller prefixes its own). `deploy` /
+`deploy-docs` / `deploy-components` with `preview:` produce the
 combined push-to-Pages / PR-to-preview workflow —
-`knowledge.docs`/`knowledge.components` default `preview` on, since
+`deploy-docs`/`deploy-components` default `preview` on, since
 neither has a plain-production-only fallback template.
 `packageScripts()` emits the `holocron` entry (`holocronScript ?? "holocron"`)
 plus the scripts `scriptsFor(config, registry, { monorepo })` computes; it skips
@@ -196,8 +196,8 @@ repo-scoped leaf that belongs to a suite, which is how a suite reaches the root 
 real tool command and never calls turbo or `holocron run`, and no package carries a script named like a suite.
 
 The key a package-scoped leaf has in `turbo.json`, and so the name of its script in every package, **follows how the
-manifest spells the task**: `{ name: "test:unit" }` gives `test:unit`, `{ name: "verification.unitTests" }` keeps
-`verification.unitTests`. A repo's packages hold scripts in the vocabulary its `tasks:` list speaks, so rewriting the list
+manifest spells the task**: `{ name: "test:unit" }` gives `test:unit`, `{ name: "test:unit" }` keeps
+`test:unit`. A repo's packages hold scripts in the vocabulary its `tasks:` list speaks, so rewriting the list
 to flat ids is what moves its keys, and the package scripts with them (`taskKey()`).
 
 ### Required checks
@@ -209,7 +209,7 @@ single always-run jobs now, so their context
 names that job directly (`"Typecheck / tsc --noEmit"`) — the `… /
 Conclusion` fan-in aggregate is only used where a task genuinely has
 several conditionally-run jobs feeding one check
-(`verification.unitTests`, `platform.repoValidation`). `holocron repo setup`
+(`test:unit`, `validate`). `holocron repo setup`
 applies the list for `protection: "strict"` repos. Policy-free — manifest only.
 
 ### The `ci` aggregate
@@ -241,7 +241,7 @@ Deploys the workspace packages whose manifest declares it (holocron#930):
 
 ```ts
 // packages/<app>/holocron.config.ts
-tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
+tasks: [{ name: "deploy", with: { on: "release", channel: "alpha" } }];
 ```
 
 `holocron deploy on-release --channel=<alpha|main> --from=<previous release commit> --to=<release commit>`
@@ -249,21 +249,21 @@ tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
 when the release is on its `channel` (default `main`, the stable release;
 set `alpha` for prereleases) and changes the package or one of its `workspace:*` dependencies
 (`with.paths` overrides that), once npm serves the release's new dependency
-versions, by running `pnpm --filter <package> delivery.deploy`. A package
+versions, by running `pnpm --filter <package> deploy`. A package
 that doesn't apply to the release is skipped; a deploy that fails exits
-non-zero. The shared `delivery.publish` workflow runs it as a separate `deploy`
+non-zero. The shared `release` workflow runs it as a separate `deploy`
 job after the release job (opt in with `deploy-on-release: true`), so a deploy
-is its own re-runnable check. A `delivery.deploy` task with `on: "release"`
+is its own re-runnable check. A `deploy` task with `on: "release"`
 generates no workflow.
 
 ## Development
 
-| Script                                  | Description                                 |
-| --------------------------------------- | ------------------------------------------- |
-| `pnpm run delivery.build`               | Bundle with tsdown                          |
-| `pnpm run verification.unitTests`       | Run the vitest suite (always with coverage) |
-| `pnpm run verification.typeSafety`      | `tsc --noEmit`                              |
-| `pnpm run sourceQuality.staticAnalysis` | ESLint                                      |
+| Script               | Description                                 |
+| -------------------- | ------------------------------------------- |
+| `pnpm run build`     | Bundle with tsdown                          |
+| `pnpm run test:unit` | Run the vitest suite (always with coverage) |
+| `pnpm run typecheck` | `tsc --noEmit`                              |
+| `pnpm run lint:code` | ESLint                                      |
 
 ## Releases
 
@@ -291,10 +291,10 @@ writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
 
 ## Repo validation — `@theholocron/astromech/repo-validation`
 
-The rules of the `platform.repoValidation` checks, once, as pure functions over plain data (changed files, commit
+The rules of the `validate` checks, once, as pure functions over plain data (changed files, commit
 subjects, the PR description, a manifest) that return findings. They do no git, no filesystem and no network, so the two
 interfaces that run them only supply the data: the CLI (`holocron probe docs presence` and `holocron probe specs check`, the two jobs of
-`holocron run platform.repoValidation`) from git and the filesystem, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the
+`holocron run validate`) from git and the filesystem, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the
 webhook and the GitHub API (#929).
 
 - Docs presence: `isFeat(subjects)`, `packageOf(file, readPackage)`, `pageNames(dir)`, `hasDocsSignal(dir, changedFiles, addedCommentLines)`,

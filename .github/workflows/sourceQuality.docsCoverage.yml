@@ -43,7 +43,7 @@ jobs:
         name: Setup
 
       - name: Build the CLI
-        run: pnpm turbo run delivery.build --filter=@theholocron/cli...
+        run: pnpm turbo run build --filter=@theholocron/cli...
 
       # One TypeDoc pass over every package writes the report for the upload below. It does not fail on an
       # undocumented export: the Codecov status does.

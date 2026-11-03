@@ -18,11 +18,11 @@
  * plugin doesn't yet do — tracked in #100).
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-infisical validate \
+ *   pnpm --filter @theholocron/holocron-plugin-infisical validate:plugin \
  *     <workspaceId> <env> [secretName]
  *
  * Example:
- *   pnpm --filter @theholocron/holocron-plugin-infisical validate \
+ *   pnpm --filter @theholocron/holocron-plugin-infisical validate:plugin \
  *     abc-123 dev TEST_KEY
  *
  * Convention: every holocron plugin ships a `scripts/validate.mjs`
@@ -36,7 +36,7 @@ const [workspace, environment, secretName] = process.argv.slice(2);
 
 if (!workspace || !environment) {
 	console.error(
-		"usage: pnpm --filter @theholocron/holocron-plugin-infisical validate <workspaceId> <env> [secretName]"
+		"usage: pnpm --filter @theholocron/holocron-plugin-infisical validate:plugin <workspaceId> <env> [secretName]"
 	);
 	process.exit(2);
 }

@@ -14,7 +14,7 @@
  * runs `op whoami`.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-1password validate <vaultName>
+ *   pnpm --filter @theholocron/holocron-plugin-1password validate:plugin <vaultName>
  */
 
 import { createPlugin, verifyToken } from "../src/index.ts";
@@ -22,7 +22,7 @@ import { createPlugin, verifyToken } from "../src/index.ts";
 const [vaultName] = process.argv.slice(2);
 
 if (!vaultName) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-1password validate <vaultName>");
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-1password validate:plugin <vaultName>");
 	console.error("  the vaultName is the 1P vault items live in (e.g., 'holocron')");
 	process.exit(2);
 }

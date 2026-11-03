@@ -6,7 +6,7 @@
  * — proves auth, org access, and capability wiring.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-sentry validate <org>
+ *   pnpm --filter @theholocron/holocron-plugin-sentry validate:plugin <org>
  *
  *   org — Sentry organization slug (e.g. "my-org")
  */
@@ -23,7 +23,7 @@ const hint = (msg) => console.log(chalk.dim(`         hint: ${msg}`));
 const [org] = process.argv.slice(2);
 
 if (!org) {
-	console.error(chalk.red("usage:") + " pnpm --filter @theholocron/holocron-plugin-sentry validate <org>");
+	console.error(chalk.red("usage:") + " pnpm --filter @theholocron/holocron-plugin-sentry validate:plugin <org>");
 	console.error(chalk.dim("  org — your Sentry organization slug (visible in the Sentry URL)"));
 	process.exit(2);
 }

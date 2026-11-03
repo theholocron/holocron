@@ -125,7 +125,7 @@ Add both to `.gitignore`:
    …
    ```
 
-2. Run `pnpm --filter @theholocron/skills verification.unitTests` — the smoke test checks that every skill dir has a `SKILL.md`.
+2. Run `pnpm --filter @theholocron/skills test:unit` — the smoke test checks that every skill dir has a `SKILL.md`.
 3. Update this README with a row in the owned skills table, and add the docs page (`docs/src/content/docs/skills/<name>.mdx`), its row in `skills/index.mdx` and its sidebar entry in `astro.config.ts`.
 4. Open a PR with a `feat(skills):` commit — semantic-release handles versioning.
 

@@ -49,11 +49,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   on the first two also writes the lcov report, which the Docs coverage workflow uploads to Codecov as the `documentation`
   flag (spec `tech-api-docs`, epic #1368). `repoValidation.docsCoverage` (`off` default, `warn`, `required`) in
   `holocron.config.ts` decides what `docs patch` does about a miss and whether `repo setup` writes the flag's statuses.
-  `docs presence` is the `docsEnforcement` job of `platform.repoValidation`: it warns (never fails) when a new public
+  `docs presence` is the `docsEnforcement` job of `validate`: it warns (never fails) when a new public
   package, or a `feat` to one, ships with no docs change, and `[skip docs] <reason>` in the PR description or a commit
   message excuses it (#1515). Its rules are pure functions in `@theholocron/astromech/repo-validation` (#929); the probe
   only supplies them with git data, and Sentinel is meant to supply the same rules from the GitHub API. A registry job can be a holocron subcommand (`local: { command }`), as a task can.
-  `specs check [files...]` is the `adrs` job of `platform.repoValidation` (#929): it fails for each ADR (`docs/wiki/decisions`)
+  `specs check [files...]` is the `adrs` job of `validate` (#929): it fails for each ADR (`docs/wiki/decisions`)
   or spec (`.notes`, `docs/wiki/specifications`) whose frontmatter is wrong and reports a warning as an `info` row. The rules
   are `checkSpecs()` in `@theholocron/astromech/repo-validation`; the probe reads the files through an injected `SpecsIo`,
   and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
@@ -108,9 +108,9 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   workflows run their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a
   contributor runs locally.
-  A `delivery.deploy` task with `with: { on: "release" }` in a workspace
+  A `deploy` task with `with: { on: "release" }` in a workspace
   package's `holocron.config` is a release-time deploy (#930): the shared
-  `delivery.publish` workflow's separate `deploy` job runs `holocron
+  `release` workflow's separate `deploy` job runs `holocron
 deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   and it generates no workflow of its own.
   The workflows read a few organization Actions variables (`vars.TURBO_TEAM`, `vars.CLOUDFLARE_ACCOUNT_ID`, …). They
@@ -143,7 +143,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   generated changed in this phase:** thin callers, workflow file names, check contexts, `turbo.json` keys and
   package scripts are still the old names, reached through `workflowKey()` / `legacyName()`, so a manifest spelled either
   way generates the same files (`probe generated check` proves it). `validate` is the interim id of the job-bearing
-  `platform.repoValidation` (it splits into `validate:specs` and `validate:docs` in phase J). `RESERVED_SCRIPT_NAMES`
+  `validate` (it splits into `validate:specs` and `validate:docs` in phase J). `RESERVED_SCRIPT_NAMES`
   and `PNPM_BUILTIN_COMMANDS` list the npm lifecycle words no task may take and the pnpm built-ins that need
   `pnpm run <script>`.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**

@@ -146,12 +146,12 @@ reads a dedicated file _and_ a parent file), so the persistent
 
 ## Development
 
-| Script                                  | Description                                 |
-| --------------------------------------- | ------------------------------------------- |
-| `pnpm run delivery.build`               | Bundle with tsdown                          |
-| `pnpm run verification.unitTests`       | Run the vitest suite (always with coverage) |
-| `pnpm run verification.typeSafety`      | `tsc --noEmit`                              |
-| `pnpm run sourceQuality.staticAnalysis` | ESLint                                      |
+| Script               | Description                                 |
+| -------------------- | ------------------------------------------- |
+| `pnpm run build`     | Bundle with tsdown                          |
+| `pnpm run test:unit` | Run the vitest suite (always with coverage) |
+| `pnpm run typecheck` | `tsc --noEmit`                              |
+| `pnpm run lint:code` | ESLint                                      |
 
 ## Releases
 
