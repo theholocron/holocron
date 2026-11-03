@@ -30,12 +30,15 @@ import {
 import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
-import { waitForEnter } from "../../ui/index.js";
+import { style, waitForEnter } from "../../ui/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
 import type { AuthExportReport, RunAuthExportInput } from "./auth-export.type.js";
 
 const COMMAND = "auth export";
+
+/** Plain code-unit order: the same on every machine, whatever its locale. The names it sorts are all different. */
+const compare = (a: string, b: string): number => (a < b ? -1 : 1);
 
 /** Signals that end the wait for the import, with the exit status each is conventionally reported as. */
 const INTERRUPTS = [
@@ -123,13 +126,15 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	const tokens = new Map<string, PluginToken>();
 	const conflicts = new Set<string>();
 	const unavailable: string[] = [];
+	const reasons = new Map<string, string>();
 	const packages = configuredPackages(input);
 	for (const pkg of packages) {
 		let listed: PluginToken[] | undefined;
 		try {
 			listed = (await importer(pkg)).tokens;
-		} catch {
+		} catch (err) {
 			unavailable.push(pkg);
+			reasons.set(pkg, errorMessage(err).split("\n")[0] as string);
 			continue;
 		}
 		for (const token of listed ?? []) {
@@ -147,12 +152,14 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	const exported: string[] = [];
 	const missing: string[] = [];
 	const unsupported: string[] = [];
-	for (const [name, token] of tokens) {
+	for (const [name, token] of [...tokens].sort(([a], [b]) => compare(a, b))) {
 		if (conflicts.has(name)) continue;
 		const fromEnv = input.fromEnv
 			? env.get(name) || (token.vendorEnvName ? env.get(token.vendorEnvName) : undefined)
 			: undefined;
-		const value = fromEnv || keyring(token.keyringKey);
+		// The same order the commands use: the entry stored for the org first, then the plain one.
+		const value =
+			fromEnv || (input.org ? keyring(`${token.keyringKey}.${input.org}`) : null) || keyring(token.keyringKey);
 		if (!value) {
 			missing.push(name);
 			continue;
@@ -219,17 +226,23 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		}
 	}
 
-	print(`exported ${exported.length} of ${tokens.size}: ${exported.join(", ") || "none"}`);
-	if (missing.length > 0) print(`not found: ${missing.join(", ")}`);
-	if (conflicts.size > 0) {
-		print(`not exported, listed by two plugins under different keyring entries: ${[...conflicts].join(", ")}`);
+	// One row per token: written (✓), not found (·), or left out for a reason the row gives (✗). Names only.
+	print(`exported ${exported.length} of ${tokens.size}:`);
+	for (const name of exported) print(`  ${style.success(name)}`);
+	for (const name of missing) print(`  ${style.dim("·")} ${name}`);
+	for (const name of [...conflicts].sort(compare)) {
+		print(`  ${style.fail(`${name}  (listed by two plugins under different keyring entries, so not exported)`)}`);
 	}
-	if (unsupported.length > 0) {
-		print(`not exported, a value dotenv cannot carry unchanged (add it by hand): ${unsupported.join(", ")}`);
+	for (const name of unsupported) {
+		print(`  ${style.fail(`${name}  (a value dotenv cannot carry unchanged, so add it by hand)`)}`);
 	}
 	if (unavailable.length > 0) {
-		print(`could not load, so the tokens they take are not listed: ${unavailable.join(", ")}`);
+		print("");
+		print("could not load, so the tokens they take are not listed:");
+		for (const pkg of [...unavailable].sort(compare)) print(`  ${style.fail(`${pkg}  (${reasons.get(pkg)})`)}`);
 	}
+	// What happened to the lines they were written to, set apart from the list.
+	if (destination === "clipboard" || destination === "file") print("");
 	if (destination === "clipboard") print("copied to the clipboard: paste it, then clear the clipboard");
 	// A file that could not be deleted is a failure even though the export worked: tokens are still on disk.
 	const cleaned = destination === "file" && file && identity ? await finishFile(file, identity) : true;
@@ -250,9 +263,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		status,
 		exported,
 		missing,
-		conflicts: [...conflicts],
+		conflicts: [...conflicts].sort(compare),
 		unsupported,
-		unavailable,
+		unavailable: [...unavailable].sort(compare),
 		...(destination ? { destination } : {}),
 		...(file ? { file } : {}),
 	};

@@ -52,6 +52,11 @@ export interface RunAuthExportInput {
 	importer?: AuthImporter;
 	/** Environment to read with {@link RunAuthExportInput.fromEnv}. Defaults to the process environment. */
 	env?: NodeJS.ProcessEnv;
+	/**
+	 * The active org, as the token resolvers use it: a token is looked up under `<keyring key>.<org>` before the plain
+	 * key, so a token stored per organization (`auth set --org`) is found the way the commands find it.
+	 */
+	org?: string;
 	/** Reads a keyring entry, or null. Defaults to the OS keyring. */
 	keyring?: (key: string) => string | null;
 	/** Whether the OS keyring can be reached at all. Defaults to asking it. */

@@ -13,13 +13,22 @@ Writes each token a configured plugin takes as a `NAME=value` line, to import th
 The names are the ones the plugins list for `doctor tokens` and `doctor credentials`, so they are the names the Environment is expected to hold. Each value comes from the OS keyring. A name listed by two plugins is written once.
 
 ```text
+exported 16 of 18:
+  ✓ HOLOCRON_ADMIN_TOKEN
+  ✓ HOLOCRON_AXIOM_TOKEN
+  ✓ HOLOCRON_CHECKLY_TOKEN
+  ✓ HOLOCRON_CLOUDFLARE_TOKEN
+  ...
+  ✓ HOLOCRON_USER_SYNC_TOKEN
+  · HOLOCRON_DISCORD_WEBHOOK
+
 wrote /path/to/repo/.credentials (readable only by you)
 import it in the 1Password app: Developer, View Environments, the Environment, Import .env file
-exported 15 of 18: HOLOCRON_ADMIN_TOKEN, HOLOCRON_ORG_TOKEN, HOLOCRON_SENTRY_TOKEN, ...
-not found: HOLOCRON_AXIOM_TOKEN, HOLOCRON_FERN_TOKEN, ...
 press Enter when the import is done and the file will be deleted:
 deleted /path/to/repo/.credentials
 ```
+
+One row per token, by name only: a green `✓` for each one written, a dim `·` for each one that was not found in the keyring or the environment, and a `✗` with the reason for each one left out for another cause (below). Written tokens come first, then the rest, and each group is in lexicographic order, so the list reads the same on every machine; the lines in the file are in that order too. The file's instructions come after a blank line.
 
 ## The file
 
@@ -63,11 +72,11 @@ There is no encrypted form that would help. The point of the file is for 1Passwo
 Anything that makes the list incomplete is said, not hidden:
 
 - **The OS keyring cannot be reached**: the command fails, rather than reporting every token as not found.
-- **A plugin cannot be loaded**: its package is named, because the tokens it takes are not in the list. With every configured plugin unresolvable it stops with the same workspace error as the other commands that need the plugins.
+- **A plugin cannot be loaded**: its package is named with the first line of why, because the tokens it takes are not in the list. With every configured plugin unresolvable it stops with the same workspace error as the other commands that need the plugins.
 - **Two plugins list the same variable under different keyring entries**: the name is reported and not exported, because one variable cannot hold both.
 - **A value dotenv cannot carry unchanged**: a value with a space, quote, `#` or backslash is wrapped in the first of `'`, `"` and `` ` `` it does not contain, which is how a dotenv parser reads it back as written (dotenv has no escape for a quote or a backslash, so none is added), and a line break is written as `\n` inside double quotes. A value that fits none of these is not exported and is named, so you add it by hand instead of importing a different token.
 
-The plugins are resolved from the directory of the config that was loaded, so `--cwd` finds the plugins installed there. A token stored per organization (`auth set --org`) is not exported: only the plain keyring entry is. A token that is in neither place (a GitHub Actions secret cannot be read back) has to come from wherever you first got it.
+The plugins are resolved from the directory of the config that was loaded, so `--cwd` finds the plugins installed there. A token is looked up the way the commands look it up: under the keyring entry stored for the active org first (`axiom.theholocron`, from `auth set axiom --org theholocron`), then under the plain one (`axiom`). A token that is in neither place (a GitHub Actions secret cannot be read back) has to come from wherever you first got it.
 
 ## Exit status
 
