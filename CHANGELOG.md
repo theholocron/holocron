@@ -1,3 +1,13 @@
+## [5.0.0-alpha.314](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.313...v5.0.0-alpha.314) (2026-11-03)
+
+### Features
+
+* **checkly:** 🩺 alert-channel settings and per-check routing ([#1599](https://github.com/theholocron/holocron/issues/1599)) ([#1647](https://github.com/theholocron/holocron/issues/1647)) ([8c25fc9](https://github.com/theholocron/holocron/commit/8c25fc96353af0244a51973454b8a1cf87604b83))
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#1651](https://github.com/theholocron/holocron/issues/1651)) ([2616f04](https://github.com/theholocron/holocron/commit/2616f045ed7f7369383c899bddca2551bfbe55a9))
+
 ## [5.0.0-alpha.313](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.312...v5.0.0-alpha.313) (2026-11-03)
 
 ### Features
