@@ -79,7 +79,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `holocron run` / `holocron run ci`, each repo's `.github/workflows/*.yml`
   thin callers (`astromech.thinCallers()`, consumed by `holocron repo sync` /
   `holocron repo setup`), `package.json` scripts, the linter set, the
-  branch-protection required checks, and the reusable `workflow_call`
+  branch-protection required checks (in holocron: `ci / Required checks` and `DCO`, #1613), and the reusable `workflow_call`
   implementations pushed to `theholocron/.github`
   (`astromech.reusableTemplates()`, consumed by `holocron sync github`; their
   source files are in `ci/`, the `@theholocron/ci` package).
@@ -101,6 +101,15 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   their `.github/workflows/*`, `.github/actions/*` and `workflow-templates/*`
   are generated from `cli/astromech/src/templates/` and pushed by
   `holocron sync github`; edit the source here, never those repos directly.
+- **The `ci` aggregate check** (#1613, spec `ci-flat-task-vocabulary`, epic #1612). One stable required check: the
+  reusable `ci/workflows/ci.yml` has one job, `Required checks` (called from the caller job `ci`, so the context is `ci / Required checks`), that polls the Checks API for the PR's head commit until every
+  `expected` id has a check run named `<id> / ...` and has completed, and every `statuses` entry (the `codecov/`
+  extras) reached `success`, or 30 minutes pass; an id that never posted fails. `aggregateChecks()` derives both
+  inputs from the same list the ruleset used to take (`required: true` tasks, then `extraRequiredChecks`, using
+  today's names) and `aggregateCaller()` renders the thin caller, written as `ci.ci.yml` only in the repo that hosts
+  the reusables. The summary lists every expected check with a link, failures first, plus `::error` annotations.
+  `requiredChecks(config, aggregate)` is `ci / Required checks` and `DCO` there and the old per-task list elsewhere, so a repo with no
+  `ci` caller is never told to require it. A rename or a new workflow no longer touches a ruleset.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
   - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
     commands branch at the orchestrator layer, not in capabilities.

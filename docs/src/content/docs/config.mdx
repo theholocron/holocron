@@ -59,10 +59,12 @@ export default defineConfig({
 
     // Branch protection preset applied by `holocron repo setup`.
     // "balanced" — squash merge only, delete branch on merge, no force-push.
-    // "strict"   — same + required status checks. The required-check list is
-    //              derived from the manifest: every `{ required: true }` task's
-    //              workflow check context (in CI order), plus `extraRequiredChecks`
-    //              below and a hard-prepended "DCO". No hand-maintained list.
+    // "strict"   — same + required status checks. In a repo that hosts the `ci`
+    //              aggregate the list is `ci / Required checks` and `DCO`: the aggregate waits on every
+    //              `{ required: true }` task, the hand-written checks and the
+    //              codecov statuses in `extraRequiredChecks`. In any other repo it
+    //              is `DCO`, every required task's check context (in CI order) and
+    //              `extraRequiredChecks`. No hand-maintained list.
     // "none"     — no protection applied.
     protection: "balanced",
 
@@ -104,8 +106,9 @@ export default defineConfig({
   ],
 
   // Required status-check contexts **not** backed by a `{ required: true }` task
-  // — codecov gates, a docs/storybook publish job, etc. `holocron repo setup`
-  // (strict) appends these to the task-derived list. List the aggregate
+  // — codecov gates, a docs/storybook publish job, etc. The `ci` aggregate waits on
+  // them: a `codecov/` entry is polled as a commit status, any other entry
+  // (`"Generated files / Check"`) as a check run named `<id> / ...`. List the aggregate
   // `codecov/patch` and `codecov/project` only: a ruleset takes no wildcards, and a
   // package a PR does not touch posts no `codecov/patch/<package>` status, so
   // per-package contexts neither scale nor reliably appear.

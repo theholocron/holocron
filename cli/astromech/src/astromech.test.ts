@@ -559,11 +559,11 @@ describe("createAstromech().reusableTemplates", () => {
 });
 
 describe("createAstromech().requiredChecks", () => {
-	it("returns [] with no config", () => {
-		expect(createAstromech({ cwd: "/repo" }).requiredChecks()).toEqual([]);
+	it("is `ci / Required checks` and `DCO` with the aggregate", () => {
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks(true)).toEqual(["ci / Required checks", "DCO"]);
 	});
 
-	it("derives contexts from required tasks + extraRequiredChecks", () => {
+	it("without the aggregate, derives contexts from required tasks + extraRequiredChecks after `DCO`", () => {
 		const checks = createAstromech({
 			cwd: "/repo",
 			config: {
@@ -574,8 +574,51 @@ describe("createAstromech().requiredChecks", () => {
 				],
 				extraRequiredChecks: ["codecov/patch"],
 			},
-		}).requiredChecks();
-		expect(checks).toEqual(["Static Analysis / Run eslint and actionlint", "Test / Conclusion", "codecov/patch"]);
+		}).requiredChecks(false);
+		expect(checks).toEqual([
+			"DCO",
+			"Static Analysis / Run eslint and actionlint",
+			"Test / Conclusion",
+			"codecov/patch",
+		]);
+	});
+
+	it("returns just `DCO` with no config and no aggregate", () => {
+		expect(createAstromech({ cwd: "/repo" }).requiredChecks(false)).toEqual(["DCO"]);
+	});
+});
+
+describe("createAstromech().aggregateCaller", () => {
+	it("is null when the manifest has nothing to wait on", () => {
+		expect(createAstromech({ cwd: "/repo" }).aggregateCaller()).toBeNull();
+	});
+
+	it("waits on the required tasks and the extras", () => {
+		const caller = createAstromech({
+			cwd: "/repo",
+			config: {
+				tasks: [{ name: "verification.typeSafety", required: true }],
+				extraRequiredChecks: ["codecov/patch"],
+			},
+		}).aggregateCaller();
+		expect(caller).toContain(`expected: '["Typecheck"]'`);
+		expect(caller).toContain(`statuses: '["codecov/patch"]'`);
+	});
+
+	it("is written when only statuses are required", () => {
+		const caller = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["codecov/patch"] },
+		}).aggregateCaller();
+		expect(caller).toContain(`expected: '[]'`);
+	});
+
+	it("is written when only checks are required", () => {
+		const caller = createAstromech({
+			cwd: "/repo",
+			config: { extraRequiredChecks: ["Generated files / Check"] },
+		}).aggregateCaller();
+		expect(caller).toContain(`statuses: '[]'`);
 	});
 });
 
