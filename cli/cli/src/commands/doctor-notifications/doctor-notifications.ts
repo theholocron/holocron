@@ -33,6 +33,7 @@ import {
 	whyMissing,
 } from "../notifications-channel-add/index.js";
 import { redirectInstruction, resolveCallback } from "../notifications-link/index.js";
+import { webhookAvatarOf } from "../notifications-setup/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
 import { notificationsWorkflowChecks } from "../notifications-workflow-checks/index.js";
 import { postDoctorReport } from "../post-doctor-report/index.js";
@@ -310,10 +311,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 		);
 
 		// Webhook avatars: a webhook's name is checked with the webhooks above; its picture here.
-		const avatarOf = (webhook: unknown) =>
-			(typeof webhook === "object" && webhook ? (webhook as { avatar?: string }).avatar : undefined) ??
-			layout.webhookAvatar;
-		const wantAvatar = declaredChannels.filter(({ channel }) => channel.webhook && avatarOf(channel.webhook));
+		const wantAvatar = declaredChannels.filter(
+			({ channel }) => channel.webhook && webhookAvatarOf(layout, channel.webhook).length > 0
+		);
 		const avatarProblems: string[] = [];
 		for (const { cat, channel } of wantAvatar) {
 			const cfg = channel.webhook === true ? {} : (channel.webhook as { name?: string });

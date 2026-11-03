@@ -1621,6 +1621,12 @@ export interface NotificationsForumTag {
 	moderated?: boolean;
 }
 
+/**
+ * A picture (PNG, JPEG or GIF) as a layout writes it: a file path (from where the CLI runs) or an `https://` URL, or
+ * `{ url, image }`, where the `url` is tried first and the `image`, a file in the repo, is the fallback.
+ */
+export type NotificationsPicture = string | { url?: string; image?: string };
+
 /** One channel in a {@link NotificationsLayout}. */
 export interface NotificationsChannelLayout {
 	/** The channel's name. */
@@ -1646,7 +1652,7 @@ export interface NotificationsChannelLayout {
 	 * `true` uses the defaults; the object form overrides the webhook's display
 	 * name and the secret's name.
 	 */
-	webhook?: boolean | { name?: string; secret?: string; avatar?: string };
+	webhook?: boolean | { name?: string; secret?: string; avatar?: NotificationsPicture };
 	/**
 	 * Other services that post into this channel through a webhook of their own. Each gets a dedicated webhook, whose
 	 * URL goes straight to that service and is never stored as a secret, so revoking one service leaves the rest alone.
@@ -1655,17 +1661,17 @@ export interface NotificationsChannelLayout {
 		/**
 		 * The monitoring provider's alerts. `true` uses the defaults; the object form overrides the alert channel's name
 		 * (default `Message to #<channel>`) and the dedicated webhook's name (default the provider's name, capitalised), and
-		 * `avatar` gives that webhook a picture (PNG, JPEG or GIF): a file path or `https://` URL, or `{ url, image }`, where the `url` is tried first and the `image`, a file in the repo, is the fallback) in the provider's list of
-		 * integrations. Left out, it wears the layout's `webhookAvatar`, as every webhook does. A picture is set only on a
+		 * `avatar` gives that webhook a picture (PNG, JPEG or GIF; see {@link NotificationsPicture}: a path or URL, or
+		 * `{ url, image }` with a fallback) in the provider's list of integrations. Left out, it wears the layout's `webhookAvatar`, as every webhook does. A picture is set only on a
 		 * webhook that has none; the posts carry the service's own name and icon either way.
 		 */
-		monitoring?: boolean | { name?: string; webhook?: string; avatar?: string | { url?: string; image?: string } };
+		monitoring?: boolean | { name?: string; webhook?: string; avatar?: NotificationsPicture };
 		/**
 		 * The error tracker's alerts, carried in by the relay Worker (see `relay`). The channel gets a dedicated webhook
 		 * (default the `errors` provider's name, capitalised) whose URL goes to the Worker as a secret and nowhere else.
 		 * `avatar` is as for `monitoring`.
 		 */
-		errors?: boolean | { webhook?: string; avatar?: string | { url?: string; image?: string } };
+		errors?: boolean | { webhook?: string; avatar?: NotificationsPicture };
 	};
 }
 
@@ -1837,10 +1843,11 @@ export interface NotificationsLayout {
 	everyone?: NotificationsEveryoneLayout;
 	/**
 	 * The picture every webhook gets unless its own `webhook.avatar` says otherwise: a path to a PNG,
-	 * JPEG or GIF (from where the CLI runs) or an `https://` URL. It is set only on a webhook that has
-	 * no picture yet -- a provider cannot say whether the one it holds is the same image.
+	 * JPEG or GIF (from where the CLI runs) or an `https://` URL, or `{ url, image }` (see
+	 * {@link NotificationsPicture}), where the `url` is tried first and the `image`, a file in the repo, is the fallback.
+	 * It is set only on a webhook that has no picture yet -- a provider cannot say whether the one it holds is the same image.
 	 */
-	webhookAvatar?: string;
+	webhookAvatar?: NotificationsPicture;
 	/**
 	 * The Worker that carries other services' alerts into the channels with a `feeds.errors`: built beforehand
 	 * (`apps/comlink`), deployed by `notifications setup` with each channel's webhook URL as a secret, and served at
