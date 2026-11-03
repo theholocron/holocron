@@ -1,8 +1,10 @@
 import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 import { fakeLogger } from "@theholocron/observability/testing";
+import chalk from "chalk";
 import { describe, expect, it, vi } from "vitest";
 
 // The real keychain and the real clipboard are things a test must never touch.
@@ -65,7 +67,7 @@ function run(extra: Partial<Parameters<typeof runAuthExport>[0]> = {}) {
 		keyringAvailable: () => true,
 		outKind: "pipe",
 		out: (t) => out.push(t),
-		print: (l) => err.push(l),
+		print: (l) => err.push(stripVTControlCharacters(l)),
 		logger: fakeLogger(),
 		env: {},
 		...extra,
@@ -87,8 +89,10 @@ describe("auth export — what it writes", () => {
 		});
 		expect(out.join("")).toBe("HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
 		expect(err).toEqual([
-			"exported 2 of 3: HOLOCRON_ORG_TOKEN, HOLOCRON_SENTRY_TOKEN",
-			"not found: HOLOCRON_READ_TOKEN",
+			"exported 2 of 3:",
+			"  ✓ HOLOCRON_ORG_TOKEN",
+			"  ✓ HOLOCRON_SENTRY_TOKEN",
+			"  · HOLOCRON_READ_TOKEN",
 		]);
 	});
 
@@ -101,6 +105,72 @@ describe("auth export — what it writes", () => {
 			{ exported: 2, missing: 1, conflicts: 0, unsupported: 0, unavailable: 0, status: "ok", destination: "out" },
 			"auth export"
 		);
+	});
+
+	it("finds a token stored for the org before the plain one, the way the commands do", async () => {
+		const { result, out } = run({
+			org: "acme",
+			keyring: store({ "github.org.acme": "for-the-org", "github.org": "plain", sentry: "sntry_1" }),
+		});
+		await result;
+		expect(out.join("")).toBe("HOLOCRON_ORG_TOKEN=for-the-org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
+	});
+
+	it("falls back to the plain entry when none is stored for the org, and ignores another org's", async () => {
+		const { result, out } = run({
+			org: "acme",
+			keyring: store({ "github.org": "plain", "sentry.other": "someone-else", sentry: "sntry_1" }),
+		});
+		await result;
+		expect(out.join("")).toBe("HOLOCRON_ORG_TOKEN=plain\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
+	});
+
+	it("lists and writes the tokens in lexicographic order, whatever order the plugins list them in", async () => {
+		const shuffled: AuthImporter = async () => ({
+			tokens: [
+				{ envName: "Z_TOKEN", keyringKey: "z" },
+				{ envName: "B_TOKEN", keyringKey: "b" },
+				{ envName: "A_MISSING", keyringKey: "nope" },
+				{ envName: "A_TOKEN", keyringKey: "a" },
+				{ envName: "C_MISSING", keyringKey: "nope2" },
+			],
+		});
+		const { result, out, err } = run({ importer: shuffled, keyring: store({ a: "1", b: "2", z: "3" }) });
+		const report = await result;
+		expect(out.join("")).toBe("A_TOKEN=1\nB_TOKEN=2\nZ_TOKEN=3\n");
+		expect(report.exported).toEqual(["A_TOKEN", "B_TOKEN", "Z_TOKEN"]);
+		expect(report.missing).toEqual(["A_MISSING", "C_MISSING"]);
+		expect(err).toEqual([
+			"exported 3 of 5:",
+			"  ✓ A_TOKEN",
+			"  ✓ B_TOKEN",
+			"  ✓ Z_TOKEN",
+			"  · A_MISSING",
+			"  · C_MISSING",
+		]);
+	});
+
+	it("colours the ✓ green and dims the · but leaves the name as it is", async () => {
+		const previous = chalk.level;
+		chalk.level = 1;
+		try {
+			const raw: string[] = [];
+			await runAuthExport({
+				loaded,
+				importer,
+				keyring: store({ "github.org": "ghp_org" }),
+				keyringAvailable: () => true,
+				outKind: "pipe",
+				out: () => {},
+				print: (l) => raw.push(l),
+				logger: fakeLogger(),
+				env: {},
+			});
+			expect(raw).toContain(`  ${chalk.green("✓")} HOLOCRON_ORG_TOKEN`);
+			expect(raw).toContain(`  ${chalk.dim("·")} HOLOCRON_READ_TOKEN`);
+		} finally {
+			chalk.level = previous;
+		}
 	});
 
 	it("takes a token from the environment ahead of the keyring only with fromEnv", async () => {
@@ -128,12 +198,17 @@ describe("auth export — what it writes", () => {
 		expect(report.status).toBe("skip");
 		expect(report.destination).toBeUndefined();
 		expect(out).toEqual([]);
-		expect(err[0]).toBe("exported 0 of 3: none");
+		expect(err).toEqual([
+			"exported 0 of 3:",
+			"  · HOLOCRON_ORG_TOKEN",
+			"  · HOLOCRON_READ_TOKEN",
+			"  · HOLOCRON_SENTRY_TOKEN",
+		]);
 	});
 
 	it("passes over a plugin that lists no tokens", async () => {
 		const { result } = run({ importer: async (pkg) => (pkg.endsWith("github") ? {} : importer(pkg)) });
-		expect((await result).exported).toEqual(["HOLOCRON_SENTRY_TOKEN", "HOLOCRON_ORG_TOKEN"]);
+		expect((await result).exported).toEqual(["HOLOCRON_ORG_TOKEN", "HOLOCRON_SENTRY_TOKEN"]);
 	});
 });
 
@@ -211,7 +286,7 @@ describe("auth export — what it reports instead of hiding", () => {
 		expect(report.exported).not.toContain("HOLOCRON_ORG_TOKEN");
 		expect(out.join("")).not.toContain("HOLOCRON_ORG_TOKEN");
 		expect(err.join("\n")).toContain(
-			"not exported, listed by two plugins under different keyring entries: HOLOCRON_ORG_TOKEN"
+			"  ✗ HOLOCRON_ORG_TOKEN  (listed by two plugins under different keyring entries, so not exported)"
 		);
 	});
 
@@ -233,7 +308,7 @@ describe("auth export — what it reports instead of hiding", () => {
 		expect(report.unsupported).toEqual(["HOLOCRON_ORG_TOKEN"]);
 		expect(out.join("")).toBe("HOLOCRON_SENTRY_TOKEN=sntry_1\n");
 		expect(err.join("\n")).toContain(
-			"not exported, a value dotenv cannot carry unchanged (add it by hand): HOLOCRON_ORG_TOKEN"
+			"  ✗ HOLOCRON_ORG_TOKEN  (a value dotenv cannot carry unchanged, so add it by hand)"
 		);
 		expect(JSON.stringify(err)).not.toContain("a'b");
 	});
@@ -248,9 +323,22 @@ describe("auth export — what it reports instead of hiding", () => {
 		const report = await result;
 		expect(report.exported).toEqual(["HOLOCRON_ORG_TOKEN"]);
 		expect(report.unavailable).toEqual(["@theholocron/holocron-plugin-sentry"]);
-		expect(err.join("\n")).toContain(
-			"could not load, so the tokens they take are not listed: @theholocron/holocron-plugin-sentry"
-		);
+		expect(err).toContain("could not load, so the tokens they take are not listed:");
+		expect(err).toContain("  ✗ @theholocron/holocron-plugin-sentry  (MODULE_NOT_FOUND)");
+	});
+
+	it("gives the first line of why a plugin could not be loaded, not a stack", async () => {
+		const { result, err } = run({
+			importer: async (pkg) => {
+				if (pkg.endsWith("sentry"))
+					throw new Error("Cannot find module 'libsodium'\nRequire stack:\n- /x/y.js");
+				return importer(pkg);
+			},
+		});
+		await result;
+		const line = err.find((l) => l.includes("holocron-plugin-sentry"));
+		expect(line).toContain("(Cannot find module 'libsodium')");
+		expect(err.join("\n")).not.toContain("Require stack");
 	});
 
 	it("throws the workspace error when no configured plugin can be loaded", async () => {
@@ -268,7 +356,7 @@ describe("auth export — defaults", () => {
 		const spy = vi.spyOn(console, "error").mockImplementation(() => {});
 		try {
 			await runAuthExport({ loaded, outKind: "pipe", out: () => {}, env: {} });
-			expect(spy).toHaveBeenCalledWith(expect.stringMatching(/^exported 0 of \d+: none$/));
+			expect(spy).toHaveBeenCalledWith(expect.stringMatching(/^exported 0 of \d+:$/));
 		} finally {
 			spy.mockRestore();
 		}
@@ -308,6 +396,8 @@ describe("auth export — the private file", () => {
 		expect(out).toEqual([]);
 		expect(JSON.stringify(err)).not.toMatch(/ghp_org|sntry_1/);
 		expect(err).toContain(`wrote ${file} (readable only by you)`);
+		// A blank line sets what happened to the file apart from the list of tokens.
+		expect(err[err.indexOf(`wrote ${file} (readable only by you)`) - 1]).toBe("");
 		expect(err.at(-1)).toBe(`deleted ${file}`);
 	});
 

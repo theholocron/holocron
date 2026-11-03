@@ -32,6 +32,17 @@ describe("auth export command", () => {
 		}
 	});
 
+	it("passes the active org, so a token stored for the org is found", async () => {
+		loadConfig.mockResolvedValue({ resolved: { org: "acme" }, filepath: "/x" });
+		await runCommand(authExportCommand, ["export"]);
+		expect(runAuthExport.mock.calls[0]![0].org).toBe("acme");
+	});
+
+	it("passes no org when there is none", async () => {
+		await runCommand(authExportCommand, ["export"]);
+		expect(runAuthExport.mock.calls[0]![0].org).toBeUndefined();
+	});
+
 	it("passes --from-env", async () => {
 		await runCommand(authExportCommand, ["export", "--from-env"]);
 		expect(runAuthExport.mock.calls[0]![0].fromEnv).toBe(true);

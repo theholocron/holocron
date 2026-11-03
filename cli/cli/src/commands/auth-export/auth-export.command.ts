@@ -1,6 +1,6 @@
 import type { Argv, CommandModule } from "yargs";
 
-import type { GlobalArgs, InferArgs } from "../../cli-support/index.js";
+import { applyResolvedConfig, type GlobalArgs, type InferArgs, resolveOrg } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { runAuthExport } from "./auth-export.js";
 import type { AuthExportTarget } from "./auth-export.type.js";
@@ -44,6 +44,8 @@ export const authExportCommand: CommandModule<GlobalArgs, AuthExportArgs> = {
 	builder: authExportArgs,
 	handler: async (argv) => {
 		const loaded = await loadConfig(argv.cwd);
+		applyResolvedConfig(argv, loaded.resolved);
+		const org = resolveOrg(argv, loaded.resolved);
 		// `--file` with no path is the default file; `--file` or `--copy` is an explicit choice of where to write.
 		const to: AuthExportTarget | undefined = argv.copy ? "clipboard" : argv.file !== undefined ? "file" : undefined;
 		const report = await runAuthExport({
@@ -51,6 +53,7 @@ export const authExportCommand: CommandModule<GlobalArgs, AuthExportArgs> = {
 			out: (text) => void process.stdout.write(text),
 			outKind: stdoutKind(process.stdout.isTTY === true),
 			fromEnv: argv.fromEnv,
+			...(org ? { org } : {}),
 			...(to ? { to } : {}),
 			...(argv.file ? { file: argv.file } : {}),
 			force: argv.force,
