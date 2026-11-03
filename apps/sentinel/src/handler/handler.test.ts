@@ -75,6 +75,7 @@ vi.mock("../actions/repo-validation/validate-adrs/validate-adrs.js", () => ({ va
 vi.mock("../actions/repo-validation/validate-docs-presence/validate-docs-presence.js", () => ({
 	validateDocsPresence: vi.fn(),
 }));
+vi.mock("../actions/role-sync/run-role-sync/run-role-sync.js", () => ({ runRoleSync: vi.fn() }));
 vi.mock("../actions/static-analysis/lint-static-analysis/lint-static-analysis.js", () => ({
 	lintStaticAnalysis: vi.fn(),
 }));
@@ -114,6 +115,7 @@ import {
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
 	postStaticAnalysisCheck,
+	runRoleSync,
 	syncPropertiesFromConfig,
 	validateAdrs,
 	validateDocsPresence,
@@ -170,6 +172,7 @@ beforeEach(() => {
 	vi.mocked(postEditorConfigCheck).mockReset();
 	vi.mocked(commitEditorConfigFix).mockReset();
 	vi.mocked(commitMarkdownLintFix).mockReset();
+	vi.mocked(runRoleSync).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -1989,5 +1992,63 @@ describe("handler — auto-fix PR comment (holocron#674/#834)", () => {
 		const body = (await res.json()) as { autoFixCommentResult: unknown; formattingFixResult: unknown };
 		expect(body.autoFixCommentResult).toBeUndefined();
 		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+});
+
+describe("handleWebhookRequest — role sync (holocron#1595)", () => {
+	const teamEvent = {
+		handled: true as const,
+		event: {
+			type: "team.membership" as const,
+			org: "acme",
+			team: "gatekeepers",
+			installationId: 5,
+			raw: {},
+		},
+	};
+
+	it("syncs the team's roles through the org's installation, with the environment's settings", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(teamEvent);
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		const sync = { status: "synced" as const, roles: ["gatekeepers"], added: 1, removed: 0, failures: [] };
+		vi.mocked(runRoleSync).mockResolvedValue(sync);
+		const env = { ...ENV, SENTINEL_ROLE_SYNC_REPO: "acme/holocron" };
+		const res = await handleWebhookRequest(req(), env);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ handled: true, type: "team.membership", sync });
+		expect(createInstallationClient).toHaveBeenCalledWith(
+			{ appId: ENV.GITHUB_APP_ID, privateKey: ENV.GITHUB_APP_PRIVATE_KEY },
+			5
+		);
+		expect(runRoleSync).toHaveBeenCalledWith({ client: FAKE_CLIENT, env, org: "acme", team: "gatekeepers" });
+		expect(validateConfig).not.toHaveBeenCalled();
+	});
+
+	it("syncs every team on an organization member removal", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({
+			handled: true,
+			event: { type: "organization.member-removed", org: "acme", installationId: 5, raw: {} },
+		});
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(runRoleSync).mockResolvedValue({ status: "skipped", reason: "role sync is off" });
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ sync: { status: "skipped" } });
+		expect(vi.mocked(runRoleSync).mock.calls[0]![0].team).toBeUndefined();
+	});
+
+	it("answers 500 when the sync fails or only partly worked, so the delivery can be redelivered", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(teamEvent);
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(runRoleSync).mockResolvedValueOnce({ status: "fail", reason: "Discord is down" });
+		expect((await handleWebhookRequest(req(), ENV)).status).toBe(500);
+		vi.mocked(runRoleSync).mockResolvedValueOnce({
+			status: "partial",
+			roles: ["gatekeepers"],
+			added: 0,
+			removed: 0,
+			failures: ["x"],
+		});
+		expect((await handleWebhookRequest(req(), ENV)).status).toBe(500);
 	});
 });

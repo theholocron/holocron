@@ -70,6 +70,8 @@ export const SENTINEL_ACTIONLINT_LOG_MSG = "postActionlintCheck: posted";
 export const SENTINEL_ADRS_LOG_MSG = "postAdrsCheck: posted";
 /** Logged (and linked to) once `postDocsPresenceCheck()` actually posts (holocron#913) — never hand-copy this string elsewhere. */
 export const SENTINEL_DOCS_PRESENCE_LOG_MSG = "postDocsPresenceCheck: posted";
+/** Logged once per role-sync delivery, whatever its result (holocron#1595) — never hand-copy this string elsewhere. */
+export const SENTINEL_ROLE_SYNC_LOG_MSG = "runRoleSync: finished";
 /** Logged (and linked to) once `postEditorConfigCheck()` actually posts — never hand-copy this string elsewhere. */
 export const SENTINEL_EDITORCONFIG_LOG_MSG = "postEditorConfigCheck: posted";
 /** Logged once `commitEditorConfigFix()` actually commits a fix — never hand-copy this string elsewhere. */

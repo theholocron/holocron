@@ -1,7 +1,7 @@
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
-import type { PluginLoader, RuntimeContext, SourceTeamMember } from "../../plugin/index.js";
+import type { Notifications, PluginLoader, RuntimeContext, Source, SourceTeamMember } from "../../plugin/index.js";
 import type { NotificationsChannelAddPrint } from "../notifications-channel-add/index.js";
 
 export interface RunNotificationsSyncRolesInput {
@@ -33,6 +33,7 @@ export interface NotificationsSyncRolesReport {
 	message?: string;
 }
 
+/** One person: their GitHub account and their member id on the notifications provider. */
 export interface MemberLink {
 	/** The GitHub user id, as a string. It survives a rename; the login does not. */
 	github: string;
@@ -42,8 +43,11 @@ export interface MemberLink {
 	member: string;
 }
 
+/** The file that says which server member is which GitHub account. */
 export interface LinksFile {
+	/** The file format version. */
 	version: 1;
+	/** One entry per linked person. */
 	links: MemberLink[];
 }
 
@@ -58,4 +62,36 @@ export interface RoleSyncPlan {
 	unknownHolders: Array<{ member: string; name?: string }>;
 	/** Linked team members who already hold the role. */
 	inSync: number;
+}
+
+/** What {@link syncRoles} needs: the providers, the links, and the roles to keep equal to their teams. */
+export interface SyncRolesInput {
+	/** The provider that lists and changes who holds a role. */
+	notifications: Notifications;
+	/** The provider that lists a team's members. */
+	source: Source;
+	/** Who is which person, from the links file. */
+	links: LinksFile;
+	/** Each role and the team it follows. */
+	roles: ReadonlyArray<{ name: string; team: string }>;
+	/** The organisation the teams are in; defaults to the source's own. */
+	org?: string;
+	/** Report what would change without changing anything. */
+	dryRun?: boolean;
+	/** Give the role to new team members but do not take it from people who left. */
+	keep?: boolean;
+	/** Where progress lines go; nowhere when left out. */
+	print?: (line: string) => void;
+}
+
+/** What {@link syncRoles} did. */
+export interface SyncRolesResult {
+	/** One entry per role whose plan could be made. */
+	roles: RoleSyncOutcome[];
+	/** Steps that failed; the run carried on past each. */
+	failures: Array<{ step: string; message: string }>;
+	/** Roles given or taken. */
+	ok: number;
+	/** Already in sync, left alone, or only previewed. */
+	skipped: number;
 }

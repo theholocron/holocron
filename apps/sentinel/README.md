@@ -439,7 +439,13 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 | Actions           | Write  | `actions.createWorkflowDispatch()` — the Bucket 2 dispatch prototype (holocron#769/#794, `tech-sentinel-ci-runner.spec.md`)                                                                                                                                                 |
 | Metadata          | Read   | mandatory baseline — auto-included                                                                                                                                                                                                                                          |
 
-No other permissions — never touches Administration.
+No other repository permissions — never touches Administration.
+
+### Organization permissions
+
+| Permission | Access | Why                                                                                                                       |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Members    | Read   | `teams.members()` — role sync (holocron#1595) lists a team's members; only used when the role-sync settings below are set |
 
 **Contents bumped from Read to Write for holocron#820, Issues bumped from
 none to Write for holocron#834, Pull requests bumped from Read to Write and
@@ -456,7 +462,7 @@ read-only boundary that makes a PR-branch read safe).
 
 ### Subscribe to events
 
-`push`, `pull_request`, `installation`
+`push`, `pull_request`, `installation`, plus `membership` and `organization` for role sync (holocron#1595)
 
 ### Webhook
 
@@ -471,6 +477,10 @@ read-only boundary that makes a PR-branch read safe).
 - **Where to install it** — this org (`theholocron`) to start;
   D10 (org-portability) means installing it on another org/account
   later needs zero code changes.
+
+### Role sync settings (optional)
+
+Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in Doppler's `sentinel`/`prd` config and run `holocron secrets sync`.
 
 ### Private key
 

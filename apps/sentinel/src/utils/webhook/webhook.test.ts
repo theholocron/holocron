@@ -388,3 +388,86 @@ describe("parseWebhookEvent — unrecognized event categories", () => {
 		expect((result as { githubEvent: string }).githubEvent).toBe("issues");
 	});
 });
+
+describe("parseWebhookEvent — team membership events", () => {
+	const membership = (over: Record<string, unknown> = {}) =>
+		JSON.stringify({
+			action: "added",
+			scope: "team",
+			team: { slug: "gatekeepers" },
+			organization: { login: "acme" },
+			installation: { id: 9 },
+			...over,
+		});
+
+	it("normalizes a person added to a team, with the org and the team", () => {
+		const body = membership();
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "membership"), secret: SECRET });
+		expect(result.handled).toBe(true);
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "team.membership",
+			org: "acme",
+			team: "gatekeepers",
+			installationId: 9,
+			deliveryId: "delivery-123",
+		});
+	});
+
+	it("normalizes a person removed from a team, with no installation and no delivery id", () => {
+		const body = membership({ action: "removed", installation: undefined });
+		const result = parseWebhookEvent({
+			body,
+			headers: { "x-github-event": "membership", "x-hub-signature-256": sign(body) },
+			secret: SECRET,
+		});
+		const event = (result as { event: { installationId: number; deliveryId?: string } }).event;
+		expect(event.installationId).toBe(0);
+		expect(event.deliveryId).toBeUndefined();
+	});
+
+	it("ignores a membership that is not of a team, and an action that is not added or removed", () => {
+		for (const over of [{ scope: "organization" }, { action: "edited" }]) {
+			const body = membership(over);
+			const result = parseWebhookEvent({ body, headers: signedHeaders(body, "membership"), secret: SECRET });
+			expect(result.handled).toBe(false);
+			expect((result as { githubEvent: string }).githubEvent).toBe("membership");
+		}
+	});
+});
+
+describe("parseWebhookEvent — organization events", () => {
+	it("normalizes a member removed from the organisation", () => {
+		const body = JSON.stringify({
+			action: "member_removed",
+			organization: { login: "acme" },
+			installation: { id: 4 },
+		});
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "organization"), secret: SECRET });
+		expect(result.handled).toBe(true);
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "organization.member-removed",
+			org: "acme",
+			installationId: 4,
+			deliveryId: "delivery-123",
+		});
+	});
+
+	it("defaults the installation to 0 and leaves out the delivery id when neither is sent", () => {
+		const body = JSON.stringify({ action: "member_removed", organization: { login: "acme" } });
+		const result = parseWebhookEvent({
+			body,
+			headers: { "x-github-event": "organization", "x-hub-signature-256": sign(body) },
+			secret: SECRET,
+		});
+		const event = (result as { event: { installationId: number; deliveryId?: string } }).event;
+		expect(event.installationId).toBe(0);
+		expect(event.deliveryId).toBeUndefined();
+	});
+
+	it("ignores any other organization action", () => {
+		const body = JSON.stringify({ action: "member_added", organization: { login: "acme" } });
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "organization"), secret: SECRET });
+		expect(result.handled).toBe(false);
+		expect((result as { githubEvent: string }).githubEvent).toBe("organization");
+	});
+});

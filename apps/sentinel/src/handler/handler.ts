@@ -222,6 +222,7 @@ import {
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
 	postStaticAnalysisCheck,
+	runRoleSync,
 	syncPropertiesFromConfig,
 	validateAdrs,
 	validateDocsPresence,
@@ -246,6 +247,7 @@ import {
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
 	SENTINEL_REPO_VALIDATION_TASK,
+	SENTINEL_ROLE_SYNC_LOG_MSG,
 	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
 	type SentinelEvent,
 	validateConfig,
@@ -414,6 +416,22 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	const { event } = result;
 	if (event.type === "installation.created" || event.type === "installation.deleted") {
 		return json({ handled: true, type: event.type });
+	}
+
+	// Role sync (holocron#1595): a team or org membership change keeps the server roles equal to their GitHub
+	// teams. Org-level, so it has no repo and none of the checks below apply. A deployment that has not set
+	// it up (see RoleSyncEnv) answers `skipped`; a sync that runs and fails answers 500, so the delivery shows
+	// as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent).
+	if (event.type === "team.membership" || event.type === "organization.member-removed") {
+		const roleClient = await createInstallationClient(
+			{ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY },
+			event.installationId
+		);
+		const sync = await runRoleSync({ client: roleClient, env, org: event.org!, team: event.team });
+		const failed = sync.status === "fail" || sync.status === "partial";
+		if (failed) logger.error({ org: event.org, team: event.team, sync }, SENTINEL_ROLE_SYNC_LOG_MSG);
+		else logger.info({ org: event.org, team: event.team, sync }, SENTINEL_ROLE_SYNC_LOG_MSG);
+		return json({ handled: true, type: event.type, sync }, failed ? 500 : 200);
 	}
 
 	const repo = event.repo;

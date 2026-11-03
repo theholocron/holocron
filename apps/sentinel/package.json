@@ -55,6 +55,8 @@
     "@theholocron/git-utils": "workspace:^",
     "@theholocron/github-client": "workspace:^",
     "@theholocron/holocron-config": "catalog:apps",
+    "@theholocron/holocron-plugin-discord": "workspace:^",
+    "@theholocron/holocron-plugin-github": "workspace:^",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/json-utils": "workspace:^",
     "@theholocron/markdownlint-config": "workspace:^",
