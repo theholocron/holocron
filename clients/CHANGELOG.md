@@ -1,3 +1,13 @@
+## [1.58.0-alpha.7](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.6...clients-v1.58.0-alpha.7) (2026-11-03)
+
+### Refactoring
+
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
+### Documentation
+
+* 📝 clear the alex inclusive-language hits across the markdown ([#1559](https://github.com/theholocron/holocron/issues/1559)) ([573580e](https://github.com/theholocron/holocron/commit/573580ee02d288ce5184d69ee8cc09acbdb95042)), closes [#1263](https://github.com/theholocron/holocron/issues/1263) [#868](https://github.com/theholocron/holocron/issues/868) [#1311](https://github.com/theholocron/holocron/issues/1311) [#1354](https://github.com/theholocron/holocron/issues/1354)
+
 ## [1.58.0-alpha.6](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.5...clients-v1.58.0-alpha.6) (2026-11-02)
 
 ### Features
