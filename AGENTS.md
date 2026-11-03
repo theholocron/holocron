@@ -69,6 +69,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `--refresh-origin` (#1652) is an opt-in repair, never a standing behaviour: it compares each post's `PR:` line
   (`DiscussionPost.prLine`) with `discussionPrLine()` and passes `DiscussionPatch.prLine` to `updateDiscussion`, which
   swaps only that paragraph of the bot's first message and leaves the synced footer, tag, title and closed state alone.
+  `--withdraw --files <paths>` (#1653) tags the post of a spec or ADR `withdrawn` and closes it, for a pull request closed
+  unmerged (the same workflow on `closed` with `merged == false`, same-repo only, CLI built from the BASE branch so the bot
+  token never runs a closed pull request's code). `withdrawn` (`WITHDRAWN_STATE`) is a tag and a closed post only: never a
+  file status, and `reconcileSpecStatus()` treats it as no tag (`set-tag`, never `request`), so a sync pull request cannot
+  write `status: withdrawn` and a reopened pull request restores the post.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

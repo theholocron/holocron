@@ -4,7 +4,7 @@ description: Keep each ADR and spec in step with a post in a forum channel, and 
 ---
 
 ```bash
-holocron specs sync [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--refresh-origin] [--notify] [--dry-run]
+holocron specs sync [--provider <name>] [--channel <forum>] [--files <paths...>] [--pr <number>] [--refresh-origin] [--withdraw] [--notify] [--dry-run]
 ```
 
 Every ADR (`docs/wiki/decisions`) and spec (`.notes`, `docs/wiki/specifications`) gets one post in a forum channel, made from the file. The file stays the source of truth; the post is where people talk about it. See the spec `tech-specs-discussion-threads` for the design.
@@ -33,6 +33,7 @@ ADRs and specs → #ideas
 | did not                 | moved                                 | changes the file's `status:` line to the tag's                           |
 | moved                   | moved                                 | reports a conflict and changes nothing                                   |
 | has a status            | is missing, or there is more than one | puts the file's status on the tag                                        |
+| has a status            | is `withdrawn`                        | puts the file's status on the tag and reopens the post                   |
 
 A retag the file cannot take (an ADR retagged `archived`, a status only specs have) is reported and changes nothing.
 
@@ -57,6 +58,7 @@ Only the working tree. The command edits the `status:` and `discussion.url` line
 | `--files <paths...>` | Sync only these ADR and spec files; a path that is neither is ignored. Unset, all of them. |
 | `--pr <number>`      | Name this pull request on the posts, for one that is still open.                           |
 | `--refresh-origin`   | Repair: rewrite the `PR:` line of existing posts. See below.                               |
+| `--withdraw`         | Tag the posts of `--files` `withdrawn` and close them (a pull request closed unmerged).    |
 | `--notify`           | Let new posts notify people.                                                               |
 | `--dry-run`          | Read, and say what would be made or changed. Makes and writes nothing.                     |
 
@@ -68,11 +70,22 @@ Discord limits how fast posts can be made (about 46 in a row, then it asks for s
 
 A post's first message is written once, so a post made before the rule for naming the pull request changed keeps the old `PR:` line. `--refresh-origin` is a one-off repair for that, not something to run every time. For each existing post it works out the line the current rule would write (the pull request the file's history names, or the one `--pr` gives, or none) and, only when the post's line differs, rewrites that line, or adds or removes it. Everything else in the message stays as it is, above all the small print that records the status last synced, and the post's tag, title and open or closed state are not touched. A closed post is unarchived to be edited and closed again.
 
-Run `holocron specs sync --refresh-origin --dry-run` first: each post that would change is listed (`would rewrite the PR line to #1538`, `would take the PR line out`), the rest read `in step`, and the last line counts them. Run it again without `--dry-run` to edit the posts. A second run changes nothing. Without the flag the command never edits a post's first message.
+Run `holocron specs sync --refresh-origin --dry-run` first: each post that would change is listed (`would rewrite the PR line to #1538`, `would take the PR line out`), the rest read `in step`, and the last line counts them. Run it again without `--dry-run` to edit the posts. A second run changes nothing. Without the flag the command never edits a post's first message. It is a repair of a synced tree, so it cannot be combined with `--withdraw`. Like any full run it restores a `withdrawn` post whose file is on the branch it runs on (the file's own status goes back on the tag and the post is reopened), because the file being there means the pull request merged.
 
 ## While the pull request is still open
 
-The `Spec discussions (pull request)` workflow runs `specs sync --files <the spec and ADR files the pull request adds or changes> --pr <its number>` when a pull request opens, gets a push or reopens, so a spec under review has its post before it merges. It runs only for a pull request from the same repository (a post carries text the author wrote, and a fork gets no secrets), only for the files the pull request changes (a stale branch cannot retag the posts of files it does not touch), and only when it changes one. The edits the command makes to the checkout are discarded: the post's address reaches the file after the merge, when the `Spec discussions` workflow finds the post by the path it records and links it through its sync pull request. A spec with no `id` is numbered as the merged tree would number it. A pull request closed without merging leaves its post as it was.
+The `Spec discussions (pull request)` workflow runs `specs sync --files <the spec and ADR files the pull request adds or changes> --pr <its number>` when a pull request opens, gets a push or reopens, so a spec under review has its post before it merges. It runs only for a pull request from the same repository (a post carries text the author wrote, and a fork gets no secrets), only for the files the pull request changes (a stale branch cannot retag the posts of files it does not touch), and only when it changes one. The edits the command makes to the checkout are discarded: the post's address reaches the file after the merge, when the `Spec discussions` workflow finds the post by the path it records and links it through its sync pull request. A spec with no `id` is numbered as the merged tree would number it. A pull request closed without merging has its posts withdrawn, below.
+
+## When the pull request closes unmerged
+
+A post is made while its pull request is open, so a pull request that closes without merging would leave a post that says "in discussion" for good. The same workflow runs on `closed` with `merged == false` (a same-repository pull request only) and runs `specs sync --withdraw --files <the spec and ADR files the pull request touched>`. Each post is tagged `withdrawn` and closed, like a finished status. It is a neutral, system-set state, not `rejected`: a pull request closes unmerged for reasons that are no verdict on the idea (replaced, split, abandoned, closed to be reopened), and deciding accepted or rejected stays with the gatekeepers.
+
+- **`withdrawn` is a tag and a closed post, never a file status.** `holocron probe specs check` still refuses it in a file, and `specs sync` never reads the tag as a gatekeeper's retag: a `withdrawn` post is treated as one with no status tag, so the file's own status goes back on it and no sync pull request writes `status: withdrawn`.
+- **It is reversible.** Reopening the pull request runs the workflow again, which puts the file's status back on the tag and reopens the post. If the same file comes back in a new pull request, the post (found by its path) is restored the same way on that pull request's next run.
+- **Only a post this pull request made.** The command runs on the base branch, so a file the base branch already has keeps its post (the pull request only proposed a change to it).
+- **Merging changes nothing here.** A merged pull request lands the file with the status its author wrote; accepted stays the gatekeepers' retag.
+
+Because the checkout is the base branch (nothing from a closed pull request's head runs with the bot token), the command reads nothing from the files: it needs only their paths. The forum needs a `withdrawn` tag, which `holocron notifications setup` creates from the layout and `holocron doctor notifications` checks.
 
 ## Another service
 

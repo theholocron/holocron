@@ -12,7 +12,7 @@
  * reads and previews, and changes nothing.
  */
 
-import { assignSpecIds, parseFrontmatter } from "@theholocron/astromech/repo-validation";
+import { assignSpecIds, classifySpecPath, parseFrontmatter } from "@theholocron/astromech/repo-validation";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -23,8 +23,9 @@ import { notificationProviders, pickProvider } from "../notifications-channel-ad
 import { forumChannel } from "./forum-channel.js";
 import { rateLimitedFor } from "./rate-limit.js";
 import { readDocuments } from "./read-documents.js";
-import type { RunSpecsSyncInput, SpecsSyncReport, SpecSyncOutcome } from "./specs-sync.type.js";
+import type { RunSpecsSyncInput, SpecDocument, SpecsSyncReport, SpecSyncOutcome } from "./specs-sync.type.js";
 import { syncDocument } from "./sync-document.js";
+import { withdrawDocument } from "./withdraw-document.js";
 
 /** The provider that can keep a post per document. */
 export function pickDiscussionProvider(providers: Notifications[], wanted?: string): Notifications {
@@ -78,38 +79,46 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 			? `${input.context.org}/${input.loaded.resolved.name}`
 			: undefined);
 
-	const everything = readDocuments(input.io);
-	const origins = new Map(everything.map((d) => [d.path, input.io.origin(d.path)]));
-	// Specs are numbered here, oldest first, so a new spec takes the next number and the order never depends on who ran it.
-	const ids = assignSpecIds(
-		everything
-			.filter((d) => d.kind === "spec")
-			.map((d) => ({
-				path: d.path,
-				id: parseFrontmatter(d.text)?.get("id")?.value || undefined,
-				time: origins.get(d.path)?.time,
-			}))
-	);
+	let documents: SpecDocument[];
+	let syncOne: (doc: SpecDocument) => Promise<SpecSyncOutcome>;
+	if (input.withdraw) {
+		if (input.refreshOrigin) return refuse("`--withdraw` and `--refresh-origin` cannot be combined");
+		if (!input.files) return refuse("`--withdraw` needs `--files`: the paths of the pull request's specs and ADRs");
+		// The files are not in the working tree (it is the base branch), so the documents are the paths asked for.
+		documents = [...new Set(input.files)].sort().flatMap((path) => {
+			const kind = classifySpecPath(path);
+			return kind ? [{ path, kind, text: "" }] : [];
+		});
+		syncOne = (doc) =>
+			withdrawDocument(doc, {
+				notifications,
+				channel: forum.channel,
+				dryRun,
+				onBase: input.io.read(doc.path) !== undefined,
+			});
+	} else {
+		const everything = readDocuments(input.io);
+		const origins = new Map(everything.map((d) => [d.path, input.io.origin(d.path)]));
+		// Specs are numbered here, oldest first, so a new spec takes the next number and the order never depends on who ran it.
+		const ids = assignSpecIds(
+			everything
+				.filter((d) => d.kind === "spec")
+				.map((d) => ({
+					path: d.path,
+					id: parseFrontmatter(d.text)?.get("id")?.value || undefined,
+					time: origins.get(d.path)?.time,
+				}))
+		);
 
-	// Numbered over every spec above, so a pull request's new spec takes the number the merged tree would give it; only the
-	// files asked for are synced.
-	const only = input.files ? new Set(input.files) : undefined;
-	const documents = only ? everything.filter((d) => only.has(d.path)) : everything;
+		// Numbered over every spec above, so a pull request's new spec takes the number the merged tree would give it; only the
+		// files asked for are synced.
+		const only = input.files ? new Set(input.files) : undefined;
+		documents = only ? everything.filter((d) => only.has(d.path)) : everything;
 
-	// A pull request still open is named by the caller; a merged one, by the commit that added the file.
-	const prNumber = (path: string): number | undefined => input.pr ?? origins.get(path)?.pr;
-
-	const files: SpecSyncOutcome[] = [];
-	let ok = 0;
-	let skipped = 0;
-	let failed = 0;
-	let rewritten = 0;
-	let rateLimited: SpecsSyncReport["rateLimited"];
-	print(`\n${style.header(`ADRs and specs → #${forum.channel}`)}`);
-	for (const doc of documents) {
-		let outcome: SpecSyncOutcome;
-		try {
-			outcome = await syncDocument(doc, {
+		// A pull request still open is named by the caller; a merged one, by the commit that added the file.
+		const prNumber = (path: string): number | undefined => input.pr ?? origins.get(path)?.pr;
+		syncOne = (doc) =>
+			syncDocument(doc, {
 				notifications,
 				channel: forum.channel,
 				dryRun,
@@ -125,6 +134,19 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 						}
 					: {}),
 			});
+	}
+
+	const files: SpecSyncOutcome[] = [];
+	let ok = 0;
+	let skipped = 0;
+	let failed = 0;
+	let rewritten = 0;
+	let rateLimited: SpecsSyncReport["rateLimited"];
+	print(`\n${style.header(`ADRs and specs → #${forum.channel}`)}`);
+	for (const doc of documents) {
+		let outcome: SpecSyncOutcome;
+		try {
+			outcome = await syncOne(doc);
 		} catch (err) {
 			// A rate limit is not about this document. Stop here instead of firing calls that will be refused too: what is left
 			// is made on the next run, which finds what this one made.

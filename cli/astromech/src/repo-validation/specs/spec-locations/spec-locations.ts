@@ -17,5 +17,12 @@ export const SPEC_STATUSES: readonly string[] = ["draft", "proposed", "accepted"
  */
 export const CLOSED_STATUSES: readonly string[] = ["archived", "superseded", "rejected", "deprecated"];
 
+/**
+ * The tag a discussion post carries while its pull request is closed unmerged. It is a state of the post only: no file
+ * may have it as its `status` (`ADR_STATUSES` and `SPEC_STATUSES` leave it out), and `reconcileSpecStatus` never reads it
+ * as a gatekeeper's retag. A post with it is closed, like one with a finished status.
+ */
+export const WITHDRAWN_STATE = "withdrawn";
+
 /** The files in the ADR folder that are not ADRs. */
 export const ADR_EXEMPT: readonly string[] = ["template.md", "README.md"];

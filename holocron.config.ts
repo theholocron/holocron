@@ -251,6 +251,8 @@ export default defineConfig({
 										{ name: "deprecated", emoji: "🗑️", moderated: true },
 										{ name: "archived", emoji: "📦", moderated: true },
 										{ name: "superseded", emoji: "♻️", moderated: true },
+										// Set by the spec-on-pull-request workflow when a pull request closes unmerged (#1653); never a file status.
+										{ name: "withdrawn", emoji: "🔕", moderated: true },
 									],
 								},
 								// The test channel: the doctor's own test post is left here, never in a real channel.

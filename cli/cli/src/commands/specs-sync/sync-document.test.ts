@@ -254,6 +254,49 @@ describe("syncDocument", () => {
 			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", { closed: true });
 		});
 
+		it("restores a withdrawn post to the file's own status and reopens it, and never writes the file (#1653)", async () => {
+			// The pull request was closed unmerged (the post is withdrawn and closed), then reopened, or the same file came
+			// back in a new pull request: the file still says proposed and the post last agreed on proposed.
+			const { n, notifications } = provider({ url: URL, state: "withdrawn", synced: "proposed", closed: true });
+			const doc = linkedDoc(spec("proposed"));
+
+			const out = await syncDocument(doc, deps(notifications));
+
+			expect(out.did).toEqual(["set the tag to proposed", "reopened the post"]);
+			expect(out.text).toBe(doc.text);
+			expect(out.text).not.toContain("withdrawn");
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", {
+				state: "proposed",
+				synced: "proposed",
+			});
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", { closed: false });
+		});
+
+		it("does not read a withdrawn tag as a retag, whatever was last synced: no status is requested of the file", async () => {
+			for (const synced of ["proposed", "draft", undefined]) {
+				const { n, notifications } = provider({ url: URL, state: "withdrawn", synced, closed: true });
+				const doc = linkedDoc(spec("proposed"));
+
+				const out = await syncDocument(doc, deps(notifications));
+
+				expect(out.problem).toBeUndefined();
+				expect(out.text).toBe(doc.text);
+				expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/tech-x.spec.md", {
+					state: "proposed",
+					synced: "proposed",
+				});
+			}
+		});
+
+		it("restores a withdrawn post to a finished file's status and keeps it closed", async () => {
+			const { n, notifications } = provider({ url: URL, state: "withdrawn", synced: "archived", closed: true });
+
+			const out = await syncDocument(linkedDoc(spec("archived")), deps(notifications));
+
+			expect(out.did).toEqual(["set the tag to archived"]);
+			expect(n.updateDiscussion).toHaveBeenCalledTimes(1);
+		});
+
 		it("says what it would do on a dry run, and does it for neither", async () => {
 			const toClose = provider({ url: URL, state: "archived", synced: "archived" });
 			const toReopen = provider({ ...open, closed: true });

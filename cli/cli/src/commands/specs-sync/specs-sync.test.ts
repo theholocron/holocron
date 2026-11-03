@@ -63,6 +63,7 @@ function setup(
 		files?: string[];
 		pr?: number;
 		refreshOrigin?: boolean;
+		withdraw?: boolean;
 		/** Leave out `print` and `logger`, as the command does. */
 		bare?: boolean;
 	} = {}
@@ -96,6 +97,7 @@ function setup(
 				...(opts.files ? { files: opts.files } : {}),
 				...(opts.pr ? { pr: opts.pr } : {}),
 				...(opts.refreshOrigin ? { refreshOrigin: true } : {}),
+				...(opts.withdraw ? { withdraw: true } : {}),
 				...(opts.provider ? { provider: opts.provider } : {}),
 				...(opts.channel ? { channel: opts.channel } : {}),
 				...(opts.bare ? {} : { print: (l: string) => lines.push(l), logger: fakeLogger() }),
@@ -299,6 +301,26 @@ describe("runSpecsSync", () => {
 			expect(lines.join("\n")).toContain("1 PR line(s) rewritten");
 		});
 
+		it("restores a withdrawn post whose file is on the branch, and refreshes its PR line, without writing the file's status", async () => {
+			const n = withPost({ ...post(WRONG), state: "withdrawn", closed: true });
+			const { io, written } = makeIo(files, origins);
+
+			const report = await setup(n, io, { refreshOrigin: true }).run();
+
+			expect(report.files[0]?.did).toEqual([
+				"rewrote the PR line to #1538",
+				"set the tag to proposed",
+				"reopened the post",
+				"linked the post",
+			]);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", { prLine: RIGHT });
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", ".notes/a.spec.md", {
+				state: "proposed",
+				synced: "proposed",
+			});
+			expect(written[".notes/a.spec.md"]).not.toContain("withdrawn");
+		});
+
 		it("adds the line to a post that names no pull request, when the current rule names one", async () => {
 			const n = withPost(post());
 
@@ -432,6 +454,100 @@ describe("runSpecsSync", () => {
 		await run();
 
 		expect(n.ensureDiscussion).toHaveBeenCalledWith(expect.objectContaining({ channel: "specs" }));
+	});
+
+	describe("with --withdraw", () => {
+		const post = (over: Partial<DiscussionPost> = {}): DiscussionPost => ({
+			url: URL,
+			state: "proposed",
+			synced: "proposed",
+			...over,
+		});
+		const NEW = ".notes/tech-new.spec.md";
+
+		it("withdraws and closes the post of each file this pull request added, sorted, ignoring other paths and repeats", async () => {
+			const n = fakeNotifications({ readDiscussion: vi.fn(async () => post()) });
+			const { io, written } = makeIo({});
+			const { run, lines } = setup(n, io, {
+				withdraw: true,
+				files: [NEW, "docs/wiki/decisions/0009-b.md", "README.md", NEW],
+			});
+
+			const report = await run();
+
+			expect(report.status).toBe("ok");
+			expect(report.files.map((f) => [f.path, f.did])).toEqual([
+				[NEW, ["withdrew the post"]],
+				["docs/wiki/decisions/0009-b.md", ["withdrew the post"]],
+			]);
+			expect(n.updateDiscussion).toHaveBeenCalledWith("ideas", NEW, { state: "withdrawn", closed: true });
+			expect(n.updateDiscussion).toHaveBeenCalledTimes(2);
+			expect(n.ensureDiscussion).not.toHaveBeenCalled();
+			expect(written).toEqual({});
+			expect(lines.join("\n")).toContain("withdrew the post");
+		});
+
+		it("keeps the post of a file the base branch already has, and of a file with no post", async () => {
+			const readDiscussion = vi.fn(async (_c: string, key: string) => (key === NEW ? undefined : post()));
+			const n = fakeNotifications({ readDiscussion });
+			const { io } = makeIo({ ".notes/a.spec.md": spec("A", "accepted") });
+			const { run } = setup(n, io, { withdraw: true, files: [".notes/a.spec.md", NEW] });
+
+			const report = await run();
+
+			expect(report.files.map((f) => [f.path, f.did])).toEqual([
+				[".notes/a.spec.md", ["kept its post: the file is on the base branch"]],
+				[NEW, ["has no post to withdraw"]],
+			]);
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+		});
+
+		it("says it would withdraw on a dry run, and leaves a post that is already withdrawn alone", async () => {
+			const posts: Record<string, DiscussionPost> = {
+				[NEW]: post(),
+				".notes/tech-old.spec.md": post({ state: "withdrawn", closed: true }),
+			};
+			const n = fakeNotifications({ readDiscussion: vi.fn(async (_c: string, key: string) => posts[key]) });
+			const { run, lines } = setup(n, makeIo({}).io, {
+				withdraw: true,
+				dryRun: true,
+				files: [NEW, ".notes/tech-old.spec.md"],
+			});
+
+			const report = await run();
+
+			expect(report.status).toBe("dry-run");
+			expect(report.files.map((f) => f.did)).toEqual([["would withdraw the post"], []]);
+			expect(n.updateDiscussion).not.toHaveBeenCalled();
+			expect(lines.join("\n")).toContain("in step");
+		});
+
+		it("closes a post that is tagged withdrawn but was reopened", async () => {
+			const n = fakeNotifications({ readDiscussion: vi.fn(async () => post({ state: "withdrawn" })) });
+			const { run } = setup(n, makeIo({}).io, { withdraw: true, files: [NEW] });
+
+			const report = await run();
+
+			expect(report.files[0]!.did).toEqual(["withdrew the post"]);
+		});
+
+		it("is refused with --refresh-origin, which repairs the posts of a synced tree", async () => {
+			const { run } = setup(fakeNotifications(), makeIo({}).io, {
+				withdraw: true,
+				refreshOrigin: true,
+				files: [NEW],
+			});
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/cannot be combined/);
+		});
+
+		it("is refused without --files", async () => {
+			const { run } = setup(fakeNotifications(), makeIo({}).io, { withdraw: true });
+			const report = await run();
+			expect(report.status).toBe("fail");
+			expect(report.message).toMatch(/needs `--files`/);
+		});
 	});
 
 	describe("refuses to start", () => {
