@@ -1,26 +1,16 @@
 import type { Capability } from "../../config/compose/index.js";
 
-/** The org-standard linter set — drives both CI super-linter and `holocron run lint`. */
-const ORG_LINTERS = [
-	"eslint",
-	"prettier",
-	"yamllint",
-	"actionlint",
-	"gitleaks",
-	"editorconfig",
-	"commitlint",
-	"git-merge-conflict-markers",
-];
-
 /**
  * Base capability for all theholocron Node.js repositories.
  * Contributes: GitHub source/CI/issues providers, strict branch protection,
- * and the standard workflow set (lint, test, security, review, stale, greetings,
- * dependencies, bookkeeping). Does NOT include typecheck — add that separately.
- * The `lint` task carries the org linter list explicitly so every repo runs the
- * same set (a repo can override with its own `{ name: "lint", linters: [...] }`).
- * `lint` and `test` are marked `required` — `holocron setup` derives their
- * `… / Conclusion` branch-protection check contexts from the manifest.
+ * and the standard task set, spoken as flat task ids: the `lint` suite's leaves
+ * (`lint:code`, `lint:editorconfig`, `lint:markdown`, `lint:data`, `lint:commits`),
+ * `format`, `scan:secrets`, `test:unit`, `scan:code`, `annotate`, `mark-stale`,
+ * `greet`, `update-deps` and `label`. Does NOT include typecheck — add that separately.
+ * The gating tasks (lint leaves, `format`, `scan:secrets`, `test:unit`) are marked
+ * `required` — `holocron setup` derives their branch-protection check contexts from
+ * the manifest. A repo overrides a task by listing it again; `compose()` also lets
+ * the old dotted name (`verification.unitTests`, …) override the id it became.
  */
 export function node(): Capability {
 	return {
@@ -48,14 +38,20 @@ export function node(): Capability {
 			},
 		},
 		tasks: [
-			{ name: "lint", required: true, linters: ORG_LINTERS },
-			{ name: "test", required: true },
-			"security",
-			"review",
-			"stale",
-			"greetings",
-			"dependencies",
-			"bookkeeping",
+			{ name: "lint:code", required: true },
+			{ name: "lint:editorconfig", required: true },
+			{ name: "lint:markdown", required: true },
+			{ name: "format", required: true },
+			{ name: "lint:data", required: true },
+			{ name: "scan:secrets", required: true },
+			{ name: "lint:commits", required: true },
+			{ name: "test:unit", required: true },
+			"scan:code",
+			"annotate",
+			"mark-stale",
+			"greet",
+			"update-deps",
+			"label",
 		],
 	};
 }

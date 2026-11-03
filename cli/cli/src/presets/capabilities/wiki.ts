@@ -18,6 +18,6 @@ export function wiki(): Capability {
 			wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron" }],
 			workers: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }],
 		},
-		tasks: ["wiki"],
+		tasks: ["publish-wiki"],
 	};
 }

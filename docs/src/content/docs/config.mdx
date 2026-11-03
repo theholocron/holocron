@@ -28,6 +28,8 @@ export default defineConfig({
 | `reactPreset`    | A single-package React/Vite app: Storybook, interaction tests, and a Knip and Lighthouse audit. |
 | `monorepoPreset` | Wraps another preset for a monorepo root: `monorepoPreset(nextjsPreset())`.                     |
 
+The presets list tasks by their flat ids (see [Task vocabulary](#task-vocabulary)): `lint:code`, `lint:editorconfig`, `lint:markdown`, `format`, `lint:data`, `scan:secrets`, `lint:commits` and `test:unit` (all required), then `scan:code`, `annotate`, `mark-stale`, `greet`, `update-deps` and `label`; `docsPreset` adds `typecheck` and `deploy-docs`, `withAudit` adds `measure-bundle` (plus `lint:unused` and `test:perf` on request) and `withWiki` adds `publish-wiki`. `compose()` merges tasks by flat id, so listing an old dotted name such as `verification.unitTests` in your own config still overrides the preset's `test:unit` entry. The pre-flat names the presets used to carry (`lint`, `test`, `security`, `review`, `stale`, `greetings`, `dependencies`, `bookkeeping`, `audit`, `wiki`) are gone from the preset output.
+
 To build your own, `compose()` capabilities. `withCapabilities` holds the factories: `withNode`, `withTypecheck`, `withDocs`, `withAudit`, `withWiki`, `withReact`, `withNextjs` and `withMonorepo`.
 
 ```ts

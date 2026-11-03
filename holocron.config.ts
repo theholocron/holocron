@@ -6,14 +6,9 @@ import { defineConfig } from "@theholocron/cli";
 import { docsPreset } from "@theholocron/cli/presets";
 
 // docsPreset() provides: org, domain, docs, strict repo protection, the base
-// providers (source, ci, issues, deployment, dns, workers). Per D13
-// (epic #672 / docs/wiki/specifications/tech-holocron-platform.spec.md): the preset's `tasks`
-// and task-derived `extraRequiredChecks` still speak the pre-decomposition
-// vocabulary (`lint`, `test`, `typecheck`, `deploy`, plain `"audit /
-// Conclusion"`) — the `configs/` folder hasn't caught up to #675 yet, and
-// doesn't need to for this repo to move (D13: it's a convenience preset,
-// not a required dependency). This repo declares its own intent-facing
-// tasks directly instead of spreading `presetTasks`/`presetChecks`.
+// providers (source, ci, issues, deployment, dns, workers). Its `tasks` speak the
+// flat ids (`lint:code`, `test:unit`, ...), but this repo declares its own tasks
+// directly below, with repo-specific `with:` inputs, instead of spreading them.
 const { repo, providers, org, domain, docs } = docsPreset();
 
 // One Codecov upload per workspace package, so a PR that changes one package uploads only the packages whose tests

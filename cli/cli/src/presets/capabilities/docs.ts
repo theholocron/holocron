@@ -19,7 +19,7 @@ export function docs(): Capability {
 			dns: "cloudflare",
 			workers: ["cloudflare", { accountId: CLOUDFLARE_ACCOUNT_ID }],
 		},
-		tasks: [{ name: "deploy", with: { docs: true, preview: true } }],
+		tasks: [{ name: "deploy-docs", with: { preview: true } }],
 		// Not task-backed — codecov gates. `holocron setup` appends these to the
 		// `{ required: true }` task contexts.
 		extraRequiredChecks: ["codecov/patch", "codecov/project"],

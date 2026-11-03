@@ -12,7 +12,7 @@ export type { ReactOptions };
  * interaction tests, Knip + Lighthouse audit, and the UI extraRequiredChecks.
  *
  * Pass `test` overrides to merge repo-specific options (e.g. run-chromatic)
- * into the single test workflow entry so the sync tool sees one complete entry:
+ * into the single `test:unit` entry so the sync tool sees one complete entry:
  *
  * @example
  * const preset = react({
@@ -21,7 +21,7 @@ export type { ReactOptions };
  * export default defineConfig({
  *   ...preset,
  *   repo: { ...preset.repo, name: "theholocron/my-app" },
- *   tasks: [...preset.tasks, "sync", { name: "deploy", with: { docs: true, storybook: [{ name: "" }] } }],
+ *   tasks: [...preset.tasks, "sync-repo", { name: "deploy-docs", with: { storybook: [{ name: "" }] } }],
  * });
  */
 export function reactPreset(options?: ReactOptions): ComposedPreset {

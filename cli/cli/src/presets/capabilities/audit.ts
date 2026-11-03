@@ -11,24 +11,25 @@ export interface AuditOptions {
 }
 
 /**
- * Adds BundleWatch + optional Knip and Lighthouse auditing. Marked `required` —
- * `holocron setup` derives the `audit / Conclusion` branch-protection check
- * from the manifest.
+ * Adds bundle-size measuring (`measure-bundle`) + optional Knip (`lint:unused`) and
+ * Lighthouse (`test:perf`) auditing. Each task is marked `required` — `holocron setup`
+ * derives the branch-protection checks from the manifest.
  * Requires: node
  */
 export function audit({ knip = false, performance = false, lighthouseConfig }: AuditOptions = {}): Capability {
-	const withBlock: Record<string, unknown> = {};
-	if (knip) withBlock["run-knip"] = true;
-	if (performance) withBlock["run-performance"] = true;
-	if (lighthouseConfig) withBlock["lighthouse-config"] = lighthouseConfig;
-
 	return {
 		id: "audit",
 		requires: ["node"],
 		tasks: [
-			Object.keys(withBlock).length > 0
-				? { name: "audit", required: true, with: withBlock }
-				: { name: "audit", required: true },
+			{ name: "measure-bundle", required: true },
+			...(knip ? [{ name: "lint:unused", required: true }] : []),
+			...(performance
+				? [
+						lighthouseConfig
+							? { name: "test:perf", required: true, with: { "lighthouse-config": lighthouseConfig } }
+							: { name: "test:perf", required: true },
+					]
+				: []),
 		],
 	};
 }

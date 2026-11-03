@@ -16,8 +16,8 @@ import { typecheck } from "../capabilities/typecheck.js";
  *   repo: { ...preset.repo, name: "theholocron/my-app", topics: ["nextjs"] },
  *   tasks: [
  *     ...preset.tasks,
- *     "sync",
- *     { name: "deploy", with: { docs: true, storybook: [{ name: "" }] } },
+ *     "sync-repo",
+ *     { name: "deploy-docs", with: { storybook: [{ name: "" }] } },
  *   ],
  * });
  */
