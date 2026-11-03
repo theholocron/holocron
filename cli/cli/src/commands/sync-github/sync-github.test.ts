@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import {
 	frozenReusablePaths,
+	legacyWorkflowKey,
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
 	reusableTemplates,
@@ -27,7 +28,8 @@ const FROZEN = frozenReusablePaths();
 const PRIMARY_FILE_COUNT =
 	Object.keys(REUSABLE_ACTIONS).length +
 	Object.keys(REUSABLE_WORKFLOWS).length +
-	Object.keys(WORKFLOW_TEMPLATES).length +
+	// a caller that shares its old name with another (`lint:markdown`) has no starter of its own
+	Object.keys(WORKFLOW_TEMPLATES).filter((id) => legacyWorkflowKey(id) === id).length +
 	PROPS_COUNT -
 	FROZEN.length;
 

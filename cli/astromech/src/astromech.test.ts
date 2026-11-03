@@ -585,7 +585,7 @@ describe("createAstromech().requiredChecks", () => {
 		}).requiredChecks(false);
 		expect(checks).toEqual([
 			"DCO",
-			"lint:code / Run eslint and actionlint",
+			"lint:code / Run eslint, actionlint and prettier",
 			"test:unit / Conclusion",
 			"codecov/patch",
 		]);

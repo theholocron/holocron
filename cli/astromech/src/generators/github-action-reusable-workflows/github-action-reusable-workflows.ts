@@ -14,7 +14,7 @@
 
 import { ACTIONS, workflowFile, WORKFLOWS } from "@theholocron/ci";
 
-import { flatFile, legacyCaller, legacyFile, legacyName } from "../../vocabulary/index.js";
+import { flatFile, legacyCaller, legacyFile, legacyName, legacyWorkflowKey } from "../../vocabulary/index.js";
 import { CI_TARGET, rehomeAll } from "../ci-ref/index.js";
 import { WORKFLOW_TEMPLATES, workflowTriggers } from "../github-action-thin-callers/index.js";
 
@@ -99,7 +99,10 @@ export function reusableTemplates(): Map<string, string> {
 		out.set(remotePath(id), `${header}${body}`);
 	}
 	// The starter workflows in `.github` keep the old names, and so do the callers they are copied as (the legacy-name gate).
+	// A caller that shares its old name with another (`lint:markdown` with `lint:editorconfig`: the old formatting
+	// workflow) has no starter of its own, because the frozen reusables have no file for it.
 	for (const [id, template] of Object.entries(WORKFLOW_TEMPLATES)) {
+		if (legacyWorkflowKey(id) !== id) continue;
 		const name = legacyName(id) ?? id;
 		const body = legacyCaller(id, template);
 		out.set(`workflow-templates/${name}.yml`, `${header}${body}`);

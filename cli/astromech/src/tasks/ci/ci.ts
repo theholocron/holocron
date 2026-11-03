@@ -19,8 +19,8 @@ import { runTask } from "../run/index.js";
 import type { CiInput, CiJobReport, CiReport } from "./ci.type.js";
 
 /**
- * The check context of a flat id: the one its workflow posts. A workflow that carries several of the ids (the formatting
- * one: `lint:markdown` and `format` with `lint:editorconfig`) is listed under one of them, so the others report none.
+ * The check context of a flat id: the one its workflow posts. A task with no workflow of its own (`format`, a step of
+ * `lint:code`) has none.
  */
 function checkContextOf(id: string): string | null {
 	return WORKFLOW_CHECK_CONTEXTS[id] ?? null;

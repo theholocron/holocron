@@ -124,8 +124,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				// with `preview: false`. They're allowed through the
 				// `KNOWN_WORKFLOWS` gate explicitly since neither is in it.
 				// The workflow tables are keyed by the flat id of the template that carries the workflow, so an entry spelled with an
-				// old name or with a sibling id (`format`, `lint:markdown`) finds it, and
-				// a task that has no workflow of its own (`format`) generates no caller.
+				// old name finds it, and a task that has no workflow of its own (`format`) generates no caller.
 				const key = workflowKey(entry.name);
 				const isDocsSite = key === "deploy-docs";
 				const isComponents = key === "deploy-components";

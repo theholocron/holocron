@@ -301,6 +301,39 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		expect(unit.workflow).toEqual({ task: "test:unit", filename: "test-unit.yml" });
 	});
 
+	describe("the formatting split", () => {
+		const tasks = (list: unknown[]) =>
+			generateWorkflowFiles({
+				loaded: loadedFrom({ name: "x", tasks: list as never }),
+				repoRoot: root,
+				logger: getLogger(),
+			}).map((entry) => (entry.kind === "file" ? entry.path : `skip ${entry.step}`));
+
+		it("writes a caller for lint:editorconfig and one for lint:markdown, and none for format", () => {
+			mkdirSync(join(root, "ci"));
+			writeFileSync(join(root, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }));
+			const paths = tasks(["lint:editorconfig", "lint:markdown", "format"]);
+			expect(paths.filter((path) => path.includes("/ci.lint-"))).toEqual([
+				".github/workflows/ci.lint-editorconfig.yml",
+				".github/workflows/ci.lint-markdown.yml",
+			]);
+			expect(paths.some((path) => path.includes("format"))).toBe(false);
+		});
+
+		it("keeps the one formatting caller of the frozen reusable in a repo on the legacy gate", () => {
+			expect(new Set(tasks(["lint:editorconfig", "lint:markdown", "format"]))).toEqual(
+				new Set([".github/workflows/sourceQuality.formatting.yml"])
+			);
+		});
+
+		it("still writes it for lint:markdown alone, calling the frozen reusable, unless the task has ci: false", () => {
+			expect(tasks(["lint:markdown"])).toEqual([".github/workflows/sourceQuality.formatting.yml"]);
+			expect(tasks([{ name: "lint:markdown", ci: false }])).toEqual([]);
+			// `format` alone has never written one
+			expect(tasks(["format"])).toEqual([]);
+		});
+	});
+
 	it("does not take another package named ci for the hosting package", () => {
 		host("@acme/ci");
 		expect(generate().every((entry) => entry.kind !== "file" || !entry.path.includes("/ci."))).toBe(true);

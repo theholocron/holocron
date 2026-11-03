@@ -77,6 +77,11 @@ export interface TaskDef {
 	/** `false` — the task has no workflow of its own, so no thin caller is generated for it (`format`). */
 	workflow?: false;
 	/**
+	 * The id of the workflow that runs this task's check, for a task with no workflow of its own: `format` is checked
+	 * by an action that `lint:code` calls, so its host is `lint:code`.
+	 */
+	host?: string;
+	/**
 	 * Sub-job slugs that no longer exist but that a reusable workflow synced earlier may still pass:
 	 * `holocron run <task> <retired>` is a clean skip instead of an unknown-job failure.
 	 */

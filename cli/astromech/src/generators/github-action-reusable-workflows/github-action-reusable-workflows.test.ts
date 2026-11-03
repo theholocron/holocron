@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
-import { legacyFile, legacyName } from "../../vocabulary/index.js";
+import { legacyFile, legacyName, legacyWorkflowKey } from "../../vocabulary/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 import {
 	frozenReusablePaths,
@@ -114,7 +114,7 @@ describe("reusableTemplates()", () => {
 		const expected =
 			Object.keys(REUSABLE_ACTIONS).length +
 			Object.keys(REUSABLE_WORKFLOWS).length +
-			Object.keys(WORKFLOW_TEMPLATES).length +
+			Object.keys(WORKFLOW_TEMPLATES).filter((id) => legacyWorkflowKey(id) === id).length +
 			Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
 		expect(batch.size).toBe(expected);
 
@@ -129,6 +129,13 @@ describe("reusableTemplates()", () => {
 			const name = legacyName(id) ?? id;
 			expect(batch.has(`workflow-templates/${name}.yml`)).toBe(true);
 		}
+	});
+
+	it("files the old formatting starter under the editorconfig caller, not the markdown one", () => {
+		const starter = batch.get("workflow-templates/sourceQuality.formatting.yml")!;
+		expect(starter).toContain("sourceQuality.formatting.yml@main");
+		expect(starter).not.toContain("lint-markdown");
+		expect(batch.has("workflow-templates/lint:markdown.yml")).toBe(false);
 	});
 
 	it("keeps the old names in the starter workflows and the file Sentinel dispatches by name (the legacy-name gate)", () => {
@@ -600,7 +607,10 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 
 	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		expect(REUSABLE_WORKFLOWS["lint:code"]).toMatch(/task: lint:code/);
-		expect(REUSABLE_WORKFLOWS["lint:editorconfig"]).toMatch(/task: sourceQuality\.formatting/);
+		expect(REUSABLE_WORKFLOWS["lint:editorconfig"]).toMatch(/task: lint:editorconfig/);
+		expect(REUSABLE_WORKFLOWS["lint:markdown"]).toMatch(/task: lint:markdown/);
+		// prettier is the `format` action, called by the static analysis workflow
+		expect(REUSABLE_WORKFLOWS["lint:code"]).toContain("uses: ./ci/actions/format");
 		expect(REUSABLE_WORKFLOWS["lint:data"]).toMatch(/task: lint:data/);
 		expect(REUSABLE_WORKFLOWS["scan:secrets"]).toMatch(/task: scan:secrets/);
 		// commitlint and the repo-validation scripts have no local runner — they

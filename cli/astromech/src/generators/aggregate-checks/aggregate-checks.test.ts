@@ -19,6 +19,18 @@ describe("aggregateChecks", () => {
 		).toEqual({ expected: ["typecheck", "test:unit"], statuses: [] });
 	});
 
+	it("waits on `lint:markdown` and `lint:editorconfig` separately, and on `lint:code` for `format`", () => {
+		expect(
+			aggregateChecks({
+				tasks: [
+					{ name: "lint:editorconfig", required: true },
+					{ name: "lint:markdown", required: true },
+					{ name: "format", required: true },
+				],
+			})
+		).toEqual({ expected: ["lint:editorconfig", "lint:markdown", "lint:code"], statuses: [] });
+	});
+
 	it("sends the `codecov/` extras to `statuses` and the other extras to `expected` by their id", () => {
 		expect(
 			aggregateChecks({

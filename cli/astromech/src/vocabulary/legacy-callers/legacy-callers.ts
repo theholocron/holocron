@@ -88,6 +88,14 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"lint-editorconfig": { id: "formatting", name: "Formatting" },
 		},
 	},
+	// Never written as a file: a repo on the legacy gate gets the `lint:editorconfig` caller for it (`legacyWorkflowKey`).
+	// The entry names the check the old formatting workflow posted, which this one replaced.
+	"lint:markdown": {
+		name: "Source Quality",
+		jobs: {
+			"lint-markdown": { id: "formatting", name: "Formatting" },
+		},
+	},
 	"lint:unused": {
 		name: "Source Quality",
 		jobs: {

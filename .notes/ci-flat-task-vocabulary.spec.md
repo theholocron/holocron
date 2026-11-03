@@ -940,6 +940,34 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
 - **Tests:** `check-names.test.ts` now has the identity invariants and the legacy-gate round trip in place of
   `EXPECTED_WORKFLOW_NAMES`; `EXPECTED_CHECK_NAMES` is keyed by id.
 
+### Phase I as built (#1621)
+
+- **`ci/actions/format`** is the composite: `holocron run format --check` (the `holocron` action with `args: --check`),
+  then the `auto-commit` step when the `token` input is not empty. The App-token step stays in the calling reusable
+  (a composite cannot read secrets), so the same-repository, not-the-default-branch and `enable-auto-commit` conditions
+  are unchanged: an empty token is how they say no. `lint/code.yml` calls it last, after its own eslint fix commit, and
+  its job is now `Run eslint, actionlint and prettier`.
+- **Called by path.** The step is `uses: ./ci/actions/format`, not a `theholocron/.github` reference: every action there is
+  frozen and the new one has no remote copy, so a remote reference would fail the PR that adds it. This is right for the
+  one caller of the reusable (holocron); phase K must make it `theholocron/holocron/ci/actions/format@ci-v1` when the
+  reusables are called from other repos.
+- **Two leaves.** `lint/editorconfig.yml` (job `Run editorconfig-checker`) and the new `lint/markdown.yml` (job `Run
+markdownlint`) each run their own task and post their own check; neither has the `enable-auto-commit` input, since
+  neither writes. `WORKFLOW_CHECK_CONTEXTS` has `lint:editorconfig / Run editorconfig-checker` and `lint:markdown / Run
+markdownlint`, and `lint:code`'s is `lint:code / Run eslint, actionlint and prettier`. `ci.ci.yml` waits on
+  `lint:markdown` as well (`holocron.config.ts` already listed it as required).
+- **`workflowKey` no longer shares.** `format` has `host: "lint:code"` in the registry (`TaskDef.host`) and
+  `workflowKey("format")` is `lint:code`, so a required `format` adds the context of `lint:code` and writes no caller;
+  `lint:markdown` and `lint:editorconfig` are their own keys. The old name `sourceQuality.formatting` still maps to its
+  first successor and still has three, since the frozen reusable runs it.
+- **The legacy gate still has one formatting caller.** The frozen reusables have no markdown file, so a repo that still
+  calls them gets `sourceQuality.formatting.yml` (workflow `Source Quality`, job `Formatting`) for `lint:editorconfig`,
+  `lint:markdown` or both, through `legacyWorkflowKey()`; `generateWorkflowFiles` also skips `format` (no workflow) and
+  `reusableTemplates` has no starter of its own for `lint:markdown`. `LEGACY_CALLERS["lint:markdown"]` is never written
+  as a file and exists so the legacy round-trip test holds for every template.
+- **Not done here:** nothing in `holocron.config.ts` changed; the starter workflows and the other repos' callers keep
+  the old names until phase K.
+
 ## Open questions
 
 Resolved and folded into the decisions: the colon spelling, `format` as a verb, `release`, the aggregate check and its

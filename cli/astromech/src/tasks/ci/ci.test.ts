@@ -67,7 +67,7 @@ describe("runCi", () => {
 		expect(report.jobs.map((j) => j.task)).toEqual(["typecheck", "lint:code", "test:unit"]);
 		expect(report.jobs.map((j) => j.checkContext)).toEqual([
 			"typecheck / Run tsc --noEmit",
-			"lint:code / Run eslint and actionlint",
+			"lint:code / Run eslint, actionlint and prettier",
 			"test:unit / Conclusion",
 		]);
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/turbo$/), ["run", "verification.typeSafety"], {
@@ -274,7 +274,7 @@ describe("runCi", () => {
 		expect(exec).toHaveBeenCalledWith(expect.stringMatching(/prettier$/), ["--check", "."], { cwd: CWD });
 	});
 
-	it("runs the formatting workflow as its three successors, prettier read-only, and never fails for a missing tool", () => {
+	it("runs the old formatting name as its three successors, prettier read-only, and never fails for a missing tool", () => {
 		const { run, exec } = makeCi(
 			{ "package.json": PKG },
 			{ lookPath: (_c, b) => (b === "prettier" ? `/usr/local/bin/${b}` : null) }
@@ -282,10 +282,10 @@ describe("runCi", () => {
 		const report = run({ tasks: [{ name: "sourceQuality.formatting", required: true }] });
 		expect(report.status).toBe("ok");
 		expect(report.jobs.map((j) => j.task)).toEqual(["lint:editorconfig", "lint:markdown", "format"]);
-		// one workflow carried three checks: the first id has its context, the others have none
+		// prettier is a step of `lint:code`, so `format` has no context of its own
 		expect(report.jobs.map((j) => j.checkContext)).toEqual([
-			"lint:editorconfig / Run prettier, editorconfig-checker, markdownlint",
-			null,
+			"lint:editorconfig / Run editorconfig-checker",
+			"lint:markdown / Run markdownlint",
 			null,
 		]);
 		expect(exec).toHaveBeenCalledTimes(1);

@@ -1213,7 +1213,7 @@ describe("runSetup", () => {
 			required_status_checks: [
 				{ context: "DCO" },
 				{ context: "typecheck / Run tsc --noEmit" },
-				{ context: "lint:code / Run eslint and actionlint" },
+				{ context: "lint:code / Run eslint, actionlint and prettier" },
 				{ context: "test:unit / Conclusion" },
 			],
 		});
@@ -1256,7 +1256,7 @@ describe("runSetup", () => {
 		expect(checksRule?.parameters).toMatchObject({
 			required_status_checks: [
 				{ context: "DCO" },
-				{ context: "lint:code / Run eslint and actionlint" },
+				{ context: "lint:code / Run eslint, actionlint and prettier" },
 				{ context: "some-extra-check" },
 			],
 		});
