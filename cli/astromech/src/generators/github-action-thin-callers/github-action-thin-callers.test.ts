@@ -33,17 +33,13 @@ describe("WORKFLOW_TEMPLATES", () => {
 	});
 
 	it("uses the Conclusion aggregate only for genuinely multi-job tasks", () => {
-		// verification.unitTests (5 conditional jobs) and platform.repoValidation
+		// test:unit (5 conditional jobs) and validate
 		// (2 jobs that both must pass) need a fan-in; every other task is a
 		// single always-run job, so its own conclusion already is the check.
-		expect(WORKFLOW_CHECK_CONTEXTS["verification.unitTests"]).toBe("Test / Conclusion");
-		expect(WORKFLOW_CHECK_CONTEXTS["platform.repoValidation"]).toBe("Repo Validation / Conclusion");
-		expect(WORKFLOW_CHECK_CONTEXTS["sourceQuality.staticAnalysis"]).toBe(
-			"Static Analysis / Run eslint and actionlint"
-		);
-		expect(WORKFLOW_CHECK_CONTEXTS["delivery.bundleSize"]).toBe(
-			"Audit the Bundle Size / Upload bundle stats to Codecov"
-		);
+		expect(WORKFLOW_CHECK_CONTEXTS["test:unit"]).toBe("test:unit / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["validate"]).toBe("validate / Conclusion");
+		expect(WORKFLOW_CHECK_CONTEXTS["lint:code"]).toBe("lint:code / Run eslint and actionlint");
+		expect(WORKFLOW_CHECK_CONTEXTS["measure-bundle"]).toBe("measure-bundle / Upload bundle stats to Codecov");
 	});
 });
 
@@ -53,14 +49,14 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("returns base template unchanged when withOverrides is empty / omitted", () => {
-		const base = generateThinCallerContent("verification.unitTests", {});
-		expect(base).toContain("name: Test");
+		const base = generateThinCallerContent("test:unit", {});
+		expect(base).toContain("name: test:unit");
 		expect(base).toContain("secrets: inherit");
-		expect(generateThinCallerContent("verification.unitTests")).toBe(base);
+		expect(generateThinCallerContent("test:unit")).toBe(base);
 	});
 
 	it("injects boolean and string overrides into an existing with: block", () => {
-		const content = generateThinCallerContent("verification.unitTests", {
+		const content = generateThinCallerContent("test:unit", {
 			enable: true,
 			debug: false,
 			version: "1.2.3",
@@ -77,7 +73,7 @@ describe("generateThinCallerContent", () => {
 			{ flag: "apps", files: "apps/*/coverage/lcov.info" },
 			{ flag: "skills", files: "skills/o'brien/lcov.info" },
 		]);
-		const content = generateThinCallerContent("verification.unitTests", { uploads });
+		const content = generateThinCallerContent("test:unit", { uploads });
 		const line = content.split("\n").find((l) => l.startsWith("      uploads: "))!;
 		const quoted = line.slice("      uploads: ".length);
 		expect(quoted.startsWith("'") && quoted.endsWith("'")).toBe(true);
@@ -86,24 +82,24 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("injects overrides before secrets: inherit when the template has no with: block", () => {
-		const content = generateThinCallerContent("sourceQuality.staticAnalysis", { "yaml-config": "custom.yml" });
+		const content = generateThinCallerContent("lint:code", { "yaml-config": "custom.yml" });
 		expect(content).toContain("yaml-config: custom.yml");
 	});
 
 	it("replaces an existing key when the override matches it", () => {
-		const content = generateThinCallerContent("sourceQuality.staticAnalysis", { "enable-auto-commit": false });
+		const content = generateThinCallerContent("lint:code", { "enable-auto-commit": false });
 		expect(content.match(/enable-auto-commit:/g)).toHaveLength(1);
 		expect(content).toContain("enable-auto-commit: false");
 	});
 
 	it("single-quotes an override value that looks like a YAML mapping node", () => {
-		const content = generateThinCallerContent("sourceQuality.staticAnalysis", { config: '{"key":"val"}' });
+		const content = generateThinCallerContent("lint:code", { config: '{"key":"val"}' });
 		expect(content).toContain(`config: '{"key":"val"}'`);
 	});
 
 	it("renders a # comment line above a with: entry when given", () => {
 		const content = generateThinCallerContent(
-			"sourceQuality.staticAnalysis",
+			"lint:code",
 			{ "super-linter-env": '{"VALIDATE_YAML":"true"}' },
 			undefined,
 			undefined,
@@ -153,10 +149,10 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("inserts a paths block when the template has none, in order, deduped when empty", () => {
-		const base = generateThinCallerContent("delivery.deploy");
-		expect(generateThinCallerContent("delivery.deploy", undefined, [])).toBe(base);
+		const base = generateThinCallerContent("deploy");
+		expect(generateThinCallerContent("deploy", undefined, [])).toBe(base);
 
-		const content = generateThinCallerContent("delivery.deploy", undefined, ["src/**", ".storybook/**"]);
+		const content = generateThinCallerContent("deploy", undefined, ["src/**", ".storybook/**"]);
 		expect(content).toContain("    paths:");
 		expect(content.indexOf("- src/**")).toBeLessThan(content.indexOf("- .storybook/**"));
 	});
@@ -177,7 +173,7 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("applies both additionalPaths and withOverrides together", () => {
-		const content = generateThinCallerContent("delivery.deploy", { type: "docs", name: "configs" }, ["docs/**"]);
+		const content = generateThinCallerContent("deploy", { type: "docs", name: "configs" }, ["docs/**"]);
 		expect(content).toContain("- docs/**");
 		expect(content).toContain("type: docs");
 		expect(content).toContain("name: configs");
@@ -306,7 +302,7 @@ describe("generateCombinedDeployContent", () => {
 	it("forwards cloudflare-project into the preview job even when deployWith is empty", () => {
 		const content = generateCombinedDeployContent({}, [], { project: "acme-preview" });
 		expect(content).toContain("cloudflare-project: acme-preview");
-		const previewSection = content.slice(content.indexOf("name: Preview"));
+		const previewSection = content.slice(content.indexOf("  deploy-preview:"));
 		expect(previewSection).toContain("cloudflare-project: acme-preview");
 	});
 
@@ -369,7 +365,7 @@ describe("thin caller permissions must be a superset of the reusable workflow's 
 		// template being updated to match, and a real PR's
 		// deployment_status run hit exactly that failure.
 		const required = extractPermissionRanks(REUSABLE_WORKFLOWS["check-preview"]!);
-		const granted = extractPermissionRanks(WORKFLOW_TEMPLATES["delivery.previewCheck"]!);
+		const granted = extractPermissionRanks(WORKFLOW_TEMPLATES["check-preview"]!);
 		expect(required.size).toBeGreaterThan(0);
 		for (const [key, requiredRank] of required) {
 			expect(granted.get(key) ?? 0, `thin caller's grant for "${key}"`).toBeGreaterThanOrEqual(requiredRank);
@@ -377,13 +373,13 @@ describe("thin caller permissions must be a superset of the reusable workflow's 
 	});
 });
 
-describe("WORKFLOW_TEMPLATES['platform.notifyCheck']", () => {
+describe("WORKFLOW_TEMPLATES['check-notify']", () => {
 	it("is a known workflow", () => {
-		expect(KNOWN_WORKFLOWS.has("platform.notifyCheck")).toBe(true);
+		expect(KNOWN_WORKFLOWS.has("check-notify")).toBe(true);
 	});
 
 	it("is dispatch-only (it posts real messages) and calls the reusable check with the caller's secrets", () => {
-		const yaml = generateThinCallerContent("platform.notifyCheck");
+		const yaml = generateThinCallerContent("check-notify");
 		expect(yaml).toContain("workflow_dispatch");
 		expect(yaml).not.toMatch(/\n {2}(push|pull_request|schedule):/);
 		expect(yaml).toContain("uses: theholocron/.github/.github/workflows/platform.notifyCheck.yml@main");
@@ -439,9 +435,9 @@ describe("withCacheMode", () => {
 	});
 
 	it("is applied by generateThinCallerContent only for low-trust templates", () => {
-		expect(generateThinCallerContent("greetings")).toContain("    cache-mode: read\n");
-		expect(generateThinCallerContent("delivery.previewCheck")).toContain("    cache-mode: read\n");
-		expect(generateThinCallerContent("verification.typeSafety")).not.toContain("cache-mode");
+		expect(generateThinCallerContent("greet")).toContain("    cache-mode: read\n");
+		expect(generateThinCallerContent("check-preview")).toContain("    cache-mode: read\n");
+		expect(generateThinCallerContent("typecheck")).not.toContain("cache-mode");
 	});
 
 	it("no shipped template other than the low-trust ones gets a cap", () => {
@@ -449,17 +445,17 @@ describe("withCacheMode", () => {
 			.filter(([n]) => generateThinCallerContent(n).includes("cache-mode"))
 			.map(([n]) => n)
 			.sort();
-		expect(capped).toEqual(["delivery.previewCheck", "greetings"]);
+		expect(capped).toEqual(["check-preview", "greet"]);
 	});
 });
 
-describe("WORKFLOW_TEMPLATES['security.tokenExpiry']", () => {
+describe("WORKFLOW_TEMPLATES['check-tokens']", () => {
 	it("is a known workflow", () => {
-		expect(KNOWN_WORKFLOWS.has("security.tokenExpiry")).toBe(true);
+		expect(KNOWN_WORKFLOWS.has("check-tokens")).toBe(true);
 	});
 
 	it("runs daily and by hand, read-only, through the reusable workflow", () => {
-		const yaml = generateThinCallerContent("security.tokenExpiry");
+		const yaml = generateThinCallerContent("check-tokens");
 		expect(yaml).toContain("schedule:");
 		expect(yaml).toContain('cron: "17 6 * * *"');
 		expect(yaml).toContain("workflow_dispatch: {}");

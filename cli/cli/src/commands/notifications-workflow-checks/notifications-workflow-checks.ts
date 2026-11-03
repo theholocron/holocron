@@ -2,6 +2,7 @@ import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/i
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
 import { resultRow, skipRow } from "../notification-check-rows/index.js";
 import { layoutSecretNames } from "../notifications-channel-add/index.js";
+import { workflowNameProblems } from "../workflow-name-problems/index.js";
 import type { NotificationsWorkflowChecksInput } from "./notifications-workflow-checks.type.js";
 
 /** Where the workflow that posts failed runs and releases lives, on the default branch. */
@@ -18,6 +19,8 @@ const PRESENT_ID = "notifications-workflow";
 const PRESENT_TITLE = "Notifications workflow is on the default branch";
 const WIRED_ID = "notifications-workflow-wiring";
 const WIRED_TITLE = "Notifications workflow posts through the layout's webhooks";
+const NAMES_ID = "notifications-workflow-names";
+const NAMES_TITLE = "Notifications workflow lists only task ids";
 
 const shown = (s: string) => sanitizeDetail(s);
 const upper = (names: string[]) => new Set(names.map((n) => n.toUpperCase()));
@@ -43,6 +46,7 @@ export async function notificationsWorkflowChecks(
 		return [
 			skipRow(PRESENT_ID, PRESENT_TITLE, reason),
 			skipRow(WIRED_ID, WIRED_TITLE, "not checked: the workflow could not be read"),
+			skipRow(NAMES_ID, NAMES_TITLE, "not checked: the workflow could not be read"),
 		];
 	}
 
@@ -54,6 +58,7 @@ export async function notificationsWorkflowChecks(
 		return [
 			{ id: PRESENT_ID, title: PRESENT_TITLE, status: "fail", detail: reason, problems: [] },
 			skipRow(WIRED_ID, WIRED_TITLE, "not checked: the workflow could not be read"),
+			skipRow(NAMES_ID, NAMES_TITLE, "not checked: the workflow could not be read"),
 		];
 	}
 	if (text === undefined) {
@@ -67,6 +72,7 @@ export async function notificationsWorkflowChecks(
 				""
 			),
 			skipRow(WIRED_ID, WIRED_TITLE, "not checked: the workflow is missing"),
+			skipRow(NAMES_ID, NAMES_TITLE, "not checked: the workflow is missing"),
 		];
 	}
 
@@ -83,5 +89,6 @@ export async function notificationsWorkflowChecks(
 	return [
 		resultRow(PRESENT_ID, PRESENT_TITLE, [], "found"),
 		resultRow(WIRED_ID, WIRED_TITLE, problems, `${wired.length} of ${wired.length} wired`),
+		resultRow(NAMES_ID, NAMES_TITLE, workflowNameProblems(text), "task ids"),
 	];
 }

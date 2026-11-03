@@ -1,0 +1,56 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: deploy-docs
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - astro.config.ts
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - docs/**
+      - astro.config.ts
+      - pnpm-workspace.yaml
+      - pnpm-lock.yaml
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('preview-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+
+permissions:
+  contents: read
+  deployments: write
+  pages: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  deploy-docs:
+    name: deploy-docs
+    if: ${{ github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/deploy.yml
+    with:
+      type: docs
+    secrets: inherit
+
+  deploy-docs-preview:
+    name: deploy-docs
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/preview.yml
+    with:
+      type: docs
+      cloudflare-project: theholocron-preview
+    secrets: inherit

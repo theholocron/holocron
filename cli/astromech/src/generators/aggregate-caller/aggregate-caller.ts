@@ -9,7 +9,7 @@ import { yamlScalar } from "../github-action-thin-callers/grouped-publish/yaml-s
  */
 export function aggregateCaller({ expected, statuses }: AggregateChecks): string {
 	return [
-		`name: CI`,
+		`name: ci`,
 		``,
 		`on: # yamllint disable-line rule:truthy`,
 		`  pull_request:`,

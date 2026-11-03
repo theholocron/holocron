@@ -167,6 +167,7 @@ const REAL = [
 	"role-members",
 	"notifications-workflow",
 	"notifications-workflow-wiring",
+	"notifications-workflow-names",
 	"server-owner",
 ];
 
@@ -175,7 +176,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const { run } = setup(fakeNotifications());
 		const report = await run();
 		expect(REAL.map((id) => byId(report, id).status)).toEqual(REAL.map(() => "pass"));
-		expect(report.summary).toEqual({ pass: 17, fail: 0, skip: 0 });
+		expect(report.summary).toEqual({ pass: 18, fail: 0, skip: 0 });
 		expect(report.status).toBe("ok");
 	});
 
@@ -184,7 +185,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(report.checks.map((c) => c.id)).toEqual(REAL);
-		expect(lines.join("\n")).toContain("17 ok, 0 fail, 0 skipped");
+		expect(lines.join("\n")).toContain("18 ok, 0 fail, 0 skipped");
 	});
 
 	it("renders one line per check and ends with a count", async () => {
@@ -197,7 +198,7 @@ describe("runDoctorNotifications — a server that matches the layout", () => {
 		expect(out).not.toContain("Not built yet");
 		expect(out).toContain("✓ webhook names and avatars set");
 		expect(out).toContain("✓ server owned by a person, not the bot");
-		expect(out).toContain("17 ok, 0 fail, 0 skipped");
+		expect(out).toContain("18 ok, 0 fail, 0 skipped");
 		// every check has its own row, built or not
 		expect(lines.filter((l) => /^ {2}[✓✗] /.test(l))).toHaveLength(report.checks.length);
 	});
@@ -700,7 +701,7 @@ describe("runDoctorNotifications — edge cases in what the server holds", () =>
 				builtOnly: true,
 			}).run();
 			expect(report.status).toBe("fail");
-			expect(report.summary).toEqual({ pass: 16, fail: 1, skip: 0 });
+			expect(report.summary).toEqual({ pass: 17, fail: 1, skip: 0 });
 		});
 
 		it("keeps control characters in an ordinary provider error off the screen", async () => {

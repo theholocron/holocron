@@ -1,4 +1,4 @@
-name: Source Quality
+name: lint:unused
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  dead-code-analysis:
-    name: Dead Code Analysis
+  lint-unused:
+    name: lint:unused
     uses: theholocron/.github/.github/workflows/lint-unused.yml@main
     secrets: inherit

@@ -1,4 +1,4 @@
-name: Verification
+name: test:perf
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  performance:
-    name: Audit the Performance
+  test-perf:
+    name: test:perf
     uses: theholocron/.github/.github/workflows/test-perf.yml@main
     secrets: inherit

@@ -108,32 +108,32 @@ export function createAstromech(options: AstromechOptions): Astromech {
 			const orgCtx = options.orgContext ?? {};
 			const out = new Map<string, string>();
 			for (const entry of items()) {
-				// `delivery.deploy`, `knowledge.docs`, and `knowledge.components` all
+				// `deploy`, `deploy-docs`, and `deploy-components` all
 				// share the same combined production+preview reusable pair
-				// (`delivery.deploy.yml` / `preview.yml`) — the two new tasks are
+				// (`deploy.yml` / `preview.yml`) — the two new tasks are
 				// each dedicated to exactly one `type:`, so they imply the
 				// corresponding `docs`/`storybook` shorthand rather than requiring
 				// a repo to spell it out. Neither has a static `WORKFLOW_TEMPLATES`
 				// entry (their content is always generated, never a fixed base) —
-				// unlike `delivery.deploy`, which falls back to a plain
+				// unlike `deploy`, which falls back to a plain
 				// production-only static template when `preview` is absent, these
 				// two have no such fallback to fall back to, so `preview` defaults
 				// on too (not just `docs`/`storybook`) — a repo declaring
-				// `knowledge.docs` always gets the full production+preview
+				// `deploy-docs` always gets the full production+preview
 				// treatment these tasks exist for, unless it explicitly opts out
 				// with `preview: false`. They're allowed through the
 				// `KNOWN_WORKFLOWS` gate explicitly since neither is in it.
-				// The workflow tables and the generated file names are still keyed by the old task names (they move in the
-				// later phases), so an entry spelled with a flat id is looked up by the old name it replaced, and
+				// The workflow tables are keyed by the flat id of the template that carries the workflow, so an entry spelled with an
+				// old name or with a sibling id (`format`, `lint:markdown`) finds it, and
 				// a task that has no workflow of its own (`format`) generates no caller.
 				const key = workflowKey(entry.name);
-				const isDocsSite = key === "knowledge.docs";
-				const isComponents = key === "knowledge.components";
+				const isDocsSite = key === "deploy-docs";
+				const isComponents = key === "deploy-components";
 				if (resolveTaskName(entry.name).every(({ id }) => TASKS[id]?.workflow === false)) continue;
 				if (entry.ci === false || (!KNOWN_WORKFLOWS.has(key) && !isDocsSite && !isComponents)) continue;
 				// A release-time deploy (`with.on: "release"`) runs from the publish
 				// job (`holocron deploy-on-release`), not a push/PR workflow.
-				if (key === "delivery.deploy" && entry.with?.["on"] === "release") continue;
+				if (key === "deploy" && entry.with?.["on"] === "release") continue;
 				const rawWith: Record<string, unknown> | undefined = isDocsSite
 					? { preview: true, ...entry.with, docs: entry.with?.["docs"] ?? true }
 					: isComponents
@@ -148,7 +148,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 				const withOverrides = normalized;
 
 				if (
-					key === "verification.unitTests" &&
+					key === "test:unit" &&
 					withOverrides?.["run-unit"] === false &&
 					withOverrides?.["run-storybook"] === false
 				) {
@@ -158,7 +158,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 					);
 				}
 
-				const isDeployFamily = key === "delivery.deploy" || isDocsSite || isComponents;
+				const isDeployFamily = key === "deploy" || isDocsSite || isComponents;
 				const additionalPaths =
 					entry.paths ?? (isDeployFamily && rawWith ? deriveDeployPaths(rawWith) : undefined);
 
@@ -169,7 +169,7 @@ export function createAstromech(options: AstromechOptions): Astromech {
 						// no `?? {}` / `?? []` fallback to leave half-covered.
 						const deployWith = normalizeWorkflowWith(rawWith);
 						const deployPaths = entry.paths ?? deriveDeployPaths(rawWith);
-						out.set(`${key}.yml`, generateCombinedDeployContent(deployWith, deployPaths, preview));
+						out.set(`${key}.yml`, generateCombinedDeployContent(deployWith, deployPaths, preview, key));
 						continue;
 					}
 				}

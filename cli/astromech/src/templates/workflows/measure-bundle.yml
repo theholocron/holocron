@@ -1,4 +1,4 @@
-name: Delivery
+name: measure-bundle
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  bundle-size:
-    name: Audit the Bundle Size
+  measure-bundle:
+    name: measure-bundle
     uses: theholocron/.github/.github/workflows/measure-bundle.yml@main
     secrets: inherit

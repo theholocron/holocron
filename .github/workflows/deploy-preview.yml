@@ -185,7 +185,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:
-          command: run delivery.previewDeploy
+          command: run deploy-preview
           args: --cwd=${{ inputs.cwd }}
 
       - name: Extract and validate the preview URL

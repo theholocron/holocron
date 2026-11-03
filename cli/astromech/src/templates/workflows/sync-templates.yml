@@ -1,4 +1,4 @@
-name: Platform
+name: sync-templates
 
 # Bootstrap note: this `uses:` a reusable workflow that must already exist
 # on theholocron/.github's main branch to resolve at all — a brand-new
@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   sync-templates:
-    name: Sync Templates
+    name: sync-templates
     # workflow_dispatch can target ANY ref, not only main — without this,
     # anyone able to dispatch this workflow (a broader group than who can
     # push to main) could run it against an arbitrary branch, checking out

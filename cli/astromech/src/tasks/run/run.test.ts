@@ -603,8 +603,8 @@ describe("runTask — sub-jobs", () => {
 			[process.argv[1], "probe", "docs", "presence"],
 		]);
 		const out = lines.join("\n");
-		expect(out.indexOf("platform.repoValidation / Validate ADRs and specs")).toBeLessThan(
-			out.indexOf("platform.repoValidation / Validate docs presence")
+		expect(out.indexOf("validate / Validate ADRs and specs")).toBeLessThan(
+			out.indexOf("validate / Validate docs presence")
 		);
 	});
 

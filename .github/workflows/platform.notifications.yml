@@ -6,34 +6,53 @@
 # Tells Discord about the runs nobody is watching (#1159, epic #1160):
 #
 # - A workflow that fails on `alpha` or `main` (not a pull request) posts to #alerts and pings the gatekeepers. A failed
-#   Deploy, Preview, Preview Deploy, Preview Check or Sentinel Deploy goes to #deploys instead. The daily Token Expiry run is in the
-#   list, so a token close to expiring reaches #alerts the day it is found.
+#   deploy, deploy-docs, deploy-components, preview, deploy-preview, check-preview or Sentinel Deploy goes to #deploys
+#   instead. The daily check-tokens run is in the list, so a token close to expiring reaches #alerts the day it is found.
 #   The post names the failing jobs of that run with links (five at most, then "and N more"), read with `actions: read`
 #   (#1614); when they cannot be read the post is just the run's line.
-# - A deploy, preview or Preview Check that succeeds posts to #deploys too (#1578), on any branch and for a pull
+# - A deploy, preview or check-preview that succeeds posts to #deploys too (#1578), on any branch and for a pull
 #   request, so the channel shows every deploy and not only the broken ones. That is deliberately noisy; narrow the
 #   `deployed` job's `if` to dial it back.
-# - A release (the Delivery run of `delivery.publish.yml`) that succeeds posts the tags it made to #releases. The tags
+# - A release (the `release` run, `ci.release.yml`) that succeeds posts the tags it made to #releases. The tags
 #   come from git, not from GitHub releases: a package line (`clients-v*`, `utils-v*`) is tagged but has no release.
 #
-# The runs are named for their caller (`Verification`, `Delivery`, …), so the file name is in the message and a release
-# is told from the other Delivery runs by its file. Repo sync is left out, because it posts its own result, and so is
-# this workflow, so a failure here cannot loop. `workflow_run` only fires from the default branch, so a change to this
+# The runs are named for their task id (`test:unit`, `release`, …), the workflow, job and file names being the id since
+# #1620, and a release is told from the other runs by its file. `holocron doctor notifications` fails on a listed name
+# that is no task id. Repo sync (`ci.sync-repo.yml`) is left out, because it posts its own result, and so is this
+# workflow, so a failure here cannot loop. `workflow_run` only fires from the default branch, so a change to this
 # file takes effect once it is on `alpha`. A missing webhook secret skips the post and never fails the run.
 name: Notifications
 
 on: # yamllint disable-line rule:truthy
   workflow_run:
     workflows:
-      - Verification
-      - Source Quality
-      - Security
-      - Delivery
-      - Platform
-      - Knowledge
-      - Token Expiry
-      - Deploy
-      - Preview
+      - test:unit
+      - typecheck
+      - lint:code
+      - lint:editorconfig
+      - lint:data
+      - lint:unused
+      - annotate
+      - scan:secrets
+      - scan:code
+      - build
+      - measure-bundle
+      - release
+      - deploy-preview
+      - check-preview
+      - validate
+      - lint:commits
+      - sync-templates
+      - check-notify
+      - label
+      - greet
+      - update-deps
+      - publish-wiki
+      - deploy-docs
+      - check-tokens
+      - deploy
+      - deploy-components
+      - preview
       - Sentinel Deploy
       - Spec discussions
     types: [completed]
@@ -46,7 +65,7 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'failure' &&
       github.event.workflow_run.event != 'pull_request' &&
-      !endsWith(github.event.workflow_run.path, 'platform.repoSync.yml') &&
+      !endsWith(github.event.workflow_run.path, 'ci.sync-repo.yml') &&
       contains(fromJSON('["alpha","main"]'), github.event.workflow_run.head_branch)
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -86,14 +105,14 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: "Notify #deploys"
-        if: ${{ contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml') || endsWith(github.event.workflow_run.path, 'delivery.previewCheck.yml') }}
+        if: ${{ contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') || endsWith(github.event.workflow_run.path, 'ci.check-preview.yml') }}
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS }}
           message: ${{ steps.message.outputs.text }}
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: "Notify #alerts"
-        if: ${{ !(contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml') || endsWith(github.event.workflow_run.path, 'delivery.previewCheck.yml')) }}
+        if: ${{ !(contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') || endsWith(github.event.workflow_run.path, 'ci.check-preview.yml')) }}
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
           mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
@@ -103,9 +122,9 @@ jobs:
     name: Notify of a deploy
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      (contains(fromJSON('["Deploy","Preview","Sentinel Deploy"]'), github.event.workflow_run.name) ||
-      endsWith(github.event.workflow_run.path, 'delivery.previewDeploy.yml') ||
-      endsWith(github.event.workflow_run.path, 'delivery.previewCheck.yml'))
+      (contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","Sentinel Deploy"]'), github.event.workflow_run.name) ||
+      endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') ||
+      endsWith(github.event.workflow_run.path, 'ci.check-preview.yml'))
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:
@@ -131,7 +150,7 @@ jobs:
   released:
     name: Notify of a release
     if: >-
-      endsWith(github.event.workflow_run.path, 'delivery.publish.yml') &&
+      endsWith(github.event.workflow_run.path, 'ci.release.yml') &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event != 'pull_request'
     runs-on: ubuntu-latest

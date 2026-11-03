@@ -1,4 +1,4 @@
-name: Source Quality
+name: lint:code
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -14,7 +14,7 @@ permissions:
   statuses: write
 
 jobs:
-  static-analysis:
-    name: Static Analysis
+  lint-code:
+    name: lint:code
     uses: theholocron/.github/.github/workflows/lint-code.yml@main
     secrets: inherit

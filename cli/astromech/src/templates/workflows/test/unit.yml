@@ -1,4 +1,4 @@
-name: Verification
+name: test:unit
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -15,8 +15,8 @@ permissions:
   statuses: write
 
 jobs:
-  test:
-    name: Test
+  test-unit:
+    name: test:unit
     uses: theholocron/.github/.github/workflows/test-unit.yml@main
     with:
       run-unit: true

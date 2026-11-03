@@ -1,4 +1,4 @@
-name: Source Quality
+name: lint:data
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  structured-data-validation:
-    name: Structured Data Validation
+  lint-data:
+    name: lint:data
     uses: theholocron/.github/.github/workflows/lint-data.yml@main
     secrets: inherit

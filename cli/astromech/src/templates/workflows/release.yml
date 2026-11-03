@@ -1,4 +1,4 @@
-name: Delivery
+name: release
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   release:
-    name: Release
+    name: release
     uses: theholocron/.github/.github/workflows/release.yml@main
     with:
       dry-run: ${{ inputs.dry_run == true }}

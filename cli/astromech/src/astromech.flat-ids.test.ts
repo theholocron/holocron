@@ -55,7 +55,7 @@ describe("createAstromech() with the flat task ids", () => {
 		const next = createAstromech({ cwd: "/repo", config: { tasks: flat } });
 		const callers = (a: typeof old) => [...a.thinCallers().entries()].sort(([x], [y]) => x.localeCompare(y));
 		expect(callers(next)).toEqual(callers(old));
-		expect([...next.thinCallers().keys()]).toContain("verification.unitTests.yml");
+		expect([...next.thinCallers().keys()]).toContain("test:unit.yml");
 		// turbo.json and the package scripts follow the spelling of the list: flat ids give flat keys.
 		expect(Object.keys(JSON.parse(old.turboConfig()!).tasks)).toContain("verification.unitTests");
 		expect(Object.keys(JSON.parse(next.turboConfig()!).tasks)).toContain("test:unit");

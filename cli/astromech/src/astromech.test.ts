@@ -284,7 +284,7 @@ describe("createAstromech().run", () => {
 });
 
 describe("createAstromech().thinCallers", () => {
-	it("returns one thin caller per templated task, keyed by <name>.yml", () => {
+	it("returns one thin caller per templated task, keyed by <id>.yml", () => {
 		const astromech = createAstromech({
 			cwd: "/repo",
 			config: {
@@ -296,13 +296,9 @@ describe("createAstromech().thinCallers", () => {
 			},
 		});
 		const callers = astromech.thinCallers();
-		expect([...callers.keys()].sort()).toEqual([
-			"delivery.publish.yml",
-			"sourceQuality.staticAnalysis.yml",
-			"verification.unitTests.yml",
-		]);
-		expect(callers.get("verification.unitTests.yml")).toContain("secrets: inherit");
-		expect(callers.get("delivery.publish.yml")).toContain("run-build: false");
+		expect([...callers.keys()].sort()).toEqual(["lint:code.yml", "release.yml", "test:unit.yml"]);
+		expect(callers.get("test:unit.yml")).toContain("secrets: inherit");
+		expect(callers.get("release.yml")).toContain("run-build: false");
 	});
 
 	it("skips tasks with ci: false and tasks with no template", () => {
@@ -314,7 +310,7 @@ describe("createAstromech().thinCallers", () => {
 				tasks: [{ name: "security.codeScanning", ci: false }, "made-up.task", "sourceQuality.staticAnalysis"],
 			},
 		});
-		expect([...astromech.thinCallers().keys()]).toEqual(["sourceQuality.staticAnalysis.yml"]);
+		expect([...astromech.thinCallers().keys()]).toEqual(["lint:code.yml"]);
 	});
 
 	it("emits the combined deploy+preview caller when preview resolves", () => {
@@ -323,7 +319,7 @@ describe("createAstromech().thinCallers", () => {
 			orgContext: { org: "acme", domain: "acme.dev" },
 			config: { tasks: [{ name: "delivery.deploy", with: { docs: true, preview: true } }] },
 		});
-		const deploy = astromech.thinCallers().get("delivery.deploy.yml")!;
+		const deploy = astromech.thinCallers().get("deploy.yml")!;
 		expect(deploy).toContain("pull_request:");
 		expect(deploy).toContain("cloudflare-project: acme-preview");
 		expect(deploy).toContain("- docs/**");
@@ -334,7 +330,7 @@ describe("createAstromech().thinCallers", () => {
 			cwd: "/repo",
 			config: { tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }] },
 		});
-		expect(astromech.thinCallers().has("delivery.deploy.yml")).toBe(false);
+		expect(astromech.thinCallers().has("deploy.yml")).toBe(false);
 	});
 
 	it("emits a plain deploy caller when preview is absent", () => {
@@ -342,7 +338,7 @@ describe("createAstromech().thinCallers", () => {
 			cwd: "/repo",
 			config: { tasks: [{ name: "delivery.deploy", with: { docs: true } }] },
 		});
-		const deploy = astromech.thinCallers().get("delivery.deploy.yml")!;
+		const deploy = astromech.thinCallers().get("deploy.yml")!;
 		expect(deploy).not.toContain("pull_request:");
 		expect(deploy).toContain("- docs/**");
 	});
@@ -352,7 +348,7 @@ describe("createAstromech().thinCallers", () => {
 			cwd: "/repo",
 			config: { tasks: ["delivery.previewCheck"] },
 		});
-		const previewCheck = astromech.thinCallers().get("delivery.previewCheck.yml")!;
+		const previewCheck = astromech.thinCallers().get("check-preview.yml")!;
 		expect(previewCheck).toContain("deployment_status:");
 		expect(previewCheck).not.toContain("pull_request:");
 		expect(previewCheck).toContain("environment_url");
@@ -372,7 +368,7 @@ describe("createAstromech().thinCallers", () => {
 			cwd: "/repo",
 			config: { tasks: [{ name: "delivery.previewCheck", with: { cwd: "apps/sentinel" } }] },
 		});
-		const previewCheck = astromech.thinCallers().get("delivery.previewCheck.yml")!;
+		const previewCheck = astromech.thinCallers().get("check-preview.yml")!;
 		expect(previewCheck).toContain("cwd: apps/sentinel");
 		// The static, event-derived values still carry over alongside it.
 		expect(previewCheck).toContain("preview-url: ${{ github.event.deployment_status.environment_url }}");
@@ -384,7 +380,7 @@ describe("createAstromech().thinCallers", () => {
 			orgContext: { org: "acme", domain: "acme.dev" },
 			config: { tasks: [{ name: "knowledge.docs", with: { preview: true } }] },
 		});
-		const docs = astromech.thinCallers().get("knowledge.docs.yml")!;
+		const docs = astromech.thinCallers().get("deploy-docs.yml")!;
 		expect(docs).toContain("- docs/**");
 		expect(docs).toContain("cloudflare-project: acme-preview");
 	});
@@ -395,7 +391,7 @@ describe("createAstromech().thinCallers", () => {
 			orgContext: { org: "acme", domain: "acme.dev" },
 			config: { tasks: [{ name: "knowledge.components", with: { preview: true } }] },
 		});
-		const components = astromech.thinCallers().get("knowledge.components.yml")!;
+		const components = astromech.thinCallers().get("deploy-components.yml")!;
 		expect(components).toContain("- src/**");
 		expect(components).toContain("cloudflare-project: acme-preview");
 	});
@@ -589,8 +585,8 @@ describe("createAstromech().requiredChecks", () => {
 		}).requiredChecks(false);
 		expect(checks).toEqual([
 			"DCO",
-			"Static Analysis / Run eslint and actionlint",
-			"Test / Conclusion",
+			"lint:code / Run eslint and actionlint",
+			"test:unit / Conclusion",
 			"codecov/patch",
 		]);
 	});
@@ -613,7 +609,7 @@ describe("createAstromech().aggregateCaller", () => {
 				extraRequiredChecks: ["codecov/patch"],
 			},
 		}).aggregateCaller();
-		expect(caller).toContain(`expected: '["Typecheck"]'`);
+		expect(caller).toContain(`expected: '["typecheck"]'`);
 		expect(caller).toContain(`statuses: '["codecov/patch"]'`);
 	});
 

@@ -1,4 +1,4 @@
-name: Delivery
+name: deploy-preview
 
 on: # yamllint disable-line rule:truthy
   pull_request: {}
@@ -20,8 +20,8 @@ permissions:
   pull-requests: read
 
 jobs:
-  preview-deploy:
-    name: Preview Deploy
+  deploy-preview:
+    name: deploy-preview
     uses: theholocron/.github/.github/workflows/deploy-preview.yml@main
     with:
       cwd: "."

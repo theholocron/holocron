@@ -1,0 +1,21 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: check-tokens
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check-tokens:
+    name: check-tokens
+    uses: ./.github/workflows/check-tokens.yml
+    secrets: inherit

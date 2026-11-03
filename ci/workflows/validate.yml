@@ -25,7 +25,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Validate ADR and spec frontmatter
         with:
-          task: platform.repoValidation
+          task: validate
           job: adrs
 
   docs-presence:
@@ -46,7 +46,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Validate docs presence for new packages
         with:
-          task: platform.repoValidation
+          task: validate
           job: docsPresence
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

@@ -46,7 +46,17 @@ export const CI_TARGET: CiHome = {
  * flat ones.
  */
 function fileAt(file: string, home: CiHome): string {
-	return home.ref === "main" ? legacyFile(file) : file;
+	return legacyGate(home) ? legacyFile(file) : file;
+}
+
+/**
+ * Whether a caller that calls its reusables at `home` keeps the names it had before they became the task id (the
+ * legacy-name gate): while 'home' is the frozen copies on `main`, the callers of a repo other than the one that hosts
+ * the reusables keep their old workflow, job and file names, because their rulesets list the checks those post. `ci-v1`
+ * has only flat names, so the gate is open there and every caller is flat (spec `ci-flat-task-vocabulary`, phase K).
+ */
+export function legacyGate(home: CiHome = CI_HOME): boolean {
+	return home.ref === "main";
 }
 
 const REFERENCE = /theholocron\/\.github\/\.github\/(workflows|actions)\/([\w.-]+)@main/g;

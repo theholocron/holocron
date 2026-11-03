@@ -82,7 +82,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run eslint and actionlint
         with:
-          task: sourceQuality.staticAnalysis
+          task: lint:code
 
       - uses: theholocron/.github/.github/actions/auto-commit@main
         name: Commit and push eslint --fix

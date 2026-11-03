@@ -24,7 +24,7 @@ describe("taskCheckContexts", () => {
 					{ name: "verification.typeSafety", required: true },
 				],
 			})
-		).toEqual(["Typecheck / Run tsc --noEmit", "Static Analysis / Run eslint and actionlint", "Test / Conclusion"]);
+		).toEqual(["typecheck / Run tsc --noEmit", "lint:code / Run eslint and actionlint", "test:unit / Conclusion"]);
 	});
 
 	it("orders task contexts by CI_ORDER regardless of manifest order", () => {
@@ -38,10 +38,10 @@ describe("taskCheckContexts", () => {
 				],
 			})
 		).toEqual([
-			"Typecheck / Run tsc --noEmit",
-			"Static Analysis / Run eslint and actionlint",
-			"Test / Conclusion",
-			"Audit the Bundle Size / Upload bundle stats to Codecov",
+			"typecheck / Run tsc --noEmit",
+			"lint:code / Run eslint and actionlint",
+			"test:unit / Conclusion",
+			"measure-bundle / Upload bundle stats to Codecov",
 		]);
 	});
 
@@ -52,7 +52,7 @@ describe("taskCheckContexts", () => {
 				extraRequiredChecks: ["codecov/patch", "codecov/project", "tsdown (every workspace)"],
 			})
 		).toEqual([
-			"Static Analysis / Run eslint and actionlint",
+			"lint:code / Run eslint and actionlint",
 			"codecov/patch",
 			"codecov/project",
 			"tsdown (every workspace)",
@@ -63,9 +63,9 @@ describe("taskCheckContexts", () => {
 		expect(
 			taskCheckContexts({
 				tasks: [{ name: "sourceQuality.staticAnalysis", required: true }],
-				extraRequiredChecks: ["Static Analysis / Run eslint and actionlint", "codecov/patch"],
+				extraRequiredChecks: ["lint:code / Run eslint and actionlint", "codecov/patch"],
 			})
-		).toEqual(["Static Analysis / Run eslint and actionlint", "codecov/patch"]);
+		).toEqual(["lint:code / Run eslint and actionlint", "codecov/patch"]);
 	});
 
 	it("ignores a required task with no known check context", () => {
@@ -80,7 +80,10 @@ describe("taskCheckContexts", () => {
 					{ name: "lint:markdown", required: true },
 				],
 			})
-		).toEqual(["Typecheck / Run tsc --noEmit", "Formatting / Run prettier, editorconfig-checker, markdownlint"]);
+		).toEqual([
+			"typecheck / Run tsc --noEmit",
+			"lint:editorconfig / Run prettier, editorconfig-checker, markdownlint",
+		]);
 	});
 
 	it("accepts a bare string task (never required)", () => {

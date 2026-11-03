@@ -41,5 +41,5 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Type check
         with:
-          task: verification.typeSafety
+          task: typecheck
           affected: ${{ inputs.affected }}

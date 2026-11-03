@@ -69,7 +69,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run tests with coverage
         with:
-          task: verification.unitTests
+          task: test:unit
           affected: ${{ inputs.affected }}
 
       # With `affected`, a run that selects nothing (a README-only PR) writes no coverage. The two

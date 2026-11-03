@@ -1,4 +1,4 @@
-name: Verification
+name: typecheck
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -14,6 +14,6 @@ permissions:
 
 jobs:
   typecheck:
-    name: Typecheck
+    name: typecheck
     uses: theholocron/.github/.github/workflows/typecheck.yml@main
     secrets: inherit

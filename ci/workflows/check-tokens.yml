@@ -68,4 +68,4 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Run holocron doctor tokens
         with:
-          task: security.tokenExpiry
+          task: check-tokens

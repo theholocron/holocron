@@ -1,4 +1,4 @@
-name: Delivery
+name: build
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -17,6 +17,6 @@ permissions:
 
 jobs:
   build:
-    name: Build
+    name: build
     uses: theholocron/.github/.github/workflows/build.yml@main
     secrets: inherit

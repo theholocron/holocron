@@ -235,7 +235,7 @@ export const TASKS: Record<string, TaskDef> = {
 		jobs: {
 			adrs: {
 				local: { command: "probe specs check" },
-				checkContext: "platform.repoValidation / Validate ADRs and specs",
+				checkContext: "validate / Validate ADRs and specs",
 			},
 			// Warns (never fails — `holocron probe docs presence` reports, it does not
 			// exit non-zero) when a PR adds a new public package, or a `feat` changes
@@ -244,7 +244,7 @@ export const TASKS: Record<string, TaskDef> = {
 			// process/governance siblings, not gated behind the docs deploy.
 			docsPresence: {
 				local: { command: "probe docs presence" },
-				checkContext: "platform.repoValidation / Validate docs presence",
+				checkContext: "validate / Validate docs presence",
 				alias: "docsEnforcement",
 			},
 		},
