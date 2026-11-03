@@ -30,6 +30,8 @@ import { getPlugins } from "../../../lib/registry.ts";
 
 The "token" for `send()` is the full webhook URL, not a separate API key. The bot token and the client secret are for provisioning and sign-in, and the `HOLOCRON_NOTIFY_*` secrets are for workflows. [Tokens](/holocron/tokens/#discord) says what each one is for.
 
+The webhook is the last resort for a post that names no channel, alias or `defaultChannel`, so the plugin lists it as an optional token: `holocron doctor credentials` does not expect it in the credentials environment, and `holocron auth export` marks it `(optional)` when it has none. The connection check (`holocron doctor`, `holocron probe discord connection`) uses the webhook when there is one and the bot token when there is not, so a missing webhook is not a failed connection as long as the bot can be reached.
+
 ## Config
 
 ```ts

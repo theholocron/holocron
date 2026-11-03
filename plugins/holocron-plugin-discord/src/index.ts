@@ -11,6 +11,7 @@ import {
 	type DiscordClient,
 	type DiscordOAuthClient,
 } from "./rest.js";
+import { verifyBotToken } from "./verify-bot-token.js";
 import { verifyToken } from "./verify-token.js";
 
 /** Options for the Discord plugin: how the webhook URL is resolved plus the notifications settings. */
@@ -86,9 +87,15 @@ export function notifications(ctx: PluginContext): Notifications {
 	return new DiscordNotifications(ctx.client, ctx.options, ctx.defaultWebhookUrl, ctx.bot, ctx.oauth);
 }
 
-/** Creates the Discord plugin: its `notifications` capability and its `connection` probe. */
+/**
+ * Creates the Discord plugin: its `notifications` capability and its `connection` probe. The probe checks the webhook
+ * when there is one, and the bot token when there is not: the webhook is only a last resort for a post that names no
+ * channel, so a missing one is not a failed connection when the bot can be reached.
+ */
 export function createPlugin(options: DiscordPluginOptions = {}) {
 	const ctx = createContext(options);
+	// Which credential the probe found, so `verify` asks the right API about it.
+	let found: "webhook" | "bot" = "webhook";
 	return {
 		name: "@theholocron/holocron-plugin-discord",
 		probes: {
@@ -96,8 +103,28 @@ export function createPlugin(options: DiscordPluginOptions = {}) {
 				provider: "Discord",
 				url: options.baseUrl ?? "https://discord.com",
 				fetch: options.fetch,
-				token: () => resolveToken(options),
-				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
+				token: () => {
+					try {
+						found = "webhook";
+						return resolveToken(options);
+					} catch (noWebhook) {
+						found = "bot";
+						try {
+							return resolveBotToken({ env: options.env, keyring: options.keyring, org: options.org });
+						} catch {
+							// Neither is set: the missing webhook is the message that says where to put one.
+							throw noWebhook;
+						}
+					}
+				},
+				verify: (token) =>
+					found === "webhook"
+						? verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch })
+						: verifyBotToken(token, {
+								baseUrl: options.baseUrl,
+								fetch: options.fetch,
+								unsafeBotBaseUrl: options.unsafeBotBaseUrl,
+							}),
 			}),
 		},
 		capabilities: {

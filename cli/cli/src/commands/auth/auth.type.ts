@@ -36,6 +36,13 @@ export interface PluginToken {
 	 * a webhook URL), so `holocron doctor tokens` reports it as set without calling the plugin. Default `true`.
 	 */
 	verifiable?: boolean;
+	/**
+	 * `true` when the plugin only falls back to this token: nothing needs it unless a call names no better source (the
+	 * Discord webhook a post uses when it names no channel). The checks that expect every token a plugin lists, such as
+	 * `holocron doctor credentials`, do not expect it, and `holocron auth export` marks it as optional when it has none.
+	 * Default `false`.
+	 */
+	optional?: boolean;
 }
 
 export interface AuthPluginModule {

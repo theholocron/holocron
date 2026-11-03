@@ -141,6 +141,8 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 			const first = tokens.get(token.envName);
 			if (!first) tokens.set(token.envName, token);
 			else if (first.keyringKey !== token.keyringKey) conflicts.add(token.envName);
+			// The same token declared again: it is optional only if every plugin that declares it says so.
+			else tokens.set(token.envName, { ...first, optional: first.optional === true && token.optional === true });
 		}
 	}
 	// With every plugin unresolvable the list is empty for a reason the user can fix, not because there is nothing to do.
@@ -229,7 +231,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	// One row per token: written (✓), not found (·), or left out for a reason the row gives (✗). Names only.
 	print(`exported ${exported.length} of ${tokens.size}:`);
 	for (const name of exported) print(`  ${style.success(name)}`);
-	for (const name of missing) print(`  ${style.dim("·")} ${name}`);
+	for (const name of missing) {
+		print(`  ${style.dim("·")} ${name}${tokens.get(name)?.optional ? style.dim("  (optional)") : ""}`);
+	}
 	for (const name of [...conflicts].sort(compare)) {
 		print(`  ${style.fail(`${name}  (listed by two plugins under different keyring entries, so not exported)`)}`);
 	}
