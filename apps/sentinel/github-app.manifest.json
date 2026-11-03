@@ -1,0 +1,16 @@
+{
+  "description": "Holocron's minimal GitHub App — validates holocron.config.ts, syncs capability status to repo properties, and posts a compliance check run on every push to the default branch and pull request.",
+  "url": "https://github.com/theholocron/holocron/tree/main/apps/sentinel#readme",
+  "public": false,
+  "default_permissions": {
+    "actions": "write",
+    "checks": "write",
+    "contents": "write",
+    "issues": "write",
+    "members": "read",
+    "metadata": "read",
+    "pull_requests": "write",
+    "repository_custom_properties": "write"
+  },
+  "default_events": ["membership", "organization", "pull_request", "push"]
+}

@@ -393,8 +393,15 @@ from it, and refuses an open range with `invalid_version_value`
 
 ## GitHub App registration (manual, one-time)
 
-Creating the App itself is a web-UI flow — no API for it, nothing to
-automate. **Register it under the org, not your personal account:**
+The App can be created from a manifest instead of the form below:
+`holocron github-app create --manifest apps/sentinel/github-app.manifest.json
+--name ... --webhook-url ... --org theholocron` (GitHub's manifest flow; it
+needs one click on GitHub and writes the id, key and webhook secret to a
+private `.credentials` file — see the command's page). The manifest holds
+the permissions and events of the tables below, so a dev instance
+(`The Holocron Sentinel - dev`, its webhook on your tunnel) is the same
+command with another name and URL. Doing it by hand: **register it under
+the org, not your personal account:**
 `https://github.com/organizations/theholocron/settings/apps/new`. Using
 the personal-account URL (`https://github.com/settings/apps/new`)
 still creates a working App, but "Where can this GitHub App be
