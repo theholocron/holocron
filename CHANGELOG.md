@@ -1,3 +1,9 @@
+## [5.0.0-alpha.304](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.303...v5.0.0-alpha.304) (2026-11-03)
+
+### Features
+
+* **config:** 🔐 read this repo's tokens from the Holocron 1Password Environment ([#1606](https://github.com/theholocron/holocron/issues/1606)) ([#1632](https://github.com/theholocron/holocron/issues/1632)) ([befdece](https://github.com/theholocron/holocron/commit/befdece6d55dac671ad880058e5695a1c6b9f8be))
+
 ## [5.0.0-alpha.303](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.302...v5.0.0-alpha.303) (2026-11-03)
 
 ### Features
