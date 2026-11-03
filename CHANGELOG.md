@@ -1,3 +1,9 @@
+## [5.0.0-alpha.307](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.306...v5.0.0-alpha.307) (2026-11-03)
+
+### Features
+
+* **cli:** ✅ holocron probe tasks names and a stale-context ruleset comparison ([#1635](https://github.com/theholocron/holocron/issues/1635)) ([aadf3db](https://github.com/theholocron/holocron/commit/aadf3db9527bd1ec1d74621d45616db3adc0ffa5)), closes [#1618](https://github.com/theholocron/holocron/issues/1618)
+
 ## [5.0.0-alpha.306](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.305...v5.0.0-alpha.306) (2026-11-03)
 
 ### Features
