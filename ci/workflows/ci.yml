@@ -79,10 +79,9 @@ jobs:
                 # the fallback, so either shape counts.
                 | ($runs | map(select(.name == $context)) | .[0]) as $c
                 | ($posted | map(select(.context == $context)) | .[0]) as $s
-                | if $c != null then
-                    (if $c.status != "completed" then expire(row($context; "status"; "pending"; "still running"; $c.url))
-                     elif ($c.conclusion // "") | ok then row($context; "status"; "success"; $c.conclusion; $c.url)
-                     else row($context; "status"; "failure"; ($c.conclusion // "none"); $c.url) end)
+                | if $c != null and $c.status != "completed" then expire(row($context; "status"; "pending"; "still running"; $c.url))
+                  elif $c != null and (($c.conclusion // "") | ok) then row($context; "status"; "success"; $c.conclusion; $c.url)
+                  elif $c != null then row($context; "status"; "failure"; ($c.conclusion // "none"); $c.url)
                   elif $s == null then row($context; "status"; "missing"; "never posted"; null)
                   elif $s.state == "pending" then expire(row($context; "status"; "pending"; "still pending"; $s.url))
                   elif $s.state == "success" then row($context; "status"; "success"; "success"; $s.url)
