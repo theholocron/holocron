@@ -142,6 +142,7 @@ export default defineConfig({
 				guildId: "1303969001822486568",
 				layout: {
 					// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
+					// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `notifications setup`.
 					relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli"] } },
 					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 					webhookAvatar: "media/webhook-avatar.png",

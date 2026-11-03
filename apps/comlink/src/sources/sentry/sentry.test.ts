@@ -120,6 +120,20 @@ describe("sentry.format", () => {
 		expect(slug.embeds[0]!.fields).toContainEqual({ name: "Project", value: "web", inline: true });
 	});
 
+	it("names the project from the event's API address when the payload gives only its number", () => {
+		const url = "https://sentry.io/api/0/projects/theholocron/holocron-cli/events/abc123/";
+		const named = sentry.format(headers(), alert({ project: 4491, url }))!;
+		expect(named.embeds[0]!.fields).toContainEqual({ name: "Project", value: "holocron-cli", inline: true });
+		// A name the payload gives outright wins over the address.
+		const explicit = sentry.format(headers(), alert({ project: 4491, url, project_name: "other" }))!;
+		expect(explicit.embeds[0]!.fields).toContainEqual({ name: "Project", value: "other", inline: true });
+		// An address that is not an event's, or not a string, names nothing.
+		for (const odd of ["https://sentry.io/organizations/o/issues/1/", 12, null]) {
+			const none = sentry.format(headers(), alert({ project: 4491, url: odd }))!;
+			expect(none.embeds[0]!.fields!.map((f) => f.name)).not.toContain("Project");
+		}
+	});
+
 	it("titles an event with neither a title nor a message 'Error', and leaves out what it has no value for", () => {
 		const m = sentry.format(
 			headers(),

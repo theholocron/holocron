@@ -57,6 +57,7 @@ interface World {
 	installs?: Array<{ uuid: string; status: string; app: { uuid: string; slug: string; sentryAppId: number } }>;
 	created?: SentryApp;
 	got?: SentryApp;
+	projects?: Array<{ id: string; slug: string; name: string; platform: string }>;
 }
 
 function world(w: World = {}) {
@@ -82,12 +83,43 @@ function world(w: World = {}) {
 					w.detectors ?? [{ id: "d1", projectId: "p1", name: "x", type: "issue_stream", workflowIds: [] }]
 			),
 		},
-		projects: { list: vi.fn(async () => [{ id: "p1", slug: "holocron-cli", name: "x", platform: "node" }]) },
+		projects: {
+			list: vi.fn(async () => w.projects ?? [{ id: "p1", slug: "holocron-cli", name: "x", platform: "node" }]),
+		},
 	};
 	return { client, as: client as unknown as SentryClient };
 }
 
+/** Two projects, each with the issue stream detector Sentry makes for it. */
+const TWO = {
+	projects: [
+		{ id: "p1", slug: "holocron-cli", name: "x", platform: "node" },
+		{ id: "p2", slug: "sentinel", name: "y", platform: "node" },
+	],
+	detectors: [
+		{ id: "d1", projectId: "p1", name: "x", type: "issue_stream", workflowIds: [] },
+		{ id: "d2", projectId: "p2", name: "y", type: "issue_stream", workflowIds: [] },
+	],
+};
+
 describe("ensureSentryRelay", () => {
+	it("makes one rule that covers every listed project", async () => {
+		const { client, as } = world(TWO);
+		await ensureSentryRelay(as, ORG, { ...input, projects: ["holocron-cli", "sentinel"] });
+		expect(client.workflows.create).toHaveBeenCalledTimes(1);
+		expect(client.workflows.create.mock.calls[0]![1].detectorIds).toEqual(["d1", "d2"]);
+	});
+
+	it("adds a newly listed project to the rule it adopts, and a second run changes nothing", async () => {
+		const first = world({ ...TWO, apps: [app()], workflows: [workflow()] });
+		const result = await ensureSentryRelay(first.as, ORG, { ...input, projects: ["holocron-cli", "sentinel"] });
+		expect(result.rule).toEqual({ created: false, updated: ["projects"] });
+		expect(first.client.workflows.update.mock.calls[0]![2].detectorIds).toEqual(["d1", "d2"]);
+		const again = world({ ...TWO, apps: [app()], workflows: [workflow({ detectorIds: ["d1", "d2"] })] });
+		await ensureSentryRelay(again.as, ORG, { ...input, projects: ["holocron-cli", "sentinel"] });
+		expect(again.client.workflows.update).not.toHaveBeenCalled();
+	});
+
 	it("creates the integration and the rule, and returns the secret it reads back", async () => {
 		const { client, as } = world({
 			created: app({ clientSecret: undefined }),
@@ -275,6 +307,12 @@ describe("inspectSentryRelay", () => {
 		expect(client.sentryApps.get).not.toHaveBeenCalled();
 		expect(client.sentryApps.create).not.toHaveBeenCalled();
 		expect(client.workflows.update).not.toHaveBeenCalled();
+	});
+
+	it("reports only the listed projects the rule is on, so a doctor row can name the one missing", async () => {
+		const { as } = world({ ...TWO, apps: [app()], workflows: [workflow()] });
+		const state = await inspectSentryRelay(as, ORG, { ...ask, projects: ["holocron-cli", "sentinel"] });
+		expect(state.rules).toEqual([{ project: "holocron-cli", enabled: true, sends: true }]);
 	});
 
 	it("never returns the integration's signing secret", async () => {
