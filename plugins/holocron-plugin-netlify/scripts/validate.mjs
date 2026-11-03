@@ -12,7 +12,7 @@
  * you must have run `pnpm holocron auth set netlify <TOKEN>` first.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-netlify validate <arg1> [arg2] ...
+ *   pnpm --filter @theholocron/holocron-plugin-netlify validate:plugin <arg1> [arg2] ...
  *
  * TODO: replace the positional args below with whatever your
  * capability's methods need (e.g., project id, environment slug,
@@ -26,7 +26,7 @@ import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index
 const args = process.argv.slice(2);
 
 if (args.length === 0) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-netlify validate <args>");
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-netlify validate:plugin <args>");
 	process.exit(2);
 }
 

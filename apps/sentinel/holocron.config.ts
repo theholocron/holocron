@@ -7,14 +7,14 @@
  * of its own to check).
  *
  * Three separate invocations, different frequency:
- *   - `pnpm run delivery.deploy` (recurring, every real deploy):
+ *   - `pnpm run deploy` (recurring, every real deploy):
  *     build → stage → `holocron deploy --target production`.
  *   - `holocron repo setup --cwd apps/sentinel` (one-time, manual):
  *     attaches the custom domain to the Vercel project and hands any
  *     verification CNAME to the `dns` provider — `source` being
  *     unconfigured means every repo-settings step is skipped
  *     (each gated on `loader.has("source")`), not that setup fails.
- *   - `delivery.previewCheck` + `delivery.previewDeploy` tasks
+ *   - `check-preview` + `deploy-preview` tasks
  *     (holocron#1010, #1022, #1024): on every PR to this repo
  *     (no path filter yet — #1023 — so this also fires on PRs touching
  *     unrelated packages, not only Sentinel or its bundled deps),
@@ -103,12 +103,12 @@ import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
 	// Redeploy after a release publishes (holocron#928, #930): the `deploy` job
-	// in the shared delivery.publish workflow runs `holocron deploy on-release`,
+	// in the shared release workflow runs `holocron deploy on-release`,
 	// which reads this task from every workspace package. `paths` default to this
 	// package plus its `workspace:*` dependencies (the packages inlined into
 	// `dist/`).
 	tasks: [
-		{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } },
+		{ name: "deploy", with: { on: "release", channel: "alpha" } },
 		// cwd tells the generated workflow which package directory to run
 		// from — the repo root is checked out, and this is a monorepo, so
 		// without it the CLI would load this repo's own root
@@ -117,7 +117,7 @@ export default defineConfig({
 		// now flow through the normal `holocron repo sync` path, no
 		// hand-maintained workflow file needed for either.
 		{
-			name: "delivery.previewCheck",
+			name: "check-preview",
 			with: {
 				cwd: "apps/sentinel",
 				// Verified live via Vercel's API before
@@ -138,9 +138,9 @@ export default defineConfig({
 		// (D6's security boundary) — so a brand-new task name can't appear
 		// in ANY repo's config until a real release has shipped it and
 		// Sentinel has redeployed with the updated bundle (confirmed live:
-		// this exact failure on holocron#1019's platform.syncTemplates,
+		// this exact failure on holocron#1019's sync-templates,
 		// same root cause).
-		{ name: "delivery.previewDeploy", with: { cwd: "apps/sentinel" } },
+		{ name: "deploy-preview", with: { cwd: "apps/sentinel" } },
 	],
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],

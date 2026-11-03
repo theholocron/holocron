@@ -396,7 +396,7 @@ every sub-job in declared order. A sub-job whose tool isn't installed, or that h
 a note — `--required` makes that a failure. For a task with no sub-jobs the `job` slot is the first passthrough arg
 (`holocron run build src/`). `holocron run format` writes (prettier), `holocron run format --check` is read-only.
 `holocron run --help` lists the tasks grouped under the six intent groups. The old dotted names
-(`verification.unitTests`, `sourceQuality.formatting`, …) still work and print a deprecation notice on stderr.
+(`test:unit`, `sourceQuality.formatting`, …) still work and print a deprecation notice on stderr.
 
 **CI runs the identical command.** The reusable `typecheck` / `test` / `audit`
 workflows call the `holocron` composite action
@@ -412,14 +412,14 @@ holocron deploy on-release [--channel <alpha|main>] [--from <commit>] [--to <com
 ```
 
 Deploys every workspace package whose own `holocron.config` declares
-`{ name: "delivery.deploy", with: { on: "release" } }` (holocron#930), when the
+`{ name: "deploy", with: { on: "release" } }` (holocron#930), when the
 release (`--channel`: its prerelease identifier, or `main`/empty for a stable
 release) is on the task's `channel` (default `main`, the stable release) and changes the package or one of its
 `workspace:*` dependencies between `--from` (the previous release's commit,
 omitted when there is none) and `--to` (default `HEAD`). It waits for npm to
 serve the release's new dependency versions, then runs `pnpm --filter <pkg>
-delivery.deploy`. A package that doesn't apply is skipped; a deploy that
-doesn't succeed exits non-zero. The shared `delivery.publish` workflow runs it as its own
+deploy`. A package that doesn't apply is skipped; a deploy that
+doesn't succeed exits non-zero. The shared `release` workflow runs it as its own
 `deploy` job after the release job (opt in with `deploy-on-release: true`).
 
 ### `holocron run ci`
@@ -461,7 +461,7 @@ returned `DeploymentRecord` whenever the provider exposes one.
 Runs every configured `monitoring` check against `<url>` instead of each
 check's own configured `url` — no vendor API call, only a plain HTTP
 request evaluated locally against the exact same `assertions` already in
-`holocron.config.ts`. Built for CI: the `delivery.previewCheck` task runs
+`holocron.config.ts`. Built for CI: the `check-preview` task runs
 this against a PR's Vercel preview deployment (triggered by
 `deployment_status`, not `push`/`pull_request`), reusing the production
 check definitions to catch a breaking change before merge instead of
@@ -469,7 +469,7 @@ after (holocron#1010).
 
 ```ts
 export default defineConfig({
-  tasks: ["delivery.previewCheck"],
+  tasks: ["check-preview"],
   providers: {
     monitoring: ["checkly", { accountId: "...", checks: [/* ... */] }],
   },

@@ -78,11 +78,11 @@ so neither file needs editing. Tests live beside the module they cover
   },
   "files": ["dist"],
   "scripts": {
-    "delivery.build": "tsdown && node ../scripts/check-bundle-size.mjs",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown && node ../scripts/check-bundle-size.mjs",
+    "lint:code": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@theholocron/http-client": "workspace:^",
@@ -235,7 +235,7 @@ Installation (`pnpm add @theholocron/<slug>-client`), Usage, API tables, License
    `codecovConfig()` in `cli/astromech/src/generators/codecov`), which needs
    tokens for its other steps, so in practice add the block by hand in exactly
    that format, keeping the list alphabetical.
-3. **Release**: nothing to edit. `release.config.ts` and the `delivery.publish`
+3. **Release**: nothing to edit. `release.config.ts` and the `release`
    task in `astromech.config.ts` release the whole `clients` group by folder.
 4. **Dependency catalog**: only if something outside `clients/` (a plugin, the
    CLI) will consume the package, add it to `catalogs.clients` in
@@ -262,10 +262,10 @@ Installation (`pnpm add @theholocron/<slug>-client`), Usage, API tables, License
 
 - [ ] Issue filed first; feature branch created from `origin/alpha` before any code
 - [ ] `pnpm install` — workspace symlink created, lockfile updated
-- [ ] `pnpm --filter @theholocron/<slug>-client verification.typeSafety` passes
-- [ ] `pnpm --filter @theholocron/<slug>-client sourceQuality.staticAnalysis` passes
-- [ ] `pnpm --filter @theholocron/<slug>-client verification.unitTests` passes
-- [ ] `pnpm --filter @theholocron/<slug>-client delivery.build` — `dist/` emitted
+- [ ] `pnpm --filter @theholocron/<slug>-client typecheck` passes
+- [ ] `pnpm --filter @theholocron/<slug>-client lint:code` passes
+- [ ] `pnpm --filter @theholocron/<slug>-client test:unit` passes
+- [ ] `pnpm --filter @theholocron/<slug>-client build` — `dist/` emitted
 - [ ] `version` in `package.json` matches the clients group
 - [ ] `codecov.yml` component added
 - [ ] Docs page, `clients/index.mdx` row and `astro.config.ts` sidebar entry added

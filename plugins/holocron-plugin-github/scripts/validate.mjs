@@ -7,7 +7,7 @@
  * to prove auth + endpoints + response parsing work.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-github validate <owner/repo>
+ *   pnpm --filter @theholocron/holocron-plugin-github validate:plugin <owner/repo>
  */
 
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
@@ -15,7 +15,7 @@ import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index
 const [repo] = process.argv.slice(2);
 
 if (!repo || !repo.includes("/")) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-github validate <owner/repo>");
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-github validate:plugin <owner/repo>");
 	process.exit(2);
 }
 

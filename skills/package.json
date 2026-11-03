@@ -28,7 +28,7 @@
     "src/"
   ],
   "scripts": {
-    "verification.unitTests": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml --test-reporter=lcov --test-reporter-destination=lcov.info test/index.mjs"
+    "test:unit": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-report.junit.xml --test-reporter=lcov --test-reporter-destination=lcov.info test/index.mjs"
   },
   "engines": {
     "node": ">=22"

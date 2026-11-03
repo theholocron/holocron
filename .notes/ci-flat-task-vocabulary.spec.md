@@ -876,10 +876,8 @@ verification.unitTests` while the entry is old). A single package keeps an old-n
 - **The runner prefers the registry to the generated root script** of a repo-scoped leaf, so `holocron run ci` on a machine
   without `yamllint` still reports "not on PATH (enforced in CI)" instead of failing a `pnpm run`. `pnpm lint` itself, being
   the generated script, needs the tools of its leaves installed (editorconfig-checker, markdownlint-cli2, yamllint, knip).
-- **Coverage.** `test:unit` is `vitest run --coverage` in the registry and no flag exists. Package scripts that are still
-  `vitest run` (all 73 until phase C) get `--coverage` from `legacyForward` when the runner delegates to turbo under the old
-  key; phase C removes the field when it puts the flag in the scripts. A root `pnpm test` therefore runs without coverage
-  until then.
+- **Coverage.** `test:unit` is `vitest run --coverage` in the registry and no flag exists. The 73 package scripts are
+  `vitest run --coverage` since phase C (#1617), which removed the `legacyForward` field and its runner branch.
 - **The check** (`checkScripts()` in the `generated` probe, built on `checkPackageScripts()` and `mergeScripts()` in
   astromech): fails a differing root script, a reserved name (other than the root's `prepare`), a package script named like a
   suite, a package leaf that calls `turbo run` or `holocron run`, and a `test:unt`-shaped name under a suite

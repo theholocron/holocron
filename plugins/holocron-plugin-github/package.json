@@ -31,12 +31,12 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "validate": "tsx scripts/validate.mjs",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit",
+    "validate:plugin": "tsx scripts/validate.mjs"
   },
   "dependencies": {
     "libsodium-wrappers": "catalog:plugins"

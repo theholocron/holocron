@@ -6,7 +6,7 @@
  * returns the webhook name and id.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-discord validate
+ *   pnpm --filter @theholocron/holocron-plugin-discord validate:plugin
  */
 
 import chalk from "chalk";

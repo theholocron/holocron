@@ -7,7 +7,7 @@
  * READ-ONLY. Never calls ensureDataset() or any write.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-axiom validate <dataset>
+ *   pnpm --filter @theholocron/holocron-plugin-axiom validate:plugin <dataset>
  *
  *   dataset — an Axiom dataset name to check reachability against
  *             (e.g. "holocron-ci"). Falls back to HOLOCRON_AXIOM_DATASET
@@ -19,7 +19,7 @@ import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index
 const dataset = process.argv[2] ?? process.env.HOLOCRON_AXIOM_DATASET ?? process.env.AXIOM_DATASET;
 
 if (!dataset) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-axiom validate <dataset>");
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-axiom validate:plugin <dataset>");
 	console.error("  or set HOLOCRON_AXIOM_DATASET / AXIOM_DATASET");
 	process.exit(2);
 }

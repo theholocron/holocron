@@ -38,9 +38,6 @@ export const TASKS: Record<string, TaskDef> = {
 		suite: "test",
 		// Unit tests always run with coverage: it is in the command, not a flag anyone passes (spec decision 10).
 		local: { tool: "vitest", args: ["run", "--coverage"] },
-		// A package script still spelled `verification.unitTests` is plain `vitest run`, so the runner passes it the flag
-		// when it delegates to turbo. Removed with the old names, when the script carries `--coverage` itself.
-		legacyForward: ["--coverage"],
 		turbo: {
 			inputs: [
 				"src/**",

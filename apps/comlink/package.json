@@ -23,11 +23,11 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",

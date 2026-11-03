@@ -97,10 +97,10 @@ export default defineConfig({
   // default and `holocron repo setup` (strict) adds its check context to branch
   // protection.
   tasks: [
-    { name: "sourceQuality.staticAnalysis", required: true },
-    { name: "verification.unitTests", required: true },
-    { name: "verification.typeSafety", required: true },
-    { name: "delivery.publish", with: { "run-build": false } },
+    { name: "lint:code", required: true },
+    { name: "test:unit", required: true },
+    { name: "typecheck", required: true },
+    { name: "release", with: { "run-build": false } },
     "stale",
     "greetings",
   ],
@@ -194,9 +194,9 @@ verb phrase and implies no suite (`deploy-preview`). Three **suites** exist, dec
 list the leaves, and the leaves a repo lists are what `holocron run <suite>` runs. `format` is a verb of its own, not a
 suite: prettier only, it writes by default and `--check` is the read-only form.
 
-The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, …) are still accepted in `tasks:` and by
+The old dotted names (`test:unit`, `lint:code`, …) are still accepted in `tasks:` and by
 `holocron run`, which prints a one-line deprecation notice on stderr. `sourceQuality.formatting` stands for
-`lint:editorconfig`, `lint:markdown` and `format --check`; `delivery.publish` is now `release`. Until the generated
+`lint:editorconfig`, `lint:markdown` and `format --check`; `release` is now `release`. Until the generated
 workflows, `turbo.json` and package scripts move to the flat ids (later phases), they keep the old names, so a manifest
 spelled either way generates the same files.
 
@@ -232,7 +232,7 @@ publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
 ### Switching a sub-job off
 
-A task made of sub-jobs (`validate`, formerly `platform.repoValidation`; it is split into `validate:specs` and `validate:docs` in a later phase) can have individual jobs switched off for one repo,
+A task made of sub-jobs (`validate`, formerly `validate`; it is split into `validate:specs` and `validate:docs` in a later phase) can have individual jobs switched off for one repo,
 with `jobs:` on its entry in `astromech.config.ts`:
 
 ```ts
@@ -379,7 +379,7 @@ If you prefer not to use TypeScript:
     "protection": "balanced",
     "topics": ["typescript", "node"]
   },
-  "workflows": ["sourceQuality.staticAnalysis", "verification.unitTests"],
+  "workflows": ["lint:code", "test:unit"],
   "providers": {
     "source": "github",
     "vault": ["doppler", { "project": "my-project", "config": "prd" }]

@@ -11,7 +11,7 @@
  * you must have run `pnpm holocron auth set checkly <TOKEN>` first.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-checkly validate <accountId>
+ *   pnpm --filter @theholocron/holocron-plugin-checkly validate:plugin <accountId>
  */
 
 import { errorMessage } from "@theholocron/misc-utils";
@@ -21,7 +21,7 @@ import { AuthError, createChecklyRestClient, resolveToken, verifyToken } from ".
 const [accountId] = process.argv.slice(2);
 
 if (!accountId) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-checkly validate <accountId>");
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-checkly validate:plugin <accountId>");
 	process.exit(2);
 }
 

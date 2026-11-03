@@ -45,12 +45,12 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown",
+    "lint:code": "eslint .",
     "start": "node ./dist/cli.mjs",
+    "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@axiomhq/pino": "catalog:",

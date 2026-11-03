@@ -16,4 +16,4 @@
   `export default defineConfig(library({ globals: true }) as never)`. Tests may call `describe` / `it` / `expect`
   without importing them from `vitest`.
 - **The root `tsconfig.json` is only a solution file** and does not type-check packages. Each package has its own
-  `tsconfig.json`, which its `verification.typeSafety` task uses.
+  `tsconfig.json`, which its `typecheck` task uses.

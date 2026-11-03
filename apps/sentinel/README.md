@@ -45,7 +45,7 @@ Fetches `holocron.config.{ts,js,mjs,cjs,json}` (TS-first probe order) via
 `astromech.config.*` at the same ref, merged on top with astromech's own
 `mergeTasksLayers()` — the same manifest `holocron run` / `ci` / `sync`
 act on (holocron#916; a task declared only in the dedicated file, like
-this repo's `platform.repoValidation`, gates Sentinel checks too) — and
+this repo's `validate`, gates Sentinel checks too) — and
 validates the merged `tasks` array against `@theholocron/astromech`'s
 canonical task registry.
 `ref` omitted (the common case, every check except auto-fix-commit) reads
@@ -192,7 +192,7 @@ entirely when a repo's `runtime_environment` property is explicitly
 `holocron.config.ts`'s own `eslint.browserPackages`, holocron#858, since
 it's the one `library()` option this check needs to match a package's
 local `eslint.config.ts` exactly), actionlint (holocron#904 — the
-actionlint half of the same `sourceQuality.staticAnalysis` task, posted
+actionlint half of the same `lint:code` task, posted
 as its own `Source Quality / Static Analysis / Run actionlint` check;
 config-free, since any repo can carry workflow files. Real actionlint
 v1.7.7 (`@tktco/node-actionlint`) and real ShellCheck 0.11
@@ -202,7 +202,7 @@ the actionlint binary gets from a `shellcheck` on PATH is ported by hand
 from actionlint's own `rule_shellcheck.go`, since WASM can't spawn
 processes — see `src/actions/actionlint/lint-actionlint/lint-actionlint.ts`'s own module
 docstring), and repo validation (holocron#913 — two checks, gated on the
-repo's `holocron.config` declaring `platform.repoValidation`:
+repo's `holocron.config` declaring `validate`:
 `Platform / Repo Validation / Validate ADRs and specs` ports
 the frontmatter rules of `holocron probe specs check` (`checkSpecs()` in
 `@theholocron/astromech/repo-validation`, one implementation for both) to the PR's own changed
@@ -271,7 +271,7 @@ built/released the way the CLI or the plugins are — wires the
 providers.
 
 ```bash
-pnpm run delivery.deploy
+pnpm run deploy
 ```
 
 **CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.deploy.yml`
@@ -287,13 +287,13 @@ root) for the `VERCEL_TOKEN` repo secret it needs.
 declares it in its own `holocron.config.ts`:
 
 ```ts
-tasks: [{ name: "delivery.deploy", with: { on: "release", channel: "alpha" } }];
+tasks: [{ name: "deploy", with: { on: "release", channel: "alpha" } }];
 ```
 
-The shared `delivery.publish` workflow then runs a separate **Deploy** job
+The shared `release` workflow then runs a separate **Deploy** job
 after the release job, which calls `holocron deploy on-release`: it scans every
 workspace package for such a task and, for each, runs the package's
-`delivery.deploy` script when the release is on its `channel` (default `main`,
+`deploy` script when the release is on its `channel` (default `main`,
 the stable release; Sentinel sets `alpha`) and changes the package or one of its `workspace:*` dependencies (the
 packages inlined into `dist/`) — derived from `package.json` so there's no
 second list to keep in sync; an explicit `with.paths` overrides it. Before
@@ -309,8 +309,8 @@ deploy (a missing Vercel token, a Vercel build error, npm not serving the
 versions in time) marks that job red and nothing else: the release is already
 published and stays so. `VERCEL_TOKEN` reaches only the Deploy job, never the
 release job, and only because this repo opts in: `astromech.config.ts` sets
-`deploy-on-release: true` on its `delivery.publish` task. A second app needs
-only its own `delivery.deploy` task with `on: "release"`.
+`deploy-on-release: true` on its `release` task. A second app needs
+only its own `deploy` task with `on: "release"`.
 
 A real, production deploy — there's no separate staging/dev
 environment for Sentinel (see "Why production only" below). Builds,
@@ -326,7 +326,7 @@ one.
 
 ### Custom domain (one-time)
 
-`delivery.deploy` doesn't touch the custom domain — that's a one-time
+`deploy` doesn't touch the custom domain — that's a one-time
 setup step, not something to redo on every deploy:
 
 ```bash
@@ -519,7 +519,7 @@ the token reference's "Organization secrets" section
 one.
 
 - **`--target production` only, deliberately still one target.**
-  `delivery.previewDeploy` (holocron#1010/#1022/#1024/#1028) now gives
+  `deploy-preview` (holocron#1010/#1022/#1024/#1028) now gives
   every PR to this whole repo — not only ones touching Sentinel, since
   the thin caller's `pull_request: {}` trigger carries no path filter
   — its own Vercel preview deployment, built from that PR's own,
@@ -554,13 +554,13 @@ one.
   session already has it (it's almost certainly how this org secret
   was first set) — reuse it inline rather than provisioning a new
   token for one recurring write.
-- **Manual, on-demand — not part of `delivery.deploy`.** Run it once
+- **Manual, on-demand — not part of `deploy`.** Run it once
   after registration, and again only when a secret actually rotates.
   Wiring it into every recurring deploy would re-push unchanged
-  secrets on every `delivery.deploy` run for no reason.
+  secrets on every `deploy` run for no reason.
 - **Vercel snapshots env vars at deploy time** — a running deployment
   doesn't pick up a sync until the next deploy. Run
-  `pnpm run delivery.deploy` right after syncing if the App needs the
+  `pnpm run deploy` right after syncing if the App needs the
   new value immediately, not on its next unrelated deploy.
 - Doppler's own auto-injected bookkeeping (`DOPPLER_PROJECT`,
   `DOPPLER_CONFIG`, `DOPPLER_ENVIRONMENT`) is filtered out before
@@ -568,12 +568,12 @@ one.
 
 ## Development
 
-| Script                                  | Description                                 |
-| --------------------------------------- | ------------------------------------------- |
-| `pnpm run delivery.build`               | Bundle with tsdown                          |
-| `pnpm run verification.unitTests`       | Run the vitest suite (always with coverage) |
-| `pnpm run verification.typeSafety`      | `tsc --noEmit`                              |
-| `pnpm run sourceQuality.staticAnalysis` | ESLint                                      |
+| Script               | Description                                 |
+| -------------------- | ------------------------------------------- |
+| `pnpm run build`     | Bundle with tsdown                          |
+| `pnpm run test:unit` | Run the vitest suite (always with coverage) |
+| `pnpm run typecheck` | `tsc --noEmit`                              |
+| `pnpm run lint:code` | ESLint                                      |
 
 ## Releases
 

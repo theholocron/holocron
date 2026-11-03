@@ -95,12 +95,6 @@ export interface TaskDef {
 	 */
 	jobs?: Record<string, JobDef>;
 	/**
-	 * Arguments the runner passes to a package script that is still spelled with the task's old dotted name, when it
-	 * delegates to turbo. Such a script predates the flat ids and has no copy of what the registry's own command does
-	 * (`test:unit` always runs with coverage). A script spelled with the flat id carries it itself and gets nothing.
-	 */
-	legacyForward?: string[];
-	/**
 	 * This task is a linter-group aggregate: `holocron run <task>` resolves
 	 * this fixed set of `linters.ts` entries (still gated by each linter's
 	 * own `detect`/`always` rule) and runs each natively, instead of using

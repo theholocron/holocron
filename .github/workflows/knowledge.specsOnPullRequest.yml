@@ -93,7 +93,7 @@ jobs:
 
       - name: Build the CLI
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && steps.files.outputs.list != ''
-        run: pnpm turbo run delivery.build --filter=@theholocron/cli...
+        run: pnpm turbo run build --filter=@theholocron/cli...
 
       - name: Sync the discussions for these files (withdraw them, when it was closed)
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && steps.files.outputs.list != ''

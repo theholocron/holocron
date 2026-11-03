@@ -21,5 +21,5 @@ the `holocron-skill-config` skill (model it on `prettier-config`).
   each repo forking it. A repo-local override that turns out to be universal moves into the shared package, not into a
   copy per package.
 - Each package has an `index.test.ts` smoke test (every export has the expected runtime shape). `tsdown.config.ts` must
-  list every entry point that needs its own dist file, and `verification.unitTests` depends on `delivery.build`, so
+  list every entry point that needs its own dist file, and `test:unit` depends on `build`, so
   tests run against a built package.

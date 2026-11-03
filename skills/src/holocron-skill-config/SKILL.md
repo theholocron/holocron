@@ -75,11 +75,11 @@ already covers the new folder.
   },
   "files": ["dist/"],
   "scripts": {
-    "delivery.build": "tsdown",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown",
+    "lint:code": "eslint .",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run"
   },
   "devDependencies": {
     "@theholocron/tsconfig": "workspace:*",
@@ -233,11 +233,11 @@ Keep it short; link to official docs rather than duplicating them.
 2. `devDependencies` include `@theholocron/tsconfig` and
    `@theholocron/vitest-config` (`workspace:*`), plus `@vitest/coverage-v8`,
    `tsdown`, `typescript`, `vitest` (`catalog:`).
-3. `scripts` use the task names `delivery.build`, `verification.unitTests`,
-   `verification.typeSafety`, `sourceQuality.staticAnalysis`.
+3. `scripts` use the task names `build`, `test:unit`,
+   `typecheck`, `lint:code`.
 4. `pnpm install`, then `pnpm --filter @theholocron/<tool>-config` run
-   `delivery.build`, `verification.unitTests`, `verification.typeSafety` and
-   `sourceQuality.staticAnalysis` — all must pass.
+   `build`, `test:unit`, `typecheck` and
+   `lint:code` — all must pass.
 5. `codecov.yml` component, docs page, `configs/index.mdx` row and sidebar entry added.
 6. `holocron run ci` passes.
 7. Open a PR with a `feat(configs):` commit, signed with `-s` — semantic-release

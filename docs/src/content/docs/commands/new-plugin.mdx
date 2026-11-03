@@ -39,7 +39,7 @@ Generates the full scaffold for a new Holocron plugin package. If `--capability`
 
 The generated `package.json` matches the existing plugins: scripts call the tools directly (`tsdown`, `eslint .`, `tsc --noEmit`, `vitest run`), in-repo dependencies use `workspace:^` (the CLI is `workspace:*`), and the peer dependencies resolve through the `utils` catalog.
 
-After writing the files, the command runs `pnpm install` and the package's `verification.typeSafety`, `sourceQuality.staticAnalysis` and `verification.unitTests` tasks (skip with `--no-verify`).
+After writing the files, the command runs `pnpm install` and the package's `typecheck`, `lint:code` and `test:unit` tasks (skip with `--no-verify`).
 
 ## Example
 

@@ -35,7 +35,7 @@ in `src/worker.ts`. Nothing else changes.
 
 ## Build
 
-`pnpm --filter @theholocron/comlink delivery.build` writes `dist/worker.js`: a single ES module with no imports, which is
+`pnpm --filter @theholocron/comlink build` writes `dist/worker.js`: a single ES module with no imports, which is
 what `Workers.deployScript` uploads as it stands.
 
 Deploying it is `holocron notifications setup`'s job, through the `workers` capability, with the secrets above.

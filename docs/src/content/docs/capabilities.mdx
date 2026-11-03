@@ -219,7 +219,7 @@ Send messages. Implemented by: [Discord](./plugins/discord), [Slack](./plugins/s
 
 The provisioning methods use the provider's **bot** credential, and `send` uses a **webhook URL**: for Discord they are `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_DISCORD_WEBHOOK`.
 
-Workflows do not call the capability at all. They post with the `notify` action and the `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` secrets that `notifications setup` stores. Which workflow writes to which channel, the `notify` action's inputs, `platform.notifyCheck` and the `workflow_run` Notifications workflow are on the [Discord plugin page](/holocron/plugins/discord/#posting-from-github-actions).
+Workflows do not call the capability at all. They post with the `notify` action and the `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` secrets that `notifications setup` stores. Which workflow writes to which channel, the `notify` action's inputs, `check-notify` and the `workflow_run` Notifications workflow are on the [Discord plugin page](/holocron/plugins/discord/#posting-from-github-actions).
 
 ### `analytics`
 

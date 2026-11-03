@@ -58,14 +58,14 @@ Sentinel runs as a serverless function: it needs a real filesystem and dynamic `
 
 ```bash
 # Recurring: build, stage, deploy to production
-pnpm run delivery.deploy
+pnpm run deploy
 
 # One time: attach the custom domain and hand the DNS challenge to the dns provider
 holocron repo setup --cwd apps/sentinel
 ```
 
 - **Production only.** A GitHub App has a single webhook URL, so there is no staging deployment. `holocron deploy --dry-run` verifies the wiring, and the unit tests exercise the handler directly.
-- **Automated.** A workflow deploys on merges to `main` that touch the app, and a `delivery.deploy` task with `on: "release"` deploys it after a release that changes it (see [`holocron deploy`](/holocron/commands/deploy/)).
+- **Automated.** A workflow deploys on merges to `main` that touch the app, and a `deploy` task with `on: "release"` deploys it after a release that changes it (see [`holocron deploy`](/holocron/commands/deploy/)).
 - **Secrets.** `holocron secrets sync prd --cwd apps/sentinel` syncs the Doppler config to the deployment. It targets production only, deliberately, so the app's private key is never exposed to PR preview deployments.
 
 ## GitHub App registration

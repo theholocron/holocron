@@ -37,7 +37,7 @@ jobs:
         name: Setup
 
       - name: Build the CLI
-        run: pnpm turbo run delivery.build --filter=@theholocron/cli...
+        run: pnpm turbo run build --filter=@theholocron/cli...
 
       - name: Check the dependency catalogs
         run: node cli/cli/dist/cli.mjs probe deps check

@@ -18,13 +18,13 @@
   "author": "Newton Koumantzelis",
   "type": "module",
   "scripts": {
-    "build": "turbo run delivery.build",
+    "build": "turbo run build",
     "deps": "node cli/cli/dist/cli.mjs probe deps report",
     "deps:check": "node cli/cli/dist/cli.mjs probe deps check",
     "format": "prettier --write .",
     "holocron": "node cli/cli/dist/cli.mjs",
     "lint": "turbo run lint",
-    "lint:code": "turbo run sourceQuality.staticAnalysis",
+    "lint:code": "turbo run lint:code",
     "lint:data": "yamllint .",
     "lint:editorconfig": "editorconfig-checker",
     "lint:markdown": "markdownlint-cli2 \"**/*.md\"",
@@ -33,8 +33,8 @@
     "scan": "turbo run scan",
     "scan:secrets": "gitleaks dir --no-banner --config .gitleaks.toml",
     "test": "turbo run test",
-    "test:unit": "turbo run verification.unitTests",
-    "typecheck": "turbo run verification.typeSafety"
+    "test:unit": "turbo run test:unit",
+    "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
     "@astrojs/react": "catalog:",

@@ -6,10 +6,10 @@
  * — proves auth, org access, and capability wiring.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-posthog validate
+ *   pnpm --filter @theholocron/holocron-plugin-posthog validate:plugin
  *
  * EU cloud:
- *   POSTHOG_HOST=https://eu.posthog.com pnpm --filter @theholocron/holocron-plugin-posthog validate
+ *   POSTHOG_HOST=https://eu.posthog.com pnpm --filter @theholocron/holocron-plugin-posthog validate:plugin
  */
 
 import chalk from "chalk";

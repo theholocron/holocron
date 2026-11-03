@@ -23,13 +23,13 @@ Compares the DNS records the config makes setup write with what the `dns` provid
 
 Only records that can be worked out from the config alone, without asking a provider to create anything:
 
-| Record                                                                                 | When                                                                                                                  |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `CNAME <domain>` and `CNAME *.<domain>` to `<project>.pages.dev`                       | a `delivery.deploy`, `knowledge.docs` or `knowledge.components` task has a preview domain, on a Cloudflare deployment |
-| the record a `wiki` provider returns from `dnsRecord()`, proxied when the wiki proxies | a `wiki` provider is configured                                                                                       |
-| `AAAA <relay.host>` to `100::`, proxied                                                | a notifications layout declares a `relay`; the zone is `relay.zone`, or the host's own                                |
-| `CNAME <docs.domain>` to `<org>.github.io`, DNS-only (GitHub Pages)                    | `docs.domain` is set                                                                                                  |
-| `MX <domain>` to `mx01.mail.icloud.com` and `mx02.mail.icloud.com`, and the SPF `TXT`  | `doctor: { mail: "icloud" }` is set; the zone is `domain`                                                             |
+| Record                                                                                 | When                                                                                                   |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `CNAME <domain>` and `CNAME *.<domain>` to `<project>.pages.dev`                       | a `deploy`, `deploy-docs` or `deploy-components` task has a preview domain, on a Cloudflare deployment |
+| the record a `wiki` provider returns from `dnsRecord()`, proxied when the wiki proxies | a `wiki` provider is configured                                                                        |
+| `AAAA <relay.host>` to `100::`, proxied                                                | a notifications layout declares a `relay`; the zone is `relay.zone`, or the host's own                 |
+| `CNAME <docs.domain>` to `<org>.github.io`, DNS-only (GitHub Pages)                    | `docs.domain` is set                                                                                   |
+| `MX <domain>` to `mx01.mail.icloud.com` and `mx02.mail.icloud.com`, and the SPF `TXT`  | `doctor: { mail: "icloud" }` is set; the zone is `domain`                                              |
 
 A record is found by its type and name (case and a final dot do not matter). The target must match; where the record must be proxied, it must be. A record in the zone that is not expected is never a problem.
 

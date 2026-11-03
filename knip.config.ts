@@ -156,7 +156,7 @@ const config: KnipConfig = {
 			],
 		},
 	},
-	// Run by the reusable verification.unitTests workflow when a caller turns on its Storybook or Cypress jobs. That
+	// Run by the reusable test:unit workflow when a caller turns on its Storybook or Cypress jobs. That
 	// workflow now lives in this repo's .github/workflows (generated from ci/); holocron installs neither tool.
 	// The root lint:data, lint:editorconfig, lint:markdown and scan:secrets scripts run system tools that brew or the CI
 	// setup action put on PATH; pnpm does not install them.
@@ -164,7 +164,7 @@ const config: KnipConfig = {
 	ignoreDependencies: [
 		// The root tsdown.config.ts builds every package without its own config, so the packages no longer import
 		// the preset themselves. They keep the devDependency anyway: it makes turbo build the preset's dist first
-		// (`^delivery.build`), which the root config imports.
+		// (`^build`), which the root config imports.
 		"@theholocron/tsdown-config",
 		// Loaded at runtime by the CLI plugin loader — not statically imported
 		"@theholocron/holocron-plugin-1password",

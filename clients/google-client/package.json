@@ -32,11 +32,11 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown && node ../scripts/check-bundle-size.mjs",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown && node ../scripts/check-bundle-size.mjs",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "google-auth-library": "catalog:clients",

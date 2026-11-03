@@ -6,7 +6,7 @@
  * returns the workspace and user it belongs to.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-slack validate
+ *   pnpm --filter @theholocron/holocron-plugin-slack validate:plugin
  */
 
 import chalk from "chalk";

@@ -6,7 +6,7 @@
  * endpoint, and vendor reachability.
  *
  * Usage:
- *   pnpm --filter @theholocron/holocron-plugin-postman validate <workspaceId>
+ *   pnpm --filter @theholocron/holocron-plugin-postman validate:plugin <workspaceId>
  */
 
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
@@ -14,7 +14,7 @@ import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index
 const [workspaceId] = process.argv.slice(2);
 
 if (!workspaceId) {
-	console.error("usage: pnpm --filter @theholocron/holocron-plugin-postman validate <workspaceId>");
+	console.error("usage: pnpm --filter @theholocron/holocron-plugin-postman validate:plugin <workspaceId>");
 	console.error("  find workspaceId at https://postman.co → your workspace → Settings → General → Info");
 	process.exit(2);
 }

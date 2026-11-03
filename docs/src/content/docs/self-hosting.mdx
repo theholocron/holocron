@@ -104,7 +104,7 @@ It wraps `defineConfig()` from `@theholocron/semantic-release-config`, so rules,
 - **A release only when the folder changed.** The analyzer sees only commits under `ci/`, so a change elsewhere neither releases the group nor moves the tag.
 - **From `main` only.** The group's `branches` is `["main"]`, so a run on `alpha` releases nothing and cannot move a tag that outside repos follow.
 
-`release.config.ts` gives it a config of its own: `prepareCmd` runs `package bump-versions --group ci --include-private` (the one package is private, and its version is what the release records), and `publishCmd` runs [`package move-tag`](/commands/package-move-tag/) instead of `package publish`. Nothing goes to npm. In `delivery.publish` it is listed as `{ name: "ci", "run-build": false }`, because it has nothing to build.
+`release.config.ts` gives it a config of its own: `prepareCmd` runs `package bump-versions --group ci --include-private` (the one package is private, and its version is what the release records), and `publishCmd` runs [`package move-tag`](/commands/package-move-tag/) instead of `package publish`. Nothing goes to npm. In `release` it is listed as `{ name: "ci", "run-build": false }`, because it has nothing to build.
 
 Moving to a new major (`ci-v2`) is a breaking change to the workflows' inputs or secrets. The first release after a `feat!`/`BREAKING CHANGE` commit tags `ci-v2.0.0` and creates `ci-v2`. `ci-v1` stays where it was, so callers pinned to it keep working until they change it on purpose.
 
@@ -112,13 +112,13 @@ To repair or move a major tag by hand: `git fetch --tags && holocron package mov
 
 #### Releasing every group in CI
 
-List the groups on the `delivery.publish` task and `holocron repo sync` generates a caller that releases each one:
+List the groups on the `release` task and `holocron repo sync` generates a caller that releases each one:
 
 ```ts
 // astromech.config.ts
 tasks: [
   {
-    name: "delivery.publish",
+    name: "release",
     with: {
       groups: [
         "clients",
