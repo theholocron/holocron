@@ -470,6 +470,164 @@ describe("ChecklyMonitoring", () => {
 			]);
 		});
 
+		it("creates a channel with the alert settings the config states, and the defaults for the rest", async () => {
+			const { capability, stub } = makeCapability([
+				{ body: [] },
+				{ body: [] },
+				{ status: 201, body: webhook({}, [], 7) },
+				{ body: webhook({}, [], 7) },
+			]);
+			await capability.ensureAlertChannel({
+				...input,
+				alerts: { recovery: false, sslExpiry: true, sslExpiryThreshold: 14 },
+			});
+			expect(writes(stub)[0]?.body).toMatchObject({
+				sendFailure: true,
+				sendRecovery: false,
+				sendDegraded: true,
+				sslExpiry: true,
+				sslExpiryThreshold: 14,
+			});
+		});
+
+		it("puts back alert settings that differ from the config, leaves the ones it does not state, and reports alerts", async () => {
+			// recovery and the threshold are not stated, and are not the defaults: they must survive the update.
+			const existing = { ...webhook({ url: URL_NEW }, [sub("a")]), sendRecovery: false, sslExpiryThreshold: 7 };
+			const { capability, stub } = makeCapability([
+				{ body: [existing] },
+				{ body: [check("a")] },
+				{ body: existing }, // read again before replacing
+				{ body: existing }, // update
+				{ body: existing }, // read back
+			]);
+			const result = await capability.ensureAlertChannel({
+				...input,
+				alerts: { failure: true, degraded: true, sslExpiry: true },
+			});
+			expect(result).toEqual({ created: false, updated: ["alerts"], subscribed: 1 });
+			expect(writes(stub)[0]?.body).toMatchObject({
+				sendFailure: true,
+				sendRecovery: false,
+				sendDegraded: true,
+				sslExpiry: true,
+				sslExpiryThreshold: 7,
+			});
+		});
+
+		it("sends the settings it does not state as the channel has them when it is replaced, not as the listing had them", async () => {
+			const listed = webhook({}, [sub("a")]);
+			const fresh = { ...listed, sendRecovery: false, sslExpiryThreshold: 14, autoSubscribe: false };
+			const { capability, stub } = makeCapability([
+				{ body: [listed] },
+				{ body: [check("a")] },
+				{ body: fresh }, // read again before replacing: changed since the listing
+				{ body: fresh }, // update
+				{ body: fresh }, // read back
+			]);
+			await capability.ensureAlertChannel(input);
+			expect(writes(stub)[0]?.body).toMatchObject({
+				sendRecovery: false,
+				sslExpiryThreshold: 14,
+				autoSubscribe: false,
+			});
+		});
+
+		it("fails when an update dropped a subscription and Checkly will not take it back", async () => {
+			const group = { id: 9, checkId: null, groupId: 4, activated: true };
+			const had = webhook({}, [sub("a"), group]);
+			const dropped = webhook({}, [sub("a")]);
+			const { capability } = makeCapability([
+				{ body: [had] },
+				{ body: [check("a")] },
+				{ body: had }, // read again
+				{ body: dropped }, // update
+				{ body: dropped }, // read back: the group is lost
+				{ status: 422, body: { message: "no" } }, // put back: refused
+				{ body: dropped }, // read again: still gone
+			]);
+			await expect(capability.ensureAlertChannel(input)).rejects.toThrow(
+				/dropped 1 of its subscriptions and Checkly would not take them back/
+			);
+		});
+
+		it("fails the same way when the refusal carries no message to quote", async () => {
+			const group = { id: 9, checkId: null, groupId: 4, activated: true };
+			const had = webhook({}, [group]);
+			const dropped = webhook({}, []);
+			const { capability } = makeCapability([
+				{ body: [had] },
+				{ body: [] },
+				{ body: had },
+				{ body: dropped },
+				{ body: dropped },
+				{ status: 409 }, // "already there" yet it is not
+				{ body: dropped },
+			]);
+			await expect(capability.ensureAlertChannel(input)).rejects.toThrow(/dropped 1 of its subscriptions/);
+		});
+
+		it("matches a check's alert channel names without regard to case, and treats an empty list as no routes", async () => {
+			const routed = [
+				{ name: "check a", url: "https://x.test", alertChannels: ["MESSAGE TO #UPTIME"] },
+				{ name: "check b", url: "https://x.test", alertChannels: [] },
+				{ name: "check c", url: "https://x.test", alertChannels: ["Message to #other"] },
+			];
+			const existing = webhook({ url: URL_NEW }, []);
+			const { capability, stub } = makeCapability(
+				[
+					{ body: [existing] },
+					{ body: [check("a"), check("b"), check("c")] },
+					{ body: existing },
+					{ body: subscribed("a") },
+					{ body: subscribed("b") },
+					{ body: webhook({ url: URL_NEW }, [sub("a"), sub("b")]) },
+				],
+				{ checks: routed }
+			);
+			await capability.ensureAlertChannel(input);
+			expect(writes(stub).map((c) => c.body)).toEqual([
+				{ checkId: "a", activated: true },
+				{ checkId: "b", activated: true },
+			]);
+		});
+
+		it("writes nothing when every alert setting the config states already matches", async () => {
+			const same = webhook({ url: URL_NEW }, [sub("a")]);
+			const { capability, stub } = makeCapability([{ body: [same] }, { body: [check("a")] }, { body: same }]);
+			const result = await capability.ensureAlertChannel({
+				...input,
+				alerts: { failure: true, recovery: true, degraded: false, sslExpiry: false, sslExpiryThreshold: 30 },
+			});
+			expect(result).toEqual({ created: false, updated: [], subscribed: 1 });
+			expect(writes(stub)).toEqual([]);
+		});
+
+		it("subscribes only the checks routed to the channel, and every check that names no channels", async () => {
+			const routed = [
+				{ name: "check a", url: "https://x.test", alertChannels: ["Message to #uptime"] },
+				{ name: "check b", url: "https://x.test", alertChannels: ["Message to #other"] },
+				{ name: "check c", url: "https://x.test" },
+			];
+			const existing = webhook({ url: URL_NEW }, []);
+			const { capability, stub } = makeCapability(
+				[
+					{ body: [existing] },
+					{ body: [check("a"), check("b"), check("c")] },
+					{ body: existing }, // before
+					{ body: subscribed("a") },
+					{ body: subscribed("c") },
+					{ body: webhook({ url: URL_NEW }, [sub("a"), sub("c")]) }, // after
+				],
+				{ checks: routed }
+			);
+			const result = await capability.ensureAlertChannel(input);
+			expect(result).toEqual({ created: false, updated: ["subscriptions"], subscribed: 2 });
+			expect(writes(stub).map((c) => c.body)).toEqual([
+				{ checkId: "a", activated: true },
+				{ checkId: "c", activated: true },
+			]);
+		});
+
 		it("writes nothing when the URL and subscriptions already match", async () => {
 			const same = webhook({ url: URL_NEW }, [sub("a")]);
 			const { capability, stub } = makeCapability([{ body: [same] }, { body: [check("a")] }, { body: same }]);
@@ -664,9 +822,15 @@ describe("ChecklyMonitoring", () => {
 				webhookType: "WEBHOOK_DISCORD",
 				...over,
 			},
+			sendFailure: true,
+			sendRecovery: true,
+			sendDegraded: false,
+			sslExpiry: false,
+			sslExpiryThreshold: 30,
 			subscriptions,
 		});
 		const sub = (checkId: string, activated = true) => ({ id: 1, checkId, groupId: null, activated });
+		const ALERTS = { failure: true, recovery: true, degraded: false, sslExpiry: false, sslExpiryThreshold: 30 };
 		const checks = [
 			{ id: "a", name: "check a" },
 			{ id: "b", name: "check b" },
@@ -684,7 +848,9 @@ describe("ChecklyMonitoring", () => {
 				exists: true,
 				discord: true,
 				webhookId: "1234567",
+				alerts: ALERTS,
 				unsubscribed: ["check c"],
+				misrouted: [],
 				deactivated: ["check b"],
 			});
 			expect(JSON.stringify(state)).not.toContain(TOKEN);
@@ -695,6 +861,7 @@ describe("ChecklyMonitoring", () => {
 			expect(await none.capability.inspectAlertChannel("Message to #uptime")).toEqual({
 				exists: false,
 				unsubscribed: [],
+				misrouted: [],
 				deactivated: [],
 			});
 			const odd = makeCapability([
@@ -705,9 +872,52 @@ describe("ChecklyMonitoring", () => {
 			expect(await odd.capability.inspectAlertChannel("Message to #uptime")).toEqual({
 				exists: true,
 				discord: false,
+				alerts: ALERTS,
 				unsubscribed: [],
+				misrouted: [],
 				deactivated: [],
 			});
+		});
+
+		it("holds a check to the channels it is routed to, and names one still subscribed to a channel it is routed away from", async () => {
+			const routed = [
+				{ name: "check a", url: "https://x.test", alertChannels: ["Message to #uptime"] },
+				{ name: "check b", url: "https://x.test", alertChannels: ["Message to #other"] },
+				{ name: "check c", url: "https://x.test", alertChannels: ["Message to #other"] },
+			];
+			const { capability } = makeCapability(
+				[{ body: [channel()] }, { body: checks }, { body: channel({}, [sub("b")]) }],
+				{ checks: routed }
+			);
+			const state = await capability.inspectAlertChannel("Message to #uptime");
+			expect(state.unsubscribed).toEqual(["check a"]);
+			expect(state.misrouted).toEqual(["check b"]);
+			expect(state.deactivated).toEqual([]);
+		});
+
+		it("names how many check groups alert through a channel when a check is routed away, since their members cannot be read", async () => {
+			const routed = [{ name: "check b", url: "https://x.test", alertChannels: ["Message to #other"] }];
+			const group = { id: 2, checkId: null, groupId: 7, activated: true };
+			const off = { id: 3, checkId: null, groupId: 8, activated: false };
+			const withRoute = makeCapability(
+				[{ body: [channel()] }, { body: checks }, { body: channel({}, [group, off]) }],
+				{
+					checks: routed,
+				}
+			);
+			expect((await withRoute.capability.inspectAlertChannel("Message to #uptime")).groupSubscriptions).toBe(1);
+			// Nothing is routed away, so a group subscription is no conflict.
+			const without = makeCapability([{ body: [channel()] }, { body: checks }, { body: channel({}, [group]) }]);
+			expect(await without.capability.inspectAlertChannel("Message to #uptime")).not.toHaveProperty(
+				"groupSubscriptions"
+			);
+			// Routed away, but the channel holds no group subscription.
+			const none = makeCapability([{ body: [channel()] }, { body: checks }, { body: channel({}, [sub("b")]) }], {
+				checks: routed,
+			});
+			expect(await none.capability.inspectAlertChannel("Message to #uptime")).not.toHaveProperty(
+				"groupSubscriptions"
+			);
 		});
 
 		it("ignores a group subscription and a channel of another kind with the same name", async () => {

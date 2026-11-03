@@ -64,7 +64,7 @@ export function createPlugin(options: ChecklyPluginOptions) {
 	return {
 		name: "@theholocron/holocron-plugin-checkly",
 		probes: {
-			...checklyProbes({ client: ctx.client }),
+			...checklyProbes({ client: ctx.client, checks: options.checks }),
 			connection: connectionProbe({
 				provider: "Checkly",
 				url: options.baseUrl ?? "https://api.checklyhq.com",

@@ -2107,6 +2107,29 @@ describe("monitoring feeds", () => {
 		expect(m.ensureAlertChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "Uptime" }));
 	});
 
+	it("hands the alert settings a feed declares to the alert channel", async () => {
+		const m = {
+			providerName: "checkly",
+			checks: [],
+			ensureAlertChannel: vi.fn(async () => ({ created: true, updated: [], subscribed: 0 })),
+		};
+		const layout: NotificationsLayout = {
+			categories: [
+				{
+					name: "ALERTS",
+					channels: [
+						{ name: "uptime", feeds: { monitoring: { alerts: { recovery: false, sslExpiry: true } } } },
+					],
+				},
+			],
+		};
+		const n = fakeNotifications({ layout });
+		await setup(n, { monitoring: m }).run();
+		expect(m.ensureAlertChannel).toHaveBeenCalledWith(
+			expect.objectContaining({ alerts: { recovery: false, sslExpiry: true } })
+		);
+	});
+
 	it("refuses, before changing anything, when no monitoring provider is configured", async () => {
 		const n = fakeNotifications({ layout: FED });
 		const report = await setup(n).run();
@@ -2114,6 +2137,29 @@ describe("monitoring feeds", () => {
 		expect(report.message).toMatch(/fed by monitoring, which needs a `monitoring` capability/);
 		expect(n.ensureCategory).not.toHaveBeenCalled();
 		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("refuses a check routed to an alert channel when no channel is fed by monitoring", async () => {
+		const m = {
+			providerName: "checkly",
+			checks: [{ name: "c", url: "u", alertChannels: ["Message to #uptime"] }],
+			ensureAlertChannel: vi.fn(),
+		};
+		const plain: NotificationsLayout = { categories: [{ name: "A", channels: [{ name: "plain" }] }] };
+		const n = fakeNotifications({ layout: plain });
+		const report = await setup(n, { monitoring: m }).run();
+		expect(report.status).toBe("fail");
+		expect(report.message).toMatch(/check `c` is routed to the alert channel Message to #uptime/);
+		expect(n.ensureChannel).not.toHaveBeenCalled();
+	});
+
+	it("goes on when a monitoring provider is configured, no channel is fed by it and no check is routed", async () => {
+		const m = { providerName: "checkly", checks: [{ name: "c", url: "u" }], ensureAlertChannel: vi.fn() };
+		const plain: NotificationsLayout = { categories: [{ name: "A", channels: [{ name: "plain" }] }] };
+		const n = fakeNotifications({ layout: plain });
+		const report = await setup(n, { monitoring: m }).run();
+		expect(report.status).toBe("ok");
+		expect(m.ensureAlertChannel).not.toHaveBeenCalled();
 	});
 
 	it("previews in a dry run without calling the monitoring provider", async () => {
@@ -2176,6 +2222,29 @@ describe("monitoring feeds", () => {
 		expect(feedProblem(feedWith({ image: "https://cdn.example.com/a.png" }), ok)).toMatch(
 			/avatar\.image` must be a file in the repo, not a URL/
 		);
+	});
+
+	it("refuses a check routed to an alert channel that no feed declares, and accepts one that does", () => {
+		const layout: NotificationsLayout = {
+			categories: [{ name: "A", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
+		};
+		const provider = (checks: { name: string; url: string; alertChannels?: string[] }[]) => ({
+			providerName: "checkly",
+			ensureAlertChannel: vi.fn(),
+			checks,
+		});
+		expect(
+			feedProblem(layout, provider([{ name: "c", url: "u", alertChannels: ["Message to #nowhere"] }]))
+		).toMatch(/check `c` is routed to the alert channel Message to #nowhere, which no `feeds.monitoring` declares/);
+		expect(
+			feedProblem(
+				layout,
+				provider([
+					{ name: "c", url: "u", alertChannels: ["message to #uptime"] },
+					{ name: "d", url: "u" },
+				])
+			)
+		).toBeUndefined();
 	});
 
 	it("has no feed problem for a layout with no categories, or categories with no channels", () => {

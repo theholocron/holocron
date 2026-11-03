@@ -10,7 +10,7 @@ const WEBHOOK_TITLE = "monitoring feed webhook exists and has a picture";
 const CHANNEL_ID = "monitoring-alert-channel";
 const CHANNEL_TITLE = "monitoring alert channel posts through the feed webhook";
 const SUBSCRIPTIONS_ID = "monitoring-subscriptions";
-const SUBSCRIPTIONS_TITLE = "monitoring alert channel is subscribed to every check";
+const SUBSCRIPTIONS_TITLE = "monitoring alert channel is subscribed to the checks routed to it";
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const shown = (s: string) => sanitizeDetail(s);
@@ -88,8 +88,27 @@ export async function monitoringFeedChecks(input: MonitoringFeedChecksInput): Pr
 				`${label}: ${shown(names.name)} posts through a different webhook than ${shown(names.webhook)}`
 			);
 		}
+		// Only what the config states is compared; a setting it leaves out is the provider's to keep.
+		for (const [key, want] of Object.entries(names.alerts ?? {})) {
+			const have = state.alerts?.[key as keyof typeof state.alerts];
+			if (have !== want) {
+				channelProblems.push(
+					`${label}: ${shown(names.name)} ${key} is ${String(have)}, declared ${String(want)}`
+				);
+			}
+		}
 		for (const check of state.unsubscribed) {
 			subscriptionProblems.push(`${label}: ${shown(names.name)} is not subscribed to ${shown(check)}`);
+		}
+		for (const check of state.misrouted) {
+			subscriptionProblems.push(
+				`${label}: ${shown(names.name)} is still subscribed to ${shown(check)}, which is routed elsewhere`
+			);
+		}
+		if (state.groupSubscriptions) {
+			subscriptionProblems.push(
+				`${label}: ${shown(names.name)} is subscribed to ${state.groupSubscriptions} check group(s), which alert for every check in them, including any routed elsewhere; which checks a group holds cannot be read, so check them in ${shown(monitoring.providerName)}`
+			);
 		}
 		for (const check of state.deactivated) {
 			subscriptionProblems.push(`${label}: ${shown(names.name)} has ${shown(check)} switched off`);

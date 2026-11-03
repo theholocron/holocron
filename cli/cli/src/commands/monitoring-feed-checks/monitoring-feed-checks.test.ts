@@ -34,7 +34,9 @@ const GOOD: MonitoringAlertChannelState = {
 	exists: true,
 	discord: true,
 	webhookId: "1234567",
+	alerts: { failure: true, recovery: true, degraded: true, sslExpiry: false, sslExpiryThreshold: 30 },
 	unsubscribed: [],
+	misrouted: [],
 	deactivated: [],
 };
 const provider = (inspect?: MonitoringAlertChannelState | Error | "none", icon = true) => ({
@@ -124,7 +126,9 @@ describe("monitoringFeedChecks", () => {
 
 	describe("alert channel", () => {
 		it("fails for a missing channel, a channel not formatted for Discord, and a URL that is not a Discord webhook", async () => {
-			const missing = await run({ monitoring: provider({ exists: false, unsubscribed: [], deactivated: [] }) });
+			const missing = await run({
+				monitoring: provider({ exists: false, unsubscribed: [], misrouted: [], deactivated: [] }),
+			});
 			expect(row(missing, "monitoring-alert-channel").problems).toEqual([
 				"#uptime: missing alert channel Message to #uptime",
 			]);
@@ -196,7 +200,51 @@ describe("monitoringFeedChecks", () => {
 		});
 	});
 
+	describe("alert settings", () => {
+		it("compares only the settings the layout states", async () => {
+			const same = await run({
+				layout: layout({ alerts: { failure: true, sslExpiry: false, sslExpiryThreshold: 30 } }),
+			});
+			expect(row(same, "monitoring-alert-channel").status).toBe("pass");
+			// Settings the layout does not state may be anything: a doctor comparing them with defaults would fail here.
+			const hand = await run({
+				layout: layout({ alerts: { failure: true } }),
+				monitoring: provider({
+					...GOOD,
+					alerts: { failure: true, recovery: false, degraded: false, sslExpiry: true, sslExpiryThreshold: 7 },
+				}),
+			});
+			expect(row(hand, "monitoring-alert-channel").status).toBe("pass");
+			const drift = await run({
+				layout: layout({ alerts: { degraded: false, sslExpiry: true } }),
+				monitoring: provider({ ...GOOD, alerts: undefined }),
+			});
+			expect(row(drift, "monitoring-alert-channel").problems).toEqual([
+				"#uptime: Message to #uptime degraded is undefined, declared false",
+				"#uptime: Message to #uptime sslExpiry is undefined, declared true",
+			]);
+			const off = await run({ layout: layout({ alerts: { recovery: false } }) });
+			expect(row(off, "monitoring-alert-channel").problems).toEqual([
+				"#uptime: Message to #uptime recovery is true, declared false",
+			]);
+		});
+	});
+
 	describe("subscriptions", () => {
+		it("names the check groups a channel alerts for when a check is routed away from it", async () => {
+			const rows = await run({ monitoring: provider({ ...GOOD, groupSubscriptions: 2 }) });
+			expect(row(rows, "monitoring-subscriptions").problems).toEqual([
+				"#uptime: Message to #uptime is subscribed to 2 check group(s), which alert for every check in them, including any routed elsewhere; which checks a group holds cannot be read, so check them in checkly",
+			]);
+		});
+
+		it("names each check still subscribed to a channel it is routed away from", async () => {
+			const rows = await run({ monitoring: provider({ ...GOOD, misrouted: ["check d"] }) });
+			expect(row(rows, "monitoring-subscriptions").problems).toEqual([
+				"#uptime: Message to #uptime is still subscribed to check d, which is routed elsewhere",
+			]);
+		});
+
 		it("names each check the channel lacks or has switched off", async () => {
 			const rows = await run({
 				monitoring: provider({ ...GOOD, unsubscribed: ["check c"], deactivated: ["check b"] }),

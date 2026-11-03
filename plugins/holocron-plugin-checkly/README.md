@@ -84,12 +84,23 @@ monitoring: [
 ];
 ```
 
+### Alert channels
+
+The alert channel is declared in the notification layout (`feeds.monitoring`), whose `alerts` object sets what it
+alerts about (`failure`, `recovery`, `degraded`, `sslExpiry`, `sslExpiryThreshold`; a new channel defaults to the first
+three on and `sslExpiry` off, and on an existing one a setting left out is left alone). A check routes itself with
+`alertChannels: ["Message to #uptime"]`, the names of the alert channels it alerts through; left out, it alerts through
+all of them. Setup adds subscriptions and never removes one; `holocron doctor notifications` reports a check still
+subscribed to a channel it is routed away from.
+
 ## What's implemented
 
 - `monitoring.ensureCheck(input)` — find-by-exact-name (Checkly's own
   `search` query param is a case-insensitive partial match, so results
   are filtered client-side for an exact match), then create or update
   the API check accordingly.
+- `monitoring.ensureAlertChannel(input)` / `monitoring.inspectAlertChannel(name)` — the Discord alert channel, its
+  alert settings and its routed subscriptions.
 - `monitoring.whoami()` — lightweight auth probe (`GET /checks?limit=1`).
 - `monitoring.checks` — the configured check list, read by
   `holocron repo setup` to loop over `ensureCheck`.

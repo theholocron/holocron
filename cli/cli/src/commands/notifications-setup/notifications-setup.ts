@@ -20,9 +20,11 @@ import {
 	type Dns,
 	type Errors,
 	type Monitoring,
+	type MonitoringAlertSettings,
 	type NotificationsAccess,
 	type NotificationsChannelLayout,
 	type NotificationsLayout,
+	type NotificationsMonitoringFeed,
 	type NotificationsPicture,
 	PluginLoader,
 	type Secrets,
@@ -83,14 +85,15 @@ export function feedAvatarOf(
 /** The names a channel's monitoring feed uses: the alert channel (`Message to #uptime`) and its dedicated webhook (`Checkly`). */
 export function monitoringFeed(
 	channel: string,
-	feed: true | { name?: string; webhook?: string; avatar?: NotificationsPicture },
+	feed: true | NotificationsMonitoringFeed,
 	monitoring: Pick<Monitoring, "providerName">
-): { name: string; webhook: string } {
+): { name: string; webhook: string; alerts?: MonitoringAlertSettings } {
 	const own = typeof feed === "object" ? feed : {};
 	const provider = monitoring.providerName;
 	return {
 		name: own.name ?? `Message to #${channel}`,
 		webhook: own.webhook ?? provider.charAt(0).toUpperCase() + provider.slice(1),
+		...(own.alerts ? { alerts: own.alerts } : {}),
 	};
 }
 
@@ -101,7 +104,7 @@ export function monitoringFeed(
  */
 export function feedProblem(
 	layout: NotificationsLayout,
-	monitoring: Pick<Monitoring, "providerName" | "ensureAlertChannel">
+	monitoring: Pick<Monitoring, "providerName" | "ensureAlertChannel"> & Partial<Pick<Monitoring, "checks">>
 ): string | undefined {
 	const alertNames = new Map<string, string>();
 	for (const category of layout.categories ?? []) {
@@ -123,6 +126,14 @@ export function feedProblem(
 				return `channels \`${other}\` and \`${channel.name}\` would both use the alert channel ${feed.name} — give one a distinct \`feeds.monitoring.name\``;
 			}
 			alertNames.set(feed.name.toLowerCase(), channel.name);
+		}
+	}
+	// A check routed to an alert channel nobody declares would never alert anywhere.
+	for (const check of monitoring.checks ?? []) {
+		for (const routed of check.alertChannels ?? []) {
+			if (!alertNames.has(routed.toLowerCase())) {
+				return `check \`${check.name}\` is routed to the alert channel ${routed}, which no \`feeds.monitoring\` declares`;
+			}
 		}
 	}
 	return undefined;
@@ -374,6 +385,10 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		monitoring = loader.get("monitoring") as Monitoring;
 		const problem = feedProblem(layout, monitoring);
 		if (problem) return refuse(problem);
+	} else if (loader.has("monitoring")) {
+		// No channel is fed by monitoring, so a check routed to an alert channel is routed to nothing.
+		const orphan = feedProblem(layout, loader.get("monitoring") as Monitoring);
+		if (orphan) return refuse(orphan);
 	}
 
 	// Channels fed by the error tracker go through the relay Worker: it needs the tracker, somewhere to run and DNS.

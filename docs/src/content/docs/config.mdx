@@ -308,6 +308,8 @@ Holocron supports multiple entry forms for flexibility:
 ]
 ```
 
+A provider's options hold its own config; for `monitoring` they list the `checks`, each of which may name the `alertChannels` it alerts through, and the alert channel's settings (`feeds.monitoring.alerts`) sit in the `notifications` layout. See the [Checkly plugin](/holocron/plugins/checkly/#alert-channels) and [Server as Code](/holocron/server-as-code/).
+
 Short provider names (e.g. `"github"`) are resolved to `@theholocron/holocron-plugin-github`. Fully-qualified package names and community plugins (prefixed `holocron-plugin-`) are passed through verbatim.
 
 ## Agent and engineering knowledge

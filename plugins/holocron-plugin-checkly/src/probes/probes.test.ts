@@ -109,6 +109,16 @@ describe("probe checkly channel", () => {
 		expect(rows[2]!.label).toBe("all 2 checks use it");
 	});
 
+	it("does not expect on the channel a check the config routes to other channels", async () => {
+		const { deps } = world({
+			channels: [channel({ subscriptions: [{ checkId: "a", activated: true }] })],
+		});
+		const routed = { ...deps, checks: [{ name: "check b", url: "u", alertChannels: ["Message to #other"] }] };
+		const { ctx, rows } = ctxFor();
+		await checklyProbes(routed).channel!.run(ctx);
+		expect(rows[2]).toMatchObject({ status: "ok", label: "all 1 checks use it" });
+	});
+
 	it("fails a template that differs and checks that are not subscribed, and says what to run", async () => {
 		const { deps } = world({
 			channels: [
