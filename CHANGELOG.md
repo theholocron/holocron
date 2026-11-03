@@ -1,3 +1,9 @@
+## [5.0.0-alpha.310](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.309...v5.0.0-alpha.310) (2026-11-03)
+
+### Features
+
+* **auth:** 🪶 a token a plugin only falls back to is optional for doctor credentials ([#1639](https://github.com/theholocron/holocron/issues/1639)) ([88fa5d1](https://github.com/theholocron/holocron/commit/88fa5d1a730e52825a919ec53d31fb90f2484be1))
+
 ## [5.0.0-alpha.309](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.308...v5.0.0-alpha.309) (2026-11-03)
 
 ### Bug Fixes
