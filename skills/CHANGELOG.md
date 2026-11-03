@@ -1,3 +1,14 @@
+## [1.12.1-alpha.2](https://github.com/theholocron/holocron/compare/skills-v1.12.1-alpha.1...skills-v1.12.1-alpha.2) (2026-11-03)
+
+### Refactoring
+
+* **repo:** ♻️ rename scripts and tasks across this monorepo to the flat ids ([#1646](https://github.com/theholocron/holocron/issues/1646)) ([62f97fe](https://github.com/theholocron/holocron/commit/62f97feec78ebf614e18ffff53eebaa030cfd220)), closes [#1617](https://github.com/theholocron/holocron/issues/1617) [#1617](https://github.com/theholocron/holocron/issues/1617)
+
+### Documentation
+
+* 📝 clear the alex inclusive-language hits across the markdown ([#1559](https://github.com/theholocron/holocron/issues/1559)) ([573580e](https://github.com/theholocron/holocron/commit/573580ee02d288ce5184d69ee8cc09acbdb95042)), closes [#1263](https://github.com/theholocron/holocron/issues/1263) [#868](https://github.com/theholocron/holocron/issues/868) [#1311](https://github.com/theholocron/holocron/issues/1311) [#1354](https://github.com/theholocron/holocron/issues/1354)
+* **skills:** 📝 rewrite the scaffolding skills for the monorepo ([#1359](https://github.com/theholocron/holocron/issues/1359)) ([1ca2d4c](https://github.com/theholocron/holocron/commit/1ca2d4c5c0a8c89642c35f84a3b13200a72e0cf4)), closes [#1357](https://github.com/theholocron/holocron/issues/1357) [#1200](https://github.com/theholocron/holocron/issues/1200)
+
 ## [1.12.1-alpha.1](https://github.com/theholocron/holocron/compare/skills-v1.12.0...skills-v1.12.1-alpha.1) (2026-10-29)
 
 ### Bug Fixes
