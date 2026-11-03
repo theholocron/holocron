@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { firstEnv } from "@theholocron/env-utils";
+import { firstEnv } from "@theholocron/env-utils/lookup";
 import { createRestClient } from "@theholocron/http-client";
 
 import { getToken as getKeyringToken } from "../../auth/index.js";

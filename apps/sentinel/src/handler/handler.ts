@@ -168,7 +168,7 @@
  * `Env` fields this handler expects, wired via `holocron secrets sync`
  * (holocron#781) from Doppler's `sentinel`/`prd` config: `GITHUB_APP_ID`,
  * `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`. The module-level
- * logger below reads two more via `@theholocron/env-utils` (see its own
+ * logger below reads two more via `@theholocron/env-utils/lookup` (see its own
  * comment — never bare `process.env`, this org's own convention) — not
  * through this `Env` parameter, since it's built once at module load,
  * before any request (and its `env`) exists.
@@ -188,7 +188,7 @@
  */
 
 import { normalizeTaskEntry } from "@theholocron/astromech/config";
-import { createEnvLookup } from "@theholocron/env-utils";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { createInstallationClient, type GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";

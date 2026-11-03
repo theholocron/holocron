@@ -1,6 +1,6 @@
-import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils";
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
 
-export type { EnvLookup as CliEnv } from "@theholocron/env-utils";
+export type { EnvLookup as CliEnv } from "@theholocron/env-utils/lookup";
 
 /** Singleton env for simple global lookups throughout the CLI. */
 export const env = createEnvLookup();
