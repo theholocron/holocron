@@ -32,13 +32,13 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown",
-    "delivery.deploy": "pnpm run delivery.build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
-    "delivery.previewDeploy": "pnpm run delivery.build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown",
+    "deploy": "pnpm run build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
+    "deploy-preview": "pnpm run build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@commitlint/config-conventional": "catalog:",

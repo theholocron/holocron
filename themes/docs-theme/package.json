@@ -46,11 +46,11 @@
     "dist"
   ],
   "scripts": {
-    "delivery.build": "tsdown && cp src/styles.css dist/",
-    "sourceQuality.staticAnalysis": "eslint .",
+    "build": "tsdown && cp src/styles.css dist/",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "verification.typeSafety": "tsc --noEmit",
-    "verification.unitTests": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "gray-matter": "catalog:themes"

@@ -87,33 +87,35 @@ export default defineConfig({
 	// `stale`/`greetings`/`dependencies`/`bookkeeping` aren't part of the
 	// task-name vocabulary (workflow-only keys, unaffected by the rename).
 	// The repo-specific tasks (the decomposed audit tasks, platform.
-	// repoValidation, delivery.publish, platform.repoSync, knowledge.wiki)
+	// repoValidation, release, sync-repo, publish-wiki)
 	// and `syncScripts: false` live in `astromech.config.ts` and are merged
 	// in by astromech's `loadTasksConfig`.
 	tasks: [
 		{
-			name: "sourceQuality.staticAnalysis",
+			name: "lint:code",
 			required: true,
 			// Packages with no eslint.config of their own lint with the root one, which loads the workspace's
 			// eslint-config from dist: build it first, even for a package that does not list it as a dependency.
-			turbo: { dependsOn: ["@theholocron/eslint-config#delivery.build"] },
+			turbo: { dependsOn: ["@theholocron/eslint-config#build"] },
 		},
-		{ name: "sourceQuality.formatting", required: true },
-		{ name: "sourceQuality.structuredDataValidation", required: true },
-		{ name: "security.secretDetection", required: true },
-		{ name: "platform.commitStandards", required: true },
-		{ name: "verification.unitTests", required: true, with: { affected: true, uploads: codecovUploads } },
-		"security.codeScanning",
-		"review",
-		"stale",
-		"greetings",
-		"dependencies",
-		"bookkeeping",
-		{ name: "verification.typeSafety", required: true, with: { affected: true } },
-		// knowledge.docs implies docs: true — this repo has no Storybook, so
-		// the dedicated task is more idiomatic than delivery.deploy + with:
+		{ name: "lint:editorconfig", required: true },
+		{ name: "lint:markdown", required: true },
+		{ name: "format", required: true },
+		{ name: "lint:data", required: true },
+		{ name: "scan:secrets", required: true },
+		{ name: "lint:commits", required: true },
+		{ name: "test:unit", required: true, with: { affected: true, uploads: codecovUploads } },
+		"scan:code",
+		"annotate",
+		"mark-stale",
+		"greet",
+		"update-deps",
+		"label",
+		{ name: "typecheck", required: true, with: { affected: true } },
+		// deploy-docs implies docs: true — this repo has no Storybook, so
+		// the dedicated task is more idiomatic than deploy + with:
 		// { docs: true } now that the two mean the same thing (astromech.ts).
-		{ name: "knowledge.docs", with: { preview: true } },
+		{ name: "deploy-docs", with: { preview: true } },
 	],
 	providers: {
 		...providers,
@@ -144,7 +146,7 @@ export default defineConfig({
 			{
 				guildId: "1303969001822486568",
 				layout: {
-					// Build apps/comlink first (`pnpm --filter @theholocron/comlink run delivery.build`); setup deploys it here.
+					// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
 					relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli"] } },
 					// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 					webhookAvatar: "media/webhook-avatar.png",

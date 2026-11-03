@@ -13,7 +13,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "astro build --root ..",
+    "build-docs": "astro build --root ..",
     "dev": "astro dev --root ..",
     "preview": "astro preview --root .."
   },
