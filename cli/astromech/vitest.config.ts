@@ -17,8 +17,6 @@ export default defineConfig({
 				"src/index.ts",
 				"src/config/index.ts",
 				"src/lint/index.ts",
-				// Type declarations — nothing to execute; v8 reports the lines of one a test loads as uncovered.
-				"src/**/*.type.ts",
 				// Raw workflow YAML strings — no executable logic.
 				"src/templates/**",
 			],

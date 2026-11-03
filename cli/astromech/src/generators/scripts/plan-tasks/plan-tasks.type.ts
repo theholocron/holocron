@@ -18,6 +18,7 @@ export interface PlannedTask {
 	script: string;
 	/** The key in `turbo.json` and the package scripts: follows the entry's spelling (see `taskKey`). */
 	key: string;
+	/** How the task reaches a script: through turbo, a root tool script, or only the CLI. */
 	kind: PlannedKind;
 	/** The root script's body for a `tool` leaf. */
 	command?: string;
