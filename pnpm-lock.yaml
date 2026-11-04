@@ -2441,6 +2441,10 @@ importers:
         version: link:../themes/docs-theme
 
   observability:
+    dependencies:
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../utils/env-utils
     devDependencies:
       '@axiomhq/pino':
         specifier: 'catalog:'

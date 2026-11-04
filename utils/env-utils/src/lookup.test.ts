@@ -3,7 +3,17 @@ import { describe, expect, it, vi } from "vitest";
 describe("@theholocron/env-utils/lookup", () => {
 	it("exports the lookup helpers", async () => {
 		const lookup = await import("./lookup.js");
-		expect(Object.keys(lookup).sort()).toEqual(["createEnvLookup", "firstEnv", "withEnvPrefix"]);
+		expect(Object.keys(lookup).sort()).toEqual([
+			"DEFAULT_ENVIRONMENT",
+			"DEPLOYED_ENVIRONMENTS",
+			"ENVIRONMENTS",
+			"createEnvLookup",
+			"detectEnvironment",
+			"environment",
+			"firstEnv",
+			"isCI",
+			"withEnvPrefix",
+		]);
 	});
 
 	it("does not load dotenv when imported", async () => {

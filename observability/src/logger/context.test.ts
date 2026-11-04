@@ -1,11 +1,12 @@
+import { type Environment, ENVIRONMENTS } from "@theholocron/env-utils/lookup";
 import { describe, expect, it } from "vitest";
 
+import type { LogEnv } from "../core/logger.js";
 import {
 	detectEnv,
 	generateRunId,
 	isCI,
 	isTelemetryDisabled,
-	parseLogEnv,
 	parseLogLevel,
 	resolveAxiomFromEnv,
 	resolveLevel,
@@ -37,37 +38,18 @@ describe("isCI", () => {
 	});
 });
 
-describe("detectEnv", () => {
-	it("maps CI presence to ci/local when ENVIRONMENT says nothing", () => {
+describe("detectEnv and isCI", () => {
+	it("are env-utils' detectEnvironment and isCI, so there is one definition", () => {
+		expect(detectEnv({ ENVIRONMENT: "prod" })).toBe("production");
 		expect(detectEnv({ CI: "true" })).toBe("ci");
 		expect(detectEnv({})).toBe("local");
-		expect(detectEnv({ ENVIRONMENT: "" })).toBe("local");
-		expect(detectEnv({ ENVIRONMENT: "somewhere-else", CI: "true" })).toBe("ci");
+		expect(isCI({ CI: "true" })).toBe(true);
 	});
 
-	it.each(["local", "dev", "ci", "stage", "prod"] as const)("takes %s from ENVIRONMENT", (name) => {
-		expect(detectEnv({ ENVIRONMENT: name })).toBe(name);
-	});
-
-	it("lets ENVIRONMENT win over CI, so a deploy job in CI can say it is prod", () => {
-		expect(detectEnv({ ENVIRONMENT: "prod", CI: "true" })).toBe("prod");
-	});
-
-	it("reads the usual spellings, in any case", () => {
-		expect(detectEnv({ ENVIRONMENT: "Production" })).toBe("prod");
-		expect(detectEnv({ ENVIRONMENT: " DEVELOPMENT " })).toBe("dev");
-		expect(detectEnv({ ENVIRONMENT: "staging" })).toBe("stage");
-		expect(detectEnv({ ENVIRONMENT: "qa" })).toBe("stage");
-	});
-});
-
-describe("parseLogEnv", () => {
-	it("accepts the five environments and their aliases, and nothing else", () => {
-		expect(parseLogEnv("stage")).toBe("stage");
-		expect(parseLogEnv("production")).toBe("prod");
-		expect(parseLogEnv("sandbox")).toBeUndefined();
-		expect(parseLogEnv("")).toBeUndefined();
-		expect(parseLogEnv(undefined)).toBeUndefined();
+	it("name the same environments as the LogEnv type", () => {
+		const same: Equal<LogEnv, Environment> = true;
+		expect(same).toBe(true);
+		expect(([...ENVIRONMENTS] as string[]).sort()).toEqual(["ci", "development", "local", "production", "test"]);
 	});
 });
 
@@ -140,3 +122,6 @@ describe("resolveAxiomFromEnv", () => {
 		expect(resolveAxiomFromEnv({})).toBeUndefined();
 	});
 });
+
+/** True when `A` and `B` are the same type. */
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;

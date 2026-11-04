@@ -1,11 +1,11 @@
 import type { EnvLogger } from "./types.js";
 
 /** The canonical environment names. */
-export const ENVIRONMENTS = ["local", "dev", "qa", "prod"] as const;
-/** The environment used when none is set or the value is not recognised: `"prod"`. */
-export const DEFAULT_ENVIRONMENT: Environment = "prod";
-/** The environments that count as deployed: `qa` and `prod`. */
-export const DEPLOYED_ENVIRONMENTS = new Set<Environment>(["qa", "prod"]);
+export const ENVIRONMENTS = ["local", "development", "ci", "test", "production"] as const;
+/** The environment used when none is set or the value is not recognised: `"production"`. */
+export const DEFAULT_ENVIRONMENT: Environment = "production";
+/** The environments that count as deployed: `test` and `production`. */
+export const DEPLOYED_ENVIRONMENTS = new Set<Environment>(["test", "production"]);
 
 /**
  * Normalize a string into a canonical Environment.
@@ -15,19 +15,24 @@ function normalizeEnvironment(value: string): Environment | undefined {
 	const aliases = {
 		local: "local",
 
-		dev: "dev",
-		development: "dev",
+		dev: "development",
+		development: "development",
 
-		qa: "qa",
-		test: "qa",
-		staging: "qa",
+		ci: "ci",
 
-		prod: "prod",
-		production: "prod",
+		test: "test",
+		stage: "test",
+		stg: "test",
+		staging: "test",
+		qa: "test",
+
+		prod: "production",
+		prd: "production",
+		production: "production",
 	} as const satisfies Record<string, Environment>;
 	const lookup = new Map<string, Environment>(Object.entries(aliases));
 
-	return lookup.get(value.toLowerCase());
+	return lookup.get(value.trim().toLowerCase());
 }
 
 const consoleWarn: Pick<EnvLogger, "warn"> = {
@@ -51,11 +56,11 @@ function getEnvironment(logger: Pick<EnvLogger, "warn"> = consoleWarn): Environm
 export const environment = {
 	/** Resolves the environment from `ENVIRONMENT`, `ENV` or `NODE_ENV` (first set wins), warning and falling back to the default when the value is not recognised. */
 	get: getEnvironment,
-	/** Maps a string or alias (`production`, `staging`, `test`, ...) to its canonical {@link Environment}, or `undefined` when it is not recognised. */
+	/** Maps a string or alias (`prod`, `prd`, `staging`, `qa`, `dev`, ...) to its canonical {@link Environment}, or `undefined` when it is not recognised. */
 	normalize: normalizeEnvironment,
-	/** Whether the current environment is a deployed one (`qa` or `prod`). */
+	/** Whether the current environment is a deployed one (`test` or `production`). */
 	isDeployed: (logger?: Pick<EnvLogger, "warn">) => DEPLOYED_ENVIRONMENTS.has(getEnvironment(logger)),
 };
 
-/** A canonical environment name: `"local"`, `"dev"`, `"qa"` or `"prod"`. */
+/** A canonical environment name: `"local"`, `"development"`, `"ci"`, `"test"` or `"production"`. */
 export type Environment = (typeof ENVIRONMENTS)[number];

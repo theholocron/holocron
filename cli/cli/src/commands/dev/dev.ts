@@ -6,6 +6,7 @@
  * does, and the tunnel's connector runs beside the application; Ctrl-C stops both.
  */
 
+import type { Environment } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -16,6 +17,9 @@ import { runTunnelUp } from "../tunnel-up/index.js";
 import type { DevReport, RunDevInput } from "./dev.type.js";
 
 const COMMAND = "dev";
+
+/** The environment the application is told it runs in, which its logger tags every line with. */
+const APP_ENVIRONMENT: Environment = "development";
 
 export async function runDev(input: RunDevInput): Promise<DevReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -104,7 +108,11 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	let exitCode: number;
 	try {
 		({ exitCode } = await (input.runProcesses ?? runDevProcesses)({
-			app: { command: program as string, args, env: { ENVIRONMENT: "dev", ...values, PORT: String(input.port) } },
+			app: {
+				command: program as string,
+				args,
+				env: { ENVIRONMENT: APP_ENVIRONMENT, ...values, PORT: String(input.port) },
+			},
 			connector: {
 				command: "cloudflared",
 				args: ["tunnel", "--no-autoupdate", "run"],

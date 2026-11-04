@@ -18,9 +18,9 @@ Detects the current runtime environment from `ENVIRONMENT`, `ENV`, or `NODE_ENV`
 ```ts
 import { environment } from "@theholocron/env-utils";
 
-environment.get(); // "local" | "dev" | "qa" | "prod"
-environment.isDeployed(); // true when env is "qa" or "prod"
-environment.normalize("production"); // "prod"
+environment.get(); // "local" | "development" | "ci" | "test" | "production"
+environment.isDeployed(); // true when env is "test" or "production"
+environment.normalize("prod"); // "production"
 ```
 
 ### Constants
@@ -28,10 +28,27 @@ environment.normalize("production"); // "prod"
 ```ts
 import { ENVIRONMENTS, DEFAULT_ENVIRONMENT, DEPLOYED_ENVIRONMENTS } from "@theholocron/env-utils";
 
-ENVIRONMENTS; // ["local", "dev", "qa", "prod"]
-DEFAULT_ENVIRONMENT; // "prod"
-DEPLOYED_ENVIRONMENTS; // Set { "qa", "prod" }
+ENVIRONMENTS; // ["local", "development", "ci", "test", "production"]
+DEFAULT_ENVIRONMENT; // "production"
+DEPLOYED_ENVIRONMENTS; // Set { "test", "production" }
 ```
+
+The five names are `local` (a laptop), `development` (a development instance), `ci`, `test` (a deployed pre-production instance) and `production`. They are the long forms Node's `NODE_ENV` and Vercel use. Short and vendor spellings are read as aliases, in any case: `dev` as `development`, `stage`, `stg`, `staging` and `qa` as `test`, `prod` and `prd` as `production`. Unit tests under CI are `ci`, not `test`.
+
+### `detectEnvironment` and `isCI`
+
+`environment.get()` is for an application that should assume production unless told otherwise. `detectEnvironment()` is for telemetry, which must never mistake a laptop for production: it reads only `ENVIRONMENT` and never falls back to `prod`.
+
+```ts
+import { detectEnvironment, isCI } from "@theholocron/env-utils/lookup";
+
+detectEnvironment({ ENVIRONMENT: "prod" }); // "production"
+detectEnvironment({ CI: "true" }); // "ci"
+detectEnvironment({}); // "local"
+isCI({ CI: "false" }); // false
+```
+
+`ENVIRONMENT` wins over `CI`, so a deploy job can say it is `production`. `ENV` and `NODE_ENV` are ignored, since many tools set them for their own reasons. Both helpers, and `environment` and its constants, are also exported from `@theholocron/env-utils/lookup`, which does not load a `.env` when imported. The logger in `@theholocron/observability` binds the result as `env` on every line.
 
 ### `DotenvLoader`
 

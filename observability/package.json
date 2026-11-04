@@ -65,6 +65,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
   "devDependencies": {
     "@axiomhq/pino": "catalog:",
     "@sentry/node": "catalog:",
