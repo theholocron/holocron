@@ -255,11 +255,25 @@ describe("auth export — only", () => {
 		const copy = vi.fn(async (_text: string) => {});
 		const { result, out, err } = run({ outKind: "terminal", only: ["HOLOCRON_SENTRY_TOKEN"], copy });
 		const report = await result;
-		expect(copy).toHaveBeenCalledExactlyOnceWith("HOLOCRON_SENTRY_TOKEN=sntry_1\n");
+		expect(copy).toHaveBeenCalledExactlyOnceWith("sntry_1");
 		expect(report).toMatchObject({ status: "ok", destination: "clipboard", exported: ["HOLOCRON_SENTRY_TOKEN"] });
 		expect(out).toEqual([]);
 		expect(err[0]).toBe("exported 1 of 1:");
 		expect(JSON.stringify(err)).not.toContain("sntry_1");
+	});
+
+	it("copies several tokens as NAME=value lines, since a bare value would not say which is which", async () => {
+		const copy = vi.fn(async (_text: string) => {});
+		const { result } = run({ outKind: "terminal", only: ["HOLOCRON_ORG_TOKEN", "HOLOCRON_SENTRY_TOKEN"], copy });
+		await result;
+		expect(copy).toHaveBeenCalledExactlyOnceWith("HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n");
+	});
+
+	it("copies the whole set as lines with --copy and no --only", async () => {
+		const copy = vi.fn(async (_text: string) => {});
+		const { result } = run({ outKind: "terminal", to: "clipboard", copy });
+		await result;
+		expect(copy.mock.calls[0]![0]).toContain("HOLOCRON_ORG_TOKEN=ghp_org\n");
 	});
 
 	it("finds a token by the vendor's own name or by its keyring entry", async () => {
