@@ -7,8 +7,8 @@ import { getEntry } from "../../interactive-menu/index.js";
 import { reportError } from "../../observability/logger/index.js";
 import { promptForPositionals } from "../../ui/index.js";
 import { cleanupPreviewCommand } from "../cleanup-preview/cleanup-preview.command.js";
-import { type DeployArgs, deployArgs } from "./deploy.args.js";
 import { deployStageCommand } from "../deploy-stage/deploy-stage.command.js";
+import { type DeployArgs, deployArgs } from "./deploy.args.js";
 import { deployOnReleaseCommand } from "./deploy-on-release.command.js";
 import { runDeploy, runDeployFromFiles } from "./index.js";
 
