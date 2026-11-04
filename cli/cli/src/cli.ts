@@ -23,6 +23,7 @@ import { secretsCommand } from "./commands/secrets/secrets.command.js";
 import { skillsCommand } from "./commands/skills/index.js";
 import { specsCommand } from "./commands/specs/specs.command.js";
 import { syncCommand } from "./commands/sync/sync.command.js";
+import { tunnelCommand } from "./commands/tunnel/index.js";
 import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
 import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
@@ -136,6 +137,7 @@ try {
 		.command(notificationsCommand as never)
 		.command(githubAppCommand as never)
 		.command(specsCommand as never)
+		.command(tunnelCommand as never)
 		.command(syncCommand as never)
 		.command(packageCommand as never)
 		.command(deployCommand as never)

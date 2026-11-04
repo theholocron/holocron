@@ -46,6 +46,7 @@ import { skillsUpdateEntry } from "../../commands/skills/skills-update.entry.js"
 import { specsSyncEntry } from "../../commands/specs-sync/specs-sync.entry.js";
 import { syncGithubEntry } from "../../commands/sync-github/sync-github.entry.js";
 import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js";
+import { tunnelUpEntry } from "../../commands/tunnel-up/tunnel-up.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
 import { upgradeNodeEntry } from "../../commands/upgrade-node/upgrade-node.entry.js";
 import type { CommandEntry } from "./command-registry.type.js";
@@ -111,6 +112,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	authListEntry,
 	authExportEntry,
 	githubAppCreateEntry,
+	tunnelUpEntry,
 ];
 
 /** Look up a {@link CommandEntry} by its full name — for Layer 3 call sites in `cli.ts`. */
