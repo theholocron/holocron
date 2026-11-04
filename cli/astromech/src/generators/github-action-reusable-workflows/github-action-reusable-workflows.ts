@@ -14,9 +14,10 @@
 
 import { ACTIONS, workflowFile, WORKFLOWS } from "@theholocron/ci";
 
-import { flatFile, legacyCaller, legacyFile, legacyName, legacyWorkflowKey } from "../../vocabulary/index.js";
+import { flatFile, legacyFile } from "../../vocabulary/index.js";
 import { CI_TARGET, rehomeAll } from "../ci-ref/index.js";
 import { WORKFLOW_TEMPLATES, workflowTriggers } from "../github-action-thin-callers/index.js";
+import { hostedActionRefs } from "../hosted-action-refs/index.js";
 
 /**
  * The workflows by task id (`test:unit`): a hosting repo writes one as `.github/workflows/<workflowFile(id)>` and
@@ -32,10 +33,13 @@ export const REUSABLE_WORKFLOWS: Record<string, string> = rehomeAll(WORKFLOWS);
  */
 export function hostedReusableWorkflows(): Map<string, string> {
 	return new Map(
-		Object.entries(REUSABLE_WORKFLOWS).filter(([, text]) => {
-			const triggers = workflowTriggers(text);
-			return triggers.length === 1 && triggers[0] === "workflow_call";
-		})
+		Object.entries(REUSABLE_WORKFLOWS)
+			.filter(([, text]) => {
+				const triggers = workflowTriggers(text);
+				return triggers.length === 1 && triggers[0] === "workflow_call";
+			})
+			// The copy this repo runs resolves its actions without `ci-v1` (see `hostedActionRefs`).
+			.map(([id, text]) => [id, hostedActionRefs(text)] as const)
 	);
 }
 
@@ -54,7 +58,7 @@ export const REUSABLE_ACTIONS: Record<string, string> = rehomeAll(
 
 /** GitHub starter-workflow metadata → `workflow-templates/<name>.properties.json`. */
 export const WORKFLOW_TEMPLATE_PROPERTIES: Record<string, string> = {
-	bookkeeping: JSON.stringify(
+	label: JSON.stringify(
 		{
 			name: "Bookkeeping",
 			description: "Label and track issues and pull requests.",
@@ -98,14 +102,11 @@ export function reusableTemplates(): Map<string, string> {
 	for (const [id, body] of Object.entries(REUSABLE_WORKFLOWS)) {
 		out.set(remotePath(id), `${header}${body}`);
 	}
-	// The starter workflows in `.github` keep the old names, and so do the callers they are copied as (the legacy-name gate).
-	// A caller that shares its old name with another (`lint:markdown` with `lint:editorconfig`: the old formatting
-	// workflow; `validate:docs` with `validate:specs`) has no starter of its own, because the frozen reusables have no file for it.
+	// The starter workflows are thin callers into holocron at `ci-v1`, named for the task id like every other caller.
+	// (Starters pushed before the flip, under the old names, stay where they are; nothing here deletes them.)
 	for (const [id, template] of Object.entries(WORKFLOW_TEMPLATES)) {
-		if (legacyWorkflowKey(id) !== id) continue;
-		const name = legacyName(id) ?? id;
-		const body = legacyCaller(id, template);
-		out.set(`workflow-templates/${name}.yml`, `${header}${body}`);
+		const name = workflowFile(id).replace(/\.yml$/, "");
+		out.set(`workflow-templates/${name}.yml`, `${header}${template}`);
 		const props = WORKFLOW_TEMPLATE_PROPERTIES[name];
 		if (props) out.set(`workflow-templates/${name}.properties.json`, props);
 	}

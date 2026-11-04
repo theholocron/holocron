@@ -6,8 +6,9 @@ import { join } from "node:path";
 import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
-import { legacyFile, legacyName, legacyWorkflowKey } from "../../vocabulary/index.js";
+import { legacyFile } from "../../vocabulary/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
+import { hostedActionRefs } from "../hosted-action-refs/index.js";
 import {
 	frozenReusablePaths,
 	hostedReusableWorkflows,
@@ -102,8 +103,24 @@ describe("hostedReusableWorkflows()", () => {
 		expect(left.filter((name) => hosted.has(name))).toEqual([]);
 	});
 
-	it("takes its text from the same map `holocron sync github` pushes", () => {
-		expect([...hosted].filter(([name, text]) => text !== REUSABLE_WORKFLOWS[name])).toEqual([]);
+	it("takes its text from the same map `holocron sync github` pushes, but for the action references", () => {
+		const hostedRefs = (text: string) => hostedActionRefs(text);
+		expect([...hosted].filter(([name, text]) => text !== hostedRefs(REUSABLE_WORKFLOWS[name]!))).toEqual([]);
+	});
+
+	it("runs `format` from its own checkout, and every other action from the frozen copy, until `ci-v1` exists", () => {
+		const code = hosted.get("lint:code")!;
+		expect(code).toContain("uses: ./ci/actions/format");
+		expect(code).toContain("uses: theholocron/.github/.github/actions/setup@main");
+		const refs = [...hosted.values()].filter((text) => text.includes("theholocron/holocron/ci/actions/"));
+		expect(refs).toEqual([]);
+	});
+
+	it("leaves the copy other repos call on the ci-v1 references", () => {
+		const code = REUSABLE_WORKFLOWS["lint:code"]!;
+		expect(code).toContain("uses: theholocron/holocron/ci/actions/format@ci-v1");
+		expect(code).toContain("uses: theholocron/holocron/ci/actions/setup@ci-v1");
+		expect(code).not.toContain("uses: ./ci/actions/format");
 	});
 });
 
@@ -114,7 +131,7 @@ describe("reusableTemplates()", () => {
 		const expected =
 			Object.keys(REUSABLE_ACTIONS).length +
 			Object.keys(REUSABLE_WORKFLOWS).length +
-			Object.keys(WORKFLOW_TEMPLATES).filter((id) => legacyWorkflowKey(id) === id).length +
+			Object.keys(WORKFLOW_TEMPLATES).length +
 			Object.keys(WORKFLOW_TEMPLATE_PROPERTIES).length;
 		expect(batch.size).toBe(expected);
 
@@ -126,29 +143,31 @@ describe("reusableTemplates()", () => {
 			expect(batch.has(`.github/workflows/${legacyFile(workflowFile(id))}`)).toBe(true);
 		}
 		for (const id of Object.keys(WORKFLOW_TEMPLATES)) {
-			const name = legacyName(id) ?? id;
-			expect(batch.has(`workflow-templates/${name}.yml`)).toBe(true);
+			expect(batch.has(`workflow-templates/${workflowFile(id)}`)).toBe(true);
 		}
 	});
 
-	it("files the old formatting starter under the editorconfig caller, not the markdown one", () => {
-		const starter = batch.get("workflow-templates/sourceQuality.formatting.yml")!;
-		expect(starter).toContain("sourceQuality.formatting.yml@main");
-		expect(starter).not.toContain("lint-markdown");
-		expect(batch.has("workflow-templates/lint:markdown.yml")).toBe(false);
+	it("writes a starter for every caller, named for the task id: each leaf of the old formatting and validate workflows has its own", () => {
+		for (const name of ["lint-editorconfig", "lint-markdown", "validate-specs", "validate-docs", "test-unit"]) {
+			expect([name, batch.has(`workflow-templates/${name}.yml`)]).toEqual([name, true]);
+		}
 	});
 
-	it("files the validate starter under the old workflow, carried by its first leaf", () => {
-		const starter = batch.get("workflow-templates/platform.repoValidation.yml")!;
-		expect(starter).toMatch(/^name: Platform$/m);
-		expect(starter).toContain("uses: theholocron/.github/.github/workflows/platform.repoValidation.yml@main");
-		expect(starter).not.toContain("validate-docs");
+	it("writes starters that are thin callers into holocron at ci-v1 under the task id, with no old name left", () => {
+		const unit = batch.get("workflow-templates/test-unit.yml")!;
+		expect(unit).toMatch(/^name: test:unit$/m);
+		expect(unit).toContain("uses: theholocron/holocron/.github/workflows/test-unit.yml@ci-v1");
+		const starters = [...batch].filter(([path]) => path.startsWith("workflow-templates/") && path.endsWith(".yml"));
+		expect(starters.length).toBe(Object.keys(WORKFLOW_TEMPLATES).length);
+		expect(starters.filter(([, text]) => text.includes("theholocron/.github/.github/"))).toEqual([]);
+		expect(
+			starters.filter(([, text]) => /@main\b/.test(text.replace(/actions\/[\w-]+@[0-9a-f]{40}/g, "")))
+		).toEqual([]);
+		// no starter is filed under an old dotted name
+		expect(starters.filter(([path]) => /verification|sourceQuality|platform\./.test(path))).toEqual([]);
 	});
 
-	it("keeps the old names in the starter workflows and the file Sentinel dispatches by name (the legacy-name gate)", () => {
-		expect(batch.get("workflow-templates/stale.yml")).toMatch(/^name: Stale$/m);
-		expect(batch.get("workflow-templates/verification.unitTests.yml")).toMatch(/^ {2}test:\n {4}name: Test$/m);
-		expect(batch.has("workflow-templates/test:unit.yml")).toBe(false);
+	it("keeps the file Sentinel dispatches by name where it is, under its old name", () => {
 		expect(batch.has(".github/workflows/platform.dispatchedCheck.yml")).toBe(true);
 	});
 
@@ -186,7 +205,7 @@ describe("reusableTemplates()", () => {
 
 	it("platform.repoSync.yml runs `holocron repo sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
 		const wf = REUSABLE_WORKFLOWS["sync-repo"]!;
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toMatch(/command: repo sync/);
 		expect(wf).not.toContain("node cli/cli/dist/cli.mjs");
 		// the standalone `pnpm build` step is gone — the action handles it
@@ -208,28 +227,29 @@ describe("reusableTemplates()", () => {
 	});
 
 	it("leaves the starter-workflow .properties.json bare (native JSON, no header)", () => {
-		const props = batch.get("workflow-templates/bookkeeping.properties.json")!;
+		const props = batch.get("workflow-templates/label.properties.json")!;
 		expect(props.startsWith("#")).toBe(false);
 		expect(JSON.parse(props)).toMatchObject({ name: "Bookkeeping", iconName: "octicon tag" });
 	});
 
 	it("adds a .properties.json only for templates that have properties", () => {
 		const propsKeys = [...batch.keys()].filter((k) => k.endsWith(".properties.json"));
-		expect(propsKeys).toEqual(["workflow-templates/bookkeeping.properties.json"]);
+		expect(propsKeys).toEqual(["workflow-templates/label.properties.json"]);
+		expect(batch.has("workflow-templates/label.yml")).toBe(true);
 	});
 });
 
 describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	it("verification.typeSafety.yml runs the task through the holocron action", () => {
 		const wf = REUSABLE_WORKFLOWS["typecheck"]!;
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toMatch(/task: typecheck/);
 		expect(wf).not.toContain("run: pnpm typecheck");
 	});
 
 	it("verification.unitTests.yml unit job runs the task through the holocron action", () => {
 		const wf = REUSABLE_WORKFLOWS["test:unit"]!;
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toMatch(/task: test:unit/);
 		expect(wf).not.toContain("run: pnpm test:coverage");
 	});
@@ -328,7 +348,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		const unit = REUSABLE_WORKFLOWS["test:unit"]!.split("\n  storybook:\n")[0]!;
 		expect(unit).toMatch(/uploads:\s*\n\s*description:[^\n]*\n\s*type: string\n\s*required: false\n\s*default: ""/);
 		expect(unit).toContain("if: ${{ inputs.uploads != '' }}");
-		expect(unit).toContain("uses: theholocron/.github/.github/actions/codecov-upload@main");
+		expect(unit).toContain("uses: theholocron/holocron/ci/actions/codecov-upload@ci-v1");
 		expect(unit).toContain("allow-empty: ${{ inputs.affected }}");
 		expect(unit).toContain(
 			"if: ${{ inputs.uploads == '' && (!inputs.affected || steps.reports.outputs.coverage == 'true') }}"
@@ -617,7 +637,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(REUSABLE_WORKFLOWS["lint:editorconfig"]).toMatch(/task: lint:editorconfig/);
 		expect(REUSABLE_WORKFLOWS["lint:markdown"]).toMatch(/task: lint:markdown/);
 		// prettier is the `format` action, called by the static analysis workflow
-		expect(REUSABLE_WORKFLOWS["lint:code"]).toContain("uses: ./ci/actions/format");
+		expect(REUSABLE_WORKFLOWS["lint:code"]).toContain("uses: theholocron/holocron/ci/actions/format@ci-v1");
 		expect(REUSABLE_WORKFLOWS["lint:data"]).toMatch(/task: lint:data/);
 		expect(REUSABLE_WORKFLOWS["scan:secrets"]).toMatch(/task: scan:secrets/);
 		// commitlint and the repo-validation scripts have no local runner — they
@@ -679,7 +699,7 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 	});
 
 	it("runs the dispatched task through the holocron action, not a hard-coded command", () => {
-		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
+		expect(wf).toContain("uses: theholocron/holocron/ci/actions/holocron@ci-v1");
 		expect(wf).toContain("task: ${{ inputs.task }}");
 	});
 
@@ -792,7 +812,7 @@ describe("REUSABLE_WORKFLOWS['check-notify'] — the end-to-end notification che
 
 	it("posts to each channel with the strict notify action, so one bad channel fails its own job and not the others", () => {
 		expect(wf).toContain("fail-fast: false");
-		expect(wf).toContain("theholocron/.github/.github/actions/notify@main");
+		expect(wf).toContain("theholocron/holocron/ci/actions/notify@ci-v1");
 		expect(wf).toContain('strict: "true"');
 		expect(wf).toContain("fromJSON(inputs.channels)");
 	});

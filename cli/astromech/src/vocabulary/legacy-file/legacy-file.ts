@@ -11,9 +11,9 @@ const BY_FLAT_FILE = new Map<string, string>(
 
 /**
  * The old file name of a flat reusable workflow — `test-unit.yml` is `verification.unitTests.yml`. The frozen copies in
- * `theholocron/.github` keep the old names and exist only there, so a reference to a reusable that is called from
- * outside this repo while `CI_HOME` points at `main` is spelled with it (spec `ci-flat-task-vocabulary`, "Legacy names
- * while `CI_HOME` points at `.github`"). A file with no old name (`preview.yml`, `ci.yml`) is returned as it is.
+ * `theholocron/.github` keep the old names and exist only there, so the path of a frozen copy, and of a workflow that
+ * is still dispatched there by name, is spelled with it (spec `ci-flat-task-vocabulary`). A file with no old name
+ * (`preview.yml`, `ci.yml`) is returned as it is.
  */
 export function legacyFile(file: string): string {
 	return BY_FLAT_FILE.get(file) ?? file;

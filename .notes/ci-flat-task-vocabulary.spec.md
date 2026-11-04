@@ -994,6 +994,36 @@ markdownlint`, and `lint:code`'s is `lint:code / Run eslint, actionlint and pret
   `generateWorkflowFiles` for a hosting repo, the legacy gate and an open gate, and the runner and `ci` for the leaves
   and for both aliases.
 
+### Phase K as built (#1623)
+
+- **`CI_HOME` is `CI_TARGET`** (`theholocron/holocron/.github/workflows`, `.../ci/actions`, `ci-v1`), one constant in
+  `ci-ref.ts`. `rehome` and `reusableWorkflowRef` no longer spell an old file name; `localize` no longer maps back with
+  `flatFile()`. `legacyFile()` stays for the paths of the frozen copies and of `platform.dispatchedCheck.yml`; `flatFile()`
+  stays for the deprecation notice. Both go with `LEGACY_NAMES` in phase L.
+- **The gate is gone:** `legacyGate`, `legacyCaller`, `legacyCallerFile`, `LEGACY_CALLERS` and `legacyWorkflowKey` (nothing else
+  needed the formatting and validate sharing, since every id has its own workflow since phases I and J) are deleted.
+  `generateWorkflowFiles` writes `workflowKeys(name)` callers named `workflowFile(id)` for every repo.
+- **The `ci` aggregate caller is written by every repo's root config** (`ci.yml`; `ci.ci.yml` in holocron) when the
+  manifest has anything for it to wait on, instead of only by the repo that hosts `ci.yml`.
+- **Rulesets:** `requiredChecksFor()` (one function for `repo setup` and `doctor repo`) passes the aggregate flag when
+  `aggregateCaller()` is not null, so every repo with a required task or an `extraRequiredChecks` entry requires
+  `ci / Required checks` and `DCO`, and `extraRequiredChecks` are waited on by `ci`. A manifest with nothing to wait on
+  keeps `DCO` alone. `repo setup` must therefore run after the repo's `ci` caller is merged, never before.
+- **`format` action.** `ci/workflows/lint/code.yml` calls `theholocron/.github/.github/actions/format@main` in the template
+  spelling, which `rehome` turns into `theholocron/holocron/ci/actions/format@ci-v1`. The copy holocron writes to its own
+  `.github/workflows` goes through `hostedActionRefs()`: `format` becomes `./ci/actions/format` (it has no frozen copy) and
+  every other action keeps the frozen reference in `theholocron/.github`, so holocron's own checks pass before the tag
+  exists. That function is the thing to delete once `ci-v1` resolves (see "After the tag").
+- **Starters** `sync github` pushes are the thin callers under their flat names (`test-unit.yml`, `label.yml` with the old
+  `bookkeeping` properties), calling `ci-v1`. Starters pushed earlier under old names stay in `.github` until removed there.
+- **Not changed:** the frozen reusables and actions in `theholocron/.github`; `reusableTemplates()` still lists them under
+  their old names for `frozenReusablePaths()`; `probe ci refs` (it already counts references outside holocron only); the
+  hand-written workflows that call `.github/.github/...@main`; the nested `uses:` inside `ci/actions/*/action.yml`, which
+  still name the frozen `setup-node`, `install` and `notify` copies.
+- **After the tag:** delete `hostedActionRefs()` (holocron then also calls its actions by `ci-v1`, or by path), and rewrite
+  the nested action references of `ci/actions` to `@ci-v1` in a commit that follows the tag, since a reference to a tag
+  that does not exist fails the run.
+
 ## Open questions
 
 Resolved and folded into the decisions: the colon spelling, `format` as a verb, `release`, the aggregate check and its

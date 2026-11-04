@@ -1,17 +1,11 @@
 import {
 	createAstromech,
-	generateThinCallerContent,
 	hostedReusableWorkflows,
 	KNOWN_WORKFLOWS,
-	legacyCaller,
-	legacyCallerFile,
-	legacyGate,
-	legacyWorkflowKey,
 	localize,
 	resolveTaskName,
 	TASKS,
 	workflowFile,
-	workflowKey,
 	workflowKeys,
 } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
@@ -29,11 +23,12 @@ import type { GeneratedWorkflowFile, RepoFilesInput, SkippedRepoFile } from "./r
  * skipped entry, and a task with `ci: false` has no file. Nothing here is remote: astromech renders every file from the
  * manifest (the linter set, deploy paths, deploy and preview), and a bad manifest throws.
  *
- * In the repo that hosts the reusables (it has the `@theholocron/ci` package) every config's callers are named for their
- * task id, in the workflow, the job and the file (`ci.test-unit.yml`, the id with its colon a hyphen), and call
- * `./.github/workflows/<flat name>.yml`; the root config also writes the reusables beside them. Every other repo
- * still calls the frozen reusables in `theholocron/.github`, so while that is so (`legacyGate()`) its callers keep the
- * names they had (`verification.unitTests.yml`, workflow `Verification`): its ruleset lists the checks they post.
+ * Every config's callers are named for their task id, in the workflow, the job and the file (`test-unit.yml`, the id
+ * with its colon a hyphen), and call the reusables in `theholocron/holocron` at `ci-v1` (`CI_HOME`). The repo that hosts
+ * the reusables (it has the `@theholocron/ci` package) calls them by path, `./.github/workflows/<flat name>.yml`, so a
+ * PR that edits one runs it; its callers get the `ci.` prefix (`ci.test-unit.yml`) so they do not clash with the
+ * reusables beside them, and its root config also writes the reusables. The root config of any repo writes the `ci`
+ * aggregate caller.
  */
 export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflowFile | SkippedRepoFile)[] {
 	const config = input.loaded.resolved;
@@ -56,19 +51,16 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	// A package's own config (apps/sentinel) generates callers with the reusables' names too, so all of them move.
 	const hosting = hostsReusables(gitRoot);
 
-	const legacy = !hosting && legacyGate();
-
 	const entries: (GeneratedWorkflowFile | SkippedRepoFile)[] = [];
 	// One caller per workflow an entry needs (`validate` has two). A task with no workflow of its own (`format`, a step of
-	// `lint:code`) writes none. A repo on the legacy gate has one caller for what is now several workflows (the formatting
-	// ones, the validate ones), filed under the first: the frozen reusable runs them all.
+	// `lint:code`) writes none.
 	const wanted = tasks.flatMap((entry) => {
 		const name = typeof entry === "string" ? entry : entry.name;
 		const ids = resolveTaskName(name);
 		if (ids.length > 0 && ids.every(({ id }) => TASKS[id]?.workflow === false)) return [];
-		return (legacy ? [legacyWorkflowKey(name)] : workflowKeys(name)).map((key) => ({ entry, name, key }));
+		return workflowKeys(name).map((key) => ({ name, key }));
 	});
-	for (const { entry, name, key } of wanted) {
+	for (const { name, key } of wanted) {
 		// deploy-docs / deploy-components have no static template: their content is always generated.
 		const isCombinedContentOnly = key === "deploy-docs" || key === "deploy-components";
 		if (!KNOWN_WORKFLOWS.has(key) && !isCombinedContentOnly) {
@@ -82,25 +74,11 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 		}
 
 		// Keyed by task id alone, whichever package's config generated it.
-		let flat = files.get(`${key}.yml`);
-		// `lint:markdown` listed without `lint:editorconfig` still needs the one formatting caller (generated under its own key)
-		if (
-			flat === undefined &&
-			legacy &&
-			key !== workflowKey(name) &&
-			!(typeof entry === "object" && entry.ci === false)
-		) {
-			flat = generateThinCallerContent(key);
-		}
-		if (flat === undefined) continue; // ci: false, or no workflow of its own — nothing to write
-		const content = legacy ? legacyCaller(key, flat) : flat;
-		const filename = hosting
-			? `${HOSTED_CALLER_PREFIX}${workflowFile(key)}`
-			: legacy
-				? legacyCallerFile(key)
-				: workflowFile(key);
+		const content = files.get(`${key}.yml`);
+		if (content === undefined) continue; // ci: false, or no workflow of its own — nothing to write
+		const filename = hosting ? `${HOSTED_CALLER_PREFIX}${workflowFile(key)}` : workflowFile(key);
 
-		const preview = content.includes("workflows/preview.yml@main") ? " (with preview)" : "";
+		const preview = content.includes("workflows/preview.yml@") ? " (with preview)" : "";
 		entries.push({
 			kind: "file",
 			path: `.github/workflows/${filename}`,
@@ -112,21 +90,23 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	}
 
 	// Written once, by the root config; a package's config would stamp them with its own `# Source package:`.
-	if (hosting && pkgRelPath === ".") {
-		// The `ci` aggregate (#1613): one caller that waits on everything the manifest marks required. Only here, in the
-		// repo that hosts `ci.yml`; the other repos call frozen copies that have none until `CI_HOME` moves.
+	if (pkgRelPath === ".") {
+		// The `ci` aggregate (#1613): one caller that waits on everything the manifest marks required. Every repo gets it,
+		// because the reusable `ci.yml` is hosted at `ci-v1`; the hosting repo prefixes its file like its other callers.
 		const aggregate = astromech.aggregateCaller();
 		if (aggregate !== null) {
-			const filename = `${HOSTED_CALLER_PREFIX}ci.yml`;
+			const filename = hosting ? `${HOSTED_CALLER_PREFIX}ci.yml` : "ci.yml";
 			entries.push({
 				kind: "file",
 				path: `.github/workflows/${filename}`,
-				content: thinCallerFile(pkgRelPath, localize(aggregate)),
+				content: thinCallerFile(pkgRelPath, hosting ? localize(aggregate) : aggregate),
 				step: "write workflow ci",
 				syncStep: "sync workflow ci",
 				workflow: { task: "ci", filename },
 			});
 		}
+	}
+	if (hosting && pkgRelPath === ".") {
 		for (const [id, content] of hostedReusableWorkflows()) {
 			const filename = workflowFile(id);
 			entries.push({

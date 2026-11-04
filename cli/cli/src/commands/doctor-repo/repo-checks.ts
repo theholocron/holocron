@@ -1,11 +1,9 @@
-import { createAstromech, isTask } from "@theholocron/astromech";
-import type { TasksConfig } from "@theholocron/astromech/config";
+import { isTask } from "@theholocron/astromech";
 
 import type { ResolvedHolocronConfig } from "../../config/index.js";
-import { getLogger } from "../../observability/logger/index.js";
 import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plugin/index.js";
 import { declaredVsActual } from "../doctor-checks/index.js";
-import { hostsReusables } from "../repo-files/hosted-reusables.js";
+import { requiredChecksFor } from "../required-checks-for/index.js";
 import { RULESET_NAME } from "../setup/branch-protection.js";
 import { deriveCapabilities } from "../setup/derived-properties/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "../setup/labels.js";
@@ -197,7 +195,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 				const found = rulesets.find((r) => r.name === RULESET_NAME);
 				if (!found) return { problems: [`missing ruleset ${RULESET_NAME}`], checked: 1 };
 				const detail = await source.getRulesetDetail!(found.id);
-				const required = preset === "strict" ? strictChecks(config, repoRoot) : [];
+				const required = preset === "strict" ? requiredChecksFor(config, repoRoot) : [];
 				const rules = [
 					"deletion",
 					"non_fast_forward",
@@ -276,13 +274,4 @@ function declaredProperties(config: ResolvedHolocronConfig): Map<string, string>
 	if (manual.uses_external_packages !== undefined)
 		out.set("uses_external_packages", String(manual.uses_external_packages));
 	return out;
-}
-
-/** The status checks a `strict` ruleset requires, derived from the task manifest exactly as `repo setup` does. */
-function strictChecks(config: ResolvedHolocronConfig, repoRoot: string): string[] {
-	const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
-	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
-	return createAstromech({ cwd: repoRoot, config: tasksConfig, logger: getLogger() }).requiredChecks(
-		hostsReusables(repoRoot)
-	);
 }

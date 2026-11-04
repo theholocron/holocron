@@ -1,4 +1,3 @@
-import { flatFile, legacyFile } from "../../vocabulary/index.js";
 /**
  * Where the reusable workflows and composite actions that every generated workflow calls are hosted, and at which ref.
  * This is the only place that says so: the templates are written against the spelling in {@link TEMPLATE_HOME}, and
@@ -24,15 +23,9 @@ export const TEMPLATE_HOME: CiHome = {
 };
 
 /**
- * Where generated workflows call the hosted files today. No change from the templates' own spelling until the files
- * move (#1475, #1480); the target is `theholocron/holocron/.github/workflows` and `theholocron/holocron/ci/actions` at
- * `ci-v1`.
- */
-export const CI_HOME: CiHome = { ...TEMPLATE_HOME };
-
-/**
- * Where the hosted files will live once `ci-v1` exists, and where a frozen copy in `theholocron/.github` tells its
- * users to go. Not used to generate anything yet: {@link CI_HOME} follows when the tag does.
+ * Where the hosted files live and the tag generated callers pin them to: `theholocron/holocron` at `ci-v1`, the tag the
+ * first release of the `ci` group makes on the promoted `main`. Only flat names, and `ci.yml`, exist there. The repo
+ * that hosts the files calls them by path instead ({@link localize}).
  */
 export const CI_TARGET: CiHome = {
 	workflows: "theholocron/holocron/.github/workflows",
@@ -41,23 +34,11 @@ export const CI_TARGET: CiHome = {
 };
 
 /**
- * The file name a reference to the reusable `file` (flat, as the templates spell it) has at `home`. The frozen copies
- * that `main` of `theholocron/.github` serves have the old names, so a `main` home gets the old name; `ci-v1` has only
- * flat ones.
+ * Where generated workflows call the hosted files: {@link CI_TARGET}. It was {@link TEMPLATE_HOME}, the frozen copies in
+ * `theholocron/.github` at `main`, until the tag existed (spec `ci-flat-task-vocabulary`, phase K); moving the home is a
+ * change to this constant alone (spec `tech-workflows-in-holocron`, issue #1474).
  */
-function fileAt(file: string, home: CiHome): string {
-	return legacyGate(home) ? legacyFile(file) : file;
-}
-
-/**
- * Whether a caller that calls its reusables at `home` keeps the names it had before they became the task id (the
- * legacy-name gate): while 'home' is the frozen copies on `main`, the callers of a repo other than the one that hosts
- * the reusables keep their old workflow, job and file names, because their rulesets list the checks those post. `ci-v1`
- * has only flat names, so the gate is open there and every caller is flat (spec `ci-flat-task-vocabulary`, phase K).
- */
-export function legacyGate(home: CiHome = CI_HOME): boolean {
-	return home.ref === "main";
-}
+export const CI_HOME: CiHome = { ...CI_TARGET };
 
 const REFERENCE = /theholocron\/\.github\/\.github\/(workflows|actions)\/([\w.-]+)@main/g;
 
@@ -65,8 +46,7 @@ const REFERENCE = /theholocron\/\.github\/\.github\/(workflows|actions)\/([\w.-]
 export function rehome(text: string, home: CiHome = CI_HOME): string {
 	return text.replace(
 		REFERENCE,
-		(_all, kind: "workflows" | "actions", name: string) =>
-			`${home[kind]}/${kind === "workflows" ? fileAt(name, home) : name}@${home.ref}`
+		(_all, kind: "workflows" | "actions", name: string) => `${home[kind]}/${name}@${home.ref}`
 	);
 }
 
@@ -77,20 +57,20 @@ export function rehomeAll<T extends Record<string, string>>(templates: T, home: 
 
 /**
  * A `uses:` value for a hosted reusable workflow, for generated YAML that is not written in a template. `file` is the
- * flat name (`deploy.yml`); at a `main` home it is spelled with the old one.
+ * flat name (`deploy.yml`).
  */
 export function reusableWorkflowRef(file: string, home: CiHome = CI_HOME): string {
-	return `${home.workflows}/${fileAt(file, home)}@${home.ref}`;
+	return `${home.workflows}/${file}@${home.ref}`;
 }
 
 /**
  * `text` with every reference to a hosted reusable workflow at `home` rewritten to the file in the same checkout
- * (`./.github/workflows/<name>.yml`, always the flat name, whichever spelling the reference had). For the repo that hosts the reusables: its own callers then run the reusable at
+ * (`./.github/workflows/<name>.yml`). For the repo that hosts the reusables: its own callers then run the reusable at
  * their own commit, so a PR that edits one exercises it. Composite actions are left on their full ref, because a
  * reusable called from another repository cannot see this checkout.
  */
 export function localize(text: string, home: CiHome = CI_HOME): string {
 	const escaped = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 	const reference = new RegExp(`${escaped(home.workflows)}/([\\w.-]+)@${escaped(home.ref)}`, "g");
-	return text.replace(reference, (_all, name: string) => `./.github/workflows/${flatFile(name)}`);
+	return text.replace(reference, (_all, name: string) => `./.github/workflows/${name}`);
 }

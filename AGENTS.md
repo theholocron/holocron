@@ -107,9 +107,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `idFromSource()` (path to task id: `test/unit.yml` is `test:unit`) and `workflowFile()` (id to the flat generated
   file: `test-unit.yml`) are the only place that mapping lives, exported from `@theholocron/ci` and `@theholocron/astromech`
   (spec `ci-flat-task-vocabulary`, #1619). The reusables a repo hosts are written to `.github/workflows` under the flat
-  names; the frozen copies in `theholocron/.github` keep the old ones, so a caller of another repo is written with
-  `legacyFile()` (and `localize` goes back with `flatFile()`) until `CI_HOME` moves to `ci-v1`. The caller files, workflow
-  names and check names did not change.
+  names. The frozen copies in `theholocron/.github` keep the old ones: `legacyFile()` spells their paths, and
+  `flatFile()` names what replaces one in its deprecation notice. Every generated caller calls the flat names at `CI_HOME`,
+  `theholocron/holocron` at `ci-v1` (phase K, #1623); the holocron repo itself calls them by path (`localize`), and runs the
+  copies it writes to `.github/workflows` with `hostedActionRefs()`: the `format` action from its checkout and the other
+  actions from the frozen copies, until the tag exists to resolve `ci/actions/*@ci-v1`.
   Root `package.json` scripts and `turbo.json` come from one function, `scriptsFor()` (spec `ci-flat-task-vocabulary`,
   #1616): in a pnpm workspace each script calls turbo directly (`"test": "turbo run test"`, because the `holocron` bin is
   built from this repo and does not exist on a fresh clone), a repo-scoped leaf holds its tool's own command, a suite
@@ -120,7 +122,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   script that differs and on a package script that breaks those rules. Unit tests always run with coverage (the `test:unit`
   command carries `--coverage`; there is no flag). Until a repo rewrites `tasks:` to flat ids, its turbo keys and package
   scripts keep the old dotted names the entries are spelled with (`taskKey()`).
-  A thin caller's workflow `name:`, job `name:` and file are the task id (#1620): `test:unit` is `name: test:unit`, the job `test-unit` and, in holocron, the file `ci.test-unit.yml` (the `ci.` prefix keeps it from clashing with the reusable `test-unit.yml` beside it), so its check is `test:unit / Conclusion` and the `ci` aggregate waits for it by the prefix `test:unit / `. Another repo's callers keep the names they had (`verification.unitTests.yml`, `name: Verification`, job `test`) while `CI_HOME` points at the frozen reusables in `theholocron/.github` (`legacyGate()` in astromech, `legacyCaller()` over the `LEGACY_CALLERS` table): its ruleset still lists those checks. Moving `CI_HOME` to `ci-v1` opens the gate and drops the table.
+  A thin caller's workflow `name:`, job `name:` and file are the task id (#1620): `test:unit` is `name: test:unit`, the job `test-unit` and, in holocron, the file `ci.test-unit.yml` (the `ci.` prefix keeps it from clashing with the reusable `test-unit.yml` beside it), so its check is `test:unit / Conclusion` and the `ci` aggregate waits for it by the prefix `test:unit / `. Every repo's callers are named so, and call the reusables at `ci-v1`: the legacy-name gate (`legacyGate()`, `legacyCaller()`, `LEGACY_CALLERS`) is gone with phase K (#1623), and so is `legacyWorkflowKey()`. Each repo's `repo sync` also writes the `ci` aggregate caller (`ci.yml`; in holocron `ci.ci.yml`), and a repo with something for it to wait on requires `ci / Required checks` and `DCO` in its ruleset (`requiredChecksFor()`, used by `repo setup` and `doctor repo`); `extraRequiredChecks` are waited on by `ci`, not listed. The starter workflows `sync github` pushes to `theholocron/.github` are the same thin callers under the flat file names (`test-unit.yml`).
   The loop closes both ways: the reusable `typecheck` / `test` / `audit`
   workflows run their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a
@@ -164,8 +166,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   check (`validate:specs / Validate ADRs and specs`, `validate:docs / Validate docs presence`), and a third,
   package-scoped leaf with no workflow, `validate:plugin` (the plugins' own script). The sub-job mechanism (`jobs:`,
   `retiredJobs`, the `Conclusion` aggregator) is gone (#1622). `validate` and `platform.repoValidation` in a `tasks:` list
-  are aliases for both leaves (`workflowKeys()` writes one caller each; a repo still on the legacy gate gets the one
-  `platform.repoValidation.yml` caller, which the frozen reusable answers for both). `RESERVED_SCRIPT_NAMES`
+  are aliases for both leaves (`workflowKeys()` writes one caller each). `RESERVED_SCRIPT_NAMES`
   and `PNPM_BUILTIN_COMMANDS` list the npm lifecycle words no task may take and the pnpm built-ins that need
   `pnpm run <script>`.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**

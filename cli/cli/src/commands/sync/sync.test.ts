@@ -83,10 +83,7 @@ describe("runSync", () => {
 			});
 			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(
-				join(repoRoot, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
-				"utf8"
-			);
+			const content = await readFile(join(repoRoot, ".github", "workflows", "lint-code.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 		} finally {
 			await rm(parent, { recursive: true, force: true });
@@ -1920,14 +1917,11 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(
-				join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
-				"utf8"
-			);
+			const content = await readFile(join(tmpDir, ".github", "workflows", "lint-code.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 			// the same line `repo setup` writes: the two commands leave a workflow as they found it
 			expect(content).toContain("# Tool:    holocron repo sync\n");
-			expect(content).toContain("sourceQuality.staticAnalysis.yml@main");
+			expect(content).toContain("lint-code.yml@ci-v1");
 		});
 
 		it("writes to the real git root's .github/workflows/, not --cwd, for a monorepo subpackage (holocron#1014)", async () => {
@@ -1955,10 +1949,7 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(
-				join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"),
-				"utf8"
-			);
+			const content = await readFile(join(tmpDir, ".github", "workflows", "lint-code.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).toContain("# Source package: packages/sentinel");
 			// Not written into the subpackage's own, GitHub-invisible .github/.
@@ -1969,7 +1960,7 @@ describe("runSync", () => {
 			await mkdir(join(tmpDir, ".git"));
 			const subpackage = join(tmpDir, "packages", "sentinel");
 			await mkdir(subpackage, { recursive: true });
-			const workflowPath = join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml");
+			const workflowPath = join(tmpDir, ".github", "workflows", "lint-code.yml");
 
 			const loaded = {
 				...loadedFrom({ name: "demo", tasks: ["sourceQuality.staticAnalysis"], providers: {} }),
@@ -2002,7 +1993,7 @@ describe("runSync", () => {
 			const other = join(tmpDir, "apps", "other");
 			await mkdir(sentinel, { recursive: true });
 			await mkdir(other, { recursive: true });
-			const workflowPath = join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml");
+			const workflowPath = join(tmpDir, ".github", "workflows", "deploy-preview.yml");
 
 			const config = {
 				name: "demo",
@@ -2046,7 +2037,7 @@ describe("runSync", () => {
 			// A directory where the generated file would go -- readFile throws
 			// EISDIR, not ENOENT, so the collision check must not swallow it as
 			// "nothing there."
-			await mkdir(join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"), {
+			await mkdir(join(tmpDir, ".github", "workflows", "lint-code.yml"), {
 				recursive: true,
 			});
 
@@ -2105,7 +2096,7 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml"), "utf8");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy-preview.yml"), "utf8");
 			expect(content).toContain(`paths: '["apps/sentinel/","packages/shared/"]'`);
 		});
 
@@ -2135,7 +2126,7 @@ describe("runSync", () => {
 				print: () => {},
 			});
 
-			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.previewDeploy.yml"), "utf8");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy-preview.yml"), "utf8");
 			expect(content).toContain(`paths: '["custom/**"]'`);
 		});
 
@@ -2157,9 +2148,9 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow delivery.deploy");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.deploy.yml"), "utf8");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
-			expect(content).not.toContain("preview.yml@main");
+			expect(content).not.toContain("preview.yml@ci-v1");
 		});
 
 		it("writes a combined deploy+preview thin caller when preview is configured", async () => {
@@ -2182,11 +2173,11 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow delivery.deploy (with preview)");
 			expect(step?.status).toBe("ok");
-			const content = await readFile(join(tmpDir, ".github", "workflows", "delivery.deploy.yml"), "utf8");
+			const content = await readFile(join(tmpDir, ".github", "workflows", "deploy.yml"), "utf8");
 			expect(content).toContain("AUTO-GENERATED");
 			expect(content).toContain("theholocron-preview");
-			expect(content).toContain("preview.yml@main");
-			expect(content).not.toContain("cleanup-preview.yml@main");
+			expect(content).toContain("preview.yml@ci-v1");
+			expect(content).not.toContain("cleanup-preview.yml@ci-v1");
 		});
 
 		it("writes knowledge.docs / knowledge.components even though neither has a static template (combined-content family)", async () => {
@@ -2208,9 +2199,9 @@ describe("runSync", () => {
 			});
 
 			expect(report.steps.some((s) => s.message?.includes("unknown workflow"))).toBe(false);
-			const docs = await readFile(join(tmpDir, ".github", "workflows", "knowledge.docs.yml"), "utf8");
+			const docs = await readFile(join(tmpDir, ".github", "workflows", "deploy-docs.yml"), "utf8");
 			expect(docs).toContain("- docs/**");
-			const components = await readFile(join(tmpDir, ".github", "workflows", "knowledge.components.yml"), "utf8");
+			const components = await readFile(join(tmpDir, ".github", "workflows", "deploy-components.yml"), "utf8");
 			expect(components).toContain("- src/**");
 		});
 
@@ -2252,7 +2243,7 @@ describe("runSync", () => {
 			});
 
 			expect(report.steps.some((s) => s.step.includes("verification.unitTests"))).toBe(false);
-			expect(existsSync(join(tmpDir, ".github/workflows/verification.unitTests.yml"))).toBe(false);
+			expect(existsSync(join(tmpDir, ".github/workflows/test-unit.yml"))).toBe(false);
 			expect(report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis")?.status).toBe(
 				"ok"
 			);
@@ -2276,9 +2267,7 @@ describe("runSync", () => {
 
 			const step = report.steps.find((s) => s.step === "sync workflow sourceQuality.staticAnalysis");
 			expect(step?.status).toBe("dry-run");
-			await expect(
-				readFile(join(tmpDir, ".github", "workflows", "sourceQuality.staticAnalysis.yml"), "utf8")
-			).rejects.toThrow();
+			await expect(readFile(join(tmpDir, ".github", "workflows", "lint-code.yml"), "utf8")).rejects.toThrow();
 		});
 
 		it("runs without a provider token (is a local step)", async () => {

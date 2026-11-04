@@ -1210,16 +1210,13 @@ describe("runSetup", () => {
 		const checksRule = rules.find((r) => r.type === "required_status_checks");
 		expect(checksRule).toBeDefined();
 		expect(checksRule?.parameters).toMatchObject({
-			required_status_checks: [
-				{ context: "DCO" },
-				{ context: "typecheck / Run tsc --noEmit" },
-				{ context: "lint:code / Run eslint, actionlint and prettier" },
-				{ context: "test:unit / Conclusion" },
-			],
+			required_status_checks: [{ context: "ci / Required checks" }, { context: "DCO" }],
 		});
+		// the per-task contexts are waited on by `ci`, not listed
+		expect(JSON.stringify(checksRule?.parameters)).not.toContain("test:unit / Conclusion");
 	});
 
-	it("appends extraRequiredChecks from config to the task-derived list", async () => {
+	it("leaves extraRequiredChecks to the ci aggregate, which waits on them, rather than listing them", async () => {
 		let rulesetPayload: Record<string, unknown> | null = null;
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1254,15 +1251,12 @@ describe("runSetup", () => {
 		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
 		const checksRule = rules.find((r) => r.type === "required_status_checks");
 		expect(checksRule?.parameters).toMatchObject({
-			required_status_checks: [
-				{ context: "DCO" },
-				{ context: "lint:code / Run eslint, actionlint and prettier" },
-				{ context: "some-extra-check" },
-			],
+			required_status_checks: [{ context: "ci / Required checks" }, { context: "DCO" }],
 		});
+		expect(JSON.stringify(checksRule?.parameters)).not.toContain("some-extra-check");
 	});
 
-	it("requires only `ci / Required checks` and `DCO` in the repo that hosts the ci aggregate", async () => {
+	it("requires only `ci / Required checks` and `DCO` in the repo that hosts the reusables too", async () => {
 		const dir = await mkdtemp(join(tmpdir(), "holo-aggregate-"));
 		await mkdir(join(dir, "ci"));
 		await writeFile(join(dir, "ci", "package.json"), JSON.stringify({ name: "@theholocron/ci" }), "utf8");
@@ -1346,7 +1340,44 @@ describe("runSetup", () => {
 		const contexts = (
 			checksRule?.parameters as { required_status_checks: Array<{ context: string }> }
 		)?.required_status_checks.map((c) => c.context);
-		expect(contexts?.filter((c) => c === "test:unit / Conclusion")).toHaveLength(1);
+		expect(contexts).toEqual(["ci / Required checks", "DCO"]);
+	});
+
+	it("keeps `DCO` alone when no task is required, since there is no ci caller to wait on anything", async () => {
+		let rulesetPayload: Record<string, unknown> | null = null;
+		const loaded = loadedFrom({
+			name: "demo",
+			repo: { name: "theholocron/demo", protection: "strict" },
+			tasks: ["verification.unitTests"],
+			providers: { vault: "1password", source: "github" },
+		});
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { list: async () => [] },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				source: {
+					enableVulnerabilityAlerts: async () => {},
+					enableAutomatedSecurityFixes: async () => {},
+					enableSecretScanning: async () => {},
+					enablePrivateVulnerabilityReporting: async () => {},
+					updateRepoSettings: async () => {},
+					listRulesets: async () => [],
+					createRuleset: async (p: Record<string, unknown>) => {
+						rulesetPayload = p;
+						return { id: 1, name: "holocron-default-branch", enforcement: "active" };
+					},
+					writeWorkflowFile: async () => {},
+				},
+			}),
+		});
+
+		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const rules = (rulesetPayload as unknown as { rules: Array<{ type: string; parameters?: unknown }> }).rules;
+		const checksRule = rules.find((r) => r.type === "required_status_checks");
+		expect(checksRule?.parameters).toMatchObject({ required_status_checks: [{ context: "DCO" }] });
+		expect(JSON.stringify(checksRule?.parameters)).not.toContain("ci / Required checks");
 	});
 
 	function hookLoader(loaded: LoadedConfig, repoFiles: Array<[string, string]>): PluginLoader {
@@ -1940,19 +1971,15 @@ describe("runSetup", () => {
 			print: () => {},
 		});
 
-		expect(Object.keys(written)).toEqual([
-			"sourceQuality.staticAnalysis.yml",
-			"verification.unitTests.yml",
-			"verification.typeSafety.yml",
-		]);
-		expect(written["sourceQuality.staticAnalysis.yml"]).toContain("sourceQuality.staticAnalysis.yml@main");
-		expect(written["verification.unitTests.yml"]).toContain("verification.unitTests.yml@main");
+		expect(Object.keys(written)).toEqual(["lint-code.yml", "test-unit.yml", "typecheck.yml"]);
+		expect(written["lint-code.yml"]).toContain("lint-code.yml@ci-v1");
+		expect(written["test-unit.yml"]).toContain("test-unit.yml@ci-v1");
 		const workflowSteps = report.steps.filter((s) => s.step.startsWith("write workflow"));
 		expect(workflowSteps).toHaveLength(3);
 		expect(workflowSteps.every((s) => s.status === "ok")).toBe(true);
 	});
 
-	it("writes standard delivery.deploy.yml (no preview job) when delivery.deploy has no preview: key", async () => {
+	it("writes standard deploy.yml (no preview job) when delivery.deploy has no preview: key", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "demo",
@@ -1978,9 +2005,9 @@ describe("runSetup", () => {
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect("delivery.deploy.yml" in written).toBe(true);
-		expect(written["delivery.deploy.yml"]).not.toContain("pull_request:");
-		expect(written["delivery.deploy.yml"]).not.toContain("name: Preview");
+		expect("deploy.yml" in written).toBe(true);
+		expect(written["deploy.yml"]).not.toContain("pull_request:");
+		expect(written["deploy.yml"]).not.toContain("deploy-preview");
 	});
 
 	it("detects a collision when another package already generated this workflow's thin caller (holocron#1068)", async () => {
@@ -2032,7 +2059,7 @@ describe("runSetup", () => {
 				loader: first.loader,
 				print: () => {},
 			});
-			const firstContent = written["delivery.previewDeploy.yml"];
+			const firstContent = written["deploy-preview.yml"];
 			expect(firstContent).toContain("# Source package: apps/sentinel");
 			// the same `Tool:` line `repo sync` writes (not `repo setup`), so neither command rewrites the other's file
 			expect(firstContent).toContain("# Tool:    holocron repo sync\n");
@@ -2051,7 +2078,7 @@ describe("runSetup", () => {
 			expect(step?.message).toMatch(/apps\/sentinel/);
 			expect(step?.message).toMatch(/holocron#1026/);
 			// The first package's file must survive untouched.
-			expect(written["delivery.previewDeploy.yml"]).toBe(firstContent);
+			expect(written["deploy-preview.yml"]).toBe(firstContent);
 		} finally {
 			await rm(tmpDir, { recursive: true, force: true });
 		}
@@ -2090,7 +2117,7 @@ describe("runSetup", () => {
 				});
 
 			await runSetup({ loaded, context: { repoRoot: sentinel }, loader: makeLoader(), print: () => {} });
-			const firstContent = written["delivery.previewDeploy.yml"];
+			const firstContent = written["deploy-preview.yml"];
 
 			const report = await runSetup({
 				loaded,
@@ -2101,7 +2128,7 @@ describe("runSetup", () => {
 
 			const step = report.steps.find((s) => s.step === "write workflow delivery.previewDeploy");
 			expect(step?.status).toBe("ok");
-			expect(written["delivery.previewDeploy.yml"]).toBe(firstContent);
+			expect(written["deploy-preview.yml"]).toBe(firstContent);
 		} finally {
 			await rm(tmpDir, { recursive: true, force: true });
 		}
@@ -2180,13 +2207,13 @@ describe("runSetup", () => {
 
 			await runSetup({ loaded, context: { repoRoot: sentinel }, loader, print: () => {} });
 
-			expect(written["delivery.previewDeploy.yml"]).toContain(`paths: '["apps/sentinel/","packages/shared/"]'`);
+			expect(written["deploy-preview.yml"]).toContain(`paths: '["apps/sentinel/","packages/shared/"]'`);
 		} finally {
 			await rm(tmpDir, { recursive: true, force: true });
 		}
 	});
 
-	it("writes combined delivery.deploy.yml with preview job when delivery.deploy config has preview:", async () => {
+	it("writes combined deploy.yml with preview job when delivery.deploy config has preview:", async () => {
 		const written: Record<string, string> = {};
 		const loaded = loadedFrom({
 			name: "my-docs",
@@ -2214,10 +2241,10 @@ describe("runSetup", () => {
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect("delivery.deploy.yml" in written).toBe(true);
-		expect(written["delivery.deploy.yml"]).toContain("pull_request:");
-		expect(written["delivery.deploy.yml"]).toContain("name: Preview");
-		expect(written["delivery.deploy.yml"]).toContain("cloudflare-project: acme-preview");
+		expect("deploy.yml" in written).toBe(true);
+		expect(written["deploy.yml"]).toContain("pull_request:");
+		expect(written["deploy.yml"]).toContain("deploy-preview");
+		expect(written["deploy.yml"]).toContain("cloudflare-project: acme-preview");
 	});
 
 	it("writes knowledge.docs / knowledge.components even though neither has a static template (combined-content family)", async () => {
@@ -2249,8 +2276,8 @@ describe("runSetup", () => {
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
 		expect(report.steps.some((s) => s.message?.includes("unknown workflow"))).toBe(false);
-		expect(written["knowledge.docs.yml"]).toContain("- docs/**");
-		expect(written["knowledge.components.yml"]).toContain("- src/**");
+		expect(written["deploy-docs.yml"]).toContain("- docs/**");
+		expect(written["deploy-components.yml"]).toContain("- src/**");
 	});
 
 	it("skips workflow writing when project.tasks is absent", async () => {
@@ -2337,7 +2364,7 @@ describe("runSetup", () => {
 
 		const report = await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
 
-		expect(written).not.toContain("verification.unitTests.yml");
+		expect(written).not.toContain("test-unit.yml");
 		expect(report.steps.some((s) => s.step === "write workflow verification.unitTests")).toBe(false);
 	});
 
@@ -2578,7 +2605,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
 		expect(deployContent).toContain("- astro.config.ts");
@@ -2615,7 +2642,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- docs/**");
 		expect(deployContent).toContain("- astro.config.ts");
@@ -2689,7 +2716,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- src/**");
 		expect(deployContent).toContain("- .storybook/**");
@@ -2722,7 +2749,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- src/**");
 		expect(deployContent).toContain("- .storybook/**");
@@ -2756,7 +2783,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- src/**");
 		expect(deployContent).toContain("- .storybook/**");
@@ -2790,7 +2817,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- packages/my-docs/**");
 		expect(deployContent).not.toContain("- docs/**");
@@ -2823,7 +2850,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).toContain("- packages/site/**");
 		expect(deployContent).not.toContain("- docs/**");
@@ -2856,7 +2883,7 @@ describe("runSetup", () => {
 		});
 
 		await runSetup({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
-		const [, deployContent] = writtenFiles.find(([n]) => n === "delivery.deploy.yml") ?? [];
+		const [, deployContent] = writtenFiles.find(([n]) => n === "deploy.yml") ?? [];
 		expect(deployContent).toBeDefined();
 		expect(deployContent).not.toContain("paths:");
 	});
@@ -3013,8 +3040,8 @@ describe("runSetup", () => {
 		expect(written[".github/labeler.yml"]).toMatch(/\n$/);
 		const step = report.steps.find((s) => s.step === "write .github/labeler.yml");
 		expect(step?.status).toBe("ok");
-		expect(workflowFiles["bookkeeping.yml"]).toContain("issues: write");
-		expect(workflowFiles["bookkeeping.yml"]).toContain("pull-requests: write");
+		expect(workflowFiles["label.yml"]).toContain("issues: write");
+		expect(workflowFiles["label.yml"]).toContain("pull-requests: write");
 	});
 
 	it("does not write .github/labeler.yml when bookkeeping is not configured", async () => {

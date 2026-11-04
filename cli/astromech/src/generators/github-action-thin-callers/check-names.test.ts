@@ -1,14 +1,7 @@
 import { workflowFile } from "@theholocron/ci";
 import { describe, expect, it } from "vitest";
 
-import {
-	flatFile,
-	legacyCaller,
-	legacyCallerFile,
-	legacyName,
-	RESERVED_SCRIPT_NAMES,
-	workflowKey,
-} from "../../vocabulary/index.js";
+import { RESERVED_SCRIPT_NAMES, workflowKey } from "../../vocabulary/index.js";
 import { REUSABLE_WORKFLOWS } from "../github-action-reusable-workflows/index.js";
 import { WORKFLOW_CHECK_CONTEXTS, WORKFLOW_TEMPLATES } from "./github-action-thin-callers.js";
 
@@ -53,11 +46,11 @@ function jobsOf(yaml: string): Job[] {
 	return jobs;
 }
 
-/** The id of the reusable workflow a `uses:` reference calls, whichever spelling its file name has. */
+/** The id of the reusable workflow a `uses:` reference calls. */
 function reusableKey(uses: string): string {
 	const match = uses.match(/\/workflows\/([^@]+\.yml)@/);
 	if (!match) throw new Error(`not a reusable workflow reference: ${uses}`);
-	const file = flatFile(match[1]!);
+	const file = match[1]!;
 	const id = Object.keys(REUSABLE_WORKFLOWS).find((candidate) => workflowFile(candidate) === file);
 	if (id === undefined) throw new Error(`no reusable workflow for ${uses}`);
 	return id;
@@ -180,16 +173,5 @@ describe("the workflow, the job and the file are the task id", () => {
 
 	it("files no two ids as one file", () => {
 		expect(new Set(ids.map(workflowFile)).size).toBe(ids.length);
-	});
-
-	it("keeps the old names for a repo that still calls the frozen reusables (the legacy-name gate)", () => {
-		for (const id of ids) {
-			const old = legacyCaller(id, WORKFLOW_TEMPLATES[id]!);
-			// every id keeps a unique old file, named for the old task (or its own id when it had none)
-			expect(legacyCallerFile(id)).toBe(`${legacyName(id) ?? id}.yml`);
-			// a legacy caller no longer carries the id as its workflow name
-			expect(workflowName(old)).not.toBe(id);
-			expect(jobsOf(old).length, `${id}: the same jobs`).toBe(jobsOf(WORKFLOW_TEMPLATES[id]!).length);
-		}
 	});
 });

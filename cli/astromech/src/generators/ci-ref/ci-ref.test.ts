@@ -8,8 +8,8 @@ import { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS } from "../github-action-reusable-
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 import {
 	CI_HOME,
+	CI_TARGET,
 	type CiHome,
-	legacyGate,
 	localize,
 	rehome,
 	rehomeAll,
@@ -26,11 +26,18 @@ const MOVED: CiHome = {
 /** What a template spells today; only this module may. */
 const LITERAL = "theholocron/.github/.github/";
 
-describe("legacyGate", () => {
-	it("holds while the callers call the frozen reusables on main, and opens at ci-v1", () => {
-		expect(legacyGate()).toBe(true);
-		expect(legacyGate(TEMPLATE_HOME)).toBe(true);
-		expect(legacyGate(MOVED)).toBe(false);
+describe("CI_HOME", () => {
+	it("is the flat names in theholocron/holocron at ci-v1, where the callers are written to call", () => {
+		expect(CI_HOME).toEqual(CI_TARGET);
+		expect(CI_HOME).toEqual({
+			workflows: "theholocron/holocron/.github/workflows",
+			actions: "theholocron/holocron/ci/actions",
+			ref: "ci-v1",
+		});
+	});
+
+	it("is a copy, so changing one cannot move the other", () => {
+		expect(CI_HOME).not.toBe(CI_TARGET);
 	});
 });
 
@@ -48,14 +55,9 @@ describe("rehome", () => {
 		);
 	});
 
-	it("spells a flat reusable with its old file name at a `main` home, where only the frozen copies exist", () => {
+	it("keeps the flat file name, whatever the home: no dotted legacy name is ever spelled", () => {
 		const text = "uses: theholocron/.github/.github/workflows/test-unit.yml@main";
-		expect(rehome(text, TEMPLATE_HOME)).toBe(
-			"uses: theholocron/.github/.github/workflows/verification.unitTests.yml@main"
-		);
-		expect(rehome("uses: theholocron/.github/.github/workflows/preview.yml@main", TEMPLATE_HOME)).toBe(
-			"uses: theholocron/.github/.github/workflows/preview.yml@main"
-		);
+		expect(rehome(text, TEMPLATE_HOME)).toBe(text);
 	});
 
 	it("keeps the flat file name at `ci-v1`, so no dotted legacy name carries that tag", () => {
@@ -78,32 +80,29 @@ describe("rehome", () => {
 		expect(rehome(text, MOVED)).toBe(text);
 	});
 
-	it("is the identity while the home is the templates' own spelling", () => {
-		const text = "uses: theholocron/.github/.github/workflows/stale.yml@main";
-		expect(rehome(text)).toBe(text);
-		expect(CI_HOME).toEqual(TEMPLATE_HOME);
+	it("moves the templates' spelling to ci-v1 by default", () => {
+		expect(rehome("uses: theholocron/.github/.github/workflows/stale.yml@main")).toBe(
+			"uses: theholocron/holocron/.github/workflows/stale.yml@ci-v1"
+		);
+		expect(rehome("uses: theholocron/.github/.github/actions/setup@main")).toBe(
+			"uses: theholocron/holocron/ci/actions/setup@ci-v1"
+		);
 	});
 
 	it("rehomeAll keeps the keys", () => {
 		expect(Object.keys(rehomeAll({ a: "x", b: "y" }, MOVED))).toEqual(["a", "b"]);
 	});
 
-	it("builds a reusable workflow reference from the flat name, old at `main`", () => {
-		expect(reusableWorkflowRef("deploy.yml")).toBe(
-			"theholocron/.github/.github/workflows/delivery.deploy.yml@main"
-		);
+	it("builds a reusable workflow reference from the flat name", () => {
+		expect(reusableWorkflowRef("deploy.yml")).toBe("theholocron/holocron/.github/workflows/deploy.yml@ci-v1");
 		expect(reusableWorkflowRef("deploy.yml", MOVED)).toBe("acme/central/.github/workflows/deploy.yml@ci-v1");
-	});
-
-	it("builds a reusable workflow reference", () => {
 		expect(reusableWorkflowRef("preview.yml", MOVED)).toBe("acme/central/.github/workflows/preview.yml@ci-v1");
-		expect(reusableWorkflowRef("preview.yml")).toBe("theholocron/.github/.github/workflows/preview.yml@main");
 	});
 });
 
 describe("localize", () => {
 	it("points a reference to a hosted workflow at the file in the same checkout", () => {
-		expect(localize("    uses: theholocron/.github/.github/workflows/test-unit.yml@main")).toBe(
+		expect(localize("    uses: theholocron/holocron/.github/workflows/test-unit.yml@ci-v1")).toBe(
 			"    uses: ./.github/workflows/test-unit.yml"
 		);
 		expect(localize("uses: acme/central/.github/workflows/mark-stale.yml@ci-v1", MOVED)).toBe(
@@ -111,17 +110,14 @@ describe("localize", () => {
 		);
 	});
 
-	it("names the flat file whichever spelling the reference has, since the hosted reusables have only flat names", () => {
-		expect(localize("uses: theholocron/.github/.github/workflows/verification.unitTests.yml@main")).toBe(
-			"uses: ./.github/workflows/test-unit.yml"
-		);
-		expect(localize("uses: theholocron/.github/.github/workflows/preview.yml@main")).toBe(
-			"uses: ./.github/workflows/preview.yml"
-		);
+	it("reads the home it is given, so a reference at the frozen home is left alone by default", () => {
+		const text = "uses: theholocron/.github/.github/workflows/verification.unitTests.yml@main";
+		expect(localize(text)).toBe(text);
+		expect(localize(text, TEMPLATE_HOME)).toBe("uses: ./.github/workflows/verification.unitTests.yml");
 	});
 
 	it("leaves a composite action on its full ref, since a called reusable cannot see this checkout", () => {
-		const action = "uses: theholocron/.github/.github/actions/setup@main";
+		const action = "uses: theholocron/holocron/ci/actions/setup@ci-v1";
 		expect(localize(action)).toBe(action);
 	});
 

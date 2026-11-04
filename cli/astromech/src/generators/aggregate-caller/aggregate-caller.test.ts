@@ -8,7 +8,7 @@ describe("aggregateCaller", () => {
 	it("is a pull_request workflow with one job named `ci` that calls the reusable `ci.yml`", () => {
 		expect(yaml).toContain("name: ci\n");
 		expect(yaml).toContain("on: # yamllint disable-line rule:truthy\n  pull_request:\n");
-		expect(yaml).toContain("  ci:\n    name: ci\n    uses: theholocron/.github/.github/workflows/ci.yml@main\n");
+		expect(yaml).toContain("  ci:\n    name: ci\n    uses: theholocron/holocron/.github/workflows/ci.yml@ci-v1\n");
 	});
 
 	it("passes the ids and the statuses as quoted JSON", () => {
