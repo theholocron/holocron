@@ -1,3 +1,9 @@
+## [1.17.0-alpha.1](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.4...utils-v1.17.0-alpha.1) (2026-11-04)
+
+### Features
+
+* **env-utils:** 🌍 one definition of the environment names and of CI detection ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1696](https://github.com/theholocron/holocron/issues/1696)) ([ffb77bf](https://github.com/theholocron/holocron/commit/ffb77bffafcc44cb4a049ee25f71c3dc3dc550e9))
+
 ## [1.16.1-alpha.4](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.3...utils-v1.16.1-alpha.4) (2026-11-03)
 
 ### Refactoring
