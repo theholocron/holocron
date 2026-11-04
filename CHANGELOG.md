@@ -1,3 +1,13 @@
+## [5.0.0-alpha.322](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.321...v5.0.0-alpha.322) (2026-11-04)
+
+### Features
+
+* **cli:** 🪄 create a GitHub App from a manifest with github-app create ([#1674](https://github.com/theholocron/holocron/issues/1674)) ([#1677](https://github.com/theholocron/holocron/issues/1677)) ([35771ee](https://github.com/theholocron/holocron/commit/35771ee3d406ed5f151393b43e63aa46397441c6))
+
+### Bug Fixes
+
+* **cli:** 📋 copy just the value for a single auth export --only token ([#1681](https://github.com/theholocron/holocron/issues/1681)) ([#1684](https://github.com/theholocron/holocron/issues/1684)) ([031e71e](https://github.com/theholocron/holocron/commit/031e71e3c9cb347d315112b3e0e597a8b2feb808))
+
 ## [5.0.0-alpha.321](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.320...v5.0.0-alpha.321) (2026-11-04)
 
 ### Features
