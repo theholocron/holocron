@@ -690,6 +690,7 @@ holocron auth check github.read   # re-verify a stored token
 holocron auth unset github.read   # remove a stored token
 holocron auth list                # show all stored providers
 holocron auth export             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
+holocron auth export --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
 ```
 
 ## Logging

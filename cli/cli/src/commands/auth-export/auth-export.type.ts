@@ -46,6 +46,12 @@ export interface RunAuthExportInput {
 	platform?: string;
 	/** Waits for the user to finish importing. Defaults to waiting for Enter on the terminal. */
 	waitForImport?: (message: string) => Promise<unknown>;
+	/**
+	 * Export only these tokens, each named by its variable name (`HOLOCRON_SENTRY_TOKEN`), the vendor's own name
+	 * (`SENTRY_AUTH_TOKEN`) or its keyring entry (`sentry.comlink`). A name that matches nothing is refused. On a
+	 * terminal the lines then go to the clipboard rather than the file, since a value or two is what that is for.
+	 */
+	only?: string[];
 	/** Also take a token that is set in the environment, ahead of the keyring. */
 	fromEnv?: boolean;
 	/** Loads a plugin package for its `tokens`. Defaults to resolving from the directory of the loaded config. */

@@ -19,6 +19,12 @@ const authExportArgs = (yy: Argv<GlobalArgs>) =>
 			describe:
 				"Write the tokens to this private file (mode 0600; default .credentials, next to holocron.config) instead of stdout; on a terminal this is the default",
 		})
+		.option("only", {
+			type: "string",
+			array: true,
+			describe:
+				"Export only this token, by variable name (HOLOCRON_SENTRY_TOKEN), the vendor's name or its keyring entry (sentry.comlink); repeat for more. On a terminal it goes to the clipboard",
+		})
 		.option("copy", {
 			type: "boolean",
 			conflicts: "file",
@@ -53,6 +59,7 @@ export const authExportCommand: CommandModule<GlobalArgs, AuthExportArgs> = {
 			out: (text) => void process.stdout.write(text),
 			outKind: stdoutKind(process.stdout.isTTY === true),
 			fromEnv: argv.fromEnv,
+			...(argv.only?.length ? { only: argv.only } : {}),
 			...(org ? { org } : {}),
 			...(to ? { to } : {}),
 			...(argv.file ? { file: argv.file } : {}),

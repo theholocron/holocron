@@ -150,6 +150,28 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		throw new WorkspaceContextError(COMMAND, unavailable);
 	}
 
+	// `--only`: keep the tokens asked for, each by its variable name, the vendor's name or its keyring entry.
+	if (input.only?.length) {
+		const chosen = new Set<string>();
+		const unknown: string[] = [];
+		for (const wanted of input.only) {
+			const found = [...tokens.values()].filter(
+				(t) => t.envName === wanted || t.vendorEnvName === wanted || t.keyringKey === wanted
+			);
+			if (found.length === 0) unknown.push(wanted);
+			for (const t of found) chosen.add(t.envName);
+		}
+		if (unknown.length > 0) {
+			return refuse(
+				"unknown",
+				`no token named ${unknown.join(", ")}`,
+				`the names are: ${[...tokens.keys()].sort(compare).join(", ")}`
+			);
+		}
+		for (const name of [...tokens.keys()]) if (!chosen.has(name)) tokens.delete(name);
+		for (const name of [...conflicts]) if (!chosen.has(name)) conflicts.delete(name);
+	}
+
 	const lines: string[] = [];
 	const exported: string[] = [];
 	const missing: string[] = [];
@@ -175,7 +197,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		exported.push(name);
 	}
 
-	const target = input.to ?? (input.outKind === "terminal" ? "file" : undefined);
+	// A few values asked for by name are for pasting; the whole set goes to the file.
+	const onTerminal = input.only?.length ? "clipboard" : "file";
+	const target = input.to ?? (input.outKind === "terminal" ? onTerminal : undefined);
 	let destination: AuthExportReport["destination"];
 	let file: string | undefined;
 	let identity: FileIdentity | undefined;

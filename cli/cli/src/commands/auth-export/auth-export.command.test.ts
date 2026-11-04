@@ -43,6 +43,13 @@ describe("auth export command", () => {
 		expect(runAuthExport.mock.calls[0]![0].org).toBeUndefined();
 	});
 
+	it("passes the tokens asked for with --only, and none by default", async () => {
+		await runCommand(authExportCommand, ["export", "--only", "HOLOCRON_SENTRY_TOKEN", "--only", "sentry.comlink"]);
+		expect(runAuthExport.mock.calls[0]![0].only).toEqual(["HOLOCRON_SENTRY_TOKEN", "sentry.comlink"]);
+		await runCommand(authExportCommand, ["export"]);
+		expect("only" in runAuthExport.mock.calls[1]![0]).toBe(false);
+	});
+
 	it("passes --from-env", async () => {
 		await runCommand(authExportCommand, ["export", "--from-env"]);
 		expect(runAuthExport.mock.calls[0]![0].fromEnv).toBe(true);
