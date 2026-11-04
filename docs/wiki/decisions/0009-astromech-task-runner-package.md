@@ -28,6 +28,9 @@ manifest-derived branch-protection checks). As-built notes:
 - The check context standardized to the aggregate `… / Conclusion` fan-in
   job. `repo.requiredChecks` was removed with no alias;
   `Capability.requiredChecks` → `Capability.extraRequiredChecks`.
+  _Superseded in part (epic #1612, spec `ci-flat-task-vocabulary`): a task's check is now named
+  `<id> / <job>`, and holocron's ruleset requires the single `ci / Required checks` aggregate instead of the
+  per-task list._
 - `holocron repo setup` installs a `.husky/pre-push` hook running `holocron run ci`
   (on by default for `protection: "strict"`, gated by the `hooks` field).
 

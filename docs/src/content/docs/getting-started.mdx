@@ -41,7 +41,7 @@ export default defineConfig({
       runtime_environment: "node",
     },
   },
-  workflows: ["lint:code", "test:unit", "typecheck", "release"],
+  tasks: ["lint:code", "test:unit", "typecheck", "release"],
   skills: ["git-safety", "pr-workflow", "commit-standards"],
   agent: "claude",
   providers: {
@@ -83,7 +83,7 @@ holocron repo setup
 `setup` applies all infrastructure actions for the configured capabilities:
 
 - Writes `.editorconfig`, `.alexrc.json`, `codecov.yml`, and `commitlint.config.ts`
-- Installs CI workflow thin callers from `workflows[]`
+- Installs CI workflow thin callers from `tasks`
 - Configures branch protection (from `repo.protection`)
 - Syncs labels, repo settings, teams, security features (GitHub plugin)
 - Installs agent skills (from `skills[]`)

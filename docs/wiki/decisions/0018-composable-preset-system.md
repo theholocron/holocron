@@ -227,6 +227,8 @@ an error. This makes compositions self-documenting without being fragile.
 | `monorepo()`          | `monorepo`  | `node`      | adjusts `on.push.paths` across all workflows to workspace layout; adds turbo         |
 | `audit()`             | `audit`     | `node`      | BundleWatch + Knip; "audit / Conclusion" required check                              |
 
+_Superseded in part (epic #1612): the required checks named here are the old per-workflow `… / Conclusion` contexts. Tasks are now flat ids, each check is `<id> / <job>`, and holocron requires only `ci / Required checks`._
+
 ---
 
 ## Where each piece lives

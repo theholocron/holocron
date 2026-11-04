@@ -256,15 +256,16 @@ repo, which has no `ci` caller yet, the list is:
 
 - `"DCO"`, then
 - every `{ required: true }` task's workflow check context (`Lint / Conclusion`,
-  `Test / Conclusion`, `Typecheck / Conclusion`, `audit / Conclusion`), walked
+  `Test / Conclusion`, `Typecheck / Conclusion` while the repo is on the frozen reusables; `test:unit / Conclusion`,
+  `typecheck / Run tsc --noEmit`, … once it moves to the flat ones), walked
   in CI order, then
 - the top-level `extraRequiredChecks` (codecov gates, a bundle-build check, …).
 
 ```ts
 export default defineConfig({
   tasks: [
-    { name: "lint", required: true },
-    { name: "test", required: true },
+    { name: "lint:code", required: true },
+    { name: "test:unit", required: true },
     { name: "typecheck", required: true },
   ],
   extraRequiredChecks: ["codecov/patch", "codecov/project"],
@@ -343,7 +344,7 @@ setup --hooks` / `--no-hooks` override per run. Bypass one push with `git push
 
 ```ts
 export default defineConfig({
-  tasks: ["test", "lint", "typecheck"],
+  tasks: ["test:unit", "lint:code", "typecheck"],
   // syncScripts: false,                              // disable the step
   // holocronScript: "node cli/cli/dist/cli.mjs", // override the "holocron" entry
   providers: { source: "github" },
@@ -367,7 +368,7 @@ The `tasks` key (plus `syncScripts` / `holocronScript` / `hooks` /
 import { defineConfig } from "@theholocron/astromech/config";
 
 export default defineConfig({
-  tasks: [{ name: "audit", required: true, with: { "run-knip": true } }, "wiki"],
+  tasks: [{ name: "lint:unused", required: true }, "publish-wiki"],
   syncScripts: false,
 });
 ```
@@ -391,17 +392,16 @@ itself. Ids are flat and verb-first: `typecheck`, `build`, `test:unit`, `lint:co
 `holocron run test` runs the `test` suite (every `test:*` leaf the repo lists, in registry order, each reported),
 `holocron run test unit` and `holocron run test:unit` run one leaf. The words are joined with `:` and the longest match
 wins, so `deploy preview` is `deploy-preview`; the rest is the `job` argument. A `job` targets a sub-job of the tasks
-that have them: `holocron run validate adrs` runs `holocron probe specs check`, `holocron run validate` (no job) runs
-every sub-job in declared order. A sub-job whose tool isn't installed, or that has no local equivalent, is skipped with
-a note — `--required` makes that a failure. For a task with no sub-jobs the `job` slot is the first passthrough arg
+that have them (`holocron run lint commit-msg <file>`). A leaf whose tool isn't installed, or that has no local
+equivalent, is skipped with a note — `--required` makes that a failure. For a task with no sub-jobs the `job` slot is the first passthrough arg
 (`holocron run build src/`). `holocron run format` writes (prettier), `holocron run format --check` is read-only.
 `holocron run --help` lists the tasks grouped under the six intent groups. The old dotted names
-(`test:unit`, `sourceQuality.formatting`, …) still work and print a deprecation notice on stderr. <!-- holocron-allow-old-name -->
+(`verification.unitTests`, `sourceQuality.formatting`, …) still work and print a deprecation notice on stderr. <!-- holocron-allow-old-name -->
 
-**CI runs the identical command.** The reusable `typecheck` / `test` / `audit`
-workflows call the `holocron` composite action
+**CI runs the identical command.** The reusable workflows (`typecheck`, `test-unit`,
+`lint-code`, …) call the `holocron` composite action
 (`theholocron/.github/.github/actions/holocron@main`), whose body is
-`holocron run <task> [job]`. So `holocron run test` locally and the `Test` CI
+`holocron run <task> [job]`. So `holocron run test:unit` locally and the `test:unit` CI
 job execute the same thing — at a turbo root both are
 `turbo run <task>`. `test:unit` always runs with coverage (`vitest run --coverage`); there is no `--coverage` flag.
 
@@ -434,10 +434,9 @@ first failure — the "will my PR be green?" pre-flight, and what the
 (falling back to every `ci: true` task when nothing is marked required).
 `--all` forces the full set; `--filter` is a `turbo --filter=` passthrough.
 Order comes from the `CI_ORDER` constant in `@theholocron/astromech`
-(`typecheck → lint → test → build → …`). Tasks with no local equivalent
-(`codeql`, `deploy`) are reported as enforced-in-CI, never failures; `audit`
-expands into its sub-jobs (each under its own `audit / …` check context)
-unless the repo ships its own `"audit"` script.
+(`typecheck → lint:code → … → test:unit → build → …`). Tasks with no local equivalent
+(`scan:code`, `deploy`) are reported as enforced-in-CI, never failures. `format` runs in its
+read-only `--check` form.
 
 ### `holocron deploy`
 
@@ -478,21 +477,6 @@ export default defineConfig({
 
 Exits non-zero if any check fails — the job's own pass/fail is what
 posts as the GitHub check, no separate reporting step needed.
-
-### Lint parity
-
-The `lint` task takes an optional `linters` array — one list that drives
-**both** the CI `lint` job (super-linter's `VALIDATE_*` env, baked into the
-generated `.github/workflows/lint.yml` thin caller as a `super-linter-env`
-input) **and** `holocron run lint` locally. Omitted → auto-detected from the
-config files present plus the org always-on set.
-
-```ts
-export default defineConfig({
-  tasks: [{ name: "lint", linters: ["eslint", "prettier", "yamllint", "actionlint", "gitleaks"] }],
-  providers: { source: "github" },
-});
-```
 
 ### Skills installer
 

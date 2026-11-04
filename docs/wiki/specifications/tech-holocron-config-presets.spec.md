@@ -20,6 +20,11 @@ discussion:
 > `defineConfig()`. `compose()` returns `extraRequiredChecks` alongside `tasks` /
 > `repo` / `providers`. Older tables/examples below saying `workflows` /
 > `requiredChecks` should be read as `tasks` / `extraRequiredChecks`.
+>
+> **Update (epic #1612, spec `ci-flat-task-vocabulary`):** tasks are flat ids (`test:unit`, `lint:code`) and a task's check is
+> `<id> / <job>`, not `Lint / Conclusion` and the like. In holocron itself the ruleset requires one check, `ci / Required checks`
+> (the `ci` aggregate), which waits on the `required: true` tasks, so the `… / Conclusion` lists below describe other repos still on the
+> frozen reusables.
 
 `@theholocron/holocron-config` ships a set of presets that encode the standard configuration for each class of `theholocron/*` repository. Each preset returns a fragment — `providers`, `repo`, `tasks`, `extraRequiredChecks` — that you spread into `defineConfig()` and extend with only the fields unique to your repo.
 
