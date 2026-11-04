@@ -21,8 +21,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { createAstromech, isTask, readWorkspacePackages } from "@theholocron/astromech";
-import type { TasksConfig } from "@theholocron/astromech/config";
+import { isTask, readWorkspacePackages } from "@theholocron/astromech";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
@@ -48,8 +47,8 @@ import {
 	type Workers,
 } from "../../plugin/index.js";
 import { style, withSpinner } from "../../ui/index.js";
-import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { generateRepoFiles } from "../repo-files/index.js";
+import { requiredChecksFor } from "../required-checks-for/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
@@ -152,16 +151,8 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 			);
 			print(formatStep(steps[steps.length - 1]!));
 
-			const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
-			if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;
 			const requiredChecks =
-				effectivePreset === "strict"
-					? createAstromech({
-							cwd: input.context.repoRoot,
-							config: tasksConfig,
-							logger,
-						}).requiredChecks(hostsReusables(input.context.repoRoot))
-					: [];
+				effectivePreset === "strict" ? requiredChecksFor(config, input.context.repoRoot) : [];
 			steps.push(await upsertBranchProtection(source, dryRun, requiredChecks));
 			print(formatStep(steps[steps.length - 1]!));
 		}

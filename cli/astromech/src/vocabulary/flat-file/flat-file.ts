@@ -11,8 +11,8 @@ const BY_LEGACY_FILE = new Map<string, string>(
 
 /**
  * The flat file name of a reusable workflow given by its old one — `verification.unitTests.yml` is `test-unit.yml`.
- * What a repo that hosts the reusables calls in its own `.github/workflows`, whichever spelling the template or
- * `CI_HOME` gave the reference. A file already flat, or with no old name, is returned as it is.
+ * What a frozen copy in `theholocron/.github` is replaced by in `theholocron/holocron` (its deprecation notice names
+ * it). A file already flat, or with no old name, is returned as it is.
  */
 export function flatFile(file: string): string {
 	return BY_LEGACY_FILE.get(file) ?? file;

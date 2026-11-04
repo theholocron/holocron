@@ -25,7 +25,7 @@ export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export type { AggregateChecks } from "./generators/aggregate-checks/index.js";
 export { aggregateChecks } from "./generators/aggregate-checks/index.js";
-export { legacyGate, localize } from "./generators/ci-ref/index.js";
+export { localize } from "./generators/ci-ref/index.js";
 export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";
 export {
 	codecovComponentBlock,
@@ -94,10 +94,7 @@ export {
 	isTask,
 	KNOWN_TASKS,
 	LEGACY_NAMES,
-	legacyCaller,
-	legacyCallerFile,
 	legacyName,
-	legacyWorkflowKey,
 	PNPM_BUILTIN_COMMANDS,
 	RESERVED_SCRIPT_NAMES,
 	resolveTaskName,

@@ -94,10 +94,9 @@ jobs:
           commit-options: "--no-verify"
 
       # prettier's check (and its opt-in fix commit, the same App token as above) is the `format` action, not a workflow
-      # of its own. It is called by path because the action is new and `theholocron/.github` is frozen, so no
-      # remote copy of it exists; the path resolves in the repo that hosts the reusables, which is the only caller of
-      # this file until `ci-v1` exists (then it becomes `theholocron/holocron/ci/actions/format@ci-v1`).
-      - uses: ./ci/actions/format
+      # of its own. It is called by the hosted reference, like the other actions; the repo that hosts it runs its own
+      # copy from the checkout (`./ci/actions/format`), see `hostedReusableWorkflows` in astromech.
+      - uses: theholocron/.github/.github/actions/format@main
         name: Run prettier
         with:
           token: ${{ steps.app-token.outputs.token }}

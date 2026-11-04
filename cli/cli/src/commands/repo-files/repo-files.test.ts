@@ -14,13 +14,10 @@ import { hooksEnabled } from "./hooks-enabled.js";
 
 // `codecovConfig` is tolerant of a bad file on disk, so a failure in it is made on demand.
 const codecov = vi.hoisted(() => ({ fail: false }));
-// The legacy-name gate is shut while `CI_HOME` points at the frozen copies; a test opens it as `ci-v1` will.
-const gate = vi.hoisted(() => ({ open: false }));
 vi.mock("@theholocron/astromech", async (importOriginal) => {
 	const real = await importOriginal<typeof import("@theholocron/astromech")>();
 	return {
 		...real,
-		legacyGate: () => !gate.open,
 		createAstromech: (...args: Parameters<typeof real.createAstromech>) => {
 			const astromech = real.createAstromech(...args);
 			return {
@@ -49,7 +46,6 @@ beforeEach(() => {
 });
 afterEach(() => {
 	codecov.fail = false;
-	gate.open = false;
 	rmSync(root, { recursive: true, force: true });
 });
 
@@ -141,10 +137,10 @@ describe("generateWorkflowFiles", () => {
 		});
 		expect(entries[0]).toMatchObject({
 			kind: "file",
-			path: ".github/workflows/stale.yml",
+			path: ".github/workflows/mark-stale.yml",
 			step: "write workflow stale",
 			syncStep: "sync workflow stale",
-			workflow: { task: "mark-stale", filename: "stale.yml" },
+			workflow: { task: "mark-stale", filename: "mark-stale.yml" },
 		});
 		expect(entries[1]).toMatchObject({
 			kind: "skip",
@@ -246,8 +242,17 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			expect(generate().some((e) => e.kind === "file" && e.path.endsWith("ci.ci.yml"))).toBe(false);
 		});
 
-		it("is not written in a repo that does not host the reusables", () => {
-			expect(aggregate().some((e) => e.kind === "file" && e.path.endsWith("ci.yml"))).toBe(false);
+		it("is written as ci.yml in a repo that does not host the reusables, calling ci-v1 and not localized", () => {
+			const entry = aggregate().find((e) => e.kind === "file" && e.path === ".github/workflows/ci.yml");
+			if (!entry || entry.kind !== "file") throw new Error("expected ci.yml");
+			expect(entry.workflow).toEqual({ task: "ci", filename: "ci.yml" });
+			expect(entry.content).toContain("    uses: theholocron/holocron/.github/workflows/ci.yml@ci-v1\n");
+			expect(entry.content).toContain(`      expected: '["typecheck","Generated files"]'\n`);
+			expect(entry.content).not.toContain("ci.ci.yml");
+		});
+
+		it("is not written in a repo with nothing required, hosting or not", () => {
+			expect(generate().some((e) => e.kind === "file" && e.path.endsWith("ci.yml"))).toBe(false);
 		});
 
 		it("is not written from a package's own config", () => {
@@ -269,35 +274,21 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		});
 	});
 
-	it("leaves a repo without the ci package alone: plain names, references, no reusables", () => {
-		const entries = generate();
-		expect(entries.map((entry) => (entry.kind === "file" ? entry.path : ""))).toEqual([
-			".github/workflows/stale.yml",
-			".github/workflows/verification.unitTests.yml",
-		]);
-		const stale = entries[0]!;
-		if (stale.kind !== "file") throw new Error("expected a file");
-		expect(stale.content).toContain("theholocron/.github/.github/workflows/stale.yml@main");
-		// the legacy-name gate: the callers of a repo that still calls the frozen reusables keep their old names
-		expect(stale.content).toMatch(/^name: Stale$/m);
-		expect(stale.content).toMatch(/^ {2}stale:\n/m);
-		const unit = entries[1]!;
-		if (unit.kind !== "file") throw new Error("expected a file");
-		expect(unit.content).toMatch(/^name: Verification$/m);
-		expect(unit.content).toMatch(/^ {2}test:\n {4}name: Test$/m);
-		expect(unit.workflow).toEqual({ task: "test:unit", filename: "verification.unitTests.yml" });
-	});
-
-	it("gives every repo the flat names once the gate is open (callers on ci-v1)", () => {
-		gate.open = true;
+	it("gives a repo without the ci package the flat names, calling the reusables in holocron at ci-v1", () => {
 		const entries = generate();
 		expect(entries.map((entry) => (entry.kind === "file" ? entry.path : ""))).toEqual([
 			".github/workflows/mark-stale.yml",
 			".github/workflows/test-unit.yml",
 		]);
+		const stale = entries[0]!;
+		if (stale.kind !== "file") throw new Error("expected a file");
+		expect(stale.content).toContain("theholocron/holocron/.github/workflows/mark-stale.yml@ci-v1");
+		expect(stale.content).not.toContain("theholocron/.github/.github/");
+		expect(stale.content).toMatch(/^name: mark-stale$/m);
 		const unit = entries[1]!;
 		if (unit.kind !== "file") throw new Error("expected a file");
 		expect(unit.content).toMatch(/^name: test:unit$/m);
+		expect(unit.content).toMatch(/^ {2}test-unit:\n {4}name: test:unit$/m);
 		expect(unit.workflow).toEqual({ task: "test:unit", filename: "test-unit.yml" });
 	});
 
@@ -320,14 +311,16 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			expect(paths.some((path) => path.includes("format"))).toBe(false);
 		});
 
-		it("keeps the one formatting caller of the frozen reusable in a repo on the legacy gate", () => {
-			expect(new Set(tasks(["lint:editorconfig", "lint:markdown", "format"]))).toEqual(
-				new Set([".github/workflows/sourceQuality.formatting.yml"])
-			);
-		});
-
-		it("still writes it for lint:markdown alone, calling the frozen reusable, unless the task has ci: false", () => {
-			expect(tasks(["lint:markdown"])).toEqual([".github/workflows/sourceQuality.formatting.yml"]);
+		it("writes both flat callers in a repo that does not host the reusables, and none for format", () => {
+			expect(tasks(["lint:editorconfig", "lint:markdown", "format"])).toEqual([
+				".github/workflows/lint-editorconfig.yml",
+				".github/workflows/lint-markdown.yml",
+			]);
+			expect(tasks(["lint:markdown"])).toEqual([".github/workflows/lint-markdown.yml"]);
+			expect(tasks(["sourceQuality.formatting"])).toEqual([
+				".github/workflows/lint-editorconfig.yml",
+				".github/workflows/lint-markdown.yml",
+			]);
 			expect(tasks([{ name: "lint:markdown", ci: false }])).toEqual([]);
 			// `format` alone has never written one
 			expect(tasks(["format"])).toEqual([]);
@@ -373,14 +366,12 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 			expect(docs.content).toContain("    uses: ./.github/workflows/validate-docs.yml\n");
 		});
 
-		it("gives a repo that calls the frozen reusables the one caller the old workflow was", () => {
-			expect(paths(["validate"])).toEqual([".github/workflows/platform.repoValidation.yml"]);
-			expect(paths(["platform.repoValidation"])).toEqual([".github/workflows/platform.repoValidation.yml"]);
-		});
-
-		it("gives every repo both flat callers once the gate is open", () => {
-			gate.open = true;
+		it("gives a repo that does not host the reusables both flat callers", () => {
 			expect(paths(["validate"])).toEqual([
+				".github/workflows/validate-specs.yml",
+				".github/workflows/validate-docs.yml",
+			]);
+			expect(paths(["platform.repoValidation"])).toEqual([
 				".github/workflows/validate-specs.yml",
 				".github/workflows/validate-docs.yml",
 			]);
