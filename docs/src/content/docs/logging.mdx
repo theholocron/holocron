@@ -55,15 +55,36 @@ Child loggers inherit every binding from their parent and add their own, so pass
 
 ## Standard context fields
 
-| Field     | Set by                | Value                                      |
-| --------- | --------------------- | ------------------------------------------ |
-| `runId`   | root logger (startup) | UUID, unique per command invocation        |
-| `env`     | root logger (startup) | `"ci"` when CI is detected, else `"local"` |
-| `command` | command child logger  | active holocron command name               |
-| `module`  | module child logger   | e.g. `"sync-github"`, `"setup-workflows"`  |
-| `repo`    | command child logger  | `"owner/name"` when available              |
-| `level`   | Pino                  | level name string                          |
-| `time`    | Pino                  | ISO 8601 timestamp                         |
+| Field     | Set by                | Value                                               |
+| --------- | --------------------- | --------------------------------------------------- |
+| `runId`   | root logger (startup) | UUID, unique per command invocation                 |
+| `env`     | root logger (startup) | `local`, `dev`, `ci`, `stage` or `prod` (see below) |
+| `command` | command child logger  | active holocron command name                        |
+| `module`  | module child logger   | e.g. `"sync-github"`, `"setup-workflows"`           |
+| `repo`    | command child logger  | `"owner/name"` when available                       |
+| `level`   | Pino                  | level name string                                   |
+| `time`    | Pino                  | ISO 8601 timestamp                                  |
+
+## One dataset, every environment
+
+Every line carries `env`, so one Axiom dataset can hold all of them and a query filters by it. The value is the
+`ENVIRONMENT` variable when it names one of the five (`local`, `dev`, `ci`, `stage`, `prod`; `development`, `staging`,
+`qa` and `production` are read as `dev`, `stage`, `stage` and `prod`, in any case). When it does not, it is `ci` inside
+CI and `local` anywhere else. `ENVIRONMENT` wins over CI, so a deploy job can say it is `prod`.
+
+| `env`   | Where                                                                                     |
+| ------- | ----------------------------------------------------------------------------------------- |
+| `local` | A laptop running the CLI: the default                                                     |
+| `dev`   | A development instance. `holocron dev` sets `ENVIRONMENT=dev` for the application it runs |
+| `ci`    | GitHub Actions: the default when `CI` is set                                              |
+| `stage` | A staging or preview deployment                                                           |
+| `prod`  | A production deployment, which sets `ENVIRONMENT=prod`                                    |
+
+```text
+['holocron-sentinel'] | where env == "dev" | sort by _time desc
+```
+
+A deployed service needs `ENVIRONMENT` set where it runs; nothing else tells production from a laptop.
 
 ## What the commands emit
 

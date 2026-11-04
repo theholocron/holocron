@@ -5,6 +5,7 @@ import {
 	generateRunId,
 	isCI,
 	isTelemetryDisabled,
+	parseLogEnv,
 	parseLogLevel,
 	resolveAxiomFromEnv,
 	resolveLevel,
@@ -37,9 +38,36 @@ describe("isCI", () => {
 });
 
 describe("detectEnv", () => {
-	it("maps CI presence to ci/local", () => {
+	it("maps CI presence to ci/local when ENVIRONMENT says nothing", () => {
 		expect(detectEnv({ CI: "true" })).toBe("ci");
 		expect(detectEnv({})).toBe("local");
+		expect(detectEnv({ ENVIRONMENT: "" })).toBe("local");
+		expect(detectEnv({ ENVIRONMENT: "somewhere-else", CI: "true" })).toBe("ci");
+	});
+
+	it.each(["local", "dev", "ci", "stage", "prod"] as const)("takes %s from ENVIRONMENT", (name) => {
+		expect(detectEnv({ ENVIRONMENT: name })).toBe(name);
+	});
+
+	it("lets ENVIRONMENT win over CI, so a deploy job in CI can say it is prod", () => {
+		expect(detectEnv({ ENVIRONMENT: "prod", CI: "true" })).toBe("prod");
+	});
+
+	it("reads the usual spellings, in any case", () => {
+		expect(detectEnv({ ENVIRONMENT: "Production" })).toBe("prod");
+		expect(detectEnv({ ENVIRONMENT: " DEVELOPMENT " })).toBe("dev");
+		expect(detectEnv({ ENVIRONMENT: "staging" })).toBe("stage");
+		expect(detectEnv({ ENVIRONMENT: "qa" })).toBe("stage");
+	});
+});
+
+describe("parseLogEnv", () => {
+	it("accepts the five environments and their aliases, and nothing else", () => {
+		expect(parseLogEnv("stage")).toBe("stage");
+		expect(parseLogEnv("production")).toBe("prod");
+		expect(parseLogEnv("sandbox")).toBeUndefined();
+		expect(parseLogEnv("")).toBeUndefined();
+		expect(parseLogEnv(undefined)).toBeUndefined();
 	});
 });
 

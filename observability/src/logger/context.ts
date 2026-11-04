@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { LOG_LEVELS, type LogEnv, type LogLevel } from "../core/logger.js";
+import { LOG_ENVS, LOG_LEVELS, type LogEnv, type LogLevel } from "../core/logger.js";
 import type { AxiomTransportConfig } from "./transports.js";
 
 /**
@@ -22,9 +22,27 @@ export function isCI(env: NodeJS.ProcessEnv = process.env): boolean {
 	return ci !== "false" && ci !== "0";
 }
 
-/** `"ci"` inside CI, otherwise `"local"` — bound on every root logger. */
+/** Other spellings of the five environments, as people and platforms write them. */
+const ENV_ALIASES: Record<string, LogEnv> = {
+	development: "dev",
+	staging: "stage",
+	qa: "stage",
+	production: "prod",
+};
+
+/** Narrow an arbitrary string (any case, with the usual aliases such as `production`) to a {@link LogEnv}, or `undefined`. */
+export function parseLogEnv(value: string | undefined): LogEnv | undefined {
+	const name = value?.trim().toLowerCase() ?? "";
+	return (LOG_ENVS as readonly string[]).includes(name) ? (name as LogEnv) : ENV_ALIASES[name];
+}
+
+/**
+ * The environment bound on every root logger as `env`: the `ENVIRONMENT` variable when it names one of the five
+ * (`local`, `dev`, `ci`, `stage`, `prod`, or an alias such as `production`), otherwise `"ci"` inside CI and `"local"`
+ * anywhere else. A deployed service sets `ENVIRONMENT`; `holocron dev` sets it to `dev`.
+ */
 export function detectEnv(env: NodeJS.ProcessEnv = process.env): LogEnv {
-	return isCI(env) ? "ci" : "local";
+	return parseLogEnv(env.ENVIRONMENT) ?? (isCI(env) ? "ci" : "local");
 }
 
 /** Narrow an arbitrary string to a {@link LogLevel}, or `undefined`. */

@@ -50,8 +50,14 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 /** The four levels, in ascending severity — useful for validation. */
 export const LOG_LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 
-/** Runtime environment a logger was constructed in. */
-export type LogEnv = "ci" | "local";
+/**
+ * Runtime environment a logger was constructed in: `local` (a laptop), `dev` (a development instance), `ci`, `stage`
+ * or `prod`. It is bound on every line as `env`, so one Axiom dataset can hold all of them and a query filters by it.
+ */
+export type LogEnv = "local" | "dev" | "ci" | "stage" | "prod";
+
+/** The environments a logger can be in, in the order they are listed in the docs. */
+export const LOG_ENVS: readonly LogEnv[] = ["local", "dev", "ci", "stage", "prod"];
 
 /**
  * The disabled-logging path made explicit — one shared no-op instead of a
