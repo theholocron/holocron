@@ -39,7 +39,7 @@ describe("resolveWords", () => {
 		});
 		expect(resolveWords(["platform.repoValidation", "adrs"])).toEqual({
 			kind: "task",
-			targets: [{ id: "validate" }],
+			targets: [{ id: "validate:specs" }, { id: "validate:docs" }],
 			rest: ["adrs"],
 			legacy: "platform.repoValidation",
 		});

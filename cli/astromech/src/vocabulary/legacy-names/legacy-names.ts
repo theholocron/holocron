@@ -36,9 +36,13 @@ export const LEGACY_NAMES: Record<string, LegacyTarget[]> = {
 	"delivery.deploy": [{ id: "deploy" }],
 	"delivery.previewDeploy": [{ id: "deploy-preview" }],
 	"delivery.previewCheck": [{ id: "check-preview" }],
-	// Until the `validate` suite is split into `validate:specs` and `validate:docs` (spec phase J) this stays one task
-	// with the jobs `adrs` and `docsPresence`.
-	"platform.repoValidation": [{ id: "validate" }],
+	// `validate` was the interim id of one task with the jobs `adrs` and `docsPresence`; it is now the suite of
+	// `validate:specs` and `validate:docs` (spec phase J), so both names stand for both leaves. `validate` is listed
+	// first because the reverse lookups (`legacyName`, `legacyFile`) keep the last name that lists an id, and the old
+	// workflow and file were `platform.repoValidation`. Each leaf has a reusable workflow of its own; the frozen
+	// `platform.repoValidation.yml` in `theholocron/.github` ran both (see `legacyWorkflowKey`).
+	validate: [{ id: "validate:specs" }, { id: "validate:docs" }],
+	"platform.repoValidation": [{ id: "validate:specs" }, { id: "validate:docs" }],
 	"platform.repoSync": [{ id: "sync-repo" }],
 	"platform.syncTemplates": [{ id: "sync-templates" }],
 	"platform.notifyCheck": [{ id: "check-notify" }],

@@ -75,19 +75,6 @@ describe("runCi", () => {
 		});
 	});
 
-	it("leaves out a sub-job the task entry switches off, and runs the others", () => {
-		const { run, exec, lines } = makeCi(
-			{ "package.json": PKG },
-			{ lookPath: (_cwd, bin) => (bin === "node" ? "/bin/node" : null) }
-		);
-		const report = run({
-			tasks: [{ name: "platform.repoValidation", required: true, jobs: { docsEnforcement: false } }],
-		});
-		expect(report.status).toBe("ok");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "specs", "check"]]);
-		expect(lines.join("\n")).toMatch(/off in this repo's config \(jobs\.docsEnforcement: false\)/);
-	});
-
 	it("orders by CI_ORDER regardless of manifest order", () => {
 		const { run } = makeCi({
 			"package.json": PKG,
@@ -145,32 +132,24 @@ describe("runCi", () => {
 		expect(codeScanning.message).toMatch(/enforced in CI/);
 	});
 
-	it("expands a jobs-bearing task into its sub-jobs, each under its own check context", () => {
-		const { run, exec, lines } = makeCi(
-			{ "package.json": PKG },
-			{ lookPath: (_c: string, bin: string) => (bin === "node" ? "/usr/bin/node" : null) }
-		);
-		const report = run({ tasks: [{ name: "platform.repoValidation", required: true }] });
-		expect(report.status).toBe("ok");
-		const out = lines.join("\n");
-		expect(out).toContain("▶ validate");
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([
-			[process.argv[1], "probe", "specs", "check"],
-			[process.argv[1], "probe", "docs", "presence"],
-		]);
-		// still one task-level row in the report
-		expect(report.jobs.find((j) => j.task === "validate")!.status).toBe("ok");
-	});
-
-	it("does not fail `holocron run ci` when a jobs-bearing task is required but no sub-job runs locally", () => {
-		const { run, exec } = makeCi({ "package.json": PKG });
-		// both jobs are holocron subcommands, so they always run: switch them off to leave nothing runnable
-		const report = run({
-			tasks: [{ name: "platform.repoValidation", required: true, jobs: { adrs: false, docsEnforcement: false } }],
-		});
-		expect(report.status).toBe("ok");
-		expect(exec).not.toHaveBeenCalled();
-		expect(report.jobs.find((j) => j.task === "validate")!.status).toBe("skip");
+	it("runs each validate leaf under its own check context, and an old name that stood for both runs both", () => {
+		const { run, exec, lines } = makeCi({ "package.json": PKG });
+		for (const name of ["platform.repoValidation", "validate"]) {
+			exec.mockClear();
+			lines.length = 0;
+			const report = run({ tasks: [{ name, required: true }] });
+			expect(report.status).toBe("ok");
+			expect(report.jobs.map((j) => [j.task, j.checkContext])).toEqual([
+				["validate:specs", "validate:specs / Validate ADRs and specs"],
+				["validate:docs", "validate:docs / Validate docs presence"],
+			]);
+			const out = lines.join("\n");
+			expect(out.indexOf("▶ validate:specs /")).toBeLessThan(out.indexOf("▶ validate:docs /"));
+			expect(exec.mock.calls.map((c) => c[1])).toEqual([
+				[process.argv[1], "probe", "specs", "check"],
+				[process.argv[1], "probe", "docs", "presence"],
+			]);
+		}
 	});
 
 	it("runs a local:null task via an explicit package.json script", () => {

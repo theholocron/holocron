@@ -28,10 +28,10 @@ describe("toolCommand", () => {
 		expect(toolCommand({ group: "Source Quality", scope: "repo", local: null, linterGroup: ["nope"] })).toBeNull();
 	});
 
-	it("is null for a CI-only task, a subcommand, a set of jobs and a detected tool", () => {
+	it("is null for a CI-only task, a subcommand and a detected tool", () => {
 		expect(toolCommand(TASKS["scan:code"]!)).toBeNull();
 		expect(toolCommand(TASKS["sync-repo"]!)).toBeNull();
-		expect(toolCommand(TASKS["validate"]!)).toBeNull();
+		expect(toolCommand(TASKS["validate:specs"]!)).toBeNull();
 		expect(toolCommand(TASKS["build"]!)).toBeNull();
 	});
 });

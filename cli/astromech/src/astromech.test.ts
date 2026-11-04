@@ -48,20 +48,6 @@ describe("createAstromech().run", () => {
 		expect(exec).toHaveBeenCalledWith("/repo/node_modules/.bin/vitest", ["run", "--coverage"], { cwd: "/repo" });
 	});
 
-	it("applies the manifest's job switches to `run <task> <job>`", () => {
-		const exec = vi.fn(() => ({ exitCode: 0 }));
-		const astromech = createAstromech({
-			...fs({ "package.json": PKG }),
-			exec,
-			lookPath: () => "/bin/node",
-			print: () => {},
-			config: { tasks: [{ name: "platform.repoValidation", jobs: { docsEnforcement: false } }] },
-		});
-		expect(astromech.run("platform.repoValidation", { job: "docsPresence" }).status).toBe("skip");
-		expect(astromech.run("platform.repoValidation", { job: "adrs" }).status).toBe("ok");
-		expect(exec).toHaveBeenCalledTimes(1);
-	});
-
 	it("forwards passthrough / dryRun / required through to the runner", () => {
 		const astromech = createAstromech({ ...fs({ "package.json": PKG }), print: () => {} });
 		const report = astromech.run("delivery.build", { dryRun: true, required: true });
@@ -117,13 +103,14 @@ describe("createAstromech().run", () => {
 		expect(affected).toHaveLength(2);
 	});
 
-	it("threads a sub-job through to the registry — run('platform.repoValidation', { job })", () => {
+	it("runs a validate leaf by its words — run('validate', { job: 'specs' })", () => {
 		const exec = vi.fn(() => ({ exitCode: 0 }));
 		const report = createAstromech({
 			...fs({ "package.json": PKG }),
 			exec,
 			print: () => {},
-		}).run("platform.repoValidation", { job: "adrs" });
+			config: { tasks: ["validate:specs"] },
+		}).run("validate", { job: "specs" });
 		expect(report.status).toBe("ok");
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "probe", "specs", "check"], {
 			cwd: "/repo",
@@ -458,7 +445,7 @@ describe("createAstromech().packageScripts", () => {
 		});
 	});
 
-	it("skips a genuinely local: null task (no linterGroup, no jobs)", () => {
+	it("skips a genuinely local: null task (no linterGroup)", () => {
 		const astromech = createAstromech({ cwd: "/repo", config: { tasks: ["security.codeScanning"] } });
 		expect(astromech.packageScripts()).toEqual({ holocron: "holocron" });
 	});

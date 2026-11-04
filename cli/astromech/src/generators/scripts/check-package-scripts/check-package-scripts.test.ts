@@ -73,6 +73,11 @@ describe("checkPackageScripts", () => {
 	});
 
 	it("leaves a colon script that is not under a suite alone", () => {
-		expect(checkPackageScripts({ "docs:dev": "astro dev", "validate:plugin": "tsx x" }, "package")).toEqual([]);
+		expect(
+			checkPackageScripts(
+				{ "docs:dev": "astro dev", "validate:plugin": "node x.mjs", "deploy:plugin": "tsx x" },
+				"package"
+			)
+		).toEqual([]);
 	});
 });

@@ -37,7 +37,6 @@ export function runGroup(input: GroupInput): GroupReport {
 			listDir: input.listDir,
 			lookPath: input.lookPath,
 			task,
-			...(member.jobSwitches ? { jobSwitches: member.jobSwitches } : {}),
 			...(member.passthrough ? { passthrough: member.passthrough } : {}),
 			cwd: input.cwd,
 			dryRun: input.dryRun ?? false,
@@ -48,8 +47,7 @@ export function runGroup(input: GroupInput): GroupReport {
 		});
 		// `runTask` only returns "unknown" for an unrecognised task name; every
 		// task here came from the registry, so its status is a GroupJobReport status.
-		const ciOnly =
-			r.status === "skip" && TASKS[task]?.local === null && !TASKS[task]?.linterGroup && !TASKS[task]?.jobs;
+		const ciOnly = r.status === "skip" && TASKS[task]?.local === null && !TASKS[task]?.linterGroup;
 		jobs.push({
 			task,
 			status: r.status as GroupJobReport["status"],

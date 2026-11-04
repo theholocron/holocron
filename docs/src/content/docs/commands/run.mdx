@@ -47,18 +47,14 @@ call them. A name that stood for several checks runs each of its successors in o
 ## How a task resolves
 
 ```text
-J. a job is given → the task's <job> sub-runner (unknown job → exit 1)
-
 1. turbo.json defines the task → turbo run <task> (monorepo root)
 2. package.json has a <task> script (and it isn't `holocron run …`)
    → <detected pm> run <task>
 3. the task registry has a local runner
    → <tool> <args> <org-flags> (e.g. --coverage)
    3b. the task is a linterGroup → the resolved linter set (see below)
-4. the task is a container of sub-jobs (`validate`)
-   → run each job in declared order
-5. known task, nothing to run → "no <task> task for this repo", exit 0
-6. unknown task → error, exit 1
+4. known task, nothing to run → "no <task> task for this repo", exit 0
+5. unknown task → error, exit 1
 
 ```
 
@@ -67,24 +63,21 @@ runner looks the old name up first, then the id in its script spelling (`deploy:
 
 An explicit `package.json` script always wins over the registry default — if
 you wrote `"lint:code": "biome check"`, that's what runs. Likewise a repo-level
-script for a job-bearing task wins over the built-in sub-jobs.
+script for a task wins over the built-in runner.
 
-## Sub-jobs
+## The `validate` suite
 
-Some tasks are a bundle of smaller jobs. `validate` is the one
-that matters today — spec/ADR frontmatter and docs-presence, not linters (it becomes the `validate:specs` and
-`validate:docs` leaves in a later phase):
+`validate` is a suite of process and governance checks, not linters. Each leaf is a holocron probe:
 
-| `holocron run …`        | Runs                             |
-| ----------------------- | -------------------------------- |
-| `validate adrs`         | `holocron probe specs check`     |
-| `validate docsPresence` | `holocron probe docs presence`   |
-| `validate` (no job)     | each of the above, in that order |
+| `holocron run …` | Runs                           |
+| ---------------- | ------------------------------ |
+| `validate:specs` | `holocron probe specs check`   |
+| `validate:docs`  | `holocron probe docs presence` |
+| `validate`       | the leaves the repo lists      |
 
-A sub-job whose tool isn't installed is skipped with a note — CI enforces it
-regardless. `--required` turns "can't run this here" into a failure.
-`holocron run validate frobnicate` lists the known jobs and
-exits 1.
+`holocron run validate:specs -- <files>` checks only those files. The old names `validate` (in a `tasks:` list) and
+`platform.repoValidation` stand for both leaves. A third leaf, `validate:plugin`, is the plugin packages' own live check
+(`tsx scripts/validate.mjs`); it has no workflow and is not part of `holocron run ci`.
 
 ## `linterGroup` tasks
 

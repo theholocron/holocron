@@ -16,3 +16,4 @@ export * from "./script-name/index.js";
 export * from "./suites/index.js";
 export * from "./task-key/index.js";
 export * from "./workflow-key/index.js";
+export * from "./workflow-keys/index.js";

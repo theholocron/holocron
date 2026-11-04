@@ -7,8 +7,8 @@ import type { TaskDef } from "./registry.type.js";
  * Keyed by the flat, verb-first id (`test:unit`, `lint:code`, `build`,
  * `deploy-preview`), the one spelling of a task in the CLI (spec
  * `ci-flat-task-vocabulary`, SPEC-0064, epic #1612). A colon means "member of
- * the suite named before it": `test`, `lint`, `scan` (and, once it is split,
- * `validate`) are suites, declared here by the `suite` field of their leaves
+ * the suite named before it": `test`, `lint`, `scan` and
+ * `validate` are suites, declared here by the `suite` field of their leaves
  * and never ids of their own. A hyphen is part of a verb phrase and implies no
  * suite. The old dotted names (`verification.unitTests`, …) are accepted for a
  * window through {@link LEGACY_NAMES} and still name the generated workflow
@@ -221,35 +221,19 @@ export const TASKS: Record<string, TaskDef> = {
 	"deploy-preview": { group: "Delivery", scope: "package", local: null },
 
 	// ── Platform — operating the repo itself ──────────────────────────────
-	// Process/governance checks that rode inside the old monolithic `lint`
-	// task with no linter connection at all — spec/ADR frontmatter, docs
-	// presence. Not `linters.ts` entries (not linters), so plain jobs.
-	// Interim: this becomes the `validate:specs` and `validate:docs` leaves of the `validate` suite in the phase that
-	// splits it (spec phase J), which also drops `jobs` and `retiredJobs`.
-	validate: {
-		group: "Platform",
-		scope: "repo",
-		local: null,
-		// The package-registry check is gone, but the reusable workflow in theholocron/.github keeps a
-		// `registry` job until it is re-synced; it must skip, not fail, meanwhile.
-		retiredJobs: ["registry"],
-		jobs: {
-			adrs: {
-				local: { command: "probe specs check" },
-				checkContext: "validate / Validate ADRs and specs",
-			},
-			// Warns (never fails — `holocron probe docs presence` reports, it does not
-			// exit non-zero) when a PR adds a new public package, or a `feat` changes
-			// one, without a docs change. Doesn't actually require a docs *site* to be
-			// meaningful (just "was something documented"), so it belongs here with its
-			// process/governance siblings, not gated behind the docs deploy.
-			docsPresence: {
-				local: { command: "probe docs presence" },
-				checkContext: "validate / Validate docs presence",
-				alias: "docsEnforcement",
-			},
-		},
-	},
+	// Process/governance checks that rode inside the old monolithic `lint` task with no linter connection at all.
+	// Not `linters.ts` entries (not linters), so plain tasks of the `validate` suite, each a holocron subcommand.
+	// Spec/ADR frontmatter (`holocron probe specs check`).
+	"validate:specs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe specs check" } },
+	// Warns (never fails -- `holocron probe docs presence` reports, it does not exit non-zero) when a PR adds a new
+	// public package, or a `feat` changes one, without a docs change. It does not need a docs *site* to be meaningful
+	// (just "was something documented"), so it belongs here with its process/governance sibling, not behind the docs
+	// deploy. The doc-comment gate (`docs patch`, `repoValidation.docsCoverage`) is its own workflow, not this task.
+	"validate:docs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe docs presence" } },
+	// A plugin package's live check against its provider (its own `scripts/validate.mjs`, run by hand with the provider's
+	// credentials): the package's script is the whole task, so there is no built-in runner and no workflow, and it is not
+	// part of `holocron run ci`. It is a leaf so that the 16 plugins' script has a name in the suite and no collision.
+	"validate:plugin": { group: "Platform", scope: "package", suite: "validate", workflow: false, local: null },
 	"sync-repo": { group: "Platform", scope: "repo", local: { command: "sync" } },
 	// No local runner -- it posts real messages through org secrets that only a
 	// workflow can read. Manual (workflow_dispatch) only: the end-to-end check for
@@ -283,7 +267,8 @@ export const CI_ORDER: string[] = [
 	"lint:data",
 	"scan:secrets",
 	"lint:commits",
-	"validate",
+	"validate:specs",
+	"validate:docs",
 	"test:unit",
 	"build",
 	"lint:unused",

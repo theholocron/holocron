@@ -6,7 +6,7 @@ import type { ResolvedWords } from "./resolve-words.type.js";
 /**
  * Reads `holocron run <words…>` the way spec `ci-flat-task-vocabulary` describes: the words are joined with `:` and the
  * longest match against the registry wins, so `test unit` and `test:unit` are one call and `deploy preview` is
- * `deploy-preview`. Whatever is left is the existing `[job]` argument (`test unit storybook` leaves `storybook`). A
+ * `deploy-preview`. Whatever is left is forwarded to the task (`test unit storybook` leaves `storybook`). A
  * single old dotted name resolves through {@link LEGACY_NAMES}.
  */
 export function resolveWords(words: string[]): ResolvedWords {

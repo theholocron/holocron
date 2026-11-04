@@ -334,6 +334,59 @@ describe("generateWorkflowFiles in the repo that hosts the reusables", () => {
 		});
 	});
 
+	describe("the validate suite", () => {
+		const paths = (tasks: string[], loadedTasks = tasks) =>
+			generateWorkflowFiles({
+				loaded: loadedFrom({ name: "x", tasks: loadedTasks }),
+				repoRoot: root,
+				logger: getLogger(),
+			})
+				.filter((entry) => entry.kind === "file" && entry.step.startsWith("write workflow"))
+				.map((entry) => (entry.kind === "file" ? entry.path : ""));
+
+		it("writes one caller per leaf, and the alias `validate` writes both", () => {
+			host();
+			expect(paths(["validate:specs", "validate:docs"])).toEqual([
+				".github/workflows/ci.validate-specs.yml",
+				".github/workflows/ci.validate-docs.yml",
+			]);
+			expect(paths(["validate"])).toEqual([
+				".github/workflows/ci.validate-specs.yml",
+				".github/workflows/ci.validate-docs.yml",
+			]);
+			expect(paths(["platform.repoValidation"])).toEqual([
+				".github/workflows/ci.validate-specs.yml",
+				".github/workflows/ci.validate-docs.yml",
+			]);
+		});
+
+		it("names each caller for its leaf and has it call its own reusable", () => {
+			host();
+			const docs = generateWorkflowFiles({
+				loaded: loadedFrom({ name: "x", tasks: ["validate:docs"] }),
+				repoRoot: root,
+				logger: getLogger(),
+			}).find((entry) => entry.kind === "file" && entry.path.endsWith("ci.validate-docs.yml"));
+			if (!docs || docs.kind !== "file") throw new Error("expected a file");
+			expect(docs.content).toMatch(/^name: validate:docs$/m);
+			expect(docs.content).toMatch(/^ {2}validate-docs:\n {4}name: validate:docs$/m);
+			expect(docs.content).toContain("    uses: ./.github/workflows/validate-docs.yml\n");
+		});
+
+		it("gives a repo that calls the frozen reusables the one caller the old workflow was", () => {
+			expect(paths(["validate"])).toEqual([".github/workflows/platform.repoValidation.yml"]);
+			expect(paths(["platform.repoValidation"])).toEqual([".github/workflows/platform.repoValidation.yml"]);
+		});
+
+		it("gives every repo both flat callers once the gate is open", () => {
+			gate.open = true;
+			expect(paths(["validate"])).toEqual([
+				".github/workflows/validate-specs.yml",
+				".github/workflows/validate-docs.yml",
+			]);
+		});
+	});
+
 	it("does not take another package named ci for the hosting package", () => {
 		host("@acme/ci");
 		expect(generate().every((entry) => entry.kind !== "file" || !entry.path.includes("/ci."))).toBe(true);

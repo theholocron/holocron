@@ -20,8 +20,6 @@ export interface GroupMember {
 	task: string;
 	/** Args the task is run with (`--check` for `format` when an old name asked for it). */
 	passthrough?: string[];
-	/** The `jobs` switches of the task's entry in the manifest. */
-	jobSwitches?: Record<string, boolean>;
 }
 
 /** The result of one task in a group run. */

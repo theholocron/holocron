@@ -7,7 +7,8 @@ describe("flatFile", () => {
 		expect(flatFile("verification.unitTests.yml")).toBe("test-unit.yml");
 		expect(flatFile("sourceQuality.formatting.yml")).toBe("lint-editorconfig.yml");
 		expect(flatFile("bookkeeping.yml")).toBe("label.yml");
-		expect(flatFile("platform.repoValidation.yml")).toBe("validate.yml");
+		expect(flatFile("platform.repoValidation.yml")).toBe("validate-specs.yml");
+		expect(flatFile("validate.yml")).toBe("validate-specs.yml");
 	});
 
 	it("returns a file that is already flat, or has no old name, as it is", () => {

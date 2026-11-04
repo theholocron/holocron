@@ -49,11 +49,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   on the first two also writes the lcov report, which the Docs coverage workflow uploads to Codecov as the `documentation`
   flag (spec `tech-api-docs`, epic #1368). `repoValidation.docsCoverage` (`off` default, `warn`, `required`) in
   `holocron.config.ts` decides what `docs patch` does about a miss and whether `repo setup` writes the flag's statuses.
-  `docs presence` is the `docsEnforcement` job of `validate`: it warns (never fails) when a new public
+  `docs presence` is the `validate:docs` task: it warns (never fails) when a new public
   package, or a `feat` to one, ships with no docs change, and `[skip docs] <reason>` in the PR description or a commit
   message excuses it (#1515). Its rules are pure functions in `@theholocron/astromech/repo-validation` (#929); the probe
-  only supplies them with git data, and Sentinel is meant to supply the same rules from the GitHub API. A registry job can be a holocron subcommand (`local: { command }`), as a task can.
-  `specs check [files...]` is the `adrs` job of `validate` (#929): it fails for each ADR (`docs/wiki/decisions`)
+  only supplies them with git data, and Sentinel is meant to supply the same rules from the GitHub API. A registry task can be a holocron subcommand (`local: { command }`).
+  `specs check [files...]` is the `validate:specs` task (#929): it fails for each ADR (`docs/wiki/decisions`)
   or spec (`.notes`, `docs/wiki/specifications`) whose frontmatter is wrong and reports a warning as an `info` row. The rules
   are `checkSpecs()` in `@theholocron/astromech/repo-validation`; the probe reads the files through an injected `SpecsIo`,
   and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
@@ -159,8 +159,13 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   (`isTask()`, `resolveTaskName()`) accept both and the runner prints a deprecation notice on stderr. **Nothing that is
   generated changed in this phase:** thin callers, workflow file names, check contexts, `turbo.json` keys and
   package scripts are still the old names, reached through `workflowKey()` / `legacyName()`, so a manifest spelled either
-  way generates the same files (`probe generated check` proves it). `validate` is the interim id of the job-bearing
-  `validate` (it splits into `validate:specs` and `validate:docs` in phase J). `RESERVED_SCRIPT_NAMES`
+  way generates the same files (`probe generated check` proves it). `validate` is a suite of two probe tasks, `validate:specs`
+  (`probe specs check`) and `validate:docs` (`probe docs presence`), each with its own reusable workflow, caller and
+  check (`validate:specs / Validate ADRs and specs`, `validate:docs / Validate docs presence`), and a third,
+  package-scoped leaf with no workflow, `validate:plugin` (the plugins' own script). The sub-job mechanism (`jobs:`,
+  `retiredJobs`, the `Conclusion` aggregator) is gone (#1622). `validate` and `platform.repoValidation` in a `tasks:` list
+  are aliases for both leaves (`workflowKeys()` writes one caller each; a repo still on the legacy gate gets the one
+  `platform.repoValidation.yml` caller, which the frozen reusable answers for both). `RESERVED_SCRIPT_NAMES`
   and `PNPM_BUILTIN_COMMANDS` list the npm lifecycle words no task may take and the pnpm built-ins that need
   `pnpm run <script>`.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**

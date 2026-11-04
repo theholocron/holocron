@@ -222,7 +222,8 @@ until its callers move to the flat reusables (`ci-v1`), because its ruleset list
 | `measure-bundle`                     | bundle-size upload to Codecov                                     | no local equivalent — CI only                                                                     |
 | `sync-repo`                          | `holocron repo sync`                                              | keeps generated files current                                                                     |
 | `lint:commits`                       | commitlint                                                        | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI |
-| `validate`                           | ADR/spec frontmatter + docs-presence scripts                      | not linters — process/governance checks                                                           |
+| `validate:specs`                     | ADR/spec frontmatter (`holocron probe specs check`)               | not a linter — a process/governance check                                                         |
+| `validate:docs`                      | docs presence (`holocron probe docs presence`)                    | not a linter; only ever warns                                                                     |
 | `publish-wiki`                       | Fern                                                              | publishes `docs/wiki/*.md` — a publish, not a sync; carries `preview`                             |
 | `deploy-docs`                        | Astro build                                                       | the docs site itself; carries `preview` (defaults on)                                             |
 | `deploy-components`                  | Storybook build                                                   | a browsable component catalog; carries `preview` (defaults on)                                    |
@@ -232,23 +233,17 @@ dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews docs.
 None of these earn their own task; it's one capability any
 publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
-### Switching a sub-job off
+### Switching docs presence off
 
-A task made of sub-jobs (`validate`, formerly `validate`; it is split into `validate:specs` and `validate:docs` in a later phase) can have individual jobs switched off for one repo,
-with `jobs:` on its entry in `astromech.config.ts`:
+`validate:specs` and `validate:docs` are two tasks of the `validate` suite, each with its own workflow and its own check.
+A repo that does not want one leaves it out of `tasks:` in `astromech.config.ts`; there is no `jobs:` switch (it went with
+the split, and the old `validate` name, which stood for both, still lists both):
 
 ```ts
-{ name: "validate", required: true, jobs: { docsEnforcement: false } }
+{ name: "validate:specs", required: true }
 ```
 
-| Key               | Job                    | Notes                                                                              |
-| ----------------- | ---------------------- | ---------------------------------------------------------------------------------- |
-| `docsEnforcement` | Validate docs presence | a new public package, or a `feat`, comes with docs (key `docsPresence` also works) |
-
-A job left out runs. A switched-off job still reports in CI (green, "off in this repo's config"), so a required
-check never goes missing, and `holocron run validate` prints which jobs it skipped.
-
-The `docsEnforcement` job runs `holocron probe docs presence` and only ever warns. It warns for a new public package with no docs change, and for a `feat`
+The `validate:docs` task runs `holocron probe docs presence` and only ever warns. It warns for a new public package with no docs change, and for a `feat`
 that changes a public package's source (`src/**`, or a root `index.ts`) without a docs signal for that package: its
 README, a docs page named after it, or a doc comment in the diff. When no docs change is needed, say why in the pull
 request description or in a commit message:

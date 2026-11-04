@@ -7,11 +7,11 @@ describe("suiteMembers", () => {
 	it("lists a suite's leaves in registry order", () => {
 		expect(suiteMembers("test")).toEqual(["test:unit", "test:visual", "test:perf"]);
 		expect(suiteMembers("lint")).toHaveLength(6);
+		expect(suiteMembers("validate")).toEqual(["validate:specs", "validate:docs", "validate:plugin"]);
 	});
 
 	it("is empty for a name that is not a suite", () => {
 		expect(suiteMembers("typecheck")).toEqual([]);
-		expect(suiteMembers("validate")).toEqual([]);
 	});
 
 	it("every suite has at least two leaves", () => {

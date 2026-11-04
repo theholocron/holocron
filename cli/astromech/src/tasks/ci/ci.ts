@@ -65,10 +65,7 @@ export function runCi(input: CiInput): CiReport {
 
 		// `local: null` tasks (scan:code, deploy) have no
 		// built-in runner — but `runTask` steps 1–2 still honour an explicit
-		// turbo task / `package.json` script, and a job-bearing task
-		// (`validate`) with no such script expands into its
-		// sub-jobs, each printed under its own `▶ platform.repoValidation / <Job>`
-		// check context. `runTask` returns "skip" when nothing runs.
+		// turbo task / `package.json` script. `runTask` returns "skip" when nothing runs.
 		const r = runTask({
 			print: (line) => print(`  ${line}`),
 			logger: input.logger,
@@ -80,7 +77,6 @@ export function runCi(input: CiInput): CiReport {
 			task: entry.name,
 			// `format` is run in its read-only form here: `holocron run ci` never writes.
 			passthrough: entry.name === "format" ? ["--check"] : [],
-			...(entry.jobs ? { jobSwitches: entry.jobs } : {}),
 			cwd: input.cwd,
 			dryRun: input.dryRun ?? false,
 			// An old name that stood for several ids (the formatting workflow) passed when any of its tools ran, so a

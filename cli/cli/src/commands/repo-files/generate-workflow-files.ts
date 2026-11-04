@@ -12,6 +12,7 @@ import {
 	TASKS,
 	workflowFile,
 	workflowKey,
+	workflowKeys,
 } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync } from "@theholocron/fs-utils";
@@ -58,14 +59,17 @@ export function generateWorkflowFiles(input: RepoFilesInput): (GeneratedWorkflow
 	const legacy = !hosting && legacyGate();
 
 	const entries: (GeneratedWorkflowFile | SkippedRepoFile)[] = [];
-	for (const entry of tasks) {
+	// One caller per workflow an entry needs (`validate` has two). A task with no workflow of its own (`format`, a step of
+	// `lint:code`) writes none. A repo on the legacy gate has one caller for what is now several workflows (the formatting
+	// ones, the validate ones), filed under the first: the frozen reusable runs them all.
+	const wanted = tasks.flatMap((entry) => {
 		const name = typeof entry === "string" ? entry : entry.name;
-		// A task with no workflow of its own (`format`, a step of `lint:code`) writes no caller.
 		const ids = resolveTaskName(name);
-		if (ids.length > 0 && ids.every(({ id }) => TASKS[id]?.workflow === false)) continue;
+		if (ids.length > 0 && ids.every(({ id }) => TASKS[id]?.workflow === false)) return [];
+		return (legacy ? [legacyWorkflowKey(name)] : workflowKeys(name)).map((key) => ({ entry, name, key }));
+	});
+	for (const { entry, name, key } of wanted) {
 		// deploy-docs / deploy-components have no static template: their content is always generated.
-		// A repo on the legacy gate has one formatting caller for what is now two workflows, filed under `lint:editorconfig`.
-		const key = legacy ? legacyWorkflowKey(name) : workflowKey(name);
 		const isCombinedContentOnly = key === "deploy-docs" || key === "deploy-components";
 		if (!KNOWN_WORKFLOWS.has(key) && !isCombinedContentOnly) {
 			entries.push({

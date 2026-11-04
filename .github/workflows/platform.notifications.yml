@@ -41,7 +41,8 @@ on: # yamllint disable-line rule:truthy
       - release
       - deploy-preview
       - check-preview
-      - validate
+      - validate:specs
+      - validate:docs
       - lint:commits
       - sync-templates
       - check-notify

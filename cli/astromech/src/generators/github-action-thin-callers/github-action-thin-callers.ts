@@ -39,9 +39,9 @@ export const KNOWN_WORKFLOWS = new Set(Object.keys(WORKFLOW_TEMPLATES));
  * Most of these are single-job workflows (D3's decomposition split what used to be multi-job `lint`/`audit` into one
  * task per concern), so the context names that job directly; a single job's own conclusion already *is* the workflow's
  * conclusion. `Conclusion` fan-in jobs are kept only where a task has several conditionally-run jobs feeding one
- * check: `test:unit` (unit / Storybook / Chromatic / interaction / user-flow, each gated by its own `run-*` input) and
- * `validate` (its script jobs all must pass). `format` has no workflow of its own: its check is a step of `lint:code`
- * (the `ci/actions/format` action), so it is listed under that. Only merge-gating workflows are listed.
+ * check: `test:unit` (unit / Storybook / Chromatic / interaction / user-flow, each gated by its own `run-*` input).
+ * `format` has no workflow of its own: its check is a step of `lint:code` (the `ci/actions/format` action), so it is
+ * listed under that. Only merge-gating workflows are listed.
  * `astromech.requiredChecks()` reads this for every `required` task.
  */
 export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
@@ -56,7 +56,8 @@ export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 	"lint:unused": "lint:unused / Run knip",
 	"scan:secrets": "scan:secrets / Run gitleaks",
 	"lint:commits": "lint:commits / Run commitlint",
-	validate: "validate / Conclusion",
+	"validate:specs": "validate:specs / Validate ADRs and specs",
+	"validate:docs": "validate:docs / Validate docs presence",
 	"measure-bundle": "measure-bundle / Upload bundle stats to Codecov",
 };
 

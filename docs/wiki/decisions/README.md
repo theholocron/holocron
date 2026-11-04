@@ -13,7 +13,7 @@ cp docs/wiki/decisions/template.md docs/wiki/decisions/000N-short-title.md
 ```
 
 `madr` has no CLI — creation is manual. Frontmatter is validated automatically
-in CI via `holocron probe specs check` (the `adrs` job of `platform.repoValidation`).
+in CI via `holocron probe specs check` (the `validate:specs` task).
 
 ## Status values
 

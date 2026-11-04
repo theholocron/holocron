@@ -138,6 +138,13 @@ describe("reusableTemplates()", () => {
 		expect(batch.has("workflow-templates/lint:markdown.yml")).toBe(false);
 	});
 
+	it("files the validate starter under the old workflow, carried by its first leaf", () => {
+		const starter = batch.get("workflow-templates/platform.repoValidation.yml")!;
+		expect(starter).toMatch(/^name: Platform$/m);
+		expect(starter).toContain("uses: theholocron/.github/.github/workflows/platform.repoValidation.yml@main");
+		expect(starter).not.toContain("validate-docs");
+	});
+
 	it("keeps the old names in the starter workflows and the file Sentinel dispatches by name (the legacy-name gate)", () => {
 		expect(batch.get("workflow-templates/stale.yml")).toMatch(/^name: Stale$/m);
 		expect(batch.get("workflow-templates/verification.unitTests.yml")).toMatch(/^ {2}test:\n {4}name: Test$/m);
@@ -623,9 +630,14 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 			'COMMITLINT_CONFIG="node_modules/@theholocron/commitlint-config/dist/index.js"'
 		);
 		expect(REUSABLE_WORKFLOWS["lint:commits"]).toContain('if [ -f "$COMMITLINT_CONFIG" ]; then');
-		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: validate\n\s+job: adrs/);
-		expect(REUSABLE_WORKFLOWS["validate"]).not.toContain("job: registry");
-		expect(REUSABLE_WORKFLOWS["validate"]).toMatch(/task: validate\n\s+job: docsPresence/);
+		expect(REUSABLE_WORKFLOWS["validate:specs"]).toMatch(/task: validate:specs\n/);
+		expect(REUSABLE_WORKFLOWS["validate:docs"]).toMatch(/task: validate:docs\n/);
+		// one job and one check per leaf: no `job:` switch, no registry job, no `Conclusion` fan-in
+		for (const id of ["validate:specs", "validate:docs"]) {
+			expect(REUSABLE_WORKFLOWS[id]).not.toMatch(/\n\s+job:/);
+			expect(REUSABLE_WORKFLOWS[id]).not.toContain("Conclusion");
+			expect(REUSABLE_WORKFLOWS[id]).not.toContain("needs:");
+		}
 	});
 
 	it("no reusable workflow invokes the super-linter action anymore (D12)", () => {

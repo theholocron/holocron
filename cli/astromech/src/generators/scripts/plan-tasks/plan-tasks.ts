@@ -8,7 +8,7 @@ import type { PlannedTask } from "./plan-tasks.type.js";
  * The tasks a manifest can run locally, once per flat id, in manifest order: what `scriptsFor` and the `turbo.json`
  * generator both read, so a root script and the turbo task it calls never disagree.
  *
- * `local: null` alone means there is genuinely no local equivalent (CodeQL, a deploy); a `linterGroup` or `jobs`
+ * `local: null` alone means there is genuinely no local equivalent (CodeQL, a deploy); a `linterGroup`
  * task still runs through `holocron run`. An entry with `local: false` is left out, and so is an id the registry does
  * not know.
  */
@@ -19,7 +19,7 @@ export function planTasks(config: TasksConfig, registry: Record<string, TaskDef>
 		for (const { id } of resolveTaskName(entry.name)) {
 			const def = registry[id];
 			if (def === undefined || planned.has(id)) continue;
-			if (def.local === null && !def.linterGroup && !def.jobs) continue;
+			if (def.local === null && !def.linterGroup) continue;
 			const command = def.turbo ? null : toolCommand(def);
 			planned.set(id, {
 				entry: entry.name,

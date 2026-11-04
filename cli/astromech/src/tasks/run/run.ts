@@ -1,25 +1,20 @@
 /**
- * `holocron run <task> [job] [-- <passthrough>]` — run a registry task (or one
- * of its sub-jobs) locally.
+ * `holocron run <task> [-- <passthrough>]` — run a registry task locally.
  *
- * A `job` argument only applies to tasks that declare `jobs`; for any other
- * task it is folded back into the passthrough (`holocron run build
- * src/`). `task` is a flat id (`test:unit`, `build`); `Astromech.run()` turns
+ * `task` is a flat id (`test:unit`, `build`); `Astromech.run()` turns
  * the words of the command line (`test unit`, an old dotted name) into one.
  *
  * Resolution:
  *
- *   J. job given                              → TASKS[task].jobs[job].local (unknown job → exit 1)
  *   1. turbo.json defines the task            → `turbo run <task>`
  *   2. package.json has a `<task>` script     → `<pm> run <task>`
  *      (unless it's the `holocron run …` thin caller — that recurses — or the root script generated from the
  *      registry's own command, which the registry then runs itself)
  *   3. TASKS[task].local resolves             → `<tool> <args> <passthrough>`
  *   3b. TASKS[task].linterGroup               → run each resolved linter natively (see below)
- *   4. TASKS[task].jobs has entries           → run each job in declared order
- *   5. TASKS[task].local === null             → "enforced in CI" (skip, even with --required)
- *   5b. known task, nothing resolved          → "no <task> task" (exit 0, or 1 with --required)
- *   6. unknown task                           → "unknown task" (exit 1)
+ *   4. TASKS[task].local === null             → "enforced in CI" (skip, even with --required)
+ *   4b. known task, nothing resolved          → "no <task> task" (exit 0, or 1 with --required)
+ *   5. unknown task                           → "unknown task" (exit 1)
  *
  * A `linterGroup` task (`sourceQuality.staticAnalysis`, etc.) runs its fixed
  * set of `linters.ts` entries, each still gated by that linter's own
@@ -32,7 +27,7 @@
 
 import { detectPackageManager, readPackageJsonSync } from "@theholocron/pkg-utils";
 
-import { type JobDef, type LocalRunner, TASKS } from "../../registry/index.js";
+import { TASKS } from "../../registry/index.js";
 import { ownLegacyName, scriptName } from "../../vocabulary/index.js";
 import { resolveLinters } from "./linters/index.js";
 import { resolveAffected } from "./resolve-affected/index.js";
@@ -62,12 +57,6 @@ function makeRunOne(input: RunTaskInput): (cmd: string, args: string[], env?: Re
 	};
 }
 
-/** `false` when the repo's config switched this sub-job off, by its key or its alias. */
-function jobEnabled(name: string, jobDef: JobDef, switches: Record<string, boolean> | undefined): boolean {
-	if (!switches) return true;
-	return switches[name] !== false && (jobDef.alias === undefined || switches[jobDef.alias] !== false);
-}
-
 /**
  * Resolves one registry task (an explicit turbo task, a `package.json` script, then the registry's built-in runner)
  * and runs it, or prints the command on a dry run.
@@ -76,39 +65,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	const { print, logger, readFile, fileExists, listDir, task, cwd } = input;
 	const def = TASKS[task];
 
-	// A `job` argument only means something for tasks that declare `jobs`;
-	// otherwise it's just the first passthrough token (`holocron run build src/`).
-	let job = input.job;
 	let passthrough = input.passthrough ?? [];
-	if (job !== undefined && !def?.jobs) {
-		passthrough = [job, ...passthrough];
-		job = undefined;
-	}
-
-	// ── J. an explicit sub-job → resolve against TASKS[task].jobs ──────
-	if (job !== undefined) {
-		const jobDef = def!.jobs![job];
-		if (!jobDef && def!.retiredJobs?.includes(job)) {
-			const message = `${task} ${job} was retired — nothing to run (re-sync the reusable workflows)`;
-			print(`· ${message}`);
-			logger.debug({ task, job, status: "skip" }, `run: ${task} ${job}`);
-			return { status: "skip", message };
-		}
-		if (!jobDef) {
-			const known = Object.keys(def!.jobs!).join(", ");
-			print(`✗ unknown job "${job}" for "${task}" (known: ${known})`);
-			logger.warn({ task, job, status: "unknown" }, `run: ${task} ${job}`);
-			return { status: "unknown", message: `unknown job "${task} ${job}"` };
-		}
-		const label = `${task} ${job}`;
-		if (!jobEnabled(job, jobDef, input.jobSwitches)) {
-			const message = `${label} is off in this repo's config (jobs.${jobDef.alias ?? job}: false)`;
-			print(`· ${message}`);
-			logger.debug({ task, job, status: "skip" }, `run: ${label}`);
-			return { status: "skip", message };
-		}
-		return runUnit(input, label, jobDef.local, makeRunOne({ ...input, task: label }), passthrough);
-	}
 
 	const run = makeRunOne(input);
 
@@ -119,9 +76,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 
 	// A task is still called by its old dotted name in `turbo.json` and `package.json` until the later phases rename
 	// those keys, so the old name is looked up first, then the id in its script spelling.
-	// A container of sub-jobs (`validate`, the interim `validate` suite) is never looked up by its script spelling: a
-	// package's own `validate` script is not this task.
-	const keys = [...new Set([ownLegacyName(task), def?.jobs ? undefined : scriptName(task)])].filter(
+	const keys = [...new Set([ownLegacyName(task), scriptName(task)])].filter(
 		(key): key is string => key !== undefined
 	);
 	const turboKey = checkForm ? undefined : keys.find((key) => turboDefinesTask(cwd, key, readFile, fileExists));
@@ -189,14 +144,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	// ── 3b. linter-group aggregate ──────────────────────────────────────
 	if (def?.linterGroup) return runLinterGroup(input, def.linterGroup, passthrough);
 
-	// ── 4. the task is a container of sub-jobs — run them all ──────────
-	// Only when steps 1–3 found nothing: an explicit `"audit"` script / turbo
-	// task still wins.
-	if (def?.jobs && Object.keys(def.jobs).length > 0) {
-		return runAllJobs(input, def.jobs, passthrough);
-	}
-
-	// ── 5. no local equivalent by design (`local: null` — codeql, deploy) ─
+	// ── 4. no local equivalent by design (`local: null` — codeql, deploy) ─
 	// Steps 1–2 already had their chance, so an explicit repo script still
 	// wins. Reaching here means the registry offers nothing and the repo
 	// added nothing — that is CI-enforced, never a *local* failure.
@@ -207,7 +155,7 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 		return { status: "skip", message: msg };
 	}
 
-	// ── 4b / 5. known task, nothing in this repo runs it ───────────────
+	// ── 4b. known task, nothing in this repo runs it ───────────────
 	if (def) {
 		const msg = `no ${task} task for this repo`;
 		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
@@ -217,87 +165,6 @@ export function runTask(input: RunTaskInput): RunTaskReport {
 	print(`✗ unknown task "${task}"`);
 	logger.warn({ task, status: "unknown" }, `run: ${task}`);
 	return { status: "unknown", message: `unknown task "${task}"` };
-}
-
-/**
- * Run one registry unit — a task's own runner or a single sub-job. Resolution
- * is registry-only (`turbo` / `package.json` scripts are keyed by task, not
- * `task/job`). `label` names the unit in messages (`audit performance`).
- *
- * `local: null` → CI-only by design, always a skip (never a failure, even with
- * `--required`). A declared runner with no matching repo file, or whose tool
- * isn't installed locally → a skip (`--required` turns it into a failure — the
- * repo claims a check it can't back). Mirrors the lint aggregate: run what's
- * here, flag the rest, let CI enforce.
- */
-function runUnit(
-	input: RunTaskInput,
-	label: string,
-	local: LocalRunner | null,
-	run: (cmd: string, args: string[]) => RunTaskReport,
-	passthrough: string[]
-): RunTaskReport {
-	const { print, logger, listDir, lookPath, cwd, readFile } = input;
-
-	const skip = (msg: string): RunTaskReport => {
-		print(input.required ? `✗ ${msg} (required)` : `· ${msg}`);
-		logger[input.required ? "warn" : "debug"](
-			{ task: label, status: input.required ? "fail" : "skip" },
-			`run: ${label}`
-		);
-		return { status: input.required ? "fail" : "skip", message: msg };
-	};
-
-	// A job that is a holocron subcommand (`probe docs presence`) runs this CLI, as a task's `command` does:
-	// each word is its own argv entry. The CLI is always there, so unlike a `tool` it is never "not installed".
-	if (local?.command) return run(process.execPath, [process.argv[1]!, ...local.command.split(" "), ...passthrough]);
-
-	if (local) {
-		const runner = resolveRunner(local, cwd, listDir, readFile);
-		if (!runner) return skip(`no ${label} runner for this repo`);
-		const found = lookPath(cwd, runner.tool);
-		if (!found) return skip(`${runner.tool} not installed locally for ${label} — enforced in CI`);
-		return run(found, [...runner.args, ...passthrough]);
-	}
-
-	const msg = `no local equivalent for ${label} — enforced in CI`;
-	print(`· ${msg}`);
-	logger.debug({ task: label, status: "skip" }, `run: ${label}`);
-	return { status: "skip", message: msg };
-}
-
-/**
- * `holocron run <task>` for a task that is a container of sub-jobs (`audit`) —
- * run each job in declared order. Status precedence: any `fail` → `fail`; else
- * any `ok` → `ok`; else any `dry-run` → `dry-run`; else `skip` (nothing ran).
- */
-function runAllJobs(input: RunTaskInput, jobs: Record<string, JobDef>, passthrough: string[]): RunTaskReport {
-	const { print, task } = input;
-	// The task-level `… / Conclusion` check is what gates a `required` task;
-	// an individual sub-job that can't run locally (`bundle-size`, `performance`
-	// with no lighthouse config) must not turn `holocron run audit` / `holocron
-	// ci` into a failure.
-	const perJob: RunTaskInput = { ...input, required: false };
-	const reports: RunTaskReport[] = [];
-	for (const [name, jobDef] of Object.entries(jobs)) {
-		const label = `${task} ${name}`;
-		if (!jobEnabled(name, jobDef, input.jobSwitches)) {
-			print(`· ${jobDef.checkContext} — off in this repo's config (jobs.${jobDef.alias ?? name}: false)`);
-			continue;
-		}
-		print(`▶ ${jobDef.checkContext}`);
-		reports.push(runUnit(perJob, label, jobDef.local, makeRunOne({ ...perJob, task: label }), passthrough));
-	}
-
-	const command = reports
-		.map((r) => r.command)
-		.filter((c): c is string => Boolean(c))
-		.join(" && ");
-	const statuses = new Set(reports.map((r) => r.status));
-	if (statuses.has("fail")) return { status: "fail", command, message: `one or more ${task} jobs failed` };
-	if (statuses.has("ok")) return { status: "ok", command };
-	if (statuses.has("dry-run")) return { status: "dry-run", command };
-	return { status: "skip", message: `no ${task} job has a local equivalent — enforced in CI` };
 }
 
 /**
