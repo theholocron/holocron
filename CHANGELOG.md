@@ -1,3 +1,10 @@
+## [5.0.0-alpha.323](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.322...v5.0.0-alpha.323) (2026-11-04)
+
+### Features
+
+* **cli:** 🔎 probe tasks names reads LEGACY_NAMES, finds bare and reserved names, fails by default ([#1688](https://github.com/theholocron/holocron/issues/1688)) ([e87f2b1](https://github.com/theholocron/holocron/commit/e87f2b15c733d4da69d4a0918c86c9e4222492f5)), closes [#1612](https://github.com/theholocron/holocron/issues/1612)
+* **cli:** 🩺 doctor ci checks a repo against the flat task vocabulary ([#1692](https://github.com/theholocron/holocron/issues/1692)) ([ba632b9](https://github.com/theholocron/holocron/commit/ba632b954381eacc027fa7f72dcf1084a85fa779)), closes [#1689](https://github.com/theholocron/holocron/issues/1689)
+
 ## [5.0.0-alpha.322](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.321...v5.0.0-alpha.322) (2026-11-04)
 
 ### Features
