@@ -1,3 +1,15 @@
+## [5.0.0-alpha.327](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.326...v5.0.0-alpha.327) (2026-11-04)
+
+### Features
+
+* **cli:** 🔑 secrets sync follows repo.secrets.sync and skips blank values ([#1702](https://github.com/theholocron/holocron/issues/1702)) ([#1703](https://github.com/theholocron/holocron/issues/1703)) ([904932b](https://github.com/theholocron/holocron/commit/904932bce16ebfe2a598176faf381e2bdc3eff98))
+* **repo:** 🧰 add .humans with a Brewfile and one setup script for a fresh clone ([#1704](https://github.com/theholocron/holocron/issues/1704)) ([#1705](https://github.com/theholocron/holocron/issues/1705)) ([43d0158](https://github.com/theholocron/holocron/commit/43d0158982a0ce11ed5baa5b7052447a060187a4))
+
+### Chores
+
+* **deps:** bump @astrojs/react from 6.0.6 to 7.1.2 ([#1709](https://github.com/theholocron/holocron/issues/1709)) ([51f74cf](https://github.com/theholocron/holocron/commit/51f74cff280619ca2be01a52793dc1c3bbc6b7c0))
+* **deps:** bump eslint-package-json from 0.3.0 to 3.0.0 ([#1708](https://github.com/theholocron/holocron/issues/1708)) ([a285f93](https://github.com/theholocron/holocron/commit/a285f93cdbdbd14b0ceda2cb0fb686d1f2042d9f))
+
 ## [5.0.0-alpha.326](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.325...v5.0.0-alpha.326) (2026-11-04)
 
 ### Features
