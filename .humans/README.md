@@ -5,7 +5,7 @@ holds what a coding agent needs.
 
 ```bash
 ./.humans/setup.sh           # set everything up (safe to run again)
-./.humans/setup.sh --check   # change nothing, report what is missing
+./.humans/setup.sh doctor    # change nothing, report what is missing
 ```
 
 | File                     | What it is                                                                          |
@@ -24,7 +24,7 @@ do. Running it again only changes what is missing.
 4. **Checks `gh` and `op` are signed in.** It reports; it never signs in for you.
 5. **Runs `pnpm install` and `pnpm build`.**
 
-`--check` does the same checks and installs, enables and builds nothing.
+`doctor` does the same checks and installs, enables and builds nothing.
 
 ## Why each tool
 
@@ -93,10 +93,10 @@ table above saying what needs it.
 
 ## When something fails
 
-| You see                                                         | Cause and fix                                                                                                                                                             |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `node X is older than the Y the workspace needs`                | Upgrade Node (`n Y`, for example) and open a new shell. A `typecheck` failing in `astro-config` is usually this                                                           |
-| `git user.name and user.email are not set`                      | `git config --global user.name "…"` and `git config --global user.email "…"`                                                                                              |
-| `op` shows as not signed in                                     | Turn on the 1Password CLI integration (above), unlock the app, and run `op whoami`                                                                                        |
-| The `pre-push` hook fails on something unrelated to your change | Run `./.humans/setup.sh --check` first: an old Node or a missing linter is the usual cause. `git push --no-verify` skips one push, so use it only once you know the cause |
-| `brew install` fails                                            | Run `brew doctor`, fix what it reports, and run the script again                                                                                                          |
+| You see                                                         | Cause and fix                                                                                                                                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `node X is older than the Y the workspace needs`                | Upgrade Node (`n Y`, for example) and open a new shell. A `typecheck` failing in `astro-config` is usually this                                                          |
+| `git user.name and user.email are not set`                      | `git config --global user.name "…"` and `git config --global user.email "…"`                                                                                             |
+| `op` shows as not signed in                                     | Turn on the 1Password CLI integration (above), unlock the app, and run `op whoami`                                                                                       |
+| The `pre-push` hook fails on something unrelated to your change | Run `./.humans/setup.sh doctor` first: an old Node or a missing linter is the usual cause. `git push --no-verify` skips one push, so use it only once you know the cause |
+| `brew install` fails                                            | Run `brew doctor`, fix what it reports, and run the script again                                                                                                         |

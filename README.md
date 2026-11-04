@@ -209,7 +209,7 @@ On a fresh clone, one script sets up everything this repo needs to build and run
 git clone https://github.com/theholocron/holocron.git
 cd holocron
 ./.humans/setup.sh           # set everything up (safe to run again)
-./.humans/setup.sh --check   # change nothing, report what is missing
+./.humans/setup.sh doctor    # change nothing, report what is missing
 ```
 
 What it installs and checks, and why, is in [`.humans/README.md`](.humans/README.md).

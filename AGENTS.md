@@ -322,7 +322,7 @@ not object destructuring.
 
 ## Code patterns
 
-- **Setting up a clone: `./.humans/setup.sh`** (`--check` only reports; #1704). `.humans/Brewfile` is the one list of the non-Node tools the repo needs (`cloudflared`, `op`, `gh`, the CI linters); add a tool there, with `# bin: <command>` when the command differs, rather than in a README or an error message alone.
+- **Setting up a clone: `./.humans/setup.sh`** (`doctor` only reports; #1704). `.humans/Brewfile` is the one list of the non-Node tools the repo needs (`cloudflared`, `op`, `gh`, the CI linters); add a tool there, with `# bin: <command>` when the command differs, rather than in a README or an error message alone.
 - **Package manager: pnpm only.** Never use `npm` or `yarn`. Run workspace-wide tasks through Turbo (`pnpm test`, `pnpm build`, etc.); run single-package tasks with `pnpm --filter <name> <script>`.
 - **No `any` in TypeScript.** Use `unknown` for values of genuinely unknown shape and narrow with type guards. Use generics instead of `any` in function signatures. `as never` and `as unknown as T` are acceptable for internal casts where the type system can't follow; `any` is not.
 - **One function per file, types in `*.type.ts`.** In `cli/*` (`cli`,

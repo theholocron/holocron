@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # Sets up a development environment for this repo on a fresh clone: Homebrew packages, Node, pnpm, git identity, the
 # dependency install and the build that makes the `holocron` CLI exist. Safe to run again; it only changes what is
-# missing. `--check` changes nothing and reports what is missing.
+# missing. `doctor` changes nothing and reports what is missing.
 #
 #   ./.humans/setup.sh           set everything up
-#   ./.humans/setup.sh --check   report only
+#   ./.humans/setup.sh doctor    report only
 set -uo pipefail
 
 CHECK=0
 case "${1:-}" in
 	"") ;;
-	--check) CHECK=1 ;;
+	doctor) CHECK=1 ;;
 	-h | --help)
-		sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
+		sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'
 		exit 0
 		;;
 	*)
-		echo "unknown option: $1 (try --help)" >&2
+		echo "unknown command: $1 (try --help)" >&2
 		exit 2
 		;;
 esac
@@ -73,7 +73,7 @@ elif [ "$(uname -s)" != "Darwin" ]; then
 elif ! have brew; then
 	bad "Homebrew is not installed, and ${missing[*]#*:} are missing. Install it from https://brew.sh, then run this again."
 elif [ "$CHECK" -eq 1 ]; then
-	bad "not installed: ${missing[*]#*:} (run without --check to install them)"
+	bad "not installed: ${missing[*]#*:} (run ./.humans/setup.sh to install them)"
 else
 	for entry in "${missing[@]}"; do
 		flag=()
@@ -96,7 +96,7 @@ else
 	if have pnpm; then
 		ok "pnpm $(pnpm --version 2>/dev/null)"
 	elif [ "$CHECK" -eq 1 ]; then
-		bad "pnpm is not available (run without --check to enable it with corepack)"
+		bad "pnpm is not available (run ./.humans/setup.sh to enable it with corepack)"
 	elif have corepack && corepack enable >/dev/null 2>&1 && have pnpm; then
 		ok "pnpm $(pnpm --version 2>/dev/null) (enabled with corepack)"
 	else
