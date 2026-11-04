@@ -16,11 +16,15 @@ pnpm add dotenv  # optional peer: install it if you import the package entry; `/
 ```typescript
 import { environment, ENVIRONMENTS } from "@theholocron/env-utils";
 
-environment.get(); // "prod" | "qa" | "dev" | "local"
-environment.normalize("production"); // "prod"
-environment.isDeployed(); // true when qa or prod
+environment.get(); // "production" | "test" | "ci" | "development" | "local"
+environment.normalize("prod"); // "production"
+environment.isDeployed(); // true when test or production
 
 // reads ENVIRONMENT → ENV → NODE_ENV in priority order
+
+// for telemetry: ENVIRONMENT only, else "ci" inside CI and "local" anywhere else (never "production")
+import { detectEnvironment } from "@theholocron/env-utils/lookup";
+detectEnvironment(); // "local" | "development" | "ci" | "test" | "production"
 ```
 
 ### Env-var parsing

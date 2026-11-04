@@ -364,6 +364,7 @@ apps/` must return **nothing** (source). The CLI's
   module runs `import "dotenv/config"` and so loads the working directory's `.env` into `process.env` on import. `/lookup` has
   `createEnvLookup`, `firstEnv` and `withEnvPrefix` with no side effects; the root ESLint config forbids the bare import
   (`no-restricted-imports`, #1640).
+- **One definition of the environment names and of CI detection: `@theholocron/env-utils/lookup`** (`ENVIRONMENTS`, `environment`, `detectEnvironment()`, `isCI()`; `local | development | ci | test | production`, with `dev`, `prod`, `stage`, `staging` and `qa` read as aliases). The observability logger binds `detectEnvironment()` as `env` on every line, `holocron dev` hands its application `ENVIRONMENT=development`, and Sentinel's scripts read their settings through `createEnvLookup()`, not `process.env`. Do not write a second list of the names or a second CI check.
 - **Adapter pattern for new vendors.** New plugins use the
   `/holocron-skill-plugin` skill at `.claude/skills/holocron-skill-plugin/`. The
   skill produces ~14 files in the right shape; only the capability

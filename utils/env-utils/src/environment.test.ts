@@ -6,16 +6,21 @@ describe("environment", () => {
 	describe("normalize", () => {
 		it("normalizes canonical names", () => {
 			expect(environment.normalize("local")).toBe("local");
-			expect(environment.normalize("dev")).toBe("dev");
-			expect(environment.normalize("qa")).toBe("qa");
-			expect(environment.normalize("prod")).toBe("prod");
+			expect(environment.normalize("development")).toBe("development");
+			expect(environment.normalize("ci")).toBe("ci");
+			expect(environment.normalize("test")).toBe("test");
+			expect(environment.normalize("production")).toBe("production");
 		});
 
 		it("normalizes aliases", () => {
-			expect(environment.normalize("development")).toBe("dev");
-			expect(environment.normalize("test")).toBe("qa");
-			expect(environment.normalize("staging")).toBe("qa");
-			expect(environment.normalize("production")).toBe("prod");
+			expect(environment.normalize("dev")).toBe("development");
+			expect(environment.normalize("stage")).toBe("test");
+			expect(environment.normalize("stg")).toBe("test");
+			expect(environment.normalize("staging")).toBe("test");
+			expect(environment.normalize("qa")).toBe("test");
+			expect(environment.normalize("prod")).toBe("production");
+			expect(environment.normalize("prd")).toBe("production");
+			expect(environment.normalize(" Production ")).toBe("production");
 		});
 
 		it("returns undefined for unknown strings", () => {
@@ -36,23 +41,23 @@ describe("environment", () => {
 		});
 
 		it("uses ENVIRONMENT when set", () => {
-			vi.stubEnv("ENVIRONMENT", "qa");
-			expect(environment.get()).toBe("qa");
+			vi.stubEnv("ENVIRONMENT", "test");
+			expect(environment.get()).toBe("test");
 		});
 
 		it("normalizes aliases from ENVIRONMENT", () => {
 			vi.stubEnv("ENVIRONMENT", "staging");
-			expect(environment.get()).toBe("qa");
+			expect(environment.get()).toBe("test");
 		});
 
 		it("falls back to ENV when ENVIRONMENT is missing", () => {
-			vi.stubEnv("ENV", "development");
-			expect(environment.get()).toBe("dev");
+			vi.stubEnv("ENV", "dev");
+			expect(environment.get()).toBe("development");
 		});
 
 		it("falls back to NODE_ENV when ENVIRONMENT and ENV are missing", () => {
 			vi.stubEnv("NODE_ENV", "production");
-			expect(environment.get()).toBe("prod");
+			expect(environment.get()).toBe("production");
 		});
 
 		it("falls back to DEFAULT_ENVIRONMENT when no env vars are set", () => {
@@ -61,10 +66,10 @@ describe("environment", () => {
 		});
 
 		it("uses ENVIRONMENT first when multiple env vars are set", () => {
-			vi.stubEnv("ENVIRONMENT", "qa");
+			vi.stubEnv("ENVIRONMENT", "test");
 			vi.stubEnv("ENV", "development");
 			vi.stubEnv("NODE_ENV", "production");
-			expect(environment.get()).toBe("qa");
+			expect(environment.get()).toBe("test");
 		});
 	});
 
@@ -74,12 +79,14 @@ describe("environment", () => {
 		});
 
 		it.each([
-			["qa", true],
 			["test", true],
+			["stage", true],
+			["qa", true],
 			["staging", true],
 			["prod", true],
 			["production", true],
 			["local", false],
+			["ci", false],
 			["dev", false],
 			["development", false],
 		])('returns %s for "%s"', (input, expected) => {
@@ -88,7 +95,7 @@ describe("environment", () => {
 		});
 
 		it("uses environment variables when no input is provided", () => {
-			vi.stubEnv("ENVIRONMENT", "qa");
+			vi.stubEnv("ENVIRONMENT", "test");
 			expect(environment.isDeployed()).toBe(true);
 		});
 

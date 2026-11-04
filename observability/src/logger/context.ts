@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { LOG_ENVS, LOG_LEVELS, type LogEnv, type LogLevel } from "../core/logger.js";
+import { LOG_LEVELS, type LogLevel } from "../core/logger.js";
 import type { AxiomTransportConfig } from "./transports.js";
 
 /**
@@ -13,37 +13,10 @@ export function generateRunId(): string {
 }
 
 /**
- * True when running inside CI. GitHub Actions (and most other providers) set
- * `CI=true`; we also accept any other non-empty, non-`false` value.
+ * Whether the process is running inside CI, and which environment it is in (`ENVIRONMENT`, else `ci` or `local`):
+ * `@theholocron/env-utils` owns both, so the logger's `env` field and every other reader agree.
  */
-export function isCI(env: NodeJS.ProcessEnv = process.env): boolean {
-	const ci = env.CI;
-	if (!ci) return false;
-	return ci !== "false" && ci !== "0";
-}
-
-/** Other spellings of the five environments, as people and platforms write them. */
-const ENV_ALIASES: Record<string, LogEnv> = {
-	development: "dev",
-	staging: "stage",
-	qa: "stage",
-	production: "prod",
-};
-
-/** Narrow an arbitrary string (any case, with the usual aliases such as `production`) to a {@link LogEnv}, or `undefined`. */
-export function parseLogEnv(value: string | undefined): LogEnv | undefined {
-	const name = value?.trim().toLowerCase() ?? "";
-	return (LOG_ENVS as readonly string[]).includes(name) ? (name as LogEnv) : ENV_ALIASES[name];
-}
-
-/**
- * The environment bound on every root logger as `env`: the `ENVIRONMENT` variable when it names one of the five
- * (`local`, `dev`, `ci`, `stage`, `prod`, or an alias such as `production`), otherwise `"ci"` inside CI and `"local"`
- * anywhere else. A deployed service sets `ENVIRONMENT`; `holocron dev` sets it to `dev`.
- */
-export function detectEnv(env: NodeJS.ProcessEnv = process.env): LogEnv {
-	return parseLogEnv(env.ENVIRONMENT) ?? (isCI(env) ? "ci" : "local");
-}
+export { detectEnvironment as detectEnv, isCI } from "@theholocron/env-utils/lookup";
 
 /** Narrow an arbitrary string to a {@link LogLevel}, or `undefined`. */
 export function parseLogLevel(value: string | undefined): LogLevel | undefined {

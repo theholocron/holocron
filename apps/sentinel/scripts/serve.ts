@@ -10,12 +10,15 @@
  * so a development run does not write into production's.
  */
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
+
 import { loadDevEnv } from "../src/dev-env/index.js";
 import { describeLogging } from "../src/dev-logging/index.js";
 import { startDevServer } from "../src/dev-server/index.js";
 
-const environment = process.env["SENTINEL_DEV_ENVIRONMENT"] || "Sentinel - dev";
-const port = Number(process.env["PORT"] || 3000);
+const settings = createEnvLookup();
+const environment = settings.get("SENTINEL_DEV_ENVIRONMENT") ?? "Sentinel - dev";
+const port = Number(settings.get("PORT") ?? 3000);
 
 try {
 	const env = loadDevEnv({ environment });

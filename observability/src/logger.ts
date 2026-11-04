@@ -12,14 +12,13 @@
  */
 
 export type { LogEnv, Logger, LogLevel } from "./core/logger.js";
-export { LOG_ENVS, LOG_LEVELS } from "./core/logger.js";
+export { LOG_LEVELS } from "./core/logger.js";
 export { ConsoleLogger } from "./logger/console.js";
 export {
 	detectEnv,
 	generateRunId,
 	isCI,
 	isTelemetryDisabled,
-	parseLogEnv,
 	parseLogLevel,
 	resolveAxiomFromEnv,
 	resolveLevel,
