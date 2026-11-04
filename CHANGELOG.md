@@ -1,3 +1,9 @@
+## [5.0.0-alpha.325](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.324...v5.0.0-alpha.325) (2026-11-04)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 read the autoFix opt-out from the format task, and its alias ([#1698](https://github.com/theholocron/holocron/issues/1698)) ([1bed1cc](https://github.com/theholocron/holocron/commit/1bed1ccc864bcd8deb183220cde89eed05621ee4)), closes [#1697](https://github.com/theholocron/holocron/issues/1697)
+
 ## [5.0.0-alpha.324](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.323...v5.0.0-alpha.324) (2026-11-04)
 
 ### Features
