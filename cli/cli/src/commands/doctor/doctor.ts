@@ -37,6 +37,7 @@ import {
 	PluginLoader,
 	type Secrets,
 	type Source,
+	type Tunnels,
 	type Vault,
 	type Wiki,
 	type Workers,
@@ -212,6 +213,14 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			if (workers.whoami) {
 				const who = await workers.whoami();
 				return mk(key, provider, who.ok ? "ok" : "fail", `scripts: ${who.scripts} visible`);
+			}
+			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+		}
+		case "tunnels": {
+			const tunnels = impl as Tunnels;
+			if (tunnels.whoami) {
+				const who = await tunnels.whoami();
+				return mk(key, provider, who.ok ? "ok" : "fail", `tunnels: ${who.tunnels} visible`);
 			}
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}

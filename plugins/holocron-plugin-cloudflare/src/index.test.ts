@@ -2,7 +2,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { cfOk } from "./helpers.js";
-import { createContext, createPlugin, dns } from "./index.js";
+import { createContext, createPlugin, dns, tunnelsCapability } from "./index.js";
 
 describe("createPlugin", () => {
 	it("does not resolve the token at load — defers the error to the first authenticated call", async () => {
@@ -52,5 +52,29 @@ describe("dns()", () => {
 		const cap = dns(createContext({ cliToken: "cf-tok", fetch }));
 		expect(cap.key).toBe("dns");
 		expect(cap.providerName).toBe("cloudflare");
+	});
+});
+
+describe("tunnelsCapability()", () => {
+	it("builds the tunnels capability for an account", () => {
+		const cap = tunnelsCapability(createContext({ cliToken: "cf-tok", accountId: "acc-1" }));
+		expect(cap.key).toBe("tunnels");
+		expect(cap.providerName).toBe("cloudflare");
+	});
+
+	it("is offered by the plugin only when an account id is known", () => {
+		expect(typeof createPlugin({ cliToken: "cf-tok", accountId: "acc-1" }).capabilities.tunnels).toBe("function");
+	});
+
+	it("refuses without an account id, saying how to give one", () => {
+		const original = process.env.CLOUDFLARE_ACCOUNT_ID;
+		delete process.env.CLOUDFLARE_ACCOUNT_ID;
+		try {
+			expect(() => tunnelsCapability(createContext({ cliToken: "cf-tok" }))).toThrow(
+				/accountId is required for Tunnels/
+			);
+		} finally {
+			if (original !== undefined) process.env.CLOUDFLARE_ACCOUNT_ID = original;
+		}
 	});
 });

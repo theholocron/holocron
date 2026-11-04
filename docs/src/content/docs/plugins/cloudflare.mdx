@@ -84,6 +84,14 @@ Zone resolution walks from the full domain up to the apex automatically — e.g.
 - `setSecret(script, name, value)` and `secretNames(script)`: set one secret on a deployed script, and list the names (never the values) of its secrets.
 - `inspectScript(name, host)`: reads a script without changing it, for `holocron doctor notifications`. It returns whether the script exists, the routes in the zone of `host` that point at it, and the names of its secrets. A secret's value is never requested.
 
+## What `tunnels` provides
+
+Named Cloudflare Tunnels, for a stable public hostname that reaches a port on this machine (a webhook that has to find a development instance). Needs a token with **Cloudflare Tunnel: Edit** (account) and an account id, like `workers`.
+
+- `ensureTunnel({ name, hostname, service })`: finds the tunnel by name or makes it, and makes it serve `hostname` at `service`. Routes for other hostnames are kept and the `http_status:404` catch-all stays last. A tunnel that already serves the hostname is left alone. It returns the tunnel id and the `CNAME` target (`<id>.cfargotunnel.com`); the DNS record is the `dns` provider's.
+- `tunnelToken(id)`: the token `cloudflared` runs the tunnel with. A credential: it is never printed or stored.
+- `whoami()`: how many tunnels the token can see, for `holocron doctor`.
+
 ## What `deployment` provides
 
 Manages [Cloudflare Pages](https://developers.cloudflare.com/pages/) projects. Used by `holocron repo setup` to provision per-PR preview deployments.

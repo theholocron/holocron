@@ -1,9 +1,10 @@
-import type { Deployment, Dns, Workers } from "@theholocron/cli";
+import type { Deployment, Dns, Tunnels, Workers } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { CloudflareDeployment } from "./capabilities/deployment.js";
 import { CloudflareDns } from "./capabilities/dns.js";
+import { CloudflareTunnels } from "./capabilities/tunnels.js";
 import { CloudflareWorkers } from "./capabilities/workers.js";
 import { type CloudflareClient, createCloudflareClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
@@ -75,7 +76,18 @@ export function workersCapability(ctx: PluginContext): Workers {
 	return new CloudflareWorkers(ctx.client, ctx.options.accountId);
 }
 
-/** Creates the Cloudflare plugin: `dns` always, plus `deployment` and `workers` when an account id is set, and a `connection` probe. */
+/** Builds the `tunnels` capability for a context; throws when no account id is set. */
+export function tunnelsCapability(ctx: PluginContext): Tunnels {
+	if (!ctx.options.accountId) {
+		throw new Error(
+			"Cloudflare accountId is required for Tunnels — " +
+				"set accountId in the plugin options or CLOUDFLARE_ACCOUNT_ID env var"
+		);
+	}
+	return new CloudflareTunnels(ctx.client, ctx.options.accountId);
+}
+
+/** Creates the Cloudflare plugin: `dns` always, plus `deployment`, `workers` and `tunnels` when an account id is set, and a `connection` probe. */
 export function createPlugin(options: CloudflarePluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
@@ -95,6 +107,7 @@ export function createPlugin(options: CloudflarePluginOptions = {}) {
 				? {
 						deployment: () => deployment(ctx),
 						workers: () => workersCapability(ctx),
+						tunnels: () => tunnelsCapability(ctx),
 					}
 				: {}),
 		},
@@ -105,7 +118,7 @@ export function createPlugin(options: CloudflarePluginOptions = {}) {
 export const AUTH_HINT =
 	"create an API token at https://dash.cloudflare.com/profile/api-tokens " +
 	"with Zone:Read, DNS:Edit, Cloudflare Pages:Edit, Workers Scripts:Edit (account-level), " +
-	"and Workers Routes:Edit (zone-level) permissions, " +
+	"Workers Routes:Edit (zone-level) and, for tunnels, Cloudflare Tunnel:Edit (account-level) permissions, " +
 	"then run: holocron auth set cloudflare <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
@@ -113,6 +126,7 @@ export const AUTH_HINT =
 export * from "./auth.js";
 export { CloudflareDeployment } from "./capabilities/deployment.js";
 export { CloudflareDns } from "./capabilities/dns.js";
+export { CloudflareTunnels } from "./capabilities/tunnels.js";
 export { CloudflareWorkers } from "./capabilities/workers.js";
 export { type CloudflareClient, type CloudflareClientOptions, createCloudflareClient } from "./rest.js";
 export { verifyToken } from "./verify-token.js";

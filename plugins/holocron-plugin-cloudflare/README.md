@@ -3,7 +3,7 @@
 # `@theholocron/holocron-plugin-cloudflare`
 
 Cloudflare plugin for [Holocron](../cli). Implements the `dns`, `deployment`,
-and `workers` capabilities against the
+`workers` and `tunnels` capabilities against the
 [Cloudflare v4 API](https://developers.cloudflare.com/api/).
 
 ## Install
@@ -63,7 +63,7 @@ Any combination of capabilities can be enabled together:
 
 ```
 
-The `deployment` and `workers` capabilities are only exposed when `accountId`
+The `deployment`, `workers` and `tunnels` capabilities are only exposed when `accountId`
 is resolvable — either passed explicitly in options or set via the
 `CLOUDFLARE_ACCOUNT_ID` env var.
 
@@ -103,6 +103,21 @@ Both methods are idempotent: re-running with the same inputs makes no
 route-write call when nothing changed. Zone ids are cached per plugin
 instance for the lifetime of the process — the `workers` capability's own
 cache, separate from `dns`'s.
+
+## `tunnels` capability
+
+Named [Cloudflare Tunnels](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/): a stable
+public hostname that reaches a port on this machine, for a webhook that has to find a development instance. It needs a
+token with **Cloudflare Tunnel: Edit** (account).
+
+| Method         | What it does                                                                                                                                                                                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ensureTunnel` | Finds the tunnel by name or makes it, and makes its configuration serve `hostname` at `service`. Other hostnames' rules are kept and the catch-all (`http_status:404`) stays last. Returns the tunnel id and the `CNAME` target (`<id>.cfargotunnel.com`). |
+| `tunnelToken`  | The token `cloudflared` runs the tunnel with. A credential: never printed or stored.                                                                                                                                                                       |
+| `whoami`       | How many tunnels the token can see, for `holocron doctor`.                                                                                                                                                                                                 |
+
+`ensureTunnel` is idempotent: a tunnel that already serves the hostname is not rewritten. The DNS record for the
+hostname is the `dns` provider's job.
 
 ### Preview deployment setup
 
