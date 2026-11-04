@@ -1,3 +1,13 @@
+## [5.0.0-alpha.328](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.327...v5.0.0-alpha.328) (2026-11-04)
+
+### Refactoring
+
+* **cli:** 🚚 move Sentinel's deploy staging scripts into `holocron deploy stage` ([#1701](https://github.com/theholocron/holocron/issues/1701)) ([f8d2ea2](https://github.com/theholocron/holocron/commit/f8d2ea28cac52342f729650854c2ea6a79eb8870)), closes [#1700](https://github.com/theholocron/holocron/issues/1700) [#1700](https://github.com/theholocron/holocron/issues/1700) [#1700](https://github.com/theholocron/holocron/issues/1700) [#1700](https://github.com/theholocron/holocron/issues/1700)
+
+### Documentation
+
+* **sentinel:** 📚️ 📝 say the dev instance logs to the same dataset, filtered by env ([#1712](https://github.com/theholocron/holocron/issues/1712)) ([4e34dd4](https://github.com/theholocron/holocron/commit/4e34dd4c21d54e38e8e7b3781009a373a08b2685)), closes [#1694](https://github.com/theholocron/holocron/issues/1694)
+
 ## [5.0.0-alpha.327](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.326...v5.0.0-alpha.327) (2026-11-04)
 
 ### Features
