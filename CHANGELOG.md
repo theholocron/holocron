@@ -1,3 +1,13 @@
+## [5.0.0-alpha.324](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.323...v5.0.0-alpha.324) (2026-11-04)
+
+### Features
+
+* **cli:** 📋 add auth export --blank and --vendor-names to build a whole environment's file ([#1695](https://github.com/theholocron/holocron/issues/1695)) ([c953854](https://github.com/theholocron/holocron/commit/c953854cccf76e0da865a2b654d43c4c0d695df9)), closes [#1606](https://github.com/theholocron/holocron/issues/1606)
+
+### Documentation
+
+* **astromech:** 📝 fix prose left wrong by the flat task vocabulary ([#1691](https://github.com/theholocron/holocron/issues/1691)) ([3c19211](https://github.com/theholocron/holocron/commit/3c19211f7033f8e71b9bb18ede5913109994b9c6))
+
 ## [5.0.0-alpha.323](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.322...v5.0.0-alpha.323) (2026-11-04)
 
 ### Features
