@@ -64,6 +64,7 @@ export default defineConfig({
 					keys: [
 						"AXIOM_TOKEN",
 						"CLOUDFLARE_API_TOKEN",
+						"CODECOV_TOKEN",
 						"FERN_TOKEN",
 						"HOLOCRON_ADMIN_TOKEN",
 						"HOLOCRON_DEPLOY_TOKEN",
@@ -85,7 +86,6 @@ export default defineConfig({
 				{
 					environment: "Holocron - GitHub Actions",
 					keys: [
-						"CODECOV_TOKEN",
 						"HOLOCRON_DEPLOYMENTS_TOKEN",
 						"HOLOCRON_DISCORD_BOT_TOKEN",
 						"HOLOCRON_SECRETS_TOKEN",
