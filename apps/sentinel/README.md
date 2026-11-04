@@ -610,8 +610,11 @@ serves). Its three required variables, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`
 from the process, or else from the Environment named by `SENTINEL_DEV_ENVIRONMENT` (default `Sentinel - dev`), read with
 `op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
 header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
-and `AXIOM_DATASET`; give the dev instance its own dataset (and ingest token) so it does not write into production's, or
-leave both out. It says which it is on start. `holocron dev` sets `ENVIRONMENT=development`, so every line carries `env: "development"` and one dataset can hold dev and production (`where env == "development"`); production sets `ENVIRONMENT=production` in the `Sentinel` Environment. Install the dev App only on the repositories you test with.
+and `AXIOM_DATASET`, or leave both out. It says which it is on start. Use the same dataset as production
+(`holocron-sentinel`) with an ingest token of its own, scoped to that dataset: `holocron dev` sets
+`ENVIRONMENT=development`, so every line carries `env: "development"` and one dataset holds dev and production
+(`where env == "development"`); production sets `ENVIRONMENT=production` in the `Sentinel` Environment. Install the dev
+App only on the repositories you test with.
 
 ## Development
 
