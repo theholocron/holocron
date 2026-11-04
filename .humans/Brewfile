@@ -1,0 +1,19 @@
+# The tools a clone of this repo needs beyond Node and pnpm. `.humans/setup.sh` installs the ones whose command is not
+# already on the PATH (however it got there), so a line names the command when it differs: `# bin: op`.
+# `brew bundle --file .humans/Brewfile` also works on its own.
+# The 1Password desktop app, `gh auth login` and `op` sign-in cannot be installed or automated: see the README.
+
+# Needed by `holocron dev` and `holocron tunnel up` (the Cloudflare tunnel connector).
+brew "cloudflared"
+
+# The vault and credentials providers read 1Password Environments through `op`.
+cask "1password-cli" # bin: op
+
+# The local `holocron run ci` linters (lint:code, scan:secrets, lint:data, lint:editorconfig).
+brew "actionlint"
+brew "editorconfig-checker"
+brew "gitleaks"
+brew "yamllint"
+
+# `holocron new`, `holocron probe` and the GitHub plugin's own checks.
+brew "gh"
