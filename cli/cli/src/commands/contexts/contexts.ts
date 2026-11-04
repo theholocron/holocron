@@ -42,6 +42,8 @@ export const COMMAND_CONTEXTS = {
 	// Reads each package's `holocron.config` and runs `pnpm --filter <pkg> delivery.deploy`
 	// — no plugins of its own (the package's deploy script resolves them).
 	"deploy on-release": "repo-aware",
+	// Copies a built package and pins its dependency versions; loads no plugin.
+	"deploy stage": "repo-aware",
 	"config show": "repo-aware",
 	// Writes README + package.json metadata from config; never loads a plugin.
 	"repo sync readme": "repo-aware",

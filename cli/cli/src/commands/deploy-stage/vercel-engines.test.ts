@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { vercelEngines } from "../../scripts/vercel-engines.mjs";
+import { vercelEngines } from "./vercel-engines.js";
 
 describe("vercelEngines (holocron#911)", () => {
 	it("pins an open range to its floor's major, the only form Vercel accepts", () => {

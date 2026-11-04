@@ -6,12 +6,12 @@
  * Takes the first major number in the package's own range, its floor, and
  * pins that major rather than passing the range through verbatim.
  *
- * Its own module, not inlined in `stage-deploy.mjs`, so it can be unit-tested
- * without running the staging script's side effects on import.
+ * @param engines The package's `engines` field, if it has one.
+ * @returns `engines` with `node` pinned to a major; unchanged when it has no `node`.
  */
-export function vercelEngines(engines) {
-	const range = engines?.node;
-	if (!range) return engines;
+export function vercelEngines(engines: Record<string, string> | undefined): Record<string, string> | undefined {
+	const range = engines?.["node"];
+	if (!engines || !range) return engines;
 	const major = /\d+/.exec(range)?.[0];
 	if (!major) throw new Error(`cannot derive a Vercel Node.js major from engines.node "${range}"`);
 	return { ...engines, node: `${major}.x` };

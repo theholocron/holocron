@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { undeclaredExternals } from "../../scripts/bundle-externals.mjs";
+import { undeclaredExternals } from "./undeclared-externals.js";
 
 /** Joins lines, so each fixture import sits on its own source line. */
 const lines = (...l: string[]) => l.join("\n");
