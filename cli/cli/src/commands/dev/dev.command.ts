@@ -8,6 +8,7 @@ import {
 	tokenContext,
 } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
+import { devServeCommand } from "../dev-serve/dev-serve.command.js";
 import { resolveDevOptions } from "../resolve-dev-options/index.js";
 import { runDev } from "./dev.js";
 
@@ -37,7 +38,7 @@ export const devCommand: CommandModule<GlobalArgs, DevArgs> = {
 	command: "dev",
 	describe:
 		"Run an application locally behind its development tunnel, with its secrets from the vault (command after --)",
-	builder: devArgs,
+	builder: (y: Argv<GlobalArgs>) => devArgs(y).command(devServeCommand as never),
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
@@ -51,7 +52,8 @@ export const devCommand: CommandModule<GlobalArgs, DevArgs> = {
 				port: argv.port,
 				command: argv["--"] as string[] | undefined,
 			},
-			loaded.resolved.dev
+			loaded.resolved.dev,
+			[process.execPath, process.argv[1] as string, "--cwd", argv.cwd]
 		);
 		const report = await runDev({
 			loaded,

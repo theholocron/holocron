@@ -556,9 +556,6 @@ importers:
         specifier: catalog:apps
         version: 2.9.1
     devDependencies:
-      '@theholocron/dagobah':
-        specifier: workspace:*
-        version: link:../../cli/dagobah
       '@theholocron/tsconfig':
         specifier: workspace:^
         version: link:../../configs/tsconfig
@@ -786,6 +783,9 @@ importers:
         specifier: catalog:cli
         version: 18.2.0
     devDependencies:
+      '@theholocron/dagobah':
+        specifier: workspace:*
+        version: link:../dagobah
       '@theholocron/eslint-config':
         specifier: workspace:^
         version: link:../../configs/eslint-config

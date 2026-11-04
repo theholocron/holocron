@@ -88,4 +88,14 @@ describe("dev command", () => {
 		await go();
 		expect(process.exitCode).toBe(1);
 	});
+
+	it("runs its own `dev serve`, in the same directory, when the config names a handler and no command", async () => {
+		loadConfig.mockResolvedValue({
+			resolved: { org: "acme", dev: { ...DEV, command: undefined, serve: { handler: "./h.ts" } } },
+			filepath: "/x",
+		});
+		await go();
+		const { command } = runDev.mock.calls[0]![0];
+		expect(command.slice(-4)).toEqual(["--cwd", "/repo", "dev", "serve"]);
+	});
 });

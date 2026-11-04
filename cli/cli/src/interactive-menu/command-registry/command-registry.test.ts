@@ -45,6 +45,7 @@ describe("COMMAND_REGISTRY", () => {
 		const excluded = new Set([
 			"run",
 			"dev",
+			"dev serve",
 			"run lint commit-msg",
 			"monitoring resolve-checks",
 			"monitoring run-resolved",

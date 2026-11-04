@@ -35,7 +35,6 @@
     "build": "tsdown",
     "deploy": "pnpm run build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
     "dev": "holocron dev",
-    "serve": "tsx scripts/serve.ts",
     "deploy-preview": "pnpm run build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel",
     "lint:code": "eslint .",
     "test:unit": "vitest run --coverage",
@@ -79,7 +78,6 @@
     "yaml": "catalog:apps"
   },
   "devDependencies": {
-    "@theholocron/dagobah": "workspace:*",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",

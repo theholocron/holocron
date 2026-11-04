@@ -235,6 +235,13 @@ describe("resolveConfig", () => {
 		};
 		expect(resolveConfig({ ...minimal, dev }).dev).toEqual(dev);
 		expect(resolveConfig({ ...minimal, dev: {} }).dev).toEqual({});
+		const serve = {
+			handler: "./h.ts",
+			export: "handle",
+			required: ["A"],
+			logging: { tokenVar: "T", datasetVar: "D" },
+		};
+		expect(resolveConfig({ ...minimal, dev: { serve } }).dev).toEqual({ serve });
 		expect(resolveConfig(minimal).dev).toBeUndefined();
 	});
 
@@ -253,6 +260,18 @@ describe("resolveConfig", () => {
 		["a port that is not whole", { port: 3000.5 }, /dev\.port/],
 		["an empty command", { command: [] }, /dev\.command/],
 		["a command with an empty part", { command: ["pnpm", ""] }, /dev\.command/],
+		["a serve block with no handler", { serve: { handler: " " } }, /dev\.serve\.handler/],
+		["an empty serve export", { serve: { handler: "./h.ts", export: "" } }, /dev\.serve\.export/],
+		[
+			"serve.required that is not a list of names",
+			{ serve: { handler: "./h.ts", required: ["A", ""] } },
+			/dev\.serve\.required/,
+		],
+		[
+			"serve.logging with no dataset variable",
+			{ serve: { handler: "./h.ts", logging: { tokenVar: "T", datasetVar: "" } } },
+			/dev\.serve\.logging/,
+		],
 	])("rejects a dev block with %s", (_label, dev, message) => {
 		expect(() => resolveConfig({ ...minimal, dev })).toThrow(message);
 	});

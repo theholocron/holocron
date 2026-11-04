@@ -276,6 +276,23 @@ export interface DevConfig {
 	port?: number;
 	/** The application's command and arguments, e.g. `["pnpm", "run", "serve"]`. */
 	command?: string[];
+	/**
+	 * A web-standard handler for `holocron dev` to serve itself, in place of `command`: the application is then
+	 * `holocron dev serve`, which loads the handler and serves it on `PORT`. `command` and a command after `--` win.
+	 */
+	serve?: DevServeConfig;
+}
+
+/** The `dev.serve` block: the handler `holocron dev` serves, and the variables it needs. */
+export interface DevServeConfig {
+	/** The module that exports the handler, relative to the directory, e.g. `./src/handler/index.ts`. TypeScript is loaded as is. */
+	handler: string;
+	/** The name of the handler's export. Defaults to `default`. */
+	export?: string;
+	/** The variables the handler cannot run without. Missing ones are named; nothing starts. */
+	required?: string[];
+	/** The variables holding the Axiom ingest token and dataset, to say where this run's logs go. */
+	logging?: { tokenVar: string; datasetVar: string };
 }
 
 /** The `env` block: how the project's environment variables are named and documented. */

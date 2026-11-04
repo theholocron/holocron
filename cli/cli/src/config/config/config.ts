@@ -138,6 +138,21 @@ function validateDev(dev: DevConfig): void {
 	) {
 		throw new ConfigError('`dev.command` must be the program and its arguments, e.g. ["pnpm", "run", "serve"]');
 	}
+	if (dev.serve !== undefined) {
+		const { serve } = dev;
+		if (!nonEmpty(serve.handler)) {
+			throw new ConfigError("`dev.serve.handler` must be the path of the module that exports the handler");
+		}
+		if (serve.export !== undefined && !nonEmpty(serve.export)) {
+			throw new ConfigError("`dev.serve.export` must be the name of the handler's export, got an empty value");
+		}
+		if (serve.required !== undefined && !(Array.isArray(serve.required) && serve.required.every(nonEmpty))) {
+			throw new ConfigError("`dev.serve.required` must be a list of variable names");
+		}
+		if (serve.logging !== undefined && !(nonEmpty(serve.logging.tokenVar) && nonEmpty(serve.logging.datasetVar))) {
+			throw new ConfigError("`dev.serve.logging` needs a `tokenVar` and a `datasetVar`, both variable names");
+		}
+	}
 }
 
 /** The values `repoValidation.docsCoverage` accepts. */
