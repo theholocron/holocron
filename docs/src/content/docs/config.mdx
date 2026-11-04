@@ -164,6 +164,16 @@ export default defineConfig({
   // provider needs one or the other.
   credentials: { environment: "Holocron" },
 
+  // How `holocron dev` runs this directory's application locally behind a development
+  // tunnel. Every field is optional here and has a flag; a flag wins. Names and a
+  // hostname, not secrets, so they are committed.
+  dev: {
+    environment: "Sentinel - dev", // the vault environment its variables come from
+    tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.example.dev" },
+    port: 3000, // default 3000
+    command: ["pnpm", "run", "serve"],
+  },
+
   // Structured-logging config. `level` is the lowest-priority level source:
   // --verbose/--quiet and HOLOCRON_LOG_LEVEL both outrank it. `axiom.dataset`
   // opts local runs into Axiom shipping without exporting HOLOCRON_AXIOM_DATASET

@@ -226,6 +226,37 @@ describe("resolveConfig", () => {
 		expect(resolveConfig(minimal).credentials).toBeUndefined();
 	});
 
+	it("passes the dev block through, and leaves it unset by default", () => {
+		const dev = {
+			environment: "Sentinel - dev",
+			tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
+			port: 3000,
+			command: ["pnpm", "run", "serve"],
+		};
+		expect(resolveConfig({ ...minimal, dev }).dev).toEqual(dev);
+		expect(resolveConfig({ ...minimal, dev: {} }).dev).toEqual({});
+		expect(resolveConfig(minimal).dev).toBeUndefined();
+	});
+
+	it.each([
+		["an empty environment", { environment: " " }, /dev\.environment/],
+		["an empty tunnel name", { tunnel: { name: "", hostname: "a.example.dev" } }, /dev\.tunnel\.name/],
+		[
+			"a hostname with a scheme",
+			{ tunnel: { name: "n", hostname: "https://a.example.dev" } },
+			/dev\.tunnel\.hostname/,
+		],
+		["a hostname with one label", { tunnel: { name: "n", hostname: "localhost" } }, /dev\.tunnel\.hostname/],
+		["a hostname that is not a string", { tunnel: { name: "n", hostname: 5 as never } }, /dev\.tunnel\.hostname/],
+		["a port of zero", { port: 0 }, /dev\.port/],
+		["a port above 65535", { port: 70000 }, /dev\.port/],
+		["a port that is not whole", { port: 3000.5 }, /dev\.port/],
+		["an empty command", { command: [] }, /dev\.command/],
+		["a command with an empty part", { command: ["pnpm", ""] }, /dev\.command/],
+	])("rejects a dev block with %s", (_label, dev, message) => {
+		expect(() => resolveConfig({ ...minimal, dev })).toThrow(message);
+	});
+
 	it("accepts a credentials provider when the environment is named", () => {
 		const resolved = resolveConfig({
 			...minimal,
