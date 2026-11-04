@@ -1,3 +1,10 @@
+## [0.7.0-alpha.1](https://github.com/theholocron/holocron/compare/observability-v0.6.1-alpha.2...observability-v0.7.0-alpha.1) (2026-11-04)
+
+### Features
+
+* **env-utils:** 🌍 one definition of the environment names and of CI detection ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1696](https://github.com/theholocron/holocron/issues/1696)) ([ffb77bf](https://github.com/theholocron/holocron/commit/ffb77bffafcc44cb4a049ee25f71c3dc3dc550e9))
+* **observability:** 🏷️ tag log lines local, dev, ci, stage or prod in one dataset ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1694](https://github.com/theholocron/holocron/issues/1694)) ([a8b2aee](https://github.com/theholocron/holocron/commit/a8b2aee9e72e76502e614306809c4b0f7dfb6a74))
+
 ## [0.6.1-alpha.2](https://github.com/theholocron/holocron/compare/observability-v0.6.1-alpha.1...observability-v0.6.1-alpha.2) (2026-11-03)
 
 ### Refactoring
