@@ -40,8 +40,10 @@ describe("COMMAND_REGISTRY", () => {
 		// navigating `holocron monitoring` interactively. Neither calls
 		// `promptForPositionals`/`getEntry`, so omitting them here has no
 		// effect on their own long-form CLI invocation.
+		// `dev` takes the application's command after `--`, which a prompt cannot collect (the same reason as `run`).
 		const excluded = new Set([
 			"run",
+			"dev",
 			"run lint commit-msg",
 			"monitoring resolve-checks",
 			"monitoring run-resolved",

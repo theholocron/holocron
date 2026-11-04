@@ -103,9 +103,11 @@ export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpRepo
 	print(`address: ${url}`);
 
 	if (!input.run) {
-		print(
-			`start it with: holocron tunnel up --name ${input.name} --hostname ${input.hostname} --port ${input.port} --run`
-		);
+		if (input.hint !== false) {
+			print(
+				`start it with: holocron tunnel up --name ${input.name} --hostname ${input.hostname} --port ${input.port} --run`
+			);
+		}
 		return finish("ok", { tunnelId: ensured.id, url });
 	}
 

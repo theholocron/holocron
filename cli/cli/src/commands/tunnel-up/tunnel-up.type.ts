@@ -15,6 +15,8 @@ export interface RunTunnelUpInput {
 	hostname: string;
 	/** The local port requests are sent to. */
 	port: number;
+	/** Print how to start the tunnel when it was not run. Defaults to `true`; a caller that runs it itself says `false`. */
+	hint?: boolean | undefined;
 	/** Run the tunnel in the foreground once it is set up. */
 	run?: boolean | undefined;
 	/** The plugin loader. Defaults to one for `loaded`. */
