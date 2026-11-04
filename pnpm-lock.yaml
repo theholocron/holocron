@@ -79,8 +79,8 @@ catalogs:
       specifier: ^14.1.1
       version: 14.1.1
     eslint-package-json:
-      specifier: ^0.3.0
-      version: 0.3.0
+      specifier: ^3.0.0
+      version: 3.0.0
     react:
       specifier: ^19.0.0
       version: 19.2.8
@@ -1985,7 +1985,7 @@ importers:
         version: 10.8.1(jiti@2.7.0)
       eslint-package-json:
         specifier: catalog:configs
-        version: 0.3.0(eslint@10.8.1(jiti@2.7.0))
+        version: 3.0.0(eslint@10.8.1(jiti@2.7.0))
       eslint-plugin-cypress:
         specifier: ^6
         version: 6.4.4(@typescript-eslint/parser@8.72.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))
@@ -6796,6 +6796,7 @@ packages:
   '@theholocron/holocron-config@8.8.2':
     resolution: {integrity: sha512-82DHKgdWlJJMh81x5XODZ3CeEB8RxP3P9WGeB8+XfH6wKwzPfd1Bd805LxWt02RG79ZIH8rKt6kmYMyb5KCWxg==}
     engines: {node: '>=22.0.0'}
+    deprecated: Moved into @theholocron/cli. Use the presets there.
 
   '@theholocron/http-client@1.57.0':
     resolution: {integrity: sha512-J5aiJgj0blcS7jzouiP6tRM/n4KcTS7J8jb2BLES4bTqkuuXliiF96lQIhmQTabJf9hebiW6aVxaBYjkvepgWQ==}
@@ -8567,8 +8568,8 @@ packages:
     peerDependencies:
       eslint: '>=6.0.0'
 
-  eslint-package-json@0.3.0:
-    resolution: {integrity: sha512-znnM6ynvEBTTpQ/iq9hqY4OUcJ/O++wMxKpVqPu+Re/8wCsGvU0DUR/65xNI9u98ajCnn0wHkR+tAmrW2C2D3A==}
+  eslint-package-json@3.0.0:
+    resolution: {integrity: sha512-is5/FA6xN7sOc70vZWCgQRhXYyaKQcUpxrCxkT8IJbt10SNiwVQNJ+MWbSUi4IXFzyhuVUzTtf4WEpcmKuIGXg==}
     engines: {node: '>=22'}
     peerDependencies:
       eslint: '>=10.4'
@@ -18416,7 +18417,7 @@ snapshots:
       eslint: 10.8.1(jiti@2.7.0)
       semver: 7.8.5
 
-  eslint-package-json@0.3.0(eslint@10.8.1(jiti@2.7.0)):
+  eslint-package-json@3.0.0(eslint@10.8.1(jiti@2.7.0)):
     dependencies:
       '@eslint/json': 2.0.1
       detect-indent: 7.0.2
