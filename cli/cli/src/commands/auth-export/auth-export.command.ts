@@ -23,7 +23,19 @@ const authExportArgs = (yy: Argv<GlobalArgs>) =>
 			type: "string",
 			array: true,
 			describe:
-				"Export only this token, by variable name (HOLOCRON_SENTRY_TOKEN), the vendor's name or its keyring entry (sentry.comlink); repeat for more. On a terminal it goes to the clipboard",
+				"Export only this token, by variable name (HOLOCRON_SENTRY_TOKEN), the vendor's name or its keyring entry (sentry.comlink); NAME=value writes a setting as given; repeat for more. On a terminal it goes to the clipboard",
+		})
+		.option("blank", {
+			type: "boolean",
+			default: false,
+			describe:
+				'Write a name with no stored value as NAME="" instead of leaving it out, and let --only name a variable that is no token (also written empty), so the file creates every variable an environment needs',
+		})
+		.option("vendor-names", {
+			type: "boolean",
+			default: false,
+			describe:
+				"Write a token under the vendor's own name (SENTRY_AUTH_TOKEN) when it has one, not the Holocron name",
 		})
 		.option("copy", {
 			type: "boolean",
@@ -60,6 +72,8 @@ export const authExportCommand: CommandModule<GlobalArgs, AuthExportArgs> = {
 			outKind: stdoutKind(process.stdout.isTTY === true),
 			fromEnv: argv.fromEnv,
 			...(argv.only?.length ? { only: argv.only } : {}),
+			blank: argv.blank,
+			vendorNames: argv.vendorNames,
 			...(org ? { org } : {}),
 			...(to ? { to } : {}),
 			...(argv.file ? { file: argv.file } : {}),

@@ -52,6 +52,14 @@ export interface RunAuthExportInput {
 	 * terminal the lines then go to the clipboard rather than the file, since a value or two is what that is for.
 	 */
 	only?: string[];
+	/**
+	 * Write a name with no stored value as `NAME=""` instead of leaving it out, and let `only` name a variable that is
+	 * no token at all (also written as `NAME=""`), so the file creates every variable an environment needs, ready to be
+	 * filled in.
+	 */
+	blank?: boolean;
+	/** Write a token under the vendor's own name (`SENTRY_AUTH_TOKEN`) when it has one, not the Holocron name. */
+	vendorNames?: boolean;
 	/** Also take a token that is set in the environment, ahead of the keyring. */
 	fromEnv?: boolean;
 	/** Loads a plugin package for its `tokens`. Defaults to resolving from the directory of the loaded config. */
@@ -85,6 +93,8 @@ export interface AuthExportReport {
 	exported: string[];
 	/** The variable names with no value anywhere. */
 	missing: string[];
+	/** The variable names written as `NAME=""` for the user to fill in (`blank`). */
+	blank: string[];
 	/** Names listed by two plugins under different keyring keys: not written, because one variable cannot hold both. */
 	conflicts: string[];
 	/** Names whose value no dotenv form can carry without changing it: not written. */

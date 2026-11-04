@@ -676,6 +676,7 @@ holocron auth unset github.read   # remove a stored token
 holocron auth list                # show all stored providers
 holocron auth export             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
 holocron auth export --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
+holocron auth export --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
 holocron github-app create --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest; its id, key and webhook secret to a private .credentials
 ```
 
