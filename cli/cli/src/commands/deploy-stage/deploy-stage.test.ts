@@ -81,4 +81,23 @@ describe("stageDeploy", () => {
 		expect(report.message).toContain('"yaml"');
 		expect(report.message).toContain("pnpm install");
 	});
+
+	it("reads each dependency's version from the package's installed node_modules by default", () => {
+		makePackage("export {};");
+		write("node_modules/yaml/package.json", JSON.stringify({ version: "2.8.1" }));
+		const report = stageDeploy({ packageDir: dir });
+		expect(report).toMatchObject({ status: "ok", dependencies: { yaml: "2.8.1" } });
+	});
+
+	it("stages a package that declares no dependencies, printing nothing when given no print", () => {
+		write("package.json", JSON.stringify({ name: "@x/app", version: "1.0.0" }));
+		write("dist/index.mjs", "export {};");
+		write("api/webhook.mjs", "export default {};");
+		write("vercel.json", "{}");
+		const report = stageDeploy({ packageDir: dir });
+		expect(report).toMatchObject({ status: "ok", dependencies: {} });
+		expect(JSON.parse(readFileSync(join(dir, ".vercel-deploy", "package.json"), "utf8"))).not.toHaveProperty(
+			"engines.node"
+		);
+	});
 });
