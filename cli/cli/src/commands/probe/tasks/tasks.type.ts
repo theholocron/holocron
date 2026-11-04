@@ -21,3 +21,15 @@ export interface TasksIo {
 	/** The hand-written files to scan. */
 	files(): ScannedFile[];
 }
+
+/** What `findLeftovers` is asked to include. */
+export interface FindOptions {
+	/** Also report an old name that is part of a workflow file name (`delivery.build.yml`). Off by default: until workflow files are renamed it is a file name, not a task. */
+	files?: boolean;
+}
+
+/** One key of a JSON object and the 1-based line it is written on. */
+export interface KeyLine {
+	key: string;
+	line: number;
+}

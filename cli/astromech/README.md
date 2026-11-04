@@ -94,7 +94,7 @@ docs — none of these earn their own task or verb; it's one capability any
 publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
 **`linterGroup` tasks** (`lint:code`,
-`sourceQuality.formatting`) bundle more than one tool under a single
+`sourceQuality.formatting`) bundle more than one tool under a single <!-- holocron-allow-old-name -->
 required check. Each tool is still gated by its own detection rule — e.g.
 `eslint` runs when either a local `eslint.config.*` is present, or the
 package has no local file but `@theholocron/eslint-config` resolves

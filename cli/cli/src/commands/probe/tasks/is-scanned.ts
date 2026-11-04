@@ -1,4 +1,4 @@
-/** Files that describe the old names on purpose: specs, ADRs, the changelog, tests, and this probe's own table. */
+/** Files that describe the old names on purpose: specs, ADRs, the changelog, tests, and this probe's own folder. */
 const SKIPPED = [
 	/(^|\/)CHANGELOG\.md$/,
 	/^\.notes\//,

@@ -7,6 +7,8 @@ export interface ProbeArgs extends GlobalArgs {
 	probe?: string;
 	args?: string[];
 	lcov?: string;
+	warn?: boolean;
+	files?: boolean;
 	yes: boolean;
 }
 
@@ -28,6 +30,15 @@ export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 		.option("lcov", {
 			type: "string",
 			describe: "Also write the coverage a `docs` probe measures to this lcov file (relative to the repo root)",
+		})
+		.option("warn", {
+			type: "boolean",
+			describe: "`tasks names`: report each old task name as an info row instead of failing",
+		})
+		.option("files", {
+			type: "boolean",
+			describe:
+				"`tasks names`: also report old names that are part of a workflow file name (`delivery.build.yml`)",
 		})
 		.option("yes", {
 			type: "boolean",

@@ -57,7 +57,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   or spec (`.notes`, `docs/wiki/specifications`) whose frontmatter is wrong and reports a warning as an `info` row. The rules
   are `checkSpecs()` in `@theholocron/astromech/repo-validation`; the probe reads the files through an injected `SpecsIo`,
   and Sentinel's `validate-adrs` action fetches a PR's changed files and passes their text to the same function.
-  `tasks names` (#1618, spec SPEC-0064) lists the hand-written places (workflows, scripts, docs, `turbo.json`, `package.json`, configs, hooks) that still use an old dotted task name, with file, line and the flat id to use; `info` rows, or failures with `--fail`. Its old-to-new table is data (`probe/tasks/legacy-task-names.ts`) until astromech's `LEGACY_NAMES` exists. `doctor repo` compares the ruleset's required contexts with `requiredChecks()` (`compareRequiredContexts`): `missing required check` and `stale context` rows.
+  `tasks names` (#1618, spec SPEC-0064) lists the hand-written places (workflows, scripts, docs, `turbo.json`, `package.json`, configs, hooks) that still use an old dotted task name, with file, line and the flat id to use; failures (exit 1), or `info` rows with `--warn`; `--files` adds workflow file names, which are skipped by default. It reads astromech's `LEGACY_NAMES` (`legacyReplacements()`), also finds a bare old name used as a task and a reserved script name, and an intentional mention carries `holocron-allow-old-name`. `doctor repo` compares the ruleset's required contexts with `requiredChecks()` (`compareRequiredContexts`): `missing required check` and `stale context` rows.
   `specs sync` numbers each spec (`id: SPEC-0007`; ADRs have `ADR-0009`) and keeps a forum post per ADR and spec (titled
   with the document's own title, tagged with its status) in step with the files
   (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
@@ -154,7 +154,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   never an id; `holocron run test` runs the leaves the repo's `tasks:` lists, in registry order, `holocron run test unit`
   and `test:unit` run one (`resolveWords()`: words joined with `:`, longest match wins, the rest is the `[job]`
   argument). `format` is prettier only: it writes, `--check` (the registry's `checkArgs`) reads, and `holocron run ci`
-  runs it read-only. `LEGACY_NAMES` maps every old dotted name to its successors (`sourceQuality.formatting` to
+  runs it read-only. `LEGACY_NAMES` maps every old dotted name to its successors (`sourceQuality.formatting` to <!-- holocron-allow-old-name -->
   `lint:editorconfig`, `lint:markdown` and `format --check`); `holocron run`, `tasks:` and the manifest consumers
   (`isTask()`, `resolveTaskName()`) accept both and the runner prints a deprecation notice on stderr. **Nothing that is
   generated changed in this phase:** thin callers, workflow file names, check contexts, `turbo.json` keys and
@@ -163,7 +163,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   (`probe specs check`) and `validate:docs` (`probe docs presence`), each with its own reusable workflow, caller and
   check (`validate:specs / Validate ADRs and specs`, `validate:docs / Validate docs presence`), and a third,
   package-scoped leaf with no workflow, `validate:plugin` (the plugins' own script). The sub-job mechanism (`jobs:`,
-  `retiredJobs`, the `Conclusion` aggregator) is gone (#1622). `validate` and `platform.repoValidation` in a `tasks:` list
+  `retiredJobs`, the `Conclusion` aggregator) is gone (#1622). `validate` and `platform.repoValidation` in a `tasks:` list <!-- holocron-allow-old-name -->
   are aliases for both leaves (`workflowKeys()` writes one caller each; a repo still on the legacy gate gets the one
   `platform.repoValidation.yml` caller, which the frozen reusable answers for both). `RESERVED_SCRIPT_NAMES`
   and `PNPM_BUILTIN_COMMANDS` list the npm lifecycle words no task may take and the pnpm built-ins that need

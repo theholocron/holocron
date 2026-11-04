@@ -220,7 +220,7 @@ commit message; advisory, `neutral` at worst, never `failure`, and re-run
 when the PR title or description is edited; see `src/actions/repo-validation/`) — the Bucket 2
 dispatch prototype, the auto-fix-commit
 capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
-the `sourceQuality.formatting` task backing three independent commit
+the `sourceQuality.formatting` task backing three independent commit <!-- holocron-allow-old-name -->
 actions — `commitFormattingFix`, `commitEditorConfigFix`,
 `commitMarkdownLintFix` — since all three checks are bundled under that
 same task; default-on (holocron#864 follow-up), opt out via the repo's
@@ -462,7 +462,7 @@ in the App's own settings page (Settings → Developer settings → GitHub Apps
 → Holocron Sentinel → Permissions & events), then accept the updated
 permissions for the `theholocron` installation. Auto-fix-commit is
 default-on (holocron#864) — opt out via `with: { autoFix: false }` on
-`sourceQuality.formatting`, merged to the repo's default branch or added
+`sourceQuality.formatting`, merged to the repo's default branch or added <!-- holocron-allow-old-name -->
 fresh in a PR's own branch (see `handleWebhookRequest`'s own docstring in
 `src/handler/handler.ts`, and `validate-config.ts`'s module docstring for the
 read-only boundary that makes a PR-branch read safe).
