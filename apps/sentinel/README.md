@@ -588,10 +588,13 @@ Vercel is not needed to try a change against real GitHub events. A development i
 the 1Password Environment `Sentinel - dev`.
 
 ```bash
-# 1. a stable address for this machine (idempotent; --run starts cloudflared in the foreground)
+# 1. the handler, locally (port 3000): secrets from the 1Password Environment `Sentinel - dev`
+pnpm --filter @theholocron/sentinel dev
+
+# 2. in another terminal, a stable address for this machine (idempotent; --run starts cloudflared in the foreground)
 holocron tunnel up --cwd apps/sentinel --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 --run
 
-# 2. the dev App, from the same manifest as production (one click on GitHub; the id, key and webhook secret
+# 3. the dev App, once, from the same manifest as production (one click on GitHub; the id, key and webhook secret
 #    go to a private .credentials file to import into the `Sentinel - dev` Environment)
 holocron github-app create --cwd apps/sentinel --org theholocron \
   --name "The Holocron Sentinel - dev" \
@@ -599,9 +602,16 @@ holocron github-app create --cwd apps/sentinel --org theholocron \
   --manifest github-app.manifest.json
 ```
 
+`pnpm dev` runs `handleWebhookRequest` on `127.0.0.1` only, serving `/api/webhook` (the path Vercel serves). The App's
+`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET` come from the process, or else from the
+Environment named by `SENTINEL_DEV_ENVIRONMENT` (default `Sentinel - dev`), read with `op` so Touch ID asks once;
+nothing is written to disk. `PORT` changes the port. The handler's own logs ship to Axiom only if that Environment
+sets `SENTINEL_AXIOM_INGEST_TOKEN` and `AXIOM_DATASET`; give the dev instance its own dataset (and ingest token) so
+it does not write into production's, or leave both out. `pnpm dev` says which it is on start. Each request is logged as one line (method, path, status), never a
+header or a payload.
+
 `tunnel up` uses the `tunnels` and `dns` providers in this directory's `holocron.config.ts` and needs a Cloudflare
-token with Cloudflare Tunnel: Edit. Install the dev App only on the repositories you test with. A local server for
-the handler, to receive what the tunnel forwards, is a separate change.
+token with Cloudflare Tunnel: Edit. Install the dev App only on the repositories you test with.
 
 ## Development
 
