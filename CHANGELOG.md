@@ -1,3 +1,23 @@
+## [5.0.0-alpha.326](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.325...v5.0.0-alpha.326) (2026-11-04)
+
+### Features
+
+* **cli:** ⚙️ read holocron dev's settings from a dev block in holocron.config ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1690](https://github.com/theholocron/holocron/issues/1690)) ([344b778](https://github.com/theholocron/holocron/commit/344b778283f886195bd6244f1da6761654b5ad9a))
+* **cli:** 🧪 add holocron dev to run an app behind its tunnel with its vault secrets ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1687](https://github.com/theholocron/holocron/issues/1687)) ([f2de0d7](https://github.com/theholocron/holocron/commit/f2de0d7621528be45bf19845535f01863021f8db))
+* **cli:** 🚇 add tunnel up for a stable public hostname to a local port ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1680](https://github.com/theholocron/holocron/issues/1680)) ([910006b](https://github.com/theholocron/holocron/commit/910006bfba98dad48161fa84f0f7366e3eb013a3))
+* **cloudflare:** 🚇 add a tunnels capability for a stable dev webhook address ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1679](https://github.com/theholocron/holocron/issues/1679)) ([f555bfd](https://github.com/theholocron/holocron/commit/f555bfd2de4f1e250b5f8ceebc0dc2dfd063876a))
+* **env-utils:** 🌍 one definition of the environment names and of CI detection ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1696](https://github.com/theholocron/holocron/issues/1696)) ([ffb77bf](https://github.com/theholocron/holocron/commit/ffb77bffafcc44cb4a049ee25f71c3dc3dc550e9))
+* **observability:** 🏷️ tag log lines local, dev, ci, stage or prod in one dataset ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1694](https://github.com/theholocron/holocron/issues/1694)) ([a8b2aee](https://github.com/theholocron/holocron/commit/a8b2aee9e72e76502e614306809c4b0f7dfb6a74))
+* **sentinel:** 🧪 add pnpm dev to run the handler locally behind a tunnel ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1686](https://github.com/theholocron/holocron/issues/1686)) ([7c24bd0](https://github.com/theholocron/holocron/commit/7c24bd0e5887d5822cf2d62938c349fcebe55372)), closes [#1100](https://github.com/theholocron/holocron/issues/1100)
+
+### Documentation
+
+* **publish:** 📝 the npm trusted publisher is the calling workflow, ci.release.yml ([#1699](https://github.com/theholocron/holocron/issues/1699)) ([d10c466](https://github.com/theholocron/holocron/commit/d10c4669ed43ed9bdcaf842d4f6408c30df54c40))
+
+### Chores
+
+* **sentinel:** 🚇 add the tunnels provider to Sentinel's config ([#1678](https://github.com/theholocron/holocron/issues/1678)) ([#1685](https://github.com/theholocron/holocron/issues/1685)) ([8d7ebfb](https://github.com/theholocron/holocron/commit/8d7ebfba3836521d70e9db50e61b33550f4d2721))
+
 ## [5.0.0-alpha.325](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.324...v5.0.0-alpha.325) (2026-11-04)
 
 ### Bug Fixes
