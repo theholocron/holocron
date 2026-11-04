@@ -42,13 +42,24 @@ const compare = (a: string, b: string): number => (a < b ? -1 : 1);
 /** The file the lines go to on a terminal when none is named. */
 const DEFAULT_FILE = ".credentials";
 
+/** What a variable can be called in a dotenv file and in a shell. */
+const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
 export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExportReport> {
 	const print = input.print ?? ((line: string) => console.error(line));
 	const logger = input.logger ?? getLogger();
 	const refuse = (reason: string, ...message: string[]): AuthExportReport => {
 		for (const line of message) print(line);
 		logger.warn({ status: "fail", reason }, COMMAND);
-		return { status: "fail", exported: [], missing: [], conflicts: [], unsupported: [], unavailable: [] };
+		return {
+			status: "fail",
+			exported: [],
+			missing: [],
+			blank: [],
+			conflicts: [],
+			unsupported: [],
+			unavailable: [],
+		};
 	};
 
 	// Once the lines are in the file, say what to do with it and, on a terminal, delete it when the import is done.
@@ -111,35 +122,53 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		throw new WorkspaceContextError(COMMAND, unavailable);
 	}
 
-	// `--only`: keep the tokens asked for, each by its variable name, the vendor's name or its keyring entry.
+	// `--only`: keep the tokens asked for, each by its variable name, the vendor's name or its keyring entry. With
+	// `blank`, a name that is no token becomes an empty placeholder; `NAME=value` is a literal (a setting, not a secret).
+	const literals = new Map<string, string>();
+	const placeholders: string[] = [];
 	if (input.only?.length) {
 		const chosen = new Set<string>();
 		const unknown: string[] = [];
+		const invalid: string[] = [];
 		for (const wanted of input.only) {
-			const found = [...tokens.values()].filter(
-				(t) => t.envName === wanted || t.vendorEnvName === wanted || t.keyringKey === wanted
-			);
-			if (found.length === 0) unknown.push(wanted);
-			for (const t of found) chosen.add(t.envName);
+			const eq = wanted.indexOf("=");
+			const name = eq > 0 ? wanted.slice(0, eq) : wanted;
+			if (eq > 0 && !VARIABLE_NAME.test(name)) invalid.push(name);
+			else if (eq > 0) literals.set(name, wanted.slice(eq + 1));
+			else {
+				const found = [...tokens.values()].filter(
+					(t) => t.envName === wanted || t.vendorEnvName === wanted || t.keyringKey === wanted
+				);
+				for (const t of found) chosen.add(t.envName);
+				if (found.length === 0 && input.blank && VARIABLE_NAME.test(wanted)) placeholders.push(wanted);
+				else if (found.length === 0) unknown.push(wanted);
+			}
+		}
+		if (invalid.length > 0) {
+			return refuse("invalid", `not a variable name: ${invalid.join(", ")}`);
 		}
 		if (unknown.length > 0) {
 			return refuse(
 				"unknown",
 				`no token named ${unknown.join(", ")}`,
-				`the names are: ${[...tokens.keys()].sort(compare).join(", ")}`
+				`the names are: ${[...tokens.keys()].sort(compare).join(", ")}`,
+				...(input.blank ? [] : ["or pass --blank to write a name that is no token as an empty placeholder"])
 			);
 		}
 		for (const name of [...tokens.keys()]) if (!chosen.has(name)) tokens.delete(name);
 		for (const name of [...conflicts]) if (!chosen.has(name)) conflicts.delete(name);
 	}
 
-	const lines: string[] = [];
+	// Each variable to write, by the name it is written under; sorted at the end so the file is the same every time.
+	const entries: Array<{ name: string; line: string }> = [];
 	const exported: string[] = [];
 	const values = new Map<string, string>();
 	const missing: string[] = [];
+	const blank: string[] = [];
 	const unsupported: string[] = [];
 	for (const [name, token] of [...tokens].sort(([a], [b]) => compare(a, b))) {
 		if (conflicts.has(name)) continue;
+		const written = input.vendorNames && token.vendorEnvName ? token.vendorEnvName : name;
 		const fromEnv = input.fromEnv
 			? env.get(name) || (token.vendorEnvName ? env.get(token.vendorEnvName) : undefined)
 			: undefined;
@@ -147,18 +176,45 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		const value =
 			fromEnv || (input.org ? keyring(`${token.keyringKey}.${input.org}`) : null) || keyring(token.keyringKey);
 		if (!value) {
-			missing.push(name);
+			if (input.blank) {
+				blank.push(written);
+				entries.push({ name: written, line: `${written}=""` });
+			} else {
+				missing.push(name);
+			}
 			continue;
 		}
+		const line = dotenvLine(written, value);
+		if (line === null) {
+			unsupported.push(written);
+			continue;
+		}
+		entries.push({ name: written, line });
+		exported.push(written);
+		values.set(written, value);
+	}
+	// Literals and placeholders named on the command line, unless a token already wrote that name.
+	const taken = new Set(entries.map((e) => e.name));
+	for (const [name, value] of literals) {
 		const line = dotenvLine(name, value);
+		if (taken.has(name)) continue;
 		if (line === null) {
 			unsupported.push(name);
 			continue;
 		}
-		lines.push(line);
+		entries.push({ name, line });
 		exported.push(name);
 		values.set(name, value);
+		taken.add(name);
 	}
+	for (const name of placeholders) {
+		if (taken.has(name)) continue;
+		blank.push(name);
+		entries.push({ name, line: `${name}=""` });
+		taken.add(name);
+	}
+	entries.sort((x, y) => compare(x.name, y.name));
+	const lines = entries.map((e) => e.line);
 
 	// A few values asked for by name are for pasting; the whole set goes to the file.
 	const onTerminal = input.only?.length ? "clipboard" : "file";
@@ -171,7 +227,10 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		if (target === "clipboard") {
 			try {
 				// One token asked for by name is for pasting into a field: the value alone, with no name and no line break.
-				const pasted = input.only?.length && exported.length === 1 ? values.get(exported[0] as string)! : text;
+				const pasted =
+					input.only?.length && lines.length === 1 && exported.length === 1
+						? values.get(exported[0] as string)!
+						: text;
 				await (input.copy ?? copyToClipboard)(pasted);
 			} catch (err) {
 				return refuse(
@@ -218,8 +277,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	}
 
 	// One row per token: written (✓), not found (·), or left out for a reason the row gives (✗). Names only.
-	print(`exported ${exported.length} of ${tokens.size}:`);
+	print(`exported ${exported.length} of ${tokens.size + literals.size + placeholders.length}:`);
 	for (const name of exported) print(`  ${style.success(name)}`);
+	for (const name of blank) print(`  ${style.dim("·")} ${name}${style.dim("  (written empty: fill it in)")}`);
 	for (const name of missing) {
 		print(`  ${style.dim("·")} ${name}${tokens.get(name)?.optional ? style.dim("  (optional)") : ""}`);
 	}
@@ -239,11 +299,12 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	if (destination === "clipboard") print("copied to the clipboard: paste it, then clear the clipboard");
 	// A file that could not be deleted is a failure even though the export worked: tokens are still on disk.
 	const cleaned = destination === "file" && file && identity ? await finishFile(file, identity) : true;
-	const status = !cleaned ? "fail" : exported.length > 0 ? "ok" : "skip";
+	const status = !cleaned ? "fail" : exported.length > 0 || blank.length > 0 ? "ok" : "skip";
 	logger.info(
 		{
 			exported: exported.length,
 			missing: missing.length,
+			blank: blank.length,
 			conflicts: conflicts.size,
 			unsupported: unsupported.length,
 			unavailable: unavailable.length,
@@ -256,6 +317,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		status,
 		exported,
 		missing,
+		blank,
 		conflicts: [...conflicts].sort(compare),
 		unsupported,
 		unavailable: [...unavailable].sort(compare),

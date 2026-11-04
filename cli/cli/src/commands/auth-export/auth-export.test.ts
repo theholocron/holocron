@@ -83,6 +83,7 @@ describe("auth export — what it writes", () => {
 			destination: "out",
 			exported: ["HOLOCRON_ORG_TOKEN", "HOLOCRON_SENTRY_TOKEN"],
 			missing: ["HOLOCRON_READ_TOKEN"],
+			blank: [],
 			conflicts: [],
 			unsupported: [],
 			unavailable: [],
@@ -102,7 +103,16 @@ describe("auth export — what it writes", () => {
 		await result;
 		expect(JSON.stringify([err, logger.info.mock.calls])).not.toMatch(/ghp_org|sntry_1/);
 		expect(logger.info).toHaveBeenCalledWith(
-			{ exported: 2, missing: 1, conflicts: 0, unsupported: 0, unavailable: 0, status: "ok", destination: "out" },
+			{
+				exported: 2,
+				missing: 1,
+				blank: 0,
+				conflicts: 0,
+				unsupported: 0,
+				unavailable: 0,
+				status: "ok",
+				destination: "out",
+			},
 			"auth export"
 		);
 	});
@@ -298,6 +308,7 @@ describe("auth export — only", () => {
 		expect(err).toEqual([
 			"no token named NOPE",
 			"the names are: HOLOCRON_ORG_TOKEN, HOLOCRON_READ_TOKEN, HOLOCRON_SENTRY_TOKEN",
+			"or pass --blank to write a name that is no token as an empty placeholder",
 		]);
 	});
 
@@ -333,6 +344,104 @@ describe("auth export — only", () => {
 				: importer(pkg);
 		const { result } = run({ importer: clash, only: ["HOLOCRON_READ_TOKEN"] });
 		expect((await result).conflicts).toEqual([]);
+	});
+});
+
+describe("auth export — blank, literals and vendor names", () => {
+	it("writes a token with no stored value as an empty placeholder, and counts it apart", async () => {
+		const { result, out, err } = run({ only: ["HOLOCRON_READ_TOKEN", "HOLOCRON_ORG_TOKEN"], blank: true });
+		const report = await result;
+		expect(out.join("")).toBe('HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_READ_TOKEN=""\n');
+		expect(report).toMatchObject({
+			status: "ok",
+			exported: ["HOLOCRON_ORG_TOKEN"],
+			blank: ["HOLOCRON_READ_TOKEN"],
+			missing: [],
+		});
+		expect(err).toContain("  · HOLOCRON_READ_TOKEN  (written empty: fill it in)");
+	});
+
+	it("leaves a token with no stored value out, as before, without blank", async () => {
+		const { result, out } = run({ only: ["HOLOCRON_READ_TOKEN", "HOLOCRON_ORG_TOKEN"] });
+		const report = await result;
+		expect(out.join("")).toBe("HOLOCRON_ORG_TOKEN=ghp_org\n");
+		expect(report).toMatchObject({ missing: ["HOLOCRON_READ_TOKEN"], blank: [] });
+	});
+
+	it("writes a name that is no token as a placeholder only with blank, and refuses it otherwise", async () => {
+		const withBlank = run({ only: ["HOLOCRON_RELEASE_TOKEN", "HOLOCRON_ORG_TOKEN"], blank: true });
+		expect(withBlank.out.join("")).toBe("");
+		const report = await withBlank.result;
+		expect(withBlank.out.join("")).toBe('HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_RELEASE_TOKEN=""\n');
+		expect(report.blank).toEqual(["HOLOCRON_RELEASE_TOKEN"]);
+
+		const without = run({ only: ["HOLOCRON_RELEASE_TOKEN"] });
+		expect((await without.result).status).toBe("fail");
+		expect(without.err.at(-1)).toBe("or pass --blank to write a name that is no token as an empty placeholder");
+	});
+
+	it("writes NAME=value as given, a setting that is not read from the keyring", async () => {
+		const { result, out, err } = run({ only: ["ENVIRONMENT=prod", "HOLOCRON_ORG_TOKEN"] });
+		const report = await result;
+		expect(out.join("")).toBe("ENVIRONMENT=prod\nHOLOCRON_ORG_TOKEN=ghp_org\n");
+		expect(report.exported).toEqual(["HOLOCRON_ORG_TOKEN", "ENVIRONMENT"]);
+		expect(err[0]).toBe("exported 2 of 2:");
+	});
+
+	it("lets a token win over a literal or placeholder of the same name", async () => {
+		const { result, out } = run({ only: ["HOLOCRON_ORG_TOKEN=other", "HOLOCRON_ORG_TOKEN"] });
+		expect((await result).exported).toEqual(["HOLOCRON_ORG_TOKEN"]);
+		expect(out.join("")).toBe("HOLOCRON_ORG_TOKEN=ghp_org\n");
+	});
+
+	it("writes a placeholder named twice once", async () => {
+		const { result, out } = run({ only: ["EXTRA", "EXTRA"], blank: true });
+		expect((await result).blank).toEqual(["EXTRA"]);
+		expect(out.join("")).toBe('EXTRA=""\n');
+	});
+
+	it("lists a literal value no dotenv form can carry, by name", async () => {
+		const { result, out, err } = run({ only: [`BAD=a'b"c\`d`] });
+		expect((await result).unsupported).toEqual(["BAD"]);
+		expect(out.join("")).toBe("");
+		expect(err.join("\n")).toContain("BAD  (a value dotenv cannot carry unchanged");
+	});
+
+	it("refuses a name that is not a variable name, in either form", async () => {
+		const literal = run({ only: ["NOT-A-NAME=1"] });
+		expect((await literal.result).status).toBe("fail");
+		expect(literal.err).toEqual(["not a variable name: NOT-A-NAME"]);
+
+		const placeholder = run({ only: ["not a name"], blank: true });
+		expect((await placeholder.result).status).toBe("fail");
+		expect(placeholder.err[0]).toBe("no token named not a name");
+		// It already said --blank, so it does not suggest it.
+		expect(placeholder.err).toHaveLength(2);
+	});
+
+	it("writes a token under the vendor's own name with vendorNames, and matches it by either", async () => {
+		const { result, out } = run({ only: ["HOLOCRON_SENTRY_TOKEN"], vendorNames: true });
+		expect((await result).exported).toEqual(["SENTRY_AUTH_TOKEN"]);
+		expect(out.join("")).toBe("SENTRY_AUTH_TOKEN=sntry_1\n");
+		const plain = run({ only: ["SENTRY_AUTH_TOKEN"] });
+		expect((await plain.result).exported).toEqual(["HOLOCRON_SENTRY_TOKEN"]);
+	});
+
+	it("keeps a token's own name with vendorNames when it has no vendor name", async () => {
+		const { result } = run({ only: ["HOLOCRON_ORG_TOKEN"], vendorNames: true });
+		expect((await result).exported).toEqual(["HOLOCRON_ORG_TOKEN"]);
+	});
+
+	it("copies lines, not a bare value, when a placeholder travels with the one token", async () => {
+		const copy = vi.fn(async (_text: string) => {});
+		const { result } = run({
+			outKind: "terminal",
+			only: ["HOLOCRON_ORG_TOKEN", "HOLOCRON_RELEASE_TOKEN"],
+			blank: true,
+			copy,
+		});
+		await result;
+		expect(copy).toHaveBeenCalledExactlyOnceWith('HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_RELEASE_TOKEN=""\n');
 	});
 });
 

@@ -13,6 +13,19 @@ Writes each token a configured plugin takes as a `NAME=value` line, to import th
 
 `--only <name>` exports just that token (repeat it for more). A token is named by its variable name (`HOLOCRON_SENTRY_TOKEN`), the vendor's own name (`SENTRY_AUTH_TOKEN`) or its keyring entry (`sentry.comlink`); a name that matches nothing is refused, with the names there are. On a terminal it goes to the clipboard instead of the file, since a value is for pasting: for one token the clipboard holds the value alone, with no name and no line break (the name is printed in the list), and for several it holds `NAME=value` lines. Clear the clipboard afterwards; `--file` and a pipe still work as they do for the whole set. This is how to get one token out of the keyring without `security find-generic-password`.
 
+### An environment with variables you have not got yet
+
+`--blank` writes a name with no stored value as `NAME=""` instead of leaving it out, and lets `--only` name a variable that is no token at all (also written empty). `NAME=value` writes a setting as given (it is read from nowhere, so use it for a name or a flag, never a secret). `--vendor-names` writes a token under the vendor's own name (`SENTRY_AUTH_TOKEN`, `VERCEL_TOKEN`, `CLOUDFLARE_API_TOKEN`) instead of the Holocron one, which is what a workflow reads. Import the file and every variable the environment needs exists: the ones the keyring had are filled, the rest are empty, ready to be filled in.
+
+```bash
+holocron auth export --blank --vendor-names --file \
+  --only HOLOCRON_ADMIN_TOKEN --only HOLOCRON_ORG_TOKEN --only HOLOCRON_READ_TOKEN --only VERCEL_TOKEN \
+  --only HOLOCRON_RELEASE_TOKEN --only SENTINEL_OP_SERVICE_ACCOUNT_TOKEN   # and so on
+holocron auth export --file --only ENVIRONMENT=prod                        # a setting for the Sentinel environment
+```
+
+A name that no plugin configured in this directory lists is written empty with `--blank`, even when the keyring has a value under it: run it from a directory whose `holocron.config` has the plugins (the repo root has most).
+
 The names are the ones the plugins list for `doctor tokens` and `doctor credentials`, so they are the names the Environment is expected to hold, except the ones a plugin marks optional because it only falls back to them (marked `(optional)` in the list, and not expected by `doctor credentials`). Each value comes from the OS keyring. A name listed by two plugins is written once.
 
 ```text
