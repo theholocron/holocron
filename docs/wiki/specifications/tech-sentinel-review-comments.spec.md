@@ -99,8 +99,9 @@ so this repo's own PRs hit exactly the "surface a mechanical fix as a
 finding" problem this spec set out to fix, for a tool that could have
 already fixed it outright.
 **Resolved in `#864`**: `autoFix` flips from opt-in to default-on
-(opt-out via an explicit `{ with: { autoFix: false } }`), verified against
-all three main repos' rulesets first (`dismiss_stale_reviews_on_push:
+(opt-out via an explicit `{ name: "format", with: { autoFix: false } }`; the alias `sourceQuality.formatting` still reads, `format` winning when both are present, `#1697`), verified against <!-- holocron-allow-old-name -->
+ <!-- holocron-allow-old-name -->all three main repos' rulesets first (`dismiss_stale_reviews_on_push:
+
 false`, `required_approving_review_count: 0` — no fallout from a bot
 pushing a commit). Once a repo is on the default, prettier findings on its
 PRs mostly stop existing rather than needing a better way to display them.

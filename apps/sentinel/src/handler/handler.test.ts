@@ -1488,7 +1488,7 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		return {
 			status: "valid" as const,
 			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+			config: { tasks: [{ name: "format", with: { autoFix } }] },
 		};
 	}
 
@@ -1556,12 +1556,38 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		expect(body.formattingFixResult).toBeUndefined();
 	});
 
+	it("honours the deprecated alias `sourceQuality.formatting` for the opt-out, merged and PR-branch (holocron#1697)", async () => {
+		const aliased = {
+			status: "valid" as const,
+			filepath: "x",
+			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix: false } }] },
+		};
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+
+		// merged config opts out through the alias; the PR branch declares nothing
+		vi.mocked(validateConfig).mockImplementation(async (input) =>
+			input.ref === "pr-head-sha"
+				? { status: "valid", filepath: "x", config: { tasks: [{ name: "format" }] } }
+				: aliased
+		);
+		await handleWebhookRequest(req(), ENV);
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+
+		// PR branch opts out through the alias; the merged config declares nothing
+		vi.mocked(validateConfig).mockImplementation(async (input) =>
+			input.ref === "pr-head-sha" ? aliased : { status: "valid", filepath: "x", config: { tasks: [] } }
+		);
+		await handleWebhookRequest(req(), ENV);
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+	});
+
 	it("commits by default when neither the merged nor the PR's own branch config declares autoFix at all (holocron#860)", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
 		vi.mocked(validateConfig).mockResolvedValue({
 			status: "valid",
 			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting" }] },
+			config: { tasks: [{ name: "format" }] },
 		});
 		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
 		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
@@ -1578,7 +1604,7 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		vi.mocked(validateConfig).mockImplementation(async (input) =>
 			input.ref === "pr-head-sha"
 				? configWithAutoFix(false)
-				: { status: "valid", filepath: "x", config: { tasks: [{ name: "sourceQuality.formatting" }] } }
+				: { status: "valid", filepath: "x", config: { tasks: [{ name: "format" }] } }
 		);
 		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
 
@@ -1656,7 +1682,7 @@ describe("handler — editorconfig auto-fix-commit pipeline", () => {
 	// autoFixOptedIn's own opt-in/opt-out resolution is one gate shared by
 	// both formatting's and editorconfig's auto-fix-commit -- every edge
 	// case of that resolution is already covered by the formatting pipeline
-	// suite above (same code path, same `sourceQuality.formatting` task
+	// suite above (same code path, same `format` task
 	// name). These tests only cover editorconfig's own invocation once
 	// opted in, not the gate logic a second time.
 	function prEvent() {
@@ -1682,7 +1708,7 @@ describe("handler — editorconfig auto-fix-commit pipeline", () => {
 		return {
 			status: "valid" as const,
 			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+			config: { tasks: [{ name: "format", with: { autoFix } }] },
 		};
 	}
 
@@ -1777,7 +1803,7 @@ describe("handler — markdownlint auto-fix-commit pipeline", () => {
 	// formatting's, editorconfig's, and markdownlint's auto-fix-commit --
 	// every edge case of that resolution is already covered by the
 	// formatting pipeline suite above (same code path, same
-	// `sourceQuality.formatting` task name). These tests only cover
+	// `format` task name). These tests only cover
 	// markdownlint's own invocation once opted in, not the gate logic
 	// again.
 	function prEvent() {
@@ -1812,7 +1838,7 @@ describe("handler — markdownlint auto-fix-commit pipeline", () => {
 		return {
 			status: "valid" as const,
 			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+			config: { tasks: [{ name: "format", with: { autoFix } }] },
 		};
 	}
 
@@ -1939,7 +1965,7 @@ describe("handler — auto-fix PR comment (holocron#674/#834)", () => {
 		return {
 			status: "valid" as const,
 			filepath: "x",
-			config: { tasks: [{ name: "sourceQuality.formatting", with: { autoFix } }] },
+			config: { tasks: [{ name: "format", with: { autoFix } }] },
 		};
 	}
 

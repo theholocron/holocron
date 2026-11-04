@@ -126,13 +126,16 @@
  *   check above being config-free — writing to repo content is
  *   qualitatively different from reading and reporting. All three actions
  *   share one gate and one opt-out, since all three checks are already
- *   bundled under the same `sourceQuality.formatting` task (astromech's
- *   registry `linterGroup`: prettier, editorconfig, markdownlint) — there's
+ *   bundled under the same `format` task (astromech's registry
+ *   `linterGroup`: prettier, editorconfig, markdownlint) — there's
  *   no separate `autoFix` flag to track per sub-check. Default-on
  *   (holocron#864 follow-up: every fix is mechanical and deterministic,
  *   so there's no human judgment call for a finding to surface in the
- *   first place); opt out via `{ name: "sourceQuality.formatting", with: {
- *   autoFix: false } }` in `holocron.config.ts`'s `tasks` array. Reuses PR
+ *   first place); opt out via `{ name: "format", with: { autoFix: false } }`
+ *   in `holocron.config.ts`'s `tasks` array (the deprecated alias
+ *   `sourceQuality.formatting` still works; `readAutoFix` resolves both
+ *   through astromech's `resolveTaskName`, the flat id winning when both
+ *   are present). Reuses PR
  *   Config Validation's own PR-branch read above — the PR's own branch
  *   gets the final say when it declares an explicit value (letting a PR
  *   opt itself in or out before that same config change merges to main);
@@ -229,6 +232,7 @@ import {
 } from "../actions/index.js";
 import {
 	parseWebhookEvent,
+	readAutoFix,
 	resolveAxiomConfig,
 	SENTINEL_ACTIONLINT_LOG_MSG,
 	SENTINEL_ADRS_LOG_MSG,
@@ -921,7 +925,8 @@ async function handle(request: Request, env: Env): Promise<Response> {
 
 	// Auto-fix-commit (holocron#820) -- default-on (holocron#864 follow-up),
 	// opt-out either via the repo's merged `with: { autoFix: false }` on the
-	// sourceQuality.formatting task, or via that same flag freshly added in
+	// `format` task (or its deprecated alias `sourceQuality.formatting`, see
+	// readAutoFix), or via that same flag freshly added in
 	// the PR's own branch (reusing PR Config Validation's own PR-branch read
 	// above, holocron#827 -- no second fetch). The PR's own branch has the
 	// final say when it declares an explicit value (letting a PR opt itself
@@ -937,17 +942,12 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// from reading and reporting. One flag gates both actions below --
 	// editorconfig is already bundled under this same task's `linterGroup`
 	// (astromech's registry), so there's no separate knob to track.
-	const formattingTask = normalizedTasks.find((t) => t.name === "sourceQuality.formatting");
-	const mergedAutoFix = formattingTask?.with?.["autoFix"];
-	let prAutoFix: unknown;
-	if (prConfigResult?.status === "valid") {
-		const prFormattingTask = (prConfigResult.config.tasks ?? [])
-			.map(normalizeTaskEntry)
-			.find((t) => t.name === "sourceQuality.formatting");
-		prAutoFix = prFormattingTask?.with?.["autoFix"];
-	}
-	const autoFixOptedIn =
-		typeof prAutoFix === "boolean" ? prAutoFix : typeof mergedAutoFix === "boolean" ? mergedAutoFix : true;
+	const mergedAutoFix = readAutoFix(normalizedTasks);
+	const prAutoFix =
+		prConfigResult?.status === "valid"
+			? readAutoFix((prConfigResult.config.tasks ?? []).map(normalizeTaskEntry))
+			: undefined;
+	const autoFixOptedIn = prAutoFix ?? mergedAutoFix ?? true;
 
 	// Formatting's own commit + explanatory PR comment. Only fires when: not
 	// opted out, lintFormatting actually ran and found something to fix, and

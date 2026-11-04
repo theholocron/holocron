@@ -220,11 +220,12 @@ commit message; advisory, `neutral` at worst, never `failure`, and re-run
 when the PR title or description is edited; see `src/actions/repo-validation/`) — the Bucket 2
 dispatch prototype, the auto-fix-commit
 capability (holocron#820, one shared `with: { autoFix: boolean }` gate on
-the `sourceQuality.formatting` task backing three independent commit <!-- holocron-allow-old-name -->
+the `format` task backing three independent commit
 actions — `commitFormattingFix`, `commitEditorConfigFix`,
 `commitMarkdownLintFix` — since all three checks are bundled under that
-same task; default-on (holocron#864 follow-up), opt out via the repo's
-merged config or fresh in a PR's own branch, either way), and the
+same task (`format`, or its alias `sourceQuality.formatting`); default-on (holocron#864 follow-up), opt out via the repo's <!-- holocron-allow-old-name -->
+ <!-- holocron-allow-old-name -->merged config or fresh in a PR's own branch, either way), and the
+
 advisory PR Config Validation check (holocron#827 — posted as `Platform
 / Compliance / Run Holocron config compatibility (pull_request)`, a
 "(pull_request)" suffix on the same concept, not a distinct name;
@@ -462,8 +463,9 @@ in the App's own settings page (Settings → Developer settings → GitHub Apps
 → Holocron Sentinel → Permissions & events), then accept the updated
 permissions for the `theholocron` installation. Auto-fix-commit is
 default-on (holocron#864) — opt out via `with: { autoFix: false }` on
-`sourceQuality.formatting`, merged to the repo's default branch or added <!-- holocron-allow-old-name -->
-fresh in a PR's own branch (see `handleWebhookRequest`'s own docstring in
+the `format` task (`{ name: "format", with: { autoFix: false } }`; the deprecated alias
+`sourceQuality.formatting` still works, and `format` wins when both are present, holocron#1697), <!-- holocron-allow-old-name -->
+merged to the repo's default branch or added fresh in a PR's own branch (see `handleWebhookRequest`'s own docstring in
 `src/handler/handler.ts`, and `validate-config.ts`'s module docstring for the
 read-only boundary that makes a PR-branch read safe).
 
