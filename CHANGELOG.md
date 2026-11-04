@@ -1,3 +1,13 @@
+## [5.0.0-alpha.321](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.320...v5.0.0-alpha.321) (2026-11-04)
+
+### Features
+
+* **cli:** 📋 add auth export --only to get one token out of the keyring ([#1681](https://github.com/theholocron/holocron/issues/1681)) ([#1682](https://github.com/theholocron/holocron/issues/1682)) ([efe669f](https://github.com/theholocron/holocron/commit/efe669fd51c097bad8d434d173bebf6c81dddcc2))
+
+### Refactoring
+
+* **astromech:** ✂️ split repoValidation into validate:specs and validate:docs ([#1676](https://github.com/theholocron/holocron/issues/1676)) ([e820ba9](https://github.com/theholocron/holocron/commit/e820ba95dc67ecf1f427ac64297a60c76fb9bdd7)), closes [#1622](https://github.com/theholocron/holocron/issues/1622)
+
 ## [5.0.0-alpha.320](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.319...v5.0.0-alpha.320) (2026-11-03)
 
 ### Features
