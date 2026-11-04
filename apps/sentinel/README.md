@@ -611,7 +611,7 @@ from the process, or else from the Environment named by `SENTINEL_DEV_ENVIRONMEN
 `op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
 header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
 and `AXIOM_DATASET`; give the dev instance its own dataset (and ingest token) so it does not write into production's, or
-leave both out. It says which it is on start. Install the dev App only on the repositories you test with.
+leave both out. It says which it is on start. `holocron dev` sets `ENVIRONMENT=dev`, so every line carries `env: "dev"` and one dataset can hold dev and production (`where env == "dev"`); production sets `ENVIRONMENT=prod` in the `Sentinel` Environment. Install the dev App only on the repositories you test with.
 
 ## Development
 

@@ -17,6 +17,7 @@ export {
 	generateRunId,
 	isCI,
 	isTelemetryDisabled,
+	parseLogEnv,
 	parseLogLevel,
 	resolveAxiomFromEnv,
 	resolveLevel,

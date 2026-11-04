@@ -84,6 +84,10 @@ function setup(over: { vault?: Record<string, unknown> | null; tunnels?: Record<
 	};
 }
 
+/** The environment the application was started with, from the first call to a faked `runProcesses`. */
+const appEnv = (runProcesses: ReturnType<typeof vi.fn>): Record<string, string> =>
+	(runProcesses.mock.calls as unknown as Array<[{ app: { env: Record<string, string> } }]>)[0]![0].app.env;
+
 beforeEach(() => vi.clearAllMocks());
 
 describe("runDev", () => {
@@ -105,7 +109,7 @@ describe("runDev", () => {
 			app: {
 				command: "pnpm",
 				args: ["run", "serve"],
-				env: { GITHUB_APP_ID: "7", GITHUB_APP_PRIVATE_KEY: VALUE, PORT: "3000" },
+				env: { ENVIRONMENT: "dev", GITHUB_APP_ID: "7", GITHUB_APP_PRIVATE_KEY: VALUE, PORT: "3000" },
 			},
 			connector: {
 				command: "cloudflared",
@@ -129,8 +133,18 @@ describe("runDev", () => {
 		const { base, runProcesses } = setup({ vault: { readEnvironment: vi.fn(async () => ({ PORT: "9999" })) } });
 		await runDev({ ...base, port: 4000 });
 		expect(runProcesses).toHaveBeenCalledWith(
-			expect.objectContaining({ app: expect.objectContaining({ env: { PORT: "4000" } }) })
+			expect.objectContaining({ app: expect.objectContaining({ env: { ENVIRONMENT: "dev", PORT: "4000" } }) })
 		);
+	});
+
+	it("tags the application as dev for its logger, unless the vault says otherwise", async () => {
+		const plain = setup();
+		await runDev(plain.base);
+		expect(appEnv(plain.runProcesses)["ENVIRONMENT"]).toBe("dev");
+
+		const staged = setup({ vault: { readEnvironment: vi.fn(async () => ({ ENVIRONMENT: "stage" })) } });
+		await runDev(staged.base);
+		expect(appEnv(staged.runProcesses)["ENVIRONMENT"]).toBe("stage");
 	});
 
 	it("fails when the application ends with an error", async () => {

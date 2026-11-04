@@ -39,6 +39,8 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	assertPluginsResolvable(loader, COMMAND);
 
 	const dryRun = input.context.dryRun ?? false;
+	// ENVIRONMENT is what the application's logger tags its lines with (`env`), so a dev instance is told apart from
+	// production in one Axiom dataset. The vault can say otherwise; the port is the tunnel's, so it cannot.
 	const [program, ...args] = input.command;
 	const shown = input.command.join(" ");
 	print(style.header(`Holocron dev — ${input.hostname}${dryRun ? " (dry-run)" : ""}`));
@@ -102,7 +104,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	let exitCode: number;
 	try {
 		({ exitCode } = await (input.runProcesses ?? runDevProcesses)({
-			app: { command: program as string, args, env: { ...values, PORT: String(input.port) } },
+			app: { command: program as string, args, env: { ENVIRONMENT: "dev", ...values, PORT: String(input.port) } },
 			connector: {
 				command: "cloudflared",
 				args: ["tunnel", "--no-autoupdate", "run"],
