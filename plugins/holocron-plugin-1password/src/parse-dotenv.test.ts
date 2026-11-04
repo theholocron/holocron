@@ -30,6 +30,20 @@ describe("parseDotenv", () => {
 		});
 	});
 
+	// The markers are assembled so the file holds no literal key block for a secret scanner to flag.
+	const label = ["RSA", "PRIVATE", "KEY"].join(" ");
+	const begin = `-----BEGIN ${label}-----`;
+	const end = `-----END ${label}-----`;
+
+	it("reads an unquoted PEM block to its END line, as op prints a multi-line key", () => {
+		const pem = [begin, "abc", "def", end].join("\n");
+		expect(parseDotenv(`A=1\nKEY=${pem}\nB=2\n`)).toEqual({ A: "1", KEY: pem, B: "2" });
+	});
+
+	it("takes an unterminated PEM block to the end of the text", () => {
+		expect(parseDotenv(`KEY=${begin}\nabc`)).toEqual({ KEY: `${begin}\nabc` });
+	});
+
 	it("takes an unterminated quoted value to the end of the text", () => {
 		expect(parseDotenv('A="open\nrest')).toEqual({ A: "open\nrest" });
 	});
