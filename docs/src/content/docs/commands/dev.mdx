@@ -4,7 +4,8 @@ description: Run an application locally behind its development tunnel, with its 
 ---
 
 ```bash
-holocron dev --environment "Sentinel - dev" --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 -- pnpm run serve
+holocron dev
+holocron dev --hostname other-dev.theholocron.dev -- node app.js
 ```
 
 For an application that has to receive webhooks while you work on it. It does, in one terminal:
@@ -17,12 +18,27 @@ Output from both goes to the terminal. When either ends the other is stopped, an
 
 `--dry-run` sets up and reads nothing: it runs the tunnel step as a dry run and says what it would read and run.
 
-| Option          | Default      | What it does                                                          |
-| --------------- | ------------ | --------------------------------------------------------------------- |
-| `--environment` | _(required)_ | The vault environment whose variables the application runs with.      |
-| `--name`        | _(required)_ | The tunnel's name.                                                    |
-| `--hostname`    | _(required)_ | The public hostname the tunnel serves.                                |
-| `--port`        | `3000`       | The port the application listens on and the tunnel sends requests to. |
-| `-- <command>`  | _(required)_ | The application's command and arguments.                              |
+Everything it needs is the `dev` block of the directory's `holocron.config.ts`, so the hostname and the rest live in one committed place:
 
-It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is this command; see the [Sentinel page](/holocron/sentinel/).
+```ts
+dev: {
+  environment: "Sentinel - dev",
+  tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
+  port: 3000,
+  command: ["pnpm", "run", "serve"],
+},
+```
+
+A flag wins over the config, and a command after `--` wins over `dev.command`. A missing value is named in one message, with both places it could be given.
+
+| Option          | Config            | What it does                                                                        |
+| --------------- | ----------------- | ----------------------------------------------------------------------------------- |
+| `--environment` | `environment`     | The vault environment whose variables the application runs with.                    |
+| `--name`        | `tunnel.name`     | The tunnel's name.                                                                  |
+| `--hostname`    | `tunnel.hostname` | The public hostname the tunnel serves.                                              |
+| `--port`        | `port`            | The port the application listens on and the tunnel sends requests to. Default 3000. |
+| `-- <command>`  | `command`         | The application's command and arguments.                                            |
+
+The hostname must sit one level under a zone the DNS provider manages (`sentinel-dev.theholocron.dev`, not `dev.sentinel.theholocron.dev`): Cloudflare's free certificate covers the zone and `*.zone`, and a proxied name two levels down would fail the TLS handshake.
+
+It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is just `holocron dev`, with its settings in `apps/sentinel/holocron.config.ts`; see the [Sentinel page](/holocron/sentinel/).

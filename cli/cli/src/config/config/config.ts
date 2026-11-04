@@ -8,6 +8,7 @@ import {
 } from "../../plugin/capabilities/index.js";
 import type {
 	CredentialsConfig,
+	DevConfig,
 	HolocronConfig,
 	ProviderOptions,
 	RawProviderEntry,
@@ -111,6 +112,34 @@ export function resolveEntry(key: CapabilityKey, raw: RawProviderEntry): Resolve
 	return { cardinality: "many", tuples };
 }
 
+/** A DNS hostname of at least two labels: no scheme, port, path or space. */
+const HOSTNAME = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+
+/** Throws a {@link ConfigError} naming the first thing wrong with the `dev` block. */
+function validateDev(dev: DevConfig): void {
+	const nonEmpty = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
+	if (dev.environment !== undefined && !nonEmpty(dev.environment)) {
+		throw new ConfigError("`dev.environment` must be the name of a vault environment, got an empty value");
+	}
+	if (dev.tunnel !== undefined) {
+		if (!nonEmpty(dev.tunnel.name)) throw new ConfigError("`dev.tunnel.name` must be a name, got an empty value");
+		if (typeof dev.tunnel.hostname !== "string" || !HOSTNAME.test(dev.tunnel.hostname)) {
+			throw new ConfigError(
+				`\`dev.tunnel.hostname\` must be a hostname such as sentinel-dev.example.dev (no scheme or path), got ${JSON.stringify(dev.tunnel.hostname)}`
+			);
+		}
+	}
+	if (dev.port !== undefined && !(Number.isInteger(dev.port) && dev.port >= 1 && dev.port <= 65535)) {
+		throw new ConfigError(`\`dev.port\` must be a port from 1 to 65535, got ${JSON.stringify(dev.port)}`);
+	}
+	if (
+		dev.command !== undefined &&
+		!(Array.isArray(dev.command) && dev.command.length > 0 && dev.command.every(nonEmpty))
+	) {
+		throw new ConfigError('`dev.command` must be the program and its arguments, e.g. ["pnpm", "run", "serve"]');
+	}
+}
+
 /** The values `repoValidation.docsCoverage` accepts. */
 const DOCS_COVERAGE_MODES: readonly string[] = ["off", "warn", "required"];
 
@@ -170,6 +199,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 			throw new ConfigError("`credentials.environment` must be the name of an environment, got an empty value");
 		}
 	}
+	if (raw.dev !== undefined) validateDev(raw.dev);
 	const credentialsEntry = providers.credentials;
 	if (credentialsEntry?.cardinality === "many") {
 		for (const tuple of credentialsEntry.tuples) {
@@ -211,6 +241,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		docs,
 		env: raw.env,
 		credentials: raw.credentials,
+		dev: raw.dev,
 		log: raw.log,
 		telemetry: raw.telemetry,
 		eslint: raw.eslint,

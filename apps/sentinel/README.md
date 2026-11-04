@@ -599,7 +599,7 @@ holocron github-app create --cwd apps/sentinel --org theholocron \
 pnpm --filter @theholocron/sentinel dev
 ```
 
-`pnpm dev` is [`holocron dev`](/holocron/commands/dev/): it sets up the named tunnel and its DNS record the way
+`pnpm dev` is [`holocron dev`](/holocron/commands/dev/), configured by the `dev` block of this directory's `holocron.config.ts` (the Environment, the tunnel's name and hostname, the port and the command, so the hostname is set in one place): it sets up the named tunnel and its DNS record the way
 `holocron tunnel up` does (nothing changes when they are already right), reads the variables of `Sentinel - dev` in
 memory, and runs `pnpm run serve` beside `cloudflared` with those variables and `PORT` in the application's
 environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:

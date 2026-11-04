@@ -148,6 +148,14 @@ export default defineConfig({
 		// same root cause).
 		{ name: "deploy-preview", with: { cwd: "apps/sentinel" } },
 	],
+	// `holocron dev` (and `pnpm dev`): the development instance runs locally behind a named tunnel. The hostname is one
+	// level under the zone because Cloudflare's free certificate covers `*.theholocron.dev` and no deeper name.
+	dev: {
+		environment: "Sentinel - dev",
+		tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
+		port: 3000,
+		command: ["pnpm", "run", "serve"],
+	},
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",

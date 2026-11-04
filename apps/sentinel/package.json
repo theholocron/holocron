@@ -34,7 +34,7 @@
   "scripts": {
     "build": "tsdown",
     "deploy": "pnpm run build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
-    "dev": "holocron dev --environment \"Sentinel - dev\" --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 -- pnpm run serve",
+    "dev": "holocron dev",
     "serve": "tsx scripts/serve.ts",
     "deploy-preview": "pnpm run build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel",
     "lint:code": "eslint .",

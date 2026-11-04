@@ -258,6 +258,26 @@ export interface CredentialsConfig {
 	environment: string;
 }
 
+/** The `dev` block: how `holocron dev` runs this directory's application locally behind a development tunnel. */
+export interface DevConfig {
+	/**
+	 * The vault environment whose variables the application runs with, e.g. `"Sentinel - dev"`. A name, not a
+	 * secret, so it is committed.
+	 */
+	environment?: string;
+	/** The named tunnel to the application: its name, and the public hostname it serves (not a secret). */
+	tunnel?: {
+		/** The tunnel's name. A second run finds the first one's tunnel by it. */
+		name: string;
+		/** The public hostname, e.g. `sentinel-dev.theholocron.dev`. One level under a zone the DNS provider manages. */
+		hostname: string;
+	};
+	/** The port the application listens on, and the tunnel sends requests to. Defaults to 3000. */
+	port?: number;
+	/** The application's command and arguments, e.g. `["pnpm", "run", "serve"]`. */
+	command?: string[];
+}
+
 /** The `env` block: how the project's environment variables are named and documented. */
 export interface EnvConfig {
 	/**
@@ -600,6 +620,15 @@ export interface HolocronConfig {
 	 */
 	credentials?: CredentialsConfig;
 	/**
+	 * How `holocron dev` runs this directory's application locally behind a development tunnel: the vault
+	 * environment its variables come from, the tunnel's name and hostname, the port and the command. Every field is
+	 * optional here and can be given as a flag instead (a flag wins); `holocron dev` says which one is missing.
+	 *
+	 * @example
+	 * { environment: "Sentinel - dev", tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" } }
+	 */
+	dev?: DevConfig;
+	/**
 	 * Structured-logging config. Only the level belongs here — Axiom
 	 * credentials come from env vars, never a committed file.
 	 *
@@ -707,6 +736,8 @@ export interface ResolvedHolocronConfig {
 	env?: EnvConfig;
 	/** The environment the `credentials` providers read, validated by `resolveConfig`. */
 	credentials?: CredentialsConfig;
+	/** How `holocron dev` runs the application, validated by `resolveConfig`. */
+	dev?: DevConfig;
 	/** Logging settings. */
 	log?: LogConfig;
 	/** Telemetry settings. */
