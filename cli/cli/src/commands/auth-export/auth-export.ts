@@ -12,7 +12,6 @@
  * refused, because it would leave plaintext tokens on disk without any of those protections.
  */
 
-import { closeSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 import { errorMessage } from "@theholocron/misc-utils";
@@ -24,28 +23,21 @@ import {
 	getToken,
 	isGitIgnored,
 	isKeyringAvailable,
-	shredFile,
 	writeCredentialsFile,
 } from "../../auth/index.js";
 import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
-import { style, waitForEnter } from "../../ui/index.js";
+import { style } from "../../ui/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
+import { finishCredentialsFile } from "../finish-credentials-file/index.js";
 import type { AuthExportReport, RunAuthExportInput } from "./auth-export.type.js";
 
 const COMMAND = "auth export";
 
 /** Plain code-unit order: the same on every machine, whatever its locale. The names it sorts are all different. */
 const compare = (a: string, b: string): number => (a < b ? -1 : 1);
-
-/** Signals that end the wait for the import, with the exit status each is conventionally reported as. */
-const INTERRUPTS = [
-	["SIGINT", 130],
-	["SIGTERM", 143],
-	["SIGHUP", 129],
-] as const;
 
 /** The file the lines go to on a terminal when none is named. */
 const DEFAULT_FILE = ".credentials";
@@ -61,50 +53,19 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 
 	// Once the lines are in the file, say what to do with it and, on a terminal, delete it when the import is done.
 	// Returns whether the file is gone (or was left on purpose): `false` means plaintext tokens are still on disk.
-	const finishFile = async (path: string, identity: FileIdentity): Promise<boolean> => {
-		print(`wrote ${path} (readable only by you)`);
-		print("import it in the 1Password app: Developer, View Environments, the Environment, Import .env file");
-		if (input.keep || !input.interactive) {
-			// The file stays, so the descriptor held for its cleanup is no longer needed.
-			closeSync(identity.fd);
-			print(`it holds your tokens in plain text: delete it when you are done: ${path}`);
-			return true;
-		}
-		// Reports what happened to the file honestly: "deleted" only when it was, and what to do when it was not.
-		const cleanup = (): boolean => {
-			try {
-				const outcome = (input.shred ?? shredFile)(path, identity);
-				if (outcome === "deleted") print(`deleted ${path}`);
-				else if (outcome === "missing") print(`${path} was already gone`);
-				else print(`left ${path} alone: it is no longer the file this command wrote`);
-				return true;
-			} catch (err) {
-				print(`could not delete ${path}: ${errorMessage(err)}`);
-				print(`it holds your tokens in plain text: delete it yourself: ${path}`);
-				return false;
-			}
-		};
-		// Ctrl-C, a terminated process and a closed terminal must not leave the file behind.
-		const handlers = INTERRUPTS.map(([signal, code]) => {
-			const handler = () => {
-				cleanup();
-				process.exit(code);
-			};
-			process.once(signal, handler);
-			return [signal, handler] as const;
+	const finishFile = (path: string, identity: FileIdentity): Promise<boolean> =>
+		finishCredentialsFile({
+			path,
+			identity,
+			print,
+			holds: "your tokens",
+			importHint:
+				"import it in the 1Password app: Developer, View Environments, the Environment, Import .env file",
+			keep: input.keep,
+			interactive: input.interactive,
+			shred: input.shred,
+			waitForImport: input.waitForImport,
 		});
-		let cleaned: boolean;
-		try {
-			await (input.waitForImport ?? waitForEnter)(
-				"press Enter when the import is done and the file will be deleted: "
-			);
-		} finally {
-			for (const [signal, handler] of handlers) process.off(signal, handler);
-			// Also when the wait threw: the file must not outlive the command.
-			cleaned = cleanup();
-		}
-		return cleaned;
-	};
 
 	if (!input.to && input.outKind === "other") {
 		return refuse(

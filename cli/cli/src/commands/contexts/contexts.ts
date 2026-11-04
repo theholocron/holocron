@@ -22,6 +22,8 @@ export const COMMAND_CONTEXTS = {
 	"auth list": "global",
 	// `auth export` asks the configured plugins for the tokens they take, so their packages must be resolvable.
 	"auth export": "workspace",
+	// `github-app create` talks to GitHub through the browser and a one-shot local server: no plugin is involved.
+	"github-app create": "global",
 	// `auth check` loads a plugin to verify, but degrades to "token present,
 	// verification skipped" when the plugin isn't resolvable — so it's usable
 	// from a global install. See `runAuthCheck`.

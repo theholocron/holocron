@@ -19,6 +19,7 @@ import { doctorRepoEntry } from "../../commands/doctor-repo/doctor-repo.entry.js
 import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets.entry.js";
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
+import { githubAppCreateEntry } from "../../commands/github-app-create/github-app-create.entry.js";
 import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring-check.entry.js";
 import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
@@ -107,6 +108,7 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	authCheckEntry,
 	authListEntry,
 	authExportEntry,
+	githubAppCreateEntry,
 ];
 
 /** Look up a {@link CommandEntry} by its full name — for Layer 3 call sites in `cli.ts`. */

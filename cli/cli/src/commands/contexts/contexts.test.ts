@@ -17,6 +17,7 @@ const EVERY_COMMAND = [
 	"auth unset",
 	"auth list",
 	"auth export",
+	"github-app create",
 	"auth check",
 	"package bump-versions",
 	"package move-tag",

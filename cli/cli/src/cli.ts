@@ -10,6 +10,7 @@ import { configShowCommand } from "./commands/config-show/index.js";
 import { commandsInContext } from "./commands/contexts/index.js";
 import { deployCommand } from "./commands/deploy/deploy.command.js";
 import { doctorCommand } from "./commands/doctor/index.js";
+import { githubAppCommand } from "./commands/github-app/index.js";
 import { menuCommand } from "./commands/menu/menu.command.js";
 import { monitoringCommand } from "./commands/monitoring/monitoring.command.js";
 import { newCommand } from "./commands/new/new.command.js";
@@ -133,6 +134,7 @@ try {
 		.command(probeCommand as never)
 		.command(secretsCommand as never)
 		.command(notificationsCommand as never)
+		.command(githubAppCommand as never)
 		.command(specsCommand as never)
 		.command(syncCommand as never)
 		.command(packageCommand as never)
