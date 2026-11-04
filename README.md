@@ -212,16 +212,7 @@ cd holocron
 ./.humans/setup.sh --check   # change nothing, report what is missing
 ```
 
-It runs these steps and stops with a list if one fails:
-
-1. Installs the tools in [`.humans/Brewfile`](.humans/Brewfile) that are not already on your `PATH` (`cloudflared`, 1Password's `op`, `gh`, and the `actionlint`, `gitleaks`, `yamllint` and `editorconfig-checker` linters behind `holocron run ci`). Homebrew itself you install from <https://brew.sh>; off macOS it prints the list instead.
-2. Checks Node against the strictest `engines.node` in the workspace, and turns pnpm on through corepack.
-3. Checks your git identity (`git commit -s` signs off with it).
-4. Runs `pnpm install` and `pnpm build`, which makes the `holocron` CLI exist (`pnpm exec holocron --help`).
-
-Two things need you: turn on the 1Password CLI integration (1Password app, Settings, Developer, "Integrate with 1Password CLI") and run `gh auth login`. The script reports whether each is done. Then `pnpm exec holocron doctor` checks the rest.
-
-Add a tool the repo needs to `.humans/Brewfile` (one line, plus `# bin: <command>` when the command is not the package name), and the script picks it up.
+What it installs and checks, and why, is in [`.humans/README.md`](.humans/README.md).
 
 ## Self-hosting
 
