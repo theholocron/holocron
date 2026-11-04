@@ -41,7 +41,7 @@ Three suites exist, declared in the registry by their leaves: `test`, `lint` and
 The old dotted names (`test:unit`, `lint:code`, `release`, …) still work and
 print a one-line deprecation notice on stderr, in CI too; the reusable workflows synced to `theholocron/.github` still
 call them. A name that stood for several checks runs each of its successors in order
-(`sourceQuality.formatting` is `lint:editorconfig`, `lint:markdown` and `format --check`), and an old group name
+(`sourceQuality.formatting` is `lint:editorconfig`, `lint:markdown` and `format --check`), and an old group name {/* holocron-allow-old-name */}
 (`sourceQuality`) runs the configured tasks that were under it.
 
 ## How a task resolves
@@ -76,7 +76,7 @@ script for a task wins over the built-in runner.
 | `validate`       | the leaves the repo lists      |
 
 `holocron run validate:specs -- <files>` checks only those files. The old names `validate` (in a `tasks:` list) and
-`platform.repoValidation` stand for both leaves. A third leaf, `validate:plugin`, is the plugin packages' own live check
+`platform.repoValidation` stand for both leaves. A third leaf, `validate:plugin`, is the plugin packages' own live check {/* holocron-allow-old-name */}
 (`tsx scripts/validate.mjs`); it has no workflow and is not part of `holocron run ci`.
 
 ## `linterGroup` tasks

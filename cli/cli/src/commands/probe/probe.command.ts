@@ -15,6 +15,12 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 		if (!tokens) return;
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
+		// The `tasks names` flags travel with the probe's arguments, which is all a probe sees.
+		const args = [
+			...(argv.args ?? []).map(String),
+			...(argv.warn ? ["--warn"] : []),
+			...(argv.files ? ["--files"] : []),
+		];
 		const report = await runProbeCommand({
 			loaded,
 			context: {
@@ -25,7 +31,7 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 			},
 			...(argv.provider ? { provider: argv.provider } : {}),
 			...(argv.probe ? { probe: argv.probe } : {}),
-			...(argv.args?.length ? { args: argv.args.map(String) } : {}),
+			...(args.length ? { args } : {}),
 			...(argv.lcov ? { lcov: argv.lcov } : {}),
 			dryRun: argv.dryRun,
 			yes: argv.yes,

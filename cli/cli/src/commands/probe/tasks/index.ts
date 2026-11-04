@@ -1,7 +1,10 @@
+export * from "./allow-marker.js";
 export * from "./find-leftovers.js";
+export * from "./find-reserved.js";
 export * from "./is-generated.js";
 export * from "./is-scanned.js";
-export * from "./legacy-task-names.js";
+export * from "./legacy-replacements.js";
 export * from "./real-tasks-io.js";
+export * from "./script-keys.js";
 export type * from "./tasks.type.js";
 export * from "./tasks-probes.js";

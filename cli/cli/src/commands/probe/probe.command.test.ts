@@ -82,6 +82,13 @@ describe("probe command", () => {
 		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["vitest", "2"] });
 	});
 
+	it("passes --warn and --files on among the arguments", async () => {
+		await run({ provider: "tasks", probe: "names", warn: true, files: true });
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["--warn", "--files"] });
+		await run({ provider: "tasks", probe: "names" });
+		expect("args" in runProbeCommand.mock.calls[1]![0]).toBe(false);
+	});
+
 	it("passes --lcov on, and leaves it out when not given", async () => {
 		await run({ provider: "docs", probe: "patch", lcov: "coverage/docs.lcov" });
 		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ lcov: "coverage/docs.lcov" });

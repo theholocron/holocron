@@ -396,7 +396,7 @@ every sub-job in declared order. A sub-job whose tool isn't installed, or that h
 a note — `--required` makes that a failure. For a task with no sub-jobs the `job` slot is the first passthrough arg
 (`holocron run build src/`). `holocron run format` writes (prettier), `holocron run format --check` is read-only.
 `holocron run --help` lists the tasks grouped under the six intent groups. The old dotted names
-(`test:unit`, `sourceQuality.formatting`, …) still work and print a deprecation notice on stderr.
+(`test:unit`, `sourceQuality.formatting`, …) still work and print a deprecation notice on stderr. <!-- holocron-allow-old-name -->
 
 **CI runs the identical command.** The reusable `typecheck` / `test` / `audit`
 workflows call the `holocron` composite action

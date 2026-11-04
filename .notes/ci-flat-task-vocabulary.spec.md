@@ -892,6 +892,27 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
 - **This repo.** `syncScripts` is on with `holocronScript: "node cli/cli/dist/cli.mjs"`, which also changes the generated
   `.husky/commit-msg` and `.husky/pre-push` to call it instead of `pnpm exec holocron`.
 
+### Phase D as built (#1618, #1635; follow-up in this PR)
+
+- **`holocron probe tasks names`** reads `LEGACY_NAMES` through `legacyReplacements()` (no table of its own). The
+  replacement text is the successors in run order, the read-only prettier half last: `lint:editorconfig, lint:markdown
+(format for prettier)`. The hand-written workflows (`sourceQuality.dependencyCatalogs`, `platform.notifications`,
+  `sentinel.deploy`, ...) are not in `LEGACY_NAMES`, so they are no longer reported as names; they only occur as file
+  names, which are skipped anyway.
+- **What it finds:** a dotted old name as a whole token; a bare old name (`review`, `stale`, `greetings`, `dependencies`,
+  `bookkeeping`) only where it is used as a task (`holocron run`, `turbo run`, `pnpm`, `pnpm run`, a `package.json`
+  script, a `turbo.json` task), never in prose; a `package.json` script named in `RESERVED_SCRIPT_NAMES` (the root
+  `prepare` is allowed). `validate` is a suite now and is not a leftover. A suite-less old leaf (`typeSafety`) was never a
+  valid spelling (`resolveTaskName` rejects it), so it is not looked for. `PNPM_BUILTIN_COMMANDS` is not checked by the
+  probe: `deploy` is a valid script name (called with `pnpm run deploy`), and a `pnpm deploy` in text is usually pnpm's own.
+- **Workflow file names** (`delivery.build.yml`, `.yaml`) are not task names and are skipped until the files are renamed;
+  `--files` lists them.
+- **Exit code:** each leftover is a `fail` row, so the run exits 1; `--warn` reports `info` rows instead. The repo's own
+  intentional mentions of the aliases (the docs that explain them) carry `holocron-allow-old-name` on their line (a
+  comment: `<!-- ... -->` in Markdown, `{/* ... */}` in MDX); it also excuses the line below. Count on this repo: 74
+  before, 0 after: 38 were hand-written workflow names no longer in the table, 2 the bare `validate`, 19 workflow file
+  names (`--files` shows them), and 15 alias mentions that are now marked.
+
 ### Phase E as built (#1619)
 
 - **Sources** moved to `ci/workflows/<suite>/<leaf>.yml` or `ci/workflows/<id>.yml`; the thin-caller templates mirror them
