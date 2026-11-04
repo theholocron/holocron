@@ -21,7 +21,7 @@ Three modes:
 
 ## Migrating Trusted Publisher config (`--sync-trust`)
 
-npm's Trusted Publisher config is tied to a specific workflow **filename** per package. Renaming the release workflow (e.g. `release.yml` → `delivery.publish.yml`) breaks OIDC publish (`ENEEDAUTH`) for every package still registered under the old filename until each one is updated to match.
+npm's Trusted Publisher config is tied to a specific workflow **filename** per package, and npm checks the **calling** workflow's filename. When a workflow calls a reusable one (`workflow_call`), register the caller, not the reusable: in this repo that is `ci.release.yml`, which calls the reusable `release.yml`. Registering the reusable's name makes the publish fail with `ENEEDAUTH`. Renaming the release workflow (e.g. `release.yml` → `delivery.publish.yml`) breaks OIDC publish (`ENEEDAUTH`) for every package still registered under the old filename until each one is updated to match.
 
 ```bash
 holocron package publish --sync-trust release.yml delivery.publish.yml

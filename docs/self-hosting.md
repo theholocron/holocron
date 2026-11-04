@@ -72,7 +72,8 @@ In the npm web UI, for each `@theholocron/*` package:
    - **Publisher**: GitHub Actions
    - **Organization**: `theholocron`
    - **Repository**: `holocron`
-   - **Workflow filename**: `release.yml`
+   - **Workflow filename**: `ci.release.yml` (the workflow that runs on the push; npm
+     checks the calling workflow, not the reusable `release.yml` it calls)
    - **Environment** (optional): leave blank — the `release` job declares no
      GitHub environment, and npm matches the OIDC claims exactly
    - **Label** (optional): `holocron-release` — use the same string for every

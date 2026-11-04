@@ -46,12 +46,12 @@ In the npm web UI, for each `@theholocron/*` package:
    - **Publisher**: GitHub Actions
    - **Organization**: `theholocron`
    - **Repository**: `holocron`
-   - **Workflow filename**: `release.yml`
+   - **Workflow filename**: `ci.release.yml`: the workflow that runs on the push, not the reusable `release.yml` it calls (npm checks the calling workflow)
    - **Environment** (optional): leave blank
 
 ## Step 3 — Subsequent releases run automatically
 
-Push to `main` triggers `release.yml`. The workflow requests an OIDC token from GitHub, `pnpm publish` exchanges it with npm, npm validates against the registered Trusted Publisher, and the publish proceeds with provenance attestations attached automatically.
+Push to `main` triggers `ci.release.yml`, which calls the reusable `release.yml`. The workflow requests an OIDC token from GitHub, `pnpm publish` exchanges it with npm, npm validates against the registered Trusted Publisher, and the publish proceeds with provenance attestations attached automatically.
 
 ## Adding a new plugin
 
