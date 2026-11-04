@@ -33,10 +33,10 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "deploy": "pnpm run build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
+    "deploy": "pnpm run build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel --target production",
     "dev": "holocron dev",
     "serve": "tsx scripts/serve.ts",
-    "deploy-preview": "pnpm run build && node scripts/stage-deploy.mjs && holocron deploy --files .vercel-deploy --project-id sentinel",
+    "deploy-preview": "pnpm run build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel",
     "lint:code": "eslint .",
     "test:unit": "vitest run --coverage",
     "test:watch": "vitest",

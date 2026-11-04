@@ -8,6 +8,7 @@ import { reportError } from "../../observability/logger/index.js";
 import { promptForPositionals } from "../../ui/index.js";
 import { cleanupPreviewCommand } from "../cleanup-preview/cleanup-preview.command.js";
 import { type DeployArgs, deployArgs } from "./deploy.args.js";
+import { deployStageCommand } from "../deploy-stage/deploy-stage.command.js";
 import { deployOnReleaseCommand } from "./deploy-on-release.command.js";
 import { runDeploy, runDeployFromFiles } from "./index.js";
 
@@ -17,7 +18,8 @@ export const deployCommand: CommandModule<GlobalArgs, DeployArgs> = {
 	builder: (y: Argv<GlobalArgs>) =>
 		deployArgs(y)
 			.command(cleanupPreviewCommand as never)
-			.command(deployOnReleaseCommand as never),
+			.command(deployOnReleaseCommand as never)
+			.command(deployStageCommand as never),
 	handler: async (argv) => {
 		if (!argv.projectId) {
 			reportError("deploy: missing required argument --project-id");

@@ -356,7 +356,7 @@ touching Vercel, and the 73+ tests exercise `handleWebhookRequest`
 directly — that's this package's actual "dev environment," not a
 deployed URL.
 
-### `api/webhook.mjs` and `scripts/stage-deploy.mjs`
+### `api/webhook.mjs` and `holocron deploy stage`
 
 `handleWebhookRequest` itself is deliberately deploy-target-agnostic
 (no `req`/`res` translation, no platform-specific wrapper — see
@@ -369,7 +369,7 @@ shape (`export default { fetch(request) {...} }`) is already
 `dist/index.mjs` (this package's built library) keeps its npm
 dependencies external, not bundled — everything except the three
 inlined workspace packages below — so deploying `dist/` alone isn't
-enough; Vercel needs to `npm install` them. `scripts/stage-deploy.mjs` assembles
+enough; Vercel needs to `npm install` them. `holocron deploy stage` assembles
 `.vercel-deploy/` — `api/webhook.mjs` + `dist/index.mjs` + a **trimmed**
 `package.json` (name/version/type + `engines` + `dependencies` only, no
 devDependencies/scripts, each dependency pinned to the exact version
@@ -385,10 +385,10 @@ pinned the previous release, which lacked an export Sentinel's code needed —
 every webhook crashed on import. Their own npm dependencies stay external
 (`@theholocron/cli` reaches a native binary that must be installed for
 Vercel's platform), so staging refuses when `dist/` imports a package that
-isn't in this package's `dependencies` (`scripts/bundle-externals.mjs`).
+isn't in this package's `dependencies` (`undeclaredExternals`).
 `engines.node` is rewritten from this package's own range
 to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
-`scripts/vercel-engines.mjs`): Vercel picks the function's Node version
+`vercelEngines`): Vercel picks the function's Node version
 from it, and refuses an open range with `invalid_version_value`
 (holocron#911).
 
