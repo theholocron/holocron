@@ -4,16 +4,15 @@ import { parse } from "dotenv";
 
 import type { DevEnv, LoadDevEnvInput } from "./dev-env.type.js";
 
-const REQUIRED = ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"] as const;
-
 /**
- * The environment a local Sentinel runs with: the variables already in the process, and what the 1Password
+ * The environment a local app runs with: the variables already in the process, and what the 1Password
  * Environment `environment` holds for the rest (read with `op environment secret list`, the way the 1Password
  * plugin reads one, so Touch ID asks once). The process wins, so a variable exported for one run overrides the
- * Environment. The three the handler requires must end up set; a message names the ones that are not, and never a
+ * Environment. The `required` ones must end up set; a message names the ones that are not, and never a
  * value. Nothing is written to disk.
  */
-export function loadDevEnv(input: LoadDevEnvInput): DevEnv {
+export function loadDevEnv<K extends string>(input: LoadDevEnvInput<K>): DevEnv<K> {
+	const REQUIRED = input.required;
 	const env = input.env ?? process.env;
 	const present = (name: string) => (env[name] ?? "") !== "";
 	let merged: NodeJS.ProcessEnv = env;
@@ -38,10 +37,5 @@ export function loadDevEnv(input: LoadDevEnvInput): DevEnv {
 	if (missing.length > 0) {
 		throw new Error(`missing from the environment and from "${input.environment}": ${missing.join(", ")}`);
 	}
-	return {
-		...merged,
-		GITHUB_APP_ID: merged["GITHUB_APP_ID"] as string,
-		GITHUB_APP_PRIVATE_KEY: merged["GITHUB_APP_PRIVATE_KEY"] as string,
-		SENTINEL_WEBHOOK_SECRET: merged["SENTINEL_WEBHOOK_SECRET"] as string,
-	};
+	return merged as DevEnv<K>;
 }

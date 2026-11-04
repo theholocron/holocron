@@ -8,6 +8,7 @@ vi.mock("node:child_process", () => ({ spawnSync: spawnSyncMock }));
 
 import { loadDevEnv } from "./dev-env.js";
 
+const REQUIRED = ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"] as const;
 const ALL = { GITHUB_APP_ID: "1", GITHUB_APP_PRIVATE_KEY: "KEY", SENTINEL_WEBHOOK_SECRET: "WS" };
 
 const op = (status: number, stdout = "", stderr = "") =>
@@ -17,7 +18,12 @@ const op = (status: number, stdout = "", stderr = "") =>
 describe("loadDevEnv", () => {
 	it("uses the process as it is, and does not run op, when the three are already set", () => {
 		const spawn = op(0);
-		const env = loadDevEnv({ environment: "Sentinel - dev", env: { ...ALL, OTHER: "x" }, spawn });
+		const env = loadDevEnv({
+			required: REQUIRED,
+			environment: "Sentinel - dev",
+			env: { ...ALL, OTHER: "x" },
+			spawn,
+		});
 		expect(env).toMatchObject({ ...ALL, OTHER: "x" });
 		expect(spawn).not.toHaveBeenCalled();
 	});
@@ -27,7 +33,7 @@ describe("loadDevEnv", () => {
 			0,
 			'GITHUB_APP_ID=2\nGITHUB_APP_PRIVATE_KEY="-----BEGIN-----\\nAAAA\\n-----END-----"\nSENTINEL_WEBHOOK_SECRET=ws2\n'
 		);
-		const env = loadDevEnv({ environment: "Sentinel - dev", env: {}, spawn });
+		const env = loadDevEnv({ required: REQUIRED, environment: "Sentinel - dev", env: {}, spawn });
 		expect(env.GITHUB_APP_ID).toBe("2");
 		expect(env.GITHUB_APP_PRIVATE_KEY).toContain("AAAA");
 		expect(env.SENTINEL_WEBHOOK_SECRET).toBe("ws2");
@@ -40,7 +46,12 @@ describe("loadDevEnv", () => {
 
 	it("lets a variable already in the process win over the Environment, and ignores an empty one", () => {
 		const spawn = op(0, "GITHUB_APP_ID=2\nGITHUB_APP_PRIVATE_KEY=K\nSENTINEL_WEBHOOK_SECRET=ws2\n");
-		const env = loadDevEnv({ environment: "E", env: { GITHUB_APP_ID: "9", SENTINEL_WEBHOOK_SECRET: "" }, spawn });
+		const env = loadDevEnv({
+			required: REQUIRED,
+			environment: "E",
+			env: { GITHUB_APP_ID: "9", SENTINEL_WEBHOOK_SECRET: "" },
+			spawn,
+		});
 		expect(env.GITHUB_APP_ID).toBe("9");
 		expect(env.SENTINEL_WEBHOOK_SECRET).toBe("ws2");
 	});
@@ -49,7 +60,7 @@ describe("loadDevEnv", () => {
 		const spawn = op(0, "GITHUB_APP_ID=2\n");
 		const err = (() => {
 			try {
-				loadDevEnv({ environment: "Sentinel - dev", env: {}, spawn });
+				loadDevEnv({ required: REQUIRED, environment: "Sentinel - dev", env: {}, spawn });
 			} catch (e) {
 				return e as Error;
 			}
@@ -61,18 +72,22 @@ describe("loadDevEnv", () => {
 
 	it("says why op failed, from its first line of stderr", () => {
 		const spawn = op(1, "", "[ERROR] environment not found\nmore");
-		expect(() => loadDevEnv({ environment: "Nope", env: {}, spawn })).toThrow(
+		expect(() => loadDevEnv({ required: REQUIRED, environment: "Nope", env: {}, spawn })).toThrow(
 			'could not read the 1Password Environment "Nope": [ERROR] environment not found'
 		);
 	});
 
 	it("says op failed when it gives no reason, and when it cannot be started", () => {
-		expect(() => loadDevEnv({ environment: "E", env: {}, spawn: op(1) })).toThrow(/: op failed$/);
+		expect(() => loadDevEnv({ required: REQUIRED, environment: "E", env: {}, spawn: op(1) })).toThrow(
+			/: op failed$/
+		);
 		const missing = vi.fn(() => ({
 			status: null,
 			error: new Error("spawn op ENOENT"),
 		})) as unknown as typeof spawnSync;
-		expect(() => loadDevEnv({ environment: "E", env: {}, spawn: missing })).toThrow(/spawn op ENOENT/);
+		expect(() => loadDevEnv({ required: REQUIRED, environment: "E", env: {}, spawn: missing })).toThrow(
+			/spawn op ENOENT/
+		);
 	});
 
 	it("reads process.env and the platform's spawnSync when none are given", () => {
@@ -84,7 +99,7 @@ describe("loadDevEnv", () => {
 			stderr: "",
 		});
 		try {
-			expect(loadDevEnv({ environment: "E" }).GITHUB_APP_ID).toBe("3");
+			expect(loadDevEnv({ required: REQUIRED, environment: "E" }).GITHUB_APP_ID).toBe("3");
 			expect(spawnSyncMock).toHaveBeenCalledTimes(1);
 		} finally {
 			Object.assign(process.env, saved);

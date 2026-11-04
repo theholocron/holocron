@@ -70,7 +70,6 @@
     "@vitest/eslint-plugin": "catalog:",
     "@vscode-shellcheck/shellcheck-wasm": "catalog:apps",
     "alex": "catalog:apps",
-    "dotenv": "catalog:",
     "editorconfig": "catalog:apps",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
@@ -80,6 +79,7 @@
     "yaml": "catalog:apps"
   },
   "devDependencies": {
+    "@theholocron/dagobah": "workspace:*",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",

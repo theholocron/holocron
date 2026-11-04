@@ -21,7 +21,7 @@ async function readBody(req: IncomingMessage): Promise<Buffer | undefined> {
 
 /**
  * Serves a `(Request, env) => Response` handler over HTTP on the loopback address, for a development instance behind
- * a tunnel: the same function the Vercel entry (`api/webhook.mjs`) calls, with the same web-standard `Request`. Only
+ * a tunnel: the same function the Vercel entry (e.g. Sentinel's `api/webhook.mjs`) calls, with the same web-standard `Request`. Only
  * the handler's own path is served. A request is logged as one line (method, path, status) and nothing else, so no
  * signature, token or payload reaches the terminal.
  */

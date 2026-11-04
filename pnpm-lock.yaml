@@ -534,9 +534,6 @@ importers:
       alex:
         specifier: catalog:apps
         version: 11.0.1
-      dotenv:
-        specifier: 'catalog:'
-        version: 17.4.2
       editorconfig:
         specifier: catalog:apps
         version: 3.0.2
@@ -559,6 +556,9 @@ importers:
         specifier: catalog:apps
         version: 2.9.1
     devDependencies:
+      '@theholocron/dagobah':
+        specifier: workspace:*
+        version: link:../../cli/dagobah
       '@theholocron/tsconfig':
         specifier: workspace:^
         version: link:../../configs/tsconfig
@@ -825,6 +825,52 @@ importers:
       tsx:
         specifier: 4.23.15
         version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  cli/dagobah:
+    dependencies:
+      dotenv:
+        specifier: 'catalog:'
+        version: 17.4.2
+    devDependencies:
+      '@theholocron/eslint-config':
+        specifier: workspace:^
+        version: link:../../configs/eslint-config
+      '@theholocron/tsconfig':
+        specifier: workspace:^
+        version: link:../../configs/tsconfig
+      '@theholocron/tsdown-config':
+        specifier: workspace:^
+        version: link:../../configs/tsdown-config
+      '@theholocron/vitest-config':
+        specifier: workspace:^
+        version: link:../../configs/vitest-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.5(@vitest/browser@5.0.5)(vitest@5.0.5)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.27(@typescript-eslint/eslint-plugin@8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3))(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)(vitest@5.0.5)
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.3.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.11.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.3(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
