@@ -38,7 +38,7 @@ Three suites exist, declared in the registry by their leaves: `test`, `lint` and
 
 ## Old names
 
-The old dotted names (`test:unit`, `lint:code`, `release`, …) still work and
+The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, `delivery.publish`, …) still work and {/* holocron-allow-old-name */}
 print a one-line deprecation notice on stderr, in CI too; the reusable workflows synced to `theholocron/.github` still
 call them. A name that stood for several checks runs each of its successors in order
 (`sourceQuality.formatting` is `lint:editorconfig`, `lint:markdown` and `format --check`), and an old group name {/* holocron-allow-old-name */}
@@ -58,8 +58,9 @@ call them. A name that stood for several checks runs each of its successors in o
 
 ```
 
-`turbo.json` and `package.json` still key a task by its old name until the generated files move to the flat ids; the
-runner looks the old name up first, then the id in its script spelling (`deploy:preview`).
+A repo whose `tasks:` list still spells a task with its old dotted name keeps its `turbo.json` and `package.json`
+keyed by that name; the runner looks the old name up first, then the id in its script spelling (`deploy:preview`). A
+repo on flat ids has the flat ids in both.
 
 An explicit `package.json` script always wins over the registry default — if
 you wrote `"lint:code": "biome check"`, that's what runs. Likewise a repo-level
@@ -143,14 +144,14 @@ holocron run build --dry-run         # show what would run
 holocron run lint                    # every lint leaf, each reported
 holocron run format --check          # prettier, read-only
 holocron run e2e --required          # fail if the repo has no e2e task
-holocron run validate                # every validation sub-job in order
+holocron run validate                # every validate leaf the repo lists
 holocron run test:perf               # just Lighthouse CI
 ```
 
 ## Monorepos
 
 At a turbo root, `holocron run test:unit` is
-`turbo run test:unit` today — turbo's cache and dependency graph are
-untouched. Inside a package, it runs the tool directly. `turbo.json` doesn't
-change in this phase (its task keys keep the old names; the generator and the
-package scripts move to the flat ids in a later phase).
+`turbo run test:unit` — turbo's cache and dependency graph are untouched. Inside a
+package, it runs the tool directly. The generated `turbo.json` keys and package
+scripts are the flat ids (`holocron repo sync` writes them); a suite such as `test` or
+`lint` is a script-less aggregator task in `turbo.json`.

@@ -123,8 +123,8 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   command carries `--coverage`; there is no flag). Until a repo rewrites `tasks:` to flat ids, its turbo keys and package
   scripts keep the old dotted names the entries are spelled with (`taskKey()`).
   A thin caller's workflow `name:`, job `name:` and file are the task id (#1620): `test:unit` is `name: test:unit`, the job `test-unit` and, in holocron, the file `ci.test-unit.yml` (the `ci.` prefix keeps it from clashing with the reusable `test-unit.yml` beside it), so its check is `test:unit / Conclusion` and the `ci` aggregate waits for it by the prefix `test:unit / `. Another repo's callers keep the names they had (`verification.unitTests.yml`, `name: Verification`, job `test`) while `CI_HOME` points at the frozen reusables in `theholocron/.github` (`legacyGate()` in astromech, `legacyCaller()` over the `LEGACY_CALLERS` table): its ruleset still lists those checks. Moving `CI_HOME` to `ci-v1` opens the gate and drops the table.
-  The loop closes both ways: the reusable `typecheck` / `test` / `audit`
-  workflows run their core step through the `holocron` composite action
+  The loop closes both ways: the reusable workflows (`typecheck`, `test-unit`, `lint-code`, …) run
+  their core step through the `holocron` composite action
   (`holocron run <task> [job]`), so CI executes the same command a
   contributor runs locally.
   A `deploy` task with `with: { on: "release" }` in a workspace
@@ -146,7 +146,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   `expected` id has a check run named `<id> / ...` and has completed, and every `statuses` entry (the `codecov/`
   extras) reached `success`, or 30 minutes pass; an id that never posted fails. `aggregateChecks()` derives both
   inputs from the same list the ruleset used to take (`required: true` tasks, then `extraRequiredChecks`, using
-  today's names) and `aggregateCaller()` renders the thin caller, written as `ci.ci.yml` only in the repo that hosts
+  the names the checks post) and `aggregateCaller()` renders the thin caller, written as `ci.ci.yml` only in the repo that hosts
   the reusables. The summary lists every expected check with a link, failures first, plus `::error` annotations.
   `requiredChecks(config, aggregate)` is `ci / Required checks` and `DCO` there and the old per-task list elsewhere, so a repo with no
   `ci` caller is never told to require it. A rename or a new workflow no longer touches a ruleset.
@@ -158,10 +158,10 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   argument). `format` is prettier only: it writes, `--check` (the registry's `checkArgs`) reads, and `holocron run ci`
   runs it read-only. `LEGACY_NAMES` maps every old dotted name to its successors (`sourceQuality.formatting` to <!-- holocron-allow-old-name -->
   `lint:editorconfig`, `lint:markdown` and `format --check`); `holocron run`, `tasks:` and the manifest consumers
-  (`isTask()`, `resolveTaskName()`) accept both and the runner prints a deprecation notice on stderr. **Nothing that is
-  generated changed in this phase:** thin callers, workflow file names, check contexts, `turbo.json` keys and
-  package scripts are still the old names, reached through `workflowKey()` / `legacyName()`, so a manifest spelled either
-  way generates the same files (`probe generated check` proves it). `validate` is a suite of two probe tasks, `validate:specs`
+  (`isTask()`, `resolveTaskName()`) accept both and the runner prints a deprecation notice on stderr. A manifest spelled with
+  either name generates the same files, reached through `workflowKey()` / `legacyName()` (`probe generated check`
+  proves it). Phase A changed no generated file; the later phases moved the thin callers, workflow names and check
+  contexts to the flat ids, as described above. `validate` is a suite of two probe tasks, `validate:specs`
   (`probe specs check`) and `validate:docs` (`probe docs presence`), each with its own reusable workflow, caller and
   check (`validate:specs / Validate ADRs and specs`, `validate:docs / Validate docs presence`), and a third,
   package-scoped leaf with no workflow, `validate:plugin` (the plugins' own script). The sub-job mechanism (`jobs:`,
@@ -488,7 +488,7 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
   is only for non-conventional _file paths_ (unusual locations for known
   file types); it is not a substitute for adding a new pattern.
 - **PR checks must be green before merge.** `pnpm typecheck`,
-  `pnpm lint`, `pnpm test`, `pnpm build` all run on `ci.yml`. Run
+  `pnpm lint`, `pnpm test`, `pnpm build` all run in CI, behind the one required check `ci / Required checks`. Run
   `holocron run ci` as the local pre-flight (a `pre-push` hook runs it
   automatically in `protection: "strict"` repos; `git push --no-verify`
   bypasses one push). CodeQL runs separately. DCO checks the Signed-off-by
@@ -560,7 +560,7 @@ plugins/                          — vendor capability providers, one package p
 holocron.config.ts                — this repo's own config (self-hosted)
 .notes/                           — in-progress design specs (settled ones move to docs/wiki/specifications/)
 .claude/skills/holocron-skill-plugin/ — scaffolding skill for new plugins
-.github/workflows/                — ci.yml (PR), release.yml (main), codeql.yml, etc.
+.github/workflows/                — `ci.<id>.yml` callers (one per task, gated by `ci / Required checks`), the reusables they call (`<id>.yml`), release.yml, etc.
 scripts/bump-versions.mjs         — lockstep version bump invoked by semantic-release
 
 ```

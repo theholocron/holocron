@@ -44,17 +44,16 @@ names (`LEGACY_NAMES`) are accepted in `tasks:` and by `run`, with a deprecation
    registry's own command, which step 3 runs itself)
 3. the registry has a local runner        → <tool> <args>   (`test:unit` is `vitest run --coverage`)
 3b. the task is a linterGroup             → each resolved linter, run natively
-4. the task is a container of jobs        → each job, in declared order
-5. known task, nothing to run             → "no <task> task", exit 0  (exit 1 with --required)
-6. unknown task                           → error, exit 1
+4. known task, nothing to run             → "no <task> task", exit 0  (exit 1 with --required)
+5. unknown task                           → error, exit 1
 ```
 
 ## Intent → technology
 
 Tasks are named by **intent**, not by tool — a repo declares
-`test:unit`, not `vitest`. (`test:unit` and the other dotted names are the old spelling; they still
-work, and still name the generated workflow files, `turbo.json` keys and package scripts until the later phases of
-the flat-vocabulary spec move those.) The table below is the full
+`test:unit`, not `vitest`. (The dotted names such as `verification.unitTests` are the old spelling; they still <!-- holocron-allow-old-name -->
+work as aliases, see `LEGACY_NAMES`, but nothing generated uses them for a repo on flat ids.)
+The table below is the full
 registry (`TASKS` in `src/registry/registry.ts`): every task name astromech knows,
 what it actually runs, and why. Tool names never appear in
 `holocron.config.ts` — they're an implementation detail this table
@@ -73,7 +72,6 @@ documents, not a naming convention repos need to follow.
 | `scan:secrets`                       | gitleaks                                                                                                                                                         |                                                                                                           |
 | `scan:code`                          | CodeQL                                                                                                                                                           | no local equivalent — CI only                                                                             |
 | `check-tokens`                       | `holocron doctor tokens`                                                                                                                                         | scheduled daily in CI; fails on a rejected token or one with 7 days or fewer left; never part of `run ci` |
-| `security.dependencyReview`          | GitHub's native Dependabot alerts/graph                                                                                                                          | a capability-model method (`Source.enableVulnerabilityAlerts()`), not a task                              |
 | `build`                              | tsdown / vite / rollup / tsc, detected from the repo's own config file, or `package.json`'s own `dependencies`/`devDependencies` if that config file isn't there |                                                                                                           |
 | `release`                            | semantic-release                                                                                                                                                 | no local equivalent — CI only; carries `preview` (npm dist-tags)                                          |
 | `deploy`                             | Cloudflare Pages / Vercel                                                                                                                                        | no local equivalent — CI only; carries `preview`                                                          |
@@ -93,8 +91,7 @@ dist-tags, Cloudflare/Vercel do per-PR preview deploys, Fern previews
 docs — none of these earn their own task or verb; it's one capability any
 publish/deploy-shaped task can carry, toggled via that task's `with:`.
 
-**`linterGroup` tasks** (`lint:code`,
-`sourceQuality.formatting`) bundle more than one tool under a single <!-- holocron-allow-old-name -->
+**`linterGroup` tasks** (`lint:code`) bundle more than one tool under a single
 required check. Each tool is still gated by its own detection rule — e.g.
 `eslint` runs when either a local `eslint.config.*` is present, or the
 package has no local file but `@theholocron/eslint-config` resolves
@@ -207,8 +204,8 @@ to flat ids is what moves its keys, and the package scripts with them (`taskKey(
 hosts it, see below) it is `["ci / Required checks", "DCO"]`. Without it, it is `"DCO"`, then every `{ required: true }` task's check
 context, ordered by `CI_ORDER`, then `config.extraRequiredChecks` (codecov gates, …), de-duplicated. Most tasks are
 single always-run jobs now, so their context
-names that job directly (`"Typecheck / tsc --noEmit"`) — the `… /
-Conclusion` fan-in aggregate is only used where a task genuinely has
+names that job directly (`"typecheck / Run tsc --noEmit"`) — the `… /
+Conclusion` fan-in job inside a workflow is only used where a task genuinely has
 several conditionally-run jobs feeding one check
 (`test:unit`). `holocron repo setup`
 applies the list for `protection: "strict"` repos. Policy-free — manifest only.
@@ -294,8 +291,8 @@ writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
 
 The rules of the `validate:specs` and `validate:docs` checks, once, as pure functions over plain data (changed files, commit
 subjects, the PR description, a manifest) that return findings. They do no git, no filesystem and no network, so the two
-interfaces that run them only supply the data: the CLI (`holocron probe docs presence` and `holocron probe specs check`, the two jobs of
-`holocron run validate`) from git and the filesystem, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the
+interfaces that run them only supply the data: the CLI (`holocron probe docs presence` and `holocron probe specs check`, the two leaves of
+the `validate` suite) from git and the filesystem, and [Sentinel](https://docs.theholocron.dev/holocron/sentinel/) from the
 webhook and the GitHub API (#929).
 
 - Docs presence: `isFeat(subjects)`, `packageOf(file, readPackage)`, `pageNames(dir)`, `hasDocsSignal(dir, changedFiles, addedCommentLines)`,

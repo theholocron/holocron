@@ -20,13 +20,13 @@ is marked required, it falls back to every `ci: true` task (with a note).
 $ holocron run ci
 holocron run ci — required checks (3)
 
-▶ Typecheck / Run tsc --noEmit
+▶ typecheck / Run tsc --noEmit
 → tsc --noEmit
-▶ Static Analysis / Run eslint and actionlint
+▶ lint:code / Run eslint, actionlint and prettier
 → turbo run lint:code
 → prettier --check .
 ! actionlint — actionlint not on PATH. brew install actionlint (enforced in CI)
-▶ Test / Conclusion
+▶ test:unit / Conclusion
 → vitest run --coverage
 
 ✓ 3 passed
@@ -42,12 +42,14 @@ holocron run ci — required checks (3)
   `package.json` script when one exists. With no script they print
   `· no local equivalent — enforced in CI` and never fail the run, even when
   marked `required` (a CI-only check isn't a _local_ failure).
-- Most tasks are a single always-run job now, so their check context names
-  that job directly (`Typecheck / Run tsc --noEmit`) — the `… / Conclusion`
-  fan-in is only used where a task genuinely has several conditionally-run
-  jobs feeding one check (`test:unit`).
+- Each task's line is the check it posts in CI, `<id> / <job>`. Most tasks are
+  a single always-run job, so the context names that job directly
+  (`typecheck / Run tsc --noEmit`); the `… / Conclusion` fan-in is only used
+  where a task genuinely has several conditionally-run jobs feeding one check
+  (`test:unit`). CI itself gates a merge on the single `ci / Required checks`
+  check, which waits for these.
 - Order comes from `CI_ORDER` in `@theholocron/astromech` — cheapest signal
-  first (`typecheck → static analysis → … → test → …`).
+  first (`typecheck → lint:code → … → test:unit → …`).
 
 ## Options
 

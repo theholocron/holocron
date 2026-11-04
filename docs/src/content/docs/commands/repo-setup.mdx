@@ -56,7 +56,7 @@ Fix it in the organization's property definitions, not in the repo: a new capabi
 aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DCO` stays its own context because the DCO app posts it, and
 `ci` waits on every `{ required: true }` task, the hand-written checks and the `codecov/*` statuses of the top-level
 `extraRequiredChecks`, so a rename or a new workflow never touches the ruleset. In any other repo, which has no `ci`
-caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion`, …) in CI
+caller yet, it is `DCO`, then every `{ required: true }` task's workflow check context (`Test / Conclusion` for a repo still on the frozen reusables, `test:unit / Conclusion` once it moves) in CI
 order, then `extraRequiredChecks`. No hand-maintained list.
 
 **The `ci` aggregate.** `repo setup` and `repo sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`

@@ -21,8 +21,8 @@ Answers one question for the repository you are in: has it moved to the flat tas
 ## The rows
 
 | Row         | Passes when                                                                                                                                                                                            |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `tasks`     | no `tasks:` entry in the config is a deprecated alias (`delivery.build`, `validate`, `stale`, ...). A failing line names the flat id or ids that replace it                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------- |
+| `tasks`     | no `tasks:` entry in the config is a deprecated alias (`delivery.build`, `validate`, `stale`, ...). A failing line names the flat id or ids that replace it                                            | {/* holocron-allow-old-name */} |
 | `callers`   | each generated caller's file, workflow `name:` and job `name:` equal its task id. A file still named for an old task (`ci.verification.unitTests.yml`) is reported with the flat name that replaces it |
 | `aggregate` | the `expected` list in the `ci` aggregate caller (`ci.ci.yml`) is the list the configured tasks derive: no id missing, none stale                                                                      |
 | `home`      | every caller calls reusables from one home: `theholocron/.github` (frozen copies, legacy names), holocron at `ci-v1` (flat names) or the repo's own reusables (the repo that hosts them)               |

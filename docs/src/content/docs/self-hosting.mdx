@@ -157,6 +157,6 @@ const groups = releaseGroups(await loadTasksConfig(process.cwd()));
 const group = process.env["RELEASE_GROUP"];
 ```
 
-The workflow keeps its filename (`delivery.publish.yml`), because npm Trusted Publishing is bound to the repository and workflow file. A repo that does not list `groups` gets the same single-release workflow as before.
+The workflow keeps its filename (`release.yml`), because npm Trusted Publishing is bound to the repository and workflow file. A repo that does not list `groups` gets the same single-release workflow as before.
 
 The reusable workflow is read from `theholocron/.github`, so run `holocron sync github` to publish its `group` input before a repo starts passing one.
