@@ -135,6 +135,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 
 	const lines: string[] = [];
 	const exported: string[] = [];
+	const values = new Map<string, string>();
 	const missing: string[] = [];
 	const unsupported: string[] = [];
 	for (const [name, token] of [...tokens].sort(([a], [b]) => compare(a, b))) {
@@ -156,6 +157,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		}
 		lines.push(line);
 		exported.push(name);
+		values.set(name, value);
 	}
 
 	// A few values asked for by name are for pasting; the whole set goes to the file.
@@ -168,7 +170,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 		const text = `${lines.join("\n")}\n`;
 		if (target === "clipboard") {
 			try {
-				await (input.copy ?? copyToClipboard)(text);
+				// One token asked for by name is for pasting into a field: the value alone, with no name and no line break.
+				const pasted = input.only?.length && exported.length === 1 ? values.get(exported[0] as string)! : text;
+				await (input.copy ?? copyToClipboard)(pasted);
 			} catch (err) {
 				return refuse(
 					"clipboard",
