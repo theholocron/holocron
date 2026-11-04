@@ -18,7 +18,7 @@ packages:
 #   - used by one group: that group's named catalog, e.g. `catalog:configs`
 #   - peerDependencies keep their own compatibility ranges and are not in a catalog
 catalog:
-  "@astrojs/react": ^6.0.6
+  "@astrojs/react": ^7.1.2
   "@astrojs/starlight": ^0.41.7
   "@axiomhq/pino": ^2.0.0
   "@commitlint/cli": ^21.2.0
