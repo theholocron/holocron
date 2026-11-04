@@ -511,7 +511,10 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
 - **npm Trusted Publishing.** OIDC token exchange at publish time —
   no `NPM_TOKEN` secret anywhere. Each package has a Trusted
   Publisher registered on npmjs.com (Publisher: GitHub Actions,
-  Repo: theholocron/holocron, Workflow: release.yml).
+  Repo: theholocron/holocron, Workflow: ci.release.yml). npm checks the
+  _calling_ workflow's filename, so it is `ci.release.yml`, the entry that
+  calls the reusable `release.yml`; registering the reusable fails with
+  `ENEEDAUTH`. A renamed entry needs `holocron package publish --sync-trust`.
 - **First publish for a new package** uses `holocron package publish --initial`
   (chicken-and-egg: trusted publishing needs the package to exist
   first). The command runs `npm login --auth-type=web` itself when
