@@ -101,6 +101,13 @@ describe("runTunnelUp", () => {
 		expect(said()).toContain("2 ok, 0 failed");
 	});
 
+	it("does not print the start hint when the caller runs the tunnel itself", async () => {
+		const { base, said } = setup();
+		await runTunnelUp({ ...base, hint: false });
+		expect(said()).not.toContain("start it with");
+		expect(said()).toContain("address: https://sentinel-dev.example.dev");
+	});
+
 	it("says a tunnel that was there and in step was found", async () => {
 		const { base, said } = setup({
 			tunnels: { ensureTunnel: vi.fn(async () => ({ ...ENSURED, created: false, configured: false })) },

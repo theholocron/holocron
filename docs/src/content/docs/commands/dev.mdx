@@ -1,0 +1,28 @@
+---
+title: "dev"
+description: Run an application locally behind its development tunnel, with its secrets from the vault, in one command.
+---
+
+```bash
+holocron dev --environment "Sentinel - dev" --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 -- pnpm run serve
+```
+
+For an application that has to receive webhooks while you work on it. It does, in one terminal:
+
+1. Sets up the named tunnel and its proxied `CNAME` the way [`tunnel up`](/holocron/commands/tunnel-up/) does. It is idempotent, so nothing changes when they are already right. It checks the `vault`, `tunnels` and `dns` providers first and says which is missing.
+2. Reads the variables of the vault environment `--environment` in memory. Only how many there are is printed.
+3. Runs the command after `--` beside `cloudflared`. The application gets those variables and `PORT` (from `--port`, which the tunnel also sends requests to, so a `PORT` in the vault does not win). The connector gets the tunnel's token as `TUNNEL_TOKEN`, in its environment only.
+
+Output from both goes to the terminal. When either ends the other is stopped, and Ctrl-C stops both and is not a failure; any other exit of the first to end becomes the command's status. A value or the token is never printed or written to a file.
+
+`--dry-run` sets up and reads nothing: it runs the tunnel step as a dry run and says what it would read and run.
+
+| Option          | Default      | What it does                                                          |
+| --------------- | ------------ | --------------------------------------------------------------------- |
+| `--environment` | _(required)_ | The vault environment whose variables the application runs with.      |
+| `--name`        | _(required)_ | The tunnel's name.                                                    |
+| `--hostname`    | _(required)_ | The public hostname the tunnel serves.                                |
+| `--port`        | `3000`       | The port the application listens on and the tunnel sends requests to. |
+| `-- <command>`  | _(required)_ | The application's command and arguments.                              |
+
+It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is this command; see the [Sentinel page](/holocron/sentinel/).

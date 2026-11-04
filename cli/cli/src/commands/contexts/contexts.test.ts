@@ -19,6 +19,7 @@ const EVERY_COMMAND = [
 	"auth export",
 	"github-app create",
 	"tunnel up",
+	"dev",
 	"auth check",
 	"package bump-versions",
 	"package move-tag",

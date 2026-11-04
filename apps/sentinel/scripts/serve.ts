@@ -1,5 +1,6 @@
 /**
- * `pnpm dev` — runs the handler locally, for a development instance behind a tunnel (holocron#1678).
+ * `pnpm serve` — runs the handler locally, for a development instance behind a tunnel (holocron#1678). `pnpm dev`
+ * is the whole loop: `holocron dev` reads the Environment, sets up the tunnel and runs this beside it.
  *
  * The App's secrets come from the process, or else from the 1Password Environment `SENTINEL_DEV_ENVIRONMENT`
  * (default `Sentinel - dev`), so a development App never reads production's. The server listens on `PORT`

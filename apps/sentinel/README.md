@@ -588,30 +588,30 @@ Vercel is not needed to try a change against real GitHub events. A development i
 the 1Password Environment `Sentinel - dev`.
 
 ```bash
-# 1. the handler, locally (port 3000): secrets from the 1Password Environment `Sentinel - dev`
-pnpm --filter @theholocron/sentinel dev
-
-# 2. in another terminal, a stable address for this machine (idempotent; --run starts cloudflared in the foreground)
-holocron tunnel up --cwd apps/sentinel --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 --run
-
-# 3. the dev App, once, from the same manifest as production (one click on GitHub; the id, key and webhook secret
-#    go to a private .credentials file to import into the `Sentinel - dev` Environment)
+# once: the dev App, from the same manifest as production (one click on GitHub; the id, key and webhook secret
+# go to a private .credentials file to import into the `Sentinel - dev` Environment)
 holocron github-app create --cwd apps/sentinel --org theholocron \
   --name "The Holocron Sentinel - dev" \
   --webhook-url https://sentinel-dev.theholocron.dev/api/webhook \
   --manifest github-app.manifest.json
+
+# every time: the handler, the tunnel and the Environment's variables, in one terminal (Ctrl-C stops both)
+pnpm --filter @theholocron/sentinel dev
 ```
 
-`pnpm dev` runs `handleWebhookRequest` on `127.0.0.1` only, serving `/api/webhook` (the path Vercel serves). The App's
-`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET` come from the process, or else from the
-Environment named by `SENTINEL_DEV_ENVIRONMENT` (default `Sentinel - dev`), read with `op` so Touch ID asks once;
-nothing is written to disk. `PORT` changes the port. The handler's own logs ship to Axiom only if that Environment
-sets `SENTINEL_AXIOM_INGEST_TOKEN` and `AXIOM_DATASET`; give the dev instance its own dataset (and ingest token) so
-it does not write into production's, or leave both out. `pnpm dev` says which it is on start. Each request is logged as one line (method, path, status), never a
-header or a payload.
+`pnpm dev` is [`holocron dev`](/holocron/commands/dev/): it sets up the named tunnel and its DNS record the way
+`holocron tunnel up` does (nothing changes when they are already right), reads the variables of `Sentinel - dev` in
+memory, and runs `pnpm run serve` beside `cloudflared` with those variables and `PORT` in the application's
+environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:
+Edit, and `cloudflared` (`brew install cloudflared`).
 
-`tunnel up` uses the `tunnels` and `dns` providers in this directory's `holocron.config.ts` and needs a Cloudflare
-token with Cloudflare Tunnel: Edit. Install the dev App only on the repositories you test with.
+`pnpm serve` alone runs just the handler (`scripts/serve.ts`) on `127.0.0.1`, serving `/api/webhook` (the path Vercel
+serves). Its three required variables, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, come
+from the process, or else from the Environment named by `SENTINEL_DEV_ENVIRONMENT` (default `Sentinel - dev`), read with
+`op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
+header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
+and `AXIOM_DATASET`; give the dev instance its own dataset (and ingest token) so it does not write into production's, or
+leave both out. It says which it is on start. Install the dev App only on the repositories you test with.
 
 ## Development
 

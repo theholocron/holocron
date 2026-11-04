@@ -9,6 +9,7 @@ import { cloneCommand } from "./commands/clone/clone.command.js";
 import { configShowCommand } from "./commands/config-show/index.js";
 import { commandsInContext } from "./commands/contexts/index.js";
 import { deployCommand } from "./commands/deploy/deploy.command.js";
+import { devCommand } from "./commands/dev/index.js";
 import { doctorCommand } from "./commands/doctor/index.js";
 import { githubAppCommand } from "./commands/github-app/index.js";
 import { menuCommand } from "./commands/menu/menu.command.js";
@@ -138,6 +139,7 @@ try {
 		.command(githubAppCommand as never)
 		.command(specsCommand as never)
 		.command(tunnelCommand as never)
+		.command(devCommand as never)
 		.command(syncCommand as never)
 		.command(packageCommand as never)
 		.command(deployCommand as never)
