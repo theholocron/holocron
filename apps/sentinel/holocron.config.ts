@@ -58,6 +58,11 @@
  * `sentinel.theholocron.dev` to the Vercel project, via
  * `Dns.upsertRecord()`.
  *
+ * `tunnels`: Cloudflare (holocron#1678) — `holocron tunnel up --cwd apps/sentinel` makes the named tunnel for
+ * a local development instance (a stable `sentinel-dev.theholocron.dev` that reaches a port on this machine),
+ * with the `dns` provider above pointing the hostname at it. The account id is not a secret (it is the org's
+ * `CLOUDFLARE_ACCOUNT_ID`), and the token needs Cloudflare Tunnel: Edit on top of DNS.
+ *
  * `monitoring`: Checkly (holocron#996) — two API checks watching
  * `sentinel.theholocron.dev/api/webhook` from outside Vercel's own
  * infra, since Sentry/Axiom are both reactive (they only see traffic
@@ -146,6 +151,7 @@ export default defineConfig({
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",
+		tunnels: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }],
 		monitoring: [
 			"checkly",
 			{

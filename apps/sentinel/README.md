@@ -581,6 +581,28 @@ community report says otherwise), run the same command locally instead.
   by the vault (Doppler injected `DOPPLER_*` bookkeeping keys that had to be
   filtered; a 1Password Environment has none).
 
+## Local development instance
+
+Vercel is not needed to try a change against real GitHub events. A development instance is a second GitHub App
+(`The Holocron Sentinel - dev`) whose webhook reaches this machine through a named tunnel, with its secrets in
+the 1Password Environment `Sentinel - dev`.
+
+```bash
+# 1. a stable address for this machine (idempotent; --run starts cloudflared in the foreground)
+holocron tunnel up --cwd apps/sentinel --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 --run
+
+# 2. the dev App, from the same manifest as production (one click on GitHub; the id, key and webhook secret
+#    go to a private .credentials file to import into the `Sentinel - dev` Environment)
+holocron github-app create --cwd apps/sentinel --org theholocron \
+  --name "The Holocron Sentinel - dev" \
+  --webhook-url https://sentinel-dev.theholocron.dev/api/webhook \
+  --manifest github-app.manifest.json
+```
+
+`tunnel up` uses the `tunnels` and `dns` providers in this directory's `holocron.config.ts` and needs a Cloudflare
+token with Cloudflare Tunnel: Edit. Install the dev App only on the repositories you test with. A local server for
+the handler, to receive what the tunnel forwards, is a separate change.
+
 ## Development
 
 | Script               | Description                                 |
