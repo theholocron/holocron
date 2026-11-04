@@ -89,7 +89,9 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   (`cli/cli/src/commands/deep-checks/`) and prints through the shared pieces in `doctor-checks/` (`printCheckRows`,
   `printCheckSummary`, `declaredVsActual`), so a new one is a list of comparisons, not a renderer. A new entry also
   needs `COMMAND_CONTEXTS` and `COMMAND_REGISTRY` entries; `deep-checks.test.ts` fails without them. Checks that write
-  and read back are probes, not doctor.
+  and read back are probes, not doctor. `doctor ci` (#1689) needs no provider: it checks the repo against the flat task
+  vocabulary (deprecated aliases in `tasks:`, caller file/workflow/job names, the `ci` aggregate's `expected`, the
+  callers' home), reading `.github/workflows` through an injected `CiIo`; the ruleset stays `doctor repo`'s.
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting

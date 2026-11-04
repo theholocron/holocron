@@ -52,6 +52,27 @@ vi.mock("../doctor-variables/index.js", async (importActual) => ({
 	runDoctorVariables,
 }));
 
+const runDoctorCi = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-ci/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-ci/index.js")>()),
+	runDoctorCi,
+}));
+
+describe("the ci entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const ci = DEEP_CHECKS.find((c) => c.name === "ci")!;
+
+	it("reports the run's status and counts", async () => {
+		runDoctorCi.mockResolvedValue({ status: "ok", rows: [], summary: { ok: 4, fail: 0, skip: 0 } });
+		expect(await ci.run(input)).toEqual({ status: "ok", summary: { ok: 4, fail: 0, skip: 0 } });
+	});
+
+	it("reports a failure", async () => {
+		runDoctorCi.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 2, fail: 1, skip: 1 } });
+		expect(await ci.run(input)).toEqual({ status: "fail", summary: { ok: 2, fail: 1, skip: 1 } });
+	});
+});
+
 describe("DEEP_CHECKS", () => {
 	it("has a unique name per check", () => {
 		const names = DEEP_CHECKS.map((c) => c.name);

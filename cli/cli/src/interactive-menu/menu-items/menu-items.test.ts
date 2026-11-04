@@ -33,6 +33,7 @@ describe("menuItems — one level of the nested menu", () => {
 			"secrets",
 			"tokens",
 			"variables",
+			"ci",
 		]);
 		expect(valueOf("doctor (run it)", ["doctor"])).toBe("doctor");
 		expect(valueOf("doctor (everything)", ["doctor"])).toBe("doctor all");

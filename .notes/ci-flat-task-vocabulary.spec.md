@@ -1015,6 +1015,23 @@ markdownlint`, and `lint:code`'s is `lint:code / Run eslint, actionlint and pret
   `generateWorkflowFiles` for a hosting repo, the legacy gate and an open gate, and the runner and `ci` for the leaves
   and for both aliases.
 
+### `doctor ci` as built (#1689)
+
+- **A read-only deep check, `holocron doctor ci`**, follow-up to the phases, not a phase. It needs no provider (a
+  `repo-aware` command; its `DEEP_CHECKS` capability is `source` only because the type needs one) and reads
+  `.github/workflows` through an injected `CiIo`, so its tests need no disk. Four rows: `tasks` (a `tasks:` entry in
+  `LEGACY_NAMES`, naming the flat ids), `callers` (a generated caller's file, workflow `name:` and each job `name:` equal
+  its id, a job may add a suffix after a space; a file named for an old task is reported with `workflowKeys()`' flat
+  files), `aggregate` (the `expected` of `ci.ci.yml` against `aggregateChecks()` through `declaredVsActual`, missing
+  and stale ids) and `home` (`theholocron/.github` frozen copies, holocron `ci-v1`, or the repo's own reusables; callers
+  split over homes fail).
+- **It judges against the flat names, whatever the gate.** A repo on the legacy gate (`legacyGate()`, `CI_HOME.ref` is
+  `main`) therefore fails `callers` until phase K repoints it; the `home` row says which side it is on and whether
+  `repo sync` still writes the old names. It does not compare the ruleset: `doctor repo` does (`compareRequiredContexts`).
+- **Only generated callers count**: the `AUTO-GENERATED` header and a job with `uses:`. Hand-written workflows and the
+  reusables themselves are left alone. Without callers (or without an aggregate caller, which only the hosting repo
+  writes) the row is a skip; `tasks` always runs, so the run is never all skips.
+
 ## Open questions
 
 Resolved and folded into the decisions: the colon spelling, `format` as a verb, `release`, the aggregate check and its

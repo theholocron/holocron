@@ -1,3 +1,4 @@
+import { doctorCiCommand, runDoctorCi } from "../doctor-ci/index.js";
 import { doctorCredentialsCommand, runDoctorCredentials } from "../doctor-credentials/index.js";
 import { doctorDnsCommand, runDoctorDns } from "../doctor-dns/index.js";
 import { doctorEnvironmentsCommand, runDoctorEnvironments } from "../doctor-environments/index.js";
@@ -134,6 +135,17 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 				summary: report.summary,
 				...(report.reason ? { reason: report.reason } : {}),
 			};
+		},
+	},
+	{
+		name: "ci",
+		// It reads the config and the workflow files, no provider; `source` is the capability the repo's CI belongs to.
+		capability: "source",
+		command: doctorCiCommand as never,
+		async run(input) {
+			// Never a skip: the tasks row always runs, so there is no reason to carry.
+			const report = await runDoctorCi(input);
+			return { status: report.status, summary: report.summary };
 		},
 	},
 ];

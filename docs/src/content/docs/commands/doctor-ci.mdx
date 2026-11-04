@@ -1,0 +1,42 @@
+---
+title: "doctor ci"
+description: Check a repository against the flat task vocabulary - aliases, caller names, the ci aggregate and where the callers point. Read-only.
+---
+
+```bash
+holocron doctor ci
+```
+
+Answers one question for the repository you are in: has it moved to the flat task vocabulary (spec `ci-flat-task-vocabulary`)? It reads `holocron.config.ts` and `.github/workflows`, needs no provider or token, changes nothing, and exits non-zero while any row fails. Run it before and after repointing a repository's callers.
+
+```text
+  ✓ tasks use flat ids                       26 of 26 use flat ids
+  ✓ callers are named for their task id      29 of 29 named for their id
+  ✓ ci aggregate lists the configured tasks  15 of 15 ids match
+  ✓ callers point at one home                this repo's own reusables (flat names)
+
+4 ok, 0 fail, 0 skipped
+```
+
+## The rows
+
+| Row         | Passes when                                                                                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tasks`     | no `tasks:` entry in the config is a deprecated alias (`delivery.build`, `validate`, `stale`, ...). A failing line names the flat id or ids that replace it                                            |
+| `callers`   | each generated caller's file, workflow `name:` and job `name:` equal its task id. A file still named for an old task (`ci.verification.unitTests.yml`) is reported with the flat name that replaces it |
+| `aggregate` | the `expected` list in the `ci` aggregate caller (`ci.ci.yml`) is the list the configured tasks derive: no id missing, none stale                                                                      |
+| `home`      | every caller calls reusables from one home: `theholocron/.github` (frozen copies, legacy names), holocron at `ci-v1` (flat names) or the repo's own reusables (the repo that hosts them)               |
+
+A job name may carry a suffix after the id (`release ${{ matrix.group }}`). Only generated callers are read (the `AUTO-GENERATED` header and a job that calls a reusable workflow); hand-written workflows and the reusables themselves are left alone.
+
+## Skips
+
+`callers`, `aggregate` and `home` are skips, not failures, when there is nothing to look at: no generated caller, or no `ci` aggregate caller (only the repository that hosts the reusables writes one today). The `tasks` row always runs.
+
+While `CI_HOME.ref` is `main`, `holocron repo sync` still writes the legacy caller names in a repository that does not host the reusables, so such a repository fails `callers` until its callers are repointed at `ci-v1`. The `home` row says which side it is on.
+
+## Related checks
+
+The ruleset's required status checks are compared by [`doctor repo`](/holocron/commands/doctor-repo/), not here. [`holocron probe tasks names`](/holocron/commands/probe/) finds old task names in hand-written files; [`doctor notifications`](/holocron/commands/doctor-notifications/) checks the workflow names `platform.notifications.yml` lists.
+
+Related: [`doctor`](/holocron/commands/doctor/), [`repo sync`](/holocron/commands/repo-sync/).
