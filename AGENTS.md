@@ -204,8 +204,8 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `USER_FACING_ERRORS`) instead of relying on `@inquirer/prompts`'
     `ExitPromptError` on a closed stdin. The generic prompting pieces
     (`pickMenuItem` / `searchChoices`, `promptForPositionals`, `promptForOptions`) live in
-    `cli/cli/src/ui/`, which has no knowledge of commands, and `NonInteractiveError` (with the rest of the terminal output
-    helpers) in `@theholocron/kyber/ui`, which `cli/cli/src/ui/index.ts` still re-exports;
+    `@theholocron/kyber/prompts`, which has no knowledge of commands, and `NonInteractiveError` (with the rest of the
+    terminal output helpers) in `@theholocron/kyber/ui`; `cli/cli/src/ui/index.ts` still re-exports both;
     `interactive-menu/` holds the rest, one folder per piece:
     `command-registry`, `menu-items`, `run-menu-entries`, `child-argv` and
     `launch-menu`.
@@ -538,7 +538,7 @@ cli/                              — core infrastructure (the CLI and its runti
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   dagobah/                        — @theholocron/dagobah                   (private: the local dev server behind `holocron dev serve` — env loading, a loopback handler server, request logging; inlined into the CLI's build, never published, #1714)
-  kyber/                          — @theholocron/kyber                     (private: the reusable parts of a CLI — terminal output (`/ui`), the update notifier (`/notifier`) and token handling (`/secrets`: owner-only files, shredding, git-ignore check, dotenv, clipboard, keyring, credential store, `--token` parsing) so far; prompts, test harness and global flags to follow; inlined into the CLI's build, never published, spec `tech-kyber`, #1727)
+  kyber/                          — @theholocron/kyber                     (private: the reusable parts of a CLI — terminal output (`/ui`), the update notifier (`/notifier`) and token handling (`/secrets`: owner-only files, shredding, git-ignore check, dotenv, clipboard, keyring, credential store, `--token` parsing) and prompts (`/prompts`: the searchable menu and the positional and option prompts) so far; test harness and global flags to follow; inlined into the CLI's build, never published, spec `tech-kyber`, #1727)
 apps/                             — deployable applications (not published to npm; private, version 0.0.0 — deployed, not versioned: the deploy-on-release job deploys the commit, and their changes land in the root CHANGELOG)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
 observability/                    — @theholocron/observability             (logging, errors and analytics behind one interface; releases on its own version line, tags `observability-v*`)

@@ -1,12 +1,15 @@
 /** A resolved option answer — the shapes `buildChildArgv`/`secretEnv` turn into argv tokens or env entries. */
 export type OptionAnswer = string | boolean | string[];
 
+/** One option to offer: how to ask for it and how the answer is turned into a flag. */
 export interface OptionPrompt {
 	/** The yargs option's camelCased argv key, e.g. `"otp"`. */
 	key: string;
 	/** The literal flag as typed at the CLI, e.g. `"--otp"`. */
 	flag: string;
+	/** The kind of prompt: a yes/no, free text, a pick from `choices`, or masked text. */
 	type: "confirm" | "input" | "select" | "password";
+	/** The question shown to the user. */
 	message: string;
 	/**
 	 * Required when `type === "select"`. A plain list for a fixed set, or a
@@ -14,6 +17,7 @@ export interface OptionPrompt {
 	 * `PositionalPrompt.choices`.
 	 */
 	choices?: string[] | (() => string[]);
+	/** The answer proposed when the user just presses Enter. */
 	default?: string | boolean;
 	/**
 	 * Collected with a masked `password()` prompt and delivered to the
@@ -97,7 +101,9 @@ export interface OptionMode {
  * need to know which kind of command produced it.
  */
 export interface ResolvedOptions {
+	/** The options that apply, in the order they were asked. */
 	options: OptionPrompt[];
+	/** What was answered, by each option's `key`. */
 	answers: Record<string, OptionAnswer>;
 	/** Picked `askLast: true` options with no value yet — resolve via `promptForDeferredOptions` right before the real spawn. Undefined/empty is the common case: nothing deferred. */
 	deferred?: OptionPrompt[];

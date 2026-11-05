@@ -1,3 +1,4 @@
+/** One positional argument to ask for when it was not given on the command line. */
 export interface PositionalPrompt {
 	/** The yargs positional's camelCased argv key (e.g. `"newVersion"`). */
 	key: string;
@@ -10,6 +11,7 @@ export interface PositionalPrompt {
 	cliArg?: string;
 	/** Label shown to the user. */
 	message: string;
+	/** Free text, or a pick from `choices`. */
 	type: "input" | "select";
 	/**
 	 * Required when `type === "select"`. A plain list for a fixed set, or a

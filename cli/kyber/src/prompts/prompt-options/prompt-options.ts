@@ -1,6 +1,6 @@
 import { checkbox, confirm, input, password, select } from "@inquirer/prompts";
-import { NonInteractiveError } from "@theholocron/kyber/ui";
 
+import { NonInteractiveError } from "../../ui/non-interactive-error/index.js";
 import type { OptionAnswer, OptionMode, OptionPrompt, OptionsCommand, ResolvedOptions } from "./prompt-options.type.js";
 
 /**
