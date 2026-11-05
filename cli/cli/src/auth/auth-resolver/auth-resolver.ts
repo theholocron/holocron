@@ -2,9 +2,9 @@
 // createResolveToken is wrapped here to inject the keyring backend so plugins
 // don't need to pass it explicitly.
 import { AuthError, createResolveToken as _createResolveToken, type ResolveTokenInput } from "@theholocron/http-client";
+import { getCredential } from "@theholocron/kyber/secrets";
 
 import { makeEnv } from "../../env/index.js";
-import { getCredential } from "../credential-store/index.js";
 import { getToken as getKeyringToken } from "../keyring/index.js";
 import type {
 	FeatureResolver,

@@ -67,12 +67,16 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@napi-rs/keyring": "^1.0.0",
     "chalk": "^6.0.0",
     "clipboardy": "^5.0.0",
     "dotenv": "^17.0.0",
     "ora": "^9.0.0"
   },
   "peerDependenciesMeta": {
+    "@napi-rs/keyring": {
+      "optional": true
+    },
     "chalk": {
       "optional": true
     },

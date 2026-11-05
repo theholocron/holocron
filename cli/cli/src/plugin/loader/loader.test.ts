@@ -3,9 +3,9 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { clearCredentials, getCredential } from "@theholocron/kyber/secrets";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { clearCredentials, getCredential } from "../../auth/credential-store/index.js";
 import { resolveConfig } from "../../config/config/index.js";
 import { cardinalityOf, LoaderError, PluginLoader } from "./loader.js";
 import type { PluginImporter } from "./loader.type.js";

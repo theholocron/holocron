@@ -1,6 +1,6 @@
+import { clearCredentials, setCredentials } from "@theholocron/kyber/secrets";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { clearCredentials, setCredentials } from "../credential-store/index.js";
 import { getToken } from "../keyring/index.js";
 import { AuthError, createFeatureResolver, createResolveToken } from "./auth-resolver.js";
 
