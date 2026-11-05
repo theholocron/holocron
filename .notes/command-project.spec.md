@@ -6,6 +6,7 @@ blocked-by: []
 related:
   - theholocron/holocron#449
   - theholocron/holocron#451
+  - theholocron/holocron#1744
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618558295965696
 ---
@@ -33,10 +34,22 @@ This matters because project boards are org infrastructure. They should be
 reproducible, version-controlled, and manageable from the same tool that
 manages everything else.
 
+Creating a board is only half of it. Changing one is risky: a single select
+field's options can only be replaced as a whole list, and a list sent without
+each existing option's `id` gives every option a new id and **blanks the field
+on every item**. Adding a `Blocked` status to the org board did exactly that
+twice (v4, then v5) and each time the values had to be restored from a snapshot
+taken by hand. A board that is declared in the repo can be checked for drift
+and changed without that risk (#1744).
+
 ---
 
 ## Goals
 
+- `holocron project setup` — make a board match its declaration in `holocron.config.ts`, creating it
+  when it does not exist, and `holocron doctor project` — compare the two, one row per
+  field, option and view (see [Declared board](#declared-board-apply-and-check))
+- A field change never clears a value: existing options are sent with their `id`
 - `holocron project list` — list org projects with number, title, and open/closed state
 - `holocron project create [template]` — create a project from a named template; output the URL
 - `holocron project close <number>` — close (archive) a project by number
@@ -177,20 +190,23 @@ runtime — built-in presets and config-driven overrides from the provider optio
 
 #### `roadmap` (default)
 
-Mirrors the current org roadmap board (project #4):
+Mirrors the current org roadmap board (project 5, "v5"; v4 was closed on 2026-11-05):
 
-| Component  | Definition                                                                                            |
-| ---------- | ----------------------------------------------------------------------------------------------------- |
-| **Fields** | Status (Someday / Todo / In Progress / Done), Priority (1·Now / 2·Next / 3·Process), Milestone (text) |
-| **Views**  | Active (default), Backlog, Done — see below                                                           |
+| Component  | Definition                                                                                                            |
+| ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Fields** | Status (Someday / Todo / In Progress / Blocked / Done), Priority (1 · Now / 2 · Next / 3 · Process), Milestone (text) |
+| **Views**  | Active (default), Backlog, Done — see below                                                                           |
 
-**Views:**
+`Blocked` is a status for an item that waits on another issue or an outside change.
+The dependency itself is GitHub's "blocked by" link; the column only makes it visible.
 
-| Name    | Layout | Filter                         | Purpose                                           |
-| ------- | ------ | ------------------------------ | ------------------------------------------------- |
-| Active  | table  | `-status:Someday -status:Done` | Day-to-day working view (Todo + In Progress only) |
-| Backlog | board  | `status:Someday`               | Everything parked for later                       |
-| Done    | table  | `status:Done`                  | Completed work, historical record                 |
+**Views (as they are on the live board):**
+
+| Name    | Layout | Filter                         | Purpose                                              |
+| ------- | ------ | ------------------------------ | ---------------------------------------------------- |
+| Active  | board  | `-status:Someday -status:Done` | Day-to-day working view (Todo, In Progress, Blocked) |
+| Backlog | board  | `status:Someday`               | Everything parked for later                          |
+| Done    | table  | `status:Done`                  | Completed work, historical record                    |
 
 The Active view is set as the default so the board opens showing only
 committed work. Done items are never seen unless you switch to the Done view —
@@ -235,37 +251,110 @@ template is treated as fully custom and must define all fields and views.
 
 ---
 
+## Declared board: apply and check
+
+A board is declared the way the notifications server is: the provider's `layout` in
+`holocron.config.ts` says what must exist, `project setup` applies it and `doctor project`
+compares it with the live board (the server-as-code pattern, #1098; the doctor rules are
+in `tech-doctor-deep-checks`). A template is the default layout, so `layout` only
+states what differs.
+
+```ts
+providers: {
+  projects: ["github", {
+    number: 5, // the board this repo uses; setup creates one from `template` when absent
+    template: "roadmap",
+    layout: { /* fields, options and views, same shape as a template */ },
+  }],
+}
+```
+
+**`setup` is idempotent and never destructive.** It reads the board, computes the difference
+and applies only that: `createProjectV2` (or `copyProjectV2` from a template board),
+`createProjectV2Field`, `updateProjectV2Field`, `createProjectV2View` and
+`updateProjectV2View`. A field, option or view the layout does not mention is left alone
+and reported by the doctor, never deleted.
+
+**A field change keeps its values.** `updateProjectV2Field` replaces the whole option list.
+`ProjectV2SingleSelectFieldOptionInput` takes an optional `id`, documented as "include this to
+preserve the option's identity during updates, preventing item field values from being cleared".
+So `setup` reads the field first and sends every existing option with its `id`, in the order
+declared, adding the new option without one. Renaming an option is the one change that
+needs care (the name is how setup matches it when the `id` is unknown), so a rename is applied
+as an `id`-preserving update, never as remove-and-add. If the live field cannot be read, setup stops
+instead of sending a list without ids. Before any field write it also keeps a snapshot of the
+field's values in memory and, if a re-read after the write shows a value gone, writes the
+snapshot back by option name and reports it as a failure. This is the net, not the plan.
+
+**What the API cannot do** is reported as a `todo` that fails the run until done, like the
+Discord client secret. As of the live schema (checked 2026-11-05):
+
+| Can be declared and applied                                   | Cannot                                                                             |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| the board, its title, readme and short description            | creating an automation rule (`deleteProjectV2Workflow` exists, there is no create) |
+| fields and single select options (colour, description)        | turning a rule on from a layout, so "Auto-add sub-issues" is a `todo`              |
+| views: name, layout, filter, group-by (`createProjectV2View`) | a view's column order beyond what `configuration` accepts                          |
+| linking the board to a repository or team                     |                                                                                    |
+| closing, or marking as a template (`markProjectV2AsTemplate`) |                                                                                    |
+
+`copyProjectV2` copies a board's fields and views into a new one. Whether it also copies the
+automation rules is not verified; the first implementation should test it on a scratch board
+before relying on it.
+
+**`doctor project`** is read-only: one row per comparison (board exists and is open; each field
+exists with its options in order; each declared view exists with its layout and filter; the
+automation rules the layout lists are enabled; the board is linked to the repo), printed
+through the shared `printCheckRows`. It also reports `item without a status` and
+`closed item not Done` as `info`, which are the two things that made a hand clean-up
+necessary.
+
+**`project move`** carries items from one board to another by rule: every **open** issue or
+pull request moves with its status and priority, and a closed or merged one stays behind, set to
+`Done` on the old board when it still shows another status. An item already on the target keeps its
+target values. This is the clean-up done by hand when v4 became v5, and is what `project close`
+is followed by when a board is retired. It is a probe-style command (it writes, so it asks
+first and honours `--dry-run`).
+
+---
+
 ## Implementation
 
 ### File layout
 
+The GitHub work is a capability in the GitHub plugin, in the shape of the other capabilities;
+the commands in the CLI only orchestrate (`--dry-run` flows through `RuntimeContext`).
+
 ```
-packages/cli/src/commands/project/
-  index.ts          ← yargs parent command + subcommand registration
-  list.ts
-  create.ts
-  close.ts
+plugins/holocron-plugin-github/src/capabilities/
+  projects.ts       ← the `projects` capability: list, ensure, read, close, move
+cli/cli/src/commands/project/
+  project.ts        ← yargs parent command + subcommand registration
+  list/  create/  close/  setup/  move/   ← one folder each (implementation, test, index.ts)
   templates/
-    index.ts        ← exports getTemplate(name, config): ResolvedTemplate
-    roadmap.ts      ← built-in roadmap definition
-    sprint.ts       ← built-in sprint definition
-  graphql/
-    queries.ts      ← listProjects
-    mutations.ts    ← createProject, createField, createView, closeProject
-packages/cli/src/providers/projects/
-  index.ts          ← ProjectsProvider interface
-  github.ts         ← GitHub Projects v2 implementation
+    roadmap/        ← built-in roadmap definition
+    sprint/         ← built-in sprint definition
+cli/cli/src/commands/deep-checks/
+  project/          ← the `doctor project` entry in `DEEP_CHECKS`
 ```
 
-The `ProjectsProvider` interface decouples the command layer from the GitHub
-GraphQL implementation. `list`, `create`, and `close` call provider methods;
-the GitHub implementation does the GraphQL work.
+A new capability needs `COMMAND_CONTEXTS` and `COMMAND_REGISTRY` entries, and a `DEEP_CHECKS` entry
+needs the same (the tests fail without them). The capability is the seam a future Linear or
+Jira provider plugs into.
+
+The `Projects` capability decouples the command layer from the GitHub GraphQL
+implementation. The commands call its methods; the GitHub plugin does the GraphQL work.
 
 ```ts
-export interface ProjectsProvider {
+export interface Projects {
   list(org: string): Promise<ProjectSummary[]>;
   create(org: string, title: string, template: ResolvedTemplate): Promise<CreatedProject>;
   close(org: string, number: number): Promise<void>;
+  /** The live board as a layout, with option ids, for `setup` to diff and `doctor` to compare. */
+  read(org: string, number: number): Promise<BoardState>;
+  /** Apply the difference between a layout and `read()`. Optional: a provider may only list and close. */
+  ensure?(org: string, number: number, layout: ResolvedTemplate): Promise<EnsureReport>;
+  /** Move open items from one board to another. Optional. */
+  move?(org: string, from: number, to: number): Promise<MoveReport>;
 }
 ```
 
@@ -328,6 +417,13 @@ mutation CreateField(
 }
 ```
 
+**`close` — mutation.** There is no `closeProjectV2`; a board is closed, and reopened, with
+`updateProjectV2(input: { projectId, closed: true })`.
+
+**`update` — field options.** `updateProjectV2Field(input: { fieldId, singleSelectOptions })`,
+each existing option sent as `{ id, name, color, description }` (see
+[Declared board](#declared-board-apply-and-check)).
+
 ### Token resolution
 
 All project mutations require a token with `project` scope. `GITHUB_TOKEN`
@@ -363,3 +459,19 @@ cursor forwarding. No manual `--page` flag needed.
    runs multiple teams with projects named "Sprint 1", this will false-positive.
    Could scope to open projects only, or skip the check entirely and let GitHub
    create duplicates.
+
+2. **Does `copyProjectV2` copy the automation rules?** If it does, `create` can copy a
+   template board and the "Auto-add sub-issues" rule needs no `todo`. Test on a scratch
+   board first; the schema documents fields and views only.
+3. **Where does the declaration live?** `providers.projects` in `holocron.config.ts` suits
+   one board per repo. The org board is shared by many repos; if the other repos need to
+   name it, the number belongs in one shared place (the `peers`-style shared config), not
+   in each repo.
+4. **How is "open item" decided for `project move`?** The issue or pull request state
+   (`OPEN`) is exact, but a closed item with a stale status was found on the old board
+   (four of them), so `move` also sets those to `Done` on the board it leaves. Decide whether that
+   write belongs in `move` or only in the doctor's `info` row.
+5. **A second status for the dependency?** `Blocked` is a manual status. GitHub's "blocked by"
+   link is the source of truth; the doctor could report an item that has an open blocker but is
+   not `Blocked`, or the reverse, as `info`. Whether a rule should set the status
+   itself is left until the column has been used for a while.
