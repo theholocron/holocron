@@ -1,3 +1,13 @@
+## [5.0.0-alpha.339](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.338...v5.0.0-alpha.339) (2026-11-05)
+
+### Features
+
+* **cli:** 📋 add a projects capability and the board template schema ([#1750](https://github.com/theholocron/holocron/issues/1750)) ([f2d06c2](https://github.com/theholocron/holocron/commit/f2d06c23a63817ec0ff2b5e179baff4c9a97809d)), closes [#1744](https://github.com/theholocron/holocron/issues/1744)
+
+### Documentation
+
+* **specs:** 🧩 project management as a neutral capability; templates are files ([#1746](https://github.com/theholocron/holocron/issues/1746)) ([646c877](https://github.com/theholocron/holocron/commit/646c877f116aae1c2ba6eda4eb0f73ddc3c8b549)), closes [#1744](https://github.com/theholocron/holocron/issues/1744) [#alerts](https://github.com/theholocron/holocron/issues/alerts)
+
 ## [5.0.0-alpha.338](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.337...v5.0.0-alpha.338) (2026-11-05)
 
 ### Features
