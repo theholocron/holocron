@@ -81,17 +81,13 @@ monorepo fixtures and `TEST_ORG` stay in the CLI's own `testing/`.
 
 ## Publishing
 
-`kyber` starts `"private": true` and is inlined into the CLI's build with `alwaysBundle`, exactly as `dagobah` is. A
-public package cannot be a dependency of the CLI until it exists on npm, and a first publish needs a trusted publisher
-registered by hand, so publishing in the middle of the stack would risk a CLI release that depends on a package npm
-cannot serve.
-
-While it is bundled, every external it imports (`chalk`, `ora`, `@inquirer/prompts`, `clipboardy`, `@napi-rs/keyring`,
-`yargs`) must stay a dependency of the CLI; `holocron deploy stage`'s check for undeclared externals is the model, and the
-CLI's published `package.json` is checked after the first move.
-
-It becomes public in the PR that `cli-template` needs it: remove `private`, remove `alwaysBundle`, declare the peers,
-`holocron package publish --initial` and the trusted publisher by the maintainer, in that order.
+`kyber` first shipped `"private": true` and was inlined into the CLI's build with `alwaysBundle`, exactly as `dagobah`
+was, because a public package cannot be a dependency of the CLI until it exists on npm and a first publish needs a
+trusted publisher registered by hand. With the stack merged, both packages are public: `private` and `alwaysBundle` are
+gone, `@theholocron/dagobah` and `@theholocron/kyber` are `dependencies` of the CLI (`workspace:*`, like `datapad`), and
+they start at the `cli` group's version. Kyber's heavy libraries stay optional peers, so a new CLI installs only the ones
+its subpaths use; the CLI already depends on all of them. The first publish is `holocron package publish --initial`
+followed by a trusted publisher for each, both by the maintainer, before the release that makes the CLI depend on them.
 
 ## Rollout: a stack of small PRs
 
@@ -133,6 +129,6 @@ template repos (the template repos are held until then). That PR is also when ky
   be extracted later without kyber changing; the cost is one structural type kept in step with `CommandEntry`, which the
   type checker enforces because the CLI passes its entries in.
 - **Version line.** Every package in a folder is a release group and is bumped together: `cli`, `astromech` and
-  `datapad` share one number. Kyber joins that number while it is private and after it goes public, because a separate
+  `datapad` share one number. Kyber joins that number, private or public, because a separate
   line would need its own folder and tag prefix. If kyber's churn ever diverges from the CLI's, it moves to its own
   folder then.

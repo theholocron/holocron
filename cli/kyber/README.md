@@ -4,7 +4,7 @@ The reusable parts of a command-line tool: terminal output, prompts, the update 
 test harness and the global flags. They were written for the Holocron CLI and are moved here one subpath at a time, so
 the next CLI does not copy them (spec `tech-kyber`, #1727).
 
-Internal for now: private, bundled into `@theholocron/cli`, not published. It becomes public when a second CLI needs it.
+Published, so a second CLI can import it. `@theholocron/cli` is its first consumer and `cli-template` is the next.
 
 > The kyber crystal is the part in a lightsaber that makes it work.
 

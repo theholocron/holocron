@@ -1,0 +1,44 @@
+---
+title: Dagobah
+description: Runs a web-standard handler on your machine with its secrets loaded from a 1Password Environment, for a development instance behind a tunnel.
+---
+
+`@theholocron/dagobah` runs a web-standard handler (`(Request, env) => Response`) locally. It loads the handler's secrets from a 1Password Environment into `process.env`, imports the handler, serves it on the loopback address and says where its logs go.
+
+[`holocron dev serve`](/holocron/commands/dev-serve/) is built on it. Use the package directly when a project has a handler to run locally and no Holocron config.
+
+> Dagobah is the swamp where Luke trains, away from the real thing. This is where a handler runs before it ships.
+
+## Installation
+
+```bash
+pnpm add -D @theholocron/dagobah
+```
+
+It needs the [1Password CLI](https://developer.1password.com/docs/cli/) (`op`) unless the process already has every variable the handler requires.
+
+## Usage
+
+```ts
+import { serveHandler } from "@theholocron/dagobah";
+
+await serveHandler({
+  environment: "Sentinel - dev", // the 1Password Environment
+  required: ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+  logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "AXIOM_DATASET" },
+  port: Number(process.env.PORT ?? 3000),
+  handler: async () => (await import("../src/handler/index.js")).handleWebhookRequest,
+});
+```
+
+The handler is imported after the Environment is in `process.env`, so a handler that reads `process.env` when its module loads sees the right values. It is served at `/api/webhook` unless `path` says otherwise.
+
+## The pieces
+
+`serveHandler` is the three smaller functions together, each exported on its own:
+
+- `loadDevEnv({ environment, required })` reads the Environment. The process wins over it. It throws naming, and never showing, what is missing. An unquoted multi-line value, such as a PEM key as `op` prints it, is read whole.
+- `startDevServer({ handle, env, port })` listens on the loopback address only and writes one log line per request: method, path and status.
+- `describeLogging(env, { tokenVar, datasetVar })` returns one line naming the dataset, never the token.
+
+Values and tokens are never printed.

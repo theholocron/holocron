@@ -59,6 +59,7 @@
     "@napi-rs/keyring": "catalog:",
     "@sentry/node": "catalog:",
     "@theholocron/astromech": "workspace:*",
+    "@theholocron/dagobah": "workspace:*",
     "@theholocron/datapad": "workspace:*",
     "@theholocron/env-utils": "workspace:^",
     "@theholocron/fs-utils": "workspace:^",
@@ -66,6 +67,7 @@
     "@theholocron/github-client": "workspace:^",
     "@theholocron/http-client": "workspace:^",
     "@theholocron/json-utils": "workspace:^",
+    "@theholocron/kyber": "workspace:*",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/observability": "workspace:^",
     "@theholocron/pkg-utils": "workspace:^",
@@ -80,9 +82,7 @@
     "yargs": "catalog:cli"
   },
   "devDependencies": {
-    "@theholocron/dagobah": "workspace:*",
     "@theholocron/eslint-config": "workspace:^",
-    "@theholocron/kyber": "workspace:^",
     "@theholocron/rollup-plugin-transform-template": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
