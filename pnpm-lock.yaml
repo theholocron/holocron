@@ -728,6 +728,9 @@ importers:
       '@theholocron/astromech':
         specifier: workspace:*
         version: link:../astromech
+      '@theholocron/dagobah':
+        specifier: workspace:*
+        version: link:../dagobah
       '@theholocron/datapad':
         specifier: workspace:*
         version: link:../datapad
@@ -749,6 +752,9 @@ importers:
       '@theholocron/json-utils':
         specifier: workspace:^
         version: link:../../utils/json-utils
+      '@theholocron/kyber':
+        specifier: workspace:*
+        version: link:../kyber
       '@theholocron/misc-utils':
         specifier: workspace:^
         version: link:../../utils/misc-utils
@@ -786,15 +792,9 @@ importers:
         specifier: catalog:cli
         version: 18.2.0
     devDependencies:
-      '@theholocron/dagobah':
-        specifier: workspace:*
-        version: link:../dagobah
       '@theholocron/eslint-config':
         specifier: workspace:^
         version: link:../../configs/eslint-config
-      '@theholocron/kyber':
-        specifier: workspace:^
-        version: link:../kyber
       '@theholocron/rollup-plugin-transform-template':
         specifier: workspace:^
         version: link:../../configs/rollup-plugin-transform-template

@@ -4,7 +4,7 @@ Runs a web-standard handler (`(Request, env) => Response`) locally, for a develo
 loads the handler's secrets from a 1Password Environment, puts them in `process.env`, imports the handler, serves it
 on the loopback address and says where its logs go.
 
-Internal: private, not published. Sentinel's `scripts/serve.ts` is its first user.
+Published for any project with a web-standard handler to run locally. `holocron dev serve` is built on it, and Sentinel's `scripts/serve.ts` was its first user.
 
 > Dagobah is the swamp where Luke trains, away from the real thing. This is where a handler runs before it ships.
 
