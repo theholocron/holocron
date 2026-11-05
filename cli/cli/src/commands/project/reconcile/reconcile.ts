@@ -13,8 +13,8 @@ import { join } from "node:path";
 
 import { getLogger } from "../../../observability/logger/index.js";
 import { assertPluginsResolvable, type BoardSummary, PluginLoader, type Projects } from "../../../plugin/index.js";
+import { style } from "../../../ui/index.js";
 import { describeProviderError, logReason } from "../../../ui/provider-error/index.js";
-import { style } from "../../../ui/style/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
 import { planReconcile, type ReconcileChange } from "../plan-reconcile/index.js";
