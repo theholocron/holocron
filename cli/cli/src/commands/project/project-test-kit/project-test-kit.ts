@@ -1,5 +1,6 @@
 /** Test helpers shared by the `holocron project` tests: a loaded config, a loader over a fake `projects` provider, and rows. */
 
+import { basename } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 
 import { fakeLogger } from "@theholocron/observability/testing";
@@ -53,7 +54,7 @@ export function loaderFor(loaded: LoadedConfig, projects: unknown): PluginLoader
 export function memoryIo(files: Record<string, string> = {}): TemplatesIo {
 	return {
 		listFiles: async () => Object.keys(files),
-		readFile: async (path) => files[path.split("/").pop() ?? ""] ?? "",
+		readFile: async (path) => files[basename(path)] ?? "",
 	};
 }
 

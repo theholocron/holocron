@@ -71,4 +71,20 @@ describe("project close", () => {
 		const { input } = inputFor(projects);
 		expect((await runProjectClose({ ...input, board: "7", yes: true })).status).toBe("fail");
 	});
+
+	it("uses the console, the default logger and the real prompt when none are given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const projects = fakeProjects({ list: async () => [board({ name: "v5", number: undefined as never })] });
+		const { input } = inputFor(projects);
+		const report = await runProjectClose({
+			loaded: input.loaded,
+			loader: input.loader,
+			context: { repoRoot: "/tmp/test", org: "acme" },
+			board: "v5",
+			yes: true,
+		});
+		expect(report).toMatchObject({ status: "ok", closed: true });
+		expect(log.mock.calls.flat().join("\n")).toContain('board "v5"');
+		log.mockRestore();
+	});
 });

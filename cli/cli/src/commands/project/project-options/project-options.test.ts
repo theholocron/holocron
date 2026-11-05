@@ -66,4 +66,20 @@ describe("resolveProjectOptions", () => {
 			problems: ["boards must be a list of { template, name }"],
 		});
 	});
+
+	it("rejects a board given as a list", () => {
+		const result = resolveProjectOptions({ boards: [["roadmap", "v5"]] }, "theholocron");
+		expect(result).toEqual({ ok: false, problems: ["boards[0] must be { template, name }"] });
+	});
+
+	it("asks for a template when a board names none", () => {
+		const result = resolveProjectOptions(
+			{ boards: [{ name: "v5" }, { template: " ", name: "v6" }] },
+			"theholocron"
+		);
+		expect(result).toEqual({
+			ok: false,
+			problems: ["boards[0] needs a template", "boards[1] needs a template"],
+		});
+	});
 });

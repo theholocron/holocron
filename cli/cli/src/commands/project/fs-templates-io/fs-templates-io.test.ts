@@ -20,6 +20,12 @@ describe("createFsTemplatesIo", () => {
 		expect(loaded.templates["mine"]?.fields.map((f) => f.name)).toContain("Team");
 	});
 
+	it("rethrows a failure that is not a missing directory", async () => {
+		const root = await mkdtemp(join(tmpdir(), "holocron-projects-"));
+		await writeFile(join(root, "file.txt"), "x");
+		await expect(createFsTemplatesIo(root).listFiles("file.txt")).rejects.toMatchObject({ code: "ENOTDIR" });
+	});
+
 	it("treats a missing directory as empty", async () => {
 		const root = await mkdtemp(join(tmpdir(), "holocron-projects-"));
 		expect(await createFsTemplatesIo(root).listFiles(".holocron/projects")).toEqual([]);

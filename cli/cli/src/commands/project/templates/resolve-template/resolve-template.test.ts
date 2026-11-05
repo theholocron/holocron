@@ -85,4 +85,10 @@ describe("resolveTemplate", () => {
 			problems: ["a template without extends must list its statuses, fields and views"],
 		});
 	});
+
+	it("extends a template that declares no rules", () => {
+		const plain = { name: "plain", statuses: [], fields: [], views: [] };
+		const result = resolveTemplate("mine", { extends: "plain", rules: ["auto-close"] }, { plain });
+		expect(result).toMatchObject({ ok: true, template: { name: "mine", rules: ["auto-close"] } });
+	});
 });

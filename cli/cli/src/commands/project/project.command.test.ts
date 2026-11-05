@@ -86,4 +86,46 @@ describe("project commands", () => {
 		await go("list");
 		expect(runProjectList).not.toHaveBeenCalled();
 	});
+
+	it.each([
+		["list", runProjectList, []],
+		["create", runProjectCreate, ["roadmap"]],
+		["close", runProjectClose, ["7"]],
+		["setup", runProjectSetup, []],
+	])("%s does nothing when the token flags are unusable", async (sub, run, rest) => {
+		tokenContext.mockReturnValue(undefined);
+		await go(sub, ...rest);
+		expect(loadConfig).not.toHaveBeenCalled();
+		expect(run).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		["list", runProjectList, []],
+		["create", runProjectCreate, ["roadmap"]],
+		["close", runProjectClose, ["7"]],
+		["setup", runProjectSetup, []],
+	])("%s exits non-zero when the run fails and zero when it does not", async (sub, run, rest) => {
+		await go(sub, ...rest);
+		expect(process.exitCode).toBeUndefined();
+		run.mockResolvedValue({ status: "fail", summary: { ok: 0, fail: 1, skip: 0 } });
+		await go(sub, ...rest);
+		expect(process.exitCode).toBe(1);
+	});
+
+	it("passes the --org flag as the owner for every subcommand", async () => {
+		for (const [sub, run, rest] of [
+			["create", runProjectCreate, ["roadmap"]],
+			["close", runProjectClose, ["7"]],
+			["setup", runProjectSetup, []],
+		] as const) {
+			await go(sub, ...rest, "--org", "other");
+			expect(run).toHaveBeenCalledWith(
+				expect.objectContaining({ owner: "other", context: expect.objectContaining({ org: "acme" }) })
+			);
+		}
+	});
+
+	it("the group itself has nothing to run", () => {
+		expect(projectCommand.handler({} as never)).toBeUndefined();
+	});
 });

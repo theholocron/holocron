@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ConfigError } from "../../../config/index.js";
-import { board, fakeProjects, inputFor, loadedWith } from "../project-test-kit/index.js";
+import { board, fakeProjects, inputFor, loadedWith, memoryIo } from "../project-test-kit/index.js";
 import { runProjectSetup } from "./project-setup.js";
 
 const declared = [{ template: "roadmap", name: "v5" }];
@@ -109,5 +109,27 @@ describe("project setup", () => {
 		const loaded = loadedWith({ projects: ["github", { boards: "x" }] });
 		const err = await runProjectSetup({ ...input, loaded }).catch((e: unknown) => e);
 		expect((err as Error).message).toMatch(/boards must be a list/);
+	});
+
+	it("uses the console, the default logger and the file system when none are given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const projects = fakeProjects({ ensure: async () => ({ created: false, changes: [], todos: [] }) });
+		const { input } = inputFor(projects, { boards: declared });
+		const report = await runProjectSetup({
+			loaded: input.loaded,
+			loader: input.loader,
+			context: { repoRoot: "/tmp/holocron-no-such-repo", org: "acme" },
+		});
+		expect(report.status).toBe("ok");
+		expect(projects.create).toHaveBeenCalled();
+		expect(log).toHaveBeenCalled();
+		log.mockRestore();
+	});
+
+	it("reports a template file that does not load", async () => {
+		const { input, lines } = inputFor(fakeProjects(), { boards: declared });
+		const report = await runProjectSetup({ ...input, io: memoryIo({ "broken.json": "{" }) });
+		expect(report.status).toBe("fail");
+		expect(lines.join("\n")).toContain("broken.json");
 	});
 });

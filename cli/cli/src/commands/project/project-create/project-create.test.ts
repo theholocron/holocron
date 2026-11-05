@@ -111,4 +111,38 @@ describe("project create", () => {
 		expect((await runProjectCreate({ ...input, template: "roadmap" })).status).toBe("fail");
 		expect(lines.join("\n")).toContain("denied");
 	});
+
+	it("uses the console, the default logger and the file system when none are given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const { input } = inputFor(fakeProjects());
+		const report = await runProjectCreate({
+			loaded: input.loaded,
+			loader: input.loader,
+			context: { repoRoot: "/tmp/holocron-no-such-repo", org: "acme" },
+			template: "roadmap",
+		});
+		expect(report).toMatchObject({ status: "ok", created: true });
+		expect(log).toHaveBeenCalled();
+		log.mockRestore();
+	});
+
+	it("names an existing board that has no number, and says when it is kept", async () => {
+		const existing = board({ number: undefined as never });
+		const { input, lines } = inputFor(fakeProjects({ find: async () => existing }));
+		const prompt = promptOf({ confirm: vi.fn(async () => false) });
+		await runProjectCreate({ ...input, prompt, template: "roadmap", title: "v5" });
+		expect(lines.join("\n")).toContain('board "v5" kept, nothing created');
+		expect(lines.join("\n")).not.toContain("(#");
+	});
+
+	it("reports a template file that does not load, and still uses the others", async () => {
+		const { input, lines } = inputFor(fakeProjects());
+		const report = await runProjectCreate({
+			...input,
+			io: memoryIo({ "broken.json": "{" }),
+			template: "roadmap",
+		});
+		expect(report.status).toBe("fail");
+		expect(lines.join("\n")).toContain("broken.json");
+	});
 });
