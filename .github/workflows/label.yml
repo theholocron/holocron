@@ -25,12 +25,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: ${{ inputs.configuration-path || '.github/labeler.yml' }}
           sparse-checkout-cone-mode: false
 
-      - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+      - uses: github/issue-labeler@ccca1e16fcb66762200e616fc29b57b940c1cb67 # v3.5
         if: ${{ github.event_name == 'pull_request' && hashFiles(inputs.configuration-path || '.github/labeler.yml') != '' }}
         # v3.4 bundles Node 20; allow it to run under Actions' current default.
         env:

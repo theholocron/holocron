@@ -56,7 +56,7 @@ jobs:
       deployments: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
 
       - uses: theholocron/.github/.github/actions/setup@main
@@ -149,7 +149,7 @@ jobs:
         if: ${{ (inputs.cloudflare-project != '' || vars.CLOUDFLARE_PAGES_PROJECT != '') && vars.CLOUDFLARE_ACCOUNT_ID == '' }}
         run: echo "::warning title=CLOUDFLARE_ACCOUNT_ID is not set::The Pages deploy needs it. Declare it under repo.variables.org in holocron.config.ts and run holocron repo setup."
 
-      - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4.0.0
+      - uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         id: deploy
         name: Deploy to Cloudflare Pages
         # Skip when neither the per-repo input nor the org variable is set.
