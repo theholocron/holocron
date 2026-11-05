@@ -57,4 +57,9 @@ describe("hermeticCreateRequire", () => {
 		const require = createRequire(pathToFileURL(join(dir, "missing", "package.json")));
 		expect(() => require.resolve(FAKE_SPECIFIER)).toThrow(/Cannot find module/);
 	});
+
+	it("refuses a module that resolution finds outside the directory, even through explicit paths", () => {
+		const require = createRequire(pathToFileURL(join(dir, "package.json")));
+		expect(() => require.resolve("vitest/package.json", { paths: [process.cwd()] })).toThrow(/under/);
+	});
 });

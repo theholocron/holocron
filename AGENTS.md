@@ -109,7 +109,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   The sources are grouped by suite: `ci/workflows/<suite>/<leaf>.yml`, or `ci/workflows/<id>.yml` for a leaf in no suite.
   `idFromSource()` (path to task id: `test/unit.yml` is `test:unit`) and `workflowFile()` (id to the flat generated
   file: `test-unit.yml`) are the only place that mapping lives, exported from `@theholocron/ci` and `@theholocron/astromech`
-  (spec `ci-flat-task-vocabulary`, #1619). The reusables a repo hosts are written to `.github/workflows` under the flat
+  (spec `ci-flat-task-vocabulary`, #1619). The reusables a repo contains are written to `.github/workflows` under the flat
   names; the frozen copies in `theholocron/.github` keep the old ones, so a caller of another repo is written with
   `legacyFile()` (and `localize` goes back with `flatFile()`) until `CI_HOME` moves to `ci-v1`. The caller files, workflow
   names and check names did not change.
@@ -538,7 +538,7 @@ cli/                              — core infrastructure (the CLI and its runti
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   dagobah/                        — @theholocron/dagobah                   (private: the local dev server behind `holocron dev serve` — env loading, a loopback handler server, request logging; inlined into the CLI's build, never published, #1714)
-  kyber/                          — @theholocron/kyber                     (private: the reusable parts of a CLI — terminal output (`/ui`), the update notifier (`/notifier`) and token handling (`/secrets`: owner-only files, shredding, git-ignore check, dotenv, clipboard, keyring, credential store, `--token` parsing) and prompts (`/prompts`: the searchable menu and the positional and option prompts) so far; test harness and global flags to follow; inlined into the CLI's build, never published, spec `tech-kyber`, #1727)
+  kyber/                          — @theholocron/kyber                     (private: the reusable parts of a CLI — terminal output (`/ui`), the update notifier (`/notifier`) and token handling (`/secrets`: owner-only files, shredding, git-ignore check, dotenv, clipboard, keyring, credential store, `--token` parsing) prompts (`/prompts`: the searchable menu and the positional and option prompts) and the test harness (`/testing`: `createCliRunner`, `runCommand`, `ensureBuilt`, `hermeticCreateRequire`) so far; the global flags to follow; inlined into the CLI's build, never published, spec `tech-kyber`, #1727)
 apps/                             — deployable applications (not published to npm; private, version 0.0.0 — deployed, not versioned: the deploy-on-release job deploys the commit, and their changes land in the root CHANGELOG)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
 observability/                    — @theholocron/observability             (logging, errors and analytics behind one interface; releases on its own version line, tags `observability-v*`)
