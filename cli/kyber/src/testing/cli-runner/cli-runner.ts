@@ -15,7 +15,8 @@ export function createCliRunner(options: CliRunnerOptions): (args: string[], run
 		const dir = await mkdtemp(join(tmpdir(), options.prefix ?? "cli-"));
 		try {
 			if (run.config !== undefined) {
-				if (!options.configFile) throw new Error("this runner has no configFile, so a run cannot be given a config");
+				if (!options.configFile)
+					throw new Error("this runner has no configFile, so a run cannot be given a config");
 				const body = typeof run.config === "string" ? run.config : JSON.stringify(run.config);
 				await writeFile(join(dir, options.configFile), body);
 			}
