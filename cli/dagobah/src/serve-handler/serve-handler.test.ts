@@ -1,3 +1,5 @@
+import type { spawnSync } from "node:child_process";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { DevServer } from "../dev-server/index.js";
@@ -61,9 +63,21 @@ describe("serveHandler", () => {
 		expect(onSignal).toHaveBeenCalledWith(server.close);
 	});
 
+	// A stub `op`, so no test here starts a real one.
+	const op = (status: number, stdout = "", stderr = "") =>
+		vi.fn(() => ({ status, stdout, stderr, error: undefined })) as unknown as typeof spawnSync;
+
+	it("fails, naming the Environment, when op cannot read it", async () => {
+		const spawn = op(1, "", "not signed in");
+		await expect(serve({ env: {}, spawn })).rejects.toThrow(
+			'could not read the 1Password Environment "Dev": not signed in'
+		);
+		expect(spawn).toHaveBeenCalled();
+	});
+
 	it("fails, naming what is missing, when a required variable is in neither place", async () => {
-		await expect(serve({ env: {}, environment: "Dev" })).rejects.toThrow(
-			/could not read the 1Password Environment|missing/
+		await expect(serve({ env: {}, spawn: op(0, "OTHER=1\n") })).rejects.toThrow(
+			'missing from the environment and from "Dev": DAGOBAH_TEST_SECRET'
 		);
 	});
 

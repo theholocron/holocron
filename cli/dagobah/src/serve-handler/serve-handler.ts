@@ -14,7 +14,12 @@ import type { ServeHandlerInput } from "./serve-handler.type.js";
 export async function serveHandler<K extends string>(input: ServeHandlerInput<K>): Promise<DevServer> {
 	const log = input.log ?? ((line: string) => console.log(line));
 	const settings = input.env ?? process.env;
-	const env = loadDevEnv({ environment: input.environment, required: input.required, env: settings });
+	const env = loadDevEnv({
+		environment: input.environment,
+		required: input.required,
+		env: settings,
+		...(input.spawn ? { spawn: input.spawn } : {}),
+	});
 	// The handler may read process.env once, when its module loads, so what the Environment holds goes in before the
 	// import and not after it.
 	Object.assign(process.env, env);
