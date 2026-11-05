@@ -12,7 +12,7 @@ export const pluginCreateArgs = (y: Argv<GlobalArgs>) =>
 		.option("capability", {
 			type: "string",
 			describe:
-				"Capability key: source|ci|secrets|environments|issues|deployment|storage|auth|vault|dns|tooling|notifications|analytics|errors|logs|wiki|workers|tunnels",
+				"Capability key: source|ci|secrets|environments|issues|deployment|storage|auth|vault|dns|tooling|notifications|analytics|errors|logs|wiki|workers|tunnels|projects",
 		})
 		.option("token-env", {
 			type: "string",
