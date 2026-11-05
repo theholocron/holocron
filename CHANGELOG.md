@@ -1,3 +1,13 @@
+## [5.0.0-alpha.331](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.330...v5.0.0-alpha.331) (2026-11-05)
+
+### Bug Fixes
+
+* **cli:** 🐛 ship tsx as a dependency, since holocron dev serve imports it at run time ([#1718](https://github.com/theholocron/holocron/issues/1718)) ([#1723](https://github.com/theholocron/holocron/issues/1723)) ([3c44843](https://github.com/theholocron/holocron/commit/3c44843a00921231d2ed6fca3d63ff00e682df41))
+
+### Documentation
+
+* **cli:** 📝 describe dagobah and dev.serve in the agent instructions ([#1722](https://github.com/theholocron/holocron/issues/1722)) ([f3ab4c5](https://github.com/theholocron/holocron/commit/f3ab4c542d46b92f27007eb95da1dfd5294f16b7)), closes [#1714](https://github.com/theholocron/holocron/issues/1714)
+
 ## [5.0.0-alpha.330](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.329...v5.0.0-alpha.330) (2026-11-05)
 
 ### Features
