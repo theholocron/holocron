@@ -17,6 +17,7 @@ import { getPlugins } from "../../../lib/registry.ts";
     { capability: "secrets", token: "HOLOCRON_ADMIN_TOKEN (github.admin)" },
     { capability: "environments", token: "HOLOCRON_ADMIN_TOKEN (github.admin)" },
     { capability: "issues", token: "HOLOCRON_ISSUES_TOKEN (github.issues)" },
+    { capability: "projects", token: "HOLOCRON_ORG_TOKEN (github.org)" },
   ]}
 />
 
@@ -77,6 +78,24 @@ See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each
 - Transition issues via label: `inProgress` → sets `labels.inProgress`, `done` → closes
 - Add comments
 - `doctor()` — lists available labels and validates lifecycle slot mapping
+
+## What `projects` provides
+
+GitHub Projects v2 boards over GraphQL, for `holocron project ...`. It uses the org token with the **Projects**
+organization permission. Items are keyed `#N` in the configured `repo` and `owner/repo#N` elsewhere.
+
+- `list` / `find`: every project of the organization (open and closed), or the open one with an exact name
+- `create`: copies the board a template names as `source` (fields, options, views and automation rules, no items), or
+  creates a project and applies the template
+- `close`: `updateProjectV2` with `closed: true`, reversible
+- `read` / `ensure`: the live board, and adding what the template lists and the board lacks. `ensure` never deletes. It
+  sends every existing status option with its `id`, because an option list sent without ids blanks the field on every
+  item; it stops if the field cannot be read, and writes values back by name if a re-read shows any gone
+- `items` / `setStatus`: each item's status, category, open state and open blockers; an idempotent status change
+- `move`: puts open items on another board with status and priority (only where the target has none); closed and merged
+  items stay and are set to the done status when theirs is not a done one
+- Automation rules cannot be created or switched on through the API, nor can a view's grouping; `ensure` returns them
+  as `todos`
 
 ## Webhook events
 
