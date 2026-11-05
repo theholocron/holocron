@@ -142,34 +142,22 @@ export default defineConfig({
     // Short form — GitHub Projects v2, no template customization
     projects: "github",
 
-    // Tuple form — provider + options (template overrides, org override)
+    // Tuple form — provider + the boards this repo's org keeps, as template → name
     projects: [
       "github",
       {
         org: "theholocron", // defaults to config.org
-        templates: {
-          // Extend the built-in roadmap with a custom field
-          roadmap: {
-            extends: "roadmap",
-            fields: [{ name: "Team", type: "single_select", options: ["CLI", "Infra", "Docs"] }],
-          },
-          // Fully custom template
-          "bug-bash": {
-            fields: [
-              { name: "Status", type: "single_select", options: ["Triage", "Confirmed", "Fixed", "Wontfix"] },
-              { name: "Severity", type: "single_select", options: ["P0", "P1", "P2"] },
-            ],
-            views: [
-              { name: "Active", layout: "table", filter: "-status:Triage -status:Fixed -status:Wontfix" },
-              { name: "By severity", layout: "table", groupBy: "Severity" },
-            ],
-          },
-        },
+        boards: [{ template: "roadmap", name: "v5" }],
       },
     ],
   },
 });
 ```
+
+The config holds only that list: which template each board follows and what the board is called.
+The template itself, its fields, options and views, is never written into `holocron.config.ts`
+(see [Template system](#template-system)). A board is found by its name among the org's open
+projects, so no project number is stored anywhere.
 
 `providers.projects` is optional. When absent, `holocron project` resolves
 the provider from the `config.org` owner type — if the org is a GitHub org,
@@ -183,8 +171,10 @@ any change to the `holocron project` command surface.
 
 ## Template system
 
-Templates define the structure of a project board. Two sources are merged at
-runtime — built-in presets and config-driven overrides from the provider options.
+Templates define the structure of a project board. They are files, not config. Two sources are
+read at runtime: the built-in presets that ship in `@theholocron/cli`, and a repo's own
+templates, one `<name>.json` per template in a directory (`templates` provider option,
+default `.holocron/projects`). A repo template with a built-in's name replaces it.
 
 ### Built-in templates
 
@@ -245,29 +235,21 @@ Lightweight iteration board:
 | `groupBy` | string  | Field name to group rows/columns by                                                               |
 | `default` | boolean | If `true`, this view opens when the project is first loaded. First view wins if multiple are set. |
 
-A config-defined template may set `extends: "<built-in-name>"` to inherit all
-fields and views from a built-in and add to them. Without `extends`, the
-template is treated as fully custom and must define all fields and views.
+A template file may set `extends: "<built-in-name>"` to inherit all
+fields and views from a built-in and add to them (a `roadmap` with one more field is the
+built-in and a `fields` list of one). Without `extends`, the template is fully custom and
+must define all fields and views. A template may also name `source`, a board to copy from
+when the board is created, which is how the automation rules come across (see below).
 
 ---
 
 ## Declared board: apply and check
 
-A board is declared the way the notifications server is: the provider's `layout` in
-`holocron.config.ts` says what must exist, `project setup` applies it and `doctor project`
-compares it with the live board (the server-as-code pattern, #1098; the doctor rules are
-in `tech-doctor-deep-checks`). A template is the default layout, so `layout` only
-states what differs.
-
-```ts
-providers: {
-  projects: ["github", {
-    number: 5, // the board this repo uses; setup creates one from `template` when absent
-    template: "roadmap",
-    layout: { /* fields, options and views, same shape as a template */ },
-  }],
-}
-```
+A board is declared the way the notifications server is: the provider's `boards` list in
+`holocron.config.ts` says which boards must exist and which template each follows,
+`project setup` applies it and `doctor project` compares it with the live board (the
+server-as-code pattern, #1098; the doctor rules are in `tech-doctor-deep-checks`). The
+template file holds the layout, so the config stays a short list.
 
 **`setup` is idempotent and never destructive.** It reads the board, computes the difference
 and applies only that: `createProjectV2` (or `copyProjectV2` from a template board),
@@ -292,14 +274,18 @@ Discord client secret. As of the live schema (checked 2026-11-05):
 | Can be declared and applied                                   | Cannot                                                                             |
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | the board, its title, readme and short description            | creating an automation rule (`deleteProjectV2Workflow` exists, there is no create) |
-| fields and single select options (colour, description)        | turning a rule on from a layout, so "Auto-add sub-issues" is a `todo`              |
+| fields and single select options (colour, description)        | switching a rule on or off on an existing board                                    |
 | views: name, layout, filter, group-by (`createProjectV2View`) | a view's column order beyond what `configuration` accepts                          |
 | linking the board to a repository or team                     |                                                                                    |
 | closing, or marking as a template (`markProjectV2AsTemplate`) |                                                                                    |
 
-`copyProjectV2` copies a board's fields and views into a new one. Whether it also copies the
-automation rules is not verified; the first implementation should test it on a scratch board
-before relying on it.
+**`copyProjectV2` copies the automation rules too.** Tested on 2026-11-05 by copying v5 to a
+scratch board (since deleted): the copy had the same Status options (including `Blocked`), the
+same three views and filters, and all seven automation rules with the same on/off state
+(only "Auto-add sub-issues to project" on); it had no items. So a board created from a
+template with a `source` carries its rules, and nothing about them is left as a `todo`. A
+board built from the template file alone has no rules, and `setup` reports each one the
+template lists as a `todo` (the table above), because the API cannot create them.
 
 **`doctor project`** is read-only: one row per comparison (board exists and is open; each field
 exists with its options in order; each declared view exists with its layout and filter; the
@@ -309,9 +295,10 @@ through the shared `printCheckRows`. It also reports `item without a status` and
 necessary.
 
 **`project move`** carries items from one board to another by rule: every **open** issue or
-pull request moves with its status and priority, and a closed or merged one stays behind, set to
-`Done` on the old board when it still shows another status. An item already on the target keeps its
-target values. This is the clean-up done by hand when v4 became v5, and is what `project close`
+pull request moves with its status and priority, and a closed or merged one stays behind, and
+`move` sets it to `Done` on the old board when it still shows another status, so nobody has to
+run the doctor to fix a board. (The doctor only reports; `move` fixes what it touches.) An
+item already on the target keeps its target values. This is the clean-up done by hand when v4 became v5, and is what `project close`
 is followed by when a board is retired. It is a probe-style command (it writes, so it asks
 first and honours `--dry-run`).
 
@@ -453,25 +440,24 @@ cursor forwarding. No manual `--page` flag needed.
 
 ---
 
+## Decisions
+
+1. **Title collision scope (decided).** The check on `create` looks at **open** projects only,
+   so a closed board (v4) never blocks reusing its title. Boards are found by name among the
+   open ones.
+2. **`copyProjectV2` and the automation rules (tested).** It copies them, with their on/off
+   state. See [Declared board](#declared-board-apply-and-check).
+3. **Where the declaration lives (decided).** In `providers.projects`, as a short `boards` list of
+   template → name. Templates are files (built-ins in the CLI, a repo's own in a directory), never
+   inline config, and no project number is stored: a board is found by name.
+4. **Who fixes a stale status (decided).** `project move` writes it (a closed item left on the old
+   board becomes `Done`). `doctor project` stays read-only and only reports.
+
 ## Open questions
 
-1. **Title uniqueness scope** — collision check is org-wide. If the same org
-   runs multiple teams with projects named "Sprint 1", this will false-positive.
-   Could scope to open projects only, or skip the check entirely and let GitHub
-   create duplicates.
-
-2. **Does `copyProjectV2` copy the automation rules?** If it does, `create` can copy a
-   template board and the "Auto-add sub-issues" rule needs no `todo`. Test on a scratch
-   board first; the schema documents fields and views only.
-3. **Where does the declaration live?** `providers.projects` in `holocron.config.ts` suits
-   one board per repo. The org board is shared by many repos; if the other repos need to
-   name it, the number belongs in one shared place (the `peers`-style shared config), not
-   in each repo.
-4. **How is "open item" decided for `project move`?** The issue or pull request state
-   (`OPEN`) is exact, but a closed item with a stale status was found on the old board
-   (four of them), so `move` also sets those to `Done` on the board it leaves. Decide whether that
-   write belongs in `move` or only in the doctor's `info` row.
-5. **A second status for the dependency?** `Blocked` is a manual status. GitHub's "blocked by"
-   link is the source of truth; the doctor could report an item that has an open blocker but is
-   not `Blocked`, or the reverse, as `info`. Whether a rule should set the status
-   itself is left until the column has been used for a while.
+1. **Should anything keep `Blocked` in step with GitHub's "blocked by" link?** The link is the real
+   dependency (an issue can be blocked by another); the `Blocked` status is only a column
+   that makes it visible, and today it is set by hand. They can disagree: an issue with an open
+   blocker sitting in `Todo`, or one in `Blocked` whose blocker has closed. The proposal is that
+   `doctor project` reports both as `info` and nothing sets the status automatically, until
+   the column has been used for a while. The alternative is a rule that sets it from the link.
