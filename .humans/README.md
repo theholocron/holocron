@@ -52,9 +52,9 @@ which is a round trip you would rather not spend.
 ## Why the script checks what it does
 
 - **Node.** The workspace needs a Node at least as new as the strictest `engines.node` in any `package.json`. A shell on an
-  older Node does not fail clearly: dependencies resolve differently and a typecheck fails in a package you never touched.
+  older Node does not fail noticeably: dependencies resolve differently and a typecheck fails in a package you never touched.
   The script reads the minimum from the manifests, so the version is never written down twice. Install Node yourself
-  (with `n`, `nvm` or `fnm`): the script does not, because a second Node from Homebrew would fight the one you already
+  (with `n`, `nvm` or `fnm`): the script does not, because a second Node from Homebrew would combat the one you already
   manage.
 - **pnpm.** The repo pins its pnpm version in `packageManager`; corepack installs exactly that one. Never use `npm` or
   `yarn` here.
@@ -93,10 +93,11 @@ table above saying what needs it.
 
 ## When something fails
 
-| You see                                                         | Cause and fix                                                                                                                                                            |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `node X is older than the Y the workspace needs`                | Upgrade Node (`n Y`, for example) and open a new shell. A `typecheck` failing in `astro-config` is usually this                                                          |
-| `git user.name and user.email are not set`                      | `git config --global user.name "…"` and `git config --global user.email "…"`                                                                                             |
-| `op` shows as not signed in                                     | Turn on the 1Password CLI integration (above), unlock the app, and run `op whoami`                                                                                       |
-| The `pre-push` hook fails on something unrelated to your change | Run `./.humans/setup.sh doctor` first: an old Node or a missing linter is the usual cause. `git push --no-verify` skips one push, so use it only once you know the cause |
-| `brew install` fails                                            | Run `brew doctor`, fix what it reports, and run the script again                                                                                                         |
+| You see                                                                   | Cause and fix                                                                                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `node X is older than the Y the workspace needs`                          | Upgrade Node (`n Y`, for example) and open a new shell.                                                                                                                                                                                                                                          |
+| `git user.name and user.email are not set`                                | `git config --global user.name "…"` and `git config --global user.email "…"`                                                                                                                                                                                                                     |
+| `op` shows as not signed in                                               | Turn on the 1Password CLI integration (above), unlock the app, and run `op whoami`                                                                                                                                                                                                               |
+| The `pre-push` hook fails on something unrelated to your change           | Run `./.humans/setup.sh doctor` first: an old Node or a missing linter is the usual cause. `git push --no-verify` skips one push, so use it only once you know the cause                                                                                                                         |
+| `node_modules lacks the hoisted link that astro-config's typecheck needs` | A `typecheck` failing in `astro-config` on `Cannot find module '@astrojs/markdown-remark'`, with CI green. An install made before the lockfile listed that package keeps no link to it, and `pnpm install` finds nothing to do. Run `pnpm install --force` (or `./.humans/setup.sh`, which does) |
+| `brew install` fails                                                      | Run `brew doctor`, fix what it reports, and run the script again                                                                                                                                                                                                                                 |

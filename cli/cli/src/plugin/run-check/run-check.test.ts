@@ -207,9 +207,12 @@ describe("runCheckAgainstUrl", () => {
 			const fetchSpy = (async () => {
 				const real = new Response("huge body that should never be read", { status: 200 });
 				return new Proxy(real, {
-					get(target, prop, receiver) {
+					get(target, prop) {
 						if (prop === "body") bodyAccessed = true;
-						return Reflect.get(target, prop, receiver);
+						// Read through the real object: `Response` keeps its state in a private field, which a getter
+						// reached with the proxy as `this` cannot see (Node 25).
+						const value = Reflect.get(target, prop, target) as unknown;
+						return typeof value === "function" ? value.bind(target) : value;
 					},
 				});
 			}) as unknown as typeof fetch;
