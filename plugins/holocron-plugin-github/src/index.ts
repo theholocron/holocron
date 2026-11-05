@@ -8,7 +8,7 @@
  * returns the bound implementation.
  */
 
-import type { Auth, Ci, Environments, Issues, PluginToken, Secrets, Source } from "@theholocron/cli";
+import type { Auth, Ci, Environments, Issues, PluginToken, Projects, Secrets, Source } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 import { createGitHubClient, type GitHubClient } from "@theholocron/github-client";
 
@@ -28,6 +28,7 @@ import {
 import { GitHubCi } from "./capabilities/ci.js";
 import { GitHubEnvironments } from "./capabilities/environments.js";
 import { GitHubIssues, type IssuesOptions } from "./capabilities/issues.js";
+import { GitHubProjects } from "./capabilities/projects.js";
 import { GitHubSecrets } from "./capabilities/secrets.js";
 import { GitHubSource } from "./capabilities/source.js";
 import { verifyToken } from "./verify-token.js";
@@ -98,6 +99,11 @@ export function issues(ctx: PluginContext): Issues {
 	const opts: IssuesOptions = { repo: ctx.repo };
 	if (ctx.options.labels !== undefined) opts.labels = ctx.options.labels;
 	return new GitHubIssues(ctx.client, opts);
+}
+
+/** Builds the `projects` capability: GitHub Projects v2 over GraphQL, with items keyed relative to the configured repo. */
+export function projects(ctx: PluginContext): Projects {
+	return new GitHubProjects(ctx.client.graphql, { repo: ctx.repo });
 }
 
 // ── Plugin barrel for the core loader ─────────────────────────────────
@@ -182,6 +188,7 @@ export function createPlugin(options: GitHubPluginOptions) {
 			secrets: () => makeSecrets(),
 			environments: () => environments(makeCtx(resolveAdminToken)),
 			issues: () => issues(makeCtx(resolveIssuesToken)),
+			projects: () => projects(makeCtx(resolveOrgToken)),
 		},
 	};
 }
@@ -204,6 +211,7 @@ export { GitHubEnvironments } from "./capabilities/environments.js";
 export { GitHubIssues } from "./capabilities/issues.js";
 export type { CanonicalLabel } from "./capabilities/labels.js";
 export { syncLabels } from "./capabilities/labels.js";
+export { GitHubProjects, type ProjectsOptions } from "./capabilities/projects.js";
 export { GitHubSecrets } from "./capabilities/secrets.js";
 export { GitHubSource } from "./capabilities/source.js";
 export type { NormalizedTeamEntry, TeamEntry, TeamPermission } from "./capabilities/teams.js";

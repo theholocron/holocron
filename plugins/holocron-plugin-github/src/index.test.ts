@@ -12,6 +12,7 @@ import {
 	GitHubCi,
 	GitHubEnvironments,
 	GitHubIssues,
+	GitHubProjects,
 	GitHubSecrets,
 	GitHubSource,
 } from "./index.js";
@@ -172,5 +173,14 @@ describe("createPlugin", () => {
 		});
 		await plugin.capabilities.source().whoami();
 		expect(captured).toEqual({ url: "https://test.invalid/user", method: "GET" });
+	});
+});
+
+describe("projects capability", () => {
+	it("builds the GitHub provider and names the org token when none is set", () => {
+		const plugin = createPlugin({ repo: "theholocron/holocron", cliToken: "pat-test" });
+		expect(plugin.capabilities.projects()).toBeInstanceOf(GitHubProjects);
+		const bare = createPlugin({ repo: "theholocron/holocron", env: {}, keyring: () => null });
+		expect(() => bare.capabilities.projects()).toThrow(/HOLOCRON_ORG_TOKEN/);
 	});
 });

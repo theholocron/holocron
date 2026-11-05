@@ -75,7 +75,7 @@ export type { CodeScanningSetupResult } from "./security/security.js";
 export type { RepoTeam, TeamMember, TeamPermission } from "./teams/teams.js";
 export type { GitHubUser, GitHubUserWithExpiry } from "./user/user.js";
 export { parseTokenExpiration } from "./user/user.js";
-export type { GitHubClientOptions } from "./utils.js";
+export type { GitHubClientOptions, GraphQLClient } from "./utils.js";
 export type { GitHubVariable, VariableScope, VariableVisibility } from "./variables/variables.js";
 export {
 	type GitHubInstallationWebhookPayload,
@@ -96,6 +96,8 @@ export function createGitHubClient(opts: GitHubClientOptions) {
 		checks: checks(rest),
 		environments: environments(rest),
 		git: git(rest),
+		/** The GraphQL client, for the callers whose API (Projects v2) has no REST form. */
+		graphql,
 		issues: issues(rest),
 		labels: labels(rest),
 		pages: pages(rest),
