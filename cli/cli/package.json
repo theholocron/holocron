@@ -76,6 +76,7 @@
     "pino": "catalog:",
     "pino-pretty": "catalog:",
     "posthog-node": "catalog:",
+    "tsx": "catalog:",
     "yargs": "catalog:cli"
   },
   "devDependencies": {
@@ -92,7 +93,6 @@
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
     "tsdown": "catalog:",
-    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
