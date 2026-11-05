@@ -6,7 +6,8 @@ export function printNextSteps(
 	print: PublishPrint,
 	env: CliEnv,
 	packageNames: readonly string[],
-	identity: RepoIdentity
+	identity: RepoIdentity,
+	workflowFile: string
 ): void {
 	print("");
 	print("→ next: configure Trusted Publisher for each package on npm:");
@@ -14,7 +15,7 @@ export function printNextSteps(
 	print("    Label: Holocron Release");
 	print(`    Organization: ${identity.owner}`);
 	print(`    Repository: ${identity.repo}`);
-	print("    Workflow filename: delivery.publish.yml");
+	print(`    Workflow filename: ${workflowFile}`);
 	print("");
 	print("→ packages to be published:");
 	for (const name of packageNames) {

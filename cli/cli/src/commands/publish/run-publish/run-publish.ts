@@ -49,6 +49,7 @@ import { printNextSteps } from "../print-next-steps.js";
 import type { PublicPackageEntry } from "../public-package-entry.type.js";
 import type { PublishPrint, PublishReport } from "../publish.type.js";
 import { redactOtp } from "../redact-otp.js";
+import { releaseWorkflowFile } from "../release-workflow-file.js";
 import { resolveRepoIdentity } from "../resolve-repo-identity.js";
 import type { RepoIdentity } from "../resolve-repo-identity.type.js";
 import { scopeOf } from "../scope-of.js";
@@ -209,7 +210,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		}
 		print(style.dim(`  would run: pnpm ${redactOtp(publishArgs, otp).join(" ")}`));
 		printSummary(print, dryRun, packageNames.length, 0, skippedCount);
-		printNextSteps(print, env, packageNames, identity);
+		printNextSteps(print, env, packageNames, identity, releaseWorkflowFile(cwd));
 		logger.info({ tag, status: "dry-run", packages: packageNames.length }, "publish --initial: done");
 		return { status: "dry-run", message: "dry-run — no publish executed", packageNames };
 	}
@@ -240,7 +241,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	printSummary(print, dryRun, packageNames.length, 0, skippedCount);
 
 	// ── 4. Next-step reminders ──────────────────────────────────────────
-	printNextSteps(print, env, packageNames, identity);
+	printNextSteps(print, env, packageNames, identity, releaseWorkflowFile(cwd));
 	logger.info({ tag, status: "ok", packages: packageNames.length }, "publish --initial: done");
 	return { status: "ok", packageNames };
 }

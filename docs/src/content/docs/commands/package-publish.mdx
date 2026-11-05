@@ -36,7 +36,7 @@ For every public package (auto-discovered the same way as `--initial`), the comm
 | different file                      | revoked and recreated |
 | none                                | created               |
 
-The same-file, different-repository case is what happens when a package is folded into this repo from another one: the workflow filename stays `delivery.publish.yml`, but npm still trusts the old repo. A binding that reports no repository can't be proven to match, so it is re-registered too. If the read itself fails for any reason other than a 2FA request (for example `E401` when not logged in), that package is reported as errored and nothing is revoked or created for it. Already-migrated packages are skipped, so it's safe to re-run.
+The same-file, different-repository case is what happens when a package is folded into this repo from another one: the workflow filename can stay the same, but npm still trusts the old repo. A binding that reports no repository can't be proven to match, so it is re-registered too. If the read itself fails for any reason other than a 2FA request (for example `E401` when not logged in), that package is reported as errored and nothing is revoked or created for it. Already-migrated packages are skipped, so it's safe to re-run.
 
 ### Previewing with `--dry-run`
 
@@ -81,7 +81,7 @@ pnpm install --frozen-lockfile && pnpm build
 holocron package publish --initial --otp 123456
 ```
 
-After `--initial` runs, visit each package's npm page → Settings → Trusted Publishers to complete the setup (see [Self-hosting](../self-hosting)).
+After `--initial` runs, visit each package's npm page → Settings → Trusted Publishers to complete the setup (see [Self-hosting](../self-hosting)). The printout names the workflow to register, the release caller found in `.github/workflows` (`ci.release.yml`, or `delivery.publish.yml` in a repo that still has that one).
 
 ## Repo layouts
 
