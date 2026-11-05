@@ -1,9 +1,9 @@
+import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
 import { applyResolvedConfig, resolveOrg, tokenContext } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
-import { promptForPositionals } from "../../ui/index.js";
 import type { DeployArgs } from "../deploy/deploy.args.js";
 import { type CleanupPreviewArgs, cleanupPreviewArgs } from "./cleanup-preview.args.js";
 import { runCleanupPreview } from "./index.js";

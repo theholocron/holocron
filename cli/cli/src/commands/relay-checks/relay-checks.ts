@@ -1,6 +1,6 @@
+import { describeError, sanitizeDetail } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { resultRow, skipRow } from "../notification-check-rows/index.js";
@@ -125,7 +125,7 @@ export async function relayChecks(input: RelayChecksInput): Promise<Notification
 			rows.push(
 				...(reason === undefined
 					? [
-							resultRow(WORKER_ID, WORKER_TITLE, [shown(describeProviderError(err))], ""),
+							resultRow(WORKER_ID, WORKER_TITLE, [shown(describeError(err))], ""),
 							skipRow(BINDINGS_ID, BINDINGS_TITLE, "not checked: could not read the Worker"),
 						]
 					: skipWorker(reason))

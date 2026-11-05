@@ -21,6 +21,7 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
 import { withEnvPrefix } from "@theholocron/env-utils/lookup";
+import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { deleteToken, getToken, listStoredProviders, setToken } from "../../auth/index.js";
@@ -28,7 +29,6 @@ import { resolvePluginPackage } from "../../config/index.js";
 import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { isModuleNotFound } from "../../plugin/index.js";
-import { style, withSpinner } from "../../ui/index.js";
 import type {
 	AuthCommandStatus,
 	AuthImporter,

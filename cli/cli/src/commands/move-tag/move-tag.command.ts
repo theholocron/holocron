@@ -1,8 +1,8 @@
+import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
 import { type GlobalArgs } from "../../cli-support/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
-import { promptForPositionals } from "../../ui/index.js";
 import { runMoveTag } from "./index.js";
 import { type MoveTagArgs, moveTagArgs } from "./move-tag.args.js";
 

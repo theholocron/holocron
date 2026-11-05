@@ -1,3 +1,4 @@
+import { style, withProgress } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
@@ -74,7 +75,6 @@ export function classify403(err: ProviderApiError): FailReason {
 	return "permissions";
 }
 
-import { style, withProgress } from "../../../ui/index.js";
 import type { FailReason, SetupStepResult } from "./run-step.type.js";
 
 export function formatStep(step: SetupStepResult): string {

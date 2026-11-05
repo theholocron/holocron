@@ -38,11 +38,11 @@ import { readFileSync } from "node:fs";
 import { relative, sep } from "node:path";
 
 import { walkFilesSync } from "@theholocron/fs-utils";
+import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Deployment, type DeploymentRecord, PluginLoader } from "../../plugin/index.js";
-import { style, withSpinner } from "../../ui/index.js";
 import type {
 	DeployFilesReport,
 	DeployReport,

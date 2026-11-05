@@ -1,4 +1,5 @@
-import type { MenuItem } from "../../ui/index.js";
+import { type MenuItem } from "@theholocron/kyber/prompts";
+
 import type { CommandEntry } from "../command-registry/index.js";
 
 /** Prefix of a menu item's `value` that opens a submenu rather than running a command. */

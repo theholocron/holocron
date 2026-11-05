@@ -1,4 +1,5 @@
-import { pad, statusRow } from "../../ui/index.js";
+import { pad, statusRow } from "@theholocron/kyber/ui";
+
 import type { PublicPackageEntry } from "./public-package-entry.type.js";
 import type { PublishExecResult, PublishPrint } from "./publish.type.js";
 

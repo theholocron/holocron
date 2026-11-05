@@ -18,6 +18,7 @@
  * capture lines without ANSI / spinner noise.
  */
 
+import { describeError, pad, sanitizeDetail, statusRow, style, withProgress, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -43,8 +44,6 @@ import {
 	type Wiki,
 	type Workers,
 } from "../../plugin/index.js";
-import { pad, statusRow, style, withProgress, withSpinner } from "../../ui/index.js";
-import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { DoctorReport, DoctorRow, DoctorStatus, RunDoctorInput } from "./doctor.type.js";
 
 export async function runDoctor(input: RunDoctorInput): Promise<DoctorReport> {
@@ -162,7 +161,7 @@ async function smokeCheck(key: string, provider: string, impl: unknown): Promise
 		// detail; `logMessage` (telemetry) stays the plain vendor-body-free
 		// summary — a provider's raw response text has no business leaving
 		// this machine via the structured logger.
-		return mk(key, provider, "fail", describeProviderError(err), errorMessage(err));
+		return mk(key, provider, "fail", describeError(err), errorMessage(err));
 	}
 }
 

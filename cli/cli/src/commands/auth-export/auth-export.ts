@@ -14,6 +14,7 @@
 
 import { dirname, resolve } from "node:path";
 
+import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import {
@@ -28,7 +29,6 @@ import {
 import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
 import { finishCredentialsFile } from "../finish-credentials-file/index.js";

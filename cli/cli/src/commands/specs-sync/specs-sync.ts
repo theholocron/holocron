@@ -12,12 +12,11 @@
  */
 
 import { assignSpecIds, classifySpecPath, parseFrontmatter } from "@theholocron/astromech/repo-validation";
+import { describeError, logReason, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { notificationProviders, pickProvider } from "../notifications-channel-add/index.js";
 import { forumChannel } from "./forum-channel.js";
 import { rateLimitedFor } from "./rate-limit.js";
@@ -169,7 +168,7 @@ export async function runSpecsSync(input: RunSpecsSyncInput): Promise<SpecsSyncR
 				rateLimited = { left: documents.length - files.length, retryAfter: wait };
 				break;
 			}
-			outcome = { path: doc.path, did: [], problem: describeProviderError(err), text: doc.text };
+			outcome = { path: doc.path, did: [], problem: describeError(err), text: doc.text };
 			logger.warn({ path: doc.path, reason: logReason(err) }, "specs sync");
 		}
 		files.push(outcome);

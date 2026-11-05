@@ -1,6 +1,6 @@
+import { describeError, style } from "@theholocron/kyber/ui";
+
 import type { Notifications, Source } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError } from "../../ui/provider-error/index.js";
 import type {
 	RoleSyncOutcome,
 	RoleSyncPlan,
@@ -52,7 +52,7 @@ export async function syncRoles(input: SyncRolesInput): Promise<SyncRolesResult>
 				links,
 			});
 		} catch (err) {
-			const message = describeProviderError(err);
+			const message = describeError(err);
 			print(`  ${style.fail(`${step}: ${message}`)}`);
 			result.failures.push({ step, message });
 			continue;
@@ -79,7 +79,7 @@ export async function syncRoles(input: SyncRolesInput): Promise<SyncRolesResult>
 				print(`  ${style.success(label)}`);
 				result.ok++;
 			} catch (err) {
-				const message = describeProviderError(err);
+				const message = describeError(err);
 				print(`  ${style.fail(`${step}: ${verb} ${who.login}: ${message}`)}`);
 				result.failures.push({ step: `${step} ${verb} ${who.login}`, message });
 			}

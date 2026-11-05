@@ -17,8 +17,8 @@ vi.mock("../../auth/index.js", async (importActual) => ({
 }));
 
 const waitForEnter = vi.hoisted(() => vi.fn(async (_message: string) => {}));
-vi.mock("../../ui/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../ui/index.js")>()),
+vi.mock("@theholocron/kyber/ui", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/ui")>()),
 	waitForEnter,
 }));
 

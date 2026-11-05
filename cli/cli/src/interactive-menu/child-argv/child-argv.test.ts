@@ -1,6 +1,6 @@
+import { type OptionPrompt, type ResolvedOptions } from "@theholocron/kyber/prompts";
 import { describe, expect, it } from "vitest";
 
-import type { OptionPrompt, ResolvedOptions } from "../../ui/index.js";
 import { buildChildArgv, forwardedFlags, secretEnv } from "../child-argv/index.js";
 import { getEntry } from "../command-registry/index.js";
 

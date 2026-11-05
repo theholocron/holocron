@@ -224,7 +224,9 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     `ExitPromptError` on a closed stdin. The generic prompting pieces
     (`pickMenuItem` / `searchChoices`, `promptForPositionals`, `promptForOptions`) live in
     `@theholocron/kyber/prompts`, which has no knowledge of commands, and `NonInteractiveError` (with the rest of the
-    terminal output helpers) in `@theholocron/kyber/ui`; `cli/cli/src/ui/index.ts` still re-exports both;
+    terminal output helpers and the cleaning of error text) in `@theholocron/kyber/ui`; code imports both from kyber
+    directly, the CLI has no `ui/` directory of its own, and its one addition, the retry notice on the spinner
+    (`retry-notice/`), is registered once in `cli.ts` with `setProgressListener`;
     `interactive-menu/` holds the rest, one folder per piece:
     `command-registry`, `menu-items`, `run-menu-entries`, `child-argv` and
     `launch-menu`.
@@ -355,10 +357,10 @@ not object destructuring.
   barrel that re-exports the implementation and the types
   (`export * from "./auth.js"; export type * from "./auth.type.js";`), and code
   outside the folder imports through it (`../commands/auth/index.js`); files
-  inside the folder import their siblings directly. The `auth/`, `config/`,
-  `plugin/` and `ui/` directories also have a root `index.ts` that re-exports
+  inside the folder import their siblings directly. The `auth/`, `config/`
+  and `plugin/` directories also have a root `index.ts` that re-exports
   their folders, and code outside the directory imports through it
-  (`../ui/index.js`). `config/` and `plugin/` import each other, so between
+  (`../auth/index.js`). `config/` and `plugin/` import each other, so between
   those two the specific folder barrels are used; going through both root
   barrels would create a runtime import cycle. `src/index.ts` keeps its own
   curated exports and does not use the root barrels. Modules with no types

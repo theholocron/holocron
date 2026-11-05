@@ -1,4 +1,5 @@
-import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
+import { describeError, sanitizeDetail } from "@theholocron/kyber/ui";
+
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
 import { resultRow, skipRow } from "../notification-check-rows/index.js";
 import { layoutSecretNames } from "../notifications-channel-add/index.js";
@@ -54,7 +55,7 @@ export async function notificationsWorkflowChecks(
 	try {
 		text = (await source.readFile(NOTIFICATIONS_WORKFLOW_PATH))?.content;
 	} catch (err) {
-		const reason = shown(describeProviderError(err));
+		const reason = shown(describeError(err));
 		return [
 			{ id: PRESENT_ID, title: PRESENT_TITLE, status: "fail", detail: reason, problems: [] },
 			skipRow(WIRED_ID, WIRED_TITLE, "not checked: the workflow could not be read"),

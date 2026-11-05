@@ -9,8 +9,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { FileIdentity } from "../../auth/index.js";
 // The real opener would start a browser.
 const openUrl = vi.hoisted(() => vi.fn());
-vi.mock("../../ui/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../ui/index.js")>()),
+vi.mock("@theholocron/kyber/ui", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/ui")>()),
 	openPath: openUrl,
 }));
 

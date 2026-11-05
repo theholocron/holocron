@@ -1,4 +1,5 @@
-import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
+import { describeError, sanitizeDetail } from "@theholocron/kyber/ui";
+
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { resultRow, skipRow } from "../notification-check-rows/index.js";
@@ -39,7 +40,7 @@ export async function sentryRelayChecks(input: SentryRelayChecksInput): Promise<
 		const noToken = missingTokenReason(err);
 		if (noToken !== undefined) return skipBoth(noToken);
 		return [
-			resultRow(INTEGRATION_ID, INTEGRATION_TITLE, [shown(describeProviderError(err))], ""),
+			resultRow(INTEGRATION_ID, INTEGRATION_TITLE, [shown(describeError(err))], ""),
 			skipRow(RULE_ID, RULE_TITLE, "not checked: could not read the integration"),
 		];
 	}

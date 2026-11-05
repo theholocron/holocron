@@ -37,6 +37,7 @@
  * individually via `holocron secrets set` (also planned for v5.1).
  */
 
+import { describeError, logReason, style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -51,15 +52,13 @@ import {
 	type Vault,
 	type Workers,
 } from "../../plugin/index.js";
-import { style, withSpinner } from "../../ui/index.js";
-import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow } from "./secrets-sync.type.js";
 
 /** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
 function workersMissing(loader: PluginLoader): string {
 	const base = "--worker needs a `workers` provider in holocron.config.ts";
 	const failure = loader.loadFailures().find((f) => f.key === "workers");
-	return failure ? `${base} (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})` : base;
+	return failure ? `${base} (\`${failure.provider}\` failed to load: ${describeError(failure.error)})` : base;
 }
 
 export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncReport> {
@@ -95,7 +94,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		);
 	} catch (err) {
 		// Printed, not just thrown: the CLI's global handler swallows a plain Error, so a bare throw exits 1 with no message.
-		const message = describeProviderError(err);
+		const message = describeError(err);
 		print(`  ${style.fail(`could not read vault environment ${input.environmentId}: ${message}`)}`);
 		logger.warn({ environment: input.environmentId, reason: logReason(err) }, "secrets sync: vault read failed");
 		return summarise(

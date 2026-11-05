@@ -1,4 +1,5 @@
-import { style } from "../../ui/index.js";
+import { style } from "@theholocron/kyber/ui";
+
 import type { CheckSummary } from "./doctor-checks.type.js";
 
 /** A blank line, then the closing `N ok, N fail, N skipped`. */

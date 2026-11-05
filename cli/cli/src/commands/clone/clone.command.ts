@@ -1,4 +1,6 @@
 import { confirm } from "@inquirer/prompts";
+import { promptForPositionals } from "@theholocron/kyber/prompts";
+import { NonInteractiveError, openPath } from "@theholocron/kyber/ui";
 import type { CommandModule } from "yargs";
 
 import { createFeatureResolver } from "../../auth/index.js";
@@ -8,7 +10,6 @@ import { type GlobalArgs } from "../../cli-support/index.js";
 import { env } from "../../env/index.js";
 import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR, getEntry } from "../../interactive-menu/index.js";
 import { reportError } from "../../observability/logger/index.js";
-import { NonInteractiveError, openPath, promptForPositionals } from "../../ui/index.js";
 import { type CloneArgs, cloneArgs } from "./clone.args.js";
 import { parseCloneTarget, runClone, type WholeOrgScope } from "./index.js";
 

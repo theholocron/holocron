@@ -1,7 +1,8 @@
+import { describeError } from "@theholocron/kyber/ui";
+
 import { parseScope } from "../../cli-support/index.js";
 import type { RepoSecretsSync } from "../../config/index.js";
 import { type SecretScope, type Vault } from "../../plugin/index.js";
-import { describeProviderError } from "../../ui/provider-error/index.js";
 import type { CheckRow } from "../doctor-checks/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import type { SyncedSecrets } from "./doctor-secrets.type.js";
@@ -29,7 +30,7 @@ export async function syncedSecrets(
 		try {
 			scope = parseScope(entry.scope ?? "repo");
 		} catch (err) {
-			rows.push({ id, title, status: "fail", detail: "1 problem(s)", problems: [describeProviderError(err)] });
+			rows.push({ id, title, status: "fail", detail: "1 problem(s)", problems: [describeError(err)] });
 			continue;
 		}
 		if (entry.keys) {
@@ -47,7 +48,7 @@ export async function syncedSecrets(
 			} catch (err) {
 				skip(
 					missingTokenReason(err) ??
-						`could not read vault environment ${entry.environment}: ${describeProviderError(err)}`
+						`could not read vault environment ${entry.environment}: ${describeError(err)}`
 				);
 			}
 		}
