@@ -21,6 +21,11 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./flags": {
+      "types": "./dist/flags.d.mts",
+      "import": "./dist/flags.mjs",
+      "default": "./dist/flags.mjs"
+    },
     "./notifier": {
       "types": "./dist/notifier.d.mts",
       "import": "./dist/notifier.mjs",

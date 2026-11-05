@@ -1,3 +1,4 @@
+import { addGlobalOptions } from "@theholocron/kyber/flags";
 import { runCommand as runCommandWith } from "@theholocron/kyber/testing";
 
 /**
@@ -10,11 +11,8 @@ export async function runCommand(
 	root: { cwd?: string } = {}
 ): Promise<Record<string, unknown>> {
 	return runCommandWith(module, args, (parser) =>
-		parser
-			.option("cwd", { type: "string", default: root.cwd ?? "/repo" })
-			.option("dry-run", { type: "boolean", default: false })
+		addGlobalOptions(parser, { cwd: root.cwd ?? "/repo" })
 			.option("skip-dry-run", { type: "boolean", default: false })
-			.option("token", { type: "string", array: true })
 			.option("org", { type: "string" })
 			.option("verbose", { type: "boolean", default: false })
 			.option("debug", { type: "boolean", default: false })
