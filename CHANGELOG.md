@@ -1,3 +1,9 @@
+## [5.0.0-alpha.335](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.334...v5.0.0-alpha.335) (2026-11-05)
+
+### Chores
+
+* **deps:** bump the all-dependencies group across 1 directory with 24 updates ([#1707](https://github.com/theholocron/holocron/issues/1707)) ([cea9385](https://github.com/theholocron/holocron/commit/cea938521228ef1ad0bf72e2e4650e47e0e5f606))
+
 ## [5.0.0-alpha.334](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.333...v5.0.0-alpha.334) (2026-11-05)
 
 ### Chores
