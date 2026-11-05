@@ -1,3 +1,9 @@
+## [5.0.0-alpha.334](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.333...v5.0.0-alpha.334) (2026-11-05)
+
+### Chores
+
+* **deps:** bump the all-actions group with 21 updates ([#1706](https://github.com/theholocron/holocron/issues/1706)) ([3340e3f](https://github.com/theholocron/holocron/commit/3340e3f71279b750ccd7fe49dc0d335c7a067c41))
+
 ## [5.0.0-alpha.333](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.332...v5.0.0-alpha.333) (2026-11-05)
 
 ### Bug Fixes
