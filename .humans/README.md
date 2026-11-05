@@ -52,9 +52,9 @@ which is a round trip you would rather not spend.
 ## Why the script checks what it does
 
 - **Node.** The workspace needs a Node at least as new as the strictest `engines.node` in any `package.json`. A shell on an
-  older Node does not fail clearly: dependencies resolve differently and a typecheck fails in a package you never touched.
+  older Node does not fail noticeably: dependencies resolve differently and a typecheck fails in a package you never touched.
   The script reads the minimum from the manifests, so the version is never written down twice. Install Node yourself
-  (with `n`, `nvm` or `fnm`): the script does not, because a second Node from Homebrew would fight the one you already
+  (with `n`, `nvm` or `fnm`): the script does not, because a second Node from Homebrew would combat the one you already
   manage.
 - **pnpm.** The repo pins its pnpm version in `packageManager`; corepack installs exactly that one. Never use `npm` or
   `yarn` here.
