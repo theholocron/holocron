@@ -1,5 +1,5 @@
 import { ElevationRequiredError } from "../../plugin/index.js";
-import { style } from "../../ui/style/index.js";
+import { style } from "../../ui/index.js";
 import type { ElevationDeps } from "./with-elevation.type.js";
 
 /**

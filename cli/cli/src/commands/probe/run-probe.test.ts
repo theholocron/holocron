@@ -6,7 +6,7 @@ const promptConfirm = vi.hoisted(() => vi.fn(async (_options: { message: string;
 vi.mock("@inquirer/prompts", () => ({ confirm: promptConfirm }));
 
 import type { Probe } from "../../plugin/index.js";
-import { NonInteractiveError } from "../../ui/non-interactive-error/index.js";
+import { NonInteractiveError } from "../../ui/index.js";
 import { runProbe } from "./run-probe.js";
 
 const strip = (s: string) => stripVTControlCharacters(s);

@@ -1,7 +1,7 @@
 import { join } from "node:path";
 
 import { PluginLoader, type PluginProbes } from "../../plugin/index.js";
-import { statusRow } from "../../ui/status-row/index.js";
+import { statusRow } from "../../ui/index.js";
 import { loadAppVault } from "./app-vault.js";
 import { COMLINK_PROVIDER, comlinkProbes } from "./comlink-probes.js";
 import { CORE_PROVIDER, coreProbes } from "./core-probes.js";

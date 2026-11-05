@@ -20,6 +20,7 @@ coverage:
           - astromech
           - dagobah
           - datapad
+          - kyber
           - axiom-client
           - checkly-client
           - clerk-client
@@ -110,6 +111,7 @@ coverage:
           - astromech
           - dagobah
           - datapad
+          - kyber
           - axiom-client
           - checkly-client
           - clerk-client
@@ -205,6 +207,7 @@ flag_management:
     - name: astromech
     - name: dagobah
     - name: datapad
+    - name: kyber
     - name: axiom-client
     - name: checkly-client
     - name: clerk-client
@@ -321,6 +324,11 @@ component_management:
       name: "datapad"
       paths:
         - cli/datapad/**
+
+    - component_id: kyber
+      name: "kyber"
+      paths:
+        - cli/kyber/**
 
     # clients
     - component_id: axiom-client

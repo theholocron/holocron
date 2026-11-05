@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { allowProgress, progressEnabled } from "../../ui/progress/index.js";
+import { allowProgress, progressEnabled } from "../../ui/index.js";
 import {
 	buildCliLogger,
 	getLogger,

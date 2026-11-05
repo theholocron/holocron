@@ -15,8 +15,8 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader, type Source } from "../../plugin/index.js";
+import { style } from "../../ui/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
-import { style } from "../../ui/style/index.js";
 import { notificationProviders, pickProvider, whyMissing } from "../notifications-channel-add/index.js";
 import { linksLocation, serializeLinks, upsertLink } from "../notifications-sync-roles/links.js";
 import { readLinks } from "../notifications-sync-roles/notifications-sync-roles.js";

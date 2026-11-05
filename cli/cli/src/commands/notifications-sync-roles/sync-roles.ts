@@ -1,6 +1,6 @@
 import type { Notifications, Source } from "../../plugin/index.js";
+import { style } from "../../ui/index.js";
 import { describeProviderError } from "../../ui/provider-error/index.js";
-import { style } from "../../ui/style/index.js";
 import type {
 	RoleSyncOutcome,
 	RoleSyncPlan,

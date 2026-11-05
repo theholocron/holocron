@@ -54,6 +54,11 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],
 		},
+		"cli/kyber": {
+			// each subpath is auto-detected from package.json exports
+			entry: ["src/**/*.test.ts"],
+			project: ["src/**/*.ts"],
+		},
 		"cli/astromech": {
 			// src/index.ts + src/config/index.ts auto-detected from package.json exports
 			entry: ["src/**/*.test.ts"],

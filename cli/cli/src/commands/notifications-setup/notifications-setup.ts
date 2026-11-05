@@ -30,9 +30,8 @@ import {
 	type Secrets,
 	type Workers,
 } from "../../plugin/index.js";
-import { createProgress } from "../../ui/progress/index.js";
+import { createProgress, style } from "../../ui/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
-import { style } from "../../ui/style/index.js";
 import {
 	assertSecretsReachable,
 	describeAvatarSource,

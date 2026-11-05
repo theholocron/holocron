@@ -1,4 +1,4 @@
-import { statusRow } from "../../ui/status-row/index.js";
+import { statusRow } from "../../ui/index.js";
 import type { CheckRow } from "./doctor-checks.type.js";
 
 /** One row per step, titles padded to the widest, each problem on its own indented line. */

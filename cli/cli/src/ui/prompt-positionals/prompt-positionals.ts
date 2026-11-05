@@ -1,6 +1,6 @@
 import { input, select } from "@inquirer/prompts";
+import { NonInteractiveError } from "@theholocron/kyber/ui";
 
-import { NonInteractiveError } from "../non-interactive-error/index.js";
 import type { PositionalCommand } from "./prompt-positionals.type.js";
 
 /**
