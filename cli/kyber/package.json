@@ -26,6 +26,11 @@
       "import": "./dist/notifier.mjs",
       "default": "./dist/notifier.mjs"
     },
+    "./secrets": {
+      "types": "./dist/secrets.d.mts",
+      "import": "./dist/secrets.mjs",
+      "default": "./dist/secrets.mjs"
+    },
     "./ui": {
       "types": "./dist/ui.d.mts",
       "import": "./dist/ui.mjs",
@@ -51,6 +56,8 @@
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "chalk": "catalog:",
+    "clipboardy": "catalog:cli",
+    "dotenv": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-n": "catalog:",
     "globals": "catalog:",
@@ -61,10 +68,18 @@
   },
   "peerDependencies": {
     "chalk": "^6.0.0",
+    "clipboardy": "^5.0.0",
+    "dotenv": "^17.0.0",
     "ora": "^9.0.0"
   },
   "peerDependenciesMeta": {
     "chalk": {
+      "optional": true
+    },
+    "clipboardy": {
+      "optional": true
+    },
+    "dotenv": {
       "optional": true
     },
     "ora": {
