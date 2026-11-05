@@ -582,16 +582,14 @@ cursor forwarding. No manual `--page` flag needed.
    events and an hourly workflow runs it as the net, and `doctor project` only reports what is left,
    posting to `#alerts` when it fails. See [Keeping a board true](#keeping-a-board-true).
 
+7. **The scheduled run uses the GitHub App's installation token (decided).** No person's token,
+   at the cost of granting the App the organization Projects permission by hand (a `todo` that
+   `doctor project` reports). Sentinel needs the same permission.
+8. **An unblocked item returns to `planned` (decided).** The status it held before is not
+   recorded anywhere, and recording it is more machinery than the case is worth.
+9. **The hourly workflow ships first (decided).** It works without Sentinel. The event handler
+   (`issue_dependencies`, closes) follows when Sentinel is back (#1100); it adds speed only.
+
 ## Open questions
 
-1. **Which token does the scheduled run use?** It needs write access to an organization
-   project, which `GITHUB_TOKEN` does not have. Candidates: a fine-grained token with the
-   Projects permission (a person's, expires), or an installation token from the GitHub App
-   (no person, but the App needs the organization Projects permission). The App is the better
-   fit and is also what Sentinel needs, but it is one more permission to grant by hand.
-2. **Does an unblocked item return to `planned` or to what it was?** The proposal is `planned`,
-   because the earlier status is not recorded anywhere. Recording it (a comment, a field) is more
-   machinery than the case is worth.
-3. **Does Sentinel's event handling wait for #1100?** The hourly workflow works without
-   Sentinel; the event path adds speed only. The first implementation can ship the workflow and
-   leave the event handler for when Sentinel is back.
+None.
