@@ -1,3 +1,14 @@
+## [5.0.0-alpha.332](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.331...v5.0.0-alpha.332) (2026-11-05)
+
+### Bug Fixes
+
+* **astromech:** 🐛 name each failed job in the `holocron run ci` summary ([#1725](https://github.com/theholocron/holocron/issues/1725)) ([94b44ee](https://github.com/theholocron/holocron/commit/94b44ee665c7ddd040848d96521fc8a3e14dae6f)), closes [#1717](https://github.com/theholocron/holocron/issues/1717)
+* **dagobah:** 🐛 read an unquoted multi-line PEM value in loadDevEnv ([#1724](https://github.com/theholocron/holocron/issues/1724)) ([1a45319](https://github.com/theholocron/holocron/commit/1a453193734402e27d5ece6159a8094c83ea91a1)), closes [#1716](https://github.com/theholocron/holocron/issues/1716) [#1713](https://github.com/theholocron/holocron/issues/1713)
+
+### Documentation
+
+* **cli:** 📝 spec @theholocron/kyber, the reusable parts of the CLI ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1728](https://github.com/theholocron/holocron/issues/1728)) ([1a2cd30](https://github.com/theholocron/holocron/commit/1a2cd30fdf100f0237586aa486f14a3e01c2df67))
+
 ## [5.0.0-alpha.331](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.330...v5.0.0-alpha.331) (2026-11-05)
 
 ### Bug Fixes
