@@ -56,6 +56,15 @@ describe("resolveTemplate", () => {
 		});
 	});
 
+	it("takes only the file's rules when the template it extends has none", () => {
+		const base = { base: { ...BUILTIN_TEMPLATES.roadmap!, name: "base", rules: undefined } };
+		expect(resolveTemplate("a", { extends: "base", rules: ["Item closed"] }, base)).toMatchObject({
+			ok: true,
+			template: { rules: ["Item closed"] },
+		});
+		expect(resolveTemplate("a", { extends: "base" }, base)).toMatchObject({ ok: true, template: { rules: [] } });
+	});
+
 	it("says which template is missing", () => {
 		expect(resolveTemplate("a", { extends: "nope" }, BUILTIN_TEMPLATES)).toEqual({
 			ok: false,

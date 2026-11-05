@@ -42,6 +42,24 @@ describe("resolveProjectOptions", () => {
 		});
 	});
 
+	it("refuses a board whose template or name is blank, without also calling it a duplicate", () => {
+		const result = resolveProjectOptions(
+			{
+				boards: [
+					{ name: "v5" },
+					{ template: "  ", name: "v5" },
+					{ template: "roadmap", name: "  " },
+					{ template: "roadmap", name: "v5" },
+				],
+			},
+			"theholocron"
+		);
+		expect(result).toEqual({
+			ok: false,
+			problems: ["boards[0] needs a template", "boards[1] needs a template", "boards[2] needs a name"],
+		});
+	});
+
 	it("says boards must be a list", () => {
 		expect(resolveProjectOptions({ boards: { template: "roadmap", name: "v5" } }, "o")).toEqual({
 			ok: false,
