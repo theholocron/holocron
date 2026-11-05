@@ -1,4 +1,5 @@
 ---
+id: SPEC-0067
 status: draft
 issue: theholocron/holocron#1727
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#1714
   - theholocron/holocron#438
   - theholocron/holocron#1052
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1567797286703202306
 ---
 
 # `@theholocron/kyber`: the reusable parts of the CLI
