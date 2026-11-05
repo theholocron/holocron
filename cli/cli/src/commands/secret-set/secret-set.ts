@@ -17,12 +17,14 @@
  * Errors clearly when no value can be sourced.
  */
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { env } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Secrets, type SecretScope } from "../../plugin/index.js";
 import type { RunSecretSetInput, SecretSetReport } from "./secret-set.type.js";
+
+const env = createEnvLookup();
 
 export async function runSecretSet(input: RunSecretSetInput): Promise<SecretSetReport> {
 	const print = input.print ?? ((line: string) => console.log(line));

@@ -1,11 +1,13 @@
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import type { CommandModule } from "yargs";
 
 import { type GlobalArgs } from "../../cli-support/index.js";
-import { env } from "../../env/index.js";
 import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR } from "../../interactive-menu/index.js";
 import { reportError } from "../../observability/logger/index.js";
 import { resolveOtp, runPublish, runSteadyPublish, runSyncTrust } from "./index.js";
 import { type PublishArgs, publishArgs } from "./publish.args.js";
+
+const env = createEnvLookup();
 
 export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 	command: "publish",

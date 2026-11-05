@@ -38,9 +38,9 @@
  * setup` for the ephemeral GH admin PAT.
  */
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { pad, statusRow, style } from "@theholocron/kyber/ui";
 
-import { makeEnv } from "../../../env/index.js";
 import { getLogger } from "../../../observability/logger/index.js";
 import { defaultExec } from "../default-exec.js";
 import { defaultLogin } from "../default-login.js";
@@ -88,7 +88,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	const tag = input.tag ?? "alpha";
 	const dryRun = input.dryRun ?? false;
 	const otp = input.otp;
-	const env = makeEnv(input.env);
+	const env = createEnvLookup(input.env);
 	const exec = input.exec ?? defaultExec;
 	const login = input.login ?? defaultLogin;
 

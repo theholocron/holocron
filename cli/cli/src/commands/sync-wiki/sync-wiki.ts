@@ -1,13 +1,14 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { firstEnv } from "@theholocron/env-utils/lookup";
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
 import { createRestClient } from "@theholocron/http-client";
 
 import { getToken as getKeyringToken } from "../../auth/index.js";
-import { env } from "../../env/index.js";
 import type { SetupStepResult } from "../setup/index.js";
 import type { FileContents, OrgRepo, RunSyncWikiInput, WikiRepo } from "./sync-wiki.type.js";
+
+const env = createEnvLookup();
 
 // ---------------------------------------------------------------------------
 // Token resolution

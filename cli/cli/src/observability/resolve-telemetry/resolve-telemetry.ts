@@ -1,3 +1,6 @@
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
+
+const holocronEnv = withEnvPrefix(createEnvLookup(), "HOLOCRON");
 /**
  * Holocron-specific credential resolution for the telemetry sinks — the env
  * chain plus Holocron's own shipped fallbacks. This is **CLI policy**, not part
@@ -14,8 +17,6 @@
  * built-in fallbacks are ingest-only keys — publishable by design, same risk
  * model as ADR-0007 / ADR-0008.
  */
-
-import { holocronEnv } from "../../env/index.js";
 
 /** Holocron's own Sentry project — the fallback when no env var points elsewhere. */
 const FALLBACK_DSN = "https://95cbb72ad5636c94e119a5405ee8f55f@o4508238154104832.ingest.us.sentry.io/4511810950791168";

@@ -14,6 +14,7 @@
 
 import { dirname, resolve } from "node:path";
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import {
 	copyToClipboard,
 	dotenvLine,
@@ -25,7 +26,6 @@ import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getToken, isKeyringAvailable } from "../../auth/index.js";
-import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
@@ -89,7 +89,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 	}
 
 	const importer = input.importer ?? createDefaultImporter(dirname(input.loaded.filepath));
-	const env = makeEnv(input.env);
+	const env = createEnvLookup(input.env);
 	const keyring = input.keyring ?? getToken;
 
 	// Every token the plugins list, by variable name. A name listed twice under the same keyring entry is one token;

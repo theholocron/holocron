@@ -20,13 +20,12 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import { withEnvPrefix } from "@theholocron/env-utils/lookup";
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
 import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { deleteToken, getToken, listStoredProviders, setToken } from "../../auth/index.js";
 import { resolvePluginPackage } from "../../config/index.js";
-import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { isModuleNotFound } from "../../plugin/index.js";
 import type {
@@ -72,7 +71,7 @@ export function resolveAuthSetToken(input: {
 	positional?: string;
 	env?: NodeJS.ProcessEnv;
 }): string | null {
-	const e = withEnvPrefix(makeEnv(input.env), "HOLOCRON");
+	const e = withEnvPrefix(createEnvLookup(input.env), "HOLOCRON");
 	return input.positional || e.get(`${input.provider.toUpperCase()}_TOKEN`) || null;
 }
 

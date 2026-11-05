@@ -1,4 +1,4 @@
-import type { CliEnv } from "../../env/index.js";
+import type { EnvLookup } from "@theholocron/env-utils/lookup";
 
 /**
  * `argvOtp` if given, else the `HOLOCRON_OTP` env var — the secret-delivery
@@ -8,6 +8,6 @@ import type { CliEnv } from "../../env/index.js";
  * but never its env. A direct `holocron package publish --otp <code>`
  * invocation is unaffected; the flag always wins when both are present.
  */
-export function resolveOtp(argvOtp: string | undefined, env: CliEnv): string | undefined {
+export function resolveOtp(argvOtp: string | undefined, env: EnvLookup): string | undefined {
 	return argvOtp ?? env.get("HOLOCRON_OTP");
 }

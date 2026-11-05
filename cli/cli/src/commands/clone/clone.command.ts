@@ -1,4 +1,5 @@
 import { confirm } from "@inquirer/prompts";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import { NonInteractiveError, openPath } from "@theholocron/kyber/ui";
 import type { CommandModule } from "yargs";
@@ -7,11 +8,12 @@ import { createFeatureResolver } from "../../auth/index.js";
 import { AuthError } from "../../auth/index.js";
 import { tokenContext } from "../../cli-support/index.js";
 import { type GlobalArgs } from "../../cli-support/index.js";
-import { env } from "../../env/index.js";
 import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR, getEntry } from "../../interactive-menu/index.js";
 import { reportError } from "../../observability/logger/index.js";
 import { type CloneArgs, cloneArgs } from "./clone.args.js";
 import { parseCloneTarget, runClone, type WholeOrgScope } from "./index.js";
+
+const env = createEnvLookup();
 
 const resolveCloneToken = createFeatureResolver({ envName: "HOLOCRON_READ_TOKEN", keyringKey: "github.read" });
 

@@ -11,10 +11,10 @@
  * What a token may do is not checked: GitHub does not return a fine-grained token's permissions.
  */
 
+import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getToken } from "../../auth/index.js";
-import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { type AuthPluginModule, defaultImporter, type PluginToken } from "../auth/index.js";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
@@ -25,7 +25,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const importer = input.importer ?? defaultImporter;
-	const env = makeEnv(input.env);
+	const env = createEnvLookup(input.env);
 	const keyring = input.keyring ?? getToken;
 	const now = input.now ?? (() => new Date());
 
@@ -77,7 +77,7 @@ function row(id: string, status: CheckRow["status"], detail: string): CheckRow {
 async function checkToken(
 	token: PluginToken,
 	module: AuthPluginModule,
-	env: ReturnType<typeof makeEnv>,
+	env: EnvLookup,
 	keyring: (key: string) => string | null,
 	now: Date
 ): Promise<CheckRow> {

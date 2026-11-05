@@ -1,7 +1,9 @@
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { type OptionPrompt } from "@theholocron/kyber/prompts";
 
-import { env } from "../../env/index.js";
 import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+
+const env = createEnvLookup();
 
 const PUBLISH_TAG_OPTION: OptionPrompt = {
 	key: "tag",
