@@ -19,7 +19,8 @@ const script = [
 	"}",
 ].join("\n");
 
-describe("createCliRunner", () => {
+// Every test starts a real node process, which takes longer than the default 5s when the whole repo is testing at once.
+describe("createCliRunner", { timeout: 30_000 }, () => {
 	let dir: string;
 	let bin: string;
 	const parse = (stdout: string) =>
