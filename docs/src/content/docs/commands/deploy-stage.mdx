@@ -1,0 +1,31 @@
+---
+title: "deploy stage"
+description: Assemble the payload that `deploy --files` uploads for a Vercel Function package.
+---
+
+```bash
+holocron deploy stage [--package-dir <dir>] [--out <dir>]
+```
+
+Writes `.vercel-deploy/` for a package that ships as a Vercel Function (Sentinel), so `holocron deploy --files .vercel-deploy` uploads exactly that and nothing else:
+
+- `api/webhook.mjs`, `vercel.json` and `dist/index.mjs` copied from the package (run its `delivery.build` first),
+- a trimmed `package.json` with the name, version, `type`, `engines` and `dependencies` only, each dependency pinned to the version installed in `node_modules` (Vercel's `npm install` cannot read `workspace:` or `catalog:` specifiers).
+
+`engines.node` is rewritten to the `<major>.x` form Vercel accepts (`>=22` becomes `22.x`).
+
+It refuses, before writing anything, when `dist/index.mjs` imports a package that is not in the package's `dependencies`: Vercel would not install it and the function would crash on import.
+
+## Options
+
+| Option          | Default                    | Description                |
+| --------------- | -------------------------- | -------------------------- |
+| `--package-dir` | the current directory      | The package to stage       |
+| `--out`         | `<package>/.vercel-deploy` | Where to write the payload |
+
+## Examples
+
+```bash
+# What Sentinel's delivery.deploy runs
+pnpm run delivery.build && holocron deploy stage && holocron deploy --files .vercel-deploy --project-id sentinel
+```

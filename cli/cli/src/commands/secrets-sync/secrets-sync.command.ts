@@ -5,7 +5,7 @@ import { type GlobalArgs } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
 import { promptForPositionals } from "../../ui/index.js";
-import { runSecretsSync } from "./index.js";
+import { runSecretsSync, secretRoutes } from "./index.js";
 import { type SecretsSyncArgs, secretsSyncArgs } from "./secrets-sync.args.js";
 
 export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
@@ -19,6 +19,10 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 		const [environmentId] = await promptForPositionals(getEntry("secrets sync"), argv as Record<string, unknown>);
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
+		// `--github-secret` describes one route by hand; without it, `repo.secrets.sync` says where each key goes.
+		const routes = argv.githubSecret?.length
+			? []
+			: secretRoutes(loaded.resolved.repo?.secrets?.sync, environmentId!);
 		const report = await runSecretsSync({
 			loaded,
 			context: {
@@ -32,6 +36,7 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 			...(argv.worker ? { workerScript: argv.worker } : {}),
 			...(argv.githubSecret?.length ? { githubSecretKeys: argv.githubSecret as string[] } : {}),
 			githubSecretScope,
+			...(routes.length ? { secretRoutes: routes } : {}),
 			targets: argv.target as Array<"development" | "preview" | "production">,
 		});
 		if (report.summary.fail > 0) {

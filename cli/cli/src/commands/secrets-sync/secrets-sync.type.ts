@@ -21,6 +21,12 @@ export interface SyncReport {
 	summary: { ok: number; fail: number; skip: number; dryRun: number };
 }
 
+/** Where some vault keys land in `secrets`: one scope, and the keys that go there (every key the vault holds when omitted). */
+export interface SecretRoute {
+	scope: SecretScope;
+	keys?: string[];
+}
+
 export interface RunSecretsSyncInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
@@ -39,6 +45,11 @@ export interface RunSecretsSyncInput {
 	githubSecretKeys?: string[];
 	/** Scope applied to every `githubSecretKeys` entry. Omit for `{ kind: "repo" }` (the default). */
 	githubSecretScope?: SecretScope;
+	/**
+	 * Routes into `secrets`, one per scope (from `repo.secrets.sync`). Used instead of `githubSecretKeys` and
+	 * `githubSecretScope`, which describe one route; omit it for those.
+	 */
+	secretRoutes?: SecretRoute[];
 	loader?: PluginLoader;
 	print?: SyncPrintLine;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */

@@ -11,13 +11,13 @@
  *
  * `.mjs`, not `.js`: there's no `package.json` `"type": "module"` at
  * this file's own directory level in the deployed tree otherwise (see
- * `scripts/stage-deploy.mjs` — the deployed `package.json` does set
+ * `holocron deploy stage` — the deployed `package.json` does set
  * it, but Vercel's own docs call out `.mjs` as the safer bet for a
  * no-framework function file).
  *
  * `../dist/index.mjs`: a relative import, not `@theholocron/sentinel`
  * — this deploys exactly what was just built locally (`../dist`,
- * staged alongside this file by `stage-deploy.mjs`), not whatever
+ * staged alongside this file by `holocron deploy stage`), not whatever
  * happens to be the latest published npm version.
  */
 

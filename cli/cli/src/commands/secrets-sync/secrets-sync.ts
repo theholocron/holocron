@@ -25,6 +25,12 @@
  *    CI-consumed, org-wide secret (holocron#781's Sentinel case: 4
  *    Vercel-only keys + one org-scoped Axiom ingest token
  *    `theholocron/.github`'s dispatched-check workflow also reads).
+ *  - With no `--github-secret`, the routes come from `repo.secrets.sync`: every
+ *    entry for this environment gives `secrets` its own keys and scope, one
+ *    step per scope, so one environment can fill organization and repository
+ *    secrets in one run.
+ *  - A key that is blank in the vault is skipped in every destination, and a
+ *    listed key the vault does not hold is a skipped row.
  *
  * The vault MUST implement `readEnvironment(envId)` (optional method).
  * If it doesn't, the command errors with a hint to populate the keys
@@ -116,21 +122,33 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	// ── Push to `secrets` (CI/Actions secrets) ─────────────────────────
 	if (loader.has("secrets")) {
 		const secrets = loader.get("secrets") as Secrets;
-		const scope = input.githubSecretScope ?? { kind: "repo" };
-		const allowedKeys = input.githubSecretKeys ? new Set(input.githubSecretKeys) : undefined;
-		print(style.step("secrets"));
-		for (const key of keys) {
+		const routes = input.secretRoutes ?? [
+			{
+				scope: input.githubSecretScope ?? { kind: "repo" },
+				...(input.githubSecretKeys ? { keys: input.githubSecretKeys } : {}),
+			},
+		];
+		for (const route of routes) {
+			print(style.step(routes.length > 1 ? `secrets (${scopeLabel(route.scope)})` : "secrets"));
 			// No allowlist → every key (original default). With one → only
-			// listed keys; an unlisted key is skipped for `secrets` entirely
-			// (still reaches `deployment` above, if configured).
-			if (allowedKeys && !allowedKeys.has(key)) continue;
-
-			rows.push(
-				await runRow(`secrets:${secrets.providerName}`, scopeLabel(scope), key, dryRun, async () => {
-					await secrets.setSecret(scope, key, envVars[key]!);
-				})
-			);
-			print(formatRow(rows[rows.length - 1]!));
+			// the listed keys, in the order given; an unlisted vault key is
+			// skipped for `secrets` entirely (still reaches `deployment`
+			// below, if configured).
+			for (const key of route.keys ?? keys) {
+				rows.push(
+					await pushRow(
+						`secrets:${secrets.providerName}`,
+						scopeLabel(route.scope),
+						key,
+						envVars,
+						dryRun,
+						async (value) => {
+							await secrets.setSecret(route.scope, key, value);
+						}
+					)
+				);
+				print(formatRow(rows[rows.length - 1]!));
+			}
 		}
 	}
 
@@ -153,9 +171,16 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 				print(style.step(`deployment (target=${target})`));
 				for (const key of keys) {
 					rows.push(
-						await runRow(`deployment:${deploy.providerName}`, `target=${target}`, key, dryRun, async () => {
-							await deploy.setEnvVar(input.projectId!, target, key, envVars[key]!);
-						})
+						await pushRow(
+							`deployment:${deploy.providerName}`,
+							`target=${target}`,
+							key,
+							envVars,
+							dryRun,
+							async (value) => {
+								await deploy.setEnvVar(input.projectId!, target, key, value);
+							}
+						)
 					);
 					print(formatRow(rows[rows.length - 1]!));
 				}
@@ -183,9 +208,16 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		} else {
 			for (const key of keys) {
 				rows.push(
-					await runRow(`workers:${workers.providerName}`, `script=${script}`, key, dryRun, async () => {
-						await workers.setSecret!(script, key, envVars[key]!);
-					})
+					await pushRow(
+						`workers:${workers.providerName}`,
+						`script=${script}`,
+						key,
+						envVars,
+						dryRun,
+						async (value) => {
+							await workers.setSecret!(script, key, value);
+						}
+					)
 				);
 				print(formatRow(rows[rows.length - 1]!));
 			}
@@ -234,6 +266,29 @@ function summarise(rows: SyncRow[], logger: Logger, print: SyncPrintLine, dryRun
 	print(summary.fail > 0 ? style.fail(summaryLine) : style.success(summaryLine));
 
 	return { rows, summary };
+}
+
+/**
+ * One key to one destination. A key the vault does not hold, or holds blank, is a skipped row: a blank is a placeholder
+ * for a value still to be found, and pushing it would overwrite a working secret with nothing (which no provider can
+ * read back to undo). Everything else goes through {@link runRow}.
+ */
+async function pushRow(
+	destination: string,
+	scope: string,
+	key: string,
+	envVars: Record<string, string>,
+	dryRun: boolean,
+	body: (value: string) => Promise<void>
+): Promise<SyncRow> {
+	const value = Object.hasOwn(envVars, key) ? envVars[key]! : undefined;
+	if (value === undefined) {
+		return { destination, scope, key, status: "skip", message: "not in the vault environment" };
+	}
+	if (value.trim() === "") {
+		return { destination, scope, key, status: "skip", message: "blank in the vault environment" };
+	}
+	return runRow(destination, scope, key, dryRun, () => body(value));
 }
 
 async function runRow(

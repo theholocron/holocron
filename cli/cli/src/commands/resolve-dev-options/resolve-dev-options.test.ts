@@ -55,7 +55,7 @@ describe("resolveDevOptions", () => {
 			}
 		})();
 		expect(err?.message).toBe(
-			"dev needs an environment (--environment, or `dev.environment`); a tunnel name (--name, or `dev.tunnel.name`); a hostname (--hostname, or `dev.tunnel.hostname`); the application's command (after --, or `dev.command`), in holocron.config.ts or on the command line"
+			"dev needs an environment (--environment, or `dev.environment`); a tunnel name (--name, or `dev.tunnel.name`); a hostname (--hostname, or `dev.tunnel.hostname`); the application's command (after --, `dev.command`, or a handler in `dev.serve`), in holocron.config.ts or on the command line"
 		);
 	});
 
@@ -63,5 +63,28 @@ describe("resolveDevOptions", () => {
 		expect(() => resolveDevOptions({}, { environment: "E", command: ["x"] })).toThrow(
 			/^dev needs a tunnel name \(--name, or `dev\.tunnel\.name`\); a hostname/
 		);
+	});
+
+	describe("a handler to serve", () => {
+		const serve = { handler: "./h.ts" };
+		const self = ["/usr/bin/node", "/cli.mjs", "--cwd", "/app"];
+
+		it("runs this CLI's own `dev serve` when there is no command", () => {
+			const { command } = resolveDevOptions({}, { ...config, command: undefined, serve }, self);
+			expect(command).toEqual([...self, "dev", "serve"]);
+		});
+
+		it("lets a command in the config, or after --, win over the handler", () => {
+			expect(resolveDevOptions({}, { ...config, serve }, self).command).toEqual(["pnpm", "run", "serve"]);
+			expect(
+				resolveDevOptions({ command: ["x"] }, { ...config, command: undefined, serve }, self).command
+			).toEqual(["x"]);
+		});
+
+		it("runs the CLI it was started with when told nothing else", () => {
+			const { command } = resolveDevOptions({}, { ...config, command: undefined, serve });
+			expect(command.slice(-2)).toEqual(["dev", "serve"]);
+			expect(command[0]).toBe(process.execPath);
+		});
 	});
 });

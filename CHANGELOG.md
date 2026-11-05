@@ -1,3 +1,48 @@
+## [5.0.0-alpha.331](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.330...v5.0.0-alpha.331) (2026-11-05)
+
+### Bug Fixes
+
+* **cli:** 🐛 ship tsx as a dependency, since holocron dev serve imports it at run time ([#1718](https://github.com/theholocron/holocron/issues/1718)) ([#1723](https://github.com/theholocron/holocron/issues/1723)) ([3c44843](https://github.com/theholocron/holocron/commit/3c44843a00921231d2ed6fca3d63ff00e682df41))
+
+### Documentation
+
+* **cli:** 📝 describe dagobah and dev.serve in the agent instructions ([#1722](https://github.com/theholocron/holocron/issues/1722)) ([f3ab4c5](https://github.com/theholocron/holocron/commit/f3ab4c542d46b92f27007eb95da1dfd5294f16b7)), closes [#1714](https://github.com/theholocron/holocron/issues/1714)
+
+## [5.0.0-alpha.330](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.329...v5.0.0-alpha.330) (2026-11-05)
+
+### Features
+
+* **cli:** 🌿 add @theholocron/dagobah, the local dev server Sentinel's serve script uses ([#1715](https://github.com/theholocron/holocron/issues/1715)) ([41a8e21](https://github.com/theholocron/holocron/commit/41a8e2193ef825b2200c60c24ba0ad44805d72d4)), closes [#1714](https://github.com/theholocron/holocron/issues/1714) [#1714](https://github.com/theholocron/holocron/issues/1714) [#1714](https://github.com/theholocron/holocron/issues/1714) [#1714](https://github.com/theholocron/holocron/issues/1714)
+* **cli:** 🌿 holocron dev serves a handler itself, from dev.serve ([#1719](https://github.com/theholocron/holocron/issues/1719)) ([9f6f536](https://github.com/theholocron/holocron/commit/9f6f536b435c0d7dd1f16b02cf9b2ed8438715eb)), closes [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718)
+
+## [5.0.0-alpha.329](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.328...v5.0.0-alpha.329) (2026-11-05)
+
+### Bug Fixes
+
+* **1password:** 🐛 read an unquoted multi-line PEM value from the dotenv output ([#1713](https://github.com/theholocron/holocron/issues/1713)) ([#1716](https://github.com/theholocron/holocron/issues/1716)) ([9af2b44](https://github.com/theholocron/holocron/commit/9af2b4427d583039f2cbb3071cc330935b0daae5))
+
+## [5.0.0-alpha.328](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.327...v5.0.0-alpha.328) (2026-11-04)
+
+### Refactoring
+
+* **cli:** 🚚 move Sentinel's deploy staging scripts into `holocron deploy stage` ([#1701](https://github.com/theholocron/holocron/issues/1701)) ([f8d2ea2](https://github.com/theholocron/holocron/commit/f8d2ea28cac52342f729650854c2ea6a79eb8870)), closes [#1700](https://github.com/theholocron/holocron/issues/1700) [#1700](https://github.com/theholocron/holocron/issues/1700) [#1700](https://github.com/theholocron/holocron/issues/1700) [#1700](https://github.com/theholocron/holocron/issues/1700)
+
+### Documentation
+
+* **sentinel:** 📚️ 📝 say the dev instance logs to the same dataset, filtered by env ([#1712](https://github.com/theholocron/holocron/issues/1712)) ([4e34dd4](https://github.com/theholocron/holocron/commit/4e34dd4c21d54e38e8e7b3781009a373a08b2685)), closes [#1694](https://github.com/theholocron/holocron/issues/1694)
+
+## [5.0.0-alpha.327](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.326...v5.0.0-alpha.327) (2026-11-04)
+
+### Features
+
+* **cli:** 🔑 secrets sync follows repo.secrets.sync and skips blank values ([#1702](https://github.com/theholocron/holocron/issues/1702)) ([#1703](https://github.com/theholocron/holocron/issues/1703)) ([904932b](https://github.com/theholocron/holocron/commit/904932bce16ebfe2a598176faf381e2bdc3eff98))
+* **repo:** 🧰 add .humans with a Brewfile and one setup script for a fresh clone ([#1704](https://github.com/theholocron/holocron/issues/1704)) ([#1705](https://github.com/theholocron/holocron/issues/1705)) ([43d0158](https://github.com/theholocron/holocron/commit/43d0158982a0ce11ed5baa5b7052447a060187a4))
+
+### Chores
+
+* **deps:** bump @astrojs/react from 6.0.6 to 7.1.2 ([#1709](https://github.com/theholocron/holocron/issues/1709)) ([51f74cf](https://github.com/theholocron/holocron/commit/51f74cff280619ca2be01a52793dc1c3bbc6b7c0))
+* **deps:** bump eslint-package-json from 0.3.0 to 3.0.0 ([#1708](https://github.com/theholocron/holocron/issues/1708)) ([a285f93](https://github.com/theholocron/holocron/commit/a285f93cdbdbd14b0ceda2cb0fb686d1f2042d9f))
+
 ## [5.0.0-alpha.326](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.325...v5.0.0-alpha.326) (2026-11-04)
 
 ### Features

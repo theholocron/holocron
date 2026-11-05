@@ -13,7 +13,7 @@ import { library } from "@theholocron/tsdown-config/presets/library";
  * dependencies included) stays external: `@theholocron/cli` reaches a
  * platform-specific native binary (`@napi-rs/keyring`), which must be
  * installed on Vercel's Linux runtime, not bundled from the build machine.
- * `scripts/bundle-externals.mjs` checks each external is a declared
+ * `holocron deploy stage` checks each external is a declared
  * dependency, so the trimmed deploy `package.json` installs it.
  */
 const INLINED = /^@theholocron\/(?:astromech|datapad|cli)(?:\/|$)/;

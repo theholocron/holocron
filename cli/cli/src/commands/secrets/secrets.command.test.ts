@@ -8,7 +8,10 @@ const runSecretsList = vi.hoisted(() => vi.fn());
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("../secret-set/index.js", () => ({ runSecretSet }));
-vi.mock("../secrets-sync/index.js", () => ({ runSecretsSync }));
+vi.mock("../secrets-sync/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../secrets-sync/index.js")>()),
+	runSecretsSync,
+}));
 vi.mock("../secrets-list/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../secrets-list/index.js")>()),
 	runSecretsList,
@@ -110,8 +113,42 @@ describe("secrets sync", () => {
 	it("leaves out the project, worker and GitHub secrets it was not given", async () => {
 		await go(["sync", "prd"]);
 		const input = runSecretsSync.mock.calls[0]![0];
-		expect(["projectId", "workerScript", "githubSecretKeys"].some((k) => k in input)).toBe(false);
+		expect(["projectId", "workerScript", "githubSecretKeys", "secretRoutes"].some((k) => k in input)).toBe(false);
 		expect(input.githubSecretScope).toEqual({ kind: "repo" });
+	});
+
+	it("takes the routes into GitHub secrets from the repo.secrets.sync entries for that environment", async () => {
+		loadConfig.mockResolvedValue({
+			resolved: {
+				org: "acme",
+				repo: {
+					secrets: {
+						sync: [
+							{ environment: "ci", keys: ["A"], scope: "org=acme" },
+							{ environment: "ci", keys: ["B"] },
+							{ environment: "other", keys: ["C"] },
+						],
+					},
+				},
+			},
+			filepath: "/x",
+		});
+		await go(["sync", "ci"]);
+		expect(runSecretsSync.mock.calls[0]![0].secretRoutes).toEqual([
+			{ scope: { kind: "organization", name: "acme" }, keys: ["A"] },
+			{ scope: { kind: "repo" }, keys: ["B"] },
+		]);
+	});
+
+	it("lets --github-secret win over the config entries", async () => {
+		loadConfig.mockResolvedValue({
+			resolved: { org: "acme", repo: { secrets: { sync: [{ environment: "ci", keys: ["A"] }] } } },
+			filepath: "/x",
+		});
+		await go(["sync", "ci", "--github-secret", "Z"]);
+		const input = runSecretsSync.mock.calls[0]![0];
+		expect("secretRoutes" in input).toBe(false);
+		expect(input.githubSecretKeys).toEqual(["Z"]);
 	});
 
 	it("exits 1 when a secret failed, and stops when --token cannot be parsed", async () => {

@@ -54,7 +54,7 @@
  * individual `import "pkg"` workarounds down an open-ended, version-shifting
  * chain doesn't scale — fixed once, structurally, via `vercel.json`'s
  * `functions["api/webhook.mjs"].includeFiles: "node_modules/**"` (see
- * `scripts/stage-deploy.mjs`'s own docstring), which ships this function's
+ * `holocron deploy stage`'s own docstring (`cli/cli/src/commands/deploy-stage`)), which ships this function's
  * entire installed `node_modules` regardless of what nft can trace. `@commitlint/
  * config-conventional` still needs its own explicit `dependencies` entry in
  * this package's `package.json` even so — it's a `peerDependency` of

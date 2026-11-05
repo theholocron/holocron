@@ -356,7 +356,7 @@ touching Vercel, and the 73+ tests exercise `handleWebhookRequest`
 directly — that's this package's actual "dev environment," not a
 deployed URL.
 
-### `api/webhook.mjs` and `scripts/stage-deploy.mjs`
+### `api/webhook.mjs` and `holocron deploy stage`
 
 `handleWebhookRequest` itself is deliberately deploy-target-agnostic
 (no `req`/`res` translation, no platform-specific wrapper — see
@@ -369,7 +369,7 @@ shape (`export default { fetch(request) {...} }`) is already
 `dist/index.mjs` (this package's built library) keeps its npm
 dependencies external, not bundled — everything except the three
 inlined workspace packages below — so deploying `dist/` alone isn't
-enough; Vercel needs to `npm install` them. `scripts/stage-deploy.mjs` assembles
+enough; Vercel needs to `npm install` them. `holocron deploy stage` assembles
 `.vercel-deploy/` — `api/webhook.mjs` + `dist/index.mjs` + a **trimmed**
 `package.json` (name/version/type + `engines` + `dependencies` only, no
 devDependencies/scripts, each dependency pinned to the exact version
@@ -385,10 +385,10 @@ pinned the previous release, which lacked an export Sentinel's code needed —
 every webhook crashed on import. Their own npm dependencies stay external
 (`@theholocron/cli` reaches a native binary that must be installed for
 Vercel's platform), so staging refuses when `dist/` imports a package that
-isn't in this package's `dependencies` (`scripts/bundle-externals.mjs`).
+isn't in this package's `dependencies` (`undeclaredExternals`).
 `engines.node` is rewritten from this package's own range
 to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
-`scripts/vercel-engines.mjs`): Vercel picks the function's Node version
+`vercelEngines`): Vercel picks the function's Node version
 from it, and refuses an open range with `invalid_version_value`
 (holocron#911).
 
@@ -601,17 +601,20 @@ pnpm --filter @theholocron/sentinel dev
 
 `pnpm dev` is [`holocron dev`](/holocron/commands/dev/), configured by the `dev` block of this directory's `holocron.config.ts` (the Environment, the tunnel's name and hostname, the port and the command, so the hostname is set in one place): it sets up the named tunnel and its DNS record the way
 `holocron tunnel up` does (nothing changes when they are already right), reads the variables of `Sentinel - dev` in
-memory, and runs `pnpm run serve` beside `cloudflared` with those variables and `PORT` in the application's
+memory, and runs the handler (`dev.serve`, served by `holocron dev serve`) beside `cloudflared` with those variables and `PORT` in the application's
 environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:
 Edit, and `cloudflared` (`brew install cloudflared`).
 
-`pnpm serve` alone runs just the handler (`scripts/serve.ts`) on `127.0.0.1`, serving `/api/webhook` (the path Vercel
+`holocron dev serve` alone runs only the handler on `127.0.0.1`, serving `/api/webhook` (the path Vercel
 serves). Its three required variables, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, come
-from the process, or else from the Environment named by `SENTINEL_DEV_ENVIRONMENT` (default `Sentinel - dev`), read with
+from the process, or else from the Environment `dev.environment` names (`Sentinel - dev`), read with
 `op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
 header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
-and `AXIOM_DATASET`; give the dev instance its own dataset (and ingest token) so it does not write into production's, or
-leave both out. It says which it is on start. `holocron dev` sets `ENVIRONMENT=development`, so every line carries `env: "development"` and one dataset can hold dev and production (`where env == "development"`); production sets `ENVIRONMENT=production` in the `Sentinel` Environment. Install the dev App only on the repositories you test with.
+and `AXIOM_DATASET`, or leave both out. It says which it is on start. Use the same dataset as production
+(`holocron-sentinel`) with an ingest token of its own, scoped to that dataset: `holocron dev` sets
+`ENVIRONMENT=development`, so every line carries `env: "development"` and one dataset holds dev and production
+(`where env == "development"`); production sets `ENVIRONMENT=production` in the `Sentinel` Environment. Install the dev
+App only on the repositories you test with.
 
 ## Development
 

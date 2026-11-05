@@ -307,4 +307,23 @@ describe("runCi", () => {
 		expect(report.status).toBe("fail");
 		expect(lines.join("\n")).toMatch(/✗ 0 passed, 1 failed, 1 skipped/);
 	});
+
+	it("names each failed job after the count, and never a passing or skipped one", () => {
+		const { run, lines } = makeCi({ "package.json": PKG });
+		run({
+			tasks: [
+				{ name: "delivery.build", required: true }, // no runner → fail
+				{ name: "security.codeScanning", required: true }, // local: null → skip
+			],
+		});
+		const summary = lines.slice(lines.findIndex((l) => l.startsWith("✗ ")));
+		expect(summary).toHaveLength(2);
+		expect(summary[1]).toMatch(/^ {2}✗ build/);
+	});
+
+	it("names a failed job that has no check context by its task id", () => {
+		const { run, lines } = makeCi({ "package.json": PKG }, { exec: () => ({ exitCode: 1 }) });
+		run({ tasks: [{ name: "format", required: true }] });
+		expect(lines).toContain("  ✗ format");
+	});
 });

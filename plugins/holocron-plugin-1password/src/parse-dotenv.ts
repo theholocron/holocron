@@ -3,8 +3,9 @@
  *
  * Blank lines and `# comment` lines are skipped, as is a line with no `=`. A leading `export ` is dropped. A value
  * in double quotes has `\n`, `\r`, `\t`, `\"` and `\\` unescaped and may run over several lines; a value in single
- * quotes is taken as written; anything else is the rest of the line, trimmed. Inline `#` comments are not stripped,
- * because a token may contain one.
+ * quotes is taken as written; an unquoted value that opens a PEM block (`-----BEGIN …-----`) runs to its `-----END …-----`
+ * line, because `op` prints a multi-line key that way; anything else is the rest of the line, trimmed. Inline `#`
+ * comments are not stripped, because a token may contain one.
  */
 export function parseDotenv(text: string): Record<string, string> {
 	const out: Record<string, string> = {};
@@ -32,6 +33,15 @@ export function parseDotenv(text: string): Record<string, string> {
 		}
 		if (value.startsWith("'") && value.endsWith("'") && value.length >= 2) {
 			out[key] = value.slice(1, -1);
+			continue;
+		}
+		if (/^-----BEGIN [^-]+-----/.test(value)) {
+			// `op` prints a multi-line value (a PEM key) unquoted, so read on to its END line.
+			let block = value;
+			while (!/-----END [^-]+-----\s*$/.test(block) && i + 1 < lines.length) {
+				block += `\n${lines[++i]!.trim()}`;
+			}
+			out[key] = block;
 			continue;
 		}
 		out[key] = value;

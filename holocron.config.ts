@@ -52,6 +52,52 @@ export default defineConfig({
 				TURBO_TEAM: "iamnewton",
 			},
 		},
+		// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron secrets sync
+		// "Holocron - GitHub Actions"`, #1702): change one in 1Password, run the sync, and both scopes are updated. Names
+		// only. A key that is blank in the Environment is skipped, so a placeholder never overwrites a working secret.
+		// `doctor secrets` expects every key listed here at its scope.
+		secrets: {
+			sync: [
+				{
+					environment: "Holocron - GitHub Actions",
+					scope: "org=theholocron",
+					keys: [
+						"AXIOM_TOKEN",
+						"CLOUDFLARE_API_TOKEN",
+						"CODECOV_TOKEN",
+						"FERN_TOKEN",
+						"HOLOCRON_ADMIN_TOKEN",
+						"HOLOCRON_DEPLOY_TOKEN",
+						"HOLOCRON_ISSUES_TOKEN",
+						"HOLOCRON_ORG_TOKEN",
+						"HOLOCRON_READ_TOKEN",
+						"HOLOCRON_RELEASE_TOKEN",
+						"HOLOCRON_SYNC_TOKEN",
+						"LHCI_GITHUB_APP_TOKEN",
+						"SENTRY_AUTH_TOKEN",
+						"STORYBOOK_CODE_SANDBOX_API_TOKEN",
+						"SUPER_LINTER_APP_ID",
+						"SUPER_LINTER_GPG_PASSPHRASE",
+						"SUPER_LINTER_GPG_PRIVATE_KEY",
+						"SUPER_LINTER_PRIVATE_KEY",
+						"TURBO_TOKEN",
+					],
+				},
+				{
+					environment: "Holocron - GitHub Actions",
+					keys: [
+						"HOLOCRON_DEPLOYMENTS_TOKEN",
+						"HOLOCRON_DISCORD_BOT_TOKEN",
+						"HOLOCRON_SECRETS_TOKEN",
+						"NEXT_PUBLIC_SENTRY_DSN",
+						"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
+						"SENTRY_DSN",
+						"VERCEL_PROTECTION_BYPASS_SECRET",
+						"VERCEL_TOKEN",
+					],
+				},
+			],
+		},
 	},
 	// Required status checks not backed by a `{ required: true }` task.
 	// `holocron repo setup` appends these to the task-derived contexts from
@@ -119,6 +165,10 @@ export default defineConfig({
 		// see docs: tokens), ahead of the keyring (#1606). A token in the process environment or a repo-root `.env`
 		// still wins, and CI sets its own.
 		credentials: ["1password", { environment: "Holocron" }],
+		// Vault: the source `holocron secrets sync` reads. Sentinel and Comlink declare their own Environments in their
+		// configs; this one is for the GitHub Actions secrets, so the vault is the same 1Password and the Environment is
+		// named on the command line (`repo.secrets.sync` above says where each key goes).
+		vault: ["1password", { environment: "Holocron - GitHub Actions" }],
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
 		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
