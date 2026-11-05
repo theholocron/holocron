@@ -320,4 +320,10 @@ describe("runCi", () => {
 		expect(summary).toHaveLength(2);
 		expect(summary[1]).toMatch(/^ {2}✗ build/);
 	});
+
+	it("names a failed job that has no check context by its task id", () => {
+		const { run, lines } = makeCi({ "package.json": PKG }, { exec: () => ({ exitCode: 1 }) });
+		run({ tasks: [{ name: "format", required: true }] });
+		expect(lines).toContain("  ✗ format");
+	});
 });
