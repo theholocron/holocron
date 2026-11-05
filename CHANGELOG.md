@@ -1,3 +1,9 @@
+## [5.0.0-alpha.329](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.328...v5.0.0-alpha.329) (2026-11-05)
+
+### Bug Fixes
+
+* **1password:** 🐛 read an unquoted multi-line PEM value from the dotenv output ([#1713](https://github.com/theholocron/holocron/issues/1713)) ([#1716](https://github.com/theholocron/holocron/issues/1716)) ([9af2b44](https://github.com/theholocron/holocron/commit/9af2b4427d583039f2cbb3071cc330935b0daae5))
+
 ## [5.0.0-alpha.328](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.327...v5.0.0-alpha.328) (2026-11-04)
 
 ### Refactoring
