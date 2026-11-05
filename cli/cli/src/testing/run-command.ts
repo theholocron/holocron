@@ -1,4 +1,4 @@
-import yargs from "yargs";
+import { runCommand as runCommandWith } from "@theholocron/kyber/testing";
 
 /**
  * Runs one command module through a real yargs parse, with the root options `cli.ts` declares, so a test covers the
@@ -9,9 +9,8 @@ export async function runCommand(
 	args: string[],
 	root: { cwd?: string } = {}
 ): Promise<Record<string, unknown>> {
-	return (
-		yargs(args)
-			.parserConfiguration({ "populate--": true })
+	return runCommandWith(module, args, (parser) =>
+		parser
 			.option("cwd", { type: "string", default: root.cwd ?? "/repo" })
 			.option("dry-run", { type: "boolean", default: false })
 			.option("skip-dry-run", { type: "boolean", default: false })
@@ -21,11 +20,5 @@ export async function runCommand(
 			.option("debug", { type: "boolean", default: false })
 			.option("quiet", { type: "boolean", default: false })
 			.option("log", { type: "string" })
-			.command(module as never)
-			// A handler that throws should reach the test as a rejection, not be printed by yargs.
-			.fail((msg, err) => {
-				throw err ?? new Error(msg);
-			})
-			.parseAsync()
 	);
 }

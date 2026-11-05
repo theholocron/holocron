@@ -16,8 +16,9 @@ Internal for now: private, bundled into `@theholocron/cli`, not published. It be
 | `/notifier` | moved | A cached, best-effort "a newer version exists" notice for an npm package: `checkForUpdates({ name, currentVersion, cacheDir })` returns a function that prints a boxed notice to stderr, or `null`. Silent in CI and with `NO_UPDATE_NOTIFIER`.                                                                                                                                                                                |
 | `/secrets`  | moved | Handling tokens safely, with no terminal UI: owner-only (`0600`) files, shredding a file that held tokens, "does git ignore this path", dotenv lines that survive quoting, reading a `.env` at the repo root, the clipboard, the OS keyring (`createKeyring({ service })`, best-effort, `@napi-rs/keyring` optional), an in-process store for credentials a provider returned, and `--token` / `--token vendor=value` parsing. |
 | `/prompts`  | moved | A searchable menu (`pickMenuItem`), and prompting for the positionals and options a command left out (`promptForPositionals`, `promptForOptions`): required options always asked, the rest behind one checkbox, mutually exclusive `modes`, secret options masked, and a value that is asked last (`askLast`). They take small structural types (`PositionalCommand`, `OptionsCommand`), not the CLI's command registry.       |
+| `/testing`  | moved | A test harness for a CLI: `createCliRunner` runs a built binary in a fresh directory with an environment built from nothing, `runCommand` runs one yargs command module through a real parse, `ensureBuilt` is a Vitest global setup that builds only when `dist` is missing or stale, and `hermeticCreateRequire` resolves modules only from one directory.                                                                   |
 
-`/testing` and `/flags` follow, each in its own pull request.
+`/flags` follows, each in its own pull request.
 
 ## Usage
 

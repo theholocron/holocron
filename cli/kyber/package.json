@@ -36,6 +36,11 @@
       "import": "./dist/secrets.mjs",
       "default": "./dist/secrets.mjs"
     },
+    "./testing": {
+      "types": "./dist/testing.d.mts",
+      "import": "./dist/testing.mjs",
+      "default": "./dist/testing.mjs"
+    },
     "./ui": {
       "types": "./dist/ui.d.mts",
       "import": "./dist/ui.mjs",
@@ -71,7 +76,8 @@
     "ora": "catalog:cli",
     "tsdown": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "yargs": "catalog:cli"
   },
   "peerDependencies": {
     "@inquirer/prompts": "^8.0.0",
@@ -80,7 +86,8 @@
     "chalk": "^6.0.0",
     "clipboardy": "^5.0.0",
     "dotenv": "^17.0.0",
-    "ora": "^9.0.0"
+    "ora": "^9.0.0",
+    "yargs": "^18.0.0"
   },
   "peerDependenciesMeta": {
     "@inquirer/prompts": {
@@ -102,6 +109,9 @@
       "optional": true
     },
     "ora": {
+      "optional": true
+    },
+    "yargs": {
       "optional": true
     }
   },
