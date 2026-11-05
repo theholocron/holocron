@@ -5,7 +5,9 @@
  * {@link shredFile}, or close `fd`.
  */
 export interface FileIdentity {
+	/** The device the file is on. */
 	dev: number;
+	/** The file's inode number on that device. */
 	ino: number;
 	/** An open, writable descriptor for the file, used to overwrite its contents wherever the path points by then. */
 	fd: number;

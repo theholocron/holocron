@@ -9,9 +9,9 @@ import { describe, expect, it, vi } from "vitest";
 
 // The real keychain and the real clipboard are things a test must never touch.
 const write = vi.hoisted(() => vi.fn(async (_text: string) => {}));
-vi.mock("clipboardy", () => ({ default: { write } }));
 vi.mock("../../auth/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../auth/index.js")>()),
+	copyToClipboard: write,
 	getToken: () => null,
 	isKeyringAvailable: () => true,
 }));
@@ -457,7 +457,7 @@ describe("auth export — where it writes", () => {
 		expect(JSON.stringify(err)).not.toMatch(/ghp_org|sntry_1/);
 	});
 
-	it("copies with clipboardy by default", async () => {
+	it("copies with the shared clipboard helper by default", async () => {
 		write.mockClear();
 		const { result } = run({ outKind: "terminal", to: "clipboard" });
 		await result;

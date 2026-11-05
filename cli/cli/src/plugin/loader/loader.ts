@@ -30,10 +30,10 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
+import { DOTENV_FILE, readDotenvFile } from "@theholocron/kyber/secrets";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { hasCredentials, setCredentials } from "../../auth/credential-store/index.js";
-import { DOTENV_FILE, readDotenvFile } from "../../auth/dotenv-file/index.js";
 import {
 	type CapabilityConfigPackage,
 	credentialsEnvironment,

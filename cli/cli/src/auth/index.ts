@@ -1,11 +1,7 @@
 export * from "./auth-resolver/index.js";
-export * from "./copy-to-clipboard/index.js";
 export * from "./credential-store/index.js";
-export * from "./credentials-file/index.js";
-export * from "./dotenv-file/index.js";
-export * from "./dotenv-line/index.js";
-export * from "./git-ignored/index.js";
 export * from "./keyring/index.js";
-export * from "./private-file/index.js";
-export * from "./shred-file/index.js";
 export * from "./token-args/index.js";
+
+// What moved to `@theholocron/kyber/secrets`, kept importable from here so the call sites do not change in the same PR.
+export * from "@theholocron/kyber/secrets";
