@@ -4,10 +4,10 @@
  * whether to open the existing one, `--yes` prints its address, and anything else is a {@link NonInteractiveError}.
  */
 
+import { NonInteractiveError, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
-import { NonInteractiveError, style } from "../../../ui/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
 import { openProjects } from "../open-projects/index.js";

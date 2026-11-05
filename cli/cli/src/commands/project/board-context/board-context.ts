@@ -1,7 +1,8 @@
 import { join } from "node:path";
 
+import { describeError } from "@theholocron/kyber/ui";
+
 import type { Projects } from "../../../plugin/index.js";
-import { describeProviderError } from "../../../ui/provider-error/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
 import { resolveProjectOptions } from "../project-options/index.js";
@@ -20,7 +21,7 @@ export async function openBoardContext(input: OpenBoardContextInput): Promise<Bo
 			ok: false,
 			kind: "skip",
 			reason: failure
-				? `the \`${failure.provider}\` projects provider failed to load: ${describeProviderError(failure.error)}`
+				? `the \`${failure.provider}\` projects provider failed to load: ${describeError(failure.error)}`
 				: "no `projects` provider is configured",
 			problems: [],
 		};

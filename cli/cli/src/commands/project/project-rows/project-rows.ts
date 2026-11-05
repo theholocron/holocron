@@ -1,6 +1,6 @@
+import { style } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
-import { style } from "../../../ui/index.js";
 import type { ProjectRows } from "./project-rows.type.js";
 
 /** Rows in the repo's `ok / fail / skip` style; the report is `fail` when any row failed. */

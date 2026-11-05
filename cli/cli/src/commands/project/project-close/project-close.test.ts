@@ -1,6 +1,6 @@
+import { NonInteractiveError } from "@theholocron/kyber/ui";
 import { describe, expect, it, vi } from "vitest";
 
-import { NonInteractiveError } from "../../../ui/index.js";
 import { board, fakeProjects, inputFor, promptOf } from "../project-test-kit/index.js";
 import { runProjectClose } from "./project-close.js";
 

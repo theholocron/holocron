@@ -3,10 +3,10 @@
  * `--dry-run` changes nothing here.
  */
 
+import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
-import { style } from "../../../ui/index.js";
 import { openProjects, type ProjectReport, type ProjectRunInput } from "../open-projects/index.js";
 import { createProjectRows } from "../project-rows/index.js";
 
