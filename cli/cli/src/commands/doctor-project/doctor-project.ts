@@ -10,8 +10,8 @@
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader } from "../../plugin/index.js";
+import { style } from "../../ui/index.js";
 import { describeProviderError } from "../../ui/provider-error/index.js";
-import { style } from "../../ui/style/index.js";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import { postDoctorReport } from "../post-doctor-report/index.js";
 import { openBoardContext } from "../project/board-context/index.js";

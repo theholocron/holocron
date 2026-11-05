@@ -17,9 +17,8 @@ import {
 	type MoveReport,
 	PluginLoader,
 } from "../../../plugin/index.js";
-import { NonInteractiveError } from "../../../ui/non-interactive-error/index.js";
+import { NonInteractiveError, statusRow } from "../../../ui/index.js";
 import { describeProviderError } from "../../../ui/provider-error/index.js";
-import { statusRow } from "../../../ui/status-row/index.js";
 import { openBoardContext } from "../board-context/index.js";
 import type { ProjectMoveReport, RunProjectMoveInput } from "./move.type.js";
 

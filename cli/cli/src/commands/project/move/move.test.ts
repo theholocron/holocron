@@ -6,7 +6,7 @@ const inquirerConfirm = vi.hoisted(() => vi.fn());
 vi.mock("@inquirer/prompts", () => ({ confirm: inquirerConfirm }));
 
 import type { BoardItem, MoveReport, Projects } from "../../../plugin/index.js";
-import { NonInteractiveError } from "../../../ui/non-interactive-error/index.js";
+import { NonInteractiveError } from "../../../ui/index.js";
 import { board, fakeProjects, loadedWith, loaderWith, memoryIo } from "../testing/fake-projects.js";
 import { runProjectMove } from "./move.js";
 import type { RunProjectMoveInput } from "./move.type.js";
