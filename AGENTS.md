@@ -147,7 +147,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   `expected` id has a check run named `<id> / ...` and has completed, and every `statuses` entry (the `codecov/`
   extras) reached `success`, or 30 minutes pass; an id that never posted fails. `aggregateChecks()` derives both
   inputs from the same list the ruleset used to take (`required: true` tasks, then `extraRequiredChecks`, using
-  the names the checks post) and `aggregateCaller()` renders the thin caller, written as `ci.ci.yml` only in the repo that hosts
+  the names the checks post) and `aggregateCaller()` renders the thin caller, written as `ci.ci.yml` only in the repo that contains
   the reusables. The summary lists every expected check with a link, failures first, plus `::error` annotations.
   `requiredChecks(config, aggregate)` is `ci / Required checks` and `DCO` there and the old per-task list elsewhere, so a repo with no
   `ci` caller is never told to require it. A rename or a new workflow no longer touches a ruleset.
