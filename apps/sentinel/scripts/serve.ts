@@ -10,28 +10,19 @@
  * so a development run does not write into production's.
  */
 
+import { serveHandler } from "@theholocron/dagobah";
 import { createEnvLookup } from "@theholocron/env-utils/lookup";
 
-import { loadDevEnv } from "../src/dev-env/index.js";
-import { describeLogging } from "../src/dev-logging/index.js";
-import { startDevServer } from "../src/dev-server/index.js";
-
 const settings = createEnvLookup();
-const environment = settings.get("SENTINEL_DEV_ENVIRONMENT") ?? "Sentinel - dev";
-const port = Number(settings.get("PORT") ?? 3000);
 
 try {
-	const env = loadDevEnv({ environment });
-	// The handler builds its logger from process.env once, when its module loads, so what the Environment holds
-	// (the Axiom dataset and token) goes in before the import and not after it.
-	for (const [name, value] of Object.entries(env)) if (value !== undefined) process.env[name] = value;
-	const { handleWebhookRequest } = await import("../src/handler/index.js");
-	const server = await startDevServer({ handle: handleWebhookRequest, env, port, log: (line) => console.log(line) });
-	console.log(`Sentinel (dev) listening on ${server.url}, secrets from "${environment}"`);
-	console.log(describeLogging(env));
-	for (const signal of ["SIGINT", "SIGTERM"] as const) {
-		process.once(signal, () => void server.close().then(() => process.exit(0)));
-	}
+	await serveHandler({
+		environment: settings.get("SENTINEL_DEV_ENVIRONMENT") ?? "Sentinel - dev",
+		required: ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+		logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "AXIOM_DATASET" },
+		port: Number(settings.get("PORT") ?? 3000),
+		handler: async () => (await import("../src/handler/index.js")).handleWebhookRequest,
+	});
 } catch (err) {
 	console.error(err instanceof Error ? err.message : String(err));
 	process.exitCode = 1;
