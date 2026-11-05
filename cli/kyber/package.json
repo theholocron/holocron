@@ -21,6 +21,11 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./notifier": {
+      "types": "./dist/notifier.d.mts",
+      "import": "./dist/notifier.mjs",
+      "default": "./dist/notifier.mjs"
+    },
     "./ui": {
       "types": "./dist/ui.d.mts",
       "import": "./dist/ui.mjs",

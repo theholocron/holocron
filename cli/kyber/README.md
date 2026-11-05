@@ -10,11 +10,12 @@ Internal for now: private, bundled into `@theholocron/cli`, not published. It be
 
 ## Subpaths
 
-| Subpath | State | What it gives a CLI                                                                                                                                                                                                        |
-| ------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/ui`   | moved | Status glyphs and colours, padded status rows, a depth-limited JSON view, a spinner that only shows on a terminal, wait-for-Enter, open-in-file-browser, and the error for "a prompt was needed but there is no terminal". |
+| Subpath     | State | What it gives a CLI                                                                                                                                                                                                                             |
+| ----------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/ui`       | moved | Status glyphs and colours, padded status rows, a depth-limited JSON view, a spinner that only shows on a terminal, wait-for-Enter, open-in-file-browser, and the error for "a prompt was needed but there is no terminal".                      |
+| `/notifier` | moved | A cached, best-effort "a newer version exists" notice for an npm package: `checkForUpdates({ name, currentVersion, cacheDir })` returns a function that prints a boxed notice to stderr, or `null`. Silent in CI and with `NO_UPDATE_NOTIFIER`. |
 
-`/notifier`, `/secrets`, `/prompts`, `/testing` and `/flags` follow, each in its own pull request.
+`/secrets`, `/prompts`, `/testing` and `/flags` follow, each in its own pull request.
 
 ## Usage
 
