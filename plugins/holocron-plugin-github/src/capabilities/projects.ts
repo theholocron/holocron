@@ -93,8 +93,8 @@ const PROJECT_FIELDS = "id number title closed url";
 const BOARD_QUERY = `query($id: ID!) { node(id: $id) { ... on ProjectV2 {
   ${PROJECT_FIELDS}
   fields(first: 100) { nodes {
-    ... on ProjectV2FieldCommon { id name dataType }
-    ... on ProjectV2SingleSelectField { options { id name color description } }
+	... on ProjectV2FieldCommon { id name dataType }
+	... on ProjectV2SingleSelectField { options { id name color description } }
   } }
   views(first: 50) { nodes { id name layout filter groupByFields(first: 5) { nodes { ... on ProjectV2FieldCommon { name } } } } }
   workflows(first: 50) { nodes { id name enabled } }
@@ -102,16 +102,16 @@ const BOARD_QUERY = `query($id: ID!) { node(id: $id) { ... on ProjectV2 {
 
 const ITEMS_QUERY = `query($id: ID!, $after: String) { node(id: $id) { ... on ProjectV2 {
   items(first: 100, after: $after) {
-    pageInfo { hasNextPage endCursor }
-    nodes {
+	pageInfo { hasNextPage endCursor }
+	nodes {
       id
       fieldValues(first: 30) { nodes { ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } } } }
       content {
-        __typename
-        ... on Issue { id number title state repository { nameWithOwner } blockedBy(first: 50) { nodes { number state repository { nameWithOwner } } } }
-        ... on PullRequest { id number title state repository { nameWithOwner } }
+		__typename
+		... on Issue { id number title state repository { nameWithOwner } blockedBy(first: 50) { nodes { number state repository { nameWithOwner } } } }
+		... on PullRequest { id number title state repository { nameWithOwner } }
       }
-    }
+	}
   }
 } } }`;
 
