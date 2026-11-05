@@ -26,6 +26,11 @@
       "import": "./dist/notifier.mjs",
       "default": "./dist/notifier.mjs"
     },
+    "./prompts": {
+      "types": "./dist/prompts.d.mts",
+      "import": "./dist/prompts.mjs",
+      "default": "./dist/prompts.mjs"
+    },
     "./secrets": {
       "types": "./dist/secrets.d.mts",
       "import": "./dist/secrets.mjs",
@@ -48,6 +53,8 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@inquirer/prompts": "catalog:cli",
+    "@inquirer/search": "catalog:cli",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
@@ -67,6 +74,8 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@inquirer/prompts": "^8.0.0",
+    "@inquirer/search": "^4.0.0",
     "@napi-rs/keyring": "^1.0.0",
     "chalk": "^6.0.0",
     "clipboardy": "^5.0.0",
@@ -74,6 +83,12 @@
     "ora": "^9.0.0"
   },
   "peerDependenciesMeta": {
+    "@inquirer/prompts": {
+      "optional": true
+    },
+    "@inquirer/search": {
+      "optional": true
+    },
     "@napi-rs/keyring": {
       "optional": true
     },

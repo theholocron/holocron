@@ -13,7 +13,7 @@ vi.mock("@inquirer/prompts", () => ({
 	password: (...args: unknown[]) => passwordMock(...args),
 }));
 
-const { NonInteractiveError } = await import("@theholocron/kyber/ui");
+const { NonInteractiveError } = await import("../../ui/non-interactive-error/index.js");
 const { promptForDeferredOptions, promptForOptions } = await import("./prompt-options.js");
 import type { OptionsCommand } from "./prompt-options.type.js";
 
@@ -250,6 +250,30 @@ describe("promptForOptions — flat options", () => {
 		expect(answers).toEqual({ otp: "123456" });
 		expect(passwordMock).toHaveBeenCalledWith({ message: "OTP:" });
 		expect(inputMock).not.toHaveBeenCalled();
+	});
+
+	it("prompts a confirm option with confirm(), proposing its default", async () => {
+		confirmMock.mockResolvedValue(false);
+		const entry: OptionsCommand = {
+			name: "deploy",
+			options: [{ key: "build", flag: "--build", type: "confirm", message: "Build first?", default: true, required: true }],
+		};
+		const { answers } = await promptForOptions(entry, {});
+		expect(answers).toEqual({ build: false });
+		expect(confirmMock).toHaveBeenCalledWith({ message: "Build first?", default: true });
+	});
+
+	it("rejects an empty answer for a required secret option", async () => {
+		passwordMock.mockResolvedValue("123456");
+		const entry: OptionsCommand = {
+			name: "package publish",
+			options: [{ key: "otp", flag: "--otp", type: "password", secret: true, required: true, message: "OTP:" }],
+		};
+		await promptForOptions(entry, {});
+		const call = passwordMock.mock.calls[0]![0] as { validate: (v: string) => boolean | string };
+		expect(call.validate("")).toBe("required");
+		expect(call.validate("   ")).toBe("required");
+		expect(call.validate("123456")).toBe(true);
 	});
 
 	it("rejects an empty answer for a required password option too (holocron#1076 review)", async () => {
