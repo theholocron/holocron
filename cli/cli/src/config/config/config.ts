@@ -1,3 +1,5 @@
+import { ConfigError } from "@theholocron/kyber/config";
+
 import {
 	type CapabilityKey,
 	CARDINALITY,
@@ -24,11 +26,7 @@ export type { PagesConfig, TeamEntry, TeamPermission };
 // Errors
 // ───────────────────────────────────────────────────────────────────────
 
-/** Thrown when a `holocron.config` is invalid. */
-export class ConfigError extends Error {
-	/** The error's name, `"ConfigError"`. */
-	override name = "ConfigError";
-}
+export { ConfigError };
 
 // ───────────────────────────────────────────────────────────────────────
 // Helpers

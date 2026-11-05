@@ -20,6 +20,11 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./config": {
+      "types": "./dist/config.d.mts",
+      "import": "./dist/config.mjs",
+      "default": "./dist/config.mjs"
+    },
     "./flags": {
       "types": "./dist/flags.d.mts",
       "import": "./dist/flags.mjs",
@@ -64,6 +69,7 @@
   "devDependencies": {
     "@inquirer/prompts": "catalog:cli",
     "@inquirer/search": "catalog:cli",
+    "@theholocron/datapad": "workspace:*",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
@@ -88,6 +94,7 @@
     "@inquirer/prompts": "^8.0.0",
     "@inquirer/search": "^4.0.0",
     "@napi-rs/keyring": "^1.0.0",
+    "@theholocron/datapad": "workspace:^",
     "chalk": "^6.0.0",
     "clipboardy": "^5.0.0",
     "dotenv": "^17.0.0",
@@ -102,6 +109,9 @@
       "optional": true
     },
     "@napi-rs/keyring": {
+      "optional": true
+    },
+    "@theholocron/datapad": {
       "optional": true
     },
     "chalk": {

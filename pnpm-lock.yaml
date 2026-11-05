@@ -948,6 +948,9 @@ importers:
       '@inquirer/search':
         specifier: catalog:cli
         version: 4.3.6(@types/node@26.4.1)
+      '@theholocron/datapad':
+        specifier: workspace:*
+        version: link:../datapad
       '@theholocron/eslint-config':
         specifier: workspace:^
         version: link:../../configs/eslint-config

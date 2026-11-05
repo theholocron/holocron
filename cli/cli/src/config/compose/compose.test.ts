@@ -143,6 +143,15 @@ describe("compose()", () => {
 		});
 	});
 
+	it("keeps a secrets list that a later capability does not mention", () => {
+		const a: Capability = { id: "a", repo: { secrets: { repo: ["A"], org: ["O"] } } };
+		const b: Capability = { id: "b", repo: { secrets: { environments: { production: ["P"] } } } };
+		expect(compose(a, b).repo.secrets).toEqual({ repo: ["A"], org: ["O"], environments: { production: ["P"] } });
+		const c: Capability = { id: "c", repo: { secrets: { repo: ["B"], org: ["Q"] } } };
+		const d: Capability = { id: "d", repo: { secrets: {} } };
+		expect(compose(c, d).repo.secrets).toEqual({ repo: ["B"], org: ["Q"] });
+	});
+
 	it("merges repo.secrets.sync by environment and scope", () => {
 		const a: Capability = {
 			id: "a",
