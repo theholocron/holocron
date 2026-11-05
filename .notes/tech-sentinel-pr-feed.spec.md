@@ -1,4 +1,5 @@
 ---
+id: SPEC-0068
 status: draft
 issue: theholocron/holocron#1738
 blocked-by: []
@@ -8,6 +9,8 @@ related:
   - theholocron/holocron#1160
   - theholocron/holocron#1100
   - theholocron/holocron#1678
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1567936155641450611
 ---
 
 # A #prs channel: which pull requests need handling
@@ -42,7 +45,7 @@ The renderer is a pure function over a plain state object (`renderPullRequest(st
 | `check_run` `completed` whose name is `ci / Required checks`                                                          | re-render and edit |
 | `pull_request` `closed` (merged or not)                                                                               | delete the message |
 
-The check run is filtered by name before anything is fetched, because a push produces dozens of check runs and only one of them changes the message. A closed pull request leaves the channel: GitHub already records that it merged, and the channel stays a list of what remains.
+The check run is filtered by name before anything is fetched, because a push produces dozens of check runs and only one of them changes the message. A closed pull request leaves the channel: GitHub already records that it merged, and the channel stays a list of what is left.
 
 ### Where the message id lives
 
