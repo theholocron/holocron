@@ -17,6 +17,12 @@ describe("postDoctorReport", () => {
 		);
 	});
 
+	it("heads the post with the deep check's name when given one", async () => {
+		const postMessage = vi.fn().mockResolvedValue(undefined);
+		await postDoctorReport(provider(postMessage), "alerts", report, "project");
+		expect(postMessage.mock.calls[0]![1]).toContain("`holocron doctor project`");
+	});
+
 	it("says so when the provider cannot post as the bot", async () => {
 		expect(await postDoctorReport(provider(), "alerts", report)).toMatch(
 			/^not posted: the `discord` provider cannot/

@@ -16,6 +16,7 @@ import { doctorDnsEntry } from "../../commands/doctor-dns/doctor-dns.entry.js";
 import { doctorEnvironmentsEntry } from "../../commands/doctor-environments/doctor-environments.entry.js";
 import { doctorMonitoringEntry } from "../../commands/doctor-monitoring/doctor-monitoring.entry.js";
 import { doctorNotificationsEntry } from "../../commands/doctor-notifications/doctor-notifications.entry.js";
+import { doctorProjectEntry } from "../../commands/doctor-project/doctor-project.entry.js";
 import { doctorRepoEntry } from "../../commands/doctor-repo/doctor-repo.entry.js";
 import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets.entry.js";
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
@@ -32,6 +33,7 @@ import { notificationsSyncRolesEntry } from "../../commands/notifications-sync-r
 import { npmBumpVersionsEntry } from "../../commands/npm-bump-versions/npm-bump-versions.entry.js";
 import { pluginCreateEntry } from "../../commands/plugin-create/plugin-create.entry.js";
 import { probeEntry } from "../../commands/probe/probe.entry.js";
+import { projectMoveEntry } from "../../commands/project/move/move.entry.js";
 import { projectCloseEntry } from "../../commands/project/project-close/project-close.entry.js";
 import { projectCreateEntry } from "../../commands/project/project-create/project-create.entry.js";
 import { projectListEntry } from "../../commands/project/project-list/project-list.entry.js";
@@ -79,6 +81,8 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	doctorNotificationsEntry,
 	doctorEnvironmentsEntry,
 	doctorCredentialsEntry,
+	doctorProjectEntry,
+	projectMoveEntry,
 	doctorDnsEntry,
 	doctorRepoEntry,
 	doctorSecretsEntry,

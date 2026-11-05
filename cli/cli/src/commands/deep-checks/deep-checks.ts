@@ -4,6 +4,7 @@ import { doctorDnsCommand, runDoctorDns } from "../doctor-dns/index.js";
 import { doctorEnvironmentsCommand, runDoctorEnvironments } from "../doctor-environments/index.js";
 import { doctorMonitoringCommand, runDoctorMonitoring } from "../doctor-monitoring/index.js";
 import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-notifications/index.js";
+import { doctorProjectCommand, runDoctorProject } from "../doctor-project/index.js";
 import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
@@ -146,6 +147,19 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 			// Never a skip: the tasks row always runs, so there is no reason to carry.
 			const report = await runDoctorCi(input);
 			return { status: report.status, summary: report.summary };
+		},
+	},
+	{
+		name: "project",
+		capability: "projects",
+		command: doctorProjectCommand as never,
+		async run(input) {
+			const report = await runDoctorProject(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
 		},
 	},
 ];

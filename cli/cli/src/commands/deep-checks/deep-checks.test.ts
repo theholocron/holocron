@@ -52,11 +52,42 @@ vi.mock("../doctor-variables/index.js", async (importActual) => ({
 	runDoctorVariables,
 }));
 
+const runDoctorProject = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-project/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-project/index.js")>()),
+	runDoctorProject,
+}));
+
 const runDoctorCi = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-ci/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../doctor-ci/index.js")>()),
 	runDoctorCi,
 }));
+
+describe("the project entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const project = DEEP_CHECKS.find((c) => c.name === "project")!;
+
+	it("compares the projects capability and reports the run's status and counts", async () => {
+		expect(project.capability).toBe("projects");
+		runDoctorProject.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 2, fail: 1, skip: 1 } });
+		expect(await project.run(input)).toEqual({ status: "fail", summary: { ok: 2, fail: 1, skip: 1 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorProject.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `projects` provider is configured",
+		});
+		expect(await project.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `projects` provider is configured",
+		});
+	});
+});
 
 describe("the ci entry", () => {
 	const input = { loaded: {} as never, context: {} as never };

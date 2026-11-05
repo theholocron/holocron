@@ -1,0 +1,65 @@
+---
+title: "doctor project"
+description: Compare each project board the config declares with its template, and report the items that need a status. Read-only.
+---
+
+```bash
+holocron doctor project
+holocron doctor project --post          # also share the failing rows in #alerts
+holocron doctor project --post deploys  # ... or in another channel
+```
+
+Reads `providers.projects.boards` (a list of `{ template, name }`), finds each board by name among the open boards of the owner and compares it with its template, one row per comparison. It changes nothing and exits non-zero while a row fails. The board, its template and the `projects` capability are specified in SPEC-0020.
+
+```text
+  ✓ v5: board exists and is open                    https://github.com/orgs/acme/projects/5
+  ✓ v5: statuses                                    5 in order
+  ✓ v5: field Priority                              3 options in order
+  ✓ v5: field Milestone                             text
+  ✓ v5: view Active                                 board, -status:Someday -status:Done
+  ✗ v5: rule Auto-add sub-issues to project         1 problem(s)
+      - rule Auto-add sub-issues to project is off
+  · v5: extra statuses                              info: 1 status(es) not in the template (never deleted)
+      - Parked
+  · v5: item without a status                       info: 1 item(s); `project reconcile` fixes this
+      - #7 an orphaned issue
+
+5 ok, 1 fail, 2 skipped
+```
+
+## The rows
+
+| Row                                 | Fails when                                                                                            |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `<board>: board exists and is open` | no open board has the name (a closed one is named as such)                                            |
+| `<board>: statuses`                 | a status of the template is missing, or the statuses are not in the template's order                  |
+| `<board>: field <name>`             | the field is missing, has another type, or its options are missing or out of order                    |
+| `<board>: view <name>`              | the view is missing, or has another layout or (when the template sets one) another filter             |
+| `<board>: rule <name>`              | an automation rule the template lists is missing or off                                               |
+| `template file <file>`              | a file in the templates directory is not valid JSON or not a valid template; the board rows still run |
+| `<board>: template <name>`          | the board names a template that is neither a built-in nor a file                                      |
+
+## Information, never failures
+
+What the board has beyond its template (`extra statuses`, `extra fields`, `extra views`) and the items `project reconcile` would fix are `info` rows. They count as skipped and never fail the run, and the doctor never deletes anything. The item rows read the board's items through the provider:
+
+- `item without a status`
+- `closed item not in a done status`
+- `open item with an open blocker but not in a blocked status`
+- `blocked item with no open blocker`
+
+A clean rule is an `ok` row. A provider that cannot list items gets one skipped row for the board's items.
+
+## `--post [channel]`
+
+After the run, posts the failing rows (or only the summary when every row passed) as the `notifications` provider's bot, like [`doctor notifications --post`](/holocron/commands/doctor-notifications/). The default channel is `alerts`. A post that cannot be made (no `notifications` provider, or one that cannot post as a bot) is reported on a line of its own and leaves the result and the exit code as they were.
+
+## Skips
+
+- **No `projects` provider** (or one that could not load): a skip with the reason.
+- **No boards declared** in `providers.projects.boards`: a skip.
+- **Options that do not read** (`boards` is not a list, ...): a row in the fail state listing every problem.
+
+`holocron doctor --all` runs it with the other deep checks.
+
+Related: [`project move`](/holocron/commands/project-move/), [`doctor`](/holocron/commands/doctor/), [`doctor notifications`](/holocron/commands/doctor-notifications/).
