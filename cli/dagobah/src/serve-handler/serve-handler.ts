@@ -17,7 +17,7 @@ export async function serveHandler<K extends string>(input: ServeHandlerInput<K>
 	const env = loadDevEnv({ environment: input.environment, required: input.required, env: settings });
 	// The handler may read process.env once, when its module loads, so what the Environment holds goes in before the
 	// import and not after it.
-	for (const [name, value] of Object.entries(env)) if (value !== undefined) process.env[name] = value;
+	Object.assign(process.env, env);
 	const handle = await input.handler();
 	const server = await startDevServer({
 		handle,
