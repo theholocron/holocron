@@ -57,6 +57,7 @@ on: # yamllint disable-line rule:truthy
       - preview
       - Sentinel Deploy
       - Spec discussions
+      - Project reconcile
     types: [completed]
 
 permissions: {}

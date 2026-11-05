@@ -38,6 +38,7 @@ import { projectCloseEntry } from "../../commands/project/project-close/project-
 import { projectCreateEntry } from "../../commands/project/project-create/project-create.entry.js";
 import { projectListEntry } from "../../commands/project/project-list/project-list.entry.js";
 import { projectSetupEntry } from "../../commands/project/project-setup/project-setup.entry.js";
+import { projectReconcileEntry } from "../../commands/project/reconcile/reconcile.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
 import { repoSyncEntry } from "../../commands/repo/repo-sync.entry.js";
 import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
@@ -126,6 +127,8 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	projectCreateEntry,
 	projectCloseEntry,
 	projectSetupEntry,
+	// project (SPEC-0020)
+	projectReconcileEntry,
 ];
 
 /** Look up a {@link CommandEntry} by its full name — for Layer 3 call sites in `cli.ts`. */
