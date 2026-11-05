@@ -66,12 +66,11 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 		return { ...report, message: "skipped" };
 	}
 
-	/* v8 ignore next 4 -- `projects` has exactly one provider, so the tuple is always there with its options */
+	/* v8 ignore start -- `projects` has exactly one provider, so the tuple is always there with its options */
 	const tuple = entry.cardinality === "single" ? entry.tuple : entry.tuples[0];
-	const resolved = resolveProjectOptions(
-		(tuple?.options ?? {}) as Record<string, unknown>,
-		input.context.org ?? input.loaded.resolved.org ?? ""
-	);
+	const options = (tuple?.options ?? {}) as Record<string, unknown>;
+	/* v8 ignore stop */
+	const resolved = resolveProjectOptions(options, input.context.org ?? input.loaded.resolved.org ?? "");
 	if (!resolved.ok) return refuse(`providers.projects: ${resolved.problems.join("; ")}`);
 	const { owner, boards, templatesDir } = resolved.options;
 	if (boards.length === 0)

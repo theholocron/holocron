@@ -55,13 +55,17 @@ function setup(
 		noProvider?: boolean;
 		/** Read template files from this real directory instead of the injected fake. */
 		diskRoot?: string;
+		/** Leave out the injected print, logger, dry-run flag and context org, so the defaults run. */
+		bare?: boolean;
+		/** The config's own org, for the case where the run context has none. */
+		configOrg?: string | null;
 	} = {}
 ) {
 	const options = opts.options ?? { boards: [{ template: "roadmap", name: "v5" }] };
 	const loaded: LoadedConfig = {
 		resolved: resolveConfig({
 			name: "demo",
-			org: "theholocron",
+			org: opts.configOrg === null ? undefined : (opts.configOrg ?? "theholocron"),
 			providers: opts.noProvider ? {} : { projects: ["github", options] },
 		} as Parameters<typeof resolveConfig>[0]),
 		filepath: "/tmp/test/holocron.config.json",
@@ -80,7 +84,9 @@ function setup(
 		run: () =>
 			runProjectReconcile({
 				loaded,
-				context: { repoRoot: opts.diskRoot ?? "/tmp/test", dryRun: opts.dryRun ?? false, org: "theholocron" },
+				context: opts.bare
+					? { repoRoot: opts.diskRoot ?? "/tmp/test" }
+					: { repoRoot: opts.diskRoot ?? "/tmp/test", dryRun: opts.dryRun ?? false, org: "theholocron" },
 				...(opts.board ? { board: opts.board } : {}),
 				loader,
 				...(opts.diskRoot
@@ -91,8 +97,7 @@ function setup(
 								readFile: async (path: string) => files[path.split("/").pop()!]!,
 							},
 						}),
-				print: (l) => lines.push(l),
-				logger: fakeLogger(),
+				...(opts.bare ? {} : { print: (l: string) => lines.push(l), logger: fakeLogger() }),
 			}),
 	};
 }
@@ -306,6 +311,50 @@ describe("runProjectReconcile", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(lines.join("\n")).toContain("#7 no status → Done (closed)");
+	});
+
+	it("reports a refusal that comes with no reason as just the status it is still in", async () => {
+		const projects = fakeProjects({
+			items: vi.fn(async () => [item({ key: "#8", status: "Todo", blockedBy: ["#9"] })]),
+			setStatus: vi.fn(async () => ({ transitioned: false, status: "Todo" })),
+		});
+		const report = await setup(projects).run();
+		expect(report.failures).toEqual([{ step: "#8", message: "refused: still Todo" }]);
+	});
+
+	it("prints to the console and applies the changes when no print, logger or dry-run flag is given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		try {
+			const projects = fakeProjects();
+			const report = await setup(projects, { bare: true }).run();
+			expect(report.status).toBe("ok");
+			expect(projects.setStatus).toHaveBeenCalledTimes(3);
+			expect(log).toHaveBeenCalledWith(expect.stringContaining("3 ok, 0 fail, 1 skipped"));
+		} finally {
+			log.mockRestore();
+		}
+	});
+
+	it("takes the owner from the config's org when the run context has none", async () => {
+		const projects = fakeProjects();
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		try {
+			await setup(projects, { bare: true, configOrg: "from-config" }).run();
+			expect(projects.find).toHaveBeenCalledWith("from-config", "v5");
+		} finally {
+			log.mockRestore();
+		}
+	});
+
+	it("uses an empty owner when neither the run context nor the config names an org", async () => {
+		const projects = fakeProjects();
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		try {
+			await setup(projects, { bare: true, configOrg: null }).run();
+			expect(projects.find).toHaveBeenCalledWith("", "v5");
+		} finally {
+			log.mockRestore();
+		}
 	});
 
 	it("says why a provider refused a change when it gives a reason", async () => {
