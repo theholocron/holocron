@@ -1,3 +1,10 @@
+## [5.0.0-alpha.330](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.329...v5.0.0-alpha.330) (2026-11-05)
+
+### Features
+
+* **cli:** 🌿 add @theholocron/dagobah, the local dev server Sentinel's serve script uses ([#1715](https://github.com/theholocron/holocron/issues/1715)) ([41a8e21](https://github.com/theholocron/holocron/commit/41a8e2193ef825b2200c60c24ba0ad44805d72d4)), closes [#1714](https://github.com/theholocron/holocron/issues/1714) [#1714](https://github.com/theholocron/holocron/issues/1714) [#1714](https://github.com/theholocron/holocron/issues/1714) [#1714](https://github.com/theholocron/holocron/issues/1714)
+* **cli:** 🌿 holocron dev serves a handler itself, from dev.serve ([#1719](https://github.com/theholocron/holocron/issues/1719)) ([9f6f536](https://github.com/theholocron/holocron/commit/9f6f536b435c0d7dd1f16b02cf9b2ed8438715eb)), closes [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718) [#1718](https://github.com/theholocron/holocron/issues/1718)
+
 ## [5.0.0-alpha.329](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.328...v5.0.0-alpha.329) (2026-11-05)
 
 ### Bug Fixes
