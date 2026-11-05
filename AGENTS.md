@@ -109,7 +109,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   The sources are grouped by suite: `ci/workflows/<suite>/<leaf>.yml`, or `ci/workflows/<id>.yml` for a leaf in no suite.
   `idFromSource()` (path to task id: `test/unit.yml` is `test:unit`) and `workflowFile()` (id to the flat generated
   file: `test-unit.yml`) are the only place that mapping lives, exported from `@theholocron/ci` and `@theholocron/astromech`
-  (spec `ci-flat-task-vocabulary`, #1619). The reusables a repo hosts are written to `.github/workflows` under the flat
+  (spec `ci-flat-task-vocabulary`, #1619). The reusables a repo contains are written to `.github/workflows` under the flat
   names; the frozen copies in `theholocron/.github` keep the old ones, so a caller of another repo is written with
   `legacyFile()` (and `localize` goes back with `flatFile()`) until `CI_HOME` moves to `ci-v1`. The caller files, workflow
   names and check names did not change.
