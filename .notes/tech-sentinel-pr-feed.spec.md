@@ -45,7 +45,7 @@ The renderer is a pure function over a plain state object (`renderPullRequest(st
 | `check_run` `completed` whose name is `ci / Required checks`                                                          | re-render and edit |
 | `pull_request` `closed` (merged or not)                                                                               | delete the message |
 
-The check run is filtered by name before anything is fetched, because a push produces dozens of check runs and only one of them changes the message. A closed pull request leaves the channel: GitHub already records that it merged, and the channel stays a list of what remains.
+The check run is filtered by name before anything is fetched, because a push produces dozens of check runs and only one of them changes the message. A closed pull request leaves the channel: GitHub already records that it merged, and the channel stays a list of what is left.
 
 ### Where the message id lives
 
