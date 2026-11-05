@@ -57,7 +57,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
         with:
           # --affected needs the base commit, which a depth-1 checkout does not have.
@@ -90,7 +90,7 @@ jobs:
       # which fails the job and so the `Test / Conclusion` check. Whether that
       # blocks a merge is up to whether the check is required, not this workflow
       # (holocron#934).
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload coverage to Codecov
         if: ${{ inputs.uploads == '' && (!inputs.affected || steps.reports.outputs.coverage == 'true') }}
         with:
@@ -106,7 +106,7 @@ jobs:
           uploads: ${{ inputs.uploads }}
           allow-empty: ${{ inputs.affected }}
 
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload test results to Codecov
         if: ${{ !cancelled() && (!inputs.affected || steps.reports.outputs.tests == 'true') }}
         with:
@@ -115,7 +115,7 @@ jobs:
           report_type: test_results
           files: "**/test-report.junit.xml"
 
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Post the Codecov statuses without a report
         if: ${{ inputs.affected && (inputs.uploads == '' && steps.reports.outputs.coverage != 'true' || inputs.uploads != '' && steps.flags.outputs.uploaded == '0') }}
         with:
@@ -135,7 +135,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
 
       - uses: theholocron/.github/.github/actions/setup@main
@@ -152,13 +152,13 @@ jobs:
       # which fails the job and so the `Test / Conclusion` check. Whether that
       # blocks a merge is up to whether the check is required, not this workflow
       # (holocron#934).
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload coverage to Codecov
         with:
           use_oidc: true
           fail_ci_if_error: true
 
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         with:
@@ -178,7 +178,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
 
       - uses: theholocron/.github/.github/actions/setup@main
@@ -205,7 +205,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
 
       - uses: theholocron/.github/.github/actions/setup@main
@@ -214,7 +214,7 @@ jobs:
       - run: pnpm exec cypress install
         name: Install Cypress binary
 
-      - uses: cypress-io/github-action@1052aa98bbbe4f55210f844878213c07d9c8c399 # v6.7.13
+      - uses: cypress-io/github-action@18016a55674bd02cabf197de5762a1710cb5577c # v7.4.9
         name: Cypress run
         with:
           start: pnpm dev

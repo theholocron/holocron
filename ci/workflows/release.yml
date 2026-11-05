@@ -134,7 +134,7 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     # Do not cancel in-progress releases — a partial release is worse than a slow one.
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
         with:
           fetch-depth: 0
@@ -228,7 +228,7 @@ jobs:
         with:
           task: test:unit
 
-      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         name: Upload release-commit coverage to Codecov
         if: ${{ steps.release.outputs.commit != '' }}
         # fail_ci_if_error makes a failed upload fail this step, so it is visible, but
@@ -261,7 +261,7 @@ jobs:
 
       - name: Create Sentry release
         if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' && inputs.dry-run != true }}
-        uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3
+        uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: theholocron
@@ -286,7 +286,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout the release commit
         with:
           ref: ${{ needs.release.outputs.commit }}
