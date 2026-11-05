@@ -1,5 +1,5 @@
 export * from "./menu/index.js";
-export { createProgress, retryNotice, withProgress } from "./progress/index.js";
+export { createProgress, withProgress } from "./progress/index.js";
 export * from "./prompt-options/index.js";
 export * from "./prompt-positionals/index.js";
 
