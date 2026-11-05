@@ -55,6 +55,11 @@ export const COMMAND_CONTEXTS = {
 	"secrets sync": "workspace",
 	// `tunnel up` calls the `tunnels` and `dns` providers, so their packages must be resolvable.
 	"tunnel up": "workspace",
+	// `project` subcommands call the `projects` provider, so its package must be resolvable.
+	"project list": "workspace",
+	"project create": "workspace",
+	"project close": "workspace",
+	"project setup": "workspace",
 	// `dev` calls the `vault`, `tunnels` and `dns` providers, so their packages must be resolvable.
 	dev: "workspace",
 	// Loads the config and the handler it names; calls no provider (the vault's variables arrive in the environment).
