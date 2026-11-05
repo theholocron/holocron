@@ -342,6 +342,7 @@ export class GitHubProjects implements Projects {
 		field: RawField,
 		wanted: Array<{ name: string; color?: string; description?: string }>
 	): Promise<string[]> {
+		/* v8 ignore next -- every caller passes a field it found with options; the fallback only satisfies the type */
 		const existing = field.options ?? [];
 		const next: Array<{ id?: string; name: string; color: string; description: string }> = [];
 		const changes: string[] = [];
@@ -527,6 +528,7 @@ export class GitHubProjects implements Projects {
 	/** A `holocron doctor` smoke check: how many boards the token sees in the configured repository's organization. */
 	async whoami(): Promise<{ ok: boolean; boards: number }> {
 		try {
+			/* v8 ignore next -- split always returns a first element; the fallback only satisfies the type */
 			const boards = await this.list(this.repo.split("/")[0] ?? "");
 			return { ok: true, boards: boards.length };
 		} catch {

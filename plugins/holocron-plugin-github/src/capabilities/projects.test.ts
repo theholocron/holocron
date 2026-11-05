@@ -208,6 +208,19 @@ describe("GitHubProjects boards", () => {
 		expect(calls.some((c) => c.query.includes("updateProjectV2Field"))).toBe(true);
 	});
 
+	it("create makes a board straight away when the template names no source", async () => {
+		const { projects, calls } = endpoint([
+			["query($owner: String!) { organization", { organization: { id: "O" } }],
+			["createProjectV2(", { createProjectV2: { projectV2: project(8, "v8", false) } }],
+			["query($id: ID!) { node", boardNode()],
+			["items(first", page([])],
+			["updateProjectV2Field", {}],
+		]);
+		const board = await projects.create("org", "v8", TEMPLATE);
+		expect(board.id).toBe("P8");
+		expect(calls.some((c) => c.query.includes("projectsV2(first"))).toBe(false);
+	});
+
 	it("close sets closed on the project", async () => {
 		const { projects, calls } = endpoint([["updateProjectV2(", {}]]);
 		await projects.close("org", BOARD);
@@ -250,6 +263,16 @@ describe("GitHubProjects.read", () => {
 			{ name: "Item closed", enabled: true },
 			{ name: "Auto-add", enabled: false },
 		]);
+	});
+
+	it("reads no statuses from a board that has no Status field", async () => {
+		const { projects } = endpoint([
+			[
+				"query($id: ID!) { node",
+				boardNode({ fields: { nodes: [{ id: "F0", name: "Title", dataType: "TITLE" }] } }),
+			],
+		]);
+		expect((await projects.read("org", BOARD)).statuses).toEqual([]);
 	});
 
 	it("throws when the board is gone", async () => {
@@ -304,6 +327,60 @@ describe("GitHubProjects.ensure", () => {
 		const write = calls.find((c) => c.query.includes("updateProjectV2Field"));
 		expect((write?.variables.options as Array<{ id?: string }>).map((o) => o.id)).toEqual(["o2", "o1"]);
 		expect(report.changes).toEqual(["status order set"]);
+	});
+
+	it("updates an existing status whose color changed and leaves its description alone", async () => {
+		const { projects, calls } = endpoint([
+			["query($id: ID!) { node", boardNode()],
+			["items(first", page([])],
+			["updateProjectV2Field", {}],
+		]);
+		const report = await projects.ensure("org", BOARD, {
+			...TEMPLATE,
+			statuses: [
+				{ name: "Todo", category: "planned", color: "blue" },
+				{ name: "Done", category: "done" },
+			],
+		});
+		expect(report.changes).toEqual(["status Todo updated"]);
+		const write = calls.find((c) => c.query.includes("updateProjectV2Field"));
+		expect(write?.variables.options).toEqual([
+			{ id: "o1", name: "Todo", color: "BLUE", description: "d1" },
+			{ id: "o2", name: "Done", color: "PURPLE", description: "" },
+		]);
+	});
+
+	it("creates a single select field with an empty option list when the template gives none", async () => {
+		const { projects, calls } = endpoint([
+			["query($id: ID!) { node", boardNode()],
+			["createProjectV2Field", {}],
+			["items(first", page([])],
+			["updateProjectV2Field", {}],
+		]);
+		await projects.ensure("org", BOARD, {
+			...TEMPLATE,
+			statuses: [
+				{ name: "Todo", category: "planned" },
+				{ name: "Done", category: "done" },
+			],
+			fields: [{ name: "Area", type: "single_select" }],
+		});
+		const created = calls.find((c) => c.query.includes("createProjectV2Field"));
+		expect(created?.variables.options).toEqual([]);
+	});
+
+	it("leaves an existing single select alone when the template lists no options for it", async () => {
+		const { projects, calls } = endpoint([["query($id: ID!) { node", boardNode()]]);
+		const report = await projects.ensure("org", BOARD, {
+			...TEMPLATE,
+			statuses: [
+				{ name: "Todo", category: "planned" },
+				{ name: "Done", category: "done" },
+			],
+			fields: [{ name: "Priority", type: "single_select" }],
+		});
+		expect(report).toEqual({ created: false, changes: [], todos: [] });
+		expect(calls).toHaveLength(1);
 	});
 
 	it("writes nothing when the board already matches", async () => {
