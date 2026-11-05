@@ -25,7 +25,7 @@ Internal for now: private, bundled into `@theholocron/cli`, not published. It be
 import { createProgress, statusRow, style, viewJson } from "@theholocron/kyber/ui";
 
 console.log(style.success("built"));
-console.log(statusRow("ok", "lint", "no problems"));
+console.log(statusRow("ok", ["lint", "no problems"]));
 ```
 
 ```ts
