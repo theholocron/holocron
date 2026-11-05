@@ -292,7 +292,12 @@ export interface DevServeConfig {
 	/** The variables the handler cannot run without. Missing ones are named; nothing starts. */
 	required?: string[];
 	/** The variables holding the Axiom ingest token and dataset, to say where this run's logs go. */
-	logging?: { tokenVar: string; datasetVar: string };
+	logging?: {
+		/** The variable holding the Axiom ingest token. Only its presence is reported, never its value. */
+		tokenVar: string;
+		/** The variable holding the Axiom dataset the app's logs go to. */
+		datasetVar: string;
+	};
 }
 
 /** The `env` block: how the project's environment variables are named and documented. */
