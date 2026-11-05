@@ -123,14 +123,28 @@ else
 	todo "Turn on the 1Password CLI integration (1Password app > Settings > Developer > Integrate with 1Password CLI), then: op whoami"
 fi
 
+# Starlight ships TypeScript source and reaches `@astrojs/markdown-remark` (a dependency of `@astrojs/mdx`) only through
+# pnpm's hoisted folder. An install made before the lockfile listed it keeps no link there, `pnpm install` finds nothing
+# to do, and `astro-config`'s typecheck fails locally while CI, which installs fresh, passes (#1717). Only `--force`
+# relinks it.
+hoist_link=node_modules/.pnpm/node_modules/@astrojs/markdown-remark
+stale_hoist() {
+	grep -q "^  '@astrojs/markdown-remark@" pnpm-lock.yaml 2>/dev/null && [ -d node_modules/.pnpm ] && [ ! -e "$hoist_link" ]
+}
+stale_hoist_message="node_modules lacks the hoisted link that astro-config's typecheck needs (a stale install; CI is not affected)"
+
 step "Dependencies and the holocron CLI"
 if ! have pnpm; then
 	bad "skipped: pnpm is not available"
 elif [ "$CHECK" -eq 1 ]; then
 	if [ -d node_modules ]; then ok "dependencies are installed"; else bad "pnpm install has not been run"; fi
+	if stale_hoist; then bad "$stale_hoist_message; run ./.humans/setup.sh, or: pnpm install --force"; fi
 	if [ -e cli/cli/dist ]; then ok "the CLI is built"; else bad "pnpm build has not been run"; fi
 elif pnpm install --frozen-lockfile && pnpm build; then
 	ok "installed and built; try: pnpm exec holocron --help"
+	if stale_hoist; then
+		if pnpm install --frozen-lockfile --force && ! stale_hoist; then ok "relinked the hoisted packages (pnpm install --force)"; else bad "$stale_hoist_message, and pnpm install --force did not fix it"; fi
+	fi
 else
 	bad "pnpm install or pnpm build failed"
 fi
