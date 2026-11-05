@@ -350,6 +350,65 @@ first and honours `--dry-run`).
 
 ---
 
+## Keeping a board true
+
+A check nobody runs finds nothing. The board is kept true by something that runs on its own,
+and a person is told only about what it cannot fix. The example that started this: an item with
+an open "blocked by" link must sit in the `blocked` category, and one whose blockers have all
+closed must not. Today the link is real and the column is set by hand, so they drift.
+
+**`project reconcile` writes.** It reads every item of a board (`items()`, with its status
+category, whether the issue is open and its open blockers) and sets the status where a rule
+says so. It touches status only, never priority or anything else, is idempotent, and honours
+`--dry-run`.
+
+| The item is                                  | Rule                                                            |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| open, with an open blocker, not in `blocked` | set to `blocked`                                                |
+| open, in `blocked`, with no open blocker     | set to `planned` (`Todo`); the status it held before is unknown |
+| closed or merged, not in `done`              | set to `done`                                                   |
+| open, with no status                         | reported, not set (it needs a decision, not a rule)             |
+
+An unblocked item goes back to `planned`, not `active`: the safe side, since nothing says it was
+started. It prints what it changed, one line per item.
+
+**It runs without anyone remembering to.**
+
+- **On the event, where there is one.** Sentinel (the GitHub App, which already acts on
+  deliveries such as `membership` for role sync) handles `issue_dependencies` (`blocked_by_added`,
+  `blocked_by_removed`, `blocking_added`, `blocking_removed`), `issues` `closed` and `reopened`,
+  and `pull_request` `closed`, and reconciles the items the delivery names. It re-reads the
+  blockers through the API and never trusts the payload alone: GitHub does not promise delivery
+  order, and each change arrives twice (once as `blocked_by_*`, once as `blocking_*`). This needs
+  the App to subscribe to `issue_dependencies` and to hold the organization Projects permission,
+  which setup cannot grant (a `todo` the doctor reports, as for the other App event
+  subscriptions).
+- **On a schedule, always.** A generated workflow runs the full `project reconcile` hourly.
+  This is the net for a missed delivery, and today it is the only thing that works: Sentinel in
+  production is down (#1100). `GITHUB_TOKEN` cannot write an organization project, so the job
+  reads a token with the `project` scope that `secrets sync` fills, like `github.user-sync`.
+- **By hand**, with the same command.
+
+**A person hears about what is left.** `doctor project` (read-only) reports what `reconcile`
+cannot fix: an item with no status, a board that differs from its template, an automation rule
+that is off, a missing App subscription or token. The same scheduled run executes it, and a
+failure posts to `#alerts` with the gatekeepers ping: the failed-run post `platform.notifications.yml` already
+makes for a run that errors on the default branch, or `doctor project --post` for the failing
+rows (the `doctor notifications --post` pattern, #1585). Nothing waits for someone to run a
+command. What `reconcile` changed is not an alert; the run's summary lists it.
+
+**Not a gate.** A board is not a pull request's business, so nothing blocks a merge on it. A
+pull request check ("the linked issue is not `Blocked`") is possible later and is not proposed.
+
+**Built once by hand.** `holocron project setup` creates the board (copying a template board
+brings its automation rules), writes the scheduled workflow through `generateRepoFiles()` (a
+generated file like the others, checked by `probe generated check`) and reports the manual steps
+as `todo`: the App subscription and permission, and the token secret. The project's own "Item
+closed" and "Pull request merged" rules cannot be switched on through the API, so nothing depends
+on them: `reconcile` already sets a closed item to `done`.
+
+---
+
 ## Implementation
 
 ### File layout
@@ -395,7 +454,7 @@ export interface Projects extends ProviderIdentity {
   /** Apply the difference between a template and `read()`. Optional: a provider may only list and close. */
   ensure?(owner: string, board: BoardSummary, template: BoardTemplate): Promise<EnsureReport>;
 
-  /** The board's items with their status category and whether the issue is open. */
+  /** The board's items with their status category, whether the issue is open and its open blockers (as `issues` keys). */
   items?(owner: string, board: BoardSummary): Promise<BoardItem[]>;
   /** Idempotent; `transitioned: false` when the item is already there. May refuse (a workflow). */
   setStatus?(owner: string, board: BoardSummary, key: string, status: string): Promise<LifecycleResult>;
@@ -518,11 +577,21 @@ cursor forwarding. No manual `--page` flag needed.
 5. **Who fixes a stale status (decided).** `project move` writes it (a closed item left on the old
    board becomes `Done`). `doctor project` stays read-only and only reports.
 
+6. **Drift is prevented by automation, not found by the doctor (decided).** `project reconcile`
+   writes the status rules (blocker open, blocker closed, issue closed), Sentinel runs it on the
+   events and an hourly workflow runs it as the net, and `doctor project` only reports what is left,
+   posting to `#alerts` when it fails. See [Keeping a board true](#keeping-a-board-true).
+
 ## Open questions
 
-1. **Should anything keep `Blocked` in step with GitHub's "blocked by" link?** The link is the real
-   dependency (an issue can be blocked by another); the `Blocked` status is only a column
-   that makes it visible, and today it is set by hand. They can disagree: an issue with an open
-   blocker sitting in `Todo`, or one in `Blocked` whose blocker has closed. The proposal is that
-   `doctor project` reports both as `info` and nothing sets the status automatically, until
-   the column has been used for a while. The alternative is a rule that sets it from the link.
+1. **Which token does the scheduled run use?** It needs write access to an organization
+   project, which `GITHUB_TOKEN` does not have. Candidates: a fine-grained token with the
+   Projects permission (a person's, expires), or an installation token from the GitHub App
+   (no person, but the App needs the organization Projects permission). The App is the better
+   fit and is also what Sentinel needs, but it is one more permission to grant by hand.
+2. **Does an unblocked item return to `planned` or to what it was?** The proposal is `planned`,
+   because the earlier status is not recorded anywhere. Recording it (a comment, a field) is more
+   machinery than the case is worth.
+3. **Does Sentinel's event handling wait for #1100?** The hourly workflow works without
+   Sentinel; the event path adds speed only. The first implementation can ship the workflow and
+   leave the event handler for when Sentinel is back.
