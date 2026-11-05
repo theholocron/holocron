@@ -19,6 +19,7 @@ import { newCommand } from "./commands/new/new.command.js";
 import { notificationsCommand } from "./commands/notifications/notifications.command.js";
 import { packageCommand } from "./commands/package/package.command.js";
 import { probeCommand } from "./commands/probe/index.js";
+import { projectCommand } from "./commands/project/index.js";
 import { repoCommand } from "./commands/repo/repo.command.js";
 import { runCommand } from "./commands/run/run.command.js";
 import { secretsCommand } from "./commands/secrets/secrets.command.js";
@@ -134,6 +135,7 @@ try {
 		.command(githubAppCommand as never)
 		.command(specsCommand as never)
 		.command(tunnelCommand as never)
+		.command(projectCommand as never)
 		.command(devCommand as never)
 		.command(syncCommand as never)
 		.command(packageCommand as never)

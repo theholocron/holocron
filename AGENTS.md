@@ -93,6 +93,9 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `cli/cli/src/commands/project/templates/`, `validateTemplateFile()` checks a file and `resolveTemplate()` merges an
   `extends` in by name. The capability's mutating methods are optional (`ensure`, `items`, `setStatus`, `move`), and a
   field change must never clear an item's value: the GitHub provider sends every existing option with its `id`.
+  `holocron project` (`commands/project/`, one parent, `project.command.ts`) has `list`, `create`, `close` and `setup`; each
+  is `project-<name>/` and loads the provider through `openProjects()`; a new subcommand is one `.command()` there plus a
+  `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY` entry.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

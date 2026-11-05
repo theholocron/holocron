@@ -1,0 +1,67 @@
+---
+title: "project"
+description: List, create, close and set up the project boards that plan work, from templates.
+---
+
+```bash
+holocron project list
+holocron project create roadmap --title "v5"
+holocron project close 7
+holocron project setup
+```
+
+`project` manages boards through the `projects` provider (GitHub Projects v2 today). A board is found by its name among the owner's open boards; no project number is stored anywhere.
+
+It needs a `projects` provider in `holocron.config.ts`. Without one every subcommand stops and says so.
+
+```ts
+providers: {
+  projects: [
+    "github",
+    {
+      org: "theholocron", // defaults to the config's org
+      templates: ".holocron/projects", // the repo's own template files (the default)
+      boards: [{ template: "roadmap", name: "v5" }],
+    },
+  ],
+}
+```
+
+The owner is the `org` option, else `--org`, else the config's `org`. `--org` on the command line wins over both.
+
+## Templates
+
+A template says what a board looks like: its statuses (each with a category), its other fields and its views. `roadmap` and `sprint` ship with the CLI. A repo adds its own as `<name>.json` in the templates directory; a file with the name of a built-in replaces it, and `"extends": "roadmap"` starts from one and adds to it. A file with a problem is reported by name and left out; the rest still load.
+
+## `project list`
+
+A table of the owner's boards, newest first, with number, name and state (open or closed). Read-only.
+
+## `project create [template] [--title <title>] [--yes]`
+
+Makes a board from a template. Without a template a terminal picks from a list; without a terminal it stops (`NonInteractiveError`). The title defaults to the template's name.
+
+It is idempotent on the title, among open boards only (a closed board never blocks reusing a title). If an open board already has it:
+
+- in a terminal it asks whether to open the existing board instead, and creates nothing;
+- with `--yes` it prints the existing board's address;
+- otherwise it stops with `NonInteractiveError`.
+
+## `project close <number-or-name> [--yes]`
+
+Closes an open board, found by number (`7`) or by name. Closing is reversible from the provider. It asks first in a terminal; without one it needs `--yes`.
+
+## `project setup`
+
+Makes each board in `providers.projects.boards` match its template. For each: find it by name among the open boards, create it from its template if it is missing, then bring it in line (`ensure`) and print what changed. Nothing is deleted and no item's value is cleared.
+
+What the provider cannot do itself (turning on an automation rule, say) comes back as a todo, and every todo fails the run until a person has done it. A board that fails does not stop the next one; the run ends with a count of `ok`, `fail` and `skip` rows and exits non-zero if any row is `fail`.
+
+## Options
+
+| Option      | Applies to                 | What it does                                                    |
+| ----------- | -------------------------- | --------------------------------------------------------------- |
+| `--title`   | `create`                   | The board's title. Defaults to the template's name.             |
+| `--yes`     | `create`, `close`          | Skip the question; for `create`, print an existing board's URL. |
+| `--org`     | all                        | The owner of the boards.                                        |
+| `--dry-run` | `create`, `close`, `setup` | Say what would change and call nothing that writes.             |

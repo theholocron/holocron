@@ -32,6 +32,10 @@ import { notificationsSyncRolesEntry } from "../../commands/notifications-sync-r
 import { npmBumpVersionsEntry } from "../../commands/npm-bump-versions/npm-bump-versions.entry.js";
 import { pluginCreateEntry } from "../../commands/plugin-create/plugin-create.entry.js";
 import { probeEntry } from "../../commands/probe/probe.entry.js";
+import { projectCloseEntry } from "../../commands/project/project-close/project-close.entry.js";
+import { projectCreateEntry } from "../../commands/project/project-create/project-create.entry.js";
+import { projectListEntry } from "../../commands/project/project-list/project-list.entry.js";
+import { projectSetupEntry } from "../../commands/project/project-setup/project-setup.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
 import { repoSyncEntry } from "../../commands/repo/repo-sync.entry.js";
 import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
@@ -113,6 +117,11 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
 	authExportEntry,
 	githubAppCreateEntry,
 	tunnelUpEntry,
+	// project: one entry per subcommand of `holocron project`; add new ones here.
+	projectListEntry,
+	projectCreateEntry,
+	projectCloseEntry,
+	projectSetupEntry,
 ];
 
 /** Look up a {@link CommandEntry} by its full name — for Layer 3 call sites in `cli.ts`. */
