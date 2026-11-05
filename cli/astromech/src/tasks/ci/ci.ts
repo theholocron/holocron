@@ -103,6 +103,10 @@ export function runCi(input: CiInput): CiReport {
 		print("holocron run ci — nothing to run");
 	} else if (failed > 0) {
 		print(`✗ ${passed} passed, ${failed} failed${skipped ? `, ${skipped} skipped` : ""}`);
+		// Name them: a hook that prints only the count leaves the reader to rerun the whole run to find which failed.
+		for (const job of jobs.filter((j) => j.status === "fail")) {
+			print(`  ✗ ${job.checkContext ?? job.task}`);
+		}
 	} else {
 		print(`✓ ${passed} passed${skipped ? `, ${skipped} skipped` : ""}${input.dryRun ? " (plan only)" : ""}`);
 	}
