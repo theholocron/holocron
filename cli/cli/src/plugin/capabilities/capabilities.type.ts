@@ -32,7 +32,8 @@ export type CapabilityKey =
 	| "wiki"
 	| "workers"
 	| "tunnels"
-	| "credentials";
+	| "credentials"
+	| "projects";
 
 /** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
 export type Cardinality = "single" | "many";
@@ -2517,6 +2518,212 @@ export interface CredentialsInspection {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// projects — boards that plan work (spec `command-project`, SPEC-0020, #1744)
+// ───────────────────────────────────────────────────────────────────────
+
+/**
+ * What a status means, whatever the board calls it. A provider maps a category to its own states (Jira groups
+ * statuses into To Do, In Progress and Done), and the doctor, `reconcile` and `move` read the category, so "closed and
+ * not done" never depends on an option being spelled `Done`. It is not the `issues` capability's {@link StatusCategory}: a board
+ * tells a backlog idea from planned work and shows a blocked item, which an issue's own status does not.
+ */
+export type BoardStatusCategory = "backlog" | "planned" | "active" | "blocked" | "done";
+
+/** One status a board offers, with the category that says what it means. */
+export interface BoardStatus {
+	/** The status as the board shows it, e.g. `In Progress`. */
+	name: string;
+	/** What the status means. */
+	category: BoardStatusCategory;
+	/** A colour name for the status, e.g. `GRAY`. A provider without colours ignores it. */
+	color?: string;
+	/** A line saying when to use the status. */
+	description?: string;
+}
+
+/** The kinds of field a board can hold besides its status. */
+export type BoardFieldType = "single_select" | "text" | "number" | "date" | "iteration";
+
+/** A field of a board besides its status. */
+export interface BoardField {
+	/** The field's name, e.g. `Priority`. */
+	name: string;
+	/** What the field holds. */
+	type: BoardFieldType;
+	/** The choices of a `single_select` field, in order. */
+	options?: string[];
+}
+
+/** A saved way of looking at a board. */
+export interface BoardView {
+	/** The view's name, shown on its tab. */
+	name: string;
+	/** `board` is columns by status, `table` is rows. */
+	layout: "board" | "table";
+	/** A filter expression in the provider's syntax, e.g. `-status:Done`. */
+	filter?: string;
+	/** The name of a field to group by. */
+	groupBy?: string;
+	/** Whether this view opens first. The first view wins when several are set. */
+	default?: boolean;
+}
+
+/**
+ * What a board should look like, whole: the resolved form of a template. `setup` applies it, `doctor project` compares
+ * it with the live board and `create` makes a board from it.
+ */
+export interface BoardTemplate {
+	/** The template's name, e.g. `roadmap`. */
+	name: string;
+	/** The statuses, in the order the board shows them. */
+	statuses: BoardStatus[];
+	/** The other fields. */
+	fields: BoardField[];
+	/** The views. */
+	views: BoardView[];
+	/** The automation rules that should be on, as the provider names them. A provider that cannot create one reports it. */
+	rules?: string[];
+	/** A board to copy when this one is created, which carries its automation rules. A provider without a copy ignores it. */
+	source?: string;
+}
+
+/**
+ * What a template file holds. With `extends` it names a template to start from and adds to it; without, it is a whole
+ * template and the three lists are required. `resolveTemplate()` turns one into a {@link BoardTemplate}.
+ */
+export interface BoardTemplateFile {
+	/** The template's name. Defaults to the file's name. */
+	name?: string;
+	/** A template to inherit the statuses, fields, views and rules of. */
+	extends?: string;
+	/** The statuses; with `extends`, added to the inherited ones. */
+	statuses?: BoardStatus[];
+	/** The fields; with `extends`, added to the inherited ones. */
+	fields?: BoardField[];
+	/** The views; with `extends`, added to the inherited ones. */
+	views?: BoardView[];
+	/** The automation rules that should be on. */
+	rules?: string[];
+	/** A board to copy when this one is created. */
+	source?: string;
+}
+
+/** A board as `list` and `find` return it. */
+export interface BoardSummary {
+	/** The provider's id for the board. Opaque: only the provider reads it. */
+	id: string;
+	/** The board's number where the provider has one (a GitHub project). */
+	number?: number;
+	/** The board's name, which is how it is found. */
+	name: string;
+	/** Where to open it. */
+	url: string;
+	/** Whether the board is closed. */
+	closed: boolean;
+}
+
+/** An automation rule of a board and whether it is on. */
+export interface BoardRule {
+	/** The rule's name as the provider spells it. */
+	name: string;
+	/** Whether it is on. */
+	enabled: boolean;
+}
+
+/** The live board, read for `setup` to compare with a template and for `doctor project`. */
+export interface BoardState {
+	/** The board. */
+	board: BoardSummary;
+	/** The status names, in order. */
+	statuses: string[];
+	/** The other fields, in order. */
+	fields: BoardField[];
+	/** The views. */
+	views: BoardView[];
+	/** The automation rules. */
+	rules: BoardRule[];
+}
+
+/** One item of a board: an issue or a pull request, named by its `issues` key. */
+export interface BoardItem {
+	/** The item's key, the one the `issues` capability uses (`#42`, or `owner/repo#42` from another repository). */
+	key: string;
+	/** The item's title. */
+	title: string;
+	/** Whether the issue or pull request is open. Closed and merged ones are not. */
+	open: boolean;
+	/** The item's status, or undefined when it has none. */
+	status?: string;
+	/** The category of that status, when the template knows it. */
+	category?: BoardStatusCategory;
+	/** The keys of the open issues this one is blocked by. */
+	blockedBy: string[];
+}
+
+/** What {@link Projects.ensure} did to bring a board in line with a template. */
+export interface EnsureReport {
+	/** Whether the board did not exist and was made. */
+	created: boolean;
+	/** What was changed, one line each, e.g. `status Blocked added`. */
+	changes: string[];
+	/** What the provider cannot do and a person must, one line each, e.g. `turn on the rule "Item closed"`. */
+	todos: string[];
+}
+
+/** What {@link Projects.move} did between two boards. */
+export interface MoveReport {
+	/** Keys of the open items put on the target board. */
+	moved: string[];
+	/** Keys of the open items that were already on the target and kept its values. */
+	kept: string[];
+	/** Keys of closed items left on the source, with the status they were set to where it was wrong. */
+	left: string[];
+}
+
+/**
+ * Project management: boards that plan work, in a vocabulary no tracker owns (board, item, status with a category,
+ * blocker, rule, template). `issues` is one issue; `projects` is the surface that holds them. A GitHub project, a Jira
+ * board or a Linear view is one provider, so a change of tracker is a provider entry and a plugin and nothing else.
+ *
+ * `owner` is whoever the boards belong to: a GitHub organization, a Jira site. A board is found by its name among the
+ * open boards, and an item is an `issues` key, so nothing here knows what a node id is.
+ */
+export interface Projects extends ProviderIdentity {
+	/** Identifies this provider as the `projects` capability. */
+	readonly key: "projects";
+	/** Every board of the owner, open and closed. */
+	list(owner: string): Promise<BoardSummary[]>;
+	/** The open board with exactly this name, or undefined. */
+	find(owner: string, name: string): Promise<BoardSummary | undefined>;
+	/** Make a board from the template (copying `template.source` where the provider can) and return it. */
+	create(owner: string, name: string, template: BoardTemplate): Promise<BoardSummary>;
+	/** Close a board. Reversible. */
+	close(owner: string, board: BoardSummary): Promise<void>;
+	/** The live board, for `setup` to diff and `doctor project` to compare. */
+	read(owner: string, board: BoardSummary): Promise<BoardState>;
+	/**
+	 * Bring the board in line with the template and report what changed and what only a person can do. Never deletes a
+	 * field, option or view the template does not mention, and never clears an item's value. Optional: a provider may
+	 * only list and close.
+	 */
+	ensure?(owner: string, board: BoardSummary, template: BoardTemplate): Promise<EnsureReport>;
+	/** The board's items with their status, whether their issue is open and their open blockers. Optional. */
+	items?(owner: string, board: BoardSummary, template: BoardTemplate): Promise<BoardItem[]>;
+	/**
+	 * Put an item in a status. Idempotent: `transitioned` is false when it is already there. A provider that works
+	 * through a workflow (Jira) can refuse, and says why in `via`. Optional.
+	 */
+	setStatus?(owner: string, board: BoardSummary, key: string, status: string): Promise<LifecycleResult>;
+	/**
+	 * Put the open items of one board on another, with their status and priority; leave closed ones behind. An item
+	 * already on the target keeps its values. Optional.
+	 */
+	move?(owner: string, from: BoardSummary, to: BoardSummary, template: BoardTemplate): Promise<MoveReport>;
+	/** A `holocron doctor` smoke check: reports how many boards the token can see. */
+	whoami?(): Promise<{ ok: boolean; boards: number }>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // Capability map (key → implementation type) + cardinality helpers
 // ───────────────────────────────────────────────────────────────────────
 
@@ -2562,6 +2769,8 @@ export interface CapabilityImpls {
 	tunnels: Tunnels;
 	/** The `credentials` providers. */
 	credentials: Credentials;
+	/** The `projects` provider. */
+	projects: Projects;
 }
 
 /** The cardinality (`"single"` or `"many"`) of the capability `K`. */

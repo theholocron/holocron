@@ -40,6 +40,8 @@ export const CARDINALITY = {
 	workers: "single",
 	/** `tunnels` has exactly one provider. */
 	tunnels: "single",
+	/** `projects` has exactly one provider. */
+	projects: "single",
 	/** `credentials` can have several providers, tried in order. */
 	credentials: "many",
 } as const satisfies Record<CapabilityKey, Cardinality>;

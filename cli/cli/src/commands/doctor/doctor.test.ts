@@ -200,6 +200,44 @@ describe("runDoctor", () => {
 		});
 	});
 
+	it("reports projects by how many boards the token can see, and skips a provider with no whoami", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { projects: "github" } });
+		const ok = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				projects: { whoami: async () => ({ ok: true, boards: 2 }) },
+			}),
+		});
+		const okReport = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader: ok, print: () => {} });
+		expect(okReport.rows.find((r) => r.capability === "projects")).toMatchObject({
+			status: "ok",
+			message: "boards: 2 visible",
+		});
+
+		const failing = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				projects: { whoami: async () => ({ ok: false, boards: 0 }) },
+			}),
+		});
+		const failReport = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: failing,
+			print: () => {},
+		});
+		expect(failReport.rows.find((r) => r.capability === "projects")).toMatchObject({ status: "fail" });
+
+		const bare = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { projects: { list: async () => [] } }),
+		});
+		const skipReport = await runDoctor({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: bare,
+			print: () => {},
+		});
+		expect(skipReport.rows.find((r) => r.capability === "projects")).toMatchObject({ status: "skip" });
+	});
+
 	it("reports tunnels by how many the token can see, and skips a provider with no whoami", async () => {
 		const loaded = loadedFrom({ name: "demo", providers: { tunnels: "cloudflare" } });
 		const ok = makeLoaderWith(loaded, {
