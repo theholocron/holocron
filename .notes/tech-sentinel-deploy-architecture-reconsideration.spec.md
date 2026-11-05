@@ -127,7 +127,7 @@ fails that bar, in a different way:
   billing has no real spend cap — only email budget alerts, informational
   only, confirmed via Cloudflare's own billing docs**: "Budget alerts are
   informational only. They do not pause or cap usage." `max_instances`
-  (Containers' own scaling config) can *engineer* a mathematically
+  (Containers' own scaling config) can _engineer_ a mathematically
   bounded worst case — e.g. `max_instances: 1` + the smallest viable
   instance size caps the absolute worst case (one instance pinned at
   100% utilization, 24/7, all month) at roughly $20–25/month including
