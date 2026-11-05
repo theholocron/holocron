@@ -256,7 +256,16 @@ describe("promptForOptions — flat options", () => {
 		confirmMock.mockResolvedValue(false);
 		const entry: OptionsCommand = {
 			name: "deploy",
-			options: [{ key: "build", flag: "--build", type: "confirm", message: "Build first?", default: true, required: true }],
+			options: [
+				{
+					key: "build",
+					flag: "--build",
+					type: "confirm",
+					message: "Build first?",
+					default: true,
+					required: true,
+				},
+			],
 		};
 		const { answers } = await promptForOptions(entry, {});
 		expect(answers).toEqual({ build: false });
