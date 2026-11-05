@@ -35,6 +35,7 @@ import {
 	type Monitoring,
 	type Notifications,
 	PluginLoader,
+	type Projects,
 	type Secrets,
 	type Source,
 	type Tunnels,
@@ -221,6 +222,14 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			if (tunnels.whoami) {
 				const who = await tunnels.whoami();
 				return mk(key, provider, who.ok ? "ok" : "fail", `tunnels: ${who.tunnels} visible`);
+			}
+			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
+		}
+		case "projects": {
+			const projects = impl as Projects;
+			if (projects.whoami) {
+				const who = await projects.whoami();
+				return mk(key, provider, who.ok ? "ok" : "fail", `boards: ${who.boards} visible`);
 			}
 			return mk(key, provider, "skip", "loaded (no smoke check defined for this capability)");
 		}

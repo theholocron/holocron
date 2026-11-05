@@ -19,7 +19,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
 
 ## Architecture
 
-- **Capability/provider model.** 20 capabilities defined in
+- **Capability/provider model.** 21 capabilities defined in
   `cli/cli/src/plugin/capabilities/capabilities.type.ts`. Vendors implement N
   capabilities; ESLint-style `holocron.config.{json,js,ts}` wires them
   up. Use `defineConfig` from `@theholocron/cli` in JS/TS configs for
@@ -84,6 +84,15 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   file status, and `reconcileSpecStatus()` treats it as no tag (`set-tag`, never `request`), so a sync pull request cannot
   write `status: withdrawn` and a reopened pull request restores the post.
 - **Tunnels** (`tunnels` capability, #1678). A named tunnel with a stable public hostname to a port on this machine, for a webhook that has to find a development instance. `Tunnels.ensureTunnel()` finds the tunnel by name or makes it and makes it serve a hostname (other hostnames' rules kept, the `http_status:404` catch-all last, nothing rewritten when it is already right); `tunnelToken()` is a credential and is never printed. `holocron tunnel up` (`commands/tunnel-up`) puts it together with the `dns` provider (a proxied `CNAME` to `<id>.cfargotunnel.com`) and, with `--run`, starts `cloudflared` in the foreground with the token in `TUNNEL_TOKEN`, never argv (`runCloudflared()`). `holocron dev` (`commands/dev`) is the same with the application, configured by the `dev` block of `holocron.config` (`DevConfig`: environment, tunnel name and hostname, port, command; flags win, `resolveDevOptions()`): it reads a vault environment's variables in memory, sets up the tunnel through `runTunnelUp()`, and runs the application beside `cloudflared` (`runDevProcesses()`: the app gets the variables and `PORT`, the connector gets `TUNNEL_TOKEN`; Ctrl-C stops both and is not a failure). The application is `dev.command`, or, for a web-standard handler, `dev.serve` (`DevServeConfig`: `handler`, `export`, `required`, `logging`): `resolveDevOptions()` then makes it `holocron dev serve` (`commands/dev-serve`, #1718), which loads the handler with `tsx` after the vault's variables are in `process.env` and serves it on `PORT` through `@theholocron/dagobah`. Values and the token are never printed or written.
+- **Projects** (`projects` capability, spec `command-project`, SPEC-0020, #1744). The boards that plan work, in a vocabulary
+  no tracker owns: board, item (an `issues` key), status with a category (`BoardStatusCategory`: `backlog`, `planned`, `active`,
+  `blocked`, `done`), blocker, rule, template. It sits beside `issues` (one issue; `projects` is what holds them), so a move
+  from GitHub Projects to Jira changes a provider entry and a plugin, not the commands, templates or config. A board is
+  found by name among the open boards, no project number is stored, and `providers.projects` holds only a list of
+  `{ template, name }`. A template is a file, never inline config: the built-ins (`roadmap`, `sprint`) ship in
+  `cli/cli/src/commands/project/templates/`, `validateTemplateFile()` checks a file and `resolveTemplate()` merges an
+  `extends` in by name. The capability's mutating methods are optional (`ensure`, `items`, `setStatus`, `move`), and a
+  field change must never clear an item's value: the GitHub provider sends every existing option with its `id`.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`
@@ -534,7 +543,7 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
 <!-- prettier-ignore -->
 ```text
 cli/                              — core infrastructure (the CLI and its runtime)
-  cli/                            — @theholocron/cli                       (binary + runtime + 20 capability interfaces)
+  cli/                            — @theholocron/cli                       (binary + runtime + 21 capability interfaces)
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   dagobah/                        — @theholocron/dagobah                   (the local dev server behind `holocron dev serve` — env loading, a loopback handler server, request logging; a published dependency of the CLI, #1714)
