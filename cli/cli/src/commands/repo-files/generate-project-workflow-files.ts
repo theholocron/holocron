@@ -1,4 +1,3 @@
-// editorconfig-checker-disable-file -- the workflow below is YAML in a template string, indented with spaces on purpose
 import { createHeader } from "@theholocron/astromech";
 import { findRootSync } from "@theholocron/fs-utils";
 
@@ -23,83 +22,88 @@ const { workflowHeader } = createHeader({
 	tool: "holocron repo sync",
 });
 
+/**
+ * The workflow as YAML. Its nesting is written with tabs here, one tab for each two spaces of the file, and turned into spaces
+ * when it is rendered: a source line that starts with spaces fails the editorconfig check, and the autofix that answers
+ * it rewrites the YAML into tabs, which YAML does not allow.
+ */
 function workflow(owner: string): string {
 	return `name: ${PROJECT_RECONCILE_NAME}
 
 on: # yamllint disable-line rule:truthy
-  schedule:
-    - cron: "23 * * * *"
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Only say what would change; set no status"
-        type: boolean
-        default: false
+	schedule:
+		- cron: "23 * * * *"
+	workflow_dispatch:
+		inputs:
+			dry_run:
+				description: "Only say what would change; set no status"
+				type: boolean
+				default: false
 
 permissions:
-  contents: read
+	contents: read
 
 # One run at a time: two could set the same item twice.
 concurrency:
-  group: project-reconcile
-  cancel-in-progress: false
+	group: project-reconcile
+	cancel-in-progress: false
 
 jobs:
-  reconcile:
-    name: Reconcile and check the boards
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      # \`GITHUB_TOKEN\` cannot write an organization project, so the run uses the GitHub App's installation token.
-      # The App needs the organization Projects permission (read and write), which setup cannot grant: a person does.
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          app-id: \${{ secrets.${PROJECT_APP_SECRETS.id} }}
-          private-key: \${{ secrets.${PROJECT_APP_SECRETS.privateKey} }}
-          owner: ${owner}
-          permission-organization-projects: write
-          permission-issues: read
-          permission-pull-requests: read
+	reconcile:
+		name: Reconcile and check the boards
+		runs-on: ubuntu-latest
+		timeout-minutes: 15
+		steps:
+			# \`GITHUB_TOKEN\` cannot write an organization project, so the run uses the GitHub App's installation token.
+			# The App needs the organization Projects permission (read and write), which setup cannot grant: a person does.
+			- name: Generate GitHub App token
+				id: app-token
+				uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+				with:
+					app-id: \${{ secrets.${PROJECT_APP_SECRETS.id} }}
+					private-key: \${{ secrets.${PROJECT_APP_SECRETS.privateKey} }}
+					owner: ${owner}
+					permission-organization-projects: write
+					permission-issues: read
+					permission-pull-requests: read
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        name: Checkout repository
+			- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+				name: Checkout repository
 
-      - uses: theholocron/.github/.github/actions/setup@main
-        name: Setup
+			- uses: theholocron/.github/.github/actions/setup@main
+				name: Setup
 
-      - uses: theholocron/.github/.github/actions/holocron@main
-        name: Reconcile the boards
-        id: reconcile
-        with:
-          command: project reconcile
-          args: >-
-            \${{ inputs.dry_run && '--dry-run' || '' }}
-            --token github=\${{ steps.app-token.outputs.token }}
+			- uses: theholocron/.github/.github/actions/holocron@main
+				name: Reconcile the boards
+				id: reconcile
+				with:
+					command: project reconcile
+					args: >-
+						\${{ inputs.dry_run && '--dry-run' || '' }}
+						--token github=\${{ steps.app-token.outputs.token }}
 
-      - name: List what changed
-        if: \${{ !cancelled() && steps.reconcile.outputs.log-file != '' }}
-        env:
-          LOG_FILE: \${{ steps.reconcile.outputs.log-file }}
-        run: |
-          {
-            echo "### Project reconcile"
-            echo '\`\`\`'
-            cat "$LOG_FILE"
-            echo '\`\`\`'
-          } >> "$GITHUB_STEP_SUMMARY"
+			- name: List what changed
+				if: \${{ !cancelled() && steps.reconcile.outputs.log-file != '' }}
+				env:
+					LOG_FILE: \${{ steps.reconcile.outputs.log-file }}
+				run: |
+					{
+						echo "### Project reconcile"
+						echo '\`\`\`'
+						cat "$LOG_FILE"
+						echo '\`\`\`'
+					} >> "$GITHUB_STEP_SUMMARY"
 
-      # What reconcile cannot fix: an item with no status, a board that differs from its template, a rule that is off, a
-      # missing App permission. A failure here fails the run, and the run's failure reaches #alerts.
-      - uses: theholocron/.github/.github/actions/holocron@main
-        name: Check the boards
-        if: \${{ !cancelled() }}
-        with:
-          command: doctor project
-          args: >-
-            --token github=\${{ steps.app-token.outputs.token }}
-`;
+			# What reconcile cannot fix: an item with no status, a board that differs from its template, a rule that is off, a
+			# missing App permission. A failure here fails the run, and the run's failure reaches #alerts.
+			- uses: theholocron/.github/.github/actions/holocron@main
+				name: Check the boards
+				if: \${{ !cancelled() }}
+				with:
+					command: doctor project
+					args: >-
+						--token github=\${{ steps.app-token.outputs.token }}
+`.replaceAll("\t", "  ");
 }
 
 /**
