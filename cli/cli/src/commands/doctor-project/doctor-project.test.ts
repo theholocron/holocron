@@ -349,6 +349,34 @@ describe("doctor project --post", () => {
 		expect(text).toContain("cannot post a message as the bot");
 	});
 
+	it("falls back to the console, its own plugin loader and the repo's templates when none are injected", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		try {
+			const report = await runDoctorProject({
+				loaded: loadedWith({}),
+				context: { repoRoot: "/tmp/holocron-no-such-repo" },
+				logger: fakeLogger(),
+			});
+			expect(report.status).toBe("skip");
+			expect(report.reason).toContain("no `projects` provider is configured");
+			expect(log).toHaveBeenCalled();
+		} finally {
+			log.mockRestore();
+		}
+	});
+
+	it("logs through the default logger when none is injected", async () => {
+		const loaded = loadedWith({});
+		const report = await runDoctorProject({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader: loaderWith(loaded, {}),
+			io: memoryIo(),
+			print: () => undefined,
+		});
+		expect(report.status).toBe("skip");
+	});
+
 	it("posts nothing without --post", async () => {
 		const postMessage = vi.fn();
 		await run(

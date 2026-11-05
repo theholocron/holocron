@@ -2,6 +2,9 @@ import { stripVTControlCharacters } from "node:util";
 
 import { describe, expect, it, vi } from "vitest";
 
+const inquirerConfirm = vi.hoisted(() => vi.fn());
+vi.mock("@inquirer/prompts", () => ({ confirm: inquirerConfirm }));
+
 import type { BoardItem, MoveReport, Projects } from "../../../plugin/index.js";
 import { NonInteractiveError } from "../../../ui/non-interactive-error/index.js";
 import { board, fakeProjects, loadedWith, loaderWith, memoryIo } from "../testing/fake-projects.js";
@@ -94,6 +97,52 @@ describe("project move", () => {
 	it("refuses to ask without a terminal", async () => {
 		const { promise } = await run({ projects: provider() }, { interactive: false });
 		await expect(promise).rejects.toBeInstanceOf(NonInteractiveError);
+	});
+
+	it("asks on the terminal with the default prompt when nothing is injected", async () => {
+		const had = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+		Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
+		inquirerConfirm.mockResolvedValue(false);
+		try {
+			const { promise } = await run({ projects: provider() }, { interactive: undefined });
+			expect(await promise).toEqual({ status: "cancelled" });
+			expect(inquirerConfirm).toHaveBeenCalledWith({
+				message: 'Move the open items of "v4" to "v5"?',
+				default: false,
+			});
+		} finally {
+			if (had) Object.defineProperty(process.stdin, "isTTY", had);
+			else delete (process.stdin as { isTTY?: boolean }).isTTY;
+		}
+	});
+
+	it("refuses to ask when stdin is not a terminal and nothing says otherwise", async () => {
+		const had = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+		Object.defineProperty(process.stdin, "isTTY", { value: false, configurable: true });
+		try {
+			const { promise } = await run({ projects: provider() }, { interactive: undefined });
+			await expect(promise).rejects.toBeInstanceOf(NonInteractiveError);
+		} finally {
+			if (had) Object.defineProperty(process.stdin, "isTTY", had);
+			else delete (process.stdin as { isTTY?: boolean }).isTTY;
+		}
+	});
+
+	it("prints to the console and loads plugins itself when neither is injected", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		try {
+			const report = await runProjectMove({
+				loaded: loadedWith({}),
+				context: { repoRoot: "/tmp/test" },
+				from: "v4",
+				to: "v5",
+				yes: true,
+			});
+			expect(report).toMatchObject({ status: "skip", reason: "no `projects` provider is configured" });
+			expect(log).toHaveBeenCalledTimes(1);
+		} finally {
+			log.mockRestore();
+		}
 	});
 
 	it("skips cleanly when the provider cannot move", async () => {

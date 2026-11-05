@@ -67,4 +67,13 @@ describe("project move command", () => {
 	it("is `move <from> <to>`", () => {
 		expect(projectMoveCommand.command).toBe("move <from> <to>");
 	});
+
+	it("declares the two boards, --template and --yes", () => {
+		const y = { positional: vi.fn(), option: vi.fn() };
+		y.positional.mockReturnValue(y);
+		y.option.mockReturnValue(y);
+		(projectMoveCommand.builder as (y: never) => unknown)(y as never);
+		expect(y.positional.mock.calls.map((c) => c[0])).toEqual(["from", "to"]);
+		expect(y.option.mock.calls.map((c) => c[0])).toEqual(["template", "yes"]);
+	});
 });

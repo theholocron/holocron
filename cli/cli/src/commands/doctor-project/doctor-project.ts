@@ -90,6 +90,7 @@ async function checkBoards(input: RunDoctorProjectInput, loader: PluginLoader): 
 
 	// A template file that does not read names its file; the boards that do not use it are still checked.
 	const rows: CheckRow[] = templateProblems.map((problem) => {
+		/* v8 ignore next -- split always returns at least one element; the fallback only satisfies noUncheckedIndexedAccess */
 		const file = problem.split(": ")[0] ?? problem;
 		return row(`project:template:${file}`, `template file ${file}`, "fail", problem);
 	});

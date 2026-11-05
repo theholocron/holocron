@@ -58,4 +58,11 @@ describe("doctor project command", () => {
 	it("is the `project` subcommand", () => {
 		expect(doctorProjectCommand.command).toBe("project");
 	});
+
+	it("declares the --post option", () => {
+		const y = { option: vi.fn() };
+		y.option.mockReturnValue(y);
+		(doctorProjectCommand.builder as (y: never) => unknown)(y as never);
+		expect(y.option).toHaveBeenCalledWith("post", expect.objectContaining({ type: "string" }));
+	});
 });
