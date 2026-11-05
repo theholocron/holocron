@@ -1,4 +1,3 @@
-// editorconfig-checker-disable-file -- the GraphQL documents below are indented with spaces on purpose
 /**
  * `projects` capability for GitHub: boards are Projects v2, reached over GraphQL.
  *
@@ -91,43 +90,43 @@ interface ProjectNode {
 const PROJECT_FIELDS = "id number title closed url";
 
 const BOARD_QUERY = `query($id: ID!) { node(id: $id) { ... on ProjectV2 {
-  ${PROJECT_FIELDS}
-  fields(first: 100) { nodes {
-    ... on ProjectV2FieldCommon { id name dataType }
-    ... on ProjectV2SingleSelectField { options { id name color description } }
-  } }
-  views(first: 50) { nodes { id name layout filter groupByFields(first: 5) { nodes { ... on ProjectV2FieldCommon { name } } } } }
-  workflows(first: 50) { nodes { id name enabled } }
+	${PROJECT_FIELDS}
+	fields(first: 100) { nodes {
+		... on ProjectV2FieldCommon { id name dataType }
+		... on ProjectV2SingleSelectField { options { id name color description } }
+	} }
+	views(first: 50) { nodes { id name layout filter groupByFields(first: 5) { nodes { ... on ProjectV2FieldCommon { name } } } } }
+	workflows(first: 50) { nodes { id name enabled } }
 } } }`;
 
 const ITEMS_QUERY = `query($id: ID!, $after: String) { node(id: $id) { ... on ProjectV2 {
-  items(first: 100, after: $after) {
-    pageInfo { hasNextPage endCursor }
-    nodes {
-      id
-      fieldValues(first: 30) { nodes { ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } } } }
-      content {
-        __typename
-        ... on Issue { id number title state repository { nameWithOwner } blockedBy(first: 50) { nodes { number state repository { nameWithOwner } } } }
-        ... on PullRequest { id number title state repository { nameWithOwner } }
-      }
-    }
-  }
+	items(first: 100, after: $after) {
+		pageInfo { hasNextPage endCursor }
+		nodes {
+			id
+			fieldValues(first: 30) { nodes { ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } } } }
+			content {
+				__typename
+				... on Issue { id number title state repository { nameWithOwner } blockedBy(first: 50) { nodes { number state repository { nameWithOwner } } } }
+				... on PullRequest { id number title state repository { nameWithOwner } }
+			}
+		}
+	}
 } } }`;
 
 const LIST_QUERY = `query($owner: String!, $after: String) { organization(login: $owner) { id projectsV2(first: 100, after: $after) {
-  pageInfo { hasNextPage endCursor }
-  nodes { ${PROJECT_FIELDS} }
+	pageInfo { hasNextPage endCursor }
+	nodes { ${PROJECT_FIELDS} }
 } } }`;
 
 const OWNER_QUERY = "query($owner: String!) { organization(login: $owner) { id } }";
 
 const SET_VALUE = `mutation($project: ID!, $item: ID!, $field: ID!, $option: String!) {
-  updateProjectV2ItemFieldValue(input: { projectId: $project, itemId: $item, fieldId: $field, value: { singleSelectOptionId: $option } }) { projectV2Item { id } }
+	updateProjectV2ItemFieldValue(input: { projectId: $project, itemId: $item, fieldId: $field, value: { singleSelectOptionId: $option } }) { projectV2Item { id } }
 }`;
 
 const UPDATE_OPTIONS = `mutation($field: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
-  updateProjectV2Field(input: { fieldId: $field, singleSelectOptions: $options }) { projectV2Field { ... on ProjectV2SingleSelectField { id } } }
+	updateProjectV2Field(input: { fieldId: $field, singleSelectOptions: $options }) { projectV2Field { ... on ProjectV2SingleSelectField { id } } }
 }`;
 
 const DATA_TYPES: Record<BoardFieldType, string> = {
@@ -201,7 +200,7 @@ export class GitHubProjects implements Projects {
 		if (source) {
 			const data = await this.graphql.query<{ copyProjectV2: { projectV2: ProjectNode } }>(
 				`mutation($project: ID!, $owner: ID!, $title: String!) {
-  copyProjectV2(input: { projectId: $project, ownerId: $owner, title: $title, includeDraftIssues: false }) { projectV2 { ${PROJECT_FIELDS} } }
+	copyProjectV2(input: { projectId: $project, ownerId: $owner, title: $title, includeDraftIssues: false }) { projectV2 { ${PROJECT_FIELDS} } }
 }`,
 				{ project: source.id, owner: ownerId, title: name }
 			);
@@ -209,7 +208,7 @@ export class GitHubProjects implements Projects {
 		}
 		const data = await this.graphql.query<{ createProjectV2: { projectV2: ProjectNode } }>(
 			`mutation($owner: ID!, $title: String!) {
-  createProjectV2(input: { ownerId: $owner, title: $title }) { projectV2 { ${PROJECT_FIELDS} } }
+	createProjectV2(input: { ownerId: $owner, title: $title }) { projectV2 { ${PROJECT_FIELDS} } }
 }`,
 			{ owner: ownerId, title: name }
 		);
@@ -410,7 +409,7 @@ export class GitHubProjects implements Projects {
 	private async createField(projectId: string, want: BoardField): Promise<void> {
 		await this.graphql.query(
 			`mutation($project: ID!, $name: String!, $type: ProjectV2CustomFieldType!, $options: [ProjectV2SingleSelectFieldOptionInput!]) {
-  createProjectV2Field(input: { projectId: $project, name: $name, dataType: $type, singleSelectOptions: $options }) { projectV2Field { ... on ProjectV2SingleSelectField { id } } }
+	createProjectV2Field(input: { projectId: $project, name: $name, dataType: $type, singleSelectOptions: $options }) { projectV2Field { ... on ProjectV2SingleSelectField { id } } }
 }`,
 			{
 				project: projectId,
@@ -427,7 +426,7 @@ export class GitHubProjects implements Projects {
 	private async createView(projectId: string, name: string, layout: string): Promise<string> {
 		const data = await this.graphql.query<{ createProjectV2View: { projectV2View: { id: string } } }>(
 			`mutation($project: ID!, $name: String!, $layout: ProjectV2ViewLayout!) {
-  createProjectV2View(input: { projectId: $project, name: $name, layout: $layout }) { projectV2View { id } }
+	createProjectV2View(input: { projectId: $project, name: $name, layout: $layout }) { projectV2View { id } }
 }`,
 			{ project: projectId, name, layout }
 		);
@@ -437,7 +436,7 @@ export class GitHubProjects implements Projects {
 	private async updateView(viewId: string, change: { layout?: string; filter?: string }): Promise<void> {
 		await this.graphql.query(
 			`mutation($view: ID!, $layout: ProjectV2ViewLayout, $filter: String) {
-  updateProjectV2View(input: { viewId: $view, layout: $layout, filter: $filter }) { projectV2View { id } }
+	updateProjectV2View(input: { viewId: $view, layout: $layout, filter: $filter }) { projectV2View { id } }
 }`,
 			{ view: viewId, layout: change.layout, filter: change.filter }
 		);
