@@ -963,6 +963,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.4.1
+      '@types/yargs':
+        specifier: catalog:cli
+        version: 17.0.35
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.5(@vitest/browser@5.0.5)(vitest@5.0.5)

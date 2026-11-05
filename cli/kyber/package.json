@@ -65,6 +65,7 @@
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
     "@types/node": "catalog:",
+    "@types/yargs": "catalog:cli",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "chalk": "catalog:",
