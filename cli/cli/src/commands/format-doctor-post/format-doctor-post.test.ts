@@ -13,6 +13,11 @@ const check = (over: Partial<NotificationsCheck>): NotificationsCheck => ({
 });
 
 describe("formatDoctorPost", () => {
+	it("names another deep check in the heading when asked", () => {
+		const out = formatDoctorPost({ checks: [], summary: { pass: 1, fail: 0, skip: 0 } }, "project");
+		expect(out).toBe("### ✅ `holocron doctor project`\n**1** ok · **0** fail · **0** skipped");
+	});
+
 	it("is only the summary when every step held, with no step listed", () => {
 		const out = formatDoctorPost({
 			checks: [check({}), check({ status: "skip", title: "skipped step" })],

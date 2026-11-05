@@ -75,6 +75,9 @@ export const COMMAND_CONTEXTS = {
 	"doctor notifications": "workspace",
 	"doctor environments": "workspace",
 	"doctor credentials": "workspace",
+	"doctor project": "workspace",
+	// `project move` calls the `projects` provider, so its package must be resolvable.
+	"project move": "workspace",
 	"doctor dns": "workspace",
 	"doctor repo": "workspace",
 	"doctor secrets": "workspace",

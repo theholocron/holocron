@@ -96,6 +96,12 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `holocron project` (`commands/project/`, one parent, `project.command.ts`) has `list`, `create`, `close` and `setup`; each
   is `project-<name>/` and loads the provider through `openProjects()`; a new subcommand is one `.command()` there plus a
   `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY` entry.
+  `holocron doctor project [--post]` (a `DEEP_CHECKS` entry, `commands/doctor-project/`) compares each declared board
+  with its template, one row per status list, field, view and rule; what a board has beyond its template and the items
+  `reconcile` would fix are `info` rows (shown as skipped), never a failure, and `--post` reuses `postDoctorReport()`.
+  `holocron project move <from> <to>` (`commands/project/move/`) calls the optional `Projects.move`, asks first unless
+  `--yes`, and on `--dry-run` previews from both boards' `items()`; `openBoardContext()` (`project/board-context/`) is
+  how both read the provider, the declared boards and the templates.
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`

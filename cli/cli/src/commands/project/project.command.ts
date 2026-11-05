@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
 import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { projectMoveCommand } from "./move/index.js";
 import { projectCloseCommand } from "./project-close/index.js";
 import { projectCreateCommand } from "./project-create/index.js";
 import { projectListCommand } from "./project-list/index.js";
@@ -16,6 +17,7 @@ export const projectCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 			.command(projectCreateCommand as never)
 			.command(projectCloseCommand as never)
 			.command(projectSetupCommand as never)
+			.command(projectMoveCommand as never)
 			.command(groupMenu("project") as never),
 	handler: () => {},
 };
