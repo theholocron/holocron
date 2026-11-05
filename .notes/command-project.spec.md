@@ -128,6 +128,50 @@ can be reopened from the GitHub UI.
 
 ---
 
+## Capability: `projects`
+
+Project management is a **capability**, not GitHub code with a flag. A new `projects` capability
+sits beside `issues` (the tracker capability that already normalizes an issue for GitHub and
+Jira): `issues` is one issue, `projects` is the planning surface that holds them. The GitHub
+plugin is the first provider; a Jira (or Linear) plugin implements the same interface, and
+moving a repo between them changes the `providers.projects` entry and the plugin, nothing else.
+That only holds if the capability, the template files and the commands speak a neutral
+vocabulary and never a GitHub word.
+
+| Neutral term | GitHub Projects v2                    | Jira                                          |
+| ------------ | ------------------------------------- | --------------------------------------------- |
+| board        | a Project                             | a board, over a project and a filter          |
+| item         | an issue or pull request on the board | an issue                                      |
+| field        | a field                               | a custom field                                |
+| status       | a Status option                       | a status in the workflow, set by a transition |
+| view         | a view (layout, filter, group-by)     | a saved filter or board configuration         |
+| blocker      | the "blocked by" issue dependency     | the "is blocked by" issue link                |
+| rule         | a project workflow (automation)       | an automation rule                            |
+| template     | a board to copy, or a template file   | a project template                            |
+
+Three things make the vocabulary carry across:
+
+- **A status has a category.** A template names its statuses and gives each a category
+  (`backlog`, `planned`, `active`, `blocked`, `done`). A provider maps the category to its own
+  states (Jira groups statuses into To Do, In Progress and Done) and keeps the template's names
+  where it can. The doctor and `move` read the category, so "closed and not done" does not mean
+  "the option is called `Done`".
+- **Setting a status is `setStatus(item, status)`.** GitHub writes a field value; Jira performs a
+  workflow transition, which can refuse. The capability returns a result for the transition, as
+  `Issues.transition` does, instead of promising a write.
+- **An item is an `issues` key.** The capability moves and reports items by the same key the
+  `issues` capability uses, so nothing in it knows what a GitHub node id is.
+
+What the capability holds is the **declaration and the normalization**: the neutral types
+(`BoardSummary`, `BoardState`, `BoardTemplate`, `BoardItem`), the template schema and its
+validation, the diff between a template and a live board, and the `doctor project` rows. A
+provider only reads, writes and maps. The commands in the CLI hold no provider logic. The
+config stays what it is below: a list of templates to names, plus the provider's own options
+(the owner, where the template files live). The `source` of a template (a board to copy) is the
+one GitHub-shaped idea; it is optional, and a provider without a copy operation ignores it.
+
+---
+
 ## Provider config
 
 The project management backend is declared under `providers.projects` in
@@ -188,7 +232,9 @@ Mirrors the current org roadmap board (project 5, "v5"; v4 was closed on 2026-11
 | **Views**  | Active (default), Backlog, Done — see below                                                                           |
 
 `Blocked` is a status for an item that waits on another issue or an outside change.
-The dependency itself is GitHub's "blocked by" link; the column only makes it visible.
+The dependency itself is the issue's "blocked by" link; the column only makes it visible.
+Each status carries a category (see [Capability: `projects`](#capability-projects)):
+Someday is `backlog`, Todo `planned`, In Progress `active`, Blocked `blocked`, Done `done`.
 
 **Views (as they are on the live board):**
 
@@ -328,22 +374,38 @@ A new capability needs `COMMAND_CONTEXTS` and `COMMAND_REGISTRY` entries, and a 
 needs the same (the tests fail without them). The capability is the seam a future Linear or
 Jira provider plugs into.
 
-The `Projects` capability decouples the command layer from the GitHub GraphQL
-implementation. The commands call its methods; the GitHub plugin does the GraphQL work.
+The `Projects` capability decouples the command layer from any one tracker. The commands call
+its methods; the plugin does the provider's own work (GraphQL for GitHub, REST for Jira). Names
+are neutral: an `owner` is a GitHub org or a Jira site, a board is found by its name, and an
+item is an `issues` key.
 
 ```ts
-export interface Projects {
-  list(org: string): Promise<ProjectSummary[]>;
-  create(org: string, title: string, template: ResolvedTemplate): Promise<CreatedProject>;
-  close(org: string, number: number): Promise<void>;
-  /** The live board as a layout, with option ids, for `setup` to diff and `doctor` to compare. */
-  read(org: string, number: number): Promise<BoardState>;
-  /** Apply the difference between a layout and `read()`. Optional: a provider may only list and close. */
-  ensure?(org: string, number: number, layout: ResolvedTemplate): Promise<EnsureReport>;
+export interface Projects extends ProviderIdentity {
+  /** Identifies this provider as the `projects` capability. */
+  readonly key: "projects";
+
+  list(owner: string): Promise<BoardSummary[]>;
+  /** An open board by exact name, or undefined. */
+  find(owner: string, name: string): Promise<BoardSummary | undefined>;
+  create(owner: string, name: string, template: BoardTemplate): Promise<BoardSummary>;
+  close(owner: string, board: BoardSummary): Promise<void>;
+
+  /** The live board as a template, with whatever ids the provider needs, for `setup` to diff and `doctor` to compare. */
+  read(owner: string, board: BoardSummary): Promise<BoardState>;
+  /** Apply the difference between a template and `read()`. Optional: a provider may only list and close. */
+  ensure?(owner: string, board: BoardSummary, template: BoardTemplate): Promise<EnsureReport>;
+
+  /** The board's items with their status category and whether the issue is open. */
+  items?(owner: string, board: BoardSummary): Promise<BoardItem[]>;
+  /** Idempotent; `transitioned: false` when the item is already there. May refuse (a workflow). */
+  setStatus?(owner: string, board: BoardSummary, key: string, status: string): Promise<LifecycleResult>;
   /** Move open items from one board to another. Optional. */
-  move?(org: string, from: number, to: number): Promise<MoveReport>;
+  move?(owner: string, from: BoardSummary, to: BoardSummary): Promise<MoveReport>;
 }
 ```
+
+The optional methods follow the other capabilities: a provider that cannot do one is skipped
+cleanly, and `holocron project` says which command it cannot run.
 
 ### GraphQL operations (GitHub provider)
 
@@ -450,7 +512,10 @@ cursor forwarding. No manual `--page` flag needed.
 3. **Where the declaration lives (decided).** In `providers.projects`, as a short `boards` list of
    template → name. Templates are files (built-ins in the CLI, a repo's own in a directory), never
    inline config, and no project number is stored: a board is found by name.
-4. **Who fixes a stale status (decided).** `project move` writes it (a closed item left on the old
+4. **A `projects` capability, with a neutral vocabulary (decided).** Project management is a
+   capability beside `issues`, so a move to Jira changes a provider entry and a plugin and
+   not the commands, the templates or the config. See [Capability: `projects`](#capability-projects).
+5. **Who fixes a stale status (decided).** `project move` writes it (a closed item left on the old
    board becomes `Done`). `doctor project` stays read-only and only reports.
 
 ## Open questions
