@@ -141,6 +141,7 @@ try {
 		.command(packageCommand as never)
 		.command(deployCommand as never)
 		.command(monitoringCommand as never)
+		.command(projectCommand as never)
 		.strict()
 		.help()
 		.epilogue(

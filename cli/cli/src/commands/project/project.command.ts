@@ -6,6 +6,7 @@ import { projectCloseCommand } from "./project-close/index.js";
 import { projectCreateCommand } from "./project-create/index.js";
 import { projectListCommand } from "./project-list/index.js";
 import { projectSetupCommand } from "./project-setup/index.js";
+import { projectReconcileCommand } from "./reconcile/reconcile.command.js";
 
 export const projectCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 	command: "project <subcommand>",
@@ -18,6 +19,7 @@ export const projectCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 			.command(projectCloseCommand as never)
 			.command(projectSetupCommand as never)
 			.command(projectMoveCommand as never)
+			.command(projectReconcileCommand as never)
 			.command(groupMenu("project") as never),
 	handler: () => {},
 };

@@ -71,6 +71,8 @@ export const COMMAND_CONTEXTS = {
 	"notifications sync-roles": "workspace",
 	// Loads the notifications provider to keep a discussion post per ADR and spec.
 	"specs sync": "workspace",
+	// Reads a board's items and sets statuses through the `projects` provider.
+	"project reconcile": "workspace",
 	"doctor all": "workspace",
 	"doctor notifications": "workspace",
 	"doctor environments": "workspace",
