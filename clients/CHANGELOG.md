@@ -1,3 +1,9 @@
+## [1.58.0-alpha.8](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.7...clients-v1.58.0-alpha.8) (2026-11-05)
+
+### Features
+
+* **github:** add the projects capability for Projects v2 boards ([#1755](https://github.com/theholocron/holocron/issues/1755)) ([6f05088](https://github.com/theholocron/holocron/commit/6f050883778798347f911657c4a75ac62a1c3a67)), closes [#1744](https://github.com/theholocron/holocron/issues/1744) [#1744](https://github.com/theholocron/holocron/issues/1744)
+
 ## [1.58.0-alpha.7](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.6...clients-v1.58.0-alpha.7) (2026-11-03)
 
 ### Refactoring
