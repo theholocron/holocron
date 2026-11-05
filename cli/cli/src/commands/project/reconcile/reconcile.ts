@@ -9,14 +9,14 @@
  * items or set a status is skipped cleanly. An open item with no status is reported, not set: the doctor tells a person.
  */
 
-import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { getLogger } from "../../../observability/logger/index.js";
 import { assertPluginsResolvable, type BoardSummary, PluginLoader, type Projects } from "../../../plugin/index.js";
 import { describeProviderError, logReason } from "../../../ui/provider-error/index.js";
 import { style } from "../../../ui/style/index.js";
-import { loadTemplates, type TemplatesIo } from "../load-templates/index.js";
+import { createFsTemplatesIo } from "../fs-templates-io/index.js";
+import { loadTemplates } from "../load-templates/index.js";
 import { planReconcile, type ReconcileChange } from "../plan-reconcile/index.js";
 import { resolveProjectOptions } from "../project-options/index.js";
 import type { BoardReconcileOutcome, ProjectReconcileReport, RunProjectReconcileInput } from "./reconcile.type.js";
@@ -26,12 +26,6 @@ const WHY: Record<ReconcileChange["reason"], string> = {
 	blocked: "has an open blocker",
 	unblocked: "no open blocker left",
 	closed: "closed",
-};
-
-/** The repo's template files on disk; a missing directory is no files. */
-const DISK: TemplatesIo = {
-	listFiles: async (dir) => readdir(dir).catch(() => []),
-	readFile: (path) => readFile(path, "utf8"),
 };
 
 const line = (c: ReconcileChange) => `${c.key} ${c.from ?? "no status"} → ${c.to} (${WHY[c.reason]})`;
@@ -72,6 +66,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 		return { ...report, message: "skipped" };
 	}
 
+	/* v8 ignore next 4 -- `projects` has exactly one provider, so the tuple is always there with its options */
 	const tuple = entry.cardinality === "single" ? entry.tuple : entry.tuples[0];
 	const resolved = resolveProjectOptions(
 		(tuple?.options ?? {}) as Record<string, unknown>,
@@ -88,7 +83,10 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 		);
 	}
 
-	const loadedTemplates = await loadTemplates(join(input.context.repoRoot, templatesDir), input.templatesIo ?? DISK);
+	const loadedTemplates = await loadTemplates(
+		join(input.context.repoRoot, templatesDir),
+		input.templatesIo ?? createFsTemplatesIo(input.context.repoRoot)
+	);
 	for (const problem of loadedTemplates.problems) print(`  ${style.warn(problem)}`);
 
 	let ok = 0;

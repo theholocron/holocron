@@ -52,6 +52,17 @@ describe("generateProjectWorkflowFiles", () => {
 		expect(file!.content).toContain("permission-organization-projects: write");
 	});
 
+	it("takes the owner from the org option when the config has no org", () => {
+		const [file] = generateProjectWorkflowFiles(
+			input({ providers: { projects: ["github", { org: "b", boards }] } })
+		);
+		expect(file!.content).toContain("owner: b");
+	});
+
+	it("writes nothing when no org names the owner anywhere", () => {
+		expect(generateProjectWorkflowFiles(input({ providers: { projects: ["github", { boards }] } }))).toEqual([]);
+	});
+
 	it("takes the owner from the org option before the config's org", () => {
 		const [file] = generateProjectWorkflowFiles(
 			input({ org: "a", providers: { projects: ["github", { org: "b", boards }] } })

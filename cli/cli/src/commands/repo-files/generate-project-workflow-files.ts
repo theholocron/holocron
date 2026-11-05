@@ -113,7 +113,7 @@ export function generateProjectWorkflowFiles(input: RepoFilesInput): GeneratedRe
 	const entry = config.providers.projects;
 	const tuple = entry?.cardinality === "single" ? entry.tuple : entry?.tuples[0];
 	if (!tuple) return [];
-	const resolved = resolveProjectOptions((tuple.options ?? {}) as Record<string, unknown>, config.org ?? "");
+	const resolved = resolveProjectOptions(tuple.options as Record<string, unknown>, config.org ?? "");
 	if (!resolved.ok || resolved.options.boards.length === 0 || resolved.options.owner === "") return [];
 
 	const gitRoot = findRootSync(input.repoRoot, ".git", { fallback: "start", realpath: true }) as string;

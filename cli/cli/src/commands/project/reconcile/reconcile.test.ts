@@ -1,3 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -49,6 +53,8 @@ function setup(
 		options?: Record<string, unknown>;
 		files?: Record<string, string>;
 		noProvider?: boolean;
+		/** Read template files from this real directory instead of the injected fake. */
+		diskRoot?: string;
 	} = {}
 ) {
 	const options = opts.options ?? { boards: [{ template: "roadmap", name: "v5" }] };
@@ -74,13 +80,17 @@ function setup(
 		run: () =>
 			runProjectReconcile({
 				loaded,
-				context: { repoRoot: "/tmp/test", dryRun: opts.dryRun ?? false, org: "theholocron" },
+				context: { repoRoot: opts.diskRoot ?? "/tmp/test", dryRun: opts.dryRun ?? false, org: "theholocron" },
 				...(opts.board ? { board: opts.board } : {}),
 				loader,
-				templatesIo: {
-					listFiles: async () => Object.keys(files),
-					readFile: async (path) => files[path.split("/").pop()!]!,
-				},
+				...(opts.diskRoot
+					? {}
+					: {
+							templatesIo: {
+								listFiles: async () => Object.keys(files),
+								readFile: async (path: string) => files[path.split("/").pop()!]!,
+							},
+						}),
 				print: (l) => lines.push(l),
 				logger: fakeLogger(),
 			}),
@@ -258,5 +268,54 @@ describe("runProjectReconcile", () => {
 		const report = await run();
 		expect(report.status).toBe("ok");
 		expect(lines.join("\n")).toContain("bad.json: not valid JSON");
+	});
+	it("reads the repo's own template files from disk when none are injected", async () => {
+		const diskRoot = mkdtempSync(join(tmpdir(), "reconcile-"));
+		try {
+			mkdirSync(join(diskRoot, ".holocron", "projects"), { recursive: true });
+			writeFileSync(
+				join(diskRoot, ".holocron", "projects", "team.json"),
+				JSON.stringify({ extends: "roadmap", fields: [{ name: "Team", type: "text" }] })
+			);
+			const projects = fakeProjects();
+			const { run } = setup(projects, { diskRoot, options: { boards: [{ template: "team", name: "v5" }] } });
+			const report = await run();
+			expect(report.status).toBe("ok");
+			expect(projects.items).toHaveBeenCalledWith(
+				"theholocron",
+				BOARD,
+				expect.objectContaining({ name: "team" })
+			);
+		} finally {
+			rmSync(diskRoot, { recursive: true, force: true });
+		}
+	});
+
+	it("treats a repo with no template directory as having only the built-ins", async () => {
+		const diskRoot = mkdtempSync(join(tmpdir(), "reconcile-"));
+		try {
+			const { run } = setup(fakeProjects(), { diskRoot });
+			expect((await run()).status).toBe("ok");
+		} finally {
+			rmSync(diskRoot, { recursive: true, force: true });
+		}
+	});
+	it("names an item with no status as coming from `no status` when it is closed", async () => {
+		const projects = fakeProjects({ items: vi.fn(async () => [item({ key: "#7", open: false })]) });
+		const { run, lines } = setup(projects);
+		const report = await run();
+		expect(report.status).toBe("ok");
+		expect(lines.join("\n")).toContain("#7 no status → Done (closed)");
+	});
+
+	it("says why a provider refused a change when it gives a reason", async () => {
+		const projects = fakeProjects({
+			items: vi.fn(async () => [item({ key: "#8", status: "Todo", blockedBy: ["#9"] })]),
+			setStatus: vi.fn(async () => ({ transitioned: false, status: "Todo", via: "workflow forbids it" })),
+		});
+		const { run, lines } = setup(projects);
+		const report = await run();
+		expect(report.status).toBe("fail");
+		expect(lines.join("\n")).toContain("refused: still Todo (workflow forbids it)");
 	});
 });
