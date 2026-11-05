@@ -3,13 +3,13 @@ title: Kyber
 description: The reusable parts of a command-line tool, moved out of the Holocron CLI so the next CLI does not copy them.
 ---
 
-`@theholocron/kyber` holds the parts of the Holocron CLI that have nothing to do with Holocron: terminal output, prompts, the update notice, safe handling of tokens, a test harness and the options every command takes. They were written once for `holocron`; a second CLI would otherwise copy them. The design and the order of the move are in the spec `tech-kyber` ([#1727](https://github.com/theholocron/holocron/issues/1727)).
+`@theholocron/kyber` holds the parts of the Holocron CLI that have nothing to do with Holocron: terminal output, prompts, the interactive menu, the update notice, safe handling of tokens, a test harness and the options every command takes. They were written once for `holocron`; a second CLI would otherwise copy them. The design and the order of the move are in the spec `tech-kyber` ([#1727](https://github.com/theholocron/holocron/issues/1727)).
 
 It is a published package: `@theholocron/cli` depends on it like any other, and a new CLI imports it directly. `cli-template` is planned to be the second consumer.
 
 > The kyber crystal is the part in a lightsaber that makes it work.
 
-## One package, seven subpaths
+## One package, eight subpaths
 
 A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`, `ora`, `@inquirer/prompts`, `yargs`, `dotenv`, `clipboardy`, `@napi-rs/keyring`, `@theholocron/datapad`) are optional peer dependencies, so it installs only those.
 
@@ -17,6 +17,7 @@ A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`,
 | ------------------------ | --------------------------------------------------------------------------------------------------------- |
 | [`/ui`](#ui)             | Status glyphs and colours, status rows, a JSON view, a spinner, wait-for-Enter                            |
 | [`/prompts`](#prompts)   | A searchable menu and prompts for the positionals and options a command left out                          |
+| [`/menu`](#menu)         | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                   |
 | [`/notifier`](#notifier) | A cached "a newer version exists" notice for an npm package                                               |
 | [`/secrets`](#secrets)   | Owner-only token files, shredding, git-ignore checks, dotenv, the clipboard, the OS keyring               |
 | [`/testing`](#testing)   | A harness for a built CLI and for a single yargs command                                                  |
@@ -67,6 +68,24 @@ const { answers } = await promptForOptions(
 ```
 
 Required options are always asked and the rest sit behind one checkbox. A command with an either/or relationship between options declares `modes`, so nothing contingent is offered. A `secret` option is asked with a masked prompt, and `askLast` defers a value that goes stale (a one-time code) until right before it is used. The prompts take a name and the things to ask for, not a command registry, so they work for any CLI.
+
+## `/menu`
+
+```ts
+import { launchMenu, type MenuEntry } from "@theholocron/kyber/menu";
+
+const entries: MenuEntry[] = [
+  { name: "doctor", description: "Check the setup", positionals: [], supportsDryRun: true },
+  { name: "repo sync", description: "Sync the repo", positionals: [] },
+];
+await launchMenu(entries, argv, { bin: "tool", envPrefix: "TOOL" });
+```
+
+The menu is data. Each `MenuEntry` names a command, says how to ask for its positionals and options (the same shapes as `/prompts`) and whether it honours `--dry-run`; a name with spaces (`repo sync`) becomes a nested group. `launchMenu` walks the picker, prompts for what the command needs, and **spawns the CLI again** with the answers instead of re-entering the parser. It takes the CLI's binary name and an env prefix, so nothing in it knows which tool it serves.
+
+A command that supports `--dry-run` is previewed first, and only then is the one real question asked: proceed? A preview that exits non-zero stops there, and one that exits with `DRY_RUN_NOOP_EXIT_CODE` (nothing would change) skips the question. `--skip-dry-run` on the invocation opts out of the preview. A handler tells a preview from a direct `--dry-run` call by the `dryRunPreviewEnvVar(envPrefix)` variable (`TOOL_DRY_RUN_PREVIEW`).
+
+A `secret` option is never put in argv, where `ps` and shell history would show it. It reaches the child as `<envPrefix>_<OPTION>` (`otp` becomes `TOOL_OTP`), and an `askLast` value is collected only after the preview has been confirmed. Without a terminal, `launchMenu` throws `NonInteractiveError` rather than hanging. `menuItems`, `buildChildArgv`, `forwardedFlags` and `secretEnv` are exported for a CLI that wants to drive the pieces itself.
 
 ## `/notifier`
 

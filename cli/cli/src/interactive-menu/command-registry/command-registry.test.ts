@@ -15,6 +15,7 @@ const listStoredProvidersMock = vi.fn();
 vi.mock("../../auth/keyring/keyring.js", () => ({ listStoredProviders: () => listStoredProvidersMock() }));
 
 const { COMMAND_REGISTRY, getEntry } = await import("../command-registry/index.js");
+const { menuItems } = await import("@theholocron/kyber/menu");
 const { NonInteractiveError } = await import("@theholocron/kyber/ui");
 const { promptForPositionals } = await import("@theholocron/kyber/prompts");
 
@@ -65,6 +66,79 @@ describe("COMMAND_REGISTRY", () => {
 
 	it("run has no entry of its own — cli.ts merges in buildRunMenuEntries(listRunnableTasks(argv)) instead", () => {
 		expect(COMMAND_REGISTRY.some((e) => e.name === "run")).toBe(false);
+	});
+});
+
+describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
+	const names = (path: string[] = []) => menuItems(COMMAND_REGISTRY, path).map((i) => i.name);
+	const valueOf = (name: string, path: string[] = []) =>
+		menuItems(COMMAND_REGISTRY, path).find((i) => i.name === name)?.value;
+
+	it("the top level shows one row per first word, with groups opening a submenu", () => {
+		expect(valueOf("repo ›")).toBe("group:repo");
+		expect(valueOf("auth ›")).toBe("group:auth");
+		expect(valueOf("doctor ›")).toBe("group:doctor");
+		expect(names()).not.toContain("doctor");
+	});
+
+	it("marks `probe` with the chevron, though it is a runnable command and not a group, and does not preview it", () => {
+		expect(valueOf("probe ›")).toBe("probe");
+		expect(COMMAND_REGISTRY.find((e) => e.name === "probe")?.supportsDryRun).toBeFalsy();
+	});
+
+	it("keeps plain `doctor` runnable, as the first item of its own submenu", () => {
+		expect(names(["doctor"])).toEqual([
+			"doctor (run it)",
+			"doctor (everything)",
+			"monitoring",
+			"notifications",
+			"environments",
+			"credentials",
+			"dns",
+			"repo",
+			"secrets",
+			"tokens",
+			"variables",
+			"ci",
+		]);
+		expect(valueOf("doctor (everything)", ["doctor"])).toBe("doctor all");
+	});
+
+	it("does not collapse a one-command group: `config show` is config › then show", () => {
+		expect(names()).toContain("config ›");
+		expect(names(["config"])).toEqual(["show"]);
+		expect(names(["sync"])).toEqual(["github"]);
+		expect(valueOf("ci", ["run"])).toBe("run ci");
+	});
+
+	it("nests as deep as the names go, and gives a runnable group a leading `(run it)` item", () => {
+		expect(names(["repo"])).toEqual(["setup", "sync ›", "cleanup ›", "upgrade ›"]);
+		expect(names(["repo", "upgrade"])).toEqual(["node", "deps"]);
+		expect(menuItems(COMMAND_REGISTRY, ["repo", "sync"])[0]).toMatchObject({
+			name: "sync (run it)",
+			value: "repo sync",
+		});
+		expect(menuItems(COMMAND_REGISTRY, ["deploy"]).map((i) => i.value)).toEqual([
+			"deploy",
+			"deploy cleanup-preview",
+			"deploy on-release",
+		]);
+	});
+
+	it("run has no bare entry in the static registry — just `ci` until the dynamic task entries are merged in", () => {
+		expect(menuItems(COMMAND_REGISTRY, ["run"]).map((i) => i.value)).toEqual(["run ci"]);
+	});
+
+	it("reaches every registered command exactly once by walking the tree", () => {
+		const reached: string[] = [];
+		const walk = (path: string[]): void => {
+			for (const item of menuItems(COMMAND_REGISTRY, path)) {
+				if (item.value.startsWith("group:")) walk(item.value.slice("group:".length).split(" "));
+				else reached.push(item.value);
+			}
+		};
+		walk([]);
+		expect([...reached].sort()).toEqual(COMMAND_REGISTRY.map((e) => e.name).sort());
 	});
 });
 
