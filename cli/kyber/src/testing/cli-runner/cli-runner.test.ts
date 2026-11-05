@@ -6,17 +6,18 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createCliRunner } from "./cli-runner.js";
 
-// A stand-in for a built CLI: it says where and how it was run, and can fail, hang or read its config.
-const script = `
-const fs = require("node:fs");
-const args = process.argv.slice(2);
-if (args.includes("--hang")) setInterval(() => {}, 1000);
-else {
-  const config = fs.existsSync("tool.config.json") ? fs.readFileSync("tool.config.json", "utf8") : null;
-  console.log(JSON.stringify({ args, cwd: process.cwd(), config, env: process.env }));
-  if (args.includes("--fail")) { console.error("boom"); process.exit(3); }
-}
-`;
+// A stand-in for a built CLI: it says where and how it was run, and can fail, hang or read its config. Written as lines
+// without indentation, because an indented template literal trips the editorconfig check.
+const script = [
+	'const fs = require("node:fs");',
+	"const args = process.argv.slice(2);",
+	'if (args.includes("--hang")) setInterval(() => {}, 1000);',
+	"else {",
+	'const config = fs.existsSync("tool.config.json") ? fs.readFileSync("tool.config.json", "utf8") : null;',
+	"console.log(JSON.stringify({ args, cwd: process.cwd(), config, env: process.env }));",
+	'if (args.includes("--fail")) { console.error("boom"); process.exit(3); }',
+	"}",
+].join("\n");
 
 describe("createCliRunner", () => {
 	let dir: string;
