@@ -48,7 +48,6 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@napi-rs/keyring": "catalog:",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
