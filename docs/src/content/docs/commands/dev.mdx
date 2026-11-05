@@ -67,4 +67,4 @@ The application is then `holocron dev serve`, which `holocron dev` runs beside `
 
 The hostname must sit one level under a zone the DNS provider manages (`sentinel-dev.theholocron.dev`, not `dev.sentinel.theholocron.dev`): Cloudflare's free certificate covers the zone and `*.zone`, and a proxied name two levels down would fail the TLS handshake.
 
-It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is just `holocron dev`, with its settings in `apps/sentinel/holocron.config.ts`; see the [Sentinel page](/holocron/sentinel/).
+It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is `holocron dev`, with its settings in `apps/sentinel/holocron.config.ts`; see the [Sentinel page](/holocron/sentinel/).

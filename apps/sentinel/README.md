@@ -605,7 +605,7 @@ memory, and runs the handler (`dev.serve`, served by `holocron dev serve`) besid
 environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:
 Edit, and `cloudflared` (`brew install cloudflared`).
 
-`holocron dev serve` alone runs just the handler on `127.0.0.1`, serving `/api/webhook` (the path Vercel
+`holocron dev serve` alone runs only the handler on `127.0.0.1`, serving `/api/webhook` (the path Vercel
 serves). Its three required variables, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, come
 from the process, or else from the Environment `dev.environment` names (`Sentinel - dev`), read with
 `op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
