@@ -1,3 +1,12 @@
+## [5.0.0-alpha.340](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.339...v5.0.0-alpha.340) (2026-11-05)
+
+### Features
+
+* **cli:** add doctor project and project move ([#1759](https://github.com/theholocron/holocron/issues/1759)) ([9ea9423](https://github.com/theholocron/holocron/commit/9ea9423079e430e629924c5666aeaa639ad69950)), closes [#1744](https://github.com/theholocron/holocron/issues/1744) [#1744](https://github.com/theholocron/holocron/issues/1744)
+* **cli:** add project reconcile and its hourly workflow ([#1757](https://github.com/theholocron/holocron/issues/1757)) ([19c3f90](https://github.com/theholocron/holocron/commit/19c3f90ba611db15887b5e10a707a0e175bac78c)), closes [#1744](https://github.com/theholocron/holocron/issues/1744) [#1744](https://github.com/theholocron/holocron/issues/1744)
+* **cli:** project list, create, close and setup commands ([#1761](https://github.com/theholocron/holocron/issues/1761)) ([1761828](https://github.com/theholocron/holocron/commit/176182851a6d7e7e88332bf928d24e002e7111b7))
+* **github:** add the projects capability for Projects v2 boards ([#1755](https://github.com/theholocron/holocron/issues/1755)) ([6f05088](https://github.com/theholocron/holocron/commit/6f050883778798347f911657c4a75ac62a1c3a67)), closes [#1744](https://github.com/theholocron/holocron/issues/1744) [#1744](https://github.com/theholocron/holocron/issues/1744)
+
 ## [5.0.0-alpha.339](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.338...v5.0.0-alpha.339) (2026-11-05)
 
 ### Features
