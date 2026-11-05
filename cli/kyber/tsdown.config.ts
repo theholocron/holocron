@@ -2,6 +2,7 @@ import { library } from "@theholocron/tsdown-config/presets/library";
 
 export default library({
 	entry: {
+		flags: "src/flags/index.ts",
 		notifier: "src/notifier/index.ts",
 		prompts: "src/prompts/index.ts",
 		secrets: "src/secrets/index.ts",

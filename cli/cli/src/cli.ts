@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 
+import { addGlobalOptions } from "@theholocron/kyber/flags";
 import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -45,24 +46,32 @@ let finishCommand: (ok: boolean) => void = () => {};
 let errorReported = false;
 
 try {
-	await yargs(hideBin(process.argv))
-		.scriptName("")
-		.usage("holocron <command> [options]")
-		.version(CLI_VERSION)
-		.alias("version", "v")
-		// Keep everything after `--` in `argv['--']` instead of folding it into
-		// `argv._`. `holocron run <task> [job] -- <args>` forwards `<args>` to the
-		// underlying tool (`lhci autorun --config=…`, `turbo run build -- …`); the
-		// telemetry command name reads `argv._` and must not pick these up.
-		.parserConfiguration({ "populate--": true })
-		// ── global options (apply to every subcommand) ──────────────────────
-		.option("dry-run", {
-			type: "boolean",
-			default: false,
-			describe:
-				"Print what would be mutated without calling capability mutators. " +
-				"Commands branch on this; read-only commands ignore it.",
-		})
+	await addGlobalOptions(
+		yargs(hideBin(process.argv))
+			.scriptName("")
+			.usage("holocron <command> [options]")
+			.version(CLI_VERSION)
+			.alias("version", "v")
+			// Keep everything after `--` in `argv['--']` instead of folding it into
+			// `argv._`. `holocron run <task> [job] -- <args>` forwards `<args>` to the
+			// underlying tool (`lhci autorun --config=…`, `turbo run build -- …`); the
+			// telemetry command name reads `argv._` and must not pick these up.
+			.parserConfiguration({ "populate--": true }),
+		{
+			describe: {
+				dryRun:
+					"Print what would be mutated without calling capability mutators. " +
+					"Commands branch on this; read-only commands ignore it.",
+				token:
+					"Vendor token override for plugins. " +
+					"Bare form: --token <value> (fallback for all plugins, single-plugin commands). " +
+					"Keyed form: --token vendor=value (targets a specific provider; repeat for each). " +
+					"Example: --token github=ghp_xxx --token vercel=v_yyy",
+				cwd: "Directory to search for holocron.config.json",
+			},
+		}
+	)
+		// ── holocron's own global options (--dry-run, --token and --cwd are declared above) ──
 		.option("skip-dry-run", {
 			type: "boolean",
 			default: false,
@@ -70,26 +79,12 @@ try {
 				"Interactive mode only: skip the automatic dry-run preview for a " +
 				"dry-run-capable command and run for real immediately.",
 		})
-		.option("token", {
-			type: "string",
-			array: true,
-			describe:
-				"Vendor token override for plugins. " +
-				"Bare form: --token <value> (fallback for all plugins, single-plugin commands). " +
-				"Keyed form: --token vendor=value (targets a specific provider; repeat for each). " +
-				"Example: --token github=ghp_xxx --token vercel=v_yyy",
-		})
 		.option("org", {
 			type: "string",
 			describe:
 				"Active org name for namespaced keyring lookup. " +
 				"Overrides HOLOCRON_ORG env var and the `org` field in holocron.config.ts. " +
 				"Example: --org theholocron",
-		})
-		.option("cwd", {
-			type: "string",
-			default: process.cwd(),
-			describe: "Directory to search for holocron.config.json",
 		})
 		.option("verbose", {
 			type: "boolean",

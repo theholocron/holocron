@@ -1,3 +1,4 @@
+import { groupMenu as groupMenuOf } from "@theholocron/kyber/flags";
 import type { CommandModule } from "yargs";
 
 import { COMMAND_REGISTRY, launchMenu } from "../../interactive-menu/index.js";
@@ -14,11 +15,4 @@ export async function launchGroupMenu(parent: string, argv: Record<string, unkno
 }
 
 /** The hidden `$0` of a command group: bare `holocron <group>` opens the menu at that group. */
-export const groupMenu = (parent: string): CommandModule<never, never> => ({
-	command: "$0",
-	describe: false,
-	builder: (y) => y,
-	handler: async (argv) => {
-		await launchGroupMenu(parent, argv as Record<string, unknown>);
-	},
-});
+export const groupMenu = (parent: string): CommandModule<never, never> => groupMenuOf(parent, launchGroupMenu);

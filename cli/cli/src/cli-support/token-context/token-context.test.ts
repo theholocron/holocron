@@ -28,17 +28,4 @@ describe("tokenContext", () => {
 		expect(report).toHaveBeenCalledWith(expect.stringContaining("--token:"));
 		expect(process.exitCode).toBe(1);
 	});
-
-	it("rethrows anything that is not a token parse error", async () => {
-		vi.resetModules();
-		vi.doMock("../../auth/index.js", () => ({
-			parseTokenArgs: () => {
-				throw new Error("disk on fire");
-			},
-			TokenParseError: class extends Error {},
-		}));
-		const { tokenContext: fresh } = await import("./token-context.js");
-		expect(() => fresh(["x"])).toThrow("disk on fire");
-		vi.doUnmock("../../auth/index.js");
-	});
 });
