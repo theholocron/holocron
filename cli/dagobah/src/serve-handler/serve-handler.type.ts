@@ -1,3 +1,5 @@
+import type { spawnSync } from "node:child_process";
+
 import type { DescribeLoggingOptions } from "../dev-logging/index.js";
 
 /** What {@link serveHandler} needs. */
@@ -16,6 +18,8 @@ export interface ServeHandlerInput<K extends string> {
 	path?: string | undefined;
 	/** The variables in the process. Default `process.env`. */
 	env?: NodeJS.ProcessEnv | undefined;
+	/** Runs `op` to read the Environment. Default `spawnSync`; a test passes a stub so no real `op` starts. */
+	spawn?: typeof spawnSync | undefined;
 	/** One line of output. Default `console.log`. */
 	log?: ((line: string) => void) | undefined;
 	/** Called on SIGINT and SIGTERM to stop the server and exit. Default `process.exit(0)` after the server closes. */
