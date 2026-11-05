@@ -779,6 +779,9 @@ importers:
       posthog-node:
         specifier: 5.52.5
         version: 5.52.5(rxjs@7.8.2)
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       yargs:
         specifier: catalog:cli
         version: 18.2.0
@@ -822,9 +825,6 @@ importers:
       tsdown:
         specifier: 'catalog:'
         version: 0.23.3(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
