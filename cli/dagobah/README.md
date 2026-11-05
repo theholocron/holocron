@@ -23,6 +23,6 @@ await serveHandler({
 ```
 
 - `loadDevEnv({ environment, required })`: the process wins over the Environment; throws naming (never showing)
-  what is missing.
+  what is missing. An unquoted multi-line value (a PEM key, which `op` prints that way) is read whole.
 - `startDevServer({ handle, env, port })`: loopback only; one log line per request (method, path, status).
 - `describeLogging(env, { tokenVar, datasetVar })`: one line, the dataset and never the token.

@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 
 import { parse } from "dotenv";
 
+import { quotePem } from "../quote-pem/index.js";
 import type { DevEnv, LoadDevEnvInput } from "./dev-env.type.js";
 
 /**
@@ -28,7 +29,7 @@ export function loadDevEnv<K extends string>(input: LoadDevEnvInput<K>): DevEnv<
 			throw new Error(`could not read the 1Password Environment "${input.environment}": ${why || "op failed"}`);
 		}
 		merged = {
-			...parse(String(result.stdout)),
+			...parse(quotePem(String(result.stdout))),
 			...Object.fromEntries(Object.entries(env).filter(([, v]) => v !== undefined && v !== "")),
 		};
 	}
