@@ -1,0 +1,129 @@
+---
+title: Kyber
+description: The reusable parts of a command-line tool, moved out of the Holocron CLI so the next CLI does not copy them.
+---
+
+`@theholocron/kyber` holds the parts of the Holocron CLI that have nothing to do with Holocron: terminal output, prompts, the update notice, safe handling of tokens, a test harness and the options every command takes. They were written once for `holocron`; a second CLI would otherwise copy them. The design and the order of the move are in the spec `tech-kyber` ([#1727](https://github.com/theholocron/holocron/issues/1727)).
+
+It is internal for now: private, bundled into `@theholocron/cli`, and not published. It becomes public when a second CLI needs it, which is planned to be `cli-template`.
+
+> The kyber crystal is the part in a lightsaber that makes it work.
+
+## One package, six subpaths
+
+A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`, `ora`, `@inquirer/prompts`, `yargs`, `dotenv`, `clipboardy`, `@napi-rs/keyring`) are optional peer dependencies, so it installs only those.
+
+| Subpath                  | What it gives a CLI                                                                            |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| [`/ui`](#ui)             | Status glyphs and colours, status rows, a JSON view, a spinner, wait-for-Enter                 |
+| [`/prompts`](#prompts)   | A searchable menu and prompts for the positionals and options a command left out               |
+| [`/notifier`](#notifier) | A cached "a newer version exists" notice for an npm package                                    |
+| [`/secrets`](#secrets)   | Owner-only token files, shredding, git-ignore checks, dotenv, the clipboard, the OS keyring    |
+| [`/testing`](#testing)   | A harness for a built CLI and for a single yargs command                                       |
+| [`/flags`](#flags)       | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something |
+
+## `/ui`
+
+```ts
+import { statusRow, style, viewJson, waitForEnter, withProgress } from "@theholocron/kyber/ui";
+
+console.log(style.success("built")); // ✓ built; also warn, fail, step, skip, hint, dim, header
+console.log(statusRow("ok", ["lint", "no problems"])); // one row of a status table
+await withProgress("Checking…", () => check()); // a spinner on a terminal only, nothing in CI or a pipe
+await viewJson(config, { depth: 2 }); // a folding viewer on a terminal, static output otherwise
+await waitForEnter("Press Enter once the key is in 1Password…");
+```
+
+A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. `createProgress` takes an optional listener that can change the spinner's text during a step; the Holocron CLI uses it to say that a request is being sent again.
+
+## `/prompts`
+
+```ts
+import { promptForOptions, promptForPositionals } from "@theholocron/kyber/prompts";
+
+const [name] = await promptForPositionals(
+  { name: "greet", positionals: [{ key: "name", message: "Who?", type: "input" }] },
+  argv
+);
+const { answers } = await promptForOptions(
+  {
+    name: "deploy",
+    options: [{ key: "env", flag: "--env", type: "select", message: "Environment?", choices: ["dev", "prod"] }],
+  },
+  argv
+);
+```
+
+Required options are always asked and the rest sit behind one checkbox. A command with an either/or relationship between options declares `modes`, so nothing contingent is offered. A `secret` option is asked with a masked prompt, and `askLast` defers a value that goes stale (a one-time code) until right before it is used. The prompts take a name and the things to ask for, not a command registry, so they work for any CLI.
+
+## `/notifier`
+
+```ts
+import { checkForUpdates } from "@theholocron/kyber/notifier";
+
+const notify = await checkForUpdates({
+  name: "@scope/tool",
+  currentVersion: "1.2.3",
+  cacheDir: join(homedir(), ".cache", "tool"),
+});
+// ...the command runs...
+notify?.(); // prints a boxed notice to stderr, or nothing
+```
+
+It asks the npm registry at most once a day, never throws, and says nothing in CI or when `NO_UPDATE_NOTIFIER` is set. A prerelease is compared with its own channel (`2.0.0-alpha.3` with the `alpha` tag).
+
+## `/secrets`
+
+For any project that handles tokens. It has no terminal UI and no Holocron name in it.
+
+```ts
+import { createKeyring, dotenvLine, isGitIgnored, shredFile, writeCredentialsFile } from "@theholocron/kyber/secrets";
+
+if (isGitIgnored(".credentials") === "tracked") throw new Error("git would track this file");
+const file = writeCredentialsFile(".credentials", `${dotenvLine("TOKEN", token)}\n`); // mode 0600, never overwrites
+// ...once the tokens have been imported elsewhere...
+shredFile(".credentials", file); // zeroes the contents, then removes the path only if it is still that file
+
+const keyring = createKeyring({ service: "com.example.tool" });
+keyring.set("github", token); // best-effort: false, not an exception, where there is no keyring
+keyring.get("github"); // remembered for the life of the process
+```
+
+- **Files.** `writeCredentialsFile` creates a file only its owner can read and refuses to replace one that is there (with `force` it swaps atomically and zeroes the old contents). A write that goes wrong removes the file it had created, so no plaintext tokens are left behind.
+- **dotenv.** `dotenvLine` gives a `NAME=value` that dotenv reads back as the same value, or `null` when no quoting can do that, so a token is never silently changed.
+- **Keyring.** `createKeyring` is best-effort on every platform; `@napi-rs/keyring` is an optional peer and can be passed in as `binding` (for a test, or when your package depends on it itself).
+- **The rest.** `getCredential` and `setCredentials` hold variables a provider returned for the life of the process, `parseTokenArgs` parses repeatable `--token` flags (a bare value, or `vendor=value`), `readDotenvFile` reads `<repo root>/.env`, and `copyToClipboard` loads `clipboardy` only when called.
+
+## `/testing`
+
+```ts
+import { createCliRunner, ensureBuilt, runCommand } from "@theholocron/kyber/testing";
+
+// vitest globalSetup: build dist only when it is missing or older than the source
+export default () => ensureBuilt({ bin: "dist/cli.mjs", srcDir: "src", cwd: process.cwd() });
+
+// run the built binary in a fresh directory, with an environment built from nothing
+const run = createCliRunner({ bin: "dist/cli.mjs", configFile: "tool.config.json" });
+const { stdout, stderr, code } = await run(["doctor"], { config: { providers: {} } });
+
+// run one command module through a real yargs parse
+const argv = await runCommand(greetCommand, ["greet", "Leia"]);
+```
+
+The runner leaves out everything of the machine it runs on: no tokens, no telemetry, no update check, and stdin is closed, so a command that wants a terminal behaves as it does in CI. `hermeticCreateRequire` makes a test's "is this package installed in that directory" independent of what the workspace links.
+
+## `/flags`
+
+```ts
+import { addGlobalOptions, groupMenu, tokenContext } from "@theholocron/kyber/flags";
+
+const parser = addGlobalOptions(yargs(hideBin(process.argv)), { describe: { cwd: "Where tool.config.json is" } });
+const tokens = tokenContext(argv.token, console.error); // null, with exit code 1, for a malformed --token
+parser.command({ command: "repo", builder: (y) => y.command(groupMenu("repo", openMenu)) }); // bare `tool repo`
+```
+
+`addGlobalOptions` declares `--dry-run`, a repeatable `--token` and `--cwd` once on the root; a tool adds its own options to the same parser. A command module's arguments extend `GlobalArgs`, and `InferArgs` types a handler's arguments from its builder.
+
+## What stays in the Holocron CLI
+
+The command tree, the capability and provider model, the config schema and the order in which a token is looked up (a flag, the environment, a `.env`, a `credentials` provider, the keyring). `createResolveToken` stays in `@theholocron/http-client`, which the plugins depend on; the pieces it is built from are here.
