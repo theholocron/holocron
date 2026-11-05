@@ -1,3 +1,13 @@
+## [5.0.0-alpha.333](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.332...v5.0.0-alpha.333) (2026-11-05)
+
+### Bug Fixes
+
+* **repo:** 🐛 report a stale install in setup.sh doctor, and fix run-check on Node 25 ([#1730](https://github.com/theholocron/holocron/issues/1730)) ([24ce7cb](https://github.com/theholocron/holocron/commit/24ce7cbb9eed49b00731e3f74931c87240f985e9)), closes [#1717](https://github.com/theholocron/holocron/issues/1717)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#1729](https://github.com/theholocron/holocron/issues/1729)) ([9c7d27e](https://github.com/theholocron/holocron/commit/9c7d27efec2e421adc5a0c91e9dd84b7918ecfb7))
+
 ## [5.0.0-alpha.332](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.331...v5.0.0-alpha.332) (2026-11-05)
 
 ### Bug Fixes
