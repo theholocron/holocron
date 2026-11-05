@@ -9,7 +9,7 @@ vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0 })) }
 // Resolve packages only under the temp "repo" a test makes: NODE_PATH would otherwise reach the workspace's own hoisted packages.
 vi.mock("node:module", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("node:module")>();
-	const { hermeticCreateRequire } = await import("../../testing/hermetic-require.js");
+	const { hermeticCreateRequire } = await import("@theholocron/kyber/testing");
 	return { ...actual, createRequire: hermeticCreateRequire(actual) };
 });
 

@@ -9,9 +9,12 @@ import { describe, expect, it, vi } from "vitest";
 
 // The real keychain and the real clipboard are things a test must never touch.
 const write = vi.hoisted(() => vi.fn(async (_text: string) => {}));
+vi.mock("@theholocron/kyber/secrets", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/secrets")>()),
+	copyToClipboard: write,
+}));
 vi.mock("../../auth/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../auth/index.js")>()),
-	copyToClipboard: write,
 	getToken: () => null,
 	isKeyringAvailable: () => true,
 }));

@@ -6,13 +6,14 @@ import { join } from "node:path";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
-import type { FileIdentity } from "../../auth/index.js";
 // The real opener would start a browser.
 const openUrl = vi.hoisted(() => vi.fn());
 vi.mock("@theholocron/kyber/ui", async (importActual) => ({
 	...(await importActual<typeof import("@theholocron/kyber/ui")>()),
 	openPath: openUrl,
 }));
+
+import { type FileIdentity } from "@theholocron/kyber/secrets";
 
 import { runGithubAppCreate } from "./github-app-create.js";
 import type { RunGithubAppCreateInput } from "./github-app-create.type.js";

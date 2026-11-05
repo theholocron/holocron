@@ -1,6 +1,6 @@
+import { type FileIdentity, type GitIgnoreState, type ShredOutcome } from "@theholocron/kyber/secrets";
 import type { Logger } from "@theholocron/observability/core";
 
-import type { FileIdentity, GitIgnoreState, ShredOutcome } from "../../auth/index.js";
 import type { ConvertedApp } from "../convert-app-manifest/index.js";
 import type { AppManifestServer, ServeAppManifestInput } from "../serve-app-manifest/index.js";
 

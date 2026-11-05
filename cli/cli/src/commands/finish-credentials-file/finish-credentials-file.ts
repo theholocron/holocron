@@ -1,9 +1,9 @@
 import { closeSync } from "node:fs";
 
+import { shredFile } from "@theholocron/kyber/secrets";
 import { waitForEnter } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { shredFile } from "../../auth/index.js";
 import type { FinishCredentialsFileInput } from "./finish-credentials-file.type.js";
 
 /** Signals that end the wait for the import, with the exit status each is conventionally reported as. */

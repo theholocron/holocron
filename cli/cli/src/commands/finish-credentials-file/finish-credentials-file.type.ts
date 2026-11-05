@@ -1,4 +1,4 @@
-import type { FileIdentity, ShredOutcome } from "../../auth/index.js";
+import { type FileIdentity, type ShredOutcome } from "@theholocron/kyber/secrets";
 
 /** What {@link finishCredentialsFile} needs to know about the file it was handed and how to talk about it. */
 export interface FinishCredentialsFileInput {
