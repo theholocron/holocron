@@ -1,3 +1,13 @@
+## [5.0.0-alpha.336](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.335...v5.0.0-alpha.336) (2026-11-05)
+
+### Features
+
+* **comlink:** ✨ 📡 relay the holocron Sentry project to [#errors](https://github.com/theholocron/holocron/issues/errors) ([#1737](https://github.com/theholocron/holocron/issues/1737)) ([a5ee3d7](https://github.com/theholocron/holocron/commit/a5ee3d79f22249ef01289a3578f1931a9dd81722)), closes [#1580](https://github.com/theholocron/holocron/issues/1580)
+
+### Documentation
+
+* **specs:** 📚️ 📝 spec a [#prs](https://github.com/theholocron/holocron/issues/prs) channel that shows which pull requests need handling ([#1739](https://github.com/theholocron/holocron/issues/1739)) ([2c6c1a1](https://github.com/theholocron/holocron/commit/2c6c1a10e4859633ae25b4bf83d0adc5b4ea523f)), closes [#1738](https://github.com/theholocron/holocron/issues/1738)
+
 ## [5.0.0-alpha.335](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.334...v5.0.0-alpha.335) (2026-11-05)
 
 ### Chores
