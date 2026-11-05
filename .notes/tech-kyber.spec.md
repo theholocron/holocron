@@ -118,10 +118,21 @@ The order puts the pieces with no inbound surprises first and the ones that touc
 `cli-template` adopts kyber in its own PR after step 8, once the maintainer says holocron has settled enough to touch the
 template repos (the template repos are held until then). That PR is also when kyber becomes public.
 
-## Open questions
+## Decisions on the open questions
 
-- Does `/secrets` re-export or wrap `createResolveToken` from `@theholocron/http-client`, or should the resolver move
-  into kyber and `http-client` import it?
-- Should `/prompts` take the entry types from the CLI's registry (`CommandEntry`) or own a smaller structural type that
-  the registry satisfies? The second keeps the registry extraction open.
-- Version line: lockstep with the CLI group while it is private; revisit when it goes public.
+- **The token resolver stays in `@theholocron/http-client` for now.** `createResolveToken` is 72 lines whose only import
+  is `@theholocron/env-utils/lookup`, and it is used by the CLI and by the plugins (`holocron-plugin-github`, `-discord`,
+  `-doppler`, `-postman`, ...). Moving it into kyber would make every published plugin depend on kyber, which cannot
+  happen while kyber is private, and it would not remove any override: the single-instance pin on `http-client` existed
+  for `instanceof ProviderApiError` and is already gone, and the remaining pins (`@sentry/node`, `posthog-node`) are
+  `http-client` peers that have nothing to do with the resolver. `/secrets` provides the building blocks (the store, the
+  keyring, the token-argument parser) that a resolver composes. Revisit once kyber is public and a second CLI needs the
+  whole chain.
+- **`/prompts` owns a small structural type.** It declares the shape it reads (a command's positionals, options and
+  modes) and the CLI's `CommandEntry` satisfies it. That keeps kyber free of the command registry, so the registry can
+  be extracted later without kyber changing; the cost is one structural type kept in step with `CommandEntry`, which the
+  type checker enforces because the CLI passes its entries in.
+- **Version line.** Every package in a folder is a release group and is bumped together: `cli`, `astromech` and
+  `datapad` share one number. Kyber joins that number while it is private and after it goes public, because a separate
+  line would need its own folder and tag prefix. If kyber's churn ever diverges from the CLI's, it moves to its own
+  folder then.

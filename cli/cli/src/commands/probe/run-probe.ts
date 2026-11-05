@@ -2,11 +2,9 @@ import { confirm } from "@inquirer/prompts";
 
 import type { ProbeContext, ProbeRow } from "../../plugin/index.js";
 import { commandFailureMessage } from "../../ui/command-failure/index.js";
-import { NonInteractiveError } from "../../ui/non-interactive-error/index.js";
+import { NonInteractiveError, statusRow, style } from "../../ui/index.js";
 import { createProgress } from "../../ui/progress/index.js";
 import { sanitizeDetail, stripControl } from "../../ui/provider-error/index.js";
-import { statusRow } from "../../ui/status-row/index.js";
-import { style } from "../../ui/style/index.js";
 import type { ProbeReport, RunProbeInput } from "./probe.type.js";
 import { createScrubber } from "./scrub.js";
 

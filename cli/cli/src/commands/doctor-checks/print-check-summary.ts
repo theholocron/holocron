@@ -1,4 +1,4 @@
-import { style } from "../../ui/style/index.js";
+import { style } from "../../ui/index.js";
 import type { CheckSummary } from "./doctor-checks.type.js";
 
 /** A blank line, then the closing `N ok, N fail, N skipped`. */

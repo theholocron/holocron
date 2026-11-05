@@ -7,7 +7,7 @@ vi.mock("@inquirer/prompts", () => ({
 	select: (...args: unknown[]) => selectMock(...args),
 }));
 
-const { NonInteractiveError } = await import("../non-interactive-error/index.js");
+const { NonInteractiveError } = await import("@theholocron/kyber/ui");
 const { promptForPositionals } = await import("./prompt-positionals.js");
 import type { PositionalCommand } from "./prompt-positionals.type.js";
 

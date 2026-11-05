@@ -20,8 +20,8 @@ import {
 	PluginLoader,
 	type Source,
 } from "../../plugin/index.js";
+import { style } from "../../ui/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
-import { style } from "../../ui/style/index.js";
 import { notificationProviders, pickProvider, whyMissing } from "../notifications-channel-add/index.js";
 import { EMPTY_LINKS, linksLocation, parseLinks } from "./links.js";
 import type {

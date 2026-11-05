@@ -1,11 +1,11 @@
 import { transformTemplate } from "@theholocron/rollup-plugin-transform-template";
 import { defineConfig } from "tsdown";
 
-// `@theholocron/dagobah` is private and never published, so it is inlined (its npm imports stay external); every other
-// workspace package is a dependency.
+// `@theholocron/dagobah` and `@theholocron/kyber` are private and never published, so they are inlined (their npm imports
+// stay external, and so must be dependencies of this package); every other workspace package is a dependency.
 const sharedDeps = {
-	neverBundle: [/^@theholocron\/(?!dagobah(?:\/|$))/, /^tsx(?:\/|$)/],
-	alwaysBundle: [/^@theholocron\/dagobah(?:\/|$)/],
+	neverBundle: [/^@theholocron\/(?!(?:dagobah|kyber)(?:\/|$))/, /^tsx(?:\/|$)/],
+	alwaysBundle: [/^@theholocron\/(?:dagobah|kyber)(?:\/|$)/],
 };
 const sharedPlugins = [transformTemplate()];
 

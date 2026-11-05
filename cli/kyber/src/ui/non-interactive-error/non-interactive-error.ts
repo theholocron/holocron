@@ -5,5 +5,6 @@
  * `USER_FACING_ERRORS` catch prints the message cleanly.
  */
 export class NonInteractiveError extends Error {
+	/** The error's name, `NonInteractiveError`, so a catch can tell it from any other error. */
 	override name = "NonInteractiveError";
 }

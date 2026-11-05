@@ -21,8 +21,8 @@ import {
 	type Source,
 	type Workers,
 } from "../../plugin/index.js";
+import { style } from "../../ui/index.js";
 import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
-import { style } from "../../ui/style/index.js";
 import { printCheckRows, printCheckSummary } from "../doctor-checks/index.js";
 import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
 import {

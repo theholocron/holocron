@@ -13,7 +13,7 @@ vi.mock("@inquirer/prompts", () => ({
 	password: (...args: unknown[]) => passwordMock(...args),
 }));
 
-const { NonInteractiveError } = await import("../non-interactive-error/index.js");
+const { NonInteractiveError } = await import("@theholocron/kyber/ui");
 const { promptForDeferredOptions, promptForOptions } = await import("./prompt-options.js");
 import type { OptionsCommand } from "./prompt-options.type.js";
 

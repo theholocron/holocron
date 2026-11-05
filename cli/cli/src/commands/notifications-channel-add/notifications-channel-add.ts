@@ -20,8 +20,8 @@ import {
 	type Secrets,
 	type SecretScope,
 } from "../../plugin/index.js";
+import { style } from "../../ui/index.js";
 import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
-import { style } from "../../ui/style/index.js";
 import type {
 	ChannelOutcome,
 	ChannelSpec,
