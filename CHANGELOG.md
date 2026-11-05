@@ -1,3 +1,24 @@
+## [5.0.0-alpha.337](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.336...v5.0.0-alpha.337) (2026-11-05)
+
+### Features
+
+* **cli:** 🌿 add @theholocron/kyber and move the terminal output helpers into its /ui ([#1731](https://github.com/theholocron/holocron/issues/1731)) ([3fad716](https://github.com/theholocron/holocron/commit/3fad716ad77efc7f24a9760d9ba305d0faf3c450)), closes [#1727](https://github.com/theholocron/holocron/issues/1727) [#1727](https://github.com/theholocron/holocron/issues/1727)
+* **cli:** 🌿 move the CLI test harness into kyber's /testing ([#1740](https://github.com/theholocron/holocron/issues/1740)) ([eab64bc](https://github.com/theholocron/holocron/commit/eab64bc578d271e04e20cd4b59b4f8f83fe7ffec)), closes [#1727](https://github.com/theholocron/holocron/issues/1727) [#1727](https://github.com/theholocron/holocron/issues/1727) [#1727](https://github.com/theholocron/holocron/issues/1727)
+* **cli:** 🌿 move the global flags helpers into kyber's /flags ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1741](https://github.com/theholocron/holocron/issues/1741)) ([efadaea](https://github.com/theholocron/holocron/commit/efadaea88cf5c25a2dedbb2c127c1dab1c30b5e1))
+* **cli:** 🌿 move the keyring, credential store and --token parsing into /secrets ([#1735](https://github.com/theholocron/holocron/issues/1735)) ([415c98b](https://github.com/theholocron/holocron/commit/415c98ba71a4f0226af33c525de087ed4814e91e)), closes [#1727](https://github.com/theholocron/holocron/issues/1727) [#1727](https://github.com/theholocron/holocron/issues/1727)
+* **cli:** 🌿 move the menu and the option prompts into kyber's /prompts ([#1736](https://github.com/theholocron/holocron/issues/1736)) ([5651908](https://github.com/theholocron/holocron/commit/5651908abafe58491081612ba8dff5a2fa3222e3)), closes [#1727](https://github.com/theholocron/holocron/issues/1727) [#1727](https://github.com/theholocron/holocron/issues/1727)
+* **cli:** 🌿 move the token file helpers into kyber's /secrets ([#1733](https://github.com/theholocron/holocron/issues/1733)) ([290021a](https://github.com/theholocron/holocron/commit/290021a004fa4b6620bbdf284e1bf0e9fc47c639)), closes [#1727](https://github.com/theholocron/holocron/issues/1727) [#1727](https://github.com/theholocron/holocron/issues/1727)
+* **cli:** 🌿 move the update notifier into kyber's /notifier ([#1732](https://github.com/theholocron/holocron/issues/1732)) ([794e626](https://github.com/theholocron/holocron/commit/794e626bf08f818f4190253071cefc5622fb834c)), closes [#1727](https://github.com/theholocron/holocron/issues/1727)
+
+### Documentation
+
+* **cli:** 📝 document @theholocron/kyber on the docs site ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1742](https://github.com/theholocron/holocron/issues/1742)) ([dd7f50f](https://github.com/theholocron/holocron/commit/dd7f50f2fa019436222696666c3e573f7f9de851))
+* **specs:** 📚️ 📋️ declare the project board as code, with value-safe field changes ([#1745](https://github.com/theholocron/holocron/issues/1745)) ([281b897](https://github.com/theholocron/holocron/commit/281b8971c5fae0a6509bfac22ab828682d3c53e1)), closes [#1744](https://github.com/theholocron/holocron/issues/1744) [#493](https://github.com/theholocron/holocron/issues/493)
+
+### Chores
+
+* **specs:** 🔄 sync spec discussions ([#1743](https://github.com/theholocron/holocron/issues/1743)) ([9ff068e](https://github.com/theholocron/holocron/commit/9ff068eacb4f77dc3024e690ecf95d2ca9001bf3))
+
 ## [5.0.0-alpha.336](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.335...v5.0.0-alpha.336) (2026-11-05)
 
 ### Features
