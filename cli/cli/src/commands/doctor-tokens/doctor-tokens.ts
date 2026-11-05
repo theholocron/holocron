@@ -14,7 +14,7 @@
 import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getToken } from "../../auth/index.js";
+import { keyring } from "../../auth.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { type AuthPluginModule, defaultImporter, type PluginToken } from "../auth/index.js";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
@@ -26,7 +26,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 	const logger = input.logger ?? getLogger();
 	const importer = input.importer ?? defaultImporter;
 	const env = createEnvLookup(input.env);
-	const keyring = input.keyring ?? getToken;
+	const readToken = input.keyring ?? keyring.get;
 	const now = input.now ?? (() => new Date());
 
 	const rows: CheckRow[] = [];
@@ -39,7 +39,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 			continue;
 		}
 		for (const token of module.tokens ?? []) {
-			rows.push(await checkToken(token, module, env, keyring, now()));
+			rows.push(await checkToken(token, module, env, readToken, now()));
 		}
 	}
 	if (rows.length === 0) {
@@ -78,13 +78,13 @@ async function checkToken(
 	token: PluginToken,
 	module: AuthPluginModule,
 	env: EnvLookup,
-	keyring: (key: string) => string | null,
+	readToken: (key: string) => string | null,
 	now: Date
 ): Promise<CheckRow> {
 	const { keyringKey, envName, vendorEnvName } = token;
 	// The order the plugins resolve in: their own variable, the vendor's, then the keyring.
 	const fromEnv = env.get(envName) ? envName : vendorEnvName && env.get(vendorEnvName) ? vendorEnvName : undefined;
-	const value = fromEnv ? env.get(fromEnv) : keyring(keyringKey);
+	const value = fromEnv ? env.get(fromEnv) : readToken(keyringKey);
 	if (!value) {
 		const names = vendorEnvName ? `${envName} / ${vendorEnvName}` : envName;
 		return row(keyringKey, "skip", `not set (${names}, or \`holocron auth set ${keyringKey}\`)`);

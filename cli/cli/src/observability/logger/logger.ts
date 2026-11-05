@@ -17,7 +17,7 @@ import {
 	resolveAxiomFromEnv,
 } from "@theholocron/observability/logger";
 
-import { getToken } from "../../auth/index.js";
+import { keyring } from "../../auth.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
 import type { BuildCliLoggerOpts } from "./logger.type.js";
 
@@ -109,7 +109,7 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts): AxiomTransportConfig | undef
 	if (!dataset) return undefined;
 
 	const org = opts.org ?? env.get("HOLOCRON_ORG");
-	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? getToken(`axiom.${org}`) : null) || getToken("axiom");
+	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? keyring.get(`axiom.${org}`) : null) || keyring.get("axiom");
 	return token ? { dataset, token } : undefined;
 }
 

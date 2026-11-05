@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
 import { createRestClient } from "@theholocron/http-client";
 
-import { getToken as getKeyringToken } from "../../auth/index.js";
+import { keyring } from "../../auth.js";
 import type { SetupStepResult } from "../setup/index.js";
 import type { FileContents, OrgRepo, RunSyncWikiInput, WikiRepo } from "./sync-wiki.type.js";
 
@@ -22,7 +22,7 @@ function resolveToken(input: RunSyncWikiInput): string | undefined {
 		input.token ??
 		input.context.cliToken ??
 		firstEnv(env, ["HOLOCRON_READ_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"]) ??
-		(input.keyring ?? getKeyringToken)(READ_TOKEN_KEYRING_KEY) ??
+		(input.keyring ?? keyring.get)(READ_TOKEN_KEYRING_KEY) ??
 		undefined
 	);
 }

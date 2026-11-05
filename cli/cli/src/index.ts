@@ -1,5 +1,4 @@
-export * from "./auth/auth-resolver/index.js";
-export * from "./auth/keyring/index.js";
+export * from "./auth.js";
 export type { PluginToken, VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./commands/auth/index.js";
 export * from "./commands/notifications-sync-roles/public.js";
 export * from "./commands/setup/derived-properties/index.js";

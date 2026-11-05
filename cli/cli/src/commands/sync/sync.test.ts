@@ -5,16 +5,16 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AuthError } from "../../auth/index.js";
+import { AuthError } from "../../auth.js";
 import { runSyncReadme, type RunSyncReadmeInput, type SyncReadmeReport } from "../sync-readme/index.js";
 import * as syncWikiModule from "../sync-wiki/index.js";
 import { runSync } from "./sync.js";
 
 // `sync-wiki` falls back to the OS keyring for its token; a test must never read the machine's real one.
-vi.mock("../../auth/keyring/keyring.js", async (importOriginal) => ({
-	...(await importOriginal<typeof import("../../auth/keyring/keyring.js")>()),
-	getToken: () => null,
-}));
+vi.mock("../../auth.js", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../auth.js")>();
+	return { ...actual, keyring: { ...actual.keyring, get: () => null } };
+});
 
 vi.mock("../sync-readme/sync-readme.js", () => ({
 	runSyncReadme: vi.fn(async (input: RunSyncReadmeInput): Promise<SyncReadmeReport> => {

@@ -1,15 +1,43 @@
 import { clearCredentials, setCredentials } from "@theholocron/kyber/secrets";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getToken } from "../keyring/index.js";
-import { AuthError, createFeatureResolver, createResolveToken } from "./auth-resolver.js";
-
 // The real keyring is never asked: a test that reaches it says what it returns.
-vi.mock("../keyring/index.js", () => ({ getToken: vi.fn(() => null) }));
+const fake = vi.hoisted(() => ({
+	get: vi.fn((_account: string): string | null => null),
+	set: vi.fn(() => true),
+	delete: vi.fn(() => true),
+	list: vi.fn(() => ["doppler"]),
+	isAvailable: vi.fn(() => true),
+	clearCache: vi.fn(),
+}));
+// Recorded as the module loads, because the mocks are cleared before each test.
+const made = vi.hoisted(() => [] as unknown[]);
+vi.mock("@napi-rs/keyring", () => ({ Entry: class Entry {}, findCredentials: () => [] }));
+vi.mock("@theholocron/kyber/secrets", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/secrets")>()),
+	createKeyring: (options: unknown) => {
+		made.push(options);
+		return fake;
+	},
+}));
+
+import { Entry, findCredentials } from "@napi-rs/keyring";
+
+import { AuthError, createFeatureResolver, createResolveToken, keyring } from "./auth.js";
 
 afterEach(() => {
 	clearCredentials();
-	vi.mocked(getToken).mockReset().mockReturnValue(null);
+	vi.mocked(fake.get).mockReset().mockReturnValue(null);
+});
+
+describe("the CLI's keyring", () => {
+	it("stores every token under the holocron service, through the keyring binding it depends on", () => {
+		expect(made).toEqual([{ service: "com.theholocron.cli", binding: { Entry, findCredentials } }]);
+	});
+
+	it("is the keyring it made", () => {
+		expect(keyring).toBe(fake);
+	});
 });
 
 const resolveToken = createResolveToken({
@@ -23,20 +51,20 @@ describe("createResolveToken", () => {
 	it("reads the plugin's variable, then the vendor's, then the keyring", () => {
 		expect(resolveToken({ env: { HOLOCRON_TEST_TOKEN: "plugin", TEST_TOKEN: "vendor" } })).toBe("plugin");
 		expect(resolveToken({ env: { TEST_TOKEN: "vendor" } })).toBe("vendor");
-		vi.mocked(getToken).mockReturnValueOnce("kr-tok");
+		vi.mocked(fake.get).mockReturnValueOnce("kr-tok");
 		expect(resolveToken({ env: {} })).toBe("kr-tok");
-		expect(getToken).toHaveBeenCalledWith("test");
+		expect(fake.get).toHaveBeenCalledWith("test");
 	});
 
 	it("looks in the keyring entry of the org HOLOCRON_ORG names", () => {
-		vi.mocked(getToken).mockImplementation((account) => (account === "test.acme" ? "org-tok" : null));
+		vi.mocked(fake.get).mockImplementation((account) => (account === "test.acme" ? "org-tok" : null));
 		expect(resolveToken({ env: { HOLOCRON_ORG: "acme" } })).toBe("org-tok");
 	});
 
 	it("finds a credentials provider's variable before the keyring", () => {
 		setCredentials("1password:Holocron", { HOLOCRON_TEST_TOKEN: "stored" });
 		expect(resolveToken({ env: {} })).toBe("stored");
-		expect(getToken).not.toHaveBeenCalled();
+		expect(fake.get).not.toHaveBeenCalled();
 	});
 
 	it("throws an AuthError with the message it was given", () => {
@@ -61,9 +89,9 @@ describe("createFeatureResolver", () => {
 		setCredentials("1password:Holocron", { HOLOCRON_FEAT_TOKEN: "stored" });
 		expect(resolveFeature({ env: {} })).toBe("stored");
 		clearCredentials();
-		vi.mocked(getToken).mockReturnValueOnce("kr-feature");
+		vi.mocked(fake.get).mockReturnValueOnce("kr-feature");
 		expect(resolveFeature({ env: {} })).toBe("kr-feature");
-		expect(getToken).toHaveBeenLastCalledWith("github.feat");
+		expect(fake.get).toHaveBeenLastCalledWith("github.feat");
 	});
 
 	it("names the vendor given, GitHub when none is, and holocron auth set", () => {

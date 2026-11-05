@@ -25,7 +25,7 @@ import {
 import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getToken, isKeyringAvailable } from "../../auth/index.js";
+import { keyring } from "../../auth.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
@@ -84,13 +84,13 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 			"run it on a terminal to write the private, short-lived .credentials file, or pipe the output to a tool"
 		);
 	}
-	if (!(input.keyringAvailable ?? isKeyringAvailable)()) {
+	if (!(input.keyringAvailable ?? keyring.isAvailable)()) {
 		return refuse("keyring", "the OS keyring cannot be reached, so no stored token can be read");
 	}
 
 	const importer = input.importer ?? createDefaultImporter(dirname(input.loaded.filepath));
 	const env = createEnvLookup(input.env);
-	const keyring = input.keyring ?? getToken;
+	const readToken = input.keyring ?? keyring.get;
 
 	// Every token the plugins list, by variable name. A name listed twice under the same keyring entry is one token;
 	// under different entries it is a conflict, since one variable cannot hold both.
@@ -173,7 +173,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 			: undefined;
 		// The same order the commands use: the entry stored for the org first, then the plain one.
 		const value =
-			fromEnv || (input.org ? keyring(`${token.keyringKey}.${input.org}`) : null) || keyring(token.keyringKey);
+			fromEnv ||
+			(input.org ? readToken(`${token.keyringKey}.${input.org}`) : null) ||
+			readToken(token.keyringKey);
 		if (!value) {
 			if (input.blank) {
 				blank.push(written);

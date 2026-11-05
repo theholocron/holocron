@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "../../../..");
+const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const page = readFileSync(join(root, "docs/src/content/docs/tokens.mdx"), "utf8");
 
 /** Every `key: "value"` string a source file declares for one of the token resolver settings. */

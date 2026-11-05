@@ -163,10 +163,10 @@ Every existing plugin's `auth.ts` gains one line:
 
 <!-- prettier-ignore -->
 ```ts
-import { getToken as getKeyringToken } from "@theholocron/cli";
+import { keyring } from "@theholocron/cli";
 
 // after existing --token / HOLOCRON_<X> / <native> checks:
-const keyringToken = await getKeyringToken(providerSlug);
+const keyringToken = keyring.get(providerSlug);
 if (keyringToken) return keyringToken;
 
 ```
