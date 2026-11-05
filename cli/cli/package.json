@@ -79,6 +79,7 @@
     "yargs": "catalog:cli"
   },
   "devDependencies": {
+    "@theholocron/dagobah": "workspace:*",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/rollup-plugin-transform-template": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",

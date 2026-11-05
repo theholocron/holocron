@@ -1,0 +1,25 @@
+---
+title: "dev serve"
+description: Serve the handler `dev.serve` names, the application `holocron dev` runs.
+---
+
+```bash
+holocron dev serve
+```
+
+Loads the handler `dev.serve` names in `holocron.config.ts` and serves it on `127.0.0.1` at `/api/webhook`, on `PORT` (the tunnel's port when `holocron dev` starts it, otherwise `dev.port`, otherwise 3000).
+
+`holocron dev` runs this beside `cloudflared` with the vault's variables already in the environment, so it is not usually run by hand. The handler is loaded after those variables are set, TypeScript as is, so a handler that reads `process.env` when its module loads sees them.
+
+- It names any `required` variable that is missing.
+- It prints one line per request (method, path, status), never a header or a body.
+- With `logging` it says whether the app's logs go to Axiom, and which dataset, never the token.
+
+It fails with a message when `holocron.config.ts` has no `dev.serve`. See [`dev`](/holocron/commands/dev/#serving-a-handler) for the `serve` keys.
+
+## Examples
+
+```bash
+# Serve on a different port than the config's
+PORT=4000 holocron dev serve
+```

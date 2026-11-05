@@ -31,6 +31,32 @@ dev: {
 
 A flag wins over the config, and a command after `--` wins over `dev.command`. A missing value is named in one message, with both places it could be given.
 
+## Serving a handler
+
+For an application that is one web-standard handler (`(Request, env) => Response`), name it instead of writing a server and a `command`:
+
+```ts
+dev: {
+  environment: "Sentinel - dev",
+  tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
+  serve: {
+    handler: "./src/handler/index.ts",
+    export: "handleWebhookRequest",
+    required: ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+    logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "AXIOM_DATASET" },
+  },
+},
+```
+
+The application is then `holocron dev serve`, which `holocron dev` runs beside `cloudflared` with the vault's variables in its environment. It loads the handler (TypeScript as is) after those variables are set, so a handler that reads `process.env` when its module loads sees them, and serves it on `127.0.0.1` at `/api/webhook` on `PORT`. It names any `required` variable that is missing and prints one line per request (method, path, status), never a header or a body. With `logging` it also says whether the app's logs go to Axiom, and which dataset, never the token. `command` and a command after `--` still win over `serve`.
+
+| `serve` key | What it is                                                                     |
+| ----------- | ------------------------------------------------------------------------------ |
+| `handler`   | The module that exports the handler, relative to the directory                 |
+| `export`    | The export's name. Default `default`                                           |
+| `required`  | The variables the handler cannot run without                                   |
+| `logging`   | The variables holding the Axiom ingest token and dataset, to say where logs go |
+
 | Option          | Config            | What it does                                                                        |
 | --------------- | ----------------- | ----------------------------------------------------------------------------------- |
 | `--environment` | `environment`     | The vault environment whose variables the application runs with.                    |
@@ -41,4 +67,4 @@ A flag wins over the config, and a command after `--` wins over `dev.command`. A
 
 The hostname must sit one level under a zone the DNS provider manages (`sentinel-dev.theholocron.dev`, not `dev.sentinel.theholocron.dev`): Cloudflare's free certificate covers the zone and `*.zone`, and a proxied name two levels down would fail the TLS handshake.
 
-It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is just `holocron dev`, with its settings in `apps/sentinel/holocron.config.ts`; see the [Sentinel page](/holocron/sentinel/).
+It needs a `vault` provider that can read an environment (1Password does), a `tunnels` and a `dns` provider (the Cloudflare plugin, with an account id), a Cloudflare token with **Cloudflare Tunnel: Edit**, and `cloudflared` installed (`brew install cloudflared`). Sentinel's `pnpm dev` is `holocron dev`, with its settings in `apps/sentinel/holocron.config.ts`; see the [Sentinel page](/holocron/sentinel/).

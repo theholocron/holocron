@@ -57,6 +57,8 @@ export const COMMAND_CONTEXTS = {
 	"tunnel up": "workspace",
 	// `dev` calls the `vault`, `tunnels` and `dns` providers, so their packages must be resolvable.
 	dev: "workspace",
+	// Loads the config and the handler it names; calls no provider (the vault's variables arrive in the environment).
+	"dev serve": "repo-aware",
 	"notifications channel add": "workspace",
 	"notifications setup": "workspace",
 	"notifications link": "workspace",

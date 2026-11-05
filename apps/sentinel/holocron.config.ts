@@ -154,7 +154,12 @@ export default defineConfig({
 		environment: "Sentinel - dev",
 		tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
 		port: 3000,
-		command: ["pnpm", "run", "serve"],
+		serve: {
+			handler: "./src/handler/index.ts",
+			export: "handleWebhookRequest",
+			required: ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+			logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "AXIOM_DATASET" },
+		},
 	},
 	providers: {
 		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
