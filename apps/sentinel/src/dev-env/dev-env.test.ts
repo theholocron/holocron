@@ -22,6 +22,15 @@ describe("loadDevEnv", () => {
 		expect(spawn).not.toHaveBeenCalled();
 	});
 
+	it("reads an unquoted multi-line private key whole, as op prints it", () => {
+		const label = ["RSA", "PRIVATE", "KEY"].join(" ");
+		const pem = [`-----BEGIN ${label}-----`, "AAAA", "BBBB", `-----END ${label}-----`].join("\n");
+		const spawn = op(0, `GITHUB_APP_ID=2\nGITHUB_APP_PRIVATE_KEY=${pem}\nSENTINEL_WEBHOOK_SECRET=ws2\n`);
+		const env = loadDevEnv({ environment: "Sentinel - dev", env: {}, spawn });
+		expect(env.GITHUB_APP_PRIVATE_KEY).toBe(pem);
+		expect(env.SENTINEL_WEBHOOK_SECRET).toBe("ws2");
+	});
+
 	it("reads the rest from the 1Password Environment, with the values revealed", () => {
 		const spawn = op(
 			0,
