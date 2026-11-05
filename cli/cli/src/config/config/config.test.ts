@@ -268,6 +268,16 @@ describe("resolveConfig", () => {
 			/dev\.serve\.required/,
 		],
 		[
+			"serve.required that is not a list",
+			{ serve: { handler: "./h.ts", required: "A" as never } },
+			/dev\.serve\.required/,
+		],
+		[
+			"serve.logging with no token variable",
+			{ serve: { handler: "./h.ts", logging: { tokenVar: "", datasetVar: "D" } } },
+			/dev\.serve\.logging/,
+		],
+		[
 			"serve.logging with no dataset variable",
 			{ serve: { handler: "./h.ts", logging: { tokenVar: "T", datasetVar: "" } } },
 			/dev\.serve\.logging/,
