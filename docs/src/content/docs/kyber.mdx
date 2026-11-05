@@ -88,7 +88,14 @@ It asks the npm registry at most once a day, never throws, and says nothing in C
 For any project that handles tokens. It has no terminal UI and no Holocron name in it.
 
 ```ts
-import { createKeyring, dotenvLine, isGitIgnored, shredFile, writeCredentialsFile } from "@theholocron/kyber/secrets";
+import {
+  createKeyring,
+  createResolveToken,
+  dotenvLine,
+  isGitIgnored,
+  shredFile,
+  writeCredentialsFile,
+} from "@theholocron/kyber/secrets";
 
 if (isGitIgnored(".credentials") === "tracked") throw new Error("git would track this file");
 const file = writeCredentialsFile(".credentials", `${dotenvLine("TOKEN", token)}\n`); // mode 0600, never overwrites
@@ -98,11 +105,22 @@ shredFile(".credentials", file); // zeroes the contents, then removes the path o
 const keyring = createKeyring({ service: "com.example.tool" });
 keyring.set("github", token); // best-effort: false, not an exception, where there is no keyring
 keyring.get("github"); // remembered for the life of the process
+
+const resolveToken = createResolveToken({
+  envName: "MYTOOL_GITHUB_TOKEN", // the tool's own variable,
+  vendorEnvName: "GITHUB_TOKEN", // then the vendor's
+  keyringService: "github",
+  errorMessage: "no GitHub token found. Pass --token, or set MYTOOL_GITHUB_TOKEN or GITHUB_TOKEN.",
+  keyring: (account) => keyring.get(account),
+  orgEnvName: "MYTOOL_ORG", // optional: try the account github.<org> first
+});
+resolveToken({ cliToken: argv.token }); // the first source that has a token, or an AuthError
 ```
 
 - **Files.** `writeCredentialsFile` creates a file only its owner can read and refuses to replace one that is there (with `force` it swaps atomically and zeroes the old contents). A write that goes wrong removes the file it had created, so no plaintext tokens are left behind.
 - **dotenv.** `dotenvLine` gives a `NAME=value` that dotenv reads back as the same value, or `null` when no quoting can do that, so a token is never silently changed.
 - **Keyring.** `createKeyring` is best-effort on every platform; `@napi-rs/keyring` is an optional peer and can be passed in as `binding` (for a test, or when your package depends on it itself).
+- **Resolving a token.** `createResolveToken` (a vendor's token) and `createFeatureResolver` (one feature's, with no broad fallback) look in one order: the `--token` flag, the environment (the tool's variable, then the vendor's), the variables a `credentials` provider returned, the keyring account `<service>.<org>` when an org is active, then `<service>`. They throw `AuthError` with your message when none has one, and an empty string counts as unset.
 - **The rest.** `getCredential` and `setCredentials` hold variables a provider returned for the life of the process, `parseTokenArgs` parses repeatable `--token` flags (a bare value, or `vendor=value`), `readDotenvFile` reads `<repo root>/.env`, and `copyToClipboard` loads `clipboardy` only when called.
 
 ## `/testing`

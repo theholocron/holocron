@@ -1,12 +1,20 @@
 import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
 
-/** Thrown by a token resolver when no token was found in any source. */
+/**
+ * Thrown by a token resolver when no token was found in any source.
+ *
+ * @deprecated Moved to `AuthError` in `@theholocron/kyber/secrets`; this copy will be removed in the next major.
+ */
 export class AuthError extends Error {
 	/** The error name, `AuthError`. */
 	override name = "AuthError";
 }
 
-/** Where `resolveToken` looks for a token. */
+/**
+ * Where `resolveToken` looks for a token.
+ *
+ * @deprecated Moved to `ResolveTokenInput` in `@theholocron/kyber/secrets`; this copy will be removed in the next major.
+ */
 export interface ResolveTokenInput {
 	/** From `--token` CLI flag. */
 	cliToken?: string;
@@ -18,7 +26,11 @@ export interface ResolveTokenInput {
 	org?: string;
 }
 
-/** How `createResolveToken` finds a vendor's token. */
+/**
+ * How `createResolveToken` finds a vendor's token.
+ *
+ * @deprecated Moved to `ResolveTokenConfig` in `@theholocron/kyber/secrets`; this copy will be removed in the next major.
+ */
 export interface ResolveTokenConfig {
 	/** HOLOCRON_* env var (e.g. `"HOLOCRON_GH_TOKEN"`). */
 	envName: string;
@@ -35,6 +47,9 @@ export interface ResolveTokenConfig {
 /**
  * Returns a `resolveToken(input?)` function wired to the given env vars
  * and keyring service. Plugins call this once at module level.
+ *
+ * @deprecated Moved to `createResolveToken` in `@theholocron/kyber/secrets`, which also reads the variables a
+ * `credentials` provider returned and takes the org variable's name; this copy will be removed in the next major.
  *
  * @remarks
  * The resolver tries, in order: the `cliToken` input (the `--token` flag), the
