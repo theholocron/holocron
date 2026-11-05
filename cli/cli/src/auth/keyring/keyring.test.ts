@@ -20,7 +20,14 @@ vi.mock("@theholocron/kyber/secrets", () => ({
 
 import { Entry, findCredentials } from "@napi-rs/keyring";
 
-import { clearTokenCache, deleteToken, getToken, isKeyringAvailable, listStoredProviders, setToken } from "./keyring.js";
+import {
+	clearTokenCache,
+	deleteToken,
+	getToken,
+	isKeyringAvailable,
+	listStoredProviders,
+	setToken,
+} from "./keyring.js";
 
 describe("the CLI's keyring", () => {
 	it("stores every token under the holocron service, through the keyring binding it depends on", () => {
