@@ -18,8 +18,8 @@ coverage:
           - comlink
           - sentinel
           - astromech
-          - datapad
           - dagobah
+          - datapad
           - axiom-client
           - checkly-client
           - clerk-client
@@ -108,8 +108,8 @@ coverage:
           - comlink
           - sentinel
           - astromech
-          - datapad
           - dagobah
+          - datapad
           - axiom-client
           - checkly-client
           - clerk-client
@@ -203,8 +203,8 @@ flag_management:
     - name: comlink
     - name: sentinel
     - name: astromech
-    - name: datapad
     - name: dagobah
+    - name: datapad
     - name: axiom-client
     - name: checkly-client
     - name: clerk-client
@@ -312,15 +312,15 @@ component_management:
       paths:
         - cli/cli/**
 
-    - component_id: datapad
-      name: "datapad"
-      paths:
-        - cli/datapad/**
-
     - component_id: dagobah
       name: "dagobah"
       paths:
         - cli/dagobah/**
+
+    - component_id: datapad
+      name: "datapad"
+      paths:
+        - cli/datapad/**
 
     # clients
     - component_id: axiom-client
