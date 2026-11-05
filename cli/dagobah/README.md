@@ -6,7 +6,7 @@ on the loopback address and says where its logs go.
 
 Internal: private, not published. Sentinel's `scripts/serve.ts` is its first user.
 
-> Dagobah is the swamp where Luke trains, away from the real fight. This is where a handler runs before it ships.
+> Dagobah is the swamp where Luke trains, away from the real thing. This is where a handler runs before it ships.
 
 ## Usage
 
