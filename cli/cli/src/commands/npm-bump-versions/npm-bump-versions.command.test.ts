@@ -10,7 +10,7 @@ vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["new-version"]],
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { npmBumpVersionsCommand } from "./npm-bump-versions.command.js";
 
 beforeEach(() => {

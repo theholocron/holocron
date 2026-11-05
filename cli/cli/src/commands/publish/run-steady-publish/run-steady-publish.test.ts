@@ -6,14 +6,14 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
+import type { PublicPackageEntry } from "../public-package-entry.type.js";
 import {
 	baseEnv,
 	makeExec,
 	makeTempMonorepo,
 	makeTempMonorepoWithPlugins,
 	makeTempWorkspace,
-} from "../../../testing/publish-fixtures.js";
-import type { PublicPackageEntry } from "../public-package-entry.type.js";
+} from "../publish.fixtures.js";
 import type { PublishExecResult } from "../publish.type.js";
 import { runSteadyPublish } from "./run-steady-publish.js";
 

@@ -34,8 +34,8 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
 import { PluginCreateError } from "../plugin-create/index.js";
+import { runCommand } from "../run-command.testing.js";
 import { NewError } from "./index.js";
 import { newCommand } from "./new.command.js";
 

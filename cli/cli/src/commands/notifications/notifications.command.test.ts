@@ -29,7 +29,7 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { notificationsCommand } from "./notifications.command.js";
 
 const go = (args: string[]) => runCommand(notificationsCommand, ["notifications", ...args]);

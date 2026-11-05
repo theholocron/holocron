@@ -10,7 +10,7 @@ vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["group"]],
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { moveTagCommand } from "./move-tag.command.js";
 
 beforeEach(() => {

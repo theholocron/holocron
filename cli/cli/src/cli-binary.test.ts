@@ -1,6 +1,16 @@
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { createCliRunner } from "@theholocron/kyber/testing";
 import { describe, expect, it } from "vitest";
 
-import { runCli } from "./testing/run-cli.js";
+/** Runs the built CLI (`dist/cli.mjs`) in a fresh directory with no tokens, no telemetry and no update check. */
+const runCli = createCliRunner({
+	bin: join(dirname(fileURLToPath(import.meta.url)), "..", "dist", "cli.mjs"),
+	configFile: "holocron.config.json",
+	env: { HOLOCRON_TELEMETRY: "false" },
+	prefix: "holocron-cli-",
+});
 
 /** These run the built CLI, so what `cli.ts` does at the top level (the error paths, the exit codes) is checked as a user sees it. */
 const demo = { name: "demo", providers: {} };

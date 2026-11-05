@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const runGithubAppCreate = vi.hoisted(() => vi.fn());
 vi.mock("./github-app-create.js", () => ({ runGithubAppCreate }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { githubAppCreateCommand } from "./github-app-create.command.js";
 
 const required = ["--name", "The App - dev", "--webhook-url", "https://t.example/api/webhook", "--manifest", "m.json"];

@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import type { PublicPackageEntry } from "../commands/publish/public-package-entry.type.js";
-import type { PublishExecResult } from "../commands/publish/publish.type.js";
+import type { PublicPackageEntry } from "./public-package-entry.type.js";
+import type { PublishExecResult } from "./publish.type.js";
 
 export type TempPackageSpec = { name: string; version?: string; private?: boolean; invalidJson?: boolean };
 

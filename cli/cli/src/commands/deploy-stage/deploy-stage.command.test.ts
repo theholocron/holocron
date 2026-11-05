@@ -8,7 +8,7 @@ vi.mock("../../observability/logger/index.js", async (importActual) => ({
 	reportError,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { deployStageCommand } from "./deploy-stage.command.js";
 
 const go = (args: string[]) => runCommand(deployStageCommand, args);

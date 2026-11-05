@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const runGithubAppCreate = vi.hoisted(() => vi.fn());
 vi.mock("../github-app-create/github-app-create.js", () => ({ runGithubAppCreate }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { githubAppCommand } from "./github-app.command.js";
 
 beforeEach(() => {

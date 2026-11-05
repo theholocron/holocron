@@ -5,7 +5,7 @@ const runAuthExport = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./auth-export.js", () => ({ runAuthExport }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { authExportCommand } from "./auth-export.command.js";
 
 beforeEach(() => {

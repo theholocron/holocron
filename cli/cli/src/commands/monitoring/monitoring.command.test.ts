@@ -28,7 +28,7 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { monitoringCommand } from "./monitoring.command.js";
 
 const go = (args: string[]) => runCommand(monitoringCommand, args);

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { makeTempWorkspace as makeRepo } from "../../testing/publish-fixtures.js";
 import { discoverManifests } from "./discover-manifests.js";
 import { discoverPublicPackageEntries } from "./discover-public-package-entries.js";
 import { discoverPublicPackages } from "./discover-public-packages.js";
+import { makeTempWorkspace as makeRepo } from "./publish.fixtures.js";
 import { workspaceFilterArgs } from "./workspace-filter-args.js";
 
 const workspace = (...globs: string[]) => `packages:\n${globs.map((glob) => `  - "${glob}"`).join("\n")}\n`;

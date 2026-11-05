@@ -15,7 +15,7 @@ vi.mock("../../cli-support/index.js", async (importActual) => ({
 	resolveOrg: () => "acme",
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { repoCleanupCommand } from "./repo-cleanup.command.js";
 
 describe("repo cleanup", () => {

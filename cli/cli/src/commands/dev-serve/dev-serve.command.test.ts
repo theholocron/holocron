@@ -10,7 +10,7 @@ vi.mock("../../observability/logger/index.js", async (importActual) => ({
 	reportError,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { devServeCommand } from "./dev-serve.command.js";
 
 const SERVE = { handler: "./h.ts", export: "handle" };
