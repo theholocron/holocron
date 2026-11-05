@@ -12,9 +12,13 @@ vi.mock("../../interactive-menu/index.js", () => ({
 	buildProbeMenuEntries: (groups: unknown) => ["entries", groups],
 	launchMenu,
 }));
-vi.mock("../../cli-support/index.js", () => ({
+vi.mock("../token-context/index.js", () => ({
 	tokenContext,
+}));
+vi.mock("../apply-resolved-config/index.js", () => ({
 	applyResolvedConfig,
+}));
+vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_argv: unknown, config: { org?: string }) => config.org,
 }));
 

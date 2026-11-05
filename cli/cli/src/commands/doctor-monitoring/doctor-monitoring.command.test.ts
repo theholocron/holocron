@@ -5,7 +5,10 @@ const runDoctorMonitoring = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./doctor-monitoring.js", () => ({ runDoctorMonitoring }));
-vi.mock("../../cli-support/index.js", () => ({ tokenContext, applyResolvedConfig: vi.fn() }));
+vi.mock("../token-context/index.js", () => ({
+	tokenContext,
+	applyResolvedConfig: vi.fn(),
+}));
 
 import { doctorMonitoringCommand } from "./doctor-monitoring.command.js";
 

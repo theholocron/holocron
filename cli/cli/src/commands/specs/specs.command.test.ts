@@ -6,10 +6,13 @@ const runSpecsSync = vi.hoisted(() => vi.fn());
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("../specs-sync/specs-sync.js", () => ({ runSpecsSync }));
-vi.mock("../../cli-support/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../cli-support/index.js")>()),
+vi.mock("../token-context/index.js", () => ({
 	tokenContext,
+}));
+vi.mock("../apply-resolved-config/index.js", () => ({
 	applyResolvedConfig: vi.fn(),
+}));
+vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 vi.mock("../../interactive-menu/index.js", async (importActual) => ({

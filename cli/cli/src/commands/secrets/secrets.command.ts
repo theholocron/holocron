@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { secretSetCommand } from "../secret-set/secret-set.command.js";
 import { secretsListCommand } from "../secrets-list/secrets-list.command.js";
 import { secretsSyncCommand } from "../secrets-sync/secrets-sync.command.js";

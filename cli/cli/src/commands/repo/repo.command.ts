@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { setupCommand } from "../setup/setup.command.js";
 import { repoCleanupCommand } from "./repo-cleanup.command.js";
 import { repoSyncCommand } from "./repo-sync.command.js";

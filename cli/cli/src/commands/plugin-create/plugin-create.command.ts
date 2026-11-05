@@ -2,10 +2,10 @@ import { input, select } from "@inquirer/prompts";
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
 import { reportError } from "../../observability/logger/index.js";
 import { CARDINALITY } from "../../plugin/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { PluginCreateError, resolvePluginCreateInputs, runPluginCreate } from "./index.js";
 import { type PluginCreateArgs, pluginCreateArgs } from "./plugin-create.args.js";
 

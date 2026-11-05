@@ -5,10 +5,16 @@ const runDoctorNotifications = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./doctor-notifications.js", () => ({ runDoctorNotifications }));
-vi.mock("../../cli-support/index.js", () => ({
+vi.mock("../token-context/index.js", () => ({
 	tokenContext,
+}));
+vi.mock("../apply-resolved-config/index.js", () => ({
 	applyResolvedConfig: vi.fn(),
+}));
+vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
+}));
+vi.mock("../secrets-sync/parse-scope/index.js", () => ({
 	parseScope: (s: string) => ({ parsed: s }),
 }));
 

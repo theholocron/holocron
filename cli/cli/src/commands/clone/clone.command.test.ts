@@ -27,8 +27,7 @@ vi.mock("../../observability/logger/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../observability/logger/index.js")>()),
 	reportError,
 }));
-vi.mock("../../cli-support/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../cli-support/index.js")>()),
+vi.mock("../token-context/index.js", () => ({
 	tokenContext,
 }));
 

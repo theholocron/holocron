@@ -11,8 +11,7 @@ vi.mock("../../auth/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../auth/index.js")>()),
 	createFeatureResolver: () => resolveToken,
 }));
-vi.mock("../../cli-support/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../cli-support/index.js")>()),
+vi.mock("../token-context/index.js", () => ({
 	tokenContext,
 }));
 vi.mock("../../interactive-menu/index.js", async (importActual) => ({

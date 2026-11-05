@@ -1,7 +1,10 @@
+import { type InferArgs } from "@theholocron/kyber/flags";
 import type { Argv, CommandModule } from "yargs";
 
-import { applyResolvedConfig, type GlobalArgs, type InferArgs, resolveOrg } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { resolveOrg } from "../resolve-org/index.js";
 import { runAuthExport } from "./auth-export.js";
 import type { AuthExportTarget } from "./auth-export.type.js";
 import { stdoutKind } from "./stdout-kind/index.js";

@@ -1,5 +1,5 @@
-import { parseScope } from "../../cli-support/index.js";
 import type { RepoSecretsSync } from "../../config/index.js";
+import { parseScope } from "./parse-scope/index.js";
 import type { SecretRoute } from "./secrets-sync.type.js";
 
 /**

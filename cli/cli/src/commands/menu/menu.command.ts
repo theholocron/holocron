@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { style } from "@theholocron/kyber/ui";
 import type { CommandModule } from "yargs";
 
-import type { GlobalArgs } from "../../cli-support/index.js";
 import { buildRunMenuEntries, COMMAND_REGISTRY, launchMenu, listRunnableTasks } from "../../interactive-menu/index.js";
+import type { GlobalArgs } from "../global-args/index.js";
 
 /**
  * Print the dim version line once per terminal session — keyed by the

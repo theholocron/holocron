@@ -1,7 +1,7 @@
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { reportError } from "../../observability/logger/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { runUpgradeDeps } from "./index.js";
 import { type UpgradeDepsArgs, upgradeDepsArgs } from "./upgrade-deps.args.js";
 

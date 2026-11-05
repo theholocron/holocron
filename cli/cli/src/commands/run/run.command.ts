@@ -3,8 +3,8 @@ import { loadTasksConfig } from "@theholocron/astromech/config";
 import { lintCommitMsgFile } from "@theholocron/astromech/lint";
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { buildCliLogger, reportError } from "../../observability/logger/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { type RunArgs, runArgs } from "./run.args.js";
 
 export const runCommand: CommandModule<GlobalArgs, RunArgs> = {

@@ -1,13 +1,15 @@
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { Argv, CommandModule } from "yargs";
 
-import { applyResolvedConfig, resolveOrg, tokenContext } from "../../cli-support/index.js";
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
 import { reportError } from "../../observability/logger/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import { cleanupPreviewCommand } from "../cleanup-preview/cleanup-preview.command.js";
 import { deployStageCommand } from "../deploy-stage/deploy-stage.command.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { resolveOrg } from "../resolve-org/index.js";
+import { tokenContext } from "../token-context/index.js";
 import { type DeployArgs, deployArgs } from "./deploy.args.js";
 import { deployOnReleaseCommand } from "./deploy-on-release.command.js";
 import { runDeploy, runDeployFromFiles } from "./index.js";

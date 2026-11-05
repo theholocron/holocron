@@ -2,9 +2,9 @@ import type { CommandModule } from "yargs";
 
 import { createFeatureResolver } from "../../auth/index.js";
 import { AuthError } from "../../auth/index.js";
-import { tokenContext } from "../../cli-support/index.js";
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { reportError } from "../../observability/logger/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { tokenContext } from "../token-context/index.js";
 import { runSyncGithub } from "./index.js";
 import { type SyncGithubArgs, syncGithubArgs } from "./sync-github.args.js";
 

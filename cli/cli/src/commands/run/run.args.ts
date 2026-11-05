@@ -1,7 +1,8 @@
 import { describeTasks } from "@theholocron/astromech";
+import type { InferArgs } from "@theholocron/kyber/flags";
 import type { Argv } from "yargs";
 
-import type { GlobalArgs, InferArgs } from "../../cli-support/index.js";
+import type { GlobalArgs } from "../global-args/index.js";
 
 export const runArgs = (y: Argv<GlobalArgs>) =>
 	y
