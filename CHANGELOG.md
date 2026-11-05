@@ -1,3 +1,9 @@
+## [5.0.0-alpha.338](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.337...v5.0.0-alpha.338) (2026-11-05)
+
+### Features
+
+* **cli:** 📦 publish dagobah and kyber as ordinary dependencies of the CLI ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1748](https://github.com/theholocron/holocron/issues/1748)) ([8d5b285](https://github.com/theholocron/holocron/commit/8d5b2856d8b21fb51da96f7c7923ee27be92f14f))
+
 ## [5.0.0-alpha.337](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.336...v5.0.0-alpha.337) (2026-11-05)
 
 ### Features
