@@ -1,12 +1,8 @@
+import type { runCheckAgainstUrl } from "@theholocron/kyber/checks";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
-import {
-	type MonitoringCheckInput,
-	PluginLoader,
-	runCheckAgainstUrl,
-	type RuntimeContext,
-} from "../../plugin/index.js";
+import { type MonitoringCheckInput, PluginLoader, type RuntimeContext } from "../../plugin/index.js";
 
 export type MonitoringCheckPrint = (line: string) => void;
 

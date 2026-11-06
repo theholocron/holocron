@@ -1,14 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { MonitoringCheckInput } from "../capabilities/index.js";
-import { runCheckAgainstUrl } from "./run-check.js";
+import { runCheckAgainstUrl } from "./run-check-against-url.js";
+import type { CheckInput } from "./run-check-against-url.type.js";
 
 function fakeFetch(status: number, body = "", headers: Record<string, string> = {}): typeof fetch {
 	return (async () => new Response(body, { status, headers })) as unknown as typeof fetch;
 }
 
-const BASE: MonitoringCheckInput = {
-	name: "test check",
+const BASE: CheckInput = {
 	url: "https://example.com/original",
 };
 
@@ -322,7 +321,7 @@ describe("runCheckAgainstUrl", () => {
 	});
 
 	describe("comparisons", () => {
-		const cases: Array<[MonitoringCheckInput["assertions"], boolean]> = [
+		const cases: Array<[CheckInput["assertions"], boolean]> = [
 			[[{ source: "body", comparison: "equals", target: "exact" }], true],
 			[[{ source: "body", comparison: "not_equals", target: "other" }], true],
 			[[{ source: "body", comparison: "contains", target: "xa" }], true],

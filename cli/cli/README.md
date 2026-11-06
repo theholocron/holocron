@@ -825,6 +825,11 @@ the local override exists to exempt.
   The engine itself (the picker, argv and secret env, the dry-run preview, the spawn)
   and the prompting pieces — `promptForPositionals`, `promptForOptions` — live in
   `@theholocron/kyber` (`/menu`, `/prompts`), which has no knowledge of commands.
+- `src/plugin/connection-probe/` — the `connectionProbe` a plugin offers, kyber's `connectionProbe` (`@theholocron/kyber/checks`)
+  typed as the plugin system's `Probe` with `verify` returning `VerifyTokenResult`; `monitoring check` runs its checks
+  with kyber's `runCheckAgainstUrl`.
+- `src/commands/move-tag/` — the `package move-tag` yargs command, the registry entry and `runMoveTag`, which adds the
+  command-bound logger to kyber's `moveMajorTag` (`@theholocron/kyber/git`).
 
 ## Status
 

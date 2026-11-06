@@ -20,6 +20,11 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
+    "./checks": {
+      "types": "./dist/checks.d.mts",
+      "import": "./dist/checks.mjs",
+      "default": "./dist/checks.mjs"
+    },
     "./config": {
       "types": "./dist/config.d.mts",
       "import": "./dist/config.mjs",
@@ -29,6 +34,11 @@
       "types": "./dist/flags.d.mts",
       "import": "./dist/flags.mjs",
       "default": "./dist/flags.mjs"
+    },
+    "./git": {
+      "types": "./dist/git.d.mts",
+      "import": "./dist/git.mjs",
+      "default": "./dist/git.mjs"
     },
     "./menu": {
       "types": "./dist/menu.d.mts",
