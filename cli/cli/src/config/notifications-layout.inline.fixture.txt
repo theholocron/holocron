@@ -99,6 +99,8 @@
 					name: "ideas",
 					kind: "forum",
 					topic: "One post for each ADR and spec, tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
+					defaultReaction: "👍",
+					starterReactions: ["👍", "👎", "❓"],
 					tags: [
 						{ name: "draft", emoji: "✏️", moderated: true },
 						{ name: "proposed", emoji: "💬", moderated: true },
