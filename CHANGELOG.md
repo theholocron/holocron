@@ -1,3 +1,22 @@
+## [5.0.0-alpha.343](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.342...v5.0.0-alpha.343) (2026-11-06)
+
+### Refactoring
+
+* **dagobah:** ♻️ move the process supervisor out of the CLI ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1777](https://github.com/theholocron/holocron/issues/1777)) ([5cee21e](https://github.com/theholocron/holocron/commit/5cee21e4fd98448a8083458f0d4195ef770cee8c))
+* **http-client:** ♻️ remove deprecated token resolver, now in kyber/secrets ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1780](https://github.com/theholocron/holocron/issues/1780)) ([19896c3](https://github.com/theholocron/holocron/commit/19896c3e0642c6acc6202804e4d12aefd3e3094e))
+* **kyber:** ♻️ move finishCredentialsFile to /secrets ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1778](https://github.com/theholocron/holocron/issues/1778)) ([6205519](https://github.com/theholocron/holocron/commit/62055190052c48542e2d38e85bdd09f631c23149))
+* **kyber:** ♻️ move the check-rows renderer into kyber/ui ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1779](https://github.com/theholocron/holocron/issues/1779)) ([e825d24](https://github.com/theholocron/holocron/commit/e825d246c2d00633251511b898f2d025cde3bb4f))
+
+### Documentation
+
+* 📝 drop stale refs to folders moved into kyber ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1776](https://github.com/theholocron/holocron/issues/1776)) ([0b83022](https://github.com/theholocron/holocron/commit/0b83022f441513d65c9dfd422bfa8a0a38fc8499))
+* **specs:** spec for the .holocron directory ([#1775](https://github.com/theholocron/holocron/issues/1775)) ([7a6157f](https://github.com/theholocron/holocron/commit/7a6157fde3179625a694faf440f714ac92647e18)), closes [#1747](https://github.com/theholocron/holocron/issues/1747)
+
+### Chores
+
+* 📋 declare the v5 board and generate its hourly reconcile workflow ([#1770](https://github.com/theholocron/holocron/issues/1770)) ([04942c3](https://github.com/theholocron/holocron/commit/04942c388c890a4d2b621d7a32157b5dae66de4a)), closes [#1744](https://github.com/theholocron/holocron/issues/1744)
+* **specs:** 🔧 🔄 sync spec discussions ([#1782](https://github.com/theholocron/holocron/issues/1782)) ([8d3257d](https://github.com/theholocron/holocron/commit/8d3257d45e0ddb731094db0486cdf64ac112b99a))
+
 ## [5.0.0-alpha.342](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.341...v5.0.0-alpha.342) (2026-11-06)
 
 ### Features
