@@ -66,6 +66,31 @@ branch is never a valid `ref` here. Returns one of:
 | `"unknown-tasks"` | Config loaded; `unknownTasks` lists names outside the registry. |
 | `"load-error"`    | A `holocron.config.*` exists but couldn't be parsed/executed.   |
 
+### The `.holocron/` directory (holocron#1785)
+
+A repo can keep the big declarations of its config in `.holocron/<area>.*`
+(`notifications`, `repo`; see the CLI README). `validateConfig` lists
+`.holocron/` at the same `ref` as the config, fetches every file in it
+(all levels, `fetchConfigDir()`), writes the tree into the sandbox with
+datapad's `writeConfigDir()` _before_ the config is evaluated (the config
+may import from it), loads the area files with `loadConfigDir()` and places
+them with the CLI's own `placeAreas()` (exported from `@theholocron/cli`
+with `HOLOCRON_AREAS`). The returned `config` is therefore the merged one,
+and role sync, property sync and the PR config check all see the layout and
+the `repo` block. Everything written to the sandbox is never evaluated unless
+the config or an area file imports it, so an area file may import a sibling
+and a stray file does nothing. A repo with no `.holocron/` (the listing
+404s) behaves as before, and a new area needs no change in Sentinel. The
+directory is read at the same `ref` as the config, so the D4/D6 boundary is
+unchanged: a `ref` read is for validation only, and everything that writes
+stays on the default branch.
+
+Caps (the tree comes from a repo others can write to): at most 50 files,
+100 KB per file (the same cap as `readRepoText()`), 512 KB in all. Past a
+cap, or when an area file does not load or conflicts with an inline value,
+the result is `load-error`. Symlinks and submodules are skipped. A GitHub
+failure other than a 404 propagates, as for every other read.
+
 Execution reuses `@theholocron/datapad`'s `loadConfigFromContent()`
 (fetched content, not a file already on disk — the same `loadFile`
 internals `loadConfigFile()` uses locally for `holocron repo setup`/`sync`,

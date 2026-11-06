@@ -6,6 +6,9 @@ export * from "./commands/setup/derived-properties/index.js";
 export * from "./config/compose/index.js";
 export * from "./config/config/index.js";
 export * from "./config/config-system.js";
+// Sentinel loads a repo's `.holocron/` from the GitHub API and applies it with the same rules `loadConfig` uses.
+export * from "./config/load-config/holocron-areas/index.js";
+export * from "./config/load-config/place-areas/index.js";
 export * from "./plugin/capabilities/index.js";
 export * from "./plugin/connection-probe/index.js";
 export type * from "./plugin/probe/index.js";

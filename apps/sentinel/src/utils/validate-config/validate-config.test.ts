@@ -24,12 +24,19 @@ function b64(content: string): string {
 /** Every astromech.config.* extension 404s: the repo has no dedicated tasks layer (holocron#916). */
 const NO_DEDICATED = Array.from({ length: 5 }, () => ({ status: 404 }));
 
-/** Appends {@link NO_DEDICATED} unless `dedicated` overrides it, since a found holocron.config also probes astromech.config.*. */
+/** The `.holocron/` listing 404s: the repo has no config directory (#1785). */
+const NO_TREE = [{ status: 404 }];
+
+/**
+ * Appends the `.holocron/` listing ({@link NO_TREE} unless `tree` overrides it) and then {@link NO_DEDICATED} unless
+ * `dedicated` overrides it, since a found holocron.config lists `.holocron/` and also probes astromech.config.*.
+ */
 function makeClient(
 	responses: Parameters<typeof stubFetch>[0],
-	dedicated: Parameters<typeof stubFetch>[0] = NO_DEDICATED
+	dedicated: Parameters<typeof stubFetch>[0] = NO_DEDICATED,
+	tree: Parameters<typeof stubFetch>[0] = NO_TREE
 ) {
-	const { fetch, calls } = stubFetch([...responses, ...dedicated]);
+	const { fetch, calls } = stubFetch([...responses, ...tree, ...dedicated]);
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
 
@@ -73,6 +80,7 @@ describe("validateConfig", () => {
 			"holocron.config.mjs",
 			"holocron.config.cjs",
 			"holocron.config.json",
+			".holocron",
 			"astromech.config.ts",
 			"astromech.config.js",
 			"astromech.config.mjs",
