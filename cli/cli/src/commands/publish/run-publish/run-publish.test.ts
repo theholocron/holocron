@@ -558,7 +558,7 @@ describe("runPublish", () => {
 		expect(joined).toContain(`Repository: ${TEST_REPO}`);
 		expect(joined).toContain("Publisher: GitHub Actions");
 		expect(joined).toContain("Label: Holocron Release");
-		expect(joined).toContain("Workflow filename: delivery.publish.yml");
+		expect(joined).toContain("Workflow filename: ci.release.yml");
 	});
 
 	it("auto-detects org + repo from git remote when orgName/repoName are not injected", async () => {
