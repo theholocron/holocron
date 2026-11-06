@@ -1,9 +1,8 @@
 import { closeSync } from "node:fs";
 
-import { shredFile } from "@theholocron/kyber/secrets";
-import { waitForEnter } from "@theholocron/kyber/ui";
-import { errorMessage } from "@theholocron/misc-utils";
-
+import { describeError } from "../../ui/describe-error/index.js";
+import { waitForEnter } from "../../ui/wait-for-enter/index.js";
+import { shredFile } from "../shred-file/index.js";
 import type { FinishCredentialsFileInput } from "./finish-credentials-file.type.js";
 
 /** Signals that end the wait for the import, with the exit status each is conventionally reported as. */
@@ -36,7 +35,7 @@ export async function finishCredentialsFile(input: FinishCredentialsFileInput): 
 			else print(`left ${path} alone: it is no longer the file this command wrote`);
 			return true;
 		} catch (err) {
-			print(`could not delete ${path}: ${errorMessage(err)}`);
+			print(`could not delete ${path}: ${describeError(err)}`);
 			print(`it holds ${input.holds} in plain text: delete it yourself: ${path}`);
 			return false;
 		}

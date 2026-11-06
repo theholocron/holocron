@@ -1,3 +1,9 @@
+## [1.58.0-alpha.10](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.9...clients-v1.58.0-alpha.10) (2026-11-06)
+
+### Refactoring
+
+* **http-client:** ♻️ remove deprecated token resolver, now in kyber/secrets ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1780](https://github.com/theholocron/holocron/issues/1780)) ([19896c3](https://github.com/theholocron/holocron/commit/19896c3e0642c6acc6202804e4d12aefd3e3094e))
+
 ## [1.58.0-alpha.9](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.8...clients-v1.58.0-alpha.9) (2026-11-06)
 
 ### Features
