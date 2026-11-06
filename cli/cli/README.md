@@ -216,6 +216,17 @@ export default {
 
 This repo's own Discord layout lives in `.holocron/notifications.ts`; `holocron.config.ts` keeps only `guildId`.
 
+`RULES.md` and the webhook avatar live in `.holocron/` too (`.holocron/pinned/rules.md`, `.holocron/media/webhook-avatar.png`),
+but they are not areas: the layout names them with an explicit repo-relative path (`pinned: [{ channel, file }]`,
+`webhookAvatar`). `.holocron/projects/<name>.json` is the project-board template folder (SPEC-0020), read by its own
+default and not placed into the config.
+
+**Sentinel** reads the directory too, so its PR config check, property sync and role sync see the same merged config as
+the CLI. It lists `.holocron/` at the config's ref and fetches the whole tree (any depth, so an area may import a
+sibling), within caps: 50 files, 100 KB per file, 512 KB in all. Past a cap, or on an area file that does not load,
+the check reports a load error. Only what the config or an area file imports is evaluated. The design and the decisions
+are in `docs/wiki/specifications/tech-holocron-directory.spec.md` (SPEC-0069).
+
 **Keys that never move out of `holocron.config.ts`.** `repo.defaultBranch`, because the config is the one file read
 before the directory, and the default branch is what says which branch holds `.holocron/` and the config. Every other
 top-level key (`name`, `org`, `domain`, `providers`, `tasks`) also stays, but only because the closed list of areas has
