@@ -1,3 +1,13 @@
+## [5.0.0-alpha.342](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.341...v5.0.0-alpha.342) (2026-11-06)
+
+### Features
+
+* **kyber:** ✨ add observability subpath for logger and telemetry wiring ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1773](https://github.com/theholocron/holocron/issues/1773)) ([2d17ad5](https://github.com/theholocron/holocron/commit/2d17ad5e98052fe0a2a5baa2b88b12e2cc7b2e29))
+
+### Refactoring
+
+* **kyber:** ♻️ move the retry notice into /ui as createRetryNotice ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1771](https://github.com/theholocron/holocron/issues/1771)) ([10d129d](https://github.com/theholocron/holocron/commit/10d129d6fa386597bbc57d40416da1e2ee999b62))
+
 ## [5.0.0-alpha.341](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.340...v5.0.0-alpha.341) (2026-11-06)
 
 ### Features

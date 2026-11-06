@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/dagobah",
-  "version": "5.0.0-alpha.341",
+  "version": "5.0.0-alpha.342",
   "description": "Local development server for a web-standard handler: loads its secrets from a 1Password Environment and serves it over HTTP behind a tunnel.",
   "keywords": [
     "dev-server",
