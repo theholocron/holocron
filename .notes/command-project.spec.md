@@ -101,7 +101,7 @@ $ holocron project create roadmap --title "v5.0 Roadmap"
 ✔ Created project: https://github.com/orgs/theholocron/projects/7
   Title:    v5.0 Roadmap
   Template: roadmap
-  Fields:   Status, Priority, Milestone
+  Fields:   Status, Priority
   Views:    By status (kanban), All items (table)
 ```
 
@@ -226,12 +226,13 @@ default `.holocron/projects`). A repo template with a built-in's name replaces i
 
 Mirrors the current org roadmap board (project 5, "v5"; v4 was closed on 2026-11-05):
 
-| Component  | Definition                                                                                                            |
-| ---------- | --------------------------------------------------------------------------------------------------------------------- |
-| **Fields** | Status (Someday / Todo / In Progress / Blocked / Done), Priority (1 · Now / 2 · Next / 3 · Process), Milestone (text) |
-| **Views**  | Active (default), Backlog, Done — see below                                                                           |
+| Component  | Definition                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------------- |
+| **Fields** | Status (Someday / Todo / In Progress / Blocked / Done), Priority (1 · Now / 2 · Next / 3 · Process) |
+| **Views**  | Active (default), Backlog, Done — see below                                                         |
 
 `Blocked` is a status for an item that waits on another issue or an outside change.
+Milestone is one of GitHub's own built-in fields, so the template does not list it (a provider does not read the built-in fields).
 The dependency itself is the issue's "blocked by" link; the column only makes it visible.
 Each status carries a category (see [Capability: `projects`](#capability-projects)):
 Someday is `backlog`, Todo `planned`, In Progress `active`, Blocked `blocked`, Done `done`.
@@ -401,8 +402,8 @@ command. What `reconcile` changed is not an alert; the run's summary lists it.
 pull request check ("the linked issue is not `Blocked`") is possible later and is not proposed.
 
 **Built once by hand.** `holocron project setup` creates the board (copying a template board
-brings its automation rules), writes the scheduled workflow through `generateRepoFiles()` (a
-generated file like the others, checked by `probe generated check`) and reports the manual steps
+brings its automation rules), enables the scheduled `reconcile-projects` task (a registry task with a reusable
+template and a generated thin caller, like `check-tokens`; it is listed in `tasks:`) and reports the manual steps
 as `todo`: the App subscription and permission, and the token secret. The project's own "Item
 closed" and "Pull request merged" rules cannot be switched on through the API, so nothing depends
 on them: `reconcile` already sets a closed item to `done`.
