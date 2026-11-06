@@ -77,7 +77,7 @@ wraps it is an open question below.
 Nothing a user can see. Imports in `cli/cli/src` move from `../ui/...` and `../auth/...` to `@theholocron/kyber/<subpath>`
 and the moved sources, tests and barrels are deleted. Holocron-specific pieces stay: `USER_FACING_ERRORS` (the list of
 this CLI's error classes) and `describeProviderError` stay in the CLI and use kyber's generic formatting; the temp
-monorepo fixtures and `TEST_ORG` stay in the CLI's own `testing/`.
+monorepo fixtures and `TEST_ORG` stay in the CLI (`commands/publish/publish.fixtures.ts`).
 
 ## Publishing
 
