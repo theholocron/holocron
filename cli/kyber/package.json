@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/kyber",
-  "version": "5.0.0-alpha.353",
+  "version": "5.0.0-alpha.354",
   "description": "The reusable parts of a command-line tool: terminal output, prompts, the interactive menu, the update notifier, safe handling of tokens, a test harness and the global flags.",
   "keywords": [
     "cli",

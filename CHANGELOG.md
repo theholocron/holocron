@@ -1,3 +1,10 @@
+## [5.0.0-alpha.354](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.353...v5.0.0-alpha.354) (2026-11-06)
+
+### Features
+
+* **config:** ☁️ read the Cloudflare account id through the credential chain ([#1827](https://github.com/theholocron/holocron/issues/1827)) ([#1828](https://github.com/theholocron/holocron/issues/1828)) ([61c1133](https://github.com/theholocron/holocron/commit/61c11332bc2e188aea85445afc9577715fd4b75c))
+* **notifications:** ✨ default and starter reactions for forum channels ([#1825](https://github.com/theholocron/holocron/issues/1825)) ([e0571e3](https://github.com/theholocron/holocron/commit/e0571e30502c1dddf58d105771bca68496a67bd7)), closes [#1822](https://github.com/theholocron/holocron/issues/1822)
+
 ## [5.0.0-alpha.353](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.352...v5.0.0-alpha.353) (2026-11-06)
 
 ### Features
