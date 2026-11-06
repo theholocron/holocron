@@ -19,7 +19,12 @@ export interface AppManifest extends AppManifestBase {
 	/** Where GitHub sends the browser, with the one-time code, after the App is created. */
 	redirect_url: string;
 	/** The webhook GitHub delivers events to. */
-	hook_attributes: { url: string; active: true };
+	hook_attributes: {
+		/** The `https` URL events are delivered to. */
+		url: string;
+		/** Whether GitHub delivers events; always on for a new App. */
+		active: true;
+	};
 }
 
 /** What differs per instance of the App, with the shared part read from a file. */
