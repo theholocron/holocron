@@ -135,6 +135,15 @@ describe("createPluginSystem", () => {
 		expect(loader.loadFailures()[0]?.error.message).toMatch(/does not export `createPlugin/);
 	});
 
+	it("reports an import that rejects with a non-Error by its string form", async () => {
+		const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
+		const loader = new PluginLoader({ providers: { source: single("github") } }, { root: "/r" }, async () =>
+			Promise.reject("offline")
+		);
+		await loader.load();
+		expect(loader.loadFailures()[0]?.error.message).toMatch(/for capability `source`: offline$/);
+	});
+
 	it("records a package whose module is null", async () => {
 		const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
 		const loader = new PluginLoader(
