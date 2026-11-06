@@ -16,7 +16,7 @@ describe("createCommandRegistry", () => {
 
 	it("throws for an unknown name, naming the catalog", () => {
 		expect(() => createCommandRegistry([entry("doctor")], "tool").getEntry("nope")).toThrow(
-			'tool: no command registry entry named "nope"',
+			'tool: no command registry entry named "nope"'
 		);
 	});
 
