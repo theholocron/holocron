@@ -1,3 +1,9 @@
+## [1.58.0-alpha.12](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.11...clients-v1.58.0-alpha.12) (2026-11-06)
+
+### Features
+
+* **notifications:** ✨ default and starter reactions for forum channels ([#1825](https://github.com/theholocron/holocron/issues/1825)) ([e0571e3](https://github.com/theholocron/holocron/commit/e0571e30502c1dddf58d105771bca68496a67bd7)), closes [#1822](https://github.com/theholocron/holocron/issues/1822)
+
 ## [1.58.0-alpha.11](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.10...clients-v1.58.0-alpha.11) (2026-11-06)
 
 ### Features
