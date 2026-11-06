@@ -1,3 +1,5 @@
+import { createCommandRegistry } from "@theholocron/kyber/menu";
+
 import { authCheckEntry } from "../../commands/auth/auth-check.entry.js";
 import { authListEntry } from "../../commands/auth/auth-list.entry.js";
 import { authSetEntry } from "../../commands/auth/auth-set.entry.js";
@@ -56,7 +58,6 @@ import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js
 import { tunnelUpEntry } from "../../commands/tunnel-up/tunnel-up.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
 import { upgradeNodeEntry } from "../../commands/upgrade-node/upgrade-node.entry.js";
-import type { CommandEntry } from "./command-registry.type.js";
 
 /**
  * The full command surface for the interactive menu. Each entry lives next to the command it describes
@@ -68,72 +69,74 @@ import type { CommandEntry } from "./command-registry.type.js";
  * `run lint commit-msg <file>` stays excluded entirely: it's invoked exclusively from `.husky/commit-msg "$1"`, never
  * typed by a human.
  */
-export const COMMAND_REGISTRY: CommandEntry[] = [
-	cloneEntry,
-	doctorEntry,
-	doctorAllEntry,
-	probeEntry,
-	setupEntry,
-	secretSetEntry,
-	secretsListEntry,
-	secretsSyncEntry,
-	notificationsChannelAddEntry,
-	doctorMonitoringEntry,
-	doctorNotificationsEntry,
-	doctorEnvironmentsEntry,
-	doctorCredentialsEntry,
-	doctorProjectEntry,
-	projectMoveEntry,
-	doctorDnsEntry,
-	doctorRepoEntry,
-	doctorSecretsEntry,
-	doctorTokensEntry,
-	doctorVariablesEntry,
-	doctorCiEntry,
-	notificationsSetupEntry,
-	notificationsCreateServerEntry,
-	notificationsLinkEntry,
-	notificationsSyncRolesEntry,
-	specsSyncEntry,
-	deployEntry,
-	cleanupPreviewEntry,
-	deployOnReleaseEntry,
-	monitoringCheckEntry,
-	npmBumpVersionsEntry,
-	moveTagEntry,
-	publishEntry,
-	repoSyncEntry,
-	repoCleanupBranchesEntry,
-	runCiEntry,
-	syncGithubEntry,
-	syncReadmeEntry,
-	configShowEntry,
-	newRepoEntry,
-	pluginCreateEntry,
-	skillsInstallEntry,
-	skillsRemoveEntry,
-	skillsUpdateEntry,
-	upgradeNodeEntry,
-	upgradeDepsEntry,
-	authSetEntry,
-	authUnsetEntry,
-	authCheckEntry,
-	authListEntry,
-	authExportEntry,
-	githubAppCreateEntry,
-	tunnelUpEntry,
-	// project: one entry per subcommand of `holocron project`; add new ones here.
-	projectListEntry,
-	projectCreateEntry,
-	projectCloseEntry,
-	projectSetupEntry,
-	// project (SPEC-0020)
-	projectReconcileEntry,
-];
+const registry = createCommandRegistry(
+	[
+		cloneEntry,
+		doctorEntry,
+		doctorAllEntry,
+		probeEntry,
+		setupEntry,
+		secretSetEntry,
+		secretsListEntry,
+		secretsSyncEntry,
+		notificationsChannelAddEntry,
+		doctorMonitoringEntry,
+		doctorNotificationsEntry,
+		doctorEnvironmentsEntry,
+		doctorCredentialsEntry,
+		doctorProjectEntry,
+		projectMoveEntry,
+		doctorDnsEntry,
+		doctorRepoEntry,
+		doctorSecretsEntry,
+		doctorTokensEntry,
+		doctorVariablesEntry,
+		doctorCiEntry,
+		notificationsSetupEntry,
+		notificationsCreateServerEntry,
+		notificationsLinkEntry,
+		notificationsSyncRolesEntry,
+		specsSyncEntry,
+		deployEntry,
+		cleanupPreviewEntry,
+		deployOnReleaseEntry,
+		monitoringCheckEntry,
+		npmBumpVersionsEntry,
+		moveTagEntry,
+		publishEntry,
+		repoSyncEntry,
+		repoCleanupBranchesEntry,
+		runCiEntry,
+		syncGithubEntry,
+		syncReadmeEntry,
+		configShowEntry,
+		newRepoEntry,
+		pluginCreateEntry,
+		skillsInstallEntry,
+		skillsRemoveEntry,
+		skillsUpdateEntry,
+		upgradeNodeEntry,
+		upgradeDepsEntry,
+		authSetEntry,
+		authUnsetEntry,
+		authCheckEntry,
+		authListEntry,
+		authExportEntry,
+		githubAppCreateEntry,
+		tunnelUpEntry,
+		// project: one entry per subcommand of `holocron project`; add new ones here.
+		projectListEntry,
+		projectCreateEntry,
+		projectCloseEntry,
+		projectSetupEntry,
+		// project (SPEC-0020)
+		projectReconcileEntry,
+	],
+	"interactive-menu"
+);
 
-/** Look up a {@link CommandEntry} by its full name — for Layer 3 call sites in `cli.ts`. */
-export function getEntry(name: string): CommandEntry {
-	const entry = COMMAND_REGISTRY.find((e) => e.name === name);
-	if (!entry) throw new Error(`interactive-menu: no COMMAND_REGISTRY entry named "${name}"`);
-	return entry;
-}
+/** Every Holocron command, in menu order: what {@link launchMenu} lists and what a leaf handler's prompt reads. */
+export const COMMAND_REGISTRY = registry.entries;
+
+/** Look up a command's menu entry by its full name — for Layer 3 call sites in `cli.ts`. */
+export const getEntry = registry.getEntry;

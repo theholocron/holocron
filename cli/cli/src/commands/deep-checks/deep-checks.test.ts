@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { COMMAND_REGISTRY } from "../../interactive-menu/command-registry/command-registry.js";
+import { COMMAND_REGISTRY } from "../../interactive-menu/command-catalog/index.js";
 import { COMMAND_CONTEXTS } from "../contexts/contexts.js";
 import { DEEP_CHECKS } from "./deep-checks.js";
 

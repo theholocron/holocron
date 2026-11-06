@@ -222,7 +222,7 @@ $ holocron deploy < /dev/null
 
 ## Command registry
 
-`cli/cli/src/interactive-menu/command-registry` exports `COMMAND_REGISTRY` — the
+`cli/cli/src/interactive-menu/command-catalog` exports `COMMAND_REGISTRY` (built by kyber's `createCommandRegistry`) — the
 single source of truth for the interactive layer. Each entry mirrors its
 corresponding Yargs registration in `cli.ts`. It does not introspect Yargs at
 runtime — entries are hand-maintained in parallel with the Yargs

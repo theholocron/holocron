@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const deployOnReleaseEntry: CommandEntry = {
+export const deployOnReleaseEntry: MenuEntry = {
 	name: "deploy on-release",
 	description: "Deploy every workspace package whose delivery.deploy task is `on: release`",
 	positionals: [],

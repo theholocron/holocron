@@ -814,8 +814,8 @@ the local override exists to exempt.
   `notifications sync-roles`, `project reconcile`, `doctor ci`, `doctor credentials`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor repo`, `doctor secrets`, `doctor tokens`, `doctor variables`
 - `src/commands/deep-checks/` — `DEEP_CHECKS`, the registry every `doctor <capability>` is
   listed in; the shared row renderer and `declaredVsActual` helper are in `@theholocron/kyber/ui`
-- `src/interactive-menu/` — the interactive fallback's Holocron data: `command-registry`
-  (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `run-menu-entries`
+- `src/interactive-menu/` — the interactive fallback's Holocron data: `command-catalog`
+  (`COMMAND_REGISTRY`, built with kyber's `createCommandRegistry`; each entry's `positionals`/`options`), `run-menu-entries`
   and `probe-menu-entries` (menu entries built at run time), and `menu.ts`,
   kyber's `createMenu` bound to the `holocron` bin and `HOLOCRON_` env prefix.
   The engine itself (the picker, argv and secret env, the dry-run preview, the spawn)

@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const doctorEntry: CommandEntry = {
+export const doctorEntry: MenuEntry = {
 	name: "doctor",
 	description: "Load the config and run a smoke check against every provider",
 	positionals: [],

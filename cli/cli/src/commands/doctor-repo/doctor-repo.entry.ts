@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const doctorRepoEntry: CommandEntry = {
+export const doctorRepoEntry: MenuEntry = {
 	name: "doctor repo",
 	description:
 		"Check the repository settings against the config (read-only): description, topics, labels, teams, protection, security",

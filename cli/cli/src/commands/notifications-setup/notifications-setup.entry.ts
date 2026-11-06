@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const notificationsSetupEntry: CommandEntry = {
+export const notificationsSetupEntry: MenuEntry = {
 	name: "notifications setup",
 	description: "Apply the server layout a notifications provider declares in holocron.config.ts",
 	positionals: [],

@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const skillsUpdateEntry: CommandEntry = {
+export const skillsUpdateEntry: MenuEntry = {
 	name: "skills update",
 	description: "Update installed skills to their latest upstream versions via npx skills update",
 	positionals: [],

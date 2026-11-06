@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const notificationsLinkEntry: CommandEntry = {
+export const notificationsLinkEntry: MenuEntry = {
 	name: "notifications link",
 	description: "Link your server account to your GitHub account by signing in with the provider",
 	positionals: [],

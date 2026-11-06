@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const setupEntry: CommandEntry = {
+export const setupEntry: MenuEntry = {
 	name: "repo setup",
 	description: "Apply infra setup actions across every configured capability",
 	positionals: [],

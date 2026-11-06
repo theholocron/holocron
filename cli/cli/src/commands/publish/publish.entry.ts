@@ -1,7 +1,6 @@
 import { createEnvLookup } from "@theholocron/env-utils/lookup";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 import { type OptionPrompt } from "@theholocron/kyber/prompts";
-
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
 
 const env = createEnvLookup();
 
@@ -32,7 +31,7 @@ const PUBLISH_OTP_OPTION: OptionPrompt = {
 	message: "One-time password (2FA), if npm requires it for this publish:",
 };
 
-export const publishEntry: CommandEntry = {
+export const publishEntry: MenuEntry = {
 	name: "package publish",
 	description: "Publish @theholocron/* packages to npm",
 	positionals: [],

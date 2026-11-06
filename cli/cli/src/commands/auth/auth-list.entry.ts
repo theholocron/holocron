@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const authListEntry: CommandEntry = {
+export const authListEntry: MenuEntry = {
 	name: "auth list",
 	description: "List every provider with a stored bootstrap token",
 	positionals: [],

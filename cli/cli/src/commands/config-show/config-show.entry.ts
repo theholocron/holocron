@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const configShowEntry: CommandEntry = {
+export const configShowEntry: MenuEntry = {
 	name: "config show",
 	description: "Print the resolved holocron config",
 	positionals: [],

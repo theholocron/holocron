@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const syncGithubEntry: CommandEntry = {
+export const syncGithubEntry: MenuEntry = {
 	name: "sync github",
 	description: "Sync workflow templates and composite actions to theholocron/.github",
 	positionals: [],

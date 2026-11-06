@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const githubAppCreateEntry: CommandEntry = {
+export const githubAppCreateEntry: MenuEntry = {
 	name: "github-app create",
 	description: "Create a GitHub App from a manifest and keep its credentials in a private file to import",
 	positionals: [],

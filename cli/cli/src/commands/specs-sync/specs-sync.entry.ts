@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const specsSyncEntry: CommandEntry = {
+export const specsSyncEntry: MenuEntry = {
 	name: "specs sync",
 	description: "Keep each ADR and spec in step with a post in a forum channel",
 	positionals: [],

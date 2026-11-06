@@ -1,4 +1,5 @@
 export * from "./build-child-argv/index.js";
+export * from "./create-command-registry/index.js";
 export * from "./create-menu/index.js";
 export * from "./dry-run-noop-exit-code/index.js";
 export * from "./dry-run-preview-env-var/index.js";
@@ -6,5 +7,6 @@ export * from "./forwarded-flags/index.js";
 export * from "./launch-menu/index.js";
 export * from "./menu-entry/index.js";
 export * from "./menu-items/index.js";
+export * from "./numeric/index.js";
 export * from "./secret-env/index.js";
 export * from "./should-preview-dry-run/index.js";

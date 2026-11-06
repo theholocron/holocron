@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const doctorProjectEntry: CommandEntry = {
+export const doctorProjectEntry: MenuEntry = {
 	name: "doctor project",
 	description:
 		"Compare each declared project board with its template, and report items that need a status (read-only)",

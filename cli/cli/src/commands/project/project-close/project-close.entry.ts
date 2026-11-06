@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const projectCloseEntry: CommandEntry = {
+export const projectCloseEntry: MenuEntry = {
 	name: "project close",
 	description: "Close a board (reversible)",
 	positionals: [{ key: "board", message: "Board number or name:", type: "input" }],

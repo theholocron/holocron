@@ -35,7 +35,7 @@
  * hard failure for non-interactive callers.
  */
 
-export * from "./command-registry/index.js";
+export * from "./command-catalog/index.js";
 export * from "./menu.js";
 export * from "./probe-menu-entries/index.js";
 export * from "./run-menu-entries/index.js";

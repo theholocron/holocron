@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const newRepoEntry: CommandEntry = {
+export const newRepoEntry: MenuEntry = {
 	name: "new repo",
 	description: "Scaffold a new repo from a GitHub template (e.g. cli, react, nextjs, node, monorepo, base)",
 	positionals: [],
