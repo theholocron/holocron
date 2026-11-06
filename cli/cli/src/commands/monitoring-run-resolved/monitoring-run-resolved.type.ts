@@ -1,6 +1,7 @@
+import type { runCheckAgainstUrl } from "@theholocron/kyber/checks";
 import type { Logger } from "@theholocron/observability/core";
 
-import type { MonitoringCheckInput, runCheckAgainstUrl, verifyVercelDeploymentProject } from "../../plugin/index.js";
+import type { MonitoringCheckInput, verifyVercelDeploymentProject } from "../../plugin/index.js";
 import type { MonitoringCheckPrint } from "../monitoring-check/index.js";
 
 export interface RunMonitoringRunResolvedInput {

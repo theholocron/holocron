@@ -25,13 +25,14 @@
  * credential isn't in play).
  */
 
+import { runCheckAgainstUrl } from "@theholocron/kyber/checks";
+
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
 	type Monitoring,
 	type MonitoringCheckInput,
 	PluginLoader,
-	runCheckAgainstUrl,
 } from "../../plugin/index.js";
 import type {
 	ReportChecksInput,

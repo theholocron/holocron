@@ -1,57 +1,41 @@
 /**
- * Runs a `MonitoringCheckInput` directly over HTTP, with no vendor API
- * call at all — the local counterpart to a provider's `ensureCheck()`.
+ * Runs a {@link CheckInput} directly over HTTP, with no vendor API call at all: the local counterpart to a monitoring
+ * provider's "ensure check". Useful for testing an ephemeral URL (a pull request's preview deployment) against the same
+ * check definitions that are configured for production.
  *
- * Exists for `holocron monitoring check <url>` (holocron#1010): testing
- * a PR's Vercel preview deployment against the exact same check
- * definitions already configured for production in `holocron.config.ts`,
- * without creating a persistent resource on the vendor's platform for an
- * ephemeral, per-PR run.
+ * A vendor evaluates `assertions` server-side, so this is its own implementation of the same vendor-neutral vocabulary.
+ * The `shouldFail` semantics mirror the usual platform behaviour: a response status >= 400 is an automatic failure unless
+ * the check's own healthy response is itself an error status.
  *
- * No comparison logic exists anywhere else in this codebase to reuse —
- * Checkly's own API evaluates `assertions` server-side, so this is a
- * fresh implementation of the same vendor-neutral vocabulary
- * (`MonitoringAssertionSource`/`MonitoringAssertionComparison`) `src/
- * plugin/capabilities.ts` already defines. The `shouldFail` semantics
- * mirror Checkly's documented platform behavior (ADR-0013): a response
- * status >= 400 is an automatic failure unless the check's own healthy
- * response is itself an error status.
+ * Hardened, because the URL may be controlled by the triggering event rather than a trusted static config value:
+ *   - `redirect: "manual"`: a check never follows a redirect to whatever host the response names. The 3xx itself is what
+ *     gets evaluated, which is also more correct for a monitoring check.
+ *   - A request deadline (`AbortSignal.timeout`): an endpoint that accepts the request but never finishes cannot hang the
+ *     check, or the ones after it.
+ *   - The body is only read when an assertion needs it, and then capped at `maxBodyBytes`.
  *
- * Hardening, all driven by this running against a URL the triggering
- * event controls (a PR's preview deployment), not a trusted static
- * config value (sourcery review on holocron#1011):
- *   - `redirect: "manual"` — a check never follows a redirect to
- *     whatever host the response names. The 3xx itself is what gets
- *     evaluated; that's also more correct for a monitoring check
- *     anyway (silently following would hide a real regression).
- *   - A request deadline (`AbortSignal.timeout`) — a preview that
- *     accepts the request but never finishes can't hang the check (or
- *     the ones after it) past the timeout.
- *   - The body is only read when an assertion actually needs it, and
- *     even then capped at `maxBodyBytes` — an attacker-reachable
- *     endpoint can't use an unbounded response to exhaust the runner.
- *
- * `opts.headers` (holocron#1030): merged into every request — the one
- * caller that needs it, `delivery.previewCheck`, uses it to send
- * Vercel's `x-vercel-protection-bypass` header so Deployment
- * Protection (on by default for Preview deployments) doesn't redirect
- * the check to Vercel's own SSO login before it ever reaches the
- * app. Vendor-neutral by design — this module has no Vercel-specific
- * knowledge; the header name and value are the CLI command's concern
- * (`cli.ts`), not this evaluator's.
+ * `opts.headers` is merged into every request, for a caller that must send a bypass header (a deployment-protection
+ * token, say). The header name and value are the caller's concern; this module knows no vendor.
  */
 
 import type {
-	MonitoringAssertion,
-	MonitoringAssertionComparison,
-	MonitoringCheckInput,
-} from "../capabilities/index.js";
-import type { CheckRunResult, RunCheckOptions } from "./run-check.type.js";
+	CheckAssertion,
+	CheckAssertionComparison,
+	CheckInput,
+	CheckRunResult,
+	RunCheckOptions,
+} from "./run-check-against-url.type.js";
 
-export async function runCheckAgainstUrl(
-	input: MonitoringCheckInput,
-	opts: RunCheckOptions = {}
-): Promise<CheckRunResult> {
+/**
+ * Runs one HTTP check against a URL and says whether it passed: the request is made here, every assertion is evaluated
+ * here, and nothing is sent to a monitoring vendor. A response status of 400 or more fails the check before any assertion
+ * runs, unless `input.shouldFail` is set. A network error or a timeout never passes (`requestError`).
+ *
+ * @param input - The check: the URL, the method, the body and the assertions to evaluate.
+ * @param opts - Overrides for the origin, headers, timeout and body cap, and a `fetch` to stand in for the network.
+ * @returns The outcome: whether it passed, the status and timing, and one reason per failed assertion.
+ */
+export async function runCheckAgainstUrl(input: CheckInput, opts: RunCheckOptions = {}): Promise<CheckRunResult> {
 	const doFetch = opts.fetch ?? fetch;
 	const url = resolveUrl(input.url, opts.url);
 	const method = input.method ?? "GET";
@@ -144,7 +128,7 @@ function truncate(value: string, max = 200): string {
 }
 
 function extractActual(
-	assertion: MonitoringAssertion,
+	assertion: CheckAssertion,
 	ctx: { response: Response; bodyText: string; responseTimeMs: number }
 ): string {
 	switch (assertion.source) {
@@ -163,7 +147,7 @@ function extractActual(
 	}
 }
 
-function evaluate(comparison: MonitoringAssertionComparison, actual: string, target: string | undefined): boolean {
+function evaluate(comparison: CheckAssertionComparison, actual: string, target: string | undefined): boolean {
 	const t = target ?? "";
 	switch (comparison) {
 		case "equals":
