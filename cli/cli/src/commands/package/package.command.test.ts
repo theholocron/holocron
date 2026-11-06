@@ -24,7 +24,7 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 }));
 
 import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR } from "../../interactive-menu/index.js";
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { packageCommand } from "./package.command.js";
 
 const go = (args: string[]) => runCommand(packageCommand, args);

@@ -21,7 +21,7 @@ vi.mock("../../cli-support/index.js", async (importActual) => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { projectCommand } from "./index.js";
 
 const go = (...args: string[]) => runCommand(projectCommand, ["project", ...args]);

@@ -10,7 +10,7 @@ vi.mock("./index.js", async (importActual) => ({
 	runSyncTrust,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { publishCommand } from "./publish.command.js";
 
 beforeEach(() => {

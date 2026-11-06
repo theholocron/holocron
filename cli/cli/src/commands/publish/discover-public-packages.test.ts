@@ -9,7 +9,7 @@ import {
 	makeTempMonorepoWithPlugins,
 	TEST_ORG,
 	TEST_REPO,
-} from "../../testing/publish-fixtures.js";
+} from "./publish.fixtures.js";
 import type { PublishExecResult } from "./publish.type.js";
 import { runPublish } from "./run-publish/index.js";
 

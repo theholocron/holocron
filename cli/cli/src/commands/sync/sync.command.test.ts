@@ -21,7 +21,7 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 }));
 
 import { AuthError } from "../../auth/index.js";
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { syncGithubCommand } from "../sync-github/sync-github.command.js";
 import { syncCommand } from "./sync.command.js";
 

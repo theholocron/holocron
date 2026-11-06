@@ -36,7 +36,7 @@ import { NonInteractiveError } from "@theholocron/kyber/ui";
 
 import { AuthError } from "../../auth/index.js";
 import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR } from "../../interactive-menu/index.js";
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { cloneCommand } from "./clone.command.js";
 
 const stdin = (v: boolean | undefined) =>

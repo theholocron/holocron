@@ -17,7 +17,7 @@ import {
 	TEST_ORG,
 	TEST_PACKAGES,
 	TEST_REPO,
-} from "../../../testing/publish-fixtures.js";
+} from "../publish.fixtures.js";
 import type { PublishExecResult } from "../publish.type.js";
 import { runPublish } from "./run-publish.js";
 

@@ -12,7 +12,7 @@ vi.mock("../../cli-support/index.js", async (importActual) => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { repoCleanupBranchesCommand } from "./repo-cleanup-branches.command.js";
 
 const go = (args: string[]) => runCommand(repoCleanupBranchesCommand, ["branches", ...args]);

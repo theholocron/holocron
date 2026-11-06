@@ -12,7 +12,7 @@ vi.mock("@theholocron/astromech/config", () => ({ loadTasksConfig }));
 vi.mock("@theholocron/astromech/lint", () => ({ lintCommitMsgFile }));
 vi.mock("../../observability/logger/index.js", () => ({ buildCliLogger, reportError }));
 
-import { runCommand } from "../../testing/run-command.js";
+import { runCommand } from "../run-command.testing.js";
 import { runCommand as runCmd } from "./run.command.js";
 
 const go = (args: string[]) => runCommand(runCmd, args);

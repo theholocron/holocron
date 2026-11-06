@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
 
-import { eotp, makeQueueExec, makeTempMonorepo, ok } from "../../../testing/publish-fixtures.js";
+import { eotp, makeQueueExec, makeTempMonorepo, ok } from "../publish.fixtures.js";
 import { runSyncTrust } from "./run-sync-trust.js";
 
 describe("runSyncTrust", () => {
