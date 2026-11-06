@@ -4,7 +4,7 @@
  *
  * File discovery, the walk up to `.git`, module loading (typed configs via `tsx`) and the derive-then-resolve flow come
  * from `@theholocron/kyber/config`. The holocron-specific parts are `deriveDefaults` (name, `repo.name`, the task
- * manifest), `resolveConfig` and `mergeStrategies`.
+ * manifest), `placeAreas` (the `.holocron/` area files, placed before `deriveDefaults`), `resolveConfig` and `mergeStrategies`.
  *
  * The three functions live together because each is only a method of the one system object; splitting them back into
  * one file apiece would just be pass-through wrappers (an exception to the one-function-per-file rule).
@@ -20,12 +20,16 @@ import { mergeStrategies } from "./compose/merge-strategies/index.js";
 import { type HolocronConfig, resolveConfig, type ResolvedHolocronConfig } from "./config/index.js";
 import type { LoadedConfig } from "./config-system.type.js";
 import { deriveDefaults } from "./load-config/derive-defaults/index.js";
+import { HOLOCRON_AREAS } from "./load-config/holocron-areas/index.js";
+import { placeAreas } from "./load-config/place-areas/index.js";
 
 export type { LoadedConfig } from "./config-system.type.js";
 export { ConfigFileError } from "@theholocron/kyber/config";
 
 const system = createConfigSystem<HolocronConfig, ResolvedHolocronConfig, Capability, ComposedPreset>({
 	name: "holocron",
+	areas: HOLOCRON_AREAS,
+	place: placeAreas,
 	derive: deriveDefaults,
 	resolve: resolveConfig,
 	merge: mergeStrategies,

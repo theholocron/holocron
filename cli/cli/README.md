@@ -184,6 +184,24 @@ in at load time:
 A minimal config — for repos with a `package.json` and a GitHub remote
 — only needs `providers`:
 
+### The `.holocron/` directory
+
+A big declaration can live in a file next to the config instead of inline, so `holocron.config.ts` stays a short index
+of choices. `.holocron/<area>.{ts,js,mjs,cjs,json}` is read by name, and the areas are a closed list (a file not on
+the list is never read):
+
+| File                        | Where it lands                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `.holocron/notifications.*` | the `layout` option of the `providers.notifications` entry (which keeps `guildId`) |
+| `.holocron/repo.*`          | keys of `repo` (`defaultBranch` stays inline: Sentinel needs it first)             |
+
+The file's default export is the value (`.ts` keeps its comments; `.json` needs no `import`, for repos with no
+`package.json`). If both exist for one area, `.ts` wins over `.json`. A missing directory changes nothing. Setting the
+same thing inline and in a file is an error that names both (`the notifications layout is set in providers.notifications
+and in .holocron/notifications.ts`, `repo.topics is set in the config and in .holocron/repo.json`): there is no merge and
+no precedence. An area file may `import` a sibling in `.holocron/`. Never put a secret in the directory: it is public in
+a public repo.
+
 ### repo options
 
 Additional `repo` fields recognised by `holocron repo setup`:
