@@ -37,6 +37,7 @@ import { webhookAvatarOf } from "../notifications-setup/index.js";
 import { planForRole, readLinks, sourceProblem } from "../notifications-sync-roles/index.js";
 import { notificationsWorkflowChecks } from "../notifications-workflow-checks/index.js";
 import { postDoctorReport } from "../post-doctor-report/index.js";
+import { prFeedChecks } from "../pr-feed-checks/index.js";
 import { relayChecks } from "../relay-checks/index.js";
 import { resolvePinnedFiles } from "../resolve-pinned-files/index.js";
 import { sentryRelayChecks } from "../sentry-relay-checks/index.js";
@@ -851,6 +852,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			found,
 		}))
 	);
+
+	// The forum Sentinel keeps one post per pull request in: it is there, has every state's tag, and the bot can run it.
+	checks.push(...prFeedChecks({ layout, found }));
 
 	// The workflow that posts failed runs and releases: it is on the default branch and uses the layout's webhooks. Read-only.
 	checks.push(

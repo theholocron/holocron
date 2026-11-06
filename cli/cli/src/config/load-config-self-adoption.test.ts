@@ -98,6 +98,27 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			.find((c) => c.name === "ideas");
 		expect(ideas?.defaultReaction).toBeUndefined();
 		Object.assign(ideas!, { defaultReaction: "👍", starterReactions: ["👍", "👎", "❓"] });
+		// And (#1834): the `prs` forum, the pull-request feed's, sits after `ideas` in BUILD. Its eight tags are the ones
+		// `forumLayoutProblem` demands; anything else about it showing up here would be a diff.
+		const build = options.layout?.categories?.find((c) => c.name === "BUILD");
+		const ideasAt = build!.channels!.findIndex((c) => c.name === "ideas");
+		expect(build!.channels!.some((c) => c.name === "prs")).toBe(false);
+		build!.channels!.splice(ideasAt + 1, 0, {
+			name: "prs",
+			kind: "forum",
+			topic: "One post for each pull request, tagged with its state and kept up to date. Open the post to follow the review; comment on GitHub, not here.",
+			tags: [
+				{ name: "draft", emoji: "✏️", moderated: true },
+				{ name: "conflicts", emoji: "⚔️", moderated: true },
+				{ name: "failing", emoji: "❌", moderated: true },
+				{ name: "changes requested", emoji: "🔧", moderated: true },
+				{ name: "ready", emoji: "✅", moderated: true },
+				{ name: "waiting", emoji: "⏳", moderated: true },
+				{ name: "merged", emoji: "🟣", moderated: true },
+				{ name: "closed", emoji: "🚫", moderated: true },
+			],
+			feeds: { prs: true },
+		});
 		// And (#1817): the three organization variables are no longer literals but come from a 1Password Environment.
 		const repoBefore = (expected as { repo: { variables?: unknown } }).repo;
 		expect(repoBefore.variables).toEqual({

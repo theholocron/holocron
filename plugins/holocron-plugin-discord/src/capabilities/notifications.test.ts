@@ -4443,3 +4443,91 @@ describe("DiscordNotifications elevation", () => {
 		expect(await named.notifs.holdsPermission("SendMessages")).toBe(true);
 	});
 });
+
+describe("DiscordNotifications.inspect — the bot's threads in a pull request feed forum", () => {
+	const PRS = {
+		categories: [{ name: "BUILD", channels: [{ name: "prs", kind: "forum" as const, feeds: { prs: true } }] }],
+	};
+	const THREADS = ["ViewChannel", "CreatePublicThreads", "SendMessagesInThreads", "ManageThreads"] as const;
+	const me = { body: { id: BOT, username: "holonet" } };
+	const guild = (owner: string) => ({ body: { id: GUILD, name: "The Holocron", owner_id: owner } });
+	const held = { body: { user: { id: BOT }, roles: ["r1"] } };
+	const rolesWith = (names: readonly (typeof THREADS)[number][] | readonly ["Administrator"]) => ({
+		body: [
+			{ id: GUILD, name: "@everyone", color: 0, mentionable: false, permissions: "0" },
+			{ id: "r1", name: "Holonet", color: 0, mentionable: false, permissions: permissions([...names]) },
+		],
+	});
+	const forum = (overwrites: unknown[] = [], name = "prs") => ({
+		body: [
+			category("1001", "BUILD"),
+			{ id: "2003", name, type: ChannelType.Forum, parent_id: "1001", permission_overwrites: overwrites },
+		],
+	});
+	const inspect = async (responses: Parameters<typeof makeProvisioner>[0]) =>
+		(await makeProvisioner(responses).notifs.inspect(PRS)).channels.find((c) => c.name === "prs");
+
+	it("says the bot can post and manage when its role holds the permissions", async () => {
+		const found = await inspect([forum(), me, guild("someone"), held, rolesWith(THREADS)]);
+		expect(found?.botThreads).toEqual({ post: true, manage: true });
+		expect(found).not.toHaveProperty("botThreadsError");
+	});
+
+	it("says each one is missing when the role lacks it", async () => {
+		const noManage = await inspect([forum(), me, guild("someone"), held, rolesWith(THREADS.slice(0, 3))]);
+		expect(noManage?.botThreads).toEqual({ post: true, manage: false });
+		const noPost = await inspect([forum(), me, guild("someone"), held, rolesWith(["ManageThreads"])]);
+		expect(noPost?.botThreads).toEqual({ post: false, manage: true });
+	});
+
+	it("applies the forum's own overwrites, which can take a permission away or give it back", async () => {
+		const denied = await inspect([
+			forum([{ id: GUILD, type: 0, allow: "0", deny: permissions(["ManageThreads"]) }]),
+			me,
+			guild("someone"),
+			held,
+			rolesWith(THREADS),
+		]);
+		expect(denied?.botThreads).toEqual({ post: true, manage: false });
+		const given = await inspect([
+			forum([{ id: BOT, type: 1, allow: permissions(["ManageThreads"]), deny: "0" }]),
+			me,
+			guild("someone"),
+			held,
+			rolesWith(THREADS.slice(0, 3)),
+		]);
+		expect(given?.botThreads).toEqual({ post: true, manage: true });
+	});
+
+	it("takes the server's owner as able to do both", async () => {
+		const found = await inspect([forum(), me, guild(BOT)]);
+		expect(found?.botThreads).toEqual({ post: true, manage: true });
+	});
+
+	it("takes Administrator as able to do both, whatever the forum's overwrites say", async () => {
+		const found = await inspect([
+			forum([{ id: GUILD, type: 0, allow: "0", deny: permissions(["ManageThreads"]) }]),
+			me,
+			guild("someone"),
+			held,
+			rolesWith(["Administrator"]),
+		]);
+		expect(found?.botThreads).toEqual({ post: true, manage: true });
+	});
+
+	it("reports why it could not tell, and keeps the rest of what it read", async () => {
+		const found = await inspect([forum(), { status: 403, body: { message: "Missing Access", code: 50001 } }]);
+		expect(found?.botThreadsError).toBeTruthy();
+		expect(found).not.toHaveProperty("botThreads");
+		expect(found?.kind).toBe("forum");
+	});
+
+	it("reads nothing for a forum without the feed, or a text channel of that name", async () => {
+		const plain = await makeProvisioner([forum([], "ideas")]).notifs.inspect({
+			categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" }] }],
+		});
+		expect(plain.channels.find((c) => c.name === "ideas")).not.toHaveProperty("botThreads");
+		const asText = await makeProvisioner([{ body: [text("2001", "prs")] }]).notifs.inspect(PRS);
+		expect(asText.channels[0]).not.toHaveProperty("botThreads");
+	});
+});

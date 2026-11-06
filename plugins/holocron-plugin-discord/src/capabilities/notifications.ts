@@ -348,6 +348,11 @@ export class DiscordNotifications implements Notifications {
 					.map((ch) => ch.name.toLowerCase())
 			)
 		);
+		const wantsPrs = new Set(
+			(layout.categories ?? []).flatMap((c) =>
+				(c.channels ?? []).filter((ch) => ch.feeds?.prs).map((ch) => ch.name.toLowerCase())
+			)
+		);
 		const text = channels.filter(
 			(c) => c.type === ChannelType.Text || c.type === ChannelType.Announcement || c.type === ChannelType.Forum
 		);
@@ -368,6 +373,16 @@ export class DiscordNotifications implements Notifications {
 					webhooksError = reason(err);
 				}
 			}
+			// The pull-request feed's forum: whether the bot can run it, after the channel's own overwrites.
+			let botThreads: { post: boolean; manage: boolean } | undefined;
+			let botThreadsError: string | undefined;
+			if (c.type === ChannelType.Forum && wantsPrs.has(c.name.toLowerCase())) {
+				try {
+					botThreads = await this.botThreadsIn(c.permission_overwrites ?? []);
+				} catch (err) {
+					botThreadsError = reason(err);
+				}
+			}
 			const category = c.parent_id ? categoryName.get(c.parent_id) : undefined;
 			found.push({
 				name: c.name,
@@ -386,6 +401,8 @@ export class DiscordNotifications implements Notifications {
 				webhookAvatars,
 				webhookIds,
 				...(webhooksError ? { webhooksError } : {}),
+				...(botThreads ? { botThreads } : {}),
+				...(botThreadsError ? { botThreadsError } : {}),
 			});
 		}
 		// Roles are only read when the layout declares some, and a failure is reported on its own.
@@ -902,6 +919,56 @@ export class DiscordNotifications implements Notifications {
 	}
 
 	/**
+	 * What a member holding `bits` through the roles in `held` has in a channel, in the order Discord applies the
+	 * channel's overwrites: @everyone, then the roles, then the member itself.
+	 */
+	private static afterOverwrites(
+		bits: bigint,
+		held: Set<string>,
+		me: string,
+		guild: string,
+		list: readonly DiscordPermissionOverwrite[]
+	): bigint {
+		const apply = (now: bigint, found: readonly DiscordPermissionOverwrite[]): bigint => {
+			const deny = found.reduce((all, o) => all | BigInt(o.deny), 0n);
+			const allow = found.reduce((all, o) => all | BigInt(o.allow), 0n);
+			return (now & ~deny) | allow;
+		};
+		let now = apply(
+			bits,
+			list.filter((o) => o.id === guild)
+		);
+		now = apply(
+			now,
+			list.filter((o) => o.type === 0 && o.id !== guild && held.has(o.id))
+		);
+		return apply(
+			now,
+			list.filter((o) => o.type === 1 && o.id === me)
+		);
+	}
+
+	/**
+	 * What the bot can do with the threads of a forum: start posts and reply (`post`) and tag and close them (`manage`).
+	 * The owner and an Administrator hold every permission, whatever the forum's overwrites say.
+	 */
+	private async botThreadsIn(
+		overwrites: readonly DiscordPermissionOverwrite[]
+	): Promise<{ post: boolean; manage: boolean }> {
+		const { owner, bits, held, me } = await this.serverPermissions();
+		if (owner || (bits & BigInt(permissions(["Administrator"]))) !== 0n) return { post: true, manage: true };
+		const now = DiscordNotifications.afterOverwrites(bits, held, me, this.guild(), overwrites);
+		const has = (names: PermissionName[]): boolean => {
+			const bit = BigInt(permissions(names));
+			return (now & bit) === bit;
+		};
+		return {
+			post: has(["ViewChannel", "CreatePublicThreads", "SendMessagesInThreads"]),
+			manage: has(["ManageThreads"]),
+		};
+	}
+
+	/**
 	 * Whether a channel's own overwrites take a permission away from a bot whose roles grant it, in the order Discord
 	 * applies them: @everyone, then the bot's roles, then the bot itself. Read fresh, since a person may have just edited them.
 	 */
@@ -910,23 +977,12 @@ export class DiscordNotifications implements Notifications {
 		const bit = BigInt(permissions([permission]));
 		if (owner || (bits & BigInt(permissions(["Administrator"]))) !== 0n || (bits & bit) !== bit) return false;
 		const channel = (await this.bot().guilds.channels(this.guild())).find((c) => c.id === channelId);
-		const list = channel?.permission_overwrites ?? [];
-		const apply = (now: bigint, found: readonly DiscordPermissionOverwrite[]): bigint => {
-			const deny = found.reduce((all, o) => all | BigInt(o.deny), 0n);
-			const allow = found.reduce((all, o) => all | BigInt(o.allow), 0n);
-			return (now & ~deny) | allow;
-		};
-		let now = apply(
+		const now = DiscordNotifications.afterOverwrites(
 			bits,
-			list.filter((o) => o.id === this.guild())
-		);
-		now = apply(
-			now,
-			list.filter((o) => o.type === 0 && o.id !== this.guild() && held.has(o.id))
-		);
-		now = apply(
-			now,
-			list.filter((o) => o.type === 1 && o.id === me)
+			held,
+			me,
+			this.guild(),
+			channel?.permission_overwrites ?? []
 		);
 		return (now & bit) !== bit;
 	}
