@@ -216,6 +216,16 @@ export default {
 
 This repo's own Discord layout lives in `.holocron/notifications.ts`; `holocron.config.ts` keeps only `guildId`.
 
+**Keys that never move out of `holocron.config.ts`.** `repo.defaultBranch`, because the config is the one file read
+before the directory, and the default branch is what says which branch holds `.holocron/` and the config. Every other
+top-level key (`name`, `org`, `domain`, `providers`, `tasks`) also stays, but only because the closed list of areas has
+no entry for it: Sentinel's `validateConfig()` reads none of them before it fetches `.holocron/` (it needs the config
+file's path and the `ref`, nothing from inside it). Keys that a preset spreads into `repo` (`protection`, `properties`,
+which `syncPropertiesFromConfig()` reads) stay inline too, since a key set both inline and in the file is an error. There
+is no per-key precedence: the loader does not let an inline key win, it refuses the duplicate and names both places. This
+repo's `.holocron/repo.ts` holds `teams`, `topics`, `variables` and `secrets`, names and identifiers only, typed with
+`satisfies RepoConfig` (a type-only import).
+
 ### repo options
 
 Additional `repo` fields recognised by `holocron repo setup`:
