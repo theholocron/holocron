@@ -661,6 +661,19 @@ describe("isReservedSecret", () => {
 	});
 });
 
+describe("provisionChannel — forum default reaction", () => {
+	it("hands the forum's default reaction to the provider", async () => {
+		const n = fakeNotifications();
+		await provisionChannel(
+			{ notifications: n, scope: { kind: "repo" }, dryRun: false, print: () => {} },
+			{ name: "ideas", kind: "forum", defaultReaction: "👍" }
+		);
+		expect(n.ensureChannel).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "ideas", kind: "forum", defaultReaction: "👍" })
+		);
+	});
+});
+
 describe("provisionChannel — webhook avatar", () => {
 	const secrets = () => {
 		const stored: Array<{ name: string; value: string }> = [];

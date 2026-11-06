@@ -403,6 +403,30 @@ describe("DiscordNotifications.ensureChannel — forums", () => {
 		expect(found.channels.find((c) => c.name === "dev")).not.toHaveProperty("kind");
 	});
 
+	it("inspects a forum's default reaction, and a forum with none", async () => {
+		const { notifs } = makeProvisioner([
+			{
+				body: [
+					{ ...forum("2010", "ideas"), default_reaction_emoji: { emoji_id: null, emoji_name: "👍" } },
+					{ ...forum("2011", "other"), default_reaction_emoji: null },
+				],
+			},
+		]);
+		const found = await notifs.inspect({
+			categories: [
+				{
+					name: "BUILD",
+					channels: [
+						{ name: "ideas", kind: "forum" },
+						{ name: "other", kind: "forum" },
+					],
+				},
+			],
+		});
+		expect(found.channels.find((c) => c.name === "ideas")).toMatchObject({ defaultReaction: "👍" });
+		expect(found.channels.find((c) => c.name === "other")).not.toHaveProperty("defaultReaction");
+	});
+
 	it("inspects a forum that has no tag list as having no tags", async () => {
 		const { notifs } = makeProvisioner([{ body: [{ id: "2010", name: "ideas", type: ChannelType.Forum }] }]);
 		const found = await notifs.inspect({});

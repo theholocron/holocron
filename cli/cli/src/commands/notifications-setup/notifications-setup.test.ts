@@ -2616,6 +2616,16 @@ describe("forum channels", () => {
 		expect(ensureChannel.mock.calls[1]?.[0]).not.toHaveProperty("tags");
 	});
 
+	it("passes a forum's default reaction to the provider", async () => {
+		const ensureChannel = vi.fn(async (_input: { name: string }) => ({ id: "1", created: true }));
+		const layout = forumLayout({ defaultReaction: "👍", starterReactions: ["👍", "👎"] });
+
+		const report = await setup(fakeNotifications({ layout, ensureChannel })).run();
+
+		expect(report.status).toBe("ok");
+		expect(ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "ideas", defaultReaction: "👍" }));
+	});
+
 	it("refuses an inconsistent forum before anything is created", async () => {
 		const n = fakeNotifications({ layout: forumLayout({ webhook: true }) });
 
