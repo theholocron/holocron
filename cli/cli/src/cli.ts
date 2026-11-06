@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 import { addGlobalOptions } from "@theholocron/kyber/flags";
+import { checkForUpdates } from "@theholocron/kyber/notifier";
 import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -27,12 +30,15 @@ import { skillsCommand } from "./commands/skills/index.js";
 import { specsCommand } from "./commands/specs/specs.command.js";
 import { syncCommand } from "./commands/sync/sync.command.js";
 import { tunnelCommand } from "./commands/tunnel/index.js";
+import { env } from "./env/index.js";
 import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
 import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
-import { checkForUpdates } from "./update-notifier/index.js";
 
-const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")) as {
+const { name: CLI_PACKAGE_NAME, version: CLI_VERSION } = JSON.parse(
+	readFileSync(new URL("../package.json", import.meta.url), "utf-8")
+) as {
+	name: string;
 	version: string;
 };
 
@@ -40,7 +46,13 @@ const { version: CLI_VERSION } = JSON.parse(readFileSync(new URL("../package.jso
 let printRunId = false;
 
 init(CLI_VERSION);
-const updateCheckPromise = checkForUpdates(CLI_VERSION);
+// The answer is kept in `HOLOCRON_CACHE_DIR`, `~/.cache/holocron` by default.
+const updateCheckPromise = checkForUpdates({
+	name: CLI_PACKAGE_NAME,
+	currentVersion: CLI_VERSION,
+	cacheDir: env.get("HOLOCRON_CACHE_DIR") ?? join(homedir(), ".cache", "holocron"),
+	env: { CI: env.get("CI"), NO_UPDATE_NOTIFIER: env.get("NO_UPDATE_NOTIFIER") },
+});
 
 let finishCommand: (ok: boolean) => void = () => {};
 /** Set by `.fail()` once it has printed an error, so the outer catch doesn't repeat it. */
