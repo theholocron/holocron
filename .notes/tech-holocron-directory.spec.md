@@ -266,7 +266,12 @@ The maintainer settled the three questions the first draft left open (2026-11-06
    layout keeps its explanatory comments (37 of its 227 lines).
 3. **`RULES.md` and the webhook avatar move into `.holocron/`** (phase 5 is no longer optional). `RULES.md` is then no
    longer shown in the root file list, so the pinned file's new path is the one place to look. The avatar moves only
-   after checking what else uses its current folder.
+   after checking what else uses its current folder. Done in #1788: `RULES.md` is `.holocron/pinned/rules.md` and the
+   avatar is `.holocron/media/webhook-avatar.png`. References found and updated: `.holocron/notifications.ts`,
+   `.prettierignore`, `AGENTS.md`/`CLAUDE.md`, `cli/cli/README.md`, two docs pages and a doc comment; no workflow,
+   CODEOWNERS or link pointed at the root file. `media/` is shared (the three `--sound` MP3s and its README live
+   there), so only the avatar file moved and `media/` stays with the sounds. No lint ignore, `.gitattributes` rule,
+   package `files` entry or workflow named the avatar, so only `webhookAvatar` and the `media/README.md` line changed.
 
 ## Open questions
 

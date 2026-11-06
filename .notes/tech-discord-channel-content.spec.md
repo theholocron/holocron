@@ -23,7 +23,7 @@ The Discord server is built as code (#1134), but what some channels say is still
 
 ### The layout field
 
-A pinned message gets one more way to say its text. `pinned` already declares `{ channel, content }`; it now also takes `{ channel, file }`, where `file` is a path relative to the repository root. The two are exclusive. `RULES.md` at the root is the first file and feeds `#rules`. Any channel in the layout can name a file, so nothing else needs a new mechanism.
+A pinned message gets one more way to say its text. `pinned` already declares `{ channel, content }`; it now also takes `{ channel, file }`, where `file` is a path relative to the repository root. The two are exclusive. `.holocron/pinned/rules.md` (moved from the root `RULES.md` in #1788) is the first file and feeds `#rules`. Any channel in the layout can name a file, so nothing else needs a new mechanism.
 
 This reuses the pinned-message machinery of #1135 to #1139 as it is: post, pin, keep the oldest copy, remove strays, replace a pin that says something else, report a pin that differs. The only new step comes before the provider is called.
 
@@ -38,7 +38,7 @@ The text is normalised so that an editor's habits never show up as drift: a byte
 
 ### Overwrite policy
 
-The repository wins. A pin that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup` (a new message is pinned first and the old one removed after, as today). `doctor notifications` reports it first: `#rules: the pinned messages differ from RULES.md`. This is what the layout already means ("the layout is the whole set of messages the bot has pinned in a channel"); a file does not change it.
+The repository wins. A pin that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup` (a new message is pinned first and the old one removed after, as today). `doctor notifications` reports it first: `#rules: the pinned messages differ from .holocron/pinned/rules.md`. This is what the layout already means ("the layout is the whole set of messages the bot has pinned in a channel"); a file does not change it.
 
 ### Limits
 
@@ -48,7 +48,7 @@ The repository wins. A pin that was edited by hand in Discord, or that no longer
 
 ### Markdown
 
-A file is Discord's markdown, not GitHub's. The one difference that matters here is that Discord shows a single newline as a line break and GitHub joins the lines, so `RULES.md` separates paragraphs with a blank line to read the same in both. The file must not carry content that is not meant to be posted, such as an HTML comment, since the whole file is the message.
+A file is Discord's markdown, not GitHub's. The one difference that matters here is that Discord shows a single newline as a line break and GitHub joins the lines, so `.holocron/pinned/rules.md` separates paragraphs with a blank line to read the same in both. The file must not carry content that is not meant to be posted, such as an HTML comment, since the whole file is the message.
 
 ## Decisions
 

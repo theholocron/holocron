@@ -214,13 +214,13 @@ What a channel says can live in a file of the repository instead of in the confi
 
 ```ts
 layout: {
-  pinned: [{ channel: "rules", file: "RULES.md" }],
+  pinned: [{ channel: "rules", file: ".holocron/pinned/rules.md" }],
 },
 ```
 
-`RULES.md` at the root of this repository is the first one: edit it, merge it, run `holocron notifications setup`, and #rules shows the new text.
+`.holocron/pinned/rules.md` in this repository is the first one: edit it, merge it, run `holocron notifications setup`, and #rules shows the new text.
 
-- **The repository wins.** A pinned message that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup`. `holocron doctor notifications` reports the difference first (`#rules: the pinned messages differ from RULES.md`), and fails the `pinned` row when the file cannot be read.
+- **The repository wins.** A pinned message that was edited by hand in Discord, or that no longer matches the file, is replaced on the next `setup`. `holocron doctor notifications` reports the difference first (`#rules: the pinned messages differ from .holocron/pinned/rules.md`), and fails the `pinned` row when the file cannot be read.
 - **The text is the file, as Discord will show it.** A byte-order mark is dropped, line endings become `\n` and blank lines at the end are trimmed, so a trailing newline never counts as a change. Markdown is Discord's, not GitHub's: a single newline is a line break there, so write a blank line between paragraphs if the file is also read on GitHub.
 - **2000 characters at most.** That is Discord's limit for one message, counted after `#channel` names become links. A longer file is refused with its name and length before anything is changed; split it into two files for two messages in the same channel, or shorten it.
 - **Inside the repository.** The path is relative to the repository root, wherever the command runs. An absolute path, a `..` that climbs out and a link that leads outside are refused, and so is a file over 100 KB.

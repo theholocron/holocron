@@ -8,7 +8,7 @@ export default {
 	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `notifications setup`.
 	relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli", "holocron"] } },
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
-	webhookAvatar: "media/webhook-avatar.png",
+	webhookAvatar: ".holocron/media/webhook-avatar.png",
 	// Where a full `holocron doctor notifications` run leaves its one visible test post.
 	testChannel: "holonet",
 	// Keep ordinary members from pinging the whole server, and from adding emoji, stickers, sounds or
@@ -161,8 +161,8 @@ export default {
 				"The maintainers hold the gatekeepers role.",
 			].join("\n"),
 		},
-		// The rules live in RULES.md at the repo root; `notifications setup` pins whatever it says.
-		{ channel: "rules", file: "RULES.md" },
+		// The rules live in .holocron/pinned/rules.md; `notifications setup` pins whatever it says.
+		{ channel: "rules", file: ".holocron/pinned/rules.md" },
 	],
 	// The questions a new member answers. Not switched on: Discord needs at least 7 default channels,
 	// 5 of them open for members to post in, and the server has fewer discussion channels than that.

@@ -12,4 +12,4 @@ The following is a storage place for all of the media used within `holocron`.
 
 ### Images
 
-- webhook-avatar.png - the picture every Discord webhook wears (`webhookAvatar` in `holocron.config.ts`); the org avatar, as a 512px PNG because Discord does not take WebP
+The Discord webhook avatar lives with the rest of the notifications setup, in `.holocron/media/webhook-avatar.png` (`webhookAvatar` in `.holocron/notifications.ts`).

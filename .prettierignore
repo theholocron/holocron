@@ -11,4 +11,4 @@ CHANGELOG.md
 
 # Posted verbatim to a Discord channel (holocron#1533). Prettier drops the angle brackets around a link
 # address, and Discord uses them to keep a link from expanding into a preview card.
-RULES.md
+.holocron/pinned/rules.md
