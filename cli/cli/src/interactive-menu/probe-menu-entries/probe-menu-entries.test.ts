@@ -1,8 +1,7 @@
+import { buildChildArgv, menuItems } from "@theholocron/kyber/menu";
 import { describe, expect, it } from "vitest";
 
 import type { PluginProbes } from "../../plugin/index.js";
-import { buildChildArgv } from "../child-argv/index.js";
-import { menuItems } from "../menu-items/index.js";
 import { buildProbeMenuEntries } from "./probe-menu-entries.js";
 
 const read = { summary: "Looks.", writes: false, run: async () => {} };

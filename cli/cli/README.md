@@ -814,13 +814,13 @@ the local override exists to exempt.
 - `src/commands/doctor-checks/` and `src/commands/deep-checks/` — the shared row
   renderer and `declaredVsActual` helper, and `DEEP_CHECKS`, the registry every
   `doctor <capability>` is listed in
-- `src/interactive-menu/` — the interactive fallback: `command-registry`
-  (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `launch-menu`
-  (Layers 1–2, picks + spawns a fresh `holocron <command>`), `child-argv`
-  (builds the spawned argv + secret env), `menu-items`, `run-menu-entries`.
-  The generic prompting pieces it calls — `promptForPositionals`,
-  `promptForOptions` (Layer 3) — live in `src/ui/`, which has no knowledge
-  of commands.
+- `src/interactive-menu/` — the interactive fallback's Holocron data: `command-registry`
+  (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `run-menu-entries`
+  and `probe-menu-entries` (menu entries built at run time), and `launch-menu`,
+  a small binding of the engine to the `holocron` bin and `HOLOCRON_` env prefix.
+  The engine itself (the picker, argv and secret env, the dry-run preview, the spawn)
+  and the prompting pieces — `promptForPositionals`, `promptForOptions` — live in
+  `@theholocron/kyber` (`/menu`, `/prompts`), which has no knowledge of commands.
 
 ## Status
 

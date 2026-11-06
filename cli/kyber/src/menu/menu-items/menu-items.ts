@@ -1,6 +1,5 @@
-import { type MenuItem } from "@theholocron/kyber/prompts";
-
-import type { CommandEntry } from "../command-registry/index.js";
+import type { MenuItem } from "../../prompts/index.js";
+import type { MenuEntry } from "../menu-entry/index.js";
 
 /** Prefix of a menu item's `value` that opens a submenu rather than running a command. */
 export const GROUP = "group:";
@@ -21,11 +20,11 @@ export const BACK = "back";
  * A path that is itself runnable (`repo sync`, `deploy`) gets a leading "<word> (run it)" item.
  * Registration order is kept.
  */
-export function menuItems(entries: CommandEntry[], path: string[] = []): MenuItem[] {
+export function menuItems(entries: MenuEntry[], path: string[] = []): MenuItem[] {
 	const prefix = path.join(" ");
 	const own = prefix ? entries.find((e) => e.name === prefix) : undefined;
 	const under = prefix ? entries.filter((e) => e.name.startsWith(`${prefix} `)) : entries;
-	const haystackOf = (list: CommandEntry[]): string =>
+	const haystackOf = (list: MenuEntry[]): string =>
 		list.map((e) => `${e.name} ${e.description}`.toLowerCase()).join(" ");
 
 	const items: MenuItem[] = [];

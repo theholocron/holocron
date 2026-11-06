@@ -7,7 +7,9 @@
  *   3. a leaf command missing a        → `input()` / `select()` per positional
  *      required positional
  *
- * Layers 1–2 are driven from `cli.ts`'s `$0` handlers via {@link launchMenu}:
+ * The engine itself (menu tree, prompts, spawn, dry-run preview) lives in `@theholocron/kyber/menu`; this folder
+ * is the Holocron catalog it is fed plus {@link launchMenu}, the binding to the `holocron` bin. Layers 1–2 are
+ * driven from the `$0` handlers via {@link launchMenu}:
  * pick a command, prompt for its required positionals, then **spawn a fresh
  * `holocron <command> …` child process** (`stdio: "inherit"`) rather than
  * re-entering yargs' own parse pipeline — see the spec's "spawn vs re-parse"
@@ -33,9 +35,7 @@
  * hard failure for non-interactive callers.
  */
 
-export * from "./child-argv/index.js";
 export * from "./command-registry/index.js";
 export * from "./launch-menu/index.js";
-export * from "./menu-items/index.js";
 export * from "./probe-menu-entries/index.js";
 export * from "./run-menu-entries/index.js";
