@@ -4,6 +4,7 @@ status: accepted
 issue: theholocron/holocron#1747
 blocked-by: []
 related:
+  - theholocron/holocron#1820
   - theholocron/holocron#1744
   - theholocron/holocron#1098
   - theholocron/holocron#493
@@ -132,6 +133,7 @@ from the CLI, so the two cannot disagree.
 | `repo` block                     | `.holocron/repo.{ts,json}`           | same                                      | convention: supplies keys of `repo`; a key set inline and in the file is an error            | moved (#1800)          |
 | Pinned message files             | `.holocron/pinned/rules.md`          | Markdown                                  | explicit path, `file: ".holocron/pinned/rules.md"`                                           | moved (#1801)          |
 | Webhook avatar                   | `.holocron/media/webhook-avatar.png` | binary                                    | explicit path, `webhookAvatar`                                                               | moved (#1801)          |
+| Org constants                    | `.holocron/org.{ts,json}`            | same                                      | convention: fills provider options a config leaves out (section 5a)                          | added (#1820)          |
 | `tasks`                          | stays                                | n/a                                       | n/a                                                                                          | no                     |
 | `providers` (others)             | stays                                | n/a                                       | n/a                                                                                          | no                     |
 | `dev`, `doctor`, `log`, `skills` | stay                                 | n/a                                       | n/a                                                                                          | no                     |
@@ -160,6 +162,39 @@ NotificationsLayout` (or `RepoConfig`) with a type-only import, so nothing is ad
   directory is public in a public repo.
 - **`.holocron/projects`** (SPEC-0020) is not in `HOLOCRON_AREAS`: it is a directory of files one per template, read by
   `createFsTemplatesIo()` from its own default, not an area placed into the config.
+
+### 5a. The `org` area (#1820)
+
+Some provider options are not choices of one config but constants of the organization: the Vercel `teamId`, the Checkly
+`accountId`. They were literals inside provider tuples, repeated wherever a config used the provider.
+
+- **File.** `.holocron/org.ts` (or `.json`): `{ cloudflare: { accountId }, vercel: { teamId }, checkly: { accountId } }`,
+  typed `satisfies OrgConfig` (type-only import). One file per area.
+- **Name.** `org`, as asked. There is no collision with `.holocron/org.md` (the org agent contract the CLI embeds):
+  `loadConfigDir()` builds the path from the area name plus an extension from `DEFAULT_EXTENSIONS` (`ts, js, mjs, cjs,
+json`), so `org.md` is never read as an area, and `org.ts` is not read as the contract. A test covers `org.md` beside
+  `org.ts`.
+- **Fill when absent.** `placeOrg()` (next to `placeRepo()`, called from `placeAreas()` before `deriveDefaults`) gives
+  each provider entry that names a listed provider (a bare name, a tuple, or either in a list, under any capability) the
+  options it leaves out. A provider the config does not use is ignored.
+- **Both set is an error.** An option set inline and in the area is a `ConfigError` naming both
+  (`vercel.teamId is set in providers.deployment and in .holocron/org.ts`). No merge, no precedence.
+- **Closed list.** A provider key or option the area does not know is a `ConfigError`, so a typo cannot silently do
+  nothing; a new provider option is a one-line addition to `OrgConfig` and the table in `placeOrg()`.
+- **Location.** A config reads only the `.holocron/` beside it (kyber uses the directory of the config file it found).
+  The root `.holocron/org.ts` therefore serves the root config, and `apps/sentinel/.holocron/org.ts` serves Sentinel's
+  config. The Checkly id appears in both. Sentinel's remote loader fetches the `.holocron/` beside the config it reads,
+  and an area file cannot import across to the root, so this duplication is accepted.
+- **What stays out: anything CI needs.** A value CI needs lives in 1Password and syncs to a GitHub variable
+  (`repo.variables.sync`), and nothing else carries a copy. So `CLOUDFLARE_ACCOUNT_ID`, `TURBO_TEAM` and `AXIOM_DATASET`
+  are not in this area, and the Cloudflare `accountId` literals (Sentinel's tunnels, Comlink, the `wiki` and `docs`
+  presets, `presets/constants.ts`) are not moved here; they follow the credential chain in a later step.
+  `cloudflare.accountId` is accepted by the area so that step can use it, but nothing sets it yet.
+- **Moved.** The Vercel `teamId` and the Checkly `accountId` of `apps/sentinel/holocron.config.ts`, and the Checkly
+  `accountId` of the root `holocron.config.ts`. The resolved config of Sentinel equals the pre-move snapshot
+  (`load-config-org-area.test.ts`).
+- **Follow-ups.** The Cloudflare `accountId` through the credential chain; whether a provider's own options should declare
+  which of them are org constants instead of a table in the CLI; an area shared by app configs and the root config.
 
 ### 6. Generated and hand-written files
 

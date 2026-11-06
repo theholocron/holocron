@@ -194,6 +194,7 @@ the list is never read):
 | --------------------------- | ---------------------------------------------------------------------------------- |
 | `.holocron/notifications.*` | the `layout` option of the `providers.notifications` entry (which keeps `guildId`) |
 | `.holocron/repo.*`          | keys of `repo` (`defaultBranch` stays inline: Sentinel needs it first)             |
+| `.holocron/org.*`           | provider options the config leaves out (`teamId`, `accountId`), see below          |
 
 The file's default export is the value (`.ts` keeps its comments; `.json` needs no `import`, for repos with no
 `package.json`). If both exist for one area, `.ts` wins over `.json`. A missing directory changes nothing. Setting the
@@ -236,6 +237,18 @@ which `syncPropertiesFromConfig()` reads) stay inline too, since a key set both 
 is no per-key precedence: the loader does not let an inline key win, it refuses the duplicate and names both places. This
 repo's `.holocron/repo.ts` holds `teams`, `topics`, `variables` and `secrets`, names and identifiers only, typed with
 `satisfies RepoConfig` (a type-only import).
+
+**The `org` area** (#1820). The organization's constants that are provider options and that CI does not need:
+`.holocron/org.ts` is `{ cloudflare: { accountId }, vercel: { teamId }, checkly: { accountId } }` (typed with
+`satisfies OrgConfig`). The loader fills each of these into every provider entry of that name that leaves the option
+out, so the config can say `deployment: ["vercel", { domain }]` and `monitoring: "checkly"`. The same option set inline
+and in the file is an error that names both (`vercel.teamId is set in providers.deployment and in
+.holocron/org.ts`), with no merge and no precedence. A provider key or an option the area does not know is an error; a
+provider the config does not use is ignored. A config reads only the `.holocron/` beside it, so an app with its own
+`holocron.config.ts` (`apps/sentinel`) has its own `.holocron/org.ts`. Anything CI needs (`CLOUDFLARE_ACCOUNT_ID`,
+`TURBO_TEAM`, `AXIOM_DATASET`) stays out: it lives in 1Password and syncs to a GitHub variable (`repo.variables.sync`),
+and nothing else carries a copy. `.holocron/org.md` (the agent contract the CLI embeds) is not an area: only
+`.ts`, `.js`, `.mjs`, `.cjs` and `.json` are read.
 
 ### repo options
 

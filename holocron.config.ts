@@ -119,8 +119,9 @@ export default defineConfig({
 		// and always on via the built-in DSN; this entry is for the setup surface.
 		errors: ["sentry", { org: "theholocron" }],
 		// Monitoring: Checkly. Only the alert channel is managed from here (the uptime channel's feed below); the checks
-		// themselves are declared next to the service they watch, in apps/sentinel/holocron.config.ts.
-		monitoring: ["checkly", { accountId: "fb82859a-4f62-4773-8404-db0f29f9262c" }],
+		// themselves are declared next to the service they watch, in apps/sentinel/holocron.config.ts. The account id
+		// comes from .holocron/org.ts.
+		monitoring: "checkly",
 		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets
 		logs: "axiom",
 		// Projects: the org's planning board (GitHub Projects), declared as template -> name (SPEC-0020, #1744). The
