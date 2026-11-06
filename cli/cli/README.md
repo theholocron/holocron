@@ -202,6 +202,20 @@ and in .holocron/notifications.ts`, `repo.topics is set in the config and in .ho
 no precedence. An area file may `import` a sibling in `.holocron/`. Never put a secret in the directory: it is public in
 a public repo.
 
+To type the layout, import the type and use `satisfies` (there is no `defineLayout()` helper; the type-only import keeps
+runtime code out of a file Sentinel evaluates from the default branch):
+
+```ts
+import type { NotificationsLayout } from "@theholocron/cli";
+
+export default {
+  // comments stay
+  testChannel: "holonet",
+} satisfies NotificationsLayout;
+```
+
+This repo's own Discord layout lives in `.holocron/notifications.ts`; `holocron.config.ts` keeps only `guildId`.
+
 ### repo options
 
 Additional `repo` fields recognised by `holocron repo setup`:
