@@ -1,3 +1,17 @@
+## [5.0.0-alpha.344](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.343...v5.0.0-alpha.344) (2026-11-06)
+
+### Bug Fixes
+
+* **ci:** 🐛 👷 🏷️ name the real thin-caller generator in generated workflow headers ([#1795](https://github.com/theholocron/holocron/issues/1795)) ([cf6993f](https://github.com/theholocron/holocron/commit/cf6993f10d687802413f8a10357d60858f0ab1fb)), closes [#1106](https://github.com/theholocron/holocron/issues/1106)
+
+### Refactoring
+
+* **kyber:** ♻️ extract the command registry into kyber /menu ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1793](https://github.com/theholocron/holocron/issues/1793)) ([a61916b](https://github.com/theholocron/holocron/commit/a61916bb6199c4d14c090f796b263b6361629f1e))
+
+### Documentation
+
+* **specs:** 📚️ 🗂️ record the three .holocron decisions and move the spec to proposed ([#1790](https://github.com/theholocron/holocron/issues/1790)) ([5cb47d2](https://github.com/theholocron/holocron/commit/5cb47d237eabd29051fd31004189125ab8e19591)), closes [#1747](https://github.com/theholocron/holocron/issues/1747)
+
 ## [5.0.0-alpha.343](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.342...v5.0.0-alpha.343) (2026-11-06)
 
 ### Refactoring
