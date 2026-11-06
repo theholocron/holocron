@@ -679,7 +679,7 @@ holocron auth list                # show all stored providers
 holocron auth export             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
 holocron auth export --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
 holocron auth export --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
-holocron github-app create --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest; its id, key and webhook secret to a private .credentials
+holocron github-app create --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest (the flow is in @theholocron/dagobah); its id, key and webhook secret to a private .credentials
 holocron tunnel up --name sentinel-dev --hostname sentinel-dev.example.dev --port 3000 --run  # a named tunnel with a stable hostname to a local port
 holocron project list           # the org's project boards (also: create [template], close <number-or-name>, setup)
 holocron project move v4 v5 --dry-run  # preview carrying the open items of one project board to another; without --dry-run it asks first (--yes skips)
