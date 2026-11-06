@@ -27,6 +27,14 @@ export interface SecretRoute {
 	keys?: string[];
 }
 
+/** Where some vault keys land as Actions variables (from `repo.variables.sync`): one scope, and the keys that go there. */
+export interface VariableRoute {
+	scope: { kind: "repo" } | { kind: "organization"; name: string };
+	keys: string[];
+	/** Organization variables only: which repositories can read them. `all` when omitted. */
+	visibility?: "all" | "private";
+}
+
 export interface RunSecretsSyncInput {
 	loaded: LoadedConfig;
 	context: RuntimeContext;
@@ -50,6 +58,12 @@ export interface RunSecretsSyncInput {
 	 * `githubSecretScope`, which describe one route; omit it for those.
 	 */
 	secretRoutes?: SecretRoute[];
+	/**
+	 * Routes into Actions variables, one per scope (from `repo.variables.sync`), written through the `source`
+	 * provider. When there are some and `secretRoutes` is an empty list, the environment holds variables only: nothing
+	 * reaches `secrets`, and `deployment` is left out unless `projectId` is given.
+	 */
+	variableRoutes?: VariableRoute[];
 	loader?: PluginLoader;
 	print?: SyncPrintLine;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */

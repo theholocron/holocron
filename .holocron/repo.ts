@@ -8,16 +8,21 @@ import type { RepoConfig } from "@theholocron/cli";
 export default {
 	teams: [{ slug: "gatekeepers", permission: "maintain" }],
 	topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
-	// Organization Actions variables the reusable workflows read as `vars.NAME`. `holocron repo setup` creates and
-	// updates these; anything else already set in the org is reported and left alone (no `prune`). Values are plain
-	// text, so identifiers only, never a secret. Still to add once their values are settled:
-	// CLOUDFLARE_PAGES_PROJECT, HOLOCRON_AXIOM_DATASET, POSTHOG_PROJECT_TOKEN.
+	// Organization Actions variables the reusable workflows read as `vars.NAME`. Their values are edited in the
+	// 1Password Environment `Holocron - GitHub Actions variables` (a separate Environment from the secrets one, because
+	// 1Password does not tell a visible value from a secret) and written by `holocron secrets sync "Holocron - GitHub
+	// Actions variables"`. Names only; a key blank or missing in the Environment is skipped, so GitHub keeps its value.
+	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
+	// (no `prune`). `doctor variables` expects every key listed here at its scope. Still to add once their values are
+	// settled: CLOUDFLARE_PAGES_PROJECT, HOLOCRON_AXIOM_DATASET, POSTHOG_PROJECT_TOKEN.
 	variables: {
-		org: {
-			AXIOM_DATASET: "holocron-ci",
-			CLOUDFLARE_ACCOUNT_ID: "9c558af98664d13fc89b7e0a0d93d5a8",
-			TURBO_TEAM: "iamnewton",
-		},
+		sync: [
+			{
+				environment: "Holocron - GitHub Actions variables",
+				scope: "org=theholocron",
+				keys: ["AXIOM_DATASET", "CLOUDFLARE_ACCOUNT_ID", "TURBO_TEAM"],
+			},
+		],
 	},
 	// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron secrets sync
 	// "Holocron - GitHub Actions"`, #1702): change one in 1Password, run the sync, and both scopes are updated. Names

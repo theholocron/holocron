@@ -9,6 +9,7 @@ import {
 	type TeamEntry,
 	type TeamPermission,
 } from "../../plugin/capabilities/index.js";
+import { validateVariablesSync } from "../validate-variables-sync/index.js";
 import type {
 	CredentialsConfig,
 	DevConfig,
@@ -211,6 +212,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		}
 	}
 	if (raw.dev !== undefined) validateDev(raw.dev);
+	validateVariablesSync(raw.repo?.variables);
 	const credentialsEntry = providers.credentials;
 	if (credentialsEntry?.cardinality === "many") {
 		for (const tuple of credentialsEntry.tuples) {

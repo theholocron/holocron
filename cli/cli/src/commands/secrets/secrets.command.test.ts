@@ -143,6 +143,31 @@ describe("secrets sync", () => {
 		]);
 	});
 
+	it("takes variable routes from repo.variables.sync, and sends no secrets for an environment that is only variables", async () => {
+		loadConfig.mockResolvedValue({
+			resolved: {
+				org: "acme",
+				repo: {
+					variables: {
+						sync: [{ environment: "vars", keys: ["A"], scope: "org=acme" }],
+					},
+					secrets: { sync: [{ environment: "ci", keys: ["S"] }] },
+				},
+			},
+			filepath: "/x",
+		});
+		await go(["sync", "vars"]);
+		const input = runSecretsSync.mock.calls[0]![0];
+		expect(input.variableRoutes).toEqual([{ scope: { kind: "organization", name: "acme" }, keys: ["A"] }]);
+		expect(input.secretRoutes).toEqual([]);
+
+		runSecretsSync.mockClear();
+		await go(["sync", "ci"]);
+		const secretsOnly = runSecretsSync.mock.calls[0]![0];
+		expect("variableRoutes" in secretsOnly).toBe(false);
+		expect(secretsOnly.secretRoutes).toHaveLength(1);
+	});
+
 	it("lets --github-secret win over the config entries", async () => {
 		loadConfig.mockResolvedValue({
 			resolved: { org: "acme", repo: { secrets: { sync: [{ environment: "ci", keys: ["A"] }] } } },

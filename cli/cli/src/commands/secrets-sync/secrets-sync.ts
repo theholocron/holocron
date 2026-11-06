@@ -29,6 +29,9 @@
  *    entry for this environment gives `secrets` its own keys and scope, one
  *    step per scope, so one environment can fill organization and repository
  *    secrets in one run.
+ *  - `repo.variables.sync` entries for this environment give Actions variables: each key goes through the `source`
+ *    provider's `syncVariables` (repo scope) or `syncOrgVariables`, one call per key, without pruning. An
+ *    environment with only variable entries pushes nothing to `secrets` or `deployment`.
  *  - A key that is blank in the vault is skipped in every destination, and a
  *    listed key the vault does not hold is a skipped row.
  *
@@ -49,11 +52,12 @@ import {
 	PluginLoader,
 	type Secrets,
 	type SecretScope,
+	type Source,
 	type Vault,
 	type Workers,
 } from "../../plugin/index.js";
 import { restorePem } from "./restore-pem/index.js";
-import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow } from "./secrets-sync.type.js";
+import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow, VariableRoute } from "./secrets-sync.type.js";
 
 /** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
 function workersMissing(loader: PluginLoader): string {
@@ -152,8 +156,53 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		}
 	}
 
+	// ── Push to Actions variables (through `source`) ───────────────────
+	// Variables are readable in GitHub afterwards, which is why they come from an environment of their own. Values go
+	// through the same `pushRow()` as secrets: a blank is skipped, a dry run writes nothing, nothing is printed.
+	const variableRoutes = input.variableRoutes ?? [];
+	if (variableRoutes.length > 0) {
+		const source = loader.has("source") ? (loader.get("source") as Source) : undefined;
+		for (const route of variableRoutes) {
+			const scope = scopeLabel(route.scope);
+			print(style.step(`variables (${scope})`));
+			const destination = `variables:${source?.providerName ?? "source"}`;
+			const org = route.scope.kind === "organization" ? route.scope.name : undefined;
+			const unsupported = !source
+				? "needs a `source` provider in holocron.config.ts"
+				: org === undefined && !source.syncVariables
+					? `source provider (${source.providerName}) does not implement syncVariables`
+					: org !== undefined && !source.syncOrgVariables
+						? `source provider (${source.providerName}) does not implement syncOrgVariables`
+						: undefined;
+			if (unsupported) {
+				const row: SyncRow = { destination, scope, key: "(all)", status: "fail", message: unsupported };
+				rows.push(row);
+				print(formatRow(row));
+				continue;
+			}
+			for (const key of route.keys) {
+				rows.push(
+					await pushRow(destination, scope, key, envVars, dryRun, async (value) => {
+						// One call per key: a failure is one row, and `prune` is off so nothing else is touched.
+						if (org === undefined) await source!.syncVariables!({ [key]: value }, { prune: false });
+						else {
+							await source!.syncOrgVariables!(
+								org,
+								{ [key]: { value, visibility: route.visibility ?? "all" } },
+								{ prune: false }
+							);
+						}
+					})
+				);
+				print(formatRow(rows[rows.length - 1]!));
+			}
+		}
+	}
+
 	// ── Push to `deployment` (Vercel env vars) ─────────────────────────
-	if (loader.has("deployment")) {
+	// An environment declared only for variables is not a deployment's: it would otherwise print a "projectId" skip.
+	const variablesOnly = variableRoutes.length > 0 && input.secretRoutes?.length === 0 && !input.projectId;
+	if (loader.has("deployment") && !variablesOnly) {
 		const deploy = loader.get("deployment") as Deployment;
 		if (!input.projectId) {
 			print(style.step("deployment"));
@@ -325,7 +374,7 @@ function formatRow(row: SyncRow): string {
 	return `    ${style.dim(`· ${label}`)}`;
 }
 
-function scopeLabel(scope: SecretScope): string {
+function scopeLabel(scope: SecretScope | VariableRoute["scope"]): string {
 	if (scope.kind === "repo") return "scope=repo";
 	if (scope.kind === "organization") return `scope=organization,org=${scope.name}`;
 	return `scope=environment,env=${scope.name}`;

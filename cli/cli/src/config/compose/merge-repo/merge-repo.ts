@@ -11,7 +11,7 @@ const teamsByKey = mergeByKey<NonNullable<RepoFragment["teams"]>[number]>((t) =>
 
 /**
  * Merge one capability's `repo` fragment onto what earlier ones gave. Scalars: last writer wins. `properties`: shallow
- * merge. `variables`: merged per scope (`repo`, `org`). `secrets`: each name list is a union, and `sync` entries merge by
+ * merge. `variables`: merged per scope (`repo`, `org`), and `sync` entries by environment and scope. `secrets`: each name list is a union, and `sync` entries merge by
  * environment and scope. `topics`: union. `teams`: merged by slug.
  */
 export function mergeRepo(prev: RepoFragment, next: RepoFragment): RepoFragment {
@@ -24,6 +24,9 @@ export function mergeRepo(prev: RepoFragment, next: RepoFragment): RepoFragment 
 			...variables,
 			...(repo.variables?.repo || variables.repo ? { repo: { ...repo.variables?.repo, ...variables.repo } } : {}),
 			...(repo.variables?.org || variables.org ? { org: { ...repo.variables?.org, ...variables.org } } : {}),
+			...(repo.variables?.sync || variables.sync
+				? { sync: mergeSync(repo.variables?.sync, variables.sync) }
+				: {}),
 		};
 	}
 	if (secrets) {
