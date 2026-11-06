@@ -87,7 +87,7 @@ For each file the job holds three values: the status in the **file**, the status
 | same         | changed     | a gatekeeper retagged          | open or update the sync pull request (below)     |
 | changed      | changed     | both moved                     | report a conflict; change nothing                |
 
-A retag therefore never edits the file directly. It goes into **one pull request** the job keeps open on a branch of its own (`chore/specs-sync`): the `status:` lines it was asked to change and the `discussion:` links it has only made. The maintainer merges it like any other, and on the next run the file has moved, so the tag and the last-synced line catch up. The job never pushes to `alpha`, and no one's retag can change the repo without a review.
+A retag therefore never edits the file directly. It goes into **one pull request** the job keeps open on a branch of its own (`chore/specs-sync`): the `status:` lines it was asked to change and the `discussion:` links it has only made. On the next run after it merges the file has moved, so the tag and the last-synced line catch up. The job never pushes to `alpha`. A pull request that changes no `status:` line (only links and ids, which are mechanical) enables auto-merge and lands once its checks pass (#1824); one that changes a `status:` waits for a maintainer, so no one's retag can change the repo without a review.
 
 ### The link in the front matter
 

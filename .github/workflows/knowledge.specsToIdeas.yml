@@ -7,7 +7,8 @@
 # `tech-specs-discussion-threads`). It runs `holocron specs sync`, which makes the posts (titled with the document's own title, tagged
 # with the status), writes each post's address into its file as `discussion.url`, and, when a gatekeeper changed a post's
 # tag, changes the file's `status:` line. It also links the id that opens a post to its file once the file is on `alpha` (#1663), which edits the post only. Those are edits to the working tree only: this workflow commits them to the
-# branch `chore/specs-sync` and opens one pull request, so a status change reaches `alpha` only through a review.
+# branch `chore/specs-sync` and opens one pull request. The pull request merges itself (auto-merge, once its checks pass)
+# when it only links posts and numbers documents; one that changes a `status:` waits for a review (#1824).
 #
 # - Every hour, so a retag becomes a pull request within the hour.
 # - When a spec or ADR lands on `alpha`, so its post exists straight away.
@@ -121,10 +122,25 @@ jobs:
           cat > "$RUNNER_TEMP/body.md" <<'EOF'
           Edits `holocron specs sync` made to the working tree: the address of each spec or ADR discussion post as `discussion.url`, and the `status:` of a document whose post a gatekeeper retagged.
 
-          A status change here was asked for by changing the tag on the post in Discord. Merge it to accept the change, or close it and change the tag back. The post is not marked as in step until this merges.
+          A pull request that only links posts merges itself once its checks pass. One that changes a `status:` waits for a review: the change was asked for by changing the tag on the post in Discord. Merge it to accept the change, or close it and change the tag back. The post is not marked as in step until this merges.
 
           Opened by the Spec discussions workflow (#1535).
           EOF
           gh pr create --base alpha --head "$BRANCH" \
             --title "chore(specs): 🔄 sync spec discussions" \
             --body-file "$RUNNER_TEMP/body.md"
+
+      # The branch is rebuilt from `alpha` every run, so its one commit is exactly what the pull request changes. A
+      # `status:` line in it came from a gatekeeper's retag and waits for a review; links and ids merge themselves.
+      # Auto-merge needs the checks to run, which a pull request opened with the default token does not get.
+      - name: Merge by itself unless a status changes
+        if: steps.commit.outputs.changed == 'true' && env.HOLOCRON_SYNC_TOKEN != ''
+        env:
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+        run: |
+          if git diff HEAD~1 HEAD -U0 -- .notes docs/wiki | grep -Eq '^[+-]status:'; then
+            echo "The sync changes a status: it waits for a review."
+            gh pr merge "$BRANCH" --disable-auto || true
+          else
+            gh pr merge "$BRANCH" --auto --squash
+          fi
