@@ -82,6 +82,20 @@ else
 	done
 fi
 
+step "GitHub CLI extensions"
+# gh-stack manages stacked PRs (`gh stack`); it is a gh extension, so it needs gh first.
+if ! have gh; then
+	bad "gh is not installed, so the gh-stack extension cannot be checked (see .humans/Brewfile)"
+elif gh extension list 2>/dev/null | grep -q 'github/gh-stack'; then
+	ok "gh-stack"
+elif [ "$CHECK" -eq 1 ]; then
+	bad "gh-stack is not installed (run ./.humans/setup.sh to install it)"
+elif gh extension install github/gh-stack; then
+	ok "installed gh-stack"
+else
+	bad "gh extension install github/gh-stack failed"
+fi
+
 step "Node and pnpm"
 need="$(node_minimum)"
 if ! have node; then
