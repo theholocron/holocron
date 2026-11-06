@@ -406,6 +406,12 @@ describe("runTask", () => {
 		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "doctor", "tokens"], { cwd: CWD });
 	});
 
+	it("runs `holocron project reconcile` for reconcile-projects, as two argv entries", () => {
+		const { call, exec } = makeRun({ "package.json": PKG() });
+		call("reconcile-projects");
+		expect(exec).toHaveBeenCalledWith(process.execPath, [process.argv[1], "project", "reconcile"], { cwd: CWD });
+	});
+
 	it("reports a task with no local equivalent as skipped — even when --required", () => {
 		const { call, exec, lines } = makeRun({ "package.json": PKG() });
 		const report = call("scan:code", { required: true });

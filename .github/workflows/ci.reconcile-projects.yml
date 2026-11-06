@@ -1,0 +1,21 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: reconcile-projects
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-projects:
+    name: reconcile-projects
+    uses: ./.github/workflows/reconcile-projects.yml
+    secrets: inherit

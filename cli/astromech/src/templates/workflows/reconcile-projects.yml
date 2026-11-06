@@ -1,0 +1,15 @@
+name: reconcile-projects
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile-projects:
+    name: reconcile-projects
+    uses: theholocron/.github/.github/workflows/reconcile-projects.yml@main
+    secrets: inherit

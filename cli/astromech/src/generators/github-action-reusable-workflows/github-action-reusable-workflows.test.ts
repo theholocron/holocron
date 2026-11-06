@@ -930,6 +930,40 @@ describe("delivery.publish.yml version groups", () => {
 	});
 });
 
+describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project board job", () => {
+	const wf = REUSABLE_WORKFLOWS["reconcile-projects"]!;
+
+	it("is a reusable workflow that asks its caller for the GitHub App's id and private key", () => {
+		expect(wf).toContain("workflow_call:");
+		for (const name of ["SENTINEL_APP_ID", "SENTINEL_APP_PRIVATE_KEY"]) {
+			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: true`));
+		}
+	});
+
+	it("mints an installation token for the owner, with the organization Projects permission", () => {
+		expect(wf).toContain("actions/create-github-app-token@");
+		expect(wf).toContain("owner: ${{ github.repository_owner }}");
+		expect(wf).toContain("permission-organization-projects: write");
+	});
+
+	it("reconciles, then checks the boards even when the reconcile step failed", () => {
+		expect(wf.indexOf("command: project reconcile")).toBeGreaterThan(-1);
+		expect(wf.indexOf("command: project reconcile")).toBeLessThan(wf.indexOf("command: doctor project"));
+		expect(wf).toMatch(/name: Check the boards\n\s+if: \$\{\{ !cancelled\(\) \}\}/);
+	});
+
+	it("hands the token over in the environment, never on the command line", () => {
+		expect(wf.match(/HOLOCRON_ORG_TOKEN: \$\{\{ steps\.app-token\.outputs\.token \}\}/g)).toHaveLength(2);
+		expect(wf).not.toMatch(/--token/);
+	});
+
+	it("runs one at a time and only reads the repository", () => {
+		expect(wf).toContain("group: reconcile-projects");
+		expect(wf).toContain("cancel-in-progress: false");
+		expect(wf).toContain("contents: read");
+	});
+});
+
 describe("REUSABLE_WORKFLOWS['check-tokens'] — the scheduled token check", () => {
 	const wf = REUSABLE_WORKFLOWS["check-tokens"]!;
 

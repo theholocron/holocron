@@ -40,7 +40,7 @@ describe("resolveTemplate", () => {
 		expect(result.ok).toBe(true);
 		const template = (result as { template: (typeof BUILTIN_TEMPLATES)["roadmap"] }).template;
 		expect(template.name).toBe("team-roadmap");
-		expect(template.fields.map((f) => f.name)).toEqual(["Priority", "Milestone", "Team"]);
+		expect(template.fields.map((f) => f.name)).toEqual(["Priority", "Team"]);
 		expect(template.statuses.map((s) => s.name)).toEqual(["Someday", "Todo", "In Progress", "Blocked", "Done"]);
 		expect(template.statuses.find((s) => s.name === "Blocked")?.color).toBe("ORANGE");
 		expect(template.rules).toEqual(["Auto-add sub-issues to project", "Item closed"]);

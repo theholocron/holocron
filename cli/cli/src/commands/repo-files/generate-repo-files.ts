@@ -1,6 +1,5 @@
 import { generateAgentFiles } from "./generate-agent-files.js";
 import { generateConfigFiles } from "./generate-config-files.js";
-import { generateProjectWorkflowFiles } from "./generate-project-workflow-files.js";
 import { generateTurboFiles } from "./generate-turbo-files.js";
 import { generateWorkflowFiles } from "./generate-workflow-files.js";
 import type { RepoFileEntry, RepoFilesInput } from "./repo-files.type.js";
@@ -14,7 +13,6 @@ import type { RepoFileEntry, RepoFilesInput } from "./repo-files.type.js";
 export async function generateRepoFiles(input: RepoFilesInput): Promise<RepoFileEntry[]> {
 	return [
 		...generateWorkflowFiles(input),
-		...generateProjectWorkflowFiles(input),
 		...(await generateConfigFiles(input)),
 		...(await generateAgentFiles(input)),
 		...(await generateTurboFiles(input)),

@@ -54,10 +54,7 @@ export const board = (name: string, over: Partial<BoardSummary> = {}): BoardSumm
 export const roadmapState = (summary: BoardSummary, over: Partial<BoardState> = {}): BoardState => ({
 	board: summary,
 	statuses: ["Someday", "Todo", "In Progress", "Blocked", "Done"],
-	fields: [
-		{ name: "Priority", type: "single_select", options: ["1 · Now", "2 · Next", "3 · Process"] },
-		{ name: "Milestone", type: "text" },
-	],
+	fields: [{ name: "Priority", type: "single_select", options: ["1 · Now", "2 · Next", "3 · Process"] }],
 	views: [
 		{ name: "Active", layout: "board", filter: "-status:Someday -status:Done", default: true },
 		{ name: "Backlog", layout: "board", filter: "status:Someday" },

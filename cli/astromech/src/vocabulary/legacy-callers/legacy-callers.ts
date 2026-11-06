@@ -127,6 +127,12 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"publish-wiki-preview": { id: "preview", name: "Preview" },
 		},
 	},
+	"reconcile-projects": {
+		name: "Platform",
+		jobs: {
+			"reconcile-projects": { id: "reconcile-projects", name: "Reconcile Projects" },
+		},
+	},
 	release: {
 		name: "Delivery",
 		jobs: {

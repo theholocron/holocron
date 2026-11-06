@@ -1,0 +1,81 @@
+name: Reconcile Projects
+
+# Keeps the project boards true to their rules (SPEC-0020, #1744): runs `holocron project reconcile`, which sets an item's
+# status from the issue's state and its "blocked by" links (an open blocker means blocked, no blocker left means planned,
+# a closed issue means done), then `holocron doctor project`, which reports what reconcile cannot fix.
+#
+# `GITHUB_TOKEN` cannot write an organization project, so the job mints an installation token from a GitHub App. The App
+# needs the organization permission Projects (read and write), which a person grants; its id and private key reach the job
+# as the secrets below (`secrets: inherit` passes them from the caller). The boards a repo keeps come from its own
+# `providers.projects` in holocron.config.ts, so a repo that declares none passes `doctor project` as a skip.
+#
+# Scheduled hourly by the caller. A failed run reaches #alerts through `platform.notifications.yml`.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      SENTINEL_APP_ID:
+        description: The id of the GitHub App whose installation token writes the boards.
+        required: true
+      SENTINEL_APP_PRIVATE_KEY:
+        description: The private key of that GitHub App.
+        required: true
+
+jobs:
+  reconcile-projects:
+    name: Reconcile and check the boards
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Two runs could set the same item twice, so a second waits for the first.
+    concurrency:
+      group: reconcile-projects
+      cancel-in-progress: false
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          app-id: ${{ secrets.SENTINEL_APP_ID }}
+          private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-organization-projects: write
+          permission-issues: read
+          permission-pull-requests: read
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      # The token goes in the environment, never on the command line.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Reconcile the boards
+        id: reconcile
+        env:
+          HOLOCRON_ORG_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          command: project reconcile
+
+      - name: List what changed
+        if: ${{ !cancelled() && steps.reconcile.outputs.log-file != '' }}
+        env:
+          LOG_FILE: ${{ steps.reconcile.outputs.log-file }}
+        run: |
+          {
+            echo "### Project reconcile"
+            echo '```'
+            cat "$LOG_FILE"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # What reconcile cannot fix: a board that differs from its template, a rule that is off, a missing App permission.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Check the boards
+        if: ${{ !cancelled() }}
+        env:
+          HOLOCRON_ORG_TOKEN: ${{ steps.app-token.outputs.token }}
+        with:
+          command: doctor project

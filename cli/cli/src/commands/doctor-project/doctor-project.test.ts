@@ -111,7 +111,12 @@ describe("doctor project: the board", () => {
 		expect(report.status).toBe("fail");
 		expect(text).toContain("type is text, declared single_select");
 		expect(text).toContain("missing option 3 · Process");
-		expect(text).toContain("missing field Milestone");
+
+		const none = await run(withBoards(), {
+			projects: healthy({ read: vi.fn(async () => roadmapState(v5, { fields: [] })) }),
+		});
+		expect(none.report.status).toBe("fail");
+		expect(none.text).toContain("missing field Priority");
 
 		const order = await run(withBoards(), {
 			projects: healthy({
@@ -123,7 +128,6 @@ describe("doctor project: the board", () => {
 								type: "single_select",
 								options: ["2 · Next", "1 · Now", "3 · Process"],
 							},
-							{ name: "Milestone", type: "text" },
 						],
 					})
 				),

@@ -74,6 +74,8 @@ export default defineConfig({
 						"HOLOCRON_RELEASE_TOKEN",
 						"HOLOCRON_SYNC_TOKEN",
 						"LHCI_GITHUB_APP_TOKEN",
+						"SENTINEL_APP_ID",
+						"SENTINEL_APP_PRIVATE_KEY",
 						"SENTRY_AUTH_TOKEN",
 						"STORYBOOK_CODE_SANDBOX_API_TOKEN",
 						"SUPER_LINTER_APP_ID",
@@ -152,6 +154,7 @@ export default defineConfig({
 		"greet",
 		"update-deps",
 		"label",
+		"reconcile-projects",
 		{ name: "typecheck", required: true, with: { affected: true } },
 		// deploy-docs implies docs: true — this repo has no Storybook, so
 		// the dedicated task is more idiomatic than deploy + with:
@@ -180,6 +183,11 @@ export default defineConfig({
 		monitoring: ["checkly", { accountId: "fb82859a-4f62-4773-8404-db0f29f9262c" }],
 		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets
 		logs: "axiom",
+		// Projects: the org's planning board (GitHub Projects), declared as template -> name (SPEC-0020, #1744). The
+		// template is a built-in (roadmap) or a file in .holocron/projects; the board is found by name among the open
+		// ones. `holocron project setup` brings it in line, `doctor project` checks it, and the hourly
+		// `reconcile-projects` task (see `tasks`) keeps statuses true to the blocked-by links.
+		projects: ["github", { boards: [{ template: "roadmap", name: "v5" }] }],
 		// Notifications: the Holocron Discord server. `holocron notifications setup`
 		// applies the layout below (idempotent; --dry-run previews it). This block
 		// lives in ONE repo on purpose -- a server layout is org-level, so it must

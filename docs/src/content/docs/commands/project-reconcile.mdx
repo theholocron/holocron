@@ -1,6 +1,6 @@
 ---
 title: "project reconcile"
-description: Set the status of board items where a rule says so (blocked, unblocked, closed), and the hourly workflow that runs it.
+description: Set the status of board items where a rule says so (blocked, unblocked, closed), and the hourly task that runs it.
 ---
 
 ```bash
@@ -34,7 +34,7 @@ The rules are one pure function, `planReconcile()`, so Sentinel can supply the s
 
 ## Run on a schedule
 
-When `providers.projects` declares boards, `holocron repo setup` and `holocron repo sync` write `.github/workflows/platform.projectReconcile.yml` (a generated file, checked by `holocron probe generated check`). Hourly, and on demand with a `dry_run` input, it runs `holocron project reconcile` and then `holocron doctor project`. The reconcile output goes into the run's summary. A failure of either step fails the run, and the run reaches `#alerts` through `platform.notifications.yml`, which lists the workflow as `Project reconcile`. What reconcile changed is not an alert.
+The job is the task `reconcile-projects`, like `check-tokens`: a registry task, a reusable workflow template (`ci/workflows/reconcile-projects.yml`) and a thin caller generated from the `tasks:` list (add `"reconcile-projects"` to enable it in a repo that declares boards). Hourly, and on demand, it runs `holocron project reconcile` and then `holocron doctor project`. The reconcile output goes into the run's summary. A failure of either step fails the run, and the run reaches `#alerts` through `platform.notifications.yml`, which lists the workflow as `reconcile-projects`. What reconcile changed is not an alert.
 
 `GITHUB_TOKEN` cannot write an organization project, so the run mints the GitHub App's installation token with `actions/create-github-app-token`. Two things are done once, by a person:
 

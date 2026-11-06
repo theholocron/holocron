@@ -245,6 +245,10 @@ export const TASKS: Record<string, TaskDef> = {
 	// workflows/composite actions to theholocron/.github, so only this
 	// repo's thin caller is ever meaningfully triggered (holocron#1013).
 	"sync-templates": { group: "Platform", scope: "repo", local: { command: "sync github" } },
+	// Runs `holocron project reconcile`: sets each item's status on the declared project boards from its issue state and
+	// its "blocked by" links (spec `command-project`, #1744), then its workflow runs `doctor project` for what is left.
+	// Scheduled hourly by its workflow; never part of `holocron run ci` (it writes to a live board with a GitHub App token).
+	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "project reconcile" } },
 
 	// ── Knowledge — published content, not software ───────────────────────
 	"publish-wiki": { group: "Knowledge", scope: "repo", local: { command: "sync-wiki" }, preview: true },

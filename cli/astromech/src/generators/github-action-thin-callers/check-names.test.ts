@@ -99,6 +99,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"measure-bundle": ["measure-bundle / Upload bundle stats to Codecov"],
 	preview: ["preview / Preview", "preview / Clean up Preview"],
 	"publish-wiki": ["publish-wiki / Publish to Fern", "publish-wiki / Publish to Fern"],
+	"reconcile-projects": ["reconcile-projects / Reconcile and check the boards"],
 	release: ["release / Semantic release", "release / Deploy", "release / Post-release readme sync"],
 	"scan:code": ["scan:code / Analyze (${{ inputs.language }})"],
 	"scan:secrets": ["scan:secrets / Run gitleaks"],
