@@ -4,38 +4,13 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { bumpCatalogs, fetchLatestFromNpm, isLegacyConfig, migrateConfig, runUpgradeDeps } from "./upgrade-deps.js";
+import { bumpCatalogs, isLegacyConfig, migrateConfig, runUpgradeDeps } from "./upgrade-deps.js";
 import type { FetchLatest } from "./upgrade-deps.type.js";
 
 const fakeLatest =
 	(map: Record<string, string>): FetchLatest =>
 	(pkg) =>
 		Promise.resolve(map[pkg] ?? null);
-
-describe("fetchLatestFromNpm", () => {
-	it("returns the latest dist-tag", async () => {
-		const spy = vi
-			.spyOn(globalThis, "fetch")
-			.mockResolvedValue(new Response(JSON.stringify({ "dist-tags": { latest: "4.15.0" } }), { status: 200 }));
-		await expect(fetchLatestFromNpm("@theholocron/cli")).resolves.toBe("4.15.0");
-		spy.mockRestore();
-	});
-	it("returns null on a non-OK response or a network error", async () => {
-		const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("nope", { status: 404 }));
-		await expect(fetchLatestFromNpm("@theholocron/missing")).resolves.toBeNull();
-		spy.mockRejectedValueOnce(new Error("offline"));
-		await expect(fetchLatestFromNpm("@theholocron/cli")).resolves.toBeNull();
-		spy.mockRestore();
-	});
-
-	it("returns null when the payload has dist-tags but no `latest`", async () => {
-		const spy = vi
-			.spyOn(globalThis, "fetch")
-			.mockResolvedValue(new Response(JSON.stringify({ "dist-tags": { next: "5.0.0" } }), { status: 200 }));
-		await expect(fetchLatestFromNpm("@theholocron/cli")).resolves.toBeNull();
-		spy.mockRestore();
-	});
-});
 
 describe("bumpCatalogs", () => {
 	const ws = [

@@ -508,7 +508,8 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
   new file type that pins the Node.js version (e.g., a new CI platform's
   config, an `.engines` file, a custom script), add a `Pattern` entry to
   the `PATTERNS` array in
-  `cli/cli/src/commands/upgrade-node/upgrade-node.ts` — a `matches` predicate
+  `cli/astromech/src/upgrade/upgrade-node/upgrade-node.ts` (`@theholocron/astromech/upgrade`; the CLI command
+  only binds its logger) — a `matches` predicate
   on the filename and a `patch` function that replaces the old major with
   the new one. The `upgrade.node.extra` field in `holocron.config.json`
   is only for non-conventional _file paths_ (unusual locations for known

@@ -630,7 +630,9 @@ See the [command pages](https://theholocron.dev/holocron/commands/notifications-
 
 - **`holocron repo upgrade node <to>`** — patches every Node.js version pin
   (`engines.node`, `.nvmrc`, `.node-version`, `.github/workflows/*`,
-  `Dockerfile`, `.tool-versions`) to a new major.
+  `Dockerfile`, `.tool-versions`) to a new major. The rewrite is
+  `runUpgradeNode()` in `@theholocron/astromech/upgrade`; the command only
+  binds the logger and reads `upgrade.node.extra`.
 - **`holocron repo upgrade deps`** — bumps every `@theholocron/*` pin in
   `pnpm-workspace.yaml` (`catalog:` and every named `catalogs.*`) to its latest
   published version, then migrates `holocron.config.ts` from the 7.x preset

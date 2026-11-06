@@ -201,7 +201,7 @@ to flat ids is what moves its keys, and the package scripts with them (`taskKey(
 ### Required checks
 
 `requiredChecks(aggregate)` is the branch-protection required-status-check list. With the `ci` aggregate (the repo
-hosts it, see below) it is `["ci / Required checks", "DCO"]`. Without it, it is `"DCO"`, then every `{ required: true }` task's check
+contains it, see below) it is `["ci / Required checks", "DCO"]`. Without it, it is `"DCO"`, then every `{ required: true }` task's check
 context, ordered by `CI_ORDER`, then `config.extraRequiredChecks` (codecov gates, …), de-duplicated. Most tasks are
 single always-run jobs now, so their context
 names that job directly (`"typecheck / Run tsc --noEmit"`) — the `… /
@@ -216,7 +216,7 @@ applies the list for `protection: "strict"` repos. Policy-free — manifest only
 `expected` ids are the part before `/` of each required task's context and of each `extraRequiredChecks` entry that
 is not a `codecov/` status (the hand-written `Generated files / Check` becomes `Generated files`), and `statuses` are
 the `codecov/` entries. `aggregateCaller()` renders the `pull_request` caller, whose job `ci` calls the reusable's `Required checks` job.
-`holocron repo sync` writes it only in the repo that hosts the reusables. The ids are today's check names; the later
+`holocron repo sync` writes it only in the repo that contains the reusables. The ids are today's check names; the later
 rename changes them here and costs no ruleset edit.
 
 ### `codecov.yml`
@@ -304,3 +304,16 @@ webhook and the GitHub API (#929).
   `validateAdr(path, text)`, `validateSpec(path, text)` and `isValidIsoDate(value)`, and the folders and status sets
   (`ADR_DIR`, `SPEC_DIRS`, `ADR_STATUSES`, `SPEC_STATUSES`). A `SpecFinding` is an `error` (fails the check) or a
   `warning` (never does), with the file, the field's line and the rule.
+
+## Upgrade — `@theholocron/astromech/upgrade`
+
+The repo-agnostic machinery behind `holocron repo upgrade`, in a subpath so the CLI and any other tool can use it.
+
+- `runUpgradeNode({ to, from?, cwd?, dryRun?, extra?, logger? })` walks the repo and rewrites every Node.js major pin:
+  `engines.node`, an exact `@types/node`, `.nvmrc`, `.node-version`, workflow `node-version:`, Dockerfile
+  `FROM node:` and `.tool-versions`. `from` is read from `.nvmrc` or `engines.node` when omitted. It never throws:
+  a failure is `{ status: "fail", message }`. Underneath are `patchPackageJson`, `patchYaml`, `patchPinFile`,
+  `patchDockerfile`, `patchToolVersions` and `detectNodeMajor`.
+- `fetchLatestFromNpm(pkg)` resolves a package's `latest` dist-tag from the npm registry, or `null` on any failure.
+
+What counts as a Holocron pin (`@theholocron/*`) and the `holocron.config.ts` migration stay in `@theholocron/cli`.

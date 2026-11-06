@@ -41,6 +41,11 @@
       "types": "./dist/repo-validation/index.d.mts",
       "import": "./dist/repo-validation/index.mjs",
       "default": "./dist/repo-validation/index.mjs"
+    },
+    "./upgrade": {
+      "types": "./dist/upgrade/index.d.mts",
+      "import": "./dist/upgrade/index.mjs",
+      "default": "./dist/upgrade/index.mjs"
     }
   },
   "files": [
@@ -60,6 +65,7 @@
     "@theholocron/datapad": "workspace:*",
     "@theholocron/fs-utils": "workspace:^",
     "@theholocron/json-utils": "workspace:^",
+    "@theholocron/misc-utils": "workspace:^",
     "@theholocron/pkg-utils": "workspace:^"
   },
   "devDependencies": {
