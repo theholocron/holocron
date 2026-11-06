@@ -92,6 +92,20 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		const rules = options.layout?.pinned?.find((pin) => pin.channel === "rules");
 		expect(rules).toEqual({ channel: "rules", file: "RULES.md" });
 		rules!.file = ".holocron/pinned/rules.md";
+		// And (#1817): the three organization variables are no longer literals but come from a 1Password Environment.
+		const repoBefore = (expected as { repo: { variables?: unknown } }).repo;
+		expect(repoBefore.variables).toEqual({
+			org: { AXIOM_DATASET: "holocron-ci", CLOUDFLARE_ACCOUNT_ID: expect.any(String), TURBO_TEAM: "iamnewton" },
+		});
+		repoBefore.variables = {
+			sync: [
+				{
+					environment: "Holocron - GitHub Actions variables",
+					scope: "org=theholocron",
+					keys: ["AXIOM_DATASET", "CLOUDFLARE_ACCOUNT_ID", "TURBO_TEAM"],
+				},
+			],
+		};
 
 		const { resolved } = await loadConfig(REPO_ROOT);
 		expect(normalise(resolved)).toEqual(expected);

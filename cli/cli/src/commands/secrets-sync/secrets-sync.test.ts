@@ -711,4 +711,153 @@ describe("runSecretsSync", () => {
 			expect(out).toContain("secrets (scope=repo)");
 		});
 	});
+
+	describe("variableRoutes", () => {
+		interface Doubles {
+			secrets: string[];
+			deployments: string[];
+			repoVars: Array<Record<string, string>>;
+			orgVars: Array<[string, Record<string, { value: string; visibility: string }>]>;
+			loaded: LoadedConfig;
+			loader: PluginLoader;
+		}
+
+		function doubles(
+			values: Record<string, string>,
+			source: Record<string, unknown> | null = {},
+			withDeployment = false
+		): Doubles {
+			const d = { secrets: [], deployments: [], repoVars: [], orgVars: [] } as unknown as Doubles;
+			const providers: Record<string, string> = { vault: "1password", secrets: "github" };
+			if (source) providers["source"] = "github";
+			if (withDeployment) providers["deployment"] = "vercel";
+			d.loaded = loadedFrom({ name: "demo", providers });
+			const github = {
+				...(source
+					? {
+							source: {
+								providerName: "github",
+								syncVariables: async (v: Record<string, string>) => {
+									d.repoVars.push(v);
+									return "ok";
+								},
+								syncOrgVariables: async (
+									org: string,
+									v: Record<string, { value: string; visibility: string }>
+								) => {
+									d.orgVars.push([org, v]);
+									return "ok";
+								},
+								...source,
+							},
+						}
+					: {}),
+				secrets: {
+					providerName: "github",
+					setSecret: async (_s: unknown, name: string) => void d.secrets.push(name),
+				},
+			};
+			d.loader = makeLoaderWith(d.loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+					vault: { providerName: "1password", readEnvironment: async () => values },
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("gh", github),
+				"@theholocron/holocron-plugin-vercel": makePlugin("vc", {
+					deployment: {
+						providerName: "vercel",
+						setEnvVar: async (_p: string, _t: string, key: string) => void d.deployments.push(key),
+					},
+				}),
+			});
+			return d;
+		}
+
+		const run = (d: Doubles, extra: Partial<Parameters<typeof runSecretsSync>[0]> = {}) => {
+			const lines: string[] = [];
+			return runSecretsSync({
+				loaded: d.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "Vars",
+				secretRoutes: [],
+				variableRoutes: [
+					{ scope: { kind: "organization", name: "theholocron" }, keys: ["TURBO_TEAM", "BLANK", "ABSENT"] },
+				],
+				loader: d.loader,
+				print: (l) => lines.push(l),
+				...extra,
+			}).then((report) => ({ report, out: lines.join("\n") }));
+		};
+
+		it("writes variables, not secrets, and skips a blank or missing value", async () => {
+			const d = doubles({ TURBO_TEAM: "iamnewton", BLANK: "  ", OTHER: "x" }, {}, true);
+			const { report, out } = await run(d);
+			expect(d.orgVars).toEqual([["theholocron", { TURBO_TEAM: { value: "iamnewton", visibility: "all" } }]]);
+			expect(d.repoVars).toEqual([]);
+			expect(d.secrets).toEqual([]);
+			expect(d.deployments).toEqual([]);
+			expect(report.rows.map((r) => [r.key, r.status])).toEqual([
+				["TURBO_TEAM", "ok"],
+				["BLANK", "skip"],
+				["ABSENT", "skip"],
+			]);
+			expect(out).toContain("variables (scope=organization,org=theholocron)");
+			expect(out).not.toContain("projectId");
+			expect(report.rows.every((r) => r.destination === "variables:github")).toBe(true);
+		});
+
+		it("writes a repository route through syncVariables, and an organization one with its visibility", async () => {
+			const d = doubles({ A: "1", B: "2" });
+			await run(d, {
+				variableRoutes: [
+					{ scope: { kind: "repo" }, keys: ["A"] },
+					{ scope: { kind: "organization", name: "o" }, keys: ["B"], visibility: "private" },
+				],
+			});
+			expect(d.repoVars).toEqual([{ A: "1" }]);
+			expect(d.orgVars).toEqual([["o", { B: { value: "2", visibility: "private" } }]]);
+		});
+
+		it("writes nothing on a dry run, and never prints a value", async () => {
+			const d = doubles({ TURBO_TEAM: "super-visible-value-123" });
+			const { report, out } = await run(d, { context: { repoRoot: "/tmp/test", dryRun: true } });
+			expect(d.orgVars).toEqual([]);
+			expect(report.rows[0]).toMatchObject({ key: "TURBO_TEAM", status: "dry-run" });
+			expect(out).not.toContain("super-visible-value-123");
+			expect(JSON.stringify(report)).not.toContain("super-visible-value-123");
+		});
+
+		it("also pushes a secrets route the same environment declares", async () => {
+			const d = doubles({ TURBO_TEAM: "t", S: "s" });
+			await run(d, { secretRoutes: [{ scope: { kind: "repo" }, keys: ["S"] }] });
+			expect(d.secrets).toEqual(["S"]);
+			expect(d.orgVars).toHaveLength(1);
+		});
+
+		it("fails one row per route when the source is missing or cannot write variables", async () => {
+			const none = await run(doubles({ TURBO_TEAM: "t" }, null));
+			expect(none.report.rows).toEqual([expect.objectContaining({ key: "(all)", status: "fail" })]);
+			expect(none.report.rows[0]!.message).toMatch(/needs a `source` provider/);
+
+			const noOrg = await run(doubles({ A: "1" }, { syncOrgVariables: undefined }));
+			expect(noOrg.report.rows[0]!.message).toMatch(/does not implement syncOrgVariables/);
+
+			const noRepo = await run(doubles({ A: "1" }, { syncVariables: undefined }), {
+				variableRoutes: [{ scope: { kind: "repo" }, keys: ["A"] }],
+			});
+			expect(noRepo.report.rows[0]!.message).toMatch(/does not implement syncVariables/);
+		});
+
+		it("makes a provider failure one failed row", async () => {
+			const d = doubles(
+				{ TURBO_TEAM: "t" },
+				{
+					syncOrgVariables: async () => {
+						throw new Error("403");
+					},
+				}
+			);
+			const { report } = await run(d);
+			expect(report.rows[0]).toMatchObject({ key: "TURBO_TEAM", status: "fail", message: "403" });
+		});
+	});
 });

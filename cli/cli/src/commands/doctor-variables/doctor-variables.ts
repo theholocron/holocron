@@ -2,7 +2,8 @@
  * `holocron doctor variables` — do the Actions variables `repo.variables` declares exist, with those values?
  *
  * Read-only. One row for the repository's variables and one for the organization's, each only when the config
- * declares that scope. A variable that exists but is not declared is a problem only with `repo.variables.prune`,
+ * declares that scope, and one per `repo.variables.sync` entry that checks its names exist (the values are in the
+ * vault, so none is compared or shown). A variable that exists but is not declared is a problem only with `repo.variables.prune`,
  * since without it `repo setup` leaves it alone. A scope that cannot be read because there is no provider, the
  * provider cannot list variables, or the token is missing is a skip with the reason, not a failure.
  */
@@ -20,7 +21,13 @@ import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
-import type { DoctorVariablesReport, RunDoctorVariablesInput } from "./doctor-variables.type.js";
+import type {
+	DoctorVariablesReport,
+	RunDoctorVariablesInput,
+	VariableScopeCheck,
+	VariableScopeResult,
+} from "./doctor-variables.type.js";
+import { syncVariableChecks } from "./sync-checks.js";
 
 const REPO_TITLE = "repository variables match";
 const ORG_TITLE = "organization variables match";
@@ -28,14 +35,8 @@ const ORG_TITLE = "organization variables match";
 type Visibility = "all" | "private" | "selected";
 type OrgVariable = { value: string; visibility: Visibility };
 
-/** Either why the scope could not be read, or the problems found (none when it matches). */
-type Result = { skip: string } | { problems: string[]; checked: number };
-
-interface ScopeCheck {
-	id: string;
-	title: string;
-	run(source: Source): Promise<Result>;
-}
+type Result = VariableScopeResult;
+type ScopeCheck = VariableScopeCheck;
 
 export async function runDoctorVariables(input: RunDoctorVariablesInput): Promise<DoctorVariablesReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -83,6 +84,9 @@ export async function runDoctorVariables(input: RunDoctorVariablesInput): Promis
 			},
 		});
 	}
+
+	// What `repo.variables.sync` fills from a vault: names only, since the values are in the vault.
+	checks.push(...syncVariableChecks(variables?.sync));
 
 	const rows: CheckRow[] = [];
 	if (checks.length === 0) {

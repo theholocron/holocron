@@ -223,6 +223,61 @@ describe("doctor variables — no provider", () => {
 	});
 });
 
+describe("doctor variables — repo.variables.sync", () => {
+	const sync = (extra: Record<string, unknown> = {}) => ({
+		sync: [{ environment: "Vars", scope: "org=acme", keys: ["TURBO_TEAM", "AXIOM_DATASET"], ...extra }],
+	});
+
+	it("passes when every listed name exists at the scope, whatever its case, and shows no value", async () => {
+		const { report, lines } = await run(loadedWith(sync()), {
+			listOrgVariables: async () => ({
+				turbo_team: { value: "secret-looking-value", visibility: "all" },
+				AXIOM_DATASET: { value: "x", visibility: "all" },
+			}),
+		});
+		expect(report.status).toBe("ok");
+		expect(report.rows[0]).toMatchObject({
+			title: "acme organization variables from Vars exist",
+			status: "ok",
+			detail: "2 of 2 match",
+		});
+		expect(lines.join("\n")).not.toContain("secret-looking-value");
+	});
+
+	it("names each missing variable and a visibility that differs from the one declared", async () => {
+		const { report } = await run(loadedWith(sync({ visibility: "private" })), {
+			listOrgVariables: async () => ({ TURBO_TEAM: { value: "v", visibility: "all" } }),
+		});
+		expect(report.status).toBe("fail");
+		expect(report.rows[0]!.problems).toEqual([
+			"organization variable TURBO_TEAM: declared visibility private, found visibility all",
+			"missing organization variable AXIOM_DATASET",
+		]);
+	});
+
+	it("checks a repository entry with listVariables, and an extra variable is not a problem", async () => {
+		const loaded = loadedWith({ sync: [{ environment: "Vars", keys: ["A", "B"] }] });
+		const bad = await run(loaded, { listVariables: async () => ({ A: "1", EXTRA: "z" }) });
+		expect(bad.report.rows[0]).toMatchObject({ title: "repository variables from Vars exist", status: "fail" });
+		expect(bad.report.rows[0]!.problems).toEqual(["missing variable B"]);
+		const good = await run(loaded, { listVariables: async () => ({ a: "1", B: "2", EXTRA: "z" }) });
+		expect(good.report.status).toBe("ok");
+	});
+
+	it("skips with the reason when the provider cannot list at that scope", async () => {
+		const org = await run(loadedWith(sync()), {});
+		expect(org.report.rows[0]).toMatchObject({
+			status: "skip",
+			detail: "provider does not implement listOrgVariables",
+		});
+		const repo = await run(loadedWith({ sync: [{ environment: "Vars", keys: ["A"] }] }), {});
+		expect(repo.report.rows[0]).toMatchObject({
+			status: "skip",
+			detail: "provider does not implement listVariables",
+		});
+	});
+});
+
 describe("doctor variables — defaults", () => {
 	it("prints to the console and builds its own loader when none is passed", async () => {
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});

@@ -61,7 +61,7 @@ export default defineConfig({
 
     // Branch protection preset applied by `holocron repo setup`.
     // "balanced" — squash merge only, delete branch on merge, no force-push.
-    // "strict"   — same + required status checks. In a repo that hosts the `ci`
+    // "strict"   — same + required status checks. In a repo that contains the `ci`
     //              aggregate the list is `ci / Required checks` and `DCO`: the aggregate waits on every
     //              `{ required: true }` task, the hand-written checks and the
     //              codecov statuses in `extraRequiredChecks`. In any other repo it
@@ -75,8 +75,12 @@ export default defineConfig({
 
     // GitHub repository topics.
     topics: ["typescript", "node", "cli"],
-    // GitHub Actions variables (workflows read them as `vars.NAME`).
-    variables: { org: { TURBO_TEAM: "my-team" } },
+    // GitHub Actions variables (workflows read them as `vars.NAME`): literal values, or `sync` names the vault
+    // environment `holocron secrets sync` fills them from (names only; one source per name).
+    variables: {
+      org: { TURBO_TEAM: "my-team" },
+      sync: [{ environment: "Vars", scope: "org=my-org", keys: ["CLOUDFLARE_ACCOUNT_ID"] }],
+    },
     // Secrets that must exist; `holocron doctor secrets` reports the missing ones. Names only.
     // `sync` names the vault environments `holocron secrets sync` fills secrets from, and where (no `keys` = every key).
     secrets: { repo: ["TURBO_TOKEN"], org: ["NPM_TOKEN"], sync: [{ environment: "prd" }] },
@@ -209,7 +213,7 @@ suite: prettier only, it writes by default and `--check` is the read-only form.
 The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, …) are still accepted in `tasks:` and by {/* holocron-allow-old-name */}
 `holocron run`, which prints a one-line deprecation notice on stderr. `sourceQuality.formatting` stands for
 `lint:editorconfig`, `lint:markdown` and `format --check`; `delivery.publish` is now `release`. A manifest spelled either way generates the same files. The workflow callers are named for the flat id (workflow, job and {/* holocron-allow-old-name */}
-file, `ci.test-unit.yml` in holocron) in the repo that hosts the reusables; any other repo keeps the old caller names
+file, `ci.test-unit.yml` in holocron) in the repo that contains the reusables; any other repo keeps the old caller names
 until its callers move to the flat reusables (`ci-v1`), because its ruleset lists those checks.
 
 | Task                                 | Runs                                                              | Notes                                                                                                |
@@ -218,7 +222,7 @@ until its callers move to the flat reusables (`ci-v1`), because its ruleset list
 | `typecheck`                          | tsc                                                               | `tsc --noEmit`                                                                                       |
 | `test:visual`                        | Chromatic                                                         | no local equivalent — CI only; a repo opts in by listing it                                          |
 | `test:perf`                          | Lighthouse CI                                                     | only runs with a `lighthouse.config.*` present                                                       |
-| `lint:code`                          | eslint, actionlint, git-merge-conflict-markers                    | bundles more than one tool under one required check; in CI it also hosts the `format --check` step   |
+| `lint:code`                          | eslint, actionlint, git-merge-conflict-markers                    | bundles more than one tool under one required check; in CI it also runs the `format --check` step    |
 | `lint:editorconfig`, `lint:markdown` | editorconfig-checker, markdownlint-cli2                           | each is a `linterGroup` of one tool                                                                  |
 | `format`                             | prettier                                                          | writes by default, `--check` is read-only; no workflow of its own (its CI step lives in `lint:code`) |
 | `lint:data`                          | yamllint                                                          |                                                                                                      |

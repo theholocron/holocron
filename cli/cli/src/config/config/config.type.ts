@@ -134,8 +134,29 @@ export interface RepoVariables {
 	 * to private ones. Declare these in one repo only (the one that owns the org's configuration).
 	 */
 	org?: Record<string, string | { value: string; visibility?: "all" | "private" }>;
+	/**
+	 * The vault environments `holocron secrets sync` fills variables from, so one 1Password Environment is the only
+	 * place they are edited. Names only. A name here must not also be a literal value in `repo` or `org`, and `prune`
+	 * cannot be combined with it; either is a config error.
+	 */
+	sync?: RepoVariablesSync[];
 	/** Delete variables that exist but are not declared here. Off by default: they are left alone. */
 	prune?: boolean;
+}
+
+/**
+ * One vault environment that `holocron secrets sync` pushes into GitHub Actions variables. Not secrets: a variable is
+ * readable in GitHub afterwards, so keep it in an environment of its own, apart from the one that fills secrets.
+ */
+export interface RepoVariablesSync {
+	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	environment: string;
+	/** The vault keys written as variables, by name. Required: a key the environment gains by mistake is never published. */
+	keys: string[];
+	/** Where the variables land: `"repo"` (the default) or `"org=<name>"`. */
+	scope?: string;
+	/** Organization variables only: which repositories can read them. `"all"` by default. */
+	visibility?: "all" | "private";
 }
 
 /**

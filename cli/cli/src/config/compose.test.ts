@@ -193,6 +193,29 @@ describe("compose()", () => {
 		).toEqual({ org: ["O"], sync: [{ environment: "e" }] });
 	});
 
+	it("merges repo.variables.sync by environment and scope", () => {
+		const a: Capability = {
+			id: "a",
+			repo: { variables: { sync: [{ environment: "v", keys: ["A"], scope: "org=o", visibility: "private" }] } },
+		};
+		const b: Capability = {
+			id: "b",
+			repo: {
+				variables: {
+					sync: [
+						{ environment: "v", keys: ["B", "A"], scope: "org=o" },
+						{ environment: "w", keys: ["C"] },
+					],
+				},
+			},
+		};
+		expect(compose(a, b).repo.variables?.sync).toEqual([
+			{ environment: "v", keys: ["A", "B"], scope: "org=o", visibility: "private" },
+			{ environment: "w", keys: ["C"] },
+		]);
+		expect(compose(a).repo.variables?.sync).toHaveLength(1);
+	});
+
 	it("merges repo.variables across capabilities instead of replacing them", () => {
 		const a: Capability = { id: "a", repo: { variables: { repo: { A: "1", SAME: "a" }, org: { X: "x" } } } };
 		const b: Capability = { id: "b", repo: { variables: { repo: { B: "2", SAME: "b" }, prune: true } } };

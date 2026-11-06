@@ -46,14 +46,26 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 		const before = (await loadConfig(inline)).resolved.repo;
 		const after = (await loadConfig(moved)).resolved.repo;
 
-		expect(after).toEqual(before);
+		// `variables` is the one deliberate difference since the move (#1817): the old inline text had literal values,
+		// the file now names the keys of a 1Password Environment. Everything else must match.
+		expect(after?.variables?.sync).toEqual([
+			{
+				environment: "Holocron - GitHub Actions variables",
+				scope: "org=theholocron",
+				keys: ["AXIOM_DATASET", "CLOUDFLARE_ACCOUNT_ID", "TURBO_TEAM"],
+			},
+		]);
+		expect(after?.variables).not.toHaveProperty("org");
+		const { variables: _movedVariables, ...afterRest } = after!;
+		const { variables: _inlineVariables, ...beforeRest } = before!;
+		expect(afterRest).toEqual(beforeRest);
 		// Guard against a vacuous pass: the moved keys are really there on both sides, and the kept ones too.
 		expect(before).toMatchObject({
 			defaultBranch: "alpha",
 			protection: "strict",
 			teams: [{ slug: "gatekeepers", permission: "maintain" }],
 			topics: expect.arrayContaining(["holocron"]),
-			variables: { org: { TURBO_TEAM: "iamnewton" } },
+			variables: { org: { TURBO_TEAM: "iamnewton" } }, // the old inline text
 			secrets: {
 				sync: expect.arrayContaining([expect.objectContaining({ environment: "Holocron - GitHub Actions" })]),
 			},
