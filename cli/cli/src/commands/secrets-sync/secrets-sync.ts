@@ -52,6 +52,7 @@ import {
 	type Vault,
 	type Workers,
 } from "../../plugin/index.js";
+import { restorePem } from "./restore-pem/index.js";
 import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow } from "./secrets-sync.type.js";
 
 /** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
@@ -287,7 +288,8 @@ async function pushRow(
 	if (value.trim() === "") {
 		return { destination, scope, key, status: "skip", message: "blank in the vault environment" };
 	}
-	return runRow(destination, scope, key, dryRun, () => body(value));
+	// A PEM whose line breaks became spaces (pasted into a one-line vault field) is put back on its lines.
+	return runRow(destination, scope, key, dryRun, () => body(restorePem(value)));
 }
 
 async function runRow(

@@ -57,6 +57,45 @@ describe("runSecretsSync", () => {
 		).rejects.toThrow(/readEnvironment/);
 	});
 
+	it("puts a PEM key whose line breaks became spaces back on its lines before it reaches the secret", async () => {
+		// built from parts so no complete private-key block sits in this file
+		const kind = "RSA PRIVATE KEY";
+		const begin = ["-----", "BEGIN ", kind, "-----"].join("");
+		const end = ["-----", "END ", kind, "-----"].join("");
+		const body = "QUJD".repeat(40);
+		const setSecretCalls: Array<{ name: string; value: string }> = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({ APP_PRIVATE_KEY: `${begin} ${body} ${end}`, PLAIN: "sk_test_xxx" }),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string, value: string) => {
+						setSecretCalls.push({ name, value });
+					},
+				},
+			}),
+		});
+
+		await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+		});
+
+		const key = setSecretCalls.find((c) => c.name === "APP_PRIVATE_KEY")!.value;
+		expect(key).toBe(`${begin}\n${body.slice(0, 64)}\n${body.slice(64, 128)}\n${body.slice(128)}\n${end}\n`);
+		expect(setSecretCalls.find((c) => c.name === "PLAIN")!.value).toBe("sk_test_xxx");
+	});
+
 	it("fans out vault keys to secrets (repo scope)", async () => {
 		const setSecretCalls: Array<{ name: string; value: string }> = [];
 		const loaded = loadedFrom({
