@@ -220,6 +220,26 @@ describe("docs patch and repoValidation.docsCoverage", () => {
 		expect(rows.some((row) => row.status === "fail")).toBe(true);
 	});
 
+	it("validate runs presence, then tokens, and fails on a token the page lacks", async () => {
+		const presenceIo = {
+			env: {},
+			addedFiles: () => [],
+			changedFiles: () => [],
+			subjects: () => [],
+			messages: () => "",
+			diffOf: () => "",
+			readPackage: () => undefined,
+		};
+		const tokensIo = { page: () => "", authFiles: () => [], setupSource: () => "" };
+		const probes = docsCoverageProbes(repo(), vi.fn(TYPEDOC), () => "", "required", presenceIo, tokensIo);
+		const { ctx, rows } = context();
+		await probes["validate"]!.run(ctx);
+		const headings = rows.filter((row) => row.status === "heading").map((row) => row.label);
+		expect(headings).toEqual(["Docs presence", "Documented tokens"]);
+		expect(rows.some((row) => row.status === "fail")).toBe(true);
+		expect(probes["tokens"]).toBeDefined();
+	});
+
 	it("coverage and lcov do not depend on it", async () => {
 		const probes = docsCoverageProbes(repo(), vi.fn(TYPEDOC), () => hunk, "off");
 		const { ctx, rows } = context();

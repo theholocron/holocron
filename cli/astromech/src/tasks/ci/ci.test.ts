@@ -147,7 +147,7 @@ describe("runCi", () => {
 			expect(out.indexOf("▶ validate:specs /")).toBeLessThan(out.indexOf("▶ validate:docs /"));
 			expect(exec.mock.calls.map((c) => c[1])).toEqual([
 				[process.argv[1], "probe", "specs", "check"],
-				[process.argv[1], "probe", "docs", "presence"],
+				[process.argv[1], "probe", "docs", "validate"],
 			]);
 		}
 	});

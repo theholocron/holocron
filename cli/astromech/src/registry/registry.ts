@@ -225,11 +225,12 @@ export const TASKS: Record<string, TaskDef> = {
 	// Not `linters.ts` entries (not linters), so plain tasks of the `validate` suite, each a holocron subcommand.
 	// Spec/ADR frontmatter (`holocron probe specs check`).
 	"validate:specs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe specs check" } },
-	// Warns (never fails -- `holocron probe docs presence` reports, it does not exit non-zero) when a PR adds a new
-	// public package, or a `feat` changes one, without a docs change. It does not need a docs *site* to be meaningful
+	// `holocron probe docs validate` runs two probes. `docs presence` warns (never fails) when a PR adds a new
+	// public package, or a `feat` changes one, without a docs change; `docs tokens` fails when a plugin resolves a
+	// token that docs/src/content/docs/tokens.mdx does not document (a command cannot chain, so one probe runs both). It does not need a docs *site* to be meaningful
 	// (just "was something documented"), so it belongs here with its process/governance sibling, not behind the docs
 	// deploy. The doc-comment gate (`docs patch`, `repoValidation.docsCoverage`) is its own workflow, not this task.
-	"validate:docs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe docs presence" } },
+	"validate:docs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe docs validate" } },
 	// A plugin package's live check against its provider (its own `scripts/validate.mjs`, run by hand with the provider's
 	// credentials): the package's script is the whole task, so there is no built-in runner and no workflow, and it is not
 	// part of `holocron run ci`. It is a leaf so that the 16 plugins' script has a name in the suite and no collision.

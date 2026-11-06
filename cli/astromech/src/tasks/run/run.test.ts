@@ -467,7 +467,7 @@ describe("runTask", () => {
 
 describe("runTask — the validate leaves", () => {
 	const specs = [process.argv[1], "probe", "specs", "check"];
-	const docs = [process.argv[1], "probe", "docs", "presence"];
+	const docs = [process.argv[1], "probe", "docs", "validate"];
 
 	it("`validate:specs` runs holocron probe specs check through this CLI, with no tool lookup", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
@@ -476,7 +476,7 @@ describe("runTask — the validate leaves", () => {
 		expect(exec).toHaveBeenCalledWith(process.execPath, specs, { cwd: CWD });
 	});
 
-	it("`validate:docs` runs holocron probe docs presence through this CLI", () => {
+	it("`validate:docs` runs holocron probe docs validate through this CLI", () => {
 		const { call, exec } = makeRun({ "package.json": PKG() });
 		const report = call("validate:docs");
 		expect(report.status).toBe("ok");
@@ -494,7 +494,7 @@ describe("runTask — the validate leaves", () => {
 		const report = call("validate:docs", { dryRun: true });
 		expect(report.status).toBe("dry-run");
 		expect(exec).not.toHaveBeenCalled();
-		expect(lines.join("\n")).toMatch(/would run: .*probe docs presence/);
+		expect(lines.join("\n")).toMatch(/would run: .*probe docs validate/);
 	});
 
 	it("fails when the probe exits non-zero", () => {

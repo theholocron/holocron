@@ -50,7 +50,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   on the first two also writes the lcov report, which the Docs coverage workflow uploads to Codecov as the `documentation`
   flag (spec `tech-api-docs`, epic #1368). `repoValidation.docsCoverage` (`off` default, `warn`, `required`) in
   `holocron.config.ts` decides what `docs patch` does about a miss and whether `repo setup` writes the flag's statuses.
-  `docs presence` is the `validate:docs` task: it warns (never fails) when a new public
+  `docs tokens` (#1727) fails for each token name a plugin resolver declares (`envName`, `vendorEnvName`, `keyringService`,
+  `keyringKey` in `plugins/*/src/auth.ts`, and `commands/setup/run-setup.ts`) that `docs/src/content/docs/tokens.mdx` lacks
+  (in the plugin's own row; Discord and GitHub have their own tables); it reads through an injected `DocsTokensIo`.
+  `docs validate` runs `presence` then `tokens`, and is what the `validate:docs` task calls (a registry command cannot chain).
+  `docs presence`: it warns (never fails) when a new public
   package, or a `feat` to one, ships with no docs change, and `[skip docs] <reason>` in the PR description or a commit
   message excuses it (#1515). Its rules are pure functions in `@theholocron/astromech/repo-validation` (#929); the probe
   only supplies them with git data, and Sentinel is meant to supply the same rules from the GitHub API. A registry task can be a holocron subcommand (`local: { command }`).
@@ -183,7 +187,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   either name generates the same files, reached through `workflowKey()` / `legacyName()` (`probe generated check`
   proves it). Phase A changed no generated file; the later phases moved the thin callers, workflow names and check
   contexts to the flat ids, as described above. `validate` is a suite of two probe tasks, `validate:specs`
-  (`probe specs check`) and `validate:docs` (`probe docs presence`), each with its own reusable workflow, caller and
+  (`probe specs check`) and `validate:docs` (`probe docs validate`), each with its own reusable workflow, caller and
   check (`validate:specs / Validate ADRs and specs`, `validate:docs / Validate docs presence`), and a third,
   package-scoped leaf with no workflow, `validate:plugin` (the plugins' own script). The sub-job mechanism (`jobs:`,
   `retiredJobs`, the `Conclusion` aggregator) is gone (#1622). `validate` and `platform.repoValidation` in a `tasks:` list <!-- holocron-allow-old-name -->

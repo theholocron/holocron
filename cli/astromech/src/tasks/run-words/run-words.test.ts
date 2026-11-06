@@ -89,7 +89,7 @@ describe("runWords — a suite", () => {
 	it("runs the validate suite's configured leaves, and the old names for it run both", () => {
 		const both = [
 			[process.argv[1], "probe", "specs", "check"],
-			[process.argv[1], "probe", "docs", "presence"],
+			[process.argv[1], "probe", "docs", "validate"],
 		];
 		for (const name of ["validate", "platform.repoValidation"]) {
 			const { run, exec } = setup({ "package.json": PKG });
@@ -98,7 +98,7 @@ describe("runWords — a suite", () => {
 		}
 		const { run, exec } = setup({ "package.json": PKG });
 		run(["validate"], { config: { tasks: ["validate:docs"] } });
-		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "docs", "presence"]]);
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "docs", "validate"]]);
 	});
 
 	it("from a package directory runs only the package-scoped leaves, for that package, and reports the rest", () => {
@@ -188,7 +188,7 @@ describe("runWords — a task", () => {
 		expect(run(["platform.repoValidation"]).status).toBe("ok");
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([
 			[process.argv[1], "probe", "specs", "check"],
-			[process.argv[1], "probe", "docs", "presence"],
+			[process.argv[1], "probe", "docs", "validate"],
 		]);
 		expect(warnings).toEqual([
 			'"platform.repoValidation" is a deprecated task name: use validate:specs, validate:docs',
