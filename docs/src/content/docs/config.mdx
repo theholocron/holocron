@@ -327,6 +327,8 @@ Holocron supports multiple entry forms for flexibility:
 
 A provider's options hold its own config; for `monitoring` they list the `checks`, each of which may name the `alertChannels` it alerts through, and the alert channel's settings (`feeds.monitoring.alerts`) sit in the `notifications` layout. See the [Checkly plugin](/holocron/plugins/checkly/#alert-channels) and [Server as Code](/holocron/server-as-code/).
 
+An org-wide identifier that is a provider option and that CI does not need (the Vercel `teamId`, a Checkly or Cloudflare `accountId`) can live in `.holocron/org.ts` instead of the tuple: the loader fills an option the entry leaves out, and setting it in both places is an error that names both. See [The `.holocron/` directory](https://github.com/theholocron/holocron/blob/alpha/cli/cli/README.md#the-holocron-directory).
+
 Short provider names (e.g. `"github"`) are resolved to `@theholocron/holocron-plugin-github`. Fully-qualified package names and community plugins (prefixed `holocron-plugin-`) are passed through verbatim.
 
 ## Agent and engineering knowledge

@@ -91,6 +91,34 @@ describe("loadConfig with .holocron/ area files", () => {
 		expect((err as Error).message).toMatch(/notifications\.ts/);
 	});
 
+	it("fills a provider option the config leaves out from .holocron/org.ts, and ignores org.md beside it", async () => {
+		await config({ providers: { source: "github", deployment: ["vercel", { domain: "a.dev" }] } });
+		await area("org.md", "# the org agent contract, not an area");
+		await area("org.ts", `export default { vercel: { teamId: "team_1" } };`);
+		const deployment = (await loadConfig(cwd)).resolved.providers.deployment;
+		expect(deployment).toMatchObject({
+			tuple: { provider: "vercel", options: { domain: "a.dev", teamId: "team_1" } },
+		});
+	});
+
+	it("reads no org area from org.md alone", async () => {
+		await config({ providers: { source: "github", deployment: ["vercel", { domain: "a.dev" }] } });
+		await area("org.md", "# not an area");
+		const deployment = (await loadConfig(cwd)).resolved.providers.deployment;
+		expect(deployment).toMatchObject({ tuple: { options: { domain: "a.dev" } } });
+		expect(JSON.stringify(deployment)).not.toContain("teamId");
+	});
+
+	it("errors naming both when an org option is set inline and in .holocron/org.json", async () => {
+		await config({ providers: { source: "github", deployment: ["vercel", { teamId: "team_2" }] } });
+		await area("org.json", JSON.stringify({ vercel: { teamId: "team_1" } }));
+		const err = await loadConfig(cwd).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(ConfigError);
+		expect((err as Error).message).toMatch(
+			/vercel\.teamId is set in providers\.deployment and in \.holocron\/org\.json/
+		);
+	});
+
 	it("loads the same config as before when .holocron/ is missing, or holds only files that are not areas", async () => {
 		await config({ repo: { topics: ["x"] } });
 		const before = await loadConfig(cwd);

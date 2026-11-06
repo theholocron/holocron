@@ -204,6 +204,21 @@ export interface RepoValidationConfig {
 	docsCoverage?: DocsCoverageMode;
 }
 
+/**
+ * The `.holocron/org.*` area: the organization's non-CI constants that are provider options. The loader fills an
+ * option a provider entry leaves out from here; the same option set inline and here is a `ConfigError`. Identifiers
+ * only, never a secret, and nothing CI needs (those live in 1Password and sync to a GitHub variable). A key a provider
+ * does not use is ignored; a provider or option not listed here is an error.
+ */
+export interface OrgConfig {
+	/** Options filled into every `cloudflare` provider entry. */
+	cloudflare?: { accountId?: string };
+	/** Options filled into every `vercel` provider entry. */
+	vercel?: { teamId?: string };
+	/** Options filled into every `checkly` provider entry. */
+	checkly?: { accountId?: string };
+}
+
 /** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron repo setup`. */
 export interface RepoConfig {
 	/** "owner/name" — the GitHub repository coordinate. Derived from the git remote when absent. */

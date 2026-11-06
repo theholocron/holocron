@@ -35,8 +35,8 @@
  *
  * `deployment`: Vercel, a Team separate from any other Vercel project
  * in this org (ADR-0011's deploy-target decision). `teamId` is not a
- * credential — same non-secret-identifier status as Cloudflare's
- * `accountId` elsewhere in this org — safe to commit directly.
+ * credential, but it is an org constant, so it is not written here: the loader
+ * fills it from `.holocron/org.ts` next to this file (SPEC-0069, #1820).
  *
  * `vault`: the 1Password Environment `Sentinel` (holocron#1671; it was
  * Doppler's `sentinel`/`prd` before, holocron#781). The 5 runtime secrets
@@ -67,8 +67,8 @@
  * `sentinel.theholocron.dev/api/webhook` from outside Vercel's own
  * infra, since Sentry/Axiom are both reactive (they only see traffic
  * that reaches the function) and wouldn't notice if the deployment
- * stopped receiving traffic at all. `accountId` is not a secret (same
- * status as Vercel's `teamId`); the API token is vault-sourced like
+ * stopped receiving traffic at all. `accountId` is not a secret and is filled
+ * from `.holocron/org.ts` like Vercel's `teamId`; the API token is vault-sourced like
  * every other secret here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by
  * `holocron secrets sync` the same way `vault` already handles the
  * other 5 keys. `locations: ["us-east-1"]` is required on both —
@@ -162,13 +162,12 @@ export default defineConfig({
 		},
 	},
 	providers: {
-		deployment: ["vercel", { teamId: "team_YrFqXg1QceAu0CdYdBmrDpop", domain: "sentinel.theholocron.dev" }],
+		deployment: ["vercel", { domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",
 		tunnels: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }],
 		monitoring: [
 			"checkly",
 			{
-				accountId: "fb82859a-4f62-4773-8404-db0f29f9262c",
 				checks: [
 					{
 						name: "Sentinel webhook uptime",

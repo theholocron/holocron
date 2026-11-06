@@ -1,0 +1,191 @@
+{
+  "name": "sentinel",
+  "tasks": [
+    {
+      "name": "deploy",
+      "with": {
+        "on": "release",
+        "channel": "alpha"
+      }
+    },
+    {
+      "name": "check-preview",
+      "with": {
+        "cwd": "apps/sentinel",
+        "vercel-project": "prj_VyAhqahUbk1O3wzBhhQTzrwF5cWV"
+      }
+    },
+    {
+      "name": "deploy-preview",
+      "with": {
+        "cwd": "apps/sentinel"
+      }
+    },
+    {
+      "name": "build",
+      "required": true,
+      "with": {
+        "affected": true
+      },
+      "turbo": {
+        "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
+      }
+    },
+    {
+      "name": "lint:unused",
+      "required": true
+    },
+    {
+      "name": "measure-bundle",
+      "required": true
+    },
+    {
+      "name": "validate:specs",
+      "required": true
+    },
+    {
+      "name": "validate:docs",
+      "required": true
+    },
+    {
+      "name": "release",
+      "with": {
+        "groups": [
+          "utils",
+          "observability",
+          "skills",
+          "configs",
+          "themes",
+          "clients",
+          {
+            "name": "ci",
+            "run-build": false
+          }
+        ],
+        "ungrouped": {
+          "sentry-project": "holocron-cli",
+          "deploy-on-release": true
+        }
+      }
+    },
+    "sync-repo",
+    "check-notify",
+    "check-tokens",
+    "publish-wiki"
+  ],
+  "holocronScript": "node cli/cli/dist/cli.mjs",
+  "providers": {
+    "deployment": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "vercel",
+        "packageName": "@theholocron/holocron-plugin-vercel",
+        "options": {
+          "teamId": "team_YrFqXg1QceAu0CdYdBmrDpop",
+          "domain": "sentinel.theholocron.dev"
+        }
+      }
+    },
+    "dns": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "cloudflare",
+        "packageName": "@theholocron/holocron-plugin-cloudflare",
+        "options": {}
+      }
+    },
+    "tunnels": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "cloudflare",
+        "packageName": "@theholocron/holocron-plugin-cloudflare",
+        "options": {
+          "accountId": "9c558af98664d13fc89b7e0a0d93d5a8"
+        }
+      }
+    },
+    "monitoring": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "checkly",
+        "packageName": "@theholocron/holocron-plugin-checkly",
+        "options": {
+          "accountId": "fb82859a-4f62-4773-8404-db0f29f9262c",
+          "checks": [
+            {
+              "name": "Sentinel webhook uptime",
+              "url": "https://sentinel.theholocron.dev/api/webhook",
+              "method": "GET",
+              "locations": ["us-east-1"],
+              "shouldFail": true,
+              "assertions": [
+                {
+                  "source": "status_code",
+                  "comparison": "equals",
+                  "target": "405"
+                },
+                {
+                  "source": "body",
+                  "comparison": "equals",
+                  "target": "Method Not Allowed"
+                }
+              ]
+            },
+            {
+              "name": "Sentinel webhook signature verification",
+              "url": "https://sentinel.theholocron.dev/api/webhook",
+              "method": "POST",
+              "locations": ["us-east-1"],
+              "shouldFail": true,
+              "body": "{}",
+              "assertions": [
+                {
+                  "source": "status_code",
+                  "comparison": "equals",
+                  "target": "401"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "secrets": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {}
+      }
+    },
+    "vault": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "1password",
+        "packageName": "@theholocron/holocron-plugin-1password",
+        "options": {
+          "environment": "Sentinel"
+        }
+      }
+    }
+  },
+  "apps": [],
+  "doctor": {},
+  "dev": {
+    "environment": "Sentinel - dev",
+    "tunnel": {
+      "name": "sentinel-dev",
+      "hostname": "sentinel-dev.theholocron.dev"
+    },
+    "port": 3000,
+    "serve": {
+      "handler": "./src/handler/index.ts",
+      "export": "handleWebhookRequest",
+      "required": ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+      "logging": {
+        "tokenVar": "SENTINEL_AXIOM_INGEST_TOKEN",
+        "datasetVar": "AXIOM_DATASET"
+      }
+    }
+  }
+}
