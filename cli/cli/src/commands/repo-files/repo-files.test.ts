@@ -89,7 +89,7 @@ describe("generateConfigFiles", () => {
 		expect(file(".github/labeler.yml")).toBeDefined();
 		expect(file(".github/dependabot.yml")).toBeDefined();
 		expect(file(".github/dco.yml")).toMatchObject({
-			content: expect.stringContaining("repo-files/generate-config-files.ts"),
+			content: expect.stringContaining("astromech/src/templates/configs/dco/create-config.ts"),
 		});
 		expect(file(".husky/pre-push")).toMatchObject({ note: expect.stringContaining("holocron run ci") });
 		expect(file(".husky/pre-commit")).toBeDefined();

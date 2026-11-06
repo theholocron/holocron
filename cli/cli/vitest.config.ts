@@ -32,8 +32,6 @@ export default defineConfig({
 				"src/plugin/capabilities.ts",
 				// Pure barrel re-exports — no executable logic, v8 tracks 0%.
 				"src/commands/setup/index.ts",
-				// yml/md template files — string content only, no executable logic.
-				"src/templates/**",
 			],
 		},
 	},

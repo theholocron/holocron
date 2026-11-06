@@ -1,6 +1,6 @@
-import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -47,8 +47,8 @@ describe("withOrgBlock", () => {
 		expect(withOrgBlock(out)).toBe(out);
 	});
 
-	it("leaves a file that imports @.agents/org.md alone", () => {
-		const text = "# holocron\n\n@.agents/org.md\n";
+	it("leaves a file that imports @.holocron/org.md alone", () => {
+		const text = "# holocron\n\n@.holocron/org.md\n";
 		expect(withOrgBlock(text)).toBe(text);
 	});
 });
@@ -80,18 +80,11 @@ describe("generateAgentFiles", () => {
 		expect((await generateAgentFiles({ loaded, repoRoot: root }))[0]).toMatchObject({ path: "CLAUDE.md" });
 	});
 
-	it("skips a file that imports @.agents/org.md", async () => {
-		writeFileSync(join(root, "AGENTS.md"), "@.agents/org.md\n");
+	it("skips a file that imports @.holocron/org.md", async () => {
+		writeFileSync(join(root, "AGENTS.md"), "@.holocron/org.md\n");
 		expect((await generateAgentFiles({ loaded, repoRoot: root }))[0]).toMatchObject({
 			kind: "skip",
-			message: "imports .agents/org.md",
+			message: "imports .holocron/org.md",
 		});
-	});
-});
-
-describe("the canonical org instructions", () => {
-	it(".agents/org.md in the repo is the file the generator embeds", () => {
-		const canonical = readFileSync(resolve(__dirname, "../../../../../.agents/org.md"), "utf8");
-		expect(orgAgentsBlock()).toContain(canonical.trim());
 	});
 });

@@ -19,7 +19,6 @@ on: # yamllint disable-line rule:truthy
       - cli/astromech/src/templates/**
       - cli/astromech/src/generators/**
       - cli/astromech/src/registry/**
-      - cli/cli/src/templates/**
   workflow_dispatch: {}
 
 concurrency:

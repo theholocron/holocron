@@ -35,11 +35,17 @@ import type { EnsureRootWorkspaceMemberResult, EnsureTurboDependencyResult } fro
  * Filed once per repo, unconditionally — every generated turbo.json's root. A change to any of these
  * selects every package under `--affected`.
  *
- * `holocron.config.*` and `astromech.config.*` define the tasks themselves. The lockfile is deliberately
+ * `holocron.config.*` and `astromech.config.*` define the tasks themselves, and `.holocron/**` holds what the CLI embeds at build time (the org agent instructions). The lockfile is deliberately
  * not here: turbo already compares it per package, so a dependency bump only invalidates the packages
  * whose resolved dependencies changed. Workflow files are not here either, so a CI tweak is not a full run.
  */
-const GLOBAL_DEPENDENCIES = ["pnpm-workspace.yaml", "tsconfig.json", "holocron.config.*", "astromech.config.*"];
+const GLOBAL_DEPENDENCIES = [
+	"pnpm-workspace.yaml",
+	"tsconfig.json",
+	"holocron.config.*",
+	"astromech.config.*",
+	".holocron/**",
+];
 
 /**
  * Guards against a malformed `turbo.inputs`/`turbo.passThroughEnv` override
