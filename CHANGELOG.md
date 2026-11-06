@@ -1,3 +1,13 @@
+## [5.0.0-alpha.347](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.346...v5.0.0-alpha.347) (2026-11-06)
+
+### Bug Fixes
+
+* **cli:** 🔑 restore a PEM whose line breaks became spaces in secrets sync ([#1808](https://github.com/theholocron/holocron/issues/1808)) ([2d71d59](https://github.com/theholocron/holocron/commit/2d71d599b306d1897eaa9ab06751e6251a0b9220)), closes [#1744](https://github.com/theholocron/holocron/issues/1744)
+
+### Refactoring
+
+* **kyber:** ♻️ move HTTP checks, connection probe and major-tag mover to kyber ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1805](https://github.com/theholocron/holocron/issues/1805)) ([5b15112](https://github.com/theholocron/holocron/commit/5b15112ac543d435adaa35fc79b15b94fae391b4))
+
 ## [5.0.0-alpha.346](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.345...v5.0.0-alpha.346) (2026-11-06)
 
 ### Features
