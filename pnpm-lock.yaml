@@ -941,6 +941,9 @@ importers:
       '@napi-rs/keyring':
         specifier: ^1.0.0
         version: 1.3.0
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
     devDependencies:
       '@inquirer/prompts':
         specifier: catalog:cli
@@ -954,6 +957,9 @@ importers:
       '@theholocron/eslint-config':
         specifier: workspace:^
         version: link:../../configs/eslint-config
+      '@theholocron/observability':
+        specifier: workspace:*
+        version: link:../../observability
       '@theholocron/tsconfig':
         specifier: workspace:^
         version: link:../../configs/tsconfig

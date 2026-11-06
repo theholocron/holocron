@@ -40,6 +40,11 @@
       "import": "./dist/notifier.mjs",
       "default": "./dist/notifier.mjs"
     },
+    "./observability": {
+      "types": "./dist/observability.d.mts",
+      "import": "./dist/observability.mjs",
+      "default": "./dist/observability.mjs"
+    },
     "./prompts": {
       "types": "./dist/prompts.d.mts",
       "import": "./dist/prompts.mjs",
@@ -71,11 +76,15 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
   "devDependencies": {
     "@inquirer/prompts": "catalog:cli",
     "@inquirer/search": "catalog:cli",
     "@theholocron/datapad": "workspace:*",
     "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/observability": "workspace:*",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
     "@theholocron/vitest-config": "workspace:^",
@@ -100,6 +109,7 @@
     "@inquirer/search": "^4.0.0",
     "@napi-rs/keyring": "^1.0.0",
     "@theholocron/datapad": "workspace:^",
+    "@theholocron/observability": "workspace:^",
     "chalk": "^6.0.0",
     "clipboardy": "^5.0.0",
     "dotenv": "^17.0.0",
@@ -117,6 +127,9 @@
       "optional": true
     },
     "@theholocron/datapad": {
+      "optional": true
+    },
+    "@theholocron/observability": {
       "optional": true
     },
     "chalk": {

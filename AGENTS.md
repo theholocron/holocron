@@ -378,9 +378,10 @@ not object destructuring.
   `PostHogSink` adapters — the sole vendor call sites — from
   `/logger`, `/errors`, `/analytics`. `git grep -nE "from \"(@sentry/node|posthog-node|pino)\"" cli/ plugins/
 apps/` must return **nothing** (source). The CLI's
-  `observability/telemetry.ts` holds only orchestration +
-  `observability/resolve-telemetry.ts` (the Holocron-specific DSN / key
-  resolution, which stays here). A vendor swap or a
+  orchestration lives in `@theholocron/kyber/observability`
+  (`createCliLogger`, `createCliTelemetry`); the CLI's `observability/` is the thin Holocron binding (`logger.ts`,
+  `telemetry.ts`) plus `observability/resolve-telemetry.ts` (the Holocron-specific DSN / key resolution, the
+  `holocron-global` Axiom dataset and the keyring lookup, which stay here). A vendor swap or a
   test fake is one file — in `observability/`.
 - **Read env through `@theholocron/env-utils/lookup`, never the package entry.** The entry also exports `DotenvLoader`, whose
   module runs `import "dotenv/config"` and so loads the working directory's `.env` into `process.env` on import. `/lookup` has
@@ -559,7 +560,7 @@ cli/                              — core infrastructure (the CLI and its runti
   astromech/                      — @theholocron/astromech                 (task runner: holocron run / ci, thin callers, package scripts, linters, required checks, reusable workflows — ADR-0009, epic #581)
   datapad/                        — @theholocron/datapad                   (generic holocron.config loader — ADR-0010)
   dagobah/                        — @theholocron/dagobah                   (the local dev server behind `holocron dev serve` — env loading, a loopback handler server, request logging; a published dependency of the CLI, #1714)
-  kyber/                          — @theholocron/kyber                     (the reusable parts of a CLI, all six subpaths moved — terminal output (`/ui`), the update notifier (`/notifier`) and token handling (`/secrets`: owner-only files, shredding, git-ignore check, dotenv, clipboard, keyring, credential store, `--token` parsing) prompts (`/prompts`: the searchable menu and the positional and option prompts) the test harness (`/testing`: `createCliRunner`, `runCommand`, `ensureBuilt`, `hermeticCreateRequire`) and the global flags (`/flags`: `addGlobalOptions` declares `--dry-run`, `--token` and `--cwd`; `tokenContext`, `groupMenu`, `InferArgs`); a published dependency of the CLI that a new CLI can import, spec `tech-kyber`, #1727)
+  kyber/                          — @theholocron/kyber                     (the reusable parts of a CLI, all nine subpaths moved — terminal output (`/ui`), the update notifier (`/notifier`) and token handling (`/secrets`: owner-only files, shredding, git-ignore check, dotenv, clipboard, keyring, credential store, `--token` parsing) prompts (`/prompts`: the searchable menu and the positional and option prompts) the test harness (`/testing`: `createCliRunner`, `runCommand`, `ensureBuilt`, `hermeticCreateRequire`) the logger and telemetry orchestration (`/observability`: `createCliLogger`, `createCliTelemetry`; `@theholocron/observability` is an optional peer) and the global flags (`/flags`: `addGlobalOptions` declares `--dry-run`, `--token` and `--cwd`; `tokenContext`, `groupMenu`, `InferArgs`); a published dependency of the CLI that a new CLI can import, spec `tech-kyber`, #1727)
 apps/                             — deployable applications (not published to npm; private, version 0.0.0 — deployed, not versioned: the deploy-on-release job deploys the commit, and their changes land in the root CHANGELOG)
   sentinel/                       — @theholocron/sentinel                  (minimal GitHub App — webhook receiver, scaffolding only, docs/wiki/specifications/tech-sentinel-v1.spec.md)
 observability/                    — @theholocron/observability             (logging, errors and analytics behind one interface; releases on its own version line, tags `observability-v*`)
