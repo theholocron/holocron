@@ -7,6 +7,7 @@ export default library({
 		menu: "src/menu/index.ts",
 		notifier: "src/notifier/index.ts",
 		observability: "src/observability/index.ts",
+		plugins: "src/plugins/index.ts",
 		prompts: "src/prompts/index.ts",
 		secrets: "src/secrets/index.ts",
 		testing: "src/testing/index.ts",

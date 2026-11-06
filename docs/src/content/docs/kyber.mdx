@@ -9,21 +9,22 @@ It is a published package: `@theholocron/cli` depends on it like any other, and 
 
 > The kyber crystal is the part in a lightsaber that makes it work.
 
-## One package, nine subpaths
+## One package, ten subpaths
 
 A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`, `ora`, `@inquirer/prompts`, `yargs`, `dotenv`, `clipboardy`, `@napi-rs/keyring`, `@theholocron/datapad`, `@theholocron/observability`) are optional peer dependencies, so it installs only those.
 
-| Subpath                            | What it gives a CLI                                                                                                      |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| [`/ui`](#ui)                       | Status glyphs and colours, status rows, check rows, a JSON view, a spinner, retry notice, wait-for-Enter                 |
-| [`/prompts`](#prompts)             | A searchable menu and prompts for the positionals and options a command left out                                         |
-| [`/menu`](#menu)                   | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                                  |
-| [`/notifier`](#notifier)           | A cached "a newer version exists" notice for an npm package                                                              |
-| [`/secrets`](#secrets)             | Owner-only token files, shredding, the import-then-delete step, git-ignore checks, dotenv, the clipboard, the OS keyring |
-| [`/testing`](#testing)             | A harness for a built CLI and for a single yargs command                                                                 |
-| [`/config`](#config)               | A `<name>.config.*` file: `defineConfig`, a loader that walks up to `.git`, `compose()` and `ConfigError`                |
-| [`/observability`](#observability) | A logger with a flag, env and config level chain, and Sentry and PostHog telemetry with an opt-out                       |
-| [`/flags`](#flags)                 | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something                           |
+| Subpath                            | What it gives a CLI                                                                                                         |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [`/ui`](#ui)                       | Status glyphs and colours, status rows, check rows, a JSON view, a spinner, retry notice, wait-for-Enter                    |
+| [`/prompts`](#prompts)             | A searchable menu and prompts for the positionals and options a command left out                                            |
+| [`/menu`](#menu)                   | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                                     |
+| [`/notifier`](#notifier)           | A cached "a newer version exists" notice for an npm package                                                                 |
+| [`/secrets`](#secrets)             | Owner-only token files, shredding, the import-then-delete step, git-ignore checks, dotenv, the clipboard, the OS keyring    |
+| [`/testing`](#testing)             | A harness for a built CLI and for a single yargs command                                                                    |
+| [`/config`](#config)               | A `<name>.config.*` file: `defineConfig`, a loader that walks up to `.git`, `compose()` and `ConfigError`                   |
+| [`/plugins`](#plugins)             | A plugin loader: import a package per provider, build a typed `single` / `many` capability registry, follow config packages |
+| [`/observability`](#observability) | A logger with a flag, env and config level chain, and Sentry and PostHog telemetry with an opt-out                          |
+| [`/flags`](#flags)                 | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something                              |
 
 ## `/ui`
 
@@ -221,6 +222,37 @@ The factory brings the parts every tool's config needs and none of its schema. `
 
 `ConfigError` is matched by `name` as well as `instanceof`, so a second copy of the package still matches.
 
+## `/plugins`
+
+```ts
+import { assertPluginsResolvable, createPluginSystem } from "@theholocron/kyber/plugins";
+
+// 1. Describe your capabilities as a type: each key's cardinality and the interface a provider implements.
+type Capabilities = {
+  source: { cardinality: "single"; impl: Source };
+  notify: { cardinality: "many"; impl: Notifier };
+};
+
+// 2. Bind the factory to your prefix and to where your config lists its providers.
+const { PluginLoader } = createPluginSystem<Capabilities, ResolvedConfig, RunContext>({
+  packagePrefix: "@acme/mytool-plugin-", // "github" -> @acme/mytool-plugin-github
+  communityPrefix: "mytool-plugin-", // optional: unscoped third-party packages are used as they are
+  configFile: "mytool.config.json", // optional: named in the "not loaded" message
+  providers: (config) => config.providers, // { source: { cardinality: "single", tuple }, notify: { cardinality: "many", tuples } }
+});
+
+// 3. Load, then ask for a capability. A plugin that fails is recorded, never thrown.
+const loader = new PluginLoader(config, { repoRoot });
+await loader.load();
+const source = loader.get("source"); // Source
+const notifiers = loader.get("notify"); // Notifier[]
+assertPluginsResolvable(loader, "sync", (command, packages) => new Error(`${command} needs ${packages.join(", ")}`));
+```
+
+A plugin package exports `createPlugin(options)` returning `{ name, capabilities }`, where each capability is a factory. A package may instead export a capability config, `export default { provider, options? }`; the loader follows it to the provider and merges the preset options under the project's own. By default `createPlugin` receives the run context with the provider's own options over it; pass `pluginOptions` to build that object yourself (the Holocron CLI adds project defaults and a per-plugin token). The importer resolves from the working directory first, so a global install finds the project's plugins, and it can be injected as the third constructor argument, so tests need no real packages.
+
+`get(key)` returns one implementation for a `single` capability and an array for a `many` one; for a provider that failed it rethrows that provider's own error, and `loadFailures()` lists them all. The fourth type parameter of `createPluginSystem` names extra things a plugin may return next to `capabilities` (`plugins()` hands back each created plugin), and `preload` is a step that loads some capabilities first, through the loader's `loadOne`, `fail` and `register`; the Holocron CLI uses it for credentials that other plugins read. `assertPluginsResolvable` turns "every provider failed to import" (a global install, outside the project) into one error you build, and `isModuleNotFound` and `LoaderError` are the pieces it uses.
+
 ## `/observability`
 
 ```ts
@@ -246,4 +278,4 @@ Telemetry installs no-op sinks until `init(version)` finds it enabled. `applyCon
 
 ## What stays in the Holocron CLI
 
-The command tree, the capability and provider model, the config schema (`HolocronConfig`, `resolveConfig` and the twenty capabilities), provider resolution, how task names, `repo.secrets.sync` and the package-name, git-remote and task-manifest defaults merge, and the order in which a token is looked up (a flag, the environment, a `.env`, a `credentials` provider, the keyring), and the Holocron values behind the logger and telemetry: the fallback Sentry and PostHog keys, the `holocron-global` Axiom dataset that `global`-context commands always use, and the keyring lookup for the Axiom token. `createResolveToken` and `AuthError` are here too, in `@theholocron/kyber/secrets`.
+The command tree, the capability and provider model, the config schema (`HolocronConfig`, `resolveConfig` and the twenty capabilities), provider resolution, how task names, `repo.secrets.sync` and the package-name, git-remote and task-manifest defaults merge, and the order in which a token is looked up (a flag, the environment, a `.env`, a `credentials` provider, the keyring), and the Holocron values behind the logger and telemetry: the fallback Sentry and PostHog keys, the `holocron-global` Axiom dataset that `global`-context commands always use, and the keyring lookup for the Axiom token. `createResolveToken` and `AuthError` are here too, in `@theholocron/kyber/secrets`. The plugin loader is kyber's (`/plugins`); what stays is the capability interfaces behind it (the Holocron schema, probes, credentials, monitoring), the `holocron-plugin-` prefix, the options a plugin is handed (`--token` routing, project defaults) and the credentials and `.env` step that runs before the plugins load.

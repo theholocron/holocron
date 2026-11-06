@@ -798,8 +798,10 @@ the local override exists to exempt.
   `compose/{merge-*,task-name}` and `load-config/{derive-defaults,read-package-json-name}`
 - `src/observability/logger.ts` — CLI-side `@theholocron/observability/logger` wiring
   (`buildCliLogger`, `resolveLogLevel`)
-- `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
-  capability config packages, builds the capability registry
+- `src/plugin/loader/loader.ts` — `PluginLoader`, a binding of kyber's `createPluginSystem`
+  (`@theholocron/kyber/plugins`: dynamic-imports plugins, resolves capability config packages,
+  builds the capability registry); Holocron's prefix, plugin options and the credentials / `.env`
+  step are passed in
 - `src/cli.ts` — yargs entry, dispatches subcommands. `holocron run` / `ci` are
   delegated to [`@theholocron/astromech`](../astromech) (`createAstromech`).
   `holocron repo sync` / `holocron repo setup` write each repo's `.github/workflows/*.yml`
