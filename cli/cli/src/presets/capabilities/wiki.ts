@@ -16,7 +16,8 @@ export function wiki(): Capability {
 		id: "wiki",
 		providers: {
 			wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron" }],
-			workers: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }],
+			// The Cloudflare account id comes from the credential chain (CLOUDFLARE_ACCOUNT_ID), not from a literal (#1827).
+			workers: "cloudflare",
 		},
 		tasks: ["publish-wiki"],
 	};

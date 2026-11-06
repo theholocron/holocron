@@ -187,14 +187,17 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   and an area file cannot import across to the root, so this duplication is accepted.
 - **What stays out: anything CI needs.** A value CI needs lives in 1Password and syncs to a GitHub variable
   (`repo.variables.sync`), and nothing else carries a copy. So `CLOUDFLARE_ACCOUNT_ID`, `TURBO_TEAM` and `AXIOM_DATASET`
-  are not in this area, and the Cloudflare `accountId` literals (Sentinel's tunnels, Comlink, the `wiki` and `docs`
-  presets, `presets/constants.ts`) are not moved here; they follow the credential chain in a later step.
-  `cloudflare.accountId` is accepted by the area so that step can use it, but nothing sets it yet.
+  are not in this area. The Cloudflare `accountId` literals (Sentinel's tunnels, Comlink, the `wiki` and `docs`
+  presets, and the `CLOUDFLARE_ACCOUNT_ID` constant of `presets/constants.ts`) are gone (#1827): the Cloudflare plugin
+  reads `CLOUDFLARE_ACCOUNT_ID` through `resolveValue` (the environment, then the `credentials` providers' variables).
+  The Environment `Holocron - GitHub Actions variables` is a `credentials` entry of the root config and of Sentinel's
+  and Comlink's configs, each of which has a vault of its own and so needs the entry to reach the id.
+  `cloudflare.accountId` is still accepted by the area, but nothing sets it.
 - **Moved.** The Vercel `teamId` and the Checkly `accountId` of `apps/sentinel/holocron.config.ts`, and the Checkly
   `accountId` of the root `holocron.config.ts`. The resolved config of Sentinel equals the pre-move snapshot
   (`load-config-org-area.test.ts`).
-- **Follow-ups.** The Cloudflare `accountId` through the credential chain; whether a provider's own options should declare
-  which of them are org constants instead of a table in the CLI; an area shared by app configs and the root config.
+- **Follow-ups.** Whether a provider's own options should declare which of them are org constants instead of a table in
+  the CLI; an area shared by app configs and the root config.
 
 ### 6. Generated and hand-written files
 

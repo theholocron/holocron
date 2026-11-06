@@ -89,6 +89,7 @@ Environment with `AXIOM_DATASET`, `CLOUDFLARE_ACCOUNT_ID` and `TURBO_TEAM`, then
 ## Follow-ups
 
 - The `CLOUDFLARE_ACCOUNT_ID` preset constant and the `accountId` plugin options (Sentinel, Comlink, the wiki preset) are
-  plugin options, not variables, and are not part of this change.
+  plugin options, not variables, and are not part of this change. Done in #1827: the plugin reads the id through the
+  credential chain, and the Environment is a `credentials` entry.
 - The remaining names noted in `.holocron/repo.ts` (`CLOUDFLARE_PAGES_PROJECT`, `HOLOCRON_AXIOM_DATASET`,
   `POSTHOG_PROJECT_TOKEN`) can be added to the Environment once their values are settled.
