@@ -1,3 +1,9 @@
+## [5.0.0-alpha.348](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.347...v5.0.0-alpha.348) (2026-11-06)
+
+### Refactoring
+
+* **cli:** ♻️ inline the http-client re-export, drop plugin/rest-client ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1809](https://github.com/theholocron/holocron/issues/1809)) ([f826494](https://github.com/theholocron/holocron/commit/f8264940de0d5dec84d45064dafb34d96b2292ac))
+
 ## [5.0.0-alpha.347](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.346...v5.0.0-alpha.347) (2026-11-06)
 
 ### Bug Fixes
