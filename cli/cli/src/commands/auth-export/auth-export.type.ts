@@ -1,6 +1,6 @@
+import { type FileIdentity, type GitIgnoreState, type ShredOutcome } from "@theholocron/kyber/secrets";
 import type { Logger } from "@theholocron/observability/core";
 
-import type { FileIdentity, GitIgnoreState, ShredOutcome } from "../../auth/index.js";
 import type { LoadedConfig } from "../../config/index.js";
 import type { AuthImporter } from "../auth/index.js";
 

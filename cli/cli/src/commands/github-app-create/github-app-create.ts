@@ -13,10 +13,10 @@ import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { dotenvLine, isGitIgnored, writeCredentialsFile } from "@theholocron/kyber/secrets";
 import { openPath } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { dotenvLine, isGitIgnored, writeCredentialsFile } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { appManifestPage } from "../app-manifest-page/index.js";
 import { buildAppManifest } from "../build-app-manifest/index.js";

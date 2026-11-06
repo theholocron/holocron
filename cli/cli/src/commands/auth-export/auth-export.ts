@@ -14,18 +14,17 @@
 
 import { dirname, resolve } from "node:path";
 
-import { style } from "@theholocron/kyber/ui";
-import { errorMessage } from "@theholocron/misc-utils";
-
 import {
 	copyToClipboard,
 	dotenvLine,
 	type FileIdentity,
-	getToken,
 	isGitIgnored,
-	isKeyringAvailable,
 	writeCredentialsFile,
-} from "../../auth/index.js";
+} from "@theholocron/kyber/secrets";
+import { style } from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { getToken, isKeyringAvailable } from "../../auth/index.js";
 import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";

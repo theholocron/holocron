@@ -1,9 +1,9 @@
 import { stripVTControlCharacters } from "node:util";
 
+import { clearCredentials, getCredential } from "@theholocron/kyber/secrets";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
-import { clearCredentials, getCredential } from "../../auth/index.js";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type CredentialsInspection, type PluginImporter, PluginLoader } from "../../plugin/index.js";
 import type { AuthImporter } from "../auth/index.js";
