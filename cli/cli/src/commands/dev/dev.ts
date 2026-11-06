@@ -6,13 +6,13 @@
  * does, and the tunnel's connector runs beside the application; Ctrl-C stops both.
  */
 
+import { superviseProcesses } from "@theholocron/dagobah";
 import type { Environment } from "@theholocron/env-utils/lookup";
 import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Tunnels, type Vault } from "../../plugin/index.js";
-import { runDevProcesses } from "../run-dev-processes/index.js";
 import { runTunnelUp } from "../tunnel-up/index.js";
 import type { DevReport, RunDevInput } from "./dev.type.js";
 
@@ -107,13 +107,13 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	print(`running ${shown} and cloudflared (Ctrl-C stops both): ${tunnel.url} to localhost:${input.port}`);
 	let exitCode: number;
 	try {
-		({ exitCode } = await (input.runProcesses ?? runDevProcesses)({
-			app: {
+		({ exitCode } = await (input.runProcesses ?? superviseProcesses)({
+			primary: {
 				command: program as string,
 				args,
 				env: { ENVIRONMENT: APP_ENVIRONMENT, ...values, PORT: String(input.port) },
 			},
-			connector: {
+			companion: {
 				command: "cloudflared",
 				args: ["tunnel", "--no-autoupdate", "run"],
 				env: { TUNNEL_TOKEN: token },

@@ -1,8 +1,8 @@
+import type { SuperviseProcessesInput, SuperviseProcessesResult } from "@theholocron/dagobah";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
-import type { DevProcessesResult, RunDevProcessesInput } from "../run-dev-processes/index.js";
 import type { RunTunnelUpInput, TunnelUpReport } from "../tunnel-up/index.js";
 
 /** Input for {@link runDev}. */
@@ -29,8 +29,8 @@ export interface RunDevInput {
 	logger?: Logger | undefined;
 	/** Sets up the tunnel and its DNS record. Defaults to {@link runTunnelUp}. */
 	ensureTunnel?: ((input: RunTunnelUpInput) => Promise<TunnelUpReport>) | undefined;
-	/** Runs the application and the connector. Defaults to {@link runDevProcesses}. */
-	runProcesses?: ((input: RunDevProcessesInput) => Promise<DevProcessesResult>) | undefined;
+	/** Runs the application and the connector. Defaults to {@link superviseProcesses}. */
+	runProcesses?: ((input: SuperviseProcessesInput) => Promise<SuperviseProcessesResult>) | undefined;
 }
 
 /** What `holocron dev` did. */
