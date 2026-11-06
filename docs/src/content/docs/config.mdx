@@ -28,7 +28,7 @@ export default defineConfig({
 | `reactPreset`    | A single-package React/Vite app: Storybook, interaction tests, and a Knip and Lighthouse audit. |
 | `monorepoPreset` | Wraps another preset for a monorepo root: `monorepoPreset(nextjsPreset())`.                     |
 
-The presets list tasks by their flat ids (see [Task vocabulary](#task-vocabulary)): `lint:code`, `lint:editorconfig`, `lint:markdown`, `format`, `lint:data`, `scan:secrets`, `lint:commits` and `test:unit` (all required), then `scan:code`, `annotate`, `mark-stale`, `greet`, `update-deps` and `label`; `docsPreset` adds `typecheck` and `deploy-docs`, `withAudit` adds `measure-bundle` (plus `lint:unused` and `test:perf` on request) and `withWiki` adds `publish-wiki`. `compose()` merges tasks by flat id, so listing an old dotted name such as `verification.unitTests` in your own config still overrides the preset's `test:unit` entry. The pre-flat names the presets used to carry (`lint`, `test`, `security`, `review`, `stale`, `greetings`, `dependencies`, `bookkeeping`, `audit`, `wiki`) are gone from the preset output. {/*holocron-allow-old-name*/}
+The presets list tasks by their flat ids (see [Task vocabulary](#task-vocabulary)): `lint:code`, `lint:editorconfig`, `lint:markdown`, `format`, `lint:data`, `scan:secrets`, `lint:commits` and `test:unit` (all required), then `scan:code`, `annotate`, `mark-stale`, `greet`, `update-deps` and `label`; `docsPreset` adds `typecheck` and `deploy-docs`, `withAudit` adds `measure-bundle` (plus `lint:unused` and `test:perf` on request) and `withWiki` adds `publish-wiki`. `compose()` merges tasks by flat id, so listing an old dotted name such as `verification.unitTests` in your own config still overrides the preset's `test:unit` entry. The pre-flat names the presets used to carry (`lint`, `test`, `security`, `review`, `stale`, `greetings`, `dependencies`, `bookkeeping`, `audit`, `wiki`) are gone from the preset output. {/* holocron-allow-old-name */}
 
 To build your own, `compose()` capabilities. `withCapabilities` holds the factories: `withNode`, `withTypecheck`, `withDocs`, `withAudit`, `withWiki`, `withReact`, `withNextjs` and `withMonorepo`.
 
@@ -206,9 +206,9 @@ verb phrase and implies no suite (`deploy-preview`). Three **suites** exist, dec
 list the leaves, and the leaves a repo lists are what `holocron run <suite>` runs. `format` is a verb of its own, not a
 suite: prettier only, it writes by default and `--check` is the read-only form.
 
-The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, …) are still accepted in `tasks:` and by {/*holocron-allow-old-name */}
+The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, …) are still accepted in `tasks:` and by {/* holocron-allow-old-name */}
 `holocron run`, which prints a one-line deprecation notice on stderr. `sourceQuality.formatting` stands for
-`lint:editorconfig`, `lint:markdown` and `format --check`; `delivery.publish` is now `release`. A manifest spelled either way generates the same files. The workflow callers are named for the flat id (workflow, job and {/* holocron-allow-old-name*/}
+`lint:editorconfig`, `lint:markdown` and `format --check`; `delivery.publish` is now `release`. A manifest spelled either way generates the same files. The workflow callers are named for the flat id (workflow, job and {/* holocron-allow-old-name */}
 file, `ci.test-unit.yml` in holocron) in the repo that holds the reusables; any other repo keeps the old caller names
 until its callers move to the flat reusables (`ci-v1`), because its ruleset lists those checks.
 
