@@ -274,7 +274,5 @@ The maintainer settled the three questions the first draft left open (2026-11-06
    `.holocron/` (for example `org`, `name`)?
 2. **A JSON Schema of `HolocronConfig`** (for `$schema` in `.holocron/*.json`)? Out of scope here; it would be the
    typing story for json-config repos and needs its own issue.
-3. **Does `tsc` or ESLint see `.holocron/*.ts`?** The root `tsconfig.json` has `"files": []` and references only
-   `./cli/cli`, so how `holocron.config.ts` is type-checked today was not traced; a dot-directory may also fall
-   outside the ESLint globs. Not verified; phase 3 must show that `lint:code` and `typecheck` cover the new file.
-4. **Name for the type helper** (`defineLayout`) and whether each area gets one, or only `defineConfig`.
+3. **Does `tsc` or ESLint see `.holocron/*.ts`?** Answered in phase 3 (#1786): no. The root `tsconfig.json` has `"files": []` and references only `./cli/cli`, and `lint:code`/`typecheck` are Turborepo tasks that run per workspace package, so neither `holocron.config.ts` nor `.holocron/*.ts` is checked by them (ESLint itself does lint a dot-directory when named: `eslint .holocron` reports a deliberate `no-var`, and `tsc` accepts the file with a root-level tsconfig). knip now covers it (root `entry` and `project` list `.holocron/*.ts`; a deliberate unlisted import is reported). Wiring root `//#lint:code` and `//#typecheck` tasks is a CI-gate change left for the maintainer.
+4. **Name for the type helper**: decided in #1786, no helper. The layout file uses `export default { ... } satisfies NotificationsLayout` with a type-only import: nothing is added to the public API, no runtime import of `@theholocron/cli` in a file Sentinel evaluates, and each later area gets the same pattern with its own type.

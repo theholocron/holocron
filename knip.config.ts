@@ -17,8 +17,14 @@ const config: KnipConfig = {
 			// prettier.config.ts, eslint.config.ts, astro.config.ts, commitlint.config.ts —
 			// all auto-detected by Knip plugins
 			// tsdown.config.ts is the one build config every package without its own inherits (tsdown walks up to it)
-			entry: ["holocron.config.ts", "astromech.config.ts", "release.config.ts", "tsdown.config.ts"],
-			project: ["*.ts"],
+			entry: [
+				"holocron.config.ts",
+				".holocron/*.ts",
+				"astromech.config.ts",
+				"release.config.ts",
+				"tsdown.config.ts",
+			],
+			project: ["*.ts", ".holocron/*.ts"],
 			// release.config.ts returns inline plugin objects (the folder-scoped commit analyzers), which the
 			// plugin reads as package names and crashes on, so it is an entry here instead.
 			"semantic-release": false,
