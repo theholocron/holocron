@@ -3,9 +3,9 @@
 # theholocron — agent operating contract
 
 Org-level agent conventions for all `theholocron` repositories. The canonical
-copy is `.agents/org.md` in `theholocron/holocron`. `holocron repo sync` writes
+copy is `.holocron/org.md` in `theholocron/holocron`. `holocron repo sync` writes
 it into each repo's `AGENTS.md` between generated markers, so no repo needs a
-sibling checkout to read it; holocron itself imports it with `@.agents/org.md`.
+sibling checkout to read it; holocron itself imports it with `@.holocron/org.md`.
 Edit it in holocron, then run `holocron repo sync`.
 
 ## Repo map

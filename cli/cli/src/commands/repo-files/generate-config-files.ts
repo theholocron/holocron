@@ -6,11 +6,11 @@ import {
 	createAlexrc,
 	createAstromech,
 	createCommitMsg,
+	createDco,
 	createDependabot,
 	createDevmoji,
 	createEditorconfig,
 	createEditorconfigChecker,
-	createHeader,
 	createLabeler,
 	createPreCommit,
 	createPrepareCommitMsg,
@@ -23,15 +23,9 @@ import {
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import dcoConfig from "../../templates/dco.yml";
 import { ownCatalogPackages } from "../setup/own-catalog-packages/index.js";
 import { hooksEnabled } from "./hooks-enabled.js";
 import type { GeneratedRepoFile, RepoFileEntry, RepoFilesInput } from "./repo-files.type.js";
-
-const { workflowHeader } = createHeader({
-	source: "cli/cli/src/commands/repo-files/generate-config-files.ts",
-	tool: "holocron repo setup",
-});
 
 function file(path: string, content: string, note?: string): GeneratedRepoFile {
 	const step = `write ${path}`;
@@ -53,7 +47,7 @@ export async function generateConfigFiles(input: RepoFilesInput): Promise<RepoFi
 	if (config.repo?.protection !== "none") {
 		entries.push(
 			file(".github/dependabot.yml", createDependabot({ ignore: ownCatalogPackages(input.repoRoot) })),
-			file(".github/dco.yml", `${workflowHeader()}${dcoConfig}`)
+			file(".github/dco.yml", createDco())
 		);
 	}
 

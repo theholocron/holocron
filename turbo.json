@@ -1,6 +1,12 @@
 {
   "$schema": "https://turborepo.org/schema.json",
-  "globalDependencies": ["pnpm-workspace.yaml", "tsconfig.json", "holocron.config.*", "astromech.config.*"],
+  "globalDependencies": [
+    "pnpm-workspace.yaml",
+    "tsconfig.json",
+    "holocron.config.*",
+    "astromech.config.*",
+    ".holocron/**"
+  ],
   "tasks": {
     "lint:code": {
       "inputs": [

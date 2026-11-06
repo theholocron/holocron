@@ -5,7 +5,7 @@
 `CLAUDE.md` is a symlink to this file, so Claude, Codex, and every other agent
 read the same rules. Put durable, repo-wide agent guidance here.
 
-@.agents/org.md
+@.holocron/org.md
 
 ## Where code lives (org-wide rule)
 
@@ -426,11 +426,11 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
   twice and fails on a file that differs from the committed copy. A new file `repo setup` writes belongs in that
   function, not in `run-setup.ts`; one that needs the provider (CODEOWNERS) stays in `run-setup.ts`. A workflow
   that is not generated carries `# HAND-MAINTAINED` on its first line.
-- **The org agent instructions live in `.agents/org.md`** (a symlink to `cli/cli/src/templates/org.md`, the copy the
-  CLI embeds). This file imports it with `@.agents/org.md`. Every other repo gets it as a generated block between
+- **The org agent instructions live in `.holocron/org.md`** (the one copy; the CLI embeds it at build time). This file
+  imports it with `@.holocron/org.md`. Every other repo gets it as a generated block between
   markers in its `AGENTS.md`, written by `holocron repo sync` (the `agents` step, `generateAgentFiles()` in
   `repo-files/`) and checked by `holocron probe generated check`; the rest of that file is the repo's own. Edit the
-  org rules in `.agents/org.md`, never in a repo's block. `theholocron/.github-private/AGENTS.md` is the old home and
+  org rules in `.holocron/org.md`, never in a repo's block. `theholocron/.github-private/AGENTS.md` is the old home and
   stays until every consumer is repointed (#1217, #1229).
 - **`holocron.config.json` is the contract.** No hardcoded vendor
   lists, no hardcoded paths, no implicit assumptions. Config drives

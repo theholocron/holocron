@@ -51,6 +51,7 @@ describe("turboConfig", () => {
 			"tsconfig.json",
 			"holocron.config.*",
 			"astromech.config.*",
+			".holocron/**",
 		]);
 	});
 
