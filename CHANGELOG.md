@@ -1,3 +1,25 @@
+## [5.0.0-alpha.341](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.340...v5.0.0-alpha.341) (2026-11-06)
+
+### Features
+
+* **cli:** 🌿 add a config-system factory to kyber and build holocron's config on it ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1765](https://github.com/theholocron/holocron/issues/1765)) ([5f97312](https://github.com/theholocron/holocron/commit/5f97312919a32b5d322cd2cff324ee25570261e8))
+* **cli:** 🌿 add error text cleaning and a default progress listener to kyber's /ui ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1751](https://github.com/theholocron/holocron/issues/1751)) ([95e4f4a](https://github.com/theholocron/holocron/commit/95e4f4a85347b20f2a27b42da622b710fe695820))
+* **cli:** 🌿 add the token resolver to kyber's /secrets and deprecate http-client's copy ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1762](https://github.com/theholocron/holocron/issues/1762)) ([711d9cd](https://github.com/theholocron/holocron/commit/711d9cd3979f9d28b01f48de0b5c08e6d2caec7e))
+* **cli:** 🌿 move the interactive menu engine into kyber's /menu ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1767](https://github.com/theholocron/holocron/issues/1767)) ([b77f39b](https://github.com/theholocron/holocron/commit/b77f39bb59006e49111f7c4e29199cf84643a1f6))
+
+### Bug Fixes
+
+* **cli:** 🐛 name the release caller in publish --initial's Trusted Publisher steps ([#1760](https://github.com/theholocron/holocron/issues/1760)) ([3640e4c](https://github.com/theholocron/holocron/commit/3640e4ce84bd14725ac20c9bab09ea161a672f11))
+
+### Refactoring
+
+* **cli:** ♻️ 🧹 call kyber's update check from cli.ts and drop the one-call wrapper ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1749](https://github.com/theholocron/holocron/issues/1749)) ([e6d6b52](https://github.com/theholocron/holocron/commit/e6d6b52e35583ddeabd07fc3371224bce9c62ef9))
+* **cli:** 🧹 build the token resolvers on kyber's instead of http-client's ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1763](https://github.com/theholocron/holocron/issues/1763)) ([22591ff](https://github.com/theholocron/holocron/commit/22591ff9ca7a155b823812dd2ab85599a82c6d2b))
+* **cli:** 🧹 delete cli/src/testing in favour of kyber's /testing ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1766](https://github.com/theholocron/holocron/issues/1766)) ([bfb9e65](https://github.com/theholocron/holocron/commit/bfb9e655a1eeaf708317df1346df87f5d2eaefaf))
+* **cli:** 🧹 delete the CLI's ui directory ([#1754](https://github.com/theholocron/holocron/issues/1754)) ([352117c](https://github.com/theholocron/holocron/commit/352117c03fc99405367ddcfa4ad11a8bcd6273c1)), closes [#1727](https://github.com/theholocron/holocron/issues/1727) [#1727](https://github.com/theholocron/holocron/issues/1727)
+* **cli:** 🧹 import the token helpers and test require from kyber, not the CLI ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1758](https://github.com/theholocron/holocron/issues/1758)) ([0af9af3](https://github.com/theholocron/holocron/commit/0af9af3f64603634b100f188734dbfee98925892))
+* **cli:** 🧹 remove the env, cli-support and auth folders ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1768](https://github.com/theholocron/holocron/issues/1768)) ([8e4615f](https://github.com/theholocron/holocron/commit/8e4615ffee6e012dab651dfdf258dc9b3261efe9))
+
 ## [5.0.0-alpha.340](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.339...v5.0.0-alpha.340) (2026-11-05)
 
 ### Features
