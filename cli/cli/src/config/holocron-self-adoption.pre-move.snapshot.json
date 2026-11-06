@@ -1,0 +1,639 @@
+{
+  "name": "holocron",
+  "description": "A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
+  "homepage": "https://docs.theholocron.dev/holocron/",
+  "org": "theholocron",
+  "domain": "theholocron.dev",
+  "repo": {
+    "protection": "strict",
+    "properties": {
+      "lifecycle": "active",
+      "open_source": true,
+      "runtime_environment": "node",
+      "uses_external_packages": true
+    },
+    "teams": [
+      {
+        "slug": "gatekeepers",
+        "permission": "maintain"
+      }
+    ],
+    "topics": ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
+    "defaultBranch": "alpha",
+    "variables": {
+      "org": {
+        "AXIOM_DATASET": "holocron-ci",
+        "CLOUDFLARE_ACCOUNT_ID": "9c558af98664d13fc89b7e0a0d93d5a8",
+        "TURBO_TEAM": "iamnewton"
+      }
+    },
+    "secrets": {
+      "sync": [
+        {
+          "environment": "Holocron - GitHub Actions",
+          "scope": "org=theholocron",
+          "keys": [
+            "AXIOM_TOKEN",
+            "CLOUDFLARE_API_TOKEN",
+            "CODECOV_TOKEN",
+            "FERN_TOKEN",
+            "HOLOCRON_ADMIN_TOKEN",
+            "HOLOCRON_DEPLOY_TOKEN",
+            "HOLOCRON_ISSUES_TOKEN",
+            "HOLOCRON_ORG_TOKEN",
+            "HOLOCRON_READ_TOKEN",
+            "HOLOCRON_RELEASE_TOKEN",
+            "HOLOCRON_SYNC_TOKEN",
+            "LHCI_GITHUB_APP_TOKEN",
+            "SENTINEL_APP_ID",
+            "SENTINEL_APP_PRIVATE_KEY",
+            "SENTRY_AUTH_TOKEN",
+            "STORYBOOK_CODE_SANDBOX_API_TOKEN",
+            "SUPER_LINTER_APP_ID",
+            "SUPER_LINTER_GPG_PASSPHRASE",
+            "SUPER_LINTER_GPG_PRIVATE_KEY",
+            "SUPER_LINTER_PRIVATE_KEY",
+            "TURBO_TOKEN"
+          ]
+        },
+        {
+          "environment": "Holocron - GitHub Actions",
+          "keys": [
+            "HOLOCRON_DEPLOYMENTS_TOKEN",
+            "HOLOCRON_DISCORD_BOT_TOKEN",
+            "HOLOCRON_SECRETS_TOKEN",
+            "NEXT_PUBLIC_SENTRY_DSN",
+            "SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
+            "SENTRY_DSN",
+            "VERCEL_PROTECTION_BYPASS_SECRET",
+            "VERCEL_TOKEN"
+          ]
+        }
+      ]
+    }
+  },
+  "repoValidation": {
+    "docsCoverage": "required"
+  },
+  "tasks": [
+    {
+      "name": "lint:code",
+      "required": true,
+      "turbo": {
+        "dependsOn": ["@theholocron/eslint-config#build"]
+      }
+    },
+    {
+      "name": "lint:editorconfig",
+      "required": true
+    },
+    {
+      "name": "lint:markdown",
+      "required": true
+    },
+    {
+      "name": "format",
+      "required": true
+    },
+    {
+      "name": "lint:data",
+      "required": true
+    },
+    {
+      "name": "scan:secrets",
+      "required": true
+    },
+    {
+      "name": "lint:commits",
+      "required": true
+    },
+    {
+      "name": "test:unit",
+      "required": true,
+      "with": {
+        "affected": true,
+        "uploads": "<workspace-derived: one codecov upload per package>"
+      }
+    },
+    "scan:code",
+    "annotate",
+    "mark-stale",
+    "greet",
+    "update-deps",
+    "label",
+    "reconcile-projects",
+    {
+      "name": "typecheck",
+      "required": true,
+      "with": {
+        "affected": true
+      }
+    },
+    {
+      "name": "deploy-docs",
+      "with": {
+        "preview": true
+      }
+    },
+    {
+      "name": "build",
+      "required": true,
+      "with": {
+        "affected": true
+      },
+      "turbo": {
+        "passThroughEnv": ["SENTRY_AUTH_TOKEN"]
+      }
+    },
+    {
+      "name": "lint:unused",
+      "required": true
+    },
+    {
+      "name": "measure-bundle",
+      "required": true
+    },
+    {
+      "name": "validate:specs",
+      "required": true
+    },
+    {
+      "name": "validate:docs",
+      "required": true
+    },
+    {
+      "name": "release",
+      "with": {
+        "groups": [
+          "utils",
+          "observability",
+          "skills",
+          "configs",
+          "themes",
+          "clients",
+          {
+            "name": "ci",
+            "run-build": false
+          }
+        ],
+        "ungrouped": {
+          "sentry-project": "holocron-cli",
+          "deploy-on-release": true
+        }
+      }
+    },
+    "sync-repo",
+    "check-notify",
+    "check-tokens",
+    "publish-wiki"
+  ],
+  "holocronScript": "node cli/cli/dist/cli.mjs",
+  "extraRequiredChecks": [
+    "codecov/patch",
+    "codecov/project",
+    "codecov/patch/documentation",
+    "Dependency catalogs / Check",
+    "Generated files / Check"
+  ],
+  "providers": {
+    "source": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {}
+      }
+    },
+    "ci": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {}
+      }
+    },
+    "issues": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {
+          "labels": {
+            "inProgress": "status:in-progress",
+            "inReview": "status:in-review"
+          }
+        }
+      }
+    },
+    "deployment": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "cloudflare",
+        "packageName": "@theholocron/holocron-plugin-cloudflare",
+        "options": {
+          "accountId": "9c558af98664d13fc89b7e0a0d93d5a8"
+        }
+      }
+    },
+    "dns": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "cloudflare",
+        "packageName": "@theholocron/holocron-plugin-cloudflare",
+        "options": {}
+      }
+    },
+    "workers": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "cloudflare",
+        "packageName": "@theholocron/holocron-plugin-cloudflare",
+        "options": {
+          "accountId": "9c558af98664d13fc89b7e0a0d93d5a8"
+        }
+      }
+    },
+    "secrets": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {}
+      }
+    },
+    "credentials": {
+      "cardinality": "many",
+      "tuples": [
+        {
+          "provider": "1password",
+          "packageName": "@theholocron/holocron-plugin-1password",
+          "options": {
+            "environment": "Holocron"
+          }
+        }
+      ]
+    },
+    "vault": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "1password",
+        "packageName": "@theholocron/holocron-plugin-1password",
+        "options": {
+          "environment": "Holocron - GitHub Actions"
+        }
+      }
+    },
+    "environments": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {}
+      }
+    },
+    "errors": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "sentry",
+        "packageName": "@theholocron/holocron-plugin-sentry",
+        "options": {
+          "org": "theholocron"
+        }
+      }
+    },
+    "monitoring": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "checkly",
+        "packageName": "@theholocron/holocron-plugin-checkly",
+        "options": {
+          "accountId": "fb82859a-4f62-4773-8404-db0f29f9262c"
+        }
+      }
+    },
+    "logs": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "axiom",
+        "packageName": "@theholocron/holocron-plugin-axiom",
+        "options": {}
+      }
+    },
+    "projects": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "github",
+        "packageName": "@theholocron/holocron-plugin-github",
+        "options": {
+          "boards": [
+            {
+              "template": "roadmap",
+              "name": "v5"
+            }
+          ]
+        }
+      }
+    },
+    "notifications": {
+      "cardinality": "many",
+      "tuples": [
+        {
+          "provider": "discord",
+          "packageName": "@theholocron/holocron-plugin-discord",
+          "options": {
+            "guildId": "1303969001822486568",
+            "layout": {
+              "relay": {
+                "host": "comlink.theholocron.dev",
+                "errors": {
+                  "projects": ["holocron-cli", "holocron"]
+                }
+              },
+              "webhookAvatar": "media/webhook-avatar.png",
+              "testChannel": "holonet",
+              "everyone": {
+                "deny": ["MentionEveryone", "CreateGuildExpressions", "CreateEvents"]
+              },
+              "application": {
+                "description": "The messenger for The Holocron. It posts releases, deploys, repo syncs and alerts from GitHub Actions into the right channel. It also sets up the server's channels, webhooks and roles so a new community starts from a known layout, and keeps maintainer roles in step with the GitHub team.",
+                "tags": ["automation", "notifications", "devops", "developer tools", "github"],
+                "termsUrl": "https://docs.theholocron.dev/holocron/legal/terms/",
+                "privacyUrl": "https://docs.theholocron.dev/holocron/legal/privacy/",
+                "intents": {
+                  "members": true
+                }
+              },
+              "links": {
+                "hostedUrl": "https://sentinel.theholocron.dev"
+              },
+              "categories": [
+                {
+                  "name": "START HERE",
+                  "access": {
+                    "post": []
+                  },
+                  "channels": [
+                    {
+                      "name": "welcome",
+                      "topic": "What this server is and how to get help",
+                      "webhook": true
+                    },
+                    {
+                      "name": "rules",
+                      "topic": "How we treat each other here",
+                      "webhook": true
+                    }
+                  ]
+                },
+                {
+                  "name": "ALERTS",
+                  "access": {
+                    "post": []
+                  },
+                  "channels": [
+                    {
+                      "name": "alerts",
+                      "topic": "Anything that needs a human: failed runs, PRs to merge by hand",
+                      "webhook": true
+                    },
+                    {
+                      "name": "errors",
+                      "topic": "Errors from Sentinel and Sentry",
+                      "webhook": true,
+                      "feeds": {
+                        "errors": true
+                      }
+                    },
+                    {
+                      "name": "uptime",
+                      "topic": "Monitoring up/down",
+                      "webhook": true,
+                      "feeds": {
+                        "monitoring": true
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "AUTOMATION",
+                  "access": {
+                    "post": []
+                  },
+                  "channels": [
+                    {
+                      "name": "releases",
+                      "topic": "Each lockstep release across the org",
+                      "webhook": true
+                    },
+                    {
+                      "name": "deploys",
+                      "topic": "Sentinel and Vercel deploys, Preview Check results",
+                      "webhook": true
+                    },
+                    {
+                      "name": "sync",
+                      "topic": "Repo-sync PRs and template pushes",
+                      "webhook": true
+                    }
+                  ]
+                },
+                {
+                  "name": "STAFF",
+                  "access": {
+                    "view": ["gatekeepers"]
+                  },
+                  "channels": [
+                    {
+                      "name": "community-updates",
+                      "topic": "Notices from Discord about the server (staff only)"
+                    }
+                  ]
+                },
+                {
+                  "name": "BUILD",
+                  "channels": [
+                    {
+                      "name": "dev",
+                      "topic": "Day-to-day building talk"
+                    },
+                    {
+                      "name": "ideas",
+                      "kind": "forum",
+                      "topic": "One post for each ADR and spec, tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
+                      "tags": [
+                        {
+                          "name": "draft",
+                          "emoji": "✏️",
+                          "moderated": true
+                        },
+                        {
+                          "name": "proposed",
+                          "emoji": "💬",
+                          "moderated": true
+                        },
+                        {
+                          "name": "accepted",
+                          "emoji": "✅",
+                          "moderated": true
+                        },
+                        {
+                          "name": "rejected",
+                          "emoji": "❌",
+                          "moderated": true
+                        },
+                        {
+                          "name": "deprecated",
+                          "emoji": "🗑️",
+                          "moderated": true
+                        },
+                        {
+                          "name": "archived",
+                          "emoji": "📦",
+                          "moderated": true
+                        },
+                        {
+                          "name": "superseded",
+                          "emoji": "♻️",
+                          "moderated": true
+                        },
+                        {
+                          "name": "withdrawn",
+                          "emoji": "🔕",
+                          "moderated": true
+                        }
+                      ]
+                    },
+                    {
+                      "name": "holonet",
+                      "topic": "Test posts from Holonet; safe to ignore or delete",
+                      "webhook": true
+                    }
+                  ]
+                }
+              ],
+              "welcome": {
+                "description": "Where the Holocron is built: tools, automation and the people who ship them.",
+                "channels": [
+                  {
+                    "channel": "rules",
+                    "description": "How we treat each other",
+                    "emoji": "📜"
+                  },
+                  {
+                    "channel": "dev",
+                    "description": "Day-to-day building talk",
+                    "emoji": "🛠️"
+                  },
+                  {
+                    "channel": "ideas",
+                    "description": "Half-formed ideas and things to spec",
+                    "emoji": "💡"
+                  },
+                  {
+                    "channel": "releases",
+                    "description": "Each release, as it ships",
+                    "emoji": "🚀"
+                  },
+                  {
+                    "channel": "deploys",
+                    "description": "Deploys and preview checks",
+                    "emoji": "📦"
+                  }
+                ]
+              },
+              "pinned": [
+                {
+                  "channel": "welcome",
+                  "content": "**Welcome to The Holocron** 🌌\n\nThis is where the Holocron is built: tools, automation and the people who ship them. It is all open source at <https://github.com/theholocron>.\n\n**Where to start**\n📜 #rules: how we treat each other. Read this first.\n🛠️ #dev: day-to-day building talk\n💡 #ideas: half-formed ideas and things to spec later\n🚀 #releases and 📦 #deploys: what shipped, as it ships\n\n**Getting help**\nAsk in #dev. For a bug or a feature request, open an issue at <https://github.com/theholocron/holocron/issues> so it does not get lost. The docs are at <https://docs.theholocron.dev/holocron/>.\n\n**About the bot**\nHolonet posts releases, deploys and repo syncs from GitHub Actions into the channels above. It does not read or store your messages: <https://docs.theholocron.dev/holocron/legal/privacy/>\n\nThe maintainers hold the gatekeepers role."
+                },
+                {
+                  "channel": "rules",
+                  "file": "RULES.md"
+                }
+              ],
+              "onboarding": {
+                "defaultChannels": ["welcome", "rules", "dev", "ideas", "releases", "deploys"],
+                "prompts": [
+                  {
+                    "title": "What brings you here?",
+                    "options": [
+                      {
+                        "title": "Building with Holocron",
+                        "description": "Shows the dev and ideas channels",
+                        "emoji": "🛠️",
+                        "channels": ["dev", "ideas"]
+                      },
+                      {
+                        "title": "Following releases",
+                        "description": "Shows the releases and deploys channels",
+                        "emoji": "🚀",
+                        "channels": ["releases", "deploys"]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "server": {
+                "verification": "medium",
+                "defaultNotifications": "mentions",
+                "contentFilter": "all",
+                "systemChannel": "welcome",
+                "rulesChannel": "rules",
+                "updatesChannel": "community-updates",
+                "community": true,
+                "locale": "en-US"
+              },
+              "roles": [
+                {
+                  "name": "gatekeepers",
+                  "mentionable": true,
+                  "color": "#f0b232",
+                  "hoist": true,
+                  "team": "gatekeepers",
+                  "permissions": [
+                    "ViewChannel",
+                    "SendMessages",
+                    "ReadMessageHistory",
+                    "AddReactions",
+                    "EmbedLinks",
+                    "AttachFiles",
+                    "UseExternalEmojis",
+                    "ManageThreads"
+                  ],
+                  "secret": "HOLOCRON_NOTIFY_ALERT_ROLE"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "wiki": {
+      "cardinality": "single",
+      "tuple": {
+        "provider": "fern",
+        "packageName": "@theholocron/holocron-plugin-fern",
+        "options": {
+          "domain": "wiki.theholocron.dev",
+          "fernOrg": "holocron",
+          "icon": "fa-duotone fa-gear"
+        }
+      }
+    }
+  },
+  "apps": [],
+  "doctor": {
+    "mail": "icloud"
+  },
+  "agent": "claude",
+  "skills": ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
+  "docs": {
+    "build": "workflow",
+    "https": true
+  },
+  "log": {
+    "axiom": {
+      "dataset": "holocron-local"
+    }
+  }
+}
