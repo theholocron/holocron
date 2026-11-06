@@ -50,6 +50,11 @@ describe("restorePem", () => {
 		}
 	});
 
+	it("leaves a block alone when there is nothing between its markers but spaces", () => {
+		const value = `${begin("PRIVATE KEY")}   ${end("PRIVATE KEY")}`;
+		expect(restorePem(value)).toBe(value);
+	});
+
 	it("leaves a block alone when its end marker does not match its begin marker", () => {
 		const value = `${begin("PRIVATE KEY")} ${BODY} ${end("CERTIFICATE")}`;
 		expect(restorePem(value)).toBe(value);
