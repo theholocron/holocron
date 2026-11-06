@@ -1,4 +1,5 @@
 ---
+id: SPEC-0069
 status: draft
 issue: theholocron/holocron#1747
 blocked-by:
@@ -9,6 +10,7 @@ related:
   - theholocron/holocron#493
   - theholocron/holocron#1727
 discussion:
+  url: https://discord.com/channels/1303969001822486568/1568082129575743518
 ---
 
 # `.holocron/`: a directory for the big declarations
