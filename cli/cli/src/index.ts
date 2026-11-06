@@ -9,4 +9,10 @@ export * from "./config/config-system.js";
 export * from "./plugin/capabilities/index.js";
 export * from "./plugin/connection-probe/index.js";
 export type * from "./plugin/probe/index.js";
-export * from "./plugin/rest-client/index.js";
+// Plugins build their REST clients with the shared HTTP primitives; `plugin-create` scaffolds import them from here.
+export {
+	createRestClient,
+	type RequestOptions,
+	type RestClient,
+	type RestClientConfig,
+} from "@theholocron/http-client";

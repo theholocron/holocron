@@ -30,8 +30,6 @@ export default defineConfig({
 				// Pure TypeScript type definitions; no executable logic to cover.
 				// See issue #117.
 				"src/plugin/capabilities.ts",
-				// Pure re-export shim — all logic lives in @theholocron/http-client.
-				"src/plugin/rest-client.ts",
 				// Pure barrel re-exports — no executable logic, v8 tracks 0%.
 				"src/commands/setup/index.ts",
 				// yml/md template files — string content only, no executable logic.
