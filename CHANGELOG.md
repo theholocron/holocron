@@ -1,3 +1,9 @@
+## [5.0.0-alpha.345](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.344...v5.0.0-alpha.345) (2026-11-06)
+
+### Refactoring
+
+* **dagobah:** ♻️ move the GitHub App manifest flow into dagobah ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1792](https://github.com/theholocron/holocron/issues/1792)) ([5fbb3be](https://github.com/theholocron/holocron/commit/5fbb3be407c635988eaa72700a683b058c2e4cf0))
+
 ## [5.0.0-alpha.344](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.343...v5.0.0-alpha.344) (2026-11-06)
 
 ### Bug Fixes
