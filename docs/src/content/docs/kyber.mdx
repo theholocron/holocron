@@ -9,20 +9,21 @@ It is a published package: `@theholocron/cli` depends on it like any other, and 
 
 > The kyber crystal is the part in a lightsaber that makes it work.
 
-## One package, eight subpaths
+## One package, nine subpaths
 
-A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`, `ora`, `@inquirer/prompts`, `yargs`, `dotenv`, `clipboardy`, `@napi-rs/keyring`, `@theholocron/datapad`) are optional peer dependencies, so it installs only those.
+A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`, `ora`, `@inquirer/prompts`, `yargs`, `dotenv`, `clipboardy`, `@napi-rs/keyring`, `@theholocron/datapad`, `@theholocron/observability`) are optional peer dependencies, so it installs only those.
 
-| Subpath                  | What it gives a CLI                                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| [`/ui`](#ui)             | Status glyphs and colours, status rows, a JSON view, a spinner, retry notice, wait-for-Enter              |
-| [`/prompts`](#prompts)   | A searchable menu and prompts for the positionals and options a command left out                          |
-| [`/menu`](#menu)         | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                   |
-| [`/notifier`](#notifier) | A cached "a newer version exists" notice for an npm package                                               |
-| [`/secrets`](#secrets)   | Owner-only token files, shredding, git-ignore checks, dotenv, the clipboard, the OS keyring               |
-| [`/testing`](#testing)   | A harness for a built CLI and for a single yargs command                                                  |
-| [`/config`](#config)     | A `<name>.config.*` file: `defineConfig`, a loader that walks up to `.git`, `compose()` and `ConfigError` |
-| [`/flags`](#flags)       | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something            |
+| Subpath                            | What it gives a CLI                                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [`/ui`](#ui)                       | Status glyphs and colours, status rows, a JSON view, a spinner, retry notice, wait-for-Enter              |
+| [`/prompts`](#prompts)             | A searchable menu and prompts for the positionals and options a command left out                          |
+| [`/menu`](#menu)                   | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                   |
+| [`/notifier`](#notifier)           | A cached "a newer version exists" notice for an npm package                                               |
+| [`/secrets`](#secrets)             | Owner-only token files, shredding, git-ignore checks, dotenv, the clipboard, the OS keyring               |
+| [`/testing`](#testing)             | A harness for a built CLI and for a single yargs command                                                  |
+| [`/config`](#config)               | A `<name>.config.*` file: `defineConfig`, a loader that walks up to `.git`, `compose()` and `ConfigError` |
+| [`/observability`](#observability) | A logger with a flag, env and config level chain, and Sentry and PostHog telemetry with an opt-out        |
+| [`/flags`](#flags)                 | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something            |
 
 ## `/ui`
 
@@ -193,6 +194,29 @@ The factory brings the parts every tool's config needs and none of its schema. `
 
 `ConfigError` is matched by `name` as well as `instanceof`, so a second copy of the package still matches.
 
+## `/observability`
+
+```ts
+import { createCliLogger, createCliTelemetry } from "@theholocron/kyber/observability";
+
+export const { buildCliLogger, getLogger, reportError, getRunId } = createCliLogger({
+  envPrefix: "MYTOOL", // reads MYTOOL_LOG_LEVEL
+  resolveAxiom: (opts, { command }) => lookUpAxiom(opts.org, command), // optional; defaults to the AXIOM_* env vars
+});
+
+export const { init, startCommand, captureException, flush } = createCliTelemetry({
+  envPrefix: "MYTOOL", // MYTOOL_TELEMETRY=false (or NO_MYTOOL_TELEMETRY) turns it all off
+  dsn: () => process.env.SENTRY_DSN ?? "", // "" disables error reporting
+  posthogKey: () => process.env.POSTHOG_PROJECT_TOKEN ?? "", // "" disables usage analytics
+  posthogHost: () => "https://us.i.posthog.com",
+  getRunId, // events carry the logger's run id
+});
+```
+
+`buildCliLogger(argv, opts)` builds the process-wide root logger once, and again at most once if a command handler supplies a config level or a new Axiom dataset. The level is `--log`, then `--verbose` (`debug`) or `--quiet` (`error`), then `<PREFIX>_LOG_LEVEL`, then the config file. Console output stays off on a terminal unless one of those flags is given, and `--quiet` and `--log` also switch the progress spinner off. `reportError` prints in the failure style and logs the same message.
+
+Telemetry installs no-op sinks until `init(version)` finds it enabled. `applyConfig({ enabled, analytics })` can only narrow what `init` turned on, and `event` properties run through the secret scrubber. The sinks come from `@theholocron/observability`, an optional peer, which holds the only Sentry, PostHog and Pino imports.
+
 ## What stays in the Holocron CLI
 
-The command tree, the capability and provider model, the config schema (`HolocronConfig`, `resolveConfig` and the twenty capabilities), provider resolution, how task names, `repo.secrets.sync` and the package-name, git-remote and task-manifest defaults merge, and the order in which a token is looked up (a flag, the environment, a `.env`, a `credentials` provider, the keyring). `createResolveToken` stays in `@theholocron/http-client`, which the plugins depend on; the pieces it is built from are here.
+The command tree, the capability and provider model, the config schema (`HolocronConfig`, `resolveConfig` and the twenty capabilities), provider resolution, how task names, `repo.secrets.sync` and the package-name, git-remote and task-manifest defaults merge, and the order in which a token is looked up (a flag, the environment, a `.env`, a `credentials` provider, the keyring), and the Holocron values behind the logger and telemetry: the fallback Sentry and PostHog keys, the `holocron-global` Axiom dataset that `global`-context commands always use, and the keyring lookup for the Axiom token. `createResolveToken` stays in `@theholocron/http-client`, which the plugins depend on; the pieces it is built from are here.

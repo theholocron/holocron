@@ -754,8 +754,8 @@ export default defineConfig({
 
 Each SDK sits behind an interface from `@theholocron/observability` —
 `ErrorSink` (Sentry) / `AnalyticsSink` (PostHog); the adapters, and the only
-`@sentry/node` / `posthog-node` imports, live in that package. `observability/telemetry.ts`
-holds the orchestration + the Holocron-specific credential resolution
+`@sentry/node` / `posthog-node` imports, live in that package. the orchestration is `createCliTelemetry` in `@theholocron/kyber/observability`;
+`observability/telemetry.ts` binds it to the Holocron-specific credential resolution
 (`observability/resolve-telemetry.ts`). See the
 [telemetry guide](https://docs.theholocron.dev/holocron/telemetry/).
 

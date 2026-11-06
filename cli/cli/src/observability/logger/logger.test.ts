@@ -1,16 +1,6 @@
-import { allowProgress, progressEnabled } from "@theholocron/kyber/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	buildCliLogger,
-	getLogger,
-	getRunId,
-	GLOBAL_AXIOM_DATASET,
-	reportError,
-	resetCliLogger,
-	resolveConsoleOutput,
-	resolveLogLevel,
-} from "./logger.js";
+import { buildCliLogger, getRunId, GLOBAL_AXIOM_DATASET, resetCliLogger, resolveLogLevel } from "./logger.js";
 
 const ENV_KEYS = [
 	"HOLOCRON_LOG_LEVEL",
@@ -67,151 +57,18 @@ afterEach(() => {
 	resetCliLogger();
 });
 
-describe("resolveLogLevel", () => {
-	it("maps --verbose to debug and --quiet to error", () => {
-		expect(resolveLogLevel({ verbose: true })).toBe("debug");
-		expect(resolveLogLevel({ quiet: true })).toBe("error");
-	});
-
-	it("prefers --verbose over --quiet", () => {
-		expect(resolveLogLevel({ verbose: true, quiet: true })).toBe("debug");
-	});
-
-	it("reads HOLOCRON_LOG_LEVEL when no flag is set", () => {
-		process.env.HOLOCRON_LOG_LEVEL = "warn";
-		expect(resolveLogLevel({})).toBe("warn");
-	});
-
-	it("HOLOCRON_LOG_LEVEL outranks the config level", () => {
+describe("Holocron binding", () => {
+	it("reads HOLOCRON_LOG_LEVEL", () => {
 		process.env.HOLOCRON_LOG_LEVEL = "warn";
 		expect(resolveLogLevel({}, "debug")).toBe("warn");
 	});
 
-	it("falls back to the config level, then undefined", () => {
-		expect(resolveLogLevel({}, "error")).toBe("error");
-		expect(resolveLogLevel({})).toBeUndefined();
-	});
-
-	it("ignores an unrecognised HOLOCRON_LOG_LEVEL", () => {
-		process.env.HOLOCRON_LOG_LEVEL = "loud";
-		expect(resolveLogLevel({}, "info")).toBe("info");
-	});
-
-	it("--log outranks --verbose, --quiet, the env var, and the config level", () => {
-		process.env.HOLOCRON_LOG_LEVEL = "warn";
-		expect(resolveLogLevel({ log: "error", verbose: true, quiet: true }, "debug")).toBe("error");
-	});
-});
-
-describe("resolveConsoleOutput", () => {
-	it("returns undefined in CI — preserves createLogger's own ci/tty auto-detection", () => {
-		process.env.CI = "true";
-		expect(resolveConsoleOutput({})).toBeUndefined();
-	});
-
-	it("defaults to false outside CI — local/interactive runs are quiet by default", () => {
-		delete process.env.CI;
-		expect(resolveConsoleOutput({})).toBe(false);
-	});
-
-	it("returns true when --log, --verbose, or --quiet was passed, even outside CI", () => {
-		delete process.env.CI;
-		expect(resolveConsoleOutput({ log: "debug" })).toBe(true);
-		expect(resolveConsoleOutput({ verbose: true })).toBe(true);
-		expect(resolveConsoleOutput({ quiet: true })).toBe(true);
-	});
-
-	it("an explicit opt-in flag wins even in CI", () => {
-		process.env.CI = "true";
-		expect(resolveConsoleOutput({ log: "warn" })).toBe(true);
-	});
-});
-
-describe("buildCliLogger", () => {
-	it("builds once and returns the memoized root on repeat calls", () => {
-		const a = buildCliLogger({});
-		const b = buildCliLogger({});
-		expect(a).toBe(b);
-		expect(createLoggerMock).toHaveBeenCalledTimes(1);
-	});
-
-	it("turns the progress spinner off for --quiet and --log, and on again without them", () => {
-		const tty = (v: boolean) => {
-			Object.defineProperty(process.stdout, "isTTY", { value: v, configurable: true });
-			Object.defineProperty(process.stderr, "isTTY", { value: v, configurable: true });
-		};
-		tty(true);
-		delete process.env["CI"];
-		try {
-			buildCliLogger({ quiet: true });
-			expect(progressEnabled()).toBe(false);
-			buildCliLogger({ log: "info" });
-			expect(progressEnabled()).toBe(false);
-			buildCliLogger({});
-			expect(progressEnabled()).toBe(true);
-		} finally {
-			tty(false);
-			allowProgress(true);
-		}
-	});
-
-	it("passes the resolved flag level through to createLogger", () => {
-		buildCliLogger({ verbose: true });
-		expect(createLoggerMock).toHaveBeenCalledWith({ level: "debug", consoleOutput: true });
-	});
-
-	it("rebuilds once with the config level when the flag/env pass had none", () => {
-		buildCliLogger({}); // middleware pass — no level
-		buildCliLogger({}, { configLevel: "warn" }); // handler pass — config level
-		expect(createLoggerMock).toHaveBeenNthCalledWith(2, { level: "warn" });
-		expect(getRunId()).toBe("run-2");
-	});
-
-	it("does not let a config level override an active --quiet flag", () => {
-		buildCliLogger({ quiet: true });
-		buildCliLogger({ quiet: true }, { configLevel: "debug" });
-		expect(createLoggerMock).toHaveBeenCalledTimes(1);
-		expect(createLoggerMock).toHaveBeenCalledWith({ level: "error", consoleOutput: true });
-	});
-
-	it("does not let a config level override an active --log flag", () => {
-		buildCliLogger({ log: "warn" });
-		buildCliLogger({ log: "warn" }, { configLevel: "debug" });
-		expect(createLoggerMock).toHaveBeenCalledTimes(1);
-	});
-
-	it("passes consoleOutput: false by default outside CI", () => {
-		delete process.env.CI;
-		buildCliLogger({});
-		expect(createLoggerMock).toHaveBeenCalledWith({ consoleOutput: false });
-	});
-
-	it("maps --log to both the level and consoleOutput: true", () => {
-		delete process.env.CI;
-		buildCliLogger({ log: "warn" });
-		expect(createLoggerMock).toHaveBeenCalledWith({ level: "warn", consoleOutput: true });
-	});
-
-	it("--log outranks --verbose and --quiet for the resolved level", () => {
-		delete process.env.CI;
-		buildCliLogger({ log: "error", verbose: true });
-		expect(createLoggerMock).toHaveBeenCalledWith({ level: "error", consoleOutput: true });
-	});
-
-	it("omits consoleOutput entirely in CI, regardless of flags", () => {
-		process.env.CI = "true";
-		buildCliLogger({});
-		expect(createLoggerMock).toHaveBeenCalledWith({});
-	});
-
-	it("binds the command name on the root logger", () => {
+	it("builds the root with the command bound", () => {
 		const child = vi.fn();
-		createLoggerMock.mockImplementationOnce(() => ({
-			logger: { child, __fake: true },
-			runId: "run-x",
-		}));
+		createLoggerMock.mockImplementationOnce(() => ({ logger: { child, __fake: true }, runId: "run-x" }));
 		buildCliLogger({}, { command: "doctor" });
 		expect(child).toHaveBeenCalledWith({ command: "doctor" });
+		expect(getRunId()).toBe("run-x");
 	});
 });
 
@@ -304,51 +161,5 @@ describe("buildCliLogger — Axiom dataset scoping by execution context (ADR-001
 		expect(createLoggerMock).toHaveBeenCalledWith({
 			axiom: { dataset: "rando-local", token: "keyring-token" },
 		});
-	});
-});
-
-describe("getLogger / getRunId", () => {
-	it("getLogger lazily builds and shares the root", () => {
-		const l1 = getLogger();
-		const l2 = buildCliLogger({}).logger;
-		expect(l1).toBe(l2);
-		expect(createLoggerMock).toHaveBeenCalledTimes(1);
-	});
-
-	it("getLogger's bare fallback is quiet by default outside CI — not createLogger's own auto-detection", () => {
-		delete process.env.CI;
-		getLogger();
-		expect(createLoggerMock).toHaveBeenCalledWith({ consoleOutput: false });
-	});
-
-	it("getLogger's bare fallback omits consoleOutput in CI, preserving auto-detection", () => {
-		process.env.CI = "true";
-		getLogger();
-		expect(createLoggerMock).toHaveBeenCalledWith({});
-	});
-
-	it("getRunId is undefined until a root is built", () => {
-		expect(getRunId()).toBeUndefined();
-		buildCliLogger({});
-		expect(getRunId()).toBe("run-1");
-	});
-});
-
-describe("reportError", () => {
-	it("prints via console.error and also logs at error level — always visible regardless of consoleOutput", () => {
-		const errorSpy = vi.fn();
-		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		reportError("boom", { error: errorSpy } as never);
-		expect(errorSpy).toHaveBeenCalledWith("boom");
-		expect(consoleSpy).toHaveBeenCalledTimes(1);
-		expect(String(consoleSpy.mock.calls[0]?.[0])).toContain("boom");
-		consoleSpy.mockRestore();
-	});
-
-	it("defaults to getLogger() when no logger is passed", () => {
-		const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => reportError("fallback message")).not.toThrow();
-		expect(consoleSpy).toHaveBeenCalledTimes(1);
-		consoleSpy.mockRestore();
 	});
 });
