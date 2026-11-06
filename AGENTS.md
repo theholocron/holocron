@@ -225,8 +225,8 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     (`pickMenuItem` / `searchChoices`, `promptForPositionals`, `promptForOptions`) live in
     `@theholocron/kyber/prompts`, which has no knowledge of commands, and `NonInteractiveError` (with the rest of the
     terminal output helpers and the cleaning of error text) in `@theholocron/kyber/ui`; code imports both from kyber
-    directly, the CLI has no `ui/` directory of its own, and its one addition, the retry notice on the spinner
-    (`retry-notice/`), is registered once in `cli.ts` with `setProgressListener`;
+    directly, the CLI has no `ui/` directory of its own, and the retry notice on the spinner is kyber's
+    `createRetryNotice(onRetry)`, registered once in `cli.ts` with `setProgressListener`;
     `interactive-menu/` holds the rest, one folder per piece:
     `command-registry`, `menu-items`, `run-menu-entries`, `child-argv` and
     `launch-menu`.

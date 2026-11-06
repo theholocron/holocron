@@ -3,9 +3,10 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { createEnvLookup } from "@theholocron/env-utils/lookup";
+import { onRetry } from "@theholocron/http-client";
 import { addGlobalOptions } from "@theholocron/kyber/flags";
 import { checkForUpdates } from "@theholocron/kyber/notifier";
-import { commandFailureMessage, setProgressListener } from "@theholocron/kyber/ui";
+import { commandFailureMessage, createRetryNotice, setProgressListener } from "@theholocron/kyber/ui";
 import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -34,7 +35,6 @@ import { syncCommand } from "./commands/sync/sync.command.js";
 import { tunnelCommand } from "./commands/tunnel/index.js";
 import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
-import { retryNotice } from "./retry-notice/index.js";
 
 const env = createEnvLookup();
 
@@ -55,7 +55,7 @@ const USER_FACING_ERRORS = new Set(["WorkspaceContextError", "ConfigFileError", 
 let printRunId = false;
 
 init(CLI_VERSION);
-setProgressListener(retryNotice);
+setProgressListener(createRetryNotice(onRetry));
 // The answer is kept in `HOLOCRON_CACHE_DIR`, `~/.cache/holocron` by default.
 const updateCheckPromise = checkForUpdates({
 	name: CLI_PACKAGE_NAME,
