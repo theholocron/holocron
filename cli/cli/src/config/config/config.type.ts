@@ -212,11 +212,20 @@ export interface RepoValidationConfig {
  */
 export interface OrgConfig {
 	/** Options filled into every `cloudflare` provider entry. */
-	cloudflare?: { accountId?: string };
+	cloudflare?: {
+		/** The Cloudflare account id (an identifier, not a credential). */
+		accountId?: string;
+	};
 	/** Options filled into every `vercel` provider entry. */
-	vercel?: { teamId?: string };
+	vercel?: {
+		/** The Vercel team id (an identifier, not a credential). */
+		teamId?: string;
+	};
 	/** Options filled into every `checkly` provider entry. */
-	checkly?: { accountId?: string };
+	checkly?: {
+		/** The Checkly account id (an identifier, not a credential). */
+		accountId?: string;
+	};
 }
 
 /** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron repo setup`. */
