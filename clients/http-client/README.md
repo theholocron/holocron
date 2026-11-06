@@ -93,6 +93,8 @@ It is per process, not per client, so nothing has to be handed to each client. I
 
 ### `createResolveToken(config)`
 
+> **Deprecated.** The token resolver, `AuthError` and the input types now live in `@theholocron/kyber/secrets`, which has no dependency on a client library; this copy stays until the next major release.
+
 Factory for the standard token resolution used by all holocron plugins. Resolution order:
 
 1. `cliToken` — value from `--token` CLI flag
