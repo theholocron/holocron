@@ -1,6 +1,6 @@
 import { LEGACY_NAMES } from "@theholocron/astromech";
+import type { CheckRow } from "@theholocron/kyber/ui";
 
-import type { CheckRow } from "../doctor-checks/index.js";
 import { problemRow } from "./problem-row.js";
 
 /**

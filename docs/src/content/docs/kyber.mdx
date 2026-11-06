@@ -15,7 +15,7 @@ A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`,
 
 | Subpath                            | What it gives a CLI                                                                                       |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [`/ui`](#ui)                       | Status glyphs and colours, status rows, a JSON view, a spinner, retry notice, wait-for-Enter              |
+| [`/ui`](#ui)                       | Status glyphs and colours, status rows, check rows, a JSON view, a spinner, retry notice, wait-for-Enter  |
 | [`/prompts`](#prompts)             | A searchable menu and prompts for the positionals and options a command left out                          |
 | [`/menu`](#menu)                   | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                   |
 | [`/notifier`](#notifier)           | A cached "a newer version exists" notice for an npm package                                               |
@@ -35,6 +35,22 @@ console.log(statusRow("ok", ["lint", "no problems"])); // one row of a status ta
 await withProgress("Checking…", () => check()); // a spinner on a terminal only, nothing in CI or a pipe
 await viewJson(config, { depth: 2 }); // a folding viewer on a terminal, static output otherwise
 await waitForEnter("Press Enter once the key is in 1Password…");
+```
+
+A deep check is a list of `CheckRow`s (`id`, `title`, `status`, `detail`, `problems`). `printCheckRows` prints them with titles padded to the widest and each problem beneath, `summariseChecks` counts them and `printCheckSummary` prints the closing `N ok, N fail, N skipped` line. `declaredVsActual(declared, actual, { noun })` compares two maps by key and returns one problem line per missing, unexpected or differing entry:
+
+```ts
+const rows: CheckRow[] = [
+  {
+    id: "env",
+    title: "variables",
+    status: "fail",
+    detail: "1 problem(s)",
+    problems: declaredVsActual(declared, actual, { noun: "variable" }),
+  },
+];
+printCheckRows(rows, console.log);
+printCheckSummary(summariseChecks(rows), console.log);
 ```
 
 A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. `createProgress` and `withProgress` take an optional listener that can change the spinner's text during a step, and `setProgressListener` sets one for every step at start-up; `createRetryNotice(subscribe)` builds a listener that says a request is being sent again, from the HTTP client's retry hook (the Holocron CLI passes `onRetry`), so kyber depends on no client.

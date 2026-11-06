@@ -10,6 +10,13 @@
  * Out of scope: the alert channel and its subscriptions (the notification layout declares those, see
  * `doctor notifications`) and any check that a message really arrives.
  */
+import {
+	type CheckRow,
+	declaredVsActual,
+	printCheckRows,
+	printCheckSummary,
+	summariseChecks,
+} from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -20,13 +27,6 @@ import {
 	type MonitoringCheckInput,
 	PluginLoader,
 } from "../../plugin/index.js";
-import {
-	type CheckRow,
-	declaredVsActual,
-	printCheckRows,
-	printCheckSummary,
-	summariseChecks,
-} from "../doctor-checks/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorMonitoringReport, RunDoctorMonitoringInput } from "./doctor-monitoring.type.js";

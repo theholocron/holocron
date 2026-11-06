@@ -1,9 +1,9 @@
+import type { CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 import type { CommandModule } from "yargs";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { CapabilityKey, PluginLoader, RuntimeContext } from "../../plugin/index.js";
-import type { CheckStatus, CheckSummary } from "../doctor-checks/index.js";
 
 /** What `doctor --all` hands every deep check. */
 export interface DeepCheckInput {

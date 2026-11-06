@@ -12,6 +12,13 @@
  * target and not be proxied (a proxied record breaks the provider's certificate issuance). Nothing here writes.
  */
 
+import {
+	type CheckRow,
+	declaredVsActual,
+	printCheckRows,
+	printCheckSummary,
+	summariseChecks,
+} from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import type { ResolvedHolocronConfig } from "../../config/index.js";
@@ -24,13 +31,6 @@ import {
 	PluginLoader,
 	type Wiki,
 } from "../../plugin/index.js";
-import {
-	type CheckRow,
-	declaredVsActual,
-	printCheckRows,
-	printCheckSummary,
-	summariseChecks,
-} from "../doctor-checks/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { previewConfigOf } from "../setup/preview-config-of.js";

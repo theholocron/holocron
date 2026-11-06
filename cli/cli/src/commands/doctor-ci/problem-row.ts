@@ -1,4 +1,4 @@
-import type { CheckRow } from "../doctor-checks/index.js";
+import type { CheckRow } from "@theholocron/kyber/ui";
 
 /** A row that fails with its problems, or passes with `okDetail` when there are none. */
 export function problemRow(id: string, title: string, problems: string[], okDetail: string): CheckRow {

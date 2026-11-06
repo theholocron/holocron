@@ -7,6 +7,13 @@
  * read because there is no provider, or no token for it, is a skip with the reason, not a failure.
  */
 
+import {
+	type CheckRow,
+	declaredVsActual,
+	printCheckRows,
+	printCheckSummary,
+	summariseChecks,
+} from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -17,13 +24,6 @@ import {
 	type SecretScope,
 	type Vault,
 } from "../../plugin/index.js";
-import {
-	type CheckRow,
-	declaredVsActual,
-	printCheckRows,
-	printCheckSummary,
-	summariseChecks,
-} from "../doctor-checks/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorSecretsReport, RunDoctorSecretsInput } from "./doctor-secrets.type.js";

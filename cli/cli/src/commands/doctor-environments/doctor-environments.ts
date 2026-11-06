@@ -7,17 +7,17 @@
  * nothing named, nothing is declared; with no provider but some named, the row is a skip with the reason.
  */
 
-import { errorMessage } from "@theholocron/misc-utils";
-
-import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, type Environments, PluginLoader } from "../../plugin/index.js";
 import {
 	type CheckRow,
 	declaredVsActual,
 	printCheckRows,
 	printCheckSummary,
 	summariseChecks,
-} from "../doctor-checks/index.js";
+} from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { getLogger } from "../../observability/logger/index.js";
+import { assertPluginsResolvable, type Environments, PluginLoader } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import { SETUP_ENVIRONMENTS } from "../setup/setup-environments.js";

@@ -1,4 +1,5 @@
-import type { CheckRow } from "../doctor-checks/index.js";
+import type { CheckRow } from "@theholocron/kyber/ui";
+
 import type { CallerHome, ParsedCaller } from "./doctor-ci.type.js";
 import { homeOf } from "./home-of.js";
 

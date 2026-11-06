@@ -1,8 +1,8 @@
+import type { CheckRow } from "@theholocron/kyber/ui";
 import { describeError } from "@theholocron/kyber/ui";
 
 import type { RepoSecretsSync } from "../../config/index.js";
 import { type SecretScope, type Vault } from "../../plugin/index.js";
-import type { CheckRow } from "../doctor-checks/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { parseScope } from "../secrets-sync/parse-scope/index.js";
 import type { SyncedSecrets } from "./doctor-secrets.type.js";

@@ -12,13 +12,13 @@
  * config writes. A provider that is missing, cannot list names or cannot find the environment gets one row of its own.
  */
 
+import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { credentialsEnvironment, type ResolvedProviderEntry } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Credentials, PluginLoader } from "../../plugin/index.js";
 import { defaultImporter } from "../auth/index.js";
-import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
 import type { DoctorCredentialsReport, RunDoctorCredentialsInput } from "./doctor-credentials.type.js";
 

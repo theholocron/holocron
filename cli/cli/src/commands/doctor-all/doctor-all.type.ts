@@ -1,9 +1,9 @@
+import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { RuntimeContext } from "../../plugin/index.js";
 import type { DeepCheck } from "../deep-checks/index.js";
-import type { CheckRow, CheckStatus, CheckSummary } from "../doctor-checks/index.js";
 
 export interface RunDoctorAllInput {
 	/** The loaded config, handed to every check. */

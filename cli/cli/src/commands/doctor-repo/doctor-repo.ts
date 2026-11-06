@@ -9,11 +9,11 @@
  * reason, not a failure. Variables, secrets and environments have their own checks.
  */
 
+import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
-import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorRepoReport, RepoCheck, RepoCheckResult, RunDoctorRepoInput } from "./doctor-repo.type.js";

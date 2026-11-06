@@ -1,4 +1,4 @@
-import type { CheckRow, CheckSummary } from "./doctor-checks.type.js";
+import type { CheckRow, CheckSummary } from "../check-row/index.js";
 
 /** How many rows ended each way. */
 export function summariseChecks(rows: readonly CheckRow[]): CheckSummary {

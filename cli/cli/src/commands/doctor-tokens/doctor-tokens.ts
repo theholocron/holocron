@@ -12,12 +12,12 @@
  */
 
 import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
+import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { keyring } from "../../auth.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { type AuthPluginModule, defaultImporter, type PluginToken } from "../auth/index.js";
-import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import type { DoctorTokensReport, RunDoctorTokensInput } from "./doctor-tokens.type.js";
 import { describeExpiry } from "./token-expiry/index.js";
 

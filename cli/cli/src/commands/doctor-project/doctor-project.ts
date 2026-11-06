@@ -10,10 +10,10 @@
 
 import { style } from "@theholocron/kyber/ui";
 import { describeError } from "@theholocron/kyber/ui";
+import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader } from "../../plugin/index.js";
-import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import { postDoctorReport } from "../post-doctor-report/index.js";
 import { openBoardContext } from "../project/board-context/index.js";
 import { boardRows } from "./board-rows.js";
