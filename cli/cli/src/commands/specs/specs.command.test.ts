@@ -106,9 +106,7 @@ describe("specs menu", () => {
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"specs — choose a subcommand:",
-			expect.any(String),
-			["specs"]
+			expect.objectContaining({ pickMessage: "specs — choose a subcommand:", startPath: ["specs"] })
 		);
 	});
 });

@@ -1,5 +1,5 @@
 import type { ComposedPreset } from "../../config/compose/index.js";
-import { compose } from "../../config/compose/index.js";
+import { compose } from "../../config/config-system.js";
 import { nextjs as nextjsCapability } from "../capabilities/nextjs.js";
 import { node } from "../capabilities/node.js";
 import { typecheck } from "../capabilities/typecheck.js";

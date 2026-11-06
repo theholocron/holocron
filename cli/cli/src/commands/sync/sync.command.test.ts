@@ -88,9 +88,7 @@ describe("sync github", () => {
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"sync — choose a subcommand:",
-			expect.any(String),
-			["sync"]
+			expect.objectContaining({ pickMessage: "sync — choose a subcommand:", startPath: ["sync"] })
 		);
 	});
 });

@@ -790,9 +790,10 @@ the local override exists to exempt.
   providers implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
   `CapabilityConfigPackage`
-- `src/config/load-config.ts` — `loadConfig` — reads `holocron.config.*`
-  (file discovery via [`@theholocron/datapad`](../datapad))
-- `src/define-config.ts` — `defineConfig` typed pass-through
+- `src/config/config-system.ts` — `defineConfig`, `loadConfig` (reads `holocron.config.*`;
+  file discovery via [`@theholocron/datapad`](../datapad)) and `compose`, all built from
+  kyber's `createConfigSystem`; Holocron's own rules sit beside it in `config/config`,
+  `compose/{merge-*,task-name}` and `load-config/{derive-defaults,read-package-json-name}`
 - `src/observability/logger.ts` — CLI-side `@theholocron/observability/logger` wiring
   (`buildCliLogger`, `resolveLogLevel`)
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
@@ -816,8 +817,8 @@ the local override exists to exempt.
   `doctor <capability>` is listed in
 - `src/interactive-menu/` — the interactive fallback's Holocron data: `command-registry`
   (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `run-menu-entries`
-  and `probe-menu-entries` (menu entries built at run time), and `launch-menu`,
-  a small binding of the engine to the `holocron` bin and `HOLOCRON_` env prefix.
+  and `probe-menu-entries` (menu entries built at run time), and `menu.ts`,
+  kyber's `createMenu` bound to the `holocron` bin and `HOLOCRON_` env prefix.
   The engine itself (the picker, argv and secret env, the dry-run preview, the spawn)
   and the prompting pieces — `promptForPositionals`, `promptForOptions` — live in
   `@theholocron/kyber` (`/menu`, `/prompts`), which has no knowledge of commands.

@@ -8,7 +8,7 @@
  *      required positional
  *
  * The engine itself (menu tree, prompts, spawn, dry-run preview) lives in `@theholocron/kyber/menu`; this folder
- * is the Holocron catalog it is fed plus {@link launchMenu}, the binding to the `holocron` bin. Layers 1–2 are
+ * is the Holocron catalog it is fed plus {@link launchMenu} (`menu.ts`), kyber's engine bound to the `holocron` bin. Layers 1–2 are
  * driven from the `$0` handlers via {@link launchMenu}:
  * pick a command, prompt for its required positionals, then **spawn a fresh
  * `holocron <command> …` child process** (`stdio: "inherit"`) rather than
@@ -36,6 +36,6 @@
  */
 
 export * from "./command-registry/index.js";
-export * from "./launch-menu/index.js";
+export * from "./menu.js";
 export * from "./probe-menu-entries/index.js";
 export * from "./run-menu-entries/index.js";

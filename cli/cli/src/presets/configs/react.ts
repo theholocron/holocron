@@ -1,5 +1,5 @@
 import type { ComposedPreset } from "../../config/compose/index.js";
-import { compose } from "../../config/compose/index.js";
+import { compose } from "../../config/config-system.js";
 import { node } from "../capabilities/node.js";
 import type { ReactOptions } from "../capabilities/react.js";
 import { react as reactCapability } from "../capabilities/react.js";

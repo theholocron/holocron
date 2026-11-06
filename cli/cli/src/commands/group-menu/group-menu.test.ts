@@ -12,9 +12,10 @@ describe("launchGroupMenu", () => {
 		expect(launch).toHaveBeenCalledWith(
 			["registry"],
 			argv,
-			"repo upgrade — choose a subcommand:",
-			"Run `holocron repo upgrade --help` to see available repo upgrade subcommands.",
-			["repo", "upgrade"]
+			expect.objectContaining({
+				pickMessage: "repo upgrade — choose a subcommand:",
+				startPath: ["repo", "upgrade"],
+			})
 		);
 	});
 
@@ -29,9 +30,7 @@ describe("launchGroupMenu", () => {
 		expect(launch).toHaveBeenCalledWith(
 			["registry"],
 			{ cwd: "/x" },
-			"secrets — choose a subcommand:",
-			expect.any(String),
-			["secrets"]
+			expect.objectContaining({ pickMessage: "secrets — choose a subcommand:", startPath: ["secrets"] })
 		);
 	});
 });

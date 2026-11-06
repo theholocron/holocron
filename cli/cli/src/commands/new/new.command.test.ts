@@ -220,9 +220,7 @@ describe("new", () => {
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"new — choose a subcommand:",
-			expect.any(String),
-			["new"]
+			expect.objectContaining({ pickMessage: "new — choose a subcommand:", startPath: ["new"] })
 		);
 	});
 });
