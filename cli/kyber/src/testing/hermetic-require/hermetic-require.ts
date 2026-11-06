@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
  *
  *   vi.mock("node:module", async (importOriginal) => {
  *     const actual = await importOriginal<typeof import("node:module")>();
- *     const { hermeticCreateRequire } = await import("../../testing/hermetic-require.js");
+ *     const { hermeticCreateRequire } = await import("@theholocron/kyber/testing");
  *     return { ...actual, createRequire: hermeticCreateRequire(actual) };
  *   });
  */

@@ -124,7 +124,7 @@ plugin packages), so it renders as `input()`:
 ```
 
 `auth unset` / `auth check`, by contrast, render `provider` as a `select()`
-over `listStoredProviders()` — you can only unset or check what's already
+over `keyring.list()` — you can only unset or check what's already
 stored. If nothing is stored, the command fails with a clear message instead
 of a `select()` with zero choices.
 
@@ -222,7 +222,7 @@ $ holocron deploy < /dev/null
 
 ## Command registry
 
-`packages/cli/src/interactive-menu.ts` exports `COMMAND_REGISTRY` — the
+`cli/cli/src/interactive-menu/command-registry` exports `COMMAND_REGISTRY` — the
 single source of truth for the interactive layer. Each entry mirrors its
 corresponding Yargs registration in `cli.ts`. It does not introspect Yargs at
 runtime — entries are hand-maintained in parallel with the Yargs
@@ -292,6 +292,10 @@ subcommand. Caught during implementation, not a design change.
 ## Implementation (as-built)
 
 ### `packages/cli/src/interactive-menu.ts`
+
+> The engine below (`pickCommand`, `promptForPositionals`, `buildChildArgv`, `launchMenu`) now lives in
+> `@theholocron/kyber` (`/menu`, `/prompts`); the CLI keeps `COMMAND_REGISTRY` and `menu.ts` in
+> `cli/cli/src/interactive-menu/`.
 
 - **`COMMAND_REGISTRY`** — as above.
 - **`pickCommand(entries, message?)`** — `@inquirer/search` autocomplete.

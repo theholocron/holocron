@@ -5,7 +5,7 @@ import type { OptionAnswer, OptionMode, OptionPrompt, OptionsCommand, ResolvedOp
 
 /**
  * A required option must not resolve to an empty answer — `optionArgv`/
- * `secretEnv` (child-argv.ts) both drop an empty-string value entirely,
+ * `secretEnv` (menu/option-argv, menu/secret-env) both drop an empty-string value entirely,
  * which would silently invoke the child without a flag the caller asked
  * for. Passed as `validate` so inquirer re-prompts instead of accepting it.
  */
