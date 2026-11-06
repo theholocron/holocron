@@ -8,9 +8,9 @@ const MAX_MESSAGE = 2000;
 /**
  * The line that ends a post's first message and makes it findable and comparable: `-# sync: <key> | <state>`, where
  * `-#` is Discord's small print. `key` is the document's path; `state` is the state the post and the document last
- * agreed on, empty when none.
+ * agreed on, empty when none. A state is a tag's name, which may hold spaces (`changes requested`).
  */
-const FOOTER = /^-# sync: (.+) \| (\S*)$/m;
+const FOOTER = /^-# sync: (.+) \| (.*)$/m;
 
 /** The paragraph of a first message that names the pull request, as `discussionBody` writes it. */
 const PR_LINE = /^PR: \[#\d+\]\(<[^>]*>\)$/m;

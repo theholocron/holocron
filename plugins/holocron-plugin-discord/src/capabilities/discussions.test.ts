@@ -197,6 +197,27 @@ describe("DiscordDiscussions.read", () => {
 		});
 	});
 
+	it("finds a post, and reads what it last synced, when the state is a tag name with a space", async () => {
+		const pr = "theholocron/holocron#1";
+		const spaced: DiscordChannel = {
+			...FORUM,
+			available_tags: [...(FORUM.available_tags ?? []), tag("904", "changes requested")],
+		};
+		const { discussions, calls } = make(
+			[
+				...listing([thread("5", { applied_tags: ["904"] })]),
+				first("5", `About it.\n\n${footer(pr, "changes requested")}`),
+			],
+			[spaced]
+		);
+
+		const result = await discussions.ensure({ ...INPUT, key: pr, state: "changes requested" });
+
+		expect(result.created).toBe(false);
+		expect(result.post).toMatchObject({ key: pr, state: "changes requested", synced: "changes requested" });
+		expect(calls.every((c) => c.method === "GET")).toBe(true);
+	});
+
 	it("has no state for a post with no tag, with two, or with a tag the forum no longer has", async () => {
 		expect((await post([]).read("ideas", INPUT.key))?.state).toBeUndefined();
 		expect((await post(["901", "902"]).read("ideas", INPUT.key))?.state).toBeUndefined();
