@@ -19,6 +19,7 @@ import {
 	copyToClipboard,
 	dotenvLine,
 	type FileIdentity,
+	finishCredentialsFile,
 	isGitIgnored,
 	writeCredentialsFile,
 } from "@theholocron/kyber/secrets";
@@ -30,7 +31,6 @@ import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
-import { finishCredentialsFile } from "../finish-credentials-file/index.js";
 import type { AuthExportReport, RunAuthExportInput } from "./auth-export.type.js";
 
 const COMMAND = "auth export";
