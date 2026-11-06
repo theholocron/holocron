@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const doctorVariablesEntry: CommandEntry = {
+export const doctorVariablesEntry: MenuEntry = {
 	name: "doctor variables",
 	description: "Check the Actions variables the config declares against the ones the provider holds (read-only)",
 	positionals: [],

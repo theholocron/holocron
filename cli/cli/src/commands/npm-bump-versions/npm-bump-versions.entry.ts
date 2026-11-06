@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const npmBumpVersionsEntry: CommandEntry = {
+export const npmBumpVersionsEntry: MenuEntry = {
 	name: "package bump-versions",
 	description: "Bump all non-private package versions in lockstep (semantic-release prepareCmd)",
 	positionals: [{ key: "newVersion", cliArg: "new-version", message: "New version:", type: "input" }],

@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const upgradeDepsEntry: CommandEntry = {
+export const upgradeDepsEntry: MenuEntry = {
 	name: "repo upgrade deps",
 	description: "Bump every @theholocron/* pin to latest and migrate holocron.config.ts to the current preset API",
 	positionals: [],

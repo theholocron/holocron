@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const deployEntry: CommandEntry = {
+export const deployEntry: MenuEntry = {
 	name: "deploy",
 	description: "Trigger a deployment via the configured `deployment` capability",
 	positionals: [{ key: "branch", message: "Branch to deploy:", type: "input" }],

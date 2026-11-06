@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const secretsListEntry: CommandEntry = {
+export const secretsListEntry: MenuEntry = {
 	name: "secrets list",
 	description: "List the names of the secrets at each scope (never the values)",
 	positionals: [],

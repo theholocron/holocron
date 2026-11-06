@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const doctorEnvironmentsEntry: CommandEntry = {
+export const doctorEnvironmentsEntry: MenuEntry = {
 	name: "doctor environments",
 	description: "Check that the deployment environments the config relies on exist (read-only)",
 	positionals: [],

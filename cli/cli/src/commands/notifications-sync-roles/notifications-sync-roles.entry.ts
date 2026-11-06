@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const notificationsSyncRolesEntry: CommandEntry = {
+export const notificationsSyncRolesEntry: MenuEntry = {
 	name: "notifications sync-roles",
 	description: "Make who holds a server role match a team, through the links file",
 	positionals: [],

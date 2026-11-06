@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const probeEntry: CommandEntry = {
+export const probeEntry: MenuEntry = {
 	name: "probe",
 	description: "Poke a live provider on purpose: inspect it, or run a proof that cleans up after itself",
 	positionals: [],

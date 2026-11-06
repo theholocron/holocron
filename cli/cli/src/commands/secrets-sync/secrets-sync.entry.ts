@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const secretsSyncEntry: CommandEntry = {
+export const secretsSyncEntry: MenuEntry = {
 	name: "secrets sync",
 	description: "Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
 	positionals: [{ key: "environmentId", message: "Vault environment id:", type: "input" }],

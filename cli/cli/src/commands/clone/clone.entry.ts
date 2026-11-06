@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const cloneEntry: CommandEntry = {
+export const cloneEntry: MenuEntry = {
 	name: "clone",
 	description: "Clone a single repo (org/repo) or every repo in an org (org)",
 	positionals: [

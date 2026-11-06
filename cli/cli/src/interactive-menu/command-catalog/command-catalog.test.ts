@@ -14,7 +14,7 @@ vi.mock("@inquirer/prompts", () => ({
 const listStoredProvidersMock = vi.fn();
 vi.mock("../../auth.js", () => ({ keyring: { list: () => listStoredProvidersMock() } }));
 
-const { COMMAND_REGISTRY, getEntry } = await import("../command-registry/index.js");
+const { COMMAND_REGISTRY, getEntry } = await import("./index.js");
 const { menuItems } = await import("@theholocron/kyber/menu");
 const { NonInteractiveError } = await import("@theholocron/kyber/ui");
 const { promptForPositionals } = await import("@theholocron/kyber/prompts");
@@ -149,7 +149,7 @@ describe("getEntry", () => {
 	});
 
 	it("throws for an unknown name", () => {
-		expect(() => getEntry("does-not-exist")).toThrow(/no COMMAND_REGISTRY entry/);
+		expect(() => getEntry("does-not-exist")).toThrow(/no command registry entry/);
 	});
 });
 
@@ -228,7 +228,7 @@ describe("package publish's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#10
 
 	it("is checkbox-optional by default, still askLast", async () => {
 		vi.resetModules();
-		const { COMMAND_REGISTRY: registry } = await import("./command-registry.js");
+		const { COMMAND_REGISTRY: registry } = await import("./command-catalog.js");
 		const otp = otpOption(registry);
 		expect(otp.required).toBe(false);
 		expect(otp.askLast).toBe(true);
@@ -237,7 +237,7 @@ describe("package publish's otp option — HOLOCRON_NPM_ENFORCE_2FA (holocron#10
 	it("becomes required (but still askLast) when HOLOCRON_NPM_ENFORCE_2FA is set — an operator whose own npm account always enforces 2FA skips checking the box every run", async () => {
 		vi.stubEnv("HOLOCRON_NPM_ENFORCE_2FA", "1");
 		vi.resetModules();
-		const { COMMAND_REGISTRY: registry } = await import("./command-registry.js");
+		const { COMMAND_REGISTRY: registry } = await import("./command-catalog.js");
 		const otp = otpOption(registry);
 		expect(otp.required).toBe(true);
 		expect(otp.askLast).toBe(true);

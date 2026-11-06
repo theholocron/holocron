@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const projectCreateEntry: CommandEntry = {
+export const projectCreateEntry: MenuEntry = {
 	name: "project create",
 	description: "Make a board from a template",
 	// The template is optional: a terminal run without one picks from a list inside the command.

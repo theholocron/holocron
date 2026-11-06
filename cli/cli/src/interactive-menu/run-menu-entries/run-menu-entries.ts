@@ -1,7 +1,6 @@
 import { createAstromech } from "@theholocron/astromech";
 import { loadTasksConfig } from "@theholocron/astromech/config";
-
-import type { CommandEntry } from "../command-registry/index.js";
+import type { MenuEntry } from "@theholocron/kyber/menu";
 
 /**
  * This repo's own resolved task manifest, filtered to what's actually
@@ -73,8 +72,8 @@ function groupByNamespace(taskNames: string[]): Map<string, string[]> {
  * task's own `.`, between namespace and leaf in `name` (`spawnArgs` carries
  * the real dotted invocation `buildChildArgv` actually spawns).
  */
-export function buildRunMenuEntries(taskNames: string[]): CommandEntry[] {
-	const entries: CommandEntry[] = [];
+export function buildRunMenuEntries(taskNames: string[]): MenuEntry[] {
+	const entries: MenuEntry[] = [];
 	for (const [namespace, tasks] of groupByNamespace(taskNames)) {
 		const isRealNamespace = tasks[0] !== namespace || tasks.length > 1;
 		if (isRealNamespace) {

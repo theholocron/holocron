@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const repoCleanupBranchesEntry: CommandEntry = {
+export const repoCleanupBranchesEntry: MenuEntry = {
 	name: "repo cleanup branches",
 	description: "List the branches whose pull request is merged and delete the ones you pick",
 	positionals: [],

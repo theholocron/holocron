@@ -1,7 +1,8 @@
-import { keyring } from "../../auth.js";
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const authUnsetEntry: CommandEntry = {
+import { keyring } from "../../auth.js";
+
+export const authUnsetEntry: MenuEntry = {
 	name: "auth unset",
 	description: "Remove a stored bootstrap token",
 	positionals: [{ key: "provider", message: "Provider:", type: "select", choices: keyring.list }],

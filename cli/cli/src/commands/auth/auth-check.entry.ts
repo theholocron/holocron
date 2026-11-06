@@ -1,7 +1,8 @@
-import { keyring } from "../../auth.js";
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const authCheckEntry: CommandEntry = {
+import { keyring } from "../../auth.js";
+
+export const authCheckEntry: MenuEntry = {
 	name: "auth check",
 	description: "Re-verify a stored bootstrap token",
 	positionals: [{ key: "provider", message: "Provider:", type: "select", choices: keyring.list }],

@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const tunnelUpEntry: CommandEntry = {
+export const tunnelUpEntry: MenuEntry = {
 	name: "tunnel up",
 	description: "Make a named tunnel with a stable public hostname that reaches a local port",
 	positionals: [],

@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const authExportEntry: CommandEntry = {
+export const authExportEntry: MenuEntry = {
 	name: "auth export",
 	description:
 		"Write the stored tokens as NAME=value lines to a private file, to import them into a credentials environment",

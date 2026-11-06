@@ -1,6 +1,6 @@
-import { type CommandEntry } from "../../interactive-menu/command-registry/command-registry.type.js";
+import { type MenuEntry } from "@theholocron/kyber/menu";
 
-export const skillsInstallEntry: CommandEntry = {
+export const skillsInstallEntry: MenuEntry = {
 	name: "skills install",
 	description: "Copy skills from @theholocron/skills into .agents/ with agent symlinks",
 	positionals: [],
