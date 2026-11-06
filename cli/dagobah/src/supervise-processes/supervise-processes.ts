@@ -1,21 +1,25 @@
 import { type ChildProcess, spawn } from "node:child_process";
 
-import type { DevProcess, DevProcessesResult, RunDevProcessesInput } from "./run-dev-processes.type.js";
+import type {
+	SupervisedProcess,
+	SuperviseProcessesInput,
+	SuperviseProcessesResult,
+} from "./supervise-processes.type.js";
 
 /**
- * Runs the application and the tunnel's connector side by side in the foreground, with their output on the terminal,
+ * Runs two processes side by side in the foreground, with their output on the terminal,
  * and stops the other when either ends. Ctrl-C and a termination signal go to both and are not a failure. A process
  * that cannot be started stops the other and rejects, saying which program it was.
  */
-export function runDevProcesses(input: RunDevProcessesInput): Promise<DevProcessesResult> {
+export function superviseProcesses(input: SuperviseProcessesInput): Promise<SuperviseProcessesResult> {
 	return new Promise((resolve, reject) => {
 		const spawnImpl = input.spawn ?? spawn;
-		const start = (p: DevProcess): ChildProcess =>
+		const start = (p: SupervisedProcess): ChildProcess =>
 			spawnImpl(p.command, p.args, { stdio: "inherit", env: { ...process.env, ...p.env } });
-		const children = { app: start(input.app), connector: start(input.connector) };
-		const names = ["app", "connector"] as const;
+		const children = { primary: start(input.primary), companion: start(input.companion) };
+		const names = ["primary", "companion"] as const;
 
-		let endedFirst: "app" | "connector" | undefined;
+		let endedFirst: "primary" | "companion" | undefined;
 		let status = 0;
 		let interrupted = false;
 		let done = false;
@@ -37,7 +41,7 @@ export function runDevProcesses(input: RunDevProcessesInput): Promise<DevProcess
 		};
 
 		for (const name of names) {
-			const other = name === "app" ? "connector" : "app";
+			const other = name === "primary" ? "companion" : "primary";
 			children[name].once("error", (err) => {
 				if (done) return;
 				done = true;

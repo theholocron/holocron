@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const defaultTunnel = vi.hoisted(() => vi.fn());
 const defaultProcesses = vi.hoisted(() => vi.fn());
 vi.mock("../tunnel-up/index.js", () => ({ runTunnelUp: defaultTunnel }));
-vi.mock("../run-dev-processes/index.js", () => ({ runDevProcesses: defaultProcesses }));
+vi.mock("@theholocron/dagobah", () => ({ superviseProcesses: defaultProcesses }));
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
@@ -59,7 +59,7 @@ function setup(over: { vault?: Record<string, unknown> | null; tunnels?: Record<
 	});
 	const lines: string[] = [];
 	const ensureTunnel = vi.fn(async () => TUNNEL_OK);
-	const runProcesses = vi.fn(async () => ({ exitCode: 0, endedFirst: "app" as const, interrupted: true }));
+	const runProcesses = vi.fn(async () => ({ exitCode: 0, endedFirst: "primary" as const, interrupted: true }));
 	const base = {
 		loaded,
 		context: { repoRoot: "/tmp/test" },
@@ -86,7 +86,7 @@ function setup(over: { vault?: Record<string, unknown> | null; tunnels?: Record<
 
 /** The environment the application was started with, from the first call to a faked `runProcesses`. */
 const appEnv = (runProcesses: ReturnType<typeof vi.fn>): Record<string, string> =>
-	(runProcesses.mock.calls as unknown as Array<[{ app: { env: Record<string, string> } }]>)[0]![0].app.env;
+	(runProcesses.mock.calls as unknown as Array<[{ primary: { env: Record<string, string> } }]>)[0]![0].primary.env;
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -106,12 +106,12 @@ describe("runDev", () => {
 		);
 		expect(vault.readEnvironment).toHaveBeenCalledWith("Sentinel - dev");
 		expect(runProcesses).toHaveBeenCalledWith({
-			app: {
+			primary: {
 				command: "pnpm",
 				args: ["run", "serve"],
 				env: { ENVIRONMENT: "development", GITHUB_APP_ID: "7", GITHUB_APP_PRIVATE_KEY: VALUE, PORT: "3000" },
 			},
-			connector: {
+			companion: {
 				command: "cloudflared",
 				args: ["tunnel", "--no-autoupdate", "run"],
 				env: { TUNNEL_TOKEN: TOKEN },
@@ -134,7 +134,7 @@ describe("runDev", () => {
 		await runDev({ ...base, port: 4000 });
 		expect(runProcesses).toHaveBeenCalledWith(
 			expect.objectContaining({
-				app: expect.objectContaining({ env: { ENVIRONMENT: "development", PORT: "4000" } }),
+				primary: expect.objectContaining({ env: { ENVIRONMENT: "development", PORT: "4000" } }),
 			})
 		);
 	});
@@ -151,7 +151,7 @@ describe("runDev", () => {
 
 	it("fails when the application ends with an error", async () => {
 		const { base, runProcesses } = setup();
-		runProcesses.mockResolvedValueOnce({ exitCode: 2, endedFirst: "app", interrupted: false });
+		runProcesses.mockResolvedValueOnce({ exitCode: 2, endedFirst: "primary", interrupted: false });
 		expect(await runDev(base)).toMatchObject({ status: "fail", exitCode: 2 });
 	});
 
@@ -227,7 +227,7 @@ describe("runDev", () => {
 
 	it("builds its own loader, prints to stdout, logs through the command logger and uses the real steps by default", async () => {
 		defaultTunnel.mockResolvedValue(TUNNEL_OK);
-		defaultProcesses.mockResolvedValue({ exitCode: 0, endedFirst: "app", interrupted: true });
+		defaultProcesses.mockResolvedValue({ exitCode: 0, endedFirst: "primary", interrupted: true });
 		const { base } = setup();
 		const { loader: _l, print: _p, logger: _g, ensureTunnel: _e, runProcesses: _r, ...rest } = base;
 		const log = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -244,9 +244,9 @@ describe("runDev", () => {
 		}
 	});
 
-	it("uses runTunnelUp and runDevProcesses when none are given", async () => {
+	it("uses runTunnelUp and superviseProcesses when none are given", async () => {
 		defaultTunnel.mockResolvedValue(TUNNEL_OK);
-		defaultProcesses.mockResolvedValue({ exitCode: 0, endedFirst: "app", interrupted: true });
+		defaultProcesses.mockResolvedValue({ exitCode: 0, endedFirst: "primary", interrupted: true });
 		const { base } = setup();
 		const { ensureTunnel: _e, runProcesses: _r, ...rest } = base;
 		expect((await runDev(rest)).status).toBe("ok");

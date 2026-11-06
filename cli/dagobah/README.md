@@ -26,3 +26,6 @@ await serveHandler({
   what is missing. An unquoted multi-line value (a PEM key, which `op` prints that way) is read whole.
 - `startDevServer({ handle, env, port })`: loopback only; one log line per request (method, path, status).
 - `describeLogging(env, { tokenVar, datasetVar })`: one line, the dataset and never the token.
+- `superviseProcesses({ primary, companion })`: runs two processes in the foreground, each with its own extra
+  environment; stops one when the other ends; Ctrl-C and a termination signal go to both and are not a failure. Resolves
+  `{ exitCode, endedFirst, interrupted }`; rejects naming a program that is missing or cannot start.

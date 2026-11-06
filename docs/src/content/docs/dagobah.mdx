@@ -40,5 +40,17 @@ The handler is imported after the Environment is in `process.env`, so a handler 
 - `loadDevEnv({ environment, required })` reads the Environment. The process wins over it. It throws naming, and never showing, what is missing. An unquoted multi-line value, such as a PEM key as `op` prints it, is read whole.
 - `startDevServer({ handle, env, port })` listens on the loopback address only and writes one log line per request: method, path and status.
 - `describeLogging(env, { tokenVar, datasetVar })` returns one line naming the dataset, never the token.
+- `superviseProcesses({ primary, companion })` runs two processes side by side in the foreground, for example an application and a tunnel's connector. Each is started with `command`, `args` and an `env` added to the environment of that process only, so a token meant for the companion never reaches the primary. When either ends the other is stopped; Ctrl-C and a termination signal go to both and are not a failure. It resolves `{ exitCode, endedFirst, interrupted }` and rejects, naming the program, when one is not installed or cannot start.
+
+```ts
+import { superviseProcesses } from "@theholocron/dagobah";
+
+const { exitCode } = await superviseProcesses({
+  primary: { command: "pnpm", args: ["run", "serve"], env: { PORT: "3000" } },
+  companion: { command: "cloudflared", args: ["tunnel", "run"], env: { TUNNEL_TOKEN: token } },
+});
+```
+
+[`holocron dev`](/holocron/commands/dev/) uses it to run the application beside `cloudflared`.
 
 Values and tokens are never printed.
