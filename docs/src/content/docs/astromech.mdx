@@ -43,6 +43,7 @@ const report = astromech.run("test:unit", { passthrough: ["--watch"] });
 - **Release-time deploys.** A package can declare a `deploy` task with `on: "release"`, and `holocron deploy on-release` deploys it when a release changes it or one of its `workspace:*` dependencies.
 - **Lint subpath.** `@theholocron/astromech/lint` holds the commit-message linter and the ignore lists, shared with [Sentinel](/holocron/sentinel/) so its central checks skip exactly what each repo's own CI skips.
 - **Repo-validation subpath.** `@theholocron/astromech/repo-validation` holds the rules of the `validate:specs` and `validate:docs` checks as pure functions, run by the CLI (`holocron probe docs presence`) from git and by [Sentinel](/holocron/sentinel/) from the GitHub API, so the two cannot disagree.
+- **Upgrade subpath.** `@theholocron/astromech/upgrade` holds the repo-agnostic upgrade machinery behind `holocron repo upgrade`: `runUpgradeNode()` rewrites every Node.js version pin (`engines.node`, `@types/node`, `.nvmrc`, `.node-version`, workflow `node-version:`, Dockerfile `FROM node:`, `.tool-versions`) from one major to another, and `fetchLatestFromNpm()` resolves a package's latest version. The Holocron-specific parts, which are the `@theholocron/*` pin filter and the `holocron.config.ts` migration, stay in the CLI.
 
 ## Related
 

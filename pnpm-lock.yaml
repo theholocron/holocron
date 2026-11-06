@@ -649,6 +649,9 @@ importers:
       '@theholocron/json-utils':
         specifier: workspace:^
         version: link:../../utils/json-utils
+      '@theholocron/misc-utils':
+        specifier: workspace:^
+        version: link:../../utils/misc-utils
       '@theholocron/pkg-utils':
         specifier: workspace:^
         version: link:../../utils/pkg-utils
