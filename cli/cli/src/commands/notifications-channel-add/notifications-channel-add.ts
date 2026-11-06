@@ -251,6 +251,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 		...(spec.access ? { access: spec.access } : {}),
 		...(spec.kind ? { kind: spec.kind } : {}),
 		...(spec.tags ? { tags: spec.tags } : {}),
+		...(spec.defaultReaction ? { defaultReaction: spec.defaultReaction } : {}),
 	});
 	const changed = channel.created || (channel.updated?.length ?? 0) > 0;
 	const verb = channel.created ? "created" : changed ? "updated" : "exists ";

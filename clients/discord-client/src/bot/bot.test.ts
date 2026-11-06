@@ -785,6 +785,26 @@ describe("forum posts and threads", () => {
 		});
 	});
 
+	it("channels.modify: sets a forum's default reaction, and null clears it", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "222", name: "ideas", type: 15 } },
+			{ body: { id: "222", name: "ideas", type: 15 } },
+		]);
+		await client.channels.modify("222", { default_reaction_emoji: { emoji_id: null, emoji_name: "👍" } });
+		await client.channels.modify("222", { default_reaction_emoji: null });
+		expect(calls[0]?.body).toEqual({ default_reaction_emoji: { emoji_id: null, emoji_name: "👍" } });
+		expect(calls[1]?.body).toEqual({ default_reaction_emoji: null });
+	});
+
+	it("channels.addReaction: PUT .../reactions/:emoji/@me with the emoji percent-encoded", async () => {
+		const { client, calls } = makeClient([{ status: 204 }]);
+		await client.channels.addReaction("5", "8", "✅");
+		expect(calls[0]).toMatchObject({
+			url: `${BASE}/channels/5/messages/8/reactions/${encodeURIComponent("✅")}/@me`,
+			method: "PUT",
+		});
+	});
+
 	it("threads.createForumPost: POST /channels/:id/threads with tags and a first message that pings no one", async () => {
 		const { client, calls } = makeClient([
 			{ body: { ...thread("5"), message: { id: "5", channel_id: "5", content: "hi" } } },

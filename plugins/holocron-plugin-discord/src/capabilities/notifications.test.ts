@@ -325,6 +325,46 @@ describe("DiscordNotifications.ensureChannel — forums", () => {
 		});
 	});
 
+	it("creates a forum with its default reaction", async () => {
+		const { notifs, calls } = makeProvisioner([{ body: [] }, { body: forum("2010", "ideas") }]);
+		await notifs.ensureChannel({ name: "ideas", kind: "forum", defaultReaction: "👍" });
+		expect(calls[1]?.body).toEqual({
+			name: "ideas",
+			type: ChannelType.Forum,
+			default_reaction_emoji: { emoji_id: null, emoji_name: "👍" },
+		});
+	});
+
+	it("sets a missing or different default reaction, and leaves a matching or unasked one alone", async () => {
+		const withReaction = (emoji: string | null) => ({
+			...forum("2010", "ideas"),
+			default_reaction_emoji: emoji ? { emoji_id: null, emoji_name: emoji } : null,
+		});
+		const unset = makeProvisioner([{ body: [withReaction(null)] }, { body: withReaction("👍") }]);
+		expect(await unset.notifs.ensureChannel({ name: "ideas", kind: "forum", defaultReaction: "👍" })).toEqual({
+			id: "2010",
+			created: false,
+			updated: ["default reaction"],
+		});
+		expect(unset.calls[1]).toMatchObject({
+			method: "PATCH",
+			body: { default_reaction_emoji: { emoji_id: null, emoji_name: "👍" } },
+		});
+
+		const other = makeProvisioner([{ body: [withReaction("🔥")] }, { body: withReaction("👍") }]);
+		expect(
+			(await other.notifs.ensureChannel({ name: "ideas", kind: "forum", defaultReaction: "👍" })).updated
+		).toEqual(["default reaction"]);
+
+		const same = makeProvisioner([{ body: [withReaction("👍")] }]);
+		await same.notifs.ensureChannel({ name: "ideas", kind: "forum", defaultReaction: "👍" });
+		expect(same.calls).toHaveLength(1);
+
+		const unasked = makeProvisioner([{ body: [withReaction("🔥")] }]);
+		await unasked.notifs.ensureChannel({ name: "ideas", kind: "forum" });
+		expect(unasked.calls).toHaveLength(1);
+	});
+
 	it("stops, and says what to do, when the name is a text channel and a forum is asked for", async () => {
 		const { notifs, calls } = makeProvisioner([{ body: [text("2001", "ideas")] }]);
 		await expect(notifs.ensureChannel({ name: "ideas", kind: "forum", tags: WANT })).rejects.toThrow(
@@ -504,6 +544,59 @@ describe("DiscordNotifications discussions", () => {
 		expect(read).toMatchObject({ state: "proposed", synced: "proposed" });
 		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "POST", "PATCH", "PATCH"]);
 		expect((await notifs.readDiscussion("ideas", key))?.state).toBe("draft");
+	});
+});
+
+describe("DiscordNotifications discussions: starter reactions", () => {
+	const tag = (id: string, name: string) => ({ id, name, moderated: true, emoji_id: null, emoji_name: null });
+	const FORUM = {
+		id: "2010",
+		name: "ideas",
+		type: ChannelType.Forum,
+		available_tags: [tag("902", "proposed")],
+	};
+	const post = {
+		id: "5",
+		name: "SPEC: A",
+		type: 11,
+		parent_id: "2010",
+		applied_tags: ["902"],
+		thread_metadata: {
+			archived: false,
+			auto_archive_duration: 10080,
+			archive_timestamp: "2026-10-01T00:00:00.000Z",
+			locked: false,
+		},
+	};
+	const layout = { categories: [{ name: "BUILD", channels: [{ name: "ideas", starterReactions: ["👍", "👎"] }] }] };
+	const make = (reactions: Parameters<typeof stubFetch>[0]) =>
+		makeProvisioner(
+			[
+				{ body: [FORUM] },
+				{ body: { threads: [], members: [] } },
+				{ body: { threads: [], has_more: false } },
+				{ body: post },
+				...reactions,
+			],
+			{ guildId: GUILD, layout }
+		);
+	const input = { channel: "ideas", key: ".notes/a.spec.md", title: "SPEC: A", body: "About A.", state: "proposed" };
+
+	it("reacts to the first message of a new post with each starter reaction", async () => {
+		const { notifs, calls } = make([{ status: 204 }, { status: 204 }]);
+		expect((await notifs.ensureDiscussion(input)).created).toBe(true);
+		expect(calls.slice(4).map((c) => [c.method, c.url])).toEqual([
+			["PUT", `${BASE}/channels/5/messages/5/reactions/${encodeURIComponent("👍")}/@me`],
+			["PUT", `${BASE}/channels/5/messages/5/reactions/${encodeURIComponent("👎")}/@me`],
+		]);
+	});
+
+	it("still makes the post when a reaction is refused", async () => {
+		const { notifs } = make([
+			{ status: 403, body: { message: "Missing Permissions", code: 50013 } },
+			{ status: 204 },
+		]);
+		expect((await notifs.ensureDiscussion(input)).created).toBe(true);
 	});
 });
 

@@ -104,6 +104,10 @@ export default {
 					name: "ideas",
 					kind: "forum",
 					topic: "One post for each ADR and spec, tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
+					// Discord takes one default reaction per forum; the rest are added by the bot to the first message of each
+					// post `specs sync` makes, so every ADR and spec opens with approve, disapprove and question to hand.
+					defaultReaction: "👍",
+					starterReactions: ["👍", "👎", "❓"],
 					tags: [
 						{ name: "draft", emoji: "✏️", moderated: true },
 						{ name: "proposed", emoji: "💬", moderated: true },

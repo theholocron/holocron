@@ -40,6 +40,8 @@ export interface DiscussionDeps {
 	guild: () => string;
 	/** The server's channels, fetched once per run. */
 	channels: () => Promise<DiscordChannel[]>;
+	/** The reactions the layout wants on the first message of a new post in this forum; empty when none. */
+	starterReactions?: (channel: string) => string[];
 }
 
 /**
@@ -194,6 +196,7 @@ export class DiscordDiscussions {
 			applied_tags: [tag],
 			message: { content, ...(input.quiet ? { flags: MessageFlag.SuppressNotifications } : {}) },
 		});
+		await this.react(made.id, input.channel);
 		// A closed post is made open and closed straight after: a post cannot be made archived.
 		const thread = input.closed
 			? { ...made, ...(await this.deps.bot().threads.modify(made.id, { archived: true, locked: true })) }
@@ -201,6 +204,20 @@ export class DiscordDiscussions {
 		const entry: Entry = { key: input.key, thread, content, synced: input.state };
 		posts.set(input.key, entry);
 		return { post: this.view(forum, entry), created: true };
+	}
+
+	/**
+	 * Puts the layout's starter reactions on the first message of a post just made (its id is the post's). One that
+	 * fails (the bot lacks Add Reactions, an emoji Discord does not know) is skipped: the post is already made, and a
+	 * missing reaction must not fail the sync.
+	 */
+	private async react(post: string, channel: string): Promise<void> {
+		for (const emoji of this.deps.starterReactions?.(channel) ?? []) {
+			await this.deps
+				.bot()
+				.channels.addReaction(post, post, emoji)
+				.catch(() => undefined);
+		}
 	}
 
 	/** The post for `key` (or the one `url` names, when the file moved), or `undefined`. It writes nothing. */

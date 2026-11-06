@@ -2638,6 +2638,18 @@ describe("forum channels", () => {
 			expect(forumLayoutProblem(forumLayout({ tags: undefined }))).toBeUndefined();
 		});
 
+		it("refuses reactions on a text channel and an empty reaction on a forum", () => {
+			const text = { categories: [{ name: "A", channels: [{ name: "dev", defaultReaction: "👍" }] }] };
+			expect(forumLayoutProblem(text)).toMatch(/channel `dev`: reactions belong to a forum/);
+			expect(forumLayoutProblem(forumLayout({ defaultReaction: " " }))).toMatch(/`defaultReaction` is empty/);
+			expect(forumLayoutProblem(forumLayout({ starterReactions: ["👍", ""] }))).toMatch(
+				/a starter reaction is empty/
+			);
+			expect(
+				forumLayoutProblem(forumLayout({ defaultReaction: "👍", starterReactions: ["👍", "👎"] }))
+			).toBeUndefined();
+		});
+
 		it("refuses tags on a text channel, whether it says so or not", () => {
 			const text = { categories: [{ name: "A", channels: [{ name: "dev", tags: TAGS }] }] };
 			const explicit = {
