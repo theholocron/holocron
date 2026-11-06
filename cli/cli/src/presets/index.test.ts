@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { CLOUDFLARE_ACCOUNT_ID } from "./constants.js";
 import {
 	compose,
 	docsPreset,
@@ -98,9 +97,9 @@ describe("docsPreset()", () => {
 	});
 
 	describe("providers", () => {
-		it("adds cloudflare deployment with accountId and dns", () => {
+		it("adds cloudflare deployment and dns, with no accountId (it comes from the credential chain)", () => {
 			const { providers } = docsPreset();
-			expect(providers.deployment).toEqual(["cloudflare", { accountId: CLOUDFLARE_ACCOUNT_ID }]);
+			expect(providers.deployment).toBe("cloudflare");
 			expect(providers.dns).toBe("cloudflare");
 		});
 

@@ -1,5 +1,4 @@
 import type { Capability } from "../../config/compose/index.js";
-import { CLOUDFLARE_ACCOUNT_ID } from "../constants.js";
 
 /**
  * Adds a documentation site deployed to Cloudflare Pages with PR previews.
@@ -15,9 +14,11 @@ export function docs(): Capability {
 		domain: "theholocron.dev",
 		docs: { build: "workflow", https: true },
 		providers: {
-			deployment: ["cloudflare", { accountId: CLOUDFLARE_ACCOUNT_ID }],
+			// No `accountId`: the plugin reads CLOUDFLARE_ACCOUNT_ID through the credential chain (the environment, a
+			// `credentials` provider's Environment), so the org's id is written in one place (1Password), not here (#1827).
+			deployment: "cloudflare",
 			dns: "cloudflare",
-			workers: ["cloudflare", { accountId: CLOUDFLARE_ACCOUNT_ID }],
+			workers: "cloudflare",
 		},
 		tasks: [{ name: "deploy-docs", with: { preview: true } }],
 		// Not task-backed — codecov gates. `holocron setup` appends these to the

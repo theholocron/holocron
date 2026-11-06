@@ -16,9 +16,6 @@ import { react } from "./capabilities/react.js";
 import { typecheck } from "./capabilities/typecheck.js";
 import { wiki } from "./capabilities/wiki.js";
 
-// ── Constants ───────────────────────────────────────────────────────────────
-export { CLOUDFLARE_ACCOUNT_ID } from "./constants.js";
-
 // ── compose() — re-exported from the CLI for convenience ────────────────────
 export type { Capability, ComposedPreset } from "../config/compose/index.js";
 export { compose } from "../config/config-system.js";

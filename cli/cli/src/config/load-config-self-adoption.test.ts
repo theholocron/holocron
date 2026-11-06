@@ -106,6 +106,21 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				},
 			],
 		};
+		// And (#1827): the Cloudflare `accountId` is no longer a literal in the presets (the plugin reads
+		// CLOUDFLARE_ACCOUNT_ID through the credential chain), and the Environment that holds it is a second
+		// `credentials` entry.
+		const expectedProviders = (expected as unknown as { providers: Record<string, unknown> }).providers;
+		for (const key of ["deployment", "workers"]) {
+			const { tuple } = expectedProviders[key] as { tuple: { options: Record<string, unknown> } };
+			expect(tuple.options).toEqual({ accountId: expect.any(String) });
+			tuple.options = {};
+		}
+		const { tuples } = expectedProviders.credentials as { tuples: unknown[] };
+		tuples.push({
+			provider: "1password",
+			packageName: "@theholocron/holocron-plugin-1password",
+			options: { environment: "Holocron - GitHub Actions variables" },
+		});
 
 		const { resolved } = await loadConfig(REPO_ROOT);
 		expect(normalise(resolved)).toEqual(expected);

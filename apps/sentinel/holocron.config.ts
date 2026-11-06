@@ -60,8 +60,9 @@
  *
  * `tunnels`: Cloudflare (holocron#1678) — `holocron tunnel up --cwd apps/sentinel` makes the named tunnel for
  * a local development instance (a stable `sentinel-dev.theholocron.dev` that reaches a port on this machine),
- * with the `dns` provider above pointing the hostname at it. The account id is not a secret (it is the org's
- * `CLOUDFLARE_ACCOUNT_ID`), and the token needs Cloudflare Tunnel: Edit on top of DNS.
+ * with the `dns` provider above pointing the hostname at it. The account id is not written here: the plugin
+ * reads `CLOUDFLARE_ACCOUNT_ID` through the credential chain, from the Environment named in `credentials` below
+ * (#1827). The token needs Cloudflare Tunnel: Edit on top of DNS.
  *
  * `monitoring`: Checkly (holocron#996) — two API checks watching
  * `sentinel.theholocron.dev/api/webhook` from outside Vercel's own
@@ -164,7 +165,7 @@ export default defineConfig({
 	providers: {
 		deployment: ["vercel", { domain: "sentinel.theholocron.dev" }],
 		dns: "cloudflare",
-		tunnels: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }],
+		tunnels: "cloudflare",
 		monitoring: [
 			"checkly",
 			{
@@ -208,5 +209,7 @@ export default defineConfig({
 		],
 		secrets: "github",
 		vault: ["1password", { environment: "Sentinel" }],
+		// The org's non-secret values (CLOUDFLARE_ACCOUNT_ID for `tunnels`) live in this 1Password Environment (#1827).
+		credentials: ["1password", { environment: "Holocron - GitHub Actions variables" }],
 	},
 });

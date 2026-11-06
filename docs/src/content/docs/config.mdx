@@ -165,7 +165,8 @@ export default defineConfig({
   // The default environment for the `credentials` providers (`providers.credentials`).
   // A name, not a secret, so it is committed. A provider can name its own instead,
   // `credentials: ["1password", { environment: "Holocron" }]`, which wins; each
-  // provider needs one or the other.
+  // provider needs one or the other. List an entry per Environment to read several
+  // (the same provider twice is fine); a name is found in the first one that has it.
   credentials: { environment: "Holocron" },
 
   // How `holocron dev` runs this directory's application locally behind a development

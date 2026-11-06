@@ -107,7 +107,12 @@ export default defineConfig({
 		// Credentials: this machine reads its own tokens from the 1Password Environment named here (matched exactly;
 		// see docs: tokens), ahead of the keyring (#1606). A token in the process environment or a repo-root `.env`
 		// still wins, and CI sets its own.
-		credentials: ["1password", { environment: "Holocron" }],
+		// A second Environment holds the org's non-secret values CI needs (CLOUDFLARE_ACCOUNT_ID, TURBO_TEAM,
+		// AXIOM_DATASET); `resolveValue` finds a name in either one, in this order (#1827).
+		credentials: [
+			["1password", { environment: "Holocron" }],
+			["1password", { environment: "Holocron - GitHub Actions variables" }],
+		],
 		// Vault: the source `holocron secrets sync` reads. Sentinel and Comlink declare their own Environments in their
 		// configs; this one is for the GitHub Actions secrets, so the vault is the same 1Password and the Environment is
 		// named on the command line (`repo.secrets.sync` above says where each key goes).

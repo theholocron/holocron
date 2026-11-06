@@ -771,6 +771,33 @@ describe("PluginLoader — credentials", () => {
 		expect(impl.read).not.toHaveBeenCalled();
 	});
 
+	it("reads two entries of the same provider, each its own environment, and finds a name in either (#1827)", async () => {
+		const impl = creds(async (environment): Promise<Record<string, string>> => {
+			if (environment === "Holocron") return { TOKEN: "t" };
+			return { CLOUDFLARE_ACCOUNT_ID: "acct", TOKEN: "ignored" };
+		});
+		const { loader } = loaderWith(
+			config({
+				providers: {
+					credentials: [
+						["1password", { environment: "Holocron" }],
+						["1password", { environment: "Holocron - GitHub Actions variables" }],
+					],
+				},
+			}),
+			{ "@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }) }
+		);
+		await loader.load();
+		expect(impl.read.mock.calls.map(([environment]) => environment)).toEqual([
+			"Holocron",
+			"Holocron - GitHub Actions variables",
+		]);
+		expect(getCredential("CLOUDFLARE_ACCOUNT_ID")).toBe("acct");
+		// The first entry wins for a name both have.
+		expect(getCredential("TOKEN")).toBe("t");
+		expect(loader.get("credentials")).toHaveLength(2);
+	});
+
 	it("tries several providers in the order the config lists them", async () => {
 		const first = creds(async () => ({ T: "first" }));
 		const second = creds(async () => ({ T: "second", U: "u" }));

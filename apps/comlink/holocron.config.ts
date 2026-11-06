@@ -15,9 +15,11 @@ import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
 	providers: {
-		// Only `sync` needs this one: it sets the Worker's secrets. The account id is not a credential (it is also the
-		// org variable CLOUDFLARE_ACCOUNT_ID in the root config).
-		workers: ["cloudflare", { accountId: "9c558af98664d13fc89b7e0a0d93d5a8" }],
+		// Only `sync` needs this one: it sets the Worker's secrets. It has no `accountId`: the plugin reads
+		// CLOUDFLARE_ACCOUNT_ID through the credential chain, from the Environment named in `credentials` below.
+		workers: "cloudflare",
+		// The org's non-secret values (CLOUDFLARE_ACCOUNT_ID) live in this 1Password Environment (#1827).
+		credentials: ["1password", { environment: "Holocron - GitHub Actions variables" }],
 		vault: ["1password", { environment: "Comlink" }],
 	},
 });
