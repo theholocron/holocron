@@ -22,6 +22,12 @@
  * either way (D6): a fork's branch is never a valid `ref` here, no
  * different from every other Sentinel read.
  *
+ * The `.holocron/` directory beside the config (#1785) is listed and fetched at the same `ref` (within the caps of
+ * `fetchConfigDir()`), written into the sandbox before the config is evaluated, and its area files are placed on the
+ * loaded config with the CLI's `placeAreas()`. A repo without the directory is unchanged, and a new area needs no
+ * change here. Role sync, property sync and the PR config check all read the config through this function, so they
+ * see the merged result. A cap exceeded, or a `.holocron/` file that cannot be loaded or placed, is a `load-error`.
+ *
  * D8 parity: the actual execution of `holocron.config.ts` reuses
  * `@theholocron/datapad`'s `loadConfigFromContent()` unchanged — the same
  * `loadFile` internals `holocron repo setup`/`sync` use locally via
@@ -39,14 +45,25 @@ import { join } from "node:path";
 
 import { KNOWN_TASKS, KNOWN_WORKFLOWS } from "@theholocron/astromech";
 import { mergeTasksLayers, normalizeTaskEntry, type TasksConfig } from "@theholocron/astromech/config";
-import { loadConfigFromContent, readConfigSource, withConfigSandbox } from "@theholocron/datapad";
+import { HOLOCRON_AREAS, type HolocronConfig, placeAreas } from "@theholocron/cli";
+import {
+	loadConfigDir,
+	loadConfigFromContent,
+	readConfigSource,
+	withConfigSandbox,
+	writeConfigDir,
+} from "@theholocron/datapad";
 import type { GitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { decodeContents } from "../decode-contents/index.js";
+import { fetchConfigDir } from "../fetch-config-dir/index.js";
 import { getPackageRoot } from "../package-root/index.js";
 import type { DedicatedTasksResult, ValidateConfigInput, ValidateConfigResult } from "./validate-config.type.js";
+
+/** Where a repo keeps the area files of its config: `.<config name>/`. */
+const CONFIG_DIR = ".holocron";
 
 export async function validateConfig(input: ValidateConfigInput): Promise<ValidateConfigResult> {
 	const { client, repo, ref } = input;
@@ -59,15 +76,25 @@ export async function validateConfig(input: ValidateConfigInput): Promise<Valida
 
 	const nodeModules = join(await getPackageRoot(), "node_modules");
 	return withConfigSandbox({ nodeModules, prefix: "sentinel-validate-" }, async (tmpDir) => {
-		let loaded;
+		let loaded: { config: TasksConfig };
 		try {
-			loaded = await loadConfigFromContent<TasksConfig>({
+			// The `.holocron/` tree goes into the sandbox before the config is evaluated, because the config may
+			// import from it (`./.holocron/notifications.js`). Every file is written, but only what the config or
+			// an area file imports is ever evaluated; the area files are then loaded by name and placed with the
+			// CLI's own `placeAreas()`, so the merged config is what `holocron` itself would resolve (#1785).
+			const tree = await fetchConfigDir({ client, repo, dir: CONFIG_DIR, ref });
+			await writeConfigDir({ dir: tmpDir, files: tree });
+			const base = await loadConfigFromContent<TasksConfig>({
 				dir: tmpDir,
 				content: raw,
 				name: "holocron",
 				extension: ext,
 			});
+			const areas = await loadConfigDir({ cwd: tmpDir, dir: CONFIG_DIR, areas: HOLOCRON_AREAS });
+			loaded = { config: placeAreas(areas, base.config as HolocronConfig) as TasksConfig };
 		} catch (err) {
+			// A GitHub failure is not the repo's config being wrong; it propagates as every other read does.
+			if (err instanceof ProviderApiError) throw err;
 			return {
 				status: "load-error",
 				filepath: path,

@@ -19,7 +19,10 @@ describe("validateConfig — non-Error throw from loadConfigFromContent", () => 
 		const { validateConfig } = await import("./validate-config.js");
 
 		const content = Buffer.from(JSON.stringify({ name: "demo", tasks: [] }), "utf8").toString("base64");
-		const { fetch } = stubFetch([{ status: 200, body: { content } }]);
+		const { fetch } = stubFetch([
+			{ status: 200, body: { content } },
+			{ status: 404 }, // no .holocron/
+		]);
 		const client = createGitHubClient({ token: "ghp_test", fetch });
 
 		const result = await validateConfig({ client, repo: "acme/demo" });
@@ -38,6 +41,7 @@ describe("validateConfig — non-Error throw from loadConfigFromContent", () => 
 		const content = Buffer.from("{}", "utf8").toString("base64");
 		const { fetch } = stubFetch([
 			{ status: 200, body: { content } }, // holocron.config.ts
+			{ status: 404 }, // no .holocron/
 			{ status: 200, body: { content } }, // astromech.config.ts
 		]);
 		const client = createGitHubClient({ token: "ghp_test", fetch });
