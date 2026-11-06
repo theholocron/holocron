@@ -15,11 +15,12 @@ import {
 	createKeyring,
 	createResolveToken as createKyberResolveToken,
 	type ResolveTokenInput,
+	resolveValue,
 } from "@theholocron/kyber/secrets";
 
 import type { FeatureResolver, FeatureResolverConfig, ResolveTokenConfig, TokenResolver } from "./auth.type.js";
 
-export { AuthError, type ResolveTokenInput };
+export { AuthError, type ResolveTokenInput, resolveValue };
 
 /**
  * The holocron keyring: `get` answers `null` for "not stored" and for "keyring unavailable" alike, so callers fall

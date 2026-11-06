@@ -1,4 +1,5 @@
 import type { Probe } from "@theholocron/cli";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import type { SentryWorkflowInput } from "@theholocron/sentry-client";
 
 import { toInput } from "../capabilities/relay.js";
@@ -10,7 +11,7 @@ const TO = 10;
 /** The detector the throwaway rule hangs on: the issue stream of `HOLOCRON_SENTRY_PROBE_PROJECT`, else of any project. */
 async function detectorFor(deps: SentryProbeDeps, org: string): Promise<string> {
 	const client = deps.client();
-	const slug = (deps.env ?? process.env)["HOLOCRON_SENTRY_PROBE_PROJECT"];
+	const slug = createEnvLookup(deps.env).get("HOLOCRON_SENTRY_PROBE_PROJECT");
 	const [detectors, projects] = await Promise.all([
 		client.workflows.detectors(org),
 		slug ? client.projects.list(org) : Promise.resolve([]),

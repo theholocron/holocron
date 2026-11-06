@@ -8,6 +8,7 @@
 
 import type { Logs } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { AxiomLogs, type AxiomLogsOptions } from "./capabilities/logs.js";
@@ -37,10 +38,10 @@ export interface PluginContext {
 
 /** Creates the shared context for the given options; no token is resolved until `client()` is first called. */
 export function createContext(options: AxiomPluginOptions): PluginContext {
-	const env = options.env ?? process.env;
+	const env = createEnvLookup(options.env);
 	// `HOLOCRON_AXIOM_DATASET` is not a secret — resolve it like the token's
 	// fallback chain but independently. Config (`dataset`) wins when set.
-	const dataset = options.dataset ?? env.HOLOCRON_AXIOM_DATASET ?? env.AXIOM_DATASET;
+	const dataset = options.dataset ?? firstEnv(env, ["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
 	let client: AxiomClient | undefined;
 	return {
 		options: { ...options, dataset },

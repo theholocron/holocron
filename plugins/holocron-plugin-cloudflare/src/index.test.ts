@@ -1,5 +1,6 @@
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { clearCredentials, setCredentials } from "@theholocron/kyber/secrets";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { cfOk } from "./helpers.js";
 import { createContext, createPlugin, dns, tunnelsCapability } from "./index.js";
@@ -22,27 +23,37 @@ describe("createPlugin", () => {
 		expect(typeof plugin.capabilities.deployment).toBe("function");
 	});
 
-	it("exposes deployment capability when CLOUDFLARE_ACCOUNT_ID env var is set", () => {
-		const original = process.env.CLOUDFLARE_ACCOUNT_ID;
-		process.env.CLOUDFLARE_ACCOUNT_ID = "acc-from-env";
-		try {
-			const plugin = createPlugin({ cliToken: "cf-tok" });
-			expect(typeof plugin.capabilities.deployment).toBe("function");
-		} finally {
-			if (original === undefined) delete process.env.CLOUDFLARE_ACCOUNT_ID;
-			else process.env.CLOUDFLARE_ACCOUNT_ID = original;
-		}
+	it("exposes deployment capability when CLOUDFLARE_ACCOUNT_ID is in the environment", () => {
+		const plugin = createPlugin({ cliToken: "cf-tok", env: { CLOUDFLARE_ACCOUNT_ID: "acc-from-env" } });
+		expect(typeof plugin.capabilities.deployment).toBe("function");
 	});
 
-	it("does not expose deployment capability when accountId is absent and env var is unset", () => {
-		const original = process.env.CLOUDFLARE_ACCOUNT_ID;
-		delete process.env.CLOUDFLARE_ACCOUNT_ID;
-		try {
-			const plugin = createPlugin({ cliToken: "cf-tok" });
-			expect(plugin.capabilities.deployment).toBeUndefined();
-		} finally {
-			if (original !== undefined) process.env.CLOUDFLARE_ACCOUNT_ID = original;
-		}
+	it("does not expose deployment capability when accountId is absent everywhere", () => {
+		const plugin = createPlugin({ cliToken: "cf-tok", env: {} });
+		expect(plugin.capabilities.deployment).toBeUndefined();
+	});
+});
+
+describe("createContext account id", () => {
+	afterEach(() => clearCredentials());
+
+	it("prefers the option, then the environment, then the credentials providers", () => {
+		setCredentials("op", { CLOUDFLARE_ACCOUNT_ID: "acc-store" });
+		const env = { CLOUDFLARE_ACCOUNT_ID: "acc-env" };
+		expect(createContext({ accountId: "acc-opt", env }).options.accountId).toBe("acc-opt");
+		expect(createContext({ env }).options.accountId).toBe("acc-env");
+		expect(createContext({ env: {} }).options.accountId).toBe("acc-store");
+	});
+
+	it("exposes the capabilities when only a credentials provider holds the account id", () => {
+		setCredentials("op", { CLOUDFLARE_ACCOUNT_ID: "acc-store" });
+		const plugin = createPlugin({ cliToken: "cf-tok", env: {} });
+		expect(typeof plugin.capabilities.deployment).toBe("function");
+		expect(typeof plugin.capabilities.tunnels).toBe("function");
+	});
+
+	it("is undefined when none of them has it", () => {
+		expect(createContext({ env: {} }).options.accountId).toBeUndefined();
 	});
 });
 
@@ -67,14 +78,8 @@ describe("tunnelsCapability()", () => {
 	});
 
 	it("refuses without an account id, saying how to give one", () => {
-		const original = process.env.CLOUDFLARE_ACCOUNT_ID;
-		delete process.env.CLOUDFLARE_ACCOUNT_ID;
-		try {
-			expect(() => tunnelsCapability(createContext({ cliToken: "cf-tok" }))).toThrow(
-				/accountId is required for Tunnels/
-			);
-		} finally {
-			if (original !== undefined) process.env.CLOUDFLARE_ACCOUNT_ID = original;
-		}
+		expect(() => tunnelsCapability(createContext({ cliToken: "cf-tok", env: {} }))).toThrow(
+			/accountId is required for Tunnels/
+		);
 	});
 });

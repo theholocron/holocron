@@ -1,0 +1,20 @@
+import { getCredential } from "../credential-store/index.js";
+import { firstEnv } from "../first-env/index.js";
+
+/**
+ * Finds a plain, non-secret value (an account id, a dataset, a project slug) through the same chain the token
+ * resolvers use, without the flag and the keyring: the variables of `env` (the process environment when none is
+ * given), then the variables the `credentials` providers returned (see {@link setCredentials}). A name is tried in the
+ * order given in each source. An empty string counts as unset. `undefined` when no source has one.
+ *
+ * @param names - The variable names to try, the tool's own before the vendor's.
+ * @param env - The environment to read. Default `process.env`; a test passes its own.
+ *
+ * @example
+ * ```ts
+ * const accountId = options.accountId ?? resolveValue(["CLOUDFLARE_ACCOUNT_ID"], options.env);
+ * ```
+ */
+export function resolveValue(names: readonly string[], env?: Record<string, string | undefined>): string | undefined {
+	return firstEnv(env, ...names) ?? getCredential(...names);
+}
