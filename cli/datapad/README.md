@@ -87,6 +87,44 @@ the file isn't there, and throws for any other failure) and returns the first
 hit as `{ path, extension, content }`, or `undefined`. Hand the result to
 `loadConfigFromContent`.
 
+### `loadConfigDir<T>({ cwd, dir, areas, extensions? })`
+
+Loads the area files of a config directory (`.holocron/notifications.ts`,
+`.holocron/repo.json`, ...) the way `loadConfigFile` loads a config. For each
+name in the closed list `areas`, the first of `<cwd>/<dir>/<area>.{ts,js,mjs,cjs,json}`
+that exists is loaded (`.ts` wins over `.json` when both are there). Returns
+`{ area, path, extension, filepath, value }[]`, one entry per area that has a
+file; a missing directory returns `[]`. A file that cannot be loaded throws
+`ConfigFileError`. Files not named in `areas` are never read. The directory name
+and the area names are parameters: datapad does not know what an area means, and
+an area file may `import` a sibling in the directory.
+
+### `readConfigDirSource({ dir, areas, fetch, extensions? })`
+
+`loadConfigDir`'s probe for a directory that lives somewhere other than the local
+disk. Asks `fetch("<dir>/<area>.<ext>")` in extension-priority order for each
+area and returns `{ area, path, extension, content }[]` for the areas found.
+It reads only the named areas; a caller that lists the whole directory and
+fetches every file passes that tree to `writeConfigDir` instead.
+
+### `writeConfigDir({ dir, files })`
+
+The sandbox writer: writes a tree of fetched files (`{ path, content }`, `path`
+relative to `dir`, e.g. `.holocron/notifications.ts` or `.holocron/lib/x.ts`)
+into the sandbox beside the config, creating sub-directories and keeping the
+relative paths, so `loadConfigDir({ cwd: dir, ... })` finds them and an area that
+imports a sibling resolves it. Returns the absolute paths written. A path that is
+absolute or leaves `dir` throws `ConfigFileError` before anything is written.
+
+```ts
+await withConfigSandbox({ nodeModules }, async (dir) => {
+  const { extension, content } = (await readConfigSource({ name: "holocron", fetch }))!;
+  await loadConfigFromContent({ dir, name: "holocron", extension, content });
+  await writeConfigDir({ dir, files: [{ path: ".holocron/notifications.ts", content: "export default {}" }] });
+  const areas = await loadConfigDir({ cwd: dir, dir: ".holocron", areas: ["notifications", "repo"] });
+});
+```
+
 ### `withConfigSandbox({ nodeModules, root?, prefix? }, run)`
 
 Runs `run(dir)` with a throwaway directory ready to be

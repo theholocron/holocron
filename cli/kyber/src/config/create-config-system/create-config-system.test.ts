@@ -77,6 +77,70 @@ describe("createConfigSystem", () => {
 		});
 	});
 
+	describe("areas and place", () => {
+		interface Layered extends Raw {
+			layout?: unknown;
+		}
+		const withAreas = (seen: unknown[] = []) =>
+			createConfigSystem<Layered, Layered, Frag, Composed>({
+				name: "demo",
+				areas: ["layout"],
+				place: (areas, raw) => {
+					seen.push(areas.map((a) => a.area));
+					const layout = areas.find((a) => a.area === "layout");
+					return layout ? { ...raw, layout: layout.value } : raw;
+				},
+				derive: ({ config }) => ({ ...config, name: `derived:${JSON.stringify(config.layout ?? null)}` }),
+				resolve: (raw) => raw,
+				merge: { tags: union<string>() },
+			});
+
+		it("loads .demo/<area> beside the config and places it before derive", async () => {
+			await writeFile(join(cwd, "demo.config.json"), "{}");
+			await mkdir(join(cwd, ".demo"));
+			await writeFile(join(cwd, ".demo", "layout.json"), JSON.stringify({ a: 1 }));
+			const { resolved } = await withAreas().loadConfig(cwd);
+			expect(resolved).toEqual({ layout: { a: 1 }, name: 'derived:{"a":1}' });
+		});
+
+		it("calls place with no areas when the directory is missing", async () => {
+			await writeFile(join(cwd, "demo.config.json"), "{}");
+			const seen: unknown[] = [];
+			await withAreas(seen).loadConfig(cwd);
+			expect(seen).toEqual([[]]);
+		});
+
+		it("reads the directory next to the config found by walking up", async () => {
+			execSync("git init -q", { cwd });
+			await writeFile(join(cwd, "demo.config.json"), "{}");
+			await mkdir(join(cwd, ".demo"));
+			await writeFile(join(cwd, ".demo", "layout.json"), JSON.stringify({ up: true }));
+			await mkdir(join(cwd, "a"));
+			const { resolved } = await withAreas().loadConfig(join(cwd, "a"));
+			expect(resolved.layout).toEqual({ up: true });
+		});
+
+		it("propagates a ConfigFileError from an area file that fails to load", async () => {
+			await writeFile(join(cwd, "demo.config.json"), "{}");
+			await mkdir(join(cwd, ".demo"));
+			await writeFile(join(cwd, ".demo", "layout.json"), "{ nope");
+			await expect(withAreas().loadConfig(cwd)).rejects.toMatchObject({ name: "ConfigFileError" });
+		});
+
+		it("does not touch the directory when no place is given", async () => {
+			await writeFile(join(cwd, "demo.config.json"), JSON.stringify({ name: "hi" }));
+			await mkdir(join(cwd, ".demo"));
+			await writeFile(join(cwd, ".demo", "layout.json"), "{ nope");
+			const system = createConfigSystem<Raw, Resolved, Frag, Composed>({
+				name: "demo",
+				areas: ["layout"],
+				resolve: (raw) => ({ name: raw.name ?? "none" }),
+				merge: { tags: union<string>() },
+			});
+			expect((await system.loadConfig(cwd)).resolved).toEqual({ name: "hi" });
+		});
+	});
+
 	it("composes fragments with the given strategies", () => {
 		expect(plain.compose({ id: "a", tags: ["x"] }, [{ id: "b", tags: ["y"] }])).toEqual({ tags: ["x", "y"] });
 	});
