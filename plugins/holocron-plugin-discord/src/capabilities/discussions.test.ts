@@ -1,7 +1,7 @@
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
-import { ChannelType, createDiscordBotClient, type DiscordChannel } from "../rest.js";
+import { ChannelType, createDiscordBotClient, type DiscordChannel, MessageFlag } from "../rest.js";
 import { DiscordDiscussions } from "./discussions.js";
 
 const BASE = "https://discord.test/api/v10";
@@ -676,5 +676,194 @@ describe("DiscordDiscussions — a document whose file moved", () => {
 			/-# sync: docs\/wiki\/specifications\/old\.spec\.md \| $/
 		);
 		expect((await discussions.read("ideas", NEW))?.synced).toBeUndefined();
+	});
+});
+
+describe("DiscordDiscussions — a pull request's post", () => {
+	const KEY = "theholocron/holocron#123";
+	const meta = (over: object) => ({ ...thread("5").thread_metadata, ...over });
+	const body = (id: string, synced = "proposed") => first(id, `Title line\n\n${footer(KEY, synced)}`);
+	const message = (id: string, content: string) => ({ id, channel_id: "5", content });
+	const ok = { status: 204, body: undefined };
+
+	it("finds the post by a pull request key in the archived posts, and reports its tag as the state", async () => {
+		const { discussions } = make([
+			...listing([], [thread("5", { thread_metadata: meta({ archived: true }) })]),
+			body("5"),
+		]);
+		const post = await discussions.read("ideas", KEY);
+		expect(post).toMatchObject({ key: KEY, state: "proposed", synced: "proposed" });
+	});
+
+	describe("update with a body", () => {
+		it("replaces the first message's text and keeps the footer", async () => {
+			const { discussions, calls } = make([...listing([thread("5")]), body("5"), { body: message("5", "x") }]);
+			await discussions.update("ideas", KEY, { body: "New text." });
+			expect(calls[3]).toMatchObject({
+				method: "PATCH",
+				url: `${BASE}/channels/5/messages/5`,
+				body: { content: `New text.\n\n${footer(KEY, "proposed")}` },
+			});
+		});
+
+		it("keeps an empty synced state empty", async () => {
+			const { discussions, calls } = make([
+				...listing([thread("5")]),
+				first("5", `Old.\n\n${footer(KEY, "")}`),
+				{ body: message("5", "x") },
+			]);
+			await discussions.update("ideas", KEY, { body: "New." });
+			expect((calls[3]?.body as { content: string }).content).toBe(`New.\n\n${footer(KEY, "")}`);
+		});
+
+		it("writes nothing when the text is the one already there", async () => {
+			const { discussions, calls } = make([...listing([thread("5")]), body("5")]);
+			await discussions.update("ideas", KEY, { body: "Title line" });
+			expect(calls).toHaveLength(3);
+		});
+
+		it("cuts a text that does not fit, follows a new key and state, and applies the pull request line to the new text", async () => {
+			const { discussions, calls } = make([...listing([thread("5")]), body("5"), { body: message("5", "x") }]);
+			await discussions.update("ideas", KEY, { body: "a".repeat(3000), key: "o/r#124", synced: "accepted" });
+			const content = (calls[3]?.body as { content: string }).content;
+			expect(content.length).toBeLessThanOrEqual(2000);
+			expect(content).toContain("…\n\n-# sync: o/r#124 | accepted");
+
+			const withPr = make([...listing([thread("5")]), body("5"), { body: message("5", "x") }]);
+			await withPr.discussions.update("ideas", KEY, { body: "New.", prLine: "PR: [#9](<https://x.test/9>)" });
+			expect((withPr.calls[3]?.body as { content: string }).content).toBe(
+				`New.\n\nPR: [#9](<https://x.test/9>)\n\n${footer(KEY, "proposed")}`
+			);
+		});
+
+		it("writes to a closed post open, then closes it again", async () => {
+			const closed = thread("5", { thread_metadata: meta({ archived: true, locked: true }) });
+			const { discussions, calls } = make([
+				...listing([closed]),
+				body("5"),
+				{ body: thread("5", { thread_metadata: meta({ archived: false, locked: true }) }) },
+				{ body: message("5", "x") },
+				{ body: closed },
+			]);
+			await discussions.update("ideas", KEY, { body: "New." });
+			expect(calls[3]?.body).toEqual({ archived: false });
+			expect(calls[5]?.body).toEqual({ archived: true, locked: true });
+		});
+	});
+
+	describe("post", () => {
+		it("appends a message that pings no one, with no flags unless quiet", async () => {
+			const { discussions, calls } = make([...listing([thread("5")]), body("5"), { body: message("9", "hi") }]);
+			await discussions.post("ideas", KEY, "hi");
+			expect(calls).toHaveLength(4);
+			expect(calls[3]).toMatchObject({
+				method: "POST",
+				url: `${BASE}/channels/5/messages`,
+				body: { content: "hi", allowed_mentions: { parse: [] } },
+			});
+			expect(calls[3]?.body).not.toHaveProperty("flags");
+		});
+
+		it("suppresses notifications when quiet, and cuts a message past the limit", async () => {
+			const { discussions, calls } = make([...listing([thread("5")]), body("5"), { body: message("9", "hi") }]);
+			await discussions.post("ideas", KEY, "b".repeat(2500), { quiet: true });
+			const sent = calls[3]?.body as { content: string; flags: number };
+			expect(sent.flags).toBe(MessageFlag.SuppressNotifications);
+			expect(sent.content).toHaveLength(2000);
+			expect(sent.content.endsWith("…")).toBe(true);
+		});
+
+		it("unarchives and unlocks a closed post, writes, and closes it again", async () => {
+			const closed = thread("5", { thread_metadata: meta({ archived: true, locked: true }) });
+			const { discussions, calls } = make([
+				...listing([closed]),
+				body("5"),
+				{ body: thread("5") },
+				{ body: message("9", "hi") },
+				{ body: closed },
+			]);
+			await discussions.post("ideas", KEY, "hi");
+			expect(calls[3]?.body).toEqual({ archived: false, locked: false });
+			expect(calls[4]).toMatchObject({ url: `${BASE}/channels/5/messages` });
+			expect(calls[5]?.body).toEqual({ archived: true, locked: true });
+			expect((await discussions.read("ideas", KEY))?.closed).toBe(true);
+		});
+
+		it("puts an archived but unlocked post back archived only, even when the write fails", async () => {
+			const idle = thread("5", { thread_metadata: meta({ archived: true }) });
+			const { discussions, calls } = make([
+				...listing([idle]),
+				body("5"),
+				{ body: thread("5") },
+				{ status: 400, body: { message: "boom" } },
+				{ body: idle },
+			]);
+			await expect(discussions.post("ideas", KEY, "hi")).rejects.toThrow();
+			expect(calls[5]?.body).toEqual({ archived: true, locked: false });
+		});
+
+		it("throws when there is no post", async () => {
+			const { discussions } = make(listing([]));
+			await expect(discussions.post("ideas", KEY, "hi")).rejects.toThrow(/no discussion post/);
+		});
+	});
+
+	describe("messages", () => {
+		it("returns the text of the recent messages, newest first, from an archived post too", async () => {
+			const { discussions, calls } = make([
+				...listing([], [thread("5", { thread_metadata: meta({ archived: true }) })]),
+				body("5"),
+				{ body: [message("8", "marker"), message("5", "first")] },
+			]);
+			expect(await discussions.messages("ideas", KEY)).toEqual(["marker", "first"]);
+			expect(calls[3]?.url).toBe(`${BASE}/channels/5/messages?limit=50`);
+		});
+
+		it("clamps the limit to what Discord allows, and is empty when there is no post", async () => {
+			const high = make([...listing([thread("5")]), body("5"), { body: [] }]);
+			await high.discussions.messages("ideas", KEY, 500);
+			expect(high.calls[3]?.url).toBe(`${BASE}/channels/5/messages?limit=100`);
+			const low = make([...listing([thread("5")]), body("5"), { body: [] }]);
+			await low.discussions.messages("ideas", KEY, 0);
+			expect(low.calls[3]?.url).toBe(`${BASE}/channels/5/messages?limit=1`);
+			expect(await make(listing([])).discussions.messages("ideas", KEY)).toEqual([]);
+		});
+	});
+
+	describe("dedupe", () => {
+		it("keeps the oldest post and deletes the others, whichever order they are listed in", async () => {
+			const { discussions, calls } = make([
+				...listing([thread("7"), thread("5")], [thread("9")]),
+				body("7"),
+				body("5"),
+				body("9"),
+				ok,
+				ok,
+			]);
+			expect(await discussions.dedupe("ideas", KEY)).toBe(2);
+			expect(calls.slice(5).map((c) => [c.method, c.url])).toEqual([
+				["DELETE", `${BASE}/channels/7`],
+				["DELETE", `${BASE}/channels/9`],
+			]);
+			expect((await discussions.read("ideas", KEY))?.url).toMatch(/\/5$/);
+			expect(await discussions.dedupe("ideas", KEY)).toBe(0);
+		});
+
+		it("keeps the oldest when it is listed first, and retries the rest after a failed delete", async () => {
+			const { discussions } = make([
+				...listing([thread("5"), thread("7")]),
+				body("5"),
+				body("7"),
+				{ status: 403, body: { message: "no" } },
+				ok,
+			]);
+			await expect(discussions.dedupe("ideas", KEY)).rejects.toThrow(/403/);
+			expect(await discussions.dedupe("ideas", KEY)).toBe(1);
+		});
+
+		it("is 0 when there is one post or none", async () => {
+			expect(await make([...listing([thread("5")]), body("5")]).discussions.dedupe("ideas", KEY)).toBe(0);
+			expect(await make(listing([])).discussions.dedupe("ideas", KEY)).toBe(0);
+		});
 	});
 });

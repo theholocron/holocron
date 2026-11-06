@@ -30,6 +30,8 @@ interface Entry {
 	content: string;
 	/** The state the footer records. */
 	synced: string | undefined;
+	/** Newer posts that carry the same key, which `dedupe` deletes. */
+	duplicates: DiscordThread[];
 }
 
 /** What the discussion code needs from the provider around it. */
@@ -99,12 +101,23 @@ export class DiscordDiscussions {
 			const first = await bot.channels.message(thread.id, thread.id).catch(() => undefined);
 			const footer = first ? FOOTER.exec(first.content) : null;
 			if (first && footer) {
-				entries.set(footer[1]!, {
+				const entry: Entry = {
 					key: footer[1]!,
 					thread,
 					content: first.content,
 					synced: footer[2] || undefined,
-				});
+					duplicates: [],
+				};
+				const held = entries.get(entry.key);
+				if (!held) {
+					entries.set(entry.key, entry);
+				} else if (BigInt(thread.id) < BigInt(held.thread.id)) {
+					// The oldest post (the smallest id) is the one kept.
+					entry.duplicates = [held.thread, ...held.duplicates];
+					entries.set(entry.key, entry);
+				} else {
+					held.duplicates.push(thread);
+				}
 			}
 		}
 		return entries;
@@ -201,7 +214,7 @@ export class DiscordDiscussions {
 		const thread = input.closed
 			? { ...made, ...(await this.deps.bot().threads.modify(made.id, { archived: true, locked: true })) }
 			: made;
-		const entry: Entry = { key: input.key, thread, content, synced: input.state };
+		const entry: Entry = { key: input.key, thread, content, synced: input.state, duplicates: [] };
 		posts.set(input.key, entry);
 		return { post: this.view(forum, entry), created: true };
 	}
@@ -248,8 +261,9 @@ export class DiscordDiscussions {
 		if (patch.state !== undefined) change.applied_tags = [this.tagId(forum, patch.state)];
 		const nextKey = patch.key ?? key;
 		const footerEdited = nextKey !== key || (patch.synced !== undefined && patch.synced !== entry.synced);
-		const withPr =
-			patch.prLine === undefined ? entry.content : DiscordDiscussions.withPrLine(entry.content, patch.prLine);
+		const base =
+			patch.body === undefined ? entry.content : DiscordDiscussions.message(patch.body, key, entry.synced ?? "");
+		const withPr = patch.prLine === undefined ? base : DiscordDiscussions.withPrLine(base, patch.prLine);
 		const withId = patch.idLine === undefined ? withPr : DiscordDiscussions.withIdLine(withPr, patch.idLine);
 		const edited = footerEdited || withId !== entry.content;
 		// An archived post is written to by unarchiving it, and it is only unarchived for that: one Discord archived for
@@ -280,5 +294,59 @@ export class DiscordDiscussions {
 				...(await bot.threads.modify(thread.id, { archived: true, locked: true })),
 			};
 		}
+	}
+
+	/**
+	 * Append a message to the post for `key`, mentioning no one. A post that is archived or locked is unarchived and
+	 * unlocked for the write and put back as it was, also when the write fails.
+	 */
+	async post(channel: string, key: string, content: string, opts: { quiet?: boolean } = {}): Promise<void> {
+		const entry = (await this.posts(await this.forum(channel))).get(key);
+		if (!entry) throw new Error(`no discussion post for \`${key}\` in \`${channel}\``);
+		const bot = this.deps.bot();
+		const { archived, locked } = entry.thread.thread_metadata;
+		const reopen = archived || locked;
+		if (reopen) {
+			entry.thread = {
+				...entry.thread,
+				...(await bot.threads.modify(entry.thread.id, { archived: false, locked: false })),
+			};
+		}
+		try {
+			const text = content.length > MAX_MESSAGE ? `${content.slice(0, MAX_MESSAGE - 1)}…` : content;
+			await bot.channels.createMessage(entry.thread.id, {
+				content: text,
+				...(opts.quiet ? { flags: MessageFlag.SuppressNotifications } : {}),
+			});
+		} finally {
+			if (reopen) {
+				entry.thread = {
+					...entry.thread,
+					...(await bot.threads.modify(entry.thread.id, { archived, locked })),
+				};
+			}
+		}
+	}
+
+	/** The text of the recent messages of the post for `key`, newest first; empty when there is no post. */
+	async messages(channel: string, key: string, limit = 50): Promise<string[]> {
+		const entry = (await this.posts(await this.forum(channel))).get(key);
+		if (!entry) return [];
+		const found = await this.deps.bot().channels.messages(entry.thread.id, Math.min(Math.max(limit, 1), 100));
+		return found.map((m) => m.content);
+	}
+
+	/** Keep the oldest post that carries `key` and delete the others. Returns how many were deleted. */
+	async dedupe(channel: string, key: string): Promise<number> {
+		const entry = (await this.posts(await this.forum(channel))).get(key);
+		if (!entry) return 0;
+		const bot = this.deps.bot();
+		let deleted = 0;
+		while (entry.duplicates.length > 0) {
+			await bot.threads.delete(entry.duplicates[0]!.id);
+			entry.duplicates.shift(); // only once it is gone, so a failed run is retried
+			deleted++;
+		}
+		return deleted;
 	}
 }

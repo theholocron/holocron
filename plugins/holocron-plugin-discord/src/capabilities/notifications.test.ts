@@ -569,6 +569,31 @@ describe("DiscordNotifications discussions", () => {
 		expect(calls.map((c) => c.method)).toEqual(["GET", "GET", "GET", "POST", "PATCH", "PATCH"]);
 		expect((await notifs.readDiscussion("ideas", key))?.state).toBe("draft");
 	});
+
+	it("posts to, reads the messages of and de-duplicates a post through the provider", async () => {
+		const key = "o/r#1";
+		const content = `Title\n\n-# sync: ${key} | proposed`;
+		const { notifs, calls } = makeProvisioner([
+			{ body: [FORUM] },
+			{ body: { threads: [post, { ...post, id: "7" }], members: [] } },
+			{ body: { threads: [], has_more: false } },
+			{ body: { id: "5", channel_id: "5", content } },
+			{ body: { id: "7", channel_id: "7", content } },
+			{ body: { id: "9", channel_id: "5", content: "hi" } },
+			{ body: [{ id: "9", channel_id: "5", content: "hi" }] },
+			{ status: 204, body: undefined },
+		]);
+
+		await notifs.postDiscussionMessage("ideas", key, "hi", { quiet: true });
+		expect(await notifs.readDiscussionMessages("ideas", key, 10)).toEqual(["hi"]);
+		expect(await notifs.dedupeDiscussion("ideas", key)).toBe(1);
+
+		expect(calls.slice(5).map((c) => [c.method, c.url.split("/api/v10")[1]])).toEqual([
+			["POST", "/channels/5/messages"],
+			["GET", "/channels/5/messages?limit=10"],
+			["DELETE", "/channels/7"],
+		]);
+	});
 });
 
 describe("DiscordNotifications discussions: starter reactions", () => {

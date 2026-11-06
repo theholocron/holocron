@@ -1640,6 +1640,12 @@ export interface DiscussionPatch {
 	 * made under an older rule, not for every sync.
 	 */
 	idLine?: string;
+	/**
+	 * The text of the post's first message, replacing what is there. The provider keeps its footer (`-# sync: <key> |
+	 * <synced>`) and cuts the text to fit the message limit. A `prLine` or `idLine` in the same patch is applied to the new
+	 * text.
+	 */
+	body?: string;
 	/** Close the post (archive and lock it) or reopen it (unlock and unarchive it). */
 	closed?: boolean;
 }
@@ -2257,8 +2263,23 @@ export interface Notifications extends ProviderIdentity {
 	 * document's recorded address (`url`) names is it, moved; its `key` then differs from the one asked for.
 	 */
 	readDiscussion?(channel: string, key: string, url?: string): Promise<DiscussionPost | undefined>;
-	/** Change the discussion post for `key`: its title, its state (the tag), the state last synced, the pull request line and the id line. Throws when there is no post. */
+	/** Change the discussion post for `key`: its title, its state (the tag), the state last synced, the first message's text, the pull request line and the id line. Throws when there is no post. */
 	updateDiscussion?(channel: string, key: string, patch: DiscussionPatch): Promise<void>;
+	/**
+	 * Append a message to the discussion post for `key`, mentioning no one; `quiet` posts it without notifying anyone. A post
+	 * that is archived or locked is unarchived and unlocked, written to, and put back as it was. Throws when there is no post.
+	 */
+	postDiscussionMessage?(channel: string, key: string, content: string, opts?: { quiet?: boolean }): Promise<void>;
+	/**
+	 * The text of the post for `key`'s recent messages, newest first (`limit` of them, 50 by default, at most 100); the
+	 * first message, with its footer, is the oldest. Reads archived posts too. Empty when there is no post.
+	 */
+	readDiscussionMessages?(channel: string, key: string, limit?: number): Promise<string[]>;
+	/**
+	 * When more than one post carries `key`, keep the oldest and delete the rest. Returns how many it deleted (0 when there
+	 * is one post or none).
+	 */
+	dedupeDiscussion?(channel: string, key: string): Promise<number>;
 
 	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */
 	holdsPermission?(permission: string): Promise<boolean>;

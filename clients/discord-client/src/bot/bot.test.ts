@@ -851,6 +851,16 @@ describe("forum posts and threads", () => {
 		expect(() => client.threads.modify("5", { applied_tags: ["bad"] })).toThrow(/invalid Discord id/);
 	});
 
+	it("threads.delete: DELETE /channels/:id, a 404 means it is already gone, any other error still throws", async () => {
+		const ok = makeClient([{ status: 204, body: undefined }]);
+		await expect(ok.client.threads.delete("5")).resolves.toBeUndefined();
+		expect(ok.calls[0]).toMatchObject({ url: `${BASE}/channels/5`, method: "DELETE" });
+		const gone = makeClient([{ status: 404, body: { message: "Unknown Channel" } }]);
+		await expect(gone.client.threads.delete("5")).resolves.toBeUndefined();
+		const denied = makeClient([{ status: 403, body: { message: "Missing Permissions" } }]);
+		await expect(denied.client.threads.delete("5")).rejects.toThrow(/403/);
+	});
+
 	it("channels.message and channels.editMessage: read a message, and edit it with mentions off", async () => {
 		const { client, calls } = makeClient([
 			{ body: { id: "5", channel_id: "5", content: "old" } },

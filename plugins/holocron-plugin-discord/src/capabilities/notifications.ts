@@ -1071,6 +1071,21 @@ export class DiscordNotifications implements Notifications {
 		return this.discussions().update(channel, key, patch);
 	}
 
+	/** Appends a message to a document's post, reopening and closing it again if it was closed. */
+	postDiscussionMessage(channel: string, key: string, content: string, opts?: { quiet?: boolean }): Promise<void> {
+		return this.discussions().post(channel, key, content, opts);
+	}
+
+	/** The text of a post's recent messages, newest first. */
+	readDiscussionMessages(channel: string, key: string, limit?: number): Promise<string[]> {
+		return this.discussions().messages(channel, key, limit);
+	}
+
+	/** Keeps the oldest post for `key` and deletes the others; returns how many it deleted. */
+	dedupeDiscussion(channel: string, key: string): Promise<number> {
+		return this.discussions().dedupe(channel, key);
+	}
+
 	/**
 	 * Posts `content` (up to 2000 characters) in a text channel as the bot, without letting it mention anyone. A `#name`
 	 * that is one of the server's channels is linked.

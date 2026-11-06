@@ -69,7 +69,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   (#1535, spec `tech-specs-discussion-threads`): it finds or makes each post through optional `Notifications` methods
   (`ensureDiscussion`, `readDiscussion`, `updateDiscussion`), writes `discussion.url` and, when a gatekeeper retagged a
   post, the file's `status:` into the working tree only (the workflow commits it to a pull request), and decides by
-  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status. `--refresh-origin` and `--refresh-titles` (#1654, #1657) are
+  `reconcileSpecStatus()` over the file's, the tag's and the last-synced status. The same methods serve a pull request's post (key `owner/repo#123`, state the tag name, #1832): `DiscussionPatch.body` replaces the first message's text, and the optional `postDiscussionMessage` (unarchives and unlocks a closed post, writes, closes it again), `readDiscussionMessages` (newest first) and `dedupeDiscussion` (keeps the oldest post of a key, deletes the rest) append, read and repair. `--refresh-origin` and `--refresh-titles` (#1654, #1657) are
   opt-in repairs that patch one field of existing posts (the `PR:` line, the title); `--refresh` (#1658) runs both and the id
   repair in one pass. The id opening a post's first message is a link to the file on the default branch
   (`discussionIdLine()`, `repo.defaultBranch`, else `HEAD`) once the file is there, and plain text while `--pr` names an

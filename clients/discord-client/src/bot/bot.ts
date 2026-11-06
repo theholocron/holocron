@@ -341,6 +341,15 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 				bodyIds(body.applied_tags);
 				return rest.request<DiscordThread>(`/channels/${id(threadId)}`, { method: "PATCH", body });
 			},
+			/** `DELETE /channels/:id` on a thread — deletes the thread and its messages. A 404 counts as done, as when a retry follows a lost response. */
+			delete: async (threadId: string): Promise<void> => {
+				try {
+					await rest.request<void>(`/channels/${id(threadId)}`, { method: "DELETE", expectNoContent: true });
+				} catch (err) {
+					if (err instanceof ProviderApiError && err.status === 404) return;
+					throw err;
+				}
+			},
 			/** `GET /guilds/:id/threads/active` — every active thread in the server, across channels. */
 			active: async (guildId: string): Promise<DiscordThread[]> =>
 				(await rest.request<{ threads: DiscordThread[] }>(`/guilds/${id(guildId)}/threads/active`)).threads,
