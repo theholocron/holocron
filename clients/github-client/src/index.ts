@@ -42,10 +42,12 @@ export type {
 	GitBlob,
 	GitCommit,
 	GitContents,
+	GitDirectoryEntry,
 	GitPull,
 	GitRef,
 	GitTree,
 	GitTreeItem,
+	ListDirectoryOptions,
 	PutContentsInput,
 	PutContentsResult,
 } from "./git/git.js";

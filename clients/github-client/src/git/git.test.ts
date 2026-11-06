@@ -49,6 +49,85 @@ describe("git", () => {
 		expect(calls[0]?.url).toContain("ref=pr-head-sha");
 	});
 
+	describe("listDirectory", () => {
+		const entry = (name: string, type: string, dir = ".holocron", size = 10) => ({
+			name,
+			path: `${dir}/${name}`,
+			type,
+			size,
+			sha: `sha-${name}`,
+			url: "ignored",
+		});
+
+		it("lists a directory's entries with name, path, type and size", async () => {
+			const { fetch, calls } = stubFetch([
+				{ body: [entry("repo.ts", "file", ".holocron", 42), entry("projects", "dir", ".holocron", 0)] },
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const result = await client.git.listDirectory(REPO, ".holocron/");
+			expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/contents/.holocron");
+			expect(calls).toHaveLength(1);
+			expect(result).toEqual([
+				{ name: "repo.ts", path: ".holocron/repo.ts", type: "file", size: 42, sha: "sha-repo.ts" },
+				{ name: "projects", path: ".holocron/projects", type: "dir", size: 0, sha: "sha-projects" },
+			]);
+		});
+
+		it("passes the ref", async () => {
+			const { fetch, calls } = stubFetch([{ body: [] }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await client.git.listDirectory(REPO, ".holocron", { ref: "pr-head" });
+			expect(calls[0]?.url).toContain("ref=pr-head");
+		});
+
+		it("returns an empty list for an empty directory", async () => {
+			const { fetch } = stubFetch([{ body: [] }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listDirectory(REPO, ".holocron")).toEqual([]);
+		});
+
+		it("returns an empty list on 404", async () => {
+			const { fetch } = stubFetch([{ status: 404, body: { message: "Not Found" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			expect(await client.git.listDirectory(REPO, ".holocron")).toEqual([]);
+		});
+
+		it("rethrows a non-404 error as ProviderApiError", async () => {
+			const { fetch } = stubFetch([{ status: 403, body: { message: "Forbidden" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await expect(client.git.listDirectory(REPO, ".holocron")).rejects.toBeInstanceOf(ProviderApiError);
+		});
+
+		it("throws when the path is a file", async () => {
+			const { fetch } = stubFetch([{ body: { name: "a", path: "a", type: "file", size: 1, sha: "s" } }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await expect(client.git.listDirectory(REPO, "a")).rejects.toThrow("is a file");
+		});
+
+		it("does not descend into nested directories by default", async () => {
+			const { fetch, calls } = stubFetch([{ body: [entry("projects", "dir")] }]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			await client.git.listDirectory(REPO, ".holocron");
+			expect(calls).toHaveLength(1);
+		});
+
+		it("lists nested directories as a flat list when recursive", async () => {
+			const { fetch, calls } = stubFetch([
+				{ body: [entry("repo.ts", "file"), entry("projects", "dir")] },
+				{ body: [entry("board.json", "file", ".holocron/projects")] },
+			]);
+			const client = createGitHubClient({ token: TOKEN, fetch });
+			const result = await client.git.listDirectory(REPO, ".holocron", { recursive: true });
+			expect(calls).toHaveLength(2);
+			expect(calls[1]?.url).toContain("/contents/.holocron/projects");
+			expect(result.map((e) => e.path)).toEqual([
+				".holocron/repo.ts",
+				".holocron/projects",
+				".holocron/projects/board.json",
+			]);
+		});
+	});
+
 	it("POST /repos/{owner}/{name}/git/blobs", async () => {
 		const { fetch, calls } = stubFetch([{ body: { sha: "blob123", url: "" } }]);
 		const client = createGitHubClient({ token: TOKEN, fetch });
