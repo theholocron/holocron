@@ -228,8 +228,8 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
     directly, the CLI has no `ui/` directory of its own, and the retry notice on the spinner is kyber's
     `createRetryNotice(onRetry)`, registered once in `cli.ts` with `setProgressListener`;
     `interactive-menu/` holds the rest, one folder per piece:
-    `command-registry`, `menu-items`, `run-menu-entries`, `child-argv` and
-    `launch-menu`.
+    `command-registry`, `run-menu-entries` and `probe-menu-entries`, plus `menu.ts`
+    (kyber's `createMenu` bound to the `holocron` bin).
     A `CommandEntry` can also declare `options` (spec
     `tech-interactive-menu-options.spec.md`, #1052) so its yargs options are
     offered through the menu too, not only required positionals — required

@@ -34,9 +34,10 @@ describe("repo cleanup", () => {
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"repo cleanup — choose a subcommand:",
-			expect.any(String),
-			["repo", "cleanup"]
+			expect.objectContaining({
+				pickMessage: "repo cleanup — choose a subcommand:",
+				startPath: ["repo", "cleanup"],
+			})
 		);
 	});
 });

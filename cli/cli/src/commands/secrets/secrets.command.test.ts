@@ -206,9 +206,7 @@ describe("secrets", () => {
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"secrets — choose a subcommand:",
-			expect.any(String),
-			["secrets"]
+			expect.objectContaining({ pickMessage: "secrets — choose a subcommand:", startPath: ["secrets"] })
 		);
 	});
 });

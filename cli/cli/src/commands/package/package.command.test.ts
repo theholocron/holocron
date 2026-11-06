@@ -128,9 +128,7 @@ describe("package", () => {
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"package — choose a subcommand:",
-			expect.any(String),
-			["package"]
+			expect.objectContaining({ pickMessage: "package — choose a subcommand:", startPath: ["package"] })
 		);
 	});
 });

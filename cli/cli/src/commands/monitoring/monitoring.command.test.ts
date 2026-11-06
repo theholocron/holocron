@@ -143,9 +143,7 @@ describe("monitoring", () => {
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"monitoring — choose a subcommand:",
-			expect.any(String),
-			["monitoring"]
+			expect.objectContaining({ pickMessage: "monitoring — choose a subcommand:", startPath: ["monitoring"] })
 		);
 	});
 });

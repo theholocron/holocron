@@ -63,9 +63,7 @@ describe("skills command", () => {
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({ cwd: "/repo" }),
-			"skills — choose a subcommand:",
-			expect.any(String),
-			["skills"]
+			expect.objectContaining({ pickMessage: "skills — choose a subcommand:", startPath: ["skills"] })
 		);
 	});
 });

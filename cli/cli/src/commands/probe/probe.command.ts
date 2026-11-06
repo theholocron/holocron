@@ -42,13 +42,11 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 			...(process.stdin.isTTY
 				? {
 						pick: (groups) =>
-							launchMenu(
-								buildProbeMenuEntries(groups),
-								argv,
-								"probe — choose a provider:",
-								"Run `holocron probe` to list the probes.",
-								["probe"]
-							),
+							launchMenu(buildProbeMenuEntries(groups), argv, {
+								pickMessage: "probe — choose a provider:",
+								nonInteractiveMessage: "Run `holocron probe` to list the probes.",
+								startPath: ["probe"],
+							}),
 					}
 				: {}),
 		});

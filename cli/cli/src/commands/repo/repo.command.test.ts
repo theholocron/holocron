@@ -177,17 +177,16 @@ describe("repo menus", () => {
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"repo — choose a subcommand:",
-			expect.any(String),
-			["repo"]
+			expect.objectContaining({ pickMessage: "repo — choose a subcommand:", startPath: ["repo"] })
 		);
 		await go(["upgrade"]);
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"repo upgrade — choose a subcommand:",
-			expect.any(String),
-			["repo", "upgrade"]
+			expect.objectContaining({
+				pickMessage: "repo upgrade — choose a subcommand:",
+				startPath: ["repo", "upgrade"],
+			})
 		);
 	});
 });

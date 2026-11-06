@@ -816,8 +816,8 @@ the local override exists to exempt.
   `doctor <capability>` is listed in
 - `src/interactive-menu/` — the interactive fallback's Holocron data: `command-registry`
   (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `run-menu-entries`
-  and `probe-menu-entries` (menu entries built at run time), and `launch-menu`,
-  a small binding of the engine to the `holocron` bin and `HOLOCRON_` env prefix.
+  and `probe-menu-entries` (menu entries built at run time), and `menu.ts`,
+  kyber's `createMenu` bound to the `holocron` bin and `HOLOCRON_` env prefix.
   The engine itself (the picker, argv and secret env, the dry-run preview, the spawn)
   and the prompting pieces — `promptForPositionals`, `promptForOptions` — live in
   `@theholocron/kyber` (`/menu`, `/prompts`), which has no knowledge of commands.

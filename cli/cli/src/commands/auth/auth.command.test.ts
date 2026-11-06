@@ -92,9 +92,7 @@ describe("auth commands", () => {
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"auth — choose a subcommand:",
-			expect.any(String),
-			["auth"]
+			expect.objectContaining({ pickMessage: "auth — choose a subcommand:", startPath: ["auth"] })
 		);
 	});
 

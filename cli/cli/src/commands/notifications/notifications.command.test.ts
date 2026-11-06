@@ -167,17 +167,19 @@ describe("notifications menus", () => {
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"notifications — choose a subcommand:",
-			expect.any(String),
-			["notifications"]
+			expect.objectContaining({
+				pickMessage: "notifications — choose a subcommand:",
+				startPath: ["notifications"],
+			})
 		);
 		await go(["channel"]);
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
 			expect.anything(),
-			"notifications channel — choose a subcommand:",
-			expect.any(String),
-			["notifications", "channel"]
+			expect.objectContaining({
+				pickMessage: "notifications channel — choose a subcommand:",
+				startPath: ["notifications", "channel"],
+			})
 		);
 	});
 });

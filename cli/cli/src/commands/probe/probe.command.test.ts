@@ -123,12 +123,10 @@ describe("probe command", () => {
 		await run();
 		const groups = new Map();
 		await runProbeCommand.mock.calls[0]![0].pick(groups);
-		expect(launchMenu).toHaveBeenCalledWith(
-			["entries", groups],
-			expect.objectContaining({ cwd: "/repo" }),
-			"probe — choose a provider:",
-			"Run `holocron probe` to list the probes.",
-			["probe"]
-		);
+		expect(launchMenu).toHaveBeenCalledWith(["entries", groups], expect.objectContaining({ cwd: "/repo" }), {
+			pickMessage: "probe — choose a provider:",
+			nonInteractiveMessage: "Run `holocron probe` to list the probes.",
+			startPath: ["probe"],
+		});
 	});
 });
