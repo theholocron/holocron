@@ -3,10 +3,10 @@
  * Asks first in a terminal; without one it needs `--yes` and is a {@link NonInteractiveError} otherwise.
  */
 
+import { NonInteractiveError, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
-import { NonInteractiveError, style } from "../../../ui/index.js";
 import { openProjects } from "../open-projects/index.js";
 import { createProjectRows } from "../project-rows/index.js";
 import { terminalPrompt } from "../terminal-prompt/index.js";

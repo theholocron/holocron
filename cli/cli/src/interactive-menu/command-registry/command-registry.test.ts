@@ -15,7 +15,8 @@ const listStoredProvidersMock = vi.fn();
 vi.mock("../../auth/keyring/keyring.js", () => ({ listStoredProviders: () => listStoredProvidersMock() }));
 
 const { COMMAND_REGISTRY, getEntry } = await import("../command-registry/index.js");
-const { NonInteractiveError, promptForPositionals } = await import("../../ui/index.js");
+const { NonInteractiveError } = await import("@theholocron/kyber/ui");
+const { promptForPositionals } = await import("@theholocron/kyber/prompts");
 
 function setTTY(value: boolean): void {
 	Object.defineProperty(process.stdin, "isTTY", { value, configurable: true });

@@ -38,9 +38,10 @@
  * setup` for the ephemeral GH admin PAT.
  */
 
+import { pad, statusRow, style } from "@theholocron/kyber/ui";
+
 import { makeEnv } from "../../../env/index.js";
 import { getLogger } from "../../../observability/logger/index.js";
-import { pad, statusRow, style } from "../../../ui/index.js";
 import { defaultExec } from "../default-exec.js";
 import { defaultLogin } from "../default-login.js";
 import { discoverPublicPackageEntries } from "../discover-public-package-entries.js";

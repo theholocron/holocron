@@ -1,4 +1,4 @@
-import type { OptionMode, OptionPrompt, PositionalPrompt } from "../../ui/index.js";
+import { type OptionMode, type OptionPrompt, type PositionalPrompt } from "@theholocron/kyber/prompts";
 
 export interface CommandEntry {
 	/** Full command name as typed at the CLI, e.g. `"auth set"`. */

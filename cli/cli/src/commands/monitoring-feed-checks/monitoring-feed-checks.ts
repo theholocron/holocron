@@ -1,4 +1,5 @@
-import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
+import { describeError, sanitizeDetail } from "@theholocron/kyber/ui";
+
 import type { NotificationsCheck } from "../doctor-notifications/doctor-notifications.type.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { resultRow, skipRow } from "../notification-check-rows/index.js";
@@ -73,7 +74,7 @@ export async function monitoringFeedChecks(input: MonitoringFeedChecksInput): Pr
 				channelSkip = noToken;
 				continue;
 			}
-			channelProblems.push(`${label}: ${shown(describeProviderError(err))}`);
+			channelProblems.push(`${label}: ${shown(describeError(err))}`);
 			continue;
 		}
 		if (!state.exists) {

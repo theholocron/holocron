@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { checkbox, confirm } from "@inquirer/prompts";
+import { NonInteractiveError } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type PluginImporter, PluginLoader, type PullRequest } from "../../plugin/index.js";
-import { NonInteractiveError } from "../../ui/index.js";
 import type { BranchRef, LocalGit } from "./repo-cleanup-branches.type.js";
 import { runCleanupBranches } from "./run-cleanup-branches.js";
 

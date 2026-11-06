@@ -1,10 +1,10 @@
+import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
 import { applyResolvedConfig, parseScope, resolveOrg, tokenContext } from "../../cli-support/index.js";
 import { type GlobalArgs } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
-import { promptForPositionals } from "../../ui/index.js";
 import { runSecretsSync, secretRoutes } from "./index.js";
 import { type SecretsSyncArgs, secretsSyncArgs } from "./secrets-sync.args.js";
 

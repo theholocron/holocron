@@ -11,10 +11,11 @@
 
 import { join } from "node:path";
 
+import { style } from "@theholocron/kyber/ui";
+import { describeError, logReason } from "@theholocron/kyber/ui";
+
 import { getLogger } from "../../../observability/logger/index.js";
 import { assertPluginsResolvable, type BoardSummary, PluginLoader, type Projects } from "../../../plugin/index.js";
-import { style } from "../../../ui/index.js";
-import { describeProviderError, logReason } from "../../../ui/provider-error/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
 import { planReconcile, type ReconcileChange } from "../plan-reconcile/index.js";
@@ -108,7 +109,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 			}
 			plan = planReconcile(await projects.items(owner, board, template), template);
 		} catch (err) {
-			failStep(declared.name, describeProviderError(err));
+			failStep(declared.name, describeError(err));
 			logger.warn({ board: declared.name, reason: logReason(err) }, "project reconcile");
 			continue;
 		}
@@ -138,7 +139,7 @@ export async function runProjectReconcile(input: RunProjectReconcileInput): Prom
 				ok++;
 				print(`  ${style.success(`${result.transitioned ? "set" : "already"} ${line(change)}`)}`);
 			} catch (err) {
-				failStep(change.key, describeProviderError(err));
+				failStep(change.key, describeError(err));
 				logger.warn({ board: declared.name, key: change.key, reason: logReason(err) }, "project reconcile");
 			}
 		}

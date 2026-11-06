@@ -1,5 +1,6 @@
+import { style } from "@theholocron/kyber/ui";
+
 import { ElevationRequiredError } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
 import type { ElevationDeps } from "./with-elevation.type.js";
 
 /**

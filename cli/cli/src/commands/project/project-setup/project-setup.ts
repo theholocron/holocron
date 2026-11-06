@@ -5,11 +5,11 @@
  * stop the next one.
  */
 
+import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../../observability/logger/index.js";
 import type { BoardSummary } from "../../../plugin/index.js";
-import { style } from "../../../ui/index.js";
 import { createFsTemplatesIo } from "../fs-templates-io/index.js";
 import { loadTemplates } from "../load-templates/index.js";
 import { openProjects, type ProjectReport, type ProjectRunInput } from "../open-projects/index.js";

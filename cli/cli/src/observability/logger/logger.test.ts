@@ -1,6 +1,6 @@
+import { allowProgress, progressEnabled } from "@theholocron/kyber/ui";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { allowProgress, progressEnabled } from "../../ui/index.js";
 import {
 	buildCliLogger,
 	getLogger,

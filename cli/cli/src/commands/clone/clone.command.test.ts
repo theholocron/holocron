@@ -11,9 +11,12 @@ vi.mock("./index.js", async (importActual) => ({
 	runClone,
 }));
 vi.mock("@inquirer/prompts", () => ({ confirm }));
-vi.mock("../../ui/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../ui/index.js")>()),
+vi.mock("@theholocron/kyber/ui", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/ui")>()),
 	openPath,
+}));
+vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["target"]],
 }));
 vi.mock("../../auth/index.js", async (importActual) => ({
@@ -29,10 +32,11 @@ vi.mock("../../cli-support/index.js", async (importActual) => ({
 	tokenContext,
 }));
 
+import { NonInteractiveError } from "@theholocron/kyber/ui";
+
 import { AuthError } from "../../auth/index.js";
 import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR } from "../../interactive-menu/index.js";
 import { runCommand } from "../../testing/run-command.js";
-import { NonInteractiveError } from "../../ui/index.js";
 import { cloneCommand } from "./clone.command.js";
 
 const stdin = (v: boolean | undefined) =>

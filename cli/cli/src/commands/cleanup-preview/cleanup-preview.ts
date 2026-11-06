@@ -1,4 +1,5 @@
 import { checkbox } from "@inquirer/prompts";
+import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -10,7 +11,6 @@ import {
 	type PullRequest,
 	type Source,
 } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
 import type { CleanupPreviewReport, RunCleanupPreviewInput } from "./cleanup-preview.type.js";
 
 function prStateLabel(pr: PullRequest): string {

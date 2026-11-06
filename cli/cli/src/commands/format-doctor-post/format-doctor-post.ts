@@ -1,4 +1,5 @@
-import { sanitizeDetail } from "../../ui/provider-error/index.js";
+import { sanitizeDetail } from "@theholocron/kyber/ui";
+
 import type { DoctorNotificationsReport } from "../doctor-notifications/doctor-notifications.type.js";
 
 /** The longest message Discord accepts, less room for the cut-off note. */

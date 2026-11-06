@@ -7,12 +7,11 @@
  * id is written into the config so every other command finds it.
  */
 
+import { describeError, logReason, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { notificationProviders } from "../notifications-channel-add/index.js";
 import { runNotificationsSetup } from "../notifications-setup/index.js";
 import { lockConfig } from "./lock-config.js";
@@ -213,7 +212,7 @@ export async function runNotificationsCreateServer(
 		}
 		step(`handed the server to member ${input.owner}`);
 	} catch (err) {
-		return refuse(describeProviderError(err), logReason(err));
+		return refuse(describeError(err), logReason(err));
 	} finally {
 		await lock.release();
 	}

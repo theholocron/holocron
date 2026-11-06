@@ -1,15 +1,15 @@
 import { spawn } from "node:child_process";
 
 import { confirm } from "@inquirer/prompts";
-
 import {
-	NonInteractiveError,
 	pickMenuItem,
 	promptForDeferredOptions,
 	promptForOptions,
 	promptForPositionals,
 	type ResolvedOptions,
-} from "../../ui/index.js";
+} from "@theholocron/kyber/prompts";
+import { NonInteractiveError } from "@theholocron/kyber/ui";
+
 import { buildChildArgv, secretEnv } from "../child-argv/index.js";
 import type { CommandEntry } from "../command-registry/index.js";
 import { BACK, GROUP, menuItems } from "../menu-items/index.js";

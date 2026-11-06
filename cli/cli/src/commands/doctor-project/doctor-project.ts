@@ -8,10 +8,11 @@
  * failing rows through the `notifications` provider's bot, like `doctor notifications --post`.
  */
 
+import { style } from "@theholocron/kyber/ui";
+import { describeError } from "@theholocron/kyber/ui";
+
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError } from "../../ui/provider-error/index.js";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import { postDoctorReport } from "../post-doctor-report/index.js";
 import { openBoardContext } from "../project/board-context/index.js";
@@ -146,7 +147,7 @@ async function checkBoards(input: RunDoctorProjectInput, loader: PluginLoader): 
 						])
 			);
 		} catch (err) {
-			rows.push(row(`project:${declared.name}`, title, "fail", describeProviderError(err)));
+			rows.push(row(`project:${declared.name}`, title, "fail", describeError(err)));
 		}
 	}
 	return rows;

@@ -10,6 +10,7 @@
  * Idempotent and safe to re-run. `--dry-run` previews it.
  */
 
+import { describeError, logReason, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -20,8 +21,6 @@ import {
 	PluginLoader,
 	type Source,
 } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { notificationProviders, pickProvider, whyMissing } from "../notifications-channel-add/index.js";
 import { EMPTY_LINKS, linksLocation, parseLinks } from "./links.js";
 import type {
@@ -114,7 +113,7 @@ export async function runNotificationsSyncRoles(
 	try {
 		links = await readLinks(source!, layout, input.context.org, notifications.providerName);
 	} catch (err) {
-		return refuse(describeProviderError(err), logReason(err));
+		return refuse(describeError(err), logReason(err));
 	}
 	if (links.links.length === 0)
 		print(`  ${style.skip("no links yet: nobody can be given a role until they link their account")}`);

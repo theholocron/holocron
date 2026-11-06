@@ -1,7 +1,7 @@
 import { createRestClient } from "@theholocron/http-client";
 import { describe, expect, it } from "vitest";
 
-import { createProgress, retryNotice, withProgress } from "./progress.js";
+import { retryNotice } from "./retry-notice.js";
 
 const flaky = () => {
 	let failed = false;
@@ -35,16 +35,5 @@ describe("retryNotice", () => {
 			"source: update settings… (retrying GitHub, attempt 2 of 3)",
 			"source: update settings… (retrying the request, attempt 2 of 3)",
 		]);
-	});
-});
-
-describe("createProgress and withProgress", () => {
-	it("run a step and give back its result, and draw nothing off a terminal", async () => {
-		const lines: string[] = [];
-		const progress = createProgress((l) => lines.push(l));
-		await expect(progress.run("step…", async () => 7)).resolves.toBe(7);
-		progress.print("a line");
-		expect(lines).toEqual(["a line"]);
-		await expect(withProgress("working…", async () => "done")).resolves.toBe("done");
 	});
 });

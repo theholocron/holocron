@@ -1,10 +1,15 @@
 import { confirm } from "@inquirer/prompts";
+import {
+	commandFailureMessage,
+	createProgress,
+	NonInteractiveError,
+	sanitizeDetail,
+	statusRow,
+	stripControl,
+	style,
+} from "@theholocron/kyber/ui";
 
 import type { ProbeContext, ProbeRow } from "../../plugin/index.js";
-import { commandFailureMessage } from "../../ui/command-failure/index.js";
-import { NonInteractiveError, statusRow, style } from "../../ui/index.js";
-import { createProgress } from "../../ui/progress/index.js";
-import { sanitizeDetail, stripControl } from "../../ui/provider-error/index.js";
 import type { ProbeReport, RunProbeInput } from "./probe.type.js";
 import { createScrubber } from "./scrub.js";
 

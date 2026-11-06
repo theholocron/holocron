@@ -7,6 +7,8 @@
  * as a drift check. The step numbers match the table in holocron#1098.
  */
 
+import { describeError, sanitizeDetail, style } from "@theholocron/kyber/ui";
+
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
@@ -21,8 +23,6 @@ import {
 	type Source,
 	type Workers,
 } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import { printCheckRows, printCheckSummary } from "../doctor-checks/index.js";
 import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
 import {
@@ -138,7 +138,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			{ infinitive: "inspect a server", gerund: "inspecting" }
 		);
 	} catch (err) {
-		return refuse(describeProviderError(err));
+		return refuse(describeError(err));
 	}
 	const declared = notifications.layout;
 	if (!declared) {
@@ -158,7 +158,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 	try {
 		found = await notifications.inspect!(layout);
 	} catch (err) {
-		readError = describeProviderError(err);
+		readError = describeError(err);
 	}
 
 	// 1. the server is reachable with the configured credentials
@@ -181,7 +181,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				);
 			}
 		} catch (err) {
-			failed("server", "server reachable", describeProviderError(err));
+			failed("server", "server reachable", describeError(err));
 		}
 	} else if (found) {
 		checks.push({
@@ -769,7 +769,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					`${wanted.length} of ${wanted.length} exist`
 				);
 			} catch (err) {
-				failed("secrets", SECRETS_TITLE, describeProviderError(err));
+				failed("secrets", SECRETS_TITLE, describeError(err));
 			}
 		}
 	}
@@ -832,7 +832,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				}
 				add("role-members", ROLE_MEMBERS_TITLE, problems, `${teamRoles.length} of ${teamRoles.length} in sync`);
 			} catch (err) {
-				failed("role-members", ROLE_MEMBERS_TITLE, shown(describeProviderError(err)));
+				failed("role-members", ROLE_MEMBERS_TITLE, shown(describeError(err)));
 			}
 		}
 	}
@@ -941,7 +941,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					problems.push(`#${shown(channel.name)}: the check did not complete`);
 				}
 			} catch (err) {
-				problems.push(`#${shown(channel.name)}: ${shown(describeProviderError(err))}`);
+				problems.push(`#${shown(channel.name)}: ${shown(describeError(err))}`);
 			}
 		}
 		add(
@@ -969,7 +969,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				`owned by member ${shown(owner.id)}`
 			);
 		} catch (err) {
-			failed("server-owner", OWNER_TITLE, shown(describeProviderError(err)));
+			failed("server-owner", OWNER_TITLE, shown(describeError(err)));
 		}
 	}
 

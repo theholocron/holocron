@@ -5,8 +5,8 @@ vi.mock("./index.js", async (importActual) => ({
 	...(await importActual<typeof import("./index.js")>()),
 	runNpmBumpVersions,
 }));
-vi.mock("../../ui/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../ui/index.js")>()),
+vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["new-version"]],
 }));
 

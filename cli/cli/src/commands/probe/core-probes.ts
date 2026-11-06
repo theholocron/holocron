@@ -1,5 +1,6 @@
+import { describeError } from "@theholocron/kyber/ui";
+
 import type { PluginLoader, PluginProbes } from "../../plugin/index.js";
-import { describeProviderError } from "../../ui/provider-error/index.js";
 
 /** The group of probes that belong to the CLI itself, not to a provider. */
 export const CORE_PROVIDER = "core";
@@ -21,7 +22,7 @@ export function coreProbes(loader: PluginLoader, builtIn: ReadonlyMap<string, Pl
 					ctx.say({
 						status: "fail",
 						label: `${f.key} (${f.provider})`,
-						detail: describeProviderError(f.error),
+						detail: describeError(f.error),
 					});
 				}
 
@@ -41,7 +42,7 @@ export function coreProbes(loader: PluginLoader, builtIn: ReadonlyMap<string, Pl
 				}
 				ctx.say({ status: "heading", label: "Providers" });
 				for (const [name, error] of [...failedOnly].sort(([a], [b]) => a.localeCompare(b))) {
-					ctx.say({ status: "fail", label: name, detail: `did not load: ${describeProviderError(error)}` });
+					ctx.say({ status: "fail", label: name, detail: `did not load: ${describeError(error)}` });
 				}
 				for (const name of [...names].sort()) {
 					const own = offered.get(name);

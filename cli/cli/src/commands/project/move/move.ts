@@ -9,6 +9,8 @@
  */
 
 import { confirm } from "@inquirer/prompts";
+import { NonInteractiveError, statusRow } from "@theholocron/kyber/ui";
+import { describeError } from "@theholocron/kyber/ui";
 
 import {
 	assertPluginsResolvable,
@@ -17,8 +19,6 @@ import {
 	type MoveReport,
 	PluginLoader,
 } from "../../../plugin/index.js";
-import { NonInteractiveError, statusRow } from "../../../ui/index.js";
-import { describeProviderError } from "../../../ui/provider-error/index.js";
 import { openBoardContext } from "../board-context/index.js";
 import type { ProjectMoveReport, RunProjectMoveInput } from "./move.type.js";
 
@@ -61,7 +61,7 @@ export async function runProjectMove(input: RunProjectMoveInput): Promise<Projec
 			(await projects.find(owner, input.from)) ?? (await projects.list(owner)).find((b) => b.name === input.from);
 		to = await projects.find(owner, input.to);
 	} catch (err) {
-		return stop("fail", describeProviderError(err));
+		return stop("fail", describeError(err));
 	}
 	if (!from) return stop("fail", `no board named "${input.from}"`);
 	if (!to) return stop("fail", `no open board named "${input.to}"`);
@@ -78,7 +78,7 @@ export async function runProjectMove(input: RunProjectMoveInput): Promise<Projec
 			printReport(preview, print, true);
 			return { status: "ok", moved: preview };
 		} catch (err) {
-			return stop("fail", describeProviderError(err));
+			return stop("fail", describeError(err));
 		}
 	}
 
@@ -104,7 +104,7 @@ export async function runProjectMove(input: RunProjectMoveInput): Promise<Projec
 		printReport(moved, print, false);
 		return { status: "ok", moved };
 	} catch (err) {
-		return stop("fail", describeProviderError(err));
+		return stop("fail", describeError(err));
 	}
 }
 

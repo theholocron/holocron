@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { addGlobalOptions } from "@theholocron/kyber/flags";
 import { checkForUpdates } from "@theholocron/kyber/notifier";
+import { commandFailureMessage, setProgressListener } from "@theholocron/kyber/ui";
 import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
@@ -33,7 +34,7 @@ import { tunnelCommand } from "./commands/tunnel/index.js";
 import { env } from "./env/index.js";
 import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
-import { commandFailureMessage, USER_FACING_ERRORS } from "./ui/command-failure/index.js";
+import { retryNotice } from "./retry-notice/index.js";
 
 const { name: CLI_PACKAGE_NAME, version: CLI_VERSION } = JSON.parse(
 	readFileSync(new URL("../package.json", import.meta.url), "utf-8")
@@ -42,10 +43,17 @@ const { name: CLI_PACKAGE_NAME, version: CLI_VERSION } = JSON.parse(
 	version: string;
 };
 
+/**
+ * Error class names whose `.message` is a complete, actionable sentence: printed on its own, with no usage dump and no
+ * stack trace. Any other error is printed too, so a command that throws a plain `Error` is never silent.
+ */
+const USER_FACING_ERRORS = new Set(["WorkspaceContextError", "ConfigFileError", "NonInteractiveError"]);
+
 /** Whether to print the correlation id at command end (`--debug` / `--verbose`). */
 let printRunId = false;
 
 init(CLI_VERSION);
+setProgressListener(retryNotice);
 // The answer is kept in `HOLOCRON_CACHE_DIR`, `~/.cache/holocron` by default.
 const updateCheckPromise = checkForUpdates({
 	name: CLI_PACKAGE_NAME,

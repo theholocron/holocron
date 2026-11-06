@@ -7,11 +7,11 @@
  */
 
 import type { Environment } from "@theholocron/env-utils/lookup";
+import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Tunnels, type Vault } from "../../plugin/index.js";
-import { style, withSpinner } from "../../ui/index.js";
 import { runDevProcesses } from "../run-dev-processes/index.js";
 import { runTunnelUp } from "../tunnel-up/index.js";
 import type { DevReport, RunDevInput } from "./dev.type.js";

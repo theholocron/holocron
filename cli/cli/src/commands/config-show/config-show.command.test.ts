@@ -5,7 +5,7 @@ const loadConfig = vi.hoisted(() =>
 );
 const viewJson = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
-vi.mock("../../ui/index.js", () => ({ viewJson }));
+vi.mock("@theholocron/kyber/ui", () => ({ viewJson }));
 
 import yargs from "yargs";
 

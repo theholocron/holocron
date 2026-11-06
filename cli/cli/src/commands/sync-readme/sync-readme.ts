@@ -1,8 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { style } from "@theholocron/kyber/ui";
+
 import { getLogger } from "../../observability/logger/index.js";
-import { style } from "../../ui/index.js";
 import { generateReadme } from "./generate-readme.js";
 import { readmeScriptProblems } from "./readme-script-problems.js";
 import type { PackageJson, RunSyncReadmeInput, SyncReadmeReport } from "./sync-readme.type.js";

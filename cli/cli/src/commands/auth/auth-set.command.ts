@@ -1,9 +1,9 @@
+import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
 import { type GlobalArgs } from "../../cli-support/index.js";
 import { credentialsEnvironment, loadConfig } from "../../config/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
-import { promptForPositionals } from "../../ui/index.js";
 import { type AuthSetArgs, authSetArgs } from "./auth-set.args.js";
 import { runAuthSet } from "./index.js";
 

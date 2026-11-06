@@ -7,6 +7,7 @@
  * foreground with the token in its environment. The token is never printed.
  */
 
+import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -17,8 +18,6 @@ import {
 	PluginLoader,
 	type Tunnels,
 } from "../../plugin/index.js";
-import { style, withSpinner } from "../../ui/index.js";
-import { describeProviderError } from "../../ui/provider-error/index.js";
 import { runCloudflared } from "../run-cloudflared/index.js";
 import type { RunTunnelUpInput, TunnelUpReport } from "./tunnel-up.type.js";
 
@@ -27,7 +26,7 @@ const COMMAND = "tunnel up";
 /** Why a provider is missing: its own load error when it failed to load, else how to configure it. */
 function missing(loader: PluginLoader, key: "tunnels" | "dns", hint: string): string {
 	const failure = loader.loadFailures().find((f) => f.key === key);
-	return failure ? `${hint} (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})` : hint;
+	return failure ? `${hint} (\`${failure.provider}\` failed to load: ${describeError(failure.error)})` : hint;
 }
 
 export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpReport> {

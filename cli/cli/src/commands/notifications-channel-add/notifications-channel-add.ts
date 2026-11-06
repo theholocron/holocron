@@ -10,6 +10,8 @@
 
 import { randomBytes } from "node:crypto";
 
+import { describeError, logReason, style } from "@theholocron/kyber/ui";
+
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,
@@ -20,8 +22,6 @@ import {
 	type Secrets,
 	type SecretScope,
 } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import type {
 	ChannelOutcome,
 	ChannelSpec,
@@ -66,7 +66,7 @@ export async function assertSecretsReachable(secrets: Secrets, scope: SecretScop
 	} catch (err) {
 		const where = scope.kind === "organization" ? `organization ${scope.name}` : scope.kind;
 		throw new Error(
-			`cannot write to the secrets store for ${where} (${describeProviderError(err)}) — fix that token before creating webhooks. If a secret named ${probe} was left behind, delete it`,
+			`cannot write to the secrets store for ${where} (${describeError(err)}) — fix that token before creating webhooks. If a secret named ${probe} was left behind, delete it`,
 			{ cause: err }
 		);
 	}
@@ -80,9 +80,7 @@ export function whyMissing(
 	fallback: string
 ): string {
 	const failure = loader.loadFailures().find((f) => f.key === key);
-	return failure
-		? `${fallback} (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})`
-		: fallback;
+	return failure ? `${fallback} (\`${failure.provider}\` failed to load: ${describeError(failure.error)})` : fallback;
 }
 
 /** The configured `notifications` providers, or an error that says why there are none (including a plugin that failed to load). */
@@ -286,7 +284,7 @@ export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): 
 			// The URL is shown once and is now lost; say how to get unstuck.
 			throw new Error(
 				`webhook ${webhookName} was ${hook.created ? "created" : "found"} but storing its URL in ${secretName} failed ` +
-					`(${describeProviderError(err)}) — delete the webhook in the provider and re-run to get a fresh URL`,
+					`(${describeError(err)}) — delete the webhook in the provider and re-run to get a fresh URL`,
 				{ cause: err }
 			);
 		}
@@ -410,7 +408,7 @@ async function provisionFeed(
 		if (!hook.url) throw err;
 		throw new Error(
 			`webhook ${feed.webhook} was created but handing its URL to ${monitoring!.providerName} failed ` +
-				`(${describeProviderError(err)}) — the webhook is kept, so re-run once that is fixed`,
+				`(${describeError(err)}) — the webhook is kept, so re-run once that is fixed`,
 			{ cause: err }
 		);
 	}
@@ -503,7 +501,7 @@ export async function runNotificationsChannelAdd(
 		}
 		return { status: dryRun ? "dry-run" : "ok", channel };
 	} catch (err) {
-		const message = describeProviderError(err);
+		const message = describeError(err);
 		print(`  ${style.fail(message)}`);
 		logger.warn({ channel: input.name, reason: logReason(err) }, `notifications channel add: ${input.name}`);
 		return { status: "fail", message };

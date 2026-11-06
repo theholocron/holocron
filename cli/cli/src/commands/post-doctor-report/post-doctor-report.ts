@@ -1,5 +1,6 @@
+import { describeError, sanitizeDetail } from "@theholocron/kyber/ui";
+
 import type { Notifications } from "../../plugin/index.js";
-import { describeProviderError, sanitizeDetail } from "../../ui/provider-error/index.js";
 import type { DoctorNotificationsReport } from "../doctor-notifications/doctor-notifications.type.js";
 import { formatDoctorPost } from "../format-doctor-post/index.js";
 
@@ -20,6 +21,6 @@ export async function postDoctorReport(
 		await notifications.postMessage(channel, formatDoctorPost(report, name));
 		return `posted to #${sanitizeDetail(channel)}`;
 	} catch (err) {
-		return `not posted: ${sanitizeDetail(describeProviderError(err))}`;
+		return `not posted: ${sanitizeDetail(describeError(err))}`;
 	}
 }

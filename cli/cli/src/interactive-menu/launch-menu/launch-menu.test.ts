@@ -28,7 +28,7 @@ const { COMMAND_REGISTRY, getEntry } = await import("../command-registry/index.j
 const { BACK } = await import("../menu-items/index.js");
 const { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR, launchMenu, shouldPreviewDryRun } =
 	await import("../launch-menu/index.js");
-const { NonInteractiveError } = await import("../../ui/index.js");
+const { NonInteractiveError } = await import("@theholocron/kyber/ui");
 
 function setTTY(value: boolean): void {
 	Object.defineProperty(process.stdin, "isTTY", { value, configurable: true });

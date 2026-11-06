@@ -13,8 +13,8 @@ vi.mock("node:fs", async (importActual) => ({ ...(await importActual<typeof impo
 vi.mock("../monitoring-check/index.js", () => ({ runMonitoringCheck }));
 vi.mock("../monitoring-run-resolved/index.js", () => ({ resolveVercelBypassHeaders, runMonitoringRunResolved }));
 vi.mock("../monitoring-resolve-checks/index.js", () => ({ runMonitoringResolveChecks }));
-vi.mock("../../ui/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../ui/index.js")>()),
+vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
+	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
 	promptForPositionals: async (_e: unknown, argv: Record<string, unknown>) => [argv["url"]],
 }));
 vi.mock("../../cli-support/index.js", async (importActual) => ({

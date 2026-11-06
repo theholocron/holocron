@@ -12,6 +12,7 @@
  */
 
 import { input as prompt } from "@inquirer/prompts";
+import { createProgress, describeError, logReason, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -30,8 +31,6 @@ import {
 	type Secrets,
 	type Workers,
 } from "../../plugin/index.js";
-import { createProgress, style } from "../../ui/index.js";
-import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import {
 	assertSecretsReachable,
 	describeAvatarSource,
@@ -513,7 +512,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 		try {
 			await notifications.preflight(layout);
 		} catch (err) {
-			return refuse(describeProviderError(err), logReason(err));
+			return refuse(describeError(err), logReason(err));
 		}
 	}
 
@@ -529,7 +528,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 			await progress.run(`${step}…`, fn);
 			return true;
 		} catch (err) {
-			const message = describeProviderError(err);
+			const message = describeError(err);
 			print(`  ${style.fail(`${step}: ${message}`)}`);
 			report.failures.push({ step, message });
 			return false;

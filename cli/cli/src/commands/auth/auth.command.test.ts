@@ -11,7 +11,7 @@ vi.mock("../../config/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../config/index.js")>()),
 	loadConfig,
 }));
-vi.mock("../../ui/index.js", () => ({
+vi.mock("@theholocron/kyber/prompts", () => ({
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["provider"]],
 }));
 vi.mock("../../interactive-menu/index.js", async (importActual) => ({

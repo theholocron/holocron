@@ -1,4 +1,5 @@
-import type { OptionAnswer, OptionPrompt, ResolvedOptions } from "../../ui/index.js";
+import { type OptionAnswer, type OptionPrompt, type ResolvedOptions } from "@theholocron/kyber/prompts";
+
 import type { CommandEntry } from "../command-registry/index.js";
 
 /**

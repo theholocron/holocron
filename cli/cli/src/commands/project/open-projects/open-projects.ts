@@ -1,7 +1,8 @@
+import { withSpinner } from "@theholocron/kyber/ui";
+import { describeError } from "@theholocron/kyber/ui";
+
 import { ConfigError } from "../../../config/index.js";
 import { assertPluginsResolvable, PluginLoader } from "../../../plugin/index.js";
-import { withSpinner } from "../../../ui/index.js";
-import { describeProviderError } from "../../../ui/provider-error/index.js";
 import { resolveProjectOptions } from "../project-options/index.js";
 import type { OpenedProjects, ProjectRunInput } from "./open-projects.type.js";
 
@@ -24,7 +25,7 @@ export async function openProjects(input: ProjectRunInput, command: string): Pro
 		const failure = loader.loadFailures().find((f) => f.key === "projects");
 		throw new ConfigError(
 			`${command}: the \`projects\` provider is not available${
-				failure ? ` (\`${failure.provider}\` failed to load: ${describeProviderError(failure.error)})` : ""
+				failure ? ` (\`${failure.provider}\` failed to load: ${describeError(failure.error)})` : ""
 			}`
 		);
 	}

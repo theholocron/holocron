@@ -1,8 +1,8 @@
+import { viewJson } from "@theholocron/kyber/ui";
 import type { CommandModule } from "yargs";
 
 import type { GlobalArgs } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
-import { viewJson } from "../../ui/index.js";
 import { type ConfigShowArgs, configShowArgs } from "./config-show.args.js";
 
 export const configShowCommand: CommandModule<GlobalArgs, ConfigShowArgs> = {

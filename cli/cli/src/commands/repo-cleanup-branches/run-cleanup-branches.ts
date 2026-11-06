@@ -1,9 +1,9 @@
 import { checkbox, confirm, Separator } from "@inquirer/prompts";
+import { NonInteractiveError, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
-import { NonInteractiveError, style } from "../../ui/index.js";
 import { classifyBranches } from "./classify-branches.js";
 import { BASE_BRANCHES } from "./constants.js";
 import { groupBranches } from "./group-branches.js";

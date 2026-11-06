@@ -25,6 +25,7 @@ import { createAstromech, isTask, readWorkspacePackages } from "@theholocron/ast
 import type { TasksConfig } from "@theholocron/astromech/config";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
+import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { AuthError, createFeatureResolver } from "../../auth/index.js";
@@ -47,7 +48,6 @@ import {
 	type Wiki,
 	type Workers,
 } from "../../plugin/index.js";
-import { style, withSpinner } from "../../ui/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";

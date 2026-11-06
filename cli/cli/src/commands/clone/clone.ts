@@ -3,10 +3,10 @@ import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { statusRow, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { statusRow, style } from "../../ui/index.js";
 import type { CloneReport, CloneTarget, ExecFn, GitHubRepo, RunCloneInput, WholeOrgScope } from "./clone.type.js";
 
 /**

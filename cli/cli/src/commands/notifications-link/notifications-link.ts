@@ -11,12 +11,11 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 
+import { describeError, logReason, style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Notifications, PluginLoader, type Source } from "../../plugin/index.js";
-import { style } from "../../ui/index.js";
-import { describeProviderError, logReason } from "../../ui/provider-error/index.js";
 import { notificationProviders, pickProvider, whyMissing } from "../notifications-channel-add/index.js";
 import { linksLocation, serializeLinks, upsertLink } from "../notifications-sync-roles/links.js";
 import { readLinks } from "../notifications-sync-roles/notifications-sync-roles.js";
@@ -184,6 +183,6 @@ export async function runNotificationsLink(input: RunNotificationsLinkInput): Pr
 			linked: { github: who.github.id, login: who.github.login, member: who.member, changed: outcome.changed },
 		};
 	} catch (err) {
-		return refuse(describeProviderError(err), logReason(err));
+		return refuse(describeError(err), logReason(err));
 	}
 }
