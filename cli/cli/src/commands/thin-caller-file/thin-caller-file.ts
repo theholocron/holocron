@@ -5,7 +5,7 @@ import { createHeader } from "@theholocron/astromech";
 // bytes: the workflow-sync automation (platform.repoSync) runs `repo sync`, so that is what every consumer
 // repo's committed workflows already say, and naming it here means a run of either command leaves them as they are.
 const { workflowHeader } = createHeader({
-	source: "cli/astromech/src/thin-callers.ts",
+	source: "cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts",
 	tool: "holocron repo sync",
 });
 

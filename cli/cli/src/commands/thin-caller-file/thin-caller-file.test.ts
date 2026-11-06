@@ -7,7 +7,7 @@ describe("thinCallerFile", () => {
 		expect(thinCallerFile("apps/web", "name: CI\non: push\n")).toBe(
 			[
 				"# AUTO-GENERATED — do not edit directly.",
-				"# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts",
+				"# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts",
 				"# Tool:    holocron repo sync",
 				"# Changes: edit source in theholocron/holocron",
 				"# Source package: apps/web",
