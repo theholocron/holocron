@@ -13,17 +13,17 @@ It is a published package: `@theholocron/cli` depends on it like any other, and 
 
 A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`, `ora`, `@inquirer/prompts`, `yargs`, `dotenv`, `clipboardy`, `@napi-rs/keyring`, `@theholocron/datapad`, `@theholocron/observability`) are optional peer dependencies, so it installs only those.
 
-| Subpath                            | What it gives a CLI                                                                                       |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [`/ui`](#ui)                       | Status glyphs and colours, status rows, check rows, a JSON view, a spinner, retry notice, wait-for-Enter  |
-| [`/prompts`](#prompts)             | A searchable menu and prompts for the positionals and options a command left out                          |
-| [`/menu`](#menu)                   | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                   |
-| [`/notifier`](#notifier)           | A cached "a newer version exists" notice for an npm package                                               |
-| [`/secrets`](#secrets)             | Owner-only token files, shredding, git-ignore checks, dotenv, the clipboard, the OS keyring               |
-| [`/testing`](#testing)             | A harness for a built CLI and for a single yargs command                                                  |
-| [`/config`](#config)               | A `<name>.config.*` file: `defineConfig`, a loader that walks up to `.git`, `compose()` and `ConfigError` |
-| [`/observability`](#observability) | A logger with a flag, env and config level chain, and Sentry and PostHog telemetry with an opt-out        |
-| [`/flags`](#flags)                 | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something            |
+| Subpath                            | What it gives a CLI                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [`/ui`](#ui)                       | Status glyphs and colours, status rows, check rows, a JSON view, a spinner, retry notice, wait-for-Enter                 |
+| [`/prompts`](#prompts)             | A searchable menu and prompts for the positionals and options a command left out                                         |
+| [`/menu`](#menu)                   | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                                  |
+| [`/notifier`](#notifier)           | A cached "a newer version exists" notice for an npm package                                                              |
+| [`/secrets`](#secrets)             | Owner-only token files, shredding, the import-then-delete step, git-ignore checks, dotenv, the clipboard, the OS keyring |
+| [`/testing`](#testing)             | A harness for a built CLI and for a single yargs command                                                                 |
+| [`/config`](#config)               | A `<name>.config.*` file: `defineConfig`, a loader that walks up to `.git`, `compose()` and `ConfigError`                |
+| [`/observability`](#observability) | A logger with a flag, env and config level chain, and Sentry and PostHog telemetry with an opt-out                       |
+| [`/flags`](#flags)                 | `--dry-run`, `--token` and `--cwd` declared once, and a bare command group that does something                           |
 
 ## `/ui`
 
@@ -122,13 +122,14 @@ It asks the npm registry at most once a day, never throws, and says nothing in C
 
 ## `/secrets`
 
-For any project that handles tokens. It has no terminal UI and no Holocron name in it.
+For any project that handles tokens. It has no Holocron name in it; the one prompt, `finishCredentialsFile`'s wait for Enter, comes from `/ui`.
 
 ```ts
 import {
   createKeyring,
   createResolveToken,
   dotenvLine,
+  finishCredentialsFile,
   isGitIgnored,
   shredFile,
   writeCredentialsFile,
@@ -138,6 +139,16 @@ if (isGitIgnored(".credentials") === "tracked") throw new Error("git would track
 const file = writeCredentialsFile(".credentials", `${dotenvLine("TOKEN", token)}\n`); // mode 0600, never overwrites
 // ...once the tokens have been imported elsewhere...
 shredFile(".credentials", file); // zeroes the contents, then removes the path only if it is still that file
+
+// or: say how to import it, wait for Enter, then shred it (also on Ctrl-C, SIGTERM, SIGHUP, or if the wait throws)
+await finishCredentialsFile({
+  path: ".credentials",
+  identity: file,
+  print: console.error,
+  holds: "your tokens",
+  importHint: "import it in the password manager",
+  interactive: process.stdin.isTTY, // without a terminal the file is left, with a warning to delete it
+});
 
 const keyring = createKeyring({ service: "com.example.tool" });
 keyring.set("github", token); // best-effort: false, not an exception, where there is no keyring

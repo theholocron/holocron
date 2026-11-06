@@ -18,12 +18,6 @@ vi.mock("../../auth.js", async (importActual) => {
 	return { ...actual, keyring: { ...actual.keyring, get: () => null, isAvailable: () => true } };
 });
 
-const waitForEnter = vi.hoisted(() => vi.fn(async (_message: string) => {}));
-vi.mock("@theholocron/kyber/ui", async (importActual) => ({
-	...(await importActual<typeof import("@theholocron/kyber/ui")>()),
-	waitForEnter,
-}));
-
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
 import type { AuthImporter } from "../auth/index.js";
@@ -799,12 +793,12 @@ describe("auth export — the private file", () => {
 		expect(out).toEqual([]);
 	});
 
-	it("uses the real writer, git check and remover, and the terminal prompt, by default", async () => {
+	it("uses the real writer, git check and remover by default, and waits for the import", async () => {
 		const { here, file } = fresh();
-		waitForEnter.mockClear();
-		const { result } = run({ outKind: "terminal", interactive: true, loaded: here });
+		const waitForImport = vi.fn(async () => {});
+		const { result } = run({ outKind: "terminal", interactive: true, loaded: here, waitForImport });
 		expect((await result).status).toBe("ok");
-		expect(waitForEnter).toHaveBeenCalledOnce();
+		expect(waitForImport).toHaveBeenCalledOnce();
 		// Not a git repository, so there is no objection, and the real remover has deleted it.
 		expect(existsSync(file)).toBe(false);
 	});
