@@ -1,3 +1,13 @@
+## [5.0.0-alpha.346](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.345...v5.0.0-alpha.346) (2026-11-06)
+
+### Features
+
+* **kyber:** ✨ add a plugin system under /plugins ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1803](https://github.com/theholocron/holocron/issues/1803)) ([9f00d23](https://github.com/theholocron/holocron/commit/9f00d238dc1a045fea4386ba7ced2d34c9e5f3c8))
+
+### Refactoring
+
+* **astromech:** ♻️ move generic Node upgrade to astromech/upgrade ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1794](https://github.com/theholocron/holocron/issues/1794)) ([05cd347](https://github.com/theholocron/holocron/commit/05cd347c5f9b38a83436d2fdec9c5db14c934d9c))
+
 ## [5.0.0-alpha.345](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.344...v5.0.0-alpha.345) (2026-11-06)
 
 ### Refactoring
