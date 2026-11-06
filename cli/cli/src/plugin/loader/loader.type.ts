@@ -1,4 +1,6 @@
-import type { CapabilityKey } from "../capabilities/index.js";
+import type { PluginImporter as KyberPluginImporter } from "@theholocron/kyber/plugins";
+
+import type { CapabilityImpls, CapabilityKey, CardinalityFor } from "../capabilities/index.js";
 import type { PluginProbes } from "../probe/index.js";
 
 /**
@@ -38,33 +40,19 @@ export interface RuntimeContext {
 	org?: string;
 }
 
-/**
- * The shape every plugin's default-or-named export must satisfy:
- * `createPlugin(opts)` returns an object with capability factories.
- */
-export interface LoadedPlugin {
-	name: string;
+/** Holocron's capabilities as the shape kyber's plugin loader is typed by: each key's cardinality and interface. */
+export type HolocronCapabilities = {
+	[K in CapabilityKey]: { cardinality: CardinalityFor<K>; impl: CapabilityImpls[K] };
+};
+
+/** What a Holocron plugin carries next to its capabilities. */
+export interface PluginExtras {
 	/** Things to poke at on demand (`holocron probe <provider> <probe>`); optional. */
 	probes?: PluginProbes;
-	capabilities: Partial<{
-		[K in CapabilityKey]: () => unknown;
-	}>;
-}
-
-export interface PluginModule {
-	createPlugin: (opts: Record<string, unknown>) => LoadedPlugin;
 }
 
 /** Returns `unknown` — the loader type-narrows inside `loadOne`. */
-export type PluginImporter = (packageName: string) => Promise<unknown>;
-
-/** A provider that could not be loaded — missing token, bad package, unimplemented capability. */
-export interface PluginLoadFailure {
-	key: CapabilityKey;
-	provider: string;
-	packageName: string;
-	error: Error;
-}
+export type PluginImporter = KyberPluginImporter;
 
 /** Options for {@link PluginLoader}. */
 export interface PluginLoaderOptions {

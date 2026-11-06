@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { resolveConfig } from "../../config/config/index.js";
 import { type PluginImporter, PluginLoader } from "../loader/index.js";
-import { assertPluginsResolvable, isModuleNotFound, WorkspaceContextError } from "./workspace.js";
+import { assertPluginsResolvable, WorkspaceContextError } from "./workspace.js";
 
 function loaderWith(rawConfig: Parameters<typeof resolveConfig>[0], modules: Record<string, unknown>) {
 	const config = resolveConfig(rawConfig);
@@ -25,27 +25,6 @@ function makePlugin(name: string, caps: Record<string, unknown>) {
 		}),
 	};
 }
-
-describe("isModuleNotFound", () => {
-	it("matches ERR_MODULE_NOT_FOUND by code", () => {
-		const err = Object.assign(new Error("nope"), { code: "ERR_MODULE_NOT_FOUND" });
-		expect(isModuleNotFound(err)).toBe(true);
-	});
-
-	it("matches the 'Cannot find package' message", () => {
-		expect(isModuleNotFound(new Error("Cannot find package '@x/y' imported from z"))).toBe(true);
-	});
-
-	it("matches a bare MODULE_NOT_FOUND string", () => {
-		expect(isModuleNotFound(new Error("MODULE_NOT_FOUND"))).toBe(true);
-	});
-
-	it("is false for an unrelated error and for non-errors", () => {
-		expect(isModuleNotFound(new Error("no Vercel token found"))).toBe(false);
-		expect(isModuleNotFound("Cannot find package")).toBe(false);
-		expect(isModuleNotFound(undefined)).toBe(false);
-	});
-});
 
 describe("WorkspaceContextError", () => {
 	it("falls back to a generic subject when no package names are known", () => {

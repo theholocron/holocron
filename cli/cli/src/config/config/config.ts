@@ -1,4 +1,5 @@
 import { ConfigError } from "@theholocron/kyber/config";
+import { resolvePluginPackage as resolvePackage } from "@theholocron/kyber/plugins";
 
 import {
 	type CapabilityKey,
@@ -42,10 +43,7 @@ const COMMUNITY_PREFIX = "holocron-plugin-";
  */
 export function resolvePluginPackage(provider: string): string {
 	if (!provider) throw new ConfigError("provider name is empty");
-	if (provider.startsWith("@")) return provider;
-	if (provider.startsWith(COMMUNITY_PREFIX)) return provider;
-	if (provider.includes("/")) return provider;
-	return PLUGIN_PREFIX + provider;
+	return resolvePackage(provider, PLUGIN_PREFIX, COMMUNITY_PREFIX);
 }
 
 /** A bare `[provider, options]` tuple, with both elements present? */

@@ -45,6 +45,11 @@
       "import": "./dist/observability.mjs",
       "default": "./dist/observability.mjs"
     },
+    "./plugins": {
+      "types": "./dist/plugins.d.mts",
+      "import": "./dist/plugins.mjs",
+      "default": "./dist/plugins.mjs"
+    },
     "./prompts": {
       "types": "./dist/prompts.d.mts",
       "import": "./dist/prompts.mjs",
