@@ -1,3 +1,17 @@
+## [5.0.0-alpha.353](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.352...v5.0.0-alpha.353) (2026-11-06)
+
+### Features
+
+* **cli:** ✨ add an org area to .holocron that fills provider options ([#1820](https://github.com/theholocron/holocron/issues/1820)) ([#1823](https://github.com/theholocron/holocron/issues/1823)) ([621ebbb](https://github.com/theholocron/holocron/commit/621ebbb065a916461e29505bef9cd065eb303c50))
+
+### Refactoring
+
+* **plugins:** ♻️ read the environment through env-utils ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1821](https://github.com/theholocron/holocron/issues/1821)) ([5be91d5](https://github.com/theholocron/holocron/commit/5be91d57cc3d861de0d5ad31f72ef19d42fbf054))
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#1819](https://github.com/theholocron/holocron/issues/1819)) ([b579ffc](https://github.com/theholocron/holocron/commit/b579ffc44dc20cfd8a9698b7b4c9438ad16ebcb8))
+
 ## [5.0.0-alpha.352](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.351...v5.0.0-alpha.352) (2026-11-06)
 
 ### Features
