@@ -361,8 +361,9 @@ not object destructuring.
   and `plugin/` directories also have a root `index.ts` that re-exports
   their folders, and code outside the directory imports through it
   (`../auth/index.js`). `config/` and `plugin/` import each other, so between
-  those two the specific folder barrels are used; going through both root
-  barrels would create a runtime import cycle. `src/index.ts` keeps its own
+  those two the specific folder barrels are used (`config/config/index.js`,
+  or the `config/config-system.js` file for `defineConfig`/`loadConfig`/`compose`);
+  going through both root barrels would create a runtime import cycle. `src/index.ts` keeps its own
   curated exports and does not use the root barrels. Modules with no types
   still get their own folder (implementation, test, `index.ts`) so a directory is
   consistently folders; no empty `*.type.ts`. In `astromech`, `config/` and

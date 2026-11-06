@@ -21,7 +21,7 @@ export { CLOUDFLARE_ACCOUNT_ID } from "./constants.js";
 
 // ── compose() — re-exported from the CLI for convenience ────────────────────
 export type { Capability, ComposedPreset } from "../config/compose/index.js";
-export { compose } from "../config/compose/index.js";
+export { compose } from "../config/config-system.js";
 
 // ── Capability factories ────────────────────────────────────────────────────
 /** The capability factories, for composing your own preset with compose(). */

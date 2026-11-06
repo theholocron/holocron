@@ -790,9 +790,10 @@ the local override exists to exempt.
   providers implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
   `CapabilityConfigPackage`
-- `src/config/load-config.ts` — `loadConfig` — reads `holocron.config.*`
-  (file discovery via [`@theholocron/datapad`](../datapad))
-- `src/define-config.ts` — `defineConfig` typed pass-through
+- `src/config/config-system.ts` — `defineConfig`, `loadConfig` (reads `holocron.config.*`;
+  file discovery via [`@theholocron/datapad`](../datapad)) and `compose`, all built from
+  kyber's `createConfigSystem`; Holocron's own rules sit beside it in `config/config`,
+  `compose/{merge-*,task-name}` and `load-config/{derive-defaults,read-package-json-name}`
 - `src/observability/logger.ts` — CLI-side `@theholocron/observability/logger` wiring
   (`buildCliLogger`, `resolveLogLevel`)
 - `src/loader.ts` — `PluginLoader` — dynamic-imports plugins, resolves
