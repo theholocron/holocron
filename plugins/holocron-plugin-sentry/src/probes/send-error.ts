@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 
 import type { Probe } from "@theholocron/cli";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 
 import { requireOrg, type SentryProbeDeps } from "./probe-deps.type.js";
 
 /** Which DSN to send to: `SENTRY_DSN`, else the first client key of the project named in `HOLOCRON_SENTRY_PROBE_PROJECT`. */
 async function dsnFor(deps: SentryProbeDeps): Promise<string> {
-	const env = deps.env ?? process.env;
-	if (env["SENTRY_DSN"]) return env["SENTRY_DSN"];
-	const project = env["HOLOCRON_SENTRY_PROBE_PROJECT"];
+	const env = createEnvLookup(deps.env);
+	const configured = env.get("SENTRY_DSN");
+	if (configured) return configured;
+	const project = env.get("HOLOCRON_SENTRY_PROBE_PROJECT");
 	if (!project) {
 		throw new Error(
 			"set SENTRY_DSN, or HOLOCRON_SENTRY_PROBE_PROJECT to a project slug, to say where to send the error"

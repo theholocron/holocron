@@ -42,6 +42,7 @@
     "@theholocron/cloudflare-client": "workspace:^",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/http-client": "workspace:^",
+    "@theholocron/kyber": "workspace:*",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",

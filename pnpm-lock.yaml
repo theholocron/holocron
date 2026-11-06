@@ -2675,6 +2675,10 @@ importers:
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   plugins/holocron-plugin-axiom:
+    dependencies:
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
     devDependencies:
       '@theholocron/axiom-client':
         specifier: workspace:^
@@ -2732,6 +2736,10 @@ importers:
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   plugins/holocron-plugin-checkly:
+    dependencies:
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
     devDependencies:
       '@theholocron/checkly-client':
         specifier: workspace:^
@@ -2844,6 +2852,9 @@ importers:
       '@theholocron/http-client':
         specifier: workspace:^
         version: link:../../clients/http-client
+      '@theholocron/kyber':
+        specifier: workspace:*
+        version: link:../../cli/kyber
       '@theholocron/misc-utils':
         specifier: workspace:^
         version: link:../../utils/misc-utils
@@ -3398,6 +3409,10 @@ importers:
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   plugins/holocron-plugin-sentry:
+    dependencies:
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
     devDependencies:
       '@theholocron/cli':
         specifier: workspace:*

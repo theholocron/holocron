@@ -10,5 +10,6 @@ export * from "./git-ignored/index.js";
 export * from "./keyring/index.js";
 export * from "./private-file/index.js";
 export * from "./resolve-token/index.js";
+export * from "./resolve-value/index.js";
 export * from "./shred-file/index.js";
 export * from "./token-args/index.js";

@@ -37,6 +37,9 @@
     "typecheck": "tsc --noEmit",
     "validate:plugin": "tsx scripts/validate.mjs"
   },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
   "devDependencies": {
     "@theholocron/checkly-client": "workspace:^",
     "@theholocron/cli": "workspace:*",

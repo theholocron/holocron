@@ -2,6 +2,27 @@ import { library } from "@theholocron/eslint-config/bundles/library";
 import { vitest } from "@theholocron/eslint-config/vitest";
 import type { Linter } from "eslint";
 
+/**
+ * A plugin's source reads the environment through `@theholocron/env-utils/lookup` (`createEnvLookup`, `firstEnv`) or,
+ * for a value the `credentials` providers may hold, `resolveValue` from `@theholocron/cli`, never `process.env`. Each
+ * plugin's own `eslint.config.ts` adds this (its `files` are relative to the plugin); tests and scripts may use it.
+ */
+export const noProcessEnv = {
+	files: ["src/**/*.ts"],
+	ignores: ["**/*.test.ts"],
+	rules: {
+		"no-restricted-properties": [
+			"error",
+			{
+				object: "process",
+				property: "env",
+				message:
+					'Read the environment through "@theholocron/env-utils/lookup" (or resolveValue from "@theholocron/cli"), not process.env.',
+			},
+		],
+	},
+} satisfies Linter.Config;
+
 export default [
 	...library(),
 	...vitest(),

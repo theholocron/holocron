@@ -34,13 +34,13 @@ providers: {
 }
 ```
 
-The `deployment` capability is enabled automatically when `CLOUDFLARE_ACCOUNT_ID` is set in the environment (or passed as `accountId` in plugin options).
+The `deployment` capability is enabled automatically when `CLOUDFLARE_ACCOUNT_ID` is set in the environment or in a `credentials` provider's Environment (or passed as `accountId` in plugin options).
 
 ### Options
 
-| Option      | Required | Description                                                                                                 |
-| ----------- | -------- | ----------------------------------------------------------------------------------------------------------- |
-| `accountId` | No       | Cloudflare account ID. Falls back to `CLOUDFLARE_ACCOUNT_ID` env var. Required for `deployment` capability. |
+| Option      | Required | Description                                                                                                                                                                                               |
+| ----------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `accountId` | No       | Cloudflare account ID. Falls back to `CLOUDFLARE_ACCOUNT_ID` in the environment, then in the variables a `credentials` provider (a 1Password Environment) returned. Required for `deployment` capability. |
 
 ## Authentication
 
@@ -69,6 +69,8 @@ For Pages deployments, also set the account ID:
 ```bash
 export CLOUDFLARE_ACCOUNT_ID=<ACCOUNT_ID>
 ```
+
+Or keep it in the 1Password Environment a `providers.credentials` entry names, and it is found the same way the token is, with no copy in the process environment. The order is the `accountId` option, the environment, then the credentials providers.
 
 ## What `dns` provides
 
