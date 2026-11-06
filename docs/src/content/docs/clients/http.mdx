@@ -3,7 +3,7 @@ title: HTTP Client (base)
 description: Shared HTTP primitives used by all @theholocron clients.
 ---
 
-`@theholocron/http-client` is the base layer for all other clients in this monorepo. It provides a thin fetch-based REST client with token resolution and normalised error handling.
+`@theholocron/http-client` is the base layer for all other clients in this monorepo. It provides a thin fetch-based REST client with normalised error handling.
 
 ## Installation
 
@@ -31,7 +31,6 @@ try {
 }
 ```
 
-Tokens resolve in order: the `--token` flag, a `HOLOCRON_*` env var, the vendor's own env var, the keyring entry
-`<service>.<org>`, then the keyring entry `<service>`. `createResolveToken` throws `AuthError` when none has one.
+Token finding is not part of this package; it lives in `@theholocron/kyber/secrets`.
 
 The full [API reference](/holocron/clients/http-client/api/readme/) is generated from the package's TSDoc comments.

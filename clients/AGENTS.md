@@ -9,8 +9,7 @@ and plugins consume these packages (`Consuming packages from clients/`). To add 
 
 - `@theholocron/http-client` is the canonical home for shared HTTP primitives (`createRestClient`,
   `ProviderApiError`). Every other client depends on it with `workspace:^`; do not re-implement them. Finding a token
-  (`createResolveToken`, `AuthError`) is not an HTTP concern: it lives in `@theholocron/kyber/secrets`, and http-client's
-  copy is deprecated.
+  (`createResolveToken`, `AuthError`) is not an HTTP concern: token finding lives in `@theholocron/kyber/secrets`.
 - **Tests inject fetch, they do not stub the global.** `stubFetch` comes from `@theholocron/http-client/testing`
   (published). A client may keep a `src/test-helpers.ts` for its own fixtures (such as `TOKEN`) and re-export
   `stubFetch` from there.

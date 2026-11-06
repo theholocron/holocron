@@ -1464,9 +1464,6 @@ importers:
 
   clients/http-client:
     dependencies:
-      '@theholocron/env-utils':
-        specifier: workspace:^
-        version: link:../../utils/env-utils
       '@theholocron/observability':
         specifier: workspace:^
         version: link:../../observability
