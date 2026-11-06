@@ -1,11 +1,11 @@
-// Re-exported from @theholocron/http — the canonical home for HTTP primitives.
-// createResolveToken is wrapped here to inject the keyring backend so plugins
-// don't need to pass it explicitly.
-import { AuthError, createResolveToken as _createResolveToken, type ResolveTokenInput } from "@theholocron/http-client";
-import { getCredential } from "@theholocron/kyber/secrets";
+import {
+	AuthError,
+	createFeatureResolver as createKyberFeatureResolver,
+	createResolveToken as createKyberResolveToken,
+	type ResolveTokenInput,
+} from "@theholocron/kyber/secrets";
 
-import { makeEnv } from "../../env/index.js";
-import { getToken as getKeyringToken } from "../keyring/index.js";
+import { getToken } from "../keyring/index.js";
 import type {
 	FeatureResolver,
 	FeatureResolverConfig,
@@ -15,38 +15,30 @@ import type {
 
 export { AuthError, type ResolveTokenInput };
 
-/** Wraps `createResolveToken` from `@theholocron/http` and injects the
- *  system keyring so plugins stay at a one-liner call site. */
+/**
+ * Kyber's `createResolveToken` with the keyring, the `HOLOCRON_ORG` variable and the `token` description
+ * `holocron doctor tokens` reads filled in, so a plugin stays at a one-liner call site. The chain is the flag, the
+ * plugin's variable, the vendor's variable, the `credentials` providers' variables, the keyring.
+ */
 export function createResolveToken(config: ResolveTokenConfig): TokenResolver {
-	// The resolver asks this only after the flag and the environment, which is where the `credentials` providers
-	// belong: the stored variable of the same name, then the keyring.
-	const storedOrKeyring = (provider: string): string | null =>
-		getCredential(config.envName, config.vendorEnvName) ?? getKeyringToken(provider);
-	return Object.assign(_createResolveToken({ ...config, getKeyringToken: storedOrKeyring }), {
+	return Object.assign(createKyberResolveToken({ ...config, keyring: getToken, orgEnvName: "HOLOCRON_ORG" }), {
 		token: { envName: config.envName, vendorEnvName: config.vendorEnvName, keyringKey: config.keyringService },
 	});
 }
 
 /**
- * Build a strict, single-feature token resolver.
- *
- * Resolution chain: `--token flag → envName env var → the `credentials` providers' envName → keyring(keyringKey)`.
- * No broad-token fallback — if the feature-specific token is absent the
- * operation fails with a message naming the exact env var to set.
+ * Kyber's `createFeatureResolver` for a strict, single-feature token: the flag, the feature's variable, the
+ * `credentials` providers' variable of that name, the keyring. No broad-token fallback; if the feature's token is absent
+ * the operation fails with a message naming the exact variable to set and `holocron auth set`.
  */
 export function createFeatureResolver(config: FeatureResolverConfig): FeatureResolver {
-	const resolveFeatureToken = (input: ResolveTokenInput = {}): string => {
-		const env = makeEnv(input.env);
-		const keyring =
-			input.keyring ?? ((provider: string) => getCredential(config.envName) ?? getKeyringToken(provider));
-		const token = input.cliToken || env.get(config.envName) || keyring(config.keyringKey);
-		if (!token) {
-			throw new AuthError(
-				`no ${config.vendor ?? "GitHub"} token found for this operation. Pass --token <token>, ` +
-					`set ${config.envName}, or run: holocron auth set ${config.keyringKey} <token>`
-			);
-		}
-		return token;
-	};
-	return Object.assign(resolveFeatureToken, { token: { envName: config.envName, keyringKey: config.keyringKey } });
+	return Object.assign(
+		createKyberFeatureResolver({
+			...config,
+			vendor: config.vendor ?? "GitHub",
+			setCommand: (key) => `holocron auth set ${key} <token>`,
+			keyring: getToken,
+		}),
+		{ token: { envName: config.envName, keyringKey: config.keyringKey } }
+	);
 }

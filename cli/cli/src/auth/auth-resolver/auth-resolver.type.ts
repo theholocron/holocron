@@ -1,10 +1,9 @@
-import type { ResolveTokenInput } from "@theholocron/http-client";
-import { type ResolveTokenConfig as _ResolveTokenConfig } from "@theholocron/http-client";
+import type { ResolveTokenConfig as KyberResolveTokenConfig, ResolveTokenInput } from "@theholocron/kyber/secrets";
 
 import type { PluginToken } from "../../commands/auth/index.js";
 
 /** Options for a token resolver, without the keyring lookup, which the CLI supplies itself. */
-export type ResolveTokenConfig = Omit<_ResolveTokenConfig, "getKeyringToken">;
+export type ResolveTokenConfig = Omit<KyberResolveTokenConfig, "keyring" | "orgEnvName">;
 
 /** Settings for a feature-specific token resolver: which env var and keyring entry it reads. */
 export interface FeatureResolverConfig {
