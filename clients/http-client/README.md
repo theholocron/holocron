@@ -2,7 +2,7 @@
 
 # @theholocron/http-client
 
-Shared HTTP primitives for theholocron tooling — REST client factory, token resolver, and base error types. Used internally by `@theholocron/cli` and all plugin packages; publish your own clients on top of it.
+Shared HTTP primitives for theholocron tooling — REST client factory, retry events, and base error types. Used internally by `@theholocron/cli` and all plugin packages; publish your own clients on top of it.
 
 ## Installation
 
@@ -91,40 +91,6 @@ stop();
 
 It is per process, not per client, so nothing has to be handed to each client. It needs one copy of this package in the process (a workspace pins it); with two, the other copy's retries go unseen. A listener that throws is ignored.
 
-### `createResolveToken(config)`
-
-> **Deprecated.** The token resolver, `AuthError` and the input types now live in `@theholocron/kyber/secrets`, which has no dependency on a client library; this copy stays until the next major release.
-
-Factory for the standard token resolution used by all holocron plugins. Resolution order:
-
-1. `cliToken` — value from `--token` CLI flag
-2. `HOLOCRON_*` env var (e.g. `HOLOCRON_EXAMPLE_TOKEN`)
-3. Vendor env var (e.g. `EXAMPLE_TOKEN`)
-4. Keyring `<service>.<org>` — only when an org is active (see `ResolveTokenInput.org`)
-5. Keyring `<service>` — unnamespaced fallback; backward-compatible default
-
-```ts
-import { createResolveToken, AuthError } from "@theholocron/http-client";
-
-export const resolveToken = createResolveToken({
-  envName: "HOLOCRON_EXAMPLE_TOKEN",
-  vendorEnvName: "EXAMPLE_TOKEN",
-  keyringService: "example",
-  errorMessage:
-    "no Example token found. Pass --token <TOKEN>, set HOLOCRON_EXAMPLE_TOKEN / EXAMPLE_TOKEN, " +
-    "or run: holocron auth set example <TOKEN>",
-});
-```
-
-The returned `resolveToken(input?)` function accepts a `ResolveTokenInput`:
-
-| Field      | Type                                   | Description                                                                                                                                        |
-| ---------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cliToken` | `string`                               | Token from `--token` CLI flag; takes highest priority                                                                                              |
-| `env`      | `NodeJS.ProcessEnv`                    | Env vars to consult; defaults to `process.env`                                                                                                     |
-| `keyring`  | `(provider: string) => string \| null` | Keyring lookup fn; defaults to the keyring injected by `@theholocron/cli`                                                                          |
-| `org`      | `string`                               | Active org name; tries `keyring("<service>.<org>")` before the unnamespaced fallback. Also auto-read from `env["HOLOCRON_ORG"]` when not provided. |
-
 ### `ProviderApiError`
 
 Thrown by `createRestClient` on non-2xx responses and transport failures. Carries `status` (HTTP code, `0` for transport failures) and `details` (raw response text).
@@ -140,10 +106,6 @@ try {
   }
 }
 ```
-
-### `AuthError`
-
-Thrown by `createResolveToken` when no token can be found in any of the four resolution steps.
 
 ## License
 
