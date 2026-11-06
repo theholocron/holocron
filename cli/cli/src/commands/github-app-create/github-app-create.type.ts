@@ -1,8 +1,6 @@
+import type { AppManifestServer, ConvertedApp, ServeAppManifestInput } from "@theholocron/dagobah";
 import { type FileIdentity, type GitIgnoreState, type ShredOutcome } from "@theholocron/kyber/secrets";
 import type { Logger } from "@theholocron/observability/core";
-
-import type { ConvertedApp } from "../convert-app-manifest/index.js";
-import type { AppManifestServer, ServeAppManifestInput } from "../serve-app-manifest/index.js";
 
 /** Input for {@link runGithubAppCreate}. */
 export interface RunGithubAppCreateInput {

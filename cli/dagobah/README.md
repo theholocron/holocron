@@ -29,3 +29,9 @@ await serveHandler({
 - `superviseProcesses({ primary, companion })`: runs two processes in the foreground, each with its own extra
   environment; stops one when the other ends; Ctrl-C and a termination signal go to both and are not a failure. Resolves
   `{ exitCode, endedFirst, interrupted }`; rejects naming a program that is missing or cannot start.
+- The GitHub App manifest flow, for creating an App from a manifest file: `buildAppManifest({ base, name, webhookUrl,
+redirectUrl })` checks the shared part and adds the per-instance part (the webhook must be `https`);
+  `appManifestPage(action, manifest)` is the page that posts it to GitHub; `serveAppManifest({ state, page })` is a
+  one-shot loopback server that takes the one-time code (only with its `state`, and only for its own address);
+  `convertAppManifest(code)` exchanges the code for the App's id, private key and webhook secret. Names, permissions
+  and webhook URLs are arguments; nothing is Holocron-specific.

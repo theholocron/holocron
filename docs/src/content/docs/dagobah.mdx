@@ -53,4 +53,15 @@ const { exitCode } = await superviseProcesses({
 
 [`holocron dev`](/holocron/commands/dev/) uses it to run the application beside `cloudflared`.
 
+## The GitHub App manifest flow
+
+Four functions make a GitHub App from a manifest through GitHub's manifest flow. The names, permissions and webhook URL are arguments, so nothing in them is specific to Holocron.
+
+- `buildAppManifest({ base, name, webhookUrl, redirectUrl })` takes the shared part read from a file (`default_permissions`, `default_events`, and optionally `description`, `url`, `public`) and adds the name, webhook and redirect. It throws, naming the problem, when the file or the webhook is not usable; the webhook must be `https`.
+- `appManifestPage(action, manifest)` returns the page that posts the manifest to GitHub.
+- `serveAppManifest({ state, page, timeoutMs })` starts a one-shot server on a random loopback port. `/` shows the page and `/callback` takes the one-time code, only with the `state` it was started with. A request that does not name the server's own address is refused. It resolves `{ url, code, close }`.
+- `convertAppManifest(code)` exchanges the code for the App's id, private key and webhook secret. The code works once and GitHub shows the key once. An error names the status and never the body.
+
+[`holocron github-app create`](/holocron/commands/github-app-create/) is built on them and keeps the credentials file.
+
 Values and tokens are never printed.
