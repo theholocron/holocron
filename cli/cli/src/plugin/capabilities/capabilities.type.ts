@@ -1718,6 +1718,18 @@ export interface NotificationsChannelLayout {
 	 * list, so a post keeps the tags it has.
 	 */
 	tags?: NotificationsForumTag[];
+	/**
+	 * The emoji Discord offers as the first reaction on every post of a forum (Get Started: "Set a default reaction
+	 * for posts"). Only for `kind: "forum"`. Discord allows exactly one per forum, so the rest of a set go in
+	 * {@link NotificationsChannelLayout.starterReactions}. A Unicode emoji (`"👍"`); custom emoji are not supported.
+	 */
+	defaultReaction?: string;
+	/**
+	 * Reactions the bot adds to the first message of each post it makes, so a conversation starts with the ways to
+	 * answer already there (`["✅", "❌", "❓"]` for approve, disapprove, question). Only for `kind: "forum"`. Posts that
+	 * exist are left alone. Reacting needs the Add Reactions permission.
+	 */
+	starterReactions?: string[];
 	/** Who may see and post. Overrides the category's, field by field. */
 	access?: NotificationsAccess;
 	/**
@@ -2043,6 +2055,8 @@ export interface ServerInspection {
 		kind?: "text" | "forum";
 		/** The tags of a forum, in the layout's terms. Absent for a text channel. */
 		tags?: NotificationsForumTag[];
+		/** The default reaction of a forum, as the layout would spell it. Absent when none is set or for a text channel. */
+		defaultReaction?: string;
 		/** Names of the webhooks on the channel. Only filled in for channels the layout gives a webhook or a feed. */
 		webhooks: string[];
 		/** Which of those webhooks have a picture of their own. */
@@ -2146,6 +2160,8 @@ export interface Notifications extends ProviderIdentity {
 		kind?: "text" | "forum";
 		/** The tags of a forum; see {@link NotificationsChannelLayout.tags}. */
 		tags?: NotificationsForumTag[];
+		/** The default reaction of a forum; see {@link NotificationsChannelLayout.defaultReaction}. */
+		defaultReaction?: string;
 	}): Promise<EnsuredResource>;
 	/** Find or create a webhook named `name` on the channel, creating the channel first if it is missing. */
 	ensureWebhook?(input: {

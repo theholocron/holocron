@@ -1992,6 +1992,43 @@ describe("runDoctorNotifications — forum channels", () => {
 		expect(await problems({ kind: "forum", tags: [...TAGS, { name: "custom", moderated: false }] })).toEqual([]);
 	});
 
+	it("compares the forum's default reaction with the layout's, when the layout names one", async () => {
+		const reaction: NotificationsLayout = {
+			categories: [
+				{ name: "BUILD", channels: [{ name: "ideas", kind: "forum", tags: TAGS, defaultReaction: "👍" }] },
+			],
+		};
+		const check = async (channel: object) =>
+			byId(
+				await setup(
+					fakeNotifications({
+						layout: reaction,
+						found: {
+							categories: ["BUILD"],
+							channels: [
+								{
+									name: "ideas",
+									category: "BUILD",
+									webhooks: [],
+									kind: "forum",
+									tags: TAGS,
+									...channel,
+								},
+							],
+							roles: [],
+						},
+					}),
+					{ secretNames: [] }
+				).run(),
+				"channels"
+			).problems;
+		expect(await check({ defaultReaction: "👍" })).toEqual([]);
+		expect(await check({})).toEqual(['#ideas: default reaction is not set but the layout says "👍"']);
+		expect(await check({ defaultReaction: "🔥" })).toEqual([
+			'#ideas: default reaction is "🔥" but the layout says "👍"',
+		]);
+	});
+
 	it("says a text channel is where a forum should be, and the other way round, with the fix", async () => {
 		expect(await problems({})).toEqual([
 			"#ideas: is a text channel, and the layout says forum; delete it so `setup` can make it again",

@@ -262,6 +262,11 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 					`#${shown(channel.name)}: is ${isForum ? "a text channel, and the layout says forum" : "a forum, and the layout says text"}; delete it so \`setup\` can make it again`
 				);
 			} else if (isForum) {
+				if (channel.defaultReaction && (match.defaultReaction ?? "") !== channel.defaultReaction) {
+					channelProblems.push(
+						`#${shown(channel.name)}: default reaction is ${match.defaultReaction ? `"${shown(match.defaultReaction)}"` : "not set"} but the layout says "${shown(channel.defaultReaction)}"`
+					);
+				}
 				for (const tag of channel.tags ?? []) {
 					const have = match.tags?.find((t) => same(t.name, tag.name));
 					if (!have) {

@@ -374,7 +374,13 @@ export class DiscordNotifications implements Notifications {
 				...(category ? { category } : {}),
 				...(c.topic ? { topic: c.topic } : {}),
 				...(c.type === ChannelType.Forum
-					? { kind: "forum" as const, tags: (c.available_tags ?? []).map(DiscordNotifications.tagOf) }
+					? {
+							kind: "forum" as const,
+							tags: (c.available_tags ?? []).map(DiscordNotifications.tagOf),
+							...(c.default_reaction_emoji?.emoji_name
+								? { defaultReaction: c.default_reaction_emoji.emoji_name }
+								: {}),
+						}
 					: {}),
 				webhooks,
 				webhookAvatars,
@@ -1043,6 +1049,10 @@ export class DiscordNotifications implements Notifications {
 			bot: () => this.bot(),
 			guild: () => this.guild(),
 			channels: () => this.channelList(),
+			starterReactions: (channel) =>
+				(this.opts.layout?.categories ?? [])
+					.flatMap((c) => c.channels ?? [])
+					.find((c) => DiscordNotifications.same(c.name, channel))?.starterReactions ?? [],
 		}));
 	}
 
@@ -1893,6 +1903,7 @@ export class DiscordNotifications implements Notifications {
 		access?: NotificationsAccess;
 		kind?: "text" | "forum";
 		tags?: NotificationsForumTag[];
+		defaultReaction?: string;
 	}): Promise<EnsuredResource> {
 		const forum = input.kind === "forum";
 		const parent = input.category ? (await this.ensureCategory(input.category)).id : undefined;
@@ -1916,6 +1927,13 @@ export class DiscordNotifications implements Notifications {
 				patch.available_tags = tags;
 				updated.push("tags");
 			}
+			if (forum && input.defaultReaction !== undefined) {
+				const have = existing.default_reaction_emoji;
+				if (have?.emoji_name !== input.defaultReaction || have.emoji_id) {
+					patch.default_reaction_emoji = { emoji_id: null, emoji_name: input.defaultReaction };
+					updated.push("default reaction");
+				}
+			}
 			if (parent && existing.parent_id !== parent) {
 				patch.parent_id = parent;
 				updated.push("category");
@@ -1935,6 +1953,9 @@ export class DiscordNotifications implements Notifications {
 			name: input.name,
 			type: forum ? ChannelType.Forum : ChannelType.Text,
 			...(forum && input.tags ? { available_tags: input.tags.map((t) => DiscordNotifications.tagInput(t)) } : {}),
+			...(forum && input.defaultReaction
+				? { default_reaction_emoji: { emoji_id: null, emoji_name: input.defaultReaction } }
+				: {}),
 			...(input.topic ? { topic: input.topic } : {}),
 			...(parent ? { parent_id: parent } : {}),
 			...(overwrites ? { permission_overwrites: overwrites } : {}),

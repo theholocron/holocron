@@ -157,11 +157,19 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 		const where = `channel \`${channel.name}\``;
 		if (channel.kind !== "forum") {
 			if (channel.tags) return `${where}: \`tags\` belong to a forum -- set \`kind: "forum"\` or remove them`;
+			if (channel.defaultReaction || channel.starterReactions) {
+				return `${where}: reactions belong to a forum -- set \`kind: "forum"\` or remove them`;
+			}
 			continue;
 		}
 		if (channel.webhook || channel.feeds?.monitoring || channel.feeds?.errors) {
 			return `${where}: a forum takes no \`webhook\` or \`feeds\`; its conversations are posts`;
 		}
+		if (channel.defaultReaction !== undefined && channel.defaultReaction.trim() === "") {
+			return `${where}: \`defaultReaction\` is empty`;
+		}
+		if ((channel.starterReactions ?? []).some((r) => r.trim() === ""))
+			return `${where}: a starter reaction is empty`;
 		const seen = new Set<string>();
 		for (const tag of channel.tags ?? []) {
 			const name = tag.name.trim().toLowerCase();
@@ -640,6 +648,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 							: {}),
 						...(channel.kind ? { kind: channel.kind } : {}),
 						...(channel.tags ? { tags: channel.tags } : {}),
+						...(channel.defaultReaction ? { defaultReaction: channel.defaultReaction } : {}),
 						...(webhook ? { webhook } : {}),
 						...(channel.feeds?.monitoring || channel.feeds?.errors
 							? {

@@ -305,6 +305,12 @@ export function createDiscordBotClient(opts: DiscordBotClientOptions) {
 					method: "PUT",
 					expectNoContent: true,
 				}),
+			/** `PUT /channels/:id/messages/:id/reactions/:emoji/@me` — the bot reacts; a reaction it already has is a no-op. `emoji` is a Unicode emoji or `name:id` for a custom one. */
+			addReaction: (channelId: string, messageId: string, emoji: string): Promise<void> =>
+				rest.request<void>(
+					`/channels/${id(channelId)}/messages/${id(messageId)}/reactions/${encodeURIComponent(emoji)}/@me`,
+					{ method: "PUT", expectNoContent: true }
+				),
 			deleteMessage: (channelId: string, messageId: string): Promise<void> =>
 				rest.request<void>(`/channels/${id(channelId)}/messages/${id(messageId)}`, {
 					method: "DELETE",

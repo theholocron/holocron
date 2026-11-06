@@ -2616,6 +2616,16 @@ describe("forum channels", () => {
 		expect(ensureChannel.mock.calls[1]?.[0]).not.toHaveProperty("tags");
 	});
 
+	it("passes a forum's default reaction to the provider", async () => {
+		const ensureChannel = vi.fn(async (_input: { name: string }) => ({ id: "1", created: true }));
+		const layout = forumLayout({ defaultReaction: "👍", starterReactions: ["👍", "👎"] });
+
+		const report = await setup(fakeNotifications({ layout, ensureChannel })).run();
+
+		expect(report.status).toBe("ok");
+		expect(ensureChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "ideas", defaultReaction: "👍" }));
+	});
+
 	it("refuses an inconsistent forum before anything is created", async () => {
 		const n = fakeNotifications({ layout: forumLayout({ webhook: true }) });
 
@@ -2636,6 +2646,18 @@ describe("forum channels", () => {
 
 		it("accepts a forum with no tags", () => {
 			expect(forumLayoutProblem(forumLayout({ tags: undefined }))).toBeUndefined();
+		});
+
+		it("refuses reactions on a text channel and an empty reaction on a forum", () => {
+			const text = { categories: [{ name: "A", channels: [{ name: "dev", defaultReaction: "👍" }] }] };
+			expect(forumLayoutProblem(text)).toMatch(/channel `dev`: reactions belong to a forum/);
+			expect(forumLayoutProblem(forumLayout({ defaultReaction: " " }))).toMatch(/`defaultReaction` is empty/);
+			expect(forumLayoutProblem(forumLayout({ starterReactions: ["👍", ""] }))).toMatch(
+				/a starter reaction is empty/
+			);
+			expect(
+				forumLayoutProblem(forumLayout({ defaultReaction: "👍", starterReactions: ["👍", "👎"] }))
+			).toBeUndefined();
 		});
 
 		it("refuses tags on a text channel, whether it says so or not", () => {

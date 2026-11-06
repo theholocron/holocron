@@ -248,6 +248,19 @@ export interface DiscordChannel {
 	permission_overwrites?: DiscordPermissionOverwrite[];
 	/** The tags a post in this forum channel can carry; present on forum channels only. */
 	available_tags?: DiscordForumTag[];
+	/** The emoji offered as the first reaction on every post of a forum channel, or `null` when unset. */
+	default_reaction_emoji?: DiscordDefaultReaction | null;
+}
+
+/**
+ * A forum's default reaction: one emoji, which is either a custom emoji (`emoji_id`) or a Unicode one (`emoji_name`).
+ * Discord allows exactly one per forum.
+ */
+export interface DiscordDefaultReaction {
+	/** The id of a custom emoji, or `null` for a Unicode one. */
+	emoji_id: string | null;
+	/** The Unicode emoji, or `null` for a custom one. */
+	emoji_name: string | null;
 }
 
 /** A tag a forum post can carry, with the emoji shown beside its name. */
@@ -375,6 +388,8 @@ export interface CreateChannelInput {
 	permission_overwrites?: DiscordPermissionOverwrite[];
 	/** The tags of a forum channel (`ChannelType.Forum`). */
 	available_tags?: ForumTagInput[];
+	/** The default reaction of a forum channel (`ChannelType.Forum`). */
+	default_reaction_emoji?: DiscordDefaultReaction;
 }
 
 /** `null` clears `topic` or detaches the channel from its category. */
@@ -389,6 +404,8 @@ export interface ModifyChannelInput {
 	permission_overwrites?: DiscordPermissionOverwrite[];
 	/** The full list of a forum channel's tags, replacing the existing ones; give a tag's `id` to keep it. */
 	available_tags?: ForumTagInput[];
+	/** A forum channel's default reaction; `null` clears it. */
+	default_reaction_emoji?: DiscordDefaultReaction | null;
 }
 
 /** A member of a server. Only what provisioning needs: who they are and which roles they hold. */

@@ -92,6 +92,12 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		const rules = options.layout?.pinned?.find((pin) => pin.channel === "rules");
 		expect(rules).toEqual({ channel: "rules", file: "RULES.md" });
 		rules!.file = ".holocron/pinned/rules.md";
+		// And (#1822): the ideas forum gained a default reaction and starter reactions.
+		const ideas = (options.layout?.categories ?? [])
+			.flatMap((c) => c.channels ?? [])
+			.find((c) => c.name === "ideas");
+		expect(ideas?.defaultReaction).toBeUndefined();
+		Object.assign(ideas!, { defaultReaction: "👍", starterReactions: ["👍", "👎", "❓"] });
 		// And (#1817): the three organization variables are no longer literals but come from a 1Password Environment.
 		const repoBefore = (expected as { repo: { variables?: unknown } }).repo;
 		expect(repoBefore.variables).toEqual({
