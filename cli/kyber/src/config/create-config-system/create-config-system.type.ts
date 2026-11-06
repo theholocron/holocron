@@ -1,4 +1,4 @@
-import type { Loaded } from "@theholocron/datapad";
+import type { ConfigDirArea, Loaded } from "@theholocron/datapad";
 
 import type { ConfigFragment, MergeStrategies } from "../compose-fragments/index.js";
 
@@ -6,6 +6,19 @@ import type { ConfigFragment, MergeStrategies } from "../compose-fragments/index
 export interface ConfigSystemOptions<Raw, Resolved, Composed> {
 	/** The CLI's name; its config file is `<name>.config.{ts,js,mjs,cjs,json}`. */
 	name: string;
+	/**
+	 * The closed list of area names to read from the `.<name>/` directory beside the config (`.holocron/` for a CLI
+	 * named `holocron`): `["notifications", "repo"]` reads `.holocron/notifications.{ts,js,mjs,cjs,json}` and
+	 * `.holocron/repo.*`. Needs `place` to do anything with them. Files not on the list are never read.
+	 */
+	areas?: readonly string[];
+	/**
+	 * Put the loaded areas into the config, called after the config file is loaded and before `derive`, only when
+	 * `areas` is set. `areas` holds one entry per area that has a file (none when the directory is missing), and `raw`
+	 * is the config as loaded. Return the config with the areas placed; throw `ConfigError` when an area clashes with
+	 * what the config already says (for example, a value set inline and in a file).
+	 */
+	place?: (areas: ConfigDirArea[], raw: Raw) => Raw | Promise<Raw>;
 	/** Fill in defaults on the loaded config (from `package.json`, git, other files) before it is resolved. */
 	derive?: (found: Loaded<Raw>) => Raw | Promise<Raw>;
 	/** Check the config and turn it into the shape the CLI works with; throw `ConfigError` when it is invalid. */

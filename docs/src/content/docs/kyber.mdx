@@ -209,6 +209,8 @@ import { createConfigSystem, lastWins, mergeByKey, shallowMerge, union } from "@
 
 export const { defineConfig, loadConfig, compose } = createConfigSystem<Raw, Resolved, Fragment, Composed>({
   name: "mytool", // reads mytool.config.{ts,js,mjs,cjs,json}
+  areas: ["layout"], // optional: reads .mytool/layout.{ts,js,mjs,cjs,json} beside the config
+  place: (areas, raw) => ({ ...raw, layout: areas.find((a) => a.area === "layout")?.value }), // optional
   derive: async ({ config, filepath }) => ({ ...config, name: config.name ?? basename(dirname(filepath)) }), // optional
   resolve: (raw) => validate(raw), // throw ConfigError when invalid
   merge: { plugins: union<string>(), settings: shallowMerge(), steps: mergeByKey((s) => s.name), title: lastWins() },
@@ -218,7 +220,7 @@ const { resolved, filepath } = await loadConfig(process.cwd()); // walks up to t
 export default defineConfig({ ...compose(base(), withDocs()), name: "demo" }); // in mytool.config.ts
 ```
 
-The factory brings the parts every tool's config needs and none of its schema. `loadConfig` finds the file (TypeScript configs load without a build step, through `@theholocron/datapad`), runs `derive` to fill in defaults, then `resolve`; it throws `ConfigFileError` when no file exists or one cannot be loaded. `compose()` takes fragments (`{ id, requires?, ...yourKeys }`) or arrays of them: a later fragment with the same `id` replaces the earlier one, every unmet `requires` is reported in one `ConfigError`, and each key then merges with the strategy you gave it. A strategy is `{ empty?, merge(prev, next) }`; the ones provided are `lastWins` (the key is absent until set), `shallowMerge`, `union` (first-seen order) and `mergeByKey(keyOf)` (a repeated key replaces in place). Write your own for a key that needs more, as the Holocron CLI does for `repo`.
+The factory brings the parts every tool's config needs and none of its schema. `loadConfig` finds the file (TypeScript configs load without a build step, through `@theholocron/datapad`), runs `place` with the files of the `.<name>/` directory named in `areas` (a closed list; a missing directory gives none, a file that cannot be loaded throws `ConfigFileError`), then `derive` to fill in defaults, then `resolve`; it throws `ConfigFileError` when no file exists or one cannot be loaded. `compose()` takes fragments (`{ id, requires?, ...yourKeys }`) or arrays of them: a later fragment with the same `id` replaces the earlier one, every unmet `requires` is reported in one `ConfigError`, and each key then merges with the strategy you gave it. A strategy is `{ empty?, merge(prev, next) }`; the ones provided are `lastWins` (the key is absent until set), `shallowMerge`, `union` (first-seen order) and `mergeByKey(keyOf)` (a repeated key replaces in place). Write your own for a key that needs more, as the Holocron CLI does for `repo`.
 
 `ConfigError` is matched by `name` as well as `instanceof`, so a second copy of the package still matches.
 
