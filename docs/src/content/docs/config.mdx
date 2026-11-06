@@ -237,7 +237,7 @@ until its callers move to the flat reusables (`ci-v1`), because its ruleset list
 | `check-notify`                       | `holocron notifications` end-to-end check                         | no local equivalent — a workflow run by hand; never part of `holocron run ci`                        |
 | `lint:commits`                       | commitlint                                                        | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI    |
 | `validate:specs`                     | ADR/spec frontmatter (`holocron probe specs check`)               | not a linter — a process/governance check                                                            |
-| `validate:docs`                      | docs presence (`holocron probe docs presence`)                    | not a linter; only ever warns                                                                        |
+| `validate:docs`                      | docs presence and token docs (`holocron probe docs validate`)     | not a linter; presence only warns, token docs fails                                                  |
 | `validate:plugin`                    | the plugin package's own `scripts/validate.mjs`                   | a live check against the provider, run by hand; no workflow, not part of `holocron run ci`           |
 | `publish-wiki`                       | Fern                                                              | publishes `docs/wiki/*.md` — a publish, not a sync; carries `preview`                                |
 | `deploy-docs`                        | Astro build                                                       | the docs site itself; carries `preview` (defaults on)                                                |
@@ -258,7 +258,7 @@ the split, and the old `validate` name, which stood for both, still lists both):
 { name: "validate:specs", required: true }
 ```
 
-The `validate:docs` task runs `holocron probe docs presence` and only ever warns. It warns for a new public package with no docs change, and for a `feat`
+The `validate:docs` task runs `holocron probe docs validate`: `docs presence`, which only ever warns, then `docs tokens`, which fails for a token a plugin resolves that [the token reference](/holocron/tokens/) does not list. Presence warns for a new public package with no docs change, and for a `feat`
 that changes a public package's source (`src/**`, or a root `index.ts`) without a docs signal for that package: its
 README, a docs page named after it, or a doc comment in the diff. When no docs change is needed, say why in the pull
 request description or in a commit message:

@@ -9,6 +9,8 @@ import type { DocsCoverageMode } from "@theholocron/astromech";
 import type { PluginProbes, ProbeContext } from "../../../plugin/index.js";
 import type { DocsPresenceIo } from "../docs-presence/index.js";
 import { docsPresenceProbe, realDocsPresenceIo } from "../docs-presence/index.js";
+import type { DocsTokensIo } from "../docs-tokens/index.js";
+import { docsTokensProbe, realDocsTokensIo } from "../docs-tokens/index.js";
 import { addedLines } from "./added-lines.js";
 import type { MeasureDocsCoverageInput, PackageDocs } from "./docs-coverage.type.js";
 import { measureDocsCoverage } from "./measure-docs-coverage.js";
@@ -97,7 +99,9 @@ function summarise(ctx: ProbeContext, packages: PackageDocs[]): void {
  * and `docs patch` also write that report wherever `--lcov <path>` says, from the same measurement.
  *
  * `docs presence` is a different kind of check (does a feature come with docs?), kept in this group with the others: see
- * `docsPresenceProbe`. `presenceIo` is what it reads from git and the filesystem.
+ * `docsPresenceProbe`. `presenceIo` is what it reads from git and the filesystem. `docs tokens` fails for a token a
+ * plugin resolves that the tokens page does not document (`docsTokensProbe`, reading through `tokensIo`), and `docs
+ * validate` runs presence and then tokens: it is the `validate:docs` task, so the warning and the failure share one CI check.
  *
  * `mode` is the repo's `repoValidation.docsCoverage`, and only `docs patch` follows it: `off` skips it (nothing is
  * measured or written), `warn` reports an undocumented export without failing, `required` fails for it.
@@ -107,8 +111,11 @@ export function docsCoverageProbes(
 	typedoc: MeasureDocsCoverageInput["typedoc"] = runTypedoc(repoRoot),
 	diff: () => string = realDiff(repoRoot),
 	mode: DocsCoverageMode = "required",
-	presenceIo: DocsPresenceIo = realDocsPresenceIo(repoRoot)
+	presenceIo: DocsPresenceIo = realDocsPresenceIo(repoRoot),
+	tokensIo: DocsTokensIo = realDocsTokensIo(repoRoot)
 ): PluginProbes {
+	const presence = docsPresenceProbe(presenceIo);
+	const tokens = docsTokensProbe(tokensIo);
 	const measure = (): PackageDocs[] => measureDocsCoverage({ repoRoot, typedoc });
 	return {
 		coverage: {
@@ -162,7 +169,16 @@ export function docsCoverageProbes(
 				}
 			},
 		},
-		presence: docsPresenceProbe(presenceIo),
+		presence,
+		tokens,
+		validate: {
+			summary: "Run docs presence (warns) and docs tokens (fails): the validate:docs task.",
+			writes: false,
+			async run(ctx) {
+				await presence.run(ctx);
+				await tokens.run(ctx);
+			},
+		},
 		lcov: {
 			summary: "Write coverage/docs.lcov: the doc-comment coverage as an lcov report.",
 			writes: true,

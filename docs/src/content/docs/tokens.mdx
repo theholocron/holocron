@@ -147,7 +147,7 @@ The `projects` capability (`holocron project ...`, `doctor project`) also uses `
 
 ## Provider tokens
 
-A test fails when a plugin resolves a token that has no row here. Each token resolves as described [above](#provider-token-resolution): the plugin's env var, then the vendor's, then the keyring.
+`holocron probe docs tokens` fails when a plugin resolves a token that has no row here (CI runs it in the `validate:docs` check). Each token resolves as described [above](#provider-token-resolution): the plugin's env var, then the vendor's, then the keyring.
 
 | Plugin       | Used for                       | Env var                     | Vendor env var             | Keyring key  | What to create                                                                                                                                                           |
 | ------------ | ------------------------------ | --------------------------- | -------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

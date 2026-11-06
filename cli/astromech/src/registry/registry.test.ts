@@ -71,7 +71,7 @@ describe("TASKS registry", () => {
 		);
 		expect(commands).toEqual([
 			["validate:specs", "probe specs check"],
-			["validate:docs", "probe docs presence"],
+			["validate:docs", "probe docs validate"],
 		]);
 	});
 
@@ -151,7 +151,7 @@ describe("TASKS registry", () => {
 		});
 		expect(CI_ORDER).not.toContain("validate:plugin");
 		expect(TASKS["validate:specs"]!.local).toEqual({ command: "probe specs check" });
-		expect(TASKS["validate:docs"]!.local).toEqual({ command: "probe docs presence" });
+		expect(TASKS["validate:docs"]!.local).toEqual({ command: "probe docs validate" });
 		expect(Object.values(TASKS).filter((def) => "jobs" in def || "retiredJobs" in def)).toEqual([]);
 	});
 
