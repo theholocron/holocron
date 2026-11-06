@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { loadConfig } from "./config-system.js";
 
-/** `layout: { ... }` exactly as `holocron.config.ts` had it inline before #1786 (a verbatim copy of the old text). */
+/** `layout: { ... }` exactly as `holocron.config.ts` had it inline before #1786 (a copy of the old text; only the two paths #1788 moved are updated). */
 const INLINE_LAYOUT = new URL("./notifications-layout.inline.fixture.txt", import.meta.url);
 /** The file the layout moved to: this repo's own `.holocron/notifications.ts`. */
 const MOVED_LAYOUT = fileURLToPath(new URL("../../../../.holocron/notifications.ts", import.meta.url));
