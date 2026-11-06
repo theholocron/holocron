@@ -1784,7 +1784,7 @@ export interface NotificationsPinnedLayout {
 	/** The message text (Discord allows up to 2000 characters). Absent when the text comes from `file`. */
 	content?: string;
 	/**
-	 * A text file in the repository, relative to its root, whose contents are the message, such as `RULES.md`. The
+	 * A text file in the repository, relative to its root, whose contents are the message, such as `.holocron/pinned/rules.md`. The
 	 * file wins: a hand edit of the pinned message is replaced on the next `setup`, and `doctor` reports it until then.
 	 */
 	file?: string;
