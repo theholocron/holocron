@@ -1,6 +1,5 @@
-import { style } from "@theholocron/kyber/ui";
-
-import type { CheckSummary } from "./doctor-checks.type.js";
+import type { CheckSummary } from "../check-row/index.js";
+import { style } from "../style/index.js";
 
 /** A blank line, then the closing `N ok, N fail, N skipped`. */
 export function printCheckSummary(summary: CheckSummary, print: (line: string) => void): void {

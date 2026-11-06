@@ -10,9 +10,9 @@
 
 import { aggregateChecks, legacyGate } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
-import { printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import { aggregateRow } from "./aggregate-row.js";
 import { callersRow } from "./callers-row.js";
 import type { DoctorCiReport, RunDoctorCiInput } from "./doctor-ci.type.js";

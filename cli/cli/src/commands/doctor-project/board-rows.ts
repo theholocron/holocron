@@ -1,5 +1,6 @@
+import type { CheckRow } from "@theholocron/kyber/ui";
+
 import type { BoardField, BoardState, BoardTemplate, BoardView } from "../../plugin/index.js";
-import type { CheckRow } from "../doctor-checks/index.js";
 
 /** A row that is information only: it never fails the run and counts as skipped. */
 const info = (id: string, title: string, noun: string, extras: string[]): CheckRow => ({

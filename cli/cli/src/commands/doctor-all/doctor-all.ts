@@ -6,12 +6,12 @@
  * fails that check alone, and the rest still run. The run fails when any check failed.
  */
 
+import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
 import { DEEP_CHECKS, type DeepCheck, type DeepCheckOutcome } from "../deep-checks/index.js";
-import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import type { DoctorAllReport, RunDoctorAllInput } from "./doctor-all.type.js";
 

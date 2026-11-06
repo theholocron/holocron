@@ -1,5 +1,6 @@
-import type { CheckRow } from "../doctor-checks/index.js";
-import { declaredVsActual } from "../doctor-checks/index.js";
+import type { CheckRow } from "@theholocron/kyber/ui";
+import { declaredVsActual } from "@theholocron/kyber/ui";
+
 import type { ParsedCaller } from "./doctor-ci.type.js";
 import { problemRow } from "./problem-row.js";
 

@@ -1,5 +1,6 @@
+import type { CheckRow } from "@theholocron/kyber/ui";
+
 import type { BoardItem } from "../../plugin/index.js";
-import type { CheckRow } from "../doctor-checks/index.js";
 
 const RULES: { id: string; label: string; test: (item: BoardItem) => boolean }[] = [
 	{ id: "no-status", label: "item without a status", test: (i) => i.status === undefined },

@@ -1,8 +1,8 @@
+import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { DnsRecord, PluginLoader, RuntimeContext } from "../../plugin/index.js";
-import type { CheckRow, CheckStatus, CheckSummary } from "../doctor-checks/index.js";
 
 export interface RunDoctorDnsInput {
 	/** The loaded config: its tasks, domain and notification layouts say which records `setup` writes. */

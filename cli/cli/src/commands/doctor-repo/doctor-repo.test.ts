@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 
+import type { CheckRow } from "@theholocron/kyber/ui";
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
@@ -15,7 +16,6 @@ import {
 	ProviderApiError,
 	type SourceSecurity,
 } from "../../plugin/index.js";
-import type { CheckRow } from "../doctor-checks/index.js";
 import { CANONICAL_LABELS } from "../setup/labels.js";
 import { BALANCED_REPO_SETTINGS } from "../setup/repo-settings.js";
 import { runDoctorRepo } from "./doctor-repo.js";

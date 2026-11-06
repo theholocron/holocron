@@ -1,6 +1,5 @@
-import { statusRow } from "@theholocron/kyber/ui";
-
-import type { CheckRow } from "./doctor-checks.type.js";
+import type { CheckRow } from "../check-row/index.js";
+import { statusRow } from "../status-row/index.js";
 
 /** One row per step, titles padded to the widest, each problem on its own indented line. */
 export function printCheckRows(rows: readonly CheckRow[], print: (line: string) => void): void {

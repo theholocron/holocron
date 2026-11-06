@@ -1,9 +1,9 @@
+import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
 import type { AuthImporter } from "../auth/index.js";
-import type { CheckRow, CheckStatus, CheckSummary } from "../doctor-checks/index.js";
 
 export interface RunDoctorCredentialsInput {
 	/** The loaded config: `credentials.environment` and the `credentials` providers, and the plugins whose tokens are expected. */

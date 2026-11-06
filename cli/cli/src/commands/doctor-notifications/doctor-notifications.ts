@@ -8,6 +8,7 @@
  */
 
 import { describeError, sanitizeDetail, style } from "@theholocron/kyber/ui";
+import { printCheckRows, printCheckSummary } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
 import {
@@ -23,7 +24,6 @@ import {
 	type Source,
 	type Workers,
 } from "../../plugin/index.js";
-import { printCheckRows, printCheckSummary } from "../doctor-checks/index.js";
 import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
 import {
 	layoutSecretNames,

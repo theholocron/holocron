@@ -1,4 +1,4 @@
-import type { DeclaredVsActualOptions } from "./doctor-checks.type.js";
+import type { DeclaredVsActualOptions } from "./declared-vs-actual.type.js";
 
 /**
  * Compares what the config declares with what exists, both as maps by key, and returns one problem line per

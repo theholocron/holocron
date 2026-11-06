@@ -1,10 +1,10 @@
 import { createAstromech, isTask } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { declaredVsActual } from "@theholocron/kyber/ui";
 
 import type { ResolvedHolocronConfig } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plugin/index.js";
-import { declaredVsActual } from "../doctor-checks/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
 import { RULESET_NAME } from "../setup/branch-protection.js";
 import { deriveCapabilities } from "../setup/derived-properties/index.js";

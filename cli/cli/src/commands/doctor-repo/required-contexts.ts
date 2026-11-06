@@ -1,4 +1,4 @@
-import { declaredVsActual } from "../doctor-checks/index.js";
+import { declaredVsActual } from "@theholocron/kyber/ui";
 
 /**
  * Compares the ruleset's required status-check contexts with the ones `requiredChecks()` (from

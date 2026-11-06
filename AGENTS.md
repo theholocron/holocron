@@ -106,8 +106,8 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
 - **Doctor** (`holocron doctor`, epic #1162, spec `tech-doctor-deep-checks`). `doctor` is the shallow smoke check;
   `doctor <capability>` is a deep, read-only comparison of what the config declares with what exists, one row per
   step, non-zero exit on a failure. Every deep check is an entry in `DEEP_CHECKS`
-  (`cli/cli/src/commands/deep-checks/`) and prints through the shared pieces in `doctor-checks/` (`printCheckRows`,
-  `printCheckSummary`, `declaredVsActual`), so a new one is a list of comparisons, not a renderer. A new entry also
+  (`cli/cli/src/commands/deep-checks/`) and prints through the shared pieces in `@theholocron/kyber/ui` (`printCheckRows`,
+  `printCheckSummary`, `summariseChecks`, `declaredVsActual`), so a new one is a list of comparisons, not a renderer. A new entry also
   needs `COMMAND_CONTEXTS` and `COMMAND_REGISTRY` entries; `deep-checks.test.ts` fails without them. Checks that write
   and read back are probes, not doctor. `doctor ci` (#1689) needs no provider: it checks the repo against the flat task
   vocabulary (deprecated aliases in `tasks:`, caller file/workflow/job names, the `ci` aggregate's `expected`, the

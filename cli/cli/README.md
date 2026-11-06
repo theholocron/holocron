@@ -812,9 +812,8 @@ the local override exists to exempt.
   `notifications channel add`, `notifications link`,
   `notifications sync-roles`, `doctor ci`, `doctor credentials`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor project`, `doctor repo`, `doctor secrets`, `doctor tokens`, `doctor variables`
   `notifications sync-roles`, `project reconcile`, `doctor ci`, `doctor credentials`, `doctor dns`, `doctor environments`, `doctor monitoring`, `doctor notifications`, `doctor repo`, `doctor secrets`, `doctor tokens`, `doctor variables`
-- `src/commands/doctor-checks/` and `src/commands/deep-checks/` — the shared row
-  renderer and `declaredVsActual` helper, and `DEEP_CHECKS`, the registry every
-  `doctor <capability>` is listed in
+- `src/commands/deep-checks/` — `DEEP_CHECKS`, the registry every `doctor <capability>` is
+  listed in; the shared row renderer and `declaredVsActual` helper are in `@theholocron/kyber/ui`
 - `src/interactive-menu/` — the interactive fallback's Holocron data: `command-registry`
   (`COMMAND_REGISTRY`, each entry's `positionals`/`options`), `run-menu-entries`
   and `probe-menu-entries` (menu entries built at run time), and `menu.ts`,

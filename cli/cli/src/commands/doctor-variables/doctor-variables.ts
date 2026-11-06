@@ -7,17 +7,17 @@
  * provider cannot list variables, or the token is missing is a skip with the reason, not a failure.
  */
 
-import { errorMessage } from "@theholocron/misc-utils";
-
-import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
 import {
 	type CheckRow,
 	declaredVsActual,
 	printCheckRows,
 	printCheckSummary,
 	summariseChecks,
-} from "../doctor-checks/index.js";
+} from "@theholocron/kyber/ui";
+import { errorMessage } from "@theholocron/misc-utils";
+
+import { getLogger } from "../../observability/logger/index.js";
+import { assertPluginsResolvable, PluginLoader, type Source } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
 import type { DoctorVariablesReport, RunDoctorVariablesInput } from "./doctor-variables.type.js";
