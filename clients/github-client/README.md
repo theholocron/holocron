@@ -32,6 +32,11 @@ await client.topics.setTopics("owner/name", ["cli", "nodejs"]);
 // Git plumbing (blobs, trees, commits, refs, PRs)
 const ref = await client.git.getRef("owner/name", "main");
 const blob = await client.git.createBlob("owner/name", "file contents");
+
+// List a directory; a 404 is an empty list. `recursive` descends into nested directories
+// (one request each) and returns a flat list of full paths.
+const entries = await client.git.listDirectory("owner/name", ".holocron", { recursive: true });
+// [{ name, path, type: "file" | "dir" | "symlink" | "submodule", size, sha }]
 ```
 
 ## Namespaces
@@ -50,7 +55,7 @@ const blob = await client.git.createBlob("owner/name", "file contents");
 | `labels`       | `listLabels`, `createLabel`, `updateLabel`, `deleteLabel`                                                                                                                                               |
 | `topics`       | `setTopics`                                                                                                                                                                                             |
 | `properties`   | `setProperties`                                                                                                                                                                                         |
-| `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `putContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                                      |
+| `git`          | `getRef`, `getCommit`, `getTree`, `getContents`, `listDirectory`, `putContents`, `createBlob`, `createTree`, `createCommit`, `createRef`, `updateRef`, `createPull`                                     |
 | `checks`       | `createCheckRun`                                                                                                                                                                                        |
 
 GitHub accepts at most 50 annotations per check-run request. Slice with the

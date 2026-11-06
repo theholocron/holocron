@@ -1,3 +1,5 @@
+import { ProviderApiError } from "@theholocron/http-client";
+
 import type { RestClient } from "../utils.js";
 import { filePath, repoBase, toBase64 } from "../utils.js";
 
@@ -67,6 +69,28 @@ export interface GitContents {
 	name: string;
 	/** The file's path in the repository. */
 	path: string;
+}
+
+/** One entry of a directory listing from the contents API. */
+export interface GitDirectoryEntry {
+	/** The entry's name, without its directory. */
+	name: string;
+	/** The entry's path from the repository root, e.g. `.holocron/notifications.ts`. */
+	path: string;
+	/** What the entry is; `dir` entries are listed, and descended into only when `recursive` is set. */
+	type: "file" | "dir" | "symlink" | "submodule";
+	/** The size in bytes; GitHub reports `0` for directories and submodules. */
+	size: number;
+	/** The entry's object SHA. */
+	sha: string;
+}
+
+/** Options for `listDirectory()`. */
+export interface ListDirectoryOptions {
+	/** A branch, tag or commit SHA; defaults to the repo's default branch. */
+	ref?: string;
+	/** Also list the contents of every nested directory, as one flat list of full paths. Defaults to `false`. */
+	recursive?: boolean;
 }
 
 /** What `git.putContents` returns: the file's new blob sha (the `sha` to pass next time) and the commit it made. */
@@ -152,6 +176,44 @@ export function git(rest: RestClient) {
 		 */
 		getContents: (repo: string, path: string, ref?: string): Promise<GitContents> =>
 			rest.request<GitContents>(`${repoBase(repo)}/contents/${path}`, ref ? { query: { ref } } : undefined),
+
+		/**
+		 * Lists the directory at `path` through the contents API (`GET /repos/:repo/contents/:path`, which
+		 * answers an array for a directory). A 404 (no such directory) is an empty list, not an error; any
+		 * other failure is the usual `ProviderApiError`. One request lists one level: with
+		 * `recursive: true` it makes one more request per nested directory and returns a flat list of
+		 * full paths (directories included). A `path` that is a file, not a directory, throws.
+		 */
+		listDirectory: async (
+			repo: string,
+			path: string,
+			options: ListDirectoryOptions = {}
+		): Promise<GitDirectoryEntry[]> => {
+			const list = async (at: string): Promise<GitDirectoryEntry[]> => {
+				let body: unknown;
+				try {
+					body = await rest.request<unknown>(
+						`${repoBase(repo)}/contents/${filePath(at)}`,
+						options.ref ? { query: { ref: options.ref } } : undefined
+					);
+				} catch (err) {
+					if (err instanceof ProviderApiError && err.status === 404) return [];
+					throw err;
+				}
+				if (!Array.isArray(body)) throw new Error(`${repo}:${at} is a file, not a directory`);
+				const entries = (body as GitDirectoryEntry[]).map(({ name, path: p, type, size, sha }) => ({
+					name,
+					path: p,
+					type,
+					size,
+					sha,
+				}));
+				if (!options.recursive) return entries;
+				const nested = await Promise.all(entries.filter((e) => e.type === "dir").map((e) => list(e.path)));
+				return [...entries, ...nested.flat()];
+			};
+			return list(path.replace(/^\/+|\/+$/g, ""));
+		},
 
 		/**
 		 * `PUT /repos/:repo/contents/:path` — creates or updates one file in a single commit. Pass `sha` when
