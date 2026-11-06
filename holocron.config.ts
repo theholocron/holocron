@@ -31,8 +31,6 @@ export default defineConfig({
 	doctor: { mail: "icloud" },
 	repo: {
 		...repo,
-		teams: [{ slug: "gatekeepers", permission: "maintain" }],
-		topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 		// GitHub's default branch was still main while all v2 alpha work lands
 		// on alpha (CLAUDE.md's Releases section) -- Sentinel's validateConfig()
 		// only ever reads a repo's default branch (D6, a security boundary),
@@ -41,65 +39,7 @@ export default defineConfig({
 		// Revert to "main" (or drop this field) once alpha merges to main for
 		// the v2.0.0 stable cut and stops being the active branch.
 		defaultBranch: "alpha",
-		// Organization Actions variables the reusable workflows read as `vars.NAME`. `holocron repo setup` creates and
-		// updates these; anything else already set in the org is reported and left alone (no `prune`). Values are plain
-		// text, so identifiers only, never a secret. Still to add once their values are settled:
-		// CLOUDFLARE_PAGES_PROJECT, HOLOCRON_AXIOM_DATASET, POSTHOG_PROJECT_TOKEN.
-		variables: {
-			org: {
-				AXIOM_DATASET: "holocron-ci",
-				CLOUDFLARE_ACCOUNT_ID: "9c558af98664d13fc89b7e0a0d93d5a8",
-				TURBO_TEAM: "iamnewton",
-			},
-		},
-		// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron secrets sync
-		// "Holocron - GitHub Actions"`, #1702): change one in 1Password, run the sync, and both scopes are updated. Names
-		// only. A key that is blank in the Environment is skipped, so a placeholder never overwrites a working secret.
-		// `doctor secrets` expects every key listed here at its scope.
-		secrets: {
-			sync: [
-				{
-					environment: "Holocron - GitHub Actions",
-					scope: "org=theholocron",
-					keys: [
-						"AXIOM_TOKEN",
-						"CLOUDFLARE_API_TOKEN",
-						"CODECOV_TOKEN",
-						"FERN_TOKEN",
-						"HOLOCRON_ADMIN_TOKEN",
-						"HOLOCRON_DEPLOY_TOKEN",
-						"HOLOCRON_ISSUES_TOKEN",
-						"HOLOCRON_ORG_TOKEN",
-						"HOLOCRON_READ_TOKEN",
-						"HOLOCRON_RELEASE_TOKEN",
-						"HOLOCRON_SYNC_TOKEN",
-						"LHCI_GITHUB_APP_TOKEN",
-						"SENTINEL_APP_ID",
-						"SENTINEL_APP_PRIVATE_KEY",
-						"SENTRY_AUTH_TOKEN",
-						"STORYBOOK_CODE_SANDBOX_API_TOKEN",
-						"SUPER_LINTER_APP_ID",
-						"SUPER_LINTER_GPG_PASSPHRASE",
-						"SUPER_LINTER_GPG_PRIVATE_KEY",
-						"SUPER_LINTER_PRIVATE_KEY",
-						"TURBO_TOKEN",
-					],
-				},
-				{
-					environment: "Holocron - GitHub Actions",
-					keys: [
-						"HOLOCRON_DEPLOYMENTS_TOKEN",
-						"HOLOCRON_DISCORD_BOT_TOKEN",
-						"HOLOCRON_SECRETS_TOKEN",
-						"NEXT_PUBLIC_SENTRY_DSN",
-						"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
-						"SENTRY_DSN",
-						"VERCEL_PROTECTION_BYPASS_SECRET",
-						"VERCEL_TOKEN",
-					],
-				},
-			],
-		},
+		// teams, topics, variables and secrets live in .holocron/repo.ts; the loader adds them to `repo` here.
 	},
 	// Required status checks not backed by a `{ required: true }` task.
 	// `holocron repo setup` appends these to the task-derived contexts from
