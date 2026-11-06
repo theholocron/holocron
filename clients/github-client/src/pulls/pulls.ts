@@ -20,6 +20,28 @@ export interface GitHubPullRequest {
 		/** The head commit. */
 		sha: string;
 	};
+	/** Whether the pull request is a draft. */
+	draft?: boolean;
+	/** When the pull request was opened, as an ISO 8601 timestamp. */
+	created_at?: string;
+	/** The author. */
+	user?: { login: string; type: string };
+	/** Who merged it; `null` for a pull request that is not merged. */
+	merged_by?: { login: string } | null;
+	/** The base branch. */
+	base?: { ref: string };
+	/** The people whose review is still asked for. */
+	requested_reviewers?: { login: string }[];
+	/** Lines added, as the single-pull-request endpoint returns it (the list endpoint omits it). */
+	additions?: number;
+	/** Lines removed; see `additions`. */
+	deletions?: number;
+	/** Files changed; see `additions`. */
+	changed_files?: number;
+	/** Whether it merges cleanly; `null` while GitHub is still working it out. */
+	mergeable?: boolean | null;
+	/** `dirty` means it conflicts with its base; see `mergeable`. */
+	mergeable_state?: string;
 }
 
 /** A commit's name/email as git itself recorded it — `commit.author`/`commit.committer`, distinct from the GitHub-account `author` below (a commit can carry any email, linked to a GitHub account or not). */
@@ -99,6 +121,10 @@ export interface GitHubPullRequestReview {
 	id: number;
 	/** The URL of the review on GitHub. */
 	html_url: string;
+	/** `APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED` or `PENDING`; set on a review read back. */
+	state?: string;
+	/** The reviewer; set on a review read back. */
+	user?: { login: string } | null;
 }
 
 /**
@@ -219,6 +245,10 @@ export function pulls(rest: RestClient, graphql: GraphQLClient) {
 		 */
 		listFiles: (repo: string, number: number): Promise<GitHubPullRequestFile[]> =>
 			rest.request<GitHubPullRequestFile[]>(`${repoBase(repo)}/pulls/${number}/files?per_page=100`),
+
+		/** A PR's reviews, oldest first. `per_page=100` covers every real PR in this org. */
+		listReviews: (repo: string, number: number): Promise<GitHubPullRequestReview[]> =>
+			rest.request<GitHubPullRequestReview[]>(`${repoBase(repo)}/pulls/${number}/reviews?per_page=100`),
 
 		/**
 		 * Submits a review in one call — GitHub has no separate "create draft,

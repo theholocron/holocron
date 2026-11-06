@@ -7,6 +7,8 @@ export interface GitHubRepo {
 	default_branch: string;
 	/** The repository's `owner/name`. */
 	full_name: string;
+	/** Whether the repository is archived (read-only). */
+	archived?: boolean;
 	/** The repository description. */
 	description?: string | null;
 	/** The repository homepage URL. */
