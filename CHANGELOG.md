@@ -1,3 +1,10 @@
+## [5.0.0-alpha.351](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.350...v5.0.0-alpha.351) (2026-11-06)
+
+### Refactoring
+
+* **cli:** ♻️ keep the *.md module type beside its only importer ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1815](https://github.com/theholocron/holocron/issues/1815)) ([f75dcd4](https://github.com/theholocron/holocron/commit/f75dcd4e9a6edaf8ae38f90a51154492e3812b73))
+* **cli:** ♻️ turn the token-docs test into a docs tokens probe ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1816](https://github.com/theholocron/holocron/issues/1816)) ([dab2d9d](https://github.com/theholocron/holocron/commit/dab2d9d9c1a7c3676d22ec149dc0ae0110344c83))
+
 ## [5.0.0-alpha.350](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.349...v5.0.0-alpha.350) (2026-11-06)
 
 ### Refactoring
