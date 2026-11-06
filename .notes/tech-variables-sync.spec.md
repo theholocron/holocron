@@ -1,10 +1,13 @@
 ---
+id: SPEC-0070
 status: proposed
 issue: theholocron/holocron#1817
 blocked-by: []
 related:
   - theholocron/holocron#1702
   - theholocron/holocron#1606
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1568380310884716595
 ---
 
 # Sync GitHub Actions variables from a 1Password Environment
