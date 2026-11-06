@@ -14,7 +14,7 @@ describe("ROADMAP_TEMPLATE", () => {
 	});
 
 	it("has a priority and a milestone field", () => {
-		expect(ROADMAP_TEMPLATE.fields.map((f) => f.name)).toEqual(["Priority", "Milestone"]);
+		expect(ROADMAP_TEMPLATE.fields.map((f) => f.name)).toEqual(["Priority"]);
 		expect(ROADMAP_TEMPLATE.fields[0]?.options).toEqual(["1 · Now", "2 · Next", "3 · Process"]);
 	});
 

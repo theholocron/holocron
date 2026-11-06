@@ -43,12 +43,7 @@ describe("loadTemplates", () => {
 		};
 		const result = await loadTemplates("d", io(files));
 		expect(result.problems).toEqual([]);
-		expect(result.templates["a-child"]?.fields.map((f) => f.name)).toEqual([
-			"Priority",
-			"Milestone",
-			"Area",
-			"Team",
-		]);
+		expect(result.templates["a-child"]?.fields.map((f) => f.name)).toEqual(["Priority", "Area", "Team"]);
 	});
 
 	it("reports a bad file by name and still loads the rest", async () => {

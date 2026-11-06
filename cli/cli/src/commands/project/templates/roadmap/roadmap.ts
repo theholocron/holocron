@@ -23,10 +23,7 @@ export const ROADMAP_TEMPLATE: BoardTemplate = {
 		},
 		{ name: "Done", category: "done", color: "GREEN", description: "Completed" },
 	],
-	fields: [
-		{ name: "Priority", type: "single_select", options: ["1 · Now", "2 · Next", "3 · Process"] },
-		{ name: "Milestone", type: "text" },
-	],
+	fields: [{ name: "Priority", type: "single_select", options: ["1 · Now", "2 · Next", "3 · Process"] }],
 	views: [
 		{ name: "Active", layout: "board", filter: "-status:Someday -status:Done", default: true },
 		{ name: "Backlog", layout: "board", filter: "status:Someday" },
