@@ -244,8 +244,11 @@ repo's `.holocron/repo.ts` holds `teams`, `topics`, `variables` and `secrets`, n
 out, so the config can say `deployment: ["vercel", { domain }]` and `monitoring: "checkly"`. The same option set inline
 and in the file is an error that names both (`vercel.teamId is set in providers.deployment and in
 .holocron/org.ts`), with no merge and no precedence. A provider key or an option the area does not know is an error; a
-provider the config does not use is ignored. A config reads only the `.holocron/` beside it, so an app with its own
-`holocron.config.ts` (`apps/sentinel`) has its own `.holocron/org.ts`. Anything CI needs (`CLOUDFLARE_ACCOUNT_ID`,
+provider the config does not use is ignored. The org area is shared: a config in a subdirectory (`apps/sentinel`)
+also reads the repository root's `.holocron/org.ts` (the nearest ancestor with a `.git`), and its own
+`.holocron/org.ts` wins for a key set in both, option by option; that is not an error, so an identifier written in the
+root file needs no copy in the app. The other areas (`repo`, `notifications`) describe the repository and are not
+shared. Anything CI needs (`CLOUDFLARE_ACCOUNT_ID`,
 `TURBO_TEAM`, `AXIOM_DATASET`) stays out: it lives in 1Password and syncs to a GitHub variable (`repo.variables.sync`),
 and nothing else carries a copy. `.holocron/org.md` (the agent contract the CLI embeds) is not an area: only
 `.ts`, `.js`, `.mjs`, `.cjs` and `.json` are read.

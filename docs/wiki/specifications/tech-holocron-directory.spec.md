@@ -181,10 +181,16 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   (`vercel.teamId is set in providers.deployment and in .holocron/org.ts`). No merge, no precedence.
 - **Closed list.** A provider key or option the area does not know is a `ConfigError`, so a typo cannot silently do
   nothing; a new provider option is a one-line addition to `OrgConfig` and the table in `placeOrg()`.
-- **Location.** A config reads only the `.holocron/` beside it (kyber uses the directory of the config file it found).
-  The root `.holocron/org.ts` therefore serves the root config, and `apps/sentinel/.holocron/org.ts` serves Sentinel's
-  config. The Checkly id appears in both. Sentinel's remote loader fetches the `.holocron/` beside the config it reads,
-  and an area file cannot import across to the root, so this duplication is accepted.
+- **Location.** A config reads the `.holocron/` beside it (kyber uses the directory of the config file it found), and,
+  for the shared areas, the repository root's too (#1829). Only `org` is shared (`SHARED_AREAS`); `repo` and
+  `notifications` describe the repository, and a root `notifications` layout would be an error for an app with no
+  notifications provider. datapad's `loadConfigDir({ shared })` finds the root (the nearest `.git`), returns the config's
+  own file with the root's as `root` (or the root's file alone, its `path` relative to the config), and `placeOrg()`
+  combines them option by option: the config's own file wins, and a key set in both is not an error. An option set
+  inline and in either file stays a `ConfigError` naming that file. The root `.holocron/org.ts` holds the Checkly id once;
+  `apps/sentinel/.holocron/org.ts` holds only Sentinel's Vercel `teamId`. A repo whose config is at its root inherits
+  nothing. Sentinel's remote loader reads a repo's root config and the `.holocron/` beside it, where the directory is
+  the root, so it passes no `shared` list and is unchanged.
 - **What stays out: anything CI needs.** A value CI needs lives in 1Password and syncs to a GitHub variable
   (`repo.variables.sync`), and nothing else carries a copy. So `CLOUDFLARE_ACCOUNT_ID`, `TURBO_TEAM` and `AXIOM_DATASET`
   are not in this area. The Cloudflare `accountId` literals (Sentinel's tunnels, Comlink, the `wiki` and `docs`
@@ -195,9 +201,10 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   `cloudflare.accountId` is still accepted by the area, but nothing sets it.
 - **Moved.** The Vercel `teamId` and the Checkly `accountId` of `apps/sentinel/holocron.config.ts`, and the Checkly
   `accountId` of the root `holocron.config.ts`. The resolved config of Sentinel equals the pre-move snapshot
-  (`load-config-org-area.test.ts`).
+  (`load-config-org-area.test.ts`), also after #1829 removed Sentinel's own copy of the Checkly id.
 - **Follow-ups.** Whether a provider's own options should declare which of them are org constants instead of a table in
-  the CLI; an area shared by app configs and the root config.
+  the CLI. (The Cloudflare `accountId` through the credential chain is done, #1827, and so is the area shared by app
+  configs and the root config, #1829.)
 
 ### 6. Generated and hand-written files
 

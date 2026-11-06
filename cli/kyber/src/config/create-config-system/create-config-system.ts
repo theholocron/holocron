@@ -21,7 +21,7 @@ import type { ConfigSystem, ConfigSystemOptions } from "./create-config-system.t
 export function createConfigSystem<Raw, Resolved, Fragment extends ConfigFragment, Composed>(
 	options: ConfigSystemOptions<Raw, Resolved, Composed>
 ): ConfigSystem<Raw, Resolved, Fragment, Composed> {
-	const { name, areas, place, derive, resolve, merge } = options;
+	const { name, areas, shared, place, derive, resolve, merge } = options;
 	return {
 		defineConfig: (config) => config,
 		async loadConfig(cwd) {
@@ -32,7 +32,7 @@ export function createConfigSystem<Raw, Resolved, Fragment extends ConfigFragmen
 				);
 			}
 			if (areas && place) {
-				const placed = await loadConfigDir({ cwd: dirname(found.filepath), dir: `.${name}`, areas });
+				const placed = await loadConfigDir({ cwd: dirname(found.filepath), dir: `.${name}`, areas, shared });
 				found = { ...found, config: await place(placed, found.config) };
 			}
 			const raw = derive ? await derive(found) : found.config;

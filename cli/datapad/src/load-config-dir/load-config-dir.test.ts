@@ -78,4 +78,53 @@ describe("loadConfigDir", () => {
 		expect(err).toBeInstanceOf(ConfigFileError);
 		expect((err as ConfigFileError).message).toMatch(/not valid JSON/);
 	});
+
+	describe("shared areas", () => {
+		let app: string;
+		beforeEach(async () => {
+			// `cwd` is the repository root (it has a `.git`); the app sits one level down.
+			await mkdir(join(cwd, ".git"), { recursive: true });
+			app = join(cwd, "apps", "demo");
+			await mkdir(join(app, ".holocron"), { recursive: true });
+		});
+		const root = async (name: string, content: string) => {
+			await mkdir(join(cwd, ".holocron"), { recursive: true });
+			await writeFile(join(cwd, ".holocron", name), content, "utf8");
+		};
+		const own = (name: string, content: string) => writeFile(join(app, ".holocron", name), content, "utf8");
+		const load = () => loadConfigDir({ cwd: app, dir: ".holocron", areas: ["org", "repo"], shared: ["org"] });
+
+		it("returns the root's file, its path relative to the app, when only the root has the area", async () => {
+			await root("org.json", JSON.stringify({ a: 1 }));
+			const [area] = await load();
+			expect(area).toMatchObject({ area: "org", path: "../../.holocron/org.json", value: { a: 1 } });
+			expect(area?.root).toBeUndefined();
+		});
+
+		it("returns the app's file with the root's as `root` when both have the area", async () => {
+			await root("org.json", JSON.stringify({ a: 1 }));
+			await own("org.ts", `export default { a: 2 };`);
+			const [area] = await load();
+			expect(area).toMatchObject({ path: ".holocron/org.ts", value: { a: 2 }, root: { value: { a: 1 } } });
+		});
+
+		it("returns only the app's file when the root has none", async () => {
+			await own("org.json", JSON.stringify({ a: 2 }));
+			const [area] = await load();
+			expect(area?.root).toBeUndefined();
+			expect(area?.value).toEqual({ a: 2 });
+		});
+
+		it("never reads an area from the root unless it is shared", async () => {
+			await root("repo.json", JSON.stringify({ topics: ["x"] }));
+			expect(await load()).toEqual([]);
+		});
+
+		it("has nothing to inherit when the directory is the root itself", async () => {
+			await root("org.json", JSON.stringify({ a: 1 }));
+			const areas = await loadConfigDir({ cwd, dir: ".holocron", areas: ["org"], shared: ["org"] });
+			expect(areas).toHaveLength(1);
+			expect(areas[0]?.root).toBeUndefined();
+		});
+	});
 });

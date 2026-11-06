@@ -27,6 +27,19 @@ describe("the org area in this repo (#1820)", () => {
 		expect(raw.providers.deployment[1]).toHaveProperty("domain", "sentinel.theholocron.dev");
 	});
 
+	it("holds the Checkly accountId once, in the root area, and Sentinel still gets it (#1829)", async () => {
+		const own = (
+			await import(/* @vite-ignore */ new URL("../../../../apps/sentinel/.holocron/org.ts", import.meta.url).href)
+		).default as Record<string, unknown>;
+		const shared = (await import(/* @vite-ignore */ new URL("../../../../.holocron/org.ts", import.meta.url).href))
+			.default as Record<string, unknown>;
+		expect(Object.keys(own)).toEqual(["vercel"]);
+		expect(shared).toHaveProperty("checkly");
+		const { resolved } = await loadConfig(SENTINEL);
+		const monitoring = resolved.providers.monitoring as { tuple: { options: { accountId?: string } } };
+		expect(monitoring.tuple.options.accountId).toBe((shared.checkly as { accountId: string }).accountId);
+	});
+
 	it("resolves Sentinel's config to exactly what it was before the move", async () => {
 		const expected = JSON.parse(await readFile(SNAPSHOT, "utf8")) as { providers: Record<string, unknown> };
 		// The one deliberate difference (#1827): the Cloudflare `accountId` is no longer a literal but comes from the
