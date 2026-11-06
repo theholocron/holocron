@@ -15,7 +15,7 @@ A CLI imports only the subpaths it uses. The libraries behind each one (`chalk`,
 
 | Subpath                  | What it gives a CLI                                                                                       |
 | ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| [`/ui`](#ui)             | Status glyphs and colours, status rows, a JSON view, a spinner, wait-for-Enter                            |
+| [`/ui`](#ui)             | Status glyphs and colours, status rows, a JSON view, a spinner, retry notice, wait-for-Enter              |
 | [`/prompts`](#prompts)   | A searchable menu and prompts for the positionals and options a command left out                          |
 | [`/menu`](#menu)         | A menu driven by a list of commands: pick, prompt, preview with `--dry-run`, then spawn                   |
 | [`/notifier`](#notifier) | A cached "a newer version exists" notice for an npm package                                               |
@@ -36,7 +36,7 @@ await viewJson(config, { depth: 2 }); // a folding viewer on a terminal, static 
 await waitForEnter("Press Enter once the key is in 1Password…");
 ```
 
-A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. `createProgress` and `withProgress` take an optional listener that can change the spinner's text during a step, and `setProgressListener` sets one for every step at start-up; the Holocron CLI uses it to say that a request is being sent again.
+A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. `createProgress` and `withProgress` take an optional listener that can change the spinner's text during a step, and `setProgressListener` sets one for every step at start-up; `createRetryNotice(subscribe)` builds a listener that says a request is being sent again, from the HTTP client's retry hook (the Holocron CLI passes `onRetry`), so kyber depends on no client.
 
 Text from outside the process is cleaned before it reaches a terminal, so a crafted value cannot forge lines or inject escape sequences:
 
