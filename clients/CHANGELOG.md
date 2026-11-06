@@ -1,3 +1,9 @@
+## [1.58.0-alpha.11](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.10...clients-v1.58.0-alpha.11) (2026-11-06)
+
+### Features
+
+* **github-client:** 📁 list a directory through the Contents API ([#1797](https://github.com/theholocron/holocron/issues/1797)) ([c85f34e](https://github.com/theholocron/holocron/commit/c85f34e8c5760db948c75f595fffaad959a68f7e)), closes [#1784](https://github.com/theholocron/holocron/issues/1784) [#1784](https://github.com/theholocron/holocron/issues/1784) [#1784](https://github.com/theholocron/holocron/issues/1784)
+
 ## [1.58.0-alpha.10](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.9...clients-v1.58.0-alpha.10) (2026-11-06)
 
 ### Refactoring
