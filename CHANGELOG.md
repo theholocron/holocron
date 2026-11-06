@@ -1,3 +1,9 @@
+## [5.0.0-alpha.350](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.349...v5.0.0-alpha.350) (2026-11-06)
+
+### Refactoring
+
+* **cli:** ♻️ move dco.yml to astromech and org.md to .holocron ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1813](https://github.com/theholocron/holocron/issues/1813)) ([668cb31](https://github.com/theholocron/holocron/commit/668cb3160cdd66d9c8fac7ee4754e263a34823ae))
+
 ## [5.0.0-alpha.349](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.348...v5.0.0-alpha.349) (2026-11-06)
 
 ### Features
