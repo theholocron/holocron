@@ -1,3 +1,9 @@
+## [5.0.0-alpha.352](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.351...v5.0.0-alpha.352) (2026-11-06)
+
+### Features
+
+* **cli:** ✨ sync GitHub variables from a 1Password Environment ([#1817](https://github.com/theholocron/holocron/issues/1817)) ([#1818](https://github.com/theholocron/holocron/issues/1818)) ([5176943](https://github.com/theholocron/holocron/commit/5176943456c81a7d8d2f36cbf51ec9305353497b))
+
 ## [5.0.0-alpha.351](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.350...v5.0.0-alpha.351) (2026-11-06)
 
 ### Refactoring
