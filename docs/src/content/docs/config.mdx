@@ -209,7 +209,7 @@ suite: prettier only, it writes by default and `--check` is the read-only form.
 The old dotted names (`verification.unitTests`, `sourceQuality.staticAnalysis`, …) are still accepted in `tasks:` and by {/* holocron-allow-old-name */}
 `holocron run`, which prints a one-line deprecation notice on stderr. `sourceQuality.formatting` stands for
 `lint:editorconfig`, `lint:markdown` and `format --check`; `delivery.publish` is now `release`. A manifest spelled either way generates the same files. The workflow callers are named for the flat id (workflow, job and {/* holocron-allow-old-name */}
-file, `ci.test-unit.yml` in holocron) in the repo that holds the reusables; any other repo keeps the old caller names
+file, `ci.test-unit.yml` in holocron) in the repo that hosts the reusables; any other repo keeps the old caller names
 until its callers move to the flat reusables (`ci-v1`), because its ruleset lists those checks.
 
 | Task                                 | Runs                                                              | Notes                                                                                                |
@@ -226,7 +226,6 @@ until its callers move to the flat reusables (`ci-v1`), because its ruleset list
 | `scan:secrets`                       | gitleaks                                                          |                                                                                                      |
 | `scan:code`                          | CodeQL                                                            | no local equivalent — CI only                                                                        |
 | `check-tokens`                       | `holocron doctor tokens`                                          | scheduled daily in CI; fails on a rejected token or one with 7 days or fewer left                    |
-| `reconcile-projects`                 | `holocron project reconcile`                                      | scheduled hourly in CI; sets board item statuses from issue state and blocked-by links               |
 | `build`                              | tsdown / vite / rollup / tsc, detected from the repo's own config |                                                                                                      |
 | `release`                            | semantic-release                                                  | no local equivalent — CI only; carries `preview` (npm dist-tags)                                     |
 | `deploy`                             | Cloudflare Pages / Vercel                                         | no local equivalent — CI only; carries `preview`                                                     |
