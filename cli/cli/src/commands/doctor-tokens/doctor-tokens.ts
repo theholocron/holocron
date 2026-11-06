@@ -11,10 +11,10 @@
  * What a token may do is not checked: GitHub does not return a fine-grained token's permissions.
  */
 
+import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { getToken } from "../../auth/index.js";
-import { makeEnv } from "../../env/index.js";
+import { keyring } from "../../auth.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { type AuthPluginModule, defaultImporter, type PluginToken } from "../auth/index.js";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "../doctor-checks/index.js";
@@ -25,8 +25,8 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const importer = input.importer ?? defaultImporter;
-	const env = makeEnv(input.env);
-	const keyring = input.keyring ?? getToken;
+	const env = createEnvLookup(input.env);
+	const readToken = input.keyring ?? keyring.get;
 	const now = input.now ?? (() => new Date());
 
 	const rows: CheckRow[] = [];
@@ -39,7 +39,7 @@ export async function runDoctorTokens(input: RunDoctorTokensInput): Promise<Doct
 			continue;
 		}
 		for (const token of module.tokens ?? []) {
-			rows.push(await checkToken(token, module, env, keyring, now()));
+			rows.push(await checkToken(token, module, env, readToken, now()));
 		}
 	}
 	if (rows.length === 0) {
@@ -77,14 +77,14 @@ function row(id: string, status: CheckRow["status"], detail: string): CheckRow {
 async function checkToken(
 	token: PluginToken,
 	module: AuthPluginModule,
-	env: ReturnType<typeof makeEnv>,
-	keyring: (key: string) => string | null,
+	env: EnvLookup,
+	readToken: (key: string) => string | null,
 	now: Date
 ): Promise<CheckRow> {
 	const { keyringKey, envName, vendorEnvName } = token;
 	// The order the plugins resolve in: their own variable, the vendor's, then the keyring.
 	const fromEnv = env.get(envName) ? envName : vendorEnvName && env.get(vendorEnvName) ? vendorEnvName : undefined;
-	const value = fromEnv ? env.get(fromEnv) : keyring(keyringKey);
+	const value = fromEnv ? env.get(fromEnv) : readToken(keyringKey);
 	if (!value) {
 		const names = vendorEnvName ? `${envName} / ${vendorEnvName}` : envName;
 		return row(keyringKey, "skip", `not set (${names}, or \`holocron auth set ${keyringKey}\`)`);

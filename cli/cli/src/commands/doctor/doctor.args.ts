@@ -1,7 +1,7 @@
 import type { Argv } from "yargs";
 
-import type { GlobalArgs } from "../../cli-support/index.js";
 import { DEEP_CHECKS } from "../deep-checks/index.js";
+import type { GlobalArgs } from "../global-args/index.js";
 
 export interface DoctorArgs extends GlobalArgs {
 	repo?: string;

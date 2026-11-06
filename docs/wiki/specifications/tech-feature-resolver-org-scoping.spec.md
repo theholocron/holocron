@@ -39,7 +39,7 @@ export const resolveReadToken = createFeatureResolver({
 //    resolveAdminToken, resolveDeployToken, resolveOrgToken
 ```
 
-`createFeatureResolver` (`packages/cli/src/auth/auth-resolver.ts:38`) is a
+`createFeatureResolver` (`cli/cli/src/auth.ts`) is a
 second, hand-rolled resolution chain, local to this repo and never pushed to
 `@theholocron/http-client`:
 
@@ -163,7 +163,7 @@ export const resolveReadToken = createResolveToken({
 already reads `input.org` (injected by `PluginLoader` per #369) with no
 per-call-site change needed.
 
-### CLI wrapper changes (`packages/cli/src/auth/auth-resolver.ts`)
+### CLI wrapper changes (`cli/cli/src/auth.ts`)
 
 Delete `createFeatureResolver` and `FeatureResolverConfig` once
 `packages/holocron-plugin-github/src/auth.ts` no longer imports them. No

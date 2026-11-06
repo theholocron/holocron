@@ -1,10 +1,13 @@
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
-import { applyResolvedConfig, parseScope, resolveOrg, tokenContext } from "../../cli-support/index.js";
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { resolveOrg } from "../resolve-org/index.js";
+import { parseScope } from "../secrets-sync/parse-scope/index.js";
+import { tokenContext } from "../token-context/index.js";
 import { runSecretSet } from "./index.js";
 import { type SecretSetArgs, secretSetArgs } from "./secret-set.args.js";
 

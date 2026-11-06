@@ -1,7 +1,8 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
 import { authExportCommand } from "../auth-export/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { authCheckCommand } from "./auth-check.command.js";
 import { authListCommand } from "./auth-list.command.js";
 import { authSetCommand } from "./auth-set.command.js";

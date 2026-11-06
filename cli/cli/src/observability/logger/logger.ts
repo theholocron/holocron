@@ -6,6 +6,7 @@
  * parallel to `print` (user-facing UX output) and does not replace it.
  */
 
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
 import { allowProgress, style } from "@theholocron/kyber/ui";
 import type { Logger, LogLevel } from "@theholocron/observability/core";
 import {
@@ -16,10 +17,12 @@ import {
 	resolveAxiomFromEnv,
 } from "@theholocron/observability/logger";
 
-import { getToken } from "../../auth/index.js";
+import { keyring } from "../../auth.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
-import { env, holocronEnv } from "../../env/index.js";
 import type { BuildCliLoggerOpts } from "./logger.type.js";
+
+const env = createEnvLookup();
+const holocronEnv = withEnvPrefix(env, "HOLOCRON");
 
 /**
  * Dataset for `global`-context commands (`clone`, `auth set`, `upgrade
@@ -106,7 +109,7 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts): AxiomTransportConfig | undef
 	if (!dataset) return undefined;
 
 	const org = opts.org ?? env.get("HOLOCRON_ORG");
-	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? getToken(`axiom.${org}`) : null) || getToken("axiom");
+	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? keyring.get(`axiom.${org}`) : null) || keyring.get("axiom");
 	return token ? { dataset, token } : undefined;
 }
 

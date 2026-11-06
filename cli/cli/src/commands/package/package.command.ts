@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { moveTagCommand } from "../move-tag/move-tag.command.js";
 import { npmBumpVersionsCommand } from "../npm-bump-versions/npm-bump-versions.command.js";
 import { publishCommand } from "../publish/publish.command.js";

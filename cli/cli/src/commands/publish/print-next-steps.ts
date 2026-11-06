@@ -1,10 +1,11 @@
-import type { CliEnv } from "../../env/index.js";
+import type { EnvLookup } from "@theholocron/env-utils/lookup";
+
 import type { PublishPrint } from "./publish.type.js";
 import type { RepoIdentity } from "./resolve-repo-identity.type.js";
 
 export function printNextSteps(
 	print: PublishPrint,
-	env: CliEnv,
+	env: EnvLookup,
 	packageNames: readonly string[],
 	identity: RepoIdentity
 ): void {

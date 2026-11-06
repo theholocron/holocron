@@ -1,8 +1,8 @@
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { runNpmBumpVersions } from "./index.js";
 import { type NpmBumpVersionsArgs, npmBumpVersionsArgs } from "./npm-bump-versions.args.js";
 

@@ -17,6 +17,7 @@
 import { createHash } from "node:crypto";
 import { hostname, userInfo } from "node:os";
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { PostHogSink } from "@theholocron/observability/analytics";
 import {
 	type AnalyticsSink,
@@ -29,9 +30,10 @@ import {
 import { SentrySink } from "@theholocron/observability/errors";
 
 import type { TelemetryConfig } from "../../config/index.js";
-import { env } from "../../env/index.js";
 import { getRunId } from "../logger/index.js";
 import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "../resolve-telemetry/index.js";
+
+const env = createEnvLookup();
 
 // ── sinks ────────────────────────────────────────────────────────────────────
 

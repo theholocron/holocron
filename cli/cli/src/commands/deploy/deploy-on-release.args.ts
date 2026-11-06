@@ -1,6 +1,6 @@
+import type { InferArgs } from "@theholocron/kyber/flags";
 import type { Argv } from "yargs";
 
-import type { InferArgs } from "../../cli-support/index.js";
 import type { DeployArgs } from "./deploy.args.js";
 
 export const deployOnReleaseArgs = (y: Argv<DeployArgs>) =>

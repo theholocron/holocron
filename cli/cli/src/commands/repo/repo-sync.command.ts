@@ -1,10 +1,12 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { applyResolvedConfig, resolveOrg, tokenContext } from "../../cli-support/index.js";
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { resolveOrg } from "../resolve-org/index.js";
 import { runSync } from "../sync/index.js";
 import { syncReadmeCommand } from "../sync-readme/sync-readme.command.js";
+import { tokenContext } from "../token-context/index.js";
 import { type RepoSyncArgs, repoSyncArgs } from "./repo-sync.args.js";
 
 export const repoSyncCommand: CommandModule<GlobalArgs, RepoSyncArgs> = {

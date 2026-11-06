@@ -5,9 +5,9 @@ const runProjectReconcile = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 vi.mock("../../../config/index.js", () => ({ loadConfig }));
 vi.mock("./index.js", () => ({ runProjectReconcile }));
-vi.mock("../../../cli-support/index.js", () => ({
-	tokenContext,
-	applyResolvedConfig: vi.fn(),
+vi.mock("../../token-context/index.js", () => ({ tokenContext }));
+vi.mock("../../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
+vi.mock("../../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 

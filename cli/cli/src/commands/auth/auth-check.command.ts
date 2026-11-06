@@ -1,8 +1,8 @@
 import { promptForPositionals } from "@theholocron/kyber/prompts";
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { getEntry } from "../../interactive-menu/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { type AuthCheckArgs, authCheckArgs } from "./auth-check.args.js";
 import { runAuthCheck } from "./index.js";
 

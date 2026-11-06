@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { repoCleanupBranchesCommand } from "../repo-cleanup-branches/repo-cleanup-branches.command.js";
 
 export const repoCleanupCommand: CommandModule<GlobalArgs, GlobalArgs> = {

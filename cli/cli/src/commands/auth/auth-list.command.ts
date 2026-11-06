@@ -1,6 +1,6 @@
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { runAuthList } from "./index.js";
 
 export const authListCommand: CommandModule<GlobalArgs, GlobalArgs> = {

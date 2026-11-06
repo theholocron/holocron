@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { notificationsCreateServerCommand } from "../notifications-create-server/notifications-create-server.command.js";
 import { notificationsLinkCommand } from "../notifications-link/notifications-link.command.js";
 import { notificationsSetupCommand } from "../notifications-setup/notifications-setup.command.js";

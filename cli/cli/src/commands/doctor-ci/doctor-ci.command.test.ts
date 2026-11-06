@@ -4,7 +4,9 @@ const loadConfig = vi.hoisted(() => vi.fn());
 const runDoctorCi = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./doctor-ci.js", () => ({ runDoctorCi }));
-vi.mock("../../cli-support/index.js", () => ({ applyResolvedConfig: vi.fn() }));
+vi.mock("../apply-resolved-config/index.js", () => ({
+	applyResolvedConfig: vi.fn(),
+}));
 
 import { doctorCiCommand } from "./doctor-ci.command.js";
 

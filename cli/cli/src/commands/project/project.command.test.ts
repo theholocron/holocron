@@ -14,10 +14,9 @@ vi.mock("./project-list/project-list.js", () => ({ runProjectList }));
 vi.mock("./project-create/project-create.js", () => ({ runProjectCreate }));
 vi.mock("./project-close/project-close.js", () => ({ runProjectClose }));
 vi.mock("./project-setup/project-setup.js", () => ({ runProjectSetup }));
-vi.mock("../../cli-support/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../cli-support/index.js")>()),
-	tokenContext,
-	applyResolvedConfig: vi.fn(),
+vi.mock("../token-context/index.js", () => ({ tokenContext }));
+vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
+vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 

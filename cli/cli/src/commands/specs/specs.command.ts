@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { specsSyncCommand } from "../specs-sync/specs-sync.command.js";
 
 export const specsCommand: CommandModule<GlobalArgs, GlobalArgs> = {

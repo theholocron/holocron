@@ -1,5 +1,4 @@
-export type SecretsScope =
-	{ kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; name: string };
+import type { SecretsScope } from "./parse-scope.type.js";
 
 /** `--scope` / `--github-secret-scope`: `repo`, `env=<name>` or `org=<name>`. */
 export function parseScope(s: string): SecretsScope {

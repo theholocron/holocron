@@ -8,10 +8,13 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 }));
 vi.mock("../repo-cleanup-branches/index.js", () => ({ runCleanupBranches }));
 vi.mock("../../config/index.js", () => ({ loadConfig: vi.fn(async () => ({ resolved: {}, filepath: "/x" })) }));
-vi.mock("../../cli-support/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../cli-support/index.js")>()),
+vi.mock("../token-context/index.js", () => ({
 	tokenContext: () => ({ cliToken: "t" }),
+}));
+vi.mock("../apply-resolved-config/index.js", () => ({
 	applyResolvedConfig: vi.fn(),
+}));
+vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: () => "acme",
 }));
 

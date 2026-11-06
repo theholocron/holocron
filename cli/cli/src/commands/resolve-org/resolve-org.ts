@@ -1,4 +1,6 @@
-import { env } from "../../env/index.js";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
+
+const env = createEnvLookup();
 
 /**
  * Resolves the active org in priority order:

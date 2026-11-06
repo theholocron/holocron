@@ -25,8 +25,7 @@ vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
 	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
 	promptForPositionals: async (_e: unknown, argv: Record<string, unknown>) => [argv["slug"], argv["vendor"]],
 }));
-vi.mock("../../cli-support/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../cli-support/index.js")>()),
+vi.mock("../token-context/index.js", () => ({
 	tokenContext,
 }));
 vi.mock("../../interactive-menu/index.js", async (importActual) => ({

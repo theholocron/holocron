@@ -5,10 +5,13 @@ const tokenContext = vi.hoisted(() => vi.fn());
 const runDev = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./dev.js", () => ({ runDev }));
-vi.mock("../../cli-support/index.js", async (importActual) => ({
-	...(await importActual<typeof import("../../cli-support/index.js")>()),
+vi.mock("../token-context/index.js", () => ({
 	tokenContext,
+}));
+vi.mock("../apply-resolved-config/index.js", () => ({
 	applyResolvedConfig: vi.fn(),
+}));
+vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 

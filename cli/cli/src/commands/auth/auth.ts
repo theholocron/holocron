@@ -20,13 +20,12 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import { withEnvPrefix } from "@theholocron/env-utils/lookup";
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
 import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { deleteToken, getToken, listStoredProviders, setToken } from "../../auth/index.js";
+import { keyring } from "../../auth.js";
 import { resolvePluginPackage } from "../../config/index.js";
-import { makeEnv } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { isModuleNotFound } from "../../plugin/index.js";
 import type {
@@ -72,7 +71,7 @@ export function resolveAuthSetToken(input: {
 	positional?: string;
 	env?: NodeJS.ProcessEnv;
 }): string | null {
-	const e = withEnvPrefix(makeEnv(input.env), "HOLOCRON");
+	const e = withEnvPrefix(createEnvLookup(input.env), "HOLOCRON");
 	return input.positional || e.get(`${input.provider.toUpperCase()}_TOKEN`) || null;
 }
 
@@ -149,7 +148,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 		}
 	}
 
-	const stored = setToken(keyringKey, token);
+	const stored = keyring.set(keyringKey, token);
 	if (!stored) {
 		print(style.fail(`keyring unavailable — token not stored. Use env vars instead.`));
 		logger.warn({ provider, keyringKey, reason: "keyring unavailable" }, `auth set: ${keyringKey}`);
@@ -176,7 +175,7 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 export function runAuthUnset(input: RunAuthUnsetInput): AuthCommandStatus {
 	const print = input.print ?? ((l: string) => console.log(l));
 	const logger = input.logger ?? getLogger();
-	const removed = deleteToken(input.provider);
+	const removed = keyring.delete(input.provider);
 	if (removed) {
 		print(style.success(`removed ${input.provider} token`));
 		logger.info({ provider: input.provider, status: "ok" }, `auth unset: ${input.provider}`);
@@ -194,7 +193,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	const { provider } = input;
 	const keyringKey = input.org ? `${provider}.${input.org}` : provider;
 
-	const token = getToken(keyringKey);
+	const token = keyring.get(keyringKey);
 	if (!token) {
 		print(style.dim(`no stored token for ${keyringKey}`));
 		logger.info({ provider, keyringKey, status: "skip", reason: "no stored token" }, `auth check: ${keyringKey}`);
@@ -256,7 +255,7 @@ export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCom
 	const print = input.print ?? ((l: string) => console.log(l));
 	const logger = input.logger ?? getLogger();
 	const importer = input.importer ?? defaultImporter;
-	const providers = listStoredProviders();
+	const providers = keyring.list();
 
 	if (providers.length === 0) {
 		print(style.dim("no stored tokens."));

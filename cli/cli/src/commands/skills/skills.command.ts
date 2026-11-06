@@ -1,7 +1,8 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { type SkillsRemoveArgs, skillsRemoveArgs, type SkillsUpdateArgs, skillsUpdateArgs } from "./skills.args.js";
 import { runSkillsInstall, runSkillsRemove, runSkillsUpdate } from "./skills.js";
 

@@ -22,13 +22,15 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { walkFilesSync } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { env } from "../../env/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import type { HolocronConfigOptions, NewReport, RunNewInput } from "./new.type.js";
+
+const env = createEnvLookup();
 
 export class NewError extends Error {
 	override name = "NewError";

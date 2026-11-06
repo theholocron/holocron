@@ -1,8 +1,8 @@
 import type { CommandModule } from "yargs";
 
-import { tokenContext } from "../../cli-support/index.js";
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { reportError } from "../../observability/logger/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { tokenContext } from "../token-context/index.js";
 import { NewError, runNew } from "./index.js";
 import { type NewRepoArgs, newRepoArgs } from "./new-repo.args.js";
 import { askNewRepoAnswers } from "./new-repo-wizard.js";

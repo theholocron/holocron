@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { resolveMonitoringChecks } from "../monitoring-check/index.js";
 import { runMonitoringRunResolved } from "./index.js";
 import { type MonitoringRunResolvedArgs, monitoringRunResolvedArgs } from "./monitoring-run-resolved.args.js";

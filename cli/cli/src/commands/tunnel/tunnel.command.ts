@@ -1,6 +1,7 @@
 import type { Argv, CommandModule } from "yargs";
 
-import { type GlobalArgs, groupMenu } from "../../cli-support/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { groupMenu } from "../group-menu/index.js";
 import { tunnelUpCommand } from "../tunnel-up/index.js";
 
 export const tunnelCommand: CommandModule<GlobalArgs, GlobalArgs> = {

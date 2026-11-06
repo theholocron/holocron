@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { addGlobalOptions } from "@theholocron/kyber/flags";
 import { checkForUpdates } from "@theholocron/kyber/notifier";
 import { commandFailureMessage, setProgressListener } from "@theholocron/kyber/ui";
@@ -31,10 +32,11 @@ import { skillsCommand } from "./commands/skills/index.js";
 import { specsCommand } from "./commands/specs/specs.command.js";
 import { syncCommand } from "./commands/sync/sync.command.js";
 import { tunnelCommand } from "./commands/tunnel/index.js";
-import { env } from "./env/index.js";
 import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
 import { retryNotice } from "./retry-notice/index.js";
+
+const env = createEnvLookup();
 
 const { name: CLI_PACKAGE_NAME, version: CLI_VERSION } = JSON.parse(
 	readFileSync(new URL("../package.json", import.meta.url), "utf-8")

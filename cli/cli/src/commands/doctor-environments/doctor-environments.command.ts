@@ -1,7 +1,10 @@
 import type { CommandModule } from "yargs";
 
-import { applyResolvedConfig, type GlobalArgs, resolveOrg, tokenContext } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
+import { resolveOrg } from "../resolve-org/index.js";
+import { tokenContext } from "../token-context/index.js";
 import { runDoctorEnvironments } from "./doctor-environments.js";
 
 export const doctorEnvironmentsCommand: CommandModule<GlobalArgs, GlobalArgs> = {

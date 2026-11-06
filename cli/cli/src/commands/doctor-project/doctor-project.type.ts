@@ -1,9 +1,9 @@
 import type { Logger } from "@theholocron/observability/core";
 
-import type { GlobalArgs } from "../../cli-support/index.js";
 import type { LoadedConfig } from "../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
 import type { CheckRow, CheckStatus, CheckSummary } from "../doctor-checks/index.js";
+import type { GlobalArgs } from "../global-args/index.js";
 import type { TemplatesIo } from "../project/load-templates/index.js";
 
 export interface RunDoctorProjectInput {

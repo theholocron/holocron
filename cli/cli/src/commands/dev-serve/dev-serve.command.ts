@@ -1,9 +1,9 @@
 import { errorMessage } from "@theholocron/misc-utils";
 import type { CommandModule } from "yargs";
 
-import { type GlobalArgs } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { reportError } from "../../observability/logger/index.js";
+import { type GlobalArgs } from "../global-args/index.js";
 import { runDevServe } from "./dev-serve.js";
 
 export const devServeCommand: CommandModule<GlobalArgs, GlobalArgs> = {

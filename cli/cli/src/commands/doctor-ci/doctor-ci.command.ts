@@ -1,8 +1,8 @@
 import type { CommandModule } from "yargs";
 
-import type { GlobalArgs } from "../../cli-support/index.js";
-import { applyResolvedConfig } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
+import type { GlobalArgs } from "../global-args/index.js";
 import { runDoctorCi } from "./doctor-ci.js";
 
 export const doctorCiCommand: CommandModule<GlobalArgs, GlobalArgs> = {

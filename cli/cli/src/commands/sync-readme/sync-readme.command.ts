@@ -1,8 +1,8 @@
 import type { CommandModule } from "yargs";
 
-import { applyResolvedConfig } from "../../cli-support/index.js";
 import { loadConfig } from "../../config/index.js";
 import { reportError } from "../../observability/logger/index.js";
+import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import type { RepoSyncArgs } from "../repo/repo-sync.args.js";
 import { runSyncReadme } from "./index.js";
 import { type SyncReadmeArgs, syncReadmeArgs } from "./sync-readme.args.js";
