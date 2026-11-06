@@ -22,10 +22,20 @@ export async function withSpinner<T>(label: string, fn: () => Promise<T>): Promi
 }
 
 let allowed = true;
+let defaultListener: ProgressListener | undefined;
 
 /** Turn progress off for the run (`--quiet`, `--log`), so nothing extra shares the terminal with what those print. */
 export function allowProgress(on: boolean): void {
 	allowed = on;
+}
+
+/**
+ * Hooks `listener` into every step that does not pass its own, such as a notice that a request is being sent again.
+ * Called once at start-up, so each call site stays a plain {@link createProgress} or {@link withProgress}. Pass
+ * `undefined` to take it off again.
+ */
+export function setProgressListener(listener: ProgressListener | undefined): void {
+	defaultListener = listener;
 }
 
 /**
@@ -38,8 +48,9 @@ export function progressEnabled(): boolean {
 
 /**
  * A spinner for one step at a time that a step can print through. Steps that only return a result use {@link
- * withProgress}; a step that prints its own result line while it runs prints through `print`. A `listen` hook can change the
- * spinner's text while the step runs, for instance to say that a request is being sent again.
+ * withProgress}; a step that prints its own result line while it runs prints through `print`. A `listen` hook, or else the
+ * one set with {@link setProgressListener}, can change the spinner's text while the step runs, for instance to say that
+ * a request is being sent again.
  */
 export function createProgress(
 	print: (line: string) => void,
@@ -52,7 +63,7 @@ export function createProgress(
 			if (!enabled()) return fn();
 			const spinner = ora({ text: label, stream: process.stderr, discardStdin: false }).start();
 			active = spinner;
-			const stopListening = listen?.(label, (text) => {
+			const stopListening = (listen ?? defaultListener)?.(label, (text) => {
 				spinner.text = text;
 			});
 			try {

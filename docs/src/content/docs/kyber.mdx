@@ -34,7 +34,18 @@ await viewJson(config, { depth: 2 }); // a folding viewer on a terminal, static 
 await waitForEnter("Press Enter once the key is in 1Password…");
 ```
 
-A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. `createProgress` takes an optional listener that can change the spinner's text during a step; the Holocron CLI uses it to say that a request is being sent again.
+A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. `createProgress` and `withProgress` take an optional listener that can change the spinner's text during a step, and `setProgressListener` sets one for every step at start-up; the Holocron CLI uses it to say that a request is being sent again.
+
+Text from outside the process is cleaned before it reaches a terminal, so a crafted value cannot forge lines or inject escape sequences:
+
+```ts
+import { commandFailureMessage, describeError, logReason, sanitizeDetail } from "@theholocron/kyber/ui";
+
+describeError(err); // the message, plus the response body when the error has `details`, cleaned and capped
+commandFailureMessage(err); // the same, and never empty: the error's name, or "the command failed"
+logReason(err); // the message alone, looking through a wrapper's `cause`, for structured logs
+sanitizeDetail(body); // control characters stripped, cut at 200 characters (`stripControl` has no cap)
+```
 
 ## `/prompts`
 

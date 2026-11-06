@@ -8,7 +8,14 @@ vi.mock("ora", () => {
 
 import ora from "ora";
 
-import { allowProgress, createProgress, progressEnabled, withProgress, withSpinner } from "./progress.js";
+import {
+	allowProgress,
+	createProgress,
+	progressEnabled,
+	setProgressListener,
+	withProgress,
+	withSpinner,
+} from "./progress.js";
 
 describe("withSpinner", () => {
 	describe("non-TTY (isTTY = false)", () => {
@@ -149,6 +156,28 @@ describe("progress", () => {
 				expect(unhook).not.toHaveBeenCalled();
 			});
 			expect(unhook).toHaveBeenCalledTimes(1);
+		});
+
+		it("uses the listener set for every step as the default, and a step's own listener over it", async () => {
+			const fallback = vi.fn(() => () => {});
+			const own = vi.fn(() => () => {});
+			setProgressListener(fallback);
+			try {
+				await createProgress(() => {}).run("one…", async () => {});
+				expect(fallback).toHaveBeenCalledTimes(1);
+				await createProgress(
+					() => {},
+					() => true,
+					own
+				).run("two…", async () => {});
+				expect(own).toHaveBeenCalledTimes(1);
+				expect(fallback).toHaveBeenCalledTimes(1);
+				setProgressListener(undefined);
+				await createProgress(() => {}).run("three…", async () => {});
+				expect(fallback).toHaveBeenCalledTimes(1);
+			} finally {
+				setProgressListener(undefined);
+			}
 		});
 
 		it("clears the spinner around a line printed during a step, and prints plainly after it", async () => {
