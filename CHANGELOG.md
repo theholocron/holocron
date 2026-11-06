@@ -1,3 +1,24 @@
+## [5.0.0-alpha.349](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.348...v5.0.0-alpha.349) (2026-11-06)
+
+### Features
+
+* **datapad:** 📂 load area files from a .holocron/ directory ([#1796](https://github.com/theholocron/holocron/issues/1796)) ([09380e1](https://github.com/theholocron/holocron/commit/09380e13b64c39ebf8159365e2457d1a1c68d9cf)), closes [#1783](https://github.com/theholocron/holocron/issues/1783) [#1783](https://github.com/theholocron/holocron/issues/1783)
+* **sentinel:** 🛰️ fetch the .holocron/ tree when validating a config ([#1798](https://github.com/theholocron/holocron/issues/1798)) ([0af73e9](https://github.com/theholocron/holocron/commit/0af73e961f2640935818fb7ef7a58d47a26b2378)), closes [#1785](https://github.com/theholocron/holocron/issues/1785) [#1785](https://github.com/theholocron/holocron/issues/1785) [#1785](https://github.com/theholocron/holocron/issues/1785) [#1785](https://github.com/theholocron/holocron/issues/1785)
+
+### Refactoring
+
+* **config:** 🗂️ move RULES.md and the webhook avatar into .holocron/ ([#1801](https://github.com/theholocron/holocron/issues/1801)) ([1b3321e](https://github.com/theholocron/holocron/commit/1b3321e1e14abaa32b696830c0424d9256ba5d76)), closes [#1788](https://github.com/theholocron/holocron/issues/1788) [#1788](https://github.com/theholocron/holocron/issues/1788) [#1788](https://github.com/theholocron/holocron/issues/1788) [#1788](https://github.com/theholocron/holocron/issues/1788)
+* **config:** 🗂️ move the Discord server layout into .holocron/notifications.ts ([#1799](https://github.com/theholocron/holocron/issues/1799)) ([48b0f59](https://github.com/theholocron/holocron/commit/48b0f59b8d0febcd74e397e4aa726d950a32a8b2)), closes [#1786](https://github.com/theholocron/holocron/issues/1786) [#1786](https://github.com/theholocron/holocron/issues/1786) [#1786](https://github.com/theholocron/holocron/issues/1786)
+* **config:** 🗂️ move the repo block into .holocron/repo.ts ([#1800](https://github.com/theholocron/holocron/issues/1800)) ([fd12f65](https://github.com/theholocron/holocron/commit/fd12f6540b265ea4d765f56caa2098ed35bbcbc5)), closes [#1787](https://github.com/theholocron/holocron/issues/1787) [#1787](https://github.com/theholocron/holocron/issues/1787) [#1787](https://github.com/theholocron/holocron/issues/1787)
+
+### Documentation
+
+* **config:** 🗂️ move the .holocron/ spec to specifications as accepted and document the shipped shape ([#1802](https://github.com/theholocron/holocron/issues/1802)) ([c1d218c](https://github.com/theholocron/holocron/commit/c1d218c5915bd2223310061c6f9615e49ebc7526)), closes [#1789](https://github.com/theholocron/holocron/issues/1789) [#1789](https://github.com/theholocron/holocron/issues/1789) [#1789](https://github.com/theholocron/holocron/issues/1789)
+
+### Chores
+
+* **setup:** 🔧 install the gh-stack extension in setup.sh ([#1812](https://github.com/theholocron/holocron/issues/1812)) ([d4ffd78](https://github.com/theholocron/holocron/commit/d4ffd78cff76ccd0f094d690025adc73dfae449a))
+
 ## [5.0.0-alpha.348](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.347...v5.0.0-alpha.348) (2026-11-06)
 
 ### Refactoring
