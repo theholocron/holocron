@@ -7,10 +7,12 @@ describe("@theholocron/env-utils/lookup", () => {
 			"DEFAULT_ENVIRONMENT",
 			"DEPLOYED_ENVIRONMENTS",
 			"ENVIRONMENTS",
+			"PREFIX",
 			"createEnvLookup",
 			"detectEnvironment",
 			"environment",
 			"firstEnv",
+			"holocronEnv",
 			"isCI",
 			"withEnvPrefix",
 		]);
