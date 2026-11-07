@@ -30,6 +30,7 @@ export default {
 					"POSTHOG_PROJECT_TOKEN",
 					"SENTRY_ORG",
 					"TURBO_TEAM",
+					"VERCEL_TEAM_ID",
 				],
 			},
 		],

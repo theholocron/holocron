@@ -193,7 +193,8 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   the root, so it passes no `shared` list and is unchanged.
 - **What stays out: anything CI needs.** A value CI needs lives in 1Password and syncs to a GitHub variable
   (`repo.variables.sync`), and nothing else carries a copy. So `CLOUDFLARE_ACCOUNT_ID`, `TURBO_TEAM` and `AXIOM_DATASET`
-  are not in this area. The Cloudflare `accountId` literals (Sentinel's tunnels, Comlink, the `wiki` and `docs`
+  are not in this area. `VERCEL_TEAM_ID` is one too: the check-preview workflow passes `vars.VERCEL_TEAM_ID` to
+  `monitoring run-resolved`, which loads no config, so the team id reaches it without PR-authored code. The Cloudflare `accountId` literals (Sentinel's tunnels, Comlink, the `wiki` and `docs`
   presets, and the `CLOUDFLARE_ACCOUNT_ID` constant of `presets/constants.ts`) are gone (#1827): the Cloudflare plugin
   reads `CLOUDFLARE_ACCOUNT_ID` through `resolveValue` (the environment, then the `credentials` providers' variables).
   The Environment `Holocron - GitHub Actions variables` is a `credentials` entry of the root config and of Sentinel's
