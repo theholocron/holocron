@@ -578,16 +578,18 @@ export class DiscordNotifications implements Notifications {
 
 	/**
 	 * What the bot keeps: the usual set, Pin Messages when the layout pins messages, and Manage Threads when it
-	 * declares a forum (a post's tags are applied by the bot, and a moderated tag only by someone who can manage threads).
+	 * declares a forum (a post's tags are applied by the bot, and a moderated tag only by someone who can manage threads),
+	 * and Add Reactions when a forum has `starterReactions` (without it the bot skips them and the post still gets made).
 	 */
 	private needs(): PermissionName[] {
-		const forum = (this.opts.layout?.categories ?? []).some((c) =>
-			(c.channels ?? []).some((ch) => ch.kind === "forum")
-		);
+		const channels = (this.opts.layout?.categories ?? []).flatMap((c) => c.channels ?? []);
+		const forum = channels.some((ch) => ch.kind === "forum");
+		const reacts = channels.some((ch) => (ch.starterReactions ?? []).length > 0);
 		return [
 			...BOT_NEEDS,
 			...(this.opts.layout?.pinned?.length ? (["PinMessages"] as PermissionName[]) : []),
 			...(forum ? (["ManageThreads"] as PermissionName[]) : []),
+			...(reacts ? (["AddReactions"] as PermissionName[]) : []),
 		];
 	}
 

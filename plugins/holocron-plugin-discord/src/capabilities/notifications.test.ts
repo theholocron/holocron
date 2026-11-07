@@ -1,4 +1,4 @@
-import { AuthError, ElevationRequiredError, ProviderApiError } from "@theholocron/cli";
+import { AuthError, ElevationRequiredError, type NotificationsChannelLayout, ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
@@ -518,6 +518,29 @@ describe("DiscordNotifications.ensureChannel — forums", () => {
 		expect(((await bitsOf(without)) & manage) !== 0n).toBe(false);
 		expect(((await bitsOf(bare)) & manage) !== 0n).toBe(false);
 		expect(((await bitsOf(empty)) & manage) !== 0n).toBe(false);
+	});
+
+	it("asks for Add Reactions in the invite only when a forum has starter reactions", async () => {
+		const make = (channel: NotificationsChannelLayout) =>
+			makeProvisioner(
+				[FORUM_GUILD, FORUM_CHANS, { status: 403, body: { message: "Missing Permissions", code: 50013 } }, bot],
+				{ guildId: GUILD, layout: { categories: [{ name: "BUILD", channels: [channel] }] } }
+			);
+		const bitsOf = async (p: ReturnType<typeof make>) => {
+			const err = (await p.notifs.ensureServer({ verification: "high" }).catch((e: Error) => e)) as Error;
+			return BigInt(
+				new URL(err.message.match(/https:\/\/discord\.com\/oauth2\/authorize\S+/)![0]).searchParams.get(
+					"permissions"
+				)!
+			);
+		};
+		const react = BigInt(permissions(["AddReactions"]));
+		const reacting = make({ name: "ideas", kind: "forum", starterReactions: ["👍"] });
+		const plain = make({ name: "ideas", kind: "forum" });
+		const empty = make({ name: "ideas", kind: "forum", starterReactions: [] });
+		expect(((await bitsOf(reacting)) & react) !== 0n).toBe(true);
+		expect(((await bitsOf(plain)) & react) !== 0n).toBe(false);
+		expect(((await bitsOf(empty)) & react) !== 0n).toBe(false);
 	});
 });
 
