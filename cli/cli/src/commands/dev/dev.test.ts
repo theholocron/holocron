@@ -109,7 +109,13 @@ describe("runDev", () => {
 			primary: {
 				command: "pnpm",
 				args: ["run", "serve"],
-				env: { ENVIRONMENT: "development", GITHUB_APP_ID: "7", GITHUB_APP_PRIVATE_KEY: VALUE, PORT: "3000" },
+				env: {
+					ENVIRONMENT: "development",
+					GITHUB_APP_ID: "7",
+					GITHUB_APP_PRIVATE_KEY: VALUE,
+					PORT: "3000",
+					HOLOCRON_PORT: "3000",
+				},
 			},
 			companion: {
 				command: "cloudflared",
@@ -134,7 +140,9 @@ describe("runDev", () => {
 		await runDev({ ...base, port: 4000 });
 		expect(runProcesses).toHaveBeenCalledWith(
 			expect.objectContaining({
-				primary: expect.objectContaining({ env: { ENVIRONMENT: "development", PORT: "4000" } }),
+				primary: expect.objectContaining({
+					env: { ENVIRONMENT: "development", PORT: "4000", HOLOCRON_PORT: "4000" },
+				}),
 			})
 		);
 	});

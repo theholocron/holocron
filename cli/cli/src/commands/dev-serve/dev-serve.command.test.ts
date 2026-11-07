@@ -45,6 +45,17 @@ describe("dev serve", () => {
 		expect(runDevServe.mock.calls[1]![0]).toMatchObject({ port: 3000, environment: "" });
 	});
 
+	it("prefers HOLOCRON_PORT over PORT", async () => {
+		process.env["PORT"] = "5000";
+		process.env["HOLOCRON_PORT"] = "6000";
+		try {
+			await go();
+		} finally {
+			delete process.env["HOLOCRON_PORT"];
+		}
+		expect(runDevServe.mock.calls[0]![0].port).toBe(6000);
+	});
+
 	it("fails, saying what is missing, without a dev.serve block", async () => {
 		loadConfig.mockResolvedValue({ resolved: {} });
 		await go();
