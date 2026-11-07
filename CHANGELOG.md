@@ -1,3 +1,22 @@
+## [5.0.0-alpha.361](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.360...v5.0.0-alpha.361) (2026-11-07)
+
+### Features
+
+* **config:** 🌐 spell the org's domain once, in .holocron/org.ts ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1878](https://github.com/theholocron/holocron/issues/1878)) ([390ffe2](https://github.com/theholocron/holocron/commit/390ffe26a29d3a6c92f3ed82ca8a2476268e8263))
+
+### Bug Fixes
+
+* **cli:** 🔍 show the provider's own message when tunnel up or dev fails ([#1880](https://github.com/theholocron/holocron/issues/1880)) ([8d23d2e](https://github.com/theholocron/holocron/commit/8d23d2e0186cb19feb108b0aae334122e022e5ac)), closes [#1678](https://github.com/theholocron/holocron/issues/1678)
+* **sentinel:** 🔑 list the organization Projects permission in the App manifest ([#1879](https://github.com/theholocron/holocron/issues/1879)) ([4e97e55](https://github.com/theholocron/holocron/commit/4e97e55d6443af2a10bb0d30aac71432f9a51b02)), closes [#1744](https://github.com/theholocron/holocron/issues/1744)
+
+### Refactoring
+
+* **logging:** ♻️ one Axiom dataset per service, split by the env tag ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1870](https://github.com/theholocron/holocron/issues/1870)) ([7e238d8](https://github.com/theholocron/holocron/commit/7e238d8bbd5b50e8ae70d2b3670f86a88cc4a266)), closes [#1865](https://github.com/theholocron/holocron/issues/1865)
+
+### Chores
+
+* **env:** 🔒 read env through env-utils lookup, enable noProcessEnv ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1872](https://github.com/theholocron/holocron/issues/1872)) ([25ba866](https://github.com/theholocron/holocron/commit/25ba8667d1054686edb17ce3ceea0c82f8236ac7))
+
 ## [5.0.0-alpha.360](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.359...v5.0.0-alpha.360) (2026-11-07)
 
 ### Features
