@@ -55,7 +55,7 @@ export function createCliRunner(options: CliRunnerOptions): (args: string[], run
 					// A kill leaves only `code: -1` and whatever was printed, which for a child that never wrote anything is
 					// nothing to go on, so say what happened.
 					if (timedOut) {
-						const note = `[cli-runner] killed after ${elapsedMs} ms (timeout ${timeoutMs} ms, ${signal}), pid ${child.pid}; stdout ${stdout.length} chars, stderr ${stderr.length} chars before this line; args: ${args.join(" ") || "(none)"}`;
+						const note = `[cli-runner] killed after ${elapsedMs} ms (timeout ${timeoutMs} ms, ${signal}), pid ${child.pid}; stdout ${stdout.length} chars, stderr ${stderr.length} chars before this line; args: [${args.join(" ")}]`;
 						stderr += `\n${note}`;
 						// An assertion on `code` alone would hide the note, so the test log gets it too.
 						console.error(note);
