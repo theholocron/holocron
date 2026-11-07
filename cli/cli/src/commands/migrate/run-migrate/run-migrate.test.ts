@@ -177,3 +177,35 @@ describe("runMigrate", () => {
 		expect(report.reason).toMatch(/API down.*second run continues/);
 	});
 });
+
+describe("runMigrate defaults", () => {
+	it("prints to the console when no print is given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const { makeLoader } = setup();
+		await runMigrate({
+			loaded: loadedWith(),
+			context: { repoRoot: "/x" },
+			from: "github",
+			to: "linear:team=ENG",
+			scope: { kind: "issues", selector: { all: true } },
+			yes: true,
+			makeLoader,
+		});
+		expect(log).toHaveBeenCalled();
+		log.mockRestore();
+	});
+
+	it("passes open-only to the export", async () => {
+		const { gh, makeLoader } = setup();
+		await run({ makeLoader, openOnly: true });
+		expect(gh.export).toHaveBeenCalledWith({ all: true, openOnly: true });
+	});
+
+	it("decides whether it can ask from the terminal when told nothing", async () => {
+		const { makeLoader } = setup();
+		const tty = process.stdin.isTTY;
+		Object.defineProperty(process.stdin, "isTTY", { value: false, configurable: true });
+		await expect(run({ makeLoader, yes: false })).rejects.toBeInstanceOf(NonInteractiveError);
+		Object.defineProperty(process.stdin, "isTTY", { value: tty, configurable: true });
+	});
+});

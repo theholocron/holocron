@@ -36,7 +36,7 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 		context: input.context,
 		endpoint: from,
 		capabilities: project ? ["issues", "projects"] : ["issues"],
-		...(input.makeLoader ? { makeLoader: input.makeLoader } : {}),
+		makeLoader: input.makeLoader,
 	});
 	if (!source.ok) return stop("fail", `source: ${source.reason}`);
 	const target = await openSide({
@@ -44,7 +44,7 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 		context: input.context,
 		endpoint: to,
 		capabilities: ["issues"],
-		...(input.makeLoader ? { makeLoader: input.makeLoader } : {}),
+		makeLoader: input.makeLoader,
 	});
 	if (!target.ok) return stop("fail", `target: ${target.reason}`);
 	const importer = target.issues;
@@ -53,7 +53,7 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 	const collected = await collectRecords({
 		source,
 		scope: input.scope,
-		...(input.openOnly ? { openOnly: true } : {}),
+		openOnly: input.openOnly,
 	});
 	if (!collected.ok) return stop(collected.reason.startsWith("the `") ? "skip" : "fail", collected.reason);
 	const { records, notes } = collected;

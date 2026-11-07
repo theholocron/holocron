@@ -144,4 +144,14 @@ describe("LinearIssues", () => {
 		const { issues } = make([[/teams\(first/, { teams: nodes([]) }]]);
 		await expect(issues.search({})).rejects.toThrow(/team "ENG" not found/);
 	});
+
+	it("maps a user with no display name to the name, and searches with no assignee at all", async () => {
+		const { issues, called } = make([
+			[/viewer/, { ...VIEWER, viewer: { id: "u", name: "Luke Skywalker", displayName: "" } }],
+			[/issues\(first/, { issues: nodes([]) }],
+		]);
+		expect(await issues.getMyself()).toEqual({ id: "u", displayName: "Luke Skywalker" });
+		await issues.search({});
+		expect((called(/issues\(first/)[0]!.variables.filter as Record<string, unknown>).assignee).toBeUndefined();
+	});
 });

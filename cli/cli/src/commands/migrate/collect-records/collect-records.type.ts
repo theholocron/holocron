@@ -14,7 +14,7 @@ export interface CollectInput {
 	/** What to read. */
 	scope: MigrateScope;
 	/** Leave closed issues behind. */
-	openOnly?: boolean;
+	openOnly?: boolean | undefined;
 }
 
 /** The records to migrate, or why there are none to read. */

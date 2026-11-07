@@ -79,4 +79,12 @@ describe("migrate commands", () => {
 		await go("issue", "#1", ...ENDS);
 		expect(process.exitCode).toBe(1);
 	});
+
+	it("uses an empty owner when no organization is known", async () => {
+		loadConfig.mockResolvedValue({ resolved: {}, filepath: "/x" });
+		await go("project", "v5", ...ENDS);
+		expect(runMigrate).toHaveBeenCalledWith(
+			expect.objectContaining({ scope: { kind: "project", name: "v5", owner: "" } })
+		);
+	});
 });

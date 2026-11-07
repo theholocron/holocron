@@ -188,3 +188,33 @@ describe("LinearProjects setStatus and move", () => {
 		expect(called(/issueUpdate/)[0]!.variables.input).toEqual({ projectId: "p2" });
 	});
 });
+
+describe("LinearProjects — the less common shapes", () => {
+	it("ensure adds a status with no description, handles a template with no rules, and reads null automation periods", async () => {
+		const s = scopeWith([
+			[
+				/autoArchivePeriod/,
+				{
+					team: {
+						autoArchivePeriod: null,
+						autoClosePeriod: null,
+						autoCloseState: null,
+						triageEnabled: false,
+					},
+				},
+			],
+			[/workflowStateCreate/, { workflowStateCreate: { workflowState: { id: "n" } } }],
+		]);
+		const projects = new LinearProjects(s.scope);
+		const report = await projects.ensure("acme", BOARD, {
+			name: "t",
+			statuses: [{ name: "Someday", category: "backlog" }],
+			fields: [],
+			views: [],
+		});
+		expect(report).toEqual({ created: false, changes: ["status Someday added to team ENG"], todos: [] });
+		expect(s.called(/workflowStateCreate/)[0]!.variables.input).not.toHaveProperty("description");
+		const state = await projects.read("acme", BOARD);
+		expect(state.rules.every((r) => !r.enabled)).toBe(true);
+	});
+});

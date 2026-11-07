@@ -287,3 +287,78 @@ describe("LinearIssues.import", () => {
 		expect(called(/issueUpdate|issueRelationCreate/)).toHaveLength(0);
 	});
 });
+
+describe("LinearIssues migration — the less common shapes", () => {
+	it("export falls back to the user's name, leaves out a missing email, and reads a comment author's name", async () => {
+		const { issues } = make([
+			[
+				/issue\(id: \$id\) \{ id identifier/,
+				{ issue: issue({ assignee: { id: "u", name: "Luke Skywalker", displayName: "", email: null } }) },
+			],
+			[
+				/comments\(first/,
+				{
+					issue: {
+						comments: nodes([
+							{
+								id: "c",
+								body: "hi",
+								createdAt: "2026-01-03T00:00:00Z",
+								user: { id: "u", name: "Leia", displayName: "" },
+							},
+						]),
+					},
+				},
+			],
+		]);
+		const [r] = await issues.export({ keys: ["ENG-1"] });
+		expect(r?.assignee).toEqual({ id: "u", displayName: "Luke Skywalker" });
+		expect(r?.comments[0]?.author).toBe("Leia");
+	});
+
+	it("import reuses a project it made for the second record, and sends no description, state or status name when there are none", async () => {
+		const { issues, called } = make([
+			[/workflowStates\(first/, { workflowStates: nodes([]) }],
+			...importRoutes.filter(([p]) => !/projects\\\(first|projectCreate/.test(String(p))),
+			[/projects\(first/, { projects: nodes([]) }],
+			[/projectCreate/, { projectCreate: { project: { ...PROJECT, id: "pn" } } }],
+		]);
+		await issues.import(
+			[
+				record({
+					key: "#1",
+					url: "https://x/1",
+					body: undefined,
+					status: undefined,
+					labels: [],
+					comments: [],
+					assignee: undefined,
+				}),
+				record({
+					key: "#2",
+					url: "https://x/2",
+					body: undefined,
+					status: undefined,
+					labels: [],
+					comments: [],
+					assignee: undefined,
+				}),
+			],
+			{ milestone: "Fresh" }
+		);
+		expect(called(/projectCreate/)).toHaveLength(1);
+		const input = called(/issueCreate/)[0]!.variables.input as Record<string, unknown>;
+		expect(input.description).toBeUndefined();
+		expect(input.stateId).toBeUndefined();
+		expect(input.projectId).toBe("pn");
+		expect(called(/issueCreate/)[1]!.variables.input).toMatchObject({ projectId: "pn" });
+	});
+
+	it("import puts an issue in the state its status names, before falling back to its category", async () => {
+		const { issues, called } = make(importRoutes);
+		await issues.import([
+			record({ status: "In Review", statusCategory: "open", labels: [], comments: [], assignee: undefined }),
+		]);
+		expect((called(/issueCreate/)[0]!.variables.input as { stateId: string }).stateId).toBe("s-review");
+	});
+});
