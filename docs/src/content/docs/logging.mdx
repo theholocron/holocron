@@ -145,9 +145,10 @@ attempt an Axiom connection.
 
 The token resolves from `HOLOCRON_AXIOM_TOKEN` → `AXIOM_TOKEN` → the OS
 keyring (`axiom.<org>`, then bare `axiom`). The dataset resolves from
-`HOLOCRON_AXIOM_DATASET` → `AXIOM_DATASET` (process environment) →
-`holocron.config` `log.axiom.dataset` → the credential chain (the
-1Password Environment's `AXIOM_DATASET`). Env vars always win, and the config
+`HOLOCRON_AXIOM_DATASET` → `AXIOM_DATASET` (process environment; the
+prefixed name is tried first) → `holocron.config` `log.axiom.dataset` → the
+credential chain, asked for the same two names (the 1Password Environment's
+`AXIOM_DATASET`). Env vars always win, and the config
 sits ahead of the chain so a local run with no `.envrc` still ships to
 `holocron-local` rather than the CI dataset.
 
@@ -157,7 +158,8 @@ The `sync` and `sync-github` reusable workflows read the token from the
 `HOLOCRON_AXIOM_TOKEN` secret and the dataset from the
 `AXIOM_DATASET` variable, which `repo.variables.sync` writes from the
 1Password Environment `Holocron - GitHub Actions variables` (`AXIOM_DATASET =
-holocron-ci`); there is one name and no fallback expression. Thin callers forward them via
+holocron-ci`) and which the workflows pass to the CLI as
+`HOLOCRON_AXIOM_DATASET`. Thin callers forward them via
 `secrets: inherit`; the variable is visible to the reusable workflow
 automatically. `HOLOCRON_TELEMETRY=false` in a workflow disables shipping
 without removing the secret.

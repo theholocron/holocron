@@ -24,8 +24,8 @@ The `logs` provider entry is used only by `holocron repo setup` (to provision th
 configured dataset is reachable).
 
 ```bash
-# CI — the org variable AXIOM_DATASET, synced from 1Password
-export AXIOM_DATASET=holocron-ci
+# CI — the org variable AXIOM_DATASET, synced from 1Password and passed in as HOLOCRON_AXIOM_DATASET
+export HOLOCRON_AXIOM_DATASET=holocron-ci
 # Local — optional; leave unset to skip Axiom entirely
 export HOLOCRON_AXIOM_DATASET=holocron-local
 ```

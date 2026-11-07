@@ -14,7 +14,9 @@ import { keyring, resolveValue } from "../../auth.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
 
 const env = createEnvLookup();
-const holocronEnv = withEnvPrefix(env, "HOLOCRON");
+/** The one definition of the CLI's variable prefix: `HOLOCRON_<NAME>` is tried before the bare `<NAME>`. */
+const PREFIX = "HOLOCRON";
+const holocronEnv = withEnvPrefix(env, PREFIX);
 
 /**
  * Dataset for `global`-context commands (`clone`, `auth set`, `upgrade
@@ -28,15 +30,16 @@ const holocronEnv = withEnvPrefix(env, "HOLOCRON");
 export const GLOBAL_AXIOM_DATASET = "holocron-global";
 
 /**
- * The dataset of a non-global command: the process environment (`HOLOCRON_AXIOM_DATASET`, then the vendor-native
- * `AXIOM_DATASET`), then `log.axiom.dataset`, then the credential chain.
+ * The dataset of a non-global command: the process environment (`HOLOCRON_AXIOM_DATASET`, then the unprefixed
+ * `AXIOM_DATASET`, through the prefix lookup), then `log.axiom.dataset`, then the credential chain, which is asked for
+ * the same pair of names. `resolveValue` takes a plain list of names, so the pair is built from {@link PREFIX} instead of
+ * adding a prefix option to kyber for one caller.
  */
 function resolveCliDataset(opts: BuildCliLoggerOpts): string | undefined {
 	return (
 		holocronEnv.get("AXIOM_DATASET") ??
-		env.get("AXIOM_DATASET") ??
 		opts.configAxiomDataset ??
-		resolveValue(["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"])
+		resolveValue([`${PREFIX}_AXIOM_DATASET`, "AXIOM_DATASET"])
 	);
 }
 
@@ -68,12 +71,12 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts, ctx: CliLoggerContext): Axiom
 	const dataset = isGlobal ? GLOBAL_AXIOM_DATASET : resolveCliDataset(opts);
 	if (!dataset) return undefined;
 
-	const org = opts.org ?? env.get("HOLOCRON_ORG");
+	const org = opts.org ?? env.get(`${PREFIX}_ORG`);
 	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? keyring.get(`axiom.${org}`) : null) || keyring.get("axiom");
 	return token ? { dataset, token } : undefined;
 }
 
-const logger = createCliLogger({ envPrefix: "HOLOCRON", resolveAxiom: resolveCliAxiom });
+const logger = createCliLogger({ envPrefix: PREFIX, resolveAxiom: resolveCliAxiom });
 
 /**
  * The process-wide root logger, built once from `cli.ts`'s middleware and

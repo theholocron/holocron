@@ -161,6 +161,12 @@ describe("buildCliLogger — one dataset name through the credential chain", () 
 		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "holocron-ci", token: "keyring-token" } });
 	});
 
+	it("asks the credential chain for the prefixed name first, then the bare one", () => {
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({});
+		expect(resolveValueMock).toHaveBeenCalledWith(["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
+	});
+
 	it("a global-context command never asks the credential chain", () => {
 		resolveValueMock.mockReturnValue("holocron-ci");
 		getTokenMock.mockReturnValue("keyring-token");

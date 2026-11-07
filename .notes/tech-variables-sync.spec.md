@@ -93,8 +93,9 @@ Environment with `AXIOM_DATASET`, `CLOUDFLARE_ACCOUNT_ID` and `TURBO_TEAM`, then
   credential chain, and the Environment is a `credentials` entry.
 - The remaining names noted in `.holocron/repo.ts` (`CLOUDFLARE_PAGES_PROJECT`, `POSTHOG_PROJECT_TOKEN`) can be added
   to the Environment once their values are settled.
-- The Axiom dataset has one synced name, `AXIOM_DATASET`. The CLI reads `HOLOCRON_AXIOM_DATASET` first as a local
-  override (`.envrc`), then `AXIOM_DATASET` from the process environment, then `log.axiom.dataset`, then the credential
-  chain (`resolveValue`). The `sync` and `sync-github` workflows pass `HOLOCRON_AXIOM_DATASET: ${{ vars.AXIOM_DATASET }}`, so
-  the CLI's own name carries the synced value and the unprefixed name stays Sentinel's. The config sits ahead of the chain so a local run with no `.envrc` stays on
+- The Axiom dataset has one synced name, `AXIOM_DATASET`. The CLI reads it through `withEnvPrefix(env, "HOLOCRON")`, so
+  `HOLOCRON_AXIOM_DATASET` (a local override, e.g. `.envrc`) wins and the bare `AXIOM_DATASET` is the fallback, then
+  `log.axiom.dataset`, then the credential chain (`resolveValue`, asked for the same two names, built from the one
+  prefix constant because `resolveValue` takes a plain list). The `sync` and `sync-github` workflows pass `HOLOCRON_AXIOM_DATASET: ${{ vars.AXIOM_DATASET }}`, so
+  the CLI's own name carries the synced value in CI. The config sits ahead of the chain so a local run with no `.envrc` stays on
   `holocron-local` instead of the CI dataset.
