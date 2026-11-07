@@ -5,6 +5,8 @@ description: Fine-grained GitHub PATs and provider-native tokens used by the Hol
 
 Holocron uses one Personal Access Token per capability group. Each token carries only the scopes its operations require — a leaked token's blast radius is contained to that feature alone.
 
+Every other variable the CLI reads, and which of them carry the `HOLOCRON_` prefix, is on [Environment Variables](/holocron/environment-variables/). Where a token below has a vendor name too, the `HOLOCRON_` name is read first and the vendor name is the fallback.
+
 ## GitHub feature token resolution
 
 For GitHub feature tokens (`HOLOCRON_READ_TOKEN`, `HOLOCRON_ADMIN_TOKEN`, etc.), the chain is:
