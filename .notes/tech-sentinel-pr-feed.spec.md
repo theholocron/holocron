@@ -57,13 +57,13 @@ One tag per post, set only by the bot (`moderated`), the first that applies:
 
 ### The thread (what is posted, and when)
 
-| Event                                                                                                                 | Result                                                                                            |
-| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `pull_request` `opened`, `reopened`, `ready_for_review`                                                               | make the post (or reopen it) with the summary, and say it opened (author, base branch, diff size) |
-| `pull_request` `synchronize`, `edited`, `converted_to_draft`, `review_requested`, `review_request_removed`, `labeled` | re-render: edit the summary and set the tag. No new message                                       |
-| `pull_request_review` `submitted`, `dismissed`                                                                        | re-render: edit the summary and set the tag. No new message                                       |
-| `check_run` `completed` whose name is `ci / Required checks`                                                          | edit the summary, set the tag, and **post one message: CI passed, or CI failed and what failed**  |
-| `pull_request` `closed` (merged or not)                                                                               | post a last line (merged by, or closed), set `merged` / `closed`, archive and lock the post       |
+| Event                                                                                                                 | Result                                                                                                              |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `pull_request` `opened`, `reopened`, `ready_for_review`                                                               | make the post (or reopen it) with the summary; `opened` and `reopened` also say so (author, base branch, diff size) |
+| `pull_request` `synchronize`, `edited`, `converted_to_draft`, `review_requested`, `review_request_removed`, `labeled` | re-render: edit the summary and set the tag. No new message                                                         |
+| `pull_request_review` `submitted`, `dismissed`                                                                        | re-render: edit the summary and set the tag. No new message                                                         |
+| `check_run` `completed` whose name is `ci / Required checks`                                                          | edit the summary, set the tag, and **post one message: CI passed, or CI failed and what failed**                    |
+| `pull_request` `closed` (merged or not)                                                                               | post a last line (merged by, or closed), set `merged` / `closed`, archive and lock the post                         |
 
 The check run is filtered by name before anything is fetched, because a push produces dozens of check runs and only one of them is the verdict.
 
@@ -72,7 +72,7 @@ The check run is filtered by name before anything is fetched, because a push pro
 - passed: `✅ CI passed on abc1234` with a link to the run;
 - failed: `❌ CI failed on abc1234`, then **what failed**: the names of the checks that did not succeed (`failure`, `timed_out`, `cancelled`), each with a link, five at most with `and N more` after (the cut the failed-run post in `platform.notifications.yml` uses, #1614). They come from the Checks API for the head commit, since the aggregate only says that something failed. The message also links the aggregate's own summary, which lists every expected check, failures first.
 
-Each CI message ends with `-# ci: <sha> <conclusion>`. Before posting, the handler reads the thread's recent messages for that line and skips the post if it is there. That is the idempotency: GitHub's redelivery (below) cannot double-post.
+Each CI message ends with `-# ci: <sha> <conclusion>`. Before posting, the handler reads the thread's recent messages for that line and skips the post if it is there. That is the idempotency: GitHub's redelivery (below) cannot double-post. The opened, reopened and closed lines carry the same kind of marker (`-# pr: opened`) and are skipped when the newest such marker in the thread is the same kind.
 
 **A closed pull request** is not deleted. Its post is tagged `merged` or `closed`, then archived and locked, the way a finished spec's post is, so it leaves the active list (which is what remains to be handled) and its history stays searchable. A reopened pull request unarchives and unlocks the same post; it is found by its footer among the archived posts too.
 

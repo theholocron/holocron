@@ -12,5 +12,5 @@
     "pull_requests": "write",
     "repository_custom_properties": "write"
   },
-  "default_events": ["membership", "organization", "pull_request", "push"]
+  "default_events": ["check_run", "membership", "organization", "pull_request", "pull_request_review", "push"]
 }
