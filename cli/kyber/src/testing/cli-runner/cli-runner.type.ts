@@ -6,6 +6,10 @@ export interface CliRun {
 	stderr: string;
 	/** The exit code; -1 if the process was killed by the timeout. */
 	code: number;
+	/** True only when the timeout killed the run; `stderr` then ends with a line saying how long it ran and what it printed. */
+	timedOut: boolean;
+	/** How long the run took, from spawn to close, in milliseconds. */
+	elapsedMs: number;
 }
 
 /** What one run of the CLI is given. */

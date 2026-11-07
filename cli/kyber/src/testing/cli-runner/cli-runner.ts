@@ -41,11 +41,26 @@ export function createCliRunner(options: CliRunnerOptions): (args: string[], run
 				let stderr = "";
 				child.stdout.on("data", (d: Buffer) => (stdout += d));
 				child.stderr.on("data", (d: Buffer) => (stderr += d));
-				const timer = setTimeout(() => child.kill("SIGKILL"), run.timeoutMs ?? 20_000);
+				const timeoutMs = run.timeoutMs ?? 20_000;
+				const started = Date.now();
+				let timedOut = false;
+				const timer = setTimeout(() => {
+					timedOut = true;
+					child.kill("SIGKILL");
+				}, timeoutMs);
 				child.on("error", reject);
-				child.on("close", (code) => {
+				child.on("close", (code, signal) => {
 					clearTimeout(timer);
-					resolve({ stdout, stderr, code: code ?? -1 });
+					const elapsedMs = Date.now() - started;
+					// A kill leaves only `code: -1` and whatever was printed, which for a child that never wrote anything is
+					// nothing to go on, so say what happened.
+					if (timedOut) {
+						const note = `[cli-runner] killed after ${elapsedMs} ms (timeout ${timeoutMs} ms, ${signal}), pid ${child.pid}; stdout ${stdout.length} chars, stderr ${stderr.length} chars before this line; args: [${args.join(" ")}]`;
+						stderr += `\n${note}`;
+						// An assertion on `code` alone would hide the note, so the test log gets it too.
+						console.error(note);
+					}
+					resolve({ stdout, stderr, code: code ?? -1, timedOut, elapsedMs });
 				});
 			});
 		} finally {
