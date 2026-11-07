@@ -16,15 +16,24 @@ import type { ErrorSink, Logger } from "@theholocron/observability/core";
  * which transport they're talking to.
  */
 export interface GraphQLClient {
+	/**
+	 * Sends one query or mutation to `POST /graphql` and returns its `data`. Throws a `ProviderApiError` (status `200`, with the
+	 * response's `errors` array) when GitHub answers with errors, and the transport's own `ProviderApiError` for a network or HTTP failure.
+	 */
 	query<T>(document: string, variables?: Record<string, unknown>): Promise<T>;
 }
 
+/** What `createGitHubGraphQLClient()` needs: a token, and optionally the base URL, `fetch`, logger and error sink. */
 export interface GraphQLClientConfig {
+	/** The GitHub token sent as the `Authorization` header. */
 	token: string;
 	/** Defaults to `"https://api.github.com"` — `/graphql` is appended internally. */
 	baseUrl?: string;
+	/** The `fetch` to use instead of the global one (tests, proxies). */
 	fetch?: typeof fetch;
+	/** Where the transport logs requests and failures. */
 	logger?: Logger;
+	/** Where the transport reports errors. */
 	errors?: ErrorSink;
 }
 
@@ -33,6 +42,7 @@ interface GraphQLResponse<T> {
 	errors?: Array<{ message: string }>;
 }
 
+/** A {@link GraphQLClient} for GitHub's GraphQL API, built on the shared REST transport. */
 export function createGitHubGraphQLClient(config: GraphQLClientConfig): GraphQLClient {
 	const rest: RestClient = createRestClient({
 		baseUrl: config.baseUrl ?? "https://api.github.com",
