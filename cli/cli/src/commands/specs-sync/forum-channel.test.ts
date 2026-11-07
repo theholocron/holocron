@@ -33,6 +33,19 @@ describe("forumChannel", () => {
 		});
 	});
 
+	it("leaves the pull request feed's forum out of the default, and still takes it by name", () => {
+		const prs = { name: "prs", kind: "forum" as const, feeds: { prs: true } };
+		const both: NotificationsLayout = {
+			categories: [{ name: "BUILD", channels: [{ name: "ideas", kind: "forum" }, prs] }],
+		};
+
+		expect(forumChannel(both)).toEqual({ channel: "ideas" });
+		expect(forumChannel(both, "prs")).toEqual({ channel: "prs" });
+		expect(forumChannel({ categories: [{ name: "BUILD", channels: [prs] }] })).toMatchObject({
+			problem: expect.stringContaining("no forum channel"),
+		});
+	});
+
 	it("copes with a layout that has no categories, or a category with no channels", () => {
 		expect(forumChannel({})).toMatchObject({ problem: expect.stringContaining("no forum channel") });
 		expect(forumChannel({ categories: [{ name: "A" }] })).toMatchObject({
