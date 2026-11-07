@@ -96,6 +96,22 @@ describe("createCliRunner", { timeout: 30_000 }, () => {
 	it("kills a run that outlasts its timeout and says so with -1", async () => {
 		const result = await createCliRunner({ bin })(["--hang"], { timeoutMs: 300 });
 		expect(result.code).toBe(-1);
+		expect(result.timedOut).toBe(true);
+	});
+
+	it("says in stderr how long a killed run lasted and what it had printed", async () => {
+		const result = await createCliRunner({ bin })(["--hang"], { timeoutMs: 300 });
+		expect(result.stderr).toMatch(
+			/\[cli-runner\] killed after \d+ ms \(timeout 300 ms, SIGKILL\), pid \d+; stdout 0 chars/
+		);
+		expect(result.elapsedMs).toBeGreaterThanOrEqual(250);
+	});
+
+	it("leaves stderr alone and timedOut false for a run that finishes", async () => {
+		const result = await createCliRunner({ bin })(["--fail"]);
+		expect(result.timedOut).toBe(false);
+		expect(result.stderr).not.toContain("[cli-runner]");
+		expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
 	});
 
 	it("reports a failing exit code for a binary that does not exist", async () => {
