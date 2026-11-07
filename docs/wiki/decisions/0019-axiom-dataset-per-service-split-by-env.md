@@ -7,7 +7,7 @@ owners: []
 specs:
   - docs/wiki/specifications/logger.spec.md
 discussion:
-  url:
+  url: https://discord.com/channels/1303969001822486568/1568508114658009118
 supersedes:
   - ADR-0012
 superseded-by: []
