@@ -1,13 +1,18 @@
 import { ConfigFileError } from "@theholocron/datapad";
 
 import { decodeContents } from "../decode-contents/index.js";
-import { MAX_CONFIG_DIR_BYTES, MAX_CONFIG_DIR_FILE_BYTES, MAX_CONFIG_DIR_FILES } from "./fetch-config-dir.constants.js";
+import {
+	MAX_CONFIG_DIR_BYTES,
+	MAX_CONFIG_DIR_FILE_BYTES,
+	MAX_CONFIG_DIR_FILES,
+	MEDIA_EXTENSIONS,
+} from "./fetch-config-dir.constants.js";
 import type { FetchConfigDirInput, FetchConfigDirResult } from "./fetch-config-dir.type.js";
 
 /**
  * Lists a directory of the repo (every level) and fetches its files, for a config directory such as `.holocron/`.
  * A directory that is not there is `[]`. Symlinks and submodules are skipped (nothing outside the tree is followed),
- * and every file is fetched, not only the area files, because an area file may import a sibling; which of them is
+ * and every file is fetched, except pictures ({@link MEDIA_EXTENSIONS}: a config cannot import one), not only the area files, because an area file may import a sibling; which of them is
  * evaluated is decided later by what the config and the area files import.
  *
  * The tree comes from a repo anyone with write access can change, so it is capped: {@link MAX_CONFIG_DIR_FILES} files,
@@ -17,7 +22,9 @@ import type { FetchConfigDirInput, FetchConfigDirResult } from "./fetch-config-d
 export async function fetchConfigDir(input: FetchConfigDirInput): Promise<FetchConfigDirResult> {
 	const { client, repo, dir, ref } = input;
 	const entries = await client.git.listDirectory(repo, dir, { ref, recursive: true });
-	const files = entries.filter((entry) => entry.type === "file");
+	const files = entries.filter(
+		(entry) => entry.type === "file" && !MEDIA_EXTENSIONS.some((ext) => entry.path.toLowerCase().endsWith(ext))
+	);
 
 	if (files.length > MAX_CONFIG_DIR_FILES) {
 		throw new ConfigFileError(`${dir}/ has ${files.length} files; the limit is ${MAX_CONFIG_DIR_FILES}`);
