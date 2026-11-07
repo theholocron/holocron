@@ -1,3 +1,22 @@
+## [5.0.0-alpha.364](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.363...v5.0.0-alpha.364) (2026-11-07)
+
+### Bug Fixes
+
+* **doctor:** 🔍 doctor tokens finds a token where the plugins do ([#1899](https://github.com/theholocron/holocron/issues/1899)) ([bae635b](https://github.com/theholocron/holocron/commit/bae635be140d49ecf9b9ce007325ce79b3557830))
+
+### Refactoring
+
+* **astromech:** ♻️ one source for the release branches and prerelease channel ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1894](https://github.com/theholocron/holocron/issues/1894)) ([1d1be70](https://github.com/theholocron/holocron/commit/1d1be707daf2a838f2b5a3094bc352e687427730))
+* **config:** ♻️ one source for the org slug and .github coordinates ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1897](https://github.com/theholocron/holocron/issues/1897)) ([2e767a5](https://github.com/theholocron/holocron/commit/2e767a531c5465a58bcfab47d24e452e153afe3f))
+
+### Documentation
+
+* **specs:** 📝 add labels and issue templates to the provider setup spec ([#1901](https://github.com/theholocron/holocron/issues/1901)) ([5b26567](https://github.com/theholocron/holocron/commit/5b265673b2f32d6091dc839ddec2163f7bc051d2))
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#1896](https://github.com/theholocron/holocron/issues/1896)) ([0c28235](https://github.com/theholocron/holocron/commit/0c282356a19d6147fb656f40b75bf31af83f975f))
+
 ## [5.0.0-alpha.363](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.362...v5.0.0-alpha.363) (2026-11-07)
 
 ### Features
