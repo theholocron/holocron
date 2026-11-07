@@ -612,6 +612,16 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(performance).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
 	});
 
+	it("the bot identity is written in the git-identity action only, and the workflows that commit call it", () => {
+		expect(REUSABLE_ACTIONS["git-identity/action"]).toContain(
+			"41898282+github-actions[bot]@users.noreply.github.com"
+		);
+		for (const id of ["release", "sync-github"]) {
+			expect(REUSABLE_WORKFLOWS[id]).toContain("uses: ./ci/actions/git-identity");
+			expect(REUSABLE_WORKFLOWS[id]).not.toContain("41898282");
+		}
+	});
+
 	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		expect(REUSABLE_WORKFLOWS["lint:code"]).toMatch(/task: lint:code/);
 		expect(REUSABLE_WORKFLOWS["lint:editorconfig"]).toMatch(/task: lint:editorconfig/);

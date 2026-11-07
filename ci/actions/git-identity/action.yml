@@ -1,0 +1,73 @@
+name: Git identity
+description: >
+  Resolve the git identity a workflow commits as (the identity of the token's
+  user, else the github-actions bot) and, by default, configure git with it.
+  The one place the bot's name and its fixed GitHub id are written down.
+
+inputs:
+  scope:
+    description: >
+      Where to write the identity: `local` (the repository's config), `global`,
+      or `none` to only expose the `name` and `email` outputs.
+    required: false
+    default: local
+  resolve:
+    description: >
+      Take the name and email of the user the `token` belongs to (`gh api user`),
+      falling back to the bot when that fails (an App installation token has no user).
+    required: false
+    default: "false"
+  token:
+    description: Token `gh api user` reads with when `resolve` is true.
+    required: false
+    default: ${{ github.token }}
+  signoff:
+    description: Set `format.signoff` so every commit carries a Signed-off-by trailer.
+    required: false
+    default: "false"
+
+outputs:
+  name:
+    description: The git user.name.
+    value: ${{ steps.identity.outputs.name }}
+  email:
+    description: The git user.email.
+    value: ${{ steps.identity.outputs.email }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure git identity
+      id: identity
+      shell: bash
+      run: |
+        # 41898282 is GitHub's fixed id for the github-actions bot.
+        BOT_NAME="github-actions[bot]"
+        BOT_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+        GIT_NAME="$BOT_NAME"
+        GIT_EMAIL="$BOT_EMAIL"
+        if [ "$RESOLVE" = "true" ]; then
+          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "$BOT_NAME")
+          GIT_EMAIL=$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"' 2>/dev/null || echo "$BOT_EMAIL")
+        fi
+        case "$SCOPE" in
+          none) ;;
+          local | global)
+            git config "--$SCOPE" user.name "$GIT_NAME"
+            git config "--$SCOPE" user.email "$GIT_EMAIL"
+            if [ "$SIGNOFF" = "true" ]; then git config "--$SCOPE" format.signoff true; fi
+            ;;
+          *)
+            echo "::error::scope must be local, global or none, got '$SCOPE'"
+            exit 1
+            ;;
+        esac
+        {
+          echo "name=$GIT_NAME"
+          echo "email=$GIT_EMAIL"
+        } >> "$GITHUB_OUTPUT"
+      env:
+        SCOPE: ${{ inputs.scope }}
+        RESOLVE: ${{ inputs.resolve }}
+        SIGNOFF: ${{ inputs.signoff }}
+        GH_TOKEN: ${{ inputs.token }}

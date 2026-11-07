@@ -94,6 +94,10 @@ jobs:
 
       # The command changes the files and never commits. What it changed goes to one branch, force-updated each run, so
       # there is at most one open pull request for it.
+      - uses: ./ci/actions/git-identity
+        name: Configure git identity
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && env.DRY_RUN != 'true'
+
       - name: Commit the edits to the sync branch
         id: commit
         if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && env.DRY_RUN != 'true'
@@ -103,8 +107,6 @@ jobs:
             echo "Nothing to commit: every post and file is in step."
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           git add -A .notes docs/wiki
           git commit --no-verify -s -m "chore(specs): 🔄 sync spec discussions"

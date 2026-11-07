@@ -109,10 +109,18 @@ jobs:
         env:
           PRIMARY_REPO: ${{ inputs.primary-repo }}
 
+      # By path: the action is new and `theholocron/.github` is frozen (see the `format` action in lint/code.yml).
+      # `scope: none` leaves git's own config alone: the identity only goes into the Signed-off-by trailer below.
+      - uses: ./ci/actions/git-identity
+        name: Resolve git identity
+        id: identity
+        with:
+          scope: none
+          resolve: "true"
+          token: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
+
       - name: Sync primary repo (PR)
         run: |
-          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
-          GIT_EMAIL=$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
           COMMIT_MSG="chore: sync from theholocron/holocron"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
           node "$HOLOCRON_CLI" sync github \
             --repo "$PRIMARY_REPO" \
@@ -126,12 +134,12 @@ jobs:
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           PRIMARY_REPO: ${{ inputs.primary-repo }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
+          GIT_NAME: ${{ steps.identity.outputs.name }}
+          GIT_EMAIL: ${{ steps.identity.outputs.email }}
 
       - name: Sync secondary repos (PR)
         if: ${{ inputs.secondary-repos != '' }}
         run: |
-          GIT_NAME=$(gh api user --jq .name 2>/dev/null || echo "github-actions[bot]")
-          GIT_EMAIL=$(gh api user --jq '"\(.id)+\(.login)@users.noreply.github.com"' 2>/dev/null || echo "41898282+github-actions[bot]@users.noreply.github.com")
           COMMIT_MSG="chore: sync from theholocron/holocron"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
           for repo in $SECONDARY_REPOS; do
             node "$HOLOCRON_CLI" sync github \
@@ -147,3 +155,5 @@ jobs:
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
           SECONDARY_REPOS: ${{ inputs.secondary-repos }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
+          GIT_NAME: ${{ steps.identity.outputs.name }}
+          GIT_EMAIL: ${{ steps.identity.outputs.email }}
