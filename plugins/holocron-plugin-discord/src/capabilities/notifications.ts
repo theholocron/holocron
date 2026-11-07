@@ -555,9 +555,19 @@ export class DiscordNotifications implements Notifications {
 		for (const c of channels.filter((c) => c.type === ChannelType.Category)) {
 			categoryAccess[c.name] = this.accessOf(c.permission_overwrites, roleName);
 		}
+		// What the bot's roles hold server-wide against what `needs()` asks for; read last, from roles of its own.
+		let botPermissions: ServerInspection["botPermissions"];
+		let botPermissionsError: string | undefined;
+		try {
+			botPermissions = await this.missingBotPermissions();
+		} catch (err) {
+			botPermissionsError = reason(err);
+		}
 		return {
 			categories: [...categoryName.values()],
 			categoryAccess,
+			...(botPermissions ? { botPermissions } : {}),
+			...(botPermissionsError ? { botPermissionsError } : {}),
 			...(server ? { server } : {}),
 			...(serverError ? { serverError } : {}),
 			...(welcome ? { welcome } : {}),
@@ -907,6 +917,25 @@ export class DiscordNotifications implements Notifications {
 		const held = new Set([this.guild(), ...member.roles]);
 		const bits = roles.filter((r) => held.has(r.id)).reduce((all, r) => all | BigInt(r.permissions ?? "0"), 0n);
 		return { owner: false, bits, held, me };
+	}
+
+	/**
+	 * The permissions `needs()` lists that the bot's roles do not give it server-wide, in plain words ("Manage Threads"),
+	 * with the invite link that asks for them again when some are missing. The owner and an Administrator hold every
+	 * permission. Channel overwrites are not looked at: the forum's own check does that.
+	 */
+	private async missingBotPermissions(): Promise<{ missing: string[]; inviteUrl?: string }> {
+		const { owner, bits } = await this.serverPermissions();
+		const has = (name: PermissionName): boolean => {
+			const bit = BigInt(permissions([name]));
+			return (bits & bit) === bit;
+		};
+		const missing = owner || has("Administrator") ? [] : [...new Set(this.needs())].filter((n) => !has(n));
+		if (missing.length === 0) return { missing: [] };
+		return {
+			missing: missing.map((n) => n.replace(/([a-z])([A-Z])/g, "$1 $2")),
+			inviteUrl: await this.inviteUrl(),
+		};
 	}
 
 	async holdsPermission(permission: string): Promise<boolean> {

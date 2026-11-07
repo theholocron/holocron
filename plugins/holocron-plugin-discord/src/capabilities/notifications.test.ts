@@ -2795,7 +2795,12 @@ describe("DiscordNotifications.inspect — server settings", () => {
 		const { notifs, calls } = makeProvisioner([{ body: chans }]);
 		const found = await notifs.inspect({});
 		expect(found.server).toBeUndefined();
-		expect(calls).toHaveLength(1);
+		// Only the bot's own permission read, which comes after the channels, asks for the guild.
+		expect(calls.map((c) => c.url)).toEqual([
+			`${BASE}/guilds/${GUILD}/channels`,
+			`${BASE}/users/@me`,
+			`${BASE}/guilds/${GUILD}`,
+		]);
 	});
 });
 
@@ -3510,7 +3515,7 @@ describe("DiscordNotifications — reading the welcome screen and onboarding bac
 		const found = await notifs.inspect({});
 		expect(found.welcome).toBeUndefined();
 		expect(found.onboarding).toBeUndefined();
-		expect(calls).toHaveLength(1);
+		expect(calls.some((c) => /welcome-screen|onboarding/.test(c.url))).toBe(false);
 	});
 });
 
@@ -3821,7 +3826,7 @@ describe("DiscordNotifications — reading the application and @everyone back", 
 			},
 		]);
 		const found = await notifs.inspect({ application: { tags: ["a"] } });
-		expect(calls.at(-1)).toMatchObject({ method: "GET", url: `${BASE}/applications/@me` });
+		expect(calls).toContainEqual(expect.objectContaining({ method: "GET", url: `${BASE}/applications/@me` }));
 		expect(found.application).toEqual({
 			description: "Posts things",
 			tags: ["a"],
@@ -3865,7 +3870,9 @@ describe("DiscordNotifications — reading the application and @everyone back", 
 		expect((await ok.notifs.inspect({ everyone: { deny: ["MentionEveryone"] } })).everyone).toEqual({
 			permissions: ["ViewChannel"],
 		});
-		expect(ok.calls.at(-1)).toMatchObject({ method: "GET", url: `${BASE}/guilds/${GUILD}/roles` });
+		expect(ok.calls).toContainEqual(
+			expect.objectContaining({ method: "GET", url: `${BASE}/guilds/${GUILD}/roles` })
+		);
 		const missing = makeProvisioner([{ body: [] }, { body: [] }]);
 		expect((await missing.notifs.inspect({ everyone: { deny: ["MentionEveryone"] } })).everyoneError).toMatch(
 			/no @everyone role/
@@ -4552,5 +4559,75 @@ describe("DiscordNotifications.inspect — the bot's threads in a pull request f
 		expect(plain.channels.find((c) => c.name === "ideas")).not.toHaveProperty("botThreads");
 		const asText = await makeProvisioner([{ body: [text("2001", "prs")] }]).notifs.inspect(PRS);
 		expect(asText.channels[0]).not.toHaveProperty("botThreads");
+	});
+});
+
+describe("DiscordNotifications.inspect — the permissions the bot holds server-wide", () => {
+	const me = { body: { id: BOT, username: "holonet" } };
+	const guild = (owner: string) => ({ body: { id: GUILD, name: "The Holocron", owner_id: owner } });
+	const held = { body: { user: { id: BOT }, roles: ["r1"] } };
+	const roleWith = (names: Parameters<typeof permissions>[0]) => ({
+		body: [
+			{ id: GUILD, name: "@everyone", color: 0, mentionable: false, permissions: "0" },
+			{ id: "r1", name: "Holonet", color: 0, mentionable: false, permissions: permissions(names) },
+		],
+	});
+	const BASE_NEEDS = [
+		"ViewChannel",
+		"SendMessages",
+		"ReadMessageHistory",
+		"ManageChannels",
+		"ManageRoles",
+		"ManageWebhooks",
+		"ManageGuild",
+		"CreatePublicThreads",
+		"CreatePrivateThreads",
+		"SendMessagesInThreads",
+	] as const;
+	// An empty channel list first, then the bot's own reads.
+	const inspect = async (
+		responses: Parameters<typeof makeProvisioner>[0],
+		layout: NonNullable<DiscordNotificationsOptions["layout"]> = {}
+	) => makeProvisioner([{ body: [] }, ...responses], { guildId: GUILD, layout }).notifs.inspect(layout);
+
+	it("reports nothing missing when the bot's role holds everything", async () => {
+		const found = await inspect([me, guild("someone"), held, roleWith([...BASE_NEEDS])]);
+		expect(found.botPermissions).toEqual({ missing: [] });
+		expect(found).not.toHaveProperty("botPermissionsError");
+	});
+
+	it("names what is missing in plain words and carries the invite link that asks for all of it", async () => {
+		const found = await inspect([me, guild("someone"), held, roleWith(["ViewChannel", "SendMessages"])]);
+		expect(found.botPermissions?.missing).toContain("Manage Webhooks");
+		expect(found.botPermissions?.missing).toContain("Read Message History");
+		expect(found.botPermissions?.missing).not.toContain("View Channel");
+		const link = new URL(found.botPermissions!.inviteUrl!);
+		expect(link.searchParams.get("permissions")).toBe(permissions([...BASE_NEEDS]));
+		expect(link.searchParams.get("guild_id")).toBe(GUILD);
+	});
+
+	it("also asks for what the layout adds: Pin Messages, Manage Threads and Add Reactions", async () => {
+		const found = await inspect([me, guild("someone"), held, roleWith([...BASE_NEEDS])], {
+			pinned: [{ channel: "rules", content: "x" }],
+			categories: [{ name: "BUILD", channels: [{ name: "prs", kind: "forum", starterReactions: ["👍"] }] }],
+		});
+		expect(found.botPermissions?.missing).toEqual(["Pin Messages", "Manage Threads", "Add Reactions"]);
+	});
+
+	it("takes the server's owner as holding everything", async () => {
+		const found = await inspect([me, guild(BOT)]);
+		expect(found.botPermissions).toEqual({ missing: [] });
+	});
+
+	it("takes Administrator as holding everything", async () => {
+		const found = await inspect([me, guild("someone"), held, roleWith(["Administrator"])]);
+		expect(found.botPermissions).toEqual({ missing: [] });
+	});
+
+	it("reports why it could not tell, and keeps the rest of what it read", async () => {
+		const found = await inspect([{ status: 403, body: { message: "Missing Access", code: 50001 } }]);
+		expect(found.botPermissionsError).toBeTruthy();
+		expect(found).not.toHaveProperty("botPermissions");
+		expect(found.categories).toEqual([]);
 	});
 });
