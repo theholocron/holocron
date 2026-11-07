@@ -2,7 +2,8 @@
 
 Runs a web-standard handler (`(Request, env) => Response`) locally, for a development instance behind a tunnel. It
 loads the handler's secrets from a 1Password Environment, puts them in `process.env`, imports the handler, serves it
-on the loopback address and says where its logs go.
+on the loopback address and says where its logs go. It also supervises two foreground processes (an application and
+a tunnel connector) and runs GitHub's App manifest flow to create a GitHub App.
 
 Published for any project with a web-standard handler to run locally. `holocron dev serve` is built on it, and Sentinel's `scripts/serve.ts` was its first user.
 
