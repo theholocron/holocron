@@ -220,7 +220,12 @@ export default defineConfig({
 		],
 		secrets: "github",
 		vault: ["1password", { environment: "Sentinel" }],
-		// The org's non-secret values (CLOUDFLARE_ACCOUNT_ID for `tunnels`) live in this 1Password Environment (#1827).
-		credentials: ["1password", { environment: "Holocron - GitHub Actions variables" }],
+		// This machine's own tokens (the Cloudflare one `tunnels` and `dns` use) are in the `Holocron` Environment, ahead of
+		// the keyring, as in the root config; a config that names only the second one leaves them to the keyring when run
+		// from here (`holocron dev`). The org's non-secret values (CLOUDFLARE_ACCOUNT_ID) are in the second (#1827).
+		credentials: [
+			["1password", { environment: "Holocron" }],
+			["1password", { environment: "Holocron - GitHub Actions variables" }],
+		],
 	},
 });

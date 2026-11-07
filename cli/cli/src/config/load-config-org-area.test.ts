@@ -44,12 +44,19 @@ describe("the org area in this repo (#1820)", () => {
 		const expected = JSON.parse(await readFile(SNAPSHOT, "utf8")) as { providers: Record<string, unknown> };
 		// The one deliberate difference (#1827): the Cloudflare `accountId` is no longer a literal but comes from the
 		// credential chain, so `tunnels` carries no options and the Environment that holds it is a `credentials` entry.
+		// And the machine's own tokens: Sentinel reads the `Holocron` Environment first, as the root config does, so a
+		// command run from here (`holocron dev`) finds the Cloudflare token before the keyring.
 		const { tuple } = expected.providers.tunnels as { tuple: { options: Record<string, unknown> } };
 		expect(tuple.options).toEqual({ accountId: expect.any(String) });
 		tuple.options = {};
 		expected.providers.credentials = {
 			cardinality: "many",
 			tuples: [
+				{
+					provider: "1password",
+					packageName: "@theholocron/holocron-plugin-1password",
+					options: { environment: "Holocron" },
+				},
 				{
 					provider: "1password",
 					packageName: "@theholocron/holocron-plugin-1password",
