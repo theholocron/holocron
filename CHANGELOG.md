@@ -1,3 +1,13 @@
+## [5.0.0-alpha.362](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.361...v5.0.0-alpha.362) (2026-11-07)
+
+### Bug Fixes
+
+* **config:** 🔑 read the Holocron 1Password Environment from Sentinel and Comlink ([#1881](https://github.com/theholocron/holocron/issues/1881)) ([3727476](https://github.com/theholocron/holocron/commit/3727476e02680c3a0956e2c881e8fc64022df40d)), closes [#1678](https://github.com/theholocron/holocron/issues/1678)
+
+### Chores
+
+* **ci:** 🔧 use per-service Axiom dataset variables ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1875](https://github.com/theholocron/holocron/issues/1875)) ([b264d43](https://github.com/theholocron/holocron/commit/b264d43bea3c0b3138dd40375dac3ce8ce7575ff))
+
 ## [5.0.0-alpha.361](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.360...v5.0.0-alpha.361) (2026-11-07)
 
 ### Features
