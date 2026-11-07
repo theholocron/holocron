@@ -1,3 +1,10 @@
+## [1.58.0-alpha.17](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.16...clients-v1.58.0-alpha.17) (2026-11-07)
+
+### Features
+
+* **cli:** ✨ add holocron provider and Linear setup and doctor ([#1916](https://github.com/theholocron/holocron/issues/1916)) ([2005e2f](https://github.com/theholocron/holocron/commit/2005e2f5e65bd99a4759a188632b914958529350)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **plugins:** ✨ add a Linear plugin and `holocron migrate` between trackers ([#1857](https://github.com/theholocron/holocron/issues/1857)) ([9996268](https://github.com/theholocron/holocron/commit/9996268d92a5cb2b05bc3432f524ebef49088e79)), closes [#1856](https://github.com/theholocron/holocron/issues/1856) [#1856](https://github.com/theholocron/holocron/issues/1856)
+
 ## [1.58.0-alpha.16](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.15...clients-v1.58.0-alpha.16) (2026-11-07)
 
 ### Features
