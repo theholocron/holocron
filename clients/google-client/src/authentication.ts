@@ -1,7 +1,7 @@
 import http from "node:http";
 import url from "node:url";
 
-import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
+import { type EnvLookup, holocronEnv } from "@theholocron/env-utils/lookup";
 import type { JWT, OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import open from "open";
@@ -26,7 +26,7 @@ function buildOAuth2Client(env: EnvLookup): OAuth2Client {
  *
  * @param env - Where to read the GOOGLE_* variables from; defaults to the process environment.
  */
-export const oauth = async (scopes: string[], env: EnvLookup = createEnvLookup()): Promise<OAuth2Client | null> => {
+export const oauth = async (scopes: string[], env: EnvLookup = holocronEnv()): Promise<OAuth2Client | null> => {
 	const oauth2Client = buildOAuth2Client(env);
 	const port = parseInt(env.get("GOOGLE_REDIRECT_PORT") ?? "4000", 10);
 
@@ -63,7 +63,7 @@ export const oauth = async (scopes: string[], env: EnvLookup = createEnvLookup()
  *
  * @param env - Where to read the GOOGLE_* variables from; defaults to the process environment.
  */
-export async function googleAuth(scopes: string[], env: EnvLookup = createEnvLookup()): Promise<JWT> {
+export async function googleAuth(scopes: string[], env: EnvLookup = holocronEnv()): Promise<JWT> {
 	const auth = new google.auth.GoogleAuth({
 		credentials: loadServiceAccountKey(env),
 		scopes,
