@@ -1,3 +1,17 @@
+## [5.0.0-alpha.358](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.357...v5.0.0-alpha.358) (2026-11-07)
+
+### Features
+
+* **notifications:** ⚙️ feeds.prs in the layout, setup and doctor ([#1842](https://github.com/theholocron/holocron/issues/1842)) ([f242101](https://github.com/theholocron/holocron/commit/f2421018030bd7c7386665b0bfa6c50dac9223d1)), closes [#prs](https://github.com/theholocron/holocron/issues/prs) [#1834](https://github.com/theholocron/holocron/issues/1834)
+* **notifications:** 🧵 append, edit and de-duplicate posts in a forum thread ([#1841](https://github.com/theholocron/holocron/issues/1841)) ([750baaa](https://github.com/theholocron/holocron/commit/750baaa1fbf29a240a97d65f71a91fae3d2034a6)), closes [#1832](https://github.com/theholocron/holocron/issues/1832)
+* **sentinel:** 📡 post a thread per pull request to the [#prs](https://github.com/theholocron/holocron/issues/prs) forum ([#1843](https://github.com/theholocron/holocron/issues/1843)) ([1b7a51e](https://github.com/theholocron/holocron/commit/1b7a51e4ba396e6d4778c867a715c77adf696cdb)), closes [#1833](https://github.com/theholocron/holocron/issues/1833)
+* **sentinel:** 🧱 render a pull request's thread: summary, tag and CI message ([#1840](https://github.com/theholocron/holocron/issues/1840)) ([4459a74](https://github.com/theholocron/holocron/commit/4459a74d0d1b9f2bc4abb8882683cb976f7648a4)), closes [#prs](https://github.com/theholocron/holocron/issues/prs) [#1831](https://github.com/theholocron/holocron/issues/1831)
+
+### Documentation
+
+* **sentinel:** 📝 document the [#prs](https://github.com/theholocron/holocron/issues/prs) forum feed and subscribe the App to its events ([#1844](https://github.com/theholocron/holocron/issues/1844)) ([bdafc02](https://github.com/theholocron/holocron/commit/bdafc02e35ab8f5bf9f4cf86d38ee734347529d7)), closes [#1835](https://github.com/theholocron/holocron/issues/1835)
+* **specs:** 📝 a thread per pull request in the [#prs](https://github.com/theholocron/holocron/issues/prs) spec ([#1830](https://github.com/theholocron/holocron/issues/1830)) ([c8053e7](https://github.com/theholocron/holocron/commit/c8053e7ff968475026efbf3c71630a8331da8507)), closes [#1738](https://github.com/theholocron/holocron/issues/1738)
+
 ## [5.0.0-alpha.357](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.356...v5.0.0-alpha.357) (2026-11-07)
 
 ### Refactoring
