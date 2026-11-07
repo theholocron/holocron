@@ -52,7 +52,13 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 			{
 				environment: "Holocron - GitHub Actions variables",
 				scope: "org=theholocron",
-				keys: ["AXIOM_DATASET", "CLOUDFLARE_ACCOUNT_ID", "TURBO_TEAM"],
+				keys: [
+					"AXIOM_DATASET",
+					"CLOUDFLARE_ACCOUNT_ID",
+					"CLOUDFLARE_PAGES_PROJECT",
+					"POSTHOG_PROJECT_TOKEN",
+					"TURBO_TEAM",
+				],
 			},
 		]);
 		expect(after?.variables).not.toHaveProperty("org");

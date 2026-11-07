@@ -91,8 +91,9 @@ Environment with `AXIOM_DATASET`, `CLOUDFLARE_ACCOUNT_ID` and `TURBO_TEAM`, then
 - The `CLOUDFLARE_ACCOUNT_ID` preset constant and the `accountId` plugin options (Sentinel, Comlink, the wiki preset) are
   plugin options, not variables, and are not part of this change. Done in #1827: the plugin reads the id through the
   credential chain, and the Environment is a `credentials` entry.
-- The remaining names noted in `.holocron/repo.ts` (`CLOUDFLARE_PAGES_PROJECT`, `POSTHOG_PROJECT_TOKEN`) can be added
-  to the Environment once their values are settled.
+- `CLOUDFLARE_PAGES_PROJECT` and `POSTHOG_PROJECT_TOKEN` are in the `keys` list. The Pages project is one per org
+  (`<org>-preview`, passed by every generated caller), so it is shared; a repo with its own project passes the
+  `cloudflare-project` input.
 - The Axiom dataset has one synced name, `AXIOM_DATASET`. The CLI reads it through `withEnvPrefix(env, "HOLOCRON")`, so
   `HOLOCRON_AXIOM_DATASET` (a local override, e.g. `.envrc`) wins and the bare `AXIOM_DATASET` is the fallback, then
   `log.axiom.dataset`, then the credential chain (`resolveValue`, asked for the same two names, built from the one

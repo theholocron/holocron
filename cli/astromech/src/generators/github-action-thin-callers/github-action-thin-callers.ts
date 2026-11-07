@@ -252,7 +252,7 @@ export function extractPreviewConfig(raw: Record<string, unknown>, ctx: OrgConte
  *
  * Both jobs receive the same docs/storybook `with:` inputs. If the per-repo
  * config supplies `cloudflare-project` it is forwarded; otherwise the reusable
- * falls back to the `CLOUDFLARE_PAGES_PROJECT` org variable — set that once and
+ * falls back to the `CLOUDFLARE_PAGES_PROJECT` org variable (filled from the 1Password sync) — set that once and
  * all repos with a `deploy` workflow get previews without per-repo config.
  */
 export function generateCombinedDeployContent(
