@@ -121,14 +121,18 @@ runs on. Throws `WebhookVerificationError` for a missing/wrong secret, a
 missing/malformed signature, a missing `X-GitHub-Event` header, or a body
 that isn't valid JSON. Returns one of:
 
-| Result               | Meaning                                                                                                                                                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{ handled: true }`  | One of v1's three event categories — `event` carries the normalized `SentinelEvent`.                                                                                       |
-| `{ handled: false }` | A validly-signed delivery outside v1 scope (e.g. a non-default-branch push, `pull_request.closed`, an unrelated `X-GitHub-Event`) — not an error, just not actionable yet. |
+| Result               | Meaning                                                                                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `{ handled: true }`  | One of v1's three event categories — `event` carries the normalized `SentinelEvent`.                                                                                     |
+| `{ handled: false }` | A validly-signed delivery outside v1 scope (e.g. a non-default-branch push, any other check run, an unrelated `X-GitHub-Event`) — not an error, just not actionable yet. |
 
 `SentinelEventType` is one of `"installation.created"`,
 `"installation.deleted"`, `"push.default-branch"`,
-`"pull_request.opened"`, `"pull_request.synchronize"`. `repo` and
+`"pull_request.opened"`, `"pull_request.synchronize"`, plus the events of the
+`#prs` feed: `"pull_request.feed"` (reopened, ready_for_review,
+converted_to_draft, review requested/removed, labeled, closed), `"pull_request_review"`
+(submitted, dismissed) and `"check_run.completed"` (only the one named
+`ci / Required checks`). The feed events run none of the checks above. `repo` and
 `installationId` come entirely from the payload — never a hardcoded org
 (D10) — so one App registration handles installations across any number
 of orgs/accounts unchanged.
@@ -465,7 +469,7 @@ per-deployment `*.vercel.app` URL, is the stable webhook URL below.
 | Permission        | Access | Why                                                                                                                                                                                                                                                                         |
 | ----------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Contents          | Write  | `git.getContents()` / `git.getTree()` — reading `holocron.config.ts` + workspace tree; `git.createBlob/createTree/createCommit/updateRef()` — auto-fix-commit (holocron#820), default-on (holocron#864)                                                                     |
-| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run                                                                                                                                                                                                             |
+| Checks            | Write  | `checks.createCheckRun()` — the capability-compliance check run; `checks.listCheckRunsForRef()` — the failing checks the `#prs` feed lists                                                                                                                                  |
 | Custom properties | Write  | `properties.setProperties()` — syncing resolved capabilities to repo properties                                                                                                                                                                                             |
 | Issues            | Write  | `issues.createComment()` — the auto-fix PR comment (holocron#674/#834), posted only when auto-fix-commit actually committed something                                                                                                                                       |
 | Pull requests     | Write  | required to _receive_ `pull_request` webhook events; write is consumed by `pulls.createReview()`/`listReviewThreads()`/`resolveReviewThread()` — error-severity eslint/markdownlint/actionlint findings post as a PR review, not only a check-run annotation (holocron#860) |
@@ -496,7 +500,7 @@ read-only boundary that makes a PR-branch read safe).
 
 ### Subscribe to events
 
-`push`, `pull_request`, `installation`, plus `membership` and `organization` for role sync (holocron#1595)
+`push`, `pull_request`, `installation`, plus `membership` and `organization` for role sync (holocron#1595), and `pull_request_review` and `check_run` for the `#prs` forum feed (holocron#1738). The two new subscriptions are set by hand on an App that already exists (Settings → Developer settings → GitHub Apps → Holocron Sentinel → Permissions & events → Subscribe to events); a dev instance registered from `github-app.manifest.json` gets them from the manifest.
 
 ### Webhook
 
@@ -515,6 +519,12 @@ read-only boundary that makes a PR-branch read safe).
 ### Role sync settings (optional)
 
 Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron secrets sync Sentinel`.
+
+### `#prs` forum feed settings (optional)
+
+The feed keeps one forum post per pull request in the `#prs` forum (`.notes/tech-sentinel-pr-feed.spec.md`, holocron#1738): the first message is a summary that is edited as the pull request changes, the post's tag is its state (`draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged`, `closed`), and messages are appended when it opens, when `ci / Required checks` finishes (passed, or failed with the failing checks linked, five at most) and when it closes, after which the post is archived and locked. A redelivery adds nothing twice: each appended line ends with a marker (`-# ci: <sha> <conclusion>`, `-# pr: opened`) that is looked for first.
+
+It needs no secret of its own. It reads the layout from the repository role sync uses, so it is off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and a forum in the layout has `feeds: { prs: true }`; the object form lists `exclude: { repos, authors }` to leave out. Archived repositories, and pull requests of a repository in another organization than the layout's, are skipped. `holocron notifications setup` makes the forum and `holocron doctor notifications` checks it, its tags and that the bot can post and manage threads there. A feed error answers 500 with the reason, so the delivery can be redelivered, and never changes what the other checks do.
 
 ### Private key
 
