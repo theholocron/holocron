@@ -16,6 +16,7 @@ import {
 	ProviderApiError,
 	type SourceSecurity,
 } from "../../plugin/index.js";
+import { capabilityValues } from "../repo-properties/capability-property/index.js";
 import { CANONICAL_LABELS } from "../setup/labels.js";
 import { BALANCED_REPO_SETTINGS } from "../setup/repo-settings.js";
 import { runDoctorRepo } from "./doctor-repo.js";
@@ -79,16 +80,18 @@ describe("doctor repo — what is checked", () => {
 	it("checks only labels and security when the config declares nothing else", async () => {
 		const { report, lines } = await run(loadedWith(), {
 			checkPropertyValues: async () => [],
+			getOrgPropertyValues: async () => capabilityValues(),
 			listLabels: async () => labels(),
 			getSecurity: async () => ALL_ON,
 		});
 		expect(report.rows.map((r) => [r.id, r.status])).toEqual([
 			["repo-property-values", "ok"],
+			["repo-capabilities-allowed", "ok"],
 			["repo-labels", "ok"],
 			["repo-security", "ok"],
 		]);
 		expect(report.status).toBe("ok");
-		expect(lines.at(-1)).toBe("3 ok, 0 fail, 0 skipped");
+		expect(lines.at(-1)).toBe("4 ok, 0 fail, 0 skipped");
 	});
 
 	it("checks every group the config declares", async () => {
@@ -112,6 +115,7 @@ describe("doctor repo — what is checked", () => {
 			"repo-topics",
 			"repo-properties",
 			"repo-property-values",
+			"repo-capabilities-allowed",
 			"repo-labels",
 			"repo-teams",
 			"repo-protection",
@@ -141,10 +145,11 @@ describe("doctor repo — description, settings and topics", () => {
 			}),
 			getProperties: async () => ({ holocron_branch_protection_level: "balanced" }),
 			checkPropertyValues: async () => [],
+			getOrgPropertyValues: async () => capabilityValues(),
 			listLabels: async () => labels(),
 			getSecurity: async () => ALL_ON,
 		});
-		expect(report.rows.map((r) => r.status)).toEqual(["ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok"]);
+		expect(report.rows.map((r) => r.status)).toEqual(Array(9).fill("ok"));
 		expect(byId(report.rows, "repo-description").detail).toBe("2 of 2 match");
 	});
 
@@ -190,7 +195,12 @@ describe("doctor repo — description, settings and topics", () => {
 
 	it("takes the protection preset `none` as no settings to apply", async () => {
 		const { report } = await run(loadedWith({ repo: { protection: "none" } }), {});
-		expect(report.rows.map((r) => r.id)).toEqual(["repo-property-values", "repo-labels", "repo-security"]);
+		expect(report.rows.map((r) => r.id)).toEqual([
+			"repo-property-values",
+			"repo-capabilities-allowed",
+			"repo-labels",
+			"repo-security",
+		]);
 	});
 });
 
@@ -274,6 +284,36 @@ describe("doctor repo — custom property values the organization allows", () =>
 		expect(row.status).toBe("skip");
 		expect(row.detail).toContain("cannot be read with this token");
 		expect(row.detail).toContain("Custom properties: read");
+	});
+});
+
+describe("doctor repo — the organization's capability property", () => {
+	const ID = "repo-capabilities-allowed";
+
+	it("fails for each capability the CLI defines that the property does not allow, naming the command that adds it", async () => {
+		const allowed = capabilityValues().filter((v) => v !== "projects" && v !== "tunnels");
+		const { report } = await run(loadedWith(), { getOrgPropertyValues: async () => allowed });
+		const row = byId(report.rows, ID);
+		expect(row.status).toBe("fail");
+		expect(row.problems).toEqual([
+			'"projects" is not an allowed value of holocron_capabilities; run `holocron repo properties apply`',
+			'"tunnels" is not an allowed value of holocron_capabilities; run `holocron repo properties apply`',
+		]);
+	});
+
+	it("passes when every capability is allowed, and asks the provider about holocron_capabilities", async () => {
+		const getOrgPropertyValues = vi.fn(async (_name: string) => [...capabilityValues(), "legacy"]);
+		const { report } = await run(loadedWith(), { getOrgPropertyValues });
+		expect(getOrgPropertyValues).toHaveBeenCalledWith("holocron_capabilities");
+		expect(byId(report.rows, ID)).toMatchObject({
+			status: "ok",
+			detail: `${capabilityValues().length} of ${capabilityValues().length} match`,
+		});
+	});
+
+	it("skips when the definition cannot be read", async () => {
+		const { report } = await run(loadedWith(), { getOrgPropertyValues: async () => undefined });
+		expect(byId(report.rows, ID)).toMatchObject({ status: "skip" });
 	});
 });
 
@@ -518,7 +558,7 @@ describe("doctor repo — what cannot be read", () => {
 		expect(report.status).toBe("skip");
 		expect(report.rows.every((r) => r.status === "skip" && r.detail.includes("source"))).toBe(true);
 		expect(report.reason).toContain("source");
-		expect(lines.at(-1)).toBe("0 ok, 0 fail, 3 skipped");
+		expect(lines.at(-1)).toBe("0 ok, 0 fail, 4 skipped");
 	});
 
 	it("skips a row whose read method the provider lacks, without hiding the rows it can read", async () => {
@@ -526,6 +566,7 @@ describe("doctor repo — what cannot be read", () => {
 		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
 			["repo-topics", "skip", "provider does not implement getRepoInfo"],
 			["repo-property-values", "skip", "provider does not implement checkPropertyValues"],
+			["repo-capabilities-allowed", "skip", "provider does not implement getOrgPropertyValues"],
 			["repo-labels", "skip", "provider does not implement listLabels"],
 			["repo-security", "ok", "6 of 6 match"],
 		]);

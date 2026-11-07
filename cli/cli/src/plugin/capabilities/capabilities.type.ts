@@ -333,6 +333,19 @@ export interface Source extends ProviderIdentity {
 	checkPropertyValues?(values: Record<string, string | string[]>): Promise<string[] | undefined>;
 
 	/**
+	 * The values the organization's `single_select` or `multi_select` custom property `name` allows, or `undefined` when
+	 * the definitions cannot be read, the property does not exist or it takes any value. Read-only. Optional.
+	 */
+	getOrgPropertyValues?(name: string): Promise<string[] | undefined>;
+
+	/**
+	 * Adds the values the organization's custom property `name` does not allow yet and returns the ones it added. Never
+	 * removes or reorders a value, and keeps the rest of the definition as it is. Rejects when the property does not
+	 * exist or the token cannot write it (the organization's Custom properties: admin). Optional.
+	 */
+	addOrgPropertyValues?(name: string, values: string[]): Promise<string[]>;
+
+	/**
 	 * The repository's labels as they are now. Read-only.
 	 * Optional — providers without labels omit this.
 	 */

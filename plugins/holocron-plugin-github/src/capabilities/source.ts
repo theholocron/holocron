@@ -31,7 +31,7 @@ import {
 
 import { readRepoFile, writeRepoFile } from "./files.js";
 import { syncLabels } from "./labels.js";
-import { checkPropertyValues, syncProperties } from "./properties.js";
+import { addOrgPropertyValues, checkPropertyValues, getOrgPropertyValues, syncProperties } from "./properties.js";
 import { readRepoInfo, readSecurity, toRulesetDetail } from "./read-repo.js";
 import { syncTeams } from "./teams.js";
 import { syncTopics } from "./topics.js";
@@ -227,6 +227,14 @@ export class GitHubSource implements Source {
 
 	async syncProperties(values: Record<string, string | string[]>): Promise<string> {
 		return syncProperties(this.client, this.repo, values, this.orgClient ?? this.client);
+	}
+
+	async getOrgPropertyValues(name: string): Promise<string[] | undefined> {
+		return getOrgPropertyValues(this.orgClient ?? this.client, this.repo, name);
+	}
+
+	async addOrgPropertyValues(name: string, values: string[]): Promise<string[]> {
+		return addOrgPropertyValues(this.orgClient ?? this.client, this.repo, name, values);
 	}
 
 	async checkPropertyValues(values: Record<string, string | string[]>): Promise<string[] | undefined> {

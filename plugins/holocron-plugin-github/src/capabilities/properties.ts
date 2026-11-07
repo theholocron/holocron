@@ -68,3 +68,36 @@ export async function syncProperties(
 	}
 	return `${Object.keys(values).length} properties set`;
 }
+
+/** The values the organization's property `name` allows; `undefined` when it cannot be read, is not defined or takes any value. */
+export async function getOrgPropertyValues(
+	client: GitHubClient,
+	repo: string,
+	name: string
+): Promise<string[] | undefined> {
+	const found = (await orgSchema(client, repo))?.find((p) => p.property_name === name);
+	return found?.allowed_values ?? undefined;
+}
+
+/**
+ * Adds the missing `values` to the organization's property `name` and returns them. GitHub replaces the whole
+ * definition on a write, so the current one is read and sent back with the allowed values extended, in their order,
+ * and nothing removed. A write is made only when something is missing.
+ */
+export async function addOrgPropertyValues(
+	client: GitHubClient,
+	repo: string,
+	name: string,
+	values: string[]
+): Promise<string[]> {
+	const org = repo.split("/")[0] as string;
+	const current = (await client.properties.orgSchema(org)).find((p) => p.property_name === name);
+	if (!current) throw new Error(`the organization ${org} has no custom property "${name}"; create it first`);
+	if (!current.allowed_values)
+		throw new Error(`the custom property "${name}" takes any value; it has nothing to extend`);
+	const have = new Set(current.allowed_values);
+	const added = [...new Set(values)].filter((v) => !have.has(v));
+	if (added.length === 0) return [];
+	await client.properties.setOrgProperty(org, { ...current, allowed_values: [...current.allowed_values, ...added] });
+	return added;
+}

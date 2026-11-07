@@ -82,6 +82,8 @@ export const COMMAND_CONTEXTS = {
 	"doctor github-app": "workspace",
 	// `project move` calls the `projects` provider, so its package must be resolvable.
 	"project move": "workspace",
+	// Reads and extends an organization property through the `source` provider.
+	"repo properties apply": "workspace",
 	"doctor dns": "workspace",
 	"doctor repo": "workspace",
 	"doctor secrets": "workspace",

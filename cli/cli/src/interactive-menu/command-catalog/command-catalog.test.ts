@@ -114,7 +114,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 	});
 
 	it("nests as deep as the names go, and gives a runnable group a leading `(run it)` item", () => {
-		expect(names(["repo"])).toEqual(["setup", "sync ›", "cleanup ›", "upgrade ›"]);
+		expect(names(["repo"])).toEqual(["setup", "properties ›", "sync ›", "cleanup ›", "upgrade ›"]);
 		expect(names(["repo", "upgrade"])).toEqual(["node", "deps"]);
 		expect(menuItems(COMMAND_REGISTRY, ["repo", "sync"])[0]).toMatchObject({
 			name: "sync (run it)",
