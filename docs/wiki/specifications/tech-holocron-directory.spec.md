@@ -228,6 +228,11 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   `{ repo, providers, org, docs }`), and a test holds that. `sync-wiki` derives its fallback link from the resolved
   config's `domain` and uses the default only when none is in reach. The Fern plugin has no config to read, and its
   code holds no zone: only the examples in its comments, now written with a neutral name.
+- **The org slug and `.github` coordinates (#1895).** `config.org` is the source wherever a resolved config is in reach.
+  The commands with none (`new repo`, `sync github`, `publish --sync-trust`) take their default from one place,
+  `DEFAULT_ORG`, `DOT_GITHUB_REPO` and `HOLOCRON_REPO` in astromech's `ci-ref`, which also builds `TEMPLATE_HOME` and
+  `CI_TARGET` from them; Sentinel imports them (it bundles astromech) for its dispatch target. The published
+  `astro-config` has no CLI dependency and keeps its own `DEFAULT_ORG`, overridable by `docs.org`.
 - **Follow-ups.** Whether a provider's own options should declare which of them are org constants instead of a table in
   the CLI. (The Cloudflare `accountId` through the credential chain is done, #1827, and so is the area shared by app
   configs and the root config, #1829.)

@@ -1,12 +1,25 @@
 import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { sentinelAxiomLogUrl } from "./constants.js";
+import {
+	SENTINEL_DISPATCH_REF,
+	SENTINEL_DISPATCH_REPO,
+	SENTINEL_DISPATCH_WORKFLOW_FILE,
+	sentinelAxiomLogUrl,
+} from "./constants.js";
 
 const env = createEnvLookup({ AXIOM_ORG: "acme-org", SENTINEL_AXIOM_DATASET: "acme-dataset" });
 
 afterEach(() => {
 	vi.unstubAllEnvs();
+});
+
+describe("the dispatch target", () => {
+	it("is the frozen .github reusable, derived from astromech's ci-ref and unchanged in value", () => {
+		expect(SENTINEL_DISPATCH_REPO).toBe("theholocron/.github");
+		expect(SENTINEL_DISPATCH_WORKFLOW_FILE).toBe("platform.dispatchedCheck.yml");
+		expect(SENTINEL_DISPATCH_REF).toBe("main");
+	});
 });
 
 describe("sentinelAxiomLogUrl", () => {

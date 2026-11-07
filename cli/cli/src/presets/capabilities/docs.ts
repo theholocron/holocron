@@ -1,3 +1,5 @@
+import { DEFAULT_ORG } from "@theholocron/astromech";
+
 import type { Capability } from "../../config/compose/index.js";
 import { DEFAULT_DOMAIN } from "../constants.js";
 
@@ -11,7 +13,7 @@ export function docs(): Capability {
 	return {
 		id: "docs",
 		requires: ["node"],
-		org: "theholocron",
+		org: DEFAULT_ORG,
 		domain: DEFAULT_DOMAIN,
 		docs: { build: "workflow", https: true },
 		providers: {

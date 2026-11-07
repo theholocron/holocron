@@ -11,7 +11,7 @@ vi.mock("@astrojs/react", () => ({
 import type starlight from "@astrojs/starlight";
 import type { docsTheme } from "@theholocron/docs-theme";
 
-import { apiReference, defineConfig } from "./index.js";
+import { apiReference, DEFAULT_ORG, defineConfig } from "./index.js";
 
 const mockStarlight = vi.fn((config: unknown) => ({
 	name: "starlight",
@@ -43,6 +43,17 @@ describe("defineConfig", () => {
 			integrations: Array<{ config: { title: string } }>;
 		};
 		expect(config.integrations[0].config.title).toBe("Clients");
+	});
+
+	it("builds the social link under docs.org when given", () => {
+		const config = defineConfig({ ...baseInput, docs: { ...mockDocs, org: "acme" } }) as unknown as {
+			integrations: Array<{ config: { social: Array<{ href: string }> } }>;
+		};
+		expect(config.integrations[0].config.social[0].href).toBe("https://github.com/acme/clients");
+	});
+
+	it("falls back to DEFAULT_ORG without docs.org", () => {
+		expect(DEFAULT_ORG).toBe("theholocron");
 	});
 
 	it("uses docs.github for the GitHub social link", () => {

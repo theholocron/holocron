@@ -2,7 +2,14 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { frozenReusablePaths, isDeprecated, reusableTemplates, stampDeprecated } from "@theholocron/astromech";
+import {
+	DOT_GITHUB_REPO,
+	frozenReusablePaths,
+	HOLOCRON_REPO,
+	isDeprecated,
+	reusableTemplates,
+	stampDeprecated,
+} from "@theholocron/astromech";
 import { createGitHubClient } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 import { errorMessage } from "@theholocron/misc-utils";
@@ -10,8 +17,6 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { getLogger } from "../../observability/logger/index.js";
 import { event as telemetryEvent } from "../../observability/telemetry/index.js";
 import type { FileBatch, RunSyncGithubInput, SyncGithubReport } from "./sync-github.type.js";
-
-const DEFAULT_REPO = "theholocron/.github";
 
 /**
  * The file set `sync-github` pushes to `theholocron/.github` — the reusable
@@ -22,7 +27,7 @@ const DEFAULT_REPO = "theholocron/.github";
  * like `...tasks` from `nodeDocs()` — see issue #464).
  */
 function buildBatch(repo: string): FileBatch {
-	if (repo !== DEFAULT_REPO) return [];
+	if (repo !== DOT_GITHUB_REPO) return [];
 	// The reusables and actions that moved to holocron are frozen copies now: they are no longer pushed, only
 	// stamped once as deprecated (see `frozenReusablePaths`).
 	const frozen = new Set(frozenReusablePaths());
@@ -38,9 +43,9 @@ export function gitBlobSha(content: string): string {
 export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGithubReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
-	const repo = input.repo ?? DEFAULT_REPO;
+	const repo = input.repo ?? DOT_GITHUB_REPO;
 	const { token, dryRun = false, branch, createPr = false } = input;
-	const message = input.message ?? `chore: sync from theholocron/holocron`;
+	const message = input.message ?? `chore: sync from ${HOLOCRON_REPO}`;
 
 	const client = createGitHubClient({ token, fetch: input.fetch });
 
@@ -130,7 +135,7 @@ export async function runSyncGithub(input: RunSyncGithubInput): Promise<SyncGith
 	// deprecated, is read and stamped once; after that it is left exactly as it is.
 	const stamps: FileBatch = [];
 	let frozen = 0;
-	if (repo === DEFAULT_REPO) {
+	if (repo === DOT_GITHUB_REPO) {
 		for (const path of frozenReusablePaths()) {
 			if (!existingBlobs.has(path)) continue;
 			let current: string;

@@ -8,7 +8,11 @@ import { REUSABLE_ACTIONS, REUSABLE_WORKFLOWS } from "../github-action-reusable-
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 import {
 	CI_HOME,
+	CI_TARGET,
 	type CiHome,
+	DEFAULT_ORG,
+	DOT_GITHUB_REPO,
+	HOLOCRON_REPO,
 	legacyGate,
 	localize,
 	rehome,
@@ -25,6 +29,21 @@ const MOVED: CiHome = {
 
 /** What a template spells today; only this module may. */
 const LITERAL = "theholocron/.github/.github/";
+
+describe("the org coordinates", () => {
+	it("are built from the one org slug", () => {
+		expect(DEFAULT_ORG).toBe("theholocron");
+		expect(DOT_GITHUB_REPO).toBe("theholocron/.github");
+		expect(HOLOCRON_REPO).toBe("theholocron/holocron");
+	});
+
+	it("are what the template and target homes spell", () => {
+		expect(TEMPLATE_HOME.workflows).toBe(`${DOT_GITHUB_REPO}/.github/workflows`);
+		expect(TEMPLATE_HOME.actions).toBe(`${DOT_GITHUB_REPO}/.github/actions`);
+		expect(CI_TARGET.workflows).toBe(`${HOLOCRON_REPO}/.github/workflows`);
+		expect(CI_TARGET.actions).toBe(`${HOLOCRON_REPO}/ci/actions`);
+	});
+});
 
 describe("legacyGate", () => {
 	it("holds while the callers call the frozen reusables on main, and opens at ci-v1", () => {

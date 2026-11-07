@@ -1,3 +1,5 @@
+import { DEFAULT_ORG } from "@theholocron/astromech";
+
 import type { Capability } from "../../config/compose/index.js";
 import { DEFAULT_DOMAIN } from "../constants.js";
 import { react } from "./react.js";
@@ -23,7 +25,7 @@ export function nextjs({ test: testOverrides = {} }: NextjsOptions = {}): Capabi
 	const nextjsCapability: Capability = {
 		id: "nextjs",
 		requires: ["react"],
-		org: "theholocron",
+		org: DEFAULT_ORG,
 		domain: DEFAULT_DOMAIN,
 		providers: { deployment: "vercel" },
 		tasks: [
