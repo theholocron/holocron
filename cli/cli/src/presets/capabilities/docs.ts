@@ -1,4 +1,5 @@
 import type { Capability } from "../../config/compose/index.js";
+import { DEFAULT_DOMAIN } from "../constants.js";
 
 /**
  * Adds a documentation site deployed to Cloudflare Pages with PR previews.
@@ -11,7 +12,7 @@ export function docs(): Capability {
 		id: "docs",
 		requires: ["node"],
 		org: "theholocron",
-		domain: "theholocron.dev",
+		domain: DEFAULT_DOMAIN,
 		docs: { build: "workflow", https: true },
 		providers: {
 			// No `accountId`: the plugin reads CLOUDFLARE_ACCOUNT_ID through the credential chain (the environment, a

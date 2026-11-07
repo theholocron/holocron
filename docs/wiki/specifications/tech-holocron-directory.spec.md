@@ -222,9 +222,12 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   (`writeConfigDir()`), so a relative import of a sibling resolves; `org.ts` is plain data with a type-only package
   import, so it adds no runtime code and fits the caps (50 files, 100 KB each, 512 KB). `apps/sentinel/holocron.config.ts`
   is loaded from disk only (never by the remote loader, which reads a repo's root config), so its import outside its
-  directory is a local one. The presets (`docs`, `nextjs`, `wiki`) keep their own default `theholocron.dev` for a
-  consumer repo with no org file, and `sync-wiki`'s fallback URL and the Fern plugin's docs and examples stay literal:
-  they run without the org area (a preset or plugin has no config to read at that point).
+  directory is a local one. The presets (`docs`, `nextjs`, `wiki`) share one default, `DEFAULT_DOMAIN` (and `wikiHost()`) in
+  `cli/cli/src/presets/constants.ts`, for a consumer repo with no org file (#1884). A repo that has an org-area `domain`
+  must not spread the preset's `domain` (both set is a `ConfigError`; the root config destructures
+  `{ repo, providers, org, docs }`), and a test holds that. `sync-wiki` derives its fallback link from the resolved
+  config's `domain` and uses the default only when none is in reach. The Fern plugin has no config to read, and its
+  code holds no zone: only the examples in its comments, now written with a neutral name.
 - **Follow-ups.** Whether a provider's own options should declare which of them are org constants instead of a table in
   the CLI. (The Cloudflare `accountId` through the credential chain is done, #1827, and so is the area shared by app
   configs and the root config, #1829.)

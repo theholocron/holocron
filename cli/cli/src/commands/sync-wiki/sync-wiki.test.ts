@@ -320,6 +320,16 @@ describe("buildNavbarLinks", () => {
 		expect(block).toContain("https://wiki.theholocron.dev/skills");
 	});
 
+	it("uses the wiki host it is given when domain is absent", () => {
+		const block = buildNavbarLinks(
+			[{ displayName: "Skills", basepath: "skills" }],
+			"other",
+			"org/other",
+			"wiki.acme.dev"
+		);
+		expect(block).toContain("https://wiki.acme.dev/skills");
+	});
+
 	it("produces only github link when no other wikis exist", () => {
 		const block = buildNavbarLinks(repos.slice(0, 1), "configs", "org/configs");
 		const lines = block.split("\n");
@@ -805,6 +815,30 @@ describe("runSyncWiki", () => {
 		expect(docs).toContain("href: https://wiki.example.com/other");
 		// Self-link does not appear as a nav href (custom-domain line is fine)
 		expect(docs).not.toContain("href: https://wiki.example.com/myrepo");
+	});
+
+	it("links a wiki repo with no domain under the wiki host of the config's domain", async () => {
+		const loaded = loadedFrom({
+			name: "demo",
+			org: "org",
+			domain: "acme.dev",
+			providers: { wiki: ["fern", { domain: "wiki.acme.dev/myrepo" }] },
+		});
+		const fetch = makeOrgFetch([
+			{ name: "myrepo", full_name: "org/myrepo", configJson: { providers: { wiki: "fern" } } },
+			{ name: "other", full_name: "org/other", configJson: { providers: { wiki: "fern" } } },
+		]);
+
+		const result = await runSyncWiki({
+			loaded,
+			context: { repoRoot: tmpDir, repo: "org/myrepo" },
+			token: "tok",
+			fetch: fetch as typeof globalThis.fetch,
+		});
+
+		expect(result.status).toBe("ok");
+		const docs = await readFile(join(tmpDir, "fern", "docs.yml"), "utf8");
+		expect(docs).toContain("href: https://wiki.acme.dev/other");
 	});
 
 	it("derives org from owner when config.org is absent", async () => {
