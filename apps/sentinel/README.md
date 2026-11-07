@@ -538,7 +538,7 @@ Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-
 
 ### `#prs` forum feed settings (optional)
 
-The feed keeps one forum post per pull request in the `#prs` forum (`.notes/tech-sentinel-pr-feed.spec.md`, holocron#1738): the first message is a summary that is edited as the pull request changes, the post's tag is its state (`draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged`, `closed`), and messages are appended when it opens, when `ci / Required checks` finishes (passed, or failed with the failing checks linked, five at most) and when it closes, after which the post is archived and locked. A redelivery adds nothing twice: each appended line ends with a marker (`-# ci: <sha> <conclusion>`, `-# pr: opened`) that is looked for first.
+The feed keeps one forum post per pull request in the `#prs` forum (`.notes/tech-sentinel-pr-feed.spec.md`, holocron#1738): the first message is a summary that is edited as the pull request changes, the post's tag is its state (`draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged`, `closed`), and messages are appended when it opens, when `ci / Required checks` finishes (passed, or did not pass, with the failing checks linked, five at most) and when it closes, after which the post is archived and locked. A redelivery adds nothing twice: each appended line ends with a marker (`-# ci: <sha> <conclusion>`, `-# pr: opened`) that is looked for first.
 
 It needs no secret of its own. It reads the layout from the repository role sync uses, so it is off, with a quiet `skipped`, unless `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and a forum in the layout has `feeds: { prs: true }`; the object form lists `exclude: { repos, authors }` to leave out. Archived repositories, and pull requests of a repository in another organization than the layout's, are skipped. `holocron notifications setup` makes the forum and `holocron doctor notifications` checks it, its tags and that the bot can post and manage threads there. A feed error answers 500 with the reason, so the delivery can be redelivered, and never changes what the other checks do.
 
@@ -564,7 +564,7 @@ source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `AXIOM
 `Holocron - GitHub Actions variables`) carry the same values for the dispatched check workflow. The logger
 and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET` first, else the
 bare `AXIOM_DATASET` an Environment synced before the rename still holds, `sentinelAxiomDataset()`); with either unset the
-check run simply has no details link.
+check run has no details link.
 
 ```sh
 holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \
