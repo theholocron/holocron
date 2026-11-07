@@ -65,7 +65,12 @@ export interface Connection<T> {
 	/** The nodes of this page. */
 	nodes: T[];
 	/** Where the next page starts. */
-	pageInfo: { hasNextPage: boolean; endCursor: string | null };
+	pageInfo: {
+		/** Whether another page follows. */
+		hasNextPage: boolean;
+		/** The cursor to pass to fetch that page. */
+		endCursor: string | null;
+	};
 }
 
 /** Reads every page of a connection; `fetchPage` receives the cursor to continue from (`null` for the first). */
