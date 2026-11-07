@@ -89,3 +89,9 @@ The other provider tokens (`DOPPLER_TOKEN`, `NETLIFY_AUTH_TOKEN`, …) are vendo
 | `TURBO_TEAM`                          | `TURBO_TEAM`                                                                | Stays bare; turbo reads it               |
 | `SENTRY_ORG`                          | `SENTRY_ORG` in `release`                                                   | Stays bare; sentry-cli reads it          |
 | `AXIOM_ORG`, `SENTINEL_AXIOM_DATASET` | Sentinel's query link and dataset in `check-dispatched`                     | Stay as they are (Sentinel's convention) |
+
+## The guard
+
+`cli/cli/src/env-prefix-guard` scans every non-test TypeScript file in the workspace and fails the CLI's unit tests when source reads a bare variable that is not owned by a prefix (`HOLOCRON_`, `SENTINEL_`, `COMLINK_`), not in the allowlist and not read through the prefix helper. The helper is `holocronEnv()`, `withEnvPrefix()`, a variable declared from one, or `resolveValue(names, env, { prefix })`. A bare name is also accepted when the same file reads its `HOLOCRON_` spelling, which is the explicit pair the Axiom plugin and the logger package write out. It looks at `.get("NAME")` on an environment, `env.NAME`, `env["NAME"]`, `process.env`, and the names given to `firstEnv` and `resolveValue`; a name built at run time is not looked at, and `noProcessEnv` still bans `process.env` in the plugins and kyber.
+
+The allowlist is `env-allowlist.ts`, in two parts: the group 2 names a third party reads itself, and the group 1 names whose move is deferred (the table above). Add a name to the first only when a third party reads it itself. A name Holocron chooses never goes in either.
