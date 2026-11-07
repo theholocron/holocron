@@ -57,6 +57,11 @@ describe("the org area in this repo (#1820)", () => {
 				},
 			],
 		};
+		// Another (#1874): Sentinel's logger reads its Axiom dataset from `SENTINEL_AXIOM_DATASET`, the per-service name,
+		// instead of the bare `AXIOM_DATASET`.
+		const { logging } = (expected as unknown as { dev: { serve: { logging: { datasetVar: string } } } }).dev.serve;
+		expect(logging.datasetVar).toBe("AXIOM_DATASET");
+		logging.datasetVar = "SENTINEL_AXIOM_DATASET";
 		const { resolved } = await loadConfig(SENTINEL);
 		// The other deliberate difference (#1727): the loader sets `domain` from the shared root org area, so Sentinel's
 		// resolved config now carries the org's zone, which it did not before.
