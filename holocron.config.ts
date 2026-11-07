@@ -23,7 +23,7 @@ const codecovUploads = generateCodecovUploads(readWorkspacePackages(fileURLToPat
 export default defineConfig({
 	description:
 		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
-	homepage: "https://docs.theholocron.dev/holocron/",
+	homepage: `https://docs.${domain}/holocron/`,
 	org,
 	domain,
 	docs,
@@ -148,7 +148,7 @@ export default defineConfig({
 			},
 		],
 		// Wiki: Fern publishes the engineering wiki at wiki.theholocron.dev/holocron
-		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
+		wiki: ["fern", { domain: `wiki.${domain}`, fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},
 	// Logs: ship local runs to the shared holocron-local Axiom dataset. Needs an
 	// Axiom token in the keyring (`holocron auth set axiom.theholocron <TOKEN>`)
