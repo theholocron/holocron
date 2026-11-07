@@ -1,3 +1,9 @@
+## [5.0.0-alpha.365](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.364...v5.0.0-alpha.365) (2026-11-07)
+
+### Bug Fixes
+
+* **axiom:** 🔑 verify an API token that cannot read the user ([#1904](https://github.com/theholocron/holocron/issues/1904)) ([cfcc4a4](https://github.com/theholocron/holocron/commit/cfcc4a4edd42c8c028ebe84c26ee399ef34cc9fd))
+
 ## [5.0.0-alpha.364](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.363...v5.0.0-alpha.364) (2026-11-07)
 
 ### Bug Fixes
