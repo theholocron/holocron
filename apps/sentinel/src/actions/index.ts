@@ -8,6 +8,7 @@ export * from "./formatting/index.js";
 export * from "./inclusive-language/index.js";
 export * from "./markdown-lint/index.js";
 export * from "./pr-config-validation/index.js";
+export * from "./pr-feed/index.js";
 export * from "./repo-validation/index.js";
 export * from "./role-sync/index.js";
 export * from "./static-analysis/index.js";
