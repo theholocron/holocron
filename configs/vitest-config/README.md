@@ -10,6 +10,8 @@ pnpm add -D @theholocron/vitest-config
 
 ## Usage
 
+Every preset sets `fsModuleCachePath` to `node_modules/.vitest-cache` inside the package, so each package keeps its own module cache. Vitest's default is one directory shared by the whole workspace, which every Vitest process clears when the lockfile changes, and that crashed concurrent runs at startup with `ENOTEMPTY`. Override it with the `fsModuleCachePath` option.
+
 Presets are designed for use with Vitest's `projects` array, which runs unit and component tests in separate environments. Coverage is configured at the root `test` level and applies across all projects.
 
 ```typescript

@@ -1,3 +1,5 @@
+import { MODULE_CACHE_PATH } from "./module-cache.js";
+
 /**
  * Vitest preset for Storybook component testing via @storybook/addon-vitest.
  * Runs stories as browser tests using Playwright.
@@ -14,6 +16,7 @@ export async function storybook(configDir = ".storybook", options = {}) {
 		plugins: [storybookTest({ configDir })],
 		test: {
 			name: "storybook",
+			fsModuleCachePath: MODULE_CACHE_PATH,
 			browser: {
 				enabled: true,
 				headless: true,

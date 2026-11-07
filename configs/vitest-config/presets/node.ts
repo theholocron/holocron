@@ -1,3 +1,5 @@
+import { MODULE_CACHE_PATH } from "./module-cache.js";
+
 /**
  * Vitest preset for Node.js libraries and CLI tools.
  * No DOM globals; runs tests in the Node environment.
@@ -9,6 +11,7 @@ export function node(options = {}) {
 	return {
 		test: {
 			environment: "node",
+			fsModuleCachePath: MODULE_CACHE_PATH,
 			include: ["**/*.{test,spec}.{js,ts,mjs}"],
 			exclude: ["**/node_modules/**", "**/dist/**"],
 			reporters: ["default", "junit"],
