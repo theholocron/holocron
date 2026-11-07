@@ -1,3 +1,4 @@
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { CommandModule } from "yargs";
 
@@ -5,6 +6,8 @@ import { loadConfig } from "../../config/index.js";
 import { reportError } from "../../observability/logger/index.js";
 import { type GlobalArgs } from "../global-args/index.js";
 import { runDevServe } from "./dev-serve.js";
+
+const env = createEnvLookup();
 
 export const devServeCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 	command: "serve",
@@ -24,7 +27,7 @@ export const devServeCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 				environment: dev.environment ?? "",
 				serve: dev.serve,
 				// `holocron dev` sets PORT to the tunnel's; the config's port is the fallback for a run by hand.
-				port: Number(process.env["PORT"] ?? dev.port ?? 3000),
+				port: Number(env.get("PORT") ?? dev.port ?? 3000),
 			});
 		} catch (err) {
 			reportError(`dev serve: ${errorMessage(err)}`);
