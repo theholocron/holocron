@@ -1,12 +1,12 @@
 import { describeError } from "@theholocron/kyber/ui";
 
-import type { BoardItem, IssueRecord, StatusCategory } from "../../../plugin/index.js";
+import type { BoardItem, BoardStatusCategory, IssueRecord, StatusCategory } from "../../../plugin/index.js";
 import type { Collected, CollectInput } from "./collect-records.type.js";
 
 /** An empty template: a board's items are read for their keys, status and priority, not judged against statuses. */
 const NO_TEMPLATE = { name: "migrate", statuses: [], fields: [], views: [] };
 
-const CATEGORY: Record<string, StatusCategory> = {
+const CATEGORY: Record<BoardStatusCategory, StatusCategory> = {
 	backlog: "open",
 	planned: "open",
 	active: "in-progress",
@@ -65,9 +65,7 @@ function overlay(record: IssueRecord, item: BoardItem | undefined): IssueRecord 
 	return {
 		...record,
 		...(item.status ? { status: item.status } : {}),
-		...(item.category && !record.closed
-			? { statusCategory: CATEGORY[item.category] ?? record.statusCategory }
-			: {}),
+		...(item.category && !record.closed ? { statusCategory: CATEGORY[item.category] } : {}),
 		...(!record.priority && item.priority ? { priority: item.priority } : {}),
 	};
 }

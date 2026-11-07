@@ -148,3 +148,25 @@ describe("projects", () => {
 		expect(calls).toHaveLength(5);
 	});
 });
+
+describe("client edge cases", () => {
+	it("comments without a backdate send no createdAt", async () => {
+		const { fetch, calls } = stubFetch([data({ commentCreate: { comment: { id: "c" } } })]);
+		await createLinearClient({ token: "t", fetch }).issues.comment("i1", "hi");
+		expect(calls[0]?.body).toMatchObject({ variables: { input: { issueId: "i1", body: "hi" } } });
+		expect((calls[0]?.body as { variables: { input: object } }).variables.input).not.toHaveProperty("createdAt");
+	});
+
+	it("finds a team by id or by name, and returns undefined for an unknown one", async () => {
+		const team = { id: "t1", key: "ENG", name: "Engineering" };
+		const { fetch } = stubFetch([
+			data({ teams: page([team]) }),
+			data({ teams: page([team]) }),
+			data({ teams: page([team]) }),
+		]);
+		const c = createLinearClient({ token: "t", fetch });
+		expect((await c.teams.find("t1"))?.key).toBe("ENG");
+		expect((await c.teams.find("engineering"))?.key).toBe("ENG");
+		expect(await c.teams.find("nope")).toBeUndefined();
+	});
+});

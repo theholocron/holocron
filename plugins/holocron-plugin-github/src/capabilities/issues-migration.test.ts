@@ -160,3 +160,76 @@ describe("GitHubIssues.import", () => {
 		expect(create.labels).toBeUndefined();
 	});
 });
+
+describe("GitHubIssues migration — the less common shapes", () => {
+	it("export reads the status labels both ways, a plain open issue, a bare assignee and a comment with no user", async () => {
+		const bare = (number: number, labels: string[], over: Record<string, unknown> = {}) =>
+			raw({ number, labels: labels.map((name) => ({ name })), assignee: null, milestone: null, ...over });
+		const { issues } = make([
+			{
+				body: [
+					bare(1, ["status: in review"]),
+					bare(2, ["status:in-review"]),
+					bare(3, ["status: in progress"]),
+					bare(4, ["status:in-progress"]),
+					bare(5, ["bug"], {
+						assignee: { login: "han", email: "han@x.io" },
+						created_at: undefined,
+					}),
+				],
+			},
+			...Array.from({ length: 5 }, (_, i) => [
+				{ body: i === 4 ? [{ body: "c", created_at: "2026-01-05T00:00:00Z", user: null }] : [] },
+				links(null, []),
+			]).flat(),
+		]);
+		const out = await issues.export({ all: true });
+		expect(out.map((r) => r.statusCategory)).toEqual([
+			"in-review",
+			"in-review",
+			"in-progress",
+			"in-progress",
+			"open",
+		]);
+		expect(out[4]).toMatchObject({
+			assignee: { id: "han", displayName: "han", emailAddress: "han@x.io" },
+			createdAt: "2026-02-01T00:00:00Z",
+		});
+		expect(out[4]?.comments).toEqual([{ body: "c", createdAt: "2026-01-05T00:00:00Z" }]);
+	});
+
+	it("import makes a record with no body, milestone or comment author, and ignores existing issues with no marker", async () => {
+		const { issues, calls } = make([
+			{ body: [raw({ number: 40, body: null }), raw({ number: 41, body: "no marker here" })] },
+			{ body: { number: 50 } },
+			{ status: 201, body: {} },
+		]);
+		const [res] = await issues.import([
+			record({
+				body: undefined,
+				labels: [],
+				priority: undefined,
+				comments: [{ body: "anon", createdAt: "2026-01-02T00:00:00Z" }],
+			}),
+		]);
+		expect(res?.key).toBe("#50");
+		const create = calls[1]?.body as { body: string; milestone?: number; labels?: string[] };
+		expect(create.body.startsWith("---\n_Migrated from")).toBe(true);
+		expect(create.milestone).toBeUndefined();
+		expect(create.labels).toBeUndefined();
+		expect((calls[2]?.body as { body: string }).body).toContain("Someone commented on");
+	});
+
+	it("import reads every page of existing issues", async () => {
+		const page = Array.from({ length: 100 }, (_, i) =>
+			raw({
+				number: i + 1,
+				body: i === 99 ? "<!-- holocron:migrated-from https://linear.app/x/issue/ENG-1 -->" : "x",
+			})
+		);
+		const { issues, calls } = make([{ body: page }, { body: [] }]);
+		const [res] = await issues.import([record()]);
+		expect(res).toMatchObject({ created: false, key: "#100" });
+		expect(calls).toHaveLength(2);
+	});
+});

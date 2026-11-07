@@ -13,7 +13,7 @@ export interface OpenSideInput {
 	/** Which capabilities to load from it. */
 	capabilities: Array<"issues" | "projects">;
 	/** Builds the loader. Defaults to a real one over the derived config. */
-	makeLoader?: (resolved: LoadedConfig["resolved"], context: RuntimeContext) => PluginLoader;
+	makeLoader?: ((resolved: LoadedConfig["resolved"], context: RuntimeContext) => PluginLoader) | undefined;
 }
 
 /** One side of a migration, loaded. */

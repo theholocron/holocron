@@ -91,16 +91,14 @@ export async function importIssues(
 	const userIds = new Map(users.filter((u) => u.email).map((u) => [u.email!.toLowerCase(), u.id]));
 	const projects = new Map<string, string>();
 
-	const projectId = async (name: string): Promise<string | undefined> => {
+	// Only reached on a real run (a dry run returns before it), so a missing project is made here.
+	const projectId = async (name: string): Promise<string> => {
 		const key = name.toLowerCase();
 		if (!projects.has(key)) {
 			const found = await findProject(scope, name);
-			if (found) projects.set(key, found.id);
-			else if (!options.dryRun) {
-				projects.set(key, (await client.projects.create({ name, teamIds: [team.id] })).id);
-			}
+			projects.set(key, found?.id ?? (await client.projects.create({ name, teamIds: [team.id] })).id);
 		}
-		return projects.get(key);
+		return projects.get(key)!;
 	};
 
 	const made = new Map<string, { id: string; created: boolean }>();
