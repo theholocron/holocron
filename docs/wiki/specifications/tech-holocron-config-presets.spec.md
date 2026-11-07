@@ -100,7 +100,7 @@ Extends `node()` for repos that publish a documentation site and deploy previews
 | `tasks`                | `lint`/`test`/`typecheck` `{ required: true }` + `{ name: "deploy", with: { docs: true, preview: true } }`                         |
 | `extraRequiredChecks`  | `"audit / Conclusion"`, `"codecov/patch"`, `"codecov/project"` — the `Lint`/`Test`/`Typecheck` `… / Conclusion` checks are derived |
 
-**Per-repo still provides:** `description`, `homepage`, `repo.name/topics/teams`, `extraRequiredChecks` extensions (`codecov/project/<package>` per package), extra providers (`vault`, `secrets`, `environments`), extra task options (`release`, `audit`, `test` choices).
+**Per-repo still provides:** `description`, `homepage`, `repo.name/topics/teams`, `extraRequiredChecks` extensions (never one status per package: Codecov's per-component statuses are informational and a package a PR leaves alone posts none; holocron's own list is pinned by `root-required-checks.test.ts`, #1885), extra providers (`vault`, `secrets`, `environments`), extra task options (`release`, `audit`, `test` choices).
 
 **Usage:**
 
@@ -119,7 +119,7 @@ export default defineConfig({
     name: "theholocron/my-lib",
     topics: ["typescript", "library"],
   },
-  extraRequiredChecks: [...extraRequiredChecks, "codecov/project/my-package"],
+  extraRequiredChecks: [...extraRequiredChecks, "Dependency catalogs / Check"],
   tasks: [...tasks, { name: "audit", required: true }, { name: "release", with: { "run-build": true } }],
   providers: { ...providers, secrets: "github" },
 });
