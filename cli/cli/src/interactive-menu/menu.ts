@@ -1,3 +1,4 @@
+import { PREFIX } from "@theholocron/env-utils/lookup";
 import { createMenu, DRY_RUN_NOOP_EXIT_CODE } from "@theholocron/kyber/menu";
 
 export { DRY_RUN_NOOP_EXIT_CODE };
@@ -11,7 +12,7 @@ export { DRY_RUN_NOOP_EXIT_CODE };
  * preview-then-ask flow, not a direct `holocron <cmd> --dry-run`; a handler that supports it uses that to decide
  * whether to report {@link DRY_RUN_NOOP_EXIT_CODE}.
  */
-const menu = createMenu({ bin: "holocron", envPrefix: "HOLOCRON" });
+const menu = createMenu({ bin: "holocron", envPrefix: PREFIX });
 
 export const launchMenu = menu.launchMenu;
 

@@ -78,9 +78,20 @@ const env = withEnvPrefix(createEnvLookup(), "MYAPP");
 env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
 ```
 
+### `PREFIX` and `holocronEnv(source?)`
+
+`PREFIX` is `"HOLOCRON"`, the one definition of the prefix every Holocron-owned variable carries. `holocronEnv()` is `withEnvPrefix(createEnvLookup(source), PREFIX)`: `get("AXIOM_DATASET")` tries `HOLOCRON_AXIOM_DATASET` and then the bare `AXIOM_DATASET`, which stays as a fallback. Use it for a name Holocron chooses; a name a third party reads itself (`GITHUB_TOKEN`, `CI`, `NO_UPDATE_NOTIFIER`) is read bare.
+
+```ts
+import { holocronEnv, PREFIX } from "@theholocron/env-utils/lookup";
+
+holocronEnv().get("AXIOM_DATASET"); // HOLOCRON_AXIOM_DATASET, else AXIOM_DATASET
+holocronEnv({ AXIOM_DATASET: "old" }).get("AXIOM_DATASET"); // "old": a bare name still works
+```
+
 ### Importing without side effects
 
-The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"`, so importing the entry loads `.env` into `process.env`. Import from `@theholocron/env-utils/lookup` when you only need to read variables, for example in a library that must not touch its consumers' environment. It exports `createEnvLookup`, `EnvLookup`, `firstEnv` and `withEnvPrefix`, and never loads dotenv. `dotenv` is an optional peer dependency: install it if you import the package entry, and skip it if you only use `/lookup`.
+The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"`, so importing the entry loads `.env` into `process.env`. Import from `@theholocron/env-utils/lookup` when you only need to read variables, for example in a library that must not touch its consumers' environment. It exports `createEnvLookup`, `EnvLookup`, `firstEnv`, `withEnvPrefix`, `holocronEnv` and `PREFIX`, and never loads dotenv. `dotenv` is an optional peer dependency: install it if you import the package entry, and skip it if you only use `/lookup`.
 
 ```ts
 import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";

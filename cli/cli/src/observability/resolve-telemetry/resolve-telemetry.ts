@@ -1,6 +1,6 @@
-import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
+import { holocronEnv } from "@theholocron/env-utils/lookup";
 
-const holocronEnv = withEnvPrefix(createEnvLookup(), "HOLOCRON");
+const env = holocronEnv();
 /**
  * Holocron-specific credential resolution for the telemetry sinks — the env
  * chain plus Holocron's own shipped fallbacks. This is **CLI policy**, not part
@@ -28,15 +28,15 @@ const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
 
 /** Resolve the Sentry DSN. `""` → error telemetry disabled. */
 export function resolveDsn(): string {
-	return holocronEnv.get("SENTRY_DSN") ?? FALLBACK_DSN;
+	return env.get("SENTRY_DSN") ?? FALLBACK_DSN;
 }
 
 /** Resolve the PostHog project key. `""` → usage analytics disabled. */
 export function resolvePostHogKey(): string {
-	return holocronEnv.get("POSTHOG_PROJECT_TOKEN") ?? FALLBACK_POSTHOG_PROJECT_TOKEN;
+	return env.get("POSTHOG_PROJECT_TOKEN") ?? FALLBACK_POSTHOG_PROJECT_TOKEN;
 }
 
 /** Resolve the PostHog ingest host. */
 export function resolvePostHogHost(): string {
-	return holocronEnv.get("POSTHOG_HOST") ?? DEFAULT_POSTHOG_HOST;
+	return env.get("POSTHOG_HOST") ?? DEFAULT_POSTHOG_HOST;
 }

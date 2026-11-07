@@ -157,21 +157,21 @@ describe("buildCliLogger — one dataset name through the credential chain", () 
 		resolveValueMock.mockReturnValue("shared-ds");
 		getTokenMock.mockReturnValue("keyring-token");
 		buildCliLogger({});
-		expect(resolveValueMock).toHaveBeenCalledWith(["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
+		expect(resolveValueMock).toHaveBeenCalledWith(["AXIOM_DATASET"], undefined, { prefix: "HOLOCRON" });
 		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "shared-ds", token: "keyring-token" } });
 	});
 
 	it("asks the credential chain for the prefixed name first, then the bare one", () => {
 		getTokenMock.mockReturnValue("keyring-token");
 		buildCliLogger({});
-		expect(resolveValueMock).toHaveBeenCalledWith(["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
+		expect(resolveValueMock).toHaveBeenCalledWith(["AXIOM_DATASET"], undefined, { prefix: "HOLOCRON" });
 	});
 
 	it("a global-context command still asks the credential chain for the shared dataset", () => {
 		resolveValueMock.mockReturnValue("shared-ds");
 		getTokenMock.mockReturnValue("keyring-token");
 		buildCliLogger({}, { command: "clone" });
-		expect(resolveValueMock).toHaveBeenCalledWith(["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
+		expect(resolveValueMock).toHaveBeenCalledWith(["AXIOM_DATASET"], undefined, { prefix: "HOLOCRON" });
 		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "shared-ds", token: "keyring-token" } });
 	});
 });

@@ -6,7 +6,7 @@
  * parallel to `print` (user-facing UX output) and does not replace it.
  */
 
-import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
+import { createEnvLookup, holocronEnv, PREFIX } from "@theholocron/env-utils/lookup";
 import { type BuildCliLoggerOpts, type CliLoggerContext, createCliLogger } from "@theholocron/kyber/observability";
 import { type AxiomTransportConfig, resolveAxiomFromEnv } from "@theholocron/observability/logger";
 
@@ -14,15 +14,12 @@ import { keyring, resolveValue } from "../../auth.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
 
 const env = createEnvLookup();
-/** The one definition of the CLI's variable prefix: `HOLOCRON_<NAME>` is tried before the bare `<NAME>`. */
-const PREFIX = "HOLOCRON";
-const holocronEnv = withEnvPrefix(env, PREFIX);
+const holocron = holocronEnv();
 
 /**
  * The CLI's Axiom dataset (`holocron`; each service has its own): the process environment (`HOLOCRON_AXIOM_DATASET`, then the unprefixed `AXIOM_DATASET`,
  * through the prefix lookup), then the repo's `log.axiom.dataset`, then the credential chain, which is asked for the
- * same pair of names. `resolveValue` takes a plain list of names, so the pair is built from {@link PREFIX} instead of
- * adding a prefix option to kyber for one caller.
+ * same pair of names through `resolveValue`'s `prefix` option.
  *
  * A service's environments ship to the same dataset and are told apart by the `env` field on each line (ADR-0019). The
  * config dataset is only a per-repo override, so a `global`-context command (`clone`, `auth set`, `upgrade node`, ...,
@@ -31,9 +28,9 @@ const holocronEnv = withEnvPrefix(env, PREFIX);
  */
 function resolveCliDataset(opts: BuildCliLoggerOpts, isGlobal: boolean): string | undefined {
 	return (
-		holocronEnv.get("AXIOM_DATASET") ??
+		holocron.get("AXIOM_DATASET") ??
 		(isGlobal ? undefined : opts.configAxiomDataset) ??
-		resolveValue([`${PREFIX}_AXIOM_DATASET`, "AXIOM_DATASET"])
+		resolveValue(["AXIOM_DATASET"], undefined, { prefix: PREFIX })
 	);
 }
 
@@ -54,7 +51,7 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts, ctx: CliLoggerContext): Axiom
 	if (!dataset) return undefined;
 
 	const org = opts.org ?? env.get(`${PREFIX}_ORG`);
-	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? keyring.get(`axiom.${org}`) : null) || keyring.get("axiom");
+	const token = holocron.get("AXIOM_TOKEN") || (org ? keyring.get(`axiom.${org}`) : null) || keyring.get("axiom");
 	return token ? { dataset, token } : undefined;
 }
 

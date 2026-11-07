@@ -20,7 +20,7 @@
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
-import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
+import { holocronEnv } from "@theholocron/env-utils/lookup";
 import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
@@ -71,7 +71,7 @@ export function resolveAuthSetToken(input: {
 	positional?: string;
 	env?: NodeJS.ProcessEnv;
 }): string | null {
-	const e = withEnvPrefix(createEnvLookup(input.env), "HOLOCRON");
+	const e = holocronEnv(input.env);
 	return input.positional || e.get(`${input.provider.toUpperCase()}_TOKEN`) || null;
 }
 
