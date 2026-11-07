@@ -52,7 +52,7 @@ function post(client: ReturnType<typeof makeClient>["client"], messages: AdrMess
 
 beforeAll(() => {
 	vi.stubEnv("AXIOM_ORG", "acme-org");
-	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
 });
 
 describe("postAdrsCheck", () => {

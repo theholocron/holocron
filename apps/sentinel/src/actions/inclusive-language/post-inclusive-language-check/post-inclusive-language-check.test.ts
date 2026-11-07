@@ -14,7 +14,7 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 
 beforeAll(() => {
 	vi.stubEnv("AXIOM_ORG", "acme-org");
-	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
 });
 
 describe("postInclusiveLanguageCheck — carries the intent vocabulary through (D5)", () => {

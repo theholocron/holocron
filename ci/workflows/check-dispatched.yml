@@ -117,16 +117,16 @@ jobs:
             '{_time: $time, source: "dispatched-check", repo: $repo, task: $task,
               run_id: $run_id, job_id: $job_id, check_run_id: $check_run_id,
               conclusion: $conclusion, level: $level, message: $message}')
-          curl -sf -X POST "https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest" \
+          curl -sf -X POST "https://api.axiom.co/v1/datasets/${SENTINEL_AXIOM_DATASET}/ingest" \
             -H "Authorization: Bearer ${AXIOM_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "[${event}]" || echo "::warning::Axiom ingest failed — continuing, the check itself still reports the real result"
 
           # The ['...'] is Axiom's own APL array-dataset-reference syntax, not
-          # a shell quote boundary — $AXIOM_DATASET/$CHECK_RUN_ID both expand
+          # a shell quote boundary — $SENTINEL_AXIOM_DATASET/$CHECK_RUN_ID both expand
           # fine here; shellcheck's single-quote heuristic just can't tell.
           # shellcheck disable=SC2016
-          apl="['${AXIOM_DATASET}'] | where check_run_id == \"${CHECK_RUN_ID}\""
+          apl="['${SENTINEL_AXIOM_DATASET}'] | where check_run_id == \"${CHECK_RUN_ID}\""
           init_form=$(jq -cn --arg apl "$apl" '{apl: $apl}')
           encoded=$(jq -rn --arg s "$init_form" '$s | @uri')
           echo "query-url=https://app.axiom.co/${AXIOM_ORG}/query?initForm=${encoded}" >> "$GITHUB_OUTPUT"
@@ -140,7 +140,7 @@ jobs:
           # Org variables (1Password Environment "Holocron - GitHub Actions variables", synced by
           # `repo.variables.sync`); no literal fallback.
           AXIOM_ORG: ${{ vars.AXIOM_ORG }}
-          AXIOM_DATASET: ${{ vars.AXIOM_DATASET }}
+          SENTINEL_AXIOM_DATASET: ${{ vars.SENTINEL_AXIOM_DATASET }}
           AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}
 
       # Always runs, success or failure — the queued check run on the target

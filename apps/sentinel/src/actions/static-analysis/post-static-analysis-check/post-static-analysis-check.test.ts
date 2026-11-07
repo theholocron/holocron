@@ -24,7 +24,7 @@ const REVIEW_POSTED = { body: { id: 999, html_url: "https://github.com/acme/demo
 
 beforeAll(() => {
 	vi.stubEnv("AXIOM_ORG", "acme-org");
-	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
 });
 
 describe("postStaticAnalysisCheck — carries the intent vocabulary through (D5)", () => {

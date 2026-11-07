@@ -38,8 +38,8 @@ export const SENTINEL_NAMESPACES = {
  * post) disambiguates which of that request's lines is this one.
  *
  * The org slug and dataset are not compiled in: they come from `AXIOM_ORG` and
- * `AXIOM_DATASET` through `@theholocron/env-utils/lookup`, the path the
- * logger's `AXIOM_DATASET` already takes. Both are synced into Vercel from the
+ * `SENTINEL_AXIOM_DATASET` through `@theholocron/env-utils/lookup`, the path the
+ * logger's `SENTINEL_AXIOM_DATASET` already takes. Both are synced into Vercel from the
  * 1Password Environment `Sentinel`. Returns `undefined` (the check run then
  * has no details link) when either is unset, instead of a wrong link.
  */
@@ -49,7 +49,7 @@ export function sentinelAxiomLogUrl(
 	env: EnvLookup = createEnvLookup()
 ): string | undefined {
 	const org = env.get("AXIOM_ORG");
-	const dataset = env.get("AXIOM_DATASET");
+	const dataset = env.get("SENTINEL_AXIOM_DATASET");
 	if (!org || !dataset) return undefined;
 	const apl = `['${dataset}'] | where runId == "${runId}" and msg == "${msg}"`;
 	const initForm = JSON.stringify({ apl });

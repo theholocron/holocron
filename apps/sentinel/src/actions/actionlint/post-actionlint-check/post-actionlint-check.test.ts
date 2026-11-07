@@ -54,7 +54,7 @@ function post(client: ReturnType<typeof makeClient>["client"], messages: Actionl
 
 beforeAll(() => {
 	vi.stubEnv("AXIOM_ORG", "acme-org");
-	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
 });
 
 describe("postActionlintCheck — carries the intent vocabulary through (D5)", () => {

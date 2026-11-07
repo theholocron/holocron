@@ -34,7 +34,7 @@ const WIDGET = { name: "widget", entry: "packages/widget/src/index.ts" };
 
 beforeAll(() => {
 	vi.stubEnv("AXIOM_ORG", "acme-org");
-	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
 });
 
 describe("postDocsPresenceCheck", () => {

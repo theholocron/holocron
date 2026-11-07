@@ -275,7 +275,7 @@ A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
 SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Three more
-Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`, `AXIOM_ORG`)
+Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `SENTINEL_AXIOM_DATASET`, `AXIOM_ORG`)
 feed the module-level logger and the Axiom links directly, via `@theholocron/env-utils/lookup`
 (never bare `process.env`, this org's own convention) — see
 `src/handler/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
@@ -550,16 +550,15 @@ Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
 the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
 the 1Password Environment `Sentinel` first (made by hand: `op` cannot create
 one) — see `holocron.config.ts` in this directory for the `vault` provider
-wiring — then out to Vercel's env vars. Two more keys already live in the
-same Environment for the Axiom log-shipping
-transport (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a
-narrower-scoped, ingest-only token — deliberately not the same
-credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
-`AXIOM_DATASET` (`holocron-sentinel`, not a secret, but synced the same
-way for one source of truth) and `AXIOM_ORG` (`the-holocron-7bbe`, the Axiom
-org slug, also not a secret). The check runs' Axiom `details_url` is built from
-`AXIOM_ORG` and `AXIOM_DATASET` at request time; with either unset the check
-run simply has no details link.
+wiring — then out to Vercel's env vars. Axiom is one dataset per service (the CLI, Sentinel and Comlink each
+have their own) and one shared org slug. Sentinel's Environment holds the Axiom log-shipping and link values
+(holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
+credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
+and `AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
+source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `AXIOM_ORG` (from the 1Password Environment
+`Holocron - GitHub Actions variables`) carry the same values for the dispatched check workflow. The logger
+and the check runs' Axiom `details_url` read the same two names at request time; with either unset the check run
+simply has no details link.
 
 ```sh
 holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \
@@ -659,9 +658,9 @@ serves). Its three required variables, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`
 from the process, or else from the Environment `dev.environment` names (`Sentinel - dev`), read with
 `op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
 header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
-and `AXIOM_DATASET`, or leave both out. It says which it is on start. Use the same dataset as production
+and `SENTINEL_AXIOM_DATASET`, or leave both out. It says which it is on start. Use the same dataset as production
 (`holocron-sentinel`) with an ingest token of its own, scoped to that dataset: `holocron dev` sets
-`ENVIRONMENT=development`, so every line carries `env: "development"` and one dataset holds dev and production
+`ENVIRONMENT=development`, so every line carries `env: "development"` and the service's one dataset holds dev and production
 (`where env == "development"`); production sets `ENVIRONMENT=production` in the `Sentinel` Environment. Install the dev
 App only on the repositories you test with.
 

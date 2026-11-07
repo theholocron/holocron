@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { sentinelAxiomLogUrl } from "./constants.js";
 
-const env = createEnvLookup({ AXIOM_ORG: "acme-org", AXIOM_DATASET: "acme-dataset" });
+const env = createEnvLookup({ AXIOM_ORG: "acme-org", SENTINEL_AXIOM_DATASET: "acme-dataset" });
 
 afterEach(() => {
 	vi.unstubAllEnvs();
@@ -24,16 +24,18 @@ describe("sentinelAxiomLogUrl", () => {
 	});
 
 	it("returns undefined, not a wrong link, when AXIOM_ORG is unset", () => {
-		expect(sentinelAxiomLogUrl("r", "m", createEnvLookup({ AXIOM_DATASET: "acme-dataset" }))).toBeUndefined();
+		expect(
+			sentinelAxiomLogUrl("r", "m", createEnvLookup({ SENTINEL_AXIOM_DATASET: "acme-dataset" }))
+		).toBeUndefined();
 	});
 
-	it("returns undefined, not a wrong link, when AXIOM_DATASET is unset", () => {
+	it("returns undefined, not a wrong link, when SENTINEL_AXIOM_DATASET is unset", () => {
 		expect(sentinelAxiomLogUrl("r", "m", createEnvLookup({ AXIOM_ORG: "acme-org" }))).toBeUndefined();
 	});
 
 	it("reads the process environment by default", () => {
 		vi.stubEnv("AXIOM_ORG", "proc-org");
-		vi.stubEnv("AXIOM_DATASET", "proc-ds");
+		vi.stubEnv("SENTINEL_AXIOM_DATASET", "proc-ds");
 		expect(sentinelAxiomLogUrl("r", "m")).toContain("https://app.axiom.co/proc-org/query");
 	});
 });
