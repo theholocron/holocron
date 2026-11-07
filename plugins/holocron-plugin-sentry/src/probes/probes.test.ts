@@ -172,6 +172,22 @@ describe("probe sentry send-error", () => {
 		expect(rows[0]).toMatchObject({ status: "ok", label: "sent HolocronProbeError" });
 	});
 
+	it("prefers HOLOCRON_SENTRY_DSN over SENTRY_DSN", async () => {
+		const fetch = okFetch();
+		const { ctx } = ctxFor();
+		await probe(
+			deps({
+				env: {
+					HOLOCRON_SENTRY_DSN: "https://newkey@o1.ingest.sentry.io/1",
+					SENTRY_DSN: "https://oldkey@o1.ingest.sentry.io/2",
+				},
+				fetch,
+			}).d,
+			"send-error"
+		).run(ctx);
+		expect(String(fetch.mock.calls[0]![0])).toContain("sentry_key=newkey");
+	});
+
 	it("reads SENTRY_DSN from the environment and sends with the global fetch when not given either", async () => {
 		vi.stubEnv("SENTRY_DSN", "https://pubkey@o1.ingest.sentry.io/4242");
 		const fetch = okFetch();

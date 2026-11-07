@@ -1,5 +1,6 @@
 import type { Deployment, Dns, Tunnels, Workers } from "@theholocron/cli";
 import { connectionProbe, resolveValue } from "@theholocron/cli";
+import { PREFIX } from "@theholocron/env-utils/lookup";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { CloudflareDeployment } from "./capabilities/deployment.js";
@@ -34,10 +35,10 @@ export interface PluginContext {
 
 /** Builds the plugin context from its options; the API token is resolved lazily on the first client use. */
 export function createContext(options: CloudflarePluginOptions = {}): PluginContext {
-	// CLOUDFLARE_ACCOUNT_ID is the standard Cloudflare env var; fall back so `deployment: "cloudflare"` works without
+	// HOLOCRON_CLOUDFLARE_ACCOUNT_ID, then the standard Cloudflare CLOUDFLARE_ACCOUNT_ID; fall back so `deployment: "cloudflare"` works without
 	// repeating the ID in every config. The option wins, then the environment, then the variables the `credentials`
 	// providers returned (a 1Password Environment), the same chain the token is found through.
-	const accountId = options.accountId ?? resolveValue(["CLOUDFLARE_ACCOUNT_ID"], options.env);
+	const accountId = options.accountId ?? resolveValue(["CLOUDFLARE_ACCOUNT_ID"], options.env, { prefix: PREFIX });
 	const opts = { ...options, accountId };
 	let token: string | undefined;
 	let client: CloudflareClient | undefined;

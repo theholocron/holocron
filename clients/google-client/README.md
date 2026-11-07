@@ -28,7 +28,7 @@ const [err, doc] = await google.documents.get("1BxiMVs0XRA...");
 
 ### Service Account
 
-Set credentials via environment variables:
+Set credentials via environment variables. Each is read as `HOLOCRON_<NAME>` first (`HOLOCRON_GOOGLE_PROJECT_ID`), then the bare name shown here, which keeps working:
 
 ```bash
 # Option 1 — full JSON key file

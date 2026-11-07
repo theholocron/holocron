@@ -45,6 +45,13 @@ describe("createContext account id", () => {
 		expect(createContext({ env: {} }).options.accountId).toBe("acc-store");
 	});
 
+	it("prefers HOLOCRON_CLOUDFLARE_ACCOUNT_ID, in the environment and in the credentials providers", () => {
+		const env = { HOLOCRON_CLOUDFLARE_ACCOUNT_ID: "acc-new", CLOUDFLARE_ACCOUNT_ID: "acc-old" };
+		expect(createContext({ env }).options.accountId).toBe("acc-new");
+		setCredentials("op", { HOLOCRON_CLOUDFLARE_ACCOUNT_ID: "store-new", CLOUDFLARE_ACCOUNT_ID: "store-old" });
+		expect(createContext({ env: {} }).options.accountId).toBe("store-new");
+	});
+
 	it("exposes the capabilities when only a credentials provider holds the account id", () => {
 		setCredentials("op", { CLOUDFLARE_ACCOUNT_ID: "acc-store" });
 		const plugin = createPlugin({ cliToken: "cf-tok", env: {} });
