@@ -1,4 +1,5 @@
 import type { Capability } from "../../config/compose/index.js";
+import { DEFAULT_DOMAIN } from "../constants.js";
 import { react } from "./react.js";
 
 /** Options for the Next.js preset. */
@@ -23,7 +24,7 @@ export function nextjs({ test: testOverrides = {} }: NextjsOptions = {}): Capabi
 		id: "nextjs",
 		requires: ["react"],
 		org: "theholocron",
-		domain: "theholocron.dev",
+		domain: DEFAULT_DOMAIN,
 		providers: { deployment: "vercel" },
 		tasks: [
 			{

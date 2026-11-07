@@ -13,7 +13,7 @@ export const FERN_VERSION = "5.114.1";
 export interface FernWikiOptions extends ResolveTokenInput {
 	/** Absolute path to the working repo root. Injected by the loader from RuntimeContext. */
 	repoRoot?: string;
-	/** Active org name (e.g. "theholocron"). Injected by the loader from RuntimeContext. */
+	/** Active org name (e.g. "acme"). Injected by the loader from RuntimeContext. */
 	org?: string;
 	/**
 	 * "owner/name" repo coordinate. Injected by the loader from RuntimeContext.
@@ -21,15 +21,15 @@ export interface FernWikiOptions extends ResolveTokenInput {
 	 */
 	repo?: string;
 	/**
-	 * Base domain for the Fern docs site (e.g. "wiki.theholocron.dev").
+	 * Base domain for the Fern docs site (e.g. "wiki.example.dev").
 	 *
 	 * When provided without a path, the repo name is appended automatically:
-	 *   domain "wiki.theholocron.dev" + repo "owner/holocron"
-	 *   → custom-domain: wiki.theholocron.dev/holocron
+	 *   domain "wiki.example.dev" + repo "owner/holocron"
+	 *   → custom-domain: wiki.example.dev/holocron
 	 *   → multi-source: true
 	 *
 	 * You can also supply the full path explicitly:
-	 *   domain "wiki.theholocron.dev/holocron"
+	 *   domain "wiki.example.dev/holocron"
 	 *
 	 * Note: password protection is configured in the Fern Dashboard
 	 * (https://dashboard.buildwithfern.com) — it is not configurable via docs.yml.
@@ -39,7 +39,7 @@ export interface FernWikiOptions extends ResolveTokenInput {
 	 * Fern workspace org slug. Defaults to `org` (the GitHub org name).
 	 * Set this explicitly when the Fern workspace name differs from the
 	 * GitHub org — e.g. the workspace was registered as "holocron" while
-	 * the GitHub org is "theholocron".
+	 * the GitHub org is "acme".
 	 */
 	fernOrg?: string;
 	/**
@@ -161,7 +161,7 @@ async function writeFernDocsYml({
 	//
 	// When domain has no path component and a repo name is available, append
 	// the repo name as a basepath so all repos in the org share one domain:
-	//   wiki.theholocron.dev/holocron, wiki.theholocron.dev/configs, …
+	//   wiki.example.dev/holocron, wiki.example.dev/configs, …
 	//
 	// Fern requires the Fern instance URL to share the same basepath as the
 	// custom-domain when multi-source: true (verified via NVIDIA examples).

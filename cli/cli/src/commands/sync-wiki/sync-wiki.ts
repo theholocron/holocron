@@ -5,6 +5,7 @@ import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
 import { createRestClient } from "@theholocron/http-client";
 
 import { keyring } from "../../auth.js";
+import { wikiHost } from "../../presets/constants.js";
 import type { SetupStepResult } from "../setup/index.js";
 import type { FileContents, OrgRepo, RunSyncWikiInput, WikiRepo } from "./sync-wiki.type.js";
 
@@ -161,17 +162,25 @@ export async function discoverWikiRepos(
  *    wiki-enabled repo (excluding self), keeping the navbar uncluttered
  *    regardless of how many repos are in the org.
  *
+ * A wiki repo that names no `domain` of its own links to `https://<wikiHostname>/<basepath>`. `runSyncWiki` passes the
+ * wiki host of the config's `domain`; the default zone applies when none is in reach.
+ *
  * The block is replaced wholesale on each sync so removed/added wikis
  * stay in sync automatically.
  */
-export function buildNavbarLinks(repos: WikiRepo[], currentBasepath: string, repoFullName: string): string {
+export function buildNavbarLinks(
+	repos: WikiRepo[],
+	currentBasepath: string,
+	repoFullName: string,
+	wikiHostname: string = wikiHost()
+): string {
 	const lines = [`navbar-links:`, `  - type: github`, `    value: https://github.com/${repoFullName}`];
 
 	const others = repos.filter((r) => r.basepath !== currentBasepath);
 	if (others.length > 0) {
 		lines.push(`  - type: dropdown`, `    text: Other Projects`, `    icon: fa-duotone fa-book`, `    links:`);
 		for (const repo of others) {
-			const url = repo.domain ? `https://${repo.domain}` : `https://wiki.theholocron.dev/${repo.basepath}`;
+			const url = repo.domain ? `https://${repo.domain}` : `https://${wikiHostname}/${repo.basepath}`;
 			lines.push(`      - href: ${url}`, `        text: ${repo.displayName}`);
 		}
 	}
@@ -318,7 +327,7 @@ export async function runSyncWiki(input: RunSyncWikiInput): Promise<SetupStepRes
 		const domain = typeof wikiOpts?.domain === "string" ? wikiOpts.domain : undefined;
 		const currentBasepath = deriveBasepath(domain, repoName);
 
-		const navbarBlock = buildNavbarLinks(repos, currentBasepath, rawRepo);
+		const navbarBlock = buildNavbarLinks(repos, currentBasepath, rawRepo, wikiHost(config.domain));
 
 		const changed = await mergeWikiConfig(docsYmlPath, { owner, repoName, navbarBlock });
 		return {
