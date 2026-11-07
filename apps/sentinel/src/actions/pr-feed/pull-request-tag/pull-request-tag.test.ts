@@ -7,6 +7,7 @@ const OPEN: PullRequestState = {
 	repo: "theholocron/holocron",
 	number: 1,
 	title: "t",
+	body: "",
 	url: "https://github.com/theholocron/holocron/pull/1",
 	author: "luke",
 	authorIsBot: false,

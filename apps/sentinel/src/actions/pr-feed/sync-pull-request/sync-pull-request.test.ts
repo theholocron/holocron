@@ -12,6 +12,7 @@ const KEY = "acme/widgets#7";
 const PULL: GitHubPullRequest = {
 	number: 7,
 	title: "feat: a thing",
+	body: "",
 	state: "open",
 	merged_at: null,
 	html_url: "https://github.com/acme/widgets/pull/7",
@@ -95,8 +96,8 @@ describe("syncPullRequest: the post", () => {
 		expect(notifications.ensureDiscussion).toHaveBeenCalledWith({
 			channel: "prs",
 			key: KEY,
-			title: "widgets#7 feat: a thing",
-			body: expect.stringContaining("**[acme/widgets#7 feat: a thing]"),
+			title: "widgets#7: feat: a thing",
+			body: expect.stringContaining("**[acme/widgets#7]"),
 			state: "waiting",
 			quiet: true,
 		});
@@ -109,7 +110,7 @@ describe("syncPullRequest: the post", () => {
 		const { notifications, sync } = setup({ pull: { draft: true } });
 		const result = await sync(pr("converted_to_draft"));
 		expect(notifications.updateDiscussion).toHaveBeenCalledWith("prs", KEY, {
-			title: "widgets#7 feat: a thing",
+			title: "widgets#7: feat: a thing",
 			body: expect.any(String),
 			state: "draft",
 		});

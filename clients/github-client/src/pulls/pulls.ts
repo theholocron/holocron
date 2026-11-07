@@ -7,6 +7,8 @@ export interface GitHubPullRequest {
 	number: number;
 	/** The pull request's title. */
 	title: string;
+	/** The pull request's description, as written (markdown); `null` when it has none. */
+	body?: string | null;
 	/** Whether the pull request is open or closed. */
 	state: "open" | "closed";
 	/** When the pull request was merged as an ISO 8601 timestamp, or `null` if it was not merged. */

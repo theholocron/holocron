@@ -9,6 +9,7 @@ const OPEN: PullRequestState = {
 	repo: "theholocron/holocron",
 	number: 123,
 	title: "Add the feed",
+	body: "",
 	url: "https://github.com/theholocron/holocron/pull/123",
 	author: "luke",
 	authorIsBot: false,
@@ -24,8 +25,8 @@ const OPEN: PullRequestState = {
 };
 
 describe("renderPullRequest", () => {
-	it("titles the post with the repository name, without the owner", () => {
-		expect(renderPullRequest(OPEN, NOW).title).toBe("holocron#123 Add the feed");
+	it("titles the post with the repository name, without the owner, then the title", () => {
+		expect(renderPullRequest(OPEN, NOW).title).toBe("holocron#123: Add the feed");
 	});
 
 	it("cuts a long title to 100 characters", () => {
@@ -35,17 +36,16 @@ describe("renderPullRequest", () => {
 	});
 
 	it("leaves a title of exactly 100 characters alone", () => {
-		const prefix = "holocron#123 ";
+		const prefix = "holocron#123: ";
 		const { title } = renderPullRequest({ ...OPEN, title: "x".repeat(100 - prefix.length) }, NOW);
 		expect(title).toHaveLength(100);
 		expect(title.endsWith("…")).toBe(false);
 	});
 
-	it("links the pull request, shows the age and has no footer", () => {
+	it("links the pull request without repeating its title, shows the age and has no footer", () => {
 		const { body } = renderPullRequest(OPEN, NOW);
-		expect(body).toContain(
-			"[theholocron/holocron#123 Add the feed](https://github.com/theholocron/holocron/pull/123)"
-		);
+		expect(body).toContain("**[theholocron/holocron#123](https://github.com/theholocron/holocron/pull/123)**");
+		expect(body).not.toContain("Add the feed");
 		expect(body).toContain("by luke into `alpha`, opened 3 days ago");
 		expect(body).not.toContain("-# sync");
 	});
@@ -92,11 +92,29 @@ describe("renderPullRequest", () => {
 		expect(renderPullRequest(OPEN, NOW).body).not.toContain("Conflicts");
 	});
 
+	it("puts the description after the status lines, without Sourcery's part", () => {
+		const { body } = renderPullRequest(
+			{
+				...OPEN,
+				body: "Adds the feed.\n\n<!-- This is an auto-generated description by sourcery-ai. -->\n## Summary by Sourcery\n- x",
+			},
+			NOW
+		);
+		expect(body.endsWith("CI: running\n\nAdds the feed.")).toBe(true);
+		expect(body).not.toContain("Sourcery");
+	});
+
+	it("ends at the status lines when the description is empty or only Sourcery's", () => {
+		const bare = renderPullRequest(OPEN, NOW).body;
+		expect(bare.endsWith("CI: running")).toBe(true);
+		expect(renderPullRequest({ ...OPEN, body: "@sourcery-ai summary" }, NOW).body).toBe(bare);
+	});
+
 	it("returns the tag", () => {
 		expect(renderPullRequest({ ...OPEN, review: "approved", ci: "passing" }, NOW).tag).toBe("ready");
 	});
 
 	it("handles a repo with no owner", () => {
-		expect(renderPullRequest({ ...OPEN, repo: "holocron" }, NOW).title).toBe("holocron#123 Add the feed");
+		expect(renderPullRequest({ ...OPEN, repo: "holocron" }, NOW).title).toBe("holocron#123: Add the feed");
 	});
 });

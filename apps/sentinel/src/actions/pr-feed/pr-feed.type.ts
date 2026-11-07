@@ -19,6 +19,8 @@ export interface PullRequestState {
 	repo: string;
 	number: number;
 	title: string;
+	/** The description as written; empty when there is none. */
+	body: string;
 	url: string;
 	author: string;
 	authorIsBot: boolean;
