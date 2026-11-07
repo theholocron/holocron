@@ -98,6 +98,9 @@ providers: {
       ],
     },
     labels: ["bug", "feature", "chore"],             // made on the team when missing
+    templates: [                                     // Linear issue templates
+      { name: "Bug report", file: ".holocron/linear/bug.md" },
+    ],
     project: "Roadmap",                              // made when missing
   }],
 }
@@ -110,6 +113,21 @@ automation it does not list. `provider linear doctor` compares each of these wit
 
 The `event` values are Linear's own (`draft`, `review`, `start`, `mergeable`, `merge`). A `state` is a team state name and
 a name that does not resolve is a failing doctor row, not a silent skip.
+
+### 2b. Labels and issue templates
+
+Linear has both, and a fresh workspace has neither, so setup makes them:
+
+- **Labels** (`issueLabelCreate`): each name in `labels` is made on the team when missing, with the colour of the
+  matching GitHub label when `repo.labels`/`CANONICAL_LABELS` has one. An existing label is left alone (colour and
+  description are not overwritten). Labels created on demand by `create` and `import` stay as they are today; this makes
+  the set exist before the first issue and gives the doctor something to compare.
+- **Issue templates** (`templateCreate`, `type: "issue"`, team-scoped): each `{ name, file }` is made from a file in the
+  repo whose front matter and body become the template's `title` and `description`, as a pinned Discord message takes its
+  text from a file. A template that exists by name is updated only when the file differs, and one setup did not name is
+  never touched.
+
+`provider linear doctor` has a row for each label and template: present, and for a template, in step with its file.
 
 ### 2a. Automation parity
 
@@ -254,6 +272,10 @@ a GitHub board target with a missing option; a rate limit mid-run.
    the Priority field instead; whether to also keep the label is open.
 6. **Whether Linear's git automation can be read back reliably** (target branch regex vs pattern) for the doctor to
    compare; needs checking against the live schema before this spec is accepted.
+
+7. **Where the template text comes from.** A dedicated `.holocron/linear/*.md` file (above), or reuse GitHub's
+   `.github/ISSUE_TEMPLATE/*.md` so one set of templates serves both trackers while both run. The second avoids drift
+   but ties Linear's templates to GitHub's front-matter format.
 
 ## Related
 
