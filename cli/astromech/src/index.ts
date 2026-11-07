@@ -79,6 +79,7 @@ export { createTsconfig } from "./generators/tsconfig/index.js";
 export type { LocalRunner, TaskDef } from "./registry/index.js";
 export type { TaskGroup, TaskScope } from "./registry/index.js";
 export { CI_ORDER, TASKS } from "./registry/index.js";
+export { PRERELEASE_CHANNEL, RELEASE_BRANCHES } from "./release-branches/index.js";
 export type { CiJobReport, CiOptions, CiReport } from "./tasks/ci/index.js";
 export { runCi } from "./tasks/ci/index.js";
 export { defaultPaths } from "./tasks/deploy-on-release/default-paths/index.js";
