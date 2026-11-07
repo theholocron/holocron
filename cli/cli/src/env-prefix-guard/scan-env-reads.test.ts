@@ -36,6 +36,10 @@ describe("scanEnvReads", () => {
 		expect(names(`function f(env: EnvLookup = holocronEnv()) { return env.get("GOOGLE_CLIENT_ID"); }`)).toEqual([]);
 	});
 
+	it("accepts env.NAME and env['NAME'] when env is a prefixed lookup", () => {
+		expect(names(`const env = holocronEnv(x); env.PORT; env["PORT"];`)).toEqual([]);
+	});
+
 	it("accepts names that are already owned by a prefix", () => {
 		expect(
 			names(`env.get("HOLOCRON_OTP"); env.SENTINEL_WEBHOOK_SECRET; env.get("COMLINK_SENTRY_SECRET");`)
