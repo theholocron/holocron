@@ -557,8 +557,9 @@ credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_A
 and `AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
 source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `AXIOM_ORG` (from the 1Password Environment
 `Holocron - GitHub Actions variables`) carry the same values for the dispatched check workflow. The logger
-and the check runs' Axiom `details_url` read the same two names at request time; with either unset the check run
-simply has no details link.
+and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET` first, else the
+bare `AXIOM_DATASET` an Environment synced before the rename still holds, `sentinelAxiomDataset()`); with either unset the
+check run simply has no details link.
 
 ```sh
 holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \

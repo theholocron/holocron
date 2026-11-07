@@ -1,5 +1,7 @@
 import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
 
+import { sentinelAxiomDataset } from "../sentinel-axiom-dataset/index.js";
+
 /**
  * This App's brand name. No longer prefixed onto check-run names — GitHub's
  * own check-run detail page already shows the posting App's display name
@@ -38,8 +40,8 @@ export const SENTINEL_NAMESPACES = {
  * post) disambiguates which of that request's lines is this one.
  *
  * The org slug and dataset are not compiled in: they come from `AXIOM_ORG` and
- * `SENTINEL_AXIOM_DATASET` through `@theholocron/env-utils/lookup`, the path the
- * logger's `SENTINEL_AXIOM_DATASET` already takes. Both are synced into Vercel from the
+ * `SENTINEL_AXIOM_DATASET` (else the bare `AXIOM_DATASET`, `sentinelAxiomDataset()`) through
+ * `@theholocron/env-utils/lookup`, the path the logger takes too. Both are synced into Vercel from the
  * 1Password Environment `Sentinel`. Returns `undefined` (the check run then
  * has no details link) when either is unset, instead of a wrong link.
  */
@@ -49,7 +51,7 @@ export function sentinelAxiomLogUrl(
 	env: EnvLookup = createEnvLookup()
 ): string | undefined {
 	const org = env.get("AXIOM_ORG");
-	const dataset = env.get("SENTINEL_AXIOM_DATASET");
+	const dataset = sentinelAxiomDataset(env);
 	if (!org || !dataset) return undefined;
 	const apl = `['${dataset}'] | where runId == "${runId}" and msg == "${msg}"`;
 	const initForm = JSON.stringify({ apl });

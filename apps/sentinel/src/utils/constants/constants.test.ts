@@ -29,6 +29,12 @@ describe("sentinelAxiomLogUrl", () => {
 		).toBeUndefined();
 	});
 
+	it("falls back to the bare AXIOM_DATASET when SENTINEL_AXIOM_DATASET is unset", () => {
+		expect(
+			sentinelAxiomLogUrl("r", "m", createEnvLookup({ AXIOM_ORG: "acme-org", AXIOM_DATASET: "acme-dataset" }))
+		).toContain("acme-dataset");
+	});
+
 	it("returns undefined, not a wrong link, when SENTINEL_AXIOM_DATASET is unset", () => {
 		expect(sentinelAxiomLogUrl("r", "m", createEnvLookup({ AXIOM_ORG: "acme-org" }))).toBeUndefined();
 	});
