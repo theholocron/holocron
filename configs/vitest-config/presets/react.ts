@@ -1,3 +1,5 @@
+import { MODULE_CACHE_PATH } from "./module-cache.js";
+
 /**
  * Vitest preset for React component libraries and apps.
  * Uses jsdom for DOM simulation and assumes @testing-library/react.
@@ -9,6 +11,7 @@ export function react(options = {}) {
 	return {
 		test: {
 			environment: "jsdom",
+			fsModuleCachePath: MODULE_CACHE_PATH,
 			globals: true,
 			setupFiles: ["@theholocron/vitest-config/setup/jest-dom"],
 			include: ["**/*.{test,spec}.{js,jsx,ts,tsx}"],

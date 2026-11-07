@@ -32,9 +32,16 @@ describe("vitest-config — presets", () => {
 		expect(config.test).toBeDefined();
 	});
 
+	it("every preset gives the package its own module cache, so no process clears one another uses", async () => {
+		for (const config of [node(), react(), await storybook()]) {
+			expect(config.test?.fsModuleCachePath).toBe("node_modules/.vitest-cache");
+		}
+	});
+
 	it("presets accept option overrides", () => {
 		const config = node({ reporters: ["verbose"] });
 		expect(config.test?.reporters).toContain("verbose");
+		expect(node({ fsModuleCachePath: "elsewhere" }).test?.fsModuleCachePath).toBe("elsewhere");
 	});
 });
 
