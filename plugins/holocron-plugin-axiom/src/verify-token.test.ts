@@ -56,4 +56,43 @@ describe("verifyToken", () => {
 		await verifyToken("t", { fetch: stub.fetch, baseUrl: "https://api.eu.axiom.co" });
 		expect(stub.calls[0]?.url).toBe("https://api.eu.axiom.co/v2/user");
 	});
+
+	it("accepts an API token that cannot read the user but can read datasets (403, then 404)", async () => {
+		const stub = stubFetch([
+			{ status: 403, body: { message: "forbidden" } },
+			{ status: 404, body: { message: "not found" } },
+		]);
+		const result = (await verifyToken("xaat-api", { fetch: stub.fetch })) as Result;
+		expect(result).toEqual({ ok: true, subject: "API token" });
+		expect(stub.calls[1]?.url).toContain("/v2/datasets/holocron-token-check");
+	});
+
+	it("accepts an API token when the dataset read succeeds", async () => {
+		const stub = stubFetch([
+			{ status: 403, body: {} },
+			{ status: 200, body: { id: "d", name: "x" } },
+		]);
+		expect(((await verifyToken("t", { fetch: stub.fetch })) as Result).ok).toBe(true);
+	});
+
+	it("rejects a token that is refused both the user and the datasets", async () => {
+		const stub = stubFetch([
+			{ status: 403, body: {} },
+			{ status: 403, body: {} },
+		]);
+		const result = (await verifyToken("t", { fetch: stub.fetch })) as Result;
+		expect(result.ok).toBe(false);
+		expect(result.message).toMatch(/→ 403/);
+	});
+
+	it("rejects a token when the dataset read fails on the network", async () => {
+		let calls = 0;
+		const flaky: typeof fetch = async () => {
+			if (calls++ === 0) return new Response("{}", { status: 403 });
+			throw new TypeError("network down");
+		};
+		const result = (await verifyToken("t", { fetch: flaky })) as Result;
+		expect(result.ok).toBe(false);
+		expect(result.message).toMatch(/network down/);
+	});
 });
