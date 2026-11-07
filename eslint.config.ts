@@ -3,6 +3,16 @@ import { vitest } from "@theholocron/eslint-config/vitest";
 import type { Linter } from "eslint";
 
 /**
+ * The `package.json` rules the shareable `configs/*` packages turn off: they configure tools their consumers install,
+ * so those peers are optional and not installed for the package's own tests. A package's own `eslint.config.ts`
+ * re-bases the root config to its folder, so it applies these to `package.json` itself.
+ */
+export const configPackageJsonRules = {
+	"package-json/peer-dependencies-as-dev-dependencies": "off",
+	"package-json/prefer-files-field": "off",
+} as const satisfies Linter.RulesRecord;
+
+/**
  * A plugin's source reads the environment through `@theholocron/env-utils/lookup` (`createEnvLookup`, `firstEnv`) or,
  * for a value the `credentials` providers may hold, `resolveValue` from `@theholocron/cli`, never `process.env`. Each
  * plugin's own `eslint.config.ts` adds this (its `files` are relative to the plugin); tests and scripts may use it.
@@ -71,10 +81,7 @@ export default [
 		// The shareable config packages configure tools their consumers install, so those peers are optional and not
 		// installed for the package's own tests, and the `./package.json` export (npm always packs the file) is kept.
 		files: ["configs/*/package.json"],
-		rules: {
-			"package-json/peer-dependencies-as-dev-dependencies": "off",
-			"package-json/prefer-files-field": "off",
-		},
+		rules: configPackageJsonRules,
 	},
 	{
 		// CommonJS-only packages: moving them to ESM or an `exports` map would break the tools that `require()` them.
