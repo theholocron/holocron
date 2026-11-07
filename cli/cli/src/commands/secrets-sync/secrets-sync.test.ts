@@ -96,6 +96,79 @@ describe("runSecretsSync", () => {
 		expect(setSecretCalls.find((c) => c.name === "PLAIN")!.value).toBe("sk_test_xxx");
 	});
 
+	it("skips a name GitHub would refuse with the reason, without calling the API (holocron#1907)", async () => {
+		const setSecretCalls: string[] = [];
+		const lines: string[] = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => ({
+						GITHUB_APP_ID: "123",
+						GITHUB_APP_PRIVATE_KEY: "pem",
+						"1BAD": "x",
+						"has-dash": "x",
+						SENTINEL_WEBHOOK_SECRET: "s",
+					}),
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string) => {
+						setSecretCalls.push(name);
+					},
+				},
+			}),
+		});
+
+		const report = await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			loader,
+			print: (l: string) => lines.push(l),
+			logger: fakeLogger(),
+		});
+
+		expect(setSecretCalls).toEqual(["SENTINEL_WEBHOOK_SECRET"]);
+		expect(report.summary).toMatchObject({ ok: 1, fail: 0, skip: 4 });
+		const skipped = report.rows.find((r) => r.key === "GITHUB_APP_ID")!;
+		expect(skipped.status).toBe("skip");
+		expect(skipped.message).toMatch(/invalid name: GitHub reserves names starting with GITHUB_/);
+		expect(lines.join("\n")).toMatch(/GITHUB_APP_PRIVATE_KEY/);
+	});
+
+	it("does not apply GitHub's naming rules to a secrets provider that is not GitHub", async () => {
+		const setSecretCalls: string[] = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { providerName: "1password", readEnvironment: async () => ({ GITHUB_APP_ID: "123" }) },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "other",
+					setSecret: async (_scope: unknown, name: string) => {
+						setSecretCalls.push(name);
+					},
+				},
+			}),
+		});
+
+		await runSecretsSync({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "env_1",
+			loader,
+			print: () => {},
+			logger: fakeLogger(),
+		});
+
+		expect(setSecretCalls).toEqual(["GITHUB_APP_ID"]);
+	});
+
 	it("fans out vault keys to secrets (repo scope)", async () => {
 		const setSecretCalls: Array<{ name: string; value: string }> = [];
 		const loaded = loadedFrom({

@@ -56,6 +56,7 @@ import {
 	type Vault,
 	type Workers,
 } from "../../plugin/index.js";
+import { githubNameProblem } from "./github-name/index.js";
 import { restorePem } from "./restore-pem/index.js";
 import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow, VariableRoute } from "./secrets-sync.type.js";
 
@@ -148,7 +149,8 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 						dryRun,
 						async (value) => {
 							await secrets.setSecret(route.scope, key, value);
-						}
+						},
+						nameCheck(secrets.providerName)
 					)
 				);
 				print(formatRow(rows[rows.length - 1]!));
@@ -182,17 +184,25 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 			}
 			for (const key of route.keys) {
 				rows.push(
-					await pushRow(destination, scope, key, envVars, dryRun, async (value) => {
-						// One call per key: a failure is one row, and `prune` is off so nothing else is touched.
-						if (org === undefined) await source!.syncVariables!({ [key]: value }, { prune: false });
-						else {
-							await source!.syncOrgVariables!(
-								org,
-								{ [key]: { value, visibility: route.visibility ?? "all" } },
-								{ prune: false }
-							);
-						}
-					})
+					await pushRow(
+						destination,
+						scope,
+						key,
+						envVars,
+						dryRun,
+						async (value) => {
+							// One call per key: a failure is one row, and `prune` is off so nothing else is touched.
+							if (org === undefined) await source!.syncVariables!({ [key]: value }, { prune: false });
+							else {
+								await source!.syncOrgVariables!(
+									org,
+									{ [key]: { value, visibility: route.visibility ?? "all" } },
+									{ prune: false }
+								);
+							}
+						},
+						nameCheck(source!.providerName)
+					)
 				);
 				print(formatRow(rows[rows.length - 1]!));
 			}
@@ -328,8 +338,11 @@ async function pushRow(
 	key: string,
 	envVars: Record<string, string>,
 	dryRun: boolean,
-	body: (value: string) => Promise<void>
+	body: (value: string) => Promise<void>,
+	nameProblem?: (key: string) => string | undefined
 ): Promise<SyncRow> {
+	const problem = nameProblem?.(key);
+	if (problem) return { destination, scope, key, status: "skip", message: `invalid name: ${problem}` };
 	const value = Object.hasOwn(envVars, key) ? envVars[key]! : undefined;
 	if (value === undefined) {
 		return { destination, scope, key, status: "skip", message: "not in the vault environment" };
@@ -339,6 +352,11 @@ async function pushRow(
 	}
 	// A PEM whose line breaks became spaces (pasted into a one-line vault field) is put back on its lines.
 	return runRow(destination, scope, key, dryRun, () => body(restorePem(value)));
+}
+
+/** The name check for a destination: GitHub's rules when the provider is `github`, none for any other. */
+function nameCheck(providerName: string): ((key: string) => string | undefined) | undefined {
+	return providerName === "github" ? githubNameProblem : undefined;
 }
 
 async function runRow(
