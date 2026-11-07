@@ -1,3 +1,9 @@
+## [1.17.0-alpha.2](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.1...utils-v1.17.0-alpha.2) (2026-11-07)
+
+### Features
+
+* **env:** 🏷️ share one HOLOCRON prefix and a prefix option on resolveValue ([#1909](https://github.com/theholocron/holocron/issues/1909)) ([9cae3f1](https://github.com/theholocron/holocron/commit/9cae3f18025987d44ba3c3d81a36c2da7d9aa053)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1727](https://github.com/theholocron/holocron/issues/1727)
+
 ## [1.17.0-alpha.1](https://github.com/theholocron/holocron/compare/utils-v1.16.1-alpha.4...utils-v1.17.0-alpha.1) (2026-11-04)
 
 ### Features
