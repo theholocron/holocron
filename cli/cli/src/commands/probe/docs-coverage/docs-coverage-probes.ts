@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import type { DocsCoverageMode } from "@theholocron/astromech";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 
 import type { PluginProbes, ProbeContext } from "../../../plugin/index.js";
 import type { DocsPresenceIo } from "../docs-presence/index.js";
@@ -47,7 +48,7 @@ export function runTypedoc(repoRoot: string): MeasureDocsCoverageInput["typedoc"
 export function realDiff(repoRoot: string): () => string {
 	/* v8 ignore start -- runs the real git; the probe is tested with an injected diff */
 	return () => {
-		const base = process.env["BASE_SHA"] || "origin/alpha";
+		const base = createEnvLookup().get("BASE_SHA") ?? "origin/alpha";
 		return execFileSync("git", ["diff", "-U0", "--no-color", `${base}...HEAD`, "--", "*.ts"], {
 			cwd: repoRoot,
 			encoding: "utf8",

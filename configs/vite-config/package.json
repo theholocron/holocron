@@ -59,6 +59,9 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
   "devDependencies": {
     "@codecov/vite-plugin": "catalog:configs",
     "@theholocron/tsconfig": "workspace:*",

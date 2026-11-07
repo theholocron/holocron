@@ -4,6 +4,7 @@ import type { CommandModule } from "yargs";
 
 import { type GlobalArgs } from "../global-args/index.js";
 import { resolveMonitoringChecks } from "../monitoring-check/index.js";
+import { resolveVercelCredentials } from "../resolve-vercel-credentials/index.js";
 import { runMonitoringRunResolved } from "./index.js";
 import { type MonitoringRunResolvedArgs, monitoringRunResolvedArgs } from "./monitoring-run-resolved.args.js";
 
@@ -20,11 +21,7 @@ export const monitoringRunResolvedCommand: CommandModule<GlobalArgs, MonitoringR
 			checks,
 			url: argv.url as string,
 			...(argv.vercelProject ? { vercelProject: argv.vercelProject as string } : {}),
-			...(process.env["VERCEL_TOKEN"] ? { vercelToken: process.env["VERCEL_TOKEN"] } : {}),
-			...(process.env["VERCEL_TEAM_ID"] ? { vercelTeamId: process.env["VERCEL_TEAM_ID"] } : {}),
-			...(process.env["VERCEL_PROTECTION_BYPASS_SECRET"]
-				? { bypassSecret: process.env["VERCEL_PROTECTION_BYPASS_SECRET"] }
-				: {}),
+			...resolveVercelCredentials(),
 		});
 		if (report.status === "fail") {
 			process.exitCode = 1;

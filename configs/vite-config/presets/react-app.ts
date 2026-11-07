@@ -1,5 +1,6 @@
 import { mergeConfig, type UserConfig } from "vite";
 
+import { codecovToken } from "./codecov-token/index.js";
 import { getPackageName } from "./get-package-name.js";
 
 /**
@@ -16,9 +17,9 @@ export async function reactApp(overrides: UserConfig = {}): Promise<UserConfig> 
 		const { codecovVitePlugin } = await import("@codecov/vite-plugin");
 		plugins.push(
 			codecovVitePlugin({
-				enableBundleAnalysis: !!process.env.CODECOV_TOKEN,
+				enableBundleAnalysis: !!codecovToken(),
 				bundleName: getPackageName(),
-				uploadToken: process.env.CODECOV_TOKEN,
+				uploadToken: codecovToken(),
 			}) as never
 		);
 	} catch {
