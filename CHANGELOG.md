@@ -1,3 +1,9 @@
+## [5.0.0-alpha.357](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.356...v5.0.0-alpha.357) (2026-11-07)
+
+### Refactoring
+
+* **config:** ♻️ one home for the Sentry org slug ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1848](https://github.com/theholocron/holocron/issues/1848)) ([9c4a3d9](https://github.com/theholocron/holocron/commit/9c4a3d9be51c1d9db11c92e8ccff8264062f60b1))
+
 ## [5.0.0-alpha.356](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.355...v5.0.0-alpha.356) (2026-11-07)
 
 ### Bug Fixes
