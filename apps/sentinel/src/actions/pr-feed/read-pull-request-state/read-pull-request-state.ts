@@ -57,6 +57,7 @@ export async function readPullRequestState(input: ReadPullRequestStateInput): Pr
 			repo,
 			number,
 			title: pull.title,
+			body: pull.body ?? "",
 			url: pull.html_url,
 			author: pull.user?.login ?? "unknown",
 			authorIsBot: pull.user?.type === "Bot",

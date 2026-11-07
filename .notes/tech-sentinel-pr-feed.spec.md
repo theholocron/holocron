@@ -39,7 +39,7 @@ Rendered from the pull request's current state, never from the event that arrive
 - the `ci / Required checks` result for the head commit (the one required check, so one value instead of thirty);
 - whether it conflicts with its base.
 
-The post is titled `repo#123 title`, and its first message ends with the small-print footer the discussion posts use (`-# sync: owner/repo#123`), which is how the post is found again. The renderer is a pure function over a plain state object (`renderPullRequest(state)`) that returns the summary text and the tag; fetching the state and talking to Discord are separate, so the rules are tested without either.
+The post is titled `repo#123: title` (plain text: a forum post's title is not rendered as markdown), and its first message starts with a link to the pull request that does not repeat the title, then the status lines, then the author's description (`prDescription()`: Sourcery's summary, reviewer's guide and commands and every HTML comment removed, cut to 1500 characters), and ends with the small-print footer the discussion posts use (`-# sync: owner/repo#123`), which is how the post is found again. The renderer is a pure function over a plain state object (`renderPullRequest(state)`) that returns the summary text and the tag; fetching the state and talking to Discord are separate, so the rules are tested without either.
 
 ### The tag (state at a glance)
 

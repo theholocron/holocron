@@ -13,6 +13,7 @@ const NOW = new Date("2026-11-06T12:00:00Z");
 const PULL: GitHubPullRequest = {
 	number: 7,
 	title: "feat: a thing",
+	body: "Adds a thing.",
 	state: "open",
 	merged_at: null,
 	html_url: "https://github.com/acme/widgets/pull/7",
@@ -67,6 +68,7 @@ describe("readPullRequestState", () => {
 			repo: "acme/widgets",
 			number: 7,
 			title: "feat: a thing",
+			body: "Adds a thing.",
 			url: "https://github.com/acme/widgets/pull/7",
 			author: "luke",
 			authorIsBot: false,
