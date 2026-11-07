@@ -20,7 +20,12 @@ export interface LinearPluginOptions extends ResolveTokenInput {
 	/** The key of the team the issues and boards belong to, e.g. `ENG`. Required by both capabilities. */
 	team?: string;
 	/** Names of the states the `inProgress` and `inReview` lifecycle slots move an issue to. */
-	states?: { inProgress?: string; inReview?: string };
+	states?: {
+		/** The state for work that has started. */
+		inProgress?: string;
+		/** The state for work waiting on review. */
+		inReview?: string;
+	};
 	/** Override the API root, for tests. Defaults to `https://api.linear.app`. */
 	baseUrl?: string;
 	/** Override `fetch`, for tests. */
