@@ -23,7 +23,7 @@ import { basename, join } from "node:path";
 
 import { createAstromech, isTask, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
-import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
+import { holocronEnv } from "@theholocron/env-utils/lookup";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { style, withSpinner } from "@theholocron/kyber/ui";
@@ -666,7 +666,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 		if (logs.ensureDataset) {
 			// The CLI's own dataset, `holocron`, shared by its environments (ADR-0019): `HOLOCRON_AXIOM_DATASET`, then `AXIOM_DATASET`.
-			const dataset = withEnvPrefix(createEnvLookup(), "HOLOCRON").get("AXIOM_DATASET");
+			const dataset = holocronEnv().get("AXIOM_DATASET");
 			if (dataset) {
 				steps.push(
 					await runStep("logs", `ensureDataset ${dataset}`, dryRun, async () => {

@@ -9,6 +9,7 @@
  * `NO_HOLOCRON_TELEMETRY`); see ADR-0007 / ADR-0008.
  */
 
+import { PREFIX } from "@theholocron/env-utils/lookup";
 import { createCliTelemetry } from "@theholocron/kyber/observability";
 
 import type { TelemetryConfig } from "../../config/index.js";
@@ -16,7 +17,7 @@ import { getRunId } from "../logger/index.js";
 import { resolveDsn, resolvePostHogHost, resolvePostHogKey } from "../resolve-telemetry/index.js";
 
 const telemetry = createCliTelemetry({
-	envPrefix: "HOLOCRON",
+	envPrefix: PREFIX,
 	dsn: resolveDsn,
 	posthogKey: resolvePostHogKey,
 	posthogHost: resolvePostHogHost,

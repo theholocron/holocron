@@ -5,6 +5,7 @@ export { detectEnvironment } from "./detect-environment.js";
 export type { Environment } from "./environment.js";
 export { DEFAULT_ENVIRONMENT, DEPLOYED_ENVIRONMENTS, environment, ENVIRONMENTS } from "./environment.js";
 export { firstEnv } from "./first-env.js";
+export { holocronEnv, PREFIX } from "./holocron-env.js";
 export { isCI } from "./is-ci.js";
 export { DotenvLoader } from "./loader.js";
 export type { EnvLoader, EnvLogger, EnvObject, EnvParser, EnvParserOptions, Primitive } from "./types.js";

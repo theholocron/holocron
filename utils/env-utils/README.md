@@ -62,6 +62,8 @@ const env = withEnvPrefix(createEnvLookup(), "MYAPP");
 env.get("SENTRY_DSN"); // MYAPP_SENTRY_DSN, else SENTRY_DSN
 ```
 
+`PREFIX` is `"HOLOCRON"`, the one definition of the prefix every Holocron-owned variable carries, and `holocronEnv(source?)` is `withEnvPrefix(createEnvLookup(source), PREFIX)`, so `holocronEnv().get("AXIOM_DATASET")` reads `HOLOCRON_AXIOM_DATASET` and then the bare `AXIOM_DATASET`. Use it for a name Holocron chooses, not for one a third party reads itself (`GITHUB_TOKEN`, `CI`).
+
 ### Importing without side effects
 
 The package entry also exports `DotenvLoader`, whose module runs `import "dotenv/config"` and so loads `.env` into `process.env` the moment the package is imported. Libraries that only read variables should import from the `/lookup` subpath, which has `createEnvLookup`, `firstEnv` and `withEnvPrefix` and never touches dotenv, so `dotenv` stays an optional peer dependency that you only install when you import the package entry:
