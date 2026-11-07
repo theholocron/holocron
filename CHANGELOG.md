@@ -1,3 +1,25 @@
+## [5.0.0-alpha.360](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.359...v5.0.0-alpha.360) (2026-11-07)
+
+### Features
+
+* **doctor:** 🩺 holocron doctor github-app checks an App against its manifest ([#1854](https://github.com/theholocron/holocron/issues/1854)) ([81247cf](https://github.com/theholocron/holocron/commit/81247cf307d27d0f9c780a009b155a934de88fc7)), closes [#1851](https://github.com/theholocron/holocron/issues/1851) [#1851](https://github.com/theholocron/holocron/issues/1851)
+
+### Bug Fixes
+
+* **ci:** 🔧 pass the Vercel team id to monitoring run-resolved ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1867](https://github.com/theholocron/holocron/issues/1867)) ([faa6751](https://github.com/theholocron/holocron/commit/faa675173a57f851641ce8f913efde6fb2b775f1))
+
+### Refactoring
+
+* **config:** ♻️ derive Sentinel and Comlink hostnames from the one domain ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1869](https://github.com/theholocron/holocron/issues/1869)) ([b76daf5](https://github.com/theholocron/holocron/commit/b76daf5727d37c0427b88c2066f79234b7aadb2c))
+
+### Documentation
+
+* **specs:** 📝 propose provider setup, Linear automation and one-way issue syncs ([#1861](https://github.com/theholocron/holocron/issues/1861)) ([d5f6a0b](https://github.com/theholocron/holocron/commit/d5f6a0b01bb7d823c71e540e3b8c63eeb5d560e0)), closes [#1859](https://github.com/theholocron/holocron/issues/1859) [#1860](https://github.com/theholocron/holocron/issues/1860)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#1876](https://github.com/theholocron/holocron/issues/1876)) ([8e4a5b9](https://github.com/theholocron/holocron/commit/8e4a5b954f86566c628d986605946f129b78e6f7))
+
 ## [5.0.0-alpha.359](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.358...v5.0.0-alpha.359) (2026-11-07)
 
 ### Features
