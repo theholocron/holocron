@@ -1,3 +1,18 @@
+## [5.0.0-alpha.363](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.362...v5.0.0-alpha.363) (2026-11-07)
+
+### Features
+
+* **repo:** ✨ doctor flags capabilities the org property lacks, `repo properties apply` adds them ([#1873](https://github.com/theholocron/holocron/issues/1873)) ([d359f55](https://github.com/theholocron/holocron/commit/d359f559709b32544bccb28a8d832e555f066f7e)), closes [#1862](https://github.com/theholocron/holocron/issues/1862) [#1862](https://github.com/theholocron/holocron/issues/1862)
+
+### Bug Fixes
+
+* **sentinel:** 🔁 read SENTINEL_AXIOM_DATASET first, then AXIOM_DATASET ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1882](https://github.com/theholocron/holocron/issues/1882)) ([4c9c7a5](https://github.com/theholocron/holocron/commit/4c9c7a55d05426565ee612bb3a0933029abae8e4))
+
+### Refactoring
+
+* **config:** ♻️ one default domain in the presets and sync-wiki ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1889](https://github.com/theholocron/holocron/issues/1889)) ([dc43f36](https://github.com/theholocron/holocron/commit/dc43f363ef0679eee780e41b32b4ea792850ed37)), closes [#1884](https://github.com/theholocron/holocron/issues/1884)
+* **kyber:** 🔒 read env through env-utils/lookup in kyber and observability ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1891](https://github.com/theholocron/holocron/issues/1891)) ([ac58fb8](https://github.com/theholocron/holocron/commit/ac58fb879998a5504890ebf049c5d7b1d82ec1e7)), closes [#1890](https://github.com/theholocron/holocron/issues/1890)
+
 ## [5.0.0-alpha.362](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.361...v5.0.0-alpha.362) (2026-11-07)
 
 ### Bug Fixes
