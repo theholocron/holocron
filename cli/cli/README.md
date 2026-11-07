@@ -788,7 +788,8 @@ export default defineConfig({
 Axiom shipping activates when a token (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN`
 → OS keyring `axiom.<org>` → `axiom`) **and** a dataset
 (`HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET` → `log.axiom.dataset` in
-`holocron.config`) both resolve; env vars win. The token is never read from a
+`holocron.config` → the credential chain, where the 1Password-synced
+`AXIOM_DATASET` lives) both resolve; env vars win. The token is never read from a
 config file.
 
 The dataset side of that resolution is **execution-context-aware** (ADR-0012):

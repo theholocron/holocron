@@ -91,5 +91,10 @@ Environment with `AXIOM_DATASET`, `CLOUDFLARE_ACCOUNT_ID` and `TURBO_TEAM`, then
 - The `CLOUDFLARE_ACCOUNT_ID` preset constant and the `accountId` plugin options (Sentinel, Comlink, the wiki preset) are
   plugin options, not variables, and are not part of this change. Done in #1827: the plugin reads the id through the
   credential chain, and the Environment is a `credentials` entry.
-- The remaining names noted in `.holocron/repo.ts` (`CLOUDFLARE_PAGES_PROJECT`, `HOLOCRON_AXIOM_DATASET`,
-  `POSTHOG_PROJECT_TOKEN`) can be added to the Environment once their values are settled.
+- The remaining names noted in `.holocron/repo.ts` (`CLOUDFLARE_PAGES_PROJECT`, `POSTHOG_PROJECT_TOKEN`) can be added
+  to the Environment once their values are settled.
+- The Axiom dataset has one synced name, `AXIOM_DATASET`. The CLI reads `HOLOCRON_AXIOM_DATASET` first as a local
+  override (`.envrc`), then `AXIOM_DATASET` from the process environment, then `log.axiom.dataset`, then the credential
+  chain (`resolveValue`). The `sync` and `sync-github` workflows pass `AXIOM_DATASET: ${{ vars.AXIOM_DATASET }}` with no
+  `HOLOCRON_AXIOM_DATASET` fallback. The config sits ahead of the chain so a local run with no `.envrc` stays on
+  `holocron-local` instead of the CI dataset.

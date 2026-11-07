@@ -153,7 +153,7 @@ export default defineConfig({
 	// Logs: ship local runs to the shared holocron-local Axiom dataset. Needs an
 	// Axiom token in the keyring (`holocron auth set axiom.theholocron <TOKEN>`)
 	// or HOLOCRON_AXIOM_TOKEN. CI overrides the dataset to holocron-ci via the
-	// HOLOCRON_AXIOM_DATASET variable (env wins over config).
+	// AXIOM_DATASET variable (synced from 1Password; env wins over config).
 	log: { axiom: { dataset: "holocron-local" } },
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
