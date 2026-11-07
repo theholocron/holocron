@@ -1,3 +1,9 @@
+## [5.0.0-alpha.369](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.368...v5.0.0-alpha.369) (2026-11-07)
+
+### Features
+
+* **sentinel:** ✨ [#prs](https://github.com/theholocron/holocron/issues/prs) post titled repo#N: title, with the description and no Sourcery ([#1918](https://github.com/theholocron/holocron/issues/1918)) ([8c8b1a6](https://github.com/theholocron/holocron/commit/8c8b1a66f7ee688a0d9c3777437deacb1f957a46))
+
 ## [5.0.0-alpha.368](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.367...v5.0.0-alpha.368) (2026-11-07)
 
 ### Features
