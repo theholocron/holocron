@@ -1,3 +1,13 @@
+## [5.0.0-alpha.368](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.367...v5.0.0-alpha.368) (2026-11-07)
+
+### Features
+
+* **env:** 🏷️ share one HOLOCRON prefix and a prefix option on resolveValue ([#1909](https://github.com/theholocron/holocron/issues/1909)) ([9cae3f1](https://github.com/theholocron/holocron/commit/9cae3f18025987d44ba3c3d81a36c2da7d9aa053)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1727](https://github.com/theholocron/holocron/issues/1727)
+
+### Bug Fixes
+
+* **sentinel:** 🖼️ skip svg and tiff pictures in the config fetch, document the skip ([#1914](https://github.com/theholocron/holocron/issues/1914)) ([f423564](https://github.com/theholocron/holocron/commit/f423564cf1c7bf037f518a0a5f0a81f64fc31533)), closes [#1906](https://github.com/theholocron/holocron/issues/1906)
+
 ## [5.0.0-alpha.367](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.366...v5.0.0-alpha.367) (2026-11-07)
 
 ### Bug Fixes
