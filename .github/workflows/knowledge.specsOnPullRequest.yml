@@ -42,7 +42,7 @@ concurrency:
 jobs:
   sync:
     name: Sync
-    if: github.repository == 'theholocron/holocron' && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action != 'closed' || github.event.pull_request.merged == false)
+    if: github.repository == format('{0}/holocron', github.repository_owner) && github.event.pull_request.head.repo.full_name == github.repository && (github.event.action != 'closed' || github.event.pull_request.merged == false)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

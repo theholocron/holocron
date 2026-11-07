@@ -214,7 +214,7 @@ jobs:
         run: |
           if git diff HEAD~1 --name-only | grep -q 'fern/docs.yml'; then
             gh workflow run sync-dispatch.yml \
-              --repo theholocron/.github \
+              --repo "$GITHUB_REPOSITORY_OWNER/.github" \
               --field "steps=wiki" \
             || echo "skipping broadcast — insufficient permissions"
           fi

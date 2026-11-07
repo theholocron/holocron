@@ -622,6 +622,14 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		}
 	});
 
+	it("the sync workflows take the org from the run, not from a literal", () => {
+		for (const id of ["release", "sync-github", "sync-repo", "sync-dispatch"]) {
+			const code = REUSABLE_WORKFLOWS[id]!.replace(/^\s*#.*$/gm, "");
+			expect(code).not.toMatch(/(?<![\w@/-])theholocron\/(?!\.github\/\.github\/)/);
+		}
+		expect(REUSABLE_WORKFLOWS["sync-github"]).toContain("format('{0}/.github', github.repository_owner)");
+	});
+
 	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
 		expect(REUSABLE_WORKFLOWS["lint:code"]).toMatch(/task: lint:code/);
 		expect(REUSABLE_WORKFLOWS["lint:editorconfig"]).toMatch(/task: lint:editorconfig/);

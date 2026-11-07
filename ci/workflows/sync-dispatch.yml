@@ -22,14 +22,14 @@ jobs:
     steps:
       - name: Dispatch sync to all repos with sync.yml
         run: |
-          gh api /orgs/theholocron/repos --paginate --jq '.[].name' \
+          gh api "/orgs/$GITHUB_REPOSITORY_OWNER/repos" --paginate --jq '.[].name' \
             | while IFS= read -r repo; do
-              gh api "/repos/theholocron/$repo/contents/.github/workflows/sync.yml" --silent 2>/dev/null || continue
-              echo "Dispatching sync to theholocron/$repo"
+              gh api "/repos/$GITHUB_REPOSITORY_OWNER/$repo/contents/.github/workflows/sync.yml" --silent 2>/dev/null || continue
+              echo "Dispatching sync to $GITHUB_REPOSITORY_OWNER/$repo"
               gh workflow run sync.yml \
-                --repo "theholocron/$repo" \
+                --repo "$GITHUB_REPOSITORY_OWNER/$repo" \
                 --field "steps=$STEPS" \
-              || echo "Warning: could not dispatch to theholocron/$repo — skipping"
+              || echo "Warning: could not dispatch to $GITHUB_REPOSITORY_OWNER/$repo — skipping"
             done
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}

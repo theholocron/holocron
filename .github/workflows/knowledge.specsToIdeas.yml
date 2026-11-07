@@ -49,7 +49,7 @@ concurrency:
 jobs:
   sync:
     name: Sync
-    if: github.repository == 'theholocron/holocron'
+    if: github.repository == format('{0}/holocron', github.repository_owner)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

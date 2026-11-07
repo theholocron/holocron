@@ -18,9 +18,10 @@ on: # yamllint disable-line rule:truthy
         description: >
           Primary .github repo — receives composite actions, reusable workflows,
           and thin-caller templates. Requires a PR (branch protection assumed).
+          Empty means the `.github` repo of the owner the workflow runs in.
         type: string
         required: false
-        default: theholocron/.github
+        default: ""
       secondary-repos:
         description: >
           Space-separated list of secondary repos (reusable workflows + thin
@@ -107,7 +108,7 @@ jobs:
             --output-dir /tmp/sync-validate
           /tmp/actionlint /tmp/sync-validate/.github/workflows/*.yml
         env:
-          PRIMARY_REPO: ${{ inputs.primary-repo }}
+          PRIMARY_REPO: ${{ inputs.primary-repo || format('{0}/.github', github.repository_owner) }}
 
       # By path: the action is new and `theholocron/.github` is frozen (see the `format` action in lint/code.yml).
       # `scope: none` leaves git's own config alone: the identity only goes into the Signed-off-by trailer below.
@@ -121,7 +122,7 @@ jobs:
 
       - name: Sync primary repo (PR)
         run: |
-          COMMIT_MSG="chore: sync from theholocron/holocron"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
+          COMMIT_MSG="chore: sync from $GITHUB_REPOSITORY"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
           node "$HOLOCRON_CLI" sync github \
             --repo "$PRIMARY_REPO" \
             --branch "$SYNC_BRANCH" \
@@ -132,7 +133,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
           HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
-          PRIMARY_REPO: ${{ inputs.primary-repo }}
+          PRIMARY_REPO: ${{ inputs.primary-repo || format('{0}/.github', github.repository_owner) }}
           SYNC_BRANCH: ${{ inputs.sync-branch }}
           GIT_NAME: ${{ steps.identity.outputs.name }}
           GIT_EMAIL: ${{ steps.identity.outputs.email }}
@@ -140,7 +141,7 @@ jobs:
       - name: Sync secondary repos (PR)
         if: ${{ inputs.secondary-repos != '' }}
         run: |
-          COMMIT_MSG="chore: sync from theholocron/holocron"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
+          COMMIT_MSG="chore: sync from $GITHUB_REPOSITORY"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
           for repo in $SECONDARY_REPOS; do
             node "$HOLOCRON_CLI" sync github \
               --repo "$repo" \
