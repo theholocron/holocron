@@ -1,3 +1,9 @@
+## [8.9.0-alpha.9](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.8...configs-v8.9.0-alpha.9) (2026-11-07)
+
+### Refactoring
+
+* **cli:** 🔐 read monitoring and vite-config env through the credential chain ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1850](https://github.com/theholocron/holocron/issues/1850)) ([7827537](https://github.com/theholocron/holocron/commit/78275378426988c94235a1d323133409081f1e68)), closes [#1849](https://github.com/theholocron/holocron/issues/1849)
+
 ## [8.9.0-alpha.8](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.7...configs-v8.9.0-alpha.8) (2026-11-03)
 
 ### Refactoring
