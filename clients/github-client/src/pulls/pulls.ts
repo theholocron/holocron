@@ -25,11 +25,19 @@ export interface GitHubPullRequest {
 	/** When the pull request was opened, as an ISO 8601 timestamp. */
 	created_at?: string;
 	/** The author. */
-	user?: { login: string; type: string };
+	user?: {
+		/** The author's login. */
+		login: string;
+		/** The account type: `User` or `Bot` (Dependabot is a `Bot`). */
+		type: string;
+	};
 	/** Who merged it; `null` for a pull request that is not merged. */
 	merged_by?: { login: string } | null;
 	/** The base branch. */
-	base?: { ref: string };
+	base?: {
+		/** The base branch's name, e.g. `alpha`. */
+		ref: string;
+	};
 	/** The people whose review is still asked for. */
 	requested_reviewers?: { login: string }[];
 	/** Lines added, as the single-pull-request endpoint returns it (the list endpoint omits it). */
