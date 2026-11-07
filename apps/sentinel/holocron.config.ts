@@ -109,6 +109,12 @@
 
 import { defineConfig } from "@theholocron/cli";
 
+// The zone is spelled once; every hostname below derives from it. A plain const, not an import from outside this
+// directory: only this config and what it imports are evaluated.
+const domain = "theholocron.dev";
+const sentinelHost = `sentinel.${domain}`;
+const webhookUrl = `https://${sentinelHost}/api/webhook`;
+
 export default defineConfig({
 	// Redeploy after a release publishes (holocron#928, #930): the `deploy` job
 	// in the shared release workflow runs `holocron deploy on-release`,
@@ -154,7 +160,7 @@ export default defineConfig({
 	// level under the zone because Cloudflare's free certificate covers `*.theholocron.dev` and no deeper name.
 	dev: {
 		environment: "Sentinel - dev",
-		tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
+		tunnel: { name: "sentinel-dev", hostname: `sentinel-dev.${domain}` },
 		port: 3000,
 		serve: {
 			handler: "./src/handler/index.ts",
@@ -164,7 +170,7 @@ export default defineConfig({
 		},
 	},
 	providers: {
-		deployment: ["vercel", { domain: "sentinel.theholocron.dev" }],
+		deployment: ["vercel", { domain: sentinelHost }],
 		dns: "cloudflare",
 		tunnels: "cloudflare",
 		monitoring: [
@@ -173,7 +179,7 @@ export default defineConfig({
 				checks: [
 					{
 						name: "Sentinel webhook uptime",
-						url: "https://sentinel.theholocron.dev/api/webhook",
+						url: webhookUrl,
 						method: "GET",
 						// Checkly requires at least one location or privateLocation —
 						// no account-level default exists on a trial/Hobby plan.
@@ -193,7 +199,7 @@ export default defineConfig({
 					},
 					{
 						name: "Sentinel webhook signature verification",
-						url: "https://sentinel.theholocron.dev/api/webhook",
+						url: webhookUrl,
 						method: "POST",
 						locations: ["us-east-1"],
 						// A POST with no signature header always fails verification —

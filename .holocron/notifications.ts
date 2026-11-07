@@ -3,10 +3,14 @@ import type { NotificationsLayout } from "@theholocron/cli";
 // The Holocron Discord server layout: `holocron notifications setup` applies it and Sentinel's role sync reads it.
 // `holocron.config.ts` keeps the provider entry (`guildId`); the loader puts this default export on its `layout`.
 // The import is type-only on purpose: Sentinel evaluates this file from the default branch, so it pulls in no runtime code.
+// The zone is spelled once here; the two hostnames derive from it. A sibling file would be one more thing for the
+// loader and Sentinel's fetch to place, so the constant stays in this file.
+const domain = "theholocron.dev";
+
 export default {
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
 	// `projects` lists every Sentry project whose issues reach #errors; add a slug, then run `notifications setup`.
-	relay: { host: "comlink.theholocron.dev", errors: { projects: ["holocron-cli", "holocron"] } },
+	relay: { host: `comlink.${domain}`, errors: { projects: ["holocron-cli", "holocron"] } },
 	// Every webhook wears the Holocron mark. PNG, because that is what Discord accepts.
 	webhookAvatar: ".holocron/media/webhook-avatar.png",
 	// Where a full `holocron doctor notifications` run leaves its one visible test post.
@@ -26,7 +30,7 @@ export default {
 		intents: { members: true },
 	},
 	// Where `notifications link` signs members in: Sentinel when it answers, otherwise this machine.
-	links: { hostedUrl: "https://sentinel.theholocron.dev" },
+	links: { hostedUrl: `https://sentinel.${domain}` },
 	categories: [
 		{
 			name: "START HERE",
