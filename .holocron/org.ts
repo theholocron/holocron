@@ -8,4 +8,5 @@ import type { OrgConfig } from "@theholocron/cli";
 // (`apps/sentinel`) reads this file too, and its own `.holocron/org.ts` overrides a key set in both (#1829). The import is type-only because Sentinel evaluates this file remotely.
 export default {
 	checkly: { accountId: "fb82859a-4f62-4773-8404-db0f29f9262c" },
+	sentry: { org: "theholocron" },
 } satisfies OrgConfig;

@@ -239,9 +239,9 @@ repo's `.holocron/repo.ts` holds `teams`, `topics`, `variables` and `secrets`, n
 `satisfies RepoConfig` (a type-only import).
 
 **The `org` area** (#1820). The organization's constants that are provider options and that CI does not need:
-`.holocron/org.ts` is `{ cloudflare: { accountId }, vercel: { teamId }, checkly: { accountId } }` (typed with
+`.holocron/org.ts` is `{ cloudflare: { accountId }, vercel: { teamId }, checkly: { accountId }, sentry: { org } }` (typed with
 `satisfies OrgConfig`). The loader fills each of these into every provider entry of that name that leaves the option
-out, so the config can say `deployment: ["vercel", { domain }]` and `monitoring: "checkly"`. The same option set inline
+out, so the config can say `deployment: ["vercel", { domain }]`, `monitoring: "checkly"` and `errors: "sentry"`. The same option set inline
 and in the file is an error that names both (`vercel.teamId is set in providers.deployment and in
 .holocron/org.ts`), with no merge and no precedence. A provider key or an option the area does not know is an error; a
 provider the config does not use is ignored. The org area is shared: a config in a subdirectory (`apps/sentinel`)

@@ -13,9 +13,14 @@ const org = (value: unknown): ConfigDirArea => ({
 });
 
 const NONE = {} as HolocronConfig;
-const ORG = { vercel: { teamId: "team_1" }, checkly: { accountId: "acc_1" } };
+const ORG = { vercel: { teamId: "team_1" }, checkly: { accountId: "acc_1" }, sentry: { org: "org_1" } };
 
 describe("placeOrg", () => {
+	it("gives a bare sentry entry the org slug", () => {
+		const raw: HolocronConfig = { providers: { errors: "sentry" } };
+		expect(placeOrg(raw, org(ORG)).providers?.errors).toEqual(["sentry", { org: "org_1" }]);
+	});
+
 	it("fills an option the config leaves out of a tuple", () => {
 		const raw: HolocronConfig = { providers: { deployment: ["vercel", { domain: "a.dev" }] } };
 		expect(placeOrg(raw, org(ORG)).providers?.deployment).toEqual([

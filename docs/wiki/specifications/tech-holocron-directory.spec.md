@@ -168,7 +168,7 @@ NotificationsLayout` (or `RepoConfig`) with a type-only import, so nothing is ad
 Some provider options are not choices of one config but constants of the organization: the Vercel `teamId`, the Checkly
 `accountId`. They were literals inside provider tuples, repeated wherever a config used the provider.
 
-- **File.** `.holocron/org.ts` (or `.json`): `{ cloudflare: { accountId }, vercel: { teamId }, checkly: { accountId } }`,
+- **File.** `.holocron/org.ts` (or `.json`): `{ cloudflare: { accountId }, vercel: { teamId }, checkly: { accountId }, sentry: { org } }`,
   typed `satisfies OrgConfig` (type-only import). One file per area.
 - **Name.** `org`, as asked. There is no collision with `.holocron/org.md` (the org agent contract the CLI embeds):
   `loadConfigDir()` builds the path from the area name plus an extension from `DEFAULT_EXTENSIONS` (`ts, js, mjs, cjs,
@@ -202,6 +202,12 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
 - **Moved.** The Vercel `teamId` and the Checkly `accountId` of `apps/sentinel/holocron.config.ts`, and the Checkly
   `accountId` of the root `holocron.config.ts`. The resolved config of Sentinel equals the pre-move snapshot
   (`load-config-org-area.test.ts`), also after #1829 removed Sentinel's own copy of the Checkly id.
+- **Sentry org slug.** `sentry: { org }` is in the area, so `errors: "sentry"` in the root config carries no copy. The
+  slug is also needed by CI (`SENTRY_ORG` of the reusable release workflow, for the Sentry release), so it follows the
+  rule above: the key `SENTRY_ORG` is in `repo.variables.sync`, its value is edited in the 1Password Environment, and the
+  workflow reads `vars.SENTRY_ORG` (no literal). The `org` of the `docs` and `nextjs` presets is the GitHub
+  organization (`config.org`, used for repo names and workflow context), not the Sentry slug, so it stays. The resolved
+  root config equals its pre-change value (`load-config-org-area.test.ts`).
 - **Follow-ups.** Whether a provider's own options should declare which of them are org constants instead of a table in
   the CLI. (The Cloudflare `accountId` through the credential chain is done, #1827, and so is the area shared by app
   configs and the root config, #1829.)

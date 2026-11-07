@@ -226,6 +226,11 @@ export interface OrgConfig {
 		/** The Checkly account id (an identifier, not a credential). */
 		accountId?: string;
 	};
+	/** Options filled into every `sentry` provider entry. */
+	sentry?: {
+		/** The Sentry organization slug (an identifier, not a credential). */
+		org?: string;
+	};
 }
 
 /** The `repo` block: how the GitHub repository is set up and kept in sync by `holocron repo setup`. */

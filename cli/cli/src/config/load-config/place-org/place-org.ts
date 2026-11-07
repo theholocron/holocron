@@ -8,6 +8,7 @@ const ORG_OPTIONS: Record<keyof OrgConfig, readonly string[]> = {
 	cloudflare: ["accountId"],
 	vercel: ["teamId"],
 	checkly: ["accountId"],
+	sentry: ["org"],
 };
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
