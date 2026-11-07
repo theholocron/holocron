@@ -1875,6 +1875,7 @@ export interface NotificationsChannelLayout {
 		 * `draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged` and `closed`. `true` follows every
 		 * pull request; the object form leaves out the pull requests of some repositories (`owner/name`) or authors (logins).
 		 * Needs no webhook: the bot makes and tags the posts, so it must be able to post in the forum and manage its threads.
+		 * The forum's messages carry no link previews (the posts are links to pull requests, and the previews bury the status).
 		 */
 		prs?: boolean | NotificationsPrsFeed;
 	};

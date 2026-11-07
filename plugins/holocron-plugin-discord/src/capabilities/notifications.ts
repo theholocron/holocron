@@ -1140,6 +1140,12 @@ export class DiscordNotifications implements Notifications {
 				(this.opts.layout?.categories ?? [])
 					.flatMap((c) => c.channels ?? [])
 					.find((c) => DiscordNotifications.same(c.name, channel))?.starterReactions ?? [],
+			suppressEmbeds: (channel) =>
+				Boolean(
+					(this.opts.layout?.categories ?? [])
+						.flatMap((c) => c.channels ?? [])
+						.find((c) => DiscordNotifications.same(c.name, channel))?.feeds?.prs
+				),
 		}));
 	}
 
