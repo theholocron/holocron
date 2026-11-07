@@ -109,6 +109,12 @@ describe("progress", () => {
 			allowProgress(false);
 			expect(progressEnabled()).toBe(false);
 		});
+
+		it("reads CI from the environment it is given, with false and 0 not counting as CI", () => {
+			expect(progressEnabled({ CI: "true" })).toBe(false);
+			expect(progressEnabled({ CI: "false" })).toBe(true);
+			expect(progressEnabled({})).toBe(true);
+		});
 	});
 
 	describe("createProgress", () => {

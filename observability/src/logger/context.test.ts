@@ -1,5 +1,5 @@
 import { type Environment, ENVIRONMENTS } from "@theholocron/env-utils/lookup";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { LogEnv } from "../core/logger.js";
 import {
@@ -94,6 +94,19 @@ describe("isTelemetryDisabled", () => {
 });
 
 describe("resolveAxiomFromEnv", () => {
+	it("treats a blank primary variable as unset and uses the vendor-native one", () => {
+		expect(
+			resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "", AXIOM_TOKEN: "xaat-v", AXIOM_DATASET: "vendor-ds" })
+		).toEqual({ token: "xaat-v", dataset: "vendor-ds" });
+	});
+
+	it("reads the process environment when none is given", () => {
+		vi.stubEnv("HOLOCRON_AXIOM_TOKEN", "xaat-p");
+		vi.stubEnv("HOLOCRON_AXIOM_DATASET", "proc-ds");
+		expect(resolveAxiomFromEnv()).toEqual({ token: "xaat-p", dataset: "proc-ds" });
+		vi.unstubAllEnvs();
+	});
+
 	it("returns the credentials when both token and dataset are present", () => {
 		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "xaat-t", HOLOCRON_AXIOM_DATASET: "my-dataset" })).toEqual({
 			token: "xaat-t",

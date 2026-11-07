@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
+
 import { LOG_LEVELS, type LogLevel } from "../core/logger.js";
 import type { AxiomTransportConfig } from "./transports.js";
 
@@ -33,13 +35,13 @@ export function parseLogLevel(value: string | undefined): LogLevel | undefined {
  *
  * An unrecognised value at any tier is ignored and resolution falls through.
  */
-export function resolveLevel(explicit?: LogLevel, env: NodeJS.ProcessEnv = process.env): LogLevel {
-	return explicit ?? parseLogLevel(env.HOLOCRON_LOG_LEVEL) ?? "info";
+export function resolveLevel(explicit?: LogLevel, env?: NodeJS.ProcessEnv): LogLevel {
+	return explicit ?? parseLogLevel(createEnvLookup(env).get("HOLOCRON_LOG_LEVEL")) ?? "info";
 }
 
 /** True when the Axiom transport must be suppressed via `HOLOCRON_TELEMETRY=false`. */
-export function isTelemetryDisabled(env: NodeJS.ProcessEnv = process.env): boolean {
-	return env.HOLOCRON_TELEMETRY === "false";
+export function isTelemetryDisabled(env?: NodeJS.ProcessEnv): boolean {
+	return createEnvLookup(env).get("HOLOCRON_TELEMETRY") === "false";
 }
 
 /**
@@ -56,8 +58,9 @@ export function isTelemetryDisabled(env: NodeJS.ProcessEnv = process.env): boole
  * | token    | `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`   |
  * | dataset  | `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET` |
  */
-export function resolveAxiomFromEnv(env: NodeJS.ProcessEnv = process.env): AxiomTransportConfig | undefined {
-	const token = env.HOLOCRON_AXIOM_TOKEN ?? env.AXIOM_TOKEN;
-	const dataset = env.HOLOCRON_AXIOM_DATASET ?? env.AXIOM_DATASET;
+export function resolveAxiomFromEnv(env?: NodeJS.ProcessEnv): AxiomTransportConfig | undefined {
+	const lookup = createEnvLookup(env);
+	const token = lookup.get("HOLOCRON_AXIOM_TOKEN") ?? lookup.get("AXIOM_TOKEN");
+	const dataset = lookup.get("HOLOCRON_AXIOM_DATASET") ?? lookup.get("AXIOM_DATASET");
 	return token && dataset ? { token, dataset } : undefined;
 }

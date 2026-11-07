@@ -15,6 +15,8 @@ export function spawnChild(args: string[], extraEnv?: Record<string, string>): P
 	return new Promise((resolve) => {
 		const child = spawn(process.execPath, [process.argv[1]!, ...args], {
 			stdio: "inherit",
+			// The child gets the whole environment (a pass-through, not a read of one variable).
+			// eslint-disable-next-line no-restricted-properties
 			env: { ...process.env, NO_UPDATE_NOTIFIER: "1", ...extraEnv },
 		});
 		child.on("exit", (code) => resolve(code ?? 0));

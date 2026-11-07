@@ -1,3 +1,4 @@
+import { isCI } from "@theholocron/env-utils/lookup";
 import ora, { type Ora } from "ora";
 
 import type { Progress, ProgressListener } from "./progress.type.js";
@@ -41,9 +42,11 @@ export function setProgressListener(listener: ProgressListener | undefined): voi
 /**
  * Whether to draw a progress line: only when a person is watching a terminal (stdout and stderr both), not in CI, and not
  * switched off. Everywhere else the output stays the plain line-per-step text that scripts and the docs rely on.
+ *
+ * @param env - The environment to read `CI` from. Default the process environment; a test passes its own.
  */
-export function progressEnabled(): boolean {
-	return allowed && Boolean(process.stdout.isTTY) && Boolean(process.stderr.isTTY) && !process.env["CI"];
+export function progressEnabled(env?: Record<string, string | undefined>): boolean {
+	return allowed && Boolean(process.stdout.isTTY) && Boolean(process.stderr.isTTY) && !isCI(env);
 }
 
 /**
@@ -54,7 +57,7 @@ export function progressEnabled(): boolean {
  */
 export function createProgress(
 	print: (line: string) => void,
-	enabled: () => boolean = progressEnabled,
+	enabled: () => boolean = () => progressEnabled(),
 	listen?: ProgressListener
 ): Progress {
 	let active: Ora | undefined;

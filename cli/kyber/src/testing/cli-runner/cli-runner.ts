@@ -3,6 +3,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
+
 import type { CliRun, CliRunnerOptions, RunCliOptions } from "./cli-runner.type.js";
 
 /**
@@ -25,7 +27,7 @@ export function createCliRunner(options: CliRunnerOptions): (args: string[], run
 					cwd: dir,
 					stdio: ["ignore", "pipe", "pipe"],
 					env: {
-						PATH: process.env["PATH"] ?? "",
+						PATH: createEnvLookup().get("PATH") ?? "",
 						HOME: dir,
 						TMPDIR: dir,
 						FORCE_COLOR: "0",

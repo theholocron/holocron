@@ -10,6 +10,8 @@ const tag = "${nextRelease.channel || 'latest'}";
 // task, which also drives the generated workflow). The workflow runs one release per group with
 // RELEASE_GROUP set, plus the repo-wide release for everything else without it.
 const groups = releaseGroups(await loadTasksConfig(process.cwd()));
+// A raw read on purpose: semantic-release loads this file before any workspace package is guaranteed to be built (the
+// `ci` group releases with `run-build: false`), so it must not import `@theholocron/env-utils`, whose `exports` point at `dist/`.
 const group = process.env["RELEASE_GROUP"];
 
 // The repo-wide release leaves the groups out, so it does not move or publish them.
