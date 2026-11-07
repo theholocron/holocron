@@ -1,3 +1,13 @@
+## [5.0.0-alpha.366](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.365...v5.0.0-alpha.366) (2026-11-07)
+
+### Features
+
+* **auth:** ✨ a token can carry its own check, and the Discord bot token does ([#1905](https://github.com/theholocron/holocron/issues/1905)) ([c8bb003](https://github.com/theholocron/holocron/commit/c8bb003247d3ca484df607a6deefc3d8e5f34bb6))
+
+### Bug Fixes
+
+* **sentinel:** 🖼️ leave pictures out of the config directory fetch ([#1906](https://github.com/theholocron/holocron/issues/1906)) ([1927c55](https://github.com/theholocron/holocron/commit/1927c55524c851fdbca0b01830a8704fd4afb093))
+
 ## [5.0.0-alpha.365](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.364...v5.0.0-alpha.365) (2026-11-07)
 
 ### Bug Fixes
