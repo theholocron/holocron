@@ -240,7 +240,7 @@ export interface LinearProject {
 	/** Set when the project is archived. */
 	archivedAt: string | null;
 	/** The project's status. */
-	status: { id: string; name: string; type: string };
+	status: LinearProjectStatus;
 	/** The teams the project belongs to. */
 	teams: LinearNodes<LinearTeamRef>;
 }
