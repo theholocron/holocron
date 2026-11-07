@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── googleapis mock ──────────────────────────────────────────────────────────
 
@@ -62,10 +63,21 @@ const { googleAuth, oauth } = await import("./authentication.js");
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
+const creds = (
+	source: Record<string, string> = { GOOGLE_CLIENT_ID: "client-id", GOOGLE_CLIENT_SECRET: "client-secret" }
+) => createEnvLookup(source);
+
 describe("googleAuth", () => {
 	it("returns a client from GoogleAuth.getClient", async () => {
 		const client = await googleAuth(["https://www.googleapis.com/auth/spreadsheets.readonly"]);
 		expect(client).toMatchObject({ type: "JWT" });
+	});
+
+	it("loads the key from the injected env", async () => {
+		const env = createEnvLookup({});
+		await googleAuth(["scope"], env);
+		const { loadServiceAccountKey } = await import("./key.js");
+		expect(loadServiceAccountKey).toHaveBeenCalledWith(env);
 	});
 
 	it("accepts multiple scopes", async () => {
@@ -89,27 +101,20 @@ describe("oauth", () => {
 		capturedHandler = null;
 	});
 
-	afterEach(() => {
-		delete process.env["GOOGLE_CLIENT_ID"];
-		delete process.env["GOOGLE_CLIENT_SECRET"];
-	});
-
 	it("rejects when GOOGLE_CLIENT_ID is missing", async () => {
-		process.env["GOOGLE_CLIENT_SECRET"] = "secret";
-		await expect(oauth(["scope"])).rejects.toThrow("GOOGLE_CLIENT_ID");
+		await expect(oauth(["scope"], creds({ GOOGLE_CLIENT_SECRET: "secret" }))).rejects.toThrow("GOOGLE_CLIENT_ID");
 	});
 
 	it("rejects when GOOGLE_CLIENT_SECRET is missing", async () => {
-		process.env["GOOGLE_CLIENT_ID"] = "client-id";
-		await expect(oauth(["scope"])).rejects.toThrow("GOOGLE_CLIENT_SECRET");
+		await expect(oauth(["scope"], creds({ GOOGLE_CLIENT_ID: "client-id" }))).rejects.toThrow(
+			"GOOGLE_CLIENT_SECRET"
+		);
 	});
 
 	it("resolves with the OAuth2 client after a successful callback", async () => {
-		process.env["GOOGLE_CLIENT_ID"] = "client-id";
-		process.env["GOOGLE_CLIENT_SECRET"] = "client-secret";
 		mockGetToken.mockResolvedValue({ tokens: { access_token: "tok" } });
 
-		const promise = oauth(["https://www.googleapis.com/auth/drive"]);
+		const promise = oauth(["https://www.googleapis.com/auth/drive"], creds());
 
 		// Simulate the browser redirecting back to /oauth2callback
 		await new Promise<void>((r) => setImmediate(r));
@@ -121,11 +126,9 @@ describe("oauth", () => {
 	});
 
 	it("rejects when getToken throws inside the callback", async () => {
-		process.env["GOOGLE_CLIENT_ID"] = "client-id";
-		process.env["GOOGLE_CLIENT_SECRET"] = "client-secret";
 		mockGetToken.mockRejectedValue(new Error("token exchange failed"));
 
-		const promise = oauth(["scope"]);
+		const promise = oauth(["scope"], creds());
 
 		await new Promise<void>((r) => setImmediate(r));
 		expect(capturedHandler).not.toBeNull();
@@ -135,11 +138,9 @@ describe("oauth", () => {
 	});
 
 	it("ignores requests that are not /oauth2callback", async () => {
-		process.env["GOOGLE_CLIENT_ID"] = "client-id";
-		process.env["GOOGLE_CLIENT_SECRET"] = "client-secret";
 		mockGetToken.mockResolvedValue({ tokens: { access_token: "tok" } });
 
-		const promise = oauth(["scope"]);
+		const promise = oauth(["scope"], creds());
 
 		await new Promise<void>((r) => setImmediate(r));
 		// Unrelated path — should be ignored
@@ -151,11 +152,9 @@ describe("oauth", () => {
 	});
 
 	it("exchanges an empty code when the callback carries none", async () => {
-		process.env["GOOGLE_CLIENT_ID"] = "client-id";
-		process.env["GOOGLE_CLIENT_SECRET"] = "client-secret";
 		mockGetToken.mockResolvedValue({ tokens: {} });
 
-		const promise = oauth(["scope"]);
+		const promise = oauth(["scope"], creds());
 
 		await new Promise<void>((r) => setImmediate(r));
 		await capturedHandler!({ url: "/oauth2callback" }, { end: vi.fn() });

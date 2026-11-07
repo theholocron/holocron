@@ -39,6 +39,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@theholocron/env-utils": "workspace:^",
     "google-auth-library": "catalog:clients",
     "googleapis": "catalog:clients",
     "open": "catalog:clients",

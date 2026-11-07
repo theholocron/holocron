@@ -14,9 +14,11 @@
  *             / AXIOM_DATASET when omitted.
  */
 
+import { createEnvLookup, firstEnv } from "@theholocron/env-utils/lookup";
+
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
 
-const dataset = process.argv[2] ?? process.env.HOLOCRON_AXIOM_DATASET ?? process.env.AXIOM_DATASET;
+const dataset = process.argv[2] ?? firstEnv(createEnvLookup(), ["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
 
 if (!dataset) {
 	console.error("usage: pnpm --filter @theholocron/holocron-plugin-axiom validate:plugin <dataset>");

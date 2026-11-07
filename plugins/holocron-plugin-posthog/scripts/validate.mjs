@@ -12,6 +12,7 @@
  *   POSTHOG_HOST=https://eu.posthog.com pnpm --filter @theholocron/holocron-plugin-posthog validate:plugin
  */
 
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import chalk from "chalk";
 
 import { AuthError, createPlugin, resolveToken, verifyToken } from "../src/index.ts";
@@ -21,7 +22,7 @@ const fail = (msg) => console.log(`${chalk.red("✗")} ${msg}`);
 const step = (msg) => console.log(chalk.cyan(`[${msg}]`));
 const hint = (msg) => console.log(chalk.dim(`         hint: ${msg}`));
 
-const host = process.env["POSTHOG_HOST"];
+const host = createEnvLookup().get("POSTHOG_HOST");
 
 console.log(chalk.bold("Validating @theholocron/holocron-plugin-posthog") + chalk.dim(" (READ-ONLY)"));
 if (host) console.log(chalk.dim(`  host: ${host}`));
