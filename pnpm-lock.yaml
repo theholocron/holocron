@@ -1409,6 +1409,9 @@ importers:
 
   clients/google-client:
     dependencies:
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
       google-auth-library:
         specifier: catalog:clients
         version: 11.3.2
@@ -3302,6 +3305,9 @@ importers:
       '@theholocron/cli':
         specifier: workspace:*
         version: link:../../cli/cli
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
       '@theholocron/eslint-config':
         specifier: workspace:^
         version: link:../../configs/eslint-config

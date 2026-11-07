@@ -1,6 +1,7 @@
 import http from "node:http";
 import url from "node:url";
 
+import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
 import type { JWT, OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import open from "open";
@@ -8,10 +9,10 @@ import destroyer from "server-destroy";
 
 import { loadServiceAccountKey } from "./key.js";
 
-function buildOAuth2Client(): OAuth2Client {
-	const clientID = process.env.GOOGLE_CLIENT_ID;
-	const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-	const redirectURI = process.env.GOOGLE_REDIRECT_URI ?? "http://localhost:4000/oauth2callback";
+function buildOAuth2Client(env: EnvLookup): OAuth2Client {
+	const clientID = env.get("GOOGLE_CLIENT_ID");
+	const clientSecret = env.get("GOOGLE_CLIENT_SECRET");
+	const redirectURI = env.get("GOOGLE_REDIRECT_URI") ?? "http://localhost:4000/oauth2callback";
 
 	if (!clientID || !clientSecret) {
 		throw new Error("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables are required for OAuth");
@@ -20,10 +21,14 @@ function buildOAuth2Client(): OAuth2Client {
 	return new google.auth.OAuth2(clientID, clientSecret, redirectURI);
 }
 
-/** Signs in with Google OAuth: opens the consent page, waits on a local callback and resolves with the client holding the tokens. */
-export const oauth = async (scopes: string[]): Promise<OAuth2Client | null> => {
-	const oauth2Client = buildOAuth2Client();
-	const port = parseInt(process.env.GOOGLE_REDIRECT_PORT ?? "4000", 10);
+/**
+ * Signs in with Google OAuth: opens the consent page, waits on a local callback and resolves with the client holding the tokens.
+ *
+ * @param env - Where to read the GOOGLE_* variables from; defaults to the process environment.
+ */
+export const oauth = async (scopes: string[], env: EnvLookup = createEnvLookup()): Promise<OAuth2Client | null> => {
+	const oauth2Client = buildOAuth2Client(env);
+	const port = parseInt(env.get("GOOGLE_REDIRECT_PORT") ?? "4000", 10);
 
 	return new Promise((resolve, reject) => {
 		const authorizeUrl = oauth2Client.generateAuthUrl({
@@ -53,10 +58,14 @@ export const oauth = async (scopes: string[]): Promise<OAuth2Client | null> => {
 	});
 };
 
-/** Authenticates as the service account from `loadServiceAccountKey()` for the given scopes and resolves with its JWT client. */
-export async function googleAuth(scopes: string[]): Promise<JWT> {
+/**
+ * Authenticates as the service account from `loadServiceAccountKey()` for the given scopes and resolves with its JWT client.
+ *
+ * @param env - Where to read the GOOGLE_* variables from; defaults to the process environment.
+ */
+export async function googleAuth(scopes: string[], env: EnvLookup = createEnvLookup()): Promise<JWT> {
 	const auth = new google.auth.GoogleAuth({
-		credentials: loadServiceAccountKey(),
+		credentials: loadServiceAccountKey(env),
 		scopes,
 	});
 

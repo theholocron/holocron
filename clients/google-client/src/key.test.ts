@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { loadServiceAccountKey } from "./key.js";
 
@@ -11,60 +12,61 @@ const REQUIRED = {
 	GOOGLE_CLIENT_ID: "123456789",
 };
 
+let source: Record<string, string | undefined>;
+
 beforeEach(() => {
-	for (const [k, v] of Object.entries(REQUIRED)) {
-		process.env[k] = v;
-	}
-	delete process.env["GOOGLE_SERVICE_ACCOUNT_JSON"];
+	source = { ...REQUIRED };
 });
 
-afterEach(() => {
-	for (const k of [...Object.keys(REQUIRED), "GOOGLE_SERVICE_ACCOUNT_JSON"]) {
-		delete process.env[k];
-	}
-});
+const load = () => loadServiceAccountKey(createEnvLookup(source));
 
 describe("loadServiceAccountKey", () => {
 	it("parses GOOGLE_SERVICE_ACCOUNT_JSON when set", () => {
 		const creds = { type: "service_account", project_id: "json-project" };
-		process.env["GOOGLE_SERVICE_ACCOUNT_JSON"] = JSON.stringify(creds);
-		expect(loadServiceAccountKey()).toEqual(creds);
+		source["GOOGLE_SERVICE_ACCOUNT_JSON"] = JSON.stringify(creds);
+		expect(load()).toEqual(creds);
 	});
 
 	it("builds credentials from individual env vars", () => {
-		const key = loadServiceAccountKey();
+		const key = load();
 		expect(key.type).toBe("service_account");
 		expect(key.project_id).toBe("my-project");
 		expect(key.client_email).toBe("svc@my-project.iam.gserviceaccount.com");
 	});
 
 	it("unescapes \\\\n in GOOGLE_PRIVATE_KEY to actual newlines", () => {
-		process.env["GOOGLE_PRIVATE_KEY"] = "line1\\nline2";
-		const key = loadServiceAccountKey();
+		source["GOOGLE_PRIVATE_KEY"] = "line1\\nline2";
+		const key = load();
 		expect(key.private_key).toBe("line1\nline2");
 	});
 
 	it("fills in well-known static URLs", () => {
-		const key = loadServiceAccountKey();
+		const key = load();
 		expect(key.auth_uri).toBe("https://accounts.google.com/o/oauth2/auth");
 		expect(key.token_uri).toBe("https://oauth2.googleapis.com/token");
 	});
 
 	it("builds client_x509_cert_url from GOOGLE_CLIENT_EMAIL", () => {
-		const key = loadServiceAccountKey();
+		const key = load();
 		expect(key.client_x509_cert_url).toContain(encodeURIComponent("svc@my-project.iam.gserviceaccount.com"));
 	});
 
 	it("throws when a required env var is missing", () => {
-		delete process.env["GOOGLE_PRIVATE_KEY"];
+		delete source["GOOGLE_PRIVATE_KEY"];
 		const err = (() => {
 			try {
-				loadServiceAccountKey();
+				load();
 			} catch (e) {
 				return e;
 			}
 		})();
 		expect(err).toBeInstanceOf(Error);
 		expect((err as Error).message).toContain("GOOGLE_PRIVATE_KEY");
+	});
+
+	it("reads from the process environment when no lookup is given", () => {
+		vi.stubEnv("GOOGLE_SERVICE_ACCOUNT_JSON", JSON.stringify({ type: "service_account" }));
+		expect(loadServiceAccountKey()).toEqual({ type: "service_account" });
+		vi.unstubAllEnvs();
 	});
 });
