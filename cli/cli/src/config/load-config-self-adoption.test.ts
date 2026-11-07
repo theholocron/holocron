@@ -136,6 +136,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 						"POSTHOG_PROJECT_TOKEN",
 						"SENTRY_ORG",
 						"TURBO_TEAM",
+						"VERCEL_TEAM_ID",
 					],
 				},
 			],

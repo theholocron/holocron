@@ -59,6 +59,7 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 					"POSTHOG_PROJECT_TOKEN",
 					"SENTRY_ORG",
 					"TURBO_TEAM",
+					"VERCEL_TEAM_ID",
 				],
 			},
 		]);

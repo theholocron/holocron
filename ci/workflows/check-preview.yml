@@ -189,6 +189,12 @@ jobs:
           # request. An untrusted deployment gets neither secret.
           VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
           VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
+          # Not a secret and not gated on trust: the org's Vercel team id
+          # (the synced org variable VERCEL_TEAM_ID, `repo.variables.sync`),
+          # which scopes the ownership lookup to the right team. It is
+          # read from the org's settings, never from the PR's config
+          # (`run-resolved` loads none), so a PR cannot change it.
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:
           command: monitoring run-resolved
