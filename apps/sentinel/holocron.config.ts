@@ -109,9 +109,13 @@
 
 import { defineConfig } from "@theholocron/cli";
 
-// The zone is spelled once; every hostname below derives from it. A plain const, not an import from outside this
-// directory: only this config and what it imports are evaluated.
-const domain = "theholocron.dev";
+import org from "../../.holocron/org.js";
+
+// The zone is spelled once, in the repo root's `.holocron/org.ts`; every hostname below derives from it. The import is
+// safe because this config is only ever loaded from disk (`holocron ... --cwd apps/sentinel`, `pnpm dev`): Sentinel's
+// remote loader evaluates a repo's root config, never this one. The loader also sets `domain` on this config from the
+// shared org area, so it is not written below.
+const { domain } = org;
 const sentinelHost = `sentinel.${domain}`;
 const webhookUrl = `https://${sentinelHost}/api/webhook`;
 

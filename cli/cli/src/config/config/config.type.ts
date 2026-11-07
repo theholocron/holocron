@@ -211,6 +211,12 @@ export interface RepoValidationConfig {
  * does not use is ignored; a provider or option not listed here is an error.
  */
 export interface OrgConfig {
+	/**
+	 * The organization's DNS zone (`theholocron.dev`). The loader sets `domain` on a config that leaves it out; a
+	 * config that sets it too is a `ConfigError`. A file that must build a hostname before the loader runs imports
+	 * this area file instead (`import org from "./org.js"`).
+	 */
+	domain?: string;
 	/** Options filled into every `cloudflare` provider entry. */
 	cloudflare?: {
 		/** The Cloudflare account id (an identifier, not a credential). */

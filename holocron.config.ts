@@ -5,11 +5,17 @@ import type { HolocronConfig } from "@theholocron/cli";
 import { defineConfig } from "@theholocron/cli";
 import { docsPreset } from "@theholocron/cli/presets";
 
-// docsPreset() provides: org, domain, docs, strict repo protection, the base
+import orgArea from "./.holocron/org.js";
+
+// docsPreset() provides: org, docs, strict repo protection, the base
 // providers (source, ci, issues, deployment, dns, workers). Its `tasks` speak the
 // flat ids (`lint:code`, `test:unit`, ...), but this repo declares its own tasks
 // directly below, with repo-specific `with:` inputs, instead of spreading them.
-const { repo, providers, org, domain, docs } = docsPreset();
+// Its `domain` is not taken: the org's zone is spelled once, in `.holocron/org.ts`, and the loader sets `domain` on
+// this config from it (an inline `domain` here would be an error). The hostnames built below import it from there,
+// which is safe for Sentinel's remote loader because it writes the whole `.holocron/` tree beside this file.
+const { repo, providers, org, docs } = docsPreset();
+const { domain } = orgArea;
 
 // One Codecov upload per workspace package, so a PR that changes one package uploads only the packages whose tests
 // ran and Codecov carries every other package's flag forward (a flag is carried whole or not at all, so a flag per
@@ -25,7 +31,6 @@ export default defineConfig({
 		"A pluggable, capability-based CLI for spinning up and operating software projects — your own infrastructure-as-tool.",
 	homepage: `https://docs.${domain}/holocron/`,
 	org,
-	domain,
 	docs,
 	// The apex carries iCloud Mail's MX and SPF records; `holocron doctor dns` keeps watch on them (#1569).
 	doctor: { mail: "icloud" },
