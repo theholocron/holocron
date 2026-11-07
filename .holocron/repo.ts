@@ -24,10 +24,12 @@ export default {
 				environment: "Holocron - GitHub Actions variables",
 				scope: "org=theholocron",
 				keys: [
+					"AXIOM_ORG",
 					"CLOUDFLARE_ACCOUNT_ID",
 					"CLOUDFLARE_PAGES_PROJECT",
 					"HOLOCRON_AXIOM_DATASET",
 					"POSTHOG_PROJECT_TOKEN",
+					"SENTINEL_AXIOM_DATASET",
 					"SENTRY_ORG",
 					"TURBO_TEAM",
 					"VERCEL_TEAM_ID",

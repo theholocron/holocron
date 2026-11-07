@@ -1,6 +1,6 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { ActionlintMessage } from "../lint-actionlint/index.js";
 import { postActionlintCheck, SENTINEL_ACTIONLINT_CHECK_RUN_NAME } from "./post-actionlint-check.js";
@@ -51,6 +51,11 @@ function post(client: ReturnType<typeof makeClient>["client"], messages: Actionl
 		runId,
 	});
 }
+
+beforeAll(() => {
+	vi.stubEnv("AXIOM_ORG", "acme-org");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
+});
 
 describe("postActionlintCheck — carries the intent vocabulary through (D5)", () => {
 	it("names the check run Source Quality / Static Analysis / Run actionlint", () => {

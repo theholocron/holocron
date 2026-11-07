@@ -1,6 +1,6 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { ValidateDocsPresenceResult } from "../validate-docs-presence/index.js";
 import { postDocsPresenceCheck, SENTINEL_DOCS_PRESENCE_CHECK_RUN_NAME } from "./post-docs-presence-check.js";
@@ -31,6 +31,11 @@ async function post(result: ValidateDocsPresenceResult) {
 const EMPTY = { isFeat: false, featWarnings: [], skipped: [], missingReason: false };
 
 const WIDGET = { name: "widget", entry: "packages/widget/src/index.ts" };
+
+beforeAll(() => {
+	vi.stubEnv("AXIOM_ORG", "acme-org");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
+});
 
 describe("postDocsPresenceCheck", () => {
 	it("names the check after the CI job, under the platform namespace", () => {

@@ -1,6 +1,6 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { postDcoCheck, SENTINEL_DCO_CHECK_RUN_NAME } from "./post-dco-check.js";
 
@@ -8,6 +8,11 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
+
+beforeAll(() => {
+	vi.stubEnv("AXIOM_ORG", "acme-org");
+	vi.stubEnv("SENTINEL_AXIOM_DATASET", "acme-dataset");
+});
 
 describe("postDcoCheck — carries the intent vocabulary through (D5)", () => {
 	it("names the check run Platform / Compliance / Run Developer Certificate of Origin", () => {
@@ -41,7 +46,7 @@ describe("postDcoCheck — valid", () => {
 		expect(body.output.title).toBe("DCO: OK");
 		expect(body.output.summary).toBe("All 3 commit(s) are signed off.");
 		const url = new URL(body.details_url);
-		expect(url.origin + url.pathname).toBe("https://app.axiom.co/the-holocron-7bbe/query");
+		expect(url.origin + url.pathname).toBe("https://app.axiom.co/acme-org/query");
 		const apl = (JSON.parse(url.searchParams.get("initForm")!) as { apl: string }).apl;
 		expect(apl).toContain('runId == "run-1"');
 		expect(apl).toContain('msg == "postDcoCheck: posted"');

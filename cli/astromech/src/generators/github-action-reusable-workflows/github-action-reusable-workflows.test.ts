@@ -701,7 +701,7 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 	it("ships the task's real captured output to Axiom, tagged with this check run's own id", () => {
 		expect(wf).toContain("id: axiom");
 		expect(wf).toContain("LOG_FILE: ${{ steps.run-task.outputs.log-file }}");
-		expect(wf).toContain("https://api.axiom.co/v1/datasets/${AXIOM_DATASET}/ingest");
+		expect(wf).toContain("https://api.axiom.co/v1/datasets/${SENTINEL_AXIOM_DATASET}/ingest");
 		expect(wf).toContain("check_run_id: $check_run_id");
 		expect(wf).toContain("AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}");
 		// ingest failing must never break the actual check-run report
@@ -711,6 +711,13 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 	it("builds an Axiom permalink filtered to this run's own logs, not a bare dataset view", () => {
 		expect(wf).toContain("query-url=https://app.axiom.co/${AXIOM_ORG}/query?initForm=${encoded}");
 		expect(wf).toContain('where check_run_id == \\"${CHECK_RUN_ID}\\"');
+	});
+
+	it("reads the Axiom org and dataset from org variables, with no literal fallback", () => {
+		expect(wf).toContain("AXIOM_ORG: ${{ vars.AXIOM_ORG }}");
+		expect(wf).toContain("SENTINEL_AXIOM_DATASET: ${{ vars.SENTINEL_AXIOM_DATASET }}");
+		expect(wf).not.toContain("the-holocron-7bbe");
+		expect(wf).not.toMatch(/SENTINEL_AXIOM_DATASET: holocron-sentinel/);
 	});
 
 	it("tags the shipped event with a level field so Axiom's severity highlighting applies", () => {
