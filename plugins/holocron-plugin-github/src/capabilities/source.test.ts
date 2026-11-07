@@ -292,6 +292,23 @@ describe("GitHubSource — REST methods", () => {
 		expect(await source.checkPropertyValues({ holocron_capabilities: ["ci"] })).toEqual([]);
 	});
 
+	it("getOrgPropertyValues and addOrgPropertyValues → read and extend the organization's property, with the org client when there is one", async () => {
+		const CAPS = { property_name: "holocron_capabilities", value_type: "multi_select", allowed_values: ["ci"] };
+		const org = stubFetch([{ body: [CAPS] }, { body: [CAPS] }, { body: CAPS }]);
+		const withOrg = new GitHubSource(createGitHubClient({ token: "pat", fetch: stubFetch([]).fetch }), {
+			repo: REPO,
+			repoRoot: process.cwd(),
+			orgClient: createGitHubClient({ token: "org-pat", fetch: org.fetch }),
+		});
+		expect(await withOrg.getOrgPropertyValues("holocron_capabilities")).toEqual(["ci"]);
+		expect(await withOrg.addOrgPropertyValues("holocron_capabilities", ["ci", "projects"])).toEqual(["projects"]);
+		expect(org.calls.map((c) => c.method)).toEqual(["GET", "GET", "PUT"]);
+
+		const { source } = makeSource([{ body: [CAPS] }, { body: [CAPS] }]);
+		expect(await source.getOrgPropertyValues("holocron_capabilities")).toEqual(["ci"]);
+		expect(await source.addOrgPropertyValues("holocron_capabilities", ["ci"])).toEqual([]);
+	});
+
 	it("syncProperties → asks the org client for the definitions when GitHub refuses a value", async () => {
 		const orgSide = stubFetch([{ status: 200, body: [] }]);
 		const repoSide = stubFetch([{ status: 422, text: JSON.stringify({ message: "Validation Failed" }) }]);
