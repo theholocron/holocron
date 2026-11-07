@@ -29,8 +29,8 @@ any config is loaded:
 | `errors`   | `sentry` | `HOLOCRON_SENTRY_DSN`                             | `SENTRY_DSN`                    |
 | `logs`     | `axiom`  | `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` | `AXIOM_TOKEN` + `AXIOM_DATASET` |
 
-`HOLOCRON_AXIOM_DATASET` is one env var set to different values per environment:
-`holocron-ci` in CI (org secret) or `holocron-local` locally (shell profile).
+`HOLOCRON_AXIOM_DATASET` names the CLI's dataset, `holocron`, for every environment (the org variable
+`HOLOCRON_AXIOM_DATASET`); a service has its own dataset, and lines are told apart by the `env` field (ADR-0019).
 
 The provider entry in `holocron.config` serves a separate, optional purpose:
 

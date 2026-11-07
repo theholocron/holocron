@@ -12,14 +12,16 @@ export interface LogConfig {
 	 */
 	level?: LogLevel;
 	/**
-	 * Axiom log-shipping. Set `axiom.dataset` to opt local runs into Axiom
-	 * without exporting `HOLOCRON_AXIOM_DATASET` — the CLI then pairs it with
-	 * the token from `HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` or the OS keyring
-	 * (`holocron auth set axiom[.<org>] <TOKEN>`). Env vars still win. In CI,
-	 * the `AXIOM_DATASET` variable (synced from 1Password) supplies it.
+	 * Axiom log-shipping. The CLI has one dataset for all its environments, told apart by
+	 * the `env` field on each line, and that dataset normally comes from the
+	 * `HOLOCRON_AXIOM_DATASET` variable (`holocron`, synced from 1Password) with no config at all.
+	 * Set `axiom.dataset` only for a repo that keeps its own dataset: the CLI
+	 * pairs it with the token from `HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` or the
+	 * OS keyring (`holocron auth set axiom[.<org>] <TOKEN>`). Env vars still
+	 * win, and a `global`-context command ignores it.
 	 */
 	axiom?: {
-		/** Target Axiom dataset, e.g. `"holocron-local"`. */
+		/** Target Axiom dataset for this repo, e.g. `"my-repo"`. */
 		dataset?: string;
 	};
 }

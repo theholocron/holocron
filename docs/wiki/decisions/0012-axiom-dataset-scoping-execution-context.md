@@ -1,14 +1,15 @@
 ---
 id: ADR-0012
 title: "Axiom dataset scoping: execution context over blanket local/CI"
-status: accepted
+status: superseded
 date: 2026-10-08
 owners: []
 specs: []
 discussion:
   url: https://discord.com/channels/1303969001822486568/1566618656270721054
 supersedes: []
-superseded-by: []
+superseded-by:
+  - ADR-0019
 tags: [logging, observability, axiom, execution-context]
 ---
 
@@ -16,7 +17,9 @@ tags: [logging, observability, axiom, execution-context]
 
 ## Status
 
-Accepted — implemented in #968.
+Superseded by [ADR-0019](0019-axiom-dataset-per-service-split-by-env.md) (a dataset per service, split by the `env` tag). Implemented in #968.
+The `holocron-global` dataset described below no longer exists; a `global`-context command now ignores a repo's
+`log.axiom.dataset` and uses the service's own dataset.
 
 ## Context
 

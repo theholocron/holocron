@@ -13,7 +13,7 @@ function makeLogs(responses: Parameters<typeof stubFetch>[0], opts: { dataset?: 
 	return { logs: new AxiomLogs(() => client, opts), calls };
 }
 
-const dataset = { id: "d1", name: "holocron-ci", description: "Managed by holocron" };
+const dataset = { id: "d1", name: "my-dataset", description: "Managed by holocron" };
 
 describe("AxiomLogs.describe", () => {
 	it("returns the axiom provider with both env keys", async () => {
@@ -34,10 +34,10 @@ describe("AxiomLogs.describe", () => {
 
 describe("AxiomLogs.whoami", () => {
 	it("fetches the configured dataset and reports it reachable", async () => {
-		const { logs, calls } = makeLogs([{ body: dataset }], { dataset: "holocron-ci" });
+		const { logs, calls } = makeLogs([{ body: dataset }], { dataset: "my-dataset" });
 		const result = await logs.whoami();
-		expect(calls[0]?.url).toBe(`${BASE}/v2/datasets/holocron-ci`);
-		expect(result).toEqual({ ok: true, dataset: "holocron-ci" });
+		expect(calls[0]?.url).toBe(`${BASE}/v2/datasets/my-dataset`);
+		expect(result).toEqual({ ok: true, dataset: "my-dataset" });
 	});
 
 	it("throws when no dataset is configured", async () => {
@@ -48,7 +48,7 @@ describe("AxiomLogs.whoami", () => {
 	});
 
 	it("propagates a ProviderApiError when the dataset is unreachable", async () => {
-		const { logs } = makeLogs([{ status: 403, body: { message: "forbidden" } }], { dataset: "holocron-ci" });
+		const { logs } = makeLogs([{ status: 403, body: { message: "forbidden" } }], { dataset: "my-dataset" });
 		await expect(logs.whoami()).rejects.toBeInstanceOf(ProviderApiError);
 	});
 });
@@ -56,9 +56,9 @@ describe("AxiomLogs.whoami", () => {
 describe("AxiomLogs.ensureDataset", () => {
 	it("returns alreadyExists:true when the dataset is found", async () => {
 		const { logs, calls } = makeLogs([{ body: dataset }]);
-		const result = await logs.ensureDataset("holocron-ci");
+		const result = await logs.ensureDataset("my-dataset");
 		expect(calls[0]?.method).toBe("GET");
-		expect(calls[0]?.url).toBe(`${BASE}/v2/datasets/holocron-ci`);
+		expect(calls[0]?.url).toBe(`${BASE}/v2/datasets/my-dataset`);
 		expect(result).toEqual({ alreadyExists: true });
 	});
 
@@ -67,15 +67,15 @@ describe("AxiomLogs.ensureDataset", () => {
 			{ status: 404, body: { message: "not found" } }, // GET → 404
 			{ body: dataset }, // POST create
 		]);
-		const result = await logs.ensureDataset("holocron-ci");
+		const result = await logs.ensureDataset("my-dataset");
 		expect(calls[1]?.method).toBe("POST");
 		expect(calls[1]?.url).toBe(`${BASE}/v2/datasets`);
-		expect(calls[1]?.body).toMatchObject({ name: "holocron-ci", description: "Managed by holocron" });
+		expect(calls[1]?.body).toMatchObject({ name: "my-dataset", description: "Managed by holocron" });
 		expect(result).toEqual({ alreadyExists: false });
 	});
 
 	it("rethrows non-404 errors from the existence check", async () => {
 		const { logs } = makeLogs([{ status: 500, body: { message: "boom" } }]);
-		await expect(logs.ensureDataset("holocron-ci")).rejects.toBeInstanceOf(ProviderApiError);
+		await expect(logs.ensureDataset("my-dataset")).rejects.toBeInstanceOf(ProviderApiError);
 	});
 });

@@ -181,9 +181,9 @@ export default defineConfig({
 
   // Structured-logging config. `level` is the lowest-priority level source:
   // --verbose/--quiet and HOLOCRON_LOG_LEVEL both outrank it. `axiom.dataset`
-  // opts local runs into Axiom shipping without exporting HOLOCRON_AXIOM_DATASET
+  // is a per-repo override of the CLI's dataset (HOLOCRON_AXIOM_DATASET)
   // — the token still comes from an env var or the OS keyring, never here.
-  log: { level: "info", axiom: { dataset: "holocron-local" } },
+  log: { level: "info", axiom: { dataset: "my-repo" } },
 
   // CLI self-telemetry override layer (see /telemetry). Env
   // (HOLOCRON_TELEMETRY=false) still wins and is checked first; this is the

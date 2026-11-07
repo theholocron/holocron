@@ -65,9 +65,9 @@ Child loggers inherit every binding from their parent and add their own, so pass
 | `level`   | Pino                  | level name string                                                |
 | `time`    | Pino                  | ISO 8601 timestamp                                               |
 
-## One dataset, every environment
+## One dataset per service, every environment
 
-Every line carries `env`, so one Axiom dataset can hold all of them and a query filters by it. The value is
+Every line carries `env`, so a service keeps one Axiom dataset for all of its environments and a query filters by it (never a dataset per environment). Each service has its own dataset: the CLI `holocron`, Sentinel `holocron-sentinel`, Comlink `holocron-comlink` (reserved). The value is
 `detectEnvironment()` from [`@theholocron/env-utils`](/holocron/utils/env-utils/): the
 `ENVIRONMENT` variable when it names one of the five (`local`, `development`, `ci`, `test`, `production`; `dev`,
 `stage`, `staging`, `qa` and `prod` are read as `development`, `test`, `test`, `test` and `production`, in any case). When it does not, it is `ci` inside
@@ -96,7 +96,7 @@ a `<command>: done` carrying the `ok` / `fail` / `skip` counts. Pull a
 whole run back out of Axiom by its `runId`:
 
 ```kusto
-['holocron-ci'] | where runId == "<uuid>" | sort by _time asc
+['holocron-sentinel'] | where runId == "<uuid>" | sort by _time asc
 ```
 
 ## Log level
@@ -132,34 +132,35 @@ The Axiom transport is added when Axiom credentials are present **and**
 | `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`   | Axiom API token     |
 | `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET` | target dataset name |
 
-Two datasets, selected by the single `HOLOCRON_AXIOM_DATASET` value:
-
-| Value            | When           |
-| ---------------- | -------------- |
-| `holocron-ci`    | CI             |
-| `holocron-local` | local — opt-in |
+The CLI ships to its own dataset, `holocron` (`HOLOCRON_AXIOM_DATASET`; the bare `AXIOM_DATASET` is only a fallback).
+Each service has a dataset of its own, named by its own variable (`SENTINEL_AXIOM_DATASET` is `holocron-sentinel`,
+`COMLINK_AXIOM_DATASET` is reserved for `holocron-comlink`). Within a service the environments share one dataset and are
+told apart by [`env`](#one-dataset-per-service-every-environment), not by dataset.
 
 The transport activates only when **both** a token and a dataset resolve.
-With no dataset, runs write only to their console transport and never
-attempt an Axiom connection.
+With no token or no dataset, runs write only to their console transport and never
+attempt an Axiom connection, so a local run stays opt-in.
+
+A dataset has one retention setting, set in Axiom, so the environments share it: a short window to save storage would also cut
+the CI and production lines, and a long one keeps local noise as long. Holocron does not set it.
 
 The token resolves from `HOLOCRON_AXIOM_TOKEN` → `AXIOM_TOKEN` → the OS
 keyring (`axiom.<org>`, then bare `axiom`). The dataset resolves from
 `HOLOCRON_AXIOM_DATASET` → `AXIOM_DATASET` (process environment; the
 prefixed name is tried first) → `holocron.config` `log.axiom.dataset` → the
 credential chain, asked for the same two names (the 1Password Environment's
-`AXIOM_DATASET`). Env vars always win, and the config
-sits ahead of the chain so a local run with no `.envrc` still ships to
-`holocron-local` rather than the CI dataset.
+`HOLOCRON_AXIOM_DATASET`). Env vars always win. The config value is only a per-repo
+override, for a repo that keeps its own dataset; a `global`-context command
+(`clone`, `auth set`, `upgrade node`, …) skips it, so the repo it runs in
+never decides where its lines go, and uses the CLI's `holocron` dataset instead.
 
 #### CI
 
 The `sync` and `sync-github` reusable workflows read the token from the
 `HOLOCRON_AXIOM_TOKEN` secret and the dataset from the
-`AXIOM_DATASET` variable, which `repo.variables.sync` writes from the
-1Password Environment `Holocron - GitHub Actions variables` (`AXIOM_DATASET =
-holocron-ci`) and which the workflows pass to the CLI as
-`HOLOCRON_AXIOM_DATASET`. Thin callers forward them via
+`HOLOCRON_AXIOM_DATASET` variable (value `holocron`), which `repo.variables.sync` writes from the
+1Password Environment `Holocron - GitHub Actions variables` and which the workflows pass to the CLI as
+`HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}`. Thin callers forward them via
 `secrets: inherit`; the variable is visible to the reusable workflow
 automatically. `HOLOCRON_TELEMETRY=false` in a workflow disables shipping
 without removing the secret.
@@ -173,12 +174,11 @@ holocron auth set axiom.theholocron <TOKEN>
 ```
 
 That token backs both `holocron repo setup` / `holocron doctor` (the `logs`
-capability, which provisions and checks the datasets) **and** the logger's
-Axiom transport. Then opt local runs into shipping by naming the dataset in
-`holocron.config` — `log: { axiom: { dataset: "holocron-local" } }`.
+capability, which provisions and checks the dataset) **and** the logger's
+Axiom transport. With `HOLOCRON_AXIOM_DATASET` in your environment, or reachable through
+the credential chain, local runs then ship too, as `env: "local"`.
 
-Leave `log.axiom.dataset` unset (and `HOLOCRON_AXIOM_DATASET` unexported)
-to keep local runs on `pino-pretty` only.
+Without a token or a dataset, local runs stay on `pino-pretty` only.
 
 ### Opting out
 
@@ -209,7 +209,7 @@ import { defineConfig } from "@theholocron/cli";
 export default defineConfig({
   log: {
     level: "info", // "debug" | "info" | "warn" | "error"
-    axiom: { dataset: "holocron-local" }, // opt local runs into Axiom shipping
+    axiom: { dataset: "my-repo" }, // only for a repo that keeps its own dataset
   },
 });
 ```

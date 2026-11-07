@@ -44,7 +44,7 @@ describe("createLogger", () => {
 
 	it("does not throw for any documented config shape", () => {
 		expect(() => createLogger({ level: "debug" })).not.toThrow();
-		expect(() => createLogger({ level: "warn", axiom: { dataset: "holocron-ci", token: "xaat-x" } })).not.toThrow();
+		expect(() => createLogger({ level: "warn", axiom: { dataset: "my-dataset", token: "xaat-x" } })).not.toThrow();
 	});
 
 	it("produces a working child logger chain", () => {

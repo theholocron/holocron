@@ -10,7 +10,7 @@
  *   pnpm --filter @theholocron/holocron-plugin-axiom validate:plugin <dataset>
  *
  *   dataset — an Axiom dataset name to check reachability against
- *             (e.g. "holocron-ci"). Falls back to HOLOCRON_AXIOM_DATASET
+ *             (e.g. "holocron-sentinel"). Falls back to HOLOCRON_AXIOM_DATASET
  *             / AXIOM_DATASET when omitted.
  */
 

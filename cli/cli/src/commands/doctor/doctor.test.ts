@@ -939,7 +939,7 @@ describe("runDoctor", () => {
 			"@theholocron/holocron-plugin-axiom": makePlugin("axiom", {
 				logs: {
 					describe: async () => ({ provider: "axiom", envKeys: ["HOLOCRON_AXIOM_TOKEN"] }),
-					whoami: async () => ({ ok: true, dataset: "holocron-ci" }),
+					whoami: async () => ({ ok: true, dataset: "my-dataset" }),
 				},
 			}),
 		});
@@ -953,7 +953,7 @@ describe("runDoctor", () => {
 
 		const row = report.rows.find((r) => r.capability === "logs");
 		expect(row?.status).toBe("ok");
-		expect(row?.message).toContain("holocron-ci");
+		expect(row?.message).toContain("my-dataset");
 	});
 
 	it("logs smoke check falls back to describe when whoami is not implemented", async () => {

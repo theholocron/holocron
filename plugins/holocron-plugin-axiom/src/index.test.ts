@@ -19,12 +19,12 @@ describe("createPlugin", () => {
 	it("resolves the dataset from HOLOCRON_AXIOM_DATASET", async () => {
 		const plugin = createPlugin({
 			cliToken: "xaat-tok",
-			env: { HOLOCRON_AXIOM_DATASET: "holocron-ci" },
+			env: { HOLOCRON_AXIOM_DATASET: "my-dataset" },
 			fetch: (async () =>
-				new Response(JSON.stringify({ id: "d1", name: "holocron-ci" }), { status: 200 })) as typeof fetch,
+				new Response(JSON.stringify({ id: "d1", name: "my-dataset" }), { status: 200 })) as typeof fetch,
 		});
 		const cap = plugin.capabilities.logs();
-		await expect(cap.whoami!()).resolves.toEqual({ ok: true, dataset: "holocron-ci" });
+		await expect(cap.whoami!()).resolves.toEqual({ ok: true, dataset: "my-dataset" });
 	});
 
 	it("prefers an explicit dataset option over the env var", async () => {

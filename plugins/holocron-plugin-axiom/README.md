@@ -49,15 +49,14 @@ token as `HOLOCRON_AXIOM_TOKEN` (or `AXIOM_TOKEN`) in the workflow env.
 }
 ```
 
-No options are required. `holocron repo setup` provisions the `holocron-ci`
-and `holocron-local` datasets; `holocron doctor` checks the dataset
-named by `HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET`. An explicit
-`logs: ["axiom", { "dataset": "holocron-ci" }]` overrides the env var
-for `doctor`.
+No options are required. `holocron repo setup` provisions the CLI's dataset (`holocron`)
+named by `HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET`; every environment of the CLI ships to
+it and is told apart by the `env` field on each line. `holocron doctor` checks
+the same dataset. An explicit `logs: ["axiom", { "dataset": "my-dataset" }]`
+overrides the env var for `doctor`.
 
-`HOLOCRON_AXIOM_DATASET` is **not a secret** — set it in your shell
-profile locally (`holocron-local`) or as an org CI secret
-(`holocron-ci`). Leave it unset locally to skip Axiom entirely.
+The dataset name is **not a secret** — it is the org variable `HOLOCRON_AXIOM_DATASET`,
+synced from 1Password. Leave the token unset locally to skip Axiom entirely.
 
 ## What's implemented
 

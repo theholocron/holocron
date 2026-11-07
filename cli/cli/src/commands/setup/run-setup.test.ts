@@ -376,7 +376,9 @@ describe("runSetup", () => {
 		expect(rows[0]?.message).toContain("exists");
 	});
 
-	it("provisions the holocron-ci and holocron-local datasets for the logs capability", async () => {
+	it("provisions the one shared dataset for the logs capability", async () => {
+		vi.stubEnv("HOLOCRON_AXIOM_DATASET", "");
+		vi.stubEnv("AXIOM_DATASET", "shared-ds");
 		const ensured: string[] = [];
 		const loaded = loadedFrom({
 			name: "my-app",
@@ -387,7 +389,7 @@ describe("runSetup", () => {
 				logs: {
 					ensureDataset: async (name: string) => {
 						ensured.push(name);
-						return { alreadyExists: name === "holocron-ci" };
+						return { alreadyExists: false };
 					},
 				},
 			}),
@@ -399,12 +401,35 @@ describe("runSetup", () => {
 			loader,
 			print: () => {},
 		});
+		vi.unstubAllEnvs();
 
-		expect(ensured).toEqual(["holocron-ci", "holocron-local"]);
+		expect(ensured).toEqual(["shared-ds"]);
 		const rows = report.steps.filter((s) => s.capability === "logs");
-		expect(rows.map((r) => r.status)).toEqual(["ok", "ok"]);
-		expect(rows[0]?.message).toContain("exists");
-		expect(rows[1]?.message).toContain("created");
+		expect(rows.map((r) => r.status)).toEqual(["ok"]);
+		expect(rows[0]?.message).toContain("created");
+	});
+
+	it("skips the logs dataset when no dataset is named", async () => {
+		vi.stubEnv("HOLOCRON_AXIOM_DATASET", "");
+		vi.stubEnv("AXIOM_DATASET", "");
+		const ensureDataset = vi.fn();
+		const loaded = loadedFrom({ name: "my-app", providers: { logs: "axiom" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-axiom": makePlugin("axiom", { logs: { ensureDataset } }),
+		});
+
+		const report = await runSetup({
+			loaded,
+			context: { repoRoot: "/tmp/test" },
+			loader,
+			print: () => {},
+		});
+		vi.unstubAllEnvs();
+
+		expect(ensureDataset).not.toHaveBeenCalled();
+		const rows = report.steps.filter((s) => s.capability === "logs");
+		expect(rows.map((r) => r.status)).toEqual(["skip"]);
+		expect(rows[0]?.message).toContain("HOLOCRON_AXIOM_DATASET");
 	});
 
 	it("ensures every check the monitoring provider is configured with", async () => {
