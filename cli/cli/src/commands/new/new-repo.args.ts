@@ -1,3 +1,4 @@
+import { DEFAULT_ORG } from "@theholocron/astromech";
 import type { InferArgs } from "@theholocron/kyber/flags";
 import type { Argv } from "yargs";
 
@@ -65,7 +66,7 @@ export const newRepoArgs = (y: Argv<GlobalArgs>) =>
 		})
 		.option("org", {
 			type: "string",
-			default: "theholocron",
+			default: DEFAULT_ORG,
 			describe: "GitHub org that owns the template and will own the new repo",
 		})
 		.option("verify", {

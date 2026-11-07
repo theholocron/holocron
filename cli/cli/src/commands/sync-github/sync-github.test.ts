@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import {
 	frozenReusablePaths,
+	HOLOCRON_REPO,
 	legacyWorkflowKey,
 	REUSABLE_ACTIONS,
 	REUSABLE_WORKFLOWS,
@@ -235,6 +236,7 @@ describe("runSyncGithub", () => {
 		expect(treeCreate).toHaveLength(1);
 		expect(commitCreate).toHaveLength(1);
 		expect(refUpdate).toHaveLength(1);
+		expect(commitCreate[0]?.body?.["message"]).toBe(`chore: sync from ${HOLOCRON_REPO}`);
 	});
 
 	it("emits a sync_github_run telemetry event once, with counts and no token", async () => {

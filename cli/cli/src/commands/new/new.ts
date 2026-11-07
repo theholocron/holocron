@@ -22,6 +22,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { DEFAULT_ORG } from "@theholocron/astromech";
 import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { walkFilesSync } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
@@ -302,7 +303,7 @@ function defaultWriteFile(filepath: string, content: string): void {
 
 export async function runNew(input: RunNewInput): Promise<NewReport> {
 	const cwd = input.cwd ?? process.cwd();
-	const org = input.org ?? "theholocron";
+	const org = input.org ?? DEFAULT_ORG;
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const execFn = input.exec ?? defaultExec;
@@ -384,8 +385,8 @@ export async function runNew(input: RunNewInput): Promise<NewReport> {
 	// Prepend the full org/slug pair so GitHub URLs and scoped package names
 	// use the correct org. Must come before the slug-only pairs so it takes
 	// priority — e.g. "@theholocron/node-template" becomes "@<org>/<name>"
-	// rather than "@theholocron/<name>".
-	variants.unshift([`theholocron/${templateSlug}`, `${org}/${input.name}`]);
+	// rather than "@theholocron/<name>". The templates are owned by the default org whatever org the new repo goes to.
+	variants.unshift([`${DEFAULT_ORG}/${templateSlug}`, `${org}/${input.name}`]);
 	const filesPatched = patchFiles(
 		repoDir,
 		variants,

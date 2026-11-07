@@ -25,7 +25,14 @@ export { createAstromech } from "./astromech.js";
 export type { Astromech, AstromechOptions, RunOptions } from "./astromech.type.js";
 export type { AggregateChecks } from "./generators/aggregate-checks/index.js";
 export { aggregateChecks } from "./generators/aggregate-checks/index.js";
-export { legacyGate, localize } from "./generators/ci-ref/index.js";
+export {
+	DEFAULT_ORG,
+	DOT_GITHUB_REPO,
+	HOLOCRON_REPO,
+	legacyGate,
+	localize,
+	TEMPLATE_HOME,
+} from "./generators/ci-ref/index.js";
 export type { CodecovConfigOptions, DocsCoverageMode, WorkspacePackage } from "./generators/codecov/index.js";
 export {
 	codecovComponentBlock,
@@ -89,6 +96,7 @@ export type {
 } from "./tasks/deploy-on-release/index.js";
 export { deployOnRelease } from "./tasks/deploy-on-release/index.js";
 export type { LegacyTarget } from "./vocabulary/index.js";
+export { legacyFile } from "./vocabulary/index.js";
 export {
 	describeTasks,
 	isTask,

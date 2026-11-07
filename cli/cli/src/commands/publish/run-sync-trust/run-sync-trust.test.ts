@@ -1,3 +1,4 @@
+import { HOLOCRON_REPO } from "@theholocron/astromech";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })) }));
@@ -450,5 +451,20 @@ describe("runSyncTrust", () => {
 			exec,
 		});
 		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "fail", message: "exit 7" }]);
+	});
+
+	it("binds to the monorepo by default and to --repo when given", async () => {
+		const lines: string[] = [];
+		const base = {
+			cwd: "/tmp",
+			oldFile: "a.yml",
+			newFile: "b.yml",
+			packages: [],
+			print: (l: string) => lines.push(l),
+		};
+		await runSyncTrust({ ...base, exec: makeQueueExec([]).exec });
+		await runSyncTrust({ ...base, repo: "acme/tools", exec: makeQueueExec([]).exec });
+		expect(lines.some((l) => l.includes(`(repo: ${HOLOCRON_REPO})`))).toBe(true);
+		expect(lines.some((l) => l.includes("(repo: acme/tools)"))).toBe(true);
 	});
 });

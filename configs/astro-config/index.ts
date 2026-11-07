@@ -9,12 +9,20 @@ import type { createStarlightTypeDocPlugin } from "starlight-typedoc";
 type StarlightSidebar = NonNullable<Parameters<typeof starlight>[0]["sidebar"]>;
 type StarlightPlugins = NonNullable<Parameters<typeof starlight>[0]["plugins"]>;
 
+/**
+ * The GitHub org a site's repo belongs to when `docs.org` is not given. This package is published with no dependency on
+ * the CLI and runs without a `holocron.config`, so it keeps its own one named default instead of a repeated literal.
+ */
+export const DEFAULT_ORG = "theholocron";
+
 /** The docs site's identity: its title, its GitHub repo name and its sidebar. */
 export interface DocsConfig {
 	/** The site title Starlight shows (passed as Starlight's `title`). */
 	name: string;
-	/** The repo name under the `theholocron` GitHub org; builds the social link and the default `base` (`/<github>`). */
+	/** The repo name under the GitHub org; builds the social link and the default `base` (`/<github>`). */
 	github: string;
+	/** The GitHub org that owns the repo. Defaults to {@link DEFAULT_ORG}. */
+	org?: string;
 	/** The Starlight sidebar definition, passed to Starlight unchanged. */
 	sidebar: StarlightSidebar;
 }
@@ -73,7 +81,7 @@ export function defineConfig({
 					{
 						icon: "github",
 						label: "GitHub",
-						href: `https://github.com/theholocron/${docs.github}`,
+						href: `https://github.com/${docs.org ?? DEFAULT_ORG}/${docs.github}`,
 					},
 				],
 				sidebar: docs.sidebar,

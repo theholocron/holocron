@@ -1,3 +1,4 @@
+import { HOLOCRON_REPO } from "@theholocron/astromech";
 import type { InferArgs } from "@theholocron/kyber/flags";
 import type { Argv } from "yargs";
 
@@ -30,7 +31,7 @@ export const publishArgs = (y: Argv<GlobalArgs>) =>
 		})
 		.option("repo", {
 			type: "string",
-			describe: "owner/repo for Trusted Publisher config (--sync-trust). Defaults to theholocron/holocron.",
+			describe: `owner/repo for Trusted Publisher config (--sync-trust). Defaults to ${HOLOCRON_REPO}.`,
 		})
 		.option("group", {
 			type: "string",

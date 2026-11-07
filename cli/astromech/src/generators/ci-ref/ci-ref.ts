@@ -16,10 +16,23 @@ export interface CiHome {
 	ref: string;
 }
 
+/**
+ * The org slug a CLI user gets when no config names one. Where a resolved config is in reach, `config.org` is the
+ * source and this is only the fallback; a command with no config (`new repo`, `sync github`, `publish --sync-trust`)
+ * uses it as it is.
+ */
+export const DEFAULT_ORG = "theholocron";
+
+/** The `owner/repo` of the org's `.github` repo, which hosts the frozen reusable workflows (and Sentinel's dispatch target). */
+export const DOT_GITHUB_REPO = `${DEFAULT_ORG}/.github`;
+
+/** The `owner/repo` of this monorepo, where the CLI, the reusables' sources and the Trusted Publisher config live. */
+export const HOLOCRON_REPO = `${DEFAULT_ORG}/holocron`;
+
 /** How the templates spell a reference. Never emitted as it is, and never to be changed: {@link rehome} reads it. */
 export const TEMPLATE_HOME: CiHome = {
-	workflows: "theholocron/.github/.github/workflows",
-	actions: "theholocron/.github/.github/actions",
+	workflows: `${DOT_GITHUB_REPO}/.github/workflows`,
+	actions: `${DOT_GITHUB_REPO}/.github/actions`,
 	ref: "main",
 };
 
@@ -35,8 +48,8 @@ export const CI_HOME: CiHome = { ...TEMPLATE_HOME };
  * users to go. Not used to generate anything yet: {@link CI_HOME} follows when the tag does.
  */
 export const CI_TARGET: CiHome = {
-	workflows: "theholocron/holocron/.github/workflows",
-	actions: "theholocron/holocron/ci/actions",
+	workflows: `${HOLOCRON_REPO}/.github/workflows`,
+	actions: `${HOLOCRON_REPO}/ci/actions`,
 	ref: "ci-v1",
 };
 

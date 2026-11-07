@@ -1,3 +1,4 @@
+import { DOT_GITHUB_REPO, legacyFile, TEMPLATE_HOME } from "@theholocron/astromech";
 import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
 
 import { sentinelAxiomDataset } from "../sentinel-axiom-dataset/index.js";
@@ -102,9 +103,11 @@ export const SENTINEL_EDITORCONFIG_FIX_LOG_MSG = "commitEditorConfigFix: committ
  * dispatched against its own default branch. Never the *target* repo the
  * dispatch checks out — that's a per-call `repo`/`ref` input, not this.
  */
-export const SENTINEL_DISPATCH_REPO = "theholocron/.github";
-export const SENTINEL_DISPATCH_WORKFLOW_FILE = "platform.dispatchedCheck.yml";
-export const SENTINEL_DISPATCH_REF = "main";
+export const SENTINEL_DISPATCH_REPO = DOT_GITHUB_REPO;
+/** The old file name of the `check-dispatched` reusable: the frozen copy in `.github` keeps it, and Sentinel dispatches it by name. */
+export const SENTINEL_DISPATCH_WORKFLOW_FILE = legacyFile("check-dispatched.yml");
+/** The frozen home's ref, from astromech's `ci-ref` (not `CI_HOME`, which follows the reusables when they move). */
+export const SENTINEL_DISPATCH_REF = TEMPLATE_HOME.ref;
 
 /**
  * The one Bucket 2 task this prototype phase dispatches (holocron#769,

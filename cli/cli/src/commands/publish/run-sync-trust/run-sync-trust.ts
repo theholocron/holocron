@@ -1,3 +1,5 @@
+import { HOLOCRON_REPO } from "@theholocron/astromech";
+
 import { getLogger } from "../../../observability/logger/index.js";
 import { defaultExec } from "../default-exec.js";
 import { discoverPublicPackages } from "../discover-public-packages.js";
@@ -42,7 +44,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
-	const repo = input.repo ?? "theholocron/holocron";
+	const repo = input.repo ?? HOLOCRON_REPO;
 	const dryRun = input.dryRun ?? false;
 	const exec = input.exec ?? defaultExec;
 	const packageNames = input.packages ?? discoverPublicPackages(cwd, scopeOf(input));

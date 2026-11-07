@@ -1,3 +1,4 @@
+import { DOT_GITHUB_REPO, HOLOCRON_REPO } from "@theholocron/astromech";
 import type { InferArgs } from "@theholocron/kyber/flags";
 import type { Argv } from "yargs";
 
@@ -7,8 +8,8 @@ export const syncGithubArgs = (y: Argv<GlobalArgs>) =>
 	y
 		.option("repo", {
 			type: "string",
-			default: "theholocron/.github",
-			describe: "Target org/repo (default: theholocron/.github)",
+			default: DOT_GITHUB_REPO,
+			describe: `Target org/repo (default: ${DOT_GITHUB_REPO})`,
 		})
 		.option("branch", {
 			type: "string",
@@ -22,7 +23,7 @@ export const syncGithubArgs = (y: Argv<GlobalArgs>) =>
 		})
 		.option("message", {
 			type: "string",
-			describe: "Commit message (default: chore: sync from theholocron/holocron)",
+			describe: `Commit message (default: chore: sync from ${HOLOCRON_REPO})`,
 		})
 		.option("output-dir", {
 			type: "string",
