@@ -1,3 +1,13 @@
+## [1.58.0-alpha.15](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.14...clients-v1.58.0-alpha.15) (2026-11-07)
+
+### Features
+
+* **repo:** ✨ doctor flags capabilities the org property lacks, `repo properties apply` adds them ([#1873](https://github.com/theholocron/holocron/issues/1873)) ([d359f55](https://github.com/theholocron/holocron/commit/d359f559709b32544bccb28a8d832e555f066f7e)), closes [#1862](https://github.com/theholocron/holocron/issues/1862) [#1862](https://github.com/theholocron/holocron/issues/1862)
+
+### Chores
+
+* **env:** 🔒 read env through env-utils lookup, enable noProcessEnv ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1872](https://github.com/theholocron/holocron/issues/1872)) ([25ba866](https://github.com/theholocron/holocron/commit/25ba8667d1054686edb17ce3ceea0c82f8236ac7))
+
 ## [1.58.0-alpha.14](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.13...clients-v1.58.0-alpha.14) (2026-11-07)
 
 ### Features
