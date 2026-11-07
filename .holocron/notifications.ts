@@ -120,6 +120,24 @@ export default {
 						{ name: "withdrawn", emoji: "🔕", moderated: true },
 					],
 				},
+				// A forum: one post for each pull request, kept by Sentinel (spec tech-sentinel-pr-feed, #1738). The tag is the
+				// pull request's state; only the bot and members who can manage threads change it.
+				{
+					name: "prs",
+					kind: "forum",
+					topic: "One post for each pull request, tagged with its state and kept up to date. Open the post to follow the review; comment on GitHub, not here.",
+					tags: [
+						{ name: "draft", emoji: "✏️", moderated: true },
+						{ name: "conflicts", emoji: "⚔️", moderated: true },
+						{ name: "failing", emoji: "❌", moderated: true },
+						{ name: "changes requested", emoji: "🔧", moderated: true },
+						{ name: "ready", emoji: "✅", moderated: true },
+						{ name: "waiting", emoji: "⏳", moderated: true },
+						{ name: "merged", emoji: "🟣", moderated: true },
+						{ name: "closed", emoji: "🚫", moderated: true },
+					],
+					feeds: { prs: true },
+				},
 				// The test channel: the doctor's own test post is left here, never in a real channel.
 				{
 					name: "holonet",

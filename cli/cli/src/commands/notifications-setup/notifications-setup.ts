@@ -145,9 +145,22 @@ export function effectiveAccess(
 	return { ...category, ...channel };
 }
 
+/** The states a pull request's post can be tagged with, so a forum with `feeds.prs` must have all of them (lower case). */
+export const PR_FEED_TAGS = [
+	"draft",
+	"conflicts",
+	"failing",
+	"changes requested",
+	"ready",
+	"waiting",
+	"merged",
+	"closed",
+] as const;
+
 /**
- * The first reason a channel's `kind` and `tags` cannot work, or undefined. A forum takes no webhook or feed (its
- * conversations are posts, which a plain webhook post cannot start) and no pinned message of its own (a pin lives in a
+ * The first reason a channel's `kind` and `tags` cannot work, or undefined. A forum takes no webhook or webhook feed (its
+ * conversations are posts, which a plain webhook post cannot start); `feeds.prs` is the one feed a forum takes, and only
+ * a forum does, with a tag for every state a pull request can be in and no pinned message of its own (a pin lives in a
  * post); tags belong to a forum; and a tag needs a name no other tag of the channel has. Checked before anything is
  * created, so a half-applied forum is never the result.
  */
@@ -160,10 +173,13 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			if (channel.defaultReaction || channel.starterReactions) {
 				return `${where}: reactions belong to a forum -- set \`kind: "forum"\` or remove them`;
 			}
+			if (channel.feeds?.prs) {
+				return `${where}: \`feeds.prs\` belongs to a forum, where each pull request is a post -- set \`kind: "forum"\` or remove it`;
+			}
 			continue;
 		}
 		if (channel.webhook || channel.feeds?.monitoring || channel.feeds?.errors) {
-			return `${where}: a forum takes no \`webhook\` or \`feeds\`; its conversations are posts`;
+			return `${where}: a forum takes no \`webhook\` or the \`monitoring\` and \`errors\` feeds; its conversations are posts`;
 		}
 		if (channel.defaultReaction !== undefined && channel.defaultReaction.trim() === "") {
 			return `${where}: \`defaultReaction\` is empty`;
@@ -176,6 +192,12 @@ export function forumLayoutProblem(layout: NotificationsLayout): string | undefi
 			if (name === "") return `${where}: a tag has no name`;
 			if (seen.has(name)) return `${where}: two tags are named \`${tag.name}\``;
 			seen.add(name);
+		}
+		if (channel.feeds?.prs) {
+			const missing = PR_FEED_TAGS.filter((tag) => !seen.has(tag));
+			if (missing.length > 0) {
+				return `${where}: \`feeds.prs\` needs the tags ${missing.map((t) => `\`${t}\``).join(", ")}; add them to \`tags\``;
+			}
 		}
 	}
 	const forums = new Set(channels.filter((c) => c.kind === "forum").map((c) => c.name.toLowerCase()));

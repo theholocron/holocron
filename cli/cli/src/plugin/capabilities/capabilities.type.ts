@@ -1715,7 +1715,7 @@ export interface NotificationsChannelLayout {
 	/**
 	 * What kind of channel it is: `"text"` (the default) or `"forum"`, where every conversation is a post of its own
 	 * and cannot take a webhook post. A text channel cannot be turned into a forum or back: if the other kind already
-	 * has this name, `setup` stops and says to delete it first. A forum takes no `webhook` or `feeds`.
+	 * has this name, `setup` stops and says to delete it first. A forum takes no `webhook` and only the `prs` feed.
 	 */
 	kind?: "text" | "forum";
 	/**
@@ -1763,6 +1763,25 @@ export interface NotificationsChannelLayout {
 		 * `avatar` is as for `monitoring`.
 		 */
 		errors?: boolean | { webhook?: string; avatar?: NotificationsPicture };
+		/**
+		 * The pull-request feed: Sentinel keeps one post in this forum for each pull request, tagged with its state
+		 * (spec `tech-sentinel-pr-feed`). Only for `kind: "forum"`, and the forum's `tags` must hold all eight state tags:
+		 * `draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged` and `closed`. `true` follows every
+		 * pull request; the object form leaves out the pull requests of some repositories (`owner/name`) or authors (logins).
+		 * Needs no webhook: the bot makes and tags the posts, so it must be able to post in the forum and manage its threads.
+		 */
+		prs?: boolean | NotificationsPrsFeed;
+	};
+}
+
+/** The object form of a forum's `feeds.prs`: what the pull-request feed leaves out. */
+export interface NotificationsPrsFeed {
+	/** Pull requests not to follow. */
+	exclude?: {
+		/** Repositories, as `owner/name`. */
+		repos?: string[];
+		/** Authors, by GitHub login. */
+		authors?: string[];
 	};
 }
 
@@ -2073,6 +2092,13 @@ export interface ServerInspection {
 		webhooksError?: string;
 		/** Who can see and post; `"custom"` as for `categoryAccess`. */
 		access?: Required<NotificationsAccess> | "custom";
+		/**
+		 * Whether the bot itself can start posts and reply in this forum (`post`) and manage its threads (`manage`: tag and
+		 * close them), after the channel's own overwrites. Only filled in for a forum the layout gives a `feeds.prs`.
+		 */
+		botThreads?: { post: boolean; manage: boolean };
+		/** Set when working out `botThreads` failed; it is then absent and means nothing. */
+		botThreadsError?: string;
 	}>;
 	/** The roles on the server. */
 	roles: Array<{

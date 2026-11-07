@@ -9,7 +9,7 @@ import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { Monitoring, Notifications, NotificationsLayout } from "../../plugin/index.js";
 import { ElevationRequiredError, type PluginImporter, PluginLoader, ProviderApiError } from "../../plugin/index.js";
 import { PREFLIGHT_PREFIX } from "../notifications-channel-add/index.js";
-import { feedProblem, forumLayoutProblem, runNotificationsSetup } from "./notifications-setup.js";
+import { feedProblem, forumLayoutProblem, PR_FEED_TAGS, runNotificationsSetup } from "./notifications-setup.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return { resolved: resolveConfig(rawConfig), filepath: "/tmp/test/holocron.config.json" };
@@ -2632,7 +2632,7 @@ describe("forum channels", () => {
 		const report = await setup(n).run();
 
 		expect(report.status).toBe("fail");
-		expect(report.message).toMatch(/a forum takes no `webhook` or `feeds`/);
+		expect(report.message).toMatch(/a forum takes no `webhook` or the `monitoring` and `errors` feeds/);
 		expect(n.ensureCategory).not.toHaveBeenCalled();
 	});
 
@@ -2671,14 +2671,64 @@ describe("forum channels", () => {
 		});
 
 		it("refuses a webhook, a monitoring feed or an errors feed on a forum", () => {
-			expect(forumLayoutProblem(forumLayout({ webhook: true }))).toMatch(/takes no `webhook` or `feeds`/);
+			expect(forumLayoutProblem(forumLayout({ webhook: true }))).toMatch(
+				/takes no `webhook` or the `monitoring` and `errors` feeds/
+			);
 			expect(forumLayoutProblem(forumLayout({ feeds: { monitoring: true } }))).toMatch(
-				/takes no `webhook` or `feeds`/
+				/takes no `webhook` or the `monitoring` and `errors` feeds/
 			);
 			expect(forumLayoutProblem(forumLayout({ feeds: { errors: true } }))).toMatch(
-				/takes no `webhook` or `feeds`/
+				/takes no `webhook` or the `monitoring` and `errors` feeds/
 			);
 			expect(forumLayoutProblem(forumLayout({ feeds: {} }))).toBeUndefined();
+		});
+
+		describe("feeds.prs", () => {
+			const PR_TAGS = PR_FEED_TAGS.map((name) => ({ name }));
+
+			it("is accepted on a forum with all eight tags, as true or with an exclude list", () => {
+				expect(forumLayoutProblem(forumLayout({ tags: PR_TAGS, feeds: { prs: true } }))).toBeUndefined();
+				expect(
+					forumLayoutProblem(
+						forumLayout({
+							tags: PR_TAGS,
+							feeds: { prs: { exclude: { repos: ["a/b"], authors: ["bot"] } } },
+						})
+					)
+				).toBeUndefined();
+				expect(forumLayoutProblem(forumLayout({ tags: PR_TAGS, feeds: { prs: {} } }))).toBeUndefined();
+			});
+
+			it("matches the tag names without regard to case, and allows extra tags", () => {
+				const tags = [...PR_TAGS.map((t) => ({ name: t.name.toUpperCase() })), { name: "extra" }];
+				expect(forumLayoutProblem(forumLayout({ tags, feeds: { prs: true } }))).toBeUndefined();
+			});
+
+			it("is refused on a text channel", () => {
+				const layout = { categories: [{ name: "A", channels: [{ name: "dev", feeds: { prs: true } }] }] };
+				expect(forumLayoutProblem(layout)).toMatch(/channel `dev`: `feeds.prs` belongs to a forum/);
+			});
+
+			it("is not refused on a text channel when it is false", () => {
+				const layout = { categories: [{ name: "A", channels: [{ name: "dev", feeds: { prs: false } }] }] };
+				expect(forumLayoutProblem(layout)).toBeUndefined();
+			});
+
+			it("is refused on a forum that lacks a state's tag, naming the missing ones", () => {
+				const tags = PR_TAGS.filter((t) => t.name !== "ready" && t.name !== "merged");
+				expect(forumLayoutProblem(forumLayout({ tags, feeds: { prs: true } }))).toMatch(
+					/`feeds.prs` needs the tags `ready`, `merged`/
+				);
+				expect(forumLayoutProblem(forumLayout({ tags: undefined, feeds: { prs: true } }))).toMatch(
+					/needs the tags `draft`, `conflicts`/
+				);
+			});
+
+			it("still refuses a webhook beside it", () => {
+				expect(forumLayoutProblem(forumLayout({ tags: PR_TAGS, webhook: true, feeds: { prs: true } }))).toMatch(
+					/takes no `webhook`/
+				);
+			});
 		});
 
 		it("refuses a tag with no name, and two tags with one name in any case", () => {

@@ -2109,6 +2109,58 @@ describe("runDoctorNotifications — forum channels", () => {
 	});
 });
 
+describe("runDoctorNotifications — the pull request feed", () => {
+	const STATES = ["draft", "conflicts", "failing", "changes requested", "ready", "waiting", "merged", "closed"];
+	const LAYOUT: NotificationsLayout = {
+		categories: [{ name: "BUILD", channels: [{ name: "prs", kind: "forum", feeds: { prs: true } }] }],
+	};
+	const run = (channel: object) =>
+		setup(
+			fakeNotifications({
+				layout: LAYOUT,
+				found: {
+					categories: ["BUILD"],
+					channels: [
+						{
+							name: "prs",
+							category: "BUILD",
+							kind: "forum",
+							tags: STATES.map((name) => ({ name })),
+							webhooks: [],
+							botThreads: { post: true, manage: true },
+							...channel,
+						},
+					],
+					roles: [],
+				},
+			}),
+			{ secretNames: [] }
+		).run();
+
+	it("adds the forum, tags and bot rows, and they pass when all is as declared", async () => {
+		const report = await run({});
+		for (const id of ["pr-feed-forum", "pr-feed-tags", "pr-feed-bot"]) {
+			expect(byId(report, id)).toMatchObject({ status: "pass" });
+		}
+	});
+
+	it("fails the bot row when the bot cannot manage threads", async () => {
+		const report = await run({ botThreads: { post: true, manage: false } });
+		expect(byId(report, "pr-feed-bot")).toMatchObject({ status: "fail" });
+		expect(report.status).toBe("fail");
+	});
+
+	it("adds no rows for a layout with no pull request feed", async () => {
+		const report = await setup(
+			fakeNotifications({ layout: { categories: [] }, found: { categories: [], channels: [], roles: [] } }),
+			{
+				secretNames: [],
+			}
+		).run();
+		expect(byId(report, "pr-feed-forum")).toBeUndefined();
+	});
+});
+
 describe("runDoctorNotifications — the monitoring feed", () => {
 	const FEED_LAYOUT: NotificationsLayout = {
 		categories: [{ name: "ALERTS", channels: [{ name: "uptime", feeds: { monitoring: true } }] }],
