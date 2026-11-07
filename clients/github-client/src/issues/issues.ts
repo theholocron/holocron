@@ -25,6 +25,12 @@ export interface GitHubIssue {
 	updated_at: string;
 	/** The URL of the issue's page on GitHub. */
 	html_url: string;
+	/** When the issue was created, as an ISO 8601 timestamp. */
+	created_at?: string;
+	/** The milestone the issue belongs to, or `null` when none. */
+	milestone?: { number: number; title: string } | null;
+	/** The issue's GraphQL node id. */
+	node_id?: string;
 	/** Set when the item is a pull request; GitHub's issues API returns pull requests too. */
 	pull_request?: unknown;
 }
@@ -37,8 +43,22 @@ export interface GitHubMilestone {
 	title: string;
 }
 
+/** A comment on an issue, with only the fields this client reads. */
+export interface GitHubIssueComment {
+	/** The comment's text. */
+	body: string;
+	/** When it was written, as an ISO 8601 timestamp. */
+	created_at: string;
+	/** Who wrote it. */
+	user: { login: string } | null;
+}
+
 /** Filters for listing issues. */
 export interface IssueSearchParams {
+	/** The page to read, from 1. */
+	page?: number;
+	/** A milestone number, `*` for any or `none`. */
+	milestone?: string;
 	/** Which issues to list by state; GitHub defaults to `open`. */
 	state?: "open" | "closed" | "all";
 	/** The field to sort by, passed through to GitHub. */
@@ -63,6 +83,8 @@ export function issues(rest: RestClient) {
 			if (params.per_page) qs.set("per_page", String(params.per_page));
 			if (params.filter) qs.set("filter", params.filter);
 			if (params.assignee) qs.set("assignee", params.assignee);
+			if (params.page) qs.set("page", String(params.page));
+			if (params.milestone) qs.set("milestone", params.milestone);
 			const q = qs.toString();
 			const path = q ? `${repoBase(repo)}/issues?${q}` : `${repoBase(repo)}/issues`;
 			return rest.request<GitHubIssue[]>(path);
@@ -99,6 +121,20 @@ export function issues(rest: RestClient) {
 				method: "POST",
 				body: { body },
 			}),
+
+		listComments: async (repo: string, number: number): Promise<GitHubIssueComment[]> => {
+			const all: GitHubIssueComment[] = [];
+			for (let page = 1; ; page++) {
+				const batch = await rest.request<GitHubIssueComment[]>(
+					`${repoBase(repo)}/issues/${number}/comments?per_page=100&page=${page}`
+				);
+				all.push(...batch);
+				if (batch.length < 100) return all;
+			}
+		},
+
+		createMilestone: (repo: string, title: string): Promise<GitHubMilestone> =>
+			rest.request<GitHubMilestone>(`${repoBase(repo)}/milestones`, { method: "POST", body: { title } }),
 
 		listMilestones: (
 			repo: string,

@@ -691,6 +691,90 @@ export interface TrackerDoctorReport {
 	}>;
 }
 
+/** How urgent an issue is, in words no tracker owns. Linear has all five natively; GitHub holds it in a project field. */
+export type IssuePriority = "none" | "urgent" | "high" | "medium" | "low";
+
+/** A comment on an issue, as a migration carries it. */
+export interface IssueComment {
+	/** Who wrote it, as a display name; the target cannot post as them, so it is named in the text. */
+	author?: string;
+	/** The comment's text. */
+	body: string;
+	/** When it was written, as an ISO timestamp. */
+	createdAt: string;
+}
+
+/**
+ * An issue with everything a migration can carry, in a shape that does not depend on the provider. `export` produces
+ * it and `import` consumes it, so a move between two trackers is one provider's `export` into the other's `import`.
+ */
+export interface IssueRecord {
+	/** The key in the tracker it was read from (`#42`, `ENG-42`). */
+	key: string;
+	/** The address of the issue's page, which the target records so a second run finds what a first one made. */
+	url: string;
+	/** The issue's title. */
+	title: string;
+	/** The issue's description. */
+	body?: string;
+	/** The provider's own status name, e.g. `In Progress`. */
+	status?: string;
+	/** The group the status falls into. */
+	statusCategory: StatusCategory;
+	/** Whether the issue is finished (done or canceled). */
+	closed: boolean;
+	/** How urgent it is; `undefined` when the source does not hold one. */
+	priority?: IssuePriority;
+	/** Label names. */
+	labels: string[];
+	/** Who it is assigned to. */
+	assignee?: TrackerUser;
+	/** The milestone (GitHub) or project (Linear) it belongs to, by name. */
+	milestone?: string;
+	/** The key of its parent issue, in the source tracker. */
+	parent?: string;
+	/** Keys, in the source tracker, of the issues that block it. */
+	blockedBy: string[];
+	/** Its comments, oldest first. */
+	comments: IssueComment[];
+	/** When it was created, as an ISO timestamp. */
+	createdAt: string;
+	/** When it last changed, as an ISO timestamp. */
+	updatedAt: string;
+}
+
+/** Which issues {@link Issues.export} reads. Set one of `keys`, `milestone` or `all`. */
+export interface IssueSelector {
+	/** Exactly these issues. */
+	keys?: string[];
+	/** Every issue of this milestone (GitHub) or project (Linear), by name. */
+	milestone?: string;
+	/** Every issue the provider is configured for. */
+	all?: boolean;
+	/** Leave out closed issues. */
+	openOnly?: boolean;
+}
+
+/** What {@link Issues.import} needs besides the records. */
+export interface ImportOptions {
+	/** Put every imported issue in this milestone (GitHub) or project (Linear), by name; made if missing. */
+	milestone?: string;
+	/** Change nothing; report what would be made. */
+	dryRun?: boolean;
+}
+
+/** What {@link Issues.import} did with one record. */
+export interface ImportResult {
+	/** The key of the record in the source tracker. */
+	source: string;
+	/** The key it has in the target, or undefined on a dry run of an issue that does not exist yet. */
+	key?: string;
+	/** Whether it was made now; false when an earlier run had already made it. */
+	created: boolean;
+	/** What the target cannot hold of this record and so left out, e.g. `assignee (no matching user)`. */
+	dropped: string[];
+}
+
 /** An issue tracker: finds, reads, creates, moves and comments on issues. */
 export interface Issues extends ProviderIdentity {
 	/** Identifies this provider as the `issues` capability. */
@@ -721,6 +805,15 @@ export interface Issues extends ProviderIdentity {
 
 	/** Check the tracker connection and how the lifecycle slots map onto the tracker's statuses. */
 	doctor(): Promise<TrackerDoctorReport>;
+
+	/** Read issues with everything a migration carries. Optional: a provider that cannot be migrated from leaves it out. */
+	export?(selector: IssueSelector): Promise<IssueRecord[]>;
+	/**
+	 * Make the records in this tracker, with their comments, labels, priority and state, and record each one's source
+	 * address so a second run skips what exists. Two passes: every record is made first, then the `parent` and
+	 * `blockedBy` links are set, because they point at records made in the same call. Optional.
+	 */
+	import?(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]>;
 }
 
 // ───────────────────────────────────────────────────────────────────────
@@ -2748,6 +2841,8 @@ export interface BoardItem {
 	category?: BoardStatusCategory;
 	/** The keys of the open issues this one is blocked by. */
 	blockedBy: string[];
+	/** The item's priority, when the board holds one. */
+	priority?: IssuePriority;
 }
 
 /** What {@link Projects.ensure} did to bring a board in line with a template. */

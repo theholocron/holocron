@@ -1,0 +1,79 @@
+---
+title: Linear Plugin
+description: Implements the issues and projects capabilities against Linear, with export and import for migrating to and from GitHub.
+---
+
+import { PluginHeader, Installation, CapabilitiesTable } from "../../../components/index.ts";
+import { getPlugins } from "../../../lib/registry.ts";
+
+<PluginHeader entry={getPlugins()["holocron-plugin-linear"]} capability="issues" />
+
+<Installation package={getPlugins()["holocron-plugin-linear"].package} dev />
+
+<CapabilitiesTable
+  rows={[
+    { capability: "issues", token: "HOLOCRON_LINEAR_TOKEN (linear)" },
+    { capability: "projects", token: "HOLOCRON_LINEAR_TOKEN (linear)" },
+  ]}
+/>
+
+## Config
+
+```ts
+providers: {
+  issues: ["linear", {
+    // Required: the key of the team the issues and boards belong to
+    team: "ENG",
+    // Optional: the states the inProgress and inReview slots move an issue to.
+    // Left out, the team's first "started" state (and a started state named like "review") is used.
+    states: { inProgress: "In Progress", inReview: "In Review" },
+  }],
+  projects: ["linear", { team: "ENG" }],
+}
+```
+
+## Authentication
+
+Create a personal API key at **Linear → Settings → Account → Security → API keys**, then:
+
+```bash
+holocron auth set linear <KEY>
+```
+
+or set `HOLOCRON_LINEAR_TOKEN` (or `LINEAR_API_KEY`).
+
+## How Linear maps onto the capabilities
+
+| Holocron                | Linear                                                                  |
+| ----------------------- | ----------------------------------------------------------------------- |
+| issue key               | `ENG-42` (a bare `42` or `#42` takes the team key)                      |
+| lifecycle `inProgress`  | the `states.inProgress` state, else the first `started` state           |
+| lifecycle `inReview`    | the `states.inReview` state, else a `started` state named like "review" |
+| lifecycle `done`        | the first `completed` state                                             |
+| `create({ milestone })` | a Linear **project**, by id or name                                     |
+| board (`projects`)      | a Linear project of the team                                            |
+| board status            | one of the **team's** workflow states                                   |
+| board `Priority` field  | Linear's built-in priority (Urgent, High, Medium, Low)                  |
+| board rules             | the team's auto-archive and auto-close settings (read-only)             |
+
+## Differences from GitHub
+
+Linear does not need to match GitHub feature for feature. Keep this table in mind when moving **back** to GitHub.
+
+| Thing                 | GitHub                                    | Linear                                                                     |
+| --------------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
+| Priority              | a project field (the repo uses `P0`…`P3`) | built into every issue; migrates as a `priority: <level>` label on GitHub  |
+| Statuses              | per project (`Status` field)              | per **team**, shared by every project; `ensure` adds, never removes        |
+| Custom fields         | yes (single select, number, date, …)      | none; a template's extra fields come back as `todos`                       |
+| Views                 | managed by `project setup`                | not managed; a template's views come back as `todos`                       |
+| Automation            | project workflows (read, report)          | team auto-archive / auto-close (read); turning one on is a `todo`          |
+| Milestone             | milestone                                 | project (`create` and `migrate --milestone` use a project's name)          |
+| Backdating            | no                                        | yes, so a migrated issue keeps its created date                            |
+| Parent and blocked-by | read through GraphQL                      | native; **not set** when importing into GitHub                             |
+| Assignee              | a login                                   | matched by email on import; unmatched assignees are dropped                |
+| Comment author        | the commenter                             | comments are posted by the token's user, with the author named in the text |
+| Move between boards   | rewrites the project item                 | an issue is in one project, so `project move` changes its project          |
+
+## Migrating
+
+`holocron migrate` moves issues between any two providers that have `export` and `import` — GitHub and Linear today. See [migrate](/holocron/commands/migrate/). Every run, dry or not, ends by listing what the target could not carry.

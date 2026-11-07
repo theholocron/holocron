@@ -84,6 +84,10 @@ export const COMMAND_CONTEXTS = {
 	"project move": "workspace",
 	// Reads and extends an organization property through the `source` provider.
 	"repo properties apply": "workspace",
+	// `migrate` loads the source and target `issues` providers (and `projects` for a board), so their packages must be resolvable.
+	"migrate issue": "workspace",
+	"migrate issues": "workspace",
+	"migrate project": "workspace",
 	"doctor dns": "workspace",
 	"doctor repo": "workspace",
 	"doctor secrets": "workspace",

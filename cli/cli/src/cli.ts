@@ -20,6 +20,7 @@ import { devCommand } from "./commands/dev/index.js";
 import { doctorCommand } from "./commands/doctor/index.js";
 import { githubAppCommand } from "./commands/github-app/index.js";
 import { menuCommand } from "./commands/menu/menu.command.js";
+import { migrateCommand } from "./commands/migrate/index.js";
 import { monitoringCommand } from "./commands/monitoring/monitoring.command.js";
 import { newCommand } from "./commands/new/new.command.js";
 import { notificationsCommand } from "./commands/notifications/notifications.command.js";
@@ -158,6 +159,7 @@ try {
 		.command(specsCommand as never)
 		.command(tunnelCommand as never)
 		.command(projectCommand as never)
+		.command(migrateCommand as never)
 		.command(devCommand as never)
 		.command(syncCommand as never)
 		.command(packageCommand as never)

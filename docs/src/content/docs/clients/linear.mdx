@@ -1,0 +1,29 @@
+---
+title: Linear Client
+description: A TypeScript client for the Linear GraphQL API.
+---
+
+A TypeScript client for the Linear GraphQL API — teams and workflow states, labels, issues with their comments and relations, and projects.
+
+## Installation
+
+```bash
+pnpm add @theholocron/linear-client
+```
+
+## Usage
+
+```ts
+import { createLinearClient } from "@theholocron/linear-client";
+
+const linear = createLinearClient({ token: process.env.LINEAR_API_KEY! });
+
+const team = await linear.teams.find("ENG");
+const issue = await linear.issues.create({ teamId: team!.id, title: "Fix the thing", priority: 2 });
+await linear.issues.comment(issue.id, "On it.");
+```
+
+A personal API key (`lin_api_...`) is sent as is; an OAuth access token (`lin_oauth_...`) is sent as a bearer.
+`linear.graphql.query(document, variables)` is the raw handle for anything the groups do not cover.
+
+The full [API reference](/holocron/clients/linear-client/api/readme/) is generated from the package's TSDoc comments.
