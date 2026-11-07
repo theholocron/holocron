@@ -98,6 +98,8 @@ export const COMMAND_CONTEXTS = {
 	"doctor ci": "repo-aware",
 	// Loads the configured plugins and runs the probes they offer.
 	probe: "workspace",
+	// Loads the configured plugins and runs the `setup` or `doctor` a provider offers.
+	provider: "workspace",
 	deploy: "workspace",
 	"deploy cleanup-preview": "workspace",
 	"monitoring check": "workspace",

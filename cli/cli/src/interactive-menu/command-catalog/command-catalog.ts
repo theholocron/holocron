@@ -45,6 +45,7 @@ import { projectCreateEntry } from "../../commands/project/project-create/projec
 import { projectListEntry } from "../../commands/project/project-list/project-list.entry.js";
 import { projectSetupEntry } from "../../commands/project/project-setup/project-setup.entry.js";
 import { projectReconcileEntry } from "../../commands/project/reconcile/reconcile.entry.js";
+import { providerEntry } from "../../commands/provider/provider.entry.js";
 import { publishEntry } from "../../commands/publish/publish.entry.js";
 import { repoSyncEntry } from "../../commands/repo/repo-sync.entry.js";
 import { repoCleanupBranchesEntry } from "../../commands/repo-cleanup-branches/repo-cleanup-branches.entry.js";
@@ -80,6 +81,7 @@ const registry = createCommandRegistry(
 		doctorEntry,
 		doctorAllEntry,
 		probeEntry,
+		providerEntry,
 		setupEntry,
 		secretSetEntry,
 		secretsListEntry,
