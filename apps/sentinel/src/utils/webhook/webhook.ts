@@ -22,10 +22,19 @@
  * orgs/accounts unchanged.
  *
  * v1 scope only reacts to the three event categories the spec lists —
- * everything else (installation `suspend`, `pull_request` `closed`, a
- * push to a non-default branch, any other `X-GitHub-Event`) comes back
+ * everything else (installation `suspend`, a push to a non-default branch,
+ * any other `X-GitHub-Event`) comes back
  * `{ handled: false }` rather than throwing, since an unrecognized-but-
  * validly-signed delivery isn't an error, just not actionable in v1.
+ *
+ * The #prs feed (holocron#1833) also reads `pull_request` actions the checks do not
+ * (`pull_request.feed`: reopened, closed, ready_for_review, converted_to_draft,
+ * review_requested, review_request_removed, labeled, and an edit of neither title nor
+ * description), `pull_request_review` (submitted, dismissed) and a completed `check_run`
+ * named `ci / Required checks` (`check_run.completed`; any other check run is
+ * `{ handled: false }` here so a push's dozens of runs cost nothing). Every `pull_request*`
+ * event carries `action` and `pullNumbers`, which the opened/synchronize/edited events
+ * the checks handle also set; the feed-only types run none of the checks.
  */
 
 import {
@@ -37,12 +46,28 @@ import {
 } from "@theholocron/github-client";
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { SENTINEL_PR_FEED_CHECK_NAME } from "../constants/index.js";
 import type {
+	GitHubCheckRunWebhookPayload,
 	GitHubMembershipWebhookPayload,
 	GitHubOrganizationWebhookPayload,
+	GitHubPullRequestNumberPayload,
+	GitHubPullRequestReviewWebhookPayload,
 	ParseWebhookEventInput,
 	ParseWebhookResult,
 } from "./webhook.type.js";
+
+/** The `pull_request` actions that only the #prs feed reads (the others have a check pipeline of their own). */
+const PR_FEED_ACTIONS: ReadonlySet<string> = new Set([
+	"reopened",
+	"ready_for_review",
+	"converted_to_draft",
+	"review_requested",
+	"review_request_removed",
+	"labeled",
+	"edited",
+	"closed",
+]);
 
 export class WebhookVerificationError extends Error {
 	override name = "WebhookVerificationError";
@@ -106,31 +131,83 @@ export function parseWebhookEvent(input: ParseWebhookEventInput): ParseWebhookRe
 			// An edit only matters when the title or description changed (not the
 			// base branch or a draft toggle): the docs-presence check reads a
 			// `feat` from the title and `[skip docs]` from the description.
+			const { number, pull_request } = payload as GitHubPullRequestNumberPayload;
+			const pullNumber = pull_request?.number ?? number;
+			const common = {
+				repo: p.repository.full_name,
+				installationId: p.installation?.id ?? 0,
+				action: p.action,
+				...(pullNumber === undefined ? {} : { pullNumbers: [pullNumber] }),
+				...(deliveryId ? { deliveryId } : {}),
+				raw: payload,
+			};
 			if (p.action === "edited" && (p.changes?.title || p.changes?.body)) {
+				return { handled: true, event: { type: "pull_request.edited", ...common } };
+			}
+			if (p.action === "opened" || p.action === "synchronize") {
 				return {
 					handled: true,
 					event: {
-						type: "pull_request.edited",
-						repo: p.repository.full_name,
-						installationId: p.installation?.id ?? 0,
-						...(deliveryId ? { deliveryId } : {}),
-						raw: payload,
+						type: p.action === "opened" ? "pull_request.opened" : "pull_request.synchronize",
+						...common,
 					},
 				};
 			}
-			if (p.action !== "opened" && p.action !== "synchronize") {
+			// Every other action changes only what the #prs feed shows, so it reaches the feed and no other check.
+			if (PR_FEED_ACTIONS.has(p.action) && pullNumber !== undefined) {
+				return { handled: true, event: { type: "pull_request.feed", ...common } };
+			}
+			return {
+				handled: false,
+				reason: `pull_request action "${p.action}" is not handled in v1`,
+				githubEvent,
+			};
+		}
+		case "pull_request_review": {
+			const p = payload as unknown as GitHubPullRequestReviewWebhookPayload;
+			if (p.action !== "submitted" && p.action !== "dismissed") {
 				return {
 					handled: false,
-					reason: `pull_request action "${p.action}" is not handled in v1`,
+					reason: `pull_request_review action "${p.action}" is not handled`,
 					githubEvent,
 				};
 			}
 			return {
 				handled: true,
 				event: {
-					type: p.action === "opened" ? "pull_request.opened" : "pull_request.synchronize",
+					type: "pull_request_review",
 					repo: p.repository.full_name,
 					installationId: p.installation?.id ?? 0,
+					action: p.action,
+					pullNumbers: [p.pull_request.number],
+					...(deliveryId ? { deliveryId } : {}),
+					raw: payload,
+				},
+			};
+		}
+		case "check_run": {
+			// Only the `ci` aggregate's completion is a verdict; a push makes dozens of other check runs, dropped here
+			// so they cost no installation token, config read or fetch.
+			const p = payload as unknown as GitHubCheckRunWebhookPayload;
+			const run = p.check_run;
+			if (p.action !== "completed" || run.name !== SENTINEL_PR_FEED_CHECK_NAME) {
+				return { handled: false, reason: `check_run "${run.name}" ${p.action} is not handled`, githubEvent };
+			}
+			return {
+				handled: true,
+				event: {
+					type: "check_run.completed",
+					repo: p.repository.full_name,
+					installationId: p.installation?.id ?? 0,
+					action: p.action,
+					pullNumbers: run.pull_requests.map((pr) => pr.number),
+					checkRun: {
+						name: run.name,
+						headSha: run.head_sha,
+						conclusion: run.conclusion,
+						url: run.html_url,
+						...(run.details_url ? { detailsUrl: run.details_url } : {}),
+					},
 					...(deliveryId ? { deliveryId } : {}),
 					raw: payload,
 				},

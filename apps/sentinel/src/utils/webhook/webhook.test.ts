@@ -277,16 +277,21 @@ describe("parseWebhookEvent — push events", () => {
 		expect(event.deliveryId).toBeUndefined();
 	});
 
-	it("ignores a pull_request.edited action that changed neither (a base branch change, say)", () => {
+	it("sends a pull_request.edited action that changed neither (a base branch change, say) to the feed only", () => {
 		for (const changes of [{ base: { ref: { from: "main" } } }, undefined]) {
 			const body = JSON.stringify({
 				action: "edited",
+				number: 8,
 				...(changes ? { changes } : {}),
 				installation: { id: 3 },
 				repository: { full_name: "acme/widgets" },
 			});
 			const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
-			expect(result.handled).toBe(false);
+			expect((result as { event: unknown }).event).toMatchObject({
+				type: "pull_request.feed",
+				action: "edited",
+				pullNumbers: [8],
+			});
 		}
 	});
 
@@ -368,15 +373,188 @@ describe("parseWebhookEvent — pull_request events", () => {
 		expect((result as { event: { installationId: number } }).event.installationId).toBe(0);
 	});
 
-	it("leaves an unhandled pull_request action (e.g. closed) unhandled", () => {
+	it("leaves a pull_request action nobody reads (e.g. assigned) unhandled", () => {
 		const body = JSON.stringify({
-			action: "closed",
+			action: "assigned",
+			number: 5,
 			installation: { id: 3 },
 			repository: { full_name: "acme/widgets" },
 		});
 		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
 		expect(result.handled).toBe(false);
-		expect((result as { reason: string }).reason).toMatch(/closed/);
+		expect((result as { reason: string }).reason).toMatch(/assigned/);
+	});
+
+	it("sends the feed-only actions to the feed, with the action and the pull request number", () => {
+		const actions = [
+			"reopened",
+			"ready_for_review",
+			"converted_to_draft",
+			"review_requested",
+			"review_request_removed",
+			"labeled",
+			"closed",
+		];
+		for (const action of actions) {
+			const body = JSON.stringify({
+				action,
+				number: 5,
+				installation: { id: 3 },
+				repository: { full_name: "acme/widgets" },
+			});
+			const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
+			expect((result as { event: unknown }).event).toMatchObject({
+				type: "pull_request.feed",
+				repo: "acme/widgets",
+				installationId: 3,
+				action,
+				pullNumbers: [5],
+				deliveryId: "delivery-123",
+			});
+		}
+	});
+
+	it("reads the number from pull_request.number, and leaves a feed action with no number unhandled", () => {
+		const withNested = JSON.stringify({
+			action: "closed",
+			pull_request: { number: 9 },
+			repository: { full_name: "acme/widgets" },
+		});
+		const nested = parseWebhookEvent({
+			body: withNested,
+			headers: signedHeaders(withNested, "pull_request"),
+			secret: SECRET,
+		});
+		expect((nested as { event: { pullNumbers: number[] } }).event.pullNumbers).toEqual([9]);
+
+		const none = JSON.stringify({ action: "closed", repository: { full_name: "acme/widgets" } });
+		const result = parseWebhookEvent({ body: none, headers: signedHeaders(none, "pull_request"), secret: SECRET });
+		expect(result.handled).toBe(false);
+	});
+
+	it("carries the action and number on opened, which the checks handle", () => {
+		const body = JSON.stringify({ action: "opened", number: 4, repository: { full_name: "acme/widgets" } });
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request"), secret: SECRET });
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "pull_request.opened",
+			action: "opened",
+			pullNumbers: [4],
+		});
+	});
+});
+
+describe("parseWebhookEvent — pull_request_review events", () => {
+	const review = (action: string) =>
+		JSON.stringify({
+			action,
+			pull_request: { number: 12 },
+			installation: { id: 3 },
+			repository: { full_name: "acme/widgets" },
+		});
+
+	it("normalizes a submitted or dismissed review", () => {
+		for (const action of ["submitted", "dismissed"]) {
+			const body = review(action);
+			const result = parseWebhookEvent({
+				body,
+				headers: signedHeaders(body, "pull_request_review"),
+				secret: SECRET,
+			});
+			expect((result as { event: unknown }).event).toMatchObject({
+				type: "pull_request_review",
+				repo: "acme/widgets",
+				installationId: 3,
+				action,
+				pullNumbers: [12],
+			});
+		}
+	});
+
+	it("defaults the installation and omits the delivery id when they are absent", () => {
+		const body = JSON.stringify({
+			action: "submitted",
+			pull_request: { number: 12 },
+			repository: { full_name: "acme/widgets" },
+		});
+		const headers = signedHeaders(body, "pull_request_review", { "x-github-delivery": undefined });
+		const event = (
+			parseWebhookEvent({ body, headers, secret: SECRET }) as unknown as { event: Record<string, unknown> }
+		).event;
+		expect(event["installationId"]).toBe(0);
+		expect(event["deliveryId"]).toBeUndefined();
+	});
+
+	it("leaves an edited review unhandled", () => {
+		const body = review("edited");
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "pull_request_review"), secret: SECRET });
+		expect(result.handled).toBe(false);
+	});
+});
+
+describe("parseWebhookEvent — check_run events", () => {
+	const run = (over: Record<string, unknown> = {}, action = "completed") =>
+		JSON.stringify({
+			action,
+			check_run: {
+				name: "ci / Required checks",
+				head_sha: "abc1234",
+				conclusion: "failure",
+				html_url: "https://github.com/acme/widgets/runs/1",
+				details_url: "https://github.com/acme/widgets/actions/runs/2",
+				pull_requests: [{ number: 12 }, { number: 13 }],
+				...over,
+			},
+			installation: { id: 3 },
+			repository: { full_name: "acme/widgets" },
+		});
+
+	it("normalizes the completed aggregate with its pull requests, commit, conclusion and links", () => {
+		const body = run();
+		const result = parseWebhookEvent({ body, headers: signedHeaders(body, "check_run"), secret: SECRET });
+		expect((result as { event: unknown }).event).toMatchObject({
+			type: "check_run.completed",
+			repo: "acme/widgets",
+			installationId: 3,
+			action: "completed",
+			pullNumbers: [12, 13],
+			checkRun: {
+				name: "ci / Required checks",
+				headSha: "abc1234",
+				conclusion: "failure",
+				url: "https://github.com/acme/widgets/runs/1",
+				detailsUrl: "https://github.com/acme/widgets/actions/runs/2",
+			},
+		});
+	});
+
+	it("omits the details link and delivery id when absent, and defaults the installation", () => {
+		const body = JSON.stringify({
+			action: "completed",
+			check_run: {
+				name: "ci / Required checks",
+				head_sha: "abc1234",
+				conclusion: "success",
+				html_url: "https://example.test/r",
+				details_url: null,
+				pull_requests: [],
+			},
+			repository: { full_name: "acme/widgets" },
+		});
+		const headers = signedHeaders(body, "check_run", { "x-github-delivery": undefined });
+		const event = (
+			parseWebhookEvent({ body, headers, secret: SECRET }) as unknown as { event: Record<string, unknown> }
+		).event;
+		expect(event["checkRun"]).not.toHaveProperty("detailsUrl");
+		expect(event["pullNumbers"]).toEqual([]);
+		expect(event["installationId"]).toBe(0);
+		expect(event["deliveryId"]).toBeUndefined();
+	});
+
+	it("leaves any other check run, and any other action, unhandled", () => {
+		for (const body of [run({ name: "test:unit / Conclusion" }), run({}, "created")]) {
+			const result = parseWebhookEvent({ body, headers: signedHeaders(body, "check_run"), secret: SECRET });
+			expect(result.handled).toBe(false);
+		}
 	});
 });
 
