@@ -78,6 +78,8 @@ export const COMMAND_CONTEXTS = {
 	"doctor environments": "workspace",
 	"doctor credentials": "workspace",
 	"doctor project": "workspace",
+	// Reads the vault environment that holds each App's id and key, through the `vault` provider.
+	"doctor github-app": "workspace",
 	// `project move` calls the `projects` provider, so its package must be resolvable.
 	"project move": "workspace",
 	"doctor dns": "workspace",

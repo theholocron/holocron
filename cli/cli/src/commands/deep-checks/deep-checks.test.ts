@@ -89,6 +89,37 @@ describe("the project entry", () => {
 	});
 });
 
+const runDoctorGitHubApp = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-github-app/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-github-app/index.js")>()),
+	runDoctorGitHubApp,
+}));
+
+describe("the github-app entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const app = DEEP_CHECKS.find((c) => c.name === "github-app")!;
+
+	it("compares the vault capability and reports the run's status and counts", async () => {
+		expect(app.capability).toBe("vault");
+		runDoctorGitHubApp.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 2, fail: 1, skip: 0 } });
+		expect(await app.run(input)).toEqual({ status: "fail", summary: { ok: 2, fail: 1, skip: 0 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorGitHubApp.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `githubApps` are declared",
+		});
+		expect(await app.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `githubApps` are declared",
+		});
+	});
+});
+
 describe("the ci entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const ci = DEEP_CHECKS.find((c) => c.name === "ci")!;

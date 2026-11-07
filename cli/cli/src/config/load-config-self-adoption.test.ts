@@ -159,6 +159,16 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			options: { environment: "Holocron - GitHub Actions variables" },
 		});
 
+		// And (#1851): the registered GitHub App instances `doctor github-app` checks.
+		(expected as unknown as { githubApps: unknown }).githubApps = [
+			{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" },
+			{
+				name: "Sentinel - dev",
+				manifest: "apps/sentinel/github-app.manifest.json",
+				environment: "Sentinel - dev",
+			},
+		];
+
 		const { resolved } = await loadConfig(REPO_ROOT);
 		expect(normalise(resolved)).toEqual(expected);
 	});
