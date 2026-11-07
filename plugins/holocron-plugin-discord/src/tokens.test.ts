@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { tokens } from "./index.js";
 
@@ -15,7 +15,7 @@ describe("the plugin's tokens export", () => {
 				envName: "HOLOCRON_DISCORD_BOT_TOKEN",
 				vendorEnvName: "DISCORD_BOT_TOKEN",
 				keyringKey: "discord.holonet",
-				verifiable: false,
+				verify: expect.any(Function),
 			},
 			{
 				envName: "HOLOCRON_DISCORD_CLIENT_SECRET",
@@ -24,5 +24,20 @@ describe("the plugin's tokens export", () => {
 				verifiable: false,
 			},
 		]);
+	});
+
+	it("checks the bot token against the Discord API, with the token as a bot credential", async () => {
+		const fetchMock = vi.fn(
+			async () => new Response(JSON.stringify({ id: "1", name: "holonet" }), { status: 200 })
+		);
+		vi.stubGlobal("fetch", fetchMock);
+		const bot = tokens.find((t) => t.keyringKey === "discord.holonet");
+		const result = await bot?.verify?.("bot-token");
+		vi.unstubAllGlobals();
+
+		expect(result).toEqual({ ok: true, subject: "bot: holonet (id: 1)" });
+		const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+		expect(url).toContain("/applications/@me");
+		expect(JSON.stringify(init.headers)).toContain("Bot bot-token");
 	});
 });

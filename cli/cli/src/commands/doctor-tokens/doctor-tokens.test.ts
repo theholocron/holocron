@@ -253,6 +253,20 @@ describe("doctor tokens", () => {
 		expect(report.rows[0]).toMatchObject({ status: "skip", detail: "set, but its plugin cannot verify it" });
 	});
 
+	it("checks a token with its own verify before the plugin's verifyToken", async () => {
+		const verifyToken = vi.fn(async () => ({ ok: true as const, subject: "webhook" }));
+		const verify = vi.fn(async () => ({ ok: true as const, subject: "bot: holonet" }));
+		const token = { envName: "HOLOCRON_DISCORD_BOT_TOKEN", keyringKey: "discord.holonet", verify };
+		const { report } = await run(
+			loaded({ notifications: ["discord"] }),
+			{ "@theholocron/holocron-plugin-discord": { tokens: [token], verifyToken } },
+			{ env: { HOLOCRON_DISCORD_BOT_TOKEN: "bot" } }
+		);
+		expect(verify).toHaveBeenCalledWith("bot");
+		expect(verifyToken).not.toHaveBeenCalled();
+		expect(report.rows[0]).toMatchObject({ status: "ok", detail: "bot: holonet (HOLOCRON_DISCORD_BOT_TOKEN)" });
+	});
+
 	it("fails a rejected token with the provider's message and keeps checking the rest", async () => {
 		const verifyToken = vi.fn(async (token: string) =>
 			token === "old"

@@ -23,15 +23,15 @@ Every plugin that resolves a token lists it, built from the same resolver the pl
 
 ## What each row means
 
-| Row                 | When                                                                                                                                                                                                                          |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ok                  | The token is set and the plugin accepts it. The row says whose it is, where it came from (the variable name, a credentials source such as `1password:Holocron`, or `keyring`) and, for a token that expires, how long is left |
-| fail                | The token is set and is rejected (expired, revoked, malformed), or verifying it threw. The row carries the provider's message                                                                                                 |
-| fail: expires soon  | The token is accepted but expires within 7 days (`TOKEN_EXPIRY_WARN_DAYS`). The row gets a problem line, `expires in 3 days: renew it`                                                                                        |
-| skip: not set       | Neither the environment variable nor the keyring has it. Whether a token is needed depends on what you run, so this is never a failure                                                                                        |
-| skip: cannot verify | The token is set but its plugin has no `verifyToken`, or its `verifyToken` checks a different credential (Discord's checks a webhook, not the bot token or client secret)                                                     |
-| fail: credentials   | A `credentials` provider (1Password) could not be read, with the reason. Its tokens then fall through to the keyring, which is usually not what was meant                                                                     |
-| skip: plugin        | The plugin package could not be loaded here, with the reason                                                                                                                                                                  |
+| Row                 | When                                                                                                                                                                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ok                  | The token is set and the plugin accepts it. The row says whose it is, where it came from (the variable name, a credentials source such as `1password:Holocron`, or `keyring`) and, for a token that expires, how long is left                 |
+| fail                | The token is set and is rejected (expired, revoked, malformed), or verifying it threw. The row carries the provider's message                                                                                                                 |
+| fail: expires soon  | The token is accepted but expires within 7 days (`TOKEN_EXPIRY_WARN_DAYS`). The row gets a problem line, `expires in 3 days: renew it`                                                                                                        |
+| skip: not set       | Neither the environment variable nor the keyring has it. Whether a token is needed depends on what you run, so this is never a failure                                                                                                        |
+| skip: cannot verify | The token is set but its plugin has no `verifyToken`, or its `verifyToken` checks a different credential and the token has no `verify` of its own (Discord's checks a webhook; the bot token has its own check, the OAuth client secret none) |
+| fail: credentials   | A `credentials` provider (1Password) could not be read, with the reason. Its tokens then fall through to the keyring, which is usually not what was meant                                                                                     |
+| skip: plugin        | The plugin package could not be loaded here, with the reason                                                                                                                                                                                  |
 
 When no configured plugin lists any token, the one row says so.
 
