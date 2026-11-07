@@ -130,8 +130,8 @@ describe("resolveConfig", () => {
 	});
 
 	it("passes the log.axiom.dataset opt-in through", () => {
-		expect(resolveConfig({ ...minimal, log: { axiom: { dataset: "holocron-local" } } }).log).toEqual({
-			axiom: { dataset: "holocron-local" },
+		expect(resolveConfig({ ...minimal, log: { axiom: { dataset: "repo-ds" } } }).log).toEqual({
+			axiom: { dataset: "repo-ds" },
 		});
 	});
 

@@ -395,7 +395,7 @@ apps/` must return **nothing** (source). The CLI's
   orchestration lives in `@theholocron/kyber/observability`
   (`createCliLogger`, `createCliTelemetry`); the CLI's `observability/` is the thin Holocron binding (`logger.ts`,
   `telemetry.ts`) plus `observability/resolve-telemetry.ts` (the Holocron-specific DSN / key resolution, the
-  `holocron-global` Axiom dataset and the keyring lookup, which stay here). A vendor swap or a
+  keyring lookup, which stay here). A vendor swap or a
   test fake is one file — in `observability/`.
 - **Read env through `@theholocron/env-utils/lookup`, never the package entry.** The entry also exports `DotenvLoader`, whose
   module runs `import "dotenv/config"` and so loads the working directory's `.env` into `process.env` on import. `/lookup` has

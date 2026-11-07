@@ -132,7 +132,7 @@ export default defineConfig({
 		// themselves are declared next to the service they watch, in apps/sentinel/holocron.config.ts. The account id
 		// comes from .holocron/org.ts.
 		monitoring: "checkly",
-		// Logs: Axiom aggregation — setup provisions the holocron-ci / holocron-local datasets
+		// Logs: Axiom aggregation — setup provisions the CLI's dataset (HOLOCRON_AXIOM_DATASET, `holocron`); every environment ships to it, split by the `env` tag
 		logs: "axiom",
 		// Projects: the org's planning board (GitHub Projects), declared as template -> name (SPEC-0020, #1744). The
 		// template is a built-in (roadmap) or a file in .holocron/projects; the board is found by name among the open
@@ -162,11 +162,6 @@ export default defineConfig({
 		{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" },
 		{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel - dev" },
 	],
-	// Logs: ship local runs to the shared holocron-local Axiom dataset. Needs an
-	// Axiom token in the keyring (`holocron auth set axiom.theholocron <TOKEN>`)
-	// or HOLOCRON_AXIOM_TOKEN. CI overrides the dataset to holocron-ci via the
-	// AXIOM_DATASET variable (synced from 1Password; env wins over config).
-	log: { axiom: { dataset: "holocron-local" } },
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],
 } satisfies HolocronConfig);

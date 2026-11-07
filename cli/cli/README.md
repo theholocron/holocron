@@ -250,7 +250,7 @@ also reads the repository root's `.holocron/org.ts` (the nearest ancestor with a
 `.holocron/org.ts` wins for a key set in both, option by option; that is not an error, so an identifier written in the
 root file needs no copy in the app. The other areas (`repo`, `notifications`) describe the repository and are not
 shared. Anything CI needs (`CLOUDFLARE_ACCOUNT_ID`,
-`TURBO_TEAM`, `AXIOM_DATASET`) stays out: it lives in 1Password and syncs to a GitHub variable (`repo.variables.sync`),
+`TURBO_TEAM`, `HOLOCRON_AXIOM_DATASET`) stays out: it lives in 1Password and syncs to a GitHub variable (`repo.variables.sync`),
 and nothing else carries a copy. `.holocron/org.md` (the agent contract the CLI embeds) is not an area: only
 `.ts`, `.js`, `.mjs`, `.cjs` and `.json` are read.
 
@@ -794,14 +794,14 @@ Axiom shipping activates when a token (`HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN`
 `AXIOM_DATASET` lives) both resolve; env vars win. The token is never read from a
 config file.
 
-The dataset side of that resolution is **execution-context-aware** (ADR-0012):
-a `global`-context command (`clone`, `new`, `auth set`, `upgrade node`, `plugin
-create`, …) always ships to holocron's own dataset regardless of `$PWD` — it
-isn't "about" any repo, so routing it through whichever repo's `.envrc`
-happens to be active would be wrong. `repo-aware` / `workspace` commands
-(`doctor`, `deploy`, `sync`, …) keep the env-var/config chain above, so a
-per-repo `HOLOCRON_AXIOM_DATASET` — e.g. via a `.envrc` + `direnv` — separates
-each consuming repo's logs. See the [logging guide](https://docs.theholocron.dev/holocron/logging/).
+Each service has one dataset for all its environments (ADR-0019; the CLI's is `holocron`); each line carries `env`
+(`local`, `development`, `ci`, `test`, `production`), so a query filters by it.
+`log.axiom.dataset` is only a per-repo override. The dataset side of the
+resolution is **execution-context-aware** (ADR-0012): a `global`-context command
+(`clone`, `new`, `auth set`, `upgrade node`, `plugin create`, …) is not "about"
+any repo, so it skips the repo's `log.axiom.dataset` and uses the CLI's dataset
+from the environment or credential chain. `repo-aware` / `workspace` commands
+(`doctor`, `deploy`, `sync`, …) keep the full chain above. See the [logging guide](https://docs.theholocron.dev/holocron/logging/).
 
 ### Telemetry
 

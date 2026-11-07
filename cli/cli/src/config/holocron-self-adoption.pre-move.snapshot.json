@@ -630,10 +630,5 @@
   "docs": {
     "build": "workflow",
     "https": true
-  },
-  "log": {
-    "axiom": {
-      "dataset": "holocron-local"
-    }
   }
 }

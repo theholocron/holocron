@@ -189,6 +189,10 @@ dedicated single-cardinality capabilities:
 > ADR-0012 for per-repo (`direnv`) and per-command-context (`global` vs.
 > `repo-aware`/`workspace`) dataset resolution.
 
+> **Dataset naming superseded by ADR-0019** (2026-11): there is one dataset per service (the CLI's is `holocron`) for
+> every environment, split by the `env` tag, so the `holocron-ci` /
+> `holocron-local` values above no longer apply. The rest of this ADR stands.
+
 Both are **env-var-activated** — the runtime does not require a provider entry
 in `holocron.config` to function. They activate wherever their env vars are
 present, including before config is fully resolved. The config entry

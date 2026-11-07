@@ -4,8 +4,8 @@
  * This plugin does NOT ship log lines — `@theholocron/observability/logger`'s
  * Axiom transport reads `HOLOCRON_AXIOM_TOKEN` / `HOLOCRON_AXIOM_DATASET`
  * directly at startup. The `logs` capability exists solely for the
- * management surface: `holocron repo setup` provisions the aggregation
- * datasets (`holocron-ci`, `holocron-local`) and `holocron doctor`
+ * management surface: `holocron repo setup` provisions the CLI's aggregation
+ * dataset (`holocron`, shared by every environment of the CLI) and `holocron doctor`
  * verifies connectivity.
  *
  * `ensureDataset` is idempotent — GET the dataset, and on a 404 create

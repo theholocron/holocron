@@ -23,6 +23,7 @@ import { basename, join } from "node:path";
 
 import { createAstromech, isTask, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
+import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
 import { findRootSync, isWorkspaceRoot } from "@theholocron/fs-utils";
 import { stringifyJson } from "@theholocron/json-utils";
 import { style, withSpinner } from "@theholocron/kyber/ui";
@@ -658,21 +659,30 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 		}
 	}
 
-	// ── logs: provision the aggregation datasets ───────────────────────
+	// ── logs: provision the aggregation dataset ───────────────────────
 	if (loader.has("logs")) {
 		const logs = loader.get("logs") as Logs;
 		print(style.step("logs"));
 
 		if (logs.ensureDataset) {
-			for (const dataset of ["holocron-ci", "holocron-local"]) {
+			// The CLI's own dataset, `holocron`, shared by its environments (ADR-0019): `HOLOCRON_AXIOM_DATASET`, then `AXIOM_DATASET`.
+			const dataset = withEnvPrefix(createEnvLookup(), "HOLOCRON").get("AXIOM_DATASET");
+			if (dataset) {
 				steps.push(
 					await runStep("logs", `ensureDataset ${dataset}`, dryRun, async () => {
 						const result = await logs.ensureDataset!(dataset);
 						return `${dataset} ${result.alreadyExists ? "exists" : "created"}`;
 					})
 				);
-				print(formatStep(steps[steps.length - 1]!));
+			} else {
+				steps.push({
+					capability: "logs",
+					step: "ensureDataset",
+					status: "skip",
+					message: "no dataset named (set HOLOCRON_AXIOM_DATASET or AXIOM_DATASET)",
+				});
 			}
+			print(formatStep(steps[steps.length - 1]!));
 		}
 	}
 

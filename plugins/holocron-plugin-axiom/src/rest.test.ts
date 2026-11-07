@@ -25,12 +25,12 @@ describe("createAxiomClient", () => {
 	});
 
 	it("POSTs a JSON body to create a dataset", async () => {
-		const stub = stubFetch([{ status: 200, body: { id: "d2", name: "holocron-ci" } }]);
+		const stub = stubFetch([{ status: 200, body: { id: "d2", name: "my-dataset" } }]);
 		const client = createAxiomClient({ token: "t", fetch: stub.fetch });
-		await client.datasets.create({ name: "holocron-ci", description: "Managed by holocron" });
+		await client.datasets.create({ name: "my-dataset", description: "Managed by holocron" });
 		expect(stub.calls[0]?.method).toBe("POST");
 		expect(stub.calls[0]?.headers["content-type"]).toBe("application/json");
-		expect(stub.calls[0]?.body).toMatchObject({ name: "holocron-ci", description: "Managed by holocron" });
+		expect(stub.calls[0]?.body).toMatchObject({ name: "my-dataset", description: "Managed by holocron" });
 	});
 
 	it("honours a custom base URL", async () => {

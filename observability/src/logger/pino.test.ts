@@ -156,7 +156,7 @@ describe("createPinoInstance", () => {
 		createPinoInstance({
 			...baseInput,
 			consoleOutput: false,
-			axiom: { dataset: "holocron-local", token: "xaat-secret" },
+			axiom: { dataset: "dev-env", token: "xaat-secret" },
 		});
 		expect(spy).not.toHaveBeenCalled();
 		spy.mockRestore();
@@ -214,7 +214,7 @@ describe("buildPinoOptions", () => {
 			...input,
 			tty: true,
 			consoleOutput: false,
-			axiom: { dataset: "holocron-local", token: "xaat-secret" },
+			axiom: { dataset: "dev-env", token: "xaat-secret" },
 		});
 		expect(options.transport).toBeDefined();
 	});

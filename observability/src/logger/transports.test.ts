@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { buildTransport } from "./transports.js";
 
 const base = { level: "info", ci: false, tty: true, telemetryDisabled: false } as const;
-const axiom = { dataset: "holocron-local", token: "xaat-secret" };
+const axiom = { dataset: "dev-env", token: "xaat-secret" };
 
 const targetsOf = (result: ReturnType<typeof buildTransport>): TransportTargetOptions[] => {
 	if (!result) return [];
@@ -41,7 +41,7 @@ describe("buildTransport", () => {
 	it("passes Axiom dataset and token through to the transport options", () => {
 		const result = buildTransport({ ...base, axiom });
 		const axiomTarget = targetsOf(result).find((t) => t.target === "@axiomhq/pino");
-		expect(axiomTarget?.options).toEqual({ dataset: "holocron-local", token: "xaat-secret" });
+		expect(axiomTarget?.options).toEqual({ dataset: "dev-env", token: "xaat-secret" });
 	});
 
 	it("drops the Axiom transport when telemetry is disabled", () => {

@@ -24,9 +24,9 @@ export default {
 				environment: "Holocron - GitHub Actions variables",
 				scope: "org=theholocron",
 				keys: [
-					"AXIOM_DATASET",
 					"CLOUDFLARE_ACCOUNT_ID",
 					"CLOUDFLARE_PAGES_PROJECT",
+					"HOLOCRON_AXIOM_DATASET",
 					"POSTHOG_PROJECT_TOKEN",
 					"SENTRY_ORG",
 					"TURBO_TEAM",

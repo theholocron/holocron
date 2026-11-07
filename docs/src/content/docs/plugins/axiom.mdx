@@ -20,16 +20,16 @@ Structured log output to Axiom is handled by
 `AXIOM_DATASET`) directly at startup. **This plugin does not ship log lines.**
 
 The `logs` provider entry is used only by `holocron repo setup` (to provision the
-`holocron-ci` and `holocron-local` datasets) and `holocron doctor` (to verify the
-configured dataset is reachable).
+CLI's dataset) and `holocron doctor` (to verify the configured dataset is
+reachable). Each service has its own dataset (the CLI `holocron`); its environments share it and are told apart by the
+`env` field on each line.
 
 ```bash
-# CI — the org variable AXIOM_DATASET, synced from 1Password and passed in as HOLOCRON_AXIOM_DATASET
-export HOLOCRON_AXIOM_DATASET=holocron-ci
-# Local — optional; leave unset to skip Axiom entirely
-export HOLOCRON_AXIOM_DATASET=holocron-local
+# The org variable HOLOCRON_AXIOM_DATASET, synced from 1Password and passed to the CLI by the sync workflows
+export HOLOCRON_AXIOM_DATASET=holocron
 ```
 
+Locally, Axiom is opt-in: with no token or no dataset, nothing ships.
 `HOLOCRON_AXIOM_DATASET` is **not a secret**.
 
 ## Config
@@ -45,7 +45,7 @@ independent of the env var:
 
 ```ts
 providers: {
-  logs: ["axiom", { dataset: "holocron-ci" }],
+  logs: ["axiom", { dataset: "holocron" }],
 }
 ```
 
@@ -81,7 +81,7 @@ import { createPlugin } from "@theholocron/holocron-plugin-axiom";
 const plugin = createPlugin({ token: process.env.HOLOCRON_AXIOM_TOKEN });
 const logs = plugin.capabilities.logs();
 
-const { alreadyExists } = await logs.ensureDataset("holocron-ci");
+const { alreadyExists } = await logs.ensureDataset("holocron");
 console.log(alreadyExists ? "dataset exists" : "dataset created");
 ```
 

@@ -95,9 +95,9 @@ describe("isTelemetryDisabled", () => {
 
 describe("resolveAxiomFromEnv", () => {
 	it("returns the credentials when both token and dataset are present", () => {
-		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "xaat-t", HOLOCRON_AXIOM_DATASET: "holocron-ci" })).toEqual({
+		expect(resolveAxiomFromEnv({ HOLOCRON_AXIOM_TOKEN: "xaat-t", HOLOCRON_AXIOM_DATASET: "my-dataset" })).toEqual({
 			token: "xaat-t",
-			dataset: "holocron-ci",
+			dataset: "my-dataset",
 		});
 	});
 
