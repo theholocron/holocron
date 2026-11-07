@@ -9,7 +9,7 @@ holocron migrate issues           --from <source> --to <target> (--all | --sourc
 holocron migrate project <name>   --from <source> --to <target>
 ```
 
-`--from` and `--to` are `provider` or `provider:key=value,...`, for example `github`, `github:repo=theholocron/holocron` or `linear:team=ENG`. Options given there are laid over the repo's own `providers.issues` entry when it is the same provider, so `--from github --to linear:team=ENG` needs nothing else when the repo already uses GitHub.
+`--from` and `--to` are `provider` or `provider:key=value,...`, for example `github`, `github:repo=theholocron/holocron` or `linear:team=ENG`. Options given there are applied over the repo's own `providers.issues` entry when it is the same provider, so `--from github --to linear:team=ENG` needs nothing else when the repo already uses GitHub.
 
 | Command           | Moves                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------ |
