@@ -1,3 +1,10 @@
+## [0.7.0-alpha.2](https://github.com/theholocron/holocron/compare/observability-v0.7.0-alpha.1...observability-v0.7.0-alpha.2) (2026-11-07)
+
+### Refactoring
+
+* **kyber:** 🔒 read env through env-utils/lookup in kyber and observability ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1891](https://github.com/theholocron/holocron/issues/1891)) ([ac58fb8](https://github.com/theholocron/holocron/commit/ac58fb879998a5504890ebf049c5d7b1d82ec1e7)), closes [#1890](https://github.com/theholocron/holocron/issues/1890)
+* **logging:** ♻️ one Axiom dataset per service, split by the env tag ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1870](https://github.com/theholocron/holocron/issues/1870)) ([7e238d8](https://github.com/theholocron/holocron/commit/7e238d8bbd5b50e8ae70d2b3670f86a88cc4a266)), closes [#1865](https://github.com/theholocron/holocron/issues/1865)
+
 ## [0.7.0-alpha.1](https://github.com/theholocron/holocron/compare/observability-v0.6.1-alpha.2...observability-v0.7.0-alpha.1) (2026-11-04)
 
 ### Features
