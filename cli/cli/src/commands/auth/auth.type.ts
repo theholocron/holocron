@@ -37,6 +37,11 @@ export interface PluginToken {
 	 */
 	verifiable?: boolean;
 	/**
+	 * How to check this token when the plugin's one `verifyToken` is for a different credential (the Discord bot token,
+	 * where `verifyToken` checks a webhook). Wins over the plugin's `verifyToken`.
+	 */
+	verify?: (token: string) => Promise<VerifyTokenResult>;
+	/**
 	 * `true` when the plugin only falls back to this token: nothing needs it unless a call names no better source (the
 	 * Discord webhook a post uses when it names no channel). The checks that expect every token a plugin lists, such as
 	 * `holocron doctor credentials`, do not expect it, and `holocron auth export` marks it as optional when it has none.

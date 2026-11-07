@@ -1,5 +1,7 @@
 import { AuthError, createResolveToken, type PluginToken, type ResolveTokenInput } from "@theholocron/cli";
 
+import { verifyBotToken } from "./verify-bot-token.js";
+
 export { AuthError };
 export type { ResolveTokenInput };
 
@@ -40,12 +42,13 @@ export const resolveClientSecret = createResolveToken({
 });
 
 /**
- * Every token this plugin takes, for `holocron doctor tokens`. `verifyToken` checks a webhook URL, so the bot token and
- * the OAuth client secret are listed but not handed to it. The webhook is the last resort for a post that names no
+ * Every token this plugin takes, for `holocron doctor tokens`. `verifyToken` checks a webhook URL, so the bot token has
+ * its own `verify` (it asks for the bot's application) and the OAuth client secret, which cannot be checked without a
+ * sign-in, is listed but not handed to it. The webhook is the last resort for a post that names no
  * channel, alias or `defaultChannel`, so nothing needs it by default (`optional`).
  */
 export const tokens: PluginToken[] = [
 	{ ...resolveToken.token, optional: true },
-	{ ...resolveBotToken.token, verifiable: false },
+	{ ...resolveBotToken.token, verify: (token) => verifyBotToken(token) },
 	{ ...resolveClientSecret.token, verifiable: false },
 ];

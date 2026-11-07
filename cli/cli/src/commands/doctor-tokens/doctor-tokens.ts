@@ -115,12 +115,13 @@ async function checkToken(
 		const names = vendorEnvName ? `${envName} / ${vendorEnvName}` : envName;
 		return row(keyringKey, "skip", `not set (${names}, or \`holocron auth set ${keyringKey}\`)`);
 	}
-	if (!module.verifyToken || token.verifiable === false) {
+	const verify = token.verify ?? (token.verifiable === false ? undefined : module.verifyToken);
+	if (!verify) {
 		return row(keyringKey, "skip", "set, but its plugin cannot verify it");
 	}
 	const from = fromEnv ?? stored?.source ?? "keyring";
 	try {
-		const verified = await module.verifyToken(value);
+		const verified = await verify(value);
 		if (!verified.ok) return row(keyringKey, "fail", `rejected (${from}): ${verified.message}`);
 		const expiry = verified.expiresAt ? describeExpiry(verified.expiresAt, now) : undefined;
 		if (!expiry) return row(keyringKey, "ok", `${verified.subject} (${from})`);
