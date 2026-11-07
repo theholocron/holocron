@@ -1,3 +1,9 @@
+## [1.58.0-alpha.14](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.13...clients-v1.58.0-alpha.14) (2026-11-07)
+
+### Features
+
+* **doctor:** 🩺 holocron doctor github-app checks an App against its manifest ([#1854](https://github.com/theholocron/holocron/issues/1854)) ([81247cf](https://github.com/theholocron/holocron/commit/81247cf307d27d0f9c780a009b155a934de88fc7)), closes [#1851](https://github.com/theholocron/holocron/issues/1851) [#1851](https://github.com/theholocron/holocron/issues/1851)
+
 ## [1.58.0-alpha.13](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.12...clients-v1.58.0-alpha.13) (2026-11-07)
 
 ### Features
