@@ -1,3 +1,4 @@
+import { PREFIX } from "@theholocron/env-utils/lookup";
 import { resolveValue } from "@theholocron/kyber/secrets";
 
 import type { ResolvedHolocronConfig } from "../../config/index.js";
@@ -18,7 +19,9 @@ function configuredTeamId(resolved: Pick<ResolvedHolocronConfig, "providers"> | 
 /**
  * Reads the Vercel token, team id and Deployment Protection bypass secret through the credential chain
  * (`resolveValue`: the environment, then the `credentials` providers) instead of `process.env`. The environment's
- * `VERCEL_TEAM_ID` wins over the configured provider's `teamId`, so the override CI passes keeps working. A value that
+ * `HOLOCRON_VERCEL_TEAM_ID` (or the bare `VERCEL_TEAM_ID`) wins over the configured provider's `teamId`, so the override CI
+ * passes keeps working. Each name is read as `HOLOCRON_<NAME>` first, then bare: `VERCEL_TOKEN` is the one the Vercel
+ * plugin's own `HOLOCRON_VERCEL_TOKEN` / `VERCEL_TOKEN` pair already uses. A value that
  * is not set is left out, so the result spreads straight into the input of `resolveVercelBypassHeaders`.
  *
  * @param resolved - The loaded config, when the command has one. `monitoring run-resolved` loads none.
@@ -28,9 +31,9 @@ export function resolveVercelCredentials(
 	resolved?: Pick<ResolvedHolocronConfig, "providers">,
 	env?: Record<string, string | undefined>
 ): VercelCredentials {
-	const vercelToken = resolveValue(["VERCEL_TOKEN"], env);
-	const vercelTeamId = resolveValue(["VERCEL_TEAM_ID"], env) ?? configuredTeamId(resolved);
-	const bypassSecret = resolveValue(["VERCEL_PROTECTION_BYPASS_SECRET"], env);
+	const vercelToken = resolveValue(["VERCEL_TOKEN"], env, { prefix: PREFIX });
+	const vercelTeamId = resolveValue(["VERCEL_TEAM_ID"], env, { prefix: PREFIX }) ?? configuredTeamId(resolved);
+	const bypassSecret = resolveValue(["VERCEL_PROTECTION_BYPASS_SECRET"], env, { prefix: PREFIX });
 	return {
 		...(vercelToken ? { vercelToken } : {}),
 		...(vercelTeamId ? { vercelTeamId } : {}),

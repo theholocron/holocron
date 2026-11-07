@@ -65,7 +65,7 @@ Any combination of capabilities can be enabled together:
 
 The `deployment`, `workers` and `tunnels` capabilities are only exposed when `accountId`
 is resolvable — either passed explicitly in options or set as the
-`CLOUDFLARE_ACCOUNT_ID` env var or in a `credentials` provider's Environment (the option wins, then the
+`HOLOCRON_CLOUDFLARE_ACCOUNT_ID` (or `CLOUDFLARE_ACCOUNT_ID`) env var or in a `credentials` provider's Environment (the option wins, then the
 environment, then the provider).
 
 ## `dns` capability
