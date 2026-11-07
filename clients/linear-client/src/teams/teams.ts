@@ -50,6 +50,22 @@ export function teams(gql: LinearGraphQL) {
 			return data.team;
 		},
 
+		/**
+		 * Changes the team's auto-archive and auto-close settings (`teamUpdate`); a field left out is left alone, and 0
+		 * switches the period off. Needs a key with admin access to the team.
+		 */
+		async updateAutomation(
+			teamId: string,
+			input: { autoArchivePeriod?: number; autoClosePeriod?: number; autoCloseStateId?: string }
+		): Promise<LinearTeamAutomation> {
+			const data = await gql.query<{ teamUpdate: { team: LinearTeamAutomation } }>(
+				`mutation($id: String!, $input: TeamUpdateInput!) { teamUpdate(id: $id, input: $input) { team {
+					autoArchivePeriod autoClosePeriod autoCloseState { id name } triageEnabled } } }`,
+				{ id: teamId, input }
+			);
+			return data.teamUpdate.team;
+		},
+
 		/** The team's issue statuses, in board order. */
 		async states(teamId: string): Promise<LinearWorkflowState[]> {
 			const all = await paginate((after) =>

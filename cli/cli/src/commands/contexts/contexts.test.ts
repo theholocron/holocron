@@ -69,6 +69,7 @@ const EVERY_COMMAND = [
 	"doctor variables",
 	"doctor ci",
 	"probe",
+	"provider",
 	"project reconcile",
 	"deploy",
 	"deploy cleanup-preview",

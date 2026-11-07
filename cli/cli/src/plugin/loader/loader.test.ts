@@ -657,6 +657,30 @@ describe("PluginLoader — probes", () => {
 	});
 });
 
+describe("PluginLoader — setup and doctor", () => {
+	const action = async () => [];
+
+	it("keeps the setup and doctor a plugin offers, by provider name, and leaves out one with neither", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: { source: "github", vault: "1password", ci: "vercel" as "github" } },
+			{
+				"@theholocron/holocron-plugin-github": {
+					createPlugin: () => ({ name: "github", setup: action, capabilities: { source: () => ({}) } }),
+				},
+				"@theholocron/holocron-plugin-1password": {
+					createPlugin: () => ({ name: "1password", doctor: action, capabilities: { vault: () => ({}) } }),
+				},
+				"@theholocron/holocron-plugin-vercel": makePlugin("vercel", { ci: {} }),
+			}
+		);
+		await loader.load();
+		const found = loader.providerActions();
+		expect([...found.keys()].sort()).toEqual(["1password", "github"]);
+		expect(found.get("github")).toEqual({ setup: action });
+		expect(found.get("1password")).toEqual({ doctor: action });
+	});
+});
+
 describe("PluginLoader — credentials", () => {
 	afterEach(clearCredentials);
 
