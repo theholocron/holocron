@@ -6,6 +6,7 @@
 import autoCommitAction from "../actions/auto-commit/action.yml";
 import codecovUploadAction from "../actions/codecov-upload/action.yml";
 import formatAction from "../actions/format/action.yml";
+import gitIdentityAction from "../actions/git-identity/action.yml";
 import holocronAction from "../actions/holocron/action.yml";
 import installAction from "../actions/install/action.yml";
 import notifyAction from "../actions/notify/action.yml";
@@ -32,6 +33,7 @@ export const ACTIONS: Record<string, string> = {
 	"auto-commit": autoCommitAction,
 	"codecov-upload": codecovUploadAction,
 	format: formatAction,
+	"git-identity": gitIdentityAction,
 	holocron: holocronAction,
 	install: installAction,
 	notify: notifyAction,
