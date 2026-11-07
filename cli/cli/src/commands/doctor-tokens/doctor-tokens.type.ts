@@ -2,14 +2,19 @@ import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui"
 import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
-import type { RuntimeContext } from "../../plugin/index.js";
+import type { PluginLoader, RuntimeContext } from "../../plugin/index.js";
 import type { AuthImporter } from "../auth/index.js";
 
 export interface RunDoctorTokensInput {
 	/** The loaded config: its providers say which plugins to ask for their tokens. */
 	loaded: LoadedConfig;
-	/** The runtime context. Not used to find tokens; kept so the check has the same input as the others. */
+	/** The runtime context: its `repoRoot` is where the repo's `.env` is read from. */
 	context: RuntimeContext;
+	/**
+	 * Loads the repo's `.env` and the config's `credentials` providers into the credential store, the step every command
+	 * runs first, so a token is found where the plugins find it. Defaults to a loader over the config.
+	 */
+	loader?: Pick<PluginLoader, "load" | "loadFailures">;
 	/** Loads a plugin package for its `tokens` and `verifyToken`. Defaults to resolving from the working directory. */
 	importer?: AuthImporter;
 	/** Environment to look tokens up in. Defaults to the process environment. */

@@ -1,11 +1,13 @@
 import { stripVTControlCharacters } from "node:util";
 
+import { clearCredentials, setCredentials } from "@theholocron/kyber/secrets";
 import { fakeLogger } from "@theholocron/observability/testing";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import type { AuthImporter, AuthPluginModule } from "../auth/index.js";
 import { runDoctorTokens } from "./doctor-tokens.js";
+import type { RunDoctorTokensInput } from "./doctor-tokens.type.js";
 
 type Raw = Parameters<typeof resolveConfig>[0];
 
@@ -27,15 +29,26 @@ const importerOf =
 		return found;
 	};
 
+/** A loader that reads no `.env` and asks no provider, so a test sets the credential store itself. */
+const quietLoader = { load: async () => undefined, loadFailures: () => [] };
+
+afterEach(clearCredentials);
+
 async function run(
 	config: LoadedConfig,
 	modules: Record<string, AuthPluginModule | Error>,
-	opts: { env?: NodeJS.ProcessEnv; keyring?: Record<string, string>; now?: Date } = {}
+	opts: {
+		env?: NodeJS.ProcessEnv;
+		keyring?: Record<string, string>;
+		now?: Date;
+		loader?: RunDoctorTokensInput["loader"];
+	} = {}
 ) {
 	const lines: string[] = [];
 	const report = await runDoctorTokens({
 		loaded: config,
 		context: { repoRoot: "/tmp/test" },
+		loader: opts.loader ?? quietLoader,
 		importer: importerOf(modules),
 		env: opts.env ?? {},
 		now: () => opts.now ?? NOW,
@@ -49,6 +62,119 @@ async function run(
 const github = { source: "github" };
 const NOW = new Date("2026-11-01T00:00:00Z");
 const expiringIn = (days: number) => new Date(NOW.getTime() + days * 86_400_000).toISOString();
+
+describe("doctor tokens: the credential store", () => {
+	const verifyToken = () => vi.fn(async () => ({ ok: true as const, subject: "user @ cnewton" }));
+
+	it("finds a token the credentials providers returned, ahead of the keyring, and names the source", async () => {
+		setCredentials("1password:Holocron", { HOLOCRON_ADMIN_TOKEN: "from-1password" });
+		const verify = verifyToken();
+		const { report } = await run(
+			loaded(github),
+			{ [GITHUB]: { tokens: [ADMIN], verifyToken: verify } },
+			{ keyring: { "github.admin": "from-keyring" } }
+		);
+
+		expect(verify).toHaveBeenCalledWith("from-1password");
+		expect(report.rows[0]).toMatchObject({ status: "ok", detail: "user @ cnewton (1password:Holocron)" });
+	});
+
+	it("prefers the process environment to the store", async () => {
+		setCredentials("1password:Holocron", { HOLOCRON_ADMIN_TOKEN: "from-1password" });
+		const verify = verifyToken();
+		await run(
+			loaded(github),
+			{ [GITHUB]: { tokens: [ADMIN], verifyToken: verify } },
+			{ env: { HOLOCRON_ADMIN_TOKEN: "from-env" } }
+		);
+
+		expect(verify).toHaveBeenCalledWith("from-env");
+	});
+
+	it("falls back to the vendor's own name in the store, then to the keyring", async () => {
+		const CF = {
+			envName: "HOLOCRON_CLOUDFLARE_TOKEN",
+			vendorEnvName: "CLOUDFLARE_API_TOKEN",
+			keyringKey: "cloudflare",
+		};
+		setCredentials("dotenv:/repo", { CLOUDFLARE_API_TOKEN: "vendor-named" });
+		const verify = verifyToken();
+		const stored = await run(
+			loaded({ dns: "cloudflare" }),
+			{ "@theholocron/holocron-plugin-cloudflare": { tokens: [CF], verifyToken: verify } },
+			{ keyring: { cloudflare: "from-keyring" } }
+		);
+		expect(verify).toHaveBeenCalledWith("vendor-named");
+		expect(stored.report.rows[0]?.detail).toContain("(dotenv:/repo)");
+
+		clearCredentials();
+		const keyring = await run(
+			loaded({ dns: "cloudflare" }),
+			{ "@theholocron/holocron-plugin-cloudflare": { tokens: [CF], verifyToken: verify } },
+			{ keyring: { cloudflare: "from-keyring" } }
+		);
+		expect(verify).toHaveBeenLastCalledWith("from-keyring");
+		expect(keyring.report.rows[0]?.detail).toContain("(keyring)");
+	});
+
+	it("fails a row for a credentials provider that could not be read, and says why", async () => {
+		const loader = {
+			load: async () => undefined,
+			loadFailures: () => [
+				{
+					key: "credentials" as const,
+					provider: "1password",
+					packageName: "@theholocron/holocron-plugin-1password",
+					error: new Error("op: not signed in"),
+				},
+				{
+					key: "vault" as const,
+					provider: "1password",
+					packageName: "p",
+					error: new Error("ignored: not a credentials provider"),
+				},
+			],
+		};
+		const { report } = await run(loaded(github), { [GITHUB]: { tokens: [ADMIN] } }, { loader });
+
+		expect(report.status).toBe("fail");
+		expect(report.rows[0]).toMatchObject({
+			id: "credentials 1password",
+			status: "fail",
+			detail: "could not be read: op: not signed in",
+		});
+		expect(report.rows.some((r) => r.detail.includes("ignored"))).toBe(false);
+	});
+
+	it("skips, with the reason, when the loader itself throws", async () => {
+		const loader = {
+			load: async () => {
+				throw new Error("config exploded");
+			},
+			loadFailures: () => [],
+		};
+		const { report } = await run(loaded(github), { [GITHUB]: { tokens: [ADMIN] } }, { loader });
+
+		expect(report.rows[0]).toMatchObject({
+			id: "credentials",
+			status: "skip",
+			detail: "could not load the credentials providers: config exploded",
+		});
+	});
+
+	it("builds its own loader over the config when none is given", async () => {
+		const lines: string[] = [];
+		const report = await runDoctorTokens({
+			loaded: loaded({}),
+			context: { repoRoot: "/tmp/test-no-env-here" },
+			env: {},
+			print: (l) => lines.push(l),
+			logger: fakeLogger(),
+		});
+
+		expect(report.status).toBe("skip");
+	});
+});
 
 describe("doctor tokens", () => {
 	it("verifies a token found in the environment, and says where it came from and whose it is", async () => {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { clearCredentials, getCredential, hasCredentials, setCredentials } from "./credential-store.js";
+import { clearCredentials, findCredential, getCredential, hasCredentials, setCredentials } from "./credential-store.js";
 
 afterEach(clearCredentials);
 
@@ -31,6 +31,17 @@ describe("credential store", () => {
 		setCredentials("first", { T: "" });
 		setCredentials("second", { T: "two" });
 		expect(getCredential("T")).toBe("two");
+	});
+
+	it("says which source and which name a value came from", () => {
+		setCredentials("dotenv:/repo", { OTHER: "x" });
+		setCredentials("1password:Holocron", { CLOUDFLARE_API_TOKEN: "tok" });
+		expect(findCredential("HOLOCRON_CLOUDFLARE_TOKEN", "CLOUDFLARE_API_TOKEN")).toEqual({
+			value: "tok",
+			source: "1password:Holocron",
+			name: "CLOUDFLARE_API_TOKEN",
+		});
+		expect(findCredential("MISSING")).toBeUndefined();
 	});
 
 	it("replaces a source that is set again", () => {
