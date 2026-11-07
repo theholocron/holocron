@@ -13,6 +13,13 @@ export interface ConfigSystemOptions<Raw, Resolved, Composed> {
 	 */
 	areas?: readonly string[];
 	/**
+	 * The areas of `areas` that a config in a subdirectory also reads from the repository root's directory (the
+	 * nearest `.git`). Such an area reaches `place` as the config's own file with the root's as `root`, or as the
+	 * root's file when the config has none; `place` decides how they combine. Default: none, so a config reads only
+	 * the directory beside it.
+	 */
+	shared?: readonly string[];
+	/**
 	 * Put the loaded areas into the config, called after the config file is loaded and before `derive`, only when
 	 * `areas` is set. `areas` holds one entry per area that has a file (none when the directory is missing), and `raw`
 	 * is the config as loaded. Return the config with the areas placed; throw `ConfigError` when an area clashes with

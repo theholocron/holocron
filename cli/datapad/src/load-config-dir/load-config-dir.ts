@@ -1,8 +1,6 @@
-import { join } from "node:path";
+import { findRoot } from "@theholocron/fs-utils";
 
-import { DEFAULT_EXTENSIONS } from "../default-extensions/index.js";
-import { isFile } from "../is-file/index.js";
-import { loadFile } from "../load-file/index.js";
+import { loadConfigDirArea } from "../load-config-dir-area/index.js";
 import type { ConfigDirArea, LoadConfigDirOptions } from "./load-config-dir.type.js";
 
 /**
@@ -11,17 +9,23 @@ import type { ConfigDirArea, LoadConfigDirOptions } from "./load-config-dir.type
  * with no file are left out, so a missing directory returns `[]`. When one area has files in two formats, the
  * extension priority picks one (`.ts` over `.json`). Throws {@link ConfigFileError} when a file exists but cannot be
  * loaded. Holocron-agnostic: the directory and the area names are parameters, and what an area means is the caller's.
+ *
+ * Areas named in `options.shared` are also looked up in the repository root's directory (see
+ * {@link LoadConfigDirOptions.shared}), so a config in a subdirectory can inherit what the repo declares once.
  */
 export async function loadConfigDir<T = unknown>(options: LoadConfigDirOptions): Promise<ConfigDirArea<T>[]> {
+	const shared = options.shared ?? [];
+	const root = shared.length > 0 ? await findRoot(options.cwd, ".git") : undefined;
+	const inheritFrom = root !== undefined && root !== options.cwd ? root : undefined;
 	const areas: ConfigDirArea<T>[] = [];
 	for (const area of options.areas) {
-		for (const extension of options.extensions ?? DEFAULT_EXTENSIONS) {
-			const path = `${options.dir}/${area}.${extension}`;
-			const filepath = join(options.cwd, options.dir, `${area}.${extension}`);
-			if (!(await isFile(filepath))) continue;
-			areas.push({ area, path, extension, filepath, value: await loadFile<T>(filepath, extension) });
-			break;
-		}
+		const own = await loadConfigDirArea<T>(options.cwd, options.cwd, options.dir, area, options.extensions);
+		const inherited =
+			inheritFrom !== undefined && shared.includes(area)
+				? await loadConfigDirArea<T>(inheritFrom, options.cwd, options.dir, area, options.extensions)
+				: undefined;
+		const found = own && inherited ? { ...own, root: inherited } : (own ?? inherited);
+		if (found) areas.push(found);
 	}
 	return areas;
 }

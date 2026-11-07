@@ -71,4 +71,39 @@ describe("placeOrg", () => {
 		const raw: HolocronConfig = { providers: { deployment: "vercel" } };
 		expect(placeOrg(raw, org({ vercel: {} })).providers).toEqual({ deployment: "vercel" });
 	});
+
+	describe("with the repository root's area (area.root)", () => {
+		const layered = (own: unknown, root: unknown): ConfigDirArea => ({
+			...org(own),
+			root: { ...org(root), path: "../../.holocron/org.ts", filepath: "/x/.holocron/org.ts" },
+		});
+
+		it("combines the two files, the config's own value winning option by option", () => {
+			const raw: HolocronConfig = {
+				providers: { deployment: "vercel", monitoring: ["checkly", { checks: [] }] },
+			};
+			const placed = placeOrg(
+				raw,
+				layered(
+					{ vercel: { teamId: "own" } },
+					{ vercel: { teamId: "root" }, checkly: { accountId: "acc_root" } }
+				)
+			);
+			expect(placed.providers?.deployment).toEqual(["vercel", { teamId: "own" }]);
+			expect(placed.providers?.monitoring).toEqual(["checkly", { checks: [], accountId: "acc_root" }]);
+		});
+
+		it("names the file a value came from when the config also sets it inline", () => {
+			const raw: HolocronConfig = { providers: { monitoring: ["checkly", { accountId: "inline" }] } };
+			expect(() => placeOrg(raw, layered({ vercel: { teamId: "own" } }, ORG))).toThrow(
+				/checkly\.accountId is set in providers\.monitoring and in \.\.\/\.\.\/\.holocron\/org\.ts/
+			);
+		});
+
+		it("checks the root's file on its own too", () => {
+			expect(() => placeOrg(NONE, layered({}, { netlify: { teamId: "x" } }))).toThrow(
+				/\.\.\/\.\.\/\.holocron\/org\.ts has an unknown provider "netlify"/
+			);
+		});
+	});
 });

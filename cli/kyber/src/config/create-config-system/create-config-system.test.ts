@@ -22,6 +22,10 @@ interface Composed {
 	tags: string[];
 }
 
+interface Layered extends Raw {
+	layout?: unknown;
+}
+
 describe("createConfigSystem", () => {
 	let cwd: string;
 	beforeEach(async () => {
@@ -78,9 +82,6 @@ describe("createConfigSystem", () => {
 	});
 
 	describe("areas and place", () => {
-		interface Layered extends Raw {
-			layout?: unknown;
-		}
 		const withAreas = (seen: unknown[] = []) =>
 			createConfigSystem<Layered, Layered, Frag, Composed>({
 				name: "demo",
@@ -125,6 +126,30 @@ describe("createConfigSystem", () => {
 			await mkdir(join(cwd, ".demo"));
 			await writeFile(join(cwd, ".demo", "layout.json"), "{ nope");
 			await expect(withAreas().loadConfig(cwd)).rejects.toMatchObject({ name: "ConfigFileError" });
+		});
+
+		it("hands a config in a subdirectory the shared areas of the repository root too", async () => {
+			execSync("git init -q", { cwd });
+			await mkdir(join(cwd, ".demo"));
+			await writeFile(join(cwd, ".demo", "layout.json"), JSON.stringify({ from: "root" }));
+			await writeFile(join(cwd, ".demo", "other.json"), JSON.stringify({ from: "root" }));
+			const app = join(cwd, "apps", "a");
+			await mkdir(app, { recursive: true });
+			await writeFile(join(app, "demo.config.json"), "{}");
+			const seen: { area: string; path: string }[][] = [];
+			const system = createConfigSystem<Layered, Layered, Frag, Composed>({
+				name: "demo",
+				areas: ["layout", "other"],
+				shared: ["layout"],
+				place: (areas, raw) => {
+					seen.push(areas.map(({ area, path }) => ({ area, path })));
+					return raw;
+				},
+				resolve: (raw) => raw,
+				merge: { tags: union<string>() },
+			});
+			await system.loadConfig(app);
+			expect(seen).toEqual([[{ area: "layout", path: "../../.demo/layout.json" }]]);
 		});
 
 		it("does not touch the directory when no place is given", async () => {

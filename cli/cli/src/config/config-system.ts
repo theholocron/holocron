@@ -20,7 +20,7 @@ import { mergeStrategies } from "./compose/merge-strategies/index.js";
 import { type HolocronConfig, resolveConfig, type ResolvedHolocronConfig } from "./config/index.js";
 import type { LoadedConfig } from "./config-system.type.js";
 import { deriveDefaults } from "./load-config/derive-defaults/index.js";
-import { HOLOCRON_AREAS } from "./load-config/holocron-areas/index.js";
+import { HOLOCRON_AREAS, SHARED_AREAS } from "./load-config/holocron-areas/index.js";
 import { placeAreas } from "./load-config/place-areas/index.js";
 
 export type { LoadedConfig } from "./config-system.type.js";
@@ -29,6 +29,7 @@ export { ConfigFileError } from "@theholocron/kyber/config";
 const system = createConfigSystem<HolocronConfig, ResolvedHolocronConfig, Capability, ComposedPreset>({
 	name: "holocron",
 	areas: HOLOCRON_AREAS,
+	shared: SHARED_AREAS,
 	place: placeAreas,
 	derive: deriveDefaults,
 	resolve: resolveConfig,

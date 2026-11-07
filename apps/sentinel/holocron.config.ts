@@ -69,7 +69,8 @@
  * infra, since Sentry/Axiom are both reactive (they only see traffic
  * that reaches the function) and wouldn't notice if the deployment
  * stopped receiving traffic at all. `accountId` is not a secret and is filled
- * from `.holocron/org.ts` like Vercel's `teamId`; the API token is vault-sourced like
+ * from the repo root's `.holocron/org.ts` (the org area is shared with this config, #1829), unlike Vercel's `teamId`, which
+ * is in the `.holocron/org.ts` beside this file; the API token is vault-sourced like
  * every other secret here, fanned out to `HOLOCRON_CHECKLY_TOKEN` by
  * `holocron secrets sync` the same way `vault` already handles the
  * other 5 keys. `locations: ["us-east-1"]` is required on both —

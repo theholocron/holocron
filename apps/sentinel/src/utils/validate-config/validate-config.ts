@@ -24,7 +24,8 @@
  *
  * The `.holocron/` directory beside the config (#1785) is listed and fetched at the same `ref` (within the caps of
  * `fetchConfigDir()`), written into the sandbox before the config is evaluated, and its area files are placed on the
- * loaded config with the CLI's `placeAreas()`. A repo without the directory is unchanged, and a new area needs no
+ * loaded config with the CLI's `placeAreas()`. The directory is that of the repo's root config, so no area is
+ * inherited from a parent directory here: `loadConfigDir()` gets no `shared` list (#1829). A repo without the directory is unchanged, and a new area needs no
  * change here. Role sync, property sync and the PR config check all read the config through this function, so they
  * see the merged result. A cap exceeded, or a `.holocron/` file that cannot be loaded or placed, is a `load-error`.
  *
