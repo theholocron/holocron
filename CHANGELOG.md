@@ -1,3 +1,9 @@
+## [5.0.0-alpha.367](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.366...v5.0.0-alpha.367) (2026-11-07)
+
+### Bug Fixes
+
+* **secrets:** 🔑 skip GitHub-invalid secret names instead of a bare 422 ([#1908](https://github.com/theholocron/holocron/issues/1908)) ([b15c6f2](https://github.com/theholocron/holocron/commit/b15c6f2cb14ab2c738d733f0413f6d6533edba73)), closes [#1907](https://github.com/theholocron/holocron/issues/1907)
+
 ## [5.0.0-alpha.366](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.365...v5.0.0-alpha.366) (2026-11-07)
 
 ### Features
