@@ -32,11 +32,14 @@ jobs:
         id: find
         env:
           GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
         run: |
-          repos=$(gh api "search/code?q=filename:holocron.config+org:theholocron&per_page=100" \
+          # $ENV.OWNER is jq's, read from the environment; the single quotes are meant.
+          # shellcheck disable=SC2016
+          repos=$(gh api "search/code?q=filename:holocron.config+org:${OWNER}&per_page=100" \
             --jq '[.items[].repository.full_name]
                   | unique
-                  | map(select(. != "theholocron/.github" and . != "theholocron/holocron"))
+                  | map(select(. != ($ENV.OWNER + "/.github") and . != ($ENV.OWNER + "/holocron")))
                   | join(" ")')
           echo "secondary-repos=$repos" >> "$GITHUB_OUTPUT"
 
@@ -45,7 +48,7 @@ jobs:
     needs: discover-repos
     uses: theholocron/.github/.github/workflows/sync-github.yml@main
     with:
-      primary-repo: theholocron/.github
+      primary-repo: ${{ github.repository_owner }}/.github
       secondary-repos: ${{ needs.discover-repos.outputs.secondary-repos }}
     secrets:
       HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
