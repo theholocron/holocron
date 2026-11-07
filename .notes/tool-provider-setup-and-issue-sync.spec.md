@@ -1,4 +1,5 @@
 ---
+id: SPEC-0071
 status: draft
 issue: theholocron/holocron#1859
 blocked-by: []
@@ -7,6 +8,8 @@ related:
   - theholocron/holocron#1857
   - theholocron/holocron#1744
   - theholocron/holocron#1860
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1568486490328010862
 ---
 
 # Provider setup, Linear automation, GitHub board target and one-way issue syncs
