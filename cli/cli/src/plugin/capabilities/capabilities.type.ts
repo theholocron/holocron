@@ -2069,7 +2069,12 @@ export interface ServerInspection {
 	 * that invites the bot again asking for them when some are missing. Channel overwrites are not looked at. The link
 	 * is not a credential.
 	 */
-	botPermissions?: { missing: string[]; inviteUrl?: string };
+	botPermissions?: {
+		/** The permissions that are missing, in plain words; empty when the bot holds everything it needs. */
+		missing: string[];
+		/** The link that invites the bot again asking for the full set; only present when something is missing. */
+		inviteUrl?: string;
+	};
 	/** Set when reading the bot's roles failed; `botPermissions` is then absent and means nothing. */
 	botPermissionsError?: string;
 	/** Names of the categories on the server. */
