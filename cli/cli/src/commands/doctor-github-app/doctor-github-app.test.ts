@@ -91,6 +91,40 @@ async function run(fakes: Fakes = {}, extra: Partial<RunDoctorGitHubAppInput> = 
 	return { report, text: lines.join("\n") };
 }
 
+describe("runDoctorGitHubApp defaults", () => {
+	const loaded = (githubApps: unknown) => ({
+		resolved: resolveConfig({ name: "demo", org: "acme", providers: {}, githubApps } as never),
+		filepath: "/tmp/x",
+	});
+
+	it("prints to the console, logs to the command's logger and builds its own loader when none are given", async () => {
+		const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		const report = await runDoctorGitHubApp({ loaded: loaded(undefined), context: { repoRoot: "/tmp/test" } });
+		const printed = log.mock.calls.map((c) => stripVTControlCharacters(String(c[0]))).join("\n");
+		log.mockRestore();
+
+		expect(report.status).toBe("skip");
+		expect(printed).toContain("githubApps");
+	});
+
+	it("names the App by its slug alone when GitHub does not say who owns it", async () => {
+		const { report } = await run({ live: app({ owner: undefined }) });
+		const reachable = report.rows.find((r) => r.id.endsWith("reachable"));
+
+		expect(reachable?.status).toBe("ok");
+		expect(reachable?.detail).toMatch(/^sentinel, settings: /);
+	});
+
+	it("reads the live App through the GitHub client when no reads are given, and keeps the key out of the row", async () => {
+		const { report, text } = await run({}, { api: undefined });
+		const reachable = report.rows.find((r) => r.id.endsWith("reachable"));
+
+		expect(report.status).toBe("fail");
+		expect(reachable?.detail).toContain("cannot call GitHub as the App");
+		expect(`${text}${JSON.stringify(report.rows)}`).not.toContain("SECRETKEYBODY");
+	});
+});
+
 describe("runDoctorGitHubApp", () => {
 	it("passes when the App matches its manifest, and names extras as info", async () => {
 		const { report, text } = await run({
