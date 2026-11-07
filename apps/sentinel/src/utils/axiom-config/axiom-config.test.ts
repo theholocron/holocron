@@ -44,7 +44,9 @@ describe("resolveAxiomConfig — SENTINEL_AXIOM_INGEST_TOKEN / SENTINEL_AXIOM_DA
 		);
 	});
 	it("falls back to the bare AXIOM_DATASET when SENTINEL_AXIOM_DATASET is unset", () => {
-		expect(resolveAxiomConfig(env({ SENTINEL_AXIOM_INGEST_TOKEN: "tok_abc", AXIOM_DATASET: "holocron-sentinel" }))).toEqual({
+		expect(
+			resolveAxiomConfig(env({ SENTINEL_AXIOM_INGEST_TOKEN: "tok_abc", AXIOM_DATASET: "holocron-sentinel" }))
+		).toEqual({
 			axiom: { token: "tok_abc", dataset: "holocron-sentinel" },
 		});
 	});
