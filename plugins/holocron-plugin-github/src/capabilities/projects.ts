@@ -22,6 +22,7 @@ import type {
 	BoardTemplate,
 	BoardView,
 	EnsureReport,
+	IssuePriority,
 	LifecycleResult,
 	MoveReport,
 	Projects,
@@ -38,6 +39,15 @@ export interface ProjectsOptions {
 const STATUS_FIELD = "Status";
 /** The name of the field `move` carries over besides the status. */
 const PRIORITY_FIELD = "Priority";
+
+const P_LEVELS: Record<string, IssuePriority> = { p0: "urgent", p1: "high", p2: "medium", p3: "low" };
+
+/** The neutral priority a `Priority` option stands for, by its name; undefined for a name that is not one of them. */
+function priorityOf(value: string | undefined): IssuePriority | undefined {
+	const name = value?.trim().toLowerCase();
+	if (name === "urgent" || name === "high" || name === "medium" || name === "low") return name;
+	return name ? P_LEVELS[name] : undefined;
+}
 
 interface RawOption {
 	id: string;
@@ -451,6 +461,7 @@ export class GitHubProjects implements Projects {
 		return (await this.fetchItems(board.id)).map((i) => {
 			const status = i.values[STATUS_FIELD];
 			const category = status ? categories.get(status) : undefined;
+			const priority = priorityOf(i.values[PRIORITY_FIELD]);
 			return {
 				key: this.keyOf(i.repo, i.number),
 				title: i.title,
@@ -458,6 +469,7 @@ export class GitHubProjects implements Projects {
 				...(status ? { status } : {}),
 				...(category ? { category } : {}),
 				blockedBy: i.blockers.map((b) => this.keyOf(b.repo, b.number)),
+				...(priority ? { priority } : {}),
 			};
 		});
 	}

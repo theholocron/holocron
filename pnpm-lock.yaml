@@ -315,6 +315,9 @@ importers:
       '@theholocron/holocron-plugin-infisical':
         specifier: workspace:*
         version: link:plugins/holocron-plugin-infisical
+      '@theholocron/holocron-plugin-linear':
+        specifier: workspace:*
+        version: link:plugins/holocron-plugin-linear
       '@theholocron/holocron-plugin-neon':
         specifier: workspace:*
         version: link:plugins/holocron-plugin-neon
@@ -1564,6 +1567,55 @@ importers:
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
   clients/jira-client:
+    dependencies:
+      '@theholocron/http-client':
+        specifier: workspace:^
+        version: link:../http-client
+      '@theholocron/observability':
+        specifier: workspace:^
+        version: link:../../observability
+    devDependencies:
+      '@theholocron/eslint-config':
+        specifier: workspace:^
+        version: link:../../configs/eslint-config
+      '@theholocron/tsconfig':
+        specifier: workspace:^
+        version: link:../../configs/tsconfig
+      '@theholocron/tsdown-config':
+        specifier: workspace:^
+        version: link:../../configs/tsdown-config
+      '@theholocron/vitest-config':
+        specifier: workspace:^
+        version: link:../../configs/vitest-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.5(@vitest/browser@5.0.5)(vitest@5.0.5)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.28(@typescript-eslint/eslint-plugin@8.72.1(@typescript-eslint/parser@8.72.1(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)(vitest@5.0.5)
+      eslint:
+        specifier: 'catalog:'
+        version: 10.14.0(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.5.0(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.14.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.4(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  clients/linear-client:
     dependencies:
       '@theholocron/http-client':
         specifier: workspace:^
@@ -3190,6 +3242,57 @@ importers:
       tsx:
         specifier: 4.23.15
         version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/browser-playwright@5.0.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.5(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  plugins/holocron-plugin-linear:
+    devDependencies:
+      '@theholocron/cli':
+        specifier: workspace:*
+        version: link:../../cli/cli
+      '@theholocron/eslint-config':
+        specifier: workspace:^
+        version: link:../../configs/eslint-config
+      '@theholocron/linear-client':
+        specifier: workspace:^
+        version: link:../../clients/linear-client
+      '@theholocron/misc-utils':
+        specifier: workspace:^
+        version: link:../../utils/misc-utils
+      '@theholocron/tsconfig':
+        specifier: workspace:^
+        version: link:../../configs/tsconfig
+      '@theholocron/tsdown-config':
+        specifier: workspace:^
+        version: link:../../configs/tsdown-config
+      '@theholocron/vitest-config':
+        specifier: workspace:^
+        version: link:../../configs/vitest-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.0.5(@vitest/browser@5.0.5)(vitest@5.0.5)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.28(@typescript-eslint/eslint-plugin@8.72.1(@typescript-eslint/parser@8.72.1(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)(vitest@5.0.5)
+      eslint:
+        specifier: 'catalog:'
+        version: 10.14.0(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.5.0(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)
+      globals:
+        specifier: 'catalog:'
+        version: 17.14.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.4(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -14632,7 +14735,7 @@ snapshots:
   '@eslint/json@2.0.1':
     dependencies:
       '@eslint/core': 1.2.1
-      '@eslint/plugin-kit': 0.7.2
+      '@eslint/plugin-kit': 0.7.3
       '@humanwhocodes/momoa': 3.3.12
       natural-compare: 1.4.0
 

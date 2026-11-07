@@ -1,0 +1,47 @@
+import { describeError } from "@theholocron/kyber/ui";
+
+import { type ResolvedHolocronConfig, resolvePluginPackage } from "../../../config/index.js";
+import { assertPluginsResolvable, PluginLoader } from "../../../plugin/index.js";
+import type { OpenSideInput, Side } from "./open-side.type.js";
+
+/**
+ * Loads one provider for a migration. `issues` is a single provider in a config, so each side gets its own loader over
+ * a copy of the config whose `providers` hold only this endpoint; the repo's own entry for the same provider (its
+ * `repo`, `team`, lifecycle labels) is the base the endpoint's options are laid over.
+ */
+export async function openSide(input: OpenSideInput): Promise<Side> {
+	const { endpoint, capabilities } = input;
+	const base = input.loaded.resolved.providers;
+	const providers: ResolvedHolocronConfig["providers"] = {};
+	for (const key of capabilities) {
+		const own = base[key];
+		const ownOptions =
+			own?.cardinality === "single" && own.tuple.provider === endpoint.provider ? own.tuple.options : {};
+		providers[key] = {
+			cardinality: "single",
+			tuple: {
+				provider: endpoint.provider,
+				packageName: resolvePluginPackage(endpoint.provider),
+				options: { ...ownOptions, ...endpoint.options },
+			},
+		};
+	}
+	const resolved = { ...input.loaded.resolved, providers };
+	const loader = input.makeLoader?.(resolved, input.context) ?? new PluginLoader(resolved, input.context);
+	await loader.load();
+	assertPluginsResolvable(loader, "migrate");
+
+	const side: Side = { ok: true, provider: endpoint.provider };
+	for (const key of capabilities) {
+		if (!loader.has(key)) {
+			const failure = loader.loadFailures().find((f) => f.key === key);
+			return {
+				ok: false,
+				reason: `the \`${key}\` capability of \`${endpoint.provider}\` is not available${failure ? ` (${describeError(failure.error)})` : ""}`,
+			};
+		}
+		if (key === "issues") side.issues = loader.get("issues");
+		else side.projects = loader.get("projects");
+	}
+	return side;
+}

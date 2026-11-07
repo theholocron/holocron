@@ -21,6 +21,7 @@ updates:
       - dependency-name: "@theholocron/fs-utils"
       - dependency-name: "@theholocron/github-client"
       - dependency-name: "@theholocron/infisical-client"
+      - dependency-name: "@theholocron/linear-client"
       - dependency-name: "@theholocron/misc-utils"
       - dependency-name: "@theholocron/neon-client"
       - dependency-name: "@theholocron/netlify-client"

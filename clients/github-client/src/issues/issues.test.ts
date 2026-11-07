@@ -115,4 +115,29 @@ describe("issues", () => {
 		await client.issues.listMilestones(REPO, { state: "closed" });
 		expect(calls[0]?.url).toContain("state=closed");
 	});
+
+	it("GET issues — page and milestone params", async () => {
+		const { fetch, calls } = stubFetch([{ body: [] }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.issues.listIssues(REPO, { page: 2, milestone: "3" });
+		expect(calls[0]?.url).toContain("page=2");
+		expect(calls[0]?.url).toContain("milestone=3");
+	});
+
+	it("GET issue comments — reads every page", async () => {
+		const full = Array.from({ length: 100 }, () => ({ body: "x", created_at: "2024-01-01T00:00:00Z", user: null }));
+		const { fetch, calls } = stubFetch([{ body: full }, { body: [full[0]] }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const all = await client.issues.listComments(REPO, 42);
+		expect(all).toHaveLength(101);
+		expect(calls[1]?.url).toContain("/issues/42/comments?per_page=100&page=2");
+	});
+
+	it("POST /milestones — creates by title", async () => {
+		const { fetch, calls } = stubFetch([{ body: { number: 5, title: "v2" } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		expect((await client.issues.createMilestone(REPO, "v2")).number).toBe(5);
+		expect(calls[0]?.method).toBe("POST");
+		expect(calls[0]?.body).toEqual({ title: "v2" });
+	});
 });

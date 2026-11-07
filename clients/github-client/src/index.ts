@@ -58,7 +58,7 @@ export type {
 	PutContentsInput,
 	PutContentsResult,
 } from "./git/git.js";
-export type { GitHubIssue, GitHubMilestone, IssueSearchParams } from "./issues/issues.js";
+export type { GitHubIssue, GitHubIssueComment, GitHubMilestone, IssueSearchParams } from "./issues/issues.js";
 export type { GitHubLabel } from "./labels/labels.js";
 export type {
 	CreatePagesPayload,

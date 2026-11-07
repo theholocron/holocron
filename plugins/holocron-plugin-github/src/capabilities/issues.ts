@@ -12,9 +12,13 @@
  */
 
 import type {
+	ImportOptions,
+	ImportResult,
 	Issue,
+	IssueRecord,
 	Issues,
 	IssueSearchFilter,
+	IssueSelector,
 	LifecycleResult,
 	LifecycleSlot,
 	StatusCategory,
@@ -22,6 +26,8 @@ import type {
 	TrackerUser,
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
+
+import { exportIssues, importIssues } from "./issues-migration.js";
 
 export interface IssuesOptions {
 	repo: string;
@@ -232,6 +238,18 @@ export class GitHubIssues implements Issues {
 			statuses,
 			lifecycle,
 		};
+	}
+
+	// ── migration ────────────────────────────────────────────────────────
+
+	/** Reads issues with their comments, priority label, parent and blockers, for `holocron migrate`. */
+	export(selector: IssueSelector): Promise<IssueRecord[]> {
+		return exportIssues(this.client, this.repo, selector);
+	}
+
+	/** Makes the records as issues; one already made by an earlier run is skipped. */
+	import(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]> {
+		return importIssues(this.client, this.repo, records, options);
 	}
 
 	// ── internals ────────────────────────────────────────────────────────
