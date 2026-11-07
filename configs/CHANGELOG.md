@@ -1,3 +1,9 @@
+## [8.9.0-alpha.11](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.10...configs-v8.9.0-alpha.11) (2026-11-07)
+
+### Refactoring
+
+* **config:** ♻️ one source for the org slug and .github coordinates ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1897](https://github.com/theholocron/holocron/issues/1897)) ([2e767a5](https://github.com/theholocron/holocron/commit/2e767a531c5465a58bcfab47d24e452e153afe3f))
+
 ## [8.9.0-alpha.10](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.9...configs-v8.9.0-alpha.10) (2026-11-07)
 
 ### Bug Fixes
