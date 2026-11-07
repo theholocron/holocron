@@ -1,3 +1,13 @@
+## [5.0.0-alpha.359](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.358...v5.0.0-alpha.359) (2026-11-07)
+
+### Features
+
+* **doctor:** 🔑 doctor notifications checks the bot's server permissions and prints the invite link ([#1855](https://github.com/theholocron/holocron/issues/1855)) ([19fada6](https://github.com/theholocron/holocron/commit/19fada66f31fc905aa69cacadcb10fbb2a075d0a)), closes [#1853](https://github.com/theholocron/holocron/issues/1853) [#1853](https://github.com/theholocron/holocron/issues/1853)
+
+### Bug Fixes
+
+* **notifications:** 🐛 ask for Add Reactions when a forum has starter reactions ([#1852](https://github.com/theholocron/holocron/issues/1852)) ([a6ecb55](https://github.com/theholocron/holocron/commit/a6ecb5572c1fb6a4060f945b3df0b5b06dc3eb8b)), closes [#1822](https://github.com/theholocron/holocron/issues/1822) [#1822](https://github.com/theholocron/holocron/issues/1822)
+
 ## [5.0.0-alpha.358](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.357...v5.0.0-alpha.358) (2026-11-07)
 
 ### Features
