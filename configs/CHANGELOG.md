@@ -1,3 +1,13 @@
+## [8.9.0-alpha.10](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.9...configs-v8.9.0-alpha.10) (2026-11-07)
+
+### Bug Fixes
+
+* **vitest-config:** 🐛 give each package its own module cache ([#1900](https://github.com/theholocron/holocron/issues/1900)) ([01afe1d](https://github.com/theholocron/holocron/commit/01afe1d616eb75153629f82fa4a961d7e5feaa41))
+
+### Chores
+
+* **env:** 🔒 read env through env-utils lookup, enable noProcessEnv ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1872](https://github.com/theholocron/holocron/issues/1872)) ([25ba866](https://github.com/theholocron/holocron/commit/25ba8667d1054686edb17ce3ceea0c82f8236ac7))
+
 ## [8.9.0-alpha.9](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.8...configs-v8.9.0-alpha.9) (2026-11-07)
 
 ### Refactoring
