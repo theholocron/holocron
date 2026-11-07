@@ -25,6 +25,9 @@ import { doctorSecretsEntry } from "../../commands/doctor-secrets/doctor-secrets
 import { doctorTokensEntry } from "../../commands/doctor-tokens/doctor-tokens.entry.js";
 import { doctorVariablesEntry } from "../../commands/doctor-variables/doctor-variables.entry.js";
 import { githubAppCreateEntry } from "../../commands/github-app-create/github-app-create.entry.js";
+import { migrateIssueEntry } from "../../commands/migrate/migrate-issue/migrate-issue.entry.js";
+import { migrateIssuesEntry } from "../../commands/migrate/migrate-issues/migrate-issues.entry.js";
+import { migrateProjectEntry } from "../../commands/migrate/migrate-project/migrate-project.entry.js";
 import { monitoringCheckEntry } from "../../commands/monitoring-check/monitoring-check.entry.js";
 import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
@@ -90,6 +93,9 @@ const registry = createCommandRegistry(
 		doctorGitHubAppEntry,
 		projectMoveEntry,
 		repoPropertiesApplyEntry,
+		migrateIssueEntry,
+		migrateIssuesEntry,
+		migrateProjectEntry,
 		doctorDnsEntry,
 		doctorRepoEntry,
 		doctorSecretsEntry,

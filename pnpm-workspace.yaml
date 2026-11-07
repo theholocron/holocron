@@ -129,6 +129,7 @@ catalogs:
     "@theholocron/fs-utils": ^1.16.0
     "@theholocron/github-client": ^1.58.0
     "@theholocron/infisical-client": ^1.43.1
+    "@theholocron/linear-client": ^1.58.0
     "@theholocron/misc-utils": ^1.16.0
     "@theholocron/neon-client": ^1.43.1
     "@theholocron/netlify-client": ^1.43.0

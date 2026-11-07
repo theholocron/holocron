@@ -547,6 +547,22 @@ describe("GitHubProjects items and setStatus", () => {
 		]);
 	});
 
+	it("items carries the priority of a P-level or a named option, and none for anything else", async () => {
+		const { projects } = endpoint([
+			[
+				"query($id: ID!, $after",
+				() =>
+					page([
+						item("A", 1, "OPEN", { Status: "Todo", Priority: "P0" }),
+						item("B", 2, "OPEN", { Status: "Todo", Priority: " High " }),
+						item("C", 3, "OPEN", { Status: "Todo", Priority: "Someday" }),
+					]),
+			],
+		]);
+		const items = await projects.items("org", BOARD, TEMPLATE);
+		expect(items.map((i) => i.priority)).toEqual(["urgent", "high", undefined]);
+	});
+
 	it("setStatus writes the option, and is a no-op when the item is already there", async () => {
 		const { projects, calls } = endpoint([
 			["query($id: ID!) { node", boardNode()],

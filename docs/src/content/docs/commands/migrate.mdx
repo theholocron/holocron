@@ -1,0 +1,39 @@
+---
+title: migrate
+description: Move issues, a selection, or a whole board from one tracker to another, and see what did not carry over.
+---
+
+```bash
+holocron migrate issue <key>      --from <source> --to <target>
+holocron migrate issues           --from <source> --to <target> (--all | --source-milestone <name> | --keys <a,b>)
+holocron migrate project <name>   --from <source> --to <target>
+```
+
+`--from` and `--to` are `provider` or `provider:key=value,...`, for example `github`, `github:repo=theholocron/holocron` or `linear:team=ENG`. Options given there are laid over the repo's own `providers.issues` entry when it is the same provider, so `--from github --to linear:team=ENG` needs nothing else when the repo already uses GitHub.
+
+| Command           | Moves                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `migrate issue`   | one issue                                                                                        |
+| `migrate issues`  | every issue (`--all`), a milestone or project (`--source-milestone`), or a list (`--keys #1,#2`) |
+| `migrate project` | the items of a board, with the board's status and priority, into a project of the same name      |
+
+| Flag          | Meaning                                                                                  |
+| ------------- | ---------------------------------------------------------------------------------------- |
+| `--open-only` | leave closed issues behind                                                               |
+| `--milestone` | put every migrated issue in this milestone (GitHub) or project (Linear); made if missing |
+| `--yes`       | do not ask first (without a terminal the command refuses instead of hanging)             |
+| `--dry-run`   | read both sides and write nothing; prints what would be created and what would be lost   |
+
+## What is carried
+
+Title, description, labels, priority, state (by name, then by category), assignee (where it can be matched), milestone or project, parent, blocked-by, comments (oldest first, with the author named in the text) and the original created date.
+
+## What is not
+
+Two trackers never hold the same things. Each run ends with a `not carried across` list, one line per loss with the number of issues it hit; run with `--dry-run` first to see it before anything is written. The per-provider differences are in the [Linear plugin page](/holocron/plugins/linear/#differences-from-github).
+
+## Running it twice
+
+Each target records the source address (a `holocron:migrated-from` marker on GitHub, an attachment on Linear), so a second run skips what the first made. An interrupted run is finished by running it again.
+
+A provider takes part by implementing the optional `export` and `import` methods of the `issues` capability.
