@@ -1,6 +1,6 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { postMarkdownLintCheck, SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME } from "./post-markdown-lint-check.js";
 
@@ -21,6 +21,11 @@ const FILES_IN_DIFF = {
 };
 /** postErrorReview()'s own createReview() call -- queued whenever a test's messages include at least one error-severity finding. */
 const REVIEW_POSTED = { body: { id: 999, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-999" } };
+
+beforeAll(() => {
+	vi.stubEnv("AXIOM_ORG", "acme-org");
+	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+});
 
 describe("postMarkdownLintCheck — carries the intent vocabulary through (D5)", () => {
 	it("names the check run Source Quality / Documentation / Run markdownlint", () => {
@@ -55,7 +60,7 @@ describe("postMarkdownLintCheck — valid", () => {
 		expect(body.output.title).toBe("Markdown lint: OK");
 		expect(body.output.summary).toBe("All 3 changed markdown file(s) pass.");
 		const url = new URL(body.details_url);
-		expect(url.origin + url.pathname).toBe("https://app.axiom.co/the-holocron-7bbe/query");
+		expect(url.origin + url.pathname).toBe("https://app.axiom.co/acme-org/query");
 		const apl = (JSON.parse(url.searchParams.get("initForm")!) as { apl: string }).apl;
 		expect(apl).toContain('runId == "run-1"');
 		expect(apl).toContain('msg == "postMarkdownLintCheck: posted"');

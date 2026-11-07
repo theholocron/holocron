@@ -1,3 +1,5 @@
+import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
+
 /**
  * This App's brand name. No longer prefixed onto check-run names — GitHub's
  * own check-run detail page already shows the posting App's display name
@@ -23,9 +25,6 @@ export const SENTINEL_NAMESPACES = {
 	sourceQuality: "Source Quality",
 } as const satisfies Record<string, string>;
 
-export const SENTINEL_AXIOM_ORG = "the-holocron-7bbe";
-export const SENTINEL_AXIOM_DATASET = "holocron-sentinel";
-
 /**
  * `details_url` target for a check run Sentinel posts directly (no workflow
  * run behind it, unlike the dispatched check) — a permalink filtered to the
@@ -37,11 +36,24 @@ export const SENTINEL_AXIOM_DATASET = "holocron-sentinel";
  * can post more than one check (capability compliance + commit standards
  * together) — `msg` (the exact string each one logs, matched with its own
  * post) disambiguates which of that request's lines is this one.
+ *
+ * The org slug and dataset are not compiled in: they come from `AXIOM_ORG` and
+ * `AXIOM_DATASET` through `@theholocron/env-utils/lookup`, the path the
+ * logger's `AXIOM_DATASET` already takes. Both are synced into Vercel from the
+ * 1Password Environment `Sentinel`. Returns `undefined` (the check run then
+ * has no details link) when either is unset, instead of a wrong link.
  */
-export function sentinelAxiomLogUrl(runId: string, msg: string): string {
-	const apl = `['${SENTINEL_AXIOM_DATASET}'] | where runId == "${runId}" and msg == "${msg}"`;
+export function sentinelAxiomLogUrl(
+	runId: string,
+	msg: string,
+	env: EnvLookup = createEnvLookup()
+): string | undefined {
+	const org = env.get("AXIOM_ORG");
+	const dataset = env.get("AXIOM_DATASET");
+	if (!org || !dataset) return undefined;
+	const apl = `['${dataset}'] | where runId == "${runId}" and msg == "${msg}"`;
 	const initForm = JSON.stringify({ apl });
-	return `https://app.axiom.co/${SENTINEL_AXIOM_ORG}/query?initForm=${encodeURIComponent(initForm)}`;
+	return `https://app.axiom.co/${org}/query?initForm=${encodeURIComponent(initForm)}`;
 }
 
 /** Logged (and linked to) once `postCheckRun()` actually posts — never hand-copy this string elsewhere. */

@@ -274,9 +274,9 @@ since this section had already drifted out of sync with it once.
 A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY,
-SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Two more
-Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)
-feed the module-level logger directly, via `@theholocron/env-utils/lookup`
+SENTINEL_WEBHOOK_SECRET }`, wired via `holocron secrets sync`. Three more
+Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`, `AXIOM_ORG`)
+feed the module-level logger and the Axiom links directly, via `@theholocron/env-utils/lookup`
 (never bare `process.env`, this org's own convention) — see
 `src/handler/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
 acknowledged only — no per-installation action is defined in v1.
@@ -556,7 +556,10 @@ transport (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a
 narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org) and
 `AXIOM_DATASET` (`holocron-sentinel`, not a secret, but synced the same
-way for one source of truth).
+way for one source of truth) and `AXIOM_ORG` (`the-holocron-7bbe`, the Axiom
+org slug, also not a secret). The check runs' Axiom `details_url` is built from
+`AXIOM_ORG` and `AXIOM_DATASET` at request time; with either unset the check
+run simply has no details link.
 
 ```sh
 holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \

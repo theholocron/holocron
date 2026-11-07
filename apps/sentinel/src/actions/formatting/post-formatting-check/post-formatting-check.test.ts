@@ -1,6 +1,6 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { postFormattingCheck, SENTINEL_FORMATTING_CHECK_RUN_NAME } from "./post-formatting-check.js";
 
@@ -8,6 +8,11 @@ function makeClient(responses: Parameters<typeof stubFetch>[0]) {
 	const { fetch, calls } = stubFetch(responses);
 	return { client: createGitHubClient({ token: "ghp_test", fetch }), calls };
 }
+
+beforeAll(() => {
+	vi.stubEnv("AXIOM_ORG", "acme-org");
+	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+});
 
 describe("postFormattingCheck — carries the intent vocabulary through (D5)", () => {
 	it("names the check run Source Quality / Formatting / Run prettier", () => {
@@ -41,7 +46,7 @@ describe("postFormattingCheck — valid", () => {
 		expect(body.output.title).toBe("Formatting: OK");
 		expect(body.output.summary).toBe("All 3 changed file(s) pass.");
 		const url = new URL(body.details_url);
-		expect(url.origin + url.pathname).toBe("https://app.axiom.co/the-holocron-7bbe/query");
+		expect(url.origin + url.pathname).toBe("https://app.axiom.co/acme-org/query");
 		const apl = (JSON.parse(url.searchParams.get("initForm")!) as { apl: string }).apl;
 		expect(apl).toContain('runId == "run-1"');
 		expect(apl).toContain('msg == "postFormattingCheck: posted"');

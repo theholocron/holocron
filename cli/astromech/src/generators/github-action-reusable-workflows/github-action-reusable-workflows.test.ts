@@ -713,6 +713,13 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 		expect(wf).toContain('where check_run_id == \\"${CHECK_RUN_ID}\\"');
 	});
 
+	it("reads the Axiom org and dataset from org variables, with no literal fallback", () => {
+		expect(wf).toContain("AXIOM_ORG: ${{ vars.AXIOM_ORG }}");
+		expect(wf).toContain("AXIOM_DATASET: ${{ vars.AXIOM_DATASET }}");
+		expect(wf).not.toContain("the-holocron-7bbe");
+		expect(wf).not.toMatch(/AXIOM_DATASET: holocron-sentinel/);
+	});
+
 	it("tags the shipped event with a level field so Axiom's severity highlighting applies", () => {
 		expect(wf).toContain('level=$([ "$CONCLUSION" = "success" ] && echo "info" || echo "error")');
 		expect(wf).toContain("level: $level");

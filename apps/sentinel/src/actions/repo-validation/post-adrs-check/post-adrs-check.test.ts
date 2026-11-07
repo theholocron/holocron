@@ -1,6 +1,6 @@
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { AdrMessage } from "../validate-adrs/index.js";
 import { postAdrsCheck, SENTINEL_ADRS_CHECK_RUN_NAME } from "./post-adrs-check.js";
@@ -49,6 +49,11 @@ function post(client: ReturnType<typeof makeClient>["client"], messages: AdrMess
 		runId: "run-1",
 	});
 }
+
+beforeAll(() => {
+	vi.stubEnv("AXIOM_ORG", "acme-org");
+	vi.stubEnv("AXIOM_DATASET", "acme-dataset");
+});
 
 describe("postAdrsCheck", () => {
 	it("names the check after the CI job, under the platform namespace", () => {

@@ -137,8 +137,10 @@ jobs:
           JOB_ID: ${{ steps.job-info.outputs.job_id }}
           CHECK_RUN_ID: ${{ inputs.check-run-id }}
           CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
-          AXIOM_ORG: the-holocron-7bbe
-          AXIOM_DATASET: holocron-sentinel
+          # Org variables (1Password Environment "Holocron - GitHub Actions variables", synced by
+          # `repo.variables.sync`); no literal fallback.
+          AXIOM_ORG: ${{ vars.AXIOM_ORG }}
+          AXIOM_DATASET: ${{ vars.AXIOM_DATASET }}
           AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}
 
       # Always runs, success or failure — the queued check run on the target
