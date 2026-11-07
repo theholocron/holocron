@@ -132,6 +132,7 @@ export default defineConfig({
 			{ label: "Configuration", slug: "config" },
 			{ label: "Capabilities", slug: "capabilities" },
 			{ label: "Token Reference", slug: "tokens" },
+			{ label: "Environment Variables", slug: "environment-variables" },
 			{ label: "Server as Code", slug: "server-as-code" },
 			{ label: "Self-hosting", slug: "self-hosting" },
 			{ label: "Domains", slug: "domains" },

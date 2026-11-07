@@ -193,13 +193,19 @@ jobs:
           # through to the deployed function, so an untrusted PR's own
           # code could read and exfiltrate it off its own incoming
           # request. An untrusted deployment gets neither secret.
+          HOLOCRON_VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
+          HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
+          # The bare names stay until every caller's CLI reads the prefixed ones (#1864); a CLI that predates them
+          # reads only these. The secrets keep their bare names in GitHub and 1Password.
           VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
           VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
           # Not a secret and not gated on trust: the org's Vercel team id
           # (the synced org variable VERCEL_TEAM_ID, `repo.variables.sync`),
           # which scopes the ownership lookup to the right team. It is
           # read from the org's settings, never from the PR's config
-          # (`run-resolved` loads none), so a PR cannot change it.
+          # (`run-resolved` loads none), so a PR cannot change it. The variable keeps its bare
+          # name in GitHub and 1Password; the workflow maps it onto the prefixed one.
+          HOLOCRON_VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:

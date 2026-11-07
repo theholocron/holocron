@@ -78,7 +78,8 @@ jobs:
       TURBO_TEAM: ${{ vars.TURBO_TEAM }}
       HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
       HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}
-      POSTHOG_PROJECT_TOKEN: ${{ vars.POSTHOG_PROJECT_TOKEN }}
+      # The synced org variable keeps its bare name (POSTHOG_PROJECT_TOKEN); the CLI reads it as HOLOCRON_POSTHOG_PROJECT_TOKEN.
+      HOLOCRON_POSTHOG_PROJECT_TOKEN: ${{ vars.POSTHOG_PROJECT_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository

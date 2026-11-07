@@ -132,7 +132,7 @@ The Axiom transport is added when Axiom credentials are present **and**
 | `HOLOCRON_AXIOM_TOKEN`   | `AXIOM_TOKEN`   | Axiom API token     |
 | `HOLOCRON_AXIOM_DATASET` | `AXIOM_DATASET` | target dataset name |
 
-The CLI ships to its own dataset, `holocron` (`HOLOCRON_AXIOM_DATASET`; the bare `AXIOM_DATASET` is only a fallback).
+The CLI ships to its own dataset, `holocron` (`HOLOCRON_AXIOM_DATASET`; the bare `AXIOM_DATASET` is only a fallback). The full list of variables and their fallback order is on [Environment Variables](/holocron/environment-variables/).
 Each service has a dataset of its own, named by its own variable (`SENTINEL_AXIOM_DATASET` is `holocron-sentinel`,
 `COMLINK_AXIOM_DATASET` is reserved for `holocron-comlink`). Within a service the environments share one dataset and are
 told apart by [`env`](#one-dataset-per-service-every-environment), not by dataset.

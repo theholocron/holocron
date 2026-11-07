@@ -1,0 +1,91 @@
+---
+title: Environment Variables
+description: Every environment variable the Holocron CLI, plugins, kyber, Sentinel and the generated workflows read, and which of them carry the HOLOCRON_ prefix.
+---
+
+A variable Holocron owns is `HOLOCRON_<NAME>`. The bare `<NAME>` is kept as a fallback, so nothing that sets it breaks, and a variable another tool reads itself is never renamed. This page is the list, sorted into the three groups of [#1864](https://github.com/theholocron/holocron/issues/1864).
+
+## The rule
+
+- The prefix is one constant, `PREFIX` (`"HOLOCRON"`), exported from `@theholocron/env-utils/lookup`. `holocronEnv()` reads a name as `HOLOCRON_<NAME>` and then `<NAME>`; kyber's `resolveValue(names, env, { prefix: PREFIX })` does the same through the environment and then the `credentials` providers. See [env-utils](/holocron/utils/env-utils/) and [kyber](/holocron/kyber/).
+- Empty values count as unset at every step, so a blank `HOLOCRON_X=` falls through to `X`.
+- A bare fallback is never removed in the same change that adds the prefixed name. Removing one is a later, separate change.
+- The prefixed name is an extra way in for a name a third party reads. The bare name still works there.
+- The organization's GitHub variables and the 1Password Environment keep their bare names. A workflow maps one onto the prefixed name (`HOLOCRON_POSTHOG_PROJECT_TOKEN: ${{ vars.POSTHOG_PROJECT_TOKEN }}`), as the Axiom dataset does. Renaming them would be a 1Password edit and a sync by the maintainer, and gains nothing a mapping line does not.
+
+## Group 1: names Holocron chooses
+
+Read as `HOLOCRON_<NAME>`, then `<NAME>`.
+
+| Name                                                                 | Read by                                                                 | Notes                                                                                                                                                                     |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AXIOM_DATASET`                                                      | the CLI logger, `setup`, the Axiom plugin, `@theholocron/observability` | The CLI's dataset, `holocron`. Org variable is already `HOLOCRON_AXIOM_DATASET`. [Logging](/holocron/logging/)                                                            |
+| `SENTRY_DSN`                                                         | CLI error telemetry, the `sentry send-error` probe                      | Then the built-in Holocron DSN (telemetry). [Telemetry](/holocron/telemetry/)                                                                                             |
+| `POSTHOG_PROJECT_TOKEN`, `POSTHOG_HOST`                              | CLI usage analytics                                                     | Then the built-in ingest-only key and host. Org variable `POSTHOG_PROJECT_TOKEN` is mapped by `sync-github` and `sync-repo`                                               |
+| `CLOUDFLARE_ACCOUNT_ID`                                              | the Cloudflare plugin (`resolveValue`)                                  | Judgement call: wrangler reads this name too, but the plugin reads it itself and never hands it on, so it is group 1. The bare name keeps working either way              |
+| `VERCEL_TEAM_ID`, `VERCEL_PROTECTION_BYPASS_SECRET`                  | `monitoring run-resolved` (`resolveVercelCredentials`)                  | Holocron's names. The synced org variable `VERCEL_TEAM_ID` is mapped by `check-preview`                                                                                   |
+| `PORT`                                                               | `holocron dev serve`                                                    | `holocron dev` sets `HOLOCRON_PORT` and `PORT` to the same number, so a stale shell value cannot override the tunnel's port. The application it starts still reads `PORT` |
+| `BASE_SHA`, `PR_TITLE`, `PR_BODY`                                    | `docs presence`, `docs patch`                                           | `validate/docs.yml` sets both spellings until every caller's CLI reads the prefixed one                                                                                   |
+| `GOOGLE_*` (`CLIENT_ID`, `CLIENT_SECRET`, `SERVICE_ACCOUNT_JSON`, …) | `@theholocron/google-client`                                            | Holocron's own names; no Google tool reads them                                                                                                                           |
+
+Group 1 names not migrated yet, and why:
+
+| Name                                      | Read by                                           | Why it is left                                                                                                                                         |
+| ----------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ENVIRONMENT`                             | `detectEnvironment()`, `holocron dev`             | A contract with the applications `holocron dev` starts and with Sentinel and Comlink; `NODE_ENV` and `CI` are third-party. Needs a decision, see below |
+| `RELEASE_GROUP`                           | root `release.config.ts`, `release.yml`           | Read raw on purpose (semantic-release loads it before a build) and by each consumer repo's own release config; moves with the template repos           |
+| `AXIOM_ORG`                               | Sentinel (`constants.ts`), `check-dispatched.yml` | Sentinel's per-service convention stays; the org variable is synced under the bare name                                                                |
+| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` | Sentinel (`handler.ts`)                           | Sentinel's own bindings; GitHub reserves the `GITHUB_` prefix for its secrets, so these are set only on the deployment                                 |
+
+## Group 2: names a third party reads itself
+
+The bare name is the contract. Holocron reads it the same way, and nothing here is renamed.
+
+| Name                                                | Read by                                                 | Notes                                                                                 |
+| --------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `GITHUB_TOKEN`, `GH_TOKEN`                          | `sync-wiki` (after `HOLOCRON_READ_TOKEN`), the `gh` CLI | `gh` reads `GH_TOKEN`                                                                 |
+| `NPM_TOKEN`                                         | `package publish` (only checks that it is set)          | npm reads it. Trusted Publishing needs none                                           |
+| `TURBO_TOKEN`, `TURBO_TEAM`, `TURBO_SCM_BASE`       | turbo; astromech `--affected` (`TURBO_SCM_BASE`)        | Org variable `TURBO_TEAM` is passed through unchanged                                 |
+| `CI`, `NO_UPDATE_NOTIFIER`                          | `isCI()`, the update notifier, telemetry                | Conventions many tools share                                                          |
+| `GITHUB_REF_NAME`, `GITHUB_EVENT_NAME`              | astromech `--affected`                                  | Set by GitHub Actions                                                                 |
+| `DEBUG`                                             | `@theholocron/env-utils` key logging                    | The `debug` convention                                                                |
+| `PATH`, `PATHEXT`                                   | `fs-utils` `findExecutable`, the test harness           | Operating system                                                                      |
+| `CODECOV_TOKEN`                                     | the vite-config `codecov` preset                        | The Codecov uploader reads it                                                         |
+| `TUNNEL_TOKEN`                                      | `cloudflared`, set by `tunnel up --run` and `dev`       | `cloudflared` reads it; never on argv                                                 |
+| `OP_SERVICE_ACCOUNT_TOKEN`                          | the 1Password plugin, through `op`                      | `op` reads it                                                                         |
+| `CLOUDFLARE_API_TOKEN`                              | the Cloudflare plugin as the vendor name; wrangler      | Behind `HOLOCRON_CLOUDFLARE_TOKEN`                                                    |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | `release.yml` (sentry-cli); the Sentry plugin token     | sentry-cli reads these. The org variable `SENTRY_ORG` is passed through unchanged     |
+| `FERN_TOKEN`, `VERCEL_TOKEN`                        | the Fern and Vercel CLIs in workflows                   | Each is also a vendor fallback behind `HOLOCRON_FERN_TOKEN` / `HOLOCRON_VERCEL_TOKEN` |
+
+The other provider tokens (`DOPPLER_TOKEN`, `NETLIFY_AUTH_TOKEN`, …) are vendor fallbacks behind a `HOLOCRON_` name; see group 3 and the [Token Reference](/holocron/tokens/).
+
+## Group 3: already prefixed
+
+| Name                                                                                                               | Read by                                          | Consistency check                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `HOLOCRON_<FEATURE>_TOKEN` (`READ`, `ISSUES`, `SYNC`, `RELEASE`, `ADMIN`, `SECRETS`, `DEPLOY`, `USER_SYNC`, `ORG`) | the GitHub feature resolvers                     | Consistent; no bare fallback by design (the broad `GITHUB_TOKEN` is not tried)                                                   |
+| `HOLOCRON_<PROVIDER>_TOKEN` / `_API_KEY` / `_SECRET_KEY` and the vendor name                                       | each plugin's `auth.ts`                          | Consistent: `HOLOCRON_` name, then vendor name. See [Token Reference](/holocron/tokens/)                                         |
+| `HOLOCRON_ORG`                                                                                                     | org resolution, token keyring account, telemetry | Consistent                                                                                                                       |
+| `HOLOCRON_LOG_LEVEL`, `HOLOCRON_TELEMETRY`                                                                         | the logger, telemetry                            | Consistent                                                                                                                       |
+| `NO_HOLOCRON_TELEMETRY`                                                                                            | telemetry                                        | Inconsistent shape: the `NO_<PREFIX>_TELEMETRY` convention puts `NO_` first. Kept; renaming it would break opt-outs              |
+| `HOLOCRON_CACHE_DIR`, `HOLOCRON_OTP`, `HOLOCRON_NPM_ENFORCE_2FA`, `HOLOCRON_DRY_RUN_PREVIEW`                       | update notifier, `package publish`, the menu     | Consistent                                                                                                                       |
+| `HOLOCRON_<OPTION>`                                                                                                | the menu, for a `secret: true` option            | Consistent                                                                                                                       |
+| `HOLOCRON_SENTRY_PROBE_PROJECT`, `HOLOCRON_CHECKLY_PROBE_CHANNEL`                                                  | the `sentry` and `checkly` probes                | Consistent                                                                                                                       |
+| `HOLOCRON_NOTIFY_*`, `HOLOCRON_DISCORD_*`                                                                          | the notifications workflow, Discord plugin       | Consistent                                                                                                                       |
+| `SENTINEL_*` (`WEBHOOK_SECRET`, `ROLE_SYNC_REPO`, `AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`)                           | Sentinel                                         | Per service, on purpose. `SENTINEL_AXIOM_DATASET` falls back to the bare `AXIOM_DATASET`, the name the CLI used to share (#1839) |
+| `COMLINK_*` (`SENTRY_SECRET`, `SENTRY_WEBHOOK`)                                                                    | Comlink Worker bindings                          | Per service, on purpose                                                                                                          |
+
+## Synced organization variables
+
+`repo.variables.sync` keeps these names in 1Password and GitHub. Workflows read `vars.<NAME>` and map them where the CLI reads a prefixed name.
+
+| Variable                              | Used as                                                                     | Decision                                 |
+| ------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------- |
+| `HOLOCRON_AXIOM_DATASET`              | `HOLOCRON_AXIOM_DATASET` in `sync-github`, `sync-repo`                      | Already prefixed                         |
+| `POSTHOG_PROJECT_TOKEN`               | `HOLOCRON_POSTHOG_PROJECT_TOKEN` in `sync-github`, `sync-repo`              | Stays bare, mapped                       |
+| `VERCEL_TEAM_ID`                      | `HOLOCRON_VERCEL_TEAM_ID` (and the bare name) in `check-preview`            | Stays bare, mapped                       |
+| `CLOUDFLARE_ACCOUNT_ID`               | `accountId` of the wrangler action; `CLOUDFLARE_ACCOUNT_ID` in a shell step | Stays bare; wrangler reads it            |
+| `CLOUDFLARE_PAGES_PROJECT`            | the Pages project name in `preview`                                         | Stays bare; only workflows read it       |
+| `TURBO_TEAM`                          | `TURBO_TEAM`                                                                | Stays bare; turbo reads it               |
+| `SENTRY_ORG`                          | `SENTRY_ORG` in `release`                                                   | Stays bare; sentry-cli reads it          |
+| `AXIOM_ORG`, `SENTINEL_AXIOM_DATASET` | Sentinel's query link and dataset in `check-dispatched`                     | Stay as they are (Sentinel's convention) |
