@@ -1,3 +1,9 @@
+## [5.0.0-alpha.355](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.354...v5.0.0-alpha.355) (2026-11-07)
+
+### Features
+
+* **config:** 🗂️ share the root org area with app configs ([#1829](https://github.com/theholocron/holocron/issues/1829)) ([#1836](https://github.com/theholocron/holocron/issues/1836)) ([9b581be](https://github.com/theholocron/holocron/commit/9b581be3e4c5df90b0e533521b2b1045e8b0d5c0))
+
 ## [5.0.0-alpha.354](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.353...v5.0.0-alpha.354) (2026-11-06)
 
 ### Features
