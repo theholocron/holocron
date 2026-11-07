@@ -161,6 +161,18 @@
  *   Its own soft-skip is independent of the commit's: a comment failure
  *   must never make an otherwise-successful auto-fix commit look like it
  *   failed too.
+ * - **#prs feed** (`runPrFeed`, holocron#1833, spec `tech-sentinel-pr-feed`): one forum
+ *   post per pull request, kept in step with GitHub. Runs for every `pull_request.*`
+ *   event, and alone (none of the checks above) for `pull_request.feed` (reopened,
+ *   closed, ready_for_review, converted_to_draft, review_requested,
+ *   review_request_removed, labeled, an edit of neither title nor description),
+ *   `pull_request_review` and `check_run.completed` (only `ci / Required checks`
+ *   reaches here). For opened/synchronize/edited it runs before the checks and
+ *   independent of them. Off, with a quiet `skipped`, unless the role-sync settings
+ *   `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` are set and that repo's
+ *   layout has a forum with `feeds.prs` (no new secret). A feed error answers 500 with
+ *   the reason (merged into the checks' own response, which is otherwise unchanged)
+ *   and logs an error line, so GitHub offers a redelivery, which is safe.
  *
  * Deliberately platform-agnostic: a plain `(Request, Env) => Response`
  * function, no framework, no deploy-target-specific wrapper. A thin
@@ -225,8 +237,12 @@ import {
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
 	postStaticAnalysisCheck,
+	type PrFeedTrigger,
+	runPrFeed,
+	type RunPrFeedResult,
 	runRoleSync,
 	syncPropertiesFromConfig,
+	toPrFeedTrigger,
 	validateAdrs,
 	validateDocsPresence,
 } from "../actions/index.js";
@@ -250,6 +266,7 @@ import {
 	SENTINEL_MARKDOWN_LINT_FIX_LOG_MSG,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
+	SENTINEL_PR_FEED_LOG_MSG,
 	SENTINEL_REPO_VALIDATION_TASK,
 	SENTINEL_ROLE_SYNC_LOG_MSG,
 	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
@@ -446,6 +463,56 @@ async function handle(request: Request, env: Env): Promise<Response> {
 		return json({ handled: false, reason: `${event.type}: no repo in event` });
 	}
 
+	// The #prs feed (holocron#1833). A review, a completed `ci / Required checks` and the pull_request actions only the
+	// feed reads run none of the checks below. opened/synchronize/edited run the feed first and the checks after, each
+	// independent of the other: the feed never throws (a failure is a result), and a check that throws still reaches the
+	// catch in handleWebhookRequest with the feed already done.
+	const trigger = toPrFeedTrigger(event);
+	if (trigger) {
+		const prFeed = await runFeed(event, repo, trigger, env);
+		if (FEED_ONLY_EVENTS.has(event.type)) {
+			return json({ handled: true, type: event.type, prFeed }, prFeed.status === "fail" ? 500 : 200);
+		}
+		return withPrFeed(await handleChecks(event, repo, env), prFeed);
+	}
+	return handleChecks(event, repo, env);
+}
+
+/** Events only the feed reads: no check of the pipeline below runs for them. */
+const FEED_ONLY_EVENTS: ReadonlySet<SentinelEvent["type"]> = new Set([
+	"pull_request.feed",
+	"pull_request_review",
+	"check_run.completed",
+]);
+
+/**
+ * Runs the feed for a delivery and logs its result (an error line for a failure, like role sync). Never throws: it
+ * must not change what the other actions do, so even a failure to get an installation token is a `fail` result.
+ */
+async function runFeed(event: SentinelEvent, repo: string, trigger: PrFeedTrigger, env: Env): Promise<RunPrFeedResult> {
+	let prFeed: RunPrFeedResult;
+	try {
+		const client = await createInstallationClient(
+			{ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY },
+			event.installationId
+		);
+		prFeed = await runPrFeed({ client, env, repo, trigger });
+	} catch (err) {
+		prFeed = { status: "fail", reason: err instanceof Error ? err.message : String(err) };
+	}
+	if (prFeed.status === "fail") logger.error({ repo, type: event.type, prFeed }, SENTINEL_PR_FEED_LOG_MSG);
+	else logger.info({ repo, type: event.type, prFeed }, SENTINEL_PR_FEED_LOG_MSG);
+	return prFeed;
+}
+
+/** Adds the feed's result to a checks response, answering 500 when the feed failed so the delivery can be redelivered. */
+async function withPrFeed(response: Response, prFeed: RunPrFeedResult): Promise<Response> {
+	const body = (await response.json()) as Record<string, unknown>;
+	return json({ ...body, prFeed }, prFeed.status === "fail" ? 500 : response.status);
+}
+
+/** The check pipelines for a `push.default-branch` or `pull_request.*` event (everything below). */
+async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promise<Response> {
 	let context: ResolutionContext;
 	try {
 		context = resolutionContext(event);

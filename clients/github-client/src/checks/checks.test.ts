@@ -159,6 +159,28 @@ describe("checks.updateCheckRun", () => {
 	});
 });
 
+describe("checks.listCheckRunsForRef", () => {
+	it("GETs the check runs of a commit, one page when it comes back short", async () => {
+		const { fetch, calls } = stubFetch([{ body: { check_runs: [RAW_CHECK_RUN] } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.checks.listCheckRunsForRef(REPO, "abc123");
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/commits/abc123/check-runs?per_page=100&page=1");
+		expect(result.map((c) => c.id)).toEqual([1234]);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("reads the next page while a page is full", async () => {
+		const full = Array.from({ length: 100 }, (_, i) => ({ ...RAW_CHECK_RUN, id: i }));
+		const { fetch, calls } = stubFetch([{ body: { check_runs: full } }, { body: { check_runs: [RAW_CHECK_RUN] } }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.checks.listCheckRunsForRef(REPO, "abc123");
+		expect(calls).toHaveLength(2);
+		expect(calls[1]?.url).toContain("page=2");
+		expect(result).toHaveLength(101);
+	});
+});
+
 describe("MAX_CHECK_RUN_ANNOTATIONS", () => {
 	it("is GitHub's 50-annotations-per-request cap, exported from the package entry", () => {
 		expect(MAX_CHECK_RUN_ANNOTATIONS).toBe(50);

@@ -1,3 +1,14 @@
+import type { SentinelCheckRun } from "../../utils/webhook/index.js";
+
+/** What a delivery asks of the feed, normalized from the webhook event. */
+export type PrFeedTrigger =
+	/** A `pull_request` action. */
+	| { kind: "pull_request"; action: string; numbers: number[] }
+	/** A review was submitted or dismissed. */
+	| { kind: "review"; numbers: number[] }
+	/** A check run completed; the pull requests are the ones its commit is in. */
+	| { kind: "check_run"; numbers: number[]; check: SentinelCheckRun };
+
 /** The state of a post in the #prs forum, shown as its tag. */
 export type PullRequestTag =
 	"draft" | "conflicts" | "failing" | "changes requested" | "ready" | "waiting" | "merged" | "closed";

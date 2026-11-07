@@ -111,6 +111,19 @@ describe("pulls.listCommits", () => {
 	});
 });
 
+describe("pulls.listReviews", () => {
+	it("GETs /repos/{owner}/{name}/pulls/{number}/reviews with per_page=100", async () => {
+		const reviews = [{ id: 1, html_url: "https://example.test/r/1", state: "APPROVED", user: { login: "leia" } }];
+		const { fetch, calls } = stubFetch([{ body: reviews }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listReviews(REPO, 42);
+		expect(calls[0]?.method).toBe("GET");
+		expect(calls[0]?.url).toContain("/repos/theholocron/test-repo/pulls/42/reviews");
+		expect(calls[0]?.url).toContain("per_page=100");
+		expect(result[0]?.state).toBe("APPROVED");
+	});
+});
+
 describe("pulls.listFiles", () => {
 	it("GETs /repos/{owner}/{name}/pulls/{number}/files with per_page=100", async () => {
 		const files = [

@@ -11,12 +11,12 @@
 
 import { tmpdir } from "node:os";
 
-import { type RawProvidersConfig, resolveEntry } from "@theholocron/cli";
 import { createGitHubClient } from "@theholocron/github-client";
 import { createPlugin as createDiscordPlugin } from "@theholocron/holocron-plugin-discord";
 import { GitHubSource } from "@theholocron/holocron-plugin-github";
 
 import { validateConfig } from "../../../utils/validate-config/index.js";
+import { findDiscordOptions } from "../find-discord-options/index.js";
 import type {
 	LoadRoleSyncProvidersInput,
 	LoadRoleSyncProvidersResult,
@@ -61,13 +61,8 @@ export async function loadRoleSyncProviders(input: LoadRoleSyncProvidersInput): 
 	if (validated.status !== "valid") {
 		return { ok: false, reason: `${repo} has no usable holocron config (${validated.status})` };
 	}
-	const raw = (validated.config as { providers?: RawProvidersConfig }).providers?.notifications;
-	if (!raw) return { ok: false, reason: `${repo} declares no notifications provider` };
-	const resolved = resolveEntry("notifications", raw);
-	// `notifications` takes several providers, so an entry always resolves to a list.
-	const { tuples } = resolved as Extract<typeof resolved, { cardinality: "many" }>;
-	const discord = tuples.find((t) => t.provider === "discord");
-	if (!discord) return { ok: false, reason: `${repo} declares no discord notifications provider` };
+	const discord = findDiscordOptions(validated.config, repo);
+	if (!discord.ok) return discord;
 
 	return {
 		ok: true,

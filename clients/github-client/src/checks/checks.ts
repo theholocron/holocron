@@ -87,6 +87,8 @@ export interface GitHubCheckRun {
 	conclusion: CheckRunConclusion | null;
 	/** The URL of the check run's page on GitHub. */
 	html_url: string;
+	/** The check's own "Details" link, when it set one. */
+	details_url?: string | null;
 }
 
 /** The body of an `updateCheckRun()` request; every field is optional. */
@@ -101,8 +103,25 @@ export interface UpdateCheckRunInput {
 	details_url?: string;
 }
 
+/** Page size and the most pages {@link checks}`.listCheckRunsForRef` reads: 100 a page over 10 pages, so 1,000 check runs. */
+const CHECK_RUN_PAGE_SIZE = 100;
+const CHECK_RUN_MAX_PAGES = 10;
+
 export function checks(rest: RestClient) {
 	return {
+		/** Every check run on a commit, read a page at a time until a page comes back short. */
+		listCheckRunsForRef: async (repo: string, ref: string): Promise<GitHubCheckRun[]> => {
+			const all: GitHubCheckRun[] = [];
+			for (let page = 1; page <= CHECK_RUN_MAX_PAGES; page++) {
+				const batch = await rest.request<{ check_runs: GitHubCheckRun[] }>(
+					`${repoBase(repo)}/commits/${ref}/check-runs?per_page=${CHECK_RUN_PAGE_SIZE}&page=${page}`
+				);
+				all.push(...batch.check_runs);
+				if (batch.check_runs.length < CHECK_RUN_PAGE_SIZE) break;
+			}
+			return all;
+		},
+
 		createCheckRun: (repo: string, input: CreateCheckRunInput): Promise<GitHubCheckRun> =>
 			rest.request<GitHubCheckRun>(`${repoBase(repo)}/check-runs`, {
 				method: "POST",
