@@ -75,6 +75,7 @@ vi.mock("../actions/repo-validation/validate-adrs/validate-adrs.js", () => ({ va
 vi.mock("../actions/repo-validation/validate-docs-presence/validate-docs-presence.js", () => ({
 	validateDocsPresence: vi.fn(),
 }));
+vi.mock("../actions/pr-feed/run-pr-feed/run-pr-feed.js", () => ({ runPrFeed: vi.fn() }));
 vi.mock("../actions/role-sync/run-role-sync/run-role-sync.js", () => ({ runRoleSync: vi.fn() }));
 vi.mock("../actions/static-analysis/lint-static-analysis/lint-static-analysis.js", () => ({
 	lintStaticAnalysis: vi.fn(),
@@ -115,6 +116,7 @@ import {
 	postMarkdownLintCheck,
 	postPrConfigValidationCheck,
 	postStaticAnalysisCheck,
+	runPrFeed,
 	runRoleSync,
 	syncPropertiesFromConfig,
 	validateAdrs,
@@ -173,6 +175,7 @@ beforeEach(() => {
 	vi.mocked(commitEditorConfigFix).mockReset();
 	vi.mocked(commitMarkdownLintFix).mockReset();
 	vi.mocked(runRoleSync).mockReset();
+	vi.mocked(runPrFeed).mockReset();
 	fakeFlush.mockClear();
 });
 
@@ -2076,5 +2079,166 @@ describe("handleWebhookRequest — role sync (holocron#1595)", () => {
 			failures: ["x"],
 		});
 		expect((await handleWebhookRequest(req(), ENV)).status).toBe(500);
+	});
+});
+
+describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
+	const feedEvent = (type: "pull_request.feed" | "pull_request_review" | "check_run.completed") => ({
+		handled: true as const,
+		event: {
+			type,
+			repo: "acme/demo",
+			installationId: 7,
+			action: "closed",
+			pullNumbers: [12],
+			...(type === "check_run.completed"
+				? { checkRun: { name: "ci / Required checks", headSha: "abc", conclusion: "failure", url: "u" } }
+				: {}),
+			raw: {},
+		},
+	});
+	const OK = { status: "ok" as const, pulls: [{ number: 12, outcome: "updated" as const, posted: [] }] };
+
+	it("runs only the feed for a feed-only event, with the installation client and the trigger", async () => {
+		for (const [type, trigger] of [
+			["pull_request.feed", { kind: "pull_request", action: "closed", numbers: [12] }],
+			["pull_request_review", { kind: "review", numbers: [12] }],
+			[
+				"check_run.completed",
+				{
+					kind: "check_run",
+					numbers: [12],
+					check: { name: "ci / Required checks", headSha: "abc", conclusion: "failure", url: "u" },
+				},
+			],
+		] as const) {
+			vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent(type));
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			vi.mocked(validateConfig).mockClear();
+			vi.mocked(lintCommits).mockClear();
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toEqual({ handled: true, type, prFeed: OK });
+			expect(runPrFeed).toHaveBeenLastCalledWith({ client: FAKE_CLIENT, env: ENV, repo: "acme/demo", trigger });
+			expect(createInstallationClient).toHaveBeenLastCalledWith(
+				{ appId: ENV.GITHUB_APP_ID, privateKey: ENV.GITHUB_APP_PRIVATE_KEY },
+				7
+			);
+			expect(validateConfig).not.toHaveBeenCalled();
+			expect(lintCommits).not.toHaveBeenCalled();
+		}
+	});
+
+	it("answers 200 for a skipped feed", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("pull_request_review"));
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(runPrFeed).mockResolvedValue({ status: "skipped", reason: "off" });
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ prFeed: { status: "skipped", reason: "off" } });
+	});
+
+	it("answers 500 with the reason when the feed fails", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("check_run.completed"));
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(runPrFeed).mockResolvedValue({ status: "fail", reason: "Missing Access" });
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(await res.json()).toEqual({
+			handled: true,
+			type: "check_run.completed",
+			prFeed: { status: "fail", reason: "Missing Access" },
+		});
+	});
+
+	it("answers 500 rather than throwing when the installation token cannot be had", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(feedEvent("pull_request.feed"));
+		vi.mocked(createInstallationClient).mockRejectedValue(new Error("bad credentials"));
+		const res = await handleWebhookRequest(req(), ENV);
+		expect(res.status).toBe(500);
+		expect(await res.json()).toMatchObject({ prFeed: { status: "fail", reason: "bad credentials" } });
+		expect(runPrFeed).not.toHaveBeenCalled();
+		vi.mocked(createInstallationClient).mockRejectedValue("nope");
+		expect(await (await handleWebhookRequest(req(), ENV)).json()).toMatchObject({
+			prFeed: { status: "fail", reason: "nope" },
+		});
+	});
+
+	describe("on an event the checks also handle", () => {
+		const opened = {
+			handled: true as const,
+			event: {
+				type: "pull_request.opened" as const,
+				repo: "acme/demo",
+				installationId: 42,
+				action: "opened",
+				pullNumbers: [12],
+				raw: { repository: { default_branch: "main" }, pull_request: { number: 12, head: { sha: "sha1" } } },
+			},
+		};
+
+		it("adds the feed's result to the checks' response and leaves the rest as it was", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(opened);
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(validateConfig).mockResolvedValue({ status: "no-config" });
+			vi.mocked(runPrFeed).mockResolvedValue(OK);
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toMatchObject({
+				handled: true,
+				type: "pull_request.opened",
+				config: "no-config",
+				prFeed: OK,
+			});
+			expect(runPrFeed).toHaveBeenCalledWith({
+				client: FAKE_CLIENT,
+				env: ENV,
+				repo: "acme/demo",
+				trigger: { kind: "pull_request", action: "opened", numbers: [12] },
+			});
+			expect(lintCommits).toHaveBeenCalled();
+		});
+
+		it("still runs the checks when the feed fails, then answers 500 with both", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue(opened);
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(validateConfig).mockResolvedValue({ status: "no-config" });
+			vi.mocked(runPrFeed).mockResolvedValue({ status: "fail", reason: "Missing Access" });
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(500);
+			expect(await res.json()).toMatchObject({
+				config: "no-config",
+				prFeed: { status: "fail", reason: "Missing Access" },
+			});
+			expect(lintCommits).toHaveBeenCalled();
+		});
+
+		it("keeps the checks' status when the feed is skipped", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({
+				handled: true,
+				event: { ...opened.event, raw: {} },
+			});
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(runPrFeed).mockResolvedValue({ status: "skipped", reason: "off" });
+			const res = await handleWebhookRequest(req(), ENV);
+			expect(res.status).toBe(200);
+			expect(await res.json()).toEqual({
+				handled: false,
+				reason: expect.stringContaining("payload missing"),
+				prFeed: { status: "skipped", reason: "off" },
+			});
+		});
+
+		it("does not run the feed for an event that names no pull request", async () => {
+			vi.mocked(parseWebhookEvent).mockReturnValue({
+				handled: true,
+				event: { ...opened.event, pullNumbers: undefined },
+			});
+			vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+			vi.mocked(validateConfig).mockResolvedValue({ status: "no-config" });
+			await handleWebhookRequest(req(), ENV);
+			expect(runPrFeed).not.toHaveBeenCalled();
+		});
 	});
 });
