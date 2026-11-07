@@ -1,3 +1,14 @@
+## [1.58.0-alpha.13](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.12...clients-v1.58.0-alpha.13) (2026-11-07)
+
+### Features
+
+* **notifications:** 🧵 append, edit and de-duplicate posts in a forum thread ([#1841](https://github.com/theholocron/holocron/issues/1841)) ([750baaa](https://github.com/theholocron/holocron/commit/750baaa1fbf29a240a97d65f71a91fae3d2034a6)), closes [#1832](https://github.com/theholocron/holocron/issues/1832)
+* **sentinel:** 📡 post a thread per pull request to the [#prs](https://github.com/theholocron/holocron/issues/prs) forum ([#1843](https://github.com/theholocron/holocron/issues/1843)) ([1b7a51e](https://github.com/theholocron/holocron/commit/1b7a51e4ba396e6d4778c867a715c77adf696cdb)), closes [#1833](https://github.com/theholocron/holocron/issues/1833)
+
+### Documentation
+
+* **github-client:** 📝 document the GraphQL client's exports ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1837](https://github.com/theholocron/holocron/issues/1837)) ([1e92d66](https://github.com/theholocron/holocron/commit/1e92d66c0843c5f825cababdcc664e58a77198fd))
+
 ## [1.58.0-alpha.12](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.11...clients-v1.58.0-alpha.12) (2026-11-06)
 
 ### Features
