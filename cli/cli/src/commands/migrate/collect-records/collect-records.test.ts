@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { BoardItem } from "../../../plugin/index.js";
-import { fakeBoards, fakeIssues, record } from "../testing.js";
+import { fakeBoards, fakeIssues, record } from "../migrate.testing.js";
 import { collectRecords } from "./collect-records.js";
 
 const src = (issues = fakeIssues("github"), projects?: ReturnType<typeof fakeBoards>) => ({

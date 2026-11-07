@@ -8,7 +8,7 @@ vi.mock("@inquirer/prompts", () => ({ confirm: inquirerConfirm }));
 import { NonInteractiveError } from "@theholocron/kyber/ui";
 
 import type { ImportResult } from "../../../plugin/index.js";
-import { fakeIssues, loadedWith, loaderFor, record } from "../testing.js";
+import { fakeIssues, loadedWith, loaderFor, record } from "../migrate.testing.js";
 import { runMigrate } from "./run-migrate.js";
 import type { RunMigrateInput } from "./run-migrate.type.js";
 

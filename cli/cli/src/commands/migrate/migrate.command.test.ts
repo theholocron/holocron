@@ -27,6 +27,10 @@ beforeEach(() => {
 afterEach(() => void (process.exitCode = undefined));
 
 describe("migrate commands", () => {
+	it("is a group: its own handler does nothing, the subcommands and the menu do the work", () => {
+		expect(migrateCommand.handler({} as never)).toBeUndefined();
+	});
+
 	it("issue passes the key, both ends and the context", async () => {
 		await go("issue", "#42", ...ENDS, "--yes");
 		expect(runMigrate).toHaveBeenCalledWith(

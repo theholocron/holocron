@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { ConfigError } from "../../../config/index.js";
-import { fakeIssues, fakeLoader, loadedWith } from "../testing.js";
+import { fakeIssues, fakeLoader, loadedWith } from "../migrate.testing.js";
 import { openSide } from "./open-side.js";
 
 const context = { repoRoot: "/x" };
