@@ -70,6 +70,7 @@ export AXIOM_TOKEN=<TOKEN>
 ## What `logs` provides
 
 - `describe()` — returns the provider name and required env var keys (`HOLOCRON_AXIOM_TOKEN`, `HOLOCRON_AXIOM_DATASET`)
+- `verifyToken()` (`auth check`, `doctor tokens`) — reads the token's user; an API token may not (403), so it then asks for a dataset that does not exist and accepts a 404 as proof the token is valid and may read datasets
 - `whoami()` — fetches the configured dataset to verify the token and its reachability
 - `ensureDataset(name)` — create the dataset if it does not exist; returns whether it already existed. Idempotent.
 
