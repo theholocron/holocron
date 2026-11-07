@@ -24,6 +24,7 @@ import {
 	type Source,
 	type Workers,
 } from "../../plugin/index.js";
+import { botPermissionChecks } from "../bot-permission-checks/index.js";
 import { monitoringFeedChecks } from "../monitoring-feed-checks/index.js";
 import {
 	layoutSecretNames,
@@ -852,6 +853,9 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 			found,
 		}))
 	);
+
+	// The bot's own role: it holds, server-wide, the permissions the provider says it needs. Read from `inspect`.
+	checks.push(...botPermissionChecks({ found }));
 
 	// The forum Sentinel keeps one post per pull request in: it is there, has every state's tag, and the bot can run it.
 	checks.push(...prFeedChecks({ layout, found }));

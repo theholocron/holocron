@@ -2063,6 +2063,15 @@ export interface ServerInspection {
 	server?: NotificationsServerLayout;
 	/** Set when reading the server's settings failed; `server` is then absent and means nothing. */
 	serverError?: string;
+	/**
+	 * Which of the permissions the provider's bot needs its roles do not give it server-wide, in plain words
+	 * ("Manage Threads"; empty when none is missing, and always empty for the owner or an Administrator), with the link
+	 * that invites the bot again asking for them when some are missing. Channel overwrites are not looked at. The link
+	 * is not a credential.
+	 */
+	botPermissions?: { missing: string[]; inviteUrl?: string };
+	/** Set when reading the bot's roles failed; `botPermissions` is then absent and means nothing. */
+	botPermissionsError?: string;
 	/** Names of the categories on the server. */
 	categories: string[];
 	/**
