@@ -2,6 +2,7 @@ import type { PluginImporter as KyberPluginImporter } from "@theholocron/kyber/p
 
 import type { CapabilityImpls, CapabilityKey, CardinalityFor } from "../capabilities/index.js";
 import type { PluginProbes } from "../probe/index.js";
+import type { ProviderAction } from "../provider-actions/index.js";
 
 /**
  * Per-invocation context every plugin receives, on top of its own
@@ -49,6 +50,10 @@ export type HolocronCapabilities = {
 export interface PluginExtras {
 	/** Things to poke at on demand (`holocron probe <provider> <probe>`); optional. */
 	probes?: PluginProbes;
+	/** What only this provider has, applied from its config block (`holocron provider <name> setup`); optional. */
+	setup?: ProviderAction;
+	/** The read-only comparison of that block with the provider (`holocron provider <name> doctor`); optional. */
+	doctor?: ProviderAction;
 }
 
 /** Returns `unknown` — the loader type-narrows inside `loadOne`. */

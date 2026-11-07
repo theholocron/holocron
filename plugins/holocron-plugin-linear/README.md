@@ -35,6 +35,28 @@ providers: {
 `team` (the team key) is required. `states` names the states the `inProgress` and `inReview` lifecycle slots move an
 issue to; left out, the team's first `started` state is used.
 
+## Setup and doctor
+
+`holocron provider linear setup` makes what the `issues` entry declares and `holocron provider linear doctor` compares
+it with the team, one row per setting. Setup is idempotent, never deletes, supports `--dry-run` and asks first unless
+`--yes`. Names only, no secrets:
+
+<!-- prettier-ignore -->
+```ts
+issues: ["linear", {
+  team: "ENG",
+  labels: ["bug", "enhancement"],                   // made on the team when missing
+  project: "Roadmap",                               // made when missing
+  automation: {
+    autoClose: { months: 3, state: "Canceled" },    // teamUpdate: autoClosePeriod / autoCloseState
+    autoArchive: { months: 6 },                     // teamUpdate: autoArchivePeriod
+  },
+}],
+```
+
+Changing team settings needs a key with admin access to the team. `automation.git` is validated but not applied or
+compared yet.
+
 ## Not the same as GitHub
 
 Linear does not match GitHub feature for feature: statuses are per team, there are no custom fields or managed views,
