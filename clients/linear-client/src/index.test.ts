@@ -68,6 +68,19 @@ describe("teams", () => {
 		expect(await c.teams.users()).toHaveLength(1);
 	});
 
+	it("updates the team's automation with only the fields given", async () => {
+		const after = { autoArchivePeriod: 6, autoClosePeriod: 3, autoCloseState: { id: "s", name: "Canceled" } };
+		const { fetch, calls } = stubFetch([data({ teamUpdate: { team: after } })]);
+		const team = await createLinearClient({ token: "t", fetch }).teams.updateAutomation("t1", {
+			autoClosePeriod: 3,
+			autoCloseStateId: "s",
+		});
+		expect(team).toEqual(after);
+		const sent = calls[0]?.body as { query: string; variables: { id: string; input: unknown } };
+		expect(sent.query).toMatch(/teamUpdate\(id: \$id, input: \$input\)/);
+		expect(sent.variables).toEqual({ id: "t1", input: { autoClosePeriod: 3, autoCloseStateId: "s" } });
+	});
+
 	it("reads workspace-wide labels without a team filter", async () => {
 		const { fetch, calls } = stubFetch([data({ issueLabels: page([]) })]);
 		await createLinearClient({ token: "t", fetch }).teams.labels();

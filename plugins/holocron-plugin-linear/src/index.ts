@@ -5,13 +5,17 @@
  * `holocron migrate` can move issues between Linear and another tracker.
  */
 
-import type { Issues, Projects } from "@theholocron/cli";
+import type { Issues, Projects, ProviderAction } from "@theholocron/cli";
 import { connectionProbe } from "@theholocron/cli";
 
 import { resolveToken, type ResolveTokenInput } from "./auth.js";
 import { LinearIssues } from "./capabilities/issues.js";
 import { LinearProjects } from "./capabilities/projects.js";
 import { createTeamScope, type TeamScope } from "./capabilities/team-scope.js";
+import { linearDoctor } from "./provider/doctor.js";
+import { declaresAnything, parseLinearSetup } from "./provider/provider-config.js";
+import { row } from "./provider/rows.js";
+import { linearSetup } from "./provider/setup.js";
 import { createLinearClient } from "./rest.js";
 import { verifyToken } from "./verify-token.js";
 
@@ -26,6 +30,27 @@ export interface LinearPluginOptions extends ResolveTokenInput {
 		/** The state for work waiting on review. */
 		inReview?: string;
 	};
+	/** The team's automation, set by `provider linear setup` and compared by `provider linear doctor`. */
+	automation?: {
+		/** Close an issue after `months` without activity (0 is off), into the state named `state` (the team's default if left out). */
+		autoClose?: {
+			/** Months of inactivity; 0 switches auto-close off. */
+			months: number;
+			/** The name of the team state an auto-closed issue is put in. */
+			state?: string;
+		};
+		/** Archive a closed issue after `months` (0 is off). */
+		autoArchive?: {
+			/** Months after closing; 0 switches auto-archive off. */
+			months: number;
+		};
+		/** Git automation. Validated, but not applied or compared yet. */
+		git?: Array<{ event: string; state: string; branch?: string }>;
+	};
+	/** Labels `provider linear setup` makes on the team when they are missing. */
+	labels?: string[];
+	/** A project `provider linear setup` makes when it is missing. */
+	project?: string;
 	/** Override the API root, for tests. Defaults to `https://api.linear.app`. */
 	baseUrl?: string;
 	/** Override `fetch`, for tests. */
@@ -51,7 +76,31 @@ export function projects(options: LinearPluginOptions): Projects {
 	return new LinearProjects(createScope(options));
 }
 
-/** Creates the plugin: a `connection` probe and the `issues` and `projects` capabilities. */
+/**
+ * Reads the block under the issues entry, then runs a step against it. A block that declares nothing is one `skip` row,
+ * not a silent success; a wrong shape is a `ConfigError` naming the path.
+ */
+function providerAction(
+	options: LinearPluginOptions,
+	make: (scope: TeamScope, config: ReturnType<typeof parseLinearSetup>) => ProviderAction
+): ProviderAction {
+	return async (ctx) => {
+		const config = parseLinearSetup(options);
+		if (!declaresAnything(config)) {
+			return [
+				row(
+					"linear",
+					"linear",
+					"skip",
+					"nothing to do: declare `labels`, `project` or `automation` under the issues provider's options"
+				),
+			];
+		}
+		return make(createScope(options), config)(ctx);
+	};
+}
+
+/** Creates the plugin: a `connection` probe, `setup` and `doctor`, and the `issues` and `projects` capabilities. */
 export function createPlugin(options: LinearPluginOptions) {
 	return {
 		name: "@theholocron/holocron-plugin-linear",
@@ -64,6 +113,8 @@ export function createPlugin(options: LinearPluginOptions) {
 				verify: (token) => verifyToken(token, { baseUrl: options.baseUrl, fetch: options.fetch }),
 			}),
 		},
+		setup: providerAction(options, linearSetup),
+		doctor: providerAction(options, linearDoctor),
 		capabilities: {
 			issues: () => issues(options),
 			projects: () => projects(options),

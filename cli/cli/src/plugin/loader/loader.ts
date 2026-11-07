@@ -23,6 +23,7 @@ import { DOTENV_FILE, hasCredentials, readDotenvFile, setCredentials } from "@th
 import { credentialsEnvironment, type ResolvedHolocronConfig } from "../../config/config/index.js";
 import { type CapabilityKey, CARDINALITY, type CardinalityFor, type Credentials } from "../capabilities/index.js";
 import type { PluginProbes } from "../probe/index.js";
+import type { ProviderActions } from "../provider-actions/index.js";
 import type { HolocronCapabilities, PluginExtras, PluginLoaderOptions, RuntimeContext } from "./loader.type.js";
 
 export { LoaderError };
@@ -102,6 +103,20 @@ export class PluginLoader extends system.PluginLoader {
 		const found = new Map<string, PluginProbes>();
 		for (const [provider, plugin] of this.plugins()) {
 			if (plugin.probes && Object.keys(plugin.probes).length > 0) found.set(provider, plugin.probes);
+		}
+		return found;
+	}
+
+	/** The `setup` and `doctor` each loaded provider offers, by provider name. A provider with neither is left out. */
+	providerActions(): ReadonlyMap<string, ProviderActions> {
+		const found = new Map<string, ProviderActions>();
+		for (const [provider, plugin] of this.plugins()) {
+			if (plugin.setup || plugin.doctor) {
+				found.set(provider, {
+					...(plugin.setup ? { setup: plugin.setup } : {}),
+					...(plugin.doctor ? { doctor: plugin.doctor } : {}),
+				});
+			}
 		}
 		return found;
 	}

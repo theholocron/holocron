@@ -27,6 +27,7 @@ import { notificationsCommand } from "./commands/notifications/notifications.com
 import { packageCommand } from "./commands/package/package.command.js";
 import { probeCommand } from "./commands/probe/index.js";
 import { projectCommand } from "./commands/project/index.js";
+import { providerCommand } from "./commands/provider/index.js";
 import { repoCommand } from "./commands/repo/repo.command.js";
 import { runCommand } from "./commands/run/run.command.js";
 import { secretsCommand } from "./commands/secrets/secrets.command.js";
@@ -153,6 +154,7 @@ try {
 		.command(repoCommand as never)
 		.command(newCommand as never)
 		.command(probeCommand as never)
+		.command(providerCommand as never)
 		.command(secretsCommand as never)
 		.command(notificationsCommand as never)
 		.command(githubAppCommand as never)

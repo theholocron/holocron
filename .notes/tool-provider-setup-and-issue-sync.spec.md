@@ -262,6 +262,8 @@ a GitHub board target with a missing option; a rate limit mid-run.
 
 1. **Command name for the group.** `provider <name> setup` vs `<name> setup` (`holocron linear setup`). The first keeps
    names out of the top level but adds a word; the plugin-returned `setup` makes it automatic either way.
+   _First PR: `provider <name> setup|doctor`, as the spec's default. The provider names come from the loaded plugins, so
+   the command is `provider [name] [action]` (like `probe`), not a yargs subcommand per provider._
 2. **Where `sync` lives.** `sync issues` collides in spirit with the existing `sync github` / `sync wiki` group
    (publishing generated files). `migrate --update` is the alternative, at the cost of `migrate` no longer being
    create-only.
@@ -272,10 +274,20 @@ a GitHub board target with a missing option; a rate limit mid-run.
    the Priority field instead; whether to also keep the label is open.
 6. **Whether Linear's git automation can be read back reliably** (target branch regex vs pattern) for the doctor to
    compare; needs checking against the live schema before this spec is accepted.
+   _Not checked: the first PR had no Linear key to introspect the schema with, so the git rules and issue templates
+   are validated in config but not applied or compared (setup and the doctor report one skipped row)._
 
 7. **Where the template text comes from.** A dedicated `.holocron/linear/*.md` file (above), or reuse GitHub's
    `.github/ISSUE_TEMPLATE/*.md` so one set of templates serves both trackers while both run. The second avoids drift
    but ties Linear's templates to GitHub's front-matter format.
+
+## Implementation notes
+
+First PR (draft, on the Linear plugin's branch): the `provider` command and the plugin-returned `setup` / `doctor`
+(`ProviderAction`, `PluginLoader.providerActions()`), and Linear's labels, project, `autoClosePeriod` /
+`autoCloseState` / `autoArchivePeriod`, with the config validation above. Not in it: the team's statuses (still
+`project setup`), the `rules` to Linear mapping (the declared `automation` block writes the settings; `doctor project`
+already reports a rule that is off), the git rules, issue templates (open questions 6 and 7), and sections 3 to 5.
 
 ## Related
 
