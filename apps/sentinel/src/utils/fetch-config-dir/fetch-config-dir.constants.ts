@@ -12,4 +12,17 @@ export const MAX_CONFIG_DIR_BYTES = 512 * 1024;
  * never evaluated, and the PR check has no use for their bytes: they are left out of the listing's caps and are not
  * fetched, so an avatar over the per-file cap does not fail a repo's config check.
  */
-export const MEDIA_EXTENSIONS: readonly string[] = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bmp", ".avif"];
+export const MEDIA_EXTENSIONS: readonly string[] = [
+	".png",
+	".jpg",
+	".jpeg",
+	".gif",
+	".webp",
+	".ico",
+	".bmp",
+	".avif",
+	".svg",
+	".tif",
+	".tiff",
+	".heic",
+];

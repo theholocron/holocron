@@ -99,7 +99,9 @@ As built (#1797, #1798), and **different from the first draft** (a fixed list of
 - **An area file may import a sibling** in `.holocron/` (the whole tree is written to the sandbox). It may also import
   packages, which resolve through the `node_modules` symlink. Only what the config or an area file imports is
   evaluated: a stray file does nothing.
-- **Caps** (the tree comes from a repo others can write to): at most 50 files, 100 KB per file (the cap of
+- **Media is skipped.** Pictures (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, `.ico` and the like, e.g. `.holocron/media/`) are
+  left out before any cap applies and are never fetched: a config only passes their path, it cannot import them.
+- **Caps** (the tree comes from a repo others can write to), on the files that are fetched: at most 50 files, 100 KB per file (the cap of
   `readRepoText()`), 512 KB in all. Symlinks and submodules are skipped. Past a cap, or when an area file does not load
   or conflicts with an inline value, the result is `load-error`. A repo with no `.holocron/` (the listing 404s)
   behaves as before; any other GitHub failure propagates.

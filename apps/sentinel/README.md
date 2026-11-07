@@ -85,7 +85,12 @@ directory is read at the same `ref` as the config, so the D4/D6 boundary is
 unchanged: a `ref` read is for validation only, and everything that writes
 stays on the default branch.
 
-Caps (the tree comes from a repo others can write to): at most 50 files,
+Pictures (`.png`, `.jpg`, `.gif`, `.webp`, `.svg` and the like, e.g.
+`.holocron/media/`) are left out before any cap applies: a config only names
+them by path, so they are neither fetched nor counted.
+
+Caps (the tree comes from a repo others can write to), on the files that are
+fetched: at most 50 files,
 100 KB per file (the same cap as `readRepoText()`), 512 KB in all. Past a
 cap, or when an area file does not load or conflicts with an inline value,
 the result is `load-error`. Symlinks and submodules are skipped. A GitHub
