@@ -99,7 +99,9 @@ As built (#1797, #1798), and **different from the first draft** (a fixed list of
 - **An area file may import a sibling** in `.holocron/` (the whole tree is written to the sandbox). It may also import
   packages, which resolve through the `node_modules` symlink. Only what the config or an area file imports is
   evaluated: a stray file does nothing.
-- **Caps** (the tree comes from a repo others can write to): at most 50 files, 100 KB per file (the cap of
+- **Media is skipped.** Pictures (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, `.ico` and the like, e.g. `.holocron/media/`) are
+  left out before any cap applies and are never fetched: a config only passes their path, it cannot import them.
+- **Caps** (the tree comes from a repo others can write to), on the files that are fetched: at most 50 files, 100 KB per file (the cap of
   `readRepoText()`), 512 KB in all. Symlinks and submodules are skipped. Past a cap, or when an area file does not load
   or conflicts with an inline value, the result is `load-error`. A repo with no `.holocron/` (the listing 404s)
   behaves as before; any other GitHub failure propagates.
@@ -214,7 +216,7 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   config leaves it out; set inline and in the file it is a `ConfigError` naming both (so the root config no longer takes
   `domain` from `docsPreset()`). An app inherits the root's value through the shared area, and its own file wins; so
   Sentinel's resolved config now carries `domain` (the one deliberate difference from its snapshot). A value that is
-  not a non-empty string is an error, and the closed list still rejects any other key. (2) An import, for a file that
+  not a non-empty string is an error, and the closed list still refuses any other key. (2) An import, for a file that
   builds a hostname while it is being evaluated, before the loader runs (`wiki.${domain}`, `sentinel.${domain}`,
   `comlink.${domain}`, the tunnel hostname, the webhook URL): `import org from "./org.js"` in an area file,
   `./.holocron/org.js` in the root config, `../../.holocron/org.js` in `apps/sentinel/holocron.config.ts`. This is safe
