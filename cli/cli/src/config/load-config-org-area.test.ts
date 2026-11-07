@@ -72,4 +72,19 @@ describe("the org area in this repo (#1820)", () => {
 			},
 		});
 	});
+
+	it("fills the Sentry org slug into the root config's errors entry from the area, not inline (#1727)", async () => {
+		const raw = (await import(/* @vite-ignore */ new URL("../../../../holocron.config.ts", import.meta.url).href))
+			.default as { providers: { errors: unknown } };
+		expect(raw.providers.errors).toBe("sentry");
+		const { resolved } = await loadConfig(REPO_ROOT);
+		expect(resolved.providers.errors).toEqual({
+			cardinality: "single",
+			tuple: {
+				provider: "sentry",
+				packageName: expect.any(String),
+				options: { org: "theholocron" },
+			},
+		});
+	});
 });

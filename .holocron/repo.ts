@@ -28,6 +28,7 @@ export default {
 					"CLOUDFLARE_ACCOUNT_ID",
 					"CLOUDFLARE_PAGES_PROJECT",
 					"POSTHOG_PROJECT_TOKEN",
+					"SENTRY_ORG",
 					"TURBO_TEAM",
 				],
 			},

@@ -264,7 +264,7 @@ jobs:
         uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: theholocron
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
         with:
           environment: production

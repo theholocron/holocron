@@ -113,11 +113,14 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 						"CLOUDFLARE_ACCOUNT_ID",
 						"CLOUDFLARE_PAGES_PROJECT",
 						"POSTHOG_PROJECT_TOKEN",
+						"SENTRY_ORG",
 						"TURBO_TEAM",
 					],
 				},
 			],
 		};
+		// And (#1727): `SENTRY_ORG` is a synced variable too (the release workflow reads it); the Sentry `errors` entry
+		// is unchanged, its `org` now filled from `.holocron/org.ts` instead of written inline.
 		// And (#1827): the Cloudflare `accountId` is no longer a literal in the presets (the plugin reads
 		// CLOUDFLARE_ACCOUNT_ID through the credential chain), and the Environment that holds it is a second
 		// `credentials` entry.

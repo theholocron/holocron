@@ -122,7 +122,7 @@ export default defineConfig({
 		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
 		// DSN to repo secrets. Runtime error reporting (observability/telemetry.ts) is independent
 		// and always on via the built-in DSN; this entry is for the setup surface.
-		errors: ["sentry", { org: "theholocron" }],
+		errors: "sentry",
 		// Monitoring: Checkly. Only the alert channel is managed from here (the uptime channel's feed below); the checks
 		// themselves are declared next to the service they watch, in apps/sentinel/holocron.config.ts. The account id
 		// comes from .holocron/org.ts.
