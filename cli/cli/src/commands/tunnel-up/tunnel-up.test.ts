@@ -182,6 +182,16 @@ describe("runTunnelUp", () => {
 		expect(said()).toContain("403 forbidden");
 	});
 
+	it("shows what the provider said about a failure, not only its status", async () => {
+		const refused = Object.assign(new Error("Cloudflare GET /accounts/1/cfd_tunnel → 400"), {
+			details: '{"errors":[{"code":6111,"message":"Invalid format for Authorization header"}]}',
+		});
+		const { base, said } = setup({ tunnels: { ensureTunnel: vi.fn(async () => Promise.reject(refused)) } });
+		await runTunnelUp(base);
+
+		expect(said()).toContain("Invalid format for Authorization header");
+	});
+
 	it("reports the tunnel id when DNS could not be set", async () => {
 		const { base, said } = setup({
 			dns: {
