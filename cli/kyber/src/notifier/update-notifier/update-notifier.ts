@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { createEnvLookup, isCI } from "@theholocron/env-utils/lookup";
 import chalk from "chalk";
 
 import type { CacheEntry, UpdateCheckOptions } from "./update-notifier.type.js";
@@ -123,8 +124,7 @@ function formatNotice(current: string, latest: string, installCmd: string): stri
  */
 export async function checkForUpdates(options: UpdateCheckOptions): Promise<(() => void) | null> {
 	const { name, currentVersion, cacheDir } = options;
-	const env = options.env ?? process.env;
-	if (env["CI"] || env["NO_UPDATE_NOTIFIER"]) return null;
+	if (isCI(options.env) || createEnvLookup(options.env).get("NO_UPDATE_NOTIFIER")) return null;
 
 	const channel = getChannel(currentVersion);
 	const cache = readCache(cacheDir);

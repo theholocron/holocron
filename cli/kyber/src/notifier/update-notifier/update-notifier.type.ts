@@ -14,7 +14,7 @@ export interface UpdateCheckOptions {
 	currentVersion: string;
 	/** The directory the answer is kept in, created when it is first written. One per tool. */
 	cacheDir: string;
-	/** The variables that switch the notice off (`CI`, `NO_UPDATE_NOTIFIER`). Default `process.env`. */
+	/** The variables that switch the notice off (`CI`, `NO_UPDATE_NOTIFIER`). Default the process environment. */
 	env?: Record<string, string | undefined>;
 	/** How the notice tells people to update. Default `npm install -g <name>`. */
 	installCommand?: string;
