@@ -111,5 +111,6 @@ describe("the workspace", () => {
 		// A new read of a name Holocron chooses goes through holocronEnv() or resolveValue(names, env, { prefix: PREFIX });
 		// a name a third party reads itself is added to env-allowlist.ts. See docs/src/content/docs/environment-variables.mdx.
 		expect(offenders).toEqual([]);
-	});
+		// It parses every source file in the workspace, which took over 5 s (vitest's default) on a loaded CI runner.
+	}, 60_000);
 });
