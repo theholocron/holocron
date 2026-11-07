@@ -16,7 +16,7 @@ export interface LogConfig {
 	 * without exporting `HOLOCRON_AXIOM_DATASET` — the CLI then pairs it with
 	 * the token from `HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` or the OS keyring
 	 * (`holocron auth set axiom[.<org>] <TOKEN>`). Env vars still win. In CI,
-	 * prefer the `HOLOCRON_AXIOM_DATASET` variable.
+	 * the `AXIOM_DATASET` variable (synced from 1Password) supplies it.
 	 */
 	axiom?: {
 		/** Target Axiom dataset, e.g. `"holocron-local"`. */

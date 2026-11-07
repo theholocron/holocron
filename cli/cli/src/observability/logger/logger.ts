@@ -10,11 +10,13 @@ import { createEnvLookup, withEnvPrefix } from "@theholocron/env-utils/lookup";
 import { type BuildCliLoggerOpts, type CliLoggerContext, createCliLogger } from "@theholocron/kyber/observability";
 import { type AxiomTransportConfig, resolveAxiomFromEnv } from "@theholocron/observability/logger";
 
-import { keyring } from "../../auth.js";
+import { keyring, resolveValue } from "../../auth.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
 
 const env = createEnvLookup();
-const holocronEnv = withEnvPrefix(env, "HOLOCRON");
+/** The one definition of the CLI's variable prefix: `HOLOCRON_<NAME>` is tried before the bare `<NAME>`. */
+const PREFIX = "HOLOCRON";
+const holocronEnv = withEnvPrefix(env, PREFIX);
 
 /**
  * Dataset for `global`-context commands (`clone`, `auth set`, `upgrade
@@ -28,6 +30,20 @@ const holocronEnv = withEnvPrefix(env, "HOLOCRON");
 export const GLOBAL_AXIOM_DATASET = "holocron-global";
 
 /**
+ * The dataset of a non-global command: the process environment (`HOLOCRON_AXIOM_DATASET`, then the unprefixed
+ * `AXIOM_DATASET`, through the prefix lookup), then `log.axiom.dataset`, then the credential chain, which is asked for
+ * the same pair of names. `resolveValue` takes a plain list of names, so the pair is built from {@link PREFIX} instead of
+ * adding a prefix option to kyber for one caller.
+ */
+function resolveCliDataset(opts: BuildCliLoggerOpts): string | undefined {
+	return (
+		holocronEnv.get("AXIOM_DATASET") ??
+		opts.configAxiomDataset ??
+		resolveValue([`${PREFIX}_AXIOM_DATASET`, "AXIOM_DATASET"])
+	);
+}
+
+/**
  * Resolve Axiom credentials for the CLI.
  *
  * A `global`-context command (ADR-0012) always resolves to
@@ -37,8 +53,11 @@ export const GLOBAL_AXIOM_DATASET = "holocron-global";
  * right answer. Everything else keeps the existing chain: env vars win
  * (same contract as `@theholocron/observability`'s `resolveAxiomFromEnv`),
  * falling back to the CLI-only bridge that pairs the OS-keyring token
- * (`axiom.<org>` then bare `axiom`) with a dataset from
- * `HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET` or `log.axiom.dataset`.
+ * (`axiom.<org>` then bare `axiom`) with a dataset from the process
+ * environment (`HOLOCRON_AXIOM_DATASET`, then `AXIOM_DATASET`), then
+ * `log.axiom.dataset`, then the credential chain (`resolveValue`, which finds the
+ * 1Password-synced `AXIOM_DATASET`). The config sits before the chain so a local
+ * run with no `.envrc` still ships to `holocron-local`, not to the CI dataset.
  * Returns `undefined` unless both a token and a dataset are found.
  */
 function resolveCliAxiom(opts: BuildCliLoggerOpts, ctx: CliLoggerContext): AxiomTransportConfig | undefined {
@@ -49,15 +68,15 @@ function resolveCliAxiom(opts: BuildCliLoggerOpts, ctx: CliLoggerContext): Axiom
 		if (fromEnv) return fromEnv;
 	}
 
-	const dataset = isGlobal ? GLOBAL_AXIOM_DATASET : (holocronEnv.get("AXIOM_DATASET") ?? opts.configAxiomDataset);
+	const dataset = isGlobal ? GLOBAL_AXIOM_DATASET : resolveCliDataset(opts);
 	if (!dataset) return undefined;
 
-	const org = opts.org ?? env.get("HOLOCRON_ORG");
+	const org = opts.org ?? env.get(`${PREFIX}_ORG`);
 	const token = holocronEnv.get("AXIOM_TOKEN") || (org ? keyring.get(`axiom.${org}`) : null) || keyring.get("axiom");
 	return token ? { dataset, token } : undefined;
 }
 
-const logger = createCliLogger({ envPrefix: "HOLOCRON", resolveAxiom: resolveCliAxiom });
+const logger = createCliLogger({ envPrefix: PREFIX, resolveAxiom: resolveCliAxiom });
 
 /**
  * The process-wide root logger, built once from `cli.ts`'s middleware and

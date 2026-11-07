@@ -14,7 +14,8 @@ export default {
 	// Actions variables"`. Names only; a key blank or missing in the Environment is skipped, so GitHub keeps its value.
 	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
 	// (no `prune`). `doctor variables` expects every key listed here at its scope. Still to add once their values are
-	// settled: CLOUDFLARE_PAGES_PROJECT, HOLOCRON_AXIOM_DATASET, POSTHOG_PROJECT_TOKEN.
+	// settled: CLOUDFLARE_PAGES_PROJECT, POSTHOG_PROJECT_TOKEN. (The Axiom dataset is AXIOM_DATASET, already listed;
+	// HOLOCRON_AXIOM_DATASET is only a local override read from the environment, never a synced variable.)
 	variables: {
 		sync: [
 			{

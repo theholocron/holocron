@@ -15,6 +15,7 @@ const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
 
 const createLoggerMock = vi.hoisted(() => vi.fn());
 const getTokenMock = vi.hoisted(() => vi.fn<(account: string) => string | null>());
+const resolveValueMock = vi.hoisted(() => vi.fn<(names: readonly string[]) => string | undefined>());
 
 vi.mock("@theholocron/observability/logger", async (importActual) => {
 	const actual = await importActual<typeof import("@theholocron/observability/logger")>();
@@ -24,7 +25,7 @@ vi.mock("@theholocron/observability/logger", async (importActual) => {
 	};
 });
 
-vi.mock("../../auth.js", () => ({ keyring: { get: getTokenMock } }));
+vi.mock("../../auth.js", () => ({ keyring: { get: getTokenMock }, resolveValue: resolveValueMock }));
 
 let seq = 0;
 function fakeResult(level?: string) {
@@ -40,6 +41,8 @@ beforeEach(() => {
 	createLoggerMock.mockImplementation((config?: { level?: string }) => fakeResult(config?.level));
 	getTokenMock.mockReset();
 	getTokenMock.mockReturnValue(null);
+	resolveValueMock.mockReset();
+	resolveValueMock.mockReturnValue(undefined);
 	for (const key of ENV_KEYS) delete process.env[key];
 	// Pin isCI() to true by default so every existing assertion below (which
 	// predates consoleOutput and asserts an exact createLogger call shape)
@@ -122,6 +125,53 @@ describe("buildCliLogger — Axiom credentials", () => {
 		getTokenMock.mockReturnValue(null);
 		buildCliLogger({});
 		expect(createLoggerMock).toHaveBeenCalledWith({});
+	});
+});
+
+describe("buildCliLogger — one dataset name through the credential chain", () => {
+	it("pairs a keyring token with the vendor-native AXIOM_DATASET when no HOLOCRON_ one is set", () => {
+		process.env.AXIOM_DATASET = "vendor-ds";
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({});
+		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "vendor-ds", token: "keyring-token" } });
+	});
+
+	it("prefers HOLOCRON_AXIOM_DATASET (the local override) over AXIOM_DATASET", () => {
+		process.env.HOLOCRON_AXIOM_DATASET = "holocron-local";
+		process.env.AXIOM_DATASET = "holocron-ci";
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({});
+		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "holocron-local", token: "keyring-token" } });
+		expect(resolveValueMock).not.toHaveBeenCalled();
+	});
+
+	it("keeps the config dataset ahead of the credential chain, so a local run stays on holocron-local", () => {
+		resolveValueMock.mockReturnValue("holocron-ci");
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({}, { configAxiomDataset: "holocron-local" });
+		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "holocron-local", token: "keyring-token" } });
+		expect(resolveValueMock).not.toHaveBeenCalled();
+	});
+
+	it("falls back to the credential chain (the 1Password-synced AXIOM_DATASET) when env and config have none", () => {
+		resolveValueMock.mockReturnValue("holocron-ci");
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({});
+		expect(resolveValueMock).toHaveBeenCalledWith(["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
+		expect(createLoggerMock).toHaveBeenCalledWith({ axiom: { dataset: "holocron-ci", token: "keyring-token" } });
+	});
+
+	it("asks the credential chain for the prefixed name first, then the bare one", () => {
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({});
+		expect(resolveValueMock).toHaveBeenCalledWith(["HOLOCRON_AXIOM_DATASET", "AXIOM_DATASET"]);
+	});
+
+	it("a global-context command never asks the credential chain", () => {
+		resolveValueMock.mockReturnValue("holocron-ci");
+		getTokenMock.mockReturnValue("keyring-token");
+		buildCliLogger({}, { command: "clone" });
+		expect(resolveValueMock).not.toHaveBeenCalled();
 	});
 });
 
