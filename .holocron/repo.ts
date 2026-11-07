@@ -13,15 +13,23 @@ export default {
 	// 1Password does not tell a visible value from a secret) and written by `holocron secrets sync "Holocron - GitHub
 	// Actions variables"`. Names only; a key blank or missing in the Environment is skipped, so GitHub keeps its value.
 	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
-	// (no `prune`). `doctor variables` expects every key listed here at its scope. Still to add once their values are
-	// settled: CLOUDFLARE_PAGES_PROJECT, POSTHOG_PROJECT_TOKEN. (The Axiom dataset is AXIOM_DATASET, already listed;
-	// HOLOCRON_AXIOM_DATASET is only a local override read from the environment, never a synced variable.)
+	// (no `prune`). `doctor variables` expects every key listed here at its scope.
+	// CLOUDFLARE_PAGES_PROJECT is synced because every caller in this org shares one Pages project (`<org>-preview`, the
+	// name the generated callers pass as `cloudflare-project`); a repo that needs a different project passes the
+	// `cloudflare-project` input, which wins over the variable. POSTHOG_PROJECT_TOKEN is a publishable key, not a secret;
+	// the CLI keeps its compiled-in key as the fallback for installed copies.
 	variables: {
 		sync: [
 			{
 				environment: "Holocron - GitHub Actions variables",
 				scope: "org=theholocron",
-				keys: ["AXIOM_DATASET", "CLOUDFLARE_ACCOUNT_ID", "TURBO_TEAM"],
+				keys: [
+					"AXIOM_DATASET",
+					"CLOUDFLARE_ACCOUNT_ID",
+					"CLOUDFLARE_PAGES_PROJECT",
+					"POSTHOG_PROJECT_TOKEN",
+					"TURBO_TEAM",
+				],
 			},
 		],
 	},

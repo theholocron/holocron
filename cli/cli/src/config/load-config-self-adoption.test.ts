@@ -108,7 +108,13 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				{
 					environment: "Holocron - GitHub Actions variables",
 					scope: "org=theholocron",
-					keys: ["AXIOM_DATASET", "CLOUDFLARE_ACCOUNT_ID", "TURBO_TEAM"],
+					keys: [
+						"AXIOM_DATASET",
+						"CLOUDFLARE_ACCOUNT_ID",
+						"CLOUDFLARE_PAGES_PROJECT",
+						"POSTHOG_PROJECT_TOKEN",
+						"TURBO_TEAM",
+					],
 				},
 			],
 		};
