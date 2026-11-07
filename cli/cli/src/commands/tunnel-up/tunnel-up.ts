@@ -8,7 +8,6 @@
  */
 
 import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
-import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import {
@@ -80,7 +79,7 @@ export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpRepo
 	try {
 		ensured = await tunnels.ensureTunnel({ name: input.name, hostname: input.hostname, service });
 	} catch (err) {
-		row(false, `tunnel ${input.name}`, errorMessage(err));
+		row(false, `tunnel ${input.name}`, describeError(err));
 		return finish("fail");
 	}
 	const did = [ensured.created ? "created" : "found", ensured.configured ? "route set" : "route in step"];
@@ -94,7 +93,7 @@ export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpRepo
 			proxied: true,
 		});
 	} catch (err) {
-		row(false, `dns ${input.hostname}`, errorMessage(err));
+		row(false, `dns ${input.hostname}`, describeError(err));
 		return finish("fail", { tunnelId: ensured.id });
 	}
 	row(true, `dns ${input.hostname}`, "proxied CNAME to the tunnel");
@@ -117,7 +116,7 @@ export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpRepo
 		print(`running cloudflared (Ctrl-C stops it): ${url} to ${service}`);
 		exitCode = await (input.runConnector ?? runCloudflared)(token);
 	} catch (err) {
-		row(false, "cloudflared", errorMessage(err));
+		row(false, "cloudflared", describeError(err));
 		return finish("fail", { tunnelId: ensured.id, url });
 	}
 	row(exitCode === 0, "cloudflared", `exited ${exitCode}`);

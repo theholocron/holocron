@@ -8,8 +8,7 @@
 
 import { superviseProcesses } from "@theholocron/dagobah";
 import type { Environment } from "@theholocron/env-utils/lookup";
-import { style, withSpinner } from "@theholocron/kyber/ui";
-import { errorMessage } from "@theholocron/misc-utils";
+import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Tunnels, type Vault } from "../../plugin/index.js";
@@ -90,7 +89,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	try {
 		values = await vault.readEnvironment(input.environment);
 	} catch (err) {
-		row(false, `vault ${input.environment}`, errorMessage(err));
+		row(false, `vault ${input.environment}`, describeError(err));
 		return finish("fail");
 	}
 	row(true, `vault ${input.environment}`, `${Object.keys(values).length} variables, passed to the application`);
@@ -99,7 +98,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	try {
 		token = await (loader.get("tunnels") as Tunnels).tunnelToken(tunnel.tunnelId as string);
 	} catch (err) {
-		row(false, "cloudflared", errorMessage(err));
+		row(false, "cloudflared", describeError(err));
 		return finish("fail");
 	}
 
@@ -120,7 +119,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 			},
 		}));
 	} catch (err) {
-		row(false, "dev", errorMessage(err));
+		row(false, "dev", describeError(err));
 		return finish("fail");
 	}
 	row(exitCode === 0, "dev", `ended with ${exitCode}`);
