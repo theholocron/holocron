@@ -1,3 +1,16 @@
+## [5.0.0-alpha.370](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.369...v5.0.0-alpha.370) (2026-11-07)
+
+### Features
+
+* **cli:** ✨ add holocron provider and Linear setup and doctor ([#1916](https://github.com/theholocron/holocron/issues/1916)) ([2005e2f](https://github.com/theholocron/holocron/commit/2005e2f5e65bd99a4759a188632b914958529350)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **plugins:** ✨ add a Linear plugin and `holocron migrate` between trackers ([#1857](https://github.com/theholocron/holocron/issues/1857)) ([9996268](https://github.com/theholocron/holocron/commit/9996268d92a5cb2b05bc3432f524ebef49088e79)), closes [#1856](https://github.com/theholocron/holocron/issues/1856) [#1856](https://github.com/theholocron/holocron/issues/1856)
+
+### Chores
+
+* **deps:** bump @semantic-release/git from 10.0.1 to 11.0.1 ([#1921](https://github.com/theholocron/holocron/issues/1921)) ([a448298](https://github.com/theholocron/holocron/commit/a448298d5c3d0d9679e4be7c898eadd67a50980c))
+* **deps:** bump ora from 9.4.1 to 10.0.0 ([#1923](https://github.com/theholocron/holocron/issues/1923)) ([036565a](https://github.com/theholocron/holocron/commit/036565ae639df4a7ee19c8de8c825c2c5468b5aa))
+* **deps:** bump the all-dependencies group with 7 updates ([#1919](https://github.com/theholocron/holocron/issues/1919)) ([eb958cf](https://github.com/theholocron/holocron/commit/eb958cfb3595d63d90bb46640f5e44e856e0702b))
+
 ## [5.0.0-alpha.369](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.368...v5.0.0-alpha.369) (2026-11-07)
 
 ### Features
