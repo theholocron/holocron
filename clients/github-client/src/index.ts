@@ -26,6 +26,13 @@ export {
 	type InstallationAccessToken,
 } from "./app-auth/app-auth.js";
 export {
+	getApp,
+	type GitHubApp,
+	type GitHubAppAccount,
+	type GitHubAppInstallation,
+	listAppInstallations,
+} from "./app-info/app-info.js";
+export {
 	type CheckRunAnnotation,
 	type CheckRunAnnotationLevel,
 	type CheckRunConclusion,

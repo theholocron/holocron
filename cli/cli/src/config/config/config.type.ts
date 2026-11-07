@@ -308,6 +308,22 @@ export interface CredentialsConfig {
 	environment: string;
 }
 
+/** One entry of `githubApps`: a registered GitHub App instance `holocron doctor github-app` compares with its manifest. */
+export interface GitHubAppConfig {
+	/** The instance's name in the report, e.g. `"Sentinel - dev"`. */
+	name: string;
+	/**
+	 * The App manifest file, relative to the directory: `default_permissions` (name to `read`, `write` or
+	 * `admin`) and `default_events` (names), as in `apps/sentinel/github-app.manifest.json`.
+	 */
+	manifest: string;
+	/**
+	 * The vault environment (a 1Password Environment) that holds the instance's `GITHUB_APP_ID` and
+	 * `GITHUB_APP_PRIVATE_KEY`. A name, not a secret, so it is committed.
+	 */
+	environment: string;
+}
+
 /** The `dev` block: how `holocron dev` runs this directory's application locally behind a development tunnel. */
 export interface DevConfig {
 	/**
@@ -701,6 +717,14 @@ export interface HolocronConfig {
 	 */
 	dev?: DevConfig;
 	/**
+	 * The registered GitHub App instances `holocron doctor github-app` checks: GitHub cannot change an existing App's
+	 * permissions or event subscriptions, so each instance is changed by hand and compared with its manifest here.
+	 *
+	 * @example
+	 * [{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" }]
+	 */
+	githubApps?: GitHubAppConfig[];
+	/**
 	 * Structured-logging config. Only the level belongs here — Axiom
 	 * credentials come from env vars, never a committed file.
 	 *
@@ -810,6 +834,8 @@ export interface ResolvedHolocronConfig {
 	credentials?: CredentialsConfig;
 	/** How `holocron dev` runs the application, validated by `resolveConfig`. */
 	dev?: DevConfig;
+	/** The GitHub App instances `doctor github-app` checks, validated by `resolveConfig`. */
+	githubApps?: GitHubAppConfig[];
 	/** Logging settings. */
 	log?: LogConfig;
 	/** Telemetry settings. */

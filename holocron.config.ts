@@ -150,6 +150,13 @@ export default defineConfig({
 		// Wiki: Fern publishes the engineering wiki at wiki.theholocron.dev/holocron
 		wiki: ["fern", { domain: "wiki.theholocron.dev", fernOrg: "holocron", icon: "fa-duotone fa-gear" }],
 	},
+	// Registered GitHub Apps: `holocron doctor github-app` compares each with its manifest (GitHub cannot change an
+	// existing App's permissions or events, so each instance is changed by hand). The id and key come from the
+	// 1Password Environment of the same name.
+	githubApps: [
+		{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" },
+		{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel - dev" },
+	],
 	// Logs: ship local runs to the shared holocron-local Axiom dataset. Needs an
 	// Axiom token in the keyring (`holocron auth set axiom.theholocron <TOKEN>`)
 	// or HOLOCRON_AXIOM_TOKEN. CI overrides the dataset to holocron-ci via the

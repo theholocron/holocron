@@ -13,6 +13,7 @@ import { validateVariablesSync } from "../validate-variables-sync/index.js";
 import type {
 	CredentialsConfig,
 	DevConfig,
+	GitHubAppConfig,
 	HolocronConfig,
 	ProviderOptions,
 	RawProviderEntry,
@@ -111,6 +112,19 @@ export function resolveEntry(key: CapabilityKey, raw: RawProviderEntry): Resolve
 
 /** A DNS hostname of at least two labels: no scheme, port, path or space. */
 const HOSTNAME = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+
+/** Throws a {@link ConfigError} naming the first thing wrong with the `githubApps` list. */
+function validateGitHubApps(apps: GitHubAppConfig[]): void {
+	if (!Array.isArray(apps)) throw new ConfigError("`githubApps` must be a list of { name, manifest, environment }");
+	apps.forEach((app, idx) => {
+		for (const key of ["name", "manifest", "environment"] as const) {
+			const value: unknown = app?.[key];
+			if (typeof value !== "string" || value.trim() === "") {
+				throw new ConfigError(`\`githubApps[${idx}].${key}\` must be a non-empty string`);
+			}
+		}
+	});
+}
 
 /** Throws a {@link ConfigError} naming the first thing wrong with the `dev` block. */
 function validateDev(dev: DevConfig): void {
@@ -212,6 +226,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		}
 	}
 	if (raw.dev !== undefined) validateDev(raw.dev);
+	if (raw.githubApps !== undefined) validateGitHubApps(raw.githubApps);
 	validateVariablesSync(raw.repo?.variables);
 	const credentialsEntry = providers.credentials;
 	if (credentialsEntry?.cardinality === "many") {
@@ -255,6 +270,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		env: raw.env,
 		credentials: raw.credentials,
 		dev: raw.dev,
+		githubApps: raw.githubApps,
 		log: raw.log,
 		telemetry: raw.telemetry,
 		eslint: raw.eslint,

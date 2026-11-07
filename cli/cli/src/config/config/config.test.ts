@@ -245,6 +245,22 @@ describe("resolveConfig", () => {
 		expect(resolveConfig(minimal).dev).toBeUndefined();
 	});
 
+	it("passes the githubApps list through, and leaves it unset by default", () => {
+		const githubApps = [{ name: "Sentinel", manifest: "m.json", environment: "Sentinel" }];
+		expect(resolveConfig({ ...minimal, githubApps }).githubApps).toEqual(githubApps);
+		expect(resolveConfig(minimal).githubApps).toBeUndefined();
+	});
+
+	it.each([
+		["a list that is not a list", {}, /githubApps. must be a list/],
+		["an entry that is not an object", [null], /githubApps\[0\]\.name/],
+		["an empty name", [{ name: " ", manifest: "m", environment: "e" }], /githubApps\[0\]\.name/],
+		["no manifest", [{ name: "n", environment: "e" }], /githubApps\[0\]\.manifest/],
+		["no environment", [{ name: "n", manifest: "m", environment: "" }], /githubApps\[0\]\.environment/],
+	])("rejects githubApps with %s", (_label, githubApps, message) => {
+		expect(() => resolveConfig({ ...minimal, githubApps: githubApps as never })).toThrow(message);
+	});
+
 	it.each([
 		["an empty environment", { environment: " " }, /dev\.environment/],
 		["an empty tunnel name", { tunnel: { name: "", hostname: "a.example.dev" } }, /dev\.tunnel\.name/],

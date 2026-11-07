@@ -121,6 +121,10 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   and read back are probes, not doctor. `doctor ci` (#1689) needs no provider: it checks the repo against the flat task
   vocabulary (deprecated aliases in `tasks:`, caller file/workflow/job names, the `ci` aggregate's `expected`, the
   callers' home), reading `.github/workflows` through an injected `CiIo`; the ruleset stays `doctor repo`'s.
+  `doctor github-app` (#1851) compares each `githubApps` entry (`{ name, manifest, environment }`, this repo's two Sentinel
+  instances) with its manifest file: the App's id and key are read in memory from the vault environment (`Vault.readEnvironment`,
+  never printed), `getApp()` and `listAppInstallations()` of `@theholocron/github-client` read the live App with its JWT, and a
+  gap ends with the settings page that fixes it. An instance whose credentials cannot be read is a skip, not a failure.
 - **Plugin packages** are named `@theholocron/holocron-plugin-<provider>`.
   Each follows the proven template: `auth.ts` + `rest.ts` (or `shell.ts`
   for CLI-transport) + `capabilities/<key>.ts` + `index.ts` exporting

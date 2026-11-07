@@ -441,6 +441,16 @@ you as a target, not the org. Fixable without re-registering (App
 settings → Advanced → Transfer ownership → `theholocron`), but
 registering under the org from the start avoids the detour.
 
+GitHub has no API that changes an existing App's permissions or events, so a
+changed `github-app.manifest.json` means editing each instance by hand in its
+settings page. `holocron doctor github-app` compares the manifest with every
+instance declared in `githubApps` in `holocron.config.ts` (`Sentinel` and
+`Sentinel - dev`, whose id and key it reads in memory from the 1Password
+Environment of the same name) and, for anything missing, prints the settings
+page to fix it. After changing the manifest, run it and fix both instances
+until it passes; it also fails while an installation has not accepted the new
+permissions.
+
 **Order:** deploy first, then attach the custom domain, then register.
 Run the ["Deploying"](#deploying) steps once you have a Vercel token
 set (`holocron auth set vercel <token>` or `VERCEL_TOKEN`), then the
