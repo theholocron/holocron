@@ -7,7 +7,7 @@ description: Check that each token a configured plugin takes is set and still ac
 holocron doctor tokens
 ```
 
-For every token a configured plugin lists, finds the token the way the plugin does (its own environment variable, then the vendor's, then the OS keyring) and asks the plugin's `verifyToken` whether it is still accepted. It prints one row per token and exits non-zero while any is rejected or has 7 days or fewer left. It changes nothing and never prints a token.
+For every token a configured plugin lists, finds the token the way the plugin does (its own environment variable, then the vendor's, then the repo's `.env` and the config's `credentials` providers such as the 1Password Environment, then the OS keyring) and asks the plugin's `verifyToken` whether it is still accepted. It prints one row per token and exits non-zero while any is rejected or has 7 days or fewer left. It changes nothing and never prints a token.
 
 Every plugin that resolves a token lists it, built from the same resolver the plugin uses, so a configured provider is covered without a list to keep in step. The GitHub plugin takes nine separate tokens, one per kind of operation, Discord three (webhook, bot, OAuth client secret) and Sentry two (see the [Token Reference](/holocron/tokens/)). Plain [`doctor`](/holocron/commands/doctor/) only exercises the one its shallow check happens to use, and a fine-grained token that has expired or been revoked is otherwise found when the operation that needs it fails, in CI or part-way through [`repo setup`](/holocron/commands/repo-setup/). This is the check that says which are due for replacing.
 
@@ -23,14 +23,15 @@ Every plugin that resolves a token lists it, built from the same resolver the pl
 
 ## What each row means
 
-| Row                 | When                                                                                                                                                                       |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ok                  | The token is set and the plugin accepts it. The row says whose it is, where it came from (the variable name, or `keyring`) and, for a token that expires, how long is left |
-| fail                | The token is set and is rejected (expired, revoked, malformed), or verifying it threw. The row carries the provider's message                                              |
-| fail: expires soon  | The token is accepted but expires within 7 days (`TOKEN_EXPIRY_WARN_DAYS`). The row gets a problem line, `expires in 3 days: renew it`                                     |
-| skip: not set       | Neither the environment variable nor the keyring has it. Whether a token is needed depends on what you run, so this is never a failure                                     |
-| skip: cannot verify | The token is set but its plugin has no `verifyToken`, or its `verifyToken` checks a different credential (Discord's checks a webhook, not the bot token or client secret)  |
-| skip: plugin        | The plugin package could not be loaded here, with the reason                                                                                                               |
+| Row                 | When                                                                                                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ok                  | The token is set and the plugin accepts it. The row says whose it is, where it came from (the variable name, a credentials source such as `1password:Holocron`, or `keyring`) and, for a token that expires, how long is left |
+| fail                | The token is set and is rejected (expired, revoked, malformed), or verifying it threw. The row carries the provider's message                                                                                                 |
+| fail: expires soon  | The token is accepted but expires within 7 days (`TOKEN_EXPIRY_WARN_DAYS`). The row gets a problem line, `expires in 3 days: renew it`                                                                                        |
+| skip: not set       | Neither the environment variable nor the keyring has it. Whether a token is needed depends on what you run, so this is never a failure                                                                                        |
+| skip: cannot verify | The token is set but its plugin has no `verifyToken`, or its `verifyToken` checks a different credential (Discord's checks a webhook, not the bot token or client secret)                                                     |
+| fail: credentials   | A `credentials` provider (1Password) could not be read, with the reason. Its tokens then fall through to the keyring, which is usually not what was meant                                                                     |
+| skip: plugin        | The plugin package could not be loaded here, with the reason                                                                                                                                                                  |
 
 When no configured plugin lists any token, the one row says so.
 

@@ -27,10 +27,25 @@ export function hasCredentials(source: string): boolean {
  * vendor's). `undefined` when no source has one.
  */
 export function getCredential(...names: string[]): string | undefined {
-	for (const variables of sources.values()) {
+	return findCredential(...names)?.value;
+}
+
+/** A value found in the store, with the source that had it and the name it was found under. */
+export interface FoundCredential {
+	/** The value. A secret: callers must not print it. */
+	value: string;
+	/** The source that returned it, as it was given to {@link setCredentials} (for example `1password:Holocron`). */
+	source: string;
+	/** Which of the names asked for had it. */
+	name: string;
+}
+
+/** Like {@link getCredential}, but also says which source and which name the value came from, for a report. */
+export function findCredential(...names: string[]): FoundCredential | undefined {
+	for (const [source, variables] of sources) {
 		for (const name of names) {
 			const value = variables[name];
-			if (value) return value;
+			if (value) return { value, source, name };
 		}
 	}
 	return undefined;
