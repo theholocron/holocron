@@ -209,6 +209,22 @@ json`), so `org.md` is never read as an area, and `org.ts` is not read as the co
   workflow reads `vars.SENTRY_ORG` (no literal). The `org` of the `docs` and `nextjs` presets is the GitHub
   organization (`config.org`, used for repo names and workflow context), not the Sentry slug, so it stays. The resolved
   root config equals its pre-change value (`load-config-org-area.test.ts`).
+- **The zone (`domain`, #1877).** `domain` (`theholocron.dev`) is a top-level key of `OrgConfig`, spelled once, in the
+  root `.holocron/org.ts`. Two ways it reaches a consumer. (1) The loader: `placeOrg()` sets `config.domain` when the
+  config leaves it out; set inline and in the file it is a `ConfigError` naming both (so the root config no longer takes
+  `domain` from `docsPreset()`). An app inherits the root's value through the shared area, and its own file wins; so
+  Sentinel's resolved config now carries `domain` (the one deliberate difference from its snapshot). A value that is
+  not a non-empty string is an error, and the closed list still rejects any other key. (2) An import, for a file that
+  builds a hostname while it is being evaluated, before the loader runs (`wiki.${domain}`, `sentinel.${domain}`,
+  `comlink.${domain}`, the tunnel hostname, the webhook URL): `import org from "./org.js"` in an area file,
+  `./.holocron/org.js` in the root config, `../../.holocron/org.js` in `apps/sentinel/holocron.config.ts`. This is safe
+  because Sentinel's `validateConfig()` writes the whole fetched `.holocron/` tree beside the config
+  (`writeConfigDir()`), so a relative import of a sibling resolves; `org.ts` is plain data with a type-only package
+  import, so it adds no runtime code and fits the caps (50 files, 100 KB each, 512 KB). `apps/sentinel/holocron.config.ts`
+  is loaded from disk only (never by the remote loader, which reads a repo's root config), so its import outside its
+  directory is a local one. The presets (`docs`, `nextjs`, `wiki`) keep their own default `theholocron.dev` for a
+  consumer repo with no org file, and `sync-wiki`'s fallback URL and the Fern plugin's docs and examples stay literal:
+  they run without the org area (a preset or plugin has no config to read at that point).
 - **Follow-ups.** Whether a provider's own options should declare which of them are org constants instead of a table in
   the CLI. (The Cloudflare `accountId` through the credential chain is done, #1827, and so is the area shared by app
   configs and the root config, #1829.)

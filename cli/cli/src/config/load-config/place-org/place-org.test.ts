@@ -77,6 +77,49 @@ describe("placeOrg", () => {
 		expect(placeOrg(raw, org({ vercel: {} })).providers).toEqual({ deployment: "vercel" });
 	});
 
+	describe("domain", () => {
+		it("sets domain on a config that leaves it out, with or without providers", () => {
+			expect(placeOrg(NONE, org({ domain: "a.dev" })).domain).toBe("a.dev");
+			const placed = placeOrg(
+				{ providers: { errors: "sentry" } },
+				org({ domain: "a.dev", sentry: { org: "o" } })
+			);
+			expect(placed.domain).toBe("a.dev");
+			expect(placed.providers?.errors).toEqual(["sentry", { org: "o" }]);
+		});
+
+		it("leaves the config's domain alone when the file has none", () => {
+			expect(placeOrg({ domain: "b.dev" } as HolocronConfig, org({ sentry: { org: "o" } })).domain).toBe("b.dev");
+		});
+
+		it("errors naming both locations when domain is set in the config and in the file", () => {
+			expect(() => placeOrg({ domain: "b.dev" } as HolocronConfig, org({ domain: "a.dev" }))).toThrow(
+				/domain is set in the config and in \.holocron\/org\.ts/
+			);
+		});
+
+		it("errors for a domain that is not a non-empty string", () => {
+			expect(() => placeOrg(NONE, org({ domain: "" }))).toThrow(/"domain" must be a non-empty string/);
+			expect(() => placeOrg(NONE, org({ domain: 3 }))).toThrow(/"domain" must be a non-empty string/);
+		});
+
+		it("still rejects an unknown key beside domain", () => {
+			expect(() => placeOrg(NONE, org({ domain: "a.dev", region: "eu" }))).toThrow(/unknown provider "region"/);
+		});
+
+		it("takes an app's own domain over the root's, and the root's when the app has none", () => {
+			const layered = (own: unknown, root: unknown): ConfigDirArea => ({
+				...org(own),
+				root: { ...org(root), path: "../../.holocron/org.ts", filepath: "/x/.holocron/org.ts" },
+			});
+			expect(placeOrg(NONE, layered({ domain: "own.dev" }, { domain: "root.dev" })).domain).toBe("own.dev");
+			expect(placeOrg(NONE, layered({}, { domain: "root.dev" })).domain).toBe("root.dev");
+			expect(() => placeOrg({ domain: "x.dev" } as HolocronConfig, layered({}, { domain: "root.dev" }))).toThrow(
+				/domain is set in the config and in \.\.\/\.\.\/\.holocron\/org\.ts/
+			);
+		});
+	});
+
 	describe("with the repository root's area (area.root)", () => {
 		const layered = (own: unknown, root: unknown): ConfigDirArea => ({
 			...org(own),

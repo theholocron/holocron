@@ -12,6 +12,9 @@ const INLINE_LAYOUT = new URL("./notifications-layout.inline.fixture.txt", impor
 /** The file the layout moved to: this repo's own `.holocron/notifications.ts`. */
 const MOVED_LAYOUT = fileURLToPath(new URL("../../../../.holocron/notifications.ts", import.meta.url));
 
+/** The sibling the layout imports its zone from: this repo's own `.holocron/org.ts`. */
+const MOVED_ORG = fileURLToPath(new URL("../../../../.holocron/org.ts", import.meta.url));
+
 const GUILD_ID = "1303969001822486568";
 const base = (layout: string) =>
 	`export default {
@@ -41,6 +44,9 @@ describe("the notifications layout moved to .holocron/notifications.ts (#1786)",
 		await writeFile(join(moved, "holocron.config.ts"), base(""));
 		await mkdir(join(moved, ".holocron"));
 		await copyFile(MOVED_LAYOUT, join(moved, ".holocron", "notifications.ts"));
+		// The layout imports the zone from its sibling org file (the one place `domain` is spelled), as Sentinel's
+		// sandbox has it: the whole `.holocron/` tree is written beside the config.
+		await copyFile(MOVED_ORG, join(moved, ".holocron", "org.ts"));
 
 		const before = (await loadConfig(inline)).resolved.providers.notifications;
 		const after = (await loadConfig(moved)).resolved.providers.notifications;

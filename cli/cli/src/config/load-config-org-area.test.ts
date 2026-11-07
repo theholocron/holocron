@@ -58,7 +58,37 @@ describe("the org area in this repo (#1820)", () => {
 			],
 		};
 		const { resolved } = await loadConfig(SENTINEL);
-		expect(JSON.parse(JSON.stringify(resolved))).toEqual(expected);
+		// The other deliberate difference (#1727): the loader sets `domain` from the shared root org area, so Sentinel's
+		// resolved config now carries the org's zone, which it did not before.
+		expect(resolved.domain).toBe("theholocron.dev");
+		expect(JSON.parse(JSON.stringify({ ...resolved, domain: undefined }))).toEqual(expected);
+	});
+
+	it("spells the zone once, in the root area, and every config and area file gets it from there (#1727)", async () => {
+		const shared = (await import(/* @vite-ignore */ new URL("../../../../.holocron/org.ts", import.meta.url).href))
+			.default as { domain: string };
+		const own = (
+			await import(/* @vite-ignore */ new URL("../../../../apps/sentinel/.holocron/org.ts", import.meta.url).href)
+		).default as Record<string, unknown>;
+		expect(shared.domain).toBe("theholocron.dev");
+		expect(own).not.toHaveProperty("domain");
+		const root = await loadConfig(REPO_ROOT);
+		expect(root.resolved.domain).toBe(shared.domain);
+		const wiki = root.resolved.providers.wiki as unknown as { tuple: { options: { domain: string } } };
+		expect(wiki.tuple.options.domain).toBe(`wiki.${shared.domain}`);
+		const raw = (await import(/* @vite-ignore */ new URL("../../../../holocron.config.ts", import.meta.url).href))
+			.default as Record<string, unknown>;
+		expect(raw).not.toHaveProperty("domain");
+		const sentinel = await loadConfig(SENTINEL);
+		expect(sentinel.resolved.domain).toBe(shared.domain);
+		const dev = sentinel.resolved.dev as { tunnel: { hostname: string } };
+		expect(dev.tunnel.hostname).toBe(`sentinel-dev.${shared.domain}`);
+		const notifications = root.resolved.providers.notifications as unknown as {
+			tuples: { options: { layout: { relay: { host: string }; links: { hostedUrl: string } } } }[];
+		};
+		const layout = notifications.tuples[0]!.options.layout;
+		expect(layout.relay.host).toBe(`comlink.${shared.domain}`);
+		expect(layout.links.hostedUrl).toBe(`https://sentinel.${shared.domain}`);
 	});
 
 	it("resolves the root config's Checkly entry to what it was before the move", async () => {

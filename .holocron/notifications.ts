@@ -1,11 +1,13 @@
 import type { NotificationsLayout } from "@theholocron/cli";
 
+import org from "./org.js";
+
 // The Holocron Discord server layout: `holocron notifications setup` applies it and Sentinel's role sync reads it.
 // `holocron.config.ts` keeps the provider entry (`guildId`); the loader puts this default export on its `layout`.
-// The import is type-only on purpose: Sentinel evaluates this file from the default branch, so it pulls in no runtime code.
-// The zone is spelled once here; the two hostnames derive from it. A sibling file would be one more thing for the
-// loader and Sentinel's fetch to place, so the constant stays in this file.
-const domain = "theholocron.dev";
+// The package import is type-only on purpose: Sentinel evaluates this file from the default branch, so it pulls in no
+// runtime code from a package. The one sibling import is `./org.js`, plain data: Sentinel fetches the whole
+// `.holocron/` tree and writes it with its relative paths, so the zone is spelled once, there (`.holocron/org.ts`).
+const { domain } = org;
 
 export default {
 	// Build apps/comlink first (`pnpm --filter @theholocron/comlink run build`); setup deploys it here.
