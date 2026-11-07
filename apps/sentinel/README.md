@@ -490,9 +490,10 @@ No other repository permissions — never touches Administration.
 
 ### Organization permissions
 
-| Permission | Access | Why                                                                                                                       |
-| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------- |
-| Members    | Read   | `teams.members()` — role sync (holocron#1595) lists a team's members; only used when the role-sync settings below are set |
+| Permission | Access | Why                                                                                                                                                                                              |
+| ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Members    | Read   | `teams.members()` — role sync (holocron#1595) lists a team's members; only used when the role-sync settings below are set                                                                        |
+| Projects   | Write  | the `reconcile-projects` workflow mints an installation token with this permission to set board item statuses (`holocron project reconcile`, holocron#1744); Sentinel's own code does not use it |
 
 **Contents bumped from Read to Write for holocron#820, Issues bumped from
 none to Write for holocron#834, Pull requests bumped from Read to Write and

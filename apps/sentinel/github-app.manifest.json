@@ -9,6 +9,7 @@
     "issues": "write",
     "members": "read",
     "metadata": "read",
+    "organization_projects": "write",
     "pull_requests": "write",
     "repository_custom_properties": "write"
   },
