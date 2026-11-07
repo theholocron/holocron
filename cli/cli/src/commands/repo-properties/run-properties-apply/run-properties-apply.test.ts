@@ -124,4 +124,13 @@ describe("runPropertiesApply", () => {
 			reason: expect.stringContaining("cannot read or change"),
 		});
 	});
+
+	it("says it added nothing when the property already had the values by the time it wrote", async () => {
+		const { report, lines } = await run({
+			getOrgPropertyValues: async () => LACKING,
+			addOrgPropertyValues: async () => [],
+		});
+		expect(report).toEqual({ status: "ok", added: [] });
+		expect(lines).toContain("added nothing");
+	});
 });
