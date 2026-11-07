@@ -33,6 +33,7 @@ coverage:
           - http-client
           - infisical-client
           - jira-client
+          - linear-client
           - neon-client
           - netlify-client
           - posthog-client
@@ -68,6 +69,7 @@ coverage:
           - holocron-plugin-fern
           - holocron-plugin-github
           - holocron-plugin-infisical
+          - holocron-plugin-linear
           - holocron-plugin-neon
           - holocron-plugin-netlify
           - holocron-plugin-posthog
@@ -124,6 +126,7 @@ coverage:
           - http-client
           - infisical-client
           - jira-client
+          - linear-client
           - neon-client
           - netlify-client
           - posthog-client
@@ -159,6 +162,7 @@ coverage:
           - holocron-plugin-fern
           - holocron-plugin-github
           - holocron-plugin-infisical
+          - holocron-plugin-linear
           - holocron-plugin-neon
           - holocron-plugin-netlify
           - holocron-plugin-posthog
@@ -220,6 +224,7 @@ flag_management:
     - name: http-client
     - name: infisical-client
     - name: jira-client
+    - name: linear-client
     - name: neon-client
     - name: netlify-client
     - name: posthog-client
@@ -255,6 +260,7 @@ flag_management:
     - name: holocron-plugin-fern
     - name: holocron-plugin-github
     - name: holocron-plugin-infisical
+    - name: holocron-plugin-linear
     - name: holocron-plugin-neon
     - name: holocron-plugin-netlify
     - name: holocron-plugin-posthog
@@ -390,6 +396,11 @@ component_management:
       name: "jira-client"
       paths:
         - clients/jira-client/**
+
+    - component_id: linear-client
+      name: "linear-client"
+      paths:
+        - clients/linear-client/**
 
     - component_id: neon-client
       name: "neon-client"
@@ -579,6 +590,11 @@ component_management:
       name: "holocron-plugin-infisical"
       paths:
         - plugins/holocron-plugin-infisical/**
+
+    - component_id: holocron-plugin-linear
+      name: "holocron-plugin-linear"
+      paths:
+        - plugins/holocron-plugin-linear/**
 
     - component_id: holocron-plugin-neon
       name: "holocron-plugin-neon"

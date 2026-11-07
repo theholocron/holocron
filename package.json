@@ -62,6 +62,7 @@
     "@theholocron/holocron-plugin-fern": "workspace:*",
     "@theholocron/holocron-plugin-github": "workspace:*",
     "@theholocron/holocron-plugin-infisical": "workspace:*",
+    "@theholocron/holocron-plugin-linear": "workspace:*",
     "@theholocron/holocron-plugin-neon": "workspace:*",
     "@theholocron/holocron-plugin-posthog": "workspace:*",
     "@theholocron/holocron-plugin-postman": "workspace:*",
