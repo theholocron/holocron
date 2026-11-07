@@ -48,7 +48,10 @@ const listing = (files: TreeFile[]) => ({
  * astromech.config.*.
  */
 function makeClient(config: string, files: TreeFile[] | "absent") {
-	const fetched = files === "absent" ? [] : files.filter((f) => (f.type ?? "file") === "file");
+	const fetched =
+		files === "absent"
+			? []
+			: files.filter((f) => (f.type ?? "file") === "file" && !/\.(png|jpe?g|gif)$/.test(f.name));
 	const { fetch, calls } = stubFetch([
 		{ status: 200, body: { content: b64(config) } },
 		files === "absent" ? { status: 404 } : listing(files),
@@ -214,6 +217,18 @@ describe("validateConfig with a .holocron/ directory", () => {
 		const err = await validateConfig({ client, repo: "acme/demo" }).catch((e: unknown) => e);
 
 		expect((err as { status?: number }).status).toBe(500);
+	});
+
+	it("leaves a picture out: an avatar over the per-file cap neither fails the check nor is fetched", async () => {
+		const { client, calls } = makeClient(WITH_DISCORD, [
+			{ name: "notifications.ts", content: "export default {};\n" },
+			{ name: "media/webhook-avatar.png", content: "png", size: MAX_CONFIG_DIR_FILE_BYTES * 4 },
+		]);
+
+		const result = await validateConfig({ client, repo: "acme/demo" });
+
+		expect(result.status).toBe("valid");
+		expect(calls.some((call) => call.url.includes("webhook-avatar.png"))).toBe(false);
 	});
 
 	describe("caps", () => {
