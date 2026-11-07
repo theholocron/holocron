@@ -7,5 +7,6 @@ export * from "./is-ignored/index.js";
 export * from "./package-root/index.js";
 export * from "./post-error-review/index.js";
 export * from "./read-auto-fix/index.js";
+export * from "./sentinel-axiom-dataset/index.js";
 export * from "./validate-config/index.js";
 export * from "./webhook/index.js";
