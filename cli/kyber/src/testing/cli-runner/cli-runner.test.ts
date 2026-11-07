@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createCliRunner } from "./cli-runner.js";
 
@@ -94,13 +94,18 @@ describe("createCliRunner", { timeout: 30_000 }, () => {
 	});
 
 	it("kills a run that outlasts its timeout and says so with -1", async () => {
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		const result = await createCliRunner({ bin })(["--hang"], { timeoutMs: 300 });
+		log.mockRestore();
 		expect(result.code).toBe(-1);
 		expect(result.timedOut).toBe(true);
 	});
 
 	it("says in stderr how long a killed run lasted and what it had printed", async () => {
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
 		const result = await createCliRunner({ bin })(["--hang"], { timeoutMs: 300 });
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("[cli-runner] killed"));
+		log.mockRestore();
 		expect(result.stderr).toMatch(
 			/\[cli-runner\] killed after \d+ ms \(timeout 300 ms, SIGKILL\), pid \d+; stdout 0 chars/
 		);
