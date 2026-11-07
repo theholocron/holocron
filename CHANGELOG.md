@@ -1,3 +1,18 @@
+## [5.0.0-alpha.356](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.355...v5.0.0-alpha.356) (2026-11-07)
+
+### Bug Fixes
+
+* **cli:** 🔧 read the Axiom dataset as AXIOM_DATASET through the credential chain ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1839](https://github.com/theholocron/holocron/issues/1839)) ([facf22c](https://github.com/theholocron/holocron/commit/facf22c406beff60a473ea3fa726ca4bfe273c70)), closes [#1838](https://github.com/theholocron/holocron/issues/1838)
+* **config:** 🔧 sync the Pages project and PostHog token variables ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1847](https://github.com/theholocron/holocron/issues/1847)) ([6bafa8c](https://github.com/theholocron/holocron/commit/6bafa8c880a6e438cae3fa890ee1f80d2cfcf9fe))
+
+### Refactoring
+
+* **cli:** 🔐 read monitoring and vite-config env through the credential chain ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1850](https://github.com/theholocron/holocron/issues/1850)) ([7827537](https://github.com/theholocron/holocron/commit/78275378426988c94235a1d323133409081f1e68)), closes [#1849](https://github.com/theholocron/holocron/issues/1849)
+
+### Documentation
+
+* **dagobah:** 📝 describe the manifest flow and process supervisor in the metadata ([#1727](https://github.com/theholocron/holocron/issues/1727)) ([#1845](https://github.com/theholocron/holocron/issues/1845)) ([d6b1334](https://github.com/theholocron/holocron/commit/d6b13345b9c59fd11392883f63dfc73c5317ba98))
+
 ## [5.0.0-alpha.355](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.354...v5.0.0-alpha.355) (2026-11-07)
 
 ### Features
