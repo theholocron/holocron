@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-import type { TasksConfig } from "@theholocron/astromech";
 import {
 	aggregateChecks,
 	codecovComponentBlock,
@@ -9,6 +8,7 @@ import {
 	readWorkspacePackages,
 	requiredChecks,
 } from "@theholocron/astromech";
+import type { TasksConfig } from "@theholocron/astromech/config";
 import { describe, expect, it } from "vitest";
 
 import { loadConfig } from "./config-system.js";
