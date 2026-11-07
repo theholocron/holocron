@@ -38,6 +38,7 @@
  * setup` for the ephemeral GH admin PAT.
  */
 
+import { PRERELEASE_CHANNEL } from "@theholocron/astromech";
 import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import { pad, statusRow, style } from "@theholocron/kyber/ui";
 
@@ -86,7 +87,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
 	const cwd = input.cwd ?? process.cwd();
-	const tag = input.tag ?? "alpha";
+	const tag = input.tag ?? PRERELEASE_CHANNEL;
 	const dryRun = input.dryRun ?? false;
 	const otp = input.otp;
 	const env = createEnvLookup(input.env);

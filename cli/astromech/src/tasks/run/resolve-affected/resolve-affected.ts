@@ -1,7 +1,8 @@
+import { RELEASE_BRANCHES } from "../../../release-branches/index.js";
 import type { ExecFn } from "../run.type.js";
 
 /** Branches that releases are cut from: on a push to one, HEAD equals the base, so nothing would be "affected". */
-const RELEASE_BRANCHES = new Set(["main", "alpha"]);
+const RELEASE_BRANCH_SET: ReadonlySet<string> = new Set(RELEASE_BRANCHES);
 
 export interface ResolveAffectedInput {
 	/** `--affected` was asked for. */
@@ -34,7 +35,7 @@ export function resolveAffected(input: ResolveAffectedInput): AffectedPlan {
 
 	const { env, exec, cwd } = input;
 	const branch = env.GITHUB_REF_NAME;
-	if (env.GITHUB_EVENT_NAME === "push" && branch !== undefined && RELEASE_BRANCHES.has(branch)) {
+	if (env.GITHUB_EVENT_NAME === "push" && branch !== undefined && RELEASE_BRANCH_SET.has(branch)) {
 		return { affected: false, notice: `--affected ignored on a push to ${branch}: running everything` };
 	}
 

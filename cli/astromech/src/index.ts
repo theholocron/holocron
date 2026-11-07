@@ -58,6 +58,7 @@ export {
 	WORKFLOW_TEMPLATES,
 } from "./generators/github-action-thin-callers/index.js";
 export { AGGREGATE_CHECK, requiredChecks } from "./generators/required-checks/index.js";
+export { PRERELEASE_CHANNEL, RELEASE_BRANCHES } from "./release-branches/index.js";
 export type {
 	MergedScripts,
 	PackageRole,

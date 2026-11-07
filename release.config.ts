@@ -1,8 +1,8 @@
-import { hostedReusableWorkflows, workflowFile } from "@theholocron/astromech";
+import { hostedReusableWorkflows, PRERELEASE_CHANNEL, RELEASE_BRANCHES, workflowFile } from "@theholocron/astromech";
 import { loadTasksConfig, releaseGroups } from "@theholocron/astromech/config";
 import { groupReleaseConfig, ungroupedReleaseConfig } from "@theholocron/semantic-release-config";
 
-const branches = ["main", { name: "alpha", prerelease: true }];
+const branches = RELEASE_BRANCHES.map((name) => (name === PRERELEASE_CHANNEL ? { name, prerelease: true } : name));
 const holocron = "node cli/cli/dist/cli.mjs";
 const tag = "${nextRelease.channel || 'latest'}";
 
