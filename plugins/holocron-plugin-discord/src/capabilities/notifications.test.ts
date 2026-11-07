@@ -1,4 +1,4 @@
-import { AuthError, ElevationRequiredError, ProviderApiError } from "@theholocron/cli";
+import { AuthError, ElevationRequiredError, type NotificationsChannelLayout, ProviderApiError } from "@theholocron/cli";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
@@ -521,7 +521,7 @@ describe("DiscordNotifications.ensureChannel — forums", () => {
 	});
 
 	it("asks for Add Reactions in the invite only when a forum has starter reactions", async () => {
-		const make = (channel: object) =>
+		const make = (channel: NotificationsChannelLayout) =>
 			makeProvisioner(
 				[FORUM_GUILD, FORUM_CHANS, { status: 403, body: { message: "Missing Permissions", code: 50013 } }, bot],
 				{ guildId: GUILD, layout: { categories: [{ name: "BUILD", channels: [channel] }] } }
