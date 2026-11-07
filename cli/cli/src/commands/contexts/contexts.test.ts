@@ -23,6 +23,7 @@ const EVERY_COMMAND = [
 	"project create",
 	"project close",
 	"project setup",
+	"repo properties apply",
 	"dev",
 	"dev serve",
 	"auth check",

@@ -4,7 +4,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { createGitHubClient } from "../rest.js";
-import { checkPropertyValues, syncProperties } from "./properties.js";
+import { addOrgPropertyValues, checkPropertyValues, getOrgPropertyValues, syncProperties } from "./properties.js";
 
 const REPO = "theholocron/holocron";
 
@@ -275,5 +275,75 @@ describe("syncProperties", () => {
 			const denied = makeRest([{ status: 403, body: { message: "Resource not accessible" } }]);
 			expect(await checkPropertyValues(denied.rest, REPO, { lifecycle: "active" })).toBeUndefined();
 		});
+	});
+});
+
+const CAPS = {
+	property_name: "holocron_capabilities",
+	value_type: "multi_select",
+	required: false,
+	description: "what the repo wires",
+	allowed_values: ["ci", "source"],
+};
+
+describe("getOrgPropertyValues", () => {
+	it("returns the allowed values of the named property", async () => {
+		const { rest } = makeRest([{ body: [CAPS] }]);
+		expect(await getOrgPropertyValues(rest, REPO, "holocron_capabilities")).toEqual(["ci", "source"]);
+	});
+
+	it("is undefined when the property is not defined, takes any value, or cannot be read", async () => {
+		expect(await getOrgPropertyValues(makeRest([{ body: [] }]).rest, REPO, "x")).toBeUndefined();
+		expect(
+			await getOrgPropertyValues(
+				makeRest([{ body: [{ ...CAPS, allowed_values: null }] }]).rest,
+				REPO,
+				CAPS.property_name
+			)
+		).toBeUndefined();
+		expect(await getOrgPropertyValues(makeRest([{ status: 403, body: {} }]).rest, REPO, "x")).toBeUndefined();
+	});
+});
+
+describe("addOrgPropertyValues", () => {
+	it("sends the whole definition back with the missing values appended, and returns them", async () => {
+		const { rest, calls } = makeRest([{ body: [CAPS] }, { body: CAPS }]);
+		const added = await addOrgPropertyValues(rest, REPO, "holocron_capabilities", [
+			"source",
+			"projects",
+			"projects",
+			"tunnels",
+		]);
+		expect(added).toEqual(["projects", "tunnels"]);
+		expect(calls[1]).toMatchObject({
+			method: "PUT",
+			url: expect.stringContaining("/orgs/theholocron/properties/schema/holocron_capabilities"),
+			body: {
+				value_type: "multi_select",
+				required: false,
+				description: "what the repo wires",
+				allowed_values: ["ci", "source", "projects", "tunnels"],
+			},
+		});
+	});
+
+	it("writes nothing when every value is already allowed", async () => {
+		const { rest, calls } = makeRest([{ body: [CAPS] }]);
+		expect(await addOrgPropertyValues(rest, REPO, "holocron_capabilities", ["ci"])).toEqual([]);
+		expect(calls).toHaveLength(1);
+	});
+
+	it("says so when the property does not exist or takes any value", async () => {
+		await expect(addOrgPropertyValues(makeRest([{ body: [] }]).rest, REPO, "nope", ["a"])).rejects.toThrow(
+			/has no custom property "nope"/
+		);
+		await expect(
+			addOrgPropertyValues(
+				makeRest([{ body: [{ ...CAPS, allowed_values: null }] }]).rest,
+				REPO,
+				CAPS.property_name,
+				["a"]
+			)
+		).rejects.toThrow(/takes any value/);
 	});
 });

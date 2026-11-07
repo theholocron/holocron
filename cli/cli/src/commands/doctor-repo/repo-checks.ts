@@ -6,6 +6,7 @@ import type { ResolvedHolocronConfig } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { ProviderApiError, type SourceSecurity, type TeamEntry } from "../../plugin/index.js";
 import { hostsReusables } from "../repo-files/hosted-reusables.js";
+import { CAPABILITIES_PROPERTY, capabilityValues } from "../repo-properties/capability-property/index.js";
 import { RULESET_NAME } from "../setup/branch-protection.js";
 import { deriveCapabilities } from "../setup/derived-properties/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "../setup/labels.js";
@@ -134,6 +135,34 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 			return {
 				problems: problems.map((p) => `${p}; add it in the organization's Settings, Custom properties`),
 				checked: Object.keys(sent).length,
+			};
+		},
+	});
+
+	// The organization's property has to allow every capability the CLI defines, not only the ones this repo wires:
+	// a capability added to the CLI is a value somebody must add to the organization's property, and the first sign
+	// is otherwise a failed `repo setup` in whichever repo uses it first.
+	checks.push({
+		id: "repo-capabilities-allowed",
+		title: `${CAPABILITIES_PROPERTY} allows every capability`,
+		needs: "getOrgPropertyValues",
+		async run(source) {
+			const allowed = await source.getOrgPropertyValues!(CAPABILITIES_PROPERTY);
+			if (allowed === undefined) {
+				return {
+					skip: `the organization's ${CAPABILITIES_PROPERTY} definition cannot be read with this token, is not defined or takes any value`,
+				};
+			}
+			const have = new Set(allowed);
+			const wanted = capabilityValues();
+			return {
+				problems: wanted
+					.filter((v) => !have.has(v))
+					.map(
+						(v) =>
+							`"${v}" is not an allowed value of ${CAPABILITIES_PROPERTY}; run \`holocron repo properties apply\``
+					),
+				checked: wanted.length,
 			};
 		},
 	});

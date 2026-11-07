@@ -689,6 +689,10 @@ See the [command pages](https://theholocron.dev/holocron/commands/notifications-
 
 ## Cleaning up
 
+- **`holocron repo properties apply [--yes]`** — adds the capabilities the organization's `holocron_capabilities`
+  custom property does not allow yet (`holocron doctor repo` names them). The allowed values are organization-wide, so it
+  asks first (`--yes` skips the question; `--dry-run` only reads). It only adds values: nothing is removed or reordered
+  and the rest of the definition is kept. It needs a token with the organization's Custom properties: admin.
 - **`holocron repo cleanup branches [--local | --remote]`** — lists the branches whose pull request is merged,
   grouped, each saying whether it lives locally, on the remote or both; then asks, and offers a checklist with the
   proven-merged ones ticked. Proven merged means an ancestor of `origin/alpha` or `origin/main`, or the head (or an

@@ -63,4 +63,27 @@ describe("properties", () => {
 		await expect(client.properties.getValues(REPO)).resolves.toEqual(values);
 		expect(calls[0]?.url).toContain("/properties/values");
 	});
+
+	it("PUT /orgs/{org}/properties/schema/{name} sends the whole definition without the name", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { property_name: "holocron_capabilities", value_type: "multi_select" } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		await client.properties.setOrgProperty("theholocron", {
+			property_name: "holocron_capabilities",
+			value_type: "multi_select",
+			required: false,
+			allowed_values: ["ci", "projects"],
+			default_value: undefined,
+			description: null,
+		});
+		expect(calls[0]?.method).toBe("PUT");
+		expect(calls[0]?.url).toContain("/orgs/theholocron/properties/schema/holocron_capabilities");
+		expect(calls[0]?.body).toEqual({
+			value_type: "multi_select",
+			required: false,
+			allowed_values: ["ci", "projects"],
+			description: null,
+		});
+	});
 });
