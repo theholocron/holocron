@@ -37,7 +37,7 @@ catalog:
   "@vitest/eslint-plugin": ^1.6.28
   astro: ^7.4.5
   chalk: ^6.0.1
-  conventional-changelog-conventionalcommits: 9.3.1
+  conventional-changelog-conventionalcommits: 10.4.1
   dotenv: ^17.4.2
   eslint: ^10.14.0
   eslint-plugin-n: ^18.5.0
@@ -179,7 +179,7 @@ overrides:
   "@astrojs/starlight>@astrojs/markdown-satteri": 0.4.5
   "@astrojs/starlight>satteri": 0.10.5
   "@sentry/node": 10.75.2
-  conventional-changelog-conventionalcommits: 9.3.1
+  conventional-changelog-conventionalcommits: 10.4.1
   cookie: ^2.0.1
   posthog-node: 5.52.5
   tsx: 4.23.15
