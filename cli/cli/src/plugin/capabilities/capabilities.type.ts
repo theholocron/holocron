@@ -741,6 +741,12 @@ export interface IssueRecord {
 	createdAt: string;
 	/** When it last changed, as an ISO timestamp. */
 	updatedAt: string;
+	/**
+	 * The source address this issue itself carries because a migration or a sync made it from another tracker (the
+	 * `holocron:migrated-from` marker on GitHub, the `Migrated from` attachment on Linear). A sync skips such an issue,
+	 * which is what keeps two one-way syncs from echoing each other's work.
+	 */
+	migratedFrom?: string;
 }
 
 /** Which issues {@link Issues.export} reads. Set one of `keys`, `milestone` or `all`. */
@@ -753,6 +759,8 @@ export interface IssueSelector {
 	all?: boolean;
 	/** Leave out closed issues. */
 	openOnly?: boolean;
+	/** Leave out issues last changed before this moment, as an ISO timestamp. */
+	since?: string;
 }
 
 /** What {@link Issues.import} needs besides the records. */
@@ -773,6 +781,14 @@ export interface ImportResult {
 	created: boolean;
 	/** What the target cannot hold of this record and so left out, e.g. `assignee (no matching user)`. */
 	dropped: string[];
+}
+
+/** What {@link Issues.sync} did with one record: an {@link ImportResult} plus what it changed on an issue it already had. */
+export interface SyncResult extends ImportResult {
+	/** Whether an issue an earlier run made was changed now (or, on a dry run, would be). */
+	updated: boolean;
+	/** The fields that differed from the source and were set: `title`, `description`, `state`, `priority`, `labels`, `assignee`, `comments`. */
+	changes: string[];
 }
 
 /** An issue tracker: finds, reads, creates, moves and comments on issues. */
@@ -814,6 +830,15 @@ export interface Issues extends ProviderIdentity {
 	 * `blockedBy` links are set, because they point at records made in the same call. Optional.
 	 */
 	import?(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]>;
+	/**
+	 * Like `import`, and it also brings up to date what an earlier import or sync made: title, description, state,
+	 * priority, labels and assignee when they differ from the record, and the comments the issue lacks, oldest first
+	 * (a comment is never edited or deleted). An issue is changed only when its recorded source address says a
+	 * migration or sync made it. A rate limit stops the run cleanly: the results returned are the records done, and
+	 * the caller counts the rest as left. A write that failed is not repeated. Optional: a provider without it cannot
+	 * be a sync target.
+	 */
+	sync?(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

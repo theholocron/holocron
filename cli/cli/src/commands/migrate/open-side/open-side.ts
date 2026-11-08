@@ -29,7 +29,7 @@ export async function openSide(input: OpenSideInput): Promise<Side> {
 	const resolved = { ...input.loaded.resolved, providers };
 	const loader = input.makeLoader?.(resolved, input.context) ?? new PluginLoader(resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "migrate");
+	assertPluginsResolvable(loader, input.command ?? "migrate");
 
 	const side: Side = { ok: true, provider: endpoint.provider };
 	for (const key of capabilities) {

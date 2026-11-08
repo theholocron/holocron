@@ -111,7 +111,7 @@ Every command is tagged with how much of a repo it needs:
 | ------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin`, `repo upgrade …`, `auth set` / `check`, `package …`, `run lint commit-msg`, `skills …` |
 | `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `config show`, `repo sync readme`, `deploy on-release`                                                           |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `repo setup`, `repo sync`, `repo cleanup branches`, `secrets …`, `deploy`, `sync github`                                |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `repo setup`, `repo sync`, `repo cleanup branches`, `secrets …`, `deploy`, `sync github`, `sync issues`                 |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
@@ -689,6 +689,17 @@ Provider credentials for Discord: `discord.holonet` is the **bot token** (Bot �
 **OAuth client secret** (OAuth2 → Reset Secret). They are different values; the API can create or read neither.
 
 See the [command pages](https://theholocron.dev/holocron/commands/notifications-setup/) for each command's options.
+
+## Syncing issues
+
+- **`holocron sync issues --from <a> --to <b> [--since <time>] [--yes]`** — one direction of an issue sync between two
+  trackers (`github`, `linear:team=ENG`); swap the ends for the other direction. Unlike `holocron migrate` it updates what
+  it made: it creates a missing issue, sets title, description, state, priority, labels and assignee when they differ, and
+  adds the comments the target lacks (oldest first, never edited or deleted). It writes nothing to the source, and changes
+  a target issue only when a migrate or sync made it (the recorded `holocron:migrated-from` marker or attachment). A source
+  issue that itself carries such an address is skipped, which stops the two directions echoing each other. The report
+  counts created, updated, unchanged, skipped (guard) and left, and ends with the `not carried across` list. A rate limit
+  stops the run with a `left` count. A target needs the optional `Issues.sync`; GitHub and Linear have it.
 
 ## Cleaning up
 

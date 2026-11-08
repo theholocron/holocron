@@ -60,6 +60,7 @@ import { skillsRemoveEntry } from "../../commands/skills/skills-remove.entry.js"
 import { skillsUpdateEntry } from "../../commands/skills/skills-update.entry.js";
 import { specsSyncEntry } from "../../commands/specs-sync/specs-sync.entry.js";
 import { syncGithubEntry } from "../../commands/sync-github/sync-github.entry.js";
+import { syncIssuesEntry } from "../../commands/sync-issues/sync-issues.entry.js";
 import { syncReadmeEntry } from "../../commands/sync-readme/sync-readme.entry.js";
 import { tunnelUpEntry } from "../../commands/tunnel-up/tunnel-up.entry.js";
 import { upgradeDepsEntry } from "../../commands/upgrade-deps/upgrade-deps.entry.js";
@@ -120,6 +121,7 @@ const registry = createCommandRegistry(
 		repoCleanupBranchesEntry,
 		runCiEntry,
 		syncGithubEntry,
+		syncIssuesEntry,
 		syncReadmeEntry,
 		configShowEntry,
 		newRepoEntry,

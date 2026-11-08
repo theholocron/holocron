@@ -17,6 +17,27 @@ import type { LinearIssue, LinearProject } from "@theholocron/linear-client";
 import { fromLinearPriority, isClosed, normalizeKey, pickState, statusCategory, toLinearPriority } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
+/** The start of the title of the attachment that records where an issue was migrated from. */
+export const MIGRATED_TITLE_PREFIX = "Migrated from ";
+
+/** The text a comment gets when it is copied: Linear posts as the token's user, so the author is named in the text. */
+export function renderComment(comment: { author?: string; body: string }): string {
+	return comment.author ? `**${comment.author}** wrote:\n\n${comment.body}` : comment.body;
+}
+
+/** The Linear user a record's assignee is, matched by email; undefined when there is none or no match. */
+export function assigneeFor(record: IssueRecord, userIds: Map<string, string>): string | undefined {
+	return record.assignee?.emailAddress ? userIds.get(record.assignee.emailAddress.toLowerCase()) : undefined;
+}
+
+/** What Linear cannot carry of this record, for the report. */
+export function droppedFor(record: IssueRecord, assigneeId: string | undefined): string[] {
+	const dropped: string[] = [];
+	if (record.assignee && !assigneeId) dropped.push("assignee (no Linear user with that email)");
+	if (record.comments.some((c) => c.author)) dropped.push("comment authors (named in the text)");
+	return dropped;
+}
+
 /** Reads the issues `selector` names, with their comments, priority, labels, parent and blockers. */
 export async function exportIssues(scope: TeamScope, selector: IssueSelector): Promise<IssueRecord[]> {
 	const { client } = scope;
@@ -35,11 +56,14 @@ export async function exportIssues(scope: TeamScope, selector: IssueSelector): P
 	}
 
 	const records: IssueRecord[] = [];
+	const since = selector.since ? Date.parse(selector.since) : undefined;
 	for (const issue of raw) {
 		const closed = isClosed(issue.state.type);
 		if (selector.openOnly && closed) continue;
+		if (since !== undefined && Date.parse(issue.updatedAt) < since) continue;
 		const comments = await client.issues.comments(issue.id);
 		const priority = fromLinearPriority(issue.priority);
+		const migratedFrom = issue.attachments?.nodes.find((a) => a.title.startsWith(MIGRATED_TITLE_PREFIX))?.url;
 		records.push({
 			key: issue.identifier,
 			url: issue.url,
@@ -69,16 +93,18 @@ export async function exportIssues(scope: TeamScope, selector: IssueSelector): P
 			})),
 			createdAt: issue.createdAt,
 			updatedAt: issue.updatedAt,
+			...(migratedFrom ? { migratedFrom } : {}),
 		});
 	}
 	return records;
 }
 
-/** Makes the records as issues in the team, then sets the parent and blocked-by links among them. */
+/** Makes the records as issues in the team, then sets the parent and blocked-by links among them. `results` receives each record as it is done, so a caller that stops the run on an error still has the finished ones. */
 export async function importIssues(
 	scope: TeamScope,
 	records: IssueRecord[],
-	options: ImportOptions = {}
+	options: ImportOptions = {},
+	results: ImportResult[] = []
 ): Promise<ImportResult[]> {
 	const { client } = scope;
 	const team = await scope.team();
@@ -102,7 +128,6 @@ export async function importIssues(
 	};
 
 	const made = new Map<string, { id: string; created: boolean }>();
-	const results: ImportResult[] = [];
 
 	for (const record of records) {
 		const existing = (await client.issues.attachmentsForUrl(record.url)).find((a) =>
@@ -114,12 +139,8 @@ export async function importIssues(
 			continue;
 		}
 
-		const dropped: string[] = [];
-		const assigneeId = record.assignee?.emailAddress
-			? userIds.get(record.assignee.emailAddress.toLowerCase())
-			: undefined;
-		if (record.assignee && !assigneeId) dropped.push("assignee (no Linear user with that email)");
-		if (record.comments.some((c) => c.author)) dropped.push("comment authors (named in the text)");
+		const assigneeId = assigneeFor(record, userIds);
+		const dropped = droppedFor(record, assigneeId);
 		if (options.dryRun) {
 			results.push({ source: record.key, created: true, dropped });
 			continue;
@@ -153,10 +174,9 @@ export async function importIssues(
 			...(project ? { projectId: project } : {}),
 			createdAt: record.createdAt,
 		});
-		await client.issues.attach(issue.id, record.url, `Migrated from ${record.key}`);
+		await client.issues.attach(issue.id, record.url, `${MIGRATED_TITLE_PREFIX}${record.key}`);
 		for (const comment of record.comments) {
-			const body = comment.author ? `**${comment.author}** wrote:\n\n${comment.body}` : comment.body;
-			await client.issues.comment(issue.id, body, comment.createdAt);
+			await client.issues.comment(issue.id, renderComment(comment), comment.createdAt);
 		}
 		made.set(record.key, { id: issue.id, created: true });
 		results.push({ source: record.key, key: issue.identifier, created: true, dropped });
@@ -190,7 +210,7 @@ async function linkIssues(
 	}
 }
 
-async function findProject(scope: TeamScope, ref: string): Promise<LinearProject | undefined> {
+export async function findProject(scope: TeamScope, ref: string): Promise<LinearProject | undefined> {
 	const team = await scope.team();
 	const all = await scope.client.projects.list();
 	return all.find(

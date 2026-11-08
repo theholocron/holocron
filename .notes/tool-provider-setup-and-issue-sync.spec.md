@@ -276,11 +276,16 @@ a GitHub board target with a missing option; a rate limit mid-run.
 2. **Where `sync` lives.** `sync issues` collides in spirit with the existing `sync github` / `sync wiki` group
    (publishing generated files). `migrate --update` is the alternative, at the cost of `migrate` no longer being
    create-only.
+   _Decided: `sync issues`, as the spec's command, beside `sync github`; `migrate` stays create-only._
 3. **Assignees across trackers.** Matched by email today. A per-org mapping file (like the Discord links file) would let
    a sync keep assignees; not decided.
+   _Sync keeps email matching: a Linear target matches the source assignee by email and never clears one; a GitHub
+   target cannot map a Linear user to a login, so it keeps no assignee and reports `assignee (not mapped)`._
 4. **Scheduling.** A reusable workflow plus a thin caller (as `reconcile-projects`), or only a local command for the trial.
+   _Not built: `sync issues` is a local command with `--yes` for a scheduled run; the workflow is a follow-up._
 5. **GitHub priority.** Priority is a `priority: <level>` label on GitHub issues today. A sync to a board target would set
    the Priority field instead; whether to also keep the label is open.
+   _Sync keeps today's `priority: <level>` label on GitHub; the board field belongs to #1860._
 6. **Whether Linear's git automation can be read back reliably** (target branch regex vs pattern) for the doctor to
    compare; needs checking against the live schema before this spec is accepted.
    _Resolved against `linear/linear` `packages/sdk/src/schema.graphql`: the git rules can be read back reliably. A rule
@@ -309,6 +314,14 @@ First PR (draft, on the Linear plugin's branch): the `provider` command and the 
 already reports a rule that is off), sections 3 to 5. Second PR (`feat/linear-git-automation-templates`): the git rules (applied and compared) and the `templates` declaration (validated, reported as skipped).
 
 Section 3 (#1860): `Projects.addItems?(owner, board, items, template)` takes `BoardItemInput`s (key, status, category, priority) rather than bare keys, because Status and Priority are set in the same call; it returns an `AddedItem` per input (`added`, `dropped`). `migrate project` uses it when the target's `projects` provider has it, and the milestone is then set only by `--milestone`. Built: GitHub's `addItems`, `--template`, the board line and the `dropped` counts. Not done: the built-in `roadmap` template's priority options (`1 · Now`...) do not match the neutral levels, so a board made from it drops every priority until a template names `urgent` to `P3` options (an open choice, not decided here).
+
+Sync PR: `sync issues` (`commands/sync-issues/`) and the optional `Issues.sync` with the GitHub and Linear
+implementations. `IssueRecord.migratedFrom` carries the recorded address for the loop guard and `IssueSelector.since`
+narrows the read. `sync` returns the records it finished; a rate limit makes that list shorter and the command counts the
+rest as `left`. A comment is found on the target by its time (and, on Linear, also by its text), so one edited on the
+source is not copied twice. Not in it: scheduling (question 4), a mapping file for assignees (question 3), moving
+`import` onto `sync` (`import` keeps its own loop beside the shared create function), and the parent and blocked-by links
+of an issue made by a sync that was stopped by a rate limit before the link pass.
 
 ## Related
 

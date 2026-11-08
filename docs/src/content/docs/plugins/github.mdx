@@ -79,6 +79,10 @@ See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each
 - Add comments
 - `doctor()` — lists available labels and validates lifecycle slot mapping
 
+### Migrating and syncing
+
+`export`, `import` and `sync` let `holocron migrate` and `holocron sync issues` move issues to and from another tracker. A copy carries a `<!-- holocron:migrated-from <url> -->` marker at the end of its body, which is how a later run finds it and how the reverse sync knows to skip it. `sync` updates title, description, state and labels (priority is the `priority: <level>` label) of a copy, keeps its `status:*` labels, and adds the comments it lacks; an assignee is not mapped, because a Linear user is not a GitHub login. A 429, or a 403 that names the rate limit, stops the run with the rest left for the next one. See [sync issues](/holocron/commands/sync-issues/).
+
 ## What `projects` provides
 
 GitHub Projects v2 boards over GraphQL, for `holocron project ...`. It uses the org token with the **Projects**

@@ -105,6 +105,29 @@ describe("GitHubIssues.export", () => {
 		expect(r?.assignee).toBeUndefined();
 	});
 
+	it("leaves out issues last changed before `since`, and reports the address of a copy", async () => {
+		const { issues } = make([
+			{
+				body: [
+					raw({ number: 1, updated_at: "2026-01-01T00:00:00Z" }),
+					raw({ number: 2, updated_at: "2026-03-01T00:00:00Z" }),
+				],
+			},
+			{ body: [] },
+			links(null, []),
+		]);
+		const out = await issues.export({ all: true, since: "2026-02-01T00:00:00Z" });
+		expect(out.map((r) => r.key)).toEqual(["#2"]);
+		expect(out[0]?.migratedFrom).toBe("https://x/1");
+		expect(out[0]?.body).toBe("details");
+	});
+
+	it("reports no address for an issue that is not a copy", async () => {
+		const { issues } = make([{ body: [raw({ body: "plain" })] }, { body: [] }, links(null, [])]);
+		const [r] = await issues.export({ all: true });
+		expect(r).not.toHaveProperty("migratedFrom");
+	});
+
 	it("fails clearly on an unknown milestone, a bad key and an empty selector", async () => {
 		await expect(make([{ body: [] }]).issues.export({ milestone: "nope" })).rejects.toThrow(/not found/);
 		await expect(make([]).issues.export({ keys: ["x"] })).rejects.toThrow(/Invalid GitHub issue key/);

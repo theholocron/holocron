@@ -22,12 +22,14 @@ import type {
 	LifecycleResult,
 	LifecycleSlot,
 	StatusCategory,
+	SyncResult,
 	TrackerDoctorReport,
 	TrackerUser,
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
 import { exportIssues, importIssues } from "./issues-migration.js";
+import { syncIssues } from "./issues-sync.js";
 
 export interface IssuesOptions {
 	repo: string;
@@ -250,6 +252,11 @@ export class GitHubIssues implements Issues {
 	/** Makes the records as issues; one already made by an earlier run is skipped. */
 	import(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]> {
 		return importIssues(this.client, this.repo, records, options);
+	}
+
+	/** Like `import`, and it also updates what an earlier import or sync made, for `holocron sync issues`. */
+	sync(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]> {
+		return syncIssues(this.client, this.repo, records, options);
 	}
 
 	// ── internals ────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ export const ISSUE_FIELDS = `id identifier number title description priority pri
 	assignee { id name displayName email }
 	labels(first: 50) { nodes { id name } }
 	project { id name } parent { id identifier }
+	attachments(first: 25) { nodes { url title } }
 	relations(first: 50) { nodes { ${REL} } }
 	inverseRelations(first: 50) { nodes { ${INVERSE_REL} } }`;
 

@@ -20,12 +20,14 @@ import type {
 	IssueSelector,
 	LifecycleResult,
 	LifecycleSlot,
+	SyncResult,
 	TrackerDoctorReport,
 	TrackerUser,
 } from "@theholocron/cli";
 import type { LinearIssue, LinearUser, LinearWorkflowState } from "@theholocron/linear-client";
 
 import { exportIssues, importIssues } from "./issues-migration.js";
+import { syncIssues } from "./issues-sync.js";
 import { normalizeKey, pickState, statusCategory } from "./mapping.js";
 import type { TeamScope } from "./team-scope.js";
 
@@ -161,6 +163,11 @@ export class LinearIssues implements Issues {
 	/** Makes the records as issues in the team; one already made by an earlier run is skipped. */
 	import(records: IssueRecord[], options?: ImportOptions): Promise<ImportResult[]> {
 		return importIssues(this.scope, records, options);
+	}
+
+	/** Like `import`, and it also updates what an earlier import or sync made, for `holocron sync issues`. */
+	sync(records: IssueRecord[], options?: ImportOptions): Promise<SyncResult[]> {
+		return syncIssues(this.scope, records, options);
 	}
 
 	private stateFor(slot: LifecycleSlot, states: LinearWorkflowState[]): LinearWorkflowState | undefined {

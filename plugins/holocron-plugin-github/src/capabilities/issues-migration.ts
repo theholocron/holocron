@@ -22,7 +22,7 @@ import type {
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
-const MARKER = /<!-- holocron:migrated-from (\S+) -->/;
+export const MARKER = /<!-- holocron:migrated-from (\S+) -->/;
 const PRIORITY_LABEL = /^priority\s*[:/-]\s*(urgent|high|medium|low)$/i;
 
 interface Link {
@@ -73,7 +73,13 @@ export async function exportIssues(
 	} else {
 		throw new Error("export needs keys, a milestone or all");
 	}
-	const issues = raw.filter((i) => !i.pull_request && !(selector.openOnly && i.state === "closed"));
+	const since = selector.since ? Date.parse(selector.since) : undefined;
+	const issues = raw.filter(
+		(i) =>
+			!i.pull_request &&
+			!(selector.openOnly && i.state === "closed") &&
+			(since === undefined || Date.parse(i.updated_at) >= since)
+	);
 
 	const records: IssueRecord[] = [];
 	for (const issue of issues) {
@@ -84,6 +90,7 @@ export async function exportIssues(
 		const links = link?.repository.issue;
 		const { labels, priority } = splitLabels(issue.labels.map((l) => l.name));
 		const body = issue.body?.replace(MARKER, "").trimEnd();
+		const migratedFrom = issue.body ? MARKER.exec(issue.body)?.[1] : undefined;
 		records.push({
 			key: `#${issue.number}`,
 			url: issue.html_url,
@@ -112,6 +119,7 @@ export async function exportIssues(
 			})),
 			createdAt: issue.created_at ?? issue.updated_at,
 			updatedAt: issue.updated_at,
+			...(migratedFrom ? { migratedFrom } : {}),
 		});
 	}
 	return records;
@@ -137,44 +145,67 @@ export async function importIssues(
 			results.push({ source: record.key, key: `#${found}`, created: false, dropped: [] });
 			continue;
 		}
-		const dropped = ["createdAt (GitHub sets it; the original date is in the text)"];
-		if (record.assignee) dropped.push("assignee (not mapped)");
-		if (record.parent) dropped.push("parent (not set on GitHub)");
-		if (record.blockedBy.length > 0) dropped.push("blockedBy (not set on GitHub)");
+		const dropped = droppedFor(record);
 		if (options.dryRun) {
 			results.push({ source: record.key, created: true, dropped });
 			continue;
 		}
-
-		const milestoneName = options.milestone ?? record.milestone;
-		const milestone = milestoneName ? await ensureMilestone(client, repo, milestoneName) : undefined;
-		const labels = [
-			...record.labels,
-			...(record.priority && record.priority !== "none" ? [`priority: ${record.priority}`] : []),
-		];
-		const created = await client.issues.createIssue(repo, {
-			title: record.title,
-			body: withProvenance(record),
-			...(labels.length > 0 ? { labels } : {}),
-			...(milestone !== undefined ? { milestone } : {}),
-		});
-		for (const comment of record.comments) {
-			const who = comment.author ? `**${comment.author}**` : "Someone";
-			await client.issues.createComment(
-				repo,
-				created.number,
-				`${who} commented on ${comment.createdAt}:\n\n${comment.body}`
-			);
-		}
-		if (record.closed) {
-			await client.issues.updateIssue(repo, created.number, { state: "closed", state_reason: "completed" });
-		}
-		results.push({ source: record.key, key: `#${created.number}`, created: true, dropped });
+		const number = await createFromRecord(client, repo, record, options);
+		results.push({ source: record.key, key: `#${number}`, created: true, dropped });
 	}
 	return results;
 }
 
-function withProvenance(record: IssueRecord): string {
+/** What GitHub cannot hold of this record, for the report. */
+export function droppedFor(record: IssueRecord): string[] {
+	const dropped = ["createdAt (GitHub sets it; the original date is in the text)"];
+	if (record.assignee) dropped.push("assignee (not mapped)");
+	if (record.parent) dropped.push("parent (not set on GitHub)");
+	if (record.blockedBy.length > 0) dropped.push("blockedBy (not set on GitHub)");
+	return dropped;
+}
+
+/** The labels a record becomes on GitHub: its own, plus `priority: <level>` (GitHub's priority is a label). */
+export function labelsFor(record: IssueRecord): string[] {
+	return [
+		...record.labels,
+		...(record.priority && record.priority !== "none" ? [`priority: ${record.priority}`] : []),
+	];
+}
+
+/** The text a comment gets when it is copied: GitHub cannot post as another author or backdate. */
+export function renderComment(comment: IssueComment): string {
+	const who = comment.author ? `**${comment.author}**` : "Someone";
+	return `${who} commented on ${comment.createdAt}:\n\n${comment.body}`;
+}
+
+/** Makes one issue from a record, with its comments, and closes it when the record is closed; returns its number. */
+export async function createFromRecord(
+	client: GitHubClient,
+	repo: string,
+	record: IssueRecord,
+	options: ImportOptions
+): Promise<number> {
+	const milestoneName = options.milestone ?? record.milestone;
+	const milestone = milestoneName ? await ensureMilestone(client, repo, milestoneName) : undefined;
+	const labels = labelsFor(record);
+	const created = await client.issues.createIssue(repo, {
+		title: record.title,
+		body: withProvenance(record),
+		...(labels.length > 0 ? { labels } : {}),
+		...(milestone !== undefined ? { milestone } : {}),
+	});
+	for (const comment of record.comments) {
+		await client.issues.createComment(repo, created.number, renderComment(comment));
+	}
+	if (record.closed) {
+		await client.issues.updateIssue(repo, created.number, { state: "closed", state_reason: "completed" });
+	}
+	return created.number;
+}
+
+/** The text of a migrated issue: the record's body, then where it came from and the marker a second run looks for. */
+export function withProvenance(record: IssueRecord): string {
 	const body = record.body ? `${record.body}\n\n` : "";
 	return (
 		`${body}---\n_Migrated from [${record.key}](${record.url}); created ${record.createdAt}._\n` +
@@ -188,7 +219,11 @@ function parseNumber(key: string): number {
 	return parseInt(n, 10);
 }
 
-async function listAll(client: GitHubClient, repo: string, extra: { milestone?: string }): Promise<GitHubIssue[]> {
+export async function listAll(
+	client: GitHubClient,
+	repo: string,
+	extra: { milestone?: string }
+): Promise<GitHubIssue[]> {
 	const all: GitHubIssue[] = [];
 	for (let page = 1; ; page++) {
 		const batch = await client.issues.listIssues(repo, { state: "all", per_page: 100, page, ...extra });
