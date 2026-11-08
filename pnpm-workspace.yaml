@@ -38,7 +38,7 @@ catalog:
   astro: ^7.4.5
   chalk: ^6.0.1
   conventional-changelog-conventionalcommits: 9.3.1
-  dotenv: ^17.4.2
+  dotenv: ^18.0.9
   eslint: ^10.14.0
   eslint-plugin-n: ^18.5.0
   eslint-plugin-simple-import-sort: ^14.0.0
