@@ -13,7 +13,7 @@ export async function openSide(input: OpenSideInput): Promise<Side> {
 	const { endpoint, capabilities } = input;
 	const base = input.loaded.resolved.providers;
 	const providers: ResolvedHolocronConfig["providers"] = {};
-	for (const key of capabilities) {
+	for (const key of [...capabilities, ...(input.optional ?? [])]) {
 		const own = base[key];
 		const ownOptions =
 			own?.cardinality === "single" && own.tuple.provider === endpoint.provider ? own.tuple.options : {};
@@ -43,5 +43,6 @@ export async function openSide(input: OpenSideInput): Promise<Side> {
 		if (key === "issues") side.issues = loader.get("issues");
 		else side.projects = loader.get("projects");
 	}
+	if (input.optional?.includes("projects") && loader.has("projects")) side.projects = loader.get("projects");
 	return side;
 }

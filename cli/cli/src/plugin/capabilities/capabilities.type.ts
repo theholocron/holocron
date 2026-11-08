@@ -2856,6 +2856,28 @@ export interface EnsureReport {
 	todos: string[];
 }
 
+/** One issue to put on a board with {@link Projects.addItems}, with the values it should start with. */
+export interface BoardItemInput {
+	/** The issue's key in the provider's own tracker (`#42`). */
+	key: string;
+	/** The status the issue had where it came from, by name; used when the board has an option of that name. */
+	status?: string;
+	/** The category that status falls into; used to find the board's own status when no option has the name. */
+	category?: BoardStatusCategory;
+	/** How urgent the issue is. `none` sets nothing. */
+	priority?: IssuePriority;
+}
+
+/** What {@link Projects.addItems} did with one issue. */
+export interface AddedItem {
+	/** The issue's key, as it was given. */
+	key: string;
+	/** Whether it was put on the board now; false when it was already there. */
+	added: boolean;
+	/** The values the board has no option for and so were left unset, e.g. `priority urgent (no matching option on the board)`. */
+	dropped: string[];
+}
+
 /** What {@link Projects.move} did between two boards. */
 export interface MoveReport {
 	/** Keys of the open items put on the target board. */
@@ -2900,6 +2922,17 @@ export interface Projects extends ProviderIdentity {
 	 * through a workflow (Jira) can refuse, and says why in `via`. Optional.
 	 */
 	setStatus?(owner: string, board: BoardSummary, key: string, status: string): Promise<LifecycleResult>;
+	/**
+	 * Put issues on the board and give each the status and priority of its input, where the board has an option for it.
+	 * An issue already on the board keeps its place and its values, and a value is only set where the item has none, so
+	 * a second run changes nothing. A value with no matching option is reported in `dropped`, never created. Optional.
+	 */
+	addItems?(
+		owner: string,
+		board: BoardSummary,
+		items: BoardItemInput[],
+		template: BoardTemplate
+	): Promise<AddedItem[]>;
 	/**
 	 * Put the open items of one board on another, with their status and priority; leave closed ones behind. An item
 	 * already on the target keeps its values. Optional.
