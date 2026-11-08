@@ -226,14 +226,6 @@ describe("provider linear setup", () => {
 		expect((await p.doctor({ dryRun: false })).map((r) => r.id)).toEqual(["team", "autoArchive"]);
 	});
 
-	it("reports git automation as skipped, since it is not applied", async () => {
-		const ws = workspace();
-		const rows = await plugin(ws.fetch, { automation: { git: [{ event: "merge", state: "Done" }] } }).setup({
-			dryRun: false,
-		});
-		expect(rows).toEqual([expect.objectContaining({ id: "git", status: "skip" })]);
-	});
-
 	it("reports a team the token cannot see, and every read that fails", async () => {
 		const missing = fakeLinear([[/teams\(first/, { teams: nodes([]) }]]);
 		expect((await plugin(missing.fetch).setup({ dryRun: false }))[0]).toMatchObject({ id: "team", status: "fail" });
@@ -294,13 +286,12 @@ describe("provider linear doctor", () => {
 		expect(byId(rows).autoClose).toMatchObject({ status: "ok", detail: "2 months" });
 	});
 
-	it("fails a close state the team does not have, and skips git automation", async () => {
+	it("fails a close state the team does not have", async () => {
 		const ws = workspace();
 		const rows = await plugin(ws.fetch, {
-			automation: { autoClose: { months: 0, state: "Nope" }, git: [{ event: "start", state: "In Progress" }] },
+			automation: { autoClose: { months: 0, state: "Nope" } },
 		}).doctor({ dryRun: false });
 		expect(byId(rows).autoClose?.problems[0]).toMatch(/no state "Nope"/);
-		expect(byId(rows).git?.status).toBe("skip");
 	});
 
 	it("reports an unreadable team and unreadable settings as failing rows", async () => {
@@ -339,6 +330,10 @@ describe("closeGap and archiveGap", () => {
 		expect(archiveGap({ months: 2 }, have).problems).toEqual(["auto-archive is off, declared 2 months"]);
 	});
 
+	it("send null, not 0, to switch auto-close off", () => {
+		expect(closeGap({ months: 0 }, have, STATES as never).patch).toEqual({ autoClosePeriod: null });
+	});
+
 	it("treat no period and 0 as the same, and a matching state as no difference", () => {
 		expect(archiveGap({ months: 0 }, have).problems).toEqual([]);
 		expect(closeGap({ months: 1, state: "canceled" }, have, STATES as never)).toEqual({
@@ -369,6 +364,7 @@ describe("parseLinearSetup", () => {
 		const config = parseLinearSetup({
 			team: "ENG",
 			labels: ["a", "a", "b"],
+			templates: [{ name: "Bug", file: ".holocron/linear/bug.md" }],
 			project: "Roadmap",
 			automation: {
 				autoClose: { months: 3, state: "Canceled" },
@@ -382,6 +378,7 @@ describe("parseLinearSetup", () => {
 		expect(config).toEqual({
 			team: "ENG",
 			labels: ["a", "b"],
+			templates: [{ name: "Bug", file: ".holocron/linear/bug.md" }],
 			project: "Roadmap",
 			autoClose: { months: 3, state: "Canceled" },
 			autoArchive: { months: 0 },
@@ -434,6 +431,9 @@ describe("parseLinearSetup", () => {
 		],
 		[{ team: "E", labels: "bug" }, "providers.issues.labels must be an array of names"],
 		[{ team: "E", labels: ["ok", ""] }, "providers.issues.labels[1] must be a non-empty string"],
+		[{ team: "E", templates: {} }, "providers.issues.templates must be an array"],
+		[{ team: "E", templates: [1] }, "providers.issues.templates[0] must be an object"],
+		[{ team: "E", templates: [{ name: "Bug" }] }, "providers.issues.templates[0].file must be a non-empty string"],
 		[{ team: "E", project: 4 }, "providers.issues.project must be a non-empty string"],
 	])("rejects %j naming the path", (raw, message) => {
 		const e = err(raw as never);

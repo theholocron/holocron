@@ -44,9 +44,15 @@ export interface LinearPluginOptions extends ResolveTokenInput {
 			/** Months after closing; 0 switches auto-archive off. */
 			months: number;
 		};
-		/** Git automation. Validated, but not applied or compared yet. */
+		/**
+		 * Git automation rules `provider linear setup` makes (or repoints) and `provider linear doctor` compares. `event` is
+		 * one of `draft`, `review`, `start`, `mergeable`, `merge`; `state` is a team state name; `branch` limits the rule to
+		 * pull requests targeting that exact branch name.
+		 */
 		git?: Array<{ event: string; state: string; branch?: string }>;
 	};
+	/** Issue templates (`name`, and the `.holocron/linear/*.md` file). Validated and reported as skipped: not applied or compared. */
+	templates?: Array<{ name: string; file: string }>;
 	/** Labels `provider linear setup` makes on the team when they are missing. */
 	labels?: string[];
 	/** A project `provider linear setup` makes when it is missing. */
@@ -92,7 +98,7 @@ function providerAction(
 					"linear",
 					"linear",
 					"skip",
-					"nothing to do: declare `labels`, `project` or `automation` under the issues provider's options"
+					"nothing to do: declare `labels`, `project`, `templates` or `automation` under the issues provider's options"
 				),
 			];
 		}
