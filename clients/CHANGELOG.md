@@ -1,3 +1,9 @@
+## [1.58.0-alpha.22](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.21...clients-v1.58.0-alpha.22) (2026-11-08)
+
+### Bug Fixes
+
+* **linear:** 🐛 read a team's auto-close state by its id, which Linear's Team has ([#1945](https://github.com/theholocron/holocron/issues/1945)) ([a64cb93](https://github.com/theholocron/holocron/commit/a64cb935a5067b9907b34b0f6da638a434edba07)), closes [#1944](https://github.com/theholocron/holocron/issues/1944)
+
 ## [1.58.0-alpha.21](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.20...clients-v1.58.0-alpha.21) (2026-11-08)
 
 ### Features
