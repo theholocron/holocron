@@ -1,5 +1,5 @@
 import { DOT_GITHUB_REPO, legacyFile, TEMPLATE_HOME } from "@theholocron/astromech";
-import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
+import { createEnvLookup, type EnvLookup, PREFIX, withEnvPrefix } from "@theholocron/env-utils/lookup";
 
 import { sentinelAxiomDataset } from "../sentinel-axiom-dataset/index.js";
 
@@ -40,7 +40,7 @@ export const SENTINEL_NAMESPACES = {
  * together) — `msg` (the exact string each one logs, matched with its own
  * post) disambiguates which of that request's lines is this one.
  *
- * The org slug and dataset are not compiled in: they come from `AXIOM_ORG` and
+ * The org slug and dataset are not compiled in: they come from `HOLOCRON_AXIOM_ORG` (else the bare `AXIOM_ORG`) and
  * `SENTINEL_AXIOM_DATASET` (else the bare `AXIOM_DATASET`, `sentinelAxiomDataset()`) through
  * `@theholocron/env-utils/lookup`, the path the logger takes too. Both are synced into Vercel from the
  * 1Password Environment `Sentinel`. Returns `undefined` (the check run then
@@ -51,7 +51,7 @@ export function sentinelAxiomLogUrl(
 	msg: string,
 	env: EnvLookup = createEnvLookup()
 ): string | undefined {
-	const org = env.get("AXIOM_ORG");
+	const org = withEnvPrefix(env, PREFIX).get("AXIOM_ORG");
 	const dataset = sentinelAxiomDataset(env);
 	if (!org || !dataset) return undefined;
 	const apl = `['${dataset}'] | where runId == "${runId}" and msg == "${msg}"`;

@@ -129,7 +129,7 @@ jobs:
           apl="['${SENTINEL_AXIOM_DATASET}'] | where check_run_id == \"${CHECK_RUN_ID}\""
           init_form=$(jq -cn --arg apl "$apl" '{apl: $apl}')
           encoded=$(jq -rn --arg s "$init_form" '$s | @uri')
-          echo "query-url=https://app.axiom.co/${AXIOM_ORG}/query?initForm=${encoded}" >> "$GITHUB_OUTPUT"
+          echo "query-url=https://app.axiom.co/${HOLOCRON_AXIOM_ORG}/query?initForm=${encoded}" >> "$GITHUB_OUTPUT"
         env:
           LOG_FILE: ${{ steps.run-task.outputs.log-file }}
           REPO: ${{ inputs.repo }}
@@ -138,8 +138,9 @@ jobs:
           CHECK_RUN_ID: ${{ inputs.check-run-id }}
           CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
           # Org variables (1Password Environment "Holocron - GitHub Actions variables", synced by
-          # `repo.variables.sync`); no literal fallback.
-          AXIOM_ORG: ${{ vars.AXIOM_ORG }}
+          # `repo.variables.sync`); no literal fallback. The variable keeps its bare name in GitHub and
+          # 1Password; the workflow maps it onto the prefixed one (#1864).
+          HOLOCRON_AXIOM_ORG: ${{ vars.AXIOM_ORG }}
           SENTINEL_AXIOM_DATASET: ${{ vars.SENTINEL_AXIOM_DATASET }}
           AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}
 
