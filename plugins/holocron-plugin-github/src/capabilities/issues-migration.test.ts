@@ -81,6 +81,61 @@ describe("GitHubIssues.export", () => {
 		expect(r?.comments).toEqual([{ author: "leia", body: "c1", createdAt: "2026-01-05T00:00:00Z" }]);
 	});
 
+	it("fetches a board's issues a few at a time, not all at once, and keeps their order (#1957)", async () => {
+		let inFlight = 0;
+		let most = 0;
+		const fetch = (async (input: string | URL) => {
+			inFlight++;
+			most = Math.max(most, inFlight);
+			await new Promise((resolve) => setTimeout(resolve, 5));
+			inFlight--;
+			const url = String(input);
+			const number = Number(/issues\/(\d+)/.exec(url)?.[1]);
+			const body = url.includes("/comments")
+				? []
+				: url.includes("graphql")
+					? { data: { repository: { issue: { parent: null, blockedBy: { nodes: [] } } } } }
+					: raw({ number, html_url: `https://github.com/theholocron/holocron/issues/${number}` });
+			return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+		}) as typeof globalThis.fetch;
+		const issues = new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO });
+		const keys = Array.from({ length: 12 }, (_, i) => `#${i + 1}`);
+
+		const out = await issues.export({ keys });
+
+		expect(out.map((r) => r.key)).toEqual(keys);
+		expect(most).toBeGreaterThan(1);
+		expect(most).toBeLessThanOrEqual(4);
+	});
+
+	it("says what a secondary rate limit means, and that nothing was written", async () => {
+		const { issues } = make([
+			{
+				status: 403,
+				body: {
+					message:
+						"You have exceeded a secondary rate limit. Please wait a few minutes before you try again.",
+					documentation_url:
+						"https://docs.github.com/rest/overview/rate-limits-for-the-rest-api#about-secondary-rate-limits",
+				},
+			},
+		]);
+
+		const err = await issues.export({ keys: ["#7"] }).catch((e: unknown) => e);
+
+		expect((err as Error).message).toMatch(/secondary rate limit stopped the export/);
+		expect((err as Error).message).toMatch(/nothing has been written/);
+	});
+
+	it("passes every other error through as it is", async () => {
+		const { issues } = make([{ status: 404, body: { message: "Not Found" } }]);
+
+		const err = await issues.export({ keys: ["#7"] }).catch((e: unknown) => e);
+
+		expect((err as Error).message).toMatch(/404/);
+		expect((err as Error).message).not.toMatch(/secondary rate limit/);
+	});
+
 	it("lists a milestone, skips pull requests and open-only drops closed ones", async () => {
 		const { issues, calls } = make([
 			{ body: [{ number: 3, title: "V2" }] },
