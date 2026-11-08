@@ -457,7 +457,7 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
 
 ## Workflow
 
-- **Discuss → `.notes/<topic>.spec.md` → GitHub issue.** Non-trivial
+- **Discuss → `.notes/<topic>.spec.md` → issue.** Non-trivial
   decisions get a spec file in `.notes/` before acting. Lifecycle:
   `draft → proposed → accepted → archived` (or `superseded`). Spec name
   prefixes: `tech-` / `tool-` / `process-` / `ci-` / `security-`.
@@ -466,7 +466,9 @@ check` (`pnpm exec holocron probe generated check`, the required check `Generate
   `archived`/`superseded` for shipped or dropped work); `.notes/` holds
   only in-progress specs. `holocron probe specs check` checks both dirs.
 - **File issues for non-trivial work** and reference in commits/PRs
-  (`Closes #N` / `Refs #N`). Cross-check against `.notes/*.spec.md`
+  (`Closes #N` / `Refs #N`). File the issue and write the spec first, in the
+  tracker the config's `issues` provider names (GitHub when none is set), and
+  reference it in that tracker's syntax (`Closes ENG-42` for Linear). Cross-check against `.notes/*.spec.md`
   before starting; several already have design docs. Skip for typo fixes.
 
 ## Quality
