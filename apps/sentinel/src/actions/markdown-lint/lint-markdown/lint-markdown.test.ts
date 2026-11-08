@@ -152,14 +152,68 @@ describe("lintMarkdown — scoping", () => {
 		expect(calls).toHaveLength(1);
 	});
 
-	it("leaves an .mdx file to prettier: markdownlint does not parse MDX (holocron#1950)", async () => {
-		const { client, calls } = makeClient([{ status: 200, body: [file("docs/guide.mdx")] }]);
+	it("checks an .mdx file too, not just .md", async () => {
+		const { client } = makeClient([
+			{ status: 200, body: [file("docs/guide.mdx")] },
+			{ status: 200, body: contentsBody("# Title\n\nSome text.\n") },
+		]);
 
 		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
-		expect(result).toEqual({ valid: true, fileCount: 0, messages: [], fixes: [] });
-		// The pull request's files are listed, and the .mdx file is never fetched.
-		expect(calls).toHaveLength(1);
+		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+	});
+
+	describe("an MDX comment (holocron#1950)", () => {
+		// What looped on #1949: markdownlint read the spaces inside the comment as spaces inside emphasis (MD037) and
+		// its fix removed them, and prettier's MDX formatting put them back.
+		const mdxComment = "# Title\n\nA cell {/* holocron-allow-old-name */}\n";
+
+		it("is flagged and rewritten in an .md file, where the same text is emphasis", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.md")] },
+				{ status: 200, body: contentsBody(mdxComment) },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.ruleNames)).toContainEqual(expect.arrayContaining(["MD037"]));
+			expect(result.fixes).toHaveLength(1);
+		});
+
+		it("is left alone in an .mdx file: no finding and no fix", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{ status: 200, body: contentsBody(mdxComment) },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+		});
+
+		it("still reports every other rule in an .mdx file", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{ status: 200, body: contentsBody("# A\n\n### skipped\n\nA cell {/* x */}\n") },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.ruleNames[0])).toEqual(["MD001"]);
+		});
+
+		it("lints an .md and an .mdx file in the same pull request, each with its own config", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("a.md"), file("b.mdx")] },
+				{ status: 200, body: contentsBody(mdxComment) },
+				{ status: 200, body: contentsBody(mdxComment) },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.fileCount).toBe(2);
+			expect([...new Set(result.messages.map((m) => m.file))]).toEqual(["a.md"]);
+		});
 	});
 });
 

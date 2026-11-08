@@ -35,7 +35,7 @@
  * head ref via `GitHubClient.git.getContents(repo, path, ref)` — a
  * same-repo PR branch, not a fork's.
  *
- * One `lint()` call for every candidate file's content, not a per-file
+ * One `lint()` call for every candidate file's content of one config (two calls at most: `.md` and `.mdx`), not a per-file
  * loop — `markdownlint`'s own `strings` option is designed to batch-lint
  * multiple named contents in a single call, returning results keyed by
  * the same names given (`LintResults`); every content fetch is still one
@@ -57,13 +57,16 @@ import type {
 	MarkdownLintMessage,
 } from "./lint-markdown.type.js";
 
+const MARKDOWN_EXTENSIONS = [".md", ".mdx"];
+
 /**
- * Only `.md`, like the repo's own `lint:markdown` (`markdownlint-cli2 "**\/*.md"`). markdownlint parses Markdown and
- * not MDX, so it misreads JSX such as `{/* a comment *\/}` as emphasis with spaces inside (MD037) and its fix strips
- * the spaces that prettier's MDX formatting puts back: on #1949 the two fixers committed 34 times undoing each other
- * (holocron#1950). An `.mdx` file is formatted by prettier alone.
+ * The config for an `.mdx` file: the org's, without `no-space-in-emphasis` (MD037). markdownlint parses Markdown and
+ * not MDX, so it reads JSX such as `{/* a comment *\/}` as emphasis with spaces inside, and its fix strips the spaces
+ * that prettier's MDX formatting puts back: on #1949 the two fixers committed 34 times undoing each other
+ * (holocron#1950). Every other rule still applies to an `.mdx` file; add to this list only a rule that is shown to
+ * misread MDX the same way.
  */
-const MARKDOWN_EXTENSIONS = [".md"];
+const MDX_CONFIG = { ...MARKDOWNLINT_CONFIG, "no-space-in-emphasis": false };
 
 export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdownResult> {
 	const { client, repo, pullNumber, ref } = input;
@@ -82,7 +85,14 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 		strings[target.filename] = decodeContents(contents.content);
 	}
 
-	const results = await lint({ config: MARKDOWNLINT_CONFIG, strings });
+	// One `lint()` call per config: `.md` files with the org's, `.mdx` files with it minus the rule above.
+	const names = Object.keys(strings);
+	const pick = (wanted: string[]) => Object.fromEntries(wanted.map((name) => [name, strings[name]!]));
+	const [md, mdx] = [names.filter((n) => !n.endsWith(".mdx")), names.filter((n) => n.endsWith(".mdx"))];
+	const results = {
+		...(md.length > 0 ? await lint({ config: MARKDOWNLINT_CONFIG, strings: pick(md) }) : {}),
+		...(mdx.length > 0 ? await lint({ config: MDX_CONFIG, strings: pick(mdx) }) : {}),
+	};
 
 	const messages: MarkdownLintMessage[] = [];
 	const fixes: MarkdownLintFix[] = [];
