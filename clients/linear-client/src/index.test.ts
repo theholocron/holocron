@@ -46,7 +46,15 @@ describe("teams", () => {
 
 	it("reads automation, sorts states by position and makes states and labels", async () => {
 		const { fetch, calls } = stubFetch([
-			data({ team: { autoArchivePeriod: 6, autoClosePeriod: null, autoCloseState: null, triageEnabled: false } }),
+			data({
+				team: {
+					autoArchivePeriod: 6,
+					autoClosePeriod: null,
+					autoCloseStateId: null,
+					triageEnabled: false,
+					states: { nodes: [] },
+				},
+			}),
 			data({
 				workflowStates: page([
 					{ id: "b", name: "Done", type: "completed", position: 2 },
@@ -59,7 +67,17 @@ describe("teams", () => {
 			data({ users: page([{ id: "u", name: "A", displayName: "a" }]) }),
 		]);
 		const c = createLinearClient({ token: "t", fetch });
-		expect((await c.teams.automation("t1")).autoArchivePeriod).toBe(6);
+		const automation = await c.teams.automation("t1");
+		expect(automation).toEqual({
+			autoArchivePeriod: 6,
+			autoClosePeriod: null,
+			autoCloseState: null,
+			triageEnabled: false,
+		});
+		// Linear's `Team` has `autoCloseStateId`, not `autoCloseState`: asking for the latter is a 400 (#1944).
+		const sent = calls[0]?.body as { query: string };
+		expect(sent.query).toMatch(/autoCloseStateId/);
+		expect(sent.query).not.toMatch(/autoCloseState \{/);
 		expect((await c.teams.states("t1")).map((s) => s.name)).toEqual(["Todo", "Done"]);
 		expect((await c.teams.createState("t1", { name: "Blocked", type: "started" })).id).toBe("n");
 		expect((calls[2]?.body as { variables: { input: { color: string } } }).variables.input.color).toBe("#95a2b3");
@@ -69,8 +87,25 @@ describe("teams", () => {
 	});
 
 	it("updates the team's automation with only the fields given", async () => {
-		const after = { autoArchivePeriod: 6, autoClosePeriod: 3, autoCloseState: { id: "s", name: "Canceled" } };
-		const { fetch, calls } = stubFetch([data({ teamUpdate: { team: after } })]);
+		const wire = {
+			autoArchivePeriod: 6,
+			autoClosePeriod: 3,
+			autoCloseStateId: "s",
+			triageEnabled: false,
+			states: {
+				nodes: [
+					{ id: "other", name: "Todo" },
+					{ id: "s", name: "Canceled" },
+				],
+			},
+		};
+		const after = {
+			autoArchivePeriod: 6,
+			autoClosePeriod: 3,
+			autoCloseState: { id: "s", name: "Canceled" },
+			triageEnabled: false,
+		};
+		const { fetch, calls } = stubFetch([data({ teamUpdate: { team: wire } })]);
 		const team = await createLinearClient({ token: "t", fetch }).teams.updateAutomation("t1", {
 			autoClosePeriod: 3,
 			autoCloseStateId: "s",
@@ -79,6 +114,22 @@ describe("teams", () => {
 		const sent = calls[0]?.body as { query: string; variables: { id: string; input: unknown } };
 		expect(sent.query).toMatch(/teamUpdate\(id: \$id, input: \$input\)/);
 		expect(sent.variables).toEqual({ id: "t1", input: { autoClosePeriod: 3, autoCloseStateId: "s" } });
+	});
+
+	it("names a close state that is not among the first states by its id", async () => {
+		const { fetch } = stubFetch([
+			data({
+				team: {
+					autoArchivePeriod: 0,
+					autoClosePeriod: 1,
+					autoCloseStateId: "gone",
+					triageEnabled: true,
+					states: { nodes: [] },
+				},
+			}),
+		]);
+		const team = await createLinearClient({ token: "t", fetch }).teams.automation("t1");
+		expect(team.autoCloseState).toEqual({ id: "gone", name: "gone" });
 	});
 
 	it("reads workspace-wide labels without a team filter", async () => {
@@ -113,7 +164,19 @@ describe("git automation", () => {
 	});
 
 	it("sends a null auto-close period to switch it off", async () => {
-		const { fetch, calls } = stubFetch([data({ teamUpdate: { team: {} } })]);
+		const { fetch, calls } = stubFetch([
+			data({
+				teamUpdate: {
+					team: {
+						autoArchivePeriod: 6,
+						autoClosePeriod: null,
+						autoCloseStateId: null,
+						triageEnabled: false,
+						states: { nodes: [] },
+					},
+				},
+			}),
+		]);
 		await createLinearClient({ token: "t", fetch }).teams.updateAutomation("t1", { autoClosePeriod: null });
 		expect((calls[0]?.body as { variables: { input: unknown } }).variables.input).toEqual({
 			autoClosePeriod: null,

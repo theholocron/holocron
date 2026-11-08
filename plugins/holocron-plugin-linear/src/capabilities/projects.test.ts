@@ -16,7 +16,13 @@ const PROJECT = (over: Record<string, unknown> = {}) => ({
 });
 const BOARD: BoardSummary = { id: "p1", name: "Roadmap", url: "u", closed: false };
 const AUTOMATION = {
-	team: { autoArchivePeriod: 6, autoClosePeriod: null, autoCloseState: null, triageEnabled: false },
+	team: {
+		autoArchivePeriod: 6,
+		autoClosePeriod: null,
+		autoCloseStateId: null,
+		triageEnabled: false,
+		states: { nodes: [] },
+	},
 };
 const TEMPLATE: BoardTemplate = {
 	name: "roadmap",
@@ -198,8 +204,9 @@ describe("LinearProjects — the less common shapes", () => {
 					team: {
 						autoArchivePeriod: null,
 						autoClosePeriod: null,
-						autoCloseState: null,
+						autoCloseStateId: null,
 						triageEnabled: false,
+						states: { nodes: [] },
 					},
 				},
 			],

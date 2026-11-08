@@ -8,6 +8,12 @@ import { declaresAnything, parseLinearSetup } from "./provider-config.js";
 import { failure } from "./rows.js";
 
 /** A Linear team that keeps what setup writes, so a second run can be compared with the first. */
+/** A team's automation as Linear sends it: the close state is an id, with the team's states to name it (#1944). */
+function wire(a: Record<string, unknown>) {
+	const { autoCloseState, ...rest } = a as { autoCloseState: { id: string } | null } & Record<string, unknown>;
+	return { ...rest, autoCloseStateId: autoCloseState?.id ?? null, states: nodes(STATES) };
+}
+
 function workspace(
 	over: {
 		labels?: Array<{ id: string; name: string; color: string; team: { id: string } | null }>;
@@ -63,7 +69,7 @@ function workspace(
 				return { projectCreate: { project: made } };
 			},
 		],
-		[/team\(id:/, () => ({ team: state.automation })],
+		[/team\(id:/, () => ({ team: wire(state.automation) })],
 		[
 			/teamUpdate/,
 			(v: Record<string, unknown>) => {
@@ -81,7 +87,7 @@ function workspace(
 					const s = STATES.find((x) => x.id === input.autoCloseStateId)!;
 					state.automation.autoCloseState = { id: s.id, name: s.name } as never;
 				}
-				return { teamUpdate: { team: state.automation } };
+				return { teamUpdate: { team: wire(state.automation) } };
 			},
 		],
 	]);
