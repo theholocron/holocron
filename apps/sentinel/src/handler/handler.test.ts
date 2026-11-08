@@ -25,6 +25,10 @@ vi.mock("../utils/axiom-config/axiom-config.js", () => ({
 	},
 }));
 vi.mock("@theholocron/github-client", () => ({ createInstallationClient: vi.fn() }));
+vi.mock("../actions/auto-fix-loop/find-auto-fix-loop/find-auto-fix-loop.js", () => ({ findAutoFixLoop: vi.fn() }));
+vi.mock("../actions/auto-fix-loop/post-auto-fix-loop-comment/post-auto-fix-loop-comment.js", () => ({
+	postAutoFixLoopComment: vi.fn(),
+}));
 vi.mock("../actions/commit-standards/lint-commits/lint-commits.js", () => ({ lintCommits: vi.fn() }));
 vi.mock("../actions/actionlint/lint-actionlint/lint-actionlint.js", () => ({ lintActionlint: vi.fn() }));
 vi.mock("../actions/actionlint/post-actionlint-check/post-actionlint-check.js", () => ({
@@ -97,6 +101,7 @@ import {
 	commitFormattingFix,
 	commitMarkdownLintFix,
 	dispatchCheck,
+	findAutoFixLoop,
 	lintActionlint,
 	lintCommits,
 	lintDco,
@@ -107,6 +112,7 @@ import {
 	postActionlintCheck,
 	postAdrsCheck,
 	postAutoFixComment,
+	postAutoFixLoopComment,
 	postCheckRun,
 	postCommitStandardsCheck,
 	postDcoCheck,
@@ -176,6 +182,10 @@ beforeEach(() => {
 	vi.mocked(commitMarkdownLintFix).mockReset();
 	vi.mocked(runRoleSync).mockReset();
 	vi.mocked(runPrFeed).mockReset();
+	vi.mocked(findAutoFixLoop).mockReset();
+	vi.mocked(findAutoFixLoop).mockResolvedValue({ blocked: [] });
+	vi.mocked(postAutoFixLoopComment).mockReset();
+	vi.mocked(postAutoFixLoopComment).mockResolvedValue({ posted: true });
 	fakeFlush.mockClear();
 });
 
@@ -1523,6 +1533,61 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 		expect(validateConfig).toHaveBeenCalledTimes(2);
 		const body = (await res.json()) as { formattingFixResult: unknown };
 		expect(body.formattingFixResult).toEqual({ committed: true, commitSha: "new-commit", fileCount: 1 });
+	});
+
+	it("does not commit a fixer that already committed since the last commit of a person's, and says so (holocron#1950)", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(findAutoFixLoop).mockResolvedValue({ blocked: ["formatting", "markdown-lint"] });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(findAutoFixLoop).toHaveBeenCalledWith({ client: FAKE_CLIENT, repo: "acme/demo", pullNumber: 9 });
+		expect(commitFormattingFix).not.toHaveBeenCalled();
+		expect(postAutoFixLoopComment).toHaveBeenCalledWith({
+			client: FAKE_CLIENT,
+			repo: "acme/demo",
+			pullNumber: 9,
+			kinds: ["formatting"],
+			files: ["src/index.js"],
+		});
+	});
+
+	it("still commits a fixer that is not blocked, and posts no loop comment", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(findAutoFixLoop).mockResolvedValue({ blocked: ["markdown-lint"] });
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(commitFormattingFix).toHaveBeenCalled();
+		expect(postAutoFixLoopComment).not.toHaveBeenCalled();
+	});
+
+	it("does not read the commits when nothing needs fixing", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintFormatting).mockResolvedValue({ valid: true, fileCount: 1, messages: [] });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(findAutoFixLoop).not.toHaveBeenCalled();
+	});
+
+	it("blocks nothing when reading the commits fails -- the fix still commits", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintFormatting).mockResolvedValue(invalidLintResult);
+		vi.mocked(findAutoFixLoop).mockRejectedValue(new Error("listCommits failed"));
+		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+
+		const res = await handleWebhookRequest(req(), ENV);
+
+		expect(res.status).toBe(200);
+		expect(commitFormattingFix).toHaveBeenCalled();
 	});
 
 	it("commits the fix when only the PR's own branch has opted in, not yet merged to main", async () => {
