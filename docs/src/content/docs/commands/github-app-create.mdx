@@ -16,7 +16,7 @@ Creates a GitHub App through GitHub's [manifest flow](https://docs.github.com/en
 1. It reads the manifest file (`default_permissions`, `default_events`, and optionally `description`, `url`, `public`), adds the name, the webhook URL and a redirect to a one-shot server on `127.0.0.1`, and opens a page that posts the manifest to GitHub.
 2. You press **Create GitHub App** on GitHub. This is the one step that cannot be done for you. The page waits up to five minutes.
 3. GitHub redirects back with a one-time code. The command checks the `state` it started with, then exchanges the code for the App's id, private key and webhook secret.
-4. It writes `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and the webhook secret as `NAME=value` lines to a private file, with the protections [`auth export`](/holocron/commands/auth-export/) uses: mode 0600, a path git must ignore, never overwritten without `--force`, and deleted when you press Enter after importing it. Nothing is printed. The OAuth client id and secret are not kept, because nothing uses them.
+4. It writes `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` and the webhook secret as `NAME=value` lines to a private file, with the protections [`auth export`](/holocron/commands/auth-export/) uses: mode 0600, a path git must ignore, never overwritten without `--force`, and deleted when you press Enter after importing it. Nothing is printed. The OAuth client id and secret are not kept, because nothing uses them.
 
 Install the App on the repositories it should see afterwards (the command prints the link); GitHub makes that a click too.
 

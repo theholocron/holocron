@@ -66,9 +66,15 @@ describe("the org area in this repo (#1820)", () => {
 		};
 		// Another (#1874): Sentinel's logger reads its Axiom dataset from `SENTINEL_AXIOM_DATASET`, the per-service name,
 		// instead of the bare `AXIOM_DATASET`.
-		const { logging } = (expected as unknown as { dev: { serve: { logging: { datasetVar: string } } } }).dev.serve;
+		const { logging, required } = (
+			expected as unknown as { dev: { serve: { logging: { datasetVar: string }; required: string[] } } }
+		).dev.serve;
 		expect(logging.datasetVar).toBe("AXIOM_DATASET");
 		logging.datasetVar = "SENTINEL_AXIOM_DATASET";
+		// And another (#1864): the App's id and key are `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY`,
+		// GitHub reserving the `GITHUB_` prefix for its own secrets.
+		expect(required).toEqual(["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"]);
+		required.splice(0, 2, "SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY");
 		const { resolved } = await loadConfig(SENTINEL);
 		// The other deliberate difference (#1727): the loader sets `domain` from the shared root org area, so Sentinel's
 		// resolved config now carries the org's zone, which it did not before.

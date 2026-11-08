@@ -18,7 +18,7 @@ githubApps: [
 ],
 ```
 
-`manifest` is a file in the directory. `environment` is the 1Password Environment (read through the `vault` provider, in memory, never printed or written) that holds `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`.
+`manifest` is a file in the directory. `environment` is the 1Password Environment (read through the `vault` provider, in memory, never printed or written) that holds `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of an older Environment are read when the `SENTINEL_` ones are not there).
 
 ## The rows
 
@@ -35,6 +35,6 @@ A failing `events` or `permissions` row ends with the exact page: `https://githu
 
 ## Skips
 
-An instance whose credentials cannot be read (no `vault` provider, the environment missing or not signed in, no `GITHUB_APP_ID` or key in it) is a skip with the reason, not a failure. A manifest that does not read, or a JWT GitHub rejects, fails.
+An instance whose credentials cannot be read (no `vault` provider, the environment missing or not signed in, no App id or key under either name) is a skip with the reason, not a failure. A manifest that does not read, or a JWT GitHub rejects, fails.
 
 Related: [`doctor`](/holocron/commands/doctor/), [`doctor credentials`](/holocron/commands/doctor-credentials/).

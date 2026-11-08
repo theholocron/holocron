@@ -77,7 +77,7 @@ describe("runGithubAppCreate", () => {
 		expect(written[0]!.path).toBe("/repo/.credentials");
 		expect(written[0]!.force).toBe(false);
 		expect(written[0]!.text).toBe(
-			`GITHUB_APP_ID=42\nGITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\\nAAAA\\nBBBB\\n-----END RSA PRIVATE KEY-----\\n"\nSENTINEL_WEBHOOK_SECRET=WHSECRET\n`
+			`SENTINEL_GITHUB_APP_ID=42\nSENTINEL_GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\\nAAAA\\nBBBB\\n-----END RSA PRIVATE KEY-----\\n"\nSENTINEL_WEBHOOK_SECRET=WHSECRET\n`
 		);
 		const said = lines.join("\n");
 		for (const secret of ["AAAA", "WHSECRET"]) expect(said).not.toContain(secret);
@@ -274,7 +274,7 @@ describe("runGithubAppCreate end to end", () => {
 			});
 			expect(report).toMatchObject({ status: "ok", slug: "e2e", appId: 7 });
 			const text = readFileSync(join(dir, ".credentials"), "utf8");
-			expect(text).toContain("GITHUB_APP_ID=7\n");
+			expect(text).toContain("SENTINEL_GITHUB_APP_ID=7\n");
 			expect(text).toContain("SENTINEL_WEBHOOK_SECRET=W\n");
 			expect(statSync(join(dir, ".credentials")).mode & 0o777).toBe(0o600);
 		} finally {

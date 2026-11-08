@@ -1,8 +1,11 @@
 import type { RoleSyncEnv } from "../actions/role-sync/load-role-sync-providers/index.js";
+import type { GitHubAppEnv } from "../utils/github-app-credentials/index.js";
 
-export interface Env extends RoleSyncEnv {
-	GITHUB_APP_ID: string;
-	GITHUB_APP_PRIVATE_KEY: string;
+/**
+ * The deployment's bindings. The App's id and key are `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY`,
+ * or the older bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` (see {@link GitHubAppEnv}); one spelling of each must be set.
+ */
+export interface Env extends RoleSyncEnv, GitHubAppEnv {
 	SENTINEL_WEBHOOK_SECRET: string;
 }
 
