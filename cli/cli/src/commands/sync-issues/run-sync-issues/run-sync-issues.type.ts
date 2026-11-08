@@ -1,5 +1,5 @@
 import type { LoadedConfig } from "../../../config/index.js";
-import type { PluginLoader, RuntimeContext, SyncResult } from "../../../plugin/index.js";
+import type { IssueOrder, PluginLoader, RuntimeContext, SyncResult } from "../../../plugin/index.js";
 import type { DroppedTally } from "../../migrate/tally-dropped/index.js";
 
 /** What {@link runSyncIssues} needs. */
@@ -14,6 +14,10 @@ export interface RunSyncIssuesInput {
 	to: string;
 	/** Only issues last changed after this moment, as an ISO timestamp (see `parseSince`). */
 	since?: string;
+	/** Read at most this many issues from the source, counted after `since`. */
+	limit?: number;
+	/** With `limit`, which end of the creation order is read: `oldest` (the default) or `newest`. */
+	order?: IssueOrder;
 	/** Sync without asking. */
 	yes?: boolean;
 	/** Builds a loader for a side; tests pass one. */
@@ -50,6 +54,8 @@ export interface SyncIssuesReport {
 	counts?: SyncCounts;
 	/** What the target could not hold, with how many issues lost it. */
 	notCarried?: DroppedTally[];
+	/** The `limited to N of M` line, when the read was held to a limit. */
+	limited?: string;
 	/** Why it did not run, when that is so. */
 	reason?: string;
 }

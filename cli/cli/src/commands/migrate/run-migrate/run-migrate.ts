@@ -12,6 +12,7 @@ import { confirm } from "@inquirer/prompts";
 import { describeError, NonInteractiveError, statusRow } from "@theholocron/kyber/ui";
 
 import { collectRecords } from "../collect-records/index.js";
+import { describeLimit } from "../describe-limit/index.js";
 import { openSide } from "../open-side/index.js";
 import { parseEndpoint } from "../parse-endpoint/index.js";
 import {
@@ -83,10 +84,15 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 		source,
 		scope: input.scope,
 		openOnly: input.openOnly,
+		limit: input.limit,
+		order: input.order,
 	});
 	if (!collected.ok) return stop(collected.reason.startsWith("the `") ? "skip" : "fail", collected.reason);
 	const { records, notes } = collected;
 	for (const note of notes) print(statusRow("skip", ["migrate", note]));
+	const limited =
+		collected.limit === undefined ? undefined : describeLimit(records.length, collected.matched, input.order);
+	if (limited) print(statusRow("skip", ["migrate", limited]));
 	if (records.length === 0) return stop("skip", "nothing to migrate");
 
 	const dryRun = Boolean(input.context.dryRun);
@@ -134,7 +140,13 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 			print("      not carried across:");
 			for (const { what, count } of notCarried) print(`        ${what}: ${count} issue(s)`);
 		}
-		return { status: "ok", results, notCarried, ...(placement ? { board: placement } : {}) };
+		return {
+			status: "ok",
+			results,
+			notCarried,
+			...(placement ? { board: placement } : {}),
+			...(limited ? { limited } : {}),
+		};
 	} catch (err) {
 		return stop("fail", `${describeError(err)} (a second run continues where this stopped)`);
 	}

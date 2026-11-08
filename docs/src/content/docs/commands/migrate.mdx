@@ -5,8 +5,8 @@ description: Move issues, a selection, or a whole board from one tracker to anot
 
 ```bash
 holocron migrate issue <key>      --from <source> --to <target>
-holocron migrate issues           --from <source> --to <target> (--all | --source-milestone <name> | --keys <a,b>)
-holocron migrate project <name>   --from <source> --to <target> [--template <name>]
+holocron migrate issues           --from <source> --to <target> (--all | --source-milestone <name> | --keys <a,b>) [--limit <n> [--order <oldest|newest>]]
+holocron migrate project <name>   --from <source> --to <target> [--template <name>] [--limit <n> [--order <oldest|newest>]]
 ```
 
 `--from` and `--to` are `provider` or `provider:key=value,...`, for example `github`, `github:repo=theholocron/holocron` or `linear:team=ENG`. Options given there are applied over the repo's own `providers.issues` entry when it is the same provider, so `--from github --to linear:team=ENG` needs nothing else when the repo already uses GitHub.
@@ -17,13 +17,30 @@ holocron migrate project <name>   --from <source> --to <target> [--template <nam
 | `migrate issues`  | every issue (`--all`), a milestone or project (`--source-milestone`), or a list (`--keys #1,#2`)                              |
 | `migrate project` | the items of a board, with the board's status and priority, onto a board (GitHub) or into a project (Linear) of the same name |
 
-| Flag          | Meaning                                                                                    |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| `--open-only` | leave closed issues behind                                                                 |
-| `--milestone` | put every migrated issue in this milestone (GitHub) or project (Linear); made if missing   |
-| `--template`  | `migrate project` only: the board template a missing board is made from; default `roadmap` |
-| `--yes`       | do not ask first (without a terminal the command refuses instead of hanging)               |
-| `--dry-run`   | read both sides and write nothing; prints what would be created and what would be lost     |
+| Flag          | Meaning                                                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--open-only` | leave closed issues behind                                                                                                                      |
+| `--milestone` | put every migrated issue in this milestone (GitHub) or project (Linear); made if missing                                                        |
+| `--template`  | `migrate project` only: the board template a missing board is made from; default `roadmap`                                                      |
+| `--limit`     | `migrate issues` and `migrate project`: read at most this many issues from the source, a positive whole number; see [A trial run](#a-trial-run) |
+| `--order`     | with `--limit`: `oldest` (the default) reads the first created, `newest` the last created; no effect without `--limit`                          |
+| `--yes`       | do not ask first (without a terminal the command refuses instead of hanging)                                                                    |
+| `--dry-run`   | read both sides and write nothing; prints what would be created and what would be lost                                                          |
+
+## A trial run
+
+`--limit <n>` reads only `n` issues from the source, so a first run over a large board is quick and stays under the source's rate limits. `--order oldest` (the default) keeps the first created, `--order newest` the last created. `migrate issue` names one issue and has neither flag.
+
+- The limit counts issues that survive the other filters. `--open-only` and the skipping of pull requests never use it up, so `--limit 20 --open-only` reads twenty open issues.
+- The order is the creation order without extra requests where possible. For a list of keys (a board's items, `--keys`) the keys are sorted by their number, which rises with creation inside one repository or team, and only the chosen end is fetched, at most four at a time. For a listing (`--all`, `--source-milestone`) the source's own creation time is used and the cut is made before each issue's comments and links are read.
+- A dry run and a real run both print `limited to N of M`, where `M` is how many the selection matched before the cut (for a list of keys, how many keys). The `not carried across` list is unchanged.
+- The issues come back oldest first whichever end was chosen, so they land on the target in creation order.
+- The limit applies to what is read from the source. A second run with the same limit selects the same issues, and any that already exist on the target are skipped as in any second run. To continue, run again with a larger `--limit`, or without one.
+
+```bash
+holocron migrate project v5 --from github --to linear:team=ENG --limit 10 --dry-run
+holocron migrate issues --all --from github --to linear:team=ENG --limit 25 --order newest --open-only
+```
 
 ## A board as the target
 

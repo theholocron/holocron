@@ -163,6 +163,73 @@ describe("LinearIssues.export", () => {
 	});
 });
 
+describe("LinearIssues.export with a limit", () => {
+	const byKey = (closed: string[] = []) =>
+		[
+			/issue\(id: \$id\) \{ id identifier/,
+			(v: Record<string, unknown>) => ({
+				issue: issue({
+					id: `id-${String(v.id)}`,
+					identifier: String(v.id),
+					...(closed.includes(String(v.id))
+						? { state: { id: "s-done", name: "Done", type: "completed" } }
+						: {}),
+				}),
+			}),
+		] as [RegExp, unknown];
+	const empty = [/comments\(first/, { issue: { comments: nodes([]) } }] as [RegExp, unknown];
+	const fetchedKeys = (called: (p: RegExp) => Array<{ variables: Record<string, unknown> }>) =>
+		called(/issue\(id: \$id\) \{ id identifier/).map((c) => c.variables.id);
+
+	it("fetches only the oldest keys, by number, and says how many keys it chose from", async () => {
+		const { issues, called } = make([byKey(), empty]);
+		const info: { matched?: number } = {};
+		const out = await issues.export(
+			{ keys: ["ENG-5", "7", "ENG-2", "#9", "ENG-3"], limit: 2, order: "oldest" },
+			info
+		);
+		expect(out.map((r) => r.key)).toEqual(["ENG-2", "ENG-3"]);
+		expect(fetchedKeys(called).sort()).toEqual(["ENG-2", "ENG-3"]);
+		expect(info.matched).toBe(5);
+	});
+
+	it("fetches the newest keys, returns them oldest first, and a closed one does not use the budget", async () => {
+		const { issues, called } = make([byKey(["ENG-9"]), empty]);
+		const out = await issues.export({
+			keys: ["ENG-1", "ENG-9", "ENG-5", "ENG-7"],
+			limit: 2,
+			order: "newest",
+			openOnly: true,
+		});
+		expect(out.map((r) => r.key)).toEqual(["ENG-5", "ENG-7"]);
+		expect(fetchedKeys(called)).toEqual(["ENG-9", "ENG-7", "ENG-5"]);
+	});
+
+	it("cuts a listing by creation time before reading comments, and open-only does not use the budget", async () => {
+		const mk = (n: number, day: string, extra: Record<string, unknown> = {}) =>
+			issue({ id: `i${n}`, identifier: `ENG-${n}`, createdAt: `2026-01-${day}T00:00:00Z`, ...extra });
+		const closed = { state: { id: "s-done", name: "Done", type: "completed" } };
+		const { issues, called } = make([
+			[
+				/issues\(first/,
+				{ issues: nodes([mk(1, "05"), mk(2, "01", closed), mk(3, "02"), mk(4, "04"), mk(5, "03")]) },
+			],
+			empty,
+		]);
+		const info: { matched?: number } = {};
+		const out = await issues.export({ all: true, limit: 2, order: "oldest", openOnly: true }, info);
+		expect(out.map((r) => r.key)).toEqual(["ENG-3", "ENG-5"]);
+		expect(info.matched).toBe(4);
+		expect(called(/comments\(first/)).toHaveLength(2);
+
+		const newest = await make([
+			[/issues\(first/, { issues: nodes([mk(1, "05"), mk(3, "02"), mk(4, "04")]) }],
+			empty,
+		]).issues.export({ all: true, limit: 2, order: "newest" });
+		expect(newest.map((r) => r.key)).toEqual(["ENG-4", "ENG-1"]);
+	});
+});
+
 describe("LinearIssues.import", () => {
 	it("makes the issue with priority, state, labels, assignee, project, backdating, attachment and comments", async () => {
 		const { issues, called } = make(importRoutes);

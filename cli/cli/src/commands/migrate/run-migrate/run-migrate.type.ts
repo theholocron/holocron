@@ -1,5 +1,5 @@
 import type { LoadedConfig } from "../../../config/index.js";
-import type { ImportResult, PluginLoader, RuntimeContext } from "../../../plugin/index.js";
+import type { ImportResult, IssueOrder, PluginLoader, RuntimeContext } from "../../../plugin/index.js";
 import type { TemplatesIo } from "../../project/load-templates/index.js";
 import type { MigrateScope } from "../collect-records/index.js";
 import type { BoardPlacement } from "../place-on-board/index.js";
@@ -18,6 +18,10 @@ export interface RunMigrateInput {
 	scope: MigrateScope;
 	/** Leave closed issues behind. */
 	openOnly?: boolean;
+	/** Read at most this many issues from the source, counted after `openOnly`. */
+	limit?: number;
+	/** With `limit`, which end of the creation order is read: `oldest` (the default) or `newest`. */
+	order?: IssueOrder;
 	/**
 	 * Put every migrated issue in this milestone (GitHub) or project (Linear). A project scope moved to a target with no
 	 * boards defaults it to the board's name; to a target with boards (GitHub) the board is made instead and the
@@ -50,6 +54,8 @@ export interface MigrateReport {
 	notCarried?: DroppedTally[];
 	/** Where the issues went on the target's board, when the target has boards and the scope was one. */
 	board?: BoardPlacement;
+	/** The `limited to N of M` line, when the read was held to a limit. */
+	limited?: string;
 	/** Why it did not run, when that is so. */
 	reason?: string;
 }

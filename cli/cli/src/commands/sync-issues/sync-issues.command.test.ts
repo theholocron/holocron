@@ -50,6 +50,21 @@ describe("sync issues", () => {
 		expect(runSyncIssues).not.toHaveBeenCalled();
 	});
 
+	it("passes --limit and --order, the oldest end by default, and neither without --limit", async () => {
+		await go(...ENDS, "--limit", "4");
+		expect(runSyncIssues).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 4, order: "oldest" }));
+		await go(...ENDS, "--limit", "4", "--order", "newest");
+		expect(runSyncIssues).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 4, order: "newest" }));
+		await go(...ENDS, "--order", "newest");
+		expect(runSyncIssues.mock.calls[2]![0]).not.toHaveProperty("limit");
+		expect(runSyncIssues.mock.calls[2]![0]).not.toHaveProperty("order");
+	});
+
+	it("rejects a --limit it cannot read before doing anything", async () => {
+		await expect(go(...ENDS, "--limit", "-1")).rejects.toThrow(/sync issues: --limit "-1"/);
+		expect(runSyncIssues).not.toHaveBeenCalled();
+	});
+
 	it("does nothing without tokens, and sets a failing exit code", async () => {
 		tokenContext.mockReturnValueOnce(undefined);
 		await go(...ENDS);

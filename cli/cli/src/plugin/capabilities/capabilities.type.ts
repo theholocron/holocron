@@ -761,6 +761,26 @@ export interface IssueSelector {
 	openOnly?: boolean;
 	/** Leave out issues last changed before this moment, as an ISO timestamp. */
 	since?: string;
+	/**
+	 * Read at most this many issues, a positive integer, counted after `openOnly`, `since` and the skipping of pull
+	 * requests, so those filters never use up the budget. Which ones is decided by `order`. Without it, every issue the
+	 * rest of the selector names is read.
+	 */
+	limit?: number;
+	/**
+	 * With `limit`, which end of the creation order is kept: `oldest` (the default) the first created, `newest` the last
+	 * created. The records come back oldest first either way. Without `limit` it has no effect.
+	 */
+	order?: IssueOrder;
+}
+
+/** Which end of the creation order a limited {@link Issues.export} keeps: the first-created or the last-created issues. */
+export type IssueOrder = "oldest" | "newest";
+
+/** What {@link Issues.export} reports back about the selection, through its optional second argument. */
+export interface ExportInfo {
+	/** How many issues the selection matched before `limit` cut it, when the provider knows; for a list of keys, how many keys. */
+	matched?: number;
 }
 
 /** What {@link Issues.import} needs besides the records. */
@@ -823,7 +843,7 @@ export interface Issues extends ProviderIdentity {
 	doctor(): Promise<TrackerDoctorReport>;
 
 	/** Read issues with everything a migration carries. Optional: a provider that cannot be migrated from leaves it out. */
-	export?(selector: IssueSelector): Promise<IssueRecord[]>;
+	export?(selector: IssueSelector, info?: ExportInfo): Promise<IssueRecord[]>;
 	/**
 	 * Make the records in this tracker, with their comments, labels, priority and state, and record each one's source
 	 * address so a second run skips what exists. Two passes: every record is made first, then the `parent` and

@@ -201,6 +201,33 @@ describe("runMigrate defaults", () => {
 		expect(gh.export).toHaveBeenCalledWith({ all: true, openOnly: true });
 	});
 
+	it("says `limited to N of M` in a real run and a dry run, and still lists what did not carry", async () => {
+		const exporter = vi.fn(async (_sel: unknown, info?: { matched?: number }) => {
+			info!.matched = 7;
+			return [record("#1"), record("#2")];
+		});
+		for (const dryRun of [false, true]) {
+			const { gh, makeLoader } = setup({ gh: { export: exporter } });
+			const { report, lines } = await run({
+				makeLoader,
+				limit: 2,
+				order: "newest",
+				context: { repoRoot: "/x", dryRun },
+			});
+			expect(gh.export).toHaveBeenCalledWith({ all: true, limit: 2, order: "newest" }, { matched: 7 });
+			expect(lines.join("\n")).toContain("limited to 2 of 7 (newest created)");
+			expect(report.limited).toBe("limited to 2 of 7 (newest created)");
+			expect(lines.join("\n")).toContain("assignee (no Linear user with that email): 1 issue(s)");
+		}
+	});
+
+	it("leaves the limit line out when there is no limit", async () => {
+		const { makeLoader } = setup();
+		const { report, lines } = await run({ makeLoader });
+		expect(lines.join("\n")).not.toContain("limited to");
+		expect(report).not.toHaveProperty("limited");
+	});
+
 	it("decides whether it can ask from the terminal when told nothing", async () => {
 		const { makeLoader } = setup();
 		const tty = process.stdin.isTTY;

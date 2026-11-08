@@ -11,6 +11,7 @@
  */
 
 import type {
+	ExportInfo,
 	ImportOptions,
 	ImportResult,
 	Issue,
@@ -156,8 +157,8 @@ export class LinearIssues implements Issues {
 	}
 
 	/** Reads issues with comments, priority, labels, parent and blockers, for `holocron migrate`. */
-	export(selector: IssueSelector): Promise<IssueRecord[]> {
-		return exportIssues(this.scope, selector);
+	export(selector: IssueSelector, info?: ExportInfo): Promise<IssueRecord[]> {
+		return exportIssues(this.scope, selector, info);
 	}
 
 	/** Makes the records as issues in the team; one already made by an earlier run is skipped. */

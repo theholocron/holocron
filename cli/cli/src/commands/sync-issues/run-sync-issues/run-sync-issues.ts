@@ -14,6 +14,7 @@ import { describeError, NonInteractiveError, statusRow } from "@theholocron/kybe
 
 import type { SyncResult } from "../../../plugin/index.js";
 import { collectRecords } from "../../migrate/collect-records/index.js";
+import { describeLimit } from "../../migrate/describe-limit/index.js";
 import { openSide } from "../../migrate/open-side/index.js";
 import { parseEndpoint } from "../../migrate/parse-endpoint/index.js";
 import { tallyDropped } from "../../migrate/tally-dropped/index.js";
@@ -49,9 +50,14 @@ export async function runSyncIssues(input: RunSyncIssuesInput): Promise<SyncIssu
 	const collected = await collectRecords({
 		source,
 		scope: { kind: "issues", selector: { all: true, ...(input.since ? { since: input.since } : {}) } },
+		limit: input.limit,
+		order: input.order,
 	});
 	if (!collected.ok) return stop(collected.reason.startsWith("the `") ? "skip" : "fail", collected.reason);
 	const { records } = collected;
+	const limited =
+		collected.limit === undefined ? undefined : describeLimit(records.length, collected.matched, input.order);
+	if (limited) row("skip", limited);
 	if (records.length === 0) return stop("skip", "nothing to sync");
 
 	// The loop guard, on the source and before any write: an issue that is itself a copy is not copied back.
@@ -117,5 +123,5 @@ export async function runSyncIssues(input: RunSyncIssuesInput): Promise<SyncIssu
 		print("      not carried across:");
 		for (const { what, count } of notCarried) print(`        ${what}: ${count} issue(s)`);
 	}
-	return { status: "ok", results, counts, notCarried };
+	return { status: "ok", results, counts, notCarried, ...(limited ? { limited } : {}) };
 }

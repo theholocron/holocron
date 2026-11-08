@@ -188,7 +188,7 @@ question (a scheduled run needs it). The report ends with the same `not carried 
 ### 5. Repo contract
 
 `AGENTS.md` and `.holocron/org.md` read: file an issue and write a spec first, in the tracker the config's `issues`
-provider names, and reference it from commits and the PR in that tracker's syntax. GitHub remains the default when no
+provider names, and reference it from commits and the PR in that tracker's syntax. GitHub stays the default when no
 `issues` provider is set.
 
 ## Interfaces
@@ -219,15 +219,15 @@ closes the GitHub copy; reopening on either side reopens the copy (one direction
 
 ## Error handling
 
-- A failed step does not abort `provider ... setup` (soft-skip rule).
+- A step that errors does not abort `provider ... setup` (soft-skip rule).
 - A failure part-way through a sync leaves every finished issue correct; the next run continues. A rate limit stops the
   run cleanly with a `left` count, as `specs sync` does.
-- Never repeat a write. A failed create is not retried inside the run.
+- Never repeat a write. A create that errors is not retried inside the run.
 
 ## Authorization and security
 
 - Linear writes need a key with write access to the team and admin for team settings. A read-only key makes the
-  settings rows `todo`, not a crash.
+  settings rows `todo`, not an unhandled error.
 - No tokens in config, output or logs. Names only.
 - A sync target must be one the user named; a scheduled sync's tokens come from the same credential chain as the CLI.
 
@@ -239,6 +239,14 @@ Rows through the shared renderer; the sync report counts created, updated, uncha
 
 All changes are additive. `migrate` is unchanged apart from `migrate project --to github` adding board items when a
 `projects` provider is available there; without one it keeps the milestone behaviour.
+
+## Trial runs (#1959)
+
+`migrate issues`, `migrate project` and `sync issues` take `--limit <n>` and `--order <oldest|newest>` (default `oldest`).
+The limit is on what is read from the source and counts only issues that survive `--open-only`, `--since` and the skipping
+of pull requests. Creation order costs no extra request where it can be avoided: a list of keys is sorted by the key's
+number (it rises with creation in one repository or team) and fetched in that order until enough are kept; a listing is
+sorted on its own creation time and cut before the per-issue requests. A dry run and a real run say `limited to N of M`.
 
 ## Edge cases
 

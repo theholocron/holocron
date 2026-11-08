@@ -12,6 +12,7 @@
  */
 
 import type {
+	ExportInfo,
 	ImportOptions,
 	ImportResult,
 	Issue,
@@ -245,8 +246,8 @@ export class GitHubIssues implements Issues {
 	// ── migration ────────────────────────────────────────────────────────
 
 	/** Reads issues with their comments, priority label, parent and blockers, for `holocron migrate`. */
-	export(selector: IssueSelector): Promise<IssueRecord[]> {
-		return exportIssues(this.client, this.repo, selector);
+	export(selector: IssueSelector, info?: ExportInfo): Promise<IssueRecord[]> {
+		return exportIssues(this.client, this.repo, selector, info);
 	}
 
 	/** Makes the records as issues; one already made by an earlier run is skipped. */

@@ -2,6 +2,7 @@ import type { Argv, CommandModule } from "yargs";
 
 import { ConfigError } from "../../../config/index.js";
 import type { GlobalArgs } from "../../global-args/index.js";
+import { limitOptions } from "../limit-options/index.js";
 import { handleMigrate, type MigrateArgs } from "../migrate-handler/index.js";
 import { migrateOptions } from "../migrate-options/index.js";
 
@@ -11,7 +12,7 @@ export const migrateIssuesCommand: CommandModule<GlobalArgs, Args> = {
 	command: "issues",
 	describe: "Move several issues: every issue (--all), the issues of a milestone or project, or a list of keys",
 	builder: (y: Argv<GlobalArgs>) =>
-		migrateOptions(y)
+		limitOptions(migrateOptions(y))
 			.option("all", { type: "boolean", describe: "Every issue the source is configured for" })
 			.option("source-milestone", {
 				type: "string",
