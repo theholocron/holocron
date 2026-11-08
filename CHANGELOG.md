@@ -1,3 +1,13 @@
+## [5.0.0-alpha.375](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.374...v5.0.0-alpha.375) (2026-11-08)
+
+### Features
+
+* **issues:** sync issues between trackers, one direction at a time ([#1934](https://github.com/theholocron/holocron/issues/1934)) ([512d402](https://github.com/theholocron/holocron/commit/512d4028e12287be76b7a5d2945117429c519999)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
+### Documentation
+
+* **sentinel:** 📝 say why a preview deploy stops (undeclared externals, Vercel 402) ([#1942](https://github.com/theholocron/holocron/issues/1942)) ([2d66acd](https://github.com/theholocron/holocron/commit/2d66acdc9bdcd769a0f96b74c000dd175402bf75)), closes [#1929](https://github.com/theholocron/holocron/issues/1929)
+
 ## [5.0.0-alpha.374](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.373...v5.0.0-alpha.374) (2026-11-08)
 
 ### Bug Fixes
