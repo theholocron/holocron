@@ -4,13 +4,17 @@ import { outsideDiffDigest } from "./outside-diff-digest/index.js";
 import type { PostErrorReviewInput } from "./post-error-review.type.js";
 
 /**
- * The GitHub App's own bot account login — every review this posts is
- * authored here. Confirmed live (holocron#860's own test PR, #871): a
- * `Bot` actor's `login` here has no `[bot]` suffix, unlike a comment
- * author's `login` elsewhere in this org's tooling -- don't assume the
- * two match without checking again if this ever needs re-deriving.
+ * The bot account logins of the Sentinel GitHub Apps — every review this posts is authored by the one that ran it,
+ * and only a thread written by one of these is ever resolved. There are two Apps: production
+ * (`The Holocron Sentinel`) and the one `holocron dev` runs (`The Holocron Sentinel - dev`, holocron#1968, whose
+ * login the single production name never matched, so no stale thread was resolved there). Add an App's login here
+ * when a third is registered.
+ *
+ * Confirmed live (holocron#860's own test PR, #871, and #1949 for the dev App): a `Bot` actor's `login` in GraphQL,
+ * which is where {@link postErrorReview} reads thread authors, has no `[bot]` suffix, unlike REST's -- don't assume
+ * the two match without checking again if this ever needs re-deriving.
  */
-export const SENTINEL_BOT_LOGIN = "the-holocron-sentinel";
+export const SENTINEL_BOT_LOGINS: readonly string[] = ["the-holocron-sentinel", "the-holocron-sentinel-dev"];
 
 /**
  * RIGHT-side line numbers a review comment can anchor to in one file's
@@ -73,7 +77,8 @@ export async function postErrorReview(input: PostErrorReviewInput): Promise<void
 	const staleThreads = threads.filter(
 		(t) =>
 			!t.isResolved &&
-			t.authorLogin === SENTINEL_BOT_LOGIN &&
+			t.authorLogin !== undefined &&
+			SENTINEL_BOT_LOGINS.includes(t.authorLogin) &&
 			t.body?.startsWith(prefix) &&
 			!currentBodies.has(t.body)
 	);
