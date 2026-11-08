@@ -1,3 +1,12 @@
+## [5.0.0-alpha.385](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.384...v5.0.0-alpha.385) (2026-11-08)
+
+### Chores
+
+* **deps:** bump @napi-rs/keyring from 1.3.0 to 2.1.2 ([#1975](https://github.com/theholocron/holocron/issues/1975)) ([6eb696a](https://github.com/theholocron/holocron/commit/6eb696a4caa2332907dfe4999073444b75c7e7f1))
+* **deps:** bump @sentry/node from 10.75.2 to 11.10.0 ([#1976](https://github.com/theholocron/holocron/issues/1976)) ([c70a59e](https://github.com/theholocron/holocron/commit/c70a59ec329945d29786590f0aab96ec52fcaa4d))
+* **deps:** bump dotenv from 17.4.2 to 18.0.9 ([#1974](https://github.com/theholocron/holocron/issues/1974)) ([9257b67](https://github.com/theholocron/holocron/commit/9257b674b462d0462fc7dc12ff9a51a2100e7c6c))
+* **deps:** bump lint-staged from 16.4.0 to 17.6.0 ([#1973](https://github.com/theholocron/holocron/issues/1973)) ([fcf59c2](https://github.com/theholocron/holocron/commit/fcf59c2f0cedffd2c346335fa172f961e16b55c5))
+
 ## [5.0.0-alpha.384](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.383...v5.0.0-alpha.384) (2026-11-08)
 
 ### Bug Fixes
