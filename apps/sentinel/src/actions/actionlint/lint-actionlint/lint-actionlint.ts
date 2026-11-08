@@ -281,6 +281,14 @@ async function lintRunScript(
 	});
 }
 
+/**
+ * What the bundled actionlint says about syntax GitHub accepts and it does not know yet. The repo's `lint:code` run
+ * ignores the same messages through `.github/actionlint.yaml`; this check reads no config, so they are listed here.
+ * `cache-mode` caps a called workflow's cache access (GitHub's dependency-caching docs), and the thin-caller generator
+ * adds it to every caller with a low-trust trigger (#1382). Drop an entry when the bundled actionlint knows the key.
+ */
+const KNOWN_FALSE_POSITIVES: readonly RegExp[] = [/^unexpected key "cache-mode" for "(job|workflow)" section/];
+
 export async function lintActionlint(input: LintActionlintInput): Promise<LintActionlintResult> {
 	const { client, repo, pullNumber, ref } = input;
 	const changedFiles = await client.pulls.listFiles(repo, pullNumber);
@@ -304,7 +312,9 @@ export async function lintActionlint(input: LintActionlintInput): Promise<LintAc
 			const text = decodeContents(contents.content);
 
 			// The fork's own `runLintForFiles` drops message-less entries the same way.
-			for (const r of (await actionlint()(text, target.filename)).filter((result) => result.message)) {
+			for (const r of (await actionlint()(text, target.filename)).filter(
+				(result) => result.message && !KNOWN_FALSE_POSITIVES.some((known) => known.test(result.message))
+			)) {
 				messages.push({
 					file: target.filename,
 					line: r.line,

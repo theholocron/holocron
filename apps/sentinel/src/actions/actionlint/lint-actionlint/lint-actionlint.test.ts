@@ -170,6 +170,38 @@ describe("lintActionlint — actionlint findings", () => {
 	});
 });
 
+describe("lintActionlint — syntax GitHub accepts that the bundled actionlint does not know", () => {
+	it("does not flag cache-mode on a job, which caps a called workflow's cache access (#1382)", async () => {
+		const result = await lintOne(
+			workflow(
+				"on: pull_request_target",
+				"jobs:",
+				"  call:",
+				"    uses: acme/.github/.github/workflows/ci.yml@main",
+				"    cache-mode: read"
+			)
+		);
+
+		expect(result.messages).toEqual([]);
+		expect(result.valid).toBe(true);
+	});
+
+	it("still reports a different unexpected key in the same file", async () => {
+		const result = await lintOne(
+			workflow(
+				"on: pull_request_target",
+				"jobs:",
+				"  call:",
+				"    uses: acme/.github/.github/workflows/ci.yml@main",
+				"    cache-mode: read",
+				"    nonsense: 1"
+			)
+		);
+
+		expect(result.messages.map((m) => m.reason)).toEqual([expect.stringContaining('unexpected key "nonsense"')]);
+	});
+});
+
 describe("lintActionlint — shellcheck over run: scripts", () => {
 	it("anchors a finding in a | block scalar at its real file line and column, splitting by ShellCheck's own level", async () => {
 		const result = await lintOne(
