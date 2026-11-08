@@ -39,7 +39,7 @@ and a query that has to know which dataset to ask.
 
 ## Considered Options
 
-- **A. A dataset per environment.** Rejected: it duplicates what `env` says and keeps the special cases.
+- **A. A dataset per environment.** Rejected: it duplicates what `env` says and keeps the unique cases.
 - **B. One dataset for the whole ecosystem.** Rejected: services with different shapes and volume would share a
   dataset and a retention window, and "which service" would become a filter on every query.
 - **C. A dataset per service, split by `env`; `log.axiom.dataset` stays a per-repo override that a global-context
