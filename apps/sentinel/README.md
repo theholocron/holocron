@@ -426,6 +426,13 @@ to the `<major>.x` form Vercel accepts (`>=22` → `22.x`,
 from it, and refuses an open range with `invalid_version_value`
 (holocron#911).
 
+### When the preview deploy stops
+
+`deploy-preview` runs this package's `deploy:preview` script (the script is named with a colon because `holocron run` looks a task's script up by its script spelling, #1929). Two stops are not about the code in the pull request:
+
+- **`deploy stage: refusing to stage … imports packages that aren't in this package's dependencies`.** The bundle imports a workspace package that only inlined code needs (`@theholocron/kyber` through `@theholocron/cli`, for one). Declare it in `package.json`, and add it to this package's `ignoreDependencies` in `knip.config.ts`, since nothing in `src/` imports it.
+- **`Vercel POST /v13/deployments → 402`.** Vercel refuses the deployment because of the team's plan or payment. Nothing in the repository changes that; the check passes again once the plan allows previews.
+
 ## GitHub App registration (manual, one-time)
 
 The App can be created from a manifest instead of the form below:
