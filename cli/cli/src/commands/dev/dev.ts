@@ -42,7 +42,7 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	assertPluginsResolvable(loader, COMMAND);
 
 	const dryRun = input.context.dryRun ?? false;
-	// ENVIRONMENT is what the application's logger tags its lines with (`env`), so a dev instance is told apart from
+	// HOLOCRON_ENVIRONMENT (and ENVIRONMENT, which an application keeps reading) is what the application's logger tags its lines with (`env`), so a dev instance is told apart from
 	// production in one Axiom dataset. The vault can say otherwise; the port is the tunnel's, so it cannot.
 	const [program, ...args] = input.command;
 	const shown = input.command.join(" ");
@@ -94,6 +94,8 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 	}
 	row(true, `vault ${input.environment}`, `${Object.keys(values).length} variables, passed to the application`);
 
+	const appEnvironment = values[`${PREFIX}_ENVIRONMENT`] ?? values["ENVIRONMENT"] ?? APP_ENVIRONMENT;
+
 	let token: string;
 	try {
 		token = await (loader.get("tunnels") as Tunnels).tunnelToken(tunnel.tunnelId as string);
@@ -111,7 +113,9 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 				command: program as string,
 				args,
 				env: {
-					ENVIRONMENT: APP_ENVIRONMENT,
+					// Both names, the same value (as with PORT): a vault that sets either one decides for both.
+					ENVIRONMENT: appEnvironment,
+					[`${PREFIX}_ENVIRONMENT`]: appEnvironment,
 					...values,
 					PORT: String(input.port),
 					[`${PREFIX}_PORT`]: String(input.port),

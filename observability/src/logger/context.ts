@@ -15,7 +15,7 @@ export function generateRunId(): string {
 }
 
 /**
- * Whether the process is running inside CI, and which environment it is in (`ENVIRONMENT`, else `ci` or `local`):
+ * Whether the process is running inside CI, and which environment it is in (`HOLOCRON_ENVIRONMENT`, then `ENVIRONMENT`, else `ci` or `local`):
  * `@theholocron/env-utils` owns both, so the logger's `env` field and every other reader agree.
  */
 export { detectEnvironment as detectEnv, isCI } from "@theholocron/env-utils/lookup";

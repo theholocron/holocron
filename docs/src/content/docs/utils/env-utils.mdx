@@ -13,7 +13,7 @@ pnpm add @theholocron/env-utils
 
 ### `environment`
 
-Detects the current runtime environment from `ENVIRONMENT`, `ENV`, or `NODE_ENV`.
+Detects the current runtime environment from `HOLOCRON_ENVIRONMENT`, `ENVIRONMENT`, `ENV`, or `NODE_ENV` (first set wins).
 
 ```ts
 import { environment } from "@theholocron/env-utils";
@@ -37,7 +37,7 @@ The five names are `local` (a laptop), `development` (a development instance), `
 
 ### `detectEnvironment` and `isCI`
 
-`environment.get()` is for an application that should assume production unless told otherwise. `detectEnvironment()` is for telemetry, which must never mistake a laptop for production: it reads only `ENVIRONMENT` and never falls back to `prod`.
+`environment.get()` is for an application that should assume production unless told otherwise. `detectEnvironment()` is for telemetry, which must never mistake a laptop for production: it reads only `HOLOCRON_ENVIRONMENT` and `ENVIRONMENT` and never falls back to `prod`.
 
 ```ts
 import { detectEnvironment, isCI } from "@theholocron/env-utils/lookup";
@@ -48,7 +48,7 @@ detectEnvironment({}); // "local"
 isCI({ CI: "false" }); // false
 ```
 
-`ENVIRONMENT` wins over `CI`, so a deploy job can say it is `production`. `ENV` and `NODE_ENV` are ignored, since many tools set them for their own reasons. Both helpers, and `environment` and its constants, are also exported from `@theholocron/env-utils/lookup`, which does not load a `.env` when imported. The logger in `@theholocron/observability` binds the result as `env` on every line.
+`HOLOCRON_ENVIRONMENT` and `ENVIRONMENT` win over `CI`, so a deploy job can say it is `production`. `ENV` and `NODE_ENV` are ignored, since many tools set them for their own reasons. Both helpers, and `environment` and its constants, are also exported from `@theholocron/env-utils/lookup`, which does not load a `.env` when imported. The logger in `@theholocron/observability` binds the result as `env` on every line.
 
 ### `DotenvLoader`
 

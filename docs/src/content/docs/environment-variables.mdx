@@ -30,12 +30,18 @@ Read as `HOLOCRON_<NAME>`, then `<NAME>`.
 
 Group 1 names not migrated yet, and why:
 
-| Name                                      | Read by                                           | Why it is left                                                                                                                                         |
-| ----------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ENVIRONMENT`                             | `detectEnvironment()`, `holocron dev`             | A contract with the applications `holocron dev` starts and with Sentinel and Comlink; `NODE_ENV` and `CI` are third-party. Needs a decision, see below |
-| `RELEASE_GROUP`                           | root `release.config.ts`, `release.yml`           | Read raw on purpose (semantic-release loads it before a build) and by each consumer repo's own release config; moves with the template repos           |
-| `AXIOM_ORG`                               | Sentinel (`constants.ts`), `check-dispatched.yml` | Sentinel's per-service convention stays; the org variable is synced under the bare name                                                                |
-| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` | Sentinel (`handler.ts`)                           | Sentinel's own bindings; GitHub reserves the `GITHUB_` prefix for its secrets, so these are set only on the deployment                                 |
+| Name                                      | Read by                                                    | Why it is left                                                                                                                               |
+| ----------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ENVIRONMENT`                             | `detectEnvironment()`, `environment.get()`, `holocron dev` | Migrated: read as `HOLOCRON_ENVIRONMENT`, then `ENVIRONMENT`. See [`ENVIRONMENT`](#environment) below                                        |
+| `RELEASE_GROUP`                           | root `release.config.ts`, `release.yml`                    | Read raw on purpose (semantic-release loads it before a build) and by each consumer repo's own release config; moves with the template repos |
+| `AXIOM_ORG`                               | Sentinel (`constants.ts`), `check-dispatched.yml`          | Sentinel's per-service convention stays; the org variable is synced under the bare name                                                      |
+| `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` | Sentinel (`handler.ts`)                                    | Sentinel's own bindings; GitHub reserves the `GITHUB_` prefix for its secrets, so these are set only on the deployment                       |
+
+### `ENVIRONMENT`
+
+Decided: Holocron owns the name, so it moves like the others. `detectEnvironment()` and `environment.get()` read `HOLOCRON_ENVIRONMENT` first and then `ENVIRONMENT`, and `ENV` and `NODE_ENV` stay what they were (`environment.get()` only; `detectEnvironment()` ignores them). The bare name is not a third-party contract, but it is the one a deployed application, Sentinel and Comlink already have set, so it stays as a fallback and nothing that sets it breaks.
+
+`holocron dev` sets both names for the application it runs, to one value, the way it sets `PORT` and `HOLOCRON_PORT`. A vault Environment that sets either one decides for both (`HOLOCRON_ENVIRONMENT` wins when it sets both), so a dev instance still logs `env: "development"` whichever name the application reads. A deployment sets `HOLOCRON_ENVIRONMENT=production`, or keeps `ENVIRONMENT=production`; no change is required.
 
 ## Group 2: names a third party reads itself
 
