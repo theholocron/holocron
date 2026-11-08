@@ -171,7 +171,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `release` workflow's separate `deploy` job runs `holocron
 deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   and it generates no workflow of its own.
-  The workflows read a few organization Actions variables (`vars.TURBO_TEAM`, `vars.CLOUDFLARE_ACCOUNT_ID`, …). They
+  The workflows read a few organization Actions variables (`vars.HOLOCRON_TURBO_TEAM`, `vars.HOLOCRON_CLOUDFLARE_ACCOUNT_ID`, …; each is read as `vars.HOLOCRON_X || vars.X` and mapped onto the bare name a tool such as turbo or wrangler reads, #1864). They
   are declared under `repo.variables` and written by `holocron repo setup`, or, for this repo, filled from the 1Password Environment `Holocron - GitHub Actions variables` by `holocron secrets sync` (`repo.variables.sync`), never set by hand. A
   missing one fails quietly, so the templates warn and say where it is declared: the shared `setup` composite action
   when `TURBO_TOKEN` is set without `TURBO_TEAM`, and `preview.yml` (deploy and cleanup) when a Pages project is

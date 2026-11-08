@@ -131,7 +131,7 @@ jobs:
       channel: ${{ steps.release.outputs.channel }}
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     # Do not cancel in-progress releases — a partial release is worse than a slow one.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -263,7 +263,7 @@ jobs:
         uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_ORG: ${{ vars.HOLOCRON_SENTRY_ORG || vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
         with:
           environment: production
@@ -283,7 +283,7 @@ jobs:
     timeout-minutes: 30
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout the release commit

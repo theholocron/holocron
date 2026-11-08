@@ -1018,3 +1018,36 @@ describe("REUSABLE_WORKFLOWS['check-tokens'] — the scheduled token check", () 
 		expect(wf).not.toMatch(/: write/);
 	});
 });
+
+describe("organization variables are read by their HOLOCRON_ name first (#1864)", () => {
+	it("maps vars.HOLOCRON_TURBO_TEAM onto TURBO_TEAM, with the bare variable as the fallback", () => {
+		for (const id of ["build", "typecheck", "release"]) {
+			expect(REUSABLE_WORKFLOWS[id]).toContain("TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}");
+		}
+	});
+
+	it("never reads a bare synced variable without its HOLOCRON_ name in front", () => {
+		const names = [
+			"TURBO_TEAM",
+			"SENTRY_ORG",
+			"CLOUDFLARE_ACCOUNT_ID",
+			"CLOUDFLARE_PAGES_PROJECT",
+			"VERCEL_TEAM_ID",
+		];
+		for (const [id, text] of Object.entries(REUSABLE_WORKFLOWS)) {
+			for (const name of names) {
+				for (const m of text.matchAll(new RegExp(`(vars\\.HOLOCRON_${name} \\|\\| )?vars\\.${name}\\b`, "g"))) {
+					expect(m[0], `${id} reads vars.${name}`).toBe(`vars.HOLOCRON_${name} || vars.${name}`);
+				}
+			}
+		}
+	});
+
+	it("reads the PostHog key from vars.HOLOCRON_POSTHOG_PROJECT_TOKEN, then the bare variable", () => {
+		for (const id of ["sync-github", "sync-repo"]) {
+			expect(REUSABLE_WORKFLOWS[id]).toContain(
+				"HOLOCRON_POSTHOG_PROJECT_TOKEN: ${{ vars.HOLOCRON_POSTHOG_PROJECT_TOKEN || vars.POSTHOG_PROJECT_TOKEN }}"
+			);
+		}
+	});
+});
