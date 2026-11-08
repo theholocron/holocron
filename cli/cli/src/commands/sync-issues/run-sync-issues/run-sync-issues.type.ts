@@ -1,3 +1,5 @@
+import type { Progress } from "@theholocron/kyber/ui";
+
 import type { LoadedConfig } from "../../../config/index.js";
 import type { IssueOrder, PluginLoader, RuntimeContext, SyncResult } from "../../../plugin/index.js";
 import type { DroppedTally } from "../../migrate/tally-dropped/index.js";
@@ -28,6 +30,11 @@ export interface RunSyncIssuesInput {
 	confirm?: (message: string) => Promise<boolean>;
 	/** Where the lines go. Defaults to the console. */
 	print?: (line: string) => void;
+	/**
+	 * The spinner for the read and write phases. Defaults to kyber's, which draws only on a terminal; tests pass a fake
+	 * to see the counter text.
+	 */
+	progress?: Progress;
 }
 
 /** How a sync went, one count per way an issue can end up. */

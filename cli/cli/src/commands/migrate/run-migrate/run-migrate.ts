@@ -9,7 +9,7 @@
  */
 
 import { confirm } from "@inquirer/prompts";
-import { describeError, NonInteractiveError, statusRow } from "@theholocron/kyber/ui";
+import { createProgress, describeError, NonInteractiveError, statusRow } from "@theholocron/kyber/ui";
 
 import { collectRecords } from "../collect-records/index.js";
 import { describeLimit } from "../describe-limit/index.js";
@@ -28,6 +28,7 @@ import type { MigrateReport, RunMigrateInput } from "./run-migrate.type.js";
 
 export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const progress = input.progress ?? createProgress(print);
 	const stop = (status: "fail" | "skip", reason: string): MigrateReport => {
 		print(statusRow(status, ["migrate", reason]));
 		return { status, reason };
@@ -80,13 +81,17 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 		};
 	}
 
-	const collected = await collectRecords({
-		source,
-		scope: input.scope,
-		openOnly: input.openOnly,
-		limit: input.limit,
-		order: input.order,
-	});
+	const reading = `Reading issues from ${source.provider}…`;
+	const collected = await progress.run(reading, (update) =>
+		collectRecords({
+			source,
+			scope: input.scope,
+			openOnly: input.openOnly,
+			limit: input.limit,
+			order: input.order,
+			onProgress: (done, total) => update(`${reading} ${done} of ${total}`),
+		})
+	);
 	if (!collected.ok) return stop(collected.reason.startsWith("the `") ? "skip" : "fail", collected.reason);
 	const { records, notes } = collected;
 	for (const note of notes) print(statusRow("skip", ["migrate", note]));
@@ -116,7 +121,14 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 	}
 
 	try {
-		const results = await importer.import(records, { ...(milestone ? { milestone } : {}), dryRun });
+		const writing = dryRun ? `Checking ${target.provider}…` : `Writing to ${target.provider}…`;
+		const results = await progress.run(writing, (update) =>
+			importer.import!(records, {
+				...(milestone ? { milestone } : {}),
+				dryRun,
+				onProgress: (done, total) => update(`${writing} ${done} of ${total}`),
+			})
+		);
 		for (const r of results) {
 			const state = !r.created ? "already migrated" : dryRun ? "would create" : "created";
 			print(statusRow(r.created ? "ok" : "skip", ["migrate", `${r.source} → ${r.key ?? "(new)"} (${state})`]));
@@ -130,7 +142,9 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 		);
 		let placement: BoardPlacement | undefined;
 		if (plan) {
-			placement = await placeOnBoard({ ...plan, records, results, dryRun });
+			placement = await progress.run(`Placing issues on the ${plan.name} board…`, () =>
+				placeOnBoard({ ...plan, records, results, dryRun })
+			);
 			printBoard({ print, name: plan.name, template: plan.template.name, placement, dryRun });
 			const bySource = new Map(results.map((r) => [r.source, r]));
 			for (const item of placement.items) bySource.get(item.source)!.dropped.push(...item.dropped);

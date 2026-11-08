@@ -12,6 +12,18 @@ const src = (issues = fakeIssues("github"), projects?: ReturnType<typeof fakeBoa
 });
 
 describe("collectRecords", () => {
+	it("hands the export a progress hook only when one is given, with or without a limit", async () => {
+		const issues = fakeIssues("github", { export: vi.fn(async () => [record("#1")]) });
+		const onProgress = vi.fn();
+		const scope = { kind: "issues", selector: { all: true } } as const;
+		await collectRecords({ source: src(issues), scope });
+		expect(issues.export).toHaveBeenLastCalledWith({ all: true });
+		await collectRecords({ source: src(issues), scope, onProgress });
+		expect(issues.export).toHaveBeenLastCalledWith({ all: true }, { onProgress });
+		await collectRecords({ source: src(issues), scope, limit: 1, onProgress });
+		expect(issues.export).toHaveBeenLastCalledWith({ all: true, limit: 1, order: "oldest" }, { onProgress });
+	});
+
 	it("exports one issue by key", async () => {
 		const issues = fakeIssues("github", { export: vi.fn(async () => [record("#1")]) });
 		const out = await collectRecords({ source: src(issues), scope: { kind: "issue", key: "#1" } });

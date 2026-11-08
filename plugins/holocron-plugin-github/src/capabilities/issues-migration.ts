@@ -22,6 +22,7 @@ import {
 	pickByCreation,
 	ProviderApiError,
 	readKeysLimited,
+	reportProgress,
 	type StatusCategory,
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
@@ -155,6 +156,7 @@ async function readIssues(
 
 	const records: IssueRecord[] = [];
 	for (const issue of issues) {
+		reportProgress(info.onProgress, records.length, issues.length);
 		const comments = await client.issues.listComments(repo, issue.number);
 		const link = await client.graphql
 			.query<Link>(LINK_QUERY, { owner, name, number: issue.number })
@@ -194,6 +196,7 @@ async function readIssues(
 			...(migratedFrom ? { migratedFrom } : {}),
 		});
 	}
+	reportProgress(info.onProgress, records.length, issues.length);
 	return records;
 }
 
@@ -211,19 +214,23 @@ export async function importIssues(
 	}
 
 	const results: ImportResult[] = [];
+	const tick = () => reportProgress(options.onProgress, results.length, records.length);
 	for (const record of records) {
 		const found = existing.get(record.url);
 		if (found !== undefined) {
 			results.push({ source: record.key, key: `#${found}`, created: false, dropped: [] });
+			tick();
 			continue;
 		}
 		const dropped = droppedFor(record);
 		if (options.dryRun) {
 			results.push({ source: record.key, created: true, dropped });
+			tick();
 			continue;
 		}
 		const number = await createFromRecord(client, repo, record, options);
 		results.push({ source: record.key, key: `#${number}`, created: true, dropped });
+		tick();
 	}
 	return results;
 }

@@ -5,5 +5,6 @@ export * from "./pick-by-creation/index.js";
 export * from "./probe/index.js";
 export * from "./provider-actions/index.js";
 export * from "./read-keys-limited/index.js";
+export * from "./report-progress/index.js";
 export * from "./verify-vercel-project/index.js";
 export * from "./workspace/index.js";

@@ -1,3 +1,4 @@
+import type { Progress } from "@theholocron/kyber/ui";
 import { vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
@@ -66,3 +67,26 @@ export const fakeBoards = (over: Partial<Projects> = {}): Projects =>
 		find: vi.fn(async () => undefined),
 		...over,
 	}) as unknown as Projects;
+
+/**
+ * A fake spinner that records what it was asked to show, in order: `start:<label>`, `text:<update>` and `end:<label>`.
+ * `drawn()` says whether a step is running now, so a test can prove a prompt never appears while one is.
+ */
+export function fakeProgress() {
+	const events: string[] = [];
+	let drawn = false;
+	const progress: Progress = {
+		async run(label, fn) {
+			events.push(`start:${label}`);
+			drawn = true;
+			try {
+				return await fn((text) => events.push(`text:${text}`));
+			} finally {
+				drawn = false;
+				events.push(`end:${label}`);
+			}
+		},
+		print: () => {},
+	};
+	return { progress, events, drawn: () => drawn };
+}

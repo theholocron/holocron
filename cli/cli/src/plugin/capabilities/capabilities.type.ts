@@ -781,6 +781,12 @@ export type IssueOrder = "oldest" | "newest";
 export interface ExportInfo {
 	/** How many issues the selection matched before `limit` cut it, when the provider knows; for a list of keys, how many keys. */
 	matched?: number;
+	/**
+	 * Called after each issue is read, with how many are done and how many are about to be read (after `limit` and the
+	 * filters where the provider knows, else the number of keys or listed issues). Optional; a provider must never let it
+	 * throw into the read, and it changes no result. The command uses it for a progress counter on a terminal.
+	 */
+	onProgress?: (done: number, total: number) => void;
 }
 
 /** What {@link Issues.import} needs besides the records. */
@@ -789,6 +795,12 @@ export interface ImportOptions {
 	milestone?: string;
 	/** Change nothing; report what would be made. */
 	dryRun?: boolean;
+	/**
+	 * Called after each record is handled (written, or found already there), with how many are done and the number of
+	 * records. Optional; a provider must never let it throw into the write, and it changes no result. The command uses it
+	 * for a progress counter on a terminal.
+	 */
+	onProgress?: (done: number, total: number) => void;
 }
 
 /** What {@link Issues.import} did with one record. */

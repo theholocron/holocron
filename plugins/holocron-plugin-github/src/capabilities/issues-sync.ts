@@ -10,7 +10,7 @@
  */
 
 import type { ImportOptions, IssueRecord, SyncResult } from "@theholocron/cli";
-import { ProviderApiError } from "@theholocron/cli";
+import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
 import {
@@ -60,6 +60,7 @@ export async function syncIssues(
 			results.push(
 				found ? await update(client, repo, found, record, options) : await create(client, repo, record, options)
 			);
+			reportProgress(options.onProgress, results.length, records.length);
 		} catch (err) {
 			if (isRateLimited(err)) return results;
 			throw err;

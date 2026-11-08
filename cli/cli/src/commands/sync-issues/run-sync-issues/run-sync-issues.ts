@@ -10,7 +10,7 @@
  */
 
 import { confirm } from "@inquirer/prompts";
-import { describeError, NonInteractiveError, statusRow } from "@theholocron/kyber/ui";
+import { createProgress, describeError, NonInteractiveError, statusRow } from "@theholocron/kyber/ui";
 
 import type { SyncResult } from "../../../plugin/index.js";
 import { collectRecords } from "../../migrate/collect-records/index.js";
@@ -22,6 +22,7 @@ import type { RunSyncIssuesInput, SyncCounts, SyncIssuesReport } from "./run-syn
 
 export async function runSyncIssues(input: RunSyncIssuesInput): Promise<SyncIssuesReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
+	const progress = input.progress ?? createProgress(print);
 	const row = (status: "ok" | "skip" | "fail", text: string) => print(statusRow(status, ["sync issues", text]));
 	const stop = (status: "fail" | "skip", reason: string): SyncIssuesReport => {
 		row(status, reason);
@@ -47,12 +48,16 @@ export async function runSyncIssues(input: RunSyncIssuesInput): Promise<SyncIssu
 	const syncer = target.issues;
 	if (!syncer?.sync) return stop("skip", `the \`${target.provider}\` provider cannot be a sync target`);
 
-	const collected = await collectRecords({
-		source,
-		scope: { kind: "issues", selector: { all: true, ...(input.since ? { since: input.since } : {}) } },
-		limit: input.limit,
-		order: input.order,
-	});
+	const reading = `Reading issues from ${source.provider}…`;
+	const collected = await progress.run(reading, (update) =>
+		collectRecords({
+			source,
+			scope: { kind: "issues", selector: { all: true, ...(input.since ? { since: input.since } : {}) } },
+			limit: input.limit,
+			order: input.order,
+			onProgress: (done, total) => update(`${reading} ${done} of ${total}`),
+		})
+	);
 	if (!collected.ok) return stop(collected.reason.startsWith("the `") ? "skip" : "fail", collected.reason);
 	const { records } = collected;
 	const limited =
@@ -85,7 +90,10 @@ export async function runSyncIssues(input: RunSyncIssuesInput): Promise<SyncIssu
 			}
 		}
 		try {
-			results = await syncer.sync(toSync, { dryRun });
+			const writing = dryRun ? `Checking ${target.provider}…` : `Writing to ${target.provider}…`;
+			results = await progress.run(writing, (update) =>
+				syncer.sync!(toSync, { dryRun, onProgress: (done, total) => update(`${writing} ${done} of ${total}`) })
+			);
 		} catch (err) {
 			return stop("fail", `${describeError(err)} (a second run continues where this stopped)`);
 		}

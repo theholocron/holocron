@@ -206,6 +206,36 @@ describe("progress", () => {
 		});
 	});
 
+	describe("update", () => {
+		it("changes the spinner's text while the step runs", async () => {
+			await createProgress(() => {}).run("step…", async (update) => {
+				update("step… 1 of 2");
+				expect(spinner().text).toBe("step… 1 of 2");
+			});
+		});
+
+		it("is a no-op when no spinner is drawn", async () => {
+			const progress = createProgress(
+				() => {},
+				() => false
+			);
+			await expect(
+				progress.run("step…", async (update) => {
+					update("ignored");
+					return 3;
+				})
+			).resolves.toBe(3);
+			expect(ora).not.toHaveBeenCalled();
+		});
+
+		it("is given by withProgress too", async () => {
+			await withProgress("w…", async (update) => {
+				update("w… 2 of 2");
+				expect(spinner().text).toBe("w… 2 of 2");
+			});
+		});
+	});
+
 	describe("withProgress", () => {
 		it("runs the step under a spinner and gives back its result", async () => {
 			await expect(withProgress("working…", async () => "done")).resolves.toBe("done");

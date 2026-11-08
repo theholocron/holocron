@@ -429,3 +429,56 @@ describe("LinearIssues migration — the less common shapes", () => {
 		expect((called(/issueCreate/)[0]!.variables.input as { stateId: string }).stateId).toBe("s-review");
 	});
 });
+
+describe("LinearIssues progress", () => {
+	it("reports each issue read, with the number about to be read as the total, and survives a counter that throws", async () => {
+		const routes: Parameters<typeof scopeWith>[0] = [
+			[
+				/issues\(first/,
+				{ issues: nodes([issue({ id: "a", identifier: "ENG-1" }), issue({ id: "b", identifier: "ENG-2" })]) },
+			],
+			[/comments\(first/, { issue: { comments: nodes([]) } }],
+		];
+		const seen: Array<[number, number]> = [];
+		const out = await make(routes).issues.export({ all: true }, { onProgress: (d, t) => seen.push([d, t]) });
+		expect(out).toHaveLength(2);
+		expect(seen).toEqual([
+			[0, 2],
+			[1, 2],
+			[2, 2],
+		]);
+		const quiet = await make(routes).issues.export(
+			{ all: true },
+			{
+				onProgress: () => {
+					throw new Error("boom");
+				},
+			}
+		);
+		expect(quiet).toHaveLength(2);
+	});
+
+	it("reports each record an import handled: already there, dry run and written", async () => {
+		const seen: Array<[number, number]> = [];
+		const onProgress = (d: number, t: number) => seen.push([d, t]);
+		const there = make([
+			[
+				/attachmentsForURL/,
+				{
+					attachmentsForURL: nodes([
+						{ id: "a", url: "u", title: "t", issue: { id: "i9", identifier: "ENG-9" } },
+					]),
+				},
+			],
+			...importRoutes,
+		]);
+		await there.issues.import([record()], { onProgress });
+		await make(importRoutes).issues.import([record({ comments: [] })], { dryRun: true, onProgress });
+		await make(importRoutes).issues.import([record({ comments: [] })], { onProgress });
+		expect(seen).toEqual([
+			[1, 1],
+			[1, 1],
+			[1, 1],
+		]);
+	});
+});

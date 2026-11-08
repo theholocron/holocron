@@ -10,7 +10,7 @@
  */
 
 import type { ImportOptions, ImportResult, IssueRecord, SyncResult } from "@theholocron/cli";
-import { ProviderApiError } from "@theholocron/cli";
+import { ProviderApiError, reportProgress } from "@theholocron/cli";
 import type { LinearIssueUpdate } from "@theholocron/linear-client";
 
 import { assigneeFor, droppedFor, importIssues, renderComment } from "./issues-migration.js";
@@ -37,6 +37,7 @@ export async function syncIssues(
 	const { client } = scope;
 	const results = new Map<string, SyncResult>();
 	const created: ImportResult[] = [];
+	const tick = () => reportProgress(options.onProgress, results.size, records.length);
 	try {
 		const team = await scope.team();
 		const existing: Array<{ record: IssueRecord; identifier: string }> = [];
@@ -49,7 +50,12 @@ export async function syncIssues(
 			else missing.push(record);
 		}
 		try {
-			await importIssues(scope, missing, options, created);
+			await importIssues(
+				scope,
+				missing,
+				{ ...options, onProgress: (done) => reportProgress(options.onProgress, done, records.length) },
+				created
+			);
 		} finally {
 			for (const r of created) results.set(r.source, { ...r, updated: false, changes: [] });
 		}
@@ -135,6 +141,7 @@ export async function syncIssues(
 					changes,
 					dropped: droppedFor(record, assigneeId),
 				});
+				tick();
 			}
 		}
 	} catch (err) {

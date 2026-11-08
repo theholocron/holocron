@@ -702,7 +702,7 @@ See the [command pages](https://theholocron.dev/holocron/commands/notifications-
   stops the run with a `left` count. A target needs the optional `Issues.sync`; GitHub and Linear have it. `--limit <n>` and
   `--order <oldest|newest>` (also on `migrate issues` and `migrate project`) read only that many issues from the source,
   from the first-created or the last-created end, for a trial run; the source's `Issues.export` honours
-  `IssueSelector.limit` and `order`, and the run prints `limited to N of M`.
+  `IssueSelector.limit` and `order`, and the run prints `limited to N of M`. On a terminal, `migrate` and `sync issues` show a spinner with a counter for the read and the write (`Reading issues from github… 12 of 40`, `Writing to linear… 3 of 20`); piped, in CI or with `--quiet` they print nothing extra. A provider feeds it through the optional `onProgress(done, total)` of `ExportInfo` and `ImportOptions`.
 
 ## Cleaning up
 

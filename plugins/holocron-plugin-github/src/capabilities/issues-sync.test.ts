@@ -184,3 +184,21 @@ describe("isRateLimited", () => {
 		expect(isRateLimited(new Error("rate limit"))).toBe(false);
 	});
 });
+
+describe("GitHubIssues.sync progress", () => {
+	it("reports each record handled, made or updated", async () => {
+		const { issues } = make([{ body: [made()] }, { body: [] }, { body: { number: 12 } }]);
+		const seen: Array<[number, number]> = [];
+		await issues.sync?.(
+			[record({ comments: [] }), record({ key: "ENG-2", url: "https://linear.app/x/issue/ENG-2", comments: [] })],
+			{
+				dryRun: true,
+				onProgress: (done, total) => seen.push([done, total]),
+			}
+		);
+		expect(seen).toEqual([
+			[1, 2],
+			[2, 2],
+		]);
+	});
+});

@@ -426,3 +426,67 @@ describe("GitHubIssues migration — the less common shapes", () => {
 		expect(calls).toHaveLength(2);
 	});
 });
+
+describe("GitHubIssues progress", () => {
+	it("reports each issue read, before and after, with the number about to be read as the total", async () => {
+		const { issues } = make([
+			{ body: [raw({ number: 1 }), raw({ number: 2 })] },
+			{ body: [] },
+			links(null, []),
+			{ body: [] },
+			links(null, []),
+		]);
+		const seen: Array<[number, number]> = [];
+		const out = await issues.export({ all: true }, { onProgress: (done, total) => seen.push([done, total]) });
+		expect(out).toHaveLength(2);
+		expect(seen).toEqual([
+			[0, 2],
+			[1, 2],
+			[2, 2],
+		]);
+	});
+
+	it("counts the survivors of a limit, not the whole listing", async () => {
+		const { issues } = make([
+			{ body: [raw({ number: 1 }), raw({ number: 2 }), raw({ number: 3 })] },
+			{ body: [] },
+			links(null, []),
+		]);
+		const seen: Array<[number, number]> = [];
+		await issues.export({ all: true, limit: 1 }, { onProgress: (done, total) => seen.push([done, total]) });
+		expect(seen).toEqual([
+			[0, 1],
+			[1, 1],
+		]);
+	});
+
+	it("does not let a counter that throws change the export", async () => {
+		const { issues } = make([{ body: [raw()] }, { body: [] }, links(null, [])]);
+		const out = await issues.export(
+			{ all: true },
+			{
+				onProgress: () => {
+					throw new Error("boom");
+				},
+			}
+		);
+		expect(out).toHaveLength(1);
+	});
+
+	it("reports each record handled by an import: already there, dry run and written", async () => {
+		const marked = raw({ number: 30, body: "x\n<!-- holocron:migrated-from https://linear.app/x/issue/ENG-1 -->" });
+		const seen: Array<[number, number]> = [];
+		const onProgress = (done: number, total: number) => seen.push([done, total]);
+		const there = make([{ body: [marked] }]);
+		await there.issues.import([record()], { onProgress });
+		const dry = make([{ body: [] }]);
+		await dry.issues.import([record({ comments: [] })], { dryRun: true, onProgress });
+		const real = make([{ body: [] }, { body: { number: 12 } }]);
+		await real.issues.import([record({ comments: [] })], { onProgress });
+		expect(seen).toEqual([
+			[1, 1],
+			[1, 1],
+			[1, 1],
+		]);
+	});
+});

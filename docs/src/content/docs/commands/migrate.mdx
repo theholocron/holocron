@@ -27,6 +27,10 @@ holocron migrate project <name>   --from <source> --to <target> [--template <nam
 | `--yes`       | do not ask first (without a terminal the command refuses instead of hanging)                                                                    |
 | `--dry-run`   | read both sides and write nothing; prints what would be created and what would be lost                                                          |
 
+## Progress
+
+On a terminal, a spinner with a counter shows the read (`Reading issues from github… 12 of 40`) and the write (`Writing to linear… 3 of 20`; `Checking linear…` on a dry run), and is cleared before the result lines and the confirmation question. When the output is piped, in CI or with `--quiet`, nothing extra is printed.
+
 ## A trial run
 
 `--limit <n>` reads only `n` issues from the source, so a first run over a large board is quick and stays under the source's rate limits. `--order oldest` (the default) keeps the first created, `--order newest` the last created. `migrate issue` names one issue and has neither flag.
