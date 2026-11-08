@@ -219,7 +219,10 @@ the failure is meant to be transient, auto-fix-commit (below) resolving
 it on a fresh commit; see `src/actions/editorconfig/lint-editorconfig/lint-editorconfig.ts`'s
 own module docstring for why the value-checking/fixing layer on top is a
 deliberate, narrow exception to "never reimplement a tool's rules"),
-markdown lint (markdownlint, holocron#821), and static analysis (eslint,
+markdown lint (markdownlint, holocron#821; `.md` and `.mdx`, but in an `.mdx` file a `no-space-in-emphasis` finding
+inside `{/* a comment */}` is ignored: markdownlint does not parse MDX, read the spaces inside the comment as spaces
+inside emphasis, and its fix and prettier's undid each other, holocron#1950; real emphasis and every other rule are
+still reported), and static analysis (eslint,
 holocron#849 — the one Bucket 1 check that isn't config-free: skipped
 entirely when a repo's `runtime_environment` property is explicitly
 `"none"`, since a docs-only repo has no JS/TS to lint; honors
