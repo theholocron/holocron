@@ -1,3 +1,11 @@
+## [5.0.0-alpha.378](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.377...v5.0.0-alpha.378) (2026-11-08)
+
+### Bug Fixes
+
+* **github:** 🐛 export a board's issues a few at a time, and explain GitHub's secondary limit ([#1958](https://github.com/theholocron/holocron/issues/1958)) ([6eac58a](https://github.com/theholocron/holocron/commit/6eac58a80d747f0f038730467a8c370a9fb8c5a6)), closes [#1957](https://github.com/theholocron/holocron/issues/1957)
+* **sentinel:** 🐛 do not flag cache-mode in the actionlint check, which GitHub accepts ([#1955](https://github.com/theholocron/holocron/issues/1955)) ([b183b2b](https://github.com/theholocron/holocron/commit/b183b2bcb7c17f52f71a06c0d9c4fbf8b9c8daff)), closes [#1954](https://github.com/theholocron/holocron/issues/1954)
+* **sentinel:** 🐛 stop auto-fixers that keep undoing each other ([#1953](https://github.com/theholocron/holocron/issues/1953)) ([d03f60b](https://github.com/theholocron/holocron/commit/d03f60b527532d89f66f07fb6f13d91be41d3dbb)), closes [#1949](https://github.com/theholocron/holocron/issues/1949) [#1950](https://github.com/theholocron/holocron/issues/1950)
+
 ## [5.0.0-alpha.377](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.376...v5.0.0-alpha.377) (2026-11-08)
 
 ### Bug Fixes
