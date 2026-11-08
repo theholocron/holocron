@@ -27,7 +27,7 @@ Read as `HOLOCRON_<NAME>`, then `<NAME>`.
 | `VERCEL_TEAM_ID`, `VERCEL_PROTECTION_BYPASS_SECRET`                  | `monitoring run-resolved` (`resolveVercelCredentials`)                  | Holocron's names. The synced org variable is `HOLOCRON_VERCEL_TEAM_ID`, read by `check-preview`                                                                               |
 | `PORT`                                                               | `holocron dev serve`                                                    | `holocron dev` sets `HOLOCRON_PORT` and `PORT` to the same number, so a stale shell value cannot override the tunnel's port. The application it starts still reads `PORT`     |
 | `ENVIRONMENT`                                                        | `detectEnvironment()`, `environment.get()`, `holocron dev`              | `HOLOCRON_ENVIRONMENT`, then `ENVIRONMENT`. `holocron dev` hands its application both. See [`ENVIRONMENT`](#environment) below                                                |
-| `AXIOM_ORG`                                                          | Sentinel (`constants.ts`), `check-dispatched.yml`                       | `HOLOCRON_AXIOM_ORG`, then `AXIOM_ORG`. The org variable keeps its bare name; `check-dispatched` maps it onto `HOLOCRON_AXIOM_ORG`                                            |
+| `AXIOM_ORG`                                                          | Sentinel (`constants.ts`), `check-dispatched.yml`                       | `HOLOCRON_AXIOM_ORG`, then `AXIOM_ORG`. The org variable is `HOLOCRON_AXIOM_ORG` (bare `AXIOM_ORG` until renamed), read by `check-dispatched`                                 |
 | `BASE_SHA`, `PR_TITLE`, `PR_BODY`                                    | `docs presence`, `docs patch`                                           | `validate/docs.yml` sets both spellings until every caller's CLI reads the prefixed one                                                                                       |
 | `GOOGLE_*` (`CLIENT_ID`, `CLIENT_SECRET`, `SERVICE_ACCOUNT_JSON`, …) | `@theholocron/google-client`                                            | Holocron's own names; no Google tool reads them                                                                                                                               |
 
@@ -108,7 +108,7 @@ The other provider tokens (`DOPPLER_TOKEN`, `NETLIFY_AUTH_TOKEN`, …) are vendo
 | `HOLOCRON_CLOUDFLARE_PAGES_PROJECT` | the Pages project name in `preview`                                                             | Renamed (was `CLOUDFLARE_PAGES_PROJECT`)       |
 | `HOLOCRON_TURBO_TEAM`               | `TURBO_TEAM` in each job's `env`                                                                | Renamed; mapped onto the name turbo reads      |
 | `HOLOCRON_SENTRY_ORG`               | `SENTRY_ORG` in `release`                                                                       | Renamed; mapped onto the name sentry-cli reads |
-| `AXIOM_ORG`                         | `HOLOCRON_AXIOM_ORG` in `check-dispatched`; Sentinel reads the prefixed name, then the bare one | Stays bare, mapped                             |
+| `HOLOCRON_AXIOM_ORG`                | `HOLOCRON_AXIOM_ORG` in `check-dispatched`; Sentinel reads the prefixed name, then the bare one | Renamed (was `AXIOM_ORG`)                      |
 | `SENTINEL_AXIOM_DATASET`            | Sentinel's dataset in `check-dispatched`                                                        | Stays as it is (Sentinel's convention)         |
 
 ## The guard

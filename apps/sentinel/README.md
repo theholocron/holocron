@@ -597,11 +597,11 @@ have their own) and one shared org slug. Sentinel's Environment holds the Axiom 
 (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
 and `AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
-source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `AXIOM_ORG` (from the 1Password Environment
+source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (was `AXIOM_ORG`; from the 1Password Environment
 `Holocron - GitHub Actions variables`) carry the same values for the dispatched check workflow. The logger
 and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET` first, else the
 bare `AXIOM_DATASET` an Environment synced before the rename still holds, `sentinelAxiomDataset()`; the org is
-`HOLOCRON_AXIOM_ORG` first, else the bare `AXIOM_ORG`, and the `check-dispatched` workflow maps the org variable onto the
+`HOLOCRON_AXIOM_ORG` first, else the bare `AXIOM_ORG`, and the `check-dispatched` workflow reads the org variable `HOLOCRON_AXIOM_ORG` (else `AXIOM_ORG`) onto the
 prefixed name); with either unset the check run has no details link.
 
 ```sh

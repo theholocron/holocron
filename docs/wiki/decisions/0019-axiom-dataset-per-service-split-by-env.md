@@ -56,7 +56,7 @@ from the repo it runs in) without a dataset of its own.
 | Sentinel     | `holocron-sentinel` | `SENTINEL_AXIOM_DATASET` | Sentinel still reads `AXIOM_DATASET` today (#1875 moves it) |
 | Comlink      | `holocron-comlink`  | `COMLINK_AXIOM_DATASET`  | reserved: Comlink does not log to Axiom yet                 |
 
-`AXIOM_ORG` is one shared value, read as `HOLOCRON_AXIOM_ORG` and then the bare name (#1864); the org variable keeps its bare name and the workflow maps it. The bare `AXIOM_DATASET` stays a documented fallback for the CLI (the vendor-native
+`AXIOM_ORG` is one shared value, read as `HOLOCRON_AXIOM_ORG` and then the bare name (#1864); the org variable is synced as `HOLOCRON_AXIOM_ORG` (the bare name until it is renamed) and the workflow reads it as `vars.HOLOCRON_AXIOM_ORG || vars.AXIOM_ORG`. The bare `AXIOM_DATASET` stays a documented fallback for the CLI (the vendor-native
 name), and the 1Password Environment no longer syncs it; `HOLOCRON_AXIOM_DATASET` is synced instead and the sync
 workflows pass `HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}` with no fallback.
 
