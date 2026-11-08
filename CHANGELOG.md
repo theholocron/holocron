@@ -1,3 +1,9 @@
+## [5.0.0-alpha.372](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.371...v5.0.0-alpha.372) (2026-11-08)
+
+### Bug Fixes
+
+* **plugins:** 🔇 hide link previews in the pull-request feed forum ([#1926](https://github.com/theholocron/holocron/issues/1926)) ([b417ab4](https://github.com/theholocron/holocron/commit/b417ab4c407f6dc995f6f1e052d17aabc35b7e7c)), closes [#1738](https://github.com/theholocron/holocron/issues/1738)
+
 ## [5.0.0-alpha.371](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.370...v5.0.0-alpha.371) (2026-11-08)
 
 ### Features
