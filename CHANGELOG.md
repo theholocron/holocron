@@ -1,3 +1,9 @@
+## [5.0.0-alpha.381](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.380...v5.0.0-alpha.381) (2026-11-08)
+
+### Features
+
+* **migrate:** ✨ cap how many issues are read, from the first- or last-created end ([#1960](https://github.com/theholocron/holocron/issues/1960)) ([c0ad9fa](https://github.com/theholocron/holocron/commit/c0ad9fae287b7a5105fd33c721a0dda98c7ba216)), closes [#1959](https://github.com/theholocron/holocron/issues/1959)
+
 ## [5.0.0-alpha.380](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.379...v5.0.0-alpha.380) (2026-11-08)
 
 ### Bug Fixes
