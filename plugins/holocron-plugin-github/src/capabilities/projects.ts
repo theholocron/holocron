@@ -12,9 +12,11 @@
  */
 
 import type {
+	AddedItem,
 	BoardField,
 	BoardFieldType,
 	BoardItem,
+	BoardItemInput,
 	BoardRule,
 	BoardState,
 	BoardStatusCategory,
@@ -535,6 +537,90 @@ export class GitHubProjects implements Projects {
 			}
 		}
 		return report;
+	}
+
+	/**
+	 * Puts issues on the board (`addProjectV2ItemById`, the content id the issue's node id) and sets Status and Priority
+	 * through the single select update, only where the item has no value yet. A status or priority with no option on
+	 * the board is reported in `dropped`; no option is ever created, so no value is cleared.
+	 */
+	async addItems(
+		_owner: string,
+		board: BoardSummary,
+		items: BoardItemInput[],
+		template: BoardTemplate
+	): Promise<AddedItem[]> {
+		const raw = await this.readRaw(board.id);
+		const onBoard = await this.fetchItems(board.id);
+		const statusField = raw.fields.find((f) => f.name === STATUS_FIELD && f.options);
+		const priorityField = raw.fields.find((f) => f.name === PRIORITY_FIELD && f.options);
+		const results: AddedItem[] = [];
+
+		for (const input of items) {
+			const ref = this.parseKey(input.key);
+			let current = onBoard.find((i) => i.repo === ref.repo && i.number === ref.number);
+			const added = !current;
+			if (!current) {
+				const data = await this.graphql.query<{ addProjectV2ItemById: { item: { id: string } } }>(
+					`mutation($project: ID!, $content: ID!) { addProjectV2ItemById(input: { projectId: $project, contentId: $content }) { item { id } } }`,
+					{ project: board.id, content: await this.nodeId(ref) }
+				);
+				current = {
+					id: data.addProjectV2ItemById.item.id,
+					contentId: "",
+					repo: ref.repo,
+					number: ref.number,
+					title: "",
+					open: true,
+					values: {},
+					blockers: [],
+				};
+			}
+
+			const dropped: string[] = [];
+			if (input.status !== undefined || input.category !== undefined) {
+				const name = this.statusFor(input, template, statusField?.options);
+				if (!name) {
+					dropped.push(`status ${input.status ?? input.category} (no matching option on the board)`);
+				} else if (!current.values[STATUS_FIELD]) {
+					await this.setOption(board.id, raw, current.id, STATUS_FIELD, name);
+				}
+			}
+			if (input.priority !== undefined && input.priority !== "none") {
+				const option = priorityField?.options?.find((o) => priorityOf(o.name) === input.priority);
+				if (!option) dropped.push(`priority ${input.priority} (no matching option on the board)`);
+				else if (!current.values[PRIORITY_FIELD]) {
+					await this.setOption(board.id, raw, current.id, PRIORITY_FIELD, option.name);
+				}
+			}
+			results.push({ key: input.key, added, dropped });
+		}
+		return results;
+	}
+
+	/** The board's own status for an input: the option named like its status, else the template's status of its category. */
+	private statusFor(
+		input: BoardItemInput,
+		template: BoardTemplate,
+		options: RawOption[] | undefined
+	): string | undefined {
+		const has = (name: string) => options?.find((o) => o.name.toLowerCase() === name.toLowerCase())?.name;
+		const named = input.status === undefined ? undefined : has(input.status);
+		if (named) return named;
+		const byCategory = template.statuses.find((s) => s.category === input.category);
+		return byCategory ? has(byCategory.name) : undefined;
+	}
+
+	/** The node id of an issue, which `addProjectV2ItemById` takes as the content id. */
+	private async nodeId(ref: { repo: string; number: number }): Promise<string> {
+		const [owner, name] = ref.repo.split("/");
+		const data = await this.graphql.query<{ repository: { issue: { id: string } | null } | null }>(
+			`query($owner: String!, $name: String!, $number: Int!) { repository(owner: $owner, name: $name) { issue(number: $number) { id } } }`,
+			{ owner, name, number: ref.number }
+		);
+		const id = data.repository?.issue?.id;
+		if (!id) throw new Error(`issue ${ref.repo}#${ref.number} not found`);
+		return id;
 	}
 
 	/** A `holocron doctor` smoke check: how many boards the token sees in the configured repository's organization. */

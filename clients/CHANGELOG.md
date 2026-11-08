@@ -1,3 +1,9 @@
+## [1.58.0-alpha.20](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.19...clients-v1.58.0-alpha.20) (2026-11-08)
+
+### Features
+
+* **linear:** apply and compare git automation rules, validate issue templates ([#1930](https://github.com/theholocron/holocron/issues/1930)) ([becf6ed](https://github.com/theholocron/holocron/commit/becf6ed6bd9561714f6e9c46dd4fc50c3126c871)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
 ## [1.58.0-alpha.19](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.18...clients-v1.58.0-alpha.19) (2026-11-08)
 
 ### Bug Fixes

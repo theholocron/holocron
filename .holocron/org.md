@@ -55,9 +55,13 @@ observability (`observability/`) live in that monorepo as well.
   squashed commit subject that semantic-release reads.
 - **File issues for non-trivial work** and reference them in commits/PRs
   (`Closes #N` / `Refs #N`). Skip for typo fixes.
-- **Spec process: Issue before spec.** Before writing a spec file, file a GitHub
-  issue first. The issue is the durable tracking artifact. The spec's frontmatter
-  `issue:` field must reference it. Order: Issue → Spec → PR → Review → merge.
+- **Spec process: Issue before spec.** Before writing a spec file, file an issue
+  first, in the tracker the config's `issues` provider names (GitHub when the
+  config sets no `issues` provider). The issue is the durable tracking artifact.
+  The spec's frontmatter `issue:` field must reference it. Order: Issue → Spec →
+  PR → Review → merge.
+- **Reference the issue in that tracker's syntax** in commits and the PR: `Closes #N`
+  / `Refs #N` for GitHub, the issue key (`Closes ENG-42` / `Refs ENG-42`) for Linear.
 
 ## Before starting any coding task
 

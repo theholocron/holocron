@@ -1,5 +1,8 @@
 import { type Connection, type LinearGraphQL, paginate } from "../graphql/graphql.js";
 import type {
+	LinearGitAutomationState,
+	LinearGitEvent,
+	LinearGitTargetBranch,
 	LinearLabel,
 	LinearStateType,
 	LinearTeam,
@@ -51,12 +54,13 @@ export function teams(gql: LinearGraphQL) {
 		},
 
 		/**
-		 * Changes the team's auto-archive and auto-close settings (`teamUpdate`); a field left out is left alone, and 0
-		 * switches the period off. Needs a key with admin access to the team.
+		 * Changes the team's auto-archive and auto-close settings (`teamUpdate`); a field left out is left alone, a null
+		 * `autoClosePeriod` switches auto-close off and a 0 `autoArchivePeriod` switches auto-archive off. Needs a key
+		 * with admin access to the team.
 		 */
 		async updateAutomation(
 			teamId: string,
-			input: { autoArchivePeriod?: number; autoClosePeriod?: number; autoCloseStateId?: string }
+			input: { autoArchivePeriod?: number; autoClosePeriod?: number | null; autoCloseStateId?: string }
 		): Promise<LinearTeamAutomation> {
 			const data = await gql.query<{ teamUpdate: { team: LinearTeamAutomation } }>(
 				`mutation($id: String!, $input: TeamUpdateInput!) { teamUpdate(id: $id, input: $input) { team {
@@ -64,6 +68,63 @@ export function teams(gql: LinearGraphQL) {
 				{ id: teamId, input }
 			);
 			return data.teamUpdate.team;
+		},
+
+		/** The team's git automation rules (`gitAutomationStates`), each with the state and target branch it names. */
+		async gitAutomation(teamId: string): Promise<LinearGitAutomationState[]> {
+			return paginate((after) =>
+				gql
+					.query<{ team: { gitAutomationStates: Connection<LinearGitAutomationState> } }>(
+						`query($id: String!, $after: String) { team(id: $id) { gitAutomationStates(first: 100, after: $after) {
+							nodes { id event state { id name } targetBranch { id branchPattern isRegex } }
+							pageInfo { hasNextPage endCursor } } } }`,
+						{ id: teamId, after }
+					)
+					.then((d) => d.team.gitAutomationStates)
+			);
+		},
+
+		/** Makes a target branch for the team (`gitAutomationTargetBranchCreate`); an exact name unless `isRegex`. */
+		async createGitTargetBranch(input: {
+			teamId: string;
+			branchPattern: string;
+			isRegex?: boolean;
+		}): Promise<LinearGitTargetBranch> {
+			const data = await gql.query<{ gitAutomationTargetBranchCreate: { targetBranch: LinearGitTargetBranch } }>(
+				`mutation($input: GitAutomationTargetBranchCreateInput!) { gitAutomationTargetBranchCreate(input: $input) {
+					targetBranch { id branchPattern isRegex } } }`,
+				{ input }
+			);
+			return data.gitAutomationTargetBranchCreate.targetBranch;
+		},
+
+		/** Makes a git automation rule (`gitAutomationStateCreate`); without `targetBranchId` it applies to all branches. */
+		async createGitAutomation(input: {
+			teamId: string;
+			event: LinearGitEvent;
+			stateId: string;
+			targetBranchId?: string;
+		}): Promise<LinearGitAutomationState> {
+			const data = await gql.query<{
+				gitAutomationStateCreate: { gitAutomationState: LinearGitAutomationState };
+			}>(
+				`mutation($input: GitAutomationStateCreateInput!) { gitAutomationStateCreate(input: $input) {
+					gitAutomationState { id event state { id name } targetBranch { id branchPattern isRegex } } } }`,
+				{ input }
+			);
+			return data.gitAutomationStateCreate.gitAutomationState;
+		},
+
+		/** Points an existing git automation rule at another state (`gitAutomationStateUpdate`). */
+		async updateGitAutomation(id: string, input: { stateId: string }): Promise<LinearGitAutomationState> {
+			const data = await gql.query<{
+				gitAutomationStateUpdate: { gitAutomationState: LinearGitAutomationState };
+			}>(
+				`mutation($id: String!, $input: GitAutomationStateUpdateInput!) { gitAutomationStateUpdate(id: $id, input: $input) {
+					gitAutomationState { id event state { id name } targetBranch { id branchPattern isRegex } } } }`,
+				{ id, input }
+			);
+			return data.gitAutomationStateUpdate.gitAutomationState;
 		},
 
 		/** The team's issue statuses, in board order. */

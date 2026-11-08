@@ -88,6 +88,39 @@ describe("teams", () => {
 	});
 });
 
+describe("git automation", () => {
+	const rule = { id: "r", event: "merge", state: { id: "s", name: "Done" }, targetBranch: null };
+
+	it("reads the team's rules, pages them and makes and repoints them", async () => {
+		const branch = { id: "b", branchPattern: "main", isRegex: false };
+		const { fetch, calls } = stubFetch([
+			data({ team: { gitAutomationStates: page([rule], "c1") } }),
+			data({ team: { gitAutomationStates: page([{ ...rule, id: "r2" }]) } }),
+			data({ gitAutomationTargetBranchCreate: { targetBranch: branch } }),
+			data({ gitAutomationStateCreate: { gitAutomationState: rule } }),
+			data({ gitAutomationStateUpdate: { gitAutomationState: { ...rule, id: "r3" } } }),
+		]);
+		const c = createLinearClient({ token: "t", fetch });
+		expect((await c.teams.gitAutomation("t1")).map((r) => r.id)).toEqual(["r", "r2"]);
+		expect(await c.teams.createGitTargetBranch({ teamId: "t1", branchPattern: "main" })).toEqual(branch);
+		expect((await c.teams.createGitAutomation({ teamId: "t1", event: "merge", stateId: "s" })).id).toBe("r");
+		expect((await c.teams.updateGitAutomation("r3", { stateId: "s" })).id).toBe("r3");
+		const sent = (i: number) => calls[i]?.body as { query: string; variables: Record<string, unknown> };
+		expect(sent(0).query).toMatch(/gitAutomationStates\(first: 100/);
+		expect(sent(2).query).toMatch(/gitAutomationTargetBranchCreate\(input: \$input\)/);
+		expect(sent(3).variables).toEqual({ input: { teamId: "t1", event: "merge", stateId: "s" } });
+		expect(sent(4).variables).toEqual({ id: "r3", input: { stateId: "s" } });
+	});
+
+	it("sends a null auto-close period to switch it off", async () => {
+		const { fetch, calls } = stubFetch([data({ teamUpdate: { team: {} } })]);
+		await createLinearClient({ token: "t", fetch }).teams.updateAutomation("t1", { autoClosePeriod: null });
+		expect((calls[0]?.body as { variables: { input: unknown } }).variables.input).toEqual({
+			autoClosePeriod: null,
+		});
+	});
+});
+
 describe("issues", () => {
 	it("filters, pages and stops at the limit", async () => {
 		const { fetch, calls } = stubFetch([

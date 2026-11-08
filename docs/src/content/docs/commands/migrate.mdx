@@ -6,23 +6,33 @@ description: Move issues, a selection, or a whole board from one tracker to anot
 ```bash
 holocron migrate issue <key>      --from <source> --to <target>
 holocron migrate issues           --from <source> --to <target> (--all | --source-milestone <name> | --keys <a,b>)
-holocron migrate project <name>   --from <source> --to <target>
+holocron migrate project <name>   --from <source> --to <target> [--template <name>]
 ```
 
 `--from` and `--to` are `provider` or `provider:key=value,...`, for example `github`, `github:repo=theholocron/holocron` or `linear:team=ENG`. Options given there are applied over the repo's own `providers.issues` entry when it is the same provider, so `--from github --to linear:team=ENG` needs nothing else when the repo already uses GitHub.
 
-| Command           | Moves                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------ |
-| `migrate issue`   | one issue                                                                                        |
-| `migrate issues`  | every issue (`--all`), a milestone or project (`--source-milestone`), or a list (`--keys #1,#2`) |
-| `migrate project` | the items of a board, with the board's status and priority, into a project of the same name      |
+| Command           | Moves                                                                                                                         |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `migrate issue`   | one issue                                                                                                                     |
+| `migrate issues`  | every issue (`--all`), a milestone or project (`--source-milestone`), or a list (`--keys #1,#2`)                              |
+| `migrate project` | the items of a board, with the board's status and priority, onto a board (GitHub) or into a project (Linear) of the same name |
 
-| Flag          | Meaning                                                                                  |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| `--open-only` | leave closed issues behind                                                               |
-| `--milestone` | put every migrated issue in this milestone (GitHub) or project (Linear); made if missing |
-| `--yes`       | do not ask first (without a terminal the command refuses instead of hanging)             |
-| `--dry-run`   | read both sides and write nothing; prints what would be created and what would be lost   |
+| Flag          | Meaning                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `--open-only` | leave closed issues behind                                                                 |
+| `--milestone` | put every migrated issue in this milestone (GitHub) or project (Linear); made if missing   |
+| `--template`  | `migrate project` only: the board template a missing board is made from; default `roadmap` |
+| `--yes`       | do not ask first (without a terminal the command refuses instead of hanging)               |
+| `--dry-run`   | read both sides and write nothing; prints what would be created and what would be lost     |
+
+## A board as the target
+
+When the target is GitHub, `migrate project <name> --to github` puts the issues on a GitHub Project of the same name. The board is found by name among the open boards, or made from the template (`roadmap` unless `--template` names a built-in or a file in `.holocron/projects/`). Each migrated issue, including one an earlier run made, is added to the board (`addProjectV2ItemById`, with the issue's node id), then:
+
+- **Status** is the board option named like the source status, or else the template's status for the source status category (`In Progress` to `active`, an open issue to `planned`, a closed one to `done`).
+- **Priority** is the option whose name is `urgent`, `high`, `medium` or `low` (or `P0` to `P3`). The built-in `roadmap` template names its priorities `1 · Now`, `2 · Next` and `3 · Process`, so a board made from it has no option for them; add `urgent` to `P3` options to your own template to carry priority.
+
+A status or priority with no matching option is listed under `not carried across` and is never created, and a value an item already has is never changed, so running it twice sets nothing twice. The milestone is set only when `--milestone` is given; it is no longer implied by the board name. A target with no `projects` provider (Linear, or a GitHub token without the Projects permission) keeps the earlier behaviour: the issues land in a milestone or project named like the board.
 
 ## What is carried
 

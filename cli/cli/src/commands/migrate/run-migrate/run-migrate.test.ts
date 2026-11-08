@@ -8,7 +8,7 @@ vi.mock("@inquirer/prompts", () => ({ confirm: inquirerConfirm }));
 import { NonInteractiveError } from "@theholocron/kyber/ui";
 
 import type { ImportResult } from "../../../plugin/index.js";
-import { fakeIssues, loadedWith, loaderFor, record } from "../migrate.testing.js";
+import { fakeIssues, fakeLoader, loadedWith, loaderFor, record } from "../migrate.testing.js";
 import { runMigrate } from "./run-migrate.js";
 import type { RunMigrateInput } from "./run-migrate.type.js";
 
@@ -207,5 +207,149 @@ describe("runMigrate defaults", () => {
 		Object.defineProperty(process.stdin, "isTTY", { value: false, configurable: true });
 		await expect(run({ makeLoader, yes: false })).rejects.toBeInstanceOf(NonInteractiveError);
 		Object.defineProperty(process.stdin, "isTTY", { value: tty, configurable: true });
+	});
+});
+
+describe("runMigrate onto a board", () => {
+	const board = { id: "B", number: 5, name: "v5", url: "https://x/5", closed: false };
+	const none = { listFiles: async () => [], readFile: async () => "" };
+
+	const repoOf = (resolved: RunMigrateInput["loaded"]["resolved"]) => {
+		const entry = resolved.providers.issues;
+		return entry?.cardinality === "single" ? entry.tuple.options.repo : undefined;
+	};
+
+	function boardSetup(over: { addItems?: unknown; find?: unknown; targetBoards?: boolean } = {}) {
+		const gh = fakeIssues("github", {
+			export: vi.fn(async () => [
+				record("#1", { status: "In Progress", statusCategory: "in-progress", priority: "high" }),
+				record("#2"),
+			]),
+		});
+		const sourceBoards = {
+			key: "projects",
+			providerName: "github",
+			list: vi.fn(async () => []),
+			find: vi.fn(async () => board),
+			items: vi.fn(async () => [{ key: "#1", title: "a", open: true, blockedBy: [] }]),
+		};
+		const target = fakeIssues("github", {
+			import: vi.fn(async () => [result("#1", "#11"), result("#2", "#12", { created: false })]),
+		});
+		const targetBoards = {
+			key: "projects",
+			providerName: "github",
+			list: vi.fn(async () => []),
+			find: (over.find ?? vi.fn(async () => undefined)) as never,
+			create: vi.fn(async () => board),
+			addItems:
+				over.addItems ??
+				vi.fn(async () => [
+					{ key: "#11", added: true, dropped: ["priority high (no matching option on the board)"] },
+					{ key: "#12", added: false, dropped: [] },
+				]),
+		};
+		const makeLoader = (resolved: RunMigrateInput["loaded"]["resolved"]) =>
+			fakeLoader(
+				repoOf(resolved) === "acme/target"
+					? { issues: target, ...(over.targetBoards === false ? {} : { projects: targetBoards }) }
+					: { issues: gh, projects: sourceBoards }
+			);
+		return { gh, target, targetBoards, makeLoader: makeLoader as unknown as RunMigrateInput["makeLoader"] };
+	}
+
+	const base = {
+		from: "github:repo=acme/source",
+		to: "github:repo=acme/target",
+		scope: { kind: "project", name: "v5", owner: "acme" } as const,
+		templatesIo: none,
+	};
+
+	it("finds or makes the board, adds each issue with its status and priority, and counts what the board dropped", async () => {
+		const { target, targetBoards, makeLoader } = boardSetup();
+		const { report, lines } = await run({ ...base, makeLoader });
+		expect(target.import).toHaveBeenCalledWith(expect.anything(), { dryRun: false });
+		expect(targetBoards.create).toHaveBeenCalledWith("acme", "v5", expect.objectContaining({ name: "roadmap" }));
+		expect(targetBoards.addItems).toHaveBeenCalledWith(
+			"acme",
+			board,
+			[
+				{ key: "#11", status: "In Progress", category: "active", priority: "high" },
+				{ key: "#12", category: "planned" },
+			],
+			expect.objectContaining({ name: "roadmap" })
+		);
+		expect(report.status).toBe("ok");
+		expect(report.board).toMatchObject({ created: true });
+		expect(report.notCarried).toEqual([{ what: "priority high (no matching option on the board)", count: 1 }]);
+		const text = lines.join("\n");
+		expect(text).toContain('board "v5": created, added 1, already there 1 (https://x/5)');
+		expect(text).toContain("priority high (no matching option on the board): 1 issue(s)");
+	});
+
+	it("uses the template named, and still sets the milestone when one is given", async () => {
+		const { target, targetBoards, makeLoader } = boardSetup({ find: vi.fn(async () => board) });
+		await run({ ...base, makeLoader, template: "sprint", milestone: "Q3" });
+		expect(target.import).toHaveBeenCalledWith(expect.anything(), { milestone: "Q3", dryRun: false });
+		expect(targetBoards.create).not.toHaveBeenCalled();
+		expect(targetBoards.addItems).toHaveBeenCalledWith(
+			"acme",
+			board,
+			expect.anything(),
+			expect.objectContaining({ name: "sprint" })
+		);
+	});
+
+	it("on a dry run reads the board and adds nothing", async () => {
+		const { targetBoards, makeLoader } = boardSetup();
+		const { report, lines } = await run({
+			...base,
+			makeLoader,
+			yes: false,
+			context: { repoRoot: "/x", dryRun: true },
+		});
+		expect(report.board).toEqual({ board: undefined, created: true, items: [] });
+		expect(targetBoards.create).not.toHaveBeenCalled();
+		expect(targetBoards.addItems).not.toHaveBeenCalled();
+		expect(lines.join("\n")).toContain('board "v5": would create from template roadmap');
+	});
+
+	it("fails before anything is written when the template does not exist", async () => {
+		const { target, makeLoader } = boardSetup();
+		const { report } = await run({ ...base, makeLoader, template: "nope" });
+		expect(report).toMatchObject({ status: "fail", reason: expect.stringContaining('no board template "nope"') });
+		expect(target.import).not.toHaveBeenCalled();
+	});
+
+	it("fails with the reason when the board cannot be placed, saying a second run continues", async () => {
+		const { makeLoader } = boardSetup({ addItems: vi.fn(async () => Promise.reject(new Error("graphql down"))) });
+		const { report } = await run({ ...base, makeLoader });
+		expect(report.status).toBe("fail");
+		expect(report.reason).toMatch(/graphql down.*second run continues/);
+	});
+
+	it("keeps the milestone behaviour when the target has no projects provider, or one that cannot add items", async () => {
+		const noBoards = boardSetup({ targetBoards: false });
+		const first = await run({ ...base, makeLoader: noBoards.makeLoader });
+		expect(first.report.board).toBeUndefined();
+		expect(noBoards.target.import).toHaveBeenCalledWith(expect.anything(), { milestone: "v5", dryRun: false });
+
+		const cannotAdd = boardSetup();
+		const makeLoader = (resolved: RunMigrateInput["loaded"]["resolved"]) =>
+			fakeLoader(
+				repoOf(resolved) === "acme/target"
+					? { issues: cannotAdd.target, projects: { ...cannotAdd.targetBoards, addItems: undefined } }
+					: {
+							issues: cannotAdd.gh,
+							projects: {
+								key: "projects",
+								list: async () => [],
+								find: async () => board,
+								items: async () => [{ key: "#1", title: "a", open: true, blockedBy: [] }],
+							},
+						}
+			);
+		await run({ ...base, makeLoader: makeLoader as unknown as RunMigrateInput["makeLoader"] });
+		expect(cannotAdd.target.import).toHaveBeenCalledWith(expect.anything(), { milestone: "v5", dryRun: false });
 	});
 });

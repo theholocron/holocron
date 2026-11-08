@@ -762,6 +762,7 @@ holocron auth export --blank --vendor-names --file --only VERCEL_TOKEN --only HO
 holocron github-app create --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest (the flow is in @theholocron/dagobah); its id, key and webhook secret to a private .credentials
 holocron tunnel up --name sentinel-dev --hostname sentinel-dev.example.dev --port 3000 --run  # a named tunnel with a stable hostname to a local port
 holocron project list           # the org's project boards (also: create [template], close <number-or-name>, setup)
+holocron migrate project v5 --from github --to github:repo=acme/new --dry-run  # preview putting a board's issues on a board of the same name in the target (GitHub; --template picks the template a missing board is made from, default roadmap); a target without boards (Linear) gets a project of that name instead
 holocron project move v4 v5 --dry-run  # preview carrying the open items of one project board to another; without --dry-run it asks first (--yes skips)
 holocron doctor project         # does each declared board match its template? (read-only; --post shares the failures)
 holocron dev                    # the app, its vault variables and the tunnel, in one command (settings: `dev` in holocron.config)

@@ -274,12 +274,22 @@ a GitHub board target with a missing option; a rate limit mid-run.
    the Priority field instead; whether to also keep the label is open.
 6. **Whether Linear's git automation can be read back reliably** (target branch regex vs pattern) for the doctor to
    compare; needs checking against the live schema before this spec is accepted.
-   _Not checked: the first PR had no Linear key to introspect the schema with, so the git rules and issue templates
-   are validated in config but not applied or compared (setup and the doctor report one skipped row)._
+   _Resolved against `linear/linear` `packages/sdk/src/schema.graphql`: the git rules can be read back reliably. A rule
+   is `GitAutomationState { event, state, targetBranch }` and its target branch `GitAutomationTargetBranch
+{ branchPattern, isRegex }` (the rule's own `branchPattern` is deprecated). `provider linear setup` and `doctor`
+   match a rule by event and exact branch (`isRegex: false`) and compare its state; `branch` in the config is a literal
+   name, and a regular-expression target never matches it. A target branch with no rule cannot be listed (no query for
+   it), so making a rule for it fails the row until one exists._
 
 7. **Where the template text comes from.** A dedicated `.holocron/linear/*.md` file (above), or reuse GitHub's
    `.github/ISSUE_TEMPLATE/*.md` so one set of templates serves both trackers while both run. The second avoids drift
    but ties Linear's templates to GitHub's front-matter format.
+
+   _Decided: `.holocron/linear/*.md`, as in section 2b. The declaration (`templates: [{ name, file }]`) is validated.
+   Templates are not applied or compared: the schema gives `templateData` only as "a JSON-encoded string containing
+   the pre-filled attributes" with no issue shape, `TemplateCreateInput` has no markdown field, and `Template.content`
+   is read-only, so a template cannot be written or read back with certainty. Each run reports a skipped row, and the
+   template is made in Settings → Templates. Revisit when Linear documents the issue `templateData`._
 
 ## Implementation notes
 
@@ -287,7 +297,9 @@ First PR (draft, on the Linear plugin's branch): the `provider` command and the 
 (`ProviderAction`, `PluginLoader.providerActions()`), and Linear's labels, project, `autoClosePeriod` /
 `autoCloseState` / `autoArchivePeriod`, with the config validation above. Not in it: the team's statuses (still
 `project setup`), the `rules` to Linear mapping (the declared `automation` block writes the settings; `doctor project`
-already reports a rule that is off), the git rules, issue templates (open questions 6 and 7), and sections 3 to 5.
+already reports a rule that is off), sections 3 to 5. Second PR (`feat/linear-git-automation-templates`): the git rules (applied and compared) and the `templates` declaration (validated, reported as skipped).
+
+Section 3 (#1860): `Projects.addItems?(owner, board, items, template)` takes `BoardItemInput`s (key, status, category, priority) rather than bare keys, because Status and Priority are set in the same call; it returns an `AddedItem` per input (`added`, `dropped`). `migrate project` uses it when the target's `projects` provider has it, and the milestone is then set only by `--milestone`. Built: GitHub's `addItems`, `--template`, the board line and the `dropped` counts. Not done: the built-in `roadmap` template's priority options (`1 · Now`...) do not match the neutral levels, so a board made from it drops every priority until a template names `urgent` to `P3` options (an open choice, not decided here).
 
 ## Related
 

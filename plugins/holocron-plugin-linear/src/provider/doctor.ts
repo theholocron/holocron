@@ -3,8 +3,10 @@ import type { LinearTeam } from "@theholocron/linear-client";
 
 import type { TeamScope } from "../capabilities/team-scope.js";
 import { archiveGap, closeGap } from "./automation.js";
+import { gitGaps } from "./git-automation.js";
 import type { LinearSetupConfig } from "./provider-config.js";
 import { failure, findProject, row } from "./rows.js";
+import { templateRows } from "./templates.js";
 
 const FIX = "run `holocron provider linear setup`";
 
@@ -13,8 +15,8 @@ const verdict = (id: string, title: string, detail: string, problems: string[]):
 	problems.length === 0 ? row(id, title, "ok", detail) : row(id, title, "fail", problems[0]!, [...problems, FIX]);
 
 /**
- * `provider linear doctor`: one row for the team and one for each label, the project and each auto-close and
- * auto-archive setting the block declares. Read-only; a row that fails names `provider linear setup` as the fix.
+ * `provider linear doctor`: one row for the team and one for each label, the project, each auto-close and
+ * auto-archive setting and each git automation rule the block declares. Read-only; a row that fails names `provider linear setup` as the fix.
  */
 export function linearDoctor(scope: TeamScope, config: LinearSetupConfig): ProviderAction {
 	return async () => {
@@ -88,15 +90,20 @@ export function linearDoctor(scope: TeamScope, config: LinearSetupConfig): Provi
 		}
 
 		if (config.git.length > 0) {
-			rows.push(
-				row(
-					"git",
-					"git automation",
-					"skip",
-					`${config.git.length} declared; not compared yet (setup does not apply it either)`
-				)
-			);
+			try {
+				const [have, states] = await Promise.all([
+					scope.client.teams.gitAutomation(team.id),
+					scope.client.teams.states(team.id),
+				]);
+				for (const gap of gitGaps(config.git, have, states)) {
+					const detail = gap.title.replace("git automation ", "");
+					rows.push(verdict(gap.id, gap.title, detail, gap.problems));
+				}
+			} catch (err) {
+				rows.push(failure("git", "git automation", err));
+			}
 		}
+		rows.push(...templateRows(config));
 		return rows;
 	};
 }
