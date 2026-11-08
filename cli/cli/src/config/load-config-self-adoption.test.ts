@@ -171,6 +171,24 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			},
 		];
 
+		// And (#1859): issues and the planning board are on Linear, team HOLO, the board declared as before.
+		expectedProviders.issues = {
+			cardinality: "single",
+			tuple: {
+				provider: "linear",
+				packageName: "@theholocron/holocron-plugin-linear",
+				options: { team: "HOLO" },
+			},
+		};
+		expectedProviders.projects = {
+			cardinality: "single",
+			tuple: {
+				provider: "linear",
+				packageName: "@theholocron/holocron-plugin-linear",
+				options: { team: "HOLO", boards: [{ template: "roadmap", name: "v5" }] },
+			},
+		};
+
 		const { resolved } = await loadConfig(REPO_ROOT);
 		expect(normalise(resolved)).toEqual(expected);
 	});

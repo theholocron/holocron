@@ -134,11 +134,16 @@ export default defineConfig({
 		monitoring: "checkly",
 		// Logs: Axiom aggregation — setup provisions the CLI's dataset (HOLOCRON_AXIOM_DATASET, `holocron`); every environment ships to it, split by the `env` tag
 		logs: "axiom",
-		// Projects: the org's planning board (GitHub Projects), declared as template -> name (SPEC-0020, #1744). The
-		// template is a built-in (roadmap) or a file in .holocron/projects; the board is found by name among the open
-		// ones. `holocron project setup` brings it in line, `doctor project` checks it, and the hourly
-		// `reconcile-projects` task (see `tasks`) keeps statuses true to the blocked-by links.
-		projects: ["github", { boards: [{ template: "roadmap", name: "v5" }] }],
+		// Issues: Linear, team HOLO. `holocron provider linear setup` makes the labels, project and automation the block
+		// declares (idempotent; --dry-run previews it) and `provider linear doctor` compares them. The API key is
+		// HOLOCRON_LINEAR_TOKEN in the Holocron 1Password Environment; see docs: plugins/linear.
+		issues: ["linear", { team: "HOLO" }],
+		// Projects: the org's planning board, declared as template -> name (SPEC-0020, #1744). The template is a built-in
+		// (roadmap) or a file in .holocron/projects; the board is found by name among the open ones. On Linear a board
+		// is a project of the team, its statuses are the team's workflow states, and custom fields and views come back as
+		// `todo`s (docs: plugins/linear). `holocron project setup` brings it in line, `doctor project` checks it, and the
+		// hourly `reconcile-projects` task (see `tasks`) keeps statuses true to the blocked-by links.
+		projects: ["linear", { team: "HOLO", boards: [{ template: "roadmap", name: "v5" }] }],
 		// Notifications: the Holocron Discord server. `holocron notifications setup`
 		// applies the layout below (idempotent; --dry-run previews it). This block
 		// lives in ONE repo on purpose -- a server layout is org-level, so it must
