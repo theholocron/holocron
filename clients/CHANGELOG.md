@@ -1,3 +1,9 @@
+## [1.58.0-alpha.23](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.22...clients-v1.58.0-alpha.23) (2026-11-08)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 post only what is new in the error review ([#1964](https://github.com/theholocron/holocron/issues/1964)) ([9eb98c3](https://github.com/theholocron/holocron/commit/9eb98c309a811608c2712b9fc6f0700dafaa8089)), closes [#1949](https://github.com/theholocron/holocron/issues/1949) [#1950](https://github.com/theholocron/holocron/issues/1950)
+
 ## [1.58.0-alpha.22](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.21...clients-v1.58.0-alpha.22) (2026-11-08)
 
 ### Bug Fixes
