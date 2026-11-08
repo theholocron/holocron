@@ -49,6 +49,18 @@ holocron auth set linear <KEY>
 
 or set `HOLOCRON_LINEAR_TOKEN` (or `LINEAR_API_KEY`).
 
+### What permissions the key needs
+
+A personal API key lets you pick its permissions (Read, Write, Admin, Create issues, Create comments) and the teams it can reach. Do not give it more than the command in front of you needs, and limit it to the team you use.
+
+| Key                       | Permissions                          | Team access  | Use it for                                                                                                  | Keep it                                                  |
+| ------------------------- | ------------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Everyday key**          | Read, Write                          | the one team | `migrate`, the doctor, and `provider linear setup` steps that make labels and a project                     | in the keyring (`holocron auth set linear <KEY>`)        |
+| **Setup key** (one-off)   | Read, Write, Admin                   | the one team | `provider linear setup` steps that change team settings: auto-close, auto-archive, git automation, statuses | for one command (`--token <KEY>`), then revoke it        |
+| **Narrowest key** (a try) | Read, Create issues, Create comments | the one team | copying issues and their comments only                                                                      | untested: labels, relations and projects will be refused |
+
+Linear does not say which permission covers each call, so the table is what we ask for, not a guarantee. What we know from the calls the client makes: issues, comments and attachments map to the two "create" permissions; labels, relations, projects and workflow states are most likely `Write`; team settings are most likely `Admin`. A key also cannot do more than your own role in the workspace allows, so `Admin` needs a workspace admin. If a step is refused, the doctor row for it says so. Raise the key by one permission and run it again.
+
 ## How Linear maps onto the capabilities
 
 | Holocron                | Linear                                                                  |
