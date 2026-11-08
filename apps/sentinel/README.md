@@ -521,6 +521,14 @@ merged to the repo's default branch or added fresh in a PR's own branch (see `ha
 `src/handler/handler.ts`, and `validate-config.ts`'s module docstring for the
 read-only boundary that makes a PR-branch read safe).
 
+The three fixers (prettier, markdownlint, editorconfig) are guarded against undoing each other (holocron#1950): before
+a fix is committed Sentinel reads the pull request's commits (`findAutoFixLoop()`, the first 100 that GitHub lists),
+and a fixer that already committed since the last commit of a person's is not run again. The pull request gets one
+comment saying so (`postAutoFixLoopComment()`, looked for by its `<!-- sentinel:auto-fix-loop -->` marker), and the checks
+keep reporting the finding until it is fixed by hand. A new commit of a person's starts auto-fixing again. A failed read
+of the commits blocks nothing. The commit subjects are `AUTO_FIX_SUBJECTS`, the one list the fixers write and the guard
+reads.
+
 ### Subscribe to events
 
 `push`, `pull_request`, `installation`, plus `membership` and `organization` for role sync (holocron#1595), and `pull_request_review` and `check_run` for the `#prs` forum feed (holocron#1738). The two new subscriptions are set by hand on an App that already exists (Settings → Developer settings → GitHub Apps → Holocron Sentinel → Permissions & events → Subscribe to events); a dev instance registered from `github-app.manifest.json` gets them from the manifest.

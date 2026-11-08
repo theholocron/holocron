@@ -209,10 +209,12 @@ import { ProviderApiError } from "@theholocron/http-client";
 import { createLogger } from "@theholocron/observability/logger";
 
 import {
+	type AutoFixKind,
 	commitEditorConfigFix,
 	commitFormattingFix,
 	commitMarkdownLintFix,
 	dispatchCheck,
+	findAutoFixLoop,
 	lintActionlint,
 	lintCommits,
 	lintDco,
@@ -227,6 +229,7 @@ import {
 	postActionlintCheck,
 	postAdrsCheck,
 	postAutoFixComment,
+	postAutoFixLoopComment,
 	postCheckRun,
 	postCommitStandardsCheck,
 	postDcoCheck,
@@ -1016,6 +1019,40 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 			: undefined;
 	const autoFixOptedIn = prAutoFix ?? mergedAutoFix ?? true;
 
+	// Loop guard (holocron#1950). Two fixers can disagree about one line (markdownlint strips the spaces of an MDX
+	// comment, prettier puts them back), and each commit triggers a delivery that finds the other's finding again:
+	// 34 commits in 26 minutes on #1949. A fixer that already committed since the last commit of a person's is not
+	// run again, and the pull request gets one comment saying so. A failed read of the commits blocks nothing.
+	const wantedFixes: { kind: AutoFixKind; files: string[] }[] = [];
+	if (formattingLintResult && !formattingLintResult.valid) {
+		wantedFixes.push({ kind: "formatting", files: formattingLintResult.messages.map((m) => m.file) });
+	}
+	if (editorConfigLintResult && !editorConfigLintResult.valid) {
+		wantedFixes.push({ kind: "editorconfig", files: editorConfigLintResult.fixes.map((f) => f.file) });
+	}
+	if (markdownLintResult && !markdownLintResult.valid) {
+		wantedFixes.push({ kind: "markdown-lint", files: markdownLintResult.fixes.map((f) => f.file) });
+	}
+	let blockedFixes: AutoFixKind[] = [];
+	if (autoFixOptedIn && context.headRef && context.pullNumber !== undefined && wantedFixes.length > 0) {
+		try {
+			blockedFixes = (await findAutoFixLoop({ client, repo, pullNumber: context.pullNumber })).blocked;
+			const stopped = wantedFixes.filter((w) => blockedFixes.includes(w.kind));
+			if (stopped.length > 0) {
+				logger.warn({ repo, kinds: stopped.map((s) => s.kind) }, "autoFixLoop: stopped a repeated auto-fix");
+				await postAutoFixLoopComment({
+					client,
+					repo,
+					pullNumber: context.pullNumber,
+					kinds: stopped.map((s) => s.kind),
+					files: [...new Set(stopped.flatMap((s) => s.files))],
+				});
+			}
+		} catch (err) {
+			logger.error({ repo, err: serializeError(err) }, "autoFixLoop: failed, continuing without it");
+		}
+	}
+
 	// Formatting's own commit + explanatory PR comment. Only fires when: not
 	// opted out, lintFormatting actually ran and found something to fix, and
 	// this is a PR event with a real head branch to push to (a push to the
@@ -1024,7 +1061,13 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 	// never take capability compliance down with it.
 	let formattingFixResult;
 	let autoFixCommentResult;
-	if (autoFixOptedIn && formattingLintResult && !formattingLintResult.valid && context.headRef) {
+	if (
+		autoFixOptedIn &&
+		formattingLintResult &&
+		!formattingLintResult.valid &&
+		context.headRef &&
+		!blockedFixes.includes("formatting")
+	) {
 		try {
 			formattingFixResult = await commitFormattingFix({
 				client,
@@ -1068,7 +1111,13 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 	// annotations already explains what's wrong, and a second comment on
 	// top would be redundant noise for findings this narrow.
 	let editorConfigFixResult;
-	if (autoFixOptedIn && editorConfigLintResult && !editorConfigLintResult.valid && context.headRef) {
+	if (
+		autoFixOptedIn &&
+		editorConfigLintResult &&
+		!editorConfigLintResult.valid &&
+		context.headRef &&
+		!blockedFixes.includes("editorconfig")
+	) {
 		try {
 			editorConfigFixResult = await commitEditorConfigFix({
 				client,
@@ -1098,7 +1147,13 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 	// that would otherwise overlap with what Prettier already fixes -- see
 	// lint-markdown.ts's own module docstring).
 	let markdownLintFixResult;
-	if (autoFixOptedIn && markdownLintResult && !markdownLintResult.valid && context.headRef) {
+	if (
+		autoFixOptedIn &&
+		markdownLintResult &&
+		!markdownLintResult.valid &&
+		context.headRef &&
+		!blockedFixes.includes("markdown-lint")
+	) {
 		try {
 			markdownLintFixResult = await commitMarkdownLintFix({
 				client,
