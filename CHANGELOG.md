@@ -1,3 +1,11 @@
+## [5.0.0-alpha.387](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.386...v5.0.0-alpha.387) (2026-11-08)
+
+### Features
+
+* **cli:** ✨ add holocron doctor logs to check the Axiom datasets exist ([#1981](https://github.com/theholocron/holocron/issues/1981)) ([d20a512](https://github.com/theholocron/holocron/commit/d20a5122becb2a1ac104588498896f6d042a8925)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+* **env:** 🏷️ read HOLOCRON_AXIOM_ORG before AXIOM_ORG ([#1977](https://github.com/theholocron/holocron/issues/1977)) ([c63ead8](https://github.com/theholocron/holocron/commit/c63ead87803c908aa346cf458bf6fcb781f4eeba)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+* **env:** 🏷️ read the synced organization variables by their HOLOCRON_ name first ([#1982](https://github.com/theholocron/holocron/issues/1982)) ([c1cc656](https://github.com/theholocron/holocron/commit/c1cc656b46c023fe3cf06ff34571c84dd049879e)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
 ## [5.0.0-alpha.386](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.385...v5.0.0-alpha.386) (2026-11-08)
 
 ### Features
