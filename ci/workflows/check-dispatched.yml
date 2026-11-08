@@ -140,7 +140,7 @@ jobs:
           # Org variables (1Password Environment "Holocron - GitHub Actions variables", synced by
           # `repo.variables.sync`); no literal fallback. The variable keeps its bare name in GitHub and
           # 1Password; the workflow maps it onto the prefixed one (#1864).
-          HOLOCRON_AXIOM_ORG: ${{ vars.AXIOM_ORG }}
+          HOLOCRON_AXIOM_ORG: ${{ vars.HOLOCRON_AXIOM_ORG || vars.AXIOM_ORG }}
           SENTINEL_AXIOM_DATASET: ${{ vars.SENTINEL_AXIOM_DATASET }}
           AXIOM_TOKEN: ${{ secrets.SENTINEL_AXIOM_INGEST_TOKEN }}
 
