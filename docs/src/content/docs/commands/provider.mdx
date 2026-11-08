@@ -15,6 +15,8 @@ Some things exist in one vendor only: a Linear team's auto-close, a Discord serv
 
 A plugin offers them by returning a `setup` and a `doctor` from `createPlugin`, next to its `capabilities` and `probes`. `holocron provider` lists the configured providers that did; one with neither is not listed. Both read the provider's own options in `holocron.config` (for Linear, the block under the `issues` entry), never flags only.
 
+A provider the config names under more than one capability (Linear under both `issues` and `projects`) takes its options from the **first** of those entries in the config's `providers`. Put the full block, with the labels, project and automation, in that first entry, or give it with [`--with`](#a-provider-that-is-not-in-the-config).
+
 ## A provider that is not in the config
 
 `--with` runs a provider the config does not name, with its options given on the command line, and changes nothing in the config. Each value is a `key=value` pair (text, the syntax of [`migrate`](/holocron/commands/migrate/)'s `linear:team=ENG`) or the path of a file, and the flag repeats:
