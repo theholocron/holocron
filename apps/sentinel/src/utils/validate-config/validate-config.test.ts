@@ -1,21 +1,11 @@
-import { readdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { validateConfig } from "./validate-config.js";
 
-afterAll(async () => {
-	const entries = await readdir(tmpdir());
-	await Promise.all(
-		entries
-			.filter((name) => name.startsWith("sentinel-validate-"))
-			.map((name) => rm(join(tmpdir(), name), { recursive: true, force: true }))
-	);
-});
+// No test here sweeps the temp directory for `sentinel-validate-*`: `validateConfig` removes its own sandbox, and a
+// sweep deletes the sandboxes that other test files, running in parallel workers, are still using.
 
 function b64(content: string): string {
 	return Buffer.from(content, "utf8").toString("base64");
