@@ -37,6 +37,9 @@
     "typecheck": "tsc --noEmit",
     "validate:plugin": "tsx scripts/validate.mjs"
   },
+  "dependencies": {
+    "@theholocron/env-utils": "workspace:^"
+  },
   "devDependencies": {
     "@theholocron/cli": "workspace:*",
     "@theholocron/cloudflare-client": "workspace:^",

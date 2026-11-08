@@ -86,10 +86,17 @@ export class OpVault implements Vault {
 
 	// ── list ────────────────────────────────────────────────────────────
 
+	/**
+	 * The names this vault holds: the item titles of its `vault`, or, when only an `environment` is set (an Environment
+	 * is not in a vault), that Environment's variable names. Values are read in memory and never returned.
+	 */
 	async list(): Promise<string[]> {
+		if (!this.vaultName && this.environmentName) {
+			return Object.keys(await this.readEnvironment(this.environmentName));
+		}
 		if (!this.vaultName) {
 			throw new ProviderApiError(
-				"1Password `list` needs a `vault` in the plugin options: it lists the items in one vault",
+				"1Password `list` needs a `vault` or an `environment` in the plugin options: it lists the items in one vault, or the variable names of one Environment",
 				400,
 				undefined
 			);

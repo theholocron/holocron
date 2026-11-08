@@ -21,6 +21,18 @@ describe("resolveVercelCredentials", () => {
 		).toEqual({ vercelToken: "t", vercelTeamId: "team_env", bypassSecret: "s" });
 	});
 
+	it("prefers the HOLOCRON_ name of each value, with the bare name still working", () => {
+		expect(
+			resolveVercelCredentials(undefined, {
+				HOLOCRON_VERCEL_TOKEN: "t-new",
+				VERCEL_TOKEN: "t-old",
+				HOLOCRON_VERCEL_TEAM_ID: "team_new",
+				VERCEL_TEAM_ID: "team_old",
+				HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET: "s-new",
+			})
+		).toEqual({ vercelToken: "t-new", vercelTeamId: "team_new", bypassSecret: "s-new" });
+	});
+
 	it("leaves out what is not set, treating empty as unset", () => {
 		expect(resolveVercelCredentials(undefined, { VERCEL_TOKEN: "" })).toEqual({});
 	});

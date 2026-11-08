@@ -44,6 +44,8 @@ export interface DiscussionDeps {
 	channels: () => Promise<DiscordChannel[]>;
 	/** The reactions the layout wants on the first message of a new post in this forum; empty when none. */
 	starterReactions?: (channel: string) => string[];
+	/** Whether this forum's messages show no link previews (the pull-request feed's, where they bury the post). */
+	suppressEmbeds?: (channel: string) => boolean;
 }
 
 /**
@@ -207,7 +209,7 @@ export class DiscordDiscussions {
 		const made = await this.deps.bot().threads.createForumPost(forum.id, {
 			name: input.title,
 			applied_tags: [tag],
-			message: { content, ...(input.quiet ? { flags: MessageFlag.SuppressNotifications } : {}) },
+			message: { content, ...this.flags(input.channel, input.quiet) },
 		});
 		await this.react(made.id, input.channel);
 		// A closed post is made open and closed straight after: a post cannot be made archived.
@@ -217,6 +219,19 @@ export class DiscordDiscussions {
 		const entry: Entry = { key: input.key, thread, content, synced: input.state, duplicates: [] };
 		posts.set(input.key, entry);
 		return { post: this.view(forum, entry), created: true };
+	}
+
+	/** The `flags` a message in `channel` carries: no notification when `quiet`, no link previews in a feed forum. */
+	private flags(channel: string, quiet?: boolean): { flags?: number } {
+		const flags =
+			(quiet ? MessageFlag.SuppressNotifications : 0) |
+			(this.deps.suppressEmbeds?.(channel) ? MessageFlag.SuppressEmbeds : 0);
+		return flags === 0 ? {} : { flags };
+	}
+
+	/** The `flags` of an edit: only the link previews can be changed on a message already sent. */
+	private editFlags(channel: string): { flags?: number } {
+		return this.deps.suppressEmbeds?.(channel) ? { flags: MessageFlag.SuppressEmbeds } : {};
 	}
 
 	/**
@@ -278,7 +293,8 @@ export class DiscordDiscussions {
 		if (edited) {
 			const synced = patch.synced ?? entry.synced ?? "";
 			const content = withId.replace(FOOTER, () => `-# sync: ${nextKey} | ${synced}`);
-			await bot.channels.editMessage(thread.id, thread.id, { content });
+			// Edited on every write, so a post made before the feed hid its previews loses them on its next delivery.
+			await bot.channels.editMessage(thread.id, thread.id, { content, ...this.editFlags(channel) });
 			entry.content = content;
 			entry.synced = synced || undefined;
 			if (nextKey !== key) {
@@ -316,7 +332,7 @@ export class DiscordDiscussions {
 			const text = content.length > MAX_MESSAGE ? `${content.slice(0, MAX_MESSAGE - 1)}…` : content;
 			await bot.channels.createMessage(entry.thread.id, {
 				content: text,
-				...(opts.quiet ? { flags: MessageFlag.SuppressNotifications } : {}),
+				...this.flags(channel, opts.quiet),
 			});
 		} finally {
 			if (reopen) {

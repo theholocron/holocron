@@ -659,6 +659,12 @@ memory, and runs the handler (`dev.serve`, served by `holocron dev serve`) besid
 environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:
 Edit, and `cloudflared` (`brew install cloudflared`).
 
+The application sees only the variables of `Sentinel - dev`, not those of the `Holocron` Environment the CLI reads its own
+tokens from. A feature that is off until a variable is set (role sync, the `#prs` feed) needs that variable in
+`Sentinel - dev`: `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` for the feed, plus `HOLOCRON_USER_SYNC_TOKEN`
+for role sync. A feature that stays quiet is not broken: Sentinel logs why, as
+`runPrFeed: finished … status: skipped, reason …`.
+
 `holocron dev serve` alone runs only the handler on `127.0.0.1`, serving `/api/webhook` (the path Vercel
 serves). Its three required variables, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, come
 from the process, or else from the Environment `dev.environment` names (`Sentinel - dev`), read with

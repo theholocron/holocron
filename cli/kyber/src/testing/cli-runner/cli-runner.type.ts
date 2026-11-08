@@ -4,7 +4,7 @@ export interface CliRun {
 	stdout: string;
 	/** Everything written to stderr. */
 	stderr: string;
-	/** The exit code; -1 if the process was killed by the timeout. */
+	/** The exit code; -1 if a signal ended the process (the timeout, or something else, which `stderr` then says). */
 	code: number;
 	/** True only when the timeout killed the run; `stderr` then ends with a line saying how long it ran and what it printed. */
 	timedOut: boolean;
@@ -18,7 +18,7 @@ export interface RunCliOptions {
 	config?: object | string;
 	/** Added to the controlled environment for this run. */
 	env?: Record<string, string>;
-	/** How long the run may take before it is killed. Default 20 seconds. */
+	/** How long the run may take before it is killed. Default 60 seconds. */
 	timeoutMs?: number;
 }
 

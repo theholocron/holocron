@@ -15,8 +15,7 @@ const runCli = createCliRunner({
 /** These run the built CLI, so what `cli.ts` does at the top level (the error paths, the exit codes) is checked as a user sees it. */
 const demo = { name: "demo", providers: {} };
 
-// Each case starts a process, and the whole suite runs beside them: allow far more than the 5 s default.
-describe.concurrent("holocron (the built CLI)", { timeout: 30_000 }, () => {
+describe.concurrent("holocron (the built CLI)", () => {
 	describe("errors", () => {
 		it("prints a plain Error's message and exits 1, with no usage and no stack trace (#1103)", async () => {
 			const run = await runCli(["config", "show"], { config: "{ nope" });

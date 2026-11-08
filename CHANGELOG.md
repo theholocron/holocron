@@ -1,3 +1,32 @@
+## [5.0.0-alpha.371](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.370...v5.0.0-alpha.371) (2026-11-08)
+
+### Features
+
+* **env:** 🏷️ read the Holocron-owned variables as HOLOCRON_<NAME> first ([#1911](https://github.com/theholocron/holocron/issues/1911)) ([683311c](https://github.com/theholocron/holocron/commit/683311cb5e9b59dc8821b9b9a43fa1bef32a1c32)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1727](https://github.com/theholocron/holocron/issues/1727)
+
+### Bug Fixes
+
+* **1password:** 🐛 list an Environment's variable names when the vault is an Environment ([#1928](https://github.com/theholocron/holocron/issues/1928)) ([97e0c99](https://github.com/theholocron/holocron/commit/97e0c99f0358f6e9da9a5360b470d56aee68d93c)), closes [#1863](https://github.com/theholocron/holocron/issues/1863)
+* **vitest-config:** 🐛 give process-spawning tests a budget that survives a loaded machine ([#1924](https://github.com/theholocron/holocron/issues/1924)) ([c868060](https://github.com/theholocron/holocron/commit/c86806095b9c4011ce82500f66c1cc32e9e115b2)), closes [#1903](https://github.com/theholocron/holocron/issues/1903)
+
+### Documentation
+
+* **env:** 📚 list every environment variable by group and map the workflows onto the prefixed names ([#1913](https://github.com/theholocron/holocron/issues/1913)) ([e6e4902](https://github.com/theholocron/holocron/commit/e6e490263753d1397b26e7ae59824f8e4c2aaebd)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1864](https://github.com/theholocron/holocron/issues/1864) [#1727](https://github.com/theholocron/holocron/issues/1727)
+* **sentinel:** 📝 say which Environment holocron dev passes to the app ([#1927](https://github.com/theholocron/holocron/issues/1927)) ([bbabb99](https://github.com/theholocron/holocron/commit/bbabb994f270a062a745c9ee97425b4b96521124)), closes [#prs](https://github.com/theholocron/holocron/issues/prs)
+
+## [5.0.0-alpha.370](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.369...v5.0.0-alpha.370) (2026-11-07)
+
+### Features
+
+* **cli:** ✨ add holocron provider and Linear setup and doctor ([#1916](https://github.com/theholocron/holocron/issues/1916)) ([2005e2f](https://github.com/theholocron/holocron/commit/2005e2f5e65bd99a4759a188632b914958529350)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **plugins:** ✨ add a Linear plugin and `holocron migrate` between trackers ([#1857](https://github.com/theholocron/holocron/issues/1857)) ([9996268](https://github.com/theholocron/holocron/commit/9996268d92a5cb2b05bc3432f524ebef49088e79)), closes [#1856](https://github.com/theholocron/holocron/issues/1856) [#1856](https://github.com/theholocron/holocron/issues/1856)
+
+### Chores
+
+* **deps:** bump @semantic-release/git from 10.0.1 to 11.0.1 ([#1921](https://github.com/theholocron/holocron/issues/1921)) ([a448298](https://github.com/theholocron/holocron/commit/a448298d5c3d0d9679e4be7c898eadd67a50980c))
+* **deps:** bump ora from 9.4.1 to 10.0.0 ([#1923](https://github.com/theholocron/holocron/issues/1923)) ([036565a](https://github.com/theholocron/holocron/commit/036565ae639df4a7ee19c8de8c825c2c5468b5aa))
+* **deps:** bump the all-dependencies group with 7 updates ([#1919](https://github.com/theholocron/holocron/issues/1919)) ([eb958cf](https://github.com/theholocron/holocron/commit/eb958cfb3595d63d90bb46640f5e44e856e0702b))
+
 ## [5.0.0-alpha.369](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.368...v5.0.0-alpha.369) (2026-11-07)
 
 ### Features

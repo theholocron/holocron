@@ -11,7 +11,8 @@ import { createCliRunner } from "./cli-runner.js";
 const script = [
 	'const fs = require("node:fs");',
 	"const args = process.argv.slice(2);",
-	'if (args.includes("--hang")) setInterval(() => {}, 1000);',
+	'if (args.includes("--self-kill")) process.kill(process.pid, "SIGTERM");',
+	'else if (args.includes("--hang")) setInterval(() => {}, 1000);',
 	"else {",
 	'const config = fs.existsSync("tool.config.json") ? fs.readFileSync("tool.config.json", "utf8") : null;',
 	"console.log(JSON.stringify({ args, cwd: process.cwd(), config, env: process.env }));",
@@ -19,8 +20,7 @@ const script = [
 	"}",
 ].join("\n");
 
-// Every test starts a real node process, which takes longer than the default 5s when the whole repo is testing at once.
-describe("createCliRunner", { timeout: 30_000 }, () => {
+describe("createCliRunner", () => {
 	let dir: string;
 	let bin: string;
 	const parse = (stdout: string) =>
@@ -110,6 +110,15 @@ describe("createCliRunner", { timeout: 30_000 }, () => {
 			/\[cli-runner\] killed after \d+ ms \(timeout 300 ms, SIGKILL\), pid \d+; stdout 0 chars/
 		);
 		expect(result.elapsedMs).toBeGreaterThanOrEqual(250);
+	});
+
+	it("says so when something other than its timeout ended a run with a signal", async () => {
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
+		const result = await createCliRunner({ bin })(["--self-kill"]);
+		log.mockRestore();
+		expect(result.code).toBe(-1);
+		expect(result.timedOut).toBe(false);
+		expect(result.stderr).toMatch(/\[cli-runner\] ended by SIGTERM after \d+ ms, not by its timeout \(60000 ms\)/);
 	});
 
 	it("leaves stderr alone and timedOut false for a run that finishes", async () => {

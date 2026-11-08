@@ -1,3 +1,9 @@
+## [1.58.0-alpha.18](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.17...clients-v1.58.0-alpha.18) (2026-11-08)
+
+### Features
+
+* **env:** 🏷️ read the Holocron-owned variables as HOLOCRON_<NAME> first ([#1911](https://github.com/theholocron/holocron/issues/1911)) ([683311c](https://github.com/theholocron/holocron/commit/683311cb5e9b59dc8821b9b9a43fa1bef32a1c32)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1727](https://github.com/theholocron/holocron/issues/1727)
+
 ## [1.58.0-alpha.17](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.16...clients-v1.58.0-alpha.17) (2026-11-07)
 
 ### Features

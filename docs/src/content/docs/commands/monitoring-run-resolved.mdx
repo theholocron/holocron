@@ -9,7 +9,7 @@ holocron monitoring run-resolved <url> --checks-file <file> [--vercel-project <i
 
 Reads a check list written by [`monitoring resolve-checks`](/holocron/commands/monitoring-resolve-checks/) and runs every check against `<url>`. It loads no config and no plugins, so it is safe to run with credentials in the environment: it is the trusted half of the `check-preview` split.
 
-It reads these from the environment when set: `VERCEL_TOKEN` and `VERCEL_TEAM_ID` (to verify which project `<url>` belongs to) and `VERCEL_PROTECTION_BYPASS_SECRET` (the Deployment Protection bypass header). It exits non-zero when any check fails.
+It reads these from the environment when set: `VERCEL_TOKEN` and `VERCEL_TEAM_ID` (to verify which project `<url>` belongs to) and `VERCEL_PROTECTION_BYPASS_SECRET` (the Deployment Protection bypass header). Each is read as `HOLOCRON_<NAME>` first, so `HOLOCRON_VERCEL_TEAM_ID` wins over the bare name, which keeps working. It exits non-zero when any check fails.
 
 ## Arguments and options
 
