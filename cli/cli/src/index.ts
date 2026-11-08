@@ -17,6 +17,7 @@ export * from "./plugin/pick-by-creation/index.js";
 export type * from "./plugin/probe/index.js";
 export type * from "./plugin/provider-actions/index.js";
 export * from "./plugin/read-keys-limited/index.js";
+export * from "./plugin/report-progress/index.js";
 // Plugins build their REST clients with the shared HTTP primitives; `plugin-create` scaffolds import them from here.
 export {
 	createRestClient,

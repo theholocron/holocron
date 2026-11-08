@@ -36,6 +36,9 @@ import { statusRow, style, viewJson, waitForEnter, withProgress } from "@theholo
 console.log(style.success("built")); // ✓ built; also warn, fail, step, skip, hint, dim, header
 console.log(statusRow("ok", ["lint", "no problems"])); // one row of a status table
 await withProgress("Checking…", () => check()); // a spinner on a terminal only, nothing in CI or a pipe
+await withProgress("Reading…", async (update) => {
+  update("Reading… 3 of 40"); // changes the spinner's text; does nothing when no spinner is drawn
+});
 await viewJson(config, { depth: 2 }); // a folding viewer on a terminal, static output otherwise
 await waitForEnter("Press Enter once the key is in 1Password…");
 ```
@@ -56,7 +59,7 @@ printCheckRows(rows, console.log);
 printCheckSummary(summariseChecks(rows), console.log);
 ```
 
-A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. `createProgress` and `withProgress` take an optional listener that can change the spinner's text during a step, and `setProgressListener` sets one for every step at start-up; `createRetryNotice(subscribe)` builds a listener that says a request is being sent again, from the HTTP client's retry hook (the Holocron CLI passes `onRetry`), so kyber depends on no client.
+A prompt that is needed when there is no terminal throws `NonInteractiveError`, so a CI run fails with a message instead of hanging. The step given to `Progress.run` and `withProgress` receives `update(text)`, which changes the spinner's text while it runs (a counter such as `Reading… 3 of 40`) and does nothing when no spinner is drawn, so a step that ignores it is unaffected. `createProgress` and `withProgress` take an optional listener that can change the spinner's text during a step, and `setProgressListener` sets one for every step at start-up; `createRetryNotice(subscribe)` builds a listener that says a request is being sent again, from the HTTP client's retry hook (the Holocron CLI passes `onRetry`), so kyber depends on no client.
 
 Text from outside the process is cleaned before it reaches a terminal, so a crafted value cannot forge lines or inject escape sequences:
 
@@ -226,7 +229,7 @@ const probe = connectionProbe({
 
 `runCheckAgainstUrl(input, opts?)` makes the request itself and evaluates the assertions (`status_code`, `response_time`, `body`, `header`; `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`). A status of 400 or more fails the check unless `shouldFail` is set, a redirect is never followed, the request has a deadline, and a body is read only when an assertion needs it, up to a cap. It sends nothing to a monitoring vendor, so a pull request's preview URL can be tested against the same definitions as production. A network error or a timeout never passes (`requestError`).
 
-`connectionProbe(input)` returns an object with `summary`, `writes: false` and `run(ctx)`, which tells a network problem from a credential problem: does the name resolve, does the address answer, is there a token, and does the provider accept it. A step that cannot work because an earlier one failed is reported as not tried. `ctx` only needs `say(row)` and `secret(value)`, so a plugin system's probe context fits; `describeNetworkError` turns a network failure into one plain line. No peer dependency.
+`connectionProbe(input)` returns an object with `summary`, `writes: false` and `run(ctx)`, which tells a network problem from a credential problem: does the name resolve, does the address answer, is there a token, and does the provider accept it. A step that cannot work because an earlier one did not work is reported as not tried. `ctx` only needs `say(row)` and `secret(value)`, so a plugin system's probe context fits; `describeNetworkError` turns a network failure into one plain line. No peer dependency.
 
 ## `/git`
 
@@ -290,7 +293,7 @@ assertPluginsResolvable(loader, "sync", (command, packages) => new Error(`${comm
 
 A plugin package exports `createPlugin(options)` returning `{ name, capabilities }`, where each capability is a factory. A package may instead export a capability config, `export default { provider, options? }`; the loader follows it to the provider and merges the preset options under the project's own. By default `createPlugin` receives the run context with the provider's own options over it; pass `pluginOptions` to build that object yourself (the Holocron CLI adds project defaults and a per-plugin token). The importer resolves from the working directory first, so a global install finds the project's plugins, and it can be injected as the third constructor argument, so tests need no real packages.
 
-`get(key)` returns one implementation for a `single` capability and an array for a `many` one; for a provider that failed it rethrows that provider's own error, and `loadFailures()` lists them all. The fourth type parameter of `createPluginSystem` names extra things a plugin may return next to `capabilities` (`plugins()` hands back each created plugin), and `preload` is a step that loads some capabilities first, through the loader's `loadOne`, `fail` and `register`; the Holocron CLI uses it for credentials that other plugins read. `assertPluginsResolvable` turns "every provider failed to import" (a global install, outside the project) into one error you build, and `isModuleNotFound` and `LoaderError` are the pieces it uses.
+`get(key)` returns one implementation for a `single` capability and an array for a `many` one; for a provider that could not load it rethrows that provider's own error, and `loadFailures()` lists them all. The fourth type parameter of `createPluginSystem` names extra things a plugin may return next to `capabilities` (`plugins()` hands back each created plugin), and `preload` is a step that loads some capabilities first, through the loader's `loadOne`, `fail` and `register`; the Holocron CLI uses it for credentials that other plugins read. `assertPluginsResolvable` turns "no provider could be imported" (a global install, outside the project) into one error you build, and `isModuleNotFound` and `LoaderError` are the pieces it uses.
 
 ## `/observability`
 

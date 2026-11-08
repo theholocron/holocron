@@ -19,6 +19,8 @@ export interface CollectInput {
 	limit?: number | undefined;
 	/** With `limit`, which end of the creation order; `oldest` when not given. */
 	order?: IssueOrder | undefined;
+	/** Called after each issue is read, with how many are done of how many (see `ExportInfo.onProgress`). */
+	onProgress?: ((done: number, total: number) => void) | undefined;
 }
 
 /** The records that were read. */

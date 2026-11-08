@@ -32,11 +32,13 @@ export async function collectRecords(input: CollectInput): Promise<Collected> {
 	if (!issues?.export) {
 		return { ok: false, reason: `the \`${source.provider}\` provider cannot export issues` };
 	}
-	const info: ExportInfo = {};
+	const info: ExportInfo = input.onProgress ? { onProgress: input.onProgress } : {};
 	// A limit is passed only when one was given, so a provider that ignores it is never handed it.
 	const read = (selector: IssueSelector) =>
 		input.limit === undefined
-			? issues.export!(selector)
+			? input.onProgress
+				? issues.export!(selector, info)
+				: issues.export!(selector)
 			: issues.export!({ ...selector, limit: input.limit, order: input.order ?? "oldest" }, info);
 	const limited = (records: IssueRecord[], notes: string[], matched = info.matched): Collected => ({
 		ok: true,

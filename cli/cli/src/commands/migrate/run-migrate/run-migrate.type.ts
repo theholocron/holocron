@@ -1,3 +1,5 @@
+import type { Progress } from "@theholocron/kyber/ui";
+
 import type { LoadedConfig } from "../../../config/index.js";
 import type { ImportResult, IssueOrder, PluginLoader, RuntimeContext } from "../../../plugin/index.js";
 import type { TemplatesIo } from "../../project/load-templates/index.js";
@@ -42,6 +44,11 @@ export interface RunMigrateInput {
 	confirm?: (message: string) => Promise<boolean>;
 	/** Where the lines go. Defaults to the console. */
 	print?: (line: string) => void;
+	/**
+	 * The spinner for the read and write phases. Defaults to kyber's, which draws only on a terminal; tests pass a fake
+	 * to see the counter text.
+	 */
+	progress?: Progress;
 }
 
 /** What a migration did. */

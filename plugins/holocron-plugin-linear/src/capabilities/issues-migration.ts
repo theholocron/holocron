@@ -19,6 +19,7 @@ import {
 	type IssueSelector,
 	pickByCreation,
 	readKeysLimited,
+	reportProgress,
 } from "@theholocron/cli";
 import type { LinearIssue, LinearProject } from "@theholocron/linear-client";
 
@@ -103,6 +104,7 @@ export async function exportIssues(
 
 	const records: IssueRecord[] = [];
 	for (const issue of issues) {
+		reportProgress(info.onProgress, records.length, issues.length);
 		const closed = isClosed(issue.state.type);
 		const comments = await client.issues.comments(issue.id);
 		const priority = fromLinearPriority(issue.priority);
@@ -139,6 +141,7 @@ export async function exportIssues(
 			...(migratedFrom ? { migratedFrom } : {}),
 		});
 	}
+	reportProgress(info.onProgress, records.length, issues.length);
 	return records;
 }
 
@@ -171,6 +174,7 @@ export async function importIssues(
 	};
 
 	const made = new Map<string, { id: string; created: boolean }>();
+	const tick = () => reportProgress(options.onProgress, results.length, records.length);
 
 	for (const record of records) {
 		const existing = (await client.issues.attachmentsForUrl(record.url)).find((a) =>
@@ -179,6 +183,7 @@ export async function importIssues(
 		if (existing) {
 			made.set(record.key, { id: existing.issue.id, created: false });
 			results.push({ source: record.key, key: existing.issue.identifier, created: false, dropped: [] });
+			tick();
 			continue;
 		}
 
@@ -186,6 +191,7 @@ export async function importIssues(
 		const dropped = droppedFor(record, assigneeId);
 		if (options.dryRun) {
 			results.push({ source: record.key, created: true, dropped });
+			tick();
 			continue;
 		}
 
@@ -223,6 +229,7 @@ export async function importIssues(
 		}
 		made.set(record.key, { id: issue.id, created: true });
 		results.push({ source: record.key, key: issue.identifier, created: true, dropped });
+		tick();
 	}
 
 	if (!options.dryRun) await linkIssues(scope, records, made, results);

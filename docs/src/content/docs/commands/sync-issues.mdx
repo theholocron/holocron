@@ -25,6 +25,10 @@ It writes nothing to the source, ever, and changes a target issue only when a `m
 | `--yes`     | do not ask first (a scheduled run needs it; without a terminal the command refuses instead of hanging)                           |
 | `--dry-run` | read both sides and write nothing; prints what would be created or updated, and what would not carry across                      |
 
+## Progress
+
+On a terminal, a spinner with a counter shows the read (`Reading issues from github… 12 of 40`) and the write (`Writing to linear… 3 of 20`; `Checking linear…` on a dry run), and is cleared before the result lines and the confirmation question. When the output is piped, in CI or with `--quiet`, nothing extra is printed.
+
 ## A trial run
 
 `--limit <n>` reads only `n` issues from the source; `--order oldest` (the default) keeps the first created and `--order newest` the last created. The limit counts issues that survive `--since` and the skipping of pull requests, the order comes from the source's creation time and the cut is made before each issue's comments and links are read. A dry run and a real run print `limited to N of M`. The loop guard drops copies after the read, so it can leave fewer than `N` to sync. A second run with the same limit selects the same issues; to continue, run again with a larger `--limit`, or without one.

@@ -333,3 +333,18 @@ describe("LinearIssues.export for a sync", () => {
 		expect(out.map((r) => r.key)).toEqual(["ENG-2"]);
 	});
 });
+
+describe("LinearIssues.sync progress", () => {
+	it("counts the issues made, then the ones updated, out of all the records", async () => {
+		given({ "ENG-1": inStep() }, [LEIA]);
+		const { issues } = make(syncRoutes({ [URL_7]: "ENG-1" }));
+		const seen: Array<[number, number]> = [];
+		await issues.sync?.([record({ comments: [] }), record({ key: "#8", url: URL_8, comments: [] })], {
+			onProgress: (d, t) => seen.push([d, t]),
+		});
+		expect(seen).toEqual([
+			[1, 2],
+			[2, 2],
+		]);
+	});
+});

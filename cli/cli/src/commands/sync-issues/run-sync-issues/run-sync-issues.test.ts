@@ -5,10 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 const inquirerConfirm = vi.hoisted(() => vi.fn());
 vi.mock("@inquirer/prompts", () => ({ confirm: inquirerConfirm }));
 
-import { NonInteractiveError } from "@theholocron/kyber/ui";
+import { createProgress, NonInteractiveError } from "@theholocron/kyber/ui";
 
 import type { IssueRecord, SyncResult } from "../../../plugin/index.js";
-import { fakeIssues, loadedWith, loaderFor, record } from "../../migrate/migrate.testing.js";
+import { fakeIssues, fakeProgress, loadedWith, loaderFor, record } from "../../migrate/migrate.testing.js";
 import { runSyncIssues } from "./run-sync-issues.js";
 import type { RunSyncIssuesInput } from "./run-sync-issues.type.js";
 
@@ -57,8 +57,14 @@ describe("runSyncIssues", () => {
 			])
 		);
 		const { report, text } = await run({ makeLoader, since: "2026-03-01T00:00:00.000Z" });
-		expect(reader.export).toHaveBeenCalledWith({ all: true, since: "2026-03-01T00:00:00.000Z" });
-		expect(writer.sync).toHaveBeenCalledWith(expect.any(Array), { dryRun: false });
+		expect(reader.export).toHaveBeenCalledWith(
+			{ all: true, since: "2026-03-01T00:00:00.000Z" },
+			{ onProgress: expect.any(Function) }
+		);
+		expect(writer.sync).toHaveBeenCalledWith(expect.any(Array), {
+			dryRun: false,
+			onProgress: expect.any(Function),
+		});
 		expect(report.counts).toEqual({ created: 1, updated: 1, unchanged: 1, guarded: 0, left: 0 });
 		expect(report.notCarried).toEqual([{ what: "assignee (no Linear user with that email)", count: 1 }]);
 		expect(text).toContain("#1 → ENG-1 (created)");
@@ -88,7 +94,10 @@ describe("runSyncIssues", () => {
 			vi.fn(async () => [result("#1", "ENG-1", { created: true })])
 		);
 		const { report, text } = await run({ makeLoader });
-		expect(writer.sync).toHaveBeenCalledWith([expect.objectContaining({ key: "#1" })], { dryRun: false });
+		expect(writer.sync).toHaveBeenCalledWith([expect.objectContaining({ key: "#1" })], {
+			dryRun: false,
+			onProgress: expect.any(Function),
+		});
 		expect(report.counts).toMatchObject({ created: 1, guarded: 1 });
 		expect(text).toContain("#2 is a copy of https://linear.app/x/issue/ENG-9; not synced back");
 		expect(text).toContain("skipped (guard) 1");
@@ -101,7 +110,10 @@ describe("runSyncIssues", () => {
 			true
 		);
 		const { report, text } = await run({ makeLoader, from: "linear:team=ENG", to: "github" });
-		expect(writer.sync).toHaveBeenCalledWith([expect.objectContaining({ key: "ENG-2" })], { dryRun: false });
+		expect(writer.sync).toHaveBeenCalledWith([expect.objectContaining({ key: "ENG-2" })], {
+			dryRun: false,
+			onProgress: expect.any(Function),
+		});
 		expect(report.counts).toMatchObject({ created: 1, guarded: 1 });
 		expect(text).toContain("linear to github:");
 	});
@@ -144,7 +156,7 @@ describe("runSyncIssues", () => {
 		);
 		const confirm = vi.fn();
 		const { text } = await run({ makeLoader, yes: false, context: { repoRoot: "/x", dryRun: true }, confirm });
-		expect(writer.sync).toHaveBeenCalledWith(expect.any(Array), { dryRun: true });
+		expect(writer.sync).toHaveBeenCalledWith(expect.any(Array), { dryRun: true, onProgress: expect.any(Function) });
 		expect(confirm).not.toHaveBeenCalled();
 		expect(text).toContain("#1 → (new) (would create)");
 		expect(text).toContain("#2 → ENG-2 (would update: labels)");
@@ -282,7 +294,7 @@ describe("runSyncIssues", () => {
 		});
 		expect(reader.export).toHaveBeenCalledWith(
 			{ all: true, since: "2026-03-01T00:00:00.000Z", limit: 1, order: "newest" },
-			{ matched: 40 }
+			{ matched: 40, onProgress: expect.any(Function) }
 		);
 		expect(text).toContain("limited to 1 of 40 (newest created)");
 		expect(report.limited).toBe("limited to 1 of 40 (newest created)");
@@ -296,5 +308,92 @@ describe("runSyncIssues", () => {
 		const { report, text } = await run({ makeLoader });
 		expect(text).not.toContain("limited to");
 		expect(report).not.toHaveProperty("limited");
+	});
+});
+
+describe("runSyncIssues progress", () => {
+	const counting = (reverse = false) => {
+		const records = [record("#1"), record("#2")];
+		const built = setup(
+			records,
+			vi.fn(async (_records, options) => {
+				options?.onProgress?.(1, 2);
+				options?.onProgress?.(2, 2);
+				return [result("#1", "ENG-1", { created: true }), result("#2", "ENG-2")];
+			}),
+			reverse
+		);
+		built.reader.export = vi.fn(async (_selector, info) => {
+			info?.onProgress?.(1, 2);
+			info?.onProgress?.(2, 2);
+			return records;
+		});
+		return built;
+	};
+
+	it("shows a counter while it reads and another while it writes, and clears each when the phase ends", async () => {
+		const { makeLoader } = counting();
+		const fake = fakeProgress();
+		await run({ makeLoader, progress: fake.progress });
+		expect(fake.events).toEqual([
+			"start:Reading issues from github…",
+			"text:Reading issues from github… 1 of 2",
+			"text:Reading issues from github… 2 of 2",
+			"end:Reading issues from github…",
+			"start:Writing to linear…",
+			"text:Writing to linear… 1 of 2",
+			"text:Writing to linear… 2 of 2",
+			"end:Writing to linear…",
+		]);
+	});
+
+	it("says it is checking, not writing, on a dry run", async () => {
+		const { makeLoader } = counting();
+		const fake = fakeProgress();
+		await run({ makeLoader, progress: fake.progress, context: { repoRoot: "/x", dryRun: true } });
+		expect(fake.events).toContain("start:Checking linear…");
+		expect(fake.events.some((e) => e.includes("Writing"))).toBe(false);
+	});
+
+	it("never asks while a spinner is drawn", async () => {
+		const { makeLoader } = counting();
+		const fake = fakeProgress();
+		const seen: boolean[] = [];
+		await run({
+			makeLoader,
+			progress: fake.progress,
+			yes: false,
+			interactive: true,
+			confirm: async () => {
+				seen.push(fake.drawn());
+				return true;
+			},
+		});
+		expect(seen).toEqual([false]);
+		expect(fake.events.at(-1)).toBe("end:Writing to linear…");
+	});
+
+	it("prints exactly the same lines when no spinner is drawn, counter or not", async () => {
+		const plain = await run({
+			makeLoader: setup(
+				[record("#1"), record("#2")],
+				vi.fn(async () => [result("#1", "ENG-1", { created: true }), result("#2", "ENG-2")])
+			).makeLoader,
+		});
+		const counted = await run({ makeLoader: counting().makeLoader });
+		const off = await run({
+			makeLoader: counting().makeLoader,
+			progress: createProgress(
+				() => {},
+				() => false
+			),
+		});
+		expect(counted.lines).toEqual(plain.lines);
+		expect(off.lines).toEqual(plain.lines);
+		expect(plain.lines).toEqual([
+			expect.stringContaining("#1 → ENG-1 (created)"),
+			expect.stringContaining("#2 → ENG-2 (unchanged)"),
+			expect.stringContaining("github to linear: created 1, updated 0, unchanged 1, skipped (guard) 0, left 0"),
+		]);
 	});
 });

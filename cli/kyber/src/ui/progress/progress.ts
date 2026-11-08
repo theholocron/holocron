@@ -63,14 +63,15 @@ export function createProgress(
 	let active: Ora | undefined;
 	return {
 		async run(label, fn) {
-			if (!enabled()) return fn();
+			if (!enabled()) return fn(() => {});
 			const spinner = ora({ text: label, stream: process.stderr, discardStdin: false }).start();
 			active = spinner;
-			const stopListening = (listen ?? defaultListener)?.(label, (text) => {
+			const update = (text: string) => {
 				spinner.text = text;
-			});
+			};
+			const stopListening = (listen ?? defaultListener)?.(label, update);
 			try {
-				return await fn();
+				return await fn(update);
 			} finally {
 				stopListening?.();
 				spinner.stop();
@@ -87,7 +88,11 @@ export function createProgress(
 	};
 }
 
-/** `fn` under a cleared-when-done spinner named `label`, on a terminal only. */
-export function withProgress<T>(label: string, fn: () => Promise<T>, listen?: ProgressListener): Promise<T> {
+/** `fn` under a cleared-when-done spinner named `label`, on a terminal only. `fn` is given `update` to change the text. */
+export function withProgress<T>(
+	label: string,
+	fn: (update: (text: string) => void) => Promise<T>,
+	listen?: ProgressListener
+): Promise<T> {
 	return createProgress(() => {}, progressEnabled, listen).run(label, fn);
 }
