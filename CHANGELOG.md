@@ -1,3 +1,9 @@
+## [5.0.0-alpha.374](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.373...v5.0.0-alpha.374) (2026-11-08)
+
+### Bug Fixes
+
+* **kyber:** 🐛 keep the first plugin built for a provider several capabilities name ([#1941](https://github.com/theholocron/holocron/issues/1941)) ([8eaf359](https://github.com/theholocron/holocron/commit/8eaf35999aa011043930343c9a6fca2d8053f356))
+
 ## [5.0.0-alpha.373](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.372...v5.0.0-alpha.373) (2026-11-08)
 
 ### Features
