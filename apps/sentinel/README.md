@@ -709,8 +709,8 @@ from the process, or else from the Environment `dev.environment` names (`Sentine
 header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
 and `SENTINEL_AXIOM_DATASET`, or leave both out. It says which it is on start. Use the same dataset as production
 (`holocron-sentinel`) with an ingest token of its own, scoped to that dataset: `holocron dev` sets
-`ENVIRONMENT=development`, so every line carries `env: "development"` and the service's one dataset holds dev and production
-(`where env == "development"`); production sets `ENVIRONMENT=production` in the `Sentinel` Environment. Install the dev
+`HOLOCRON_ENVIRONMENT=development` (and `ENVIRONMENT`), so every line carries `env: "development"` and the service's one dataset holds dev and production
+(`where env == "development"`); production sets `HOLOCRON_ENVIRONMENT=production` (or the older `ENVIRONMENT=production`) in the `Sentinel` Environment. Install the dev
 App only on the repositories you test with.
 
 ## Development

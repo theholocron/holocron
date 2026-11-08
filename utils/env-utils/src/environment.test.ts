@@ -50,6 +50,12 @@ describe("environment", () => {
 			expect(environment.get()).toBe("test");
 		});
 
+		it("prefers HOLOCRON_ENVIRONMENT over ENVIRONMENT", () => {
+			vi.stubEnv("HOLOCRON_ENVIRONMENT", "test");
+			vi.stubEnv("ENVIRONMENT", "development");
+			expect(environment.get()).toBe("test");
+		});
+
 		it("falls back to ENV when ENVIRONMENT is missing", () => {
 			vi.stubEnv("ENV", "dev");
 			expect(environment.get()).toBe("development");

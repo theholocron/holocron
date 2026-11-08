@@ -43,7 +43,12 @@ const consoleWarn: Pick<EnvLogger, "warn"> = {
  * Resolve the current environment from input or process.env.
  */
 function getEnvironment(logger: Pick<EnvLogger, "warn"> = consoleWarn): Environment {
-	const raw = process.env["ENVIRONMENT"] || process.env["ENV"] || process.env["NODE_ENV"] || DEFAULT_ENVIRONMENT;
+	const raw =
+		process.env["HOLOCRON_ENVIRONMENT"] ||
+		process.env["ENVIRONMENT"] ||
+		process.env["ENV"] ||
+		process.env["NODE_ENV"] ||
+		DEFAULT_ENVIRONMENT;
 	const normalized = normalizeEnvironment(String(raw));
 	if (!normalized) {
 		logger.warn(`[@theholocron/utils-env] Unknown environment "${raw}", falling back to "${DEFAULT_ENVIRONMENT}"`);
@@ -54,7 +59,7 @@ function getEnvironment(logger: Pick<EnvLogger, "warn"> = consoleWarn): Environm
 
 /** Resolves and classifies the current environment. */
 export const environment = {
-	/** Resolves the environment from `ENVIRONMENT`, `ENV` or `NODE_ENV` (first set wins), warning and falling back to the default when the value is not recognised. */
+	/** Resolves the environment from `HOLOCRON_ENVIRONMENT`, `ENVIRONMENT`, `ENV` or `NODE_ENV` (first set wins), warning and falling back to the default when the value is not recognised. */
 	get: getEnvironment,
 	/** Maps a string or alias (`prod`, `prd`, `staging`, `qa`, `dev`, ...) to its canonical {@link Environment}, or `undefined` when it is not recognised. */
 	normalize: normalizeEnvironment,

@@ -19,6 +19,12 @@ describe("detectEnvironment", () => {
 		expect(detectEnvironment({ ENVIRONMENT: "prod", CI: "true" })).toBe("production");
 	});
 
+	it("reads HOLOCRON_ENVIRONMENT first and keeps ENVIRONMENT as the fallback", () => {
+		expect(detectEnvironment({ HOLOCRON_ENVIRONMENT: "production" })).toBe("production");
+		expect(detectEnvironment({ HOLOCRON_ENVIRONMENT: "test", ENVIRONMENT: "production" })).toBe("test");
+		expect(detectEnvironment({ HOLOCRON_ENVIRONMENT: "", ENVIRONMENT: "production" })).toBe("production");
+	});
+
 	it("reads the usual spellings, in any case", () => {
 		expect(detectEnvironment({ ENVIRONMENT: "Production" })).toBe("production");
 		expect(detectEnvironment({ ENVIRONMENT: " DEVELOPMENT " })).toBe("development");

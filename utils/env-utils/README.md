@@ -20,9 +20,9 @@ environment.get(); // "production" | "test" | "ci" | "development" | "local"
 environment.normalize("prod"); // "production"
 environment.isDeployed(); // true when test or production
 
-// reads ENVIRONMENT → ENV → NODE_ENV in priority order
+// reads HOLOCRON_ENVIRONMENT → ENVIRONMENT → ENV → NODE_ENV in priority order
 
-// for telemetry: ENVIRONMENT only, else "ci" inside CI and "local" anywhere else (never "production")
+// for telemetry: HOLOCRON_ENVIRONMENT, then ENVIRONMENT, else "ci" inside CI and "local" anywhere else (never "production")
 import { detectEnvironment } from "@theholocron/env-utils/lookup";
 detectEnvironment(); // "local" | "development" | "ci" | "test" | "production"
 ```

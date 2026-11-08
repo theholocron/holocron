@@ -111,6 +111,7 @@ describe("runDev", () => {
 				args: ["run", "serve"],
 				env: {
 					ENVIRONMENT: "development",
+					HOLOCRON_ENVIRONMENT: "development",
 					GITHUB_APP_ID: "7",
 					GITHUB_APP_PRIVATE_KEY: VALUE,
 					PORT: "3000",
@@ -141,7 +142,12 @@ describe("runDev", () => {
 		expect(runProcesses).toHaveBeenCalledWith(
 			expect.objectContaining({
 				primary: expect.objectContaining({
-					env: { ENVIRONMENT: "development", PORT: "4000", HOLOCRON_PORT: "4000" },
+					env: {
+						ENVIRONMENT: "development",
+						HOLOCRON_ENVIRONMENT: "development",
+						PORT: "4000",
+						HOLOCRON_PORT: "4000",
+					},
 				}),
 			})
 		);
@@ -151,10 +157,19 @@ describe("runDev", () => {
 		const plain = setup();
 		await runDev(plain.base);
 		expect(appEnv(plain.runProcesses)["ENVIRONMENT"]).toBe("development");
+		expect(appEnv(plain.runProcesses)["HOLOCRON_ENVIRONMENT"]).toBe("development");
 
 		const staged = setup({ vault: { readEnvironment: vi.fn(async () => ({ ENVIRONMENT: "test" })) } });
 		await runDev(staged.base);
 		expect(appEnv(staged.runProcesses)["ENVIRONMENT"]).toBe("test");
+		expect(appEnv(staged.runProcesses)["HOLOCRON_ENVIRONMENT"]).toBe("test");
+
+		const prefixed = setup({
+			vault: { readEnvironment: vi.fn(async () => ({ HOLOCRON_ENVIRONMENT: "production" })) },
+		});
+		await runDev(prefixed.base);
+		expect(appEnv(prefixed.runProcesses)["ENVIRONMENT"]).toBe("production");
+		expect(appEnv(prefixed.runProcesses)["HOLOCRON_ENVIRONMENT"]).toBe("production");
 	});
 
 	it("fails when the application ends with an error", async () => {
