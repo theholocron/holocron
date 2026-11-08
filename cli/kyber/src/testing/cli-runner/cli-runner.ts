@@ -8,6 +8,13 @@ import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import type { CliRun, CliRunnerOptions, RunCliOptions } from "./cli-runner.type.js";
 
 /**
+ * How long one run may take by default. A start of the built CLI takes about a second idle and 15 s or more on a
+ * machine running every package's tests at once, so the budget is well over that and under the preset's test timeout
+ * (`@theholocron/vitest-config`, 120 s), which keeps this runner, the one that can say what happened, the first to give up.
+ */
+const DEFAULT_TIMEOUT_MS = 60_000;
+
+/**
  * A function that runs a tool's built binary in a fresh temporary directory with a controlled environment, and returns
  * what it printed and how it exited. The environment is built from nothing: no tokens, no telemetry and no update check
  * leak in from whoever runs the tests, and stdin is closed, so a command that wants a terminal behaves as it does in CI.
@@ -41,7 +48,7 @@ export function createCliRunner(options: CliRunnerOptions): (args: string[], run
 				let stderr = "";
 				child.stdout.on("data", (d: Buffer) => (stdout += d));
 				child.stderr.on("data", (d: Buffer) => (stderr += d));
-				const timeoutMs = run.timeoutMs ?? 20_000;
+				const timeoutMs = run.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 				const started = Date.now();
 				let timedOut = false;
 				const timer = setTimeout(() => {
@@ -58,6 +65,12 @@ export function createCliRunner(options: CliRunnerOptions): (args: string[], run
 						const note = `[cli-runner] killed after ${elapsedMs} ms (timeout ${timeoutMs} ms, ${signal}), pid ${child.pid}; stdout ${stdout.length} chars, stderr ${stderr.length} chars before this line; args: [${args.join(" ")}]`;
 						stderr += `\n${note}`;
 						// An assertion on `code` alone would hide the note, so the test log gets it too.
+						console.error(note);
+					}
+					// A signal that was not ours (the system killing it for memory, a security tool) also leaves only `-1`.
+					if (!timedOut && signal) {
+						const note = `[cli-runner] ended by ${signal} after ${elapsedMs} ms, not by its timeout (${timeoutMs} ms), pid ${child.pid}; args: [${args.join(" ")}]`;
+						stderr += `\n${note}`;
 						console.error(note);
 					}
 					resolve({ stdout, stderr, code: code ?? -1, timedOut, elapsedMs });

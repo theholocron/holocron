@@ -191,7 +191,7 @@ const { stdout, stderr, code, timedOut, elapsedMs } = await run(["doctor"], { co
 const argv = await runCommand(greetCommand, ["greet", "Leia"]);
 ```
 
-The runner leaves out everything of the machine it runs on: no tokens, no telemetry, no update check, and stdin is closed, so a command that wants a terminal behaves as it does in CI. A run that outlasts `timeoutMs` (20 seconds) is killed: `code` is `-1`, `timedOut` is `true` and `stderr` ends with a `[cli-runner] killed after …` line giving the time, the signal, the pid and how much had been printed, so a hang that printed nothing still says what happened. `hermeticCreateRequire` makes a test's "is this package installed in that directory" independent of what the workspace links.
+The runner leaves out everything of the machine it runs on: no tokens, no telemetry, no update check, and stdin is closed, so a command that wants a terminal behaves as it does in CI. A run that outlasts `timeoutMs` (60 seconds, well over what a start costs on a saturated machine) is killed: `code` is `-1`, `timedOut` is `true` and `stderr` ends with a `[cli-runner] killed after …` line giving the time, the signal, the pid and how much had been printed, so a hang that printed nothing still says what happened. A run ended by some other signal (the system short of memory, a security tool) is also `-1` with `timedOut` false, and `stderr` ends with a `[cli-runner] ended by …` line saying so. `hermeticCreateRequire` makes a test's "is this package installed in that directory" independent of what the workspace links.
 
 ## `/flags`
 
