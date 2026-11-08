@@ -1,3 +1,9 @@
+## [1.58.0-alpha.19](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.18...clients-v1.58.0-alpha.19) (2026-11-08)
+
+### Bug Fixes
+
+* **plugins:** 🔇 hide link previews in the pull-request feed forum ([#1926](https://github.com/theholocron/holocron/issues/1926)) ([b417ab4](https://github.com/theholocron/holocron/commit/b417ab4c407f6dc995f6f1e052d17aabc35b7e7c)), closes [#1738](https://github.com/theholocron/holocron/issues/1738)
+
 ## [1.58.0-alpha.18](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.17...clients-v1.58.0-alpha.18) (2026-11-08)
 
 ### Features
