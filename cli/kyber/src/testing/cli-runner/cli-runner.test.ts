@@ -107,7 +107,7 @@ describe("createCliRunner", () => {
 		expect(log).toHaveBeenCalledWith(expect.stringContaining("[cli-runner] killed"));
 		log.mockRestore();
 		expect(result.stderr).toMatch(
-			/\[cli-runner\] killed after \d+ ms \(timeout 300 ms, SIGKILL\), pid \d+; stdout 0 chars/
+			/\[cli-runner\] killed after \d+ ms \(timeout 300 ms, SIGKILL; node started after \d+ ms\), pid \d+; stdout 0 chars/
 		);
 		expect(result.elapsedMs).toBeGreaterThanOrEqual(250);
 	});
@@ -119,6 +119,35 @@ describe("createCliRunner", () => {
 		expect(result.code).toBe(-1);
 		expect(result.timedOut).toBe(false);
 		expect(result.stderr).toMatch(/\[cli-runner\] ended by SIGTERM after \d+ ms, not by its timeout \(60000 ms\)/);
+	});
+
+	it("starts the hang clock when node runs, so a slow launch is not counted against the run", async () => {
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
+		const result = await createCliRunner({ bin })(["--hang"], { timeoutMs: 300 });
+		log.mockRestore();
+		expect(result.startMs).toBeGreaterThanOrEqual(0);
+		expect(result.stderr).toContain(`node started after ${result.startMs} ms`);
+		// the run was allowed its 300 ms from the start, not from the spawn
+		expect(result.elapsedMs).toBeGreaterThanOrEqual(result.startMs + 250);
+	});
+
+	it("kills a launch that never gets as far as running node, and says it was the start", async () => {
+		const log = vi.spyOn(console, "error").mockImplementation(() => {});
+		const result = await createCliRunner({ bin })([], { startTimeoutMs: 1 });
+		log.mockRestore();
+		expect(result.timedOut).toBe(true);
+		expect(result.code).toBe(-1);
+		expect(result.startMs).toBe(-1);
+		expect(result.stderr).toMatch(
+			/\[cli-runner\] killed before node started, after \d+ ms \(start timeout 1 ms, SIGKILL\)/
+		);
+	});
+
+	it("passes the arguments through unchanged and reports startMs for a run that finishes", async () => {
+		const result = await createCliRunner({ bin })([]);
+		expect(parse(result.stdout).args).toEqual([]);
+		expect(result.startMs).toBeGreaterThanOrEqual(0);
+		expect(result.startMs).toBeLessThanOrEqual(result.elapsedMs);
 	});
 
 	it("leaves stderr alone and timedOut false for a run that finishes", async () => {

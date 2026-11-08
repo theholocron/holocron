@@ -10,6 +10,8 @@ export interface CliRun {
 	timedOut: boolean;
 	/** How long the run took, from spawn to close, in milliseconds. */
 	elapsedMs: number;
+	/** How long node took to run its first line of JavaScript after the spawn, in milliseconds; -1 if it never did. */
+	startMs: number;
 }
 
 /** What one run of the CLI is given. */
@@ -18,8 +20,10 @@ export interface RunCliOptions {
 	config?: object | string;
 	/** Added to the controlled environment for this run. */
 	env?: Record<string, string>;
-	/** How long the run may take before it is killed. Default 60 seconds. */
+	/** How long the run may take, from the moment node starts running, before it is killed. Default 60 seconds. */
 	timeoutMs?: number;
+	/** How long node may take to start at all (the machine's launch latency, not the tool) before it is killed. Default 50 seconds. */
+	startTimeoutMs?: number;
 }
 
 /** What {@link createCliRunner} needs to run a tool's built binary. */
