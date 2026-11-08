@@ -87,6 +87,13 @@ the file isn't there, and throws for any other failure) and returns the first
 hit as `{ path, extension, content }`, or `undefined`. Hand the result to
 `loadConfigFromContent`.
 
+### `loadConfigPath<T>(filepath)`
+
+Loads the one file at `filepath`, whatever its name (`linear-trial.json`), for a file the caller names rather than one
+found by convention: `.json` is parsed, `.ts` goes through `tsx`, `.js`, `.mjs` and `.cjs` are imported, and the default
+export is the value. Throws `ConfigFileError` for a missing file, an extension that is not one of those, or a file that
+cannot be loaded.
+
 ### `loadConfigDir<T>({ cwd, dir, areas, extensions? })`
 
 Loads the area files of a config directory (`.holocron/notifications.ts`,

@@ -1,4 +1,4 @@
-import type { LoadedConfig } from "../../config/index.js";
+import type { LoadedConfig, ProviderOptions } from "../../config/index.js";
 import type { PluginLoader, ProviderRow, RuntimeContext } from "../../plugin/index.js";
 import type { GlobalArgs } from "../global-args/index.js";
 
@@ -14,6 +14,12 @@ export interface RunProviderInput {
 	provider?: string;
 	/** `setup` or `doctor` (omit to list the provider's). */
 	action?: string;
+	/**
+	 * The provider's options from `--with`. When given, the named provider is loaded with them whether or not the config
+	 * names it, and over its config entry's options where it does (these win). Needs `provider`. Left out, the provider is
+	 * one the config loaded.
+	 */
+	options?: ProviderOptions;
 	/** `--yes`: do not ask before `setup` changes things (required without a terminal). */
 	yes?: boolean;
 	/** Defaults to a loader over the config. */
@@ -37,4 +43,6 @@ export interface ProviderArgs extends GlobalArgs {
 	provider?: string;
 	action?: string;
 	yes: boolean;
+	/** `--with`: `key=value` pairs and option files, laid over each other in order. */
+	with?: string[];
 }

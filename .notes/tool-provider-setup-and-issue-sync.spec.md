@@ -76,7 +76,11 @@ vocabulary, so it has no home today. `notifications setup` already carries a lit
 - `provider <name> doctor` is read-only, one row per step, non-zero exit on a failure (the `doctor <capability>` rules,
   and the same shared renderer). `provider <name> setup` writes, supports `--dry-run`, asks first unless `--yes`, treats
   "already right" as success, and reports `ok / fail / skip` counts. Neither prints a token.
-- Both read the provider's own block from `holocron.config` (below), never flags only.
+- Both read the provider's own block from `holocron.config` (below), never flags only. A provider the config does not
+  name can be run too, with its options given by `--with` (a `key=value` pair, or a `.json`, `.ts` or `.js` file that
+  holds the options object; repeatable, a later value wins): the same options object the config block would be, checked
+  by the plugin's own parser. Where the config does name the provider, `--with` goes over its entry's options. The
+  config file is never written, and the token still comes from the normal chain or `--token`.
 - The generic commands do not change. `project setup` keeps templates and statuses; `provider linear setup` does what
   Linear alone has.
 
@@ -264,6 +268,11 @@ a GitHub board target with a missing option; a rate limit mid-run.
    names out of the top level but adds a word; the plugin-returned `setup` makes it automatic either way.
    _First PR: `provider <name> setup|doctor`, as the spec's default. The provider names come from the loaded plugins, so
    the command is `provider [name] [action]` (like `probe`), not a yargs subcommand per provider._
+   _Resolved (a provider that is not in the config): `--with <file or key=value>`, repeatable, gives the provider's
+   options object; `PluginLoader.loadProviderActions(name, options)` loads it with no capability slot, so the
+   cardinality rules of a config are untouched. A file, not only pairs, because Linear's block has lists and nested
+   objects; the pairs reuse `migrate`'s `key=value` syntax. The maintainer keeps GitHub as the one `issues` and
+   `projects` provider in this repo's config and runs Linear this way._
 2. **Where `sync` lives.** `sync issues` collides in spirit with the existing `sync github` / `sync wiki` group
    (publishing generated files). `migrate --update` is the alternative, at the cost of `migrate` no longer being
    create-only.

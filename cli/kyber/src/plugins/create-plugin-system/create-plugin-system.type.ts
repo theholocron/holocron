@@ -152,6 +152,13 @@ export interface PluginLoader<
 	loadFailures(): readonly PluginLoadFailure<CapabilityKeyOf<Caps>>[];
 	/** The plugin object of each provider that was created, by provider name. */
 	plugins(): ReadonlyMap<string, LoadedPlugin<Caps, Extra>>;
+	/**
+	 * Imports one provider and builds its plugin with the given options, without any capability slot: nothing is added to
+	 * the registry, and the plugin is recorded in {@link PluginLoader.plugins} (replacing one of the same provider that
+	 * `load()` made). Throws {@link LoaderError} when the package cannot be imported or is not a plugin, and whatever
+	 * `createPlugin` throws. For a command that works on a provider the config does not name.
+	 */
+	loadProvider(tuple: ProviderTuple): Promise<LoadedPlugin<Caps, Extra>>;
 }
 
 /** The class {@link createPluginSystem} returns; extend it or construct it directly. */

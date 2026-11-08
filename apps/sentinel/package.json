@@ -59,6 +59,8 @@
     "@theholocron/holocron-plugin-discord": "workspace:^",
     "@theholocron/holocron-plugin-github": "workspace:^",
     "@theholocron/http-client": "workspace:^",
+    "@theholocron/json-utils": "workspace:^",
+    "@theholocron/kyber": "workspace:^",
     "@theholocron/markdownlint-config": "workspace:^",
     "@theholocron/misc-utils": "workspace:^",
     "@theholocron/object-utils": "workspace:^",

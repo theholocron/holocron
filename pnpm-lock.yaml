@@ -507,6 +507,12 @@ importers:
       '@theholocron/http-client':
         specifier: workspace:^
         version: link:../../clients/http-client
+      '@theholocron/json-utils':
+        specifier: workspace:^
+        version: link:../../utils/json-utils
+      '@theholocron/kyber':
+        specifier: workspace:^
+        version: link:../../cli/kyber
       '@theholocron/markdownlint-config':
         specifier: workspace:^
         version: link:../../configs/markdownlint-config
