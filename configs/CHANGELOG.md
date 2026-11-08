@@ -1,3 +1,9 @@
+## [8.9.0-alpha.12](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.11...configs-v8.9.0-alpha.12) (2026-11-08)
+
+### Bug Fixes
+
+* **vitest-config:** 🐛 give process-spawning tests a budget that survives a loaded machine ([#1924](https://github.com/theholocron/holocron/issues/1924)) ([c868060](https://github.com/theholocron/holocron/commit/c86806095b9c4011ce82500f66c1cc32e9e115b2)), closes [#1903](https://github.com/theholocron/holocron/issues/1903)
+
 ## [8.9.0-alpha.11](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.10...configs-v8.9.0-alpha.11) (2026-11-07)
 
 ### Refactoring
