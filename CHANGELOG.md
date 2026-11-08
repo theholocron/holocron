@@ -1,3 +1,15 @@
+## [5.0.0-alpha.382](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.381...v5.0.0-alpha.382) (2026-11-08)
+
+### Features
+
+* **migrate:** ✨ show a progress spinner with a counter for migrate and sync issues ([#1966](https://github.com/theholocron/holocron/issues/1966)) ([75d2fd1](https://github.com/theholocron/holocron/commit/75d2fd1d07e5820a511a1639f62fed4635be178d)), closes [#1965](https://github.com/theholocron/holocron/issues/1965)
+* **tsdown-config:** ✨ let a package set its own bundle-size limit ([#1961](https://github.com/theholocron/holocron/issues/1961)) ([5f0dcd6](https://github.com/theholocron/holocron/commit/5f0dcd6a589607289a57325d1d2041898f6c36b2)), closes [holocron#762](https://github.com/theholocron/holocron/issues/762) [holocron#922](https://github.com/theholocron/holocron/issues/922) [#1950](https://github.com/theholocron/holocron/issues/1950)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 limit auto-fix commits to lines the pull request added ([#1962](https://github.com/theholocron/holocron/issues/1962)) ([d48c8d1](https://github.com/theholocron/holocron/commit/d48c8d1fdc06543b6467762be6c0a7d2caa4fb01)), closes [#1949](https://github.com/theholocron/holocron/issues/1949) [#1950](https://github.com/theholocron/holocron/issues/1950)
+* **sentinel:** 🐛 post only what is new in the error review ([#1964](https://github.com/theholocron/holocron/issues/1964)) ([9eb98c3](https://github.com/theholocron/holocron/commit/9eb98c309a811608c2712b9fc6f0700dafaa8089)), closes [#1949](https://github.com/theholocron/holocron/issues/1949) [#1950](https://github.com/theholocron/holocron/issues/1950)
+
 ## [5.0.0-alpha.381](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.380...v5.0.0-alpha.381) (2026-11-08)
 
 ### Features
