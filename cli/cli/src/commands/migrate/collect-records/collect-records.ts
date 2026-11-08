@@ -1,6 +1,13 @@
 import { describeError } from "@theholocron/kyber/ui";
 
-import type { BoardItem, BoardStatusCategory, IssueRecord, StatusCategory } from "../../../plugin/index.js";
+import type {
+	BoardItem,
+	BoardStatusCategory,
+	ExportInfo,
+	IssueRecord,
+	IssueSelector,
+	StatusCategory,
+} from "../../../plugin/index.js";
 import type { Collected, CollectInput } from "./collect-records.type.js";
 
 /** An empty template: a board's items are read for their keys, status and priority, not judged against statuses. */
@@ -25,16 +32,26 @@ export async function collectRecords(input: CollectInput): Promise<Collected> {
 	if (!issues?.export) {
 		return { ok: false, reason: `the \`${source.provider}\` provider cannot export issues` };
 	}
+	const info: ExportInfo = {};
+	// A limit is passed only when one was given, so a provider that ignores it is never handed it.
+	const read = (selector: IssueSelector) =>
+		input.limit === undefined
+			? issues.export!(selector)
+			: issues.export!({ ...selector, limit: input.limit, order: input.order ?? "oldest" }, info);
+	const limited = (records: IssueRecord[], notes: string[], matched = info.matched): Collected => ({
+		ok: true,
+		records,
+		notes,
+		...(input.limit === undefined ? {} : { limit: input.limit }),
+		...(input.limit !== undefined && matched !== undefined ? { matched } : {}),
+	});
 	try {
 		if (scope.kind === "issue") {
 			return { ok: true, records: await issues.export({ keys: [scope.key] }), notes: [] };
 		}
 		if (scope.kind === "issues") {
-			return {
-				ok: true,
-				records: await issues.export({ ...scope.selector, ...(input.openOnly ? { openOnly: true } : {}) }),
-				notes: [],
-			};
+			const records = await read({ ...scope.selector, ...(input.openOnly ? { openOnly: true } : {}) });
+			return limited(records, []);
 		}
 
 		const projects = source.projects;
@@ -53,8 +70,12 @@ export async function collectRecords(input: CollectInput): Promise<Collected> {
 				? [`${items.length - local.length} item(s) from other repositories were skipped`]
 				: [];
 		const byKey = new Map<string, BoardItem>(local.map((i) => [i.key, i]));
-		const records = await issues.export({ keys: local.map((i) => i.key) });
-		return { ok: true, records: records.map((r) => overlay(r, byKey.get(r.key))), notes };
+		const records = await read({ keys: local.map((i) => i.key) });
+		return limited(
+			records.map((r) => overlay(r, byKey.get(r.key))),
+			notes,
+			info.matched ?? local.length
+		);
 	} catch (err) {
 		return { ok: false, reason: describeError(err) };
 	}

@@ -190,6 +190,121 @@ describe("GitHubIssues.export", () => {
 	});
 });
 
+describe("GitHubIssues.export with a limit", () => {
+	/** A fake that answers any issue number and records which were fetched. */
+	function numbered(over: (n: number) => Record<string, unknown> = () => ({}), delay = 0) {
+		const fetched: number[] = [];
+		let inFlight = 0;
+		const peak = { most: 0 };
+		const fetch = (async (input: string | URL) => {
+			inFlight++;
+			peak.most = Math.max(peak.most, inFlight);
+			if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+			inFlight--;
+			const url = String(input);
+			const number = Number(/issues\/(\d+)/.exec(url)?.[1]);
+			let body: unknown;
+			if (url.includes("/comments")) body = [];
+			else if (url.includes("graphql"))
+				body = { data: { repository: { issue: { parent: null, blockedBy: { nodes: [] } } } } };
+			else {
+				fetched.push(number);
+				body = raw({
+					number,
+					html_url: `https://github.com/theholocron/holocron/issues/${number}`,
+					...over(number),
+				});
+			}
+			return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+		}) as typeof globalThis.fetch;
+		return {
+			issues: new GitHubIssues(createGitHubClient({ token: "pat", fetch }), { repo: REPO }),
+			fetched,
+			peak,
+		};
+	}
+	const keys = ["#8", "#3", "#12", "#1", "#5", "#10"];
+
+	it("fetches only the oldest keys, by number, and no more than the limit", async () => {
+		const { issues, fetched } = numbered();
+		const info: { matched?: number } = {};
+		const out = await issues.export({ keys, limit: 3, order: "oldest" }, info);
+		expect(out.map((r) => r.key)).toEqual(["#1", "#3", "#5"]);
+		expect(fetched.sort((a, b) => a - b)).toEqual([1, 3, 5]);
+		expect(info.matched).toBe(6);
+	});
+
+	it("fetches the newest keys and returns them oldest first", async () => {
+		const { issues, fetched } = numbered();
+		const out = await issues.export({ keys, limit: 2, order: "newest" });
+		expect(out.map((r) => r.key)).toEqual(["#10", "#12"]);
+		expect(fetched.sort((a, b) => a - b)).toEqual([10, 12]);
+	});
+
+	it("defaults to the oldest end", async () => {
+		const { issues } = numbered();
+		const out = await issues.export({ keys, limit: 1 });
+		expect(out.map((r) => r.key)).toEqual(["#1"]);
+	});
+
+	it("goes on to the next key when one is a pull request or closed, so they never use the budget", async () => {
+		const { issues, fetched } = numbered((n) =>
+			n === 1 ? { pull_request: {} } : n === 3 ? { state: "closed" } : {}
+		);
+		const out = await issues.export({ keys, limit: 2, order: "oldest", openOnly: true });
+		expect(out.map((r) => r.key)).toEqual(["#5", "#8"]);
+		expect(fetched.sort((a, b) => a - b)).toEqual([1, 3, 5, 8]);
+	});
+
+	it("keeps the four-at-a-time cap while it fills the budget", async () => {
+		const { issues, peak } = numbered(() => ({}), 3);
+		const many = Array.from({ length: 20 }, (_, i) => `#${20 - i}`);
+		const out = await issues.export({ keys: many, limit: 10 });
+		expect(out.map((r) => r.key)).toEqual(Array.from({ length: 10 }, (_, i) => `#${i + 1}`));
+		expect(peak.most).toBe(4);
+	});
+
+	it("cuts a listing by creation time before comments are read, and open-only does not use the budget", async () => {
+		const mk = (number: number, day: string, extra: Record<string, unknown> = {}) =>
+			raw({ number, created_at: `2026-01-${day}T00:00:00Z`, ...extra });
+		const { issues, calls } = make([
+			{
+				body: [
+					mk(1, "09"),
+					mk(2, "01", { state: "closed" }),
+					mk(3, "02"),
+					mk(4, "05", { pull_request: {} }),
+					mk(5, "03"),
+					mk(6, "04"),
+				],
+			},
+			{ body: [] },
+			links(null, []),
+			{ body: [] },
+			links(null, []),
+		]);
+		const info: { matched?: number } = {};
+		const out = await issues.export({ all: true, limit: 2, order: "oldest", openOnly: true }, info);
+		expect(out.map((r) => r.key)).toEqual(["#3", "#5"]);
+		expect(info.matched).toBe(4);
+		expect(calls.filter((c) => c.url.includes("/comments"))).toHaveLength(2);
+	});
+
+	it("keeps the last created of a listing, oldest first, and falls back to the update time", async () => {
+		const mk = (number: number, created: string | undefined) =>
+			raw({ number, created_at: created, updated_at: "2026-01-20T00:00:00Z" });
+		const { issues } = make([
+			{ body: [mk(1, "2026-01-03T00:00:00Z"), mk(2, undefined), mk(3, "2026-01-01T00:00:00Z")] },
+			{ body: [] },
+			links(null, []),
+			{ body: [] },
+			links(null, []),
+		]);
+		const out = await issues.export({ all: true, limit: 2, order: "newest" });
+		expect(out.map((r) => r.key)).toEqual(["#1", "#2"]);
+	});
+});
+
 describe("GitHubIssues.import", () => {
 	it("makes the issue with labels, priority label, provenance, comments and closes it", async () => {
 		const { issues, calls } = make([

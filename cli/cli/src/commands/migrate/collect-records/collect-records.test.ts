@@ -113,4 +113,85 @@ describe("collectRecords", () => {
 		});
 		expect(boom).toEqual({ ok: false, reason: expect.stringContaining("rate limited") });
 	});
+
+	it("passes limit and order with a selection, collects how many matched, and says nothing without a limit", async () => {
+		const issues = fakeIssues("github", {
+			export: vi.fn(async (_sel, info) => {
+				info!.matched = 9;
+				return [record("#1")];
+			}),
+		});
+		const out = await collectRecords({
+			source: src(issues),
+			scope: { kind: "issues", selector: { all: true } },
+			openOnly: true,
+			limit: 2,
+			order: "newest",
+		});
+		expect(issues.export).toHaveBeenCalledWith(
+			{ all: true, openOnly: true, limit: 2, order: "newest" },
+			{ matched: 9 }
+		);
+		expect(out).toMatchObject({ ok: true, limit: 2, matched: 9 });
+
+		const plain = await collectRecords({ source: src(issues), scope: { kind: "issues", selector: { all: true } } });
+		expect(plain).not.toHaveProperty("limit");
+		expect(plain).not.toHaveProperty("matched");
+	});
+
+	it("defaults to the oldest end, and reports no total when the provider gave none", async () => {
+		const issues = fakeIssues("github", { export: vi.fn(async () => [record("#1")]) });
+		const out = await collectRecords({
+			source: src(issues),
+			scope: { kind: "issues", selector: { all: true } },
+			limit: 1,
+		});
+		expect(issues.export).toHaveBeenCalledWith({ all: true, limit: 1, order: "oldest" }, {});
+		expect(out).toMatchObject({ ok: true, limit: 1 });
+		expect(out).not.toHaveProperty("matched");
+	});
+
+	it("limits a board's items after open-only, handing the keys over for the provider to order", async () => {
+		const issues = fakeIssues("github", {
+			export: vi.fn(async (_sel, info) => {
+				info!.matched = 2;
+				return [record("#1")];
+			}),
+		});
+		const projects = fakeBoards({
+			find: vi.fn(async () => ({ id: "b", name: "v5", url: "u", closed: false })),
+			items: vi.fn(async (): Promise<BoardItem[]> => [
+				{ key: "#9", title: "a", open: true, blockedBy: [] },
+				{ key: "#1", title: "b", open: true, blockedBy: [] },
+				{ key: "#5", title: "c", open: false, blockedBy: [] },
+			]),
+		});
+		const out = await collectRecords({
+			source: src(issues, projects),
+			scope: { kind: "project", name: "v5", owner: "acme" },
+			openOnly: true,
+			limit: 1,
+			order: "newest",
+		});
+		expect(issues.export).toHaveBeenCalledWith({ keys: ["#9", "#1"], limit: 1, order: "newest" }, { matched: 2 });
+		expect(out).toMatchObject({ ok: true, limit: 1, matched: 2 });
+	});
+
+	it("counts a board's items itself when the provider reports no total", async () => {
+		const issues = fakeIssues("github", { export: vi.fn(async () => [record("#1")]) });
+		const projects = fakeBoards({
+			find: vi.fn(async () => ({ id: "b", name: "v5", url: "u", closed: false })),
+			items: vi.fn(async (): Promise<BoardItem[]> => [
+				{ key: "#9", title: "a", open: true, blockedBy: [] },
+				{ key: "#1", title: "b", open: true, blockedBy: [] },
+				{ key: "o/r#3", title: "c", open: true, blockedBy: [] },
+			]),
+		});
+		const out = await collectRecords({
+			source: src(issues, projects),
+			scope: { kind: "project", name: "v5", owner: "acme" },
+			limit: 1,
+		});
+		expect(out).toMatchObject({ ok: true, limit: 1, matched: 2 });
+	});
 });

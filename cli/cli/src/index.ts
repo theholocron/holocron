@@ -12,8 +12,11 @@ export * from "./config/load-config/holocron-areas/index.js";
 export * from "./config/load-config/place-areas/index.js";
 export * from "./plugin/capabilities/index.js";
 export * from "./plugin/connection-probe/index.js";
+export * from "./plugin/order-keys/index.js";
+export * from "./plugin/pick-by-creation/index.js";
 export type * from "./plugin/probe/index.js";
 export type * from "./plugin/provider-actions/index.js";
+export * from "./plugin/read-keys-limited/index.js";
 // Plugins build their REST clients with the shared HTTP primitives; `plugin-create` scaffolds import them from here.
 export {
 	createRestClient,

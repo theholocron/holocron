@@ -12,13 +12,16 @@
  */
 
 import {
+	type ExportInfo,
 	type ImportOptions,
 	type ImportResult,
 	type IssueComment,
 	type IssuePriority,
 	type IssueRecord,
 	type IssueSelector,
+	pickByCreation,
 	ProviderApiError,
+	readKeysLimited,
 	type StatusCategory,
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
@@ -86,38 +89,69 @@ function explainSecondaryLimit(err: unknown): unknown {
 	return err;
 }
 
-/** Reads the issues `selector` names, with their comments, priority label, parent and blockers. */
+/**
+ * Reads the issues `selector` names, with their comments, priority label, parent and blockers.
+ *
+ * With `limit`, only that many survivors of the other filters are read, from the `order` end of the creation order. A
+ * list of keys is sorted by issue number (which rises with creation in one repository) before anything is fetched, then
+ * fetched a few at a time until enough are kept; a listing already carries `created_at`, so it is cut before the
+ * per-issue comment and link requests. `info.matched` receives how many the selection matched before the cut.
+ */
 export async function exportIssues(
 	client: GitHubClient,
 	repo: string,
-	selector: IssueSelector
+	selector: IssueSelector,
+	info: ExportInfo = {}
 ): Promise<IssueRecord[]> {
-	return readIssues(client, repo, selector).catch((err: unknown) => {
+	return readIssues(client, repo, selector, info).catch((err: unknown) => {
 		throw explainSecondaryLimit(err);
 	});
 }
 
-async function readIssues(client: GitHubClient, repo: string, selector: IssueSelector): Promise<IssueRecord[]> {
+async function readIssues(
+	client: GitHubClient,
+	repo: string,
+	selector: IssueSelector,
+	info: ExportInfo
+): Promise<IssueRecord[]> {
 	const [owner = "", name = ""] = repo.split("/", 2);
-	let raw: GitHubIssue[];
-	if (selector.keys) {
-		raw = await mapLimit(selector.keys, EXPORT_CONCURRENCY, (k) => client.issues.getIssue(repo, parseNumber(k)));
-	} else if (selector.milestone) {
-		const milestone = await findMilestone(client, repo, selector.milestone);
-		if (!milestone) throw new Error(`Milestone "${selector.milestone}" not found in ${repo}.`);
-		raw = await listAll(client, repo, { milestone: String(milestone.number) });
-	} else if (selector.all) {
-		raw = await listAll(client, repo, {});
-	} else {
-		throw new Error("export needs keys, a milestone or all");
-	}
 	const since = selector.since ? Date.parse(selector.since) : undefined;
-	const issues = raw.filter(
-		(i) =>
-			!i.pull_request &&
-			!(selector.openOnly && i.state === "closed") &&
-			(since === undefined || Date.parse(i.updated_at) >= since)
-	);
+	const survives = (i: GitHubIssue): boolean =>
+		!i.pull_request &&
+		!(selector.openOnly && i.state === "closed") &&
+		(since === undefined || Date.parse(i.updated_at) >= since);
+	const { limit, order = "oldest" } = selector;
+
+	let issues: GitHubIssue[];
+	if (selector.keys) {
+		const fetch = (k: string) => client.issues.getIssue(repo, parseNumber(k));
+		info.matched = selector.keys.length;
+		issues =
+			limit === undefined
+				? (await mapLimit(selector.keys, EXPORT_CONCURRENCY, fetch)).filter(survives)
+				: await readKeysLimited({
+						keys: selector.keys,
+						order,
+						limit,
+						concurrency: EXPORT_CONCURRENCY,
+						fetch,
+						keep: survives,
+					});
+	} else {
+		let raw: GitHubIssue[];
+		if (selector.milestone) {
+			const milestone = await findMilestone(client, repo, selector.milestone);
+			if (!milestone) throw new Error(`Milestone "${selector.milestone}" not found in ${repo}.`);
+			raw = await listAll(client, repo, { milestone: String(milestone.number) });
+		} else if (selector.all) {
+			raw = await listAll(client, repo, {});
+		} else {
+			throw new Error("export needs keys, a milestone or all");
+		}
+		issues = raw.filter(survives);
+		info.matched = issues.length;
+		if (limit !== undefined) issues = pickByCreation(issues, (i) => i.created_at ?? i.updated_at, order, limit);
+	}
 
 	const records: IssueRecord[] = [];
 	for (const issue of issues) {

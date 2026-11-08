@@ -1,13 +1,16 @@
 import { loadConfig } from "../../../config/index.js";
+import type { IssueOrder } from "../../../plugin/index.js";
 import { applyResolvedConfig } from "../../apply-resolved-config/index.js";
 import type { GlobalArgs } from "../../global-args/index.js";
 import { resolveOrg } from "../../resolve-org/index.js";
 import { tokenContext } from "../../token-context/index.js";
 import type { MigrateScope } from "../collect-records/index.js";
+import type { LimitArgs } from "../limit-options/index.js";
+import { parseLimit } from "../parse-limit/index.js";
 import { runMigrate } from "../run-migrate/index.js";
 
 /** The flags {@link migrateOptions} declares. */
-export interface MigrateArgs extends GlobalArgs {
+export interface MigrateArgs extends GlobalArgs, LimitArgs {
 	from: string;
 	to: string;
 	openOnly?: boolean;
@@ -18,6 +21,7 @@ export interface MigrateArgs extends GlobalArgs {
 
 /** What each subcommand does after yargs: load the config and tokens, build its scope from the org, run, set the exit code. */
 export async function handleMigrate(argv: MigrateArgs, scope: (owner: string) => MigrateScope): Promise<void> {
+	const limit = parseLimit(argv.limit, "migrate");
 	const tokens = tokenContext(argv.token);
 	if (!tokens) return;
 	const loaded = await loadConfig(argv.cwd);
@@ -30,6 +34,7 @@ export async function handleMigrate(argv: MigrateArgs, scope: (owner: string) =>
 		to: argv.to,
 		scope: scope(org ?? ""),
 		...(argv.openOnly ? { openOnly: true } : {}),
+		...(limit === undefined ? {} : { limit, order: argv.order as IssueOrder }),
 		...(argv.milestone ? { milestone: argv.milestone } : {}),
 		...(argv.template ? { template: argv.template } : {}),
 		...(argv.yes ? { yes: true } : {}),

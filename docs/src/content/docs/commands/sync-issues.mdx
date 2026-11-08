@@ -4,10 +4,10 @@ description: Keep the issues on one tracker up to date from another, one directi
 ---
 
 ```bash
-holocron sync issues --from <source> --to <target> [--since <time>] [--yes] [--dry-run]
+holocron sync issues --from <source> --to <target> [--since <time>] [--limit <n> [--order <oldest|newest>]] [--yes] [--dry-run]
 ```
 
-`--from` and `--to` are `provider` or `provider:key=value,...`, as for [migrate](/holocron/commands/migrate/), for example `--from github --to linear:team=ENG`. GitHub to Linear and Linear to GitHub are the same command with the ends swapped; run them separately and configure them separately. Two one-way syncs never share state, so a failed run on one side cannot leave the other wrong.
+`--from` and `--to` are `provider` or `provider:key=value,...`, as for [migrate](/holocron/commands/migrate/), for example `--from github --to linear:team=ENG`. GitHub to Linear and Linear to GitHub are the same command with the ends swapped; run them separately and configure them separately. Two one-way syncs never share state, so an interrupted run on one side cannot leave the other wrong.
 
 Unlike `migrate`, a sync updates what it made. For each issue on the source it finds the issue it made on the target (by the recorded source address) and:
 
@@ -17,11 +17,17 @@ Unlike `migrate`, a sync updates what it made. For each issue on the source it f
 
 It writes nothing to the source, ever, and changes a target issue only when a `migrate` or a sync made it (the `holocron:migrated-from` marker on GitHub, the attachment on Linear). An issue someone made on the target by hand is not touched, and one whose marker was edited out is treated as unknown and made again.
 
-| Flag        | Meaning                                                                                                     |
-| ----------- | ----------------------------------------------------------------------------------------------------------- |
-| `--since`   | only issues changed since a date (`2026-03-01`) or a span back from now (`30m`, `12h`, `7d`, `2w`)          |
-| `--yes`     | do not ask first (a scheduled run needs it; without a terminal the command refuses instead of hanging)      |
-| `--dry-run` | read both sides and write nothing; prints what would be created or updated, and what would not carry across |
+| Flag        | Meaning                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `--since`   | only issues changed since a date (`2026-03-01`) or a span back from now (`30m`, `12h`, `7d`, `2w`)                               |
+| `--limit`   | read at most this many issues from the source, a positive whole number, counted after `--since`; see [A trial run](#a-trial-run) |
+| `--order`   | with `--limit`: `oldest` (the default) reads the first created, `newest` the last created; no effect without `--limit`           |
+| `--yes`     | do not ask first (a scheduled run needs it; without a terminal the command refuses instead of hanging)                           |
+| `--dry-run` | read both sides and write nothing; prints what would be created or updated, and what would not carry across                      |
+
+## A trial run
+
+`--limit <n>` reads only `n` issues from the source; `--order oldest` (the default) keeps the first created and `--order newest` the last created. The limit counts issues that survive `--since` and the skipping of pull requests, the order comes from the source's creation time and the cut is made before each issue's comments and links are read. A dry run and a real run print `limited to N of M`. The loop guard drops copies after the read, so it can leave fewer than `N` to sync. A second run with the same limit selects the same issues; to continue, run again with a larger `--limit`, or without one.
 
 ## The loop guard
 
@@ -39,7 +45,7 @@ and the same `not carried across` list as `migrate`, with one line per loss and 
 
 ## Interrupted and rate limited runs
 
-A failure part-way leaves every finished issue correct, and the next run continues. A provider rate limit stops the run cleanly: the issues not reached are the `left` count, and running it again does them. A write that failed is not repeated inside the run, so a failed create cannot become two issues.
+A failure part-way leaves every finished issue correct, and the next run continues. A provider rate limit stops the run cleanly: the issues not reached are the `left` count, and running it again does them. A write that errored is not repeated inside the run, so an errored create cannot become two issues.
 
 ## Limits
 

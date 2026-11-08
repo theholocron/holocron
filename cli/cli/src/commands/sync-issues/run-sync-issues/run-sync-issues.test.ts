@@ -264,4 +264,37 @@ describe("runSyncIssues", () => {
 		const c = await run({ makeLoader: setup([], vi.fn()).makeLoader });
 		expect(c.report).toMatchObject({ status: "skip", reason: "nothing to sync" });
 	});
+
+	it("says `limited to N of M` and hands limit and order to the export", async () => {
+		const reader = fakeIssues("github", {
+			export: vi.fn(async (_sel, info) => {
+				info!.matched = 40;
+				return [record("#1")];
+			}),
+		});
+		const writer = fakeIssues("linear", { sync: vi.fn(async () => [result("#1", "ENG-1", { created: true })]) });
+		const makeLoader = loaderFor({ github: { issues: reader }, linear: { issues: writer } });
+		const { report, text } = await run({
+			makeLoader,
+			limit: 1,
+			order: "newest",
+			since: "2026-03-01T00:00:00.000Z",
+		});
+		expect(reader.export).toHaveBeenCalledWith(
+			{ all: true, since: "2026-03-01T00:00:00.000Z", limit: 1, order: "newest" },
+			{ matched: 40 }
+		);
+		expect(text).toContain("limited to 1 of 40 (newest created)");
+		expect(report.limited).toBe("limited to 1 of 40 (newest created)");
+	});
+
+	it("leaves the limit line out when there is no limit", async () => {
+		const { makeLoader } = setup(
+			[record("#1")],
+			vi.fn(async () => [result("#1", "ENG-1")])
+		);
+		const { report, text } = await run({ makeLoader });
+		expect(text).not.toContain("limited to");
+		expect(report).not.toHaveProperty("limited");
+	});
 });

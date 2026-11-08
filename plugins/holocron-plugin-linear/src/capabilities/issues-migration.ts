@@ -11,7 +11,15 @@
  * Fields Linear has and the neutral record does not (estimate, due date, cycle) are not exported.
  */
 
-import type { ImportOptions, ImportResult, IssueRecord, IssueSelector } from "@theholocron/cli";
+import {
+	type ExportInfo,
+	type ImportOptions,
+	type ImportResult,
+	type IssueRecord,
+	type IssueSelector,
+	pickByCreation,
+	readKeysLimited,
+} from "@theholocron/cli";
 import type { LinearIssue, LinearProject } from "@theholocron/linear-client";
 
 import { fromLinearPriority, isClosed, normalizeKey, pickState, statusCategory, toLinearPriority } from "./mapping.js";
@@ -38,29 +46,64 @@ export function droppedFor(record: IssueRecord, assigneeId: string | undefined):
 	return dropped;
 }
 
-/** Reads the issues `selector` names, with their comments, priority, labels, parent and blockers. */
-export async function exportIssues(scope: TeamScope, selector: IssueSelector): Promise<IssueRecord[]> {
+/** How many issues a limited export fetches at once when it reads an explicit list of keys. */
+const EXPORT_CONCURRENCY = 4;
+
+/**
+ * Reads the issues `selector` names, with their comments, priority, labels, parent and blockers.
+ *
+ * With `limit`, only that many survivors of the other filters are read, from the `order` end of the creation order. A
+ * list of keys is sorted by issue number (which rises with creation in one team) before anything is fetched, then
+ * fetched a few at a time until enough are kept; a listing already carries `createdAt`, so it is sorted on that and cut
+ * before the per-issue comment requests. `info.matched` receives how many the selection matched before the cut.
+ */
+export async function exportIssues(
+	scope: TeamScope,
+	selector: IssueSelector,
+	info: ExportInfo = {}
+): Promise<IssueRecord[]> {
 	const { client } = scope;
 	const team = await scope.team();
-	let raw: LinearIssue[];
+	const since = selector.since ? Date.parse(selector.since) : undefined;
+	const survives = (issue: LinearIssue): boolean =>
+		!(selector.openOnly && isClosed(issue.state.type)) &&
+		(since === undefined || Date.parse(issue.updatedAt) >= since);
+	const { limit, order = "oldest" } = selector;
+
+	let issues: LinearIssue[];
 	if (selector.keys) {
-		raw = await Promise.all(selector.keys.map((k) => client.issues.get(normalizeKey(k, scope.teamKey))));
-	} else if (selector.milestone) {
-		const project = await findProject(scope, selector.milestone);
-		if (!project) throw new Error(`Project "${selector.milestone}" not found in Linear.`);
-		raw = await client.issues.list({ projectId: project.id });
-	} else if (selector.all) {
-		raw = await client.issues.list({ teamId: team.id });
+		const fetch = (k: string) => client.issues.get(normalizeKey(k, scope.teamKey));
+		info.matched = selector.keys.length;
+		issues =
+			limit === undefined
+				? (await Promise.all(selector.keys.map(fetch))).filter(survives)
+				: await readKeysLimited({
+						keys: selector.keys,
+						order,
+						limit,
+						concurrency: EXPORT_CONCURRENCY,
+						fetch,
+						keep: survives,
+					});
 	} else {
-		throw new Error("export needs keys, a milestone or all");
+		let raw: LinearIssue[];
+		if (selector.milestone) {
+			const project = await findProject(scope, selector.milestone);
+			if (!project) throw new Error(`Project "${selector.milestone}" not found in Linear.`);
+			raw = await client.issues.list({ projectId: project.id });
+		} else if (selector.all) {
+			raw = await client.issues.list({ teamId: team.id });
+		} else {
+			throw new Error("export needs keys, a milestone or all");
+		}
+		issues = raw.filter(survives);
+		info.matched = issues.length;
+		if (limit !== undefined) issues = pickByCreation(issues, (i) => i.createdAt, order, limit);
 	}
 
 	const records: IssueRecord[] = [];
-	const since = selector.since ? Date.parse(selector.since) : undefined;
-	for (const issue of raw) {
+	for (const issue of issues) {
 		const closed = isClosed(issue.state.type);
-		if (selector.openOnly && closed) continue;
-		if (since !== undefined && Date.parse(issue.updatedAt) < since) continue;
 		const comments = await client.issues.comments(issue.id);
 		const priority = fromLinearPriority(issue.priority);
 		const migratedFrom = issue.attachments?.nodes.find((a) => a.title.startsWith(MIGRATED_TITLE_PREFIX))?.url;

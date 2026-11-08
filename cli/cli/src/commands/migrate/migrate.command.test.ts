@@ -80,6 +80,37 @@ describe("migrate commands", () => {
 		expect(runMigrate).toHaveBeenCalledWith(expect.objectContaining({ template: "sprint" }));
 	});
 
+	it("issues and project pass --limit and --order, the oldest end by default", async () => {
+		await go("issues", ...ENDS, "--all", "--limit", "5");
+		expect(runMigrate).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 5, order: "oldest" }));
+		await go("issues", ...ENDS, "--all", "--limit", "5", "--order", "newest");
+		expect(runMigrate).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 5, order: "newest" }));
+		await go("project", "v5", ...ENDS, "--limit", "3", "--order", "newest");
+		expect(runMigrate).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 3, order: "newest" }));
+	});
+
+	it("passes neither without --limit, even when --order is given alone", async () => {
+		await go("issues", ...ENDS, "--all", "--order", "newest");
+		expect(runMigrate.mock.calls[0]![0]).not.toHaveProperty("limit");
+		expect(runMigrate.mock.calls[0]![0]).not.toHaveProperty("order");
+	});
+
+	it("rejects a --limit that is not a positive whole number before doing anything", async () => {
+		await expect(go("issues", ...ENDS, "--all", "--limit", "0")).rejects.toThrow(/--limit "0" is not a positive/);
+		await expect(go("project", "v5", ...ENDS, "--limit", "many")).rejects.toThrow(/--limit "many"/);
+		expect(runMigrate).not.toHaveBeenCalled();
+	});
+
+	it("rejects an --order other than oldest or newest", async () => {
+		await expect(go("issues", ...ENDS, "--all", "--limit", "2", "--order", "random")).rejects.toThrow();
+		expect(runMigrate).not.toHaveBeenCalled();
+	});
+
+	it("issue has no --limit: it names one issue, so a limit given anyway is ignored by the read", async () => {
+		await go("issue", "#1", ...ENDS, "--limit", "2");
+		expect(runMigrate.mock.calls[0]![0].scope).toEqual({ kind: "issue", key: "#1" });
+	});
+
 	it("does nothing without tokens, and sets a failing exit code", async () => {
 		tokenContext.mockReturnValueOnce(undefined);
 		await go("issue", "#1", ...ENDS);
