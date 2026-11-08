@@ -1,3 +1,9 @@
+## [5.0.0-alpha.380](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.379...v5.0.0-alpha.380) (2026-11-08)
+
+### Bug Fixes
+
+* **cli:** 🐛 check the callers a package config generates in generated check ([#1949](https://github.com/theholocron/holocron/issues/1949)) ([63b4dd9](https://github.com/theholocron/holocron/commit/63b4dd939a5ae608edf9940e11e8638201cf9cc6)), closes [#1947](https://github.com/theholocron/holocron/issues/1947) [#1947](https://github.com/theholocron/holocron/issues/1947)
+
 ## [5.0.0-alpha.379](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.378...v5.0.0-alpha.379) (2026-11-08)
 
 ### Bug Fixes
