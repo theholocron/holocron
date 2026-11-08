@@ -39,7 +39,7 @@ and a query that has to know which dataset to ask.
 
 ## Considered Options
 
-- **A. A dataset per environment.** Rejected: it duplicates what `env` says and keeps the special cases.
+- **A. A dataset per environment.** Rejected: it duplicates what `env` says and keeps the unique cases.
 - **B. One dataset for the whole ecosystem.** Rejected: services with different shapes and volume would share a
   dataset and a retention window, and "which service" would become a filter on every query.
 - **C. A dataset per service, split by `env`; `log.axiom.dataset` stays a per-repo override that a global-context
@@ -56,7 +56,7 @@ from the repo it runs in) without a dataset of its own.
 | Sentinel     | `holocron-sentinel` | `SENTINEL_AXIOM_DATASET` | Sentinel still reads `AXIOM_DATASET` today (#1875 moves it) |
 | Comlink      | `holocron-comlink`  | `COMLINK_AXIOM_DATASET`  | reserved: Comlink does not log to Axiom yet                 |
 
-`AXIOM_ORG` is one shared value. The bare `AXIOM_DATASET` stays a documented fallback for the CLI (the vendor-native
+`AXIOM_ORG` is one shared value, read as `HOLOCRON_AXIOM_ORG` and then the bare name (#1864); the org variable keeps its bare name and the workflow maps it. The bare `AXIOM_DATASET` stays a documented fallback for the CLI (the vendor-native
 name), and the 1Password Environment no longer syncs it; `HOLOCRON_AXIOM_DATASET` is synced instead and the sync
 workflows pass `HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}` with no fallback.
 

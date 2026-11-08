@@ -36,6 +36,17 @@ describe("sentinelAxiomLogUrl", () => {
 		expect(url).not.toContain('"');
 	});
 
+	it("reads HOLOCRON_AXIOM_ORG before the bare AXIOM_ORG", () => {
+		const both = createEnvLookup({
+			HOLOCRON_AXIOM_ORG: "prefixed-org",
+			AXIOM_ORG: "acme-org",
+			SENTINEL_AXIOM_DATASET: "acme-dataset",
+		});
+		expect(sentinelAxiomLogUrl("r", "m", both)).toContain("https://app.axiom.co/prefixed-org/query");
+		const prefixedOnly = createEnvLookup({ HOLOCRON_AXIOM_ORG: "prefixed-org", SENTINEL_AXIOM_DATASET: "d" });
+		expect(sentinelAxiomLogUrl("r", "m", prefixedOnly)).toContain("https://app.axiom.co/prefixed-org/query");
+	});
+
 	it("returns undefined, not a wrong link, when AXIOM_ORG is unset", () => {
 		expect(
 			sentinelAxiomLogUrl("r", "m", createEnvLookup({ SENTINEL_AXIOM_DATASET: "acme-dataset" }))
