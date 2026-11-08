@@ -17,6 +17,16 @@ describe("dependabot createConfig", () => {
 		expect(out).toContain('prefix: "chore(deps)"');
 	});
 
+	it("labels every pull request `dependencies` only, so Dependabot adds no ecosystem label (#1967)", () => {
+		const out = createConfig();
+		expect(out.match(/ {4}labels:\n {6}- dependencies\n/g)).toHaveLength(2);
+		expect(out).not.toMatch(/javascript|github_actions/);
+		const npm = out.slice(out.indexOf("package-ecosystem: npm"), out.indexOf("package-ecosystem: github-actions"));
+		const actions = out.slice(out.indexOf("package-ecosystem: github-actions"));
+		expect(npm).toContain("labels:");
+		expect(actions).toContain("labels:");
+	});
+
 	it("ignores nothing unless asked to", () => {
 		expect(createConfig()).not.toContain("ignore:");
 		expect(createConfig({})).not.toContain("ignore:");
