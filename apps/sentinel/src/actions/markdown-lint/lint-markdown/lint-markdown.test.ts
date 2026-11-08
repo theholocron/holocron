@@ -152,15 +152,14 @@ describe("lintMarkdown — scoping", () => {
 		expect(calls).toHaveLength(1);
 	});
 
-	it("checks an .mdx file too, not just .md", async () => {
-		const { client } = makeClient([
-			{ status: 200, body: [file("docs/guide.mdx")] },
-			{ status: 200, body: contentsBody("# Title\n\nSome text.\n") },
-		]);
+	it("leaves an .mdx file to prettier: markdownlint does not parse MDX (holocron#1950)", async () => {
+		const { client, calls } = makeClient([{ status: 200, body: [file("docs/guide.mdx")] }]);
 
 		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
-		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+		expect(result).toEqual({ valid: true, fileCount: 0, messages: [], fixes: [] });
+		// The pull request's files are listed, and the .mdx file is never fetched.
+		expect(calls).toHaveLength(1);
 	});
 });
 

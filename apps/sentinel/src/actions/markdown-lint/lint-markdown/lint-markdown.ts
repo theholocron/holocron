@@ -57,7 +57,13 @@ import type {
 	MarkdownLintMessage,
 } from "./lint-markdown.type.js";
 
-const MARKDOWN_EXTENSIONS = [".md", ".mdx"];
+/**
+ * Only `.md`, like the repo's own `lint:markdown` (`markdownlint-cli2 "**\/*.md"`). markdownlint parses Markdown and
+ * not MDX, so it misreads JSX such as `{/* a comment *\/}` as emphasis with spaces inside (MD037) and its fix strips
+ * the spaces that prettier's MDX formatting puts back: on #1949 the two fixers committed 34 times undoing each other
+ * (holocron#1950). An `.mdx` file is formatted by prettier alone.
+ */
+const MARKDOWN_EXTENSIONS = [".md"];
 
 export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdownResult> {
 	const { client, repo, pullNumber, ref } = input;

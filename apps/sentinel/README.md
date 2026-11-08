@@ -219,7 +219,8 @@ the failure is meant to be transient, auto-fix-commit (below) resolving
 it on a fresh commit; see `src/actions/editorconfig/lint-editorconfig/lint-editorconfig.ts`'s
 own module docstring for why the value-checking/fixing layer on top is a
 deliberate, narrow exception to "never reimplement a tool's rules"),
-markdown lint (markdownlint, holocron#821), and static analysis (eslint,
+markdown lint (markdownlint, holocron#821; `.md` files only, like the repo's own `lint:markdown`: it does not parse
+MDX, and on an `.mdx` file its fix and prettier's undid each other, holocron#1950), and static analysis (eslint,
 holocron#849 — the one Bucket 1 check that isn't config-free: skipped
 entirely when a repo's `runtime_environment` property is explicitly
 `"none"`, since a docs-only repo has no JS/TS to lint; honors
