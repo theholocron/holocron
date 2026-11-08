@@ -38,6 +38,14 @@ describe("vitest-config — presets", () => {
 		}
 	});
 
+	it("node() allows a test and a hook long enough to start real processes on a loaded machine", () => {
+		const { testTimeout, hookTimeout } = node().test ?? {};
+		expect(testTimeout).toBeGreaterThanOrEqual(60_000);
+		expect(hookTimeout).toBe(testTimeout);
+		expect(library().test?.testTimeout).toBe(testTimeout);
+		expect(node({ testTimeout: 1_000 }).test?.testTimeout).toBe(1_000);
+	});
+
 	it("presets accept option overrides", () => {
 		const config = node({ reporters: ["verbose"] });
 		expect(config.test?.reporters).toContain("verbose");
