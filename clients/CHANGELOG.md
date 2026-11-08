@@ -1,3 +1,9 @@
+## [1.58.0-alpha.24](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.23...clients-v1.58.0-alpha.24) (2026-11-08)
+
+### Features
+
+* **cli:** ✨ add holocron doctor logs to check the Axiom datasets exist ([#1981](https://github.com/theholocron/holocron/issues/1981)) ([d20a512](https://github.com/theholocron/holocron/commit/d20a5122becb2a1ac104588498896f6d042a8925)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
 ## [1.58.0-alpha.23](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.22...clients-v1.58.0-alpha.23) (2026-11-08)
 
 ### Bug Fixes
