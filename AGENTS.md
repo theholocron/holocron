@@ -125,6 +125,11 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   and read back are probes, not doctor. `doctor ci` (#1689) needs no provider: it checks the repo against the flat task
   vocabulary (deprecated aliases in `tasks:`, caller file/workflow/job names, the `ci` aggregate's `expected`, the
   callers' home), reading `.github/workflows` through an injected `CiIo`; the ruleset stays `doctor repo`'s.
+  `doctor logs` compares the Axiom datasets the setup ships logs to with Axiom (`datasetTargets()`: the CLI's through the
+  logger's own `resolveCliDataset()`, Sentinel's `SENTINEL_AXIOM_DATASET`, any other `dev.serve.logging.datasetVar`) through the
+  optional `Logs.readDataset` (`exists`, `retentionDays`) and `Logs.checkToken`: only a 404 on a dataset and a 401 on the token
+  fail, a name, token or response that cannot be read is a skip, retention is an `info` row (ADR-0019), and nothing is created
+  or printed beyond names and numbers.
   `doctor github-app` (#1851) compares each `githubApps` entry (`{ name, manifest, environment }`, this repo's two Sentinel
   instances) with its manifest file: the App's id and key are read in memory from the vault environment (`Vault.readEnvironment`,
   never printed), `getApp()` and `listAppInstallations()` of `@theholocron/github-client` read the live App with its JWT, and a

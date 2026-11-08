@@ -60,11 +60,13 @@ synced from 1Password. Leave the token unset locally to skip Axiom entirely.
 
 ## What's implemented
 
-| Method          | Behavior                                                                                         |
-| --------------- | ------------------------------------------------------------------------------------------------ |
-| `describe`      | Returns `{ provider: "axiom", envKeys: ["HOLOCRON_AXIOM_TOKEN", "HOLOCRON_AXIOM_DATASET"] }`.    |
-| `whoami`        | `GET /v2/datasets/{dataset}` — verifies the token and the configured dataset's reachability.     |
-| `ensureDataset` | `GET /v2/datasets/{name}`; on 404, `POST /v2/datasets`. Returns `{ alreadyExists }`. Idempotent. |
+| Method          | Behavior                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `describe`      | Returns `{ provider: "axiom", envKeys: ["HOLOCRON_AXIOM_TOKEN", "HOLOCRON_AXIOM_DATASET"] }`.                             |
+| `whoami`        | `GET /v2/datasets/{dataset}` — verifies the token and the configured dataset's reachability.                              |
+| `ensureDataset` | `GET /v2/datasets/{name}`; on 404, `POST /v2/datasets`. Returns `{ alreadyExists }`. Idempotent.                          |
+| `readDataset`   | `GET /v2/datasets/{name}`; a 404 is `{ exists: false }` and nothing is created. Returns `retentionDays` when Axiom does.  |
+| `checkToken`    | `GET` of a dataset that cannot exist: a 404 means the token is accepted, a 401 means it is refused, anything else throws. |
 
 Plugin-level exports (not capability methods, per the auth-bootstrap convention):
 

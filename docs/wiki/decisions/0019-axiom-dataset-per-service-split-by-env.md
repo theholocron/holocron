@@ -39,7 +39,7 @@ and a query that has to know which dataset to ask.
 
 ## Considered Options
 
-- **A. A dataset per environment.** Rejected: it duplicates what `env` says and keeps the unique cases.
+- **A. A dataset per environment.** Rejected: it duplicates what `env` says and keeps the one-off cases.
 - **B. One dataset for the whole ecosystem.** Rejected: services with different shapes and volume would share a
   dataset and a retention window, and "which service" would become a filter on every query.
 - **C. A dataset per service, split by `env`; `log.axiom.dataset` stays a per-repo override that a global-context
@@ -73,7 +73,7 @@ workflows pass `HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}` with
 
 ### Retention
 
-A dataset has a single retention setting, configured in Axiom and not by Holocron, so a service's environments share
+`holocron doctor logs` shows the retention Axiom reports for each dataset (read-only). A dataset has a single retention setting, configured in Axiom and not by Holocron, so a service's environments share
 it. The retention suggested in the logger spec (90 days for CI, 7 days for local) no longer applies as two numbers.
 The trade-off: a window long enough for CI and production keeps local and development noise as long, and a short
 window to save storage would also cut the lines that correlate with releases and incidents. This ADR does not set a

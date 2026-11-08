@@ -120,6 +120,37 @@ describe("the github-app entry", () => {
 	});
 });
 
+const runDoctorLogs = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-logs/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-logs/index.js")>()),
+	runDoctorLogs,
+}));
+
+describe("the logs entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const logs = DEEP_CHECKS.find((c) => c.name === "logs")!;
+
+	it("compares the logs capability and reports the run's status and counts", async () => {
+		expect(logs.capability).toBe("logs");
+		runDoctorLogs.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 2, fail: 1, skip: 2 } });
+		expect(await logs.run(input)).toEqual({ status: "fail", summary: { ok: 2, fail: 1, skip: 2 } });
+	});
+
+	it("carries the reason nothing was checked", async () => {
+		runDoctorLogs.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `logs` provider is configured",
+		});
+		expect(await logs.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 1 },
+			reason: "no `logs` provider is configured",
+		});
+	});
+});
+
 describe("the ci entry", () => {
 	const input = { loaded: {} as never, context: {} as never };
 	const ci = DEEP_CHECKS.find((c) => c.name === "ci")!;

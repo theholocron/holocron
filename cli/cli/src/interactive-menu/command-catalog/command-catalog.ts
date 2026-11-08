@@ -17,6 +17,7 @@ import { doctorCredentialsEntry } from "../../commands/doctor-credentials/doctor
 import { doctorDnsEntry } from "../../commands/doctor-dns/doctor-dns.entry.js";
 import { doctorEnvironmentsEntry } from "../../commands/doctor-environments/doctor-environments.entry.js";
 import { doctorGitHubAppEntry } from "../../commands/doctor-github-app/doctor-github-app.entry.js";
+import { doctorLogsEntry } from "../../commands/doctor-logs/doctor-logs.entry.js";
 import { doctorMonitoringEntry } from "../../commands/doctor-monitoring/doctor-monitoring.entry.js";
 import { doctorNotificationsEntry } from "../../commands/doctor-notifications/doctor-notifications.entry.js";
 import { doctorProjectEntry } from "../../commands/doctor-project/doctor-project.entry.js";
@@ -94,6 +95,7 @@ const registry = createCommandRegistry(
 		doctorCredentialsEntry,
 		doctorProjectEntry,
 		doctorGitHubAppEntry,
+		doctorLogsEntry,
 		projectMoveEntry,
 		repoPropertiesApplyEntry,
 		migrateIssueEntry,
