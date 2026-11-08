@@ -26,7 +26,7 @@ catalog:
   "@commitlint/lint": ^21.2.3
   "@commitlint/load": ^21.2.3
   "@commitlint/types": ^21.2.3
-  "@napi-rs/keyring": ^1.3.0
+  "@napi-rs/keyring": ^2.1.2
   "@semantic-release/changelog": ^6.0.3
   "@semantic-release/exec": ^7.1.0
   "@semantic-release/git": ^11.0.1
