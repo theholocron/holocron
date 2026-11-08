@@ -1,3 +1,9 @@
+## [5.0.0-alpha.379](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.378...v5.0.0-alpha.379) (2026-11-08)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 ignore MD037 only inside an MDX comment, not in all .mdx text ([#1956](https://github.com/theholocron/holocron/issues/1956)) ([b753cd3](https://github.com/theholocron/holocron/commit/b753cd31f024b9b95dc62faae3f8fe2398a9cd09)), closes [#1950](https://github.com/theholocron/holocron/issues/1950)
+
 ## [5.0.0-alpha.378](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.377...v5.0.0-alpha.378) (2026-11-08)
 
 ### Bug Fixes
