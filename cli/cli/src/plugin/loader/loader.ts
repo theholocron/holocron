@@ -20,10 +20,15 @@
 import { createPluginSystem, LoaderError } from "@theholocron/kyber/plugins";
 import { DOTENV_FILE, hasCredentials, readDotenvFile, setCredentials } from "@theholocron/kyber/secrets";
 
-import { credentialsEnvironment, type ResolvedHolocronConfig } from "../../config/config/index.js";
+import {
+	credentialsEnvironment,
+	type ProviderOptions,
+	type ResolvedHolocronConfig,
+} from "../../config/config/index.js";
 import { type CapabilityKey, CARDINALITY, type CardinalityFor, type Credentials } from "../capabilities/index.js";
 import type { PluginProbes } from "../probe/index.js";
 import type { ProviderActions } from "../provider-actions/index.js";
+import { WorkspaceContextError } from "../workspace/index.js";
 import type { HolocronCapabilities, PluginExtras, PluginLoaderOptions, RuntimeContext } from "./loader.type.js";
 
 export { LoaderError };
@@ -111,15 +116,38 @@ export class PluginLoader extends system.PluginLoader {
 	providerActions(): ReadonlyMap<string, ProviderActions> {
 		const found = new Map<string, ProviderActions>();
 		for (const [provider, plugin] of this.plugins()) {
-			if (plugin.setup || plugin.doctor) {
-				found.set(provider, {
-					...(plugin.setup ? { setup: plugin.setup } : {}),
-					...(plugin.doctor ? { doctor: plugin.doctor } : {}),
-				});
-			}
+			const actions = actionsOf(plugin);
+			if (actions.setup || actions.doctor) found.set(provider, actions);
 		}
 		return found;
 	}
+
+	/**
+	 * Loads one provider by name with the given options, whether or not `holocron.config` names it under a capability,
+	 * and returns its `setup` and `doctor` (either may be missing). It reads the provider's token the way a configured
+	 * one does (`--token`, the environment, `.env`, the `credentials` providers, the keyring) and leaves the capability
+	 * registry alone. Throws {@link WorkspaceContextError} when the provider's package cannot be imported here; any
+	 * other failure of the plugin's `createPlugin` is thrown as it is.
+	 */
+	async loadProviderActions(provider: string, options: ProviderOptions): Promise<ProviderActions> {
+		const packageName = system.resolvePackage(provider);
+		try {
+			return actionsOf(await this.loadProvider({ provider, packageName, options }));
+		} catch (err) {
+			if (err instanceof LoaderError && err.message.startsWith("failed to import")) {
+				throw new WorkspaceContextError("provider", [packageName]);
+			}
+			throw err;
+		}
+	}
+}
+
+/** The `setup` and `doctor` a created plugin carries. */
+function actionsOf(plugin: PluginExtras): ProviderActions {
+	return {
+		...(plugin.setup ? { setup: plugin.setup } : {}),
+		...(plugin.doctor ? { doctor: plugin.doctor } : {}),
+	};
 }
 
 /** Convenience re-export so callers can compute counts without importing CARDINALITY directly. */

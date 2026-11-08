@@ -7,6 +7,7 @@ import { clearCredentials, getCredential } from "@theholocron/kyber/secrets";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { resolveConfig } from "../../config/config/index.js";
+import { WorkspaceContextError } from "../workspace/index.js";
 import { cardinalityOf, LoaderError, PluginLoader } from "./loader.js";
 import type { PluginImporter } from "./loader.type.js";
 
@@ -678,6 +679,66 @@ describe("PluginLoader — setup and doctor", () => {
 		expect([...found.keys()].sort()).toEqual(["1password", "github"]);
 		expect(found.get("github")).toEqual({ setup: action });
 		expect(found.get("1password")).toEqual({ doctor: action });
+	});
+});
+
+describe("PluginLoader — a provider the config does not name", () => {
+	const action = async () => [];
+
+	it("loads it by name with the given options and token, and returns its setup and doctor", async () => {
+		const seen = vi.fn();
+		const { loader } = loaderWith(
+			{ name: "demo", providers: { source: "github" } },
+			{
+				"@theholocron/holocron-plugin-github": makePlugin("github", { source: {} }),
+				"@theholocron/holocron-plugin-linear": {
+					createPlugin: (opts: Record<string, unknown>) => {
+						seen(opts);
+						return { name: "linear", setup: action, doctor: action, capabilities: {} };
+					},
+				},
+			}
+		);
+		await loader.load();
+		const actions = await loader.loadProviderActions("linear", { team: "ENG" });
+		expect(actions).toEqual({ setup: action, doctor: action });
+		expect(seen).toHaveBeenCalledWith(expect.objectContaining({ team: "ENG", repoRoot: "/tmp/test-repo" }));
+		expect(loader.loadedKeys()).toEqual(["source"]);
+	});
+
+	it("leaves out the action a provider does not have", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: {} },
+			{
+				"@theholocron/holocron-plugin-linear": {
+					createPlugin: () => ({ name: "linear", doctor: action, capabilities: {} }),
+				},
+			}
+		);
+		expect(await loader.loadProviderActions("linear", {})).toEqual({ doctor: action });
+	});
+
+	it("is a WorkspaceContextError when the package cannot be imported", async () => {
+		const { loader } = loaderWith({ name: "demo", providers: {} }, {});
+		const err = await loader.loadProviderActions("linear", {}).catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WorkspaceContextError);
+		expect((err as WorkspaceContextError).packages).toEqual(["@theholocron/holocron-plugin-linear"]);
+	});
+
+	it("throws what createPlugin throws as it is", async () => {
+		const { loader } = loaderWith(
+			{ name: "demo", providers: {} },
+			{
+				"@theholocron/holocron-plugin-linear": {
+					createPlugin: () => {
+						throw new Error("bad options");
+					},
+				},
+			}
+		);
+		const err = await loader.loadProviderActions("linear", {}).catch((e: unknown) => e);
+		expect(err).not.toBeInstanceOf(WorkspaceContextError);
+		expect((err as Error).message).toBe("bad options");
 	});
 });
 

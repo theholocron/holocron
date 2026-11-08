@@ -4,7 +4,13 @@ import { NonInteractiveError } from "@theholocron/kyber/ui";
 import { describe, expect, it, vi } from "vitest";
 
 import type { LoadedConfig } from "../../config/index.js";
-import type { PluginLoader, ProviderAction, ProviderActions, ProviderRow } from "../../plugin/index.js";
+import {
+	type PluginLoader,
+	type ProviderAction,
+	type ProviderActions,
+	type ProviderRow,
+	WorkspaceContextError,
+} from "../../plugin/index.js";
 import { runProvider } from "./provider.js";
 
 const asked = vi.hoisted(() => vi.fn(async () => true));
@@ -207,5 +213,98 @@ describe("runProvider — setup", () => {
 		} finally {
 			Object.defineProperty(process.stdin, "isTTY", { value: was, configurable: true });
 		}
+	});
+});
+
+describe("runProvider — a provider given with --with", () => {
+	const given = vi.fn<(name: string, options: Record<string, unknown>) => Promise<ProviderActions>>();
+
+	function runWith(over: Partial<Parameters<typeof runProvider>[0]> = {}, providers: unknown = {}) {
+		const lines: string[] = [];
+		const loader = Object.assign(loaderOf({}), { loadProviderActions: given });
+		const promise = runProvider({
+			loaded: { resolved: { providers } } as unknown as LoadedConfig,
+			context: { repoRoot: "/tmp", cliToken: "sekret" },
+			loader,
+			print: (l) => lines.push(strip(l)),
+			interactive: false,
+			...over,
+		});
+		return { promise, text: () => lines.join("\n") };
+	}
+
+	it("runs a provider the config does not name, with the given options", async () => {
+		given.mockReset().mockResolvedValue({ doctor });
+		const { promise, text } = runWith({ provider: "demo", action: "doctor", options: { team: "ENG" } });
+		expect((await promise).status).toBe("ok");
+		expect(given).toHaveBeenCalledWith("demo", { team: "ENG" });
+		expect(text()).toContain("step a");
+	});
+
+	it("lays the given options over the config entry's, single or many, whichever capability holds it", async () => {
+		given.mockReset().mockResolvedValue({ doctor });
+		const providers = {
+			vault: undefined,
+			source: { cardinality: "single", tuple: { provider: "github", packageName: "x", options: { team: "no" } } },
+			projects: {
+				cardinality: "many",
+				tuples: [
+					{ provider: "other", packageName: "x", options: {} },
+					{ provider: "demo", packageName: "x", options: { team: "OLD", labels: ["a"] } },
+				],
+			},
+		};
+		await runWith({ provider: "demo", action: "doctor", options: { team: "ENG" } }, providers).promise;
+		expect(given).toHaveBeenCalledWith("demo", { team: "ENG", labels: ["a"] });
+	});
+
+	it("needs a provider name", async () => {
+		given.mockReset();
+		const { promise, text } = runWith({ options: { team: "ENG" } });
+		expect((await promise).status).toBe("fail");
+		expect(text()).toContain("`--with` needs a provider name");
+		expect(given).not.toHaveBeenCalled();
+	});
+
+	it("lists what a given provider offers when no action is named", async () => {
+		given.mockReset().mockResolvedValue({ setup });
+		const { promise, text } = runWith({ provider: "demo", options: {} });
+		expect((await promise).status).toBe("listed");
+		expect(text()).toMatch(/demo {2}setup/);
+	});
+
+	it("fails for a provider that offers neither", async () => {
+		given.mockReset().mockResolvedValue({});
+		const { promise, text } = runWith({ provider: "demo", action: "doctor", options: {} });
+		expect((await promise).status).toBe("fail");
+		expect(text()).toContain("offers neither `setup` nor `doctor`");
+	});
+
+	it("reports a provider that fails to load as a failure, not a throw", async () => {
+		given.mockReset().mockRejectedValue(new Error("bad options"));
+		const { promise, text } = runWith({ provider: "demo", action: "doctor", options: {} });
+		expect((await promise).status).toBe("fail");
+		expect(text()).toContain("`demo` did not load");
+		expect(text()).toContain("bad options");
+	});
+
+	it("lets a WorkspaceContextError through", async () => {
+		given.mockReset().mockRejectedValue(new WorkspaceContextError("provider", ["@x/plugin-demo"]));
+		const err = await runWith({ provider: "demo", action: "doctor", options: {} }).promise.catch((e: unknown) => e);
+		expect(err).toBeInstanceOf(WorkspaceContextError);
+	});
+
+	it("still asks first before a setup, and scrubs the token from what the provider prints", async () => {
+		const leaky = vi.fn<ProviderAction>(async () => [row({ detail: "used sekret here" })]);
+		given.mockReset().mockResolvedValue({ setup: leaky });
+		const refused = await runWith({ provider: "demo", action: "setup", options: {} }).promise.catch(
+			(e: unknown) => e
+		);
+		expect(refused).toBeInstanceOf(NonInteractiveError);
+		expect(leaky).not.toHaveBeenCalled();
+		const { promise, text } = runWith({ provider: "demo", action: "setup", options: {}, yes: true });
+		await promise;
+		expect(leaky).toHaveBeenCalled();
+		expect(text()).not.toContain("sekret");
 	});
 });
