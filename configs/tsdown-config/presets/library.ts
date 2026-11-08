@@ -20,10 +20,14 @@ import { resolveEntry, resolveOutDir } from "./resolve-entry.js";
  * externalized build).
  *
  * After every successful build, `onSuccess` fails it if an emitted bundle is
- * over 500KB -- the symptom of a dependency that failed to externalize
+ * over 512KB -- the symptom of a dependency that failed to externalize
  * (holocron#762). A caller's own `onSuccess` (function or shell command) runs after the check.
+ *
+ * A package that inlines other code on purpose (`apps/sentinel` inlines three workspace packages, holocron#922)
+ * raises its own limit with `maxBundleBytes`, set a little above its real size so the check still catches an
+ * accidental inline (a dependency adds megabytes) without failing every feature the package grows by.
  */
-export function library(options: UserConfig = {}) {
+export function library(options: UserConfig = {}, limits: { maxBundleBytes?: number } = {}) {
 	const merged: UserConfig = {
 		entry: ["src/index.ts"],
 		outDir: "dist",
@@ -39,7 +43,7 @@ export function library(options: UserConfig = {}) {
 		entry: resolveEntry(merged.entry),
 		outDir: resolveOutDir(merged.outDir ?? "dist"),
 		onSuccess: async (config, signal) => {
-			checkBundleSize(config.outDir);
+			checkBundleSize(config.outDir, limits.maxBundleBytes);
 			if (typeof userOnSuccess === "function") await userOnSuccess(config, signal);
 			else if (userOnSuccess) execSync(userOnSuccess, { stdio: "inherit" });
 		},

@@ -16,7 +16,9 @@ pnpm add -D @theholocron/tsdown-config tsdown
 
 Single entry point (`src/index.ts`), generates `.d.ts` type declarations, does not bundle `@theholocron/*` peers.
 
-After every successful build it also fails if an emitted `.js`/`.mjs`/`.cjs` file in `outDir` is over 500KB. That is the symptom of a dependency that failed to externalize (`deps.neverBundle` misconfigured, or a tsdown/rolldown regression), which inlines the whole tree ([holocron#762](https://github.com/theholocron/holocron/issues/762)). A caller's own `onSuccess` still runs, after the check.
+After every successful build it also fails if an emitted `.js`/`.mjs`/`.cjs` file in `outDir` is over 512KB. That is the symptom of a dependency that failed to externalize (`deps.neverBundle` misconfigured, or a tsdown/rolldown regression), which inlines the whole tree ([holocron#762](https://github.com/theholocron/holocron/issues/762)). A caller's own `onSuccess` still runs, after the check.
+
+A package that inlines other code on purpose passes its own limit as the second argument, `library(options, { maxBundleBytes })`: set it a little above the package's real size, so the check still catches a dependency inlined by mistake (that adds megabytes) without failing every feature the package grows by. `apps/sentinel`, which inlines three workspace packages, does.
 
 ```ts
 // tsdown.config.ts
