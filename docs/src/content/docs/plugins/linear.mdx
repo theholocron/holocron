@@ -115,3 +115,7 @@ Issue templates are the one declared thing that is not applied. Linear's schema 
 ## Migrating
 
 `holocron migrate` moves issues between any two providers that have `export` and `import` — GitHub and Linear today. See [migrate](/holocron/commands/migrate/). Every run, dry or not, ends by listing what the target could not carry.
+
+## Syncing
+
+`holocron sync issues --from github --to linear:team=ENG` (and the other way round) keeps the issues up to date, one direction at a time. Linear takes part as a target through `sync`: a missing issue is made as `migrate` makes it, and one a migrate or sync made (found through its `Migrated from` attachment) has title, description, priority, state, labels and assignee set to the source's when they differ, and the comments it lacks added. A state is compared by name when the source names one and by category otherwise, so a move between two open states in Linear is not undone. The assignee is matched by email and never cleared. As a source, an issue's `Migrated from` attachment is read, which is what keeps the reverse sync from copying it back. See [sync issues](/holocron/commands/sync-issues/).

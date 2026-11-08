@@ -46,4 +46,6 @@ Two trackers never hold the same things. Each run ends with a `not carried acros
 
 Each target records the source address (a `holocron:migrated-from` marker on GitHub, an attachment on Linear), so a second run skips what the first made. An interrupted run is finished by running it again.
 
+To keep the target up to date afterwards, with updates and new comments, use [sync issues](/holocron/commands/sync-issues/); `migrate` only creates.
+
 A provider takes part by implementing the optional `export` and `import` methods of the `issues` capability.

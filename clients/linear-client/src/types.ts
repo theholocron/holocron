@@ -189,6 +189,8 @@ export interface LinearIssue {
 	project: LinearNamedRef | null;
 	/** The parent issue, when it is a sub-issue. */
 	parent: LinearIssueRef | null;
+	/** The links attached to the issue; absent when the read did not ask for them. */
+	attachments?: LinearNodes<{ url: string; title: string }>;
 	/** Relations that start at this issue (it `blocks` the related one). */
 	relations: LinearNodes<LinearRelation>;
 	/** Relations that point at this issue (the `issue` of a `blocks` one blocks it). */

@@ -1,0 +1,53 @@
+---
+title: sync issues
+description: Keep the issues on one tracker up to date from another, one direction, without echoing back.
+---
+
+```bash
+holocron sync issues --from <source> --to <target> [--since <time>] [--yes] [--dry-run]
+```
+
+`--from` and `--to` are `provider` or `provider:key=value,...`, as for [migrate](/holocron/commands/migrate/), for example `--from github --to linear:team=ENG`. GitHub to Linear and Linear to GitHub are the same command with the ends swapped; run them separately and configure them separately. Two one-way syncs never share state, so a failed run on one side cannot leave the other wrong.
+
+Unlike `migrate`, a sync updates what it made. For each issue on the source it finds the issue it made on the target (by the recorded source address) and:
+
+- creates it when it is missing, as `migrate` does;
+- sets title, description, state, priority, labels and assignee to what the source has, when they differ;
+- adds the comments the target lacks, oldest first. A comment is never edited or deleted.
+
+It writes nothing to the source, ever, and changes a target issue only when a `migrate` or a sync made it (the `holocron:migrated-from` marker on GitHub, the attachment on Linear). An issue someone made on the target by hand is not touched, and one whose marker was edited out is treated as unknown and made again.
+
+| Flag        | Meaning                                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------------------- |
+| `--since`   | only issues changed since a date (`2026-03-01`) or a span back from now (`30m`, `12h`, `7d`, `2w`)          |
+| `--yes`     | do not ask first (a scheduled run needs it; without a terminal the command refuses instead of hanging)      |
+| `--dry-run` | read both sides and write nothing; prints what would be created or updated, and what would not carry across |
+
+## The loop guard
+
+A sync skips any source issue that itself carries a recorded address from the other tracker. An issue copied from GitHub to Linear has a `Migrated from` attachment on Linear, so the Linear to GitHub sync skips it; an issue copied from Linear to GitHub has the marker, so the GitHub to Linear sync skips it. The check is made on the source, before anything is written, and each skipped issue is listed. Running GitHub to Linear and then Linear to GitHub on the same pair creates nothing in either tracker the second time.
+
+## The report
+
+Every issue prints a row (`created`, `updated: title, state`, `unchanged`), then one summary line with the counts:
+
+```text
+github to linear: created 3, updated 1, unchanged 40, skipped (guard) 2, left 0
+```
+
+and the same `not carried across` list as `migrate`, with one line per loss and the number of issues it hit.
+
+## Interrupted and rate limited runs
+
+A failure part-way leaves every finished issue correct, and the next run continues. A provider rate limit stops the run cleanly: the issues not reached are the `left` count, and running it again does them. A write that failed is not repeated inside the run, so a failed create cannot become two issues.
+
+## Limits
+
+- **Assignees** are matched by email. A Linear user is found by the email on the GitHub account, and a GitHub login cannot be found from a Linear user, so a sync to GitHub keeps no assignee (it says `assignee (not mapped)`). A source with no assignee leaves the target's assignee alone.
+- **Labels** on the target are set to the source's. A label added by hand to a synced Linear issue is removed by the next run; GitHub `status:*` labels are kept.
+- **Priority** on GitHub is the `priority: <level>` label, as in `migrate`.
+- A comment edited on the source after it was copied is not copied again. A comment deleted on the target is added back.
+- A source issue that is deleted leaves its copy in place. An issue moved between teams on Linear is new on the next run.
+- Two syncs running at once on the same pair can make a duplicate; schedule them apart. Scheduling itself (a reusable workflow and a thin caller) is not part of this command yet.
+
+A provider takes part as a source with `export` and as a target with the optional `sync` method of the `issues` capability. GitHub and Linear have both.

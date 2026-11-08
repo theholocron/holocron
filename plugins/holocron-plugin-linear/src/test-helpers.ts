@@ -75,13 +75,16 @@ export function issue(over: Record<string, unknown> = {}) {
 	};
 }
 
-/** A scope over a fake, with the team and its states already routed. */
-export function scopeWith(routes: Array<[RegExp, Handler | unknown]>) {
+/** A scope over a fake, with the team and its states already routed. `wrap` can make the fake fail a request. */
+export function scopeWith(
+	routes: Array<[RegExp, Handler | unknown]>,
+	wrap: (fetch: typeof globalThis.fetch) => typeof globalThis.fetch = (f) => f
+) {
 	const fake = fakeLinear([
 		...routes,
 		[/teams\(first/, { teams: nodes([TEAM]) }],
 		[/workflowStates\(first/, { workflowStates: nodes(STATES) }],
 	]);
-	const client = createLinearClient({ token: "lin_api_x", fetch: fake.fetch });
+	const client = createLinearClient({ token: "lin_api_x", fetch: wrap(fake.fetch) });
 	return { ...fake, scope: createTeamScope(client, "ENG") };
 }
