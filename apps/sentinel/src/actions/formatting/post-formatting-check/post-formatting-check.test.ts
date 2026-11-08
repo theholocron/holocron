@@ -71,6 +71,7 @@ describe("postFormattingCheck — findings", () => {
 						line: 1,
 						reason: "Not formatted according to this org's shared prettier config — run `prettier --write` to fix.",
 						formatted: "const x = 1;\n",
+						scopedFix: "const x = 1;\n",
 					},
 				],
 			},
@@ -91,7 +92,7 @@ describe("postFormattingCheck — findings", () => {
 			result: {
 				valid: false,
 				fileCount: 1,
-				messages: [{ file: "src/index.js", line: 12, reason: "reformat me", formatted: "x" }],
+				messages: [{ file: "src/index.js", line: 12, reason: "reformat me", formatted: "x", scopedFix: "x" }],
 			},
 			runId: "run-3",
 		});
@@ -115,7 +116,7 @@ describe("postFormattingCheck — inline annotations (holocron#816)", () => {
 			result: {
 				valid: false,
 				fileCount: 1,
-				messages: [{ file: "src/index.js", line: 42, reason: "reformat me", formatted: "x" }],
+				messages: [{ file: "src/index.js", line: 42, reason: "reformat me", formatted: "x", scopedFix: "x" }],
 			},
 			runId: "run-4",
 		});
@@ -151,6 +152,7 @@ describe("postFormattingCheck — inline annotations (holocron#816)", () => {
 			line: 1,
 			reason: `reason ${i}`,
 			formatted: "x",
+			scopedFix: "x",
 		}));
 
 		await postFormattingCheck({

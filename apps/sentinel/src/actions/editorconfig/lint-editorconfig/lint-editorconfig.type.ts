@@ -20,6 +20,8 @@ export interface EditorConfigFix {
 	file: string;
 	/** The full corrected file content — `commit-editorconfig-fix.ts`'s own input, same shape as `FormattingMessage.formatted`. */
 	fixed: string;
+	/** `fixed` limited to the changes on lines the pull request added, judged line by line (holocron#1950), what the auto-fix commit writes; `null` when none of the fix is on such a line. */
+	scopedFix: string | null;
 }
 
 export interface LintEditorConfigResult {

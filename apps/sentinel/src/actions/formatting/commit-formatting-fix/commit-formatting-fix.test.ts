@@ -16,14 +16,14 @@ beforeEach(() => {
 });
 
 describe("commitFormattingFix", () => {
-	it("maps each message's file/formatted content to commitFiles()'s { path, content } shape", async () => {
+	it("maps each message's file/scoped fix to commitFiles()'s { path, content } shape", async () => {
 		vi.mocked(commitFiles).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 2 });
 		const result: LintFormattingResult = {
 			valid: false,
 			fileCount: 2,
 			messages: [
-				{ file: "a.js", line: 1, reason: "...", formatted: "const a = 1;\n" },
-				{ file: "b.js", line: 1, reason: "...", formatted: "const b = 2;\n" },
+				{ file: "a.js", line: 1, reason: "...", formatted: "const a = 1;\n", scopedFix: "const a = 1;\n" },
+				{ file: "b.js", line: 1, reason: "...", formatted: "const b = 2;\n", scopedFix: "const b = 2;\n" },
 			],
 		};
 
@@ -64,5 +64,35 @@ describe("commitFormattingFix", () => {
 
 		const call = vi.mocked(commitFiles).mock.calls[0]?.[0];
 		expect(call?.message).toContain(SENTINEL_SIGNOFF_TRAILER);
+	});
+
+	it("writes only the scoped fix, never the whole formatted file, and leaves a file with no scoped fix out (holocron#1950)", async () => {
+		vi.mocked(commitFiles).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+		const result: LintFormattingResult = {
+			valid: false,
+			fileCount: 2,
+			messages: [
+				{
+					file: "a.js",
+					line: 1,
+					reason: "...",
+					formatted: "const a = 1;\nconst z = 9;\n",
+					scopedFix: "const a = 1;\nconst z=9 ;\n",
+				},
+				{ file: "b.js", line: 1, reason: "...", formatted: "const b = 2;\n", scopedFix: null },
+			],
+		};
+
+		await commitFormattingFix({
+			client: FAKE_CLIENT as never,
+			repo: "acme/demo",
+			headSha: "sha1",
+			headRef: "feature",
+			result,
+		});
+
+		expect(commitFiles).toHaveBeenCalledWith(
+			expect.objectContaining({ files: [{ path: "a.js", content: "const a = 1;\nconst z=9 ;\n" }] })
+		);
 	});
 });

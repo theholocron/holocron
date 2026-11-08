@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 describe("commitEditorConfigFix", () => {
-	it("maps each fix's file/fixed content to commitFiles()'s { path, content } shape", async () => {
+	it("maps each fix's file/scoped fix to commitFiles()'s { path, content } shape", async () => {
 		vi.mocked(commitFiles).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 2 });
 		const result: LintEditorConfigResult = {
 			valid: false,
@@ -26,8 +26,8 @@ describe("commitEditorConfigFix", () => {
 				{ file: "b.ts", line: 1, reason: "Missing final newline." },
 			],
 			fixes: [
-				{ file: "a.ts", fixed: "const a = 1;\n" },
-				{ file: "b.ts", fixed: "const b = 2;\n" },
+				{ file: "a.ts", fixed: "const a = 1;\n", scopedFix: "const a = 1;\n" },
+				{ file: "b.ts", fixed: "const b = 2;\n", scopedFix: "const b = 2;\n" },
 			],
 		};
 
@@ -89,5 +89,30 @@ describe("commitEditorConfigFix", () => {
 
 		expect(commitFiles).toHaveBeenCalledWith(expect.objectContaining({ files: [] }));
 		expect(outcome).toEqual({ committed: false, fileCount: 0 });
+	});
+
+	it("writes only the scoped fix and leaves a file with no scoped fix out (holocron#1950)", async () => {
+		vi.mocked(commitFiles).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+		const result: LintEditorConfigResult = {
+			valid: false,
+			fileCount: 2,
+			messages: [],
+			fixes: [
+				{ file: "a.ts", fixed: "full\n", scopedFix: "part\n" },
+				{ file: "b.ts", fixed: "full\n", scopedFix: null },
+			],
+		};
+
+		await commitEditorConfigFix({
+			client: FAKE_CLIENT as never,
+			repo: "acme/demo",
+			headSha: "sha1",
+			headRef: "feature",
+			result,
+		});
+
+		expect(commitFiles).toHaveBeenCalledWith(
+			expect.objectContaining({ files: [{ path: "a.ts", content: "part\n" }] })
+		);
 	});
 });

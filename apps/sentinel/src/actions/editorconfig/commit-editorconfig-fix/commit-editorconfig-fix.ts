@@ -12,7 +12,8 @@ export async function commitEditorConfigFix(input: CommitEditorConfigFixInput): 
 		repo,
 		headSha,
 		headRef,
-		files: result.fixes.map((f) => ({ path: f.file, content: f.fixed })),
+		// Only the part of the fix on lines the pull request added (holocron#1950); a file with none is left out.
+		files: result.fixes.flatMap((f) => (f.scopedFix === null ? [] : [{ path: f.file, content: f.scopedFix }])),
 		message: COMMIT_MESSAGE,
 	});
 }

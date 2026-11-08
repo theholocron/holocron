@@ -74,7 +74,7 @@
 import { isEditorConfigExcluded } from "@theholocron/astromech/lint";
 import { matcher, type Props } from "editorconfig";
 
-import { decodeContents } from "../../../utils/index.js";
+import { addedLines, decodeContents, scopeFix } from "../../../utils/index.js";
 import type {
 	EditorConfigFix,
 	EditorConfigMessage,
@@ -262,7 +262,14 @@ export async function lintEditorConfig(input: LintEditorConfigInput): Promise<Li
 		}
 
 		const fixed = fixContent(text, props);
-		if (fixed !== text) fixes.push({ file: target.filename, fixed });
+		// Each of editorconfig's edits is one line's own, so a line the pull request did not add is left alone.
+		if (fixed !== text) {
+			fixes.push({
+				file: target.filename,
+				fixed,
+				scopedFix: scopeFix(text, fixed, addedLines(target.patch), { perLine: true }),
+			});
+		}
 	}
 
 	return { valid: messages.length === 0, fileCount: candidates.length, messages, fixes };

@@ -12,7 +12,8 @@ export async function commitFormattingFix(input: CommitFormattingFixInput): Prom
 		repo,
 		headSha,
 		headRef,
-		files: result.messages.map((m) => ({ path: m.file, content: m.formatted })),
+		// Only the part of the fix on lines the pull request added (holocron#1950); a file with none is left out.
+		files: result.messages.flatMap((m) => (m.scopedFix === null ? [] : [{ path: m.file, content: m.scopedFix }])),
 		message: COMMIT_MESSAGE,
 	});
 }

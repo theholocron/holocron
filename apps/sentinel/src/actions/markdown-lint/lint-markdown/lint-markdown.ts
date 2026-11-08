@@ -49,7 +49,7 @@ import MARKDOWNLINT_CONFIG from "@theholocron/markdownlint-config";
 import { applyFixes, type LintError } from "markdownlint";
 import { lint } from "markdownlint/promise";
 
-import { decodeContents, isIgnored } from "../../../utils/index.js";
+import { addedLines, decodeContents, isIgnored, scopeFix } from "../../../utils/index.js";
 import { insideJsxComment } from "../inside-jsx-comment/index.js";
 import type {
 	LintMarkdownInput,
@@ -88,6 +88,7 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 			!isIgnored(f.filename, ALEX_IGNORE_PATTERNS)
 	);
 
+	const patches = new Map(targets.map((t) => [t.filename, t.patch]));
 	const strings: Record<string, string> = {};
 	for (const target of targets) {
 		const contents = await client.git.getContents(repo, target.filename, ref);
@@ -114,7 +115,14 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 		}
 
 		const fixed = applyFixes(strings[file]!, errors);
-		if (fixed !== strings[file]) fixes.push({ file, fixed });
+		// markdownlint's edits are one line's own, so a line the pull request did not add is left alone (holocron#1950).
+		if (fixed !== strings[file]) {
+			fixes.push({
+				file,
+				fixed,
+				scopedFix: scopeFix(strings[file]!, fixed, addedLines(patches.get(file)), { perLine: true }),
+			});
+		}
 	}
 
 	return { valid: messages.length === 0, fileCount: targets.length, messages, fixes };

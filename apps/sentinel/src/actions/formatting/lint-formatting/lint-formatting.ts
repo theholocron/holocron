@@ -47,7 +47,7 @@ import { PRETTIER_IGNORE_PATTERNS } from "@theholocron/astromech/lint";
 import PRETTIER_CONFIG from "@theholocron/prettier-config";
 import { check, format, getFileInfo, type Options } from "prettier";
 
-import { decodeContents, isIgnored } from "../../../utils/index.js";
+import { addedLines, decodeContents, isIgnored, scopeFix } from "../../../utils/index.js";
 import type { FormattingMessage, LintFormattingInput, LintFormattingResult } from "./lint-formatting.type.js";
 
 /** Matches a plain `*.ext` or `prefix*.ext` pattern against a bare filename — every `PRETTIER_CONFIG.overrides[].files` entry is one of these two shapes, never a real glob, so this is deliberately not a general-purpose matcher. */
@@ -118,6 +118,8 @@ export async function lintFormatting(input: LintFormattingInput): Promise<LintFo
 			line: firstDifferingLine(text, formatted),
 			reason: "Not formatted according to this org's shared prettier config — run `prettier --write` to fix.",
 			formatted,
+			// Prettier's fix is structural, so a run of changed lines stays together (a re-padded table is one hunk).
+			scopedFix: scopeFix(text, formatted, addedLines(target.patch)),
 		});
 	}
 

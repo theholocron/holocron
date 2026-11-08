@@ -56,6 +56,7 @@ describe("lintFormatting — a file that needs reformatting", () => {
 				line: 1,
 				reason: "Not formatted according to this org's shared prettier config — run `prettier --write` to fix.",
 				formatted: "const x = 1;\n",
+				scopedFix: "const x = 1;\n",
 			},
 		]);
 	});
