@@ -35,7 +35,7 @@
  * head ref via `GitHubClient.git.getContents(repo, path, ref)` — a
  * same-repo PR branch, not a fork's.
  *
- * One `lint()` call for every candidate file's content of one config (two calls at most: `.md` and `.mdx`), not a per-file
+ * One `lint()` call for every candidate file's content, not a per-file
  * loop — `markdownlint`'s own `strings` option is designed to batch-lint
  * multiple named contents in a single call, returning results keyed by
  * the same names given (`LintResults`); every content fetch is still one
@@ -46,10 +46,11 @@
 
 import { ALEX_IGNORE_PATTERNS } from "@theholocron/astromech/lint";
 import MARKDOWNLINT_CONFIG from "@theholocron/markdownlint-config";
-import { applyFixes } from "markdownlint";
+import { applyFixes, type LintError } from "markdownlint";
 import { lint } from "markdownlint/promise";
 
 import { decodeContents, isIgnored } from "../../../utils/index.js";
+import { insideJsxComment } from "../inside-jsx-comment/index.js";
 import type {
 	LintMarkdownInput,
 	LintMarkdownResult,
@@ -60,13 +61,21 @@ import type {
 const MARKDOWN_EXTENSIONS = [".md", ".mdx"];
 
 /**
- * The config for an `.mdx` file: the org's, without `no-space-in-emphasis` (MD037). markdownlint parses Markdown and
- * not MDX, so it reads JSX such as `{/* a comment *\/}` as emphasis with spaces inside, and its fix strips the spaces
+ * Whether markdownlint's finding `e` in `file` is its misreading of an MDX comment. markdownlint parses Markdown and
+ * not MDX, so it reads `{/* a comment *\/}` as emphasis with spaces inside (MD037), and its fix strips the spaces
  * that prettier's MDX formatting puts back: on #1949 the two fixers committed 34 times undoing each other
- * (holocron#1950). Every other rule still applies to an `.mdx` file; add to this list only a rule that is shown to
- * misread MDX the same way.
+ * (holocron#1950). Only that rule, only in an `.mdx` file and only inside a comment is ignored; real emphasis in an
+ * `.mdx` file and every other rule are still reported. Add a case here only when a rule is shown to misread MDX the
+ * same way.
  */
-const MDX_CONFIG = { ...MARKDOWNLINT_CONFIG, "no-space-in-emphasis": false };
+function misreadsMdxComment(file: string, content: string, e: LintError): boolean {
+	return (
+		file.endsWith(".mdx") &&
+		e.ruleNames.includes("MD037") &&
+		e.errorRange !== null &&
+		insideJsxComment(content, e.lineNumber, e.errorRange[0]!, e.errorRange[1])
+	);
+}
 
 export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdownResult> {
 	const { client, repo, pullNumber, ref } = input;
@@ -85,18 +94,12 @@ export async function lintMarkdown(input: LintMarkdownInput): Promise<LintMarkdo
 		strings[target.filename] = decodeContents(contents.content);
 	}
 
-	// One `lint()` call per config: `.md` files with the org's, `.mdx` files with it minus the rule above.
-	const names = Object.keys(strings);
-	const pick = (wanted: string[]) => Object.fromEntries(wanted.map((name) => [name, strings[name]!]));
-	const [md, mdx] = [names.filter((n) => !n.endsWith(".mdx")), names.filter((n) => n.endsWith(".mdx"))];
-	const results = {
-		...(md.length > 0 ? await lint({ config: MARKDOWNLINT_CONFIG, strings: pick(md) }) : {}),
-		...(mdx.length > 0 ? await lint({ config: MDX_CONFIG, strings: pick(mdx) }) : {}),
-	};
+	const results = await lint({ config: MARKDOWNLINT_CONFIG, strings });
 
 	const messages: MarkdownLintMessage[] = [];
 	const fixes: MarkdownLintFix[] = [];
-	for (const [file, errors] of Object.entries(results)) {
+	for (const [file, found] of Object.entries(results)) {
+		const errors = found.filter((e) => !misreadsMdxComment(file, strings[file]!, e));
 		if (errors.length === 0) continue;
 
 		for (const e of errors) {

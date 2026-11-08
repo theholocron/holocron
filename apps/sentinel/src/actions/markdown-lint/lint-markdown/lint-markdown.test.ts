@@ -191,6 +191,37 @@ describe("lintMarkdown — scoping", () => {
 			expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
 		});
 
+		it("still reports real emphasis with spaces inside in an .mdx file, outside any comment", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{ status: 200, body: contentsBody("# Title\n\nHere is some * emphasized * text.\n") },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.ruleNames)).toContainEqual(expect.arrayContaining(["MD037"]));
+			expect(result.fixes).toHaveLength(1);
+		});
+
+		it("reports only the real emphasis when a comment and real emphasis share an .mdx file, and fixes only that", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{
+					status: 200,
+					body: contentsBody(
+						"# Title\n\nA cell {/* holocron-allow-old-name */}\n\nHere is some * emphasized * text.\n"
+					),
+				},
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.line)).toEqual([5, 5]);
+			expect(result.fixes).toHaveLength(1);
+			expect(result.fixes[0]!.fixed).toContain("{/* holocron-allow-old-name */}");
+			expect(result.fixes[0]!.fixed).toContain("Here is some *emphasized* text.");
+		});
+
 		it("still reports every other rule in an .mdx file", async () => {
 			const { client } = makeClient([
 				{ status: 200, body: [file("docs/probe.mdx")] },
