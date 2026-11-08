@@ -672,6 +672,57 @@ describe("DiscordNotifications discussions: starter reactions", () => {
 	});
 });
 
+describe("DiscordNotifications discussions: link previews", () => {
+	const tag = (id: string, name: string) => ({ id, name, moderated: true, emoji_id: null, emoji_name: null });
+	const FORUM = {
+		id: "2010",
+		name: "prs",
+		type: ChannelType.Forum,
+		available_tags: [tag("902", "waiting")],
+	};
+	const post = {
+		id: "5",
+		name: "holocron#1: A",
+		type: 11,
+		parent_id: "2010",
+		applied_tags: ["902"],
+		thread_metadata: {
+			archived: false,
+			auto_archive_duration: 10080,
+			archive_timestamp: "2026-10-01T00:00:00.000Z",
+			locked: false,
+		},
+	};
+	const make = (feeds?: { prs: boolean }) =>
+		makeProvisioner(
+			[
+				{ body: [FORUM] },
+				{ body: { threads: [], members: [] } },
+				{ body: { threads: [], has_more: false } },
+				{ body: post },
+			],
+			{
+				guildId: GUILD,
+				layout: { categories: [{ name: "BUILD", channels: [{ name: "prs", kind: "forum", feeds }] }] },
+			}
+		);
+	const input = { channel: "prs", key: "o/r#1", title: "r#1: A", body: "About A.", state: "waiting" };
+
+	it("hides them in a forum with the pull-request feed", async () => {
+		const { notifs, calls } = make({ prs: true });
+		await notifs.ensureDiscussion(input);
+		expect(calls[3]?.body).toMatchObject({ message: { flags: 4 } });
+	});
+
+	it("leaves them in a forum without it, and where the feed is off", async () => {
+		for (const feeds of [undefined, { prs: false }]) {
+			const { notifs, calls } = make(feeds);
+			await notifs.ensureDiscussion(input);
+			expect(calls[3]?.body).not.toHaveProperty("message.flags");
+		}
+	});
+});
+
 describe("DiscordNotifications server creation and ownership", () => {
 	const NEW = "9000000000000000001";
 

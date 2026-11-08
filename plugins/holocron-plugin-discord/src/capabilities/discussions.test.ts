@@ -2,7 +2,7 @@ import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
 import { ChannelType, createDiscordBotClient, type DiscordChannel, MessageFlag } from "../rest.js";
-import { DiscordDiscussions } from "./discussions.js";
+import { DiscordDiscussions, type DiscussionDeps } from "./discussions.js";
 
 const BASE = "https://discord.test/api/v10";
 const GUILD = "111";
@@ -39,10 +39,19 @@ const listing = (active: unknown[], archived: unknown[] = []) => [
 	{ body: { threads: archived, has_more: false } },
 ];
 
-function make(responses: Parameters<typeof stubFetch>[0], channels: DiscordChannel[] = [FORUM]) {
+function make(
+	responses: Parameters<typeof stubFetch>[0],
+	channels: DiscordChannel[] = [FORUM],
+	deps: Partial<DiscussionDeps> = {}
+) {
 	const { fetch, calls } = stubFetch(responses);
 	const bot = createDiscordBotClient({ botToken: "tok", baseUrl: BASE, fetch });
-	const discussions = new DiscordDiscussions({ bot: () => bot, guild: () => GUILD, channels: async () => channels });
+	const discussions = new DiscordDiscussions({
+		bot: () => bot,
+		guild: () => GUILD,
+		channels: async () => channels,
+		...deps,
+	});
 	return { discussions, calls };
 }
 
@@ -697,6 +706,45 @@ describe("DiscordDiscussions — a document whose file moved", () => {
 			/-# sync: docs\/wiki\/specifications\/old\.spec\.md \| $/
 		);
 		expect((await discussions.read("ideas", NEW))?.synced).toBeUndefined();
+	});
+});
+
+describe("DiscordDiscussions — link previews of a feed forum", () => {
+	const KEY = "theholocron/holocron#123";
+	const noPreviews = { suppressEmbeds: (channel: string) => channel === "ideas" };
+	const message = (id: string, content: string) => ({ id, channel_id: "5", content });
+	const body = first("5", `Title line\n\n${footer(KEY, "proposed")}`);
+
+	it("hides them on the first message of a post it makes, with notifications still honoured", async () => {
+		const { discussions, calls } = make([...listing([]), { body: thread("5") }], [FORUM], noPreviews);
+		await discussions.ensure({ ...INPUT, quiet: true });
+		expect(calls[2]?.body).toMatchObject({ message: { flags: MessageFlag.SuppressEmbeds | 4096 } });
+	});
+
+	it("hides them when it edits the first message, so an old post loses its previews", async () => {
+		const { discussions, calls } = make(
+			[...listing([thread("5")]), body, { body: message("5", "x") }],
+			[FORUM],
+			noPreviews
+		);
+		await discussions.update("ideas", KEY, { body: "New." });
+		expect(calls[3]?.body).toMatchObject({ flags: MessageFlag.SuppressEmbeds });
+	});
+
+	it("hides them on a message it appends", async () => {
+		const { discussions, calls } = make(
+			[...listing([thread("5")]), body, { body: message("9", "hi") }],
+			[FORUM],
+			noPreviews
+		);
+		await discussions.post("ideas", KEY, "hi", { quiet: true });
+		expect(calls[3]?.body).toMatchObject({ flags: MessageFlag.SuppressEmbeds | MessageFlag.SuppressNotifications });
+	});
+
+	it("leaves the previews alone in a forum that is not a feed", async () => {
+		const { discussions, calls } = make([...listing([thread("5")]), body, { body: message("9", "hi") }]);
+		await discussions.post("ideas", KEY, "hi");
+		expect(calls[3]?.body).not.toHaveProperty("flags");
 	});
 });
 
