@@ -20,6 +20,16 @@ beforeEach(() => {
 
 const load = () => loadServiceAccountKey(createEnvLookup(source));
 
+describe("loadServiceAccountKey with the default lookup", () => {
+	it("reads HOLOCRON_GOOGLE_* first and the bare GOOGLE_* as a fallback", () => {
+		vi.stubEnv("GOOGLE_SERVICE_ACCOUNT_JSON", JSON.stringify({ project_id: "bare" }));
+		expect(loadServiceAccountKey()).toEqual({ project_id: "bare" });
+		vi.stubEnv("HOLOCRON_GOOGLE_SERVICE_ACCOUNT_JSON", JSON.stringify({ project_id: "prefixed" }));
+		expect(loadServiceAccountKey()).toEqual({ project_id: "prefixed" });
+		vi.unstubAllEnvs();
+	});
+});
+
 describe("loadServiceAccountKey", () => {
 	it("parses GOOGLE_SERVICE_ACCOUNT_JSON when set", () => {
 		const creds = { type: "service_account", project_id: "json-project" };

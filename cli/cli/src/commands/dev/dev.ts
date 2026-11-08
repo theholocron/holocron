@@ -7,7 +7,7 @@
  */
 
 import { superviseProcesses } from "@theholocron/dagobah";
-import type { Environment } from "@theholocron/env-utils/lookup";
+import { type Environment, PREFIX } from "@theholocron/env-utils/lookup";
 import { describeError, style, withSpinner } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
@@ -110,7 +110,12 @@ export async function runDev(input: RunDevInput): Promise<DevReport> {
 			primary: {
 				command: program as string,
 				args,
-				env: { ENVIRONMENT: APP_ENVIRONMENT, ...values, PORT: String(input.port) },
+				env: {
+					ENVIRONMENT: APP_ENVIRONMENT,
+					...values,
+					PORT: String(input.port),
+					[`${PREFIX}_PORT`]: String(input.port),
+				},
 			},
 			companion: {
 				command: "cloudflared",

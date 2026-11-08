@@ -52,6 +52,12 @@ describe("docsPresenceProbe", () => {
 		expect(addedFiles).toHaveBeenLastCalledWith("abc123");
 	});
 
+	it("prefers HOLOCRON_BASE_SHA over BASE_SHA", async () => {
+		const addedFiles = vi.fn(() => []);
+		await run(makeIo({ addedFiles, env: { HOLOCRON_BASE_SHA: "new", BASE_SHA: "old" } }));
+		expect(addedFiles).toHaveBeenLastCalledWith("new");
+	});
+
 	it("skips quietly when git cannot say what changed", async () => {
 		const rows = await run(
 			makeIo({

@@ -1,13 +1,14 @@
-import { createEnvLookup, type EnvLookup } from "@theholocron/env-utils/lookup";
+import { type EnvLookup, holocronEnv } from "@theholocron/env-utils/lookup";
 
 /**
  * Load service account credentials from environment variables.
+ * Each variable is read as `HOLOCRON_<NAME>` first, then the bare `<NAME>`.
  * Set GOOGLE_SERVICE_ACCOUNT_JSON to the full JSON key file content,
  * or set individual GOOGLE_* variables for each field.
  *
  * @param env - Where to read the variables from; defaults to the process environment, pass a fake in tests.
  */
-export function loadServiceAccountKey(env: EnvLookup = createEnvLookup()): Record<string, string> {
+export function loadServiceAccountKey(env: EnvLookup = holocronEnv()): Record<string, string> {
 	const raw = env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
 	if (raw) {
 		return JSON.parse(raw) as Record<string, string>;

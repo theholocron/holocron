@@ -118,7 +118,7 @@ holocron.
 
 ```
 
-- `vault` (optional) — the 1Password vault name items live in. Only `list()` needs it (`read` and `write` take the vault from the `op://` reference), and Environments are not in a vault, so a project that only reads an Environment can leave it out.
+- `vault` (optional) — the 1Password vault name items live in. `list()` needs it, or an `environment` (see below) (`read` and `write` take the vault from the `op://` reference), and Environments are not in a vault, so a project that only reads an Environment can leave it out.
 - `account` (optional) — 1P account UUID. Passes `--account <UUID>`
   on every `op` call so the integration targets a specific account
   even when the developer has multiple signed in (e.g., work +
@@ -130,7 +130,7 @@ holocron.
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `read(reference)`             | `op read <reference>` — resolves `op://Vault/Item/field`. `--no-newline`.                                                                                                                                                                                                   |
 | `write(reference, v)`         | Probe + `op item edit` if exists, else `op item create --category=API Credential`.                                                                                                                                                                                          |
-| `list()`                      | `op item list --vault=<vault> --format=json` — names of items in the vault.                                                                                                                                                                                                 |
+| `list()`                      | `op item list --vault=<vault> --format=json` — names of items in the vault; with only an `environment` set, the variable names of that Environment (`repo setup` calls it). Neither is an error.                                                                            |
 | `readSecret(name)`            | Reads one variable of the Environment named by the `environment` option, through the same `op environment secret list`; refuses without that option. Lets a caller (the `comlink deliver` probe) ask for a secret by its bare name.                                         |
 | `readEnvironment(name or id)` | `op environment secret list <name or id> --reveal --format=dotenv` — parses the variables into a record (a multi-line PEM key, which `op` prints unquoted, is read whole). `op environment read` takes only an id, so this reads through `secret list`, which takes either. |
 

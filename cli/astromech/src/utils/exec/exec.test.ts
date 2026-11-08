@@ -6,9 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { realExec } from "./exec.js";
 
-// Each case spawns a real Node process; under a loaded full-suite run that can
-// take longer than the default 5s.
-describe("realExec", { timeout: 30_000 }, () => {
+describe("realExec", () => {
 	let dir: string | undefined;
 	afterEach(() => {
 		if (dir) rmSync(dir, { recursive: true, force: true });

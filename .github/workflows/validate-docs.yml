@@ -33,8 +33,13 @@ jobs:
         with:
           task: validate:docs
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HOLOCRON_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           # The PR title and description, read by the script for a `feat` and a `[skip docs] <reason>` marker. They
           # reach the script through the environment, never inline in a command.
+          HOLOCRON_PR_TITLE: ${{ github.event.pull_request.title }}
+          HOLOCRON_PR_BODY: ${{ github.event.pull_request.body }}
+          # The bare names stay until every caller's CLI reads the prefixed ones (#1864); a CLI that predates them
+          # reads only these.
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}

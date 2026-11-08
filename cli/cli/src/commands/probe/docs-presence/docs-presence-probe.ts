@@ -5,6 +5,7 @@ import {
 	packageOf,
 	parseSkipDocs,
 } from "@theholocron/astromech/repo-validation";
+import { holocronEnv } from "@theholocron/env-utils/lookup";
 
 import type { Probe } from "../../../plugin/index.js";
 import type { DocsPresenceIo } from "./docs-presence.type.js";
@@ -25,14 +26,15 @@ function newPublicPackages(addedFiles: readonly string[], io: DocsPresenceIo): s
  * root `index`) with no docs signal for that package: its README, a docs page named after it, or a doc comment added
  * in its source. `[skip docs] <reason>` in the PR description (`PR_BODY`) or a commit message excuses it, scoped with
  * `[skip docs: <package>]`; a marker with no reason excuses nothing. This is the `docsEnforcement` job of
- * `platform.repoValidation`. The base to diff against is `BASE_SHA` (default `HEAD~1`).
+ * `platform.repoValidation`. The base to diff against is `HOLOCRON_BASE_SHA`, else `BASE_SHA` (default `HEAD~1`); the title and body are `HOLOCRON_PR_TITLE` / `HOLOCRON_PR_BODY`, else `PR_TITLE` / `PR_BODY`.
  */
 export function docsPresenceProbe(io: DocsPresenceIo): Probe {
 	return {
 		summary: "Warn when a new package, or a feat to one, ships without a docs change (never fails).",
 		writes: false,
 		async run(ctx) {
-			const base = io.env["BASE_SHA"] || "HEAD~1";
+			const env = holocronEnv(io.env);
+			const base = env.get("BASE_SHA") ?? "HEAD~1";
 			let addedFiles: string[];
 			let changedFiles: string[];
 			try {
@@ -65,7 +67,7 @@ export function docsPresenceProbe(io: DocsPresenceIo): Probe {
 				});
 			}
 
-			const subjects = [io.env["PR_TITLE"] ?? "", ...io.subjects(base)].filter(Boolean);
+			const subjects = [env.get("PR_TITLE") ?? "", ...io.subjects(base)].filter(Boolean);
 			if (!isFeat(subjects)) {
 				ctx.say({ status: "ok", label: "feature docs", detail: "no feat in this PR; nothing to check" });
 				return;
@@ -83,7 +85,7 @@ export function docsPresenceProbe(io: DocsPresenceIo): Probe {
 				packages,
 				changedFiles,
 				addedCommentLines: (dir) => io.diffOf(base, dir).split("\n").filter(isAddedDocComment),
-				skip: parseSkipDocs(`${io.env["PR_BODY"] ?? ""}\n${io.messages(base)}`),
+				skip: parseSkipDocs(`${env.get("PR_BODY") ?? ""}\n${io.messages(base)}`),
 			});
 			for (const { dir, reason } of skipped) {
 				ctx.say({ status: "info", label: `skipped ${dir}`, detail: `[skip docs] ${reason}` });

@@ -34,6 +34,8 @@ export const ChannelType = {
 
 /** Bits of a message's `flags` that a bot may set when it posts. */
 export const MessageFlag = {
+	/** Shows no link previews (embeds) under the message; the links stay. */
+	SuppressEmbeds: 1 << 2,
 	/** Posts without notifying anyone, as a backfill of many messages should. */
 	SuppressNotifications: 1 << 12,
 } as const;
@@ -372,6 +374,8 @@ export interface EditMessageInput {
 	content: string;
 	/** Defaults to no mentions, so editing in a pasted `@everyone` cannot ping anyone. */
 	allowed_mentions?: CreateMessageInput["allowed_mentions"];
+	/** Message flags; see `MessageFlag`. Left out, the message keeps the flags it has. */
+	flags?: number;
 }
 
 /** What `POST /guilds/{id}/channels` takes. */
