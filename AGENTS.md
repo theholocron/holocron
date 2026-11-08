@@ -155,7 +155,9 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   root task; a single package uses `holocron run <words> --`. A package's leaf script holds the real tool command and never
   calls turbo or `holocron run`, and no package has a script named like a suite or an npm lifecycle word.
   `holocron repo sync` writes the scripts (`syncScripts` is on here) and `holocron probe generated check` fails on a root
-  script that differs and on a package script that breaks those rules. Unit tests always run with coverage (the `test:unit`
+  script that differs and on a package script that breaks those rules. That includes a script named by a task id's hyphen spelling (`deploy-preview`, where the script spelling is
+  `deploy:preview`): `holocron run` looks the script up by the script spelling, so it would skip the task as "enforced in
+  CI" (#1929). Unit tests always run with coverage (the `test:unit`
   command carries `--coverage`; there is no flag). Until a repo rewrites `tasks:` to flat ids, its turbo keys and package
   scripts keep the old dotted names the entries are spelled with (`taskKey()`).
   A thin caller's workflow `name:`, job `name:` and file are the task id (#1620): `test:unit` is `name: test:unit`, the job `test-unit` and, in holocron, the file `ci.test-unit.yml` (the `ci.` prefix keeps it from clashing with the reusable `test-unit.yml` beside it), so its check is `test:unit / Conclusion` and the `ci` aggregate waits for it by the prefix `test:unit /`. Another repo's callers keep the names they had (`verification.unitTests.yml`, `name: Verification`, job `test`) while `CI_HOME` points at the frozen reusables in `theholocron/.github` (`legacyGate()` in astromech, `legacyCaller()` over the `LEGACY_CALLERS` table): its ruleset still lists those checks. Moving `CI_HOME` to `ci-v1` opens the gate and drops the table.

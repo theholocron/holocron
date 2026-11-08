@@ -39,6 +39,16 @@ describe("checkPackageScripts", () => {
 		expect(checkPackageScripts({ test: "turbo run test" }, "root")).toEqual([]);
 	});
 
+	it("fails a script named by a task id's hyphen spelling, which `holocron run` would never find (#1929)", () => {
+		const problems = checkPackageScripts({ "deploy-preview": "vercel deploy", "deploy:preview": "ok" }, "package");
+		expect(problems.map((p) => p.script)).toEqual(["deploy-preview"]);
+		expect(problems[0]!.message).toMatch(/named "deploy:preview"/);
+		expect(fails({ "check-tokens": "x", deploy: "y", "reconcile-projects": "z" }, "root")).toEqual([
+			"check-tokens",
+			"reconcile-projects",
+		]);
+	});
+
 	it("fails a leaf that hands the work back to turbo or the CLI, in a package only", () => {
 		expect(fails({ "test:unit": "turbo run test:unit", build: "holocron run build --" }, "package")).toEqual([
 			"test:unit",
