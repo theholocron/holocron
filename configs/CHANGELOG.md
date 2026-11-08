@@ -1,3 +1,9 @@
+## [8.9.0-alpha.14](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.13...configs-v8.9.0-alpha.14) (2026-11-08)
+
+### Features
+
+* **env:** 🏷️ read the synced organization secrets by their HOLOCRON_ name first ([#1983](https://github.com/theholocron/holocron/issues/1983)) ([404e648](https://github.com/theholocron/holocron/commit/404e64864bd93cb8aa432852f8c893e8debdf7bc)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
 ## [8.9.0-alpha.13](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.12...configs-v8.9.0-alpha.13) (2026-11-08)
 
 ### Features
