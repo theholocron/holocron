@@ -1,3 +1,22 @@
+## [5.0.0-alpha.373](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.372...v5.0.0-alpha.373) (2026-11-08)
+
+### Features
+
+* **cli:** 🔌 run a provider's setup and doctor without a config entry ([#1938](https://github.com/theholocron/holocron/issues/1938)) ([8e2c5d7](https://github.com/theholocron/holocron/commit/8e2c5d7a3c979b2d5fa1a5287962a04f1667cce2)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **linear:** apply and compare git automation rules, validate issue templates ([#1930](https://github.com/theholocron/holocron/issues/1930)) ([becf6ed](https://github.com/theholocron/holocron/commit/becf6ed6bd9561714f6e9c46dd4fc50c3126c871)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **migrate:** put a migrated board's issues on a GitHub board ([#1933](https://github.com/theholocron/holocron/issues/1933)) ([78dcb40](https://github.com/theholocron/holocron/commit/78dcb405c9fb15b04450cdd7e0d99c84643c854d)), closes [#1860](https://github.com/theholocron/holocron/issues/1860)
+
+### Bug Fixes
+
+* **ci:** 🔧 name Sentinel's preview script deploy:preview and guard against the hyphen spelling ([#1932](https://github.com/theholocron/holocron/issues/1932)) ([142f31f](https://github.com/theholocron/holocron/commit/142f31fe2a86ef31258e44d9596a49d9cac885fe)), closes [#1929](https://github.com/theholocron/holocron/issues/1929)
+* **kyber:** start the CLI runner's hang clock when node runs, not at the spawn ([#1931](https://github.com/theholocron/holocron/issues/1931)) ([986a02f](https://github.com/theholocron/holocron/commit/986a02ff9dc6082498fc6e904541fb0c7ea112fd)), closes [#1902](https://github.com/theholocron/holocron/issues/1902)
+* **sentinel:** 📦 declare kyber and json-utils so deploy stage can stage the bundle ([#1939](https://github.com/theholocron/holocron/issues/1939)) ([587aa23](https://github.com/theholocron/holocron/commit/587aa23bc274b951545ef56c0ae7ebee39a53a13)), closes [#1929](https://github.com/theholocron/holocron/issues/1929)
+
+### Documentation
+
+* file the issue and spec in the issues provider's tracker ([#1935](https://github.com/theholocron/holocron/issues/1935)) ([6ae1860](https://github.com/theholocron/holocron/commit/6ae1860a187fc9daf0e0ad962edff878b17f8512)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+* **linear:** 📝 say what permissions the Linear key needs, as a table ([#1936](https://github.com/theholocron/holocron/issues/1936)) ([c9102c6](https://github.com/theholocron/holocron/commit/c9102c6b4ca6d01cdacf26a3d14c1b5fd4cffc36)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
 ## [5.0.0-alpha.372](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.371...v5.0.0-alpha.372) (2026-11-08)
 
 ### Bug Fixes
