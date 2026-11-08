@@ -1,3 +1,9 @@
+## [8.9.0-alpha.13](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.12...configs-v8.9.0-alpha.13) (2026-11-08)
+
+### Features
+
+* **tsdown-config:** ✨ let a package set its own bundle-size limit ([#1961](https://github.com/theholocron/holocron/issues/1961)) ([5f0dcd6](https://github.com/theholocron/holocron/commit/5f0dcd6a589607289a57325d1d2041898f6c36b2)), closes [holocron#762](https://github.com/theholocron/holocron/issues/762) [holocron#922](https://github.com/theholocron/holocron/issues/922) [#1950](https://github.com/theholocron/holocron/issues/1950)
+
 ## [8.9.0-alpha.12](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.11...configs-v8.9.0-alpha.12) (2026-11-08)
 
 ### Bug Fixes
