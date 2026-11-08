@@ -135,6 +135,8 @@ export interface GitHubPullRequestReview {
 	state?: string;
 	/** The reviewer; set on a review read back. */
 	user?: { login: string } | null;
+	/** The review's summary text (markdown); set on a review read back, and `null` or empty when it has none. */
+	body?: string | null;
 }
 
 /**

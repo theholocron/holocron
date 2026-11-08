@@ -2,6 +2,7 @@ import { createGitHubClient } from "@theholocron/github-client";
 import { stubFetch } from "@theholocron/http-client/testing";
 import { describe, expect, it } from "vitest";
 
+import { outsideDiffDigest } from "./outside-diff-digest/index.js";
 import { commentableLines, postErrorReview } from "./post-error-review.js";
 
 function makeClient(responses: Parameters<typeof stubFetch>[0]) {
@@ -185,9 +186,11 @@ describe("postErrorReview — findings outside the PR's diff (holocron#906)", ()
 	};
 
 	it("keeps in-diff errors inline and lists the rest in the review body -- never a 422 for the whole review", async () => {
+		const outside = { file: ".github/workflows/ci.yml", line: 3, body: "`job-needs` (line 3, col 3): missing job" };
 		const { client, calls } = makeClient([
 			{ body: NO_THREADS },
 			filesResponse({ file: ".github/workflows/ci.yml", lines: [20] }),
+			{ body: [] },
 			{ body: { id: 5, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-5" } },
 		]);
 
@@ -196,15 +199,16 @@ describe("postErrorReview — findings outside the PR's diff (holocron#906)", ()
 			client,
 			errors: [
 				{ file: ".github/workflows/ci.yml", line: 20, body: "`expression` (line 20, col 9): bad" },
-				{ file: ".github/workflows/ci.yml", line: 3, body: "`job-needs` (line 3, col 3): missing job" },
+				outside,
 			],
 		});
 
-		expect(calls[2]?.body).toEqual({
+		expect(calls[3]?.body).toEqual({
 			commit_id: "abc123",
 			event: "COMMENT",
 			body:
 				"2 error(s) found by actionlint — see inline comments below.\n" +
+				`<!-- sentinel:actionlint:outside:${outsideDiffDigest([outside])} -->\n` +
 				"1 of them on line(s) outside this PR's diff, so they can't be inline comments:\n" +
 				"- `.github/workflows/ci.yml:3` — `job-needs` (line 3, col 3): missing job",
 			comments: [
@@ -219,23 +223,22 @@ describe("postErrorReview — findings outside the PR's diff (holocron#906)", ()
 	});
 
 	it("still posts a body-only review when every error is outside the diff, or its file has no patch at all", async () => {
+		const finding = { file: "big.yml", line: 7, body: "`syntax-check` (line 7, col 1): oops" };
 		const { client, calls } = makeClient([
 			{ body: NO_THREADS },
 			{ body: [{ filename: "big.yml", status: "modified" }] },
+			{ body: [] },
 			{ body: { id: 6, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-6" } },
 		]);
 
-		await postErrorReview({
-			...input,
-			client,
-			errors: [{ file: "big.yml", line: 7, body: "`syntax-check` (line 7, col 1): oops" }],
-		});
+		await postErrorReview({ ...input, client, errors: [finding] });
 
-		expect(calls[2]?.body).toEqual({
+		expect(calls[3]?.body).toEqual({
 			commit_id: "abc123",
 			event: "COMMENT",
 			body:
 				"1 error(s) found by actionlint.\n" +
+				`<!-- sentinel:actionlint:outside:${outsideDiffDigest([finding])} -->\n` +
 				"1 of them on line(s) outside this PR's diff, so they can't be inline comments:\n" +
 				"- `big.yml:7` — `syntax-check` (line 7, col 1): oops",
 			comments: [],
@@ -257,15 +260,13 @@ describe("postErrorReview — findings outside the PR's diff (holocron#906)", ()
 					},
 				]),
 			},
-			filesResponse({ file: ".github/workflows/ci.yml", lines: [40] }),
-			{ body: { id: 7, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-7" } },
 		]);
 
 		await postErrorReview({ ...input, client, errors: [{ file: ".github/workflows/ci.yml", line: 3, body }] });
 
-		// listReviewThreads + listFiles + createReview -- no resolveReviewThread call.
-		expect(calls).toHaveLength(3);
-		expect(calls[2]?.url).toContain("/reviews");
+		// listReviewThreads only: no resolveReviewThread call, and it is not posted again either, as its thread is
+		// still on the pull request (holocron#1950).
+		expect(calls).toHaveLength(1);
 	});
 });
 
@@ -357,8 +358,6 @@ describe("postErrorReview — re-push thread resolution", () => {
 					},
 				]),
 			},
-			filesResponse({ file: "src/index.ts", lines: [5] }),
-			{ body: { id: 4, html_url: "https://github.com/acme/demo/pull/42#pullrequestreview-4" } },
 		]);
 
 		await postErrorReview({
@@ -373,9 +372,9 @@ describe("postErrorReview — re-push thread resolution", () => {
 			warningCount: 0,
 		});
 
-		// listReviewThreads + listFiles + createReview only -- no resolveReviewThread call.
-		expect(calls).toHaveLength(3);
-		expect(calls[2]?.url).toContain("/reviews");
+		// listReviewThreads only: no resolveReviewThread call, and the finding is not posted again as a second thread
+		// (holocron#1950).
+		expect(calls).toHaveLength(1);
 	});
 
 	it("never resolves an already-resolved thread", async () => {

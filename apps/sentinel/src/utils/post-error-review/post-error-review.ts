@@ -1,3 +1,6 @@
+import type { GitHubPullRequestReview } from "@theholocron/github-client";
+
+import { outsideDiffDigest } from "./outside-diff-digest/index.js";
 import type { PostErrorReviewInput } from "./post-error-review.type.js";
 
 /**
@@ -44,6 +47,23 @@ function markedBody(checkKey: string, body: string): string {
 	return `${marker(checkKey)}\n${body}`;
 }
 
+/** In the body of a review that lists the findings outside the diff: which list it was (see {@link outsideDiffDigest}). */
+function outsideMarkerPrefix(checkKey: string): string {
+	return `<!-- sentinel:${checkKey}:outside:`;
+}
+
+/** The digest in the newest review of this check that listed findings outside the diff, or `undefined` when none did. */
+function lastOutsideDigest(reviews: GitHubPullRequestReview[], checkKey: string): string | undefined {
+	const prefix = outsideMarkerPrefix(checkKey);
+	for (const review of [...reviews].reverse()) {
+		const start = review.body?.indexOf(prefix) ?? -1;
+		if (start === -1) continue;
+		const from = start + prefix.length;
+		return review.body!.slice(from, review.body!.indexOf(" -->", from));
+	}
+	return undefined;
+}
+
 export async function postErrorReview(input: PostErrorReviewInput): Promise<void> {
 	const { client, repo, pullNumber, headSha, checkKey, checkLabel, checkRunName, errors, warningCount } = input;
 	const prefix = marker(checkKey);
@@ -59,19 +79,34 @@ export async function postErrorReview(input: PostErrorReviewInput): Promise<void
 	);
 	await Promise.all(staleThreads.map((t) => client.pulls.resolveReviewThread(t.id)));
 
-	if (errors.length === 0) return;
+	// Post only what is new (holocron#1950). A finding that already has an open thread of this check with the same
+	// text at the same place is on the pull request: it is not posted again, wherever the diff has moved since.
+	const open = new Set(
+		threads.filter((t) => !t.isResolved && t.body?.startsWith(prefix)).map((t) => `${t.path}:${t.line}:${t.body}`)
+	);
+	const unposted = errors.filter((e) => !open.has(`${e.file}:${e.line}:${markedBody(checkKey, e.body)}`));
+	if (unposted.length === 0) return;
 
 	const files = await client.pulls.listFiles(repo, pullNumber);
 	const commentable = new Map(files.map((f) => [f.filename, commentableLines(f.patch)]));
-	const inline = errors.filter((e) => commentable.get(e.file)?.has(e.line));
-	const outsideDiff = errors.filter((e) => !commentable.get(e.file)?.has(e.line));
+	const freshInline = unposted.filter((e) => commentable.get(e.file)?.has(e.line));
+	const outsideDiff = unposted.filter((e) => !commentable.get(e.file)?.has(e.line));
+
+	// Findings outside the diff live only in a review's body, so a run lists them again only when the list is not the
+	// one the newest review of this check gave (its digest, kept in the body).
+	const digest = outsideDiffDigest(outsideDiff);
+	const outsideChanged =
+		outsideDiff.length > 0 &&
+		lastOutsideDigest(await client.pulls.listReviews(repo, pullNumber), checkKey) !== digest;
+	if (freshInline.length === 0 && !outsideChanged) return;
 
 	const summary = [
-		inline.length > 0
+		freshInline.length > 0
 			? `${errors.length} error(s) found by ${checkLabel} — see inline comments below.`
 			: `${errors.length} error(s) found by ${checkLabel}.`,
-		outsideDiff.length > 0
+		outsideChanged
 			? [
+					`${outsideMarkerPrefix(checkKey)}${digest} -->`,
 					`${outsideDiff.length} of them on line(s) outside this PR's diff, so they can't be inline comments:`,
 					...outsideDiff.map((e) => `- \`${e.file}:${e.line}\` — ${e.body}`),
 				].join("\n")
@@ -87,7 +122,7 @@ export async function postErrorReview(input: PostErrorReviewInput): Promise<void
 		commit_id: headSha,
 		event: "COMMENT",
 		body: summary,
-		comments: inline.map((e) => ({
+		comments: freshInline.map((e) => ({
 			path: e.file,
 			line: e.line,
 			side: "RIGHT" as const,
