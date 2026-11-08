@@ -9,6 +9,8 @@ import type { PluginProbes } from "../../../plugin/index.js";
 import { type GeneratedRepoFile, generateRepoFiles, type RepoFilesInput } from "../../repo-files/index.js";
 import { checkGenerated } from "./check-generated.js";
 import { checkScripts, type ScriptsOfPackage } from "./check-scripts.js";
+import { generatePackageWorkflows } from "./generate-package-workflows.js";
+import { sharedWorkflows } from "./shared-workflows.js";
 
 /** The group of probes that check the files `repo setup` and `repo sync` generate. */
 export const GENERATED_PROVIDER = "generated";
@@ -58,7 +60,8 @@ async function generate(input: RepoFilesInput) {
 /**
  * `generated check` generates every file `repo setup` writes from the config alone (no provider, no token), twice, and
  * fails for each one that differs from the committed copy, differs the second time, or is a workflow nothing
- * generates. CI runs it, so a change to a generator or to the config that was not followed by a run of `repo setup`
+ * generates. It does the same for the workflows each workspace package's own config generates (`apps/sentinel`), which
+ * are named by the package in the message. CI runs it, so a change to a generator or to the config that was not followed by a run of `repo setup`
  * or `repo sync` cannot merge.
  */
 export function generatedProbes(loaded: LoadedConfig, repoRoot: string): PluginProbes {
@@ -70,6 +73,7 @@ export function generatedProbes(loaded: LoadedConfig, repoRoot: string): PluginP
 				const input: RepoFilesInput = { loaded, repoRoot };
 				const first = await generate(input);
 				const second = await generate(input);
+				const owned = await generatePackageWorkflows(repoRoot);
 				const workflowsDir = join(repoRoot, ".github", "workflows");
 				const workflows = new Map<string, string>();
 				for (const name of readdirSync(workflowsDir)
@@ -79,9 +83,11 @@ export function generatedProbes(loaded: LoadedConfig, repoRoot: string): PluginP
 				}
 				const problems = [
 					...first.errors,
+					...owned.errors,
 					...checkGenerated({
 						files: first.files,
 						again: second.files,
+						packages: owned.packages,
 						read: (path) => readText(join(repoRoot, path)),
 						workflows,
 					}),
@@ -89,6 +95,8 @@ export function generatedProbes(loaded: LoadedConfig, repoRoot: string): PluginP
 				const scripts = checkScripts(scriptsInput(loaded, repoRoot));
 				problems.push(...scripts.fail);
 				for (const line of problems) ctx.say({ status: "fail", label: line });
+				for (const line of sharedWorkflows(first.files, owned.packages))
+					ctx.say({ status: "info", label: line });
 				for (const line of scripts.info) ctx.say({ status: "info", label: line });
 				if (problems.length === 0) {
 					ctx.say({
