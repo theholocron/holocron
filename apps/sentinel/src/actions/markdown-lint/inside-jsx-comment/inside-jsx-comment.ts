@@ -6,9 +6,12 @@ const JSX_COMMENT = /\{\/\*[\s\S]*?\*\/\}/g;
  * Markdown and not MDX, so it reads such a comment as emphasis and flags its spaces (MD037); the comment is not text.
  */
 export function insideJsxComment(content: string, lineNumber: number, column: number, length = 1): boolean {
-	const lines = content.split("\n");
 	let offset = 0;
-	for (let i = 0; i < lineNumber - 1; i++) offset += (lines[i]?.length ?? 0) + 1;
+	for (let line = 1; line < lineNumber; line++) {
+		const newline = content.indexOf("\n", offset);
+		if (newline === -1) return false; // the line is past the end of the content
+		offset = newline + 1;
+	}
 	const start = offset + column - 1;
 	const end = start + Math.max(length, 1);
 	for (const match of content.matchAll(JSX_COMMENT)) {

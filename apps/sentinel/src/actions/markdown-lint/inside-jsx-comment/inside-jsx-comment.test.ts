@@ -29,6 +29,11 @@ describe("insideJsxComment", () => {
 		expect(insideJsxComment(content, 2, 7, 8)).toBe(false);
 	});
 
+	it("is false for a line past the end of the content", () => {
+		expect(insideJsxComment("{/* x */}\n", 3, 1)).toBe(false);
+		expect(insideJsxComment("{/* x */}", 2, 1)).toBe(false);
+	});
+
 	it("is false when there is no comment at all", () => {
 		expect(insideJsxComment("plain * text *", 1, 7, 8)).toBe(false);
 	});
