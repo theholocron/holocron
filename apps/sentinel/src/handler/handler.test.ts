@@ -1494,7 +1494,15 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 	const invalidLintResult = {
 		valid: false,
 		fileCount: 1,
-		messages: [{ file: "src/index.js", line: 1, reason: "reformat me", formatted: "const x = 1;\n" }],
+		messages: [
+			{
+				file: "src/index.js",
+				line: 1,
+				reason: "reformat me",
+				formatted: "const x = 1;\n",
+				scopedFix: "const x = 1;\n",
+			},
+		],
 	};
 
 	function configWithAutoFix(autoFix: boolean) {
@@ -1552,6 +1560,21 @@ describe("handler — auto-fix-commit pipeline (holocron#820)", () => {
 			kinds: ["formatting"],
 			files: ["src/index.js"],
 		});
+	});
+
+	it("does not read the commits for a finding that has no fix on a line the pull request added (holocron#1950)", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue({ handled: true, event: prEvent() });
+		vi.mocked(validateConfig).mockResolvedValue(configWithAutoFix(true));
+		vi.mocked(lintFormatting).mockResolvedValue({
+			...invalidLintResult,
+			messages: invalidLintResult.messages.map((m) => ({ ...m, scopedFix: null })),
+		});
+		vi.mocked(findAutoFixLoop).mockResolvedValue({ blocked: ["formatting"] });
+
+		await handleWebhookRequest(req(), ENV);
+
+		expect(findAutoFixLoop).not.toHaveBeenCalled();
+		expect(postAutoFixLoopComment).not.toHaveBeenCalled();
 	});
 
 	it("still commits a fixer that is not blocked, and posts no loop comment", async () => {
@@ -1769,7 +1792,7 @@ describe("handler — editorconfig auto-fix-commit pipeline", () => {
 		valid: false,
 		fileCount: 1,
 		messages: [{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." }],
-		fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
+		fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }],
 	};
 
 	function configWithAutoFix(autoFix: boolean) {
@@ -1850,7 +1873,15 @@ describe("handler — editorconfig auto-fix-commit pipeline", () => {
 		vi.mocked(lintFormatting).mockResolvedValue({
 			valid: false,
 			fileCount: 1,
-			messages: [{ file: "src/other.ts", line: 1, reason: "reformat me", formatted: "const y = 2;\n" }],
+			messages: [
+				{
+					file: "src/other.ts",
+					line: 1,
+					reason: "reformat me",
+					formatted: "const y = 2;\n",
+					scopedFix: "const y = 2;\n",
+				},
+			],
 		});
 		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "fmt-commit", fileCount: 1 });
 		vi.mocked(lintEditorConfig).mockResolvedValue(invalidLintResult);
@@ -1899,7 +1930,13 @@ describe("handler — markdownlint auto-fix-commit pipeline", () => {
 				severity: "error" as const,
 			},
 		],
-		fixes: [{ file: "README.md", fixed: "# Title\n\n* item one\n* item two\n" }],
+		fixes: [
+			{
+				file: "README.md",
+				fixed: "# Title\n\n* item one\n* item two\n",
+				scopedFix: "# Title\n\n* item one\n* item two\n",
+			},
+		],
 	};
 
 	function configWithAutoFix(autoFix: boolean) {
@@ -1980,7 +2017,15 @@ describe("handler — markdownlint auto-fix-commit pipeline", () => {
 		vi.mocked(lintFormatting).mockResolvedValue({
 			valid: false,
 			fileCount: 1,
-			messages: [{ file: "src/other.ts", line: 1, reason: "reformat me", formatted: "const y = 2;\n" }],
+			messages: [
+				{
+					file: "src/other.ts",
+					line: 1,
+					reason: "reformat me",
+					formatted: "const y = 2;\n",
+					scopedFix: "const y = 2;\n",
+				},
+			],
 		});
 		vi.mocked(commitFormattingFix).mockResolvedValue({ committed: true, commitSha: "fmt-commit", fileCount: 1 });
 		vi.mocked(postEditorConfigCheck).mockResolvedValue({ checkRunId: 4, conclusion: "failure", htmlUrl: "" });
@@ -1988,7 +2033,7 @@ describe("handler — markdownlint auto-fix-commit pipeline", () => {
 			valid: false,
 			fileCount: 1,
 			messages: [{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." }],
-			fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
+			fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }],
 		});
 		vi.mocked(commitEditorConfigFix).mockResolvedValue({ committed: true, commitSha: "ec-commit", fileCount: 1 });
 		vi.mocked(lintMarkdown).mockResolvedValue(invalidLintResult);
@@ -2026,7 +2071,15 @@ describe("handler — auto-fix PR comment (holocron#674/#834)", () => {
 	const invalidLintResult = {
 		valid: false,
 		fileCount: 1,
-		messages: [{ file: "src/index.js", line: 1, reason: "reformat me", formatted: "const x = 1;\n" }],
+		messages: [
+			{
+				file: "src/index.js",
+				line: 1,
+				reason: "reformat me",
+				formatted: "const x = 1;\n",
+				scopedFix: "const x = 1;\n",
+			},
+		],
 	};
 
 	function configWithAutoFix(autoFix: boolean) {

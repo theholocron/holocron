@@ -22,8 +22,8 @@ describe("postAutoFixComment — a fix was committed", () => {
 				valid: false,
 				fileCount: 2,
 				messages: [
-					{ file: "src/index.js", line: 1, reason: "...", formatted: "x" },
-					{ file: "README.md", line: 1, reason: "...", formatted: "y" },
+					{ file: "src/index.js", line: 1, reason: "...", formatted: "x", scopedFix: "x" },
+					{ file: "README.md", line: 1, reason: "...", formatted: "y", scopedFix: "y" },
 				],
 			},
 		});
@@ -36,6 +36,32 @@ describe("postAutoFixComment — a fix was committed", () => {
 		expect(body).toContain("`src/index.js`");
 		expect(body).toContain("`README.md`");
 		expect(body).toContain("abc1234");
+	});
+});
+
+describe("postAutoFixComment — a file with no fix on a line the pull request added (holocron#1950)", () => {
+	it("names only the files the commit wrote, and counts only those", async () => {
+		const { client, calls } = makeClient([{ status: 201, body: {} }]);
+
+		await postAutoFixComment({
+			client,
+			repo: "acme/demo",
+			pullNumber: 9,
+			fixResult: { committed: true, commitSha: "abc1234", fileCount: 1 },
+			lintResult: {
+				valid: false,
+				fileCount: 2,
+				messages: [
+					{ file: "src/index.js", line: 1, reason: "...", formatted: "x", scopedFix: "x" },
+					{ file: "README.md", line: 1, reason: "...", formatted: "y", scopedFix: null },
+				],
+			},
+		});
+
+		const body = (calls[0]?.body as { body: string }).body;
+		expect(body).toContain("Sentinel auto-formatted 1 file(s)");
+		expect(body).toContain("`src/index.js`");
+		expect(body).not.toContain("README.md");
 	});
 });
 

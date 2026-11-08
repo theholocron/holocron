@@ -66,7 +66,7 @@ describe("postEditorConfigCheck — findings", () => {
 				valid: false,
 				fileCount: 1,
 				messages: [{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." }],
-				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
+				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }],
 			},
 			runId: "run-2",
 		});
@@ -85,7 +85,7 @@ describe("postEditorConfigCheck — findings", () => {
 				valid: false,
 				fileCount: 1,
 				messages: [{ file: "src/index.ts", line: 12, reason: "Missing final newline." }],
-				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
+				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }],
 			},
 			runId: "run-3",
 		});
@@ -110,7 +110,7 @@ describe("postEditorConfigCheck — inline annotations (holocron#816)", () => {
 				valid: false,
 				fileCount: 1,
 				messages: [{ file: "src/index.ts", line: 42, reason: "Trailing whitespace." }],
-				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n" }],
+				fixes: [{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }],
 			},
 			runId: "run-4",
 		});

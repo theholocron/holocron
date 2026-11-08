@@ -16,6 +16,8 @@ export interface FormattingMessage {
 	reason: string;
 	/** `format()`'s own output — the deterministic fix, already computed here. Consumed by the auto-fix-commit action (holocron#820) so it never re-fetches or re-formats a file this check already processed. */
 	formatted: string;
+	/** `formatted` limited to the changes that touch lines the pull request added (holocron#1950), what the auto-fix commit writes; `null` when none of the fix is on such a line. A change to a line the pull request did not touch is still reported, and left to its author. */
+	scopedFix: string | null;
 }
 
 export interface LintFormattingResult {

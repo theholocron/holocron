@@ -2,9 +2,11 @@ import type { LintFormattingResult } from "../lint-formatting/index.js";
 import type { PostAutoFixCommentInput, PostAutoFixCommentResult } from "./post-auto-fix-comment.type.js";
 
 function commentBody(lintResult: LintFormattingResult, commitSha: string | undefined): string {
-	const fileList = lintResult.messages.map((m) => `- \`${m.file}\``).join("\n");
+	// The files the commit wrote: the ones with a fix on a line the pull request added (holocron#1950).
+	const committed = lintResult.messages.filter((m) => m.scopedFix !== null);
+	const fileList = committed.map((m) => `- \`${m.file}\``).join("\n");
 	return [
-		`Sentinel auto-formatted ${lintResult.messages.length} file(s) per this org's shared prettier config:`,
+		`Sentinel auto-formatted ${committed.length} file(s) per this org's shared prettier config:`,
 		"",
 		fileList,
 		"",

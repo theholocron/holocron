@@ -103,7 +103,7 @@ describe("lintEditorConfig — real violations", () => {
 
 		expect(result.valid).toBe(false);
 		expect(result.messages).toEqual([{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." }]);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;\n" }]);
+		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }]);
 	});
 
 	it("catches a missing final newline", async () => {
@@ -117,7 +117,7 @@ describe("lintEditorConfig — real violations", () => {
 
 		expect(result.valid).toBe(false);
 		expect(result.messages).toEqual([{ file: "src/index.ts", line: 1, reason: "Missing final newline." }]);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;\n" }]);
+		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }]);
 	});
 
 	it("catches space indentation when indent_style is tab, but leaves the ambiguous (non-multiple-of-indent_size) indent unfixed", async () => {
@@ -146,7 +146,13 @@ describe("lintEditorConfig — real violations", () => {
 		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
 		expect(result.valid).toBe(false);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "function f() {\n\treturn 1;\n}\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "src/index.ts",
+				fixed: "function f() {\n\treturn 1;\n}\n",
+				scopedFix: "function f() {\n\treturn 1;\n}\n",
+			},
+		]);
 	});
 
 	it("catches a bare LF where CRLF is expected", async () => {
@@ -163,7 +169,13 @@ describe("lintEditorConfig — real violations", () => {
 		expect(result.messages).toEqual([
 			{ file: "src/index.ts", line: 2, reason: "Expected CRLF line endings, found a bare LF." },
 		]);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const a = 1;\r\nconst b = 2;\r\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "src/index.ts",
+				fixed: "const a = 1;\r\nconst b = 2;\r\n",
+				scopedFix: "const a = 1;\r\nconst b = 2;\r\n",
+			},
+		]);
 	});
 
 	it("passes a clean CRLF file when end_of_line is crlf -- no bare LF present", async () => {
@@ -191,7 +203,13 @@ describe("lintEditorConfig — real violations", () => {
 
 		expect(result.valid).toBe(false);
 		expect(result.messages).toEqual([{ file: "src/index.ts", line: 2, reason: "Expected space indentation." }]);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "function f() {\n  return 1;\n}\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "src/index.ts",
+				fixed: "function f() {\n  return 1;\n}\n",
+				scopedFix: "function f() {\n  return 1;\n}\n",
+			},
+		]);
 	});
 
 	it("leaves an already-tab-indented line untouched while fixing a space-indented sibling", async () => {
@@ -204,7 +222,13 @@ describe("lintEditorConfig — real violations", () => {
 		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
 		expect(result.valid).toBe(false);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "if (x) {\n\tok();\n\tbad();\n}\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "src/index.ts",
+				fixed: "if (x) {\n\tok();\n\tbad();\n}\n",
+				scopedFix: "if (x) {\n\tok();\n\tbad();\n}\n",
+			},
+		]);
 	});
 
 	it("leaves an already-space-indented line untouched while fixing a tab-indented sibling (indent_style: space)", async () => {
@@ -218,7 +242,13 @@ describe("lintEditorConfig — real violations", () => {
 		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
 		expect(result.valid).toBe(false);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "if (x) {\n  ok();\n  bad();\n}\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "src/index.ts",
+				fixed: "if (x) {\n  ok();\n  bad();\n}\n",
+				scopedFix: "if (x) {\n  ok();\n  bad();\n}\n",
+			},
+		]);
 	});
 
 	it("falls back to detecting the file's own CRLF line endings for rejoining when end_of_line isn't set", async () => {
@@ -232,7 +262,13 @@ describe("lintEditorConfig — real violations", () => {
 		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
 		expect(result.valid).toBe(false);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const a = 1;\r\nconst b = 2;\r\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "src/index.ts",
+				fixed: "const a = 1;\r\nconst b = 2;\r\n",
+				scopedFix: "const a = 1;\r\nconst b = 2;\r\n",
+			},
+		]);
 	});
 
 	it("fixes a space-indented line that already starts with a tab (mixed leading whitespace)", async () => {
@@ -245,7 +281,9 @@ describe("lintEditorConfig — real violations", () => {
 		const result = await lintEditorConfig({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
 
 		expect(result.valid).toBe(false);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "if (x) {\n\t\treturn 1;\n}\n" }]);
+		expect(result.fixes).toEqual([
+			{ file: "src/index.ts", fixed: "if (x) {\n\t\treturn 1;\n}\n", scopedFix: "if (x) {\n\t\treturn 1;\n}\n" },
+		]);
 	});
 
 	it("leaves indent_style unfixed (but still flagged) when indent_size can't be resolved (defaults to the 'tab' sentinel)", async () => {
@@ -279,7 +317,7 @@ describe("lintEditorConfig — real violations", () => {
 		expect(result.messages).toEqual([
 			{ file: "src/index.ts", line: 2, reason: "File should not end with a newline." },
 		]);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;" }]);
+		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;", scopedFix: "const x = 1;" }]);
 	});
 
 	it("catches a CRLF where LF is expected", async () => {
@@ -297,7 +335,9 @@ describe("lintEditorConfig — real violations", () => {
 			line: 1,
 			reason: "Expected LF line endings, found CRLF.",
 		});
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const a = 1;\nconst b = 2;\n" }]);
+		expect(result.fixes).toEqual([
+			{ file: "src/index.ts", fixed: "const a = 1;\nconst b = 2;\n", scopedFix: "const a = 1;\nconst b = 2;\n" },
+		]);
 	});
 
 	it("reports every distinct violation on the same file, with one fix covering both", async () => {
@@ -313,7 +353,7 @@ describe("lintEditorConfig — real violations", () => {
 			{ file: "src/index.ts", line: 1, reason: "Trailing whitespace." },
 			{ file: "src/index.ts", line: 1, reason: "Missing final newline." },
 		]);
-		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;\n" }]);
+		expect(result.fixes).toEqual([{ file: "src/index.ts", fixed: "const x = 1;\n", scopedFix: "const x = 1;\n" }]);
 	});
 });
 
@@ -379,7 +419,11 @@ describe("lintEditorConfig — block-comment alignment false positive", () => {
 		// real indentation converts; the continuation lines' own alignment
 		// space is preserved, not corrupted into an extra tab.
 		expect(result.fixes).toEqual([
-			{ file: "src/index.ts", fixed: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n" },
+			{
+				file: "src/index.ts",
+				fixed: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n",
+				scopedFix: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n",
+			},
 		]);
 	});
 
@@ -398,7 +442,11 @@ describe("lintEditorConfig — block-comment alignment false positive", () => {
 		expect(result.valid).toBe(false);
 		expect(result.messages).toEqual([{ file: "src/index.ts", line: 3, reason: "Expected tab indentation." }]);
 		expect(result.fixes).toEqual([
-			{ file: "src/index.ts", fixed: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n" },
+			{
+				file: "src/index.ts",
+				fixed: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n",
+				scopedFix: "function f() {\n\t/**\n\t * A comment.\n\t */\n\treturn 1;\n}\n",
+			},
 		]);
 	});
 });

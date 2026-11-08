@@ -1023,21 +1023,30 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 	// comment, prettier puts them back), and each commit triggers a delivery that finds the other's finding again:
 	// 34 commits in 26 minutes on #1949. A fixer that already committed since the last commit of a person's is not
 	// run again, and the pull request gets one comment saying so. A failed read of the commits blocks nothing.
+	// A fixer is wanted only for the files where part of its fix is on a line the pull request added (holocron#1950):
+	// the commit writes nothing else, so a finding on a line the pull request left alone starts no loop.
 	const wantedFixes: { kind: AutoFixKind; files: string[] }[] = [];
+	const inScope = (items: { file: string; scopedFix: string | null }[]) =>
+		items.filter((i) => i.scopedFix !== null).map((i) => i.file);
 	if (formattingLintResult && !formattingLintResult.valid) {
-		wantedFixes.push({ kind: "formatting", files: formattingLintResult.messages.map((m) => m.file) });
+		wantedFixes.push({ kind: "formatting", files: inScope(formattingLintResult.messages) });
 	}
 	if (editorConfigLintResult && !editorConfigLintResult.valid) {
-		wantedFixes.push({ kind: "editorconfig", files: editorConfigLintResult.fixes.map((f) => f.file) });
+		wantedFixes.push({ kind: "editorconfig", files: inScope(editorConfigLintResult.fixes) });
 	}
 	if (markdownLintResult && !markdownLintResult.valid) {
-		wantedFixes.push({ kind: "markdown-lint", files: markdownLintResult.fixes.map((f) => f.file) });
+		wantedFixes.push({ kind: "markdown-lint", files: inScope(markdownLintResult.fixes) });
 	}
 	let blockedFixes: AutoFixKind[] = [];
-	if (autoFixOptedIn && context.headRef && context.pullNumber !== undefined && wantedFixes.length > 0) {
+	if (
+		autoFixOptedIn &&
+		context.headRef &&
+		context.pullNumber !== undefined &&
+		wantedFixes.some((w) => w.files.length > 0)
+	) {
 		try {
 			blockedFixes = (await findAutoFixLoop({ client, repo, pullNumber: context.pullNumber })).blocked;
-			const stopped = wantedFixes.filter((w) => blockedFixes.includes(w.kind));
+			const stopped = wantedFixes.filter((w) => w.files.length > 0 && blockedFixes.includes(w.kind));
 			if (stopped.length > 0) {
 				logger.warn({ repo, kinds: stopped.map((s) => s.kind) }, "autoFixLoop: stopped a repeated auto-fix");
 				await postAutoFixLoopComment({

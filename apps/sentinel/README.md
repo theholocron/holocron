@@ -532,6 +532,16 @@ keep reporting the finding until it is fixed by hand. A new commit of a person's
 of the commits blocks nothing. The commit subjects are `AUTO_FIX_SUBJECTS`, the one list the fixers write and the guard
 reads.
 
+An auto-fix commit changes only lines the pull request added (holocron#1950). A fixer reports on a whole changed file,
+but rewriting a line the pull request never touched puts someone else's text into its diff, and is how two fixers that
+disagree about one line came to commit 34 times undoing each other. Each lint result therefore carries `scopedFix`, the
+fix limited to the changes on lines the pull request added (`scopeFix()` over a line diff of the fix, `lineHunks()`, with
+the added lines read from the file's `patch` by `addedLines()`), and the commit writes that and nothing else; a file with
+none is left out, and the "auto-formatted" comment lists only the files written. markdownlint's and editorconfig's edits
+are judged line by line, as each is one line's own; prettier's are judged by run of changed lines, so a table it re-pads
+for one added row is fixed whole. A finding on a line the pull request did not add is still reported by its check (the
+checks' verdicts are unchanged) and is left for its author to fix. A file GitHub sent no `patch` for is fixed whole.
+
 ### Subscribe to events
 
 `push`, `pull_request`, `installation`, plus `membership` and `organization` for role sync (holocron#1595), and `pull_request_review` and `check_run` for the `#prs` forum feed (holocron#1738). The two new subscriptions are set by hand on an App that already exists (Settings → Developer settings → GitHub Apps → Holocron Sentinel → Permissions & events → Subscribe to events); a dev instance registered from `github-app.manifest.json` gets them from the manifest.

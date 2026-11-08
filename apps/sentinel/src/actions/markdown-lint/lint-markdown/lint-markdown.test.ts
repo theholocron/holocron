@@ -84,7 +84,13 @@ describe("lintMarkdown — auto-fix", () => {
 
 		expect(result.valid).toBe(false);
 		expect(result.messages.some((m) => m.ruleNames.includes("MD004"))).toBe(true);
-		expect(result.fixes).toEqual([{ file: "README.md", fixed: "# Title\n\n* item one\n* item two\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "README.md",
+				fixed: "# Title\n\n* item one\n* item two\n",
+				scopedFix: "# Title\n\n* item one\n* item two\n",
+			},
+		]);
 	});
 
 	it("doesn't produce a fix for a rule with no fixInfo at all, even though it's still flagged", async () => {
@@ -109,7 +115,13 @@ describe("lintMarkdown — auto-fix", () => {
 
 		const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 7, ref: "sha" });
 
-		expect(result.fixes).toEqual([{ file: "fixable.md", fixed: "# Title\n\n* item one\n* item two\n" }]);
+		expect(result.fixes).toEqual([
+			{
+				file: "fixable.md",
+				fixed: "# Title\n\n* item one\n* item two\n",
+				scopedFix: "# Title\n\n* item one\n* item two\n",
+			},
+		]);
 	});
 
 	it("produces no fixes for a clean file", async () => {

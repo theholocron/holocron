@@ -26,6 +26,8 @@ export interface MarkdownLintFix {
 	file: string;
 	/** `applyFixes()`'s own output — same shape as `EditorConfigFix.fixed`/`FormattingMessage.formatted`. */
 	fixed: string;
+	/** `fixed` limited to the changes on lines the pull request added, judged line by line (holocron#1950), what the auto-fix commit writes; `null` when none of the fix is on such a line. */
+	scopedFix: string | null;
 }
 
 export interface LintMarkdownResult {

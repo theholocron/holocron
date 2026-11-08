@@ -16,7 +16,7 @@ beforeEach(() => {
 });
 
 describe("commitMarkdownLintFix", () => {
-	it("maps each fix's file/fixed content to commitFiles()'s { path, content } shape", async () => {
+	it("maps each fix's file/scoped fix to commitFiles()'s { path, content } shape", async () => {
 		vi.mocked(commitFiles).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 2 });
 		const result: LintMarkdownResult = {
 			valid: false,
@@ -40,8 +40,8 @@ describe("commitMarkdownLintFix", () => {
 				},
 			],
 			fixes: [
-				{ file: "a.md", fixed: "# A\n\n* item\n* item\n" },
-				{ file: "b.md", fixed: "# B\n\n* item\n* item\n" },
+				{ file: "a.md", fixed: "# A\n\n* item\n* item\n", scopedFix: "# A\n\n* item\n* item\n" },
+				{ file: "b.md", fixed: "# B\n\n* item\n* item\n", scopedFix: "# B\n\n* item\n* item\n" },
 			],
 		};
 
@@ -112,5 +112,30 @@ describe("commitMarkdownLintFix", () => {
 
 		expect(commitFiles).toHaveBeenCalledWith(expect.objectContaining({ files: [] }));
 		expect(outcome).toEqual({ committed: false, fileCount: 0 });
+	});
+
+	it("writes only the scoped fix and leaves a file with no scoped fix out (holocron#1950)", async () => {
+		vi.mocked(commitFiles).mockResolvedValue({ committed: true, commitSha: "new-commit", fileCount: 1 });
+		const result: LintMarkdownResult = {
+			valid: false,
+			fileCount: 2,
+			messages: [],
+			fixes: [
+				{ file: "a.md", fixed: "full\n", scopedFix: "part\n" },
+				{ file: "b.md", fixed: "full\n", scopedFix: null },
+			],
+		};
+
+		await commitMarkdownLintFix({
+			client: FAKE_CLIENT as never,
+			repo: "acme/demo",
+			headSha: "sha1",
+			headRef: "feature",
+			result,
+		});
+
+		expect(commitFiles).toHaveBeenCalledWith(
+			expect.objectContaining({ files: [{ path: "a.md", content: "part\n" }] })
+		);
 	});
 });
