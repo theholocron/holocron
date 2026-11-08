@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 15
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
       APP_ID_SET: ${{ secrets.SUPER_LINTER_APP_ID != '' }}
     steps:
       - name: Generate GitHub App token

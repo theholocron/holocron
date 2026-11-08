@@ -14,9 +14,9 @@ export default {
 	// Actions variables"`. Names only; a key blank or missing in the Environment is skipped, so GitHub keeps its value.
 	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
 	// (no `prune`). `doctor variables` expects every key listed here at its scope.
-	// CLOUDFLARE_PAGES_PROJECT is synced because every caller in this org shares one Pages project (`<org>-preview`, the
+	// HOLOCRON_CLOUDFLARE_PAGES_PROJECT is synced because every caller in this org shares one Pages project (`<org>-preview`, the
 	// name the generated callers pass as `cloudflare-project`); a repo that needs a different project passes the
-	// `cloudflare-project` input, which wins over the variable. POSTHOG_PROJECT_TOKEN is a publishable key, not a secret;
+	// `cloudflare-project` input, which wins over the variable. HOLOCRON_POSTHOG_PROJECT_TOKEN is a publishable key, not a secret;
 	// the CLI keeps its compiled-in key as the fallback for installed copies.
 	variables: {
 		sync: [
@@ -25,14 +25,14 @@ export default {
 				scope: "org=theholocron",
 				keys: [
 					"AXIOM_ORG",
-					"CLOUDFLARE_ACCOUNT_ID",
-					"CLOUDFLARE_PAGES_PROJECT",
 					"HOLOCRON_AXIOM_DATASET",
-					"POSTHOG_PROJECT_TOKEN",
+					"HOLOCRON_CLOUDFLARE_ACCOUNT_ID",
+					"HOLOCRON_CLOUDFLARE_PAGES_PROJECT",
+					"HOLOCRON_POSTHOG_PROJECT_TOKEN",
+					"HOLOCRON_SENTRY_ORG",
+					"HOLOCRON_TURBO_TEAM",
+					"HOLOCRON_VERCEL_TEAM_ID",
 					"SENTINEL_AXIOM_DATASET",
-					"SENTRY_ORG",
-					"TURBO_TEAM",
-					"VERCEL_TEAM_ID",
 				],
 			},
 		],

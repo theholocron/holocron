@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 20
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     steps:
       # actions/create-github-app-token defaults to scoping its token to the
       # *current* repo (.github, where this workflow runs) when owner/
