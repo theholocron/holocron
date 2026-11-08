@@ -9,7 +9,13 @@ import type { ProbeRow } from "../../../plugin/index.js";
 import type { GeneratedRepoFile, RepoFileEntry } from "../../repo-files/index.js";
 import { generateRepoFiles } from "../../repo-files/index.js";
 import { checkGenerated } from "./check-generated.js";
+import { generatePackageWorkflows } from "./generate-package-workflows.js";
 import { generatedProbes } from "./generated-probes.js";
+import { sharedWorkflows } from "./shared-workflows.js";
+
+vi.mock("./generate-package-workflows.js", () => ({
+	generatePackageWorkflows: vi.fn(async () => ({ packages: [], errors: [] })),
+}));
 
 vi.mock("../../repo-files/index.js", async (importOriginal) => ({
 	...(await importOriginal<typeof import("../../repo-files/index.js")>()),
@@ -90,8 +96,105 @@ describe("checkGenerated", () => {
 			".github/workflows/stale.yml",
 			".github/workflows/old.yml",
 			".github/workflows/plain.yml",
+			".github/workflows/app.yml",
 		]);
 		expect(problems[0]).toContain('not marked "# HAND-MAINTAINED"');
+	});
+});
+
+describe("checkGenerated for a workspace package", () => {
+	const app = (content: string) => file(".github/workflows/ci.deploy-preview.yml", content);
+	const packages = (content: string, again = content) => [
+		{ path: "apps/sentinel", files: [app(content)], again: [app(again)] },
+	];
+	const committed = (text: string | null) => (path: string) => (path.endsWith("ci.deploy-preview.yml") ? text : null);
+
+	it("passes a package workflow that matches, and accounts for the committed file", () => {
+		expect(
+			checkGenerated({
+				files: [],
+				again: [],
+				packages: packages("paths: a\n"),
+				read: committed("paths: a\n"),
+				workflows: new Map([["ci.deploy-preview.yml", "# AUTO-GENERATED\n# Source package: apps/sentinel\n"]]),
+			})
+		).toEqual([]);
+	});
+
+	it("names the package and the command when its workflow differs or is missing", () => {
+		const run = (text: string | null) =>
+			checkGenerated({
+				files: [],
+				again: [],
+				packages: packages("paths: new\n"),
+				read: committed(text),
+				workflows: NONE,
+			});
+		expect(run("paths: old\n")).toEqual([
+			'.github/workflows/ci.deploy-preview.yml: differs from what holocron generates for package apps/sentinel (first difference at line 1: committed "paths: old", generated "paths: new"); run `holocron repo sync --cwd apps/sentinel` and commit the result',
+		]);
+		expect(run(null)).toEqual([
+			".github/workflows/ci.deploy-preview.yml: missing for package apps/sentinel; run `holocron repo sync --cwd apps/sentinel` and commit it",
+		]);
+	});
+
+	it("reports a package workflow whose second generation differs", () => {
+		expect(
+			checkGenerated({
+				files: [],
+				again: [],
+				packages: packages("a\n", "b\n"),
+				read: committed("a\n"),
+				workflows: NONE,
+			})
+		).toEqual([".github/workflows/ci.deploy-preview.yml: generating it twice gives different content"]);
+	});
+
+	it("checks a file two configs both write once, as the root's, and leaves a hand-maintained workflow alone", () => {
+		const root = [app("root\n")];
+		expect(
+			checkGenerated({
+				files: root,
+				again: root,
+				packages: packages("package\n"),
+				read: committed("root\n"),
+				workflows: new Map([["mine.yml", "# HAND-MAINTAINED\n# Source package: apps/sentinel\n"]]),
+			})
+		).toEqual([]);
+	});
+
+	it("flags a workflow from a package whose config no longer generates it", () => {
+		expect(
+			checkGenerated({
+				files: [],
+				again: [],
+				packages: [{ path: "apps/sentinel", files: [], again: [] }],
+				read: () => null,
+				workflows: new Map([["gone.yml", "# AUTO-GENERATED\n# Source package: apps/sentinel\n"]]),
+			})
+		).toEqual([expect.stringMatching(/^\.github\/workflows\/gone\.yml: no task generates it/)]);
+	});
+});
+
+describe("sharedWorkflows", () => {
+	it("says nothing when every package writes its own files", () => {
+		expect(
+			sharedWorkflows([file("a.yml", "x")], [{ path: "apps/x", files: [file("b.yml", "x")], again: [] }])
+		).toEqual([]);
+	});
+
+	it("names the owner of a file a package shares, root first and then an earlier package", () => {
+		const lines = sharedWorkflows(
+			[file("a.yml", "x")],
+			[
+				{ path: "apps/x", files: [file("a.yml", "y"), file("b.yml", "y")], again: [] },
+				{ path: "apps/y", files: [file("b.yml", "z")], again: [] },
+			]
+		);
+		expect(lines).toEqual([
+			"package apps/x also generates 1 workflow(s) that another config writes, only that copy is checked (a.yml, from the root config, is one)",
+			"package apps/y also generates 1 workflow(s) that another config writes, only that copy is checked (b.yml, from package apps/x, is one)",
+		]);
 	});
 });
 
@@ -156,6 +259,31 @@ describe("generatedProbes", () => {
 			expect.stringMatching(/^a\.json: differs/),
 			expect.stringMatching(/^gone\.json: missing/),
 			expect.stringMatching(/^\.github\/workflows\/stale\.yml: no task generates it/),
+		]);
+	});
+
+	it("checks the workflows of a package's own config, and reports one it could not load and one it shares", async () => {
+		writeFileSync(join(root, ".github", "workflows", "ci.app.yml"), "# AUTO-GENERATED\n# Source package: apps/x\n");
+		vi.mocked(generatePackageWorkflows).mockResolvedValueOnce({
+			packages: [
+				{
+					path: "apps/x",
+					files: [file(".github/workflows/ci.app.yml", "new\n"), file("a.json", "{}\n")],
+					again: [file(".github/workflows/ci.app.yml", "new\n"), file("a.json", "{}\n")],
+				},
+			],
+			errors: ["apps/y: could not generate its workflows: boom"],
+		});
+		const rows = await run([file("a.json", "{}\n")]);
+		expect(rows).toEqual([
+			{ status: "fail", label: "apps/y: could not generate its workflows: boom" },
+			{
+				status: "fail",
+				label: expect.stringMatching(
+					/^\.github\/workflows\/ci\.app\.yml: differs from what holocron generates for package apps\/x/
+				),
+			},
+			{ status: "info", label: expect.stringMatching(/^package apps\/x also generates 1 workflow/) },
 		]);
 	});
 

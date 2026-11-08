@@ -445,7 +445,11 @@ apps/` must return **nothing** (source). The CLI's
 check` (`pnpm exec holocron probe generated check`, the required check `Generated files / Check`) generates them
   twice and fails on a file that differs from the committed copy. A new file `repo setup` writes belongs in that
   function, not in `run-setup.ts`; one that needs the provider (CODEOWNERS) stays in `run-setup.ts`. A workflow
-  that is not generated carries `# HAND-MAINTAINED` on its first line.
+  that is not generated carries `# HAND-MAINTAINED` on its first line. The check also generates the thin callers of
+  every workspace package with a `holocron.config.*` of its own (`apps/sentinel`; `generatePackageWorkflows()` in
+  `probe/generated/`, the same `generateWorkflowFiles()` `repo sync --cwd <package>` uses) and compares them the same
+  way, so a package's `paths:` list cannot go stale unseen; a failure names the package. A file the root and a package
+  both generate is checked once, as the root's, and shown as an `info` row.
 - **The org agent instructions live in `.holocron/org.md`** (the one copy; the CLI embeds it at build time). This file
   imports it with `@.holocron/org.md`. Every other repo gets it as a generated block between
   markers in its `AGENTS.md`, written by `holocron repo sync` (the `agents` step, `generateAgentFiles()` in

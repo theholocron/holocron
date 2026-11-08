@@ -1,5 +1,5 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
 # Source package: apps/sentinel
@@ -31,5 +31,5 @@ jobs:
     uses: ./.github/workflows/deploy-preview.yml
     with:
       cwd: apps/sentinel
-      paths: '["apps/sentinel/","cli/astromech/","cli/cli/","cli/datapad/","clients/github-client/","clients/http-client/","plugins/holocron-plugin-discord/","plugins/holocron-plugin-github/","observability/","utils/env-utils/","utils/fs-utils/","utils/git-utils/","utils/json-utils/","utils/misc-utils/","utils/object-utils/","utils/pkg-utils/","configs/commitlint-config/","configs/eslint-config/","configs/markdownlint-config/","configs/prettier-config/","configs/tsconfig/","configs/tsdown-config/","configs/vitest-config/","ci/","configs/rollup-plugin-transform-template/","clients/discord-client/"]'
+      paths: '["apps/sentinel/","cli/astromech/","cli/cli/","cli/datapad/","cli/kyber/","clients/github-client/","clients/http-client/","plugins/holocron-plugin-discord/","plugins/holocron-plugin-github/","observability/","utils/env-utils/","utils/fs-utils/","utils/git-utils/","utils/json-utils/","utils/misc-utils/","utils/object-utils/","utils/pkg-utils/","configs/commitlint-config/","configs/eslint-config/","configs/markdownlint-config/","configs/prettier-config/","configs/tsconfig/","configs/tsdown-config/","configs/vitest-config/","ci/","configs/rollup-plugin-transform-template/","cli/dagobah/","clients/discord-client/"]'
     secrets: inherit
