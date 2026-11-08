@@ -105,8 +105,8 @@ export async function runGithubAppCreate(input: RunGithubAppCreateInput): Promis
 	let identity;
 	try {
 		const lines = [
-			dotenvLine("GITHUB_APP_ID", String(app.id)),
-			dotenvLine("GITHUB_APP_PRIVATE_KEY", app.pem),
+			dotenvLine("SENTINEL_GITHUB_APP_ID", String(app.id)),
+			dotenvLine("SENTINEL_GITHUB_APP_PRIVATE_KEY", app.pem),
 			dotenvLine(input.webhookSecretVar || DEFAULT_WEBHOOK_SECRET_VAR, app.webhookSecret),
 		];
 		if (lines.includes(null)) throw new Error("a value cannot be written as a dotenv line");
@@ -131,7 +131,7 @@ export async function runGithubAppCreate(input: RunGithubAppCreateInput): Promis
 		print,
 		holds: "the App's credentials",
 		importHint:
-			"import it in the 1Password app: Developer, View Environments, the Environment, Import .env file; it holds GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY and the webhook secret",
+			"import it in the 1Password app: Developer, View Environments, the Environment, Import .env file; it holds SENTINEL_GITHUB_APP_ID, SENTINEL_GITHUB_APP_PRIVATE_KEY and the webhook secret",
 		keep: input.keep,
 		interactive: input.interactive,
 		shred: input.shred,

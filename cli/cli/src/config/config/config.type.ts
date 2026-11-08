@@ -326,8 +326,8 @@ export interface GitHubAppConfig {
 	 */
 	manifest: string;
 	/**
-	 * The vault environment (a 1Password Environment) that holds the instance's `GITHUB_APP_ID` and
-	 * `GITHUB_APP_PRIVATE_KEY`. A name, not a secret, so it is committed.
+	 * The vault environment (a 1Password Environment) that holds the instance's `SENTINEL_GITHUB_APP_ID` and
+	 * `SENTINEL_GITHUB_APP_PRIVATE_KEY` (or the older bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`). A name, not a secret, so it is committed.
 	 */
 	environment: string;
 }

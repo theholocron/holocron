@@ -133,11 +133,11 @@ import { handleWebhookRequest } from "./handler.js";
 import type { Env } from "./handler.type.js";
 
 const ENV: Env = {
-	GITHUB_APP_ID: "123456",
+	SENTINEL_GITHUB_APP_ID: "123456",
 	// createInstallationClient is mocked below — this never gets parsed as a
 	// real PEM, so a plain placeholder avoids gitleaks flagging the literal
 	// dash-wrapped PEM delimiter pattern in test fixtures.
-	GITHUB_APP_PRIVATE_KEY: "fake-private-key-for-tests",
+	SENTINEL_GITHUB_APP_PRIVATE_KEY: "fake-private-key-for-tests",
 	SENTINEL_WEBHOOK_SECRET: "test-secret",
 };
 
@@ -353,6 +353,41 @@ describe("handler — defensive guards", () => {
 	});
 });
 
+describe("handler — the App's credentials", () => {
+	const pushEvent = {
+		handled: true,
+		event: {
+			type: "push.default-branch",
+			repo: "acme/demo",
+			installationId: 42,
+			raw: { repository: { default_branch: "main" }, after: "sha-after" },
+		},
+	} as never;
+
+	it("still reads the bare GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY a deployment set before the rename", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(pushEvent);
+		vi.mocked(createInstallationClient).mockResolvedValue(FAKE_CLIENT as never);
+		vi.mocked(validateConfig).mockResolvedValue({ status: "missing" } as never);
+
+		await handleWebhookRequest(req(), {
+			SENTINEL_WEBHOOK_SECRET: "test-secret",
+			GITHUB_APP_ID: "7",
+			GITHUB_APP_PRIVATE_KEY: "old-key",
+		});
+
+		expect(createInstallationClient).toHaveBeenCalledWith({ appId: "7", privateKey: "old-key" }, 42);
+	});
+
+	it("answers 500 and makes no client when neither spelling of the App id is set", async () => {
+		vi.mocked(parseWebhookEvent).mockReturnValue(pushEvent);
+
+		const res = await handleWebhookRequest(req(), { SENTINEL_WEBHOOK_SECRET: "test-secret" });
+
+		expect(res.status).toBe(500);
+		expect(createInstallationClient).not.toHaveBeenCalled();
+	});
+});
+
 describe("handler — push.default-branch full pipeline", () => {
 	it("runs validateConfig → syncPropertiesFromConfig → postCheckRun and returns the check run", async () => {
 		vi.mocked(parseWebhookEvent).mockReturnValue({
@@ -378,7 +413,7 @@ describe("handler — push.default-branch full pipeline", () => {
 		const res = await handleWebhookRequest(req(), ENV);
 
 		expect(createInstallationClient).toHaveBeenCalledWith(
-			{ appId: ENV.GITHUB_APP_ID, privateKey: ENV.GITHUB_APP_PRIVATE_KEY },
+			{ appId: ENV.SENTINEL_GITHUB_APP_ID, privateKey: ENV.SENTINEL_GITHUB_APP_PRIVATE_KEY },
 			42
 		);
 		expect(validateConfig).toHaveBeenCalledWith({ client: FAKE_CLIENT, repo: "acme/demo" });
@@ -2164,7 +2199,7 @@ describe("handleWebhookRequest — role sync (holocron#1595)", () => {
 		expect(res.status).toBe(200);
 		expect(await res.json()).toEqual({ handled: true, type: "team.membership", sync });
 		expect(createInstallationClient).toHaveBeenCalledWith(
-			{ appId: ENV.GITHUB_APP_ID, privateKey: ENV.GITHUB_APP_PRIVATE_KEY },
+			{ appId: ENV.SENTINEL_GITHUB_APP_ID, privateKey: ENV.SENTINEL_GITHUB_APP_PRIVATE_KEY },
 			5
 		);
 		expect(runRoleSync).toHaveBeenCalledWith({ client: FAKE_CLIENT, env, org: "acme", team: "gatekeepers" });
@@ -2240,7 +2275,7 @@ describe("handleWebhookRequest — #prs feed (holocron#1833)", () => {
 			expect(await res.json()).toEqual({ handled: true, type, prFeed: OK });
 			expect(runPrFeed).toHaveBeenLastCalledWith({ client: FAKE_CLIENT, env: ENV, repo: "acme/demo", trigger });
 			expect(createInstallationClient).toHaveBeenLastCalledWith(
-				{ appId: ENV.GITHUB_APP_ID, privateKey: ENV.GITHUB_APP_PRIVATE_KEY },
+				{ appId: ENV.SENTINEL_GITHUB_APP_ID, privateKey: ENV.SENTINEL_GITHUB_APP_PRIVATE_KEY },
 				7
 			);
 			expect(validateConfig).not.toHaveBeenCalled();

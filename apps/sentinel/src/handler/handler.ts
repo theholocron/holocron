@@ -181,8 +181,9 @@
  * the still-open "Sentinel's own holocron.config.ts" PR-stack item.
  *
  * `Env` fields this handler expects, wired via `holocron secrets sync`
- * (holocron#781) from the 1Password Environment `Sentinel`: `GITHUB_APP_ID`,
- * `GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET`. The module-level
+ * (holocron#781) from the 1Password Environment `Sentinel`: `SENTINEL_GITHUB_APP_ID`,
+ * `SENTINEL_GITHUB_APP_PRIVATE_KEY` (or the older `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`),
+ * `SENTINEL_WEBHOOK_SECRET`. The module-level
  * logger below reads two more via `@theholocron/env-utils/lookup` (see its own
  * comment — never bare `process.env`, this org's own convention) — not
  * through this `Env` parameter, since it's built once at module load,
@@ -250,6 +251,7 @@ import {
 	validateDocsPresence,
 } from "../actions/index.js";
 import {
+	githubAppCredentials,
 	parseWebhookEvent,
 	readAutoFix,
 	resolveAxiomConfig,
@@ -447,10 +449,7 @@ async function handle(request: Request, env: Env): Promise<Response> {
 	// it up (see RoleSyncEnv) answers `skipped`; a sync that runs and fails answers 500, so the delivery shows
 	// as failed in the App's "Recent deliveries" and can be redelivered (the sync is idempotent).
 	if (event.type === "team.membership" || event.type === "organization.member-removed") {
-		const roleClient = await createInstallationClient(
-			{ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY },
-			event.installationId
-		);
+		const roleClient = await createInstallationClient(githubAppCredentials(env), event.installationId);
 		const sync = await runRoleSync({ client: roleClient, env, org: event.org!, team: event.team });
 		const failed = sync.status === "fail" || sync.status === "partial";
 		if (failed) logger.error({ org: event.org, team: event.team, sync }, SENTINEL_ROLE_SYNC_LOG_MSG);
@@ -495,10 +494,7 @@ const FEED_ONLY_EVENTS: ReadonlySet<SentinelEvent["type"]> = new Set([
 async function runFeed(event: SentinelEvent, repo: string, trigger: PrFeedTrigger, env: Env): Promise<RunPrFeedResult> {
 	let prFeed: RunPrFeedResult;
 	try {
-		const client = await createInstallationClient(
-			{ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY },
-			event.installationId
-		);
+		const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
 		prFeed = await runPrFeed({ client, env, repo, trigger });
 	} catch (err) {
 		prFeed = { status: "fail", reason: err instanceof Error ? err.message : String(err) };
@@ -531,10 +527,7 @@ async function handleChecks(event: SentinelEvent, repo: string, env: Env): Promi
 		throw err;
 	}
 
-	const client = await createInstallationClient(
-		{ appId: env.GITHUB_APP_ID, privateKey: env.GITHUB_APP_PRIVATE_KEY },
-		event.installationId
-	);
+	const client = await createInstallationClient(githubAppCredentials(env), event.installationId);
 
 	// A PR title or description edit changes only what the docs-presence check
 	// reads (a `feat` in the title, a `[skip docs]` marker in the description),

@@ -169,7 +169,7 @@ export default defineConfig({
 		serve: {
 			handler: "./src/handler/index.ts",
 			export: "handleWebhookRequest",
-			required: ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
+			required: ["SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
 			logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "SENTINEL_AXIOM_DATASET" },
 		},
 	},

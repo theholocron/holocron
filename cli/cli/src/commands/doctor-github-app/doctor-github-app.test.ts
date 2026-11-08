@@ -206,7 +206,38 @@ describe("runDoctorGitHubApp", () => {
 		const { report } = await run({
 			vault: { providerName: "1password", readEnvironment: async () => ({ GITHUB_APP_ID: "42" }) },
 		});
-		expect(report.reason).toBe('"Sentinel" does not hold GITHUB_APP_PRIVATE_KEY');
+		expect(report.reason).toBe(
+			'"Sentinel" does not hold SENTINEL_GITHUB_APP_PRIVATE_KEY (or GITHUB_APP_PRIVATE_KEY)'
+		);
+		const neither = await run({ vault: { providerName: "1password", readEnvironment: async () => ({}) } });
+		expect(neither.report.reason).toBe(
+			'"Sentinel" does not hold SENTINEL_GITHUB_APP_ID (or GITHUB_APP_ID) or SENTINEL_GITHUB_APP_PRIVATE_KEY (or GITHUB_APP_PRIVATE_KEY)'
+		);
+	});
+
+	it("reads the SENTINEL_ names first and the bare ones as the fallback", async () => {
+		const seen: { appId: string; privateKey: string }[] = [];
+		const getApp: GitHubAppApi["getApp"] = async (creds) => {
+			seen.push(creds);
+			return app();
+		};
+		await run({
+			getApp,
+			vault: {
+				providerName: "1password",
+				readEnvironment: async () => ({
+					SENTINEL_GITHUB_APP_ID: "7",
+					SENTINEL_GITHUB_APP_PRIVATE_KEY: "new\nkey",
+					GITHUB_APP_ID: "42",
+					GITHUB_APP_PRIVATE_KEY: "old\nkey",
+				}),
+			},
+		});
+		await run({ getApp });
+		expect(seen).toEqual([
+			{ appId: "7", privateKey: "new\nkey" },
+			{ appId: "42", privateKey: KEY },
+		]);
 	});
 
 	it("skips when there is no vault, or one that cannot read an environment", async () => {
