@@ -1,3 +1,13 @@
+## [5.0.0-alpha.377](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.376...v5.0.0-alpha.377) (2026-11-08)
+
+### Bug Fixes
+
+* **migrate:** 🔑 keep the credentials providers so a token held in 1Password is found ([#1952](https://github.com/theholocron/holocron/issues/1952)) ([0f33237](https://github.com/theholocron/holocron/commit/0f33237955dac541c3c80911e5f8be45a6b6710d)), closes [#1951](https://github.com/theholocron/holocron/issues/1951)
+
+### Documentation
+
+* **linear:** 📝 say Read and Write were enough for setup, as confirmed on a real team ([#1948](https://github.com/theholocron/holocron/issues/1948)) ([fc11aae](https://github.com/theholocron/holocron/commit/fc11aae4b8ffcd85954c1585e1fb318b3a12b16b)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
 ## [5.0.0-alpha.376](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.375...v5.0.0-alpha.376) (2026-11-08)
 
 ### Bug Fixes
