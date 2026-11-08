@@ -289,6 +289,8 @@ First PR (draft, on the Linear plugin's branch): the `provider` command and the 
 `project setup`), the `rules` to Linear mapping (the declared `automation` block writes the settings; `doctor project`
 already reports a rule that is off), the git rules, issue templates (open questions 6 and 7), and sections 3 to 5.
 
+Section 3 (#1860): `Projects.addItems?(owner, board, items, template)` takes `BoardItemInput`s (key, status, category, priority) rather than bare keys, because Status and Priority are set in the same call; it returns an `AddedItem` per input (`added`, `dropped`). `migrate project` uses it when the target's `projects` provider has it, and the milestone is then set only by `--milestone`. Built: GitHub's `addItems`, `--template`, the board line and the `dropped` counts. Not done: the built-in `roadmap` template's priority options (`1 · Now`...) do not match the neutral levels, so a board made from it drops every priority until a template names `urgent` to `P3` options (an open choice, not decided here).
+
 ## Related
 
 - #1856, #1857: Linear plugin and `migrate`.

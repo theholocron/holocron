@@ -14,6 +14,14 @@ import { describeError, NonInteractiveError, statusRow } from "@theholocron/kybe
 import { collectRecords } from "../collect-records/index.js";
 import { openSide } from "../open-side/index.js";
 import { parseEndpoint } from "../parse-endpoint/index.js";
+import {
+	type BoardPlacement,
+	type BoardWriter,
+	placeOnBoard,
+	type PlaceOnBoardInput,
+} from "../place-on-board/index.js";
+import { printBoard } from "../print-board/index.js";
+import { resolveBoardTarget } from "../resolve-board-target/index.js";
 import { tallyDropped } from "../tally-dropped/index.js";
 import type { MigrateReport, RunMigrateInput } from "./run-migrate.type.js";
 
@@ -44,11 +52,32 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 		context: input.context,
 		endpoint: to,
 		capabilities: ["issues"],
+		...(project ? { optional: ["projects" as const] } : {}),
 		makeLoader: input.makeLoader,
 	});
 	if (!target.ok) return stop("fail", `target: ${target.reason}`);
 	const importer = target.issues;
 	if (!importer?.import) return stop("skip", `the \`${target.provider}\` provider cannot import issues`);
+
+	// A target with a board (GitHub Projects) gets the board; one without keeps the milestone (Linear's project).
+	const projectScope = input.scope.kind === "project" ? input.scope : undefined;
+	let plan: Pick<PlaceOnBoardInput, "projects" | "owner" | "name" | "template"> | undefined;
+	if (projectScope && target.projects?.addItems) {
+		const resolved = await resolveBoardTarget({
+			loaded: input.loaded,
+			fallbackOwner: projectScope.owner,
+			repoRoot: input.context.repoRoot,
+			template: input.template,
+			io: input.templatesIo,
+		});
+		if (!resolved.ok) return stop("fail", resolved.reason);
+		plan = {
+			projects: target.projects as BoardWriter,
+			owner: resolved.owner,
+			name: projectScope.name,
+			template: resolved.template,
+		};
+	}
 
 	const collected = await collectRecords({
 		source,
@@ -61,7 +90,7 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 	if (records.length === 0) return stop("skip", "nothing to migrate");
 
 	const dryRun = Boolean(input.context.dryRun);
-	const milestone = input.milestone ?? (input.scope.kind === "project" ? input.scope.name : undefined);
+	const milestone = input.milestone ?? (projectScope && !plan ? projectScope.name : undefined);
 	const where = `${source.provider} to ${target.provider}`;
 
 	if (!dryRun && !input.yes) {
@@ -93,12 +122,19 @@ export async function runMigrate(input: RunMigrateInput): Promise<MigrateReport>
 				`${where}: ${dryRun ? "dry run, nothing written; would create" : "created"} ${created}, skipped ${results.length - created}`,
 			])
 		);
+		let placement: BoardPlacement | undefined;
+		if (plan) {
+			placement = await placeOnBoard({ ...plan, records, results, dryRun });
+			printBoard({ print, name: plan.name, template: plan.template.name, placement, dryRun });
+			const bySource = new Map(results.map((r) => [r.source, r]));
+			for (const item of placement.items) bySource.get(item.source)!.dropped.push(...item.dropped);
+		}
 		const notCarried = tallyDropped(results);
 		if (notCarried.length > 0) {
 			print("      not carried across:");
 			for (const { what, count } of notCarried) print(`        ${what}: ${count} issue(s)`);
 		}
-		return { status: "ok", results, notCarried };
+		return { status: "ok", results, notCarried, ...(placement ? { board: placement } : {}) };
 	} catch (err) {
 		return stop("fail", `${describeError(err)} (a second run continues where this stopped)`);
 	}

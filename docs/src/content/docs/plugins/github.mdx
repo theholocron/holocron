@@ -94,6 +94,10 @@ organization permission. Items are keyed `#N` in the configured `repo` and `owne
 - `items` / `setStatus`: each item's status, category, open state and open blockers; an idempotent status change
 - `move`: puts open items on another board with status and priority (only where the target has none); closed and merged
   items stay and are set to the done status when theirs is not a done one
+- `addItems`: puts issues on a board by node id (`addProjectV2ItemById`) and sets Status and Priority through the single
+  select update, only where the item has none; used by `holocron migrate project --to github`. A status or priority with
+  no option on the board is reported, never created. Priority matches an option named `urgent`, `high`, `medium`, `low`
+  or `P0` to `P3`
 - Automation rules cannot be created or switched on through the API, nor can a view's grouping; `ensure` returns them
   as `todos`
 

@@ -12,6 +12,7 @@ export interface MigrateArgs extends GlobalArgs {
 	to: string;
 	openOnly?: boolean;
 	milestone?: string;
+	template?: string;
 	yes?: boolean;
 }
 
@@ -30,6 +31,7 @@ export async function handleMigrate(argv: MigrateArgs, scope: (owner: string) =>
 		scope: scope(org ?? ""),
 		...(argv.openOnly ? { openOnly: true } : {}),
 		...(argv.milestone ? { milestone: argv.milestone } : {}),
+		...(argv.template ? { template: argv.template } : {}),
 		...(argv.yes ? { yes: true } : {}),
 	});
 	if (report.status === "fail") process.exitCode = 1;

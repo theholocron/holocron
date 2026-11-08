@@ -53,6 +53,26 @@ describe("openSide", () => {
 		expect(side).toMatchObject({ ok: true, issues: "i", projects: "p" });
 	});
 
+	it("loads an optional capability when the provider has it, and goes on without it when not", async () => {
+		const base = {
+			loaded: loadedWith(),
+			context,
+			endpoint: { provider: "github", options: {} },
+			capabilities: ["issues" as const],
+			optional: ["projects" as const],
+		};
+		const keys: string[][] = [];
+		const makeLoader = (caps: Record<string, unknown>) => (resolved: { providers: object }) => {
+			keys.push(Object.keys(resolved.providers));
+			return fakeLoader(caps);
+		};
+		const has = await openSide({ ...base, makeLoader: makeLoader({ issues: "i", projects: "p" }) });
+		expect(has).toMatchObject({ ok: true, issues: "i", projects: "p" });
+		expect(keys[0]).toEqual(["issues", "projects"]);
+		const lacks = await openSide({ ...base, makeLoader: makeLoader({ issues: "i" }) });
+		expect(lacks).toEqual({ ok: true, provider: "github", issues: "i" });
+	});
+
 	it("says why a capability did not load, or only that it is missing", async () => {
 		const failed = await openSide({
 			loaded: loadedWith(),

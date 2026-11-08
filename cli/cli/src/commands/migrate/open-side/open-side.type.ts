@@ -12,6 +12,8 @@ export interface OpenSideInput {
 	endpoint: Endpoint;
 	/** Which capabilities to load from it. */
 	capabilities: Array<"issues" | "projects">;
+	/** Capabilities to load if the provider has them; one that is missing or fails to load is not an error. */
+	optional?: Array<"projects"> | undefined;
 	/** Builds the loader. Defaults to a real one over the derived config. */
 	makeLoader?: ((resolved: LoadedConfig["resolved"], context: RuntimeContext) => PluginLoader) | undefined;
 }

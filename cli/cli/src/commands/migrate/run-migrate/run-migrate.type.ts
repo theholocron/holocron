@@ -1,6 +1,8 @@
 import type { LoadedConfig } from "../../../config/index.js";
 import type { ImportResult, PluginLoader, RuntimeContext } from "../../../plugin/index.js";
+import type { TemplatesIo } from "../../project/load-templates/index.js";
 import type { MigrateScope } from "../collect-records/index.js";
+import type { BoardPlacement } from "../place-on-board/index.js";
 import type { DroppedTally } from "../tally-dropped/index.js";
 
 /** What {@link runMigrate} needs. */
@@ -16,8 +18,16 @@ export interface RunMigrateInput {
 	scope: MigrateScope;
 	/** Leave closed issues behind. */
 	openOnly?: boolean;
-	/** Put every migrated issue in this milestone (GitHub) or project (Linear). A project scope defaults it to the board's name. */
+	/**
+	 * Put every migrated issue in this milestone (GitHub) or project (Linear). A project scope moved to a target with no
+	 * boards defaults it to the board's name; to a target with boards (GitHub) the board is made instead and the
+	 * milestone is set only when this is given.
+	 */
 	milestone?: string;
+	/** The board template a missing board is made from, when the target has boards. Defaults to `roadmap`. */
+	template?: string;
+	/** Where template files are read from. Defaults to the real file system. */
+	templatesIo?: TemplatesIo;
 	/** Migrate without asking. */
 	yes?: boolean;
 	/** Builds a loader for a side; tests pass one. */
@@ -38,6 +48,8 @@ export interface MigrateReport {
 	results?: ImportResult[];
 	/** What the target could not hold, with how many issues lost it. */
 	notCarried?: DroppedTally[];
+	/** Where the issues went on the target's board, when the target has boards and the scope was one. */
+	board?: BoardPlacement;
 	/** Why it did not run, when that is so. */
 	reason?: string;
 }

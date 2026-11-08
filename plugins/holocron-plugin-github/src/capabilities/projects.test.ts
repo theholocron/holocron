@@ -644,3 +644,135 @@ describe("GitHubProjects.move", () => {
 		expect(calls.some((c) => c.query.includes("updateProjectV2ItemFieldValue"))).toBe(false);
 	});
 });
+
+describe("GitHubProjects.addItems", () => {
+	const idFor = (v: Record<string, unknown>) => ({
+		repository: { issue: { id: `N${String(v.owner)}/${String(v.name)}#${String(v.number)}` } },
+	});
+	const writes = (calls: Call[]) =>
+		calls
+			.filter((c) => c.query.includes("updateProjectV2ItemFieldValue"))
+			.map((c) => [c.variables.item, c.variables.field, c.variables.option]);
+
+	it("adds each issue by its node id and sets Status by name or category and Priority by level", async () => {
+		const { projects, calls } = endpoint([
+			["query($id: ID!) { node", boardNode()],
+			["items(first", page([])],
+			["repository(owner", (v) => idFor(v)],
+			["addProjectV2ItemById", (_v, n) => ({ addProjectV2ItemById: { item: { id: `I${n}` } } })],
+			["updateProjectV2ItemFieldValue", {}],
+		]);
+		const added = await projects.addItems(
+			"org",
+			BOARD,
+			[
+				{ key: "#1", status: "done", category: "done", priority: "urgent" },
+				{ key: "other/repo#2", status: "Reviewing", category: "planned", priority: "high" },
+				{ key: "#3", category: "done" },
+				{ key: "#4", priority: "none" },
+			],
+			TEMPLATE
+		);
+		expect(added).toEqual([
+			{ key: "#1", added: true, dropped: [] },
+			{ key: "other/repo#2", added: true, dropped: [] },
+			{ key: "#3", added: true, dropped: [] },
+			{ key: "#4", added: true, dropped: [] },
+		]);
+		const adds = calls.filter((c) => c.query.includes("addProjectV2ItemById")).map((c) => c.variables);
+		expect(adds).toEqual([
+			{ project: "P1", content: `N${REPO}#1` },
+			{ project: "P1", content: "Nother/repo#2" },
+			{ project: "P1", content: `N${REPO}#3` },
+			{ project: "P1", content: `N${REPO}#4` },
+		]);
+		expect(writes(calls)).toEqual([
+			["I1", "FS", "o2"],
+			["I1", "FP", "p1"],
+			["I2", "FS", "o1"],
+			["I2", "FP", "p2"],
+			["I3", "FS", "o2"],
+		]);
+	});
+
+	it("keeps an issue already on the board and the values it has, and fills only what is empty", async () => {
+		const { projects, calls } = endpoint([
+			["query($id: ID!) { node", boardNode()],
+			[
+				"items(first",
+				page([item("X1", 1, "OPEN", { Status: "Done", Priority: "P1" }), item("X2", 2, "OPEN", {})]),
+			],
+			["updateProjectV2ItemFieldValue", {}],
+		]);
+		const added = await projects.addItems(
+			"org",
+			BOARD,
+			[
+				{ key: "#1", status: "Todo", priority: "urgent" },
+				{ key: "#2", status: "Todo", priority: "urgent" },
+			],
+			TEMPLATE
+		);
+		expect(added.map((a) => a.added)).toEqual([false, false]);
+		expect(calls.some((c) => c.query.includes("addProjectV2ItemById"))).toBe(false);
+		expect(writes(calls)).toEqual([
+			["X2", "FS", "o1"],
+			["X2", "FP", "p1"],
+		]);
+	});
+
+	it("reports a status or priority with no option on the board and creates nothing", async () => {
+		const { projects, calls } = endpoint([
+			["query($id: ID!) { node", boardNode()],
+			["items(first", page([])],
+			["repository(owner", (v) => idFor(v)],
+			["addProjectV2ItemById", { addProjectV2ItemById: { item: { id: "I1" } } }],
+			["updateProjectV2ItemFieldValue", {}],
+		]);
+		const added = await projects.addItems(
+			"org",
+			BOARD,
+			[
+				{ key: "#1", status: "Ghost", priority: "low" },
+				{ key: "#2", category: "blocked" },
+				{ key: "#3", category: "active" },
+			],
+			TEMPLATE
+		);
+		expect(added[0]?.dropped).toEqual([
+			"status Ghost (no matching option on the board)",
+			"priority low (no matching option on the board)",
+		]);
+		expect(added[1]?.dropped).toEqual(["status blocked (no matching option on the board)"]);
+		expect(added[2]?.dropped).toEqual(["status active (no matching option on the board)"]);
+		expect(calls.some((c) => c.query.includes("updateProjectV2Field("))).toBe(false);
+		expect(writes(calls)).toEqual([]);
+	});
+
+	it("reports a priority when the board has no Priority field", async () => {
+		const bare = boardNode();
+		const nodes = (bare.node.fields as { nodes: Array<{ name?: string }> }).nodes.filter(
+			(f) => f.name !== "Priority"
+		);
+		const { projects } = endpoint([
+			["query($id: ID!) { node", boardNode({ fields: { nodes } })],
+			["items(first", page([])],
+			["repository(owner", (v) => idFor(v)],
+			["addProjectV2ItemById", { addProjectV2ItemById: { item: { id: "I1" } } }],
+		]);
+		const added = await projects.addItems("org", BOARD, [{ key: "#1", priority: "high" }], TEMPLATE);
+		expect(added[0]?.dropped).toEqual(["priority high (no matching option on the board)"]);
+	});
+
+	it("throws when the issue cannot be found, whether the repository or the issue is missing", async () => {
+		for (const reply of [{ repository: null }, { repository: { issue: null } }]) {
+			const { projects } = endpoint([
+				["query($id: ID!) { node", boardNode()],
+				["items(first", page([])],
+				["repository(owner", reply],
+			]);
+			const err = await projects.addItems("org", BOARD, [{ key: "#9" }], TEMPLATE).catch((e: unknown) => e);
+			expect((err as Error).message).toBe(`issue ${REPO}#9 not found`);
+		}
+	});
+});

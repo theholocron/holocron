@@ -75,6 +75,11 @@ describe("migrate commands", () => {
 		);
 	});
 
+	it("project passes --template, which only a project has", async () => {
+		await go("project", "v5", ...ENDS, "--template", "sprint");
+		expect(runMigrate).toHaveBeenCalledWith(expect.objectContaining({ template: "sprint" }));
+	});
+
 	it("does nothing without tokens, and sets a failing exit code", async () => {
 		tokenContext.mockReturnValueOnce(undefined);
 		await go("issue", "#1", ...ENDS);
