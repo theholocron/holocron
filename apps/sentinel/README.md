@@ -219,7 +219,10 @@ the failure is meant to be transient, auto-fix-commit (below) resolving
 it on a fresh commit; see `src/actions/editorconfig/lint-editorconfig/lint-editorconfig.ts`'s
 own module docstring for why the value-checking/fixing layer on top is a
 deliberate, narrow exception to "never reimplement a tool's rules"),
-markdown lint (markdownlint, holocron#821), and static analysis (eslint,
+markdown lint (markdownlint, holocron#821; `.md` and `.mdx`, but in an `.mdx` file a `no-space-in-emphasis` finding
+inside `{/* a comment */}` is ignored: markdownlint does not parse MDX, read the spaces inside the comment as spaces
+inside emphasis, and its fix and prettier's undid each other, holocron#1950; real emphasis and every other rule are
+still reported), and static analysis (eslint,
 holocron#849 — the one Bucket 1 check that isn't config-free: skipped
 entirely when a repo's `runtime_environment` property is explicitly
 `"none"`, since a docs-only repo has no JS/TS to lint; honors
@@ -520,6 +523,14 @@ the `format` task (`{ name: "format", with: { autoFix: false } }`; the deprecate
 merged to the repo's default branch or added fresh in a PR's own branch (see `handleWebhookRequest`'s own docstring in
 `src/handler/handler.ts`, and `validate-config.ts`'s module docstring for the
 read-only boundary that makes a PR-branch read safe).
+
+The three fixers (prettier, markdownlint, editorconfig) are guarded against undoing each other (holocron#1950): before
+a fix is committed Sentinel reads the pull request's commits (`findAutoFixLoop()`, the first 100 that GitHub lists),
+and a fixer that already committed since the last commit of a person's is not run again. The pull request gets one
+comment saying so (`postAutoFixLoopComment()`, looked for by its `<!-- sentinel:auto-fix-loop -->` marker), and the checks
+keep reporting the finding until it is fixed by hand. A new commit of a person's starts auto-fixing again. A failed read
+of the commits blocks nothing. The commit subjects are `AUTO_FIX_SUBJECTS`, the one list the fixers write and the guard
+reads.
 
 ### Subscribe to events
 

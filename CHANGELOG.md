@@ -1,3 +1,35 @@
+## [5.0.0-alpha.378](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.377...v5.0.0-alpha.378) (2026-11-08)
+
+### Bug Fixes
+
+* **github:** 🐛 export a board's issues a few at a time, and explain GitHub's secondary limit ([#1958](https://github.com/theholocron/holocron/issues/1958)) ([6eac58a](https://github.com/theholocron/holocron/commit/6eac58a80d747f0f038730467a8c370a9fb8c5a6)), closes [#1957](https://github.com/theholocron/holocron/issues/1957)
+* **sentinel:** 🐛 do not flag cache-mode in the actionlint check, which GitHub accepts ([#1955](https://github.com/theholocron/holocron/issues/1955)) ([b183b2b](https://github.com/theholocron/holocron/commit/b183b2bcb7c17f52f71a06c0d9c4fbf8b9c8daff)), closes [#1954](https://github.com/theholocron/holocron/issues/1954)
+* **sentinel:** 🐛 stop auto-fixers that keep undoing each other ([#1953](https://github.com/theholocron/holocron/issues/1953)) ([d03f60b](https://github.com/theholocron/holocron/commit/d03f60b527532d89f66f07fb6f13d91be41d3dbb)), closes [#1949](https://github.com/theholocron/holocron/issues/1949) [#1950](https://github.com/theholocron/holocron/issues/1950)
+
+## [5.0.0-alpha.377](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.376...v5.0.0-alpha.377) (2026-11-08)
+
+### Bug Fixes
+
+* **migrate:** 🔑 keep the credentials providers so a token held in 1Password is found ([#1952](https://github.com/theholocron/holocron/issues/1952)) ([0f33237](https://github.com/theholocron/holocron/commit/0f33237955dac541c3c80911e5f8be45a6b6710d)), closes [#1951](https://github.com/theholocron/holocron/issues/1951)
+
+### Documentation
+
+* **linear:** 📝 say Read and Write were enough for setup, as confirmed on a real team ([#1948](https://github.com/theholocron/holocron/issues/1948)) ([fc11aae](https://github.com/theholocron/holocron/commit/fc11aae4b8ffcd85954c1585e1fb318b3a12b16b)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
+## [5.0.0-alpha.376](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.375...v5.0.0-alpha.376) (2026-11-08)
+
+### Bug Fixes
+
+* **linear:** 🐛 read a team's auto-close state by its id, which Linear's Team has ([#1945](https://github.com/theholocron/holocron/issues/1945)) ([a64cb93](https://github.com/theholocron/holocron/commit/a64cb935a5067b9907b34b0f6da638a434edba07)), closes [#1944](https://github.com/theholocron/holocron/issues/1944)
+
+### Documentation
+
+* **linear:** 📝 add the HOLO trial file for provider setup and doctor ([#1946](https://github.com/theholocron/holocron/issues/1946)) ([67127a1](https://github.com/theholocron/holocron/commit/67127a126e32d9190de24a10ebbc7177fb7ebc40)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
+### Chores
+
+* **deps:** bump the all-actions group with 4 updates ([#1920](https://github.com/theholocron/holocron/issues/1920)) ([c2f2fec](https://github.com/theholocron/holocron/commit/c2f2feca06584b0af0c7bf01c975b1694ae57d63))
+
 ## [5.0.0-alpha.375](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.374...v5.0.0-alpha.375) (2026-11-08)
 
 ### Features

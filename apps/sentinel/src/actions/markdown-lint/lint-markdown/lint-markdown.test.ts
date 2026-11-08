@@ -162,6 +162,90 @@ describe("lintMarkdown — scoping", () => {
 
 		expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
 	});
+
+	describe("an MDX comment (holocron#1950)", () => {
+		// What looped on #1949: markdownlint read the spaces inside the comment as spaces inside emphasis (MD037) and
+		// its fix removed them, and prettier's MDX formatting put them back.
+		const mdxComment = "# Title\n\nA cell {/* holocron-allow-old-name */}\n";
+
+		it("is flagged and rewritten in an .md file, where the same text is emphasis", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.md")] },
+				{ status: 200, body: contentsBody(mdxComment) },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.ruleNames)).toContainEqual(expect.arrayContaining(["MD037"]));
+			expect(result.fixes).toHaveLength(1);
+		});
+
+		it("is left alone in an .mdx file: no finding and no fix", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{ status: 200, body: contentsBody(mdxComment) },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result).toEqual({ valid: true, fileCount: 1, messages: [], fixes: [] });
+		});
+
+		it("still reports real emphasis with spaces inside in an .mdx file, outside any comment", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{ status: 200, body: contentsBody("# Title\n\nHere is some * emphasized * text.\n") },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.ruleNames)).toContainEqual(expect.arrayContaining(["MD037"]));
+			expect(result.fixes).toHaveLength(1);
+		});
+
+		it("reports only the real emphasis when a comment and real emphasis share an .mdx file, and fixes only that", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{
+					status: 200,
+					body: contentsBody(
+						"# Title\n\nA cell {/* holocron-allow-old-name */}\n\nHere is some * emphasized * text.\n"
+					),
+				},
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.line)).toEqual([5, 5]);
+			expect(result.fixes).toHaveLength(1);
+			expect(result.fixes[0]!.fixed).toContain("{/* holocron-allow-old-name */}");
+			expect(result.fixes[0]!.fixed).toContain("Here is some *emphasized* text.");
+		});
+
+		it("still reports every other rule in an .mdx file", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("docs/probe.mdx")] },
+				{ status: 200, body: contentsBody("# A\n\n### skipped\n\nA cell {/* x */}\n") },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.messages.map((m) => m.ruleNames[0])).toEqual(["MD001"]);
+		});
+
+		it("lints an .md and an .mdx file in the same pull request, each with its own config", async () => {
+			const { client } = makeClient([
+				{ status: 200, body: [file("a.md"), file("b.mdx")] },
+				{ status: 200, body: contentsBody(mdxComment) },
+				{ status: 200, body: contentsBody(mdxComment) },
+			]);
+
+			const result = await lintMarkdown({ client, repo: "acme/demo", pullNumber: 1, ref: "sha" });
+
+			expect(result.fileCount).toBe(2);
+			expect([...new Set(result.messages.map((m) => m.file))]).toEqual(["a.md"]);
+		});
+	});
 });
 
 describe("lintMarkdown — batching (one lint() call, not one per file)", () => {

@@ -11,14 +11,15 @@
  * A migrated issue ends with `<!-- holocron:migrated-from <url> -->`, which is how a second run finds it.
  */
 
-import type {
-	ImportOptions,
-	ImportResult,
-	IssueComment,
-	IssuePriority,
-	IssueRecord,
-	IssueSelector,
-	StatusCategory,
+import {
+	type ImportOptions,
+	type ImportResult,
+	type IssueComment,
+	type IssuePriority,
+	type IssueRecord,
+	type IssueSelector,
+	ProviderApiError,
+	type StatusCategory,
 } from "@theholocron/cli";
 import type { GitHubClient, GitHubIssue } from "@theholocron/github-client";
 
@@ -54,16 +55,53 @@ function categoryOf(issue: GitHubIssue): StatusCategory {
 	return "open";
 }
 
+/** How many issues an export fetches at once. GitHub's secondary rate limit punishes bursts of requests, not volume. */
+const EXPORT_CONCURRENCY = 4;
+
+/** Runs `fn` over `items`, at most `limit` at a time, and returns the results in the order of `items`. */
+async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+	const results: R[] = new Array<R>(items.length);
+	let next = 0;
+	const worker = async (): Promise<void> => {
+		while (next < items.length) {
+			const at = next++;
+			results[at] = await fn(items[at] as T);
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+	return results;
+}
+
+/** GitHub's own answer to a burst of requests (403 or 429 naming the secondary limit) becomes a message that says what to do. */
+function explainSecondaryLimit(err: unknown): unknown {
+	if (
+		err instanceof ProviderApiError &&
+		(err.status === 403 || err.status === 429) &&
+		String(err.details).includes("secondary rate limit")
+	) {
+		return new Error(
+			"GitHub's secondary rate limit stopped the export. It limits bursts of requests, not the hourly quota, and nothing has been written. Wait a couple of minutes and run the command again."
+		);
+	}
+	return err;
+}
+
 /** Reads the issues `selector` names, with their comments, priority label, parent and blockers. */
 export async function exportIssues(
 	client: GitHubClient,
 	repo: string,
 	selector: IssueSelector
 ): Promise<IssueRecord[]> {
+	return readIssues(client, repo, selector).catch((err: unknown) => {
+		throw explainSecondaryLimit(err);
+	});
+}
+
+async function readIssues(client: GitHubClient, repo: string, selector: IssueSelector): Promise<IssueRecord[]> {
 	const [owner = "", name = ""] = repo.split("/", 2);
 	let raw: GitHubIssue[];
 	if (selector.keys) {
-		raw = await Promise.all(selector.keys.map((k) => client.issues.getIssue(repo, parseNumber(k))));
+		raw = await mapLimit(selector.keys, EXPORT_CONCURRENCY, (k) => client.issues.getIssue(repo, parseNumber(k)));
 	} else if (selector.milestone) {
 		const milestone = await findMilestone(client, repo, selector.milestone);
 		if (!milestone) throw new Error(`Milestone "${selector.milestone}" not found in ${repo}.`);

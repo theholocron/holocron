@@ -53,13 +53,13 @@ or set `HOLOCRON_LINEAR_TOKEN` (or `LINEAR_API_KEY`).
 
 A personal API key lets you pick its permissions (Read, Write, Admin, Create issues, Create comments) and the teams it can reach. Do not give it more than the command in front of you needs, and limit it to the team you use.
 
-| Key                       | Permissions                          | Team access  | Use it for                                                                                                  | Keep it                                                  |
-| ------------------------- | ------------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| **Everyday key**          | Read, Write                          | the one team | `migrate`, the doctor, and `provider linear setup` steps that make labels and a project                     | in the keyring (`holocron auth set linear <KEY>`)        |
-| **Setup key** (one-off)   | Read, Write, Admin                   | the one team | `provider linear setup` steps that change team settings: auto-close, auto-archive, git automation, statuses | for one command (`--token <KEY>`), then revoke it        |
-| **Narrowest key** (a try) | Read, Create issues, Create comments | the one team | copying issues and their comments only                                                                      | untested: labels, relations and projects will be refused |
+| Key                       | Permissions                          | Team access  | Use it for                                                                                                                    | Status                                                      |
+| ------------------------- | ------------------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Everyday key**          | Read, Write                          | the one team | `migrate`, `sync issues`, the doctor, and every `provider linear setup` step run so far, auto-close and auto-archive included | confirmed on a real team (labels, project and `teamUpdate`) |
+| **Admin key** (if needed) | Read, Write, Admin                   | the one team | a step that the everyday key is refused                                                                                       | not needed so far; git automation and statuses are untested |
+| **Narrowest key** (a try) | Read, Create issues, Create comments | the one team | copying issues and their comments only                                                                                        | untested: labels, relations and projects will be refused    |
 
-Linear does not say which permission covers each call, so the table is what we ask for, not a guarantee. What we know from the calls the client makes: issues, comments and attachments map to the two "create" permissions; labels, relations, projects and workflow states are most likely `Write`; team settings are most likely `Admin`. A key also cannot do more than your own role in the workspace allows, so `Admin` needs a workspace admin. If a step is refused, the doctor row for it says so. Raise the key by one permission and run it again.
+Read and Write cover comments and issues, and they were enough for `provider linear setup` to make labels and a project and to change a team's auto-close period. Linear does not say which permission covers each call, so the only way to know is to run a step: a refused one shows in the doctor row. Raise the key by one permission and run it again, and give an Admin key to one command through the environment (`HOLOCRON_LINEAR_TOKEN=<KEY> holocron provider linear setup …`), not `--token`, which shows in `ps` and shell history. A key cannot do more than your own role in the workspace allows.
 
 ## How Linear maps onto the capabilities
 
@@ -131,8 +131,8 @@ This repo's copy, for the HOLO team, is [`plugins/holocron-plugin-linear/example
 F=plugins/holocron-plugin-linear/examples/linear-trial.json
 holocron provider linear doctor --with $F
 holocron provider linear setup --with $F --dry-run
-# the settings that change the team (auto-close, auto-archive, git automation) need the one-off admin key; give it in the
-# environment for this command only, not on the command line, where `ps` and shell history would show it
+# only if a step is refused with the everyday key: give an Admin key in the environment for this command only, not on the
+# command line, where `ps` and shell history would show it
 HOLOCRON_LINEAR_TOKEN=<ADMIN_KEY> holocron provider linear setup --with $F
 ```
 
