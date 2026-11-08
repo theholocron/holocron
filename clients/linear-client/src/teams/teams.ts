@@ -13,6 +13,27 @@ import type {
 
 const USER_FIELDS = "id name displayName email";
 
+/**
+ * A team's automation settings as Linear sends them: the close state is an id (`Team` has no `autoCloseState` field,
+ * only `autoCloseStateId`), so the team's states come with it to give the id a name.
+ */
+const AUTOMATION_FIELDS =
+	"autoArchivePeriod autoClosePeriod autoCloseStateId triageEnabled states(first: 100) { nodes { id name } }";
+
+interface AutomationWire extends Omit<LinearTeamAutomation, "autoCloseState"> {
+	autoCloseStateId: string | null;
+	states: { nodes: Array<{ id: string; name: string }> };
+}
+
+/** The public shape of a team's automation: the close state with its name, found among the team's states. */
+function toAutomation({ autoCloseStateId, states, ...rest }: AutomationWire): LinearTeamAutomation {
+	const autoCloseState =
+		autoCloseStateId === null
+			? null
+			: (states.nodes.find((s) => s.id === autoCloseStateId) ?? { id: autoCloseStateId, name: autoCloseStateId });
+	return { ...rest, autoCloseState };
+}
+
 /** Identity, teams, workflow states, labels and automation settings. */
 export function teams(gql: LinearGraphQL) {
 	return {
@@ -46,11 +67,11 @@ export function teams(gql: LinearGraphQL) {
 
 		/** The team's archive and close settings, which are the automation Linear exposes. */
 		async automation(teamId: string): Promise<LinearTeamAutomation> {
-			const data = await gql.query<{ team: LinearTeamAutomation }>(
-				`query($id: String!) { team(id: $id) { autoArchivePeriod autoClosePeriod autoCloseState { id name } triageEnabled } }`,
+			const data = await gql.query<{ team: AutomationWire }>(
+				`query($id: String!) { team(id: $id) { ${AUTOMATION_FIELDS} } }`,
 				{ id: teamId }
 			);
-			return data.team;
+			return toAutomation(data.team);
 		},
 
 		/**
@@ -62,12 +83,12 @@ export function teams(gql: LinearGraphQL) {
 			teamId: string,
 			input: { autoArchivePeriod?: number; autoClosePeriod?: number | null; autoCloseStateId?: string }
 		): Promise<LinearTeamAutomation> {
-			const data = await gql.query<{ teamUpdate: { team: LinearTeamAutomation } }>(
+			const data = await gql.query<{ teamUpdate: { team: AutomationWire } }>(
 				`mutation($id: String!, $input: TeamUpdateInput!) { teamUpdate(id: $id, input: $input) { team {
-					autoArchivePeriod autoClosePeriod autoCloseState { id name } triageEnabled } } }`,
+					${AUTOMATION_FIELDS} } } }`,
 				{ id: teamId, input }
 			);
-			return data.teamUpdate.team;
+			return toAutomation(data.teamUpdate.team);
 		},
 
 		/** The team's git automation rules (`gitAutomationStates`), each with the state and target branch it names. */
