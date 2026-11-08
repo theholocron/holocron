@@ -1,3 +1,9 @@
+## [5.0.0-alpha.383](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.382...v5.0.0-alpha.383) (2026-11-08)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 resolve stale review threads on the dev instance too ([#1969](https://github.com/theholocron/holocron/issues/1969)) ([de04dc0](https://github.com/theholocron/holocron/commit/de04dc082fe57c8354e511acd217bbf3b05b3242)), closes [#1968](https://github.com/theholocron/holocron/issues/1968)
+
 ## [5.0.0-alpha.382](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.381...v5.0.0-alpha.382) (2026-11-08)
 
 ### Features
