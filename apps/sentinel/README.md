@@ -508,7 +508,9 @@ of the same check, with the same text at the same place, is not posted again as 
 moved since. Findings on lines outside the diff cannot be inline comments, so they are listed in the review's body with
 a digest of the list (`<!-- sentinel:<check>:outside:<digest> -->`); a later run lists them again only when the list
 differs from the one the newest review of that check gave, and posts no review at all when nothing is new. A finding
-that goes away and comes back with the same list is not announced again (the earlier review still has it).
+that goes away and comes back with the same list is not announced again (the earlier review still has it). A thread
+whose finding is gone is resolved only if one of Sentinel's own Apps wrote it (`SENTINEL_BOT_LOGINS`: the production
+App and the dev one that `holocron dev` runs, holocron#1968), never a person's.
 
 ### Organization permissions
 
