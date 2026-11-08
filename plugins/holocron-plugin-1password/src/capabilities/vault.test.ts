@@ -231,12 +231,26 @@ describe("OpVault construction", () => {
 		expect(() => new OpVault(new OpShell({ spawn }), { vault: "" })).not.toThrow();
 	});
 
+	it("lists an Environment's variable names when only `environment` is set (repo setup, #1863)", async () => {
+		const { spawn, calls } = stubSpawn([{ status: 0, stdout: "A=1\nB=2" }]);
+		const vault = new OpVault(new OpShell({ spawn }), { environment: "Holocron - GitHub Actions" });
+		expect(await vault.list()).toEqual(["A", "B"]);
+		expect(calls[0]?.args.slice(0, 4)).toEqual(["environment", "secret", "list", "Holocron - GitHub Actions"]);
+	});
+
+	it("lists the vault's items, not the Environment, when both are set", async () => {
+		const { spawn, calls } = stubSpawn([{ status: 0, stdout: JSON.stringify([{ id: "1", title: "X" }]) }]);
+		const vault = new OpVault(new OpShell({ spawn }), { vault: "rando", environment: "E" });
+		expect(await vault.list()).toEqual(["X"]);
+		expect(calls[0]?.args[0]).toBe("item");
+	});
+
 	it("refuses to list items without a vault", async () => {
 		const { spawn, calls } = stubSpawn([]);
 		const vault = new OpVault(new OpShell({ spawn }), {});
 		const err = await vault.list().catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ProviderApiError);
-		expect((err as ProviderApiError).message).toMatch(/needs a `vault`/);
+		expect((err as ProviderApiError).message).toMatch(/needs a `vault` or an `environment`/);
 		expect(calls).toEqual([]);
 	});
 });
