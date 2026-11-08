@@ -156,11 +156,11 @@ export function createPluginSystem<
 		}
 
 		async loadProvider(tuple: ProviderTuple): Promise<LoadedPlugin<Caps, Extra>> {
-			return this.instantiate("provider", tuple);
+			return this.instantiate("provider", tuple, true);
 		}
 
 		private async loadOne(key: Key, tuple: ProviderTuple): Promise<unknown> {
-			const plugin = await this.instantiate(`capability \`${key}\``, tuple);
+			const plugin = await this.instantiate(`capability \`${key}\``, tuple, false);
 			const factory = plugin.capabilities[key];
 			if (typeof factory !== "function") {
 				throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
@@ -168,8 +168,17 @@ export function createPluginSystem<
 			return factory();
 		}
 
-		/** Imports the package and builds the plugin (following a capability config package to its provider). */
-		private async instantiate(subject: string, tuple: ProviderTuple): Promise<LoadedPlugin<Caps, Extra>> {
+		/**
+		 * Imports the package and builds the plugin (following a capability config package to its provider). The plugin
+		 * is recorded under its provider's name: a provider named by several capabilities keeps the first one built, which
+		 * is the one from the first entry in the config, and only `replace` (a provider loaded by name with options the
+		 * caller gave) puts a new one in its place.
+		 */
+		private async instantiate(
+			subject: string,
+			tuple: ProviderTuple,
+			replace: boolean
+		): Promise<LoadedPlugin<Caps, Extra>> {
 			const mod = await this.importer(tuple.packageName).catch((err: unknown) => {
 				throw new LoaderError(`failed to import \`${tuple.packageName}\` for ${subject}: ${messageOf(err)}`);
 			});
@@ -180,7 +189,7 @@ export function createPluginSystem<
 						? pluginOptions({ config: this.config, context: this.context, tuple })
 						: { ...this.context, ...tuple.options }
 				);
-				this.created.set(tuple.provider, plugin);
+				if (replace || !this.created.has(tuple.provider)) this.created.set(tuple.provider, plugin);
 				return plugin;
 			}
 
@@ -188,11 +197,15 @@ export function createPluginSystem<
 			// (the same precedence as ESLint's `extends`).
 			if (isCapabilityConfigModule(mod)) {
 				const cap = mod.default;
-				return this.instantiate(subject, {
-					provider: cap.provider,
-					packageName: resolvePackage(cap.provider),
-					options: { ...cap.options, ...tuple.options },
-				});
+				return this.instantiate(
+					subject,
+					{
+						provider: cap.provider,
+						packageName: resolvePackage(cap.provider),
+						options: { ...cap.options, ...tuple.options },
+					},
+					replace
+				);
 			}
 
 			throw new LoaderError(

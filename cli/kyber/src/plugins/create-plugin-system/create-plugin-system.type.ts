@@ -150,7 +150,10 @@ export interface PluginLoader<
 	loadedKeys(): CapabilityKeyOf<Caps>[];
 	/** The providers that failed to load. Empty on a clean load. */
 	loadFailures(): readonly PluginLoadFailure<CapabilityKeyOf<Caps>>[];
-	/** The plugin object of each provider that was created, by provider name. */
+	/**
+	 * The plugin object of each provider that was created, by provider name. A provider several capabilities name has the
+	 * plugin built for the first of them, in the order of the config's `providers`.
+	 */
 	plugins(): ReadonlyMap<string, LoadedPlugin<Caps, Extra>>;
 	/**
 	 * Imports one provider and builds its plugin with the given options, without any capability slot: nothing is added to

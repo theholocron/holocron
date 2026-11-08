@@ -292,6 +292,30 @@ describe("createPluginSystem", () => {
 		});
 	});
 
+	it("keeps the plugin built for the first entry when several capabilities name the same provider", async () => {
+		const built: Array<Record<string, unknown>> = [];
+		const both = {
+			createPlugin: (opts: Record<string, unknown>) => {
+				built.push(opts);
+				return {
+					name: "gh",
+					opts,
+					capabilities: { source: () => ({ name: "gh" }), notify: () => ({ name: "gh" }) },
+				};
+			},
+		};
+		const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
+		const loader = new PluginLoader(
+			{ providers: { source: single("gh", { team: "HOLO", labels: ["bug"] }), notify: many("gh") } },
+			{ root: "/r" },
+			importerOf({ "@acme/cli-plugin-gh": both })
+		);
+		await loader.load();
+		expect(built).toHaveLength(2);
+		const kept = loader.plugins().get("gh") as unknown as { opts: Record<string, unknown> };
+		expect(kept.opts).toEqual({ root: "/r", team: "HOLO", labels: ["bug"] });
+	});
+
 	describe("loadProvider", () => {
 		it("builds a provider the config does not name, with the given options, and registers no capability", async () => {
 			const seen = vi.fn();
