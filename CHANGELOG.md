@@ -1,3 +1,17 @@
+## [5.0.0-alpha.376](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.375...v5.0.0-alpha.376) (2026-11-08)
+
+### Bug Fixes
+
+* **linear:** 🐛 read a team's auto-close state by its id, which Linear's Team has ([#1945](https://github.com/theholocron/holocron/issues/1945)) ([a64cb93](https://github.com/theholocron/holocron/commit/a64cb935a5067b9907b34b0f6da638a434edba07)), closes [#1944](https://github.com/theholocron/holocron/issues/1944)
+
+### Documentation
+
+* **linear:** 📝 add the HOLO trial file for provider setup and doctor ([#1946](https://github.com/theholocron/holocron/issues/1946)) ([67127a1](https://github.com/theholocron/holocron/commit/67127a126e32d9190de24a10ebbc7177fb7ebc40)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
+### Chores
+
+* **deps:** bump the all-actions group with 4 updates ([#1920](https://github.com/theholocron/holocron/issues/1920)) ([c2f2fec](https://github.com/theholocron/holocron/commit/c2f2feca06584b0af0c7bf01c975b1694ae57d63))
+
 ## [5.0.0-alpha.375](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.374...v5.0.0-alpha.375) (2026-11-08)
 
 ### Features
