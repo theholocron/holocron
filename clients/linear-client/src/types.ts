@@ -28,14 +28,39 @@ export interface LinearTeam {
 
 /** A team's automation settings: how Linear archives and closes issues on its own. */
 export interface LinearTeamAutomation {
-	/** Months after which a closed issue is archived; 0 or null for never. */
+	/** Months after which a closed issue is archived (`Float!` in the schema, so never null from Linear); 0 is never. */
 	autoArchivePeriod: number | null;
-	/** Months of inactivity after which an issue is closed; 0 or null for never. */
+	/** Months of inactivity after which an issue is closed; null (the schema: "Null/undefined means disabled") for never. */
 	autoClosePeriod: number | null;
 	/** The state an auto-closed issue is put in. */
 	autoCloseState: { id: string; name: string } | null;
 	/** Whether the team uses triage. */
 	triageEnabled: boolean;
+}
+
+/** Linear's own names for the moments a git integration can move an issue (`GitAutomationStates`). */
+export type LinearGitEvent = "draft" | "review" | "start" | "mergeable" | "merge";
+
+/** A target branch a git automation rule is scoped to. */
+export interface LinearGitTargetBranch {
+	/** The branch id. */
+	id: string;
+	/** The branch name, or a regular expression when `isRegex` is set. */
+	branchPattern: string;
+	/** Whether `branchPattern` is a regular expression rather than an exact branch name. */
+	isRegex: boolean;
+}
+
+/** One git automation rule of a team: when `event` happens, linked issues move to `state`. */
+export interface LinearGitAutomationState {
+	/** The rule id. */
+	id: string;
+	/** What triggers the rule. */
+	event: LinearGitEvent;
+	/** The state issues move to; null when the rule is set to take no action. */
+	state: { id: string; name: string } | null;
+	/** The branch the rule is limited to; null for the team's default rule for the event. */
+	targetBranch: LinearGitTargetBranch | null;
 }
 
 /** One status an issue can be in, belonging to a team. */

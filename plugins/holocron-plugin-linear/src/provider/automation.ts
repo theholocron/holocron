@@ -5,7 +5,8 @@ import type { LinearSetupConfig } from "./provider-config.js";
 /** What `teamUpdate` takes for the auto-close and auto-archive settings. */
 export interface AutomationPatch {
 	autoArchivePeriod?: number;
-	autoClosePeriod?: number;
+	/** Null switches auto-close off (the schema: "Null/undefined means disabled"). */
+	autoClosePeriod?: number | null;
 	autoCloseStateId?: string;
 }
 
@@ -30,7 +31,7 @@ export function closeGap(
 	const gap: AutomationGap = { problems: [], patch: {}, unresolved: false };
 	if ((have.autoClosePeriod ?? 0) !== want.months) {
 		gap.problems.push(`auto-close is ${months(have.autoClosePeriod)}, declared ${months(want.months)}`);
-		gap.patch.autoClosePeriod = want.months;
+		gap.patch.autoClosePeriod = want.months === 0 ? null : want.months;
 	}
 	if (want.state) {
 		const wanted = want.state.toLowerCase();

@@ -3,8 +3,10 @@ import type { LinearTeam } from "@theholocron/linear-client";
 
 import type { TeamScope } from "../capabilities/team-scope.js";
 import { archiveGap, type AutomationGap, closeGap } from "./automation.js";
+import { type GitGap, gitGaps, knownBranches } from "./git-automation.js";
 import type { LinearSetupConfig } from "./provider-config.js";
 import { failure, findProject, row } from "./rows.js";
+import { templateRows } from "./templates.js";
 
 /** The colour GitHub's label of this name has, as Linear spells a colour (`#d73a4a`), or undefined. */
 const colorOf = (name: string): string | undefined => {
@@ -85,9 +87,63 @@ async function automationRows(
 	return rows;
 }
 
+async function gitRows(
+	scope: TeamScope,
+	team: LinearTeam,
+	config: LinearSetupConfig,
+	dryRun: boolean
+): Promise<ProviderRow[]> {
+	let gaps: GitGap[];
+	let branches: Map<string, string>;
+	try {
+		const [have, states] = await Promise.all([
+			scope.client.teams.gitAutomation(team.id),
+			scope.client.teams.states(team.id),
+		]);
+		gaps = gitGaps(config.git, have, states);
+		branches = knownBranches(have);
+	} catch (err) {
+		return [failure("git", "git automation", err)];
+	}
+	const rows: ProviderRow[] = [];
+	for (const { id, title, problems, action, unresolved } of gaps) {
+		rows.push(
+			await attempt(id, title, async () => {
+				if (unresolved) return row(id, title, "fail", problems.join("; "));
+				if (!action) return row(id, title, "ok", "already set");
+				if (dryRun) return row(id, title, "ok", `would change: ${problems.join("; ")}`);
+				if (action.kind === "update") {
+					await scope.client.teams.updateGitAutomation(action.ruleId, { stateId: action.stateId });
+				} else {
+					let targetBranchId: string | undefined;
+					if (action.branch !== undefined) {
+						targetBranchId = branches.get(action.branch);
+						if (!targetBranchId) {
+							const made = await scope.client.teams.createGitTargetBranch({
+								teamId: team.id,
+								branchPattern: action.branch,
+							});
+							targetBranchId = made.id;
+							branches.set(action.branch, made.id);
+						}
+					}
+					await scope.client.teams.createGitAutomation({
+						teamId: team.id,
+						event: action.event,
+						stateId: action.stateId,
+						...(targetBranchId ? { targetBranchId } : {}),
+					});
+				}
+				return row(id, title, "ok", `changed: ${problems.join("; ")}`);
+			})
+		);
+	}
+	return rows;
+}
+
 /**
- * `provider linear setup`: makes the labels and the project the block declares and sets the team's auto-close and
- * auto-archive. Each step is a row and a step that fails does not stop the next. Nothing is deleted or reordered, an
+ * `provider linear setup`: makes the labels and the project the block declares, sets the team's auto-close and
+ * auto-archive and makes or repoints each git automation rule it declares (issue templates are reported as skipped). Each step is a row and a step that fails does not stop the next. Nothing is deleted or reordered, an
  * existing label or project is left alone, and a team that already matches changes nothing, so a second run is all `ok`.
  */
 export function linearSetup(scope: TeamScope, config: LinearSetupConfig): ProviderAction {
@@ -117,16 +173,8 @@ export function linearSetup(scope: TeamScope, config: LinearSetupConfig): Provid
 
 		if (config.autoClose || config.autoArchive) rows.push(...(await automationRows(scope, team, config, dryRun)));
 
-		if (config.git.length > 0) {
-			rows.push(
-				row(
-					"git",
-					"git automation",
-					"skip",
-					`${config.git.length} declared; not applied yet, set it in Linear: Settings → Teams → ${team.name} → Workflow`
-				)
-			);
-		}
+		if (config.git.length > 0) rows.push(...(await gitRows(scope, team, config, dryRun)));
+		rows.push(...templateRows(config));
 		return rows;
 	};
 }

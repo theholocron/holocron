@@ -13,6 +13,14 @@ export interface GitAutomationSetting {
 	branch?: string;
 }
 
+/** An issue template: its name and the file in the repo its text would come from (`.holocron/linear/*.md`). */
+export interface LinearTemplateSetting {
+	/** The template's name in Linear. */
+	name: string;
+	/** The markdown file in the repo. */
+	file: string;
+}
+
 /** What `provider linear setup` and `provider linear doctor` read from the issues provider entry. */
 export interface LinearSetupConfig {
 	/** The team key. */
@@ -21,8 +29,10 @@ export interface LinearSetupConfig {
 	autoClose?: { months: number; state?: string };
 	/** Months after which a closed issue is archived. */
 	autoArchive?: { months: number };
-	/** Git automation. Validated, but not applied or compared yet. */
+	/** Git automation: setup makes or repoints each rule and the doctor compares it. */
 	git: GitAutomationSetting[];
+	/** Issue templates. Validated and listed, but reported as skipped (see {@link LinearTemplateSetting}). */
+	templates: LinearTemplateSetting[];
 	/** Label names to make on the team when missing. */
 	labels: string[];
 	/** The name of a project to make when missing. */
@@ -34,6 +44,7 @@ export interface RawLinearSetup {
 	team?: unknown;
 	automation?: unknown;
 	labels?: unknown;
+	templates?: unknown;
 	project?: unknown;
 }
 
@@ -77,11 +88,11 @@ function gitSetting(value: unknown, index: number): GitAutomationSetting {
 
 /**
  * Reads the Linear block of the issues provider entry: `team` (required), `automation.autoClose` / `autoArchive` /
- * `git`, `labels` and `project`. Anything of the wrong shape is a `ConfigError` naming the path.
+ * `git`, `templates`, `labels` and `project`. Anything of the wrong shape is a `ConfigError` naming the path.
  */
 export function parseLinearSetup(raw: RawLinearSetup): LinearSetupConfig {
 	const team = text(raw.team, `${ROOT}.team`);
-	const config: LinearSetupConfig = { team, git: [], labels: [] };
+	const config: LinearSetupConfig = { team, git: [], labels: [], templates: [] };
 
 	if (raw.automation !== undefined) {
 		if (!isObject(raw.automation)) throw new ConfigError(`${ROOT}.automation must be an object`);
@@ -108,6 +119,14 @@ export function parseLinearSetup(raw: RawLinearSetup): LinearSetupConfig {
 		if (!Array.isArray(raw.labels)) throw new ConfigError(`${ROOT}.labels must be an array of names`);
 		config.labels = [...new Set(raw.labels.map((name, i) => text(name, `${ROOT}.labels[${i}]`)))];
 	}
+	if (raw.templates !== undefined) {
+		if (!Array.isArray(raw.templates)) throw new ConfigError(`${ROOT}.templates must be an array`);
+		config.templates = raw.templates.map((t, i) => {
+			const path = `${ROOT}.templates[${i}]`;
+			if (!isObject(t)) throw new ConfigError(`${path} must be an object`);
+			return { name: text(t.name, `${path}.name`), file: text(t.file, `${path}.file`) };
+		});
+	}
 	if (raw.project !== undefined) config.project = text(raw.project, `${ROOT}.project`);
 	return config;
 }
@@ -115,6 +134,11 @@ export function parseLinearSetup(raw: RawLinearSetup): LinearSetupConfig {
 /** Whether the block declares anything for setup or the doctor to act on. */
 export function declaresAnything(config: LinearSetupConfig): boolean {
 	return Boolean(
-		config.autoClose || config.autoArchive || config.git.length > 0 || config.labels.length > 0 || config.project
+		config.autoClose ||
+		config.autoArchive ||
+		config.git.length > 0 ||
+		config.templates.length > 0 ||
+		config.labels.length > 0 ||
+		config.project
 	);
 }

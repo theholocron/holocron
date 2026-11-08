@@ -50,12 +50,18 @@ issues: ["linear", {
   automation: {
     autoClose: { months: 3, state: "Canceled" },    // teamUpdate: autoClosePeriod / autoCloseState
     autoArchive: { months: 6 },                     // teamUpdate: autoArchivePeriod
+    git: [                                          // rules by event (and exact branch)
+      { event: "start", state: "In Progress" },
+      { event: "merge", state: "Done", branch: "main" },
+    ],
   },
+  templates: [{ name: "Bug report", file: ".holocron/linear/bug.md" }],  // validated; reported as skipped
 }],
 ```
 
-Changing team settings needs a key with admin access to the team. `automation.git` is validated but not applied or
-compared yet.
+Changing team settings needs a key with admin access to the team. Git automation is made and compared (events `draft`, `review`,
+`start`, `mergeable`, `merge`). Issue templates are validated but reported as skipped: Linear does not document the issue
+`templateData` shape, so a template can be neither written nor compared with certainty.
 
 ## Not the same as GitHub
 
