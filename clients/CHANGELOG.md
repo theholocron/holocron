@@ -1,3 +1,9 @@
+## [1.58.0-alpha.21](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.20...clients-v1.58.0-alpha.21) (2026-11-08)
+
+### Features
+
+* **issues:** sync issues between trackers, one direction at a time ([#1934](https://github.com/theholocron/holocron/issues/1934)) ([512d402](https://github.com/theholocron/holocron/commit/512d4028e12287be76b7a5d2945117429c519999)), closes [#1859](https://github.com/theholocron/holocron/issues/1859)
+
 ## [1.58.0-alpha.20](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.19...clients-v1.58.0-alpha.20) (2026-11-08)
 
 ### Features
