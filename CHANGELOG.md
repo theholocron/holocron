@@ -1,3 +1,13 @@
+## [5.0.0-alpha.384](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.383...v5.0.0-alpha.384) (2026-11-08)
+
+### Bug Fixes
+
+* **repo:** 🏷️ label Dependabot pull requests dependencies only, so repo setup stays clean ([#1970](https://github.com/theholocron/holocron/issues/1970)) ([3476002](https://github.com/theholocron/holocron/commit/3476002a6b908639a4b5ed6c03e4a4a243ea2af7)), closes [#1967](https://github.com/theholocron/holocron/issues/1967)
+
+### Chores
+
+* **deps:** bump vite from 8.3.5 to 8.3.6 in the all-dependencies group ([#1972](https://github.com/theholocron/holocron/issues/1972)) ([02b67f4](https://github.com/theholocron/holocron/commit/02b67f49bf4b16b06c1b1e5261faa0d6cb5b3a18))
+
 ## [5.0.0-alpha.383](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.382...v5.0.0-alpha.383) (2026-11-08)
 
 ### Bug Fixes
