@@ -109,7 +109,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 	it("does not collapse a one-command group: `config show` is config › then show", () => {
 		expect(names()).toContain("config ›");
 		expect(names(["config"])).toEqual(["show"]);
-		expect(names(["sync"])).toEqual(["github"]);
+		expect(names(["sync"])).toEqual(["github", "issues"]);
 		expect(valueOf("ci", ["run"])).toBe("run ci");
 	});
 
