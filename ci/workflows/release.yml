@@ -105,6 +105,9 @@ on: # yamllint disable-line rule:truthy
         required: false
       TURBO_TOKEN:
         required: false
+      HOLOCRON_VERCEL_TOKEN:
+        description: The Vercel token. Read first; the vendor-native VERCEL_TOKEN secret is the fallback.
+        required: false
       VERCEL_TOKEN:
         description: >
           Vercel token for the deploy job. Only used when deploy-on-release is
@@ -298,7 +301,7 @@ jobs:
       - uses: theholocron/.github/.github/actions/holocron@main
         name: Deploy packages that deploy on release
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
         with:
           command: deploy on-release
           args: >-

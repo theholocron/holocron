@@ -77,7 +77,7 @@ export default nodeApp({ entry: "src/index.ts" });
 
 ## Codecov bundle analysis
 
-All presets automatically include [`@codecov/vite-plugin`](https://www.npmjs.com/package/@codecov/vite-plugin) when `@codecov/vite-plugin` is installed and `CODECOV_TOKEN` is set in the environment. No extra configuration in `vite.config.ts` is needed — bundle stats are uploaded to Codecov on every build.
+All presets automatically include [`@codecov/vite-plugin`](https://www.npmjs.com/package/@codecov/vite-plugin) when `@codecov/vite-plugin` is installed and `HOLOCRON_CODECOV_TOKEN` (or `CODECOV_TOKEN`) is set in the environment. No extra configuration in `vite.config.ts` is needed — bundle stats are uploaded to Codecov on every build.
 
 Install the peer dependency:
 
@@ -85,7 +85,7 @@ Install the peer dependency:
 pnpm add -D @codecov/vite-plugin
 ```
 
-Set `CODECOV_TOKEN` as a CI secret, then add the following to your `codecov.yml` to control when Codecov posts bundle size comments on PRs:
+Set `CODECOV_TOKEN` (or `HOLOCRON_CODECOV_TOKEN`) as a CI secret, then add the following to your `codecov.yml` to control when Codecov posts bundle size comments on PRs:
 
 ```yaml
 comment:

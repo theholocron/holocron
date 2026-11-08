@@ -9,6 +9,7 @@ A variable Holocron owns is `HOLOCRON_<NAME>`. The bare `<NAME>` is kept as a fa
 
 - The prefix is one constant, `PREFIX` (`"HOLOCRON"`), exported from `@theholocron/env-utils/lookup`. `holocronEnv()` reads a name as `HOLOCRON_<NAME>` and then `<NAME>`; kyber's `resolveValue(names, env, { prefix: PREFIX })` does the same through the environment and then the `credentials` providers. See [env-utils](/holocron/utils/env-utils/) and [kyber](/holocron/kyber/).
 - Empty values count as unset at every step, so a blank `HOLOCRON_X=` falls through to `X`.
+- The organization secrets that `repo.secrets.sync` writes follow the same rule (the section at the end): a workflow reads `secrets.HOLOCRON_<NAME> || secrets.<NAME>` and maps it onto the bare name a tool reads (`CODECOV_TOKEN`, `VERCEL_TOKEN`, wrangler's `CLOUDFLARE_API_TOKEN`).
 - A bare fallback is never removed in the same change that adds the prefixed name. Removing one is a later, separate change.
 - The prefixed name is an extra way in for a name a third party reads. The bare name still works there.
 - The organization variables that `repo.variables.sync` writes are `HOLOCRON_`-named too (the table at the end). A workflow reads `vars.HOLOCRON_<NAME> || vars.<NAME>` and, where a tool reads the bare name itself (turbo, wrangler, sentry-cli), maps it onto that name in the step's `env`, so the tool keeps working. The bare variable stays set in GitHub until the maintainer has renamed it and a later change removes the fallback (#1979).
@@ -56,7 +57,7 @@ The bare name is the contract. Holocron reads it the same way, and nothing here 
 | `DEBUG`                                             | `@theholocron/env-utils` key logging                                | The `debug` convention                                                                                        |
 | `ENV`                                               | `environment.get()`, after `HOLOCRON_ENVIRONMENT` and `ENVIRONMENT` | A convention many tools set for their own reasons; only a last fallback, and `detectEnvironment()` ignores it |
 | `PATH`, `PATHEXT`                                   | `fs-utils` `findExecutable`, the test harness                       | Operating system                                                                                              |
-| `CODECOV_TOKEN`                                     | the vite-config `codecov` preset                                    | The Codecov uploader reads it                                                                                 |
+| `CODECOV_TOKEN`                                     | the Codecov uploader; the vite-config `codecov` preset              | The preset reads `HOLOCRON_CODECOV_TOKEN` first; the uploader reads this name                                 |
 | `TUNNEL_TOKEN`                                      | `cloudflared`, set by `tunnel up --run` and `dev`                   | `cloudflared` reads it; never on argv                                                                         |
 | `OP_SERVICE_ACCOUNT_TOKEN`                          | the 1Password plugin, through `op`                                  | `op` reads it                                                                                                 |
 | `CLOUDFLARE_API_TOKEN`                              | the Cloudflare plugin as the vendor name; wrangler                  | Behind `HOLOCRON_CLOUDFLARE_TOKEN`                                                                            |
@@ -80,6 +81,19 @@ The other provider tokens (`DOPPLER_TOKEN`, `NETLIFY_AUTH_TOKEN`, …) are vendo
 | `HOLOCRON_NOTIFY_*`, `HOLOCRON_DISCORD_*`                                                                                           | the notifications workflow, Discord plugin       | Consistent                                                                                                                                                                                                                                                                                                                            |
 | `SENTINEL_*` (`WEBHOOK_SECRET`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `ROLE_SYNC_REPO`, `AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`) | Sentinel                                         | Per service, on purpose. `SENTINEL_AXIOM_DATASET` falls back to the bare `AXIOM_DATASET`, the name the CLI used to share (#1839); `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY` fall back to the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`, because GitHub reserves the `GITHUB_` prefix for its own secrets |
 | `COMLINK_*` (`SENTRY_SECRET`, `SENTRY_WEBHOOK`)                                                                                     | Comlink Worker bindings                          | Per service, on purpose                                                                                                                                                                                                                                                                                                               |
+
+## Synced organization secrets
+
+`repo.secrets.sync` (the 1Password Environment `Holocron - GitHub Actions`) writes these names. Workflows read `secrets.HOLOCRON_<NAME> || secrets.<NAME>` and map the value onto the name the tool reads. The bare secret stays in GitHub until a later change removes the fallback (#1979), because repos still on the frozen workflows in `theholocron/.github` read it.
+
+| Secret                                     | Used as                                                          | Mapped onto                       |
+| ------------------------------------------ | ---------------------------------------------------------------- | --------------------------------- |
+| `HOLOCRON_AXIOM_TOKEN`                     | `sync-github`, `sync-repo`                                       | read by the CLI under that name   |
+| `HOLOCRON_CLOUDFLARE_TOKEN`                | the Pages deploy and cleanup in `preview`                        | `CLOUDFLARE_API_TOKEN` (wrangler) |
+| `HOLOCRON_CODECOV_TOKEN`                   | `measure-bundle`                                                 | `CODECOV_TOKEN` (the uploader)    |
+| `HOLOCRON_FERN_TOKEN`                      | `publish-wiki`                                                   | `FERN_TOKEN` (the Fern CLI)       |
+| `HOLOCRON_VERCEL_TOKEN`                    | `release`, `deploy-preview`, `ci.check-preview`, Sentinel deploy | `VERCEL_TOKEN` (the Vercel CLI)   |
+| `HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET` | `ci.check-preview`                                               | read by `monitoring run-resolved` |
 
 ## Synced organization variables
 

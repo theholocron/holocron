@@ -26,6 +26,9 @@ on: # yamllint disable-line rule:truthy
         type: string
         default: "[]"
     secrets:
+      HOLOCRON_VERCEL_TOKEN:
+        description: The Vercel token. Read first; the vendor-native VERCEL_TOKEN secret is the fallback.
+        required: false
       VERCEL_TOKEN:
         required: false
       HOLOCRON_DEPLOYMENTS_TOKEN:
@@ -154,7 +157,7 @@ jobs:
         if: ${{ steps.filter.outputs.relevant == 'true' }}
         id: creds
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
         run: |
           # `secrets` isn't valid in a step `if:` (actionlint-enforced) —
           # a fork PR never receives this secret, so the deploy step below
@@ -182,7 +185,7 @@ jobs:
         id: deploy
         if: ${{ steps.creds.outputs.available == 'true' }}
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
         uses: theholocron/.github/.github/actions/holocron@main
         with:
           command: run deploy-preview
