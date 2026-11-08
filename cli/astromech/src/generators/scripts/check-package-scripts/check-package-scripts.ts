@@ -2,6 +2,7 @@ import {
 	LEGACY_NAMES,
 	RESERVED_SCRIPT_NAMES,
 	resolveTaskName,
+	scriptName,
 	suiteMembers,
 	SUITES,
 } from "../../../vocabulary/index.js";
@@ -25,6 +26,9 @@ function callsTheTaskMachinery(command: string): boolean {
  * - a leaf script that calls `turbo run` or `holocron run` in a package: it must hold the real tool command, or turbo
  *   would run it, and it would run turbo again;
  * - a script that looks like a suite member but is none (`test:unt`), other than a known variant;
+ * - a script named by a task id's hyphen spelling (`deploy-preview`) where the script spelling takes a colon
+ *   (`deploy:preview`): `holocron run` looks the script up by the script spelling, so the task would find none and be
+ *   skipped as "enforced in CI" (#1929);
  * - an old dotted task name, as a `warn` while those are accepted.
  */
 export function checkPackageScripts(
@@ -48,6 +52,10 @@ export function checkPackageScripts(
 		} else if (role === "package" && isLeaf && callsTheTaskMachinery(command)) {
 			fail(
 				`"${script}" must hold the real tool command, not a call to \`${command.trim().split(/\s+/)[0]} run\``
+			);
+		} else if (isLeaf && scriptName(script) !== script) {
+			fail(
+				`"${script}" is a task id: a script for it is named "${scriptName(script)}", which is what \`holocron run\` looks up`
 			);
 		} else if (LEGACY_NAMES[script]) {
 			const ids = LEGACY_NAMES[script].map((target) => target.id).join(", ");
