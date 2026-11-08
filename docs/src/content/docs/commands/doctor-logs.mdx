@@ -1,0 +1,33 @@
+---
+title: "doctor logs"
+description: Check that the Axiom datasets the setup ships logs to exist and that the token reaches them. Read-only.
+---
+
+```bash
+holocron doctor logs
+```
+
+Logs reach Axiom only when a token and a dataset name are both present, so a typo in a dataset name, a dataset nobody created or a rejected token fails quietly: nothing ships and nothing says so. This check asks the `logs` provider (Axiom) about each dataset and the token. It changes nothing, never creates a dataset, prints names and numbers only (never a token), and exits non-zero only while a row fails.
+
+## The rows
+
+| Row                    | Passes when                                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `token is accepted`    | Axiom accepts the token. A token Axiom rejects (401) fails. A token that cannot be read, or a check that cannot be made, is skipped                     |
+| `dataset for the CLI`  | the dataset named by `HOLOCRON_AXIOM_DATASET` (`holocron`) exists. A missing one fails and names `holocron repo setup`, which provisions it             |
+| `dataset for Sentinel` | the dataset named by `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`) exists. A missing one fails; setup provisions only the CLI's, so create it in Axiom |
+| other services         | a `dev.serve.logging.datasetVar` in the config that names a dataset the rows above do not already cover gets a row of its own                           |
+| `organization`         | `HOLOCRON_AXIOM_ORG`, then `AXIOM_ORG`, is set. It is an organization variable, so an unset one here is a skip, not a failure                           |
+| `retention of <name>`  | information only (counted as skipped): the retention in days Axiom reports for each existing dataset                                                    |
+
+A dataset name is resolved the way its service resolves it, so the check sees what the service would. The CLI's is the logger's own chain: the process environment (`HOLOCRON_AXIOM_DATASET`, then `AXIOM_DATASET`), then the repo's `log.axiom.dataset`, then the [`credentials`](/holocron/commands/doctor-credentials/) providers. Sentinel's, and any other service's, is its own variable from the environment and then the `credentials` providers. A name that does not resolve here is a skip with the variable named; it is not a failure, because another machine may hold it.
+
+## Retention
+
+Axiom returns `retentionDays` when a dataset is read (`GET /v2/datasets/{id}`, with `useRetentionPeriod`). The row shows it as `retention: N days`. When Axiom does not return one, or `useRetentionPeriod` is false, the row says the provider did not report one instead of guessing. A dataset has one retention setting, shared by every environment in it (ADR-0019, `docs/wiki/decisions`), and Holocron does not set it: it is chosen in Axiom.
+
+## What is skipped, and what fails
+
+Only two things fail: a dataset Axiom says does not exist (404), and a token it rejects (401). A missing token, a name that does not resolve, a 403 (the token may not read datasets), a network error or a provider that cannot read a dataset are skips with the reason. With no `logs` provider configured the whole run is a skip.
+
+`holocron doctor --all` runs it with the other deep checks.

@@ -26,7 +26,7 @@ const holocron = holocronEnv();
  * ADR-0012) leaves it out: it is not about any repo, and the repo it happens to run in must not choose where its
  * lines go.
  */
-function resolveCliDataset(opts: BuildCliLoggerOpts, isGlobal: boolean): string | undefined {
+export function resolveCliDataset(opts: BuildCliLoggerOpts, isGlobal: boolean): string | undefined {
 	return (
 		holocron.get("AXIOM_DATASET") ??
 		(isGlobal ? undefined : opts.configAxiomDataset) ??

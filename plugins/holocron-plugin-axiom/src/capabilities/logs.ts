@@ -12,10 +12,13 @@
  * it; "already exists" is success.
  */
 
-import type { Logs } from "@theholocron/cli";
+import type { Logs, LogsDataset } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
 import type { AxiomClient } from "../rest.js";
+
+/** A dataset that does not exist: asking for it tells a token Axiom accepts (404) from one it rejects (401). */
+const PROBE_DATASET = "holocron-token-check";
 
 /** Options for the Axiom `logs` capability. */
 export interface AxiomLogsOptions {
@@ -60,6 +63,31 @@ export class AxiomLogs implements Logs {
 		// Fetching the dataset verifies both the token and the dataset's reachability.
 		await this.client().datasets.get(dataset);
 		return { ok: true, dataset };
+	}
+
+	async readDataset(name: string): Promise<LogsDataset> {
+		try {
+			const found = await this.client().datasets.get(name);
+			// `useRetentionPeriod: false` means the days do not apply, so none is reported.
+			const days = found.useRetentionPeriod === false ? undefined : found.retentionDays;
+			return { exists: true, ...(days === undefined ? {} : { retentionDays: days }) };
+		} catch (err) {
+			if (err instanceof ProviderApiError && err.status === 404) return { exists: false };
+			throw err;
+		}
+	}
+
+	async checkToken(): Promise<{ ok: boolean; reason?: string }> {
+		try {
+			await this.client().datasets.get(PROBE_DATASET);
+			return { ok: true };
+		} catch (err) {
+			if (err instanceof ProviderApiError) {
+				if (err.status === 404) return { ok: true };
+				if (err.status === 401) return { ok: false, reason: "Axiom rejected the token (401)" };
+			}
+			throw err;
+		}
 	}
 
 	async ensureDataset(name: string): Promise<{ alreadyExists: boolean }> {

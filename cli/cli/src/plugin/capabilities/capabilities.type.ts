@@ -1474,6 +1474,24 @@ export interface Logs extends ProviderIdentity {
 	whoami?(): Promise<{ ok: boolean; dataset: string }>;
 	/** Create the aggregation dataset if it does not already exist. Idempotent. */
 	ensureDataset?(name: string): Promise<{ alreadyExists: boolean }>;
+	/**
+	 * Read a dataset without changing anything (`holocron doctor logs`). A dataset that is not there is `exists: false`,
+	 * not an error; any other failure throws.
+	 */
+	readDataset?(name: string): Promise<LogsDataset>;
+	/**
+	 * Ask the provider whether it accepts the token, without needing any particular dataset. `ok: false` only when the
+	 * provider rejected it; an error that says nothing about the token (a network failure, a missing token) throws.
+	 */
+	checkToken?(): Promise<{ ok: boolean; reason?: string }>;
+}
+
+/** What {@link Logs.readDataset} found. */
+export interface LogsDataset {
+	/** Whether the dataset exists. */
+	exists: boolean;
+	/** Days the provider keeps data in the dataset, when it reports one. One setting for the whole dataset. */
+	retentionDays?: number;
 }
 
 // ───────────────────────────────────────────────────────────────────────

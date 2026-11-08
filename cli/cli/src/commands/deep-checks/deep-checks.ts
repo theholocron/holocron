@@ -3,6 +3,7 @@ import { doctorCredentialsCommand, runDoctorCredentials } from "../doctor-creden
 import { doctorDnsCommand, runDoctorDns } from "../doctor-dns/index.js";
 import { doctorEnvironmentsCommand, runDoctorEnvironments } from "../doctor-environments/index.js";
 import { doctorGitHubAppCommand, runDoctorGitHubApp } from "../doctor-github-app/index.js";
+import { doctorLogsCommand, runDoctorLogs } from "../doctor-logs/index.js";
 import { doctorMonitoringCommand, runDoctorMonitoring } from "../doctor-monitoring/index.js";
 import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-notifications/index.js";
 import { doctorProjectCommand, runDoctorProject } from "../doctor-project/index.js";
@@ -156,6 +157,19 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorGitHubAppCommand as never,
 		async run(input) {
 			const report = await runDoctorGitHubApp(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "logs",
+		capability: "logs",
+		command: doctorLogsCommand as never,
+		async run(input) {
+			const report = await runDoctorLogs(input);
 			return {
 				status: report.status,
 				summary: report.summary,

@@ -8,6 +8,13 @@ export interface AxiomDataset {
 	name: string;
 	/** The dataset description, if it has one. */
 	description?: string;
+	/**
+	 * How many days Axiom keeps data in the dataset (`retentionDays` of `GET /v2/datasets/{id}`). One value for the whole
+	 * dataset, so every environment in it shares it. Absent when the API does not return it.
+	 */
+	retentionDays?: number;
+	/** Whether the retention period applies (`useRetentionPeriod`); `false` means data is not aged out by `retentionDays`. */
+	useRetentionPeriod?: boolean;
 }
 
 /** What to create a dataset with. */
