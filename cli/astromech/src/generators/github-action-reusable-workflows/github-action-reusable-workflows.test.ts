@@ -727,12 +727,12 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 	});
 
 	it("builds an Axiom permalink filtered to this run's own logs, not a bare dataset view", () => {
-		expect(wf).toContain("query-url=https://app.axiom.co/${AXIOM_ORG}/query?initForm=${encoded}");
+		expect(wf).toContain("query-url=https://app.axiom.co/${HOLOCRON_AXIOM_ORG}/query?initForm=${encoded}");
 		expect(wf).toContain('where check_run_id == \\"${CHECK_RUN_ID}\\"');
 	});
 
 	it("reads the Axiom org and dataset from org variables, with no literal fallback", () => {
-		expect(wf).toContain("AXIOM_ORG: ${{ vars.AXIOM_ORG }}");
+		expect(wf).toContain("HOLOCRON_AXIOM_ORG: ${{ vars.AXIOM_ORG }}");
 		expect(wf).toContain("SENTINEL_AXIOM_DATASET: ${{ vars.SENTINEL_AXIOM_DATASET }}");
 		expect(wf).not.toContain("the-holocron-7bbe");
 		expect(wf).not.toMatch(/SENTINEL_AXIOM_DATASET: holocron-sentinel/);

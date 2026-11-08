@@ -1,3 +1,10 @@
+## [5.0.0-alpha.386](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.385...v5.0.0-alpha.386) (2026-11-08)
+
+### Features
+
+* **env:** 🏷️ read HOLOCRON_ENVIRONMENT before ENVIRONMENT ([#1971](https://github.com/theholocron/holocron/issues/1971)) ([34c7660](https://github.com/theholocron/holocron/commit/34c76602a4e6cef2036d6d703862a8bc93b2f2d1)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+* **sentinel:** 🏷️ read SENTINEL_GITHUB_APP_ID and SENTINEL_GITHUB_APP_PRIVATE_KEY ([#1978](https://github.com/theholocron/holocron/issues/1978)) ([633d8ca](https://github.com/theholocron/holocron/commit/633d8ca14989207211766273974efee9017f312c)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
 ## [5.0.0-alpha.385](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.384...v5.0.0-alpha.385) (2026-11-08)
 
 ### Chores
