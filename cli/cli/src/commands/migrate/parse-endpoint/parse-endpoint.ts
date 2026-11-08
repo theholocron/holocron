@@ -1,4 +1,5 @@
 import { ConfigError } from "../../../config/index.js";
+import { parseOptionPairs } from "../../parse-option-pairs/index.js";
 import type { Endpoint } from "./parse-endpoint.type.js";
 
 /**
@@ -12,12 +13,6 @@ export function parseEndpoint(spec: string, flag = "--from"): Endpoint {
 	if (!/^[a-z][a-z0-9-]*$/.test(provider)) {
 		throw new ConfigError(`${flag}: "${spec}" does not start with a provider name, e.g. github or linear:team=ENG`);
 	}
-	const options: Record<string, string> = {};
 	const rest = colon === -1 ? "" : spec.slice(colon + 1);
-	for (const pair of rest.split(",").filter((p) => p.trim() !== "")) {
-		const eq = pair.indexOf("=");
-		if (eq <= 0) throw new ConfigError(`${flag}: "${pair}" is not key=value`);
-		options[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
-	}
-	return { provider, options };
+	return { provider, options: parseOptionPairs(rest, flag) };
 }

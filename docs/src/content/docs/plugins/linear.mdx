@@ -97,6 +97,29 @@ A wrong shape is a `ConfigError` naming the path (`providers.issues.automation.a
 
 The Linear side of GitHub's project workflows (what moves an issue on its own) is therefore: auto-close and auto-archive here; moving an issue when a branch, a pull request or a merge happens is Linear's git automation, which `setup` does not apply yet because it cannot be read back reliably (the doctor would have nothing to compare). Set it in Linear: **Settings → Teams → _team_ → Workflow**. GitHub's workflows cannot be created from the API, so that side stays a `todo` in `doctor project`.
 
+### Without a config entry
+
+A repo that keeps GitHub as its `issues` and `projects` provider can still run Linear's setup and doctor: give the options on the command line instead of in `holocron.config`. Put the block in a file (no secrets):
+
+```json
+{
+  "team": "ENG",
+  "labels": ["bug", "enhancement"],
+  "project": "Roadmap",
+  "automation": { "autoClose": { "months": 3 } }
+}
+```
+
+Save it as `linear-trial.json` and run:
+
+```bash
+holocron provider linear doctor --with linear-trial.json
+holocron provider linear setup --with linear-trial.json --dry-run
+holocron provider linear setup --with linear-trial.json --with team=OPS --token linear=<ADMIN_KEY> --yes
+```
+
+The config file is not touched. See [provider](/holocron/commands/provider/) for how `--with` combines with a config entry.
+
 ## Migrating
 
 `holocron migrate` moves issues between any two providers that have `export` and `import` — GitHub and Linear today. See [migrate](/holocron/commands/migrate/). Every run, dry or not, ends by listing what the target could not carry.

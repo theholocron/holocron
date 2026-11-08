@@ -20,8 +20,15 @@ import {
 	summariseChecks,
 } from "@theholocron/kyber/ui";
 
+import type { ProviderOptions, ResolvedHolocronConfig } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
-import { assertPluginsResolvable, PluginLoader, type ProviderActions, type ProviderRow } from "../../plugin/index.js";
+import {
+	assertPluginsResolvable,
+	PluginLoader,
+	type ProviderActions,
+	type ProviderRow,
+	WorkspaceContextError,
+} from "../../plugin/index.js";
 import { createScrubber } from "../probe/index.js";
 import type { ProviderActionName, ProviderReport, RunProviderInput } from "./provider.type.js";
 
@@ -40,6 +47,16 @@ function listing(groups: ReadonlyMap<string, ProviderActions>): string[] {
 		.map(([name, actions]) => `  ${name.padEnd(width)}  ${ACTIONS.filter((a) => actions[a]).join(", ")}`);
 }
 
+/** The options of the first config entry that names `provider`, whichever capability it sits under. */
+function configOptions(providers: ResolvedHolocronConfig["providers"], provider: string): ProviderOptions {
+	for (const entry of Object.values(providers)) {
+		const tuples = entry?.cardinality === "many" ? entry.tuples : entry ? [entry.tuple] : [];
+		const found = tuples.find((tuple) => tuple.provider === provider);
+		if (found) return found.options;
+	}
+	return {};
+}
+
 export async function runProvider(input: RunProviderInput): Promise<ProviderReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
@@ -48,6 +65,9 @@ export async function runProvider(input: RunProviderInput): Promise<ProviderRepo
 	assertPluginsResolvable(loader, "provider");
 
 	const groups = loader.providerActions();
+	if (input.options && !input.provider) {
+		return fail(print, "`--with` needs a provider name", "e.g. `holocron provider linear doctor --with team=ENG`");
+	}
 	if (!input.provider) {
 		if (groups.size === 0) print("  no configured provider offers `setup` or `doctor`");
 		else {
@@ -56,7 +76,24 @@ export async function runProvider(input: RunProviderInput): Promise<ProviderRepo
 		}
 		return { status: "listed", rows: [] };
 	}
-	const actions = groups.get(input.provider);
+	let actions: ProviderActions | undefined;
+	if (input.options) {
+		// Given options: the provider need not be in the config; where it is, they go over its entry's options.
+		try {
+			actions = await loader.loadProviderActions(input.provider, {
+				...configOptions(input.loaded.resolved.providers, input.provider),
+				...input.options,
+			});
+		} catch (err) {
+			if (err instanceof WorkspaceContextError) throw err;
+			return fail(print, `\`${input.provider}\` did not load`, describeError(err));
+		}
+		if (!actions.setup && !actions.doctor) {
+			return fail(print, `\`${input.provider}\` offers neither \`setup\` nor \`doctor\``);
+		}
+	} else {
+		actions = groups.get(input.provider);
+	}
 	if (!actions) {
 		return fail(
 			print,

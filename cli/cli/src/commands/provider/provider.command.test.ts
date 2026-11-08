@@ -5,6 +5,8 @@ const runProvider = vi.hoisted(() => vi.fn());
 const tokenContext = vi.hoisted(() => vi.fn());
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("./provider.js", () => ({ runProvider }));
+const readWithOptions = vi.hoisted(() => vi.fn());
+vi.mock("./read-with-options/index.js", () => ({ readWithOptions }));
 vi.mock("../token-context/index.js", () => ({ tokenContext }));
 vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
 vi.mock("../resolve-org/index.js", () => ({
@@ -24,6 +26,7 @@ beforeEach(() => {
 	loadConfig.mockResolvedValue({ resolved: { org: "acme" } });
 	tokenContext.mockReturnValue({ cliToken: "t" });
 	runProvider.mockResolvedValue({ status: "ok", rows: [] });
+	readWithOptions.mockResolvedValue(undefined);
 });
 afterEach(() => {
 	process.exitCode = undefined;
@@ -61,12 +64,40 @@ describe("provider command", () => {
 		expect(process.exitCode).toBeUndefined();
 	});
 
+	it("reads --with (repeatable) against the working directory and passes the options on", async () => {
+		readWithOptions.mockResolvedValue({ team: "ENG" });
+		await yargs([
+			"provider",
+			"linear",
+			"doctor",
+			"--with",
+			"linear-trial.json",
+			"--with",
+			"team=ENG",
+			"--cwd",
+			"/repo",
+		])
+			.option("cwd", { type: "string" })
+			.option("dry-run", { type: "boolean", default: false })
+			.command(providerCommand as never)
+			.parseAsync();
+		expect(readWithOptions).toHaveBeenCalledWith(["linear-trial.json", "team=ENG"], "/repo");
+		expect(runProvider.mock.calls[0]![0]).toMatchObject({ provider: "linear", options: { team: "ENG" } });
+	});
+
+	it("does not read the config when --with is wrong", async () => {
+		readWithOptions.mockRejectedValue(new Error("--with nope.json: is not a file"));
+		await expect(run({ with: ["nope.json"] })).rejects.toThrow("--with nope.json");
+		expect(loadConfig).not.toHaveBeenCalled();
+	});
+
 	it("leaves out a provider and action it was not given, and exits 1 on a failure", async () => {
 		runProvider.mockResolvedValue({ status: "fail", rows: [] });
 		await run();
 		const input = runProvider.mock.calls[0]![0];
 		expect("provider" in input).toBe(false);
 		expect("action" in input).toBe(false);
+		expect("options" in input).toBe(false);
 		expect(process.exitCode).toBe(1);
 	});
 });

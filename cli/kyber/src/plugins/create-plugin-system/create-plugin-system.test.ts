@@ -292,6 +292,73 @@ describe("createPluginSystem", () => {
 		});
 	});
 
+	describe("loadProvider", () => {
+		it("builds a provider the config does not name, with the given options, and registers no capability", async () => {
+			const seen = vi.fn();
+			const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
+			const loader = new PluginLoader(
+				{ providers: {} },
+				{ root: "/r" },
+				importerOf({ "@acme/cli-plugin-extra": plugin("extra", {}, seen) })
+			);
+			await loader.load();
+			const made = await loader.loadProvider(tuple("extra", { team: "ENG" }));
+			expect(made.name).toBe("extra");
+			expect(seen).toHaveBeenCalledWith({ root: "/r", team: "ENG" });
+			expect(loader.plugins().get("extra")).toBe(made);
+			expect(loader.loadedKeys()).toEqual([]);
+			expect(loader.loadFailures()).toEqual([]);
+		});
+
+		it("replaces the plugin a configured entry of the same provider made", async () => {
+			const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
+			const loader = new PluginLoader(
+				{ providers: { source: single("gh", { a: 1 }) } },
+				{ root: "/r" },
+				importerOf({ "@acme/cli-plugin-gh": plugin("gh", { source: { name: "gh" } }) })
+			);
+			await loader.load();
+			const first = loader.plugins().get("gh");
+			const again = await loader.loadProvider(tuple("gh", { a: 2 }));
+			expect(again).not.toBe(first);
+			expect(loader.plugins().get("gh")).toBe(again);
+		});
+
+		it("follows a capability config package to its provider", async () => {
+			const seen = vi.fn();
+			const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
+			const loader = new PluginLoader(
+				{ providers: {} },
+				{ root: "/r" },
+				importerOf({
+					"@acme/cli-plugin-preset": { default: { provider: "gh", options: { a: "preset" } } },
+					"@acme/cli-plugin-gh": plugin("gh", {}, seen),
+				})
+			);
+			await loader.loadProvider(tuple("preset", { b: "mine" }));
+			expect(seen).toHaveBeenCalledWith({ root: "/r", a: "preset", b: "mine" });
+		});
+
+		it("throws a LoaderError for a package that cannot be imported", async () => {
+			const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
+			const loader = new PluginLoader({ providers: {} }, { root: "/r" }, importerOf({}));
+			const err = await loader.loadProvider(tuple("gone")).catch((e: unknown) => e);
+			expect(err).toBeInstanceOf(LoaderError);
+			expect((err as Error).message).toMatch(/^failed to import `@acme\/cli-plugin-gone` for provider/);
+		});
+
+		it("throws a LoaderError for a package that is not a plugin", async () => {
+			const { PluginLoader } = createPluginSystem<Caps, Config, Context>(base);
+			const loader = new PluginLoader(
+				{ providers: {} },
+				{ root: "/r" },
+				importerOf({ "@acme/cli-plugin-x": {} })
+			);
+			const err = await loader.loadProvider(tuple("x")).catch((e: unknown) => e);
+			expect((err as Error).message).toMatch(/does not export `createPlugin/);
+		});
+	});
+
 	it("exposes the package resolver bound to the prefixes", () => {
 		const { resolvePackage } = createPluginSystem<Caps, Config, Context>(base);
 		expect(resolvePackage("github")).toBe("@acme/cli-plugin-github");

@@ -155,11 +155,23 @@ export function createPluginSystem<
 			});
 		}
 
+		async loadProvider(tuple: ProviderTuple): Promise<LoadedPlugin<Caps, Extra>> {
+			return this.instantiate("provider", tuple);
+		}
+
 		private async loadOne(key: Key, tuple: ProviderTuple): Promise<unknown> {
+			const plugin = await this.instantiate(`capability \`${key}\``, tuple);
+			const factory = plugin.capabilities[key];
+			if (typeof factory !== "function") {
+				throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
+			}
+			return factory();
+		}
+
+		/** Imports the package and builds the plugin (following a capability config package to its provider). */
+		private async instantiate(subject: string, tuple: ProviderTuple): Promise<LoadedPlugin<Caps, Extra>> {
 			const mod = await this.importer(tuple.packageName).catch((err: unknown) => {
-				throw new LoaderError(
-					`failed to import \`${tuple.packageName}\` for capability \`${key}\`: ${messageOf(err)}`
-				);
+				throw new LoaderError(`failed to import \`${tuple.packageName}\` for ${subject}: ${messageOf(err)}`);
 			});
 
 			if (isPluginModule<Caps, Extra>(mod)) {
@@ -169,18 +181,14 @@ export function createPluginSystem<
 						: { ...this.context, ...tuple.options }
 				);
 				this.created.set(tuple.provider, plugin);
-				const factory = plugin.capabilities[key];
-				if (typeof factory !== "function") {
-					throw new LoaderError(`\`${tuple.packageName}\` does not implement the \`${key}\` capability`);
-				}
-				return factory();
+				return plugin;
 			}
 
 			// A capability config package: follow it to the provider, with its preset options under the project's own
 			// (the same precedence as ESLint's `extends`).
 			if (isCapabilityConfigModule(mod)) {
 				const cap = mod.default;
-				return this.loadOne(key, {
+				return this.instantiate(subject, {
 					provider: cap.provider,
 					packageName: resolvePackage(cap.provider),
 					options: { ...cap.options, ...tuple.options },

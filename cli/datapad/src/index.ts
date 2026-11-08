@@ -37,6 +37,7 @@ export type { LoadConfigFileOptions, Loaded } from "./load-config-file/index.js"
 export { loadConfigFile } from "./load-config-file/index.js";
 export type { LoadConfigFromContentOptions } from "./load-config-from-content/index.js";
 export { loadConfigFromContent } from "./load-config-from-content/index.js";
+export { loadConfigPath } from "./load-config-path/index.js";
 export type { LayeredResult, LoadLayeredOptions } from "./load-layered/index.js";
 export { loadLayered } from "./load-layered/index.js";
 export { mergeLayers } from "./merge-layers/index.js";
