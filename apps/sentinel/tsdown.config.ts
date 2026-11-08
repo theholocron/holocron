@@ -18,11 +18,22 @@ import { library } from "@theholocron/tsdown-config/presets/library";
  */
 const INLINED = /^@theholocron\/(?:astromech|datapad|cli)(?:\/|$)/;
 
-export default library({
-	deps: {
-		// Bare specifiers (including `node:` builtins) other than the inlined
-		// packages; relative and already-resolved absolute paths are bundled.
-		neverBundle: (id: string) => /^[^./]/.test(id) && !INLINED.test(id),
-		alwaysBundle: [INLINED],
+/**
+ * The size check's limit for this bundle. The preset's 512KB is sized for a thin package that bundles nothing, and
+ * Sentinel's bundle is 511KB because it inlines the packages above on purpose, so any feature would have failed the
+ * build. 600KB keeps the check's purpose, catching a dependency inlined by mistake (that adds megabytes), and leaves
+ * room to grow; raise it again, with the same reasoning, if Sentinel's own code outgrows it.
+ */
+const MAX_BUNDLE_BYTES = 600_000;
+
+export default library(
+	{
+		deps: {
+			// Bare specifiers (including `node:` builtins) other than the inlined
+			// packages; relative and already-resolved absolute paths are bundled.
+			neverBundle: (id: string) => /^[^./]/.test(id) && !INLINED.test(id),
+			alwaysBundle: [INLINED],
+		},
 	},
-});
+	{ maxBundleBytes: MAX_BUNDLE_BYTES }
+);

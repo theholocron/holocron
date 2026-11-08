@@ -89,6 +89,19 @@ describe("tsdown-config", () => {
 			await expect(run(library(), dir)).rejects.toThrow(/index\.mjs/);
 		});
 
+		it("takes a package's own limit, passing a bundle the default would fail and still failing one past it", async () => {
+			const config = library({}, { maxBundleBytes: 600_000 });
+			writeFileSync(join(dir, "index.mjs"), "x".repeat(512_001));
+			await expect(run(config, dir)).resolves.toBeUndefined();
+			writeFileSync(join(dir, "index.mjs"), "x".repeat(600_001));
+			await expect(run(config, dir)).rejects.toThrow(/exceeding the 600KB threshold/);
+		});
+
+		it("keeps the default limit for a package that sets none", async () => {
+			writeFileSync(join(dir, "index.mjs"), "x".repeat(512_001));
+			await expect(run(library({}, {}), dir)).rejects.toThrow(/exceeding the 512KB threshold/);
+		});
+
 		it("runs the caller's onSuccess function after the check", async () => {
 			const onSuccess = vi.fn();
 			writeFileSync(join(dir, "index.mjs"), "export {};");
