@@ -1,0 +1,9 @@
+{
+  "team": "HOLO",
+  "labels": ["bug", "enhancement", "chore"],
+  "project": "Roadmap",
+  "automation": {
+    "autoClose": { "months": 3, "state": "Canceled" },
+    "autoArchive": { "months": 6 }
+  }
+}

@@ -125,12 +125,15 @@ A repo that keeps GitHub as its `issues` and `projects` provider can still run L
 }
 ```
 
-Save it as `linear-trial.json` and run:
+This repo's copy, for the HOLO team, is [`plugins/holocron-plugin-linear/examples/linear-trial.json`](https://github.com/theholocron/holocron/blob/alpha/plugins/holocron-plugin-linear/examples/linear-trial.json) (it is not part of the published package). Run, from the repo root:
 
 ```bash
-holocron provider linear doctor --with linear-trial.json
-holocron provider linear setup --with linear-trial.json --dry-run
-holocron provider linear setup --with linear-trial.json --with team=OPS --token linear=<ADMIN_KEY> --yes
+F=plugins/holocron-plugin-linear/examples/linear-trial.json
+holocron provider linear doctor --with $F
+holocron provider linear setup --with $F --dry-run
+# the settings that change the team (auto-close, auto-archive, git automation) need the one-off admin key; give it in the
+# environment for this command only, not on the command line, where `ps` and shell history would show it
+HOLOCRON_LINEAR_TOKEN=<ADMIN_KEY> holocron provider linear setup --with $F
 ```
 
 The config file is not touched. See [provider](/holocron/commands/provider/) for how `--with` combines with a config entry.
