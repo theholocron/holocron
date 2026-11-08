@@ -1,3 +1,9 @@
+## [0.7.0-alpha.3](https://github.com/theholocron/holocron/compare/observability-v0.7.0-alpha.2...observability-v0.7.0-alpha.3) (2026-11-08)
+
+### Features
+
+* **env:** 🏷️ read HOLOCRON_ENVIRONMENT before ENVIRONMENT ([#1971](https://github.com/theholocron/holocron/issues/1971)) ([34c7660](https://github.com/theholocron/holocron/commit/34c76602a4e6cef2036d6d703862a8bc93b2f2d1)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
 ## [0.7.0-alpha.2](https://github.com/theholocron/holocron/compare/observability-v0.7.0-alpha.1...observability-v0.7.0-alpha.2) (2026-11-07)
 
 ### Refactoring
