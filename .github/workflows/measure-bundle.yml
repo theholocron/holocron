@@ -9,6 +9,9 @@ name: Audit the Bundle Size
 on: # yamllint disable-line rule:truthy
   workflow_call:
     secrets:
+      HOLOCRON_CODECOV_TOKEN:
+        description: The Codecov upload token. Read first; the CODECOV_TOKEN secret is the fallback.
+        required: false
       CODECOV_TOKEN:
         required: false
       TURBO_TOKEN:
@@ -25,7 +28,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
       # Read by the bundle-stats uploader inside `holocron run build`.
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.HOLOCRON_CODECOV_TOKEN || secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository

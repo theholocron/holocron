@@ -196,7 +196,7 @@ jobs:
           HOLOCRON_VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
           HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
           # The bare names stay until every caller's CLI reads the prefixed ones (#1864); a CLI that predates them
-          # reads only these. The secrets keep their bare names in GitHub and 1Password.
+          # reads only these. The secrets arrive under the bare names here: the caller (`ci.check-preview.yml`) maps `secrets.HOLOCRON_X || secrets.X` onto them, since this workflow is also called with the bare names by repos on the frozen copy.
           VERCEL_TOKEN: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_TOKEN || '' }}
           VERCEL_PROTECTION_BYPASS_SECRET: ${{ steps.trust.outputs.trusted == 'true' && secrets.VERCEL_PROTECTION_BYPASS_SECRET || '' }}
           # Not a secret and not gated on trust: the org's Vercel team id

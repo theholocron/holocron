@@ -375,8 +375,8 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 			expect(releaseJob).toContain(`${output}: \${{ steps.release.outputs.${output} }}`);
 		}
 		// Only the deploy job gets the token.
-		expect(deployJob).toContain("VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}");
-		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("secrets.VERCEL_TOKEN");
+		expect(deployJob).toContain("VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}");
+		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("VERCEL_TOKEN: ${{");
 	});
 
 	it("delivery.previewCheck runs `holocron monitoring resolve-checks` then `monitoring run-resolved` with the preview URL input", () => {
@@ -1049,5 +1049,26 @@ describe("organization variables are read by their HOLOCRON_ name first (#1864)"
 				"HOLOCRON_POSTHOG_PROJECT_TOKEN: ${{ vars.HOLOCRON_POSTHOG_PROJECT_TOKEN || vars.POSTHOG_PROJECT_TOKEN }}"
 			);
 		}
+	});
+});
+
+describe("organization secrets are read by their HOLOCRON_ name first (#1864)", () => {
+	const cases: [string, string, string][] = [
+		["release", "VERCEL_TOKEN", "HOLOCRON_VERCEL_TOKEN"],
+		["deploy-preview", "VERCEL_TOKEN", "HOLOCRON_VERCEL_TOKEN"],
+		["measure-bundle", "CODECOV_TOKEN", "HOLOCRON_CODECOV_TOKEN"],
+		["preview", "CLOUDFLARE_API_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"],
+	];
+
+	it.each(cases)("%s maps the prefixed secret onto the bare name %s", (id, bare, prefixed) => {
+		expect(REUSABLE_WORKFLOWS[id]).toContain(`${bare}: \${{ secrets.${prefixed} || secrets.${bare} }}`);
+	});
+
+	it("the thin check-preview caller maps both Vercel secrets onto the names the reusable declares", () => {
+		const caller = WORKFLOW_TEMPLATES["check-preview"] as string;
+		expect(caller).toContain("VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}");
+		expect(caller).toContain(
+			"VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET || secrets.VERCEL_PROTECTION_BYPASS_SECRET }}"
+		);
 	});
 });

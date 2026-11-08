@@ -68,6 +68,18 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 		expect(after?.variables).not.toHaveProperty("org");
 		const { variables: _movedVariables, ...afterRest } = after!;
 		const { variables: _inlineVariables, ...beforeRest } = before!;
+		// And (#1864): six synced secrets are named `HOLOCRON_<NAME>` now; the same tokens, renamed.
+		const renamed: Record<string, string> = {
+			AXIOM_TOKEN: "HOLOCRON_AXIOM_TOKEN",
+			CLOUDFLARE_API_TOKEN: "HOLOCRON_CLOUDFLARE_TOKEN",
+			CODECOV_TOKEN: "HOLOCRON_CODECOV_TOKEN",
+			FERN_TOKEN: "HOLOCRON_FERN_TOKEN",
+			VERCEL_PROTECTION_BYPASS_SECRET: "HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET",
+			VERCEL_TOKEN: "HOLOCRON_VERCEL_TOKEN",
+		};
+		for (const entry of beforeRest.secrets?.sync ?? []) {
+			entry.keys = entry.keys?.map((key) => renamed[key] ?? key).sort();
+		}
 		expect(afterRest).toEqual(beforeRest);
 		// Guard against a vacuous pass: the moved keys are really there on both sides, and the kept ones too.
 		expect(before).toMatchObject({

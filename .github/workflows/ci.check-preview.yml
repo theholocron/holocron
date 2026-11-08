@@ -44,5 +44,5 @@ jobs:
       # HOLOCRON_DEPLOYMENTS_TOKEN). VERCEL_TOKEN here is read-only use
       # (verifying deployment ownership), never a write/deploy
       # credential.
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}
+      VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
+      VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET || secrets.VERCEL_PROTECTION_BYPASS_SECRET }}

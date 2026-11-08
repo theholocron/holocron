@@ -6,7 +6,6 @@
  */
 export const THIRD_PARTY_ENV_NAMES: ReadonlySet<string> = new Set([
 	"CI",
-	"CODECOV_TOKEN",
 	"DEBUG",
 	// A convention many tools set for their own reasons; `environment.get()` reads it only after the Holocron names.
 	"ENV",
