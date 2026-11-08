@@ -27,6 +27,28 @@ describe("openSide", () => {
 		});
 	});
 
+	it("keeps the config's credentials providers, so a token held in 1Password is found (#1951)", async () => {
+		let providers: Record<string, unknown> = {};
+		await openSide({
+			loaded: loadedWith({
+				issues: ["github", { repo: "o/r" }],
+				credentials: [["1password", { environment: "Holocron" }]],
+			}),
+			context,
+			endpoint: { provider: "linear", options: { team: "ENG" } },
+			capabilities: ["issues"],
+			makeLoader: (resolved) => {
+				providers = resolved.providers as Record<string, unknown>;
+				return fakeLoader({ issues: fakeIssues("linear") });
+			},
+		});
+		expect(Object.keys(providers)).toEqual(["issues", "credentials"]);
+		expect(providers.credentials).toMatchObject({
+			cardinality: "many",
+			tuples: [{ provider: "1password", options: { environment: "Holocron" } }],
+		});
+	});
+
 	it("ignores the config's entry for a different provider", async () => {
 		let options: unknown;
 		await openSide({
