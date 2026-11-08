@@ -318,6 +318,8 @@ so that one file shows what the repo uses. A manifest's `dependencies`,
   that a catalog lists. Security updates are not affected. To raise a floor,
   edit its line in `pnpm-workspace.yaml` by hand, in the PR that needs the newer
   version, then run `pnpm install`.
+  The same file sets `labels: [dependencies]` on both update entries, so Dependabot adds no ecosystem label
+  (`javascript`, `github_actions`), which `repo setup` removes as stale (#1967).
 
 `holocron probe deps report` (`pnpm deps`) prints every dependency with its
 range and how widely it is used; `holocron probe deps who <name>` lists the
