@@ -99,6 +99,16 @@ function sources(dir: string, out: string[] = []): string[] {
 	return out;
 }
 
+describe("the allowlist", () => {
+	it("defers only RELEASE_GROUP, which moves with the template repos (#1864)", () => {
+		expect([...DEFERRED_ENV_NAMES]).toEqual(["RELEASE_GROUP"]);
+	});
+
+	it("keeps no name in both lists", () => {
+		expect([...DEFERRED_ENV_NAMES].filter((name) => THIRD_PARTY_ENV_NAMES.has(name))).toEqual([]);
+	});
+});
+
 describe("the workspace", () => {
 	it("reads no Holocron-owned bare variable without the HOLOCRON_ prefix", () => {
 		const root = fileURLToPath(new URL("../../../..", import.meta.url));
