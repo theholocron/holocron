@@ -118,9 +118,9 @@ describe("AxiomLogs.checkToken", () => {
 		expect(await makeLogs([{ body: dataset }]).logs.checkToken()).toEqual({ ok: true });
 	});
 
-	it("reports a 401 as a rejected token", async () => {
+	it("reports a 401 as a refused token", async () => {
 		const { logs } = makeLogs([{ status: 401, body: { message: "unauthorized" } }]);
-		expect(await logs.checkToken()).toEqual({ ok: false, reason: "Axiom rejected the token (401)" });
+		expect(await logs.checkToken()).toEqual({ ok: false, reason: "Axiom refused the token (401)" });
 	});
 
 	it("throws on what says nothing about the token (a 403)", async () => {

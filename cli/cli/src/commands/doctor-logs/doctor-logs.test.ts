@@ -159,18 +159,18 @@ describe("doctor logs", () => {
 		expect(report.rows.filter((r) => r.id.startsWith("logs:dataset:"))).toHaveLength(2);
 	});
 
-	it("fails on a token the provider rejects, and does not look for datasets with it", async () => {
+	it("fails on a token the provider refuses, and does not look for datasets with it", async () => {
 		const { report } = await run({
-			logs: { checkToken: async () => ({ ok: false, reason: "Axiom rejected the token (401)" }) },
+			logs: { checkToken: async () => ({ ok: false, reason: "Axiom refused the token (401)" }) },
 		});
 		expect(report.status).toBe("fail");
-		expect(row(report, "logs:token")).toMatchObject({ status: "fail", detail: "Axiom rejected the token (401)" });
+		expect(row(report, "logs:token")).toMatchObject({ status: "fail", detail: "Axiom refused the token (401)" });
 		expect(row(report, "logs:dataset:cli")).toMatchObject({ status: "skip" });
 	});
 
-	it("falls back to a generic reason for a rejected token without one", async () => {
+	it("falls back to a generic reason for a refused token without one", async () => {
 		const { report } = await run({ logs: { checkToken: async () => ({ ok: false }) } });
-		expect(row(report, "logs:token").detail).toBe("axiom rejected the token");
+		expect(row(report, "logs:token").detail).toBe("axiom refused the token");
 	});
 
 	it("skips, not fails, when the token cannot be read", async () => {
@@ -242,6 +242,23 @@ describe("doctor logs", () => {
 			loadFailures: [{ key: "logs", provider: "axiom", error: new Error("Cannot find package") }],
 		});
 		expect(report.reason).toContain("`axiom` failed to load");
+	});
+
+	it("builds its own loader, printer and logger when none are given, and skips with no logs provider", async () => {
+		const say = vi.spyOn(console, "log").mockImplementation(() => undefined);
+		try {
+			const report = await runDoctorLogs({
+				loaded: {
+					resolved: resolveConfig({ name: "demo", org: "acme", providers: {} } as never),
+					filepath: "/tmp/x",
+				},
+				context: { repoRoot: "/tmp" },
+			});
+			expect(report.status).toBe("skip");
+			expect(say).toHaveBeenCalled();
+		} finally {
+			say.mockRestore();
+		}
 	});
 
 	it("prints no secret value, only names and counts", async () => {

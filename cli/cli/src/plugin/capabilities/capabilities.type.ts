@@ -1481,7 +1481,7 @@ export interface Logs extends ProviderIdentity {
 	readDataset?(name: string): Promise<LogsDataset>;
 	/**
 	 * Ask the provider whether it accepts the token, without needing any particular dataset. `ok: false` only when the
-	 * provider rejected it; an error that says nothing about the token (a network failure, a missing token) throws.
+	 * provider refused it; an error that says nothing about the token (a network failure, a missing token) throws.
 	 */
 	checkToken?(): Promise<{ ok: boolean; reason?: string }>;
 }

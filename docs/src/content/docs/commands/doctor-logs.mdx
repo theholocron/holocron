@@ -7,13 +7,13 @@ description: Check that the Axiom datasets the setup ships logs to exist and tha
 holocron doctor logs
 ```
 
-Logs reach Axiom only when a token and a dataset name are both present, so a typo in a dataset name, a dataset nobody created or a rejected token fails quietly: nothing ships and nothing says so. This check asks the `logs` provider (Axiom) about each dataset and the token. It changes nothing, never creates a dataset, prints names and numbers only (never a token), and exits non-zero only while a row fails.
+Logs reach Axiom only when a token and a dataset name are both present, so a typo in a dataset name, a dataset nobody created or a token Axiom refuses fails quietly: nothing ships and nothing says so. This check asks the `logs` provider (Axiom) about each dataset and the token. It changes nothing, never creates a dataset, prints names and numbers only (never a token), and exits non-zero only while a row fails.
 
 ## The rows
 
 | Row                    | Passes when                                                                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `token is accepted`    | Axiom accepts the token. A token Axiom rejects (401) fails. A token that cannot be read, or a check that cannot be made, is skipped                     |
+| `token is accepted`    | Axiom accepts the token. A token Axiom refuses (401) fails. A token that cannot be read, or a check that cannot be made, is skipped                     |
 | `dataset for the CLI`  | the dataset named by `HOLOCRON_AXIOM_DATASET` (`holocron`) exists. A missing one fails and names `holocron repo setup`, which provisions it             |
 | `dataset for Sentinel` | the dataset named by `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`) exists. A missing one fails; setup provisions only the CLI's, so create it in Axiom |
 | other services         | a `dev.serve.logging.datasetVar` in the config that names a dataset the rows above do not already cover gets a row of its own                           |
@@ -28,6 +28,6 @@ Axiom returns `retentionDays` when a dataset is read (`GET /v2/datasets/{id}`, w
 
 ## What is skipped, and what fails
 
-Only two things fail: a dataset Axiom says does not exist (404), and a token it rejects (401). A missing token, a name that does not resolve, a 403 (the token may not read datasets), a network error or a provider that cannot read a dataset are skips with the reason. With no `logs` provider configured the whole run is a skip.
+Only two things fail: a dataset Axiom says does not exist (404), and a token it refuses (401). A missing token, a name that does not resolve, a 403 (the token may not read datasets), a network error or a provider that cannot read a dataset are skips with the reason. With no `logs` provider configured the whole run is a skip.
 
 `holocron doctor --all` runs it with the other deep checks.

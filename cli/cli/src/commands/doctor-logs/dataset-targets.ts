@@ -8,8 +8,7 @@ import type { LogsDatasetTarget } from "./doctor-logs.type.js";
 const SENTINEL_VARIABLE = "SENTINEL_AXIOM_DATASET";
 
 /** `SENTINEL_AXIOM_DATASET` to `sentinel`: the part before `_AXIOM_DATASET`, lower case. */
-const idOf = (variable: string): string =>
-	variable.replace(/_?AXIOM_DATASET$/, "").toLowerCase() || variable.toLowerCase();
+const idOf = (variable: string): string => variable.replace(/_AXIOM_DATASET$/, "").toLowerCase();
 
 /**
  * The datasets this repo's setup ships logs to, each resolved the way its service resolves it (ADR-0019): the CLI's

@@ -4,7 +4,7 @@
  * Read-only: it never creates a dataset, and prints names and numbers only, never a token or a secret value. One row for
  * the token (accepted by the provider), one per dataset (the CLI's, Sentinel's and any other `dev.serve.logging` names),
  * one for the organization, and an `info` row per existing dataset with its retention (ADR-0019: one setting for the whole
- * dataset, shared by every environment in it). Only a dataset the provider says is missing, or a token it rejects, fails;
+ * dataset, shared by every environment in it). Only a dataset the provider says is missing, or a token it refuses, fails;
  * a name, a token or a response that cannot be read is a skip with the reason.
  */
 
@@ -99,7 +99,7 @@ async function checkLogs(logs: Logs, targets: LogsDatasetTarget[]): Promise<Chec
 	return rows;
 }
 
-/** Whether the provider accepts the token. `usable` is false when it was rejected or could not be tried. */
+/** Whether the provider accepts the token. `usable` is false when it was refused or could not be tried. */
 async function checkToken(logs: Logs): Promise<{ row: CheckRow; usable: boolean }> {
 	const title = "token is accepted";
 	if (!logs.checkToken) {
@@ -109,7 +109,7 @@ async function checkToken(logs: Logs): Promise<{ row: CheckRow; usable: boolean 
 		const result = await logs.checkToken();
 		if (result.ok)
 			return { row: row("logs:token", title, "ok", `${logs.providerName} accepts the token`), usable: true };
-		const reason = result.reason ?? `${logs.providerName} rejected the token`;
+		const reason = result.reason ?? `${logs.providerName} refused the token`;
 		return { row: row("logs:token", title, "fail", reason, [reason]), usable: false };
 	} catch (err) {
 		const noToken = missingTokenReason(err);

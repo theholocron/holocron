@@ -17,7 +17,7 @@ import { ProviderApiError } from "@theholocron/cli";
 
 import type { AxiomClient } from "../rest.js";
 
-/** A dataset that does not exist: asking for it tells a token Axiom accepts (404) from one it rejects (401). */
+/** A dataset that does not exist: asking for it tells a token Axiom accepts (404) from one it refuses (401). */
 const PROBE_DATASET = "holocron-token-check";
 
 /** Options for the Axiom `logs` capability. */
@@ -84,7 +84,7 @@ export class AxiomLogs implements Logs {
 		} catch (err) {
 			if (err instanceof ProviderApiError) {
 				if (err.status === 404) return { ok: true };
-				if (err.status === 401) return { ok: false, reason: "Axiom rejected the token (401)" };
+				if (err.status === 401) return { ok: false, reason: "Axiom refused the token (401)" };
 			}
 			throw err;
 		}
