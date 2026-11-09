@@ -71,6 +71,7 @@ catalogs:
     alex: ^11.0.1
     editorconfig: ^3.0.2
     markdownlint: ^0.42.0
+    obsidian: ^1.14.4
     yaml: ^2.9.0
 
   # cli: dependencies only cli/ uses

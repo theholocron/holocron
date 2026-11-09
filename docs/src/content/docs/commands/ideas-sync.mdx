@@ -43,7 +43,7 @@ The Obsidian provider reads every `.md` file under `dir`, except in folders whos
 - **No second issue for the same note.** Before it creates an issue, it looks through the tracker's 100 most recently updated issues (`Issues.search`) for the note's marker. If one carries it, nothing is created: that issue's key is written into the note and the row reads `already filed as <key>`. If the look itself fails, the notes get a failing row and nothing is created. An issue older than the 100 most recent is not found, so a very old unfinished filing can still be filed again.
 - **Asks first** unless `--dry-run` or `--yes`. Without a terminal it refuses to run without one of them.
 - **`--dry-run`** reads the notes and prints `would file "<title>"`. It writes nothing and loads only the `ideas` provider, never the `issues` one.
-- **Never deletes.** A filed note stays in the folder with `issue:` set; moving it out of the vault belongs to the Obsidian app plugin (a later part of the design), since the provider has no `retire`.
+- **Never deletes.** A filed note stays in the folder with `issue:` set; moving it out of the vault belongs to the [Council plugin](/holocron/council/), which runs this command and trashes the note once it has an `issue:`, since the provider has no `retire`.
 - **A second run changes nothing**, because `issue:` is now set.
 - **A note that cannot be filed is a failing row, not the end of the run.** If the issue was created but the note could not be written, the row says so and gives the key to add by hand; a rerun also finds the issue by its marker and writes the key itself.
 

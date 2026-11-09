@@ -238,6 +238,7 @@ export default defineConfig({
 						items: [{ label: "Overview", slug: name }, api.group],
 					})),
 					{ label: "comlink", slug: "comlink" },
+					{ label: "obsidian-ideas", slug: "obsidian-ideas" },
 					{ label: "sentinel", slug: "sentinel" },
 				],
 			},
