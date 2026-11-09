@@ -210,6 +210,18 @@ describe("runIdeasSync", () => {
 		expect(report.status).toBe("ok");
 	});
 
+	it("lists the notes a dry run would file in path order", async () => {
+		const { io } = memoryIo({ "b.md": READY, "a.md": READY });
+		const { text } = await run(io, {
+			context: { repoRoot: "/x", dryRun: true },
+			yes: false,
+			interactive: false,
+			loader: { load: vi.fn() } as never,
+		});
+		expect(text.indexOf("a.md")).toBeGreaterThan(-1);
+		expect(text.indexOf("a.md")).toBeLessThan(text.indexOf("b.md"));
+	});
+
 	it("asks first, and cancels without touching anything on a no", async () => {
 		const { io, writes } = memoryIo({ "idea.md": READY });
 		const issues = issuesFake();

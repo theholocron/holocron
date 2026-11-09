@@ -58,8 +58,9 @@ const issueBody = (note: ParsedNote, path: string): string =>
 const SEARCH_LIMIT = 100;
 
 export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncReport> {
-	/* v8 ignore next 2 -- the console and the real disk are only used outside tests, which inject both */
+	/* v8 ignore next -- the console is only used outside tests, which inject `print` */
 	const print = input.print ?? ((line: string) => console.log(line));
+	/* v8 ignore next -- the real disk is only used outside tests, which inject `io` */
 	const io = input.io ?? realIdeasIo();
 	const dryRun = Boolean(input.context.dryRun);
 	let notReady = 0;
