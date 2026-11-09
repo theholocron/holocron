@@ -1,3 +1,9 @@
+## [5.0.0-alpha.390](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.389...v5.0.0-alpha.390) (2026-11-09)
+
+### Bug Fixes
+
+* **sentinel:** 🐛 install the Vercel payload with --legacy-peer-deps, so the deployment builds ([#1990](https://github.com/theholocron/holocron/issues/1990)) ([5c5ecef](https://github.com/theholocron/holocron/commit/5c5ecef7cc20004dc1c01abeb8edf2433e37ccf0))
+
 ## [5.0.0-alpha.389](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.388...v5.0.0-alpha.389) (2026-11-09)
 
 ### Features
