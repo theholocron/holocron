@@ -265,6 +265,10 @@ export const TASKS: Record<string, TaskDef> = {
 	// Holocron-repo-specific: its workflow finds the org's consumer repos and opens a pull request in
 	// theholocron/.github and in each of them with astromech's generated reusable workflows and composite
 	// actions, so only this repo's thin caller is ever meaningfully triggered (holocron#1013).
+	// Sentinel's secrets, fanned from its 1Password Environment to Vercel (production) and one org secret (#781, #800).
+	// Manual only: run it after registering the App and again when a secret rotates. It writes with org-wide tokens,
+	// so it is never part of `holocron run ci` and has no local runner (the README has the local invocation).
+	"sync-secrets": { group: "Platform", scope: "repo", local: null },
 	"sync-templates": { group: "Platform", scope: "repo", local: { command: "sync github" } },
 	// Runs `holocron project reconcile`: sets each item's status on the declared project boards from its issue state and
 	// its "blocked by" links (spec `command-project`, #1744), then its workflow runs `doctor project` for what is left.

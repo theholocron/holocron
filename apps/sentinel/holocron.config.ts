@@ -28,10 +28,7 @@
  *     provider comment below for why this exists. Both tasks flow
  *     through the normal `holocron repo sync`-generated workflow path
  *     (holocron#1014's monorepo-subpackage write-location bug, fixed) —
- *     no hand-maintained workflow file for either, unlike
- *     `sentinel.secretsSync.yml`, which stays hand-maintained because
- *     it is genuinely Sentinel-specific in a way these two generic,
- *     any-package tasks are not.
+ *     no hand-maintained workflow file for either.
  *
  * `deployment`: Vercel, a Team separate from any other Vercel project
  * in this org (ADR-0011's deploy-target decision). `teamId` is not a
