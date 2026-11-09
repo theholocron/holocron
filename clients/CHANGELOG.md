@@ -1,3 +1,9 @@
+## [1.58.0-alpha.27](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.26...clients-v1.58.0-alpha.27) (2026-11-09)
+
+### Features
+
+* **issues:** 🔎 let Issues.search filter by text ([#2006](https://github.com/theholocron/holocron/issues/2006)) ([ba0c983](https://github.com/theholocron/holocron/commit/ba0c983f68ebff04649b81b093f38ce2def2e84e)), closes [#2005](https://github.com/theholocron/holocron/issues/2005)
+
 ## [1.58.0-alpha.26](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.25...clients-v1.58.0-alpha.26) (2026-11-09)
 
 ### Bug Fixes
