@@ -42,9 +42,17 @@ function memoryIo(files: Record<string, string>, over: Partial<IdeasIo> = {}) {
 	return { io, disk, writes };
 }
 
-function issuesFake(over: Partial<{ create: (input: unknown) => Promise<{ key: string }> }> = {}) {
+function issuesFake(
+	over: Partial<{
+		create: (input: unknown) => Promise<{ key: string }>;
+		search: () => Promise<Array<{ key: string; body?: string }>>;
+	}> = {}
+) {
 	let n = 100;
-	return { create: vi.fn(over.create ?? (async () => ({ key: `#${++n}` }))) };
+	return {
+		create: vi.fn(over.create ?? (async () => ({ key: `#${++n}` }))),
+		search: vi.fn(over.search ?? (async () => [])),
+	};
 }
 
 async function run(
@@ -74,7 +82,7 @@ describe("runIdeasSync", () => {
 		const { report, text } = await run(io, { issues });
 		expect(issues.create).toHaveBeenCalledWith({
 			summary: "Add a thing",
-			body: "# Add a thing\n\nWe should add a thing.\n\nFiled from idea: Add a thing",
+			body: "# Add a thing\n\nWe should add a thing.\n\nFiled from idea: Add a thing\n<!-- holocron:idea idea.md -->",
 		});
 		expect(disk["idea.md"]).toBe(READY.replace("tags: [a]\n", "tags: [a]\nissue: #101\n"));
 		expect(report.status).toBe("ok");
@@ -99,7 +107,48 @@ describe("runIdeasSync", () => {
 		expect(issues.create).toHaveBeenCalledTimes(1);
 		expect(writes).toHaveLength(1);
 		expect(report.status).toBe("ok");
-		expect(text).toContain("already filed as #101");
+		expect(text).not.toContain("idea.md");
+		expect(text).toContain("1 note(s) not ready");
+	});
+
+	it("reuses an issue that carries the note's marker: no create, the key is written", async () => {
+		const { io, disk } = memoryIo({ "sub/idea.md": READY });
+		const issues = issuesFake({
+			search: async () => [
+				{ key: "#5", body: "other\n<!-- holocron:idea idea.md -->" },
+				{ key: "#9", body: "x\n\nFiled from idea: T\n<!-- holocron:idea sub/idea.md -->" },
+			],
+		});
+		const { report, text } = await run(io, { issues });
+		expect(issues.create).not.toHaveBeenCalled();
+		expect(disk["sub/idea.md"]).toContain("issue: #9");
+		expect(text).toContain("already filed as #9");
+		expect(report.status).toBe("ok");
+	});
+
+	it("creates when the search finds no marker (an issue with no body, or another path)", async () => {
+		const { io } = memoryIo({ "idea.md": READY });
+		const issues = issuesFake({
+			search: async () => [{ key: "#1" }, { key: "#2", body: "<!-- holocron:idea other.md -->" }],
+		});
+		await run(io, { issues });
+		expect(issues.create).toHaveBeenCalledTimes(1);
+	});
+
+	it("fails each row and creates nothing when the search fails", async () => {
+		const { io, writes } = memoryIo({ "a.md": READY, "b.md": READY });
+		const issues = issuesFake({
+			search: async () => {
+				throw new Error("502 bad gateway");
+			},
+		});
+		const { report, text } = await run(io, { issues });
+		expect(issues.create).not.toHaveBeenCalled();
+		expect(writes).toEqual([]);
+		expect(report.status).toBe("fail");
+		expect(text).toContain("could not check for an existing issue, so none was created");
+		expect(text).toContain("502 bad gateway");
+		expect(text).toContain("0 ok, 2 fail, 0 skipped");
 	});
 
 	it("honours the configured filing state", async () => {
@@ -123,8 +172,9 @@ describe("runIdeasSync", () => {
 		const issues = issuesFake();
 		const { report, text } = await run(io, { issues });
 		expect(issues.create).not.toHaveBeenCalled();
-		expect(text).toContain("status seed");
-		expect(text).toContain("no status");
+		expect(text).not.toContain("seed.md");
+		expect(text).not.toContain("none.md");
+		expect(text).toContain("2 note(s) not ready");
 		expect(text).not.toContain("old.md");
 		expect(text).not.toContain("gone.md");
 		expect(report.status).toBe("ok");
@@ -233,6 +283,32 @@ describe("runIdeasSync", () => {
 		expect(report.status).toBe("fail");
 		expect(text).toContain("issue #101 was created but `issue:` was not written");
 		expect(text).toContain("add `issue: #101` to the note by hand");
+	});
+
+	it("after a failed write, the next run finds the marked issue and does not create another", async () => {
+		const { io, disk } = memoryIo({ "a.md": READY });
+		const created: string[] = [];
+		const issues = issuesFake({
+			create: async (input) => {
+				created.push((input as { body: string }).body);
+				return { key: "#101" };
+			},
+			search: async () => created.map((body) => ({ key: "#101", body })),
+		});
+		let fail = true;
+		const flaky: IdeasIo = {
+			...io,
+			write: (p, t) => {
+				if (fail) throw new Error("read-only");
+				io.write(p, t);
+			},
+		};
+		await run(flaky, { issues });
+		fail = false;
+		const { report } = await run(flaky, { issues });
+		expect(created).toHaveLength(1);
+		expect(disk["a.md"]).toContain("issue: #101");
+		expect(report.status).toBe("ok");
 	});
 
 	it("fails the row when the note vanished before the write", async () => {
