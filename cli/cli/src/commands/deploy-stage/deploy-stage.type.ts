@@ -1,3 +1,5 @@
+import type { AlphaReleaseLookup } from "./alpha-release/index.js";
+
 /** Input to {@link stageDeploy}. */
 export interface StageDeployInput {
 	/** The package to stage: holds `package.json`, `api/`, `dist/` and `vercel.json`. */
@@ -9,6 +11,11 @@ export interface StageDeployInput {
 	resolveVersion?: (packageDir: string, name: string) => string;
 	/** The required peers of an installed dependency with their installed versions. Injectable for testing. */
 	resolvePeers?: (packageDir: string, dependency: string) => Record<string, string>;
+	/**
+	 * The release npm's `alpha` tag points at for a package. An `@theholocron/*` dependency installed at an `alpha`
+	 * prerelease is pinned to it. Injectable for testing; the default asks `npm view`.
+	 */
+	alphaRelease?: AlphaReleaseLookup;
 }
 
 /** What {@link stageDeploy} wrote. */
