@@ -1,3 +1,13 @@
+## [5.0.0-alpha.394](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.393...v5.0.0-alpha.394) (2026-11-09)
+
+### Refactoring
+
+* **cli:** ♻️ group src/ by concern: auth/, cli/, issues-provider/, probes/, load-config/ ([#2001](https://github.com/theholocron/holocron/issues/2001)) ([862cc22](https://github.com/theholocron/holocron/commit/862cc220f2e1d585e88ac10c6db2cbd3df94e627)), closes [#1747](https://github.com/theholocron/holocron/issues/1747)
+
+### Documentation
+
+* **ideas:** 💡 correct the property editor claim and skip template folders in the ideas spec ([#2003](https://github.com/theholocron/holocron/issues/2003)) ([6f0ae72](https://github.com/theholocron/holocron/commit/6f0ae72b3dd96dbffa218af035ffb8e64de70c8f)), closes [#1994](https://github.com/theholocron/holocron/issues/1994)
+
 ## [5.0.0-alpha.393](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.392...v5.0.0-alpha.393) (2026-11-09)
 
 ### Features
