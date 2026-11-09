@@ -151,7 +151,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				},
 			],
 		};
-		// And (#1864): six synced secrets are named `HOLOCRON_<NAME>` now; the files hold the same values and tokens.
+		// And (#1864): seven synced secrets are named `HOLOCRON_<NAME>` now; the files hold the same values and tokens.
 		const secretRenames: Record<string, string> = {
 			AXIOM_TOKEN: "HOLOCRON_AXIOM_TOKEN",
 			CLOUDFLARE_API_TOKEN: "HOLOCRON_CLOUDFLARE_TOKEN",
@@ -159,6 +159,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			FERN_TOKEN: "HOLOCRON_FERN_TOKEN",
 			VERCEL_PROTECTION_BYPASS_SECRET: "HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET",
 			VERCEL_TOKEN: "HOLOCRON_VERCEL_TOKEN",
+			LHCI_GITHUB_APP_TOKEN: "HOLOCRON_LIGHTHOUSE_TOKEN",
 		};
 		const secretEntries = (expected as unknown as { repo: { secrets: { sync: { keys: string[] }[] } } }).repo
 			.secrets.sync;

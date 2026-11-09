@@ -609,7 +609,9 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 
 		const performance = REUSABLE_WORKFLOWS["test:perf"]!;
 		expect(performance).toMatch(/task: test:perf\n\s+args: --config=/);
-		expect(performance).toContain("LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}");
+		expect(performance).toContain(
+			"LHCI_GITHUB_APP_TOKEN: ${{ secrets.HOLOCRON_LIGHTHOUSE_TOKEN || secrets.LHCI_GITHUB_APP_TOKEN }}"
+		);
 	});
 
 	it("the bot identity is written in the git-identity action only, and the workflows that commit call it", () => {
@@ -1058,6 +1060,7 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 		["deploy-preview", "VERCEL_TOKEN", "HOLOCRON_VERCEL_TOKEN"],
 		["measure-bundle", "CODECOV_TOKEN", "HOLOCRON_CODECOV_TOKEN"],
 		["preview", "CLOUDFLARE_API_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"],
+		["test:perf", "LHCI_GITHUB_APP_TOKEN", "HOLOCRON_LIGHTHOUSE_TOKEN"],
 	];
 
 	it.each(cases)("%s maps the prefixed secret onto the bare name %s", (id, bare, prefixed) => {

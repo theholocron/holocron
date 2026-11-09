@@ -12,6 +12,9 @@ on: # yamllint disable-line rule:truthy
         required: false
         default: lighthouse.config.cjs
     secrets:
+      HOLOCRON_LIGHTHOUSE_TOKEN:
+        description: The Lighthouse CI GitHub App token. Read first; the LHCI_GITHUB_APP_TOKEN secret is the fallback.
+        required: false
       LHCI_GITHUB_APP_TOKEN:
         required: false
       TURBO_TOKEN:
@@ -28,7 +31,7 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
       # Read by `lhci autorun` inside `holocron run test:perf`.
-      LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+      LHCI_GITHUB_APP_TOKEN: ${{ secrets.HOLOCRON_LIGHTHOUSE_TOKEN || secrets.LHCI_GITHUB_APP_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
