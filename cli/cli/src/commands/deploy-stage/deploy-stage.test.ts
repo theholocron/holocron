@@ -50,6 +50,12 @@ describe("stageDeploy", () => {
 		expect(lines.join("\n")).toContain("yaml@9.9.9-yaml");
 	});
 
+	it("writes an .npmrc that skips peer resolution, so a strict install cannot fail ERESOLVE", () => {
+		makePackage("export {};");
+		stageDeploy({ packageDir: dir, resolveVersion });
+		expect(readFileSync(join(dir, ".vercel-deploy", ".npmrc"), "utf8")).toBe("legacy-peer-deps=true\n");
+	});
+
 	it("writes to --out when given, replacing what was there", () => {
 		makePackage("export {};");
 		const out = join(dir, "elsewhere");

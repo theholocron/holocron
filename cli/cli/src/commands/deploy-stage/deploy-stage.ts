@@ -23,9 +23,12 @@
  *                         function's node_modules is already fully controlled by the
  *                         trimmed `package.json` below (nothing extra to prune), so
  *                         there is no upside to nft's pruning here, only risk.
- *                         It also sets `installCommand` to `npm install --legacy-peer-deps`:
- *                         the plugins peer on one exact CLI version and on `^` ranges that
- *                         a prerelease never satisfies, so a strict install fails ERESOLVE.
+ *     .npmrc            — `legacy-peer-deps=true`: the plugins peer on one exact CLI version
+ *                         and on `^` ranges that a prerelease never satisfies, so a strict
+ *                         install fails ERESOLVE. An `installCommand` in vercel.json or in the
+ *                         request did not reach the install Vercel runs for the function (the
+ *                         deployment still ran a plain `npm install`); an `.npmrc` in the
+ *                         payload applies to whichever `npm install` runs there.
  *     package.json      — trimmed: name/version/type/engines + dependencies only,
  *                         each pinned to the exact version actually resolved in
  *                         node_modules right now (not the "workspace:" / "catalog:"
@@ -116,6 +119,7 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 			dependencies,
 		};
 		writeFileSync(join(outDir, "package.json"), stringifyJson(deployPkg));
+		writeFileSync(join(outDir, ".npmrc"), "legacy-peer-deps=true\n");
 
 		print(`Staged deploy payload at ${outDir}`);
 		print(
