@@ -464,7 +464,7 @@ A reusable workflow `ci` (`ci/workflows/ci.yml`) with one job, called by a thin 
 the hand-written ones, generated from the same list `requiredChecks()` reads today.
 
 1. It polls the Checks API for the head SHA until every expected id has at least one check run whose name starts with
-   `<id> / ` and every such run has completed, or the timeout (default 30 minutes) passes. Matching by id prefix and not
+   `<id> /` and every such run has completed, or the timeout (default 30 minutes) passes. Matching by id prefix and not
    by full string means a called-job rename, or a matrix label, cannot break it.
 2. An id with no check run at the timeout fails as "never posted". This is the case where the old setup waited for an
    "expected" check forever.
@@ -588,7 +588,7 @@ the six group names each caller has). The second is the grouping guard and is de
 4. **A vocabulary test**: no id contains a dot or an uppercase letter, none is on `RESERVED_SCRIPT_NAMES`, every leaf has
    a `group` (one of the six) for `--help`, and `format` has no template.
 5. **Aggregate test**: the `ci` caller's `expected` equals the ids of the repo's `required: true` tasks, and every one
-   of those posts a check whose name starts with `<id> / `.
+   of those posts a check whose name starts with `<id> /`.
 6. **Script tests**: the recursion rules and the package script table above.
 
 ## Old to new: the complete map
@@ -954,7 +954,7 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
   the checks those post. The starter workflows `sync github` pushes to `.github` are legacy too. Phase K opens the gate
   (`CI_HOME` to `ci-v1`) and deletes the table with the aliases.
 - **Check contexts** are `<id> / <called job>` (`WORKFLOW_CHECK_CONTEXTS`), so the `ci` aggregate's `expected` are the ids
-  and match by the prefix `<id> / `; `lint:markdown` and `format` have no context of their own (the formatting workflow is
+  and match by the prefix `<id> /`; `lint:markdown` and `format` have no context of their own (the formatting workflow is
   listed under `lint:editorconfig`). The hand-written `Dependency catalogs` and `Generated files` keep their names.
 - **Reusables** run flat ids in their `task:` inputs, except `lint/editorconfig.yml` (`sourceQuality.formatting`, three
   successors until phase I) and `validate.yml` kept its two jobs until phase J (#1622).
