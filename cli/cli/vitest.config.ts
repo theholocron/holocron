@@ -24,6 +24,9 @@ export default defineConfig({
 				// top level is checked by running the built CLI (src/cli/cli-binary.test.ts); each command is tested in its
 				// own module. See issues #117 and #1190.
 				"src/cli/cli.ts",
+				// Preload for running the CLI from source: one registerHooks call that runs on import; its hook is tested in
+				// source-run/text-import-load.
+				"src/source-run/register.ts",
 				// Test-only helpers: the command runner and the publish fixtures.
 				"src/**/*.testing.ts",
 				"src/**/*.fixtures.ts",
