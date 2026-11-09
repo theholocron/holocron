@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import type { IdeasDirEntry, IdeasIo } from "../ideas-sync.type.js";
+import type { IdeasDirEntry, IdeasIo } from "./ideas-io.type.js";
 
 /**
  * Every Markdown note under `dir`, as paths relative to it with `/` separators, sorted. A folder whose name starts

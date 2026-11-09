@@ -21,6 +21,7 @@ describe("CARDINALITY", () => {
 			"workers",
 			"tunnels",
 			"projects",
+			"ideas",
 		] as const;
 		for (const key of singles) {
 			expect(CARDINALITY[key]).toBe("single");
@@ -35,13 +36,14 @@ describe("CARDINALITY", () => {
 	});
 
 	it("covers every capability key", () => {
-		expect(Object.keys(CARDINALITY)).toHaveLength(21);
+		expect(Object.keys(CARDINALITY)).toHaveLength(22);
 	});
 });
 
 describe("REQUIRED_CAPABILITIES", () => {
 	it("is empty — no capability is strictly required", () => {
 		expect(REQUIRED_CAPABILITIES).toHaveLength(0);
+		expect(REQUIRED_CAPABILITIES).not.toContain("ideas");
 	});
 });
 

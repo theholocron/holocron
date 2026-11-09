@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 
-import type { IdeasIo } from "../ideas-sync.type.js";
+import type { IdeasIo } from "./ideas-io.type.js";
 
 /** The `ideas sync` inputs from the real filesystem. */
 export function realIdeasIo(): IdeasIo {

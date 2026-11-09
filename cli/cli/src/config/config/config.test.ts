@@ -266,12 +266,15 @@ describe("resolveConfig", () => {
 		expect(resolveConfig({ ...minimal, ideas }).ideas).toEqual(ideas);
 		expect(resolveConfig({ ...minimal, ideas: { dir: "/v" } }).ideas).toEqual({ dir: "/v" });
 		expect(resolveConfig(minimal).ideas).toBeUndefined();
+		expect(resolveConfig({ ...minimal, ideas: { states: { file: "queued" } } }).ideas).toEqual({
+			states: { file: "queued" },
+		});
+		expect(resolveConfig({ ...minimal, ideas: {} }).ideas).toEqual({});
 	});
 
 	it.each([
 		["a value that is not an object", "~/vault", /`ideas` must be an object/],
 		["a list", [], /`ideas` must be an object/],
-		["no dir", {}, /ideas\.dir/],
 		["an empty dir", { dir: " " }, /ideas\.dir/],
 		["a non-string dir", { dir: 3 }, /ideas\.dir/],
 		["states that are not an object", { dir: "/v", states: "x" }, /ideas\.states. must be an object/],

@@ -1,6 +1,6 @@
 ---
 title: Capabilities
-description: Reference for all 17 capability interfaces that Holocron plugins implement.
+description: Reference for the capability interfaces that Holocron plugins implement.
 ---
 
 Capabilities are the contracts between the Holocron CLI and its plugins. Each capability is a TypeScript interface that plugins implement; the CLI calls methods on the interface without knowing which provider is behind it.
@@ -188,6 +188,19 @@ Log aggregation — ships structured log output to an external service. Implemen
 | `ensureDataset()` | Create the Axiom dataset if it does not exist      |
 | `readDataset()`   | Read a dataset without changing it (`doctor logs`) |
 | `checkToken()`    | Ask the provider whether it accepts the token      |
+
+### `ideas`
+
+The inbox in front of the issue: ideas that are not filed yet, in a shape no provider owns. Optional: a repo with no `ideas` provider is not affected. Implemented by: [Obsidian](./plugins/obsidian). `holocron ideas sync` reads through it and files through `issues`.
+
+| Method                   | Description                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `list()`                 | Every idea as an `IdeaRecord`: `key` (opaque), `title`, `body`, `status`, `issue?` and `attachments` |
+| `setStatus(key, status)` | Move an idea to a state                                                                              |
+| `markFiled(key, issue)`  | Record the issue an idea was filed as, so the step runs once                                         |
+| `retire?(key)`           | Take a filed idea out of the inbox (Obsidian leaves this to the app: the CLI never deletes)          |
+
+`attachments` is the provider's call: what it cannot put in an issue body. The command skips an idea that has any.
 
 ## Multi-provider capabilities
 

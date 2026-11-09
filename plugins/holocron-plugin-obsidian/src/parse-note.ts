@@ -1,6 +1,6 @@
 import { parseFrontmatter } from "@theholocron/astromech/repo-validation";
 
-import type { ParsedNote } from "../ideas-sync.type.js";
+import type { ParsedNote } from "./ideas-io.type.js";
 
 const FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/;
 const FENCE = /^(```|~~~)[\s\S]*?^\1/gm;

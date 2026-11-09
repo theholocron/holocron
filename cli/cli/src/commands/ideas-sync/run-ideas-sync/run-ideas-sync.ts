@@ -1,17 +1,16 @@
 /**
  * `holocron ideas sync` — files the idea notes that are ready.
  *
- * It reads every Markdown note in `ideas.dir` (not in a folder whose name starts with `_` or `.`). A note whose
- * `status:` is the filing state (default `in-progress`) and that has no `issue:` becomes an issue through the repo's
- * `issues` provider, and its `issue:` property is then written in the tracker's own syntax, which is what makes the
- * step run once. A note with embedded files is reported and skipped, since an issue body cannot carry them. Only
- * notes to be filed, and notes that need the person's attention, get a row; the rest are counted. The issue body ends
- * with a hidden `<!-- holocron:idea <path> -->` line, and an issue that carries it is reused instead of making a second
- * one (found with `Issues.search`, the recent issues only). It never deletes anything, and a note it cannot file is a
+ * It reads every idea through the `ideas` provider (`providers.ideas`, or `ideas.dir` read as an Obsidian vault; the
+ * Obsidian plugin skips folders whose name starts with `_` or `.`). An idea whose status is the filing state (default
+ * `in-progress`) and that has no issue becomes an issue through the repo's `issues` provider, and the issue is then
+ * recorded with `Ideas.markFiled` (for Obsidian, an `issue:` property in the tracker's own syntax), which is what makes
+ * the step run once. An idea with attachments is reported and skipped, since an issue body cannot carry them. Only
+ * ideas to be filed, and ideas that need the person's attention, get a row; the rest are counted. The issue body ends
+ * with a hidden `<!-- holocron:idea <key> -->` line, and an issue that carries it is reused instead of making a second
+ * one (found with `Issues.search`, the recent issues only). It never deletes anything, and an idea it cannot file is a
  * failing row (the run goes on). It writes, so it asks first unless `--dry-run` or `--yes` (without a terminal it refuses instead).
  */
-
-import { join } from "node:path";
 
 import { confirm } from "@inquirer/prompts";
 import {
@@ -24,13 +23,8 @@ import {
 	summariseChecks,
 } from "@theholocron/kyber/ui";
 
-import { assertPluginsResolvable, type Issue, PluginLoader } from "../../../plugin/index.js";
-import type { ParsedNote } from "../ideas-sync.type.js";
-import { listNotes } from "../list-notes/index.js";
-import { parseNote } from "../parse-note/index.js";
-import { realIdeasIo } from "../real-ideas-io/index.js";
-import { resolveIdeasDir } from "../resolve-ideas-dir/index.js";
-import { writeIssueKey } from "../write-issue-key/index.js";
+import { assertPluginsResolvable, type IdeaRecord, type Issue, PluginLoader } from "../../../plugin/index.js";
+import { resolveIdeasProvider } from "../resolve-ideas-provider/index.js";
 import type { IdeasSyncReport, RunIdeasSyncInput } from "./run-ideas-sync.type.js";
 
 /** The state that files a note when the config names none. */
@@ -48,11 +42,11 @@ const row = (id: string, status: CheckRow["status"], detail: string): CheckRow =
  * The hidden line that ties an issue to its note. A later run looks for it before it creates an issue, so a note whose
  * `issue:` could not be written is not filed twice.
  */
-const marker = (path: string): string => `<!-- holocron:idea ${path} -->`;
+const marker = (key: string): string => `<!-- holocron:idea ${key} -->`;
 
-/** The issue's body: the note's text, the line that traces the issue to its idea, and the hidden marker. */
-const issueBody = (note: ParsedNote, path: string): string =>
-	`${note.body.trim()}\n\nFiled from idea: ${note.title}\n${marker(path)}`;
+/** The issue's body: the idea's text, the line that traces the issue to its idea, and the hidden marker. */
+const issueBody = (idea: IdeaRecord): string =>
+	`${idea.body.trim()}\n\nFiled from idea: ${idea.title}\n${marker(idea.key)}`;
 
 /** How many recent issues are searched for the marker (the narrowest existing method, `Issues.search`). */
 const SEARCH_LIMIT = 100;
@@ -60,8 +54,6 @@ const SEARCH_LIMIT = 100;
 export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncReport> {
 	/* v8 ignore next -- the console is only used outside tests, which inject `print` */
 	const print = input.print ?? ((line: string) => console.log(line));
-	/* v8 ignore next -- the real disk is only used outside tests, which inject `io` */
-	const io = input.io ?? realIdeasIo();
 	const dryRun = Boolean(input.context.dryRun);
 	let notReady = 0;
 	const finish = (rows: CheckRow[], status?: IdeasSyncReport["status"]): IdeasSyncReport => {
@@ -74,44 +66,66 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 	print(style.header(`Holocron ideas sync${dryRun ? " (dry-run)" : ""}`));
 	print("");
 
-	const ideas = input.loaded.resolved.ideas;
-	const dir = resolveIdeasDir(ideas, io.home(), input.env);
-	if (!dir) {
+	const entry = resolveIdeasProvider(input.loaded.resolved, input.env);
+	if (!entry) {
 		return finish([
-			row("ideas", "fail", "no notes folder: set `ideas.dir` in holocron.config or HOLOCRON_IDEAS_DIR"),
+			row(
+				"ideas",
+				"fail",
+				'no `ideas` provider: set `providers.ideas` (`["obsidian", { dir }]`) in holocron.config or HOLOCRON_IDEAS_DIR'
+			),
 		]);
 	}
-	const paths = listNotes(io, dir);
-	if (!paths) return finish([row(dir, "fail", "the notes folder does not exist or cannot be read")]);
-	const fileState = ideas?.states?.file ?? DEFAULT_FILING_STATE;
+	// Reading needs only the `ideas` provider, so the `issues` one is not loaded (and needs no token) until there is
+	// something to file.
+	/* v8 ignore start -- the real loader is only built outside tests, which always inject one */
+	const reader =
+		input.ideasLoader ?? new PluginLoader({ ...input.loaded.resolved, providers: { ideas: entry } }, input.context);
+	/* v8 ignore stop */
+	await reader.load();
+	assertPluginsResolvable(reader, "ideas sync");
+	if (!reader.has("ideas")) {
+		const failure = reader.loadFailures().find((f) => f.key === "ideas");
+		return finish([
+			row(
+				"ideas",
+				"fail",
+				`the \`ideas\` provider is not available${failure ? ` (${describeError(failure.error)})` : ""}`
+			),
+		]);
+	}
+	const ideas = reader.get("ideas");
+	let records: IdeaRecord[];
+	try {
+		records = await ideas.list();
+	} catch (err) {
+		return finish([row("ideas", "fail", describeError(err))]);
+	}
+	const fileState = input.loaded.resolved.ideas?.states?.file ?? DEFAULT_FILING_STATE;
 
 	const rows: CheckRow[] = [];
-	const ready: Array<{ path: string; note: ParsedNote }> = [];
-	for (const path of paths) {
-		const text = io.read(join(dir, path));
-		if (text === undefined) {
-			rows.push(row(path, "fail", "cannot be read"));
-			continue;
-		}
-		const note = parseNote(text, path.slice(path.lastIndexOf("/") + 1));
-		if (note.status !== fileState || note.issue !== "") {
+	const ready: IdeaRecord[] = [];
+	for (const idea of records) {
+		if (idea.error !== undefined) {
+			rows.push(row(idea.key, "fail", idea.error));
+		} else if (idea.status !== fileState || idea.issue !== undefined) {
 			notReady++;
-		} else if (note.attachments.length > 0) {
+		} else if (idea.attachments.length > 0) {
 			rows.push(
 				row(
-					path,
+					idea.key,
 					"skip",
-					`has embedded files an issue cannot carry (${note.attachments.join(", ")}); not filed`
+					`has embedded files an issue cannot carry (${idea.attachments.join(", ")}); not filed`
 				)
 			);
 		} else {
-			ready.push({ path, note });
+			ready.push(idea);
 		}
 	}
 
 	if (ready.length === 0) return finish(rows);
 	if (dryRun) {
-		for (const { path, note } of ready) rows.push(row(path, "skip", `would file "${note.title}"`));
+		for (const idea of ready) rows.push(row(idea.key, "skip", `would file "${idea.title}"`));
 		return finish(rows.sort((a, b) => a.id.localeCompare(b.id)));
 	}
 
@@ -149,7 +163,8 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 	}
 	const searchFailed = searchError !== undefined;
 
-	for (const { path, note } of ready) {
+	for (const idea of ready) {
+		const path = idea.key;
 		if (!issues) {
 			rows.push(row(path, "fail", "the config has no `issues` provider to file it with"));
 			continue;
@@ -170,17 +185,15 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 			key = existing.key;
 		} else {
 			try {
-				({ key } = await issues.create({ summary: note.title, body: issueBody(note, path) }));
+				({ key } = await issues.create({ summary: idea.title, body: issueBody(idea) }));
 			} catch (err) {
 				rows.push(row(path, "fail", `could not create the issue: ${describeError(err)}`));
 				continue;
 			}
 		}
 		try {
-			// Read again: a sync client may have changed the note while the issue was being made.
-			const current = io.read(join(dir, path));
-			if (current === undefined) throw new Error("the note can no longer be read");
-			io.write(join(dir, path), writeIssueKey(current, key));
+			// The provider reads the idea again first: a sync client may have changed it while the issue was being made.
+			await ideas.markFiled(path, key);
 			rows.push(row(path, "ok", `${existing ? "already filed" : "filed"} as ${key}`));
 		} catch (err) {
 			rows.push({
