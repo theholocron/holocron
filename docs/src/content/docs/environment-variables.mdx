@@ -86,14 +86,16 @@ The other provider tokens (`DOPPLER_TOKEN`, `NETLIFY_AUTH_TOKEN`, …) are vendo
 
 `repo.secrets.sync` (the 1Password Environment `Holocron - GitHub Actions`) writes these names. Workflows read `secrets.HOLOCRON_<NAME> || secrets.<NAME>` and map the value onto the name the tool reads. The bare secret stays in GitHub until a later change removes the fallback (#1979), because repos still on the frozen workflows in `theholocron/.github` read it.
 
-| Secret                                     | Used as                                                          | Mapped onto                       |
-| ------------------------------------------ | ---------------------------------------------------------------- | --------------------------------- |
-| `HOLOCRON_AXIOM_TOKEN`                     | `sync-github`, `sync-repo`                                       | read by the CLI under that name   |
-| `HOLOCRON_CLOUDFLARE_TOKEN`                | the Pages deploy and cleanup in `preview`                        | `CLOUDFLARE_API_TOKEN` (wrangler) |
-| `HOLOCRON_CODECOV_TOKEN`                   | `measure-bundle`                                                 | `CODECOV_TOKEN` (the uploader)    |
-| `HOLOCRON_FERN_TOKEN`                      | `publish-wiki`                                                   | `FERN_TOKEN` (the Fern CLI)       |
-| `HOLOCRON_VERCEL_TOKEN`                    | `release`, `deploy-preview`, `ci.check-preview`, Sentinel deploy | `VERCEL_TOKEN` (the Vercel CLI)   |
-| `HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET` | `ci.check-preview`                                               | read by `monitoring run-resolved` |
+| Secret                                     | Used as                                                          | Mapped onto                              |
+| ------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------- |
+| `HOLOCRON_AXIOM_TOKEN`                     | `sync-github`, `sync-repo`                                       | read by the CLI under that name          |
+| `HOLOCRON_CLOUDFLARE_TOKEN`                | the Pages deploy and cleanup in `preview`                        | `CLOUDFLARE_API_TOKEN` (wrangler)        |
+| `HOLOCRON_CODECOV_TOKEN`                   | `measure-bundle`                                                 | `CODECOV_TOKEN` (the uploader)           |
+| `HOLOCRON_FERN_TOKEN`                      | `publish-wiki`                                                   | `FERN_TOKEN` (the Fern CLI)              |
+| `HOLOCRON_LIGHTHOUSE_TOKEN`                | `test-perf`                                                      | `LHCI_GITHUB_APP_TOKEN` (`lhci autorun`) |
+| `HOLOCRON_FERN_TOKEN`                      | `publish-wiki`                                                   | `FERN_TOKEN` (the Fern CLI)              |
+| `HOLOCRON_VERCEL_TOKEN`                    | `release`, `deploy-preview`, `ci.check-preview`, Sentinel deploy | `VERCEL_TOKEN` (the Vercel CLI)          |
+| `HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET` | `ci.check-preview`                                               | read by `monitoring run-resolved`        |
 
 ## Synced organization variables
 
