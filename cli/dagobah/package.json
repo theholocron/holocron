@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/dagobah",
-  "version": "5.0.0-alpha.391",
+  "version": "5.0.0-alpha.392",
   "description": "Local runtime pieces for a web-standard handler: serves it on loopback with its secrets from a 1Password Environment, supervises an app and its tunnel, and runs the GitHub App manifest flow.",
   "keywords": [
     "dev-server",

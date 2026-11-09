@@ -1,3 +1,9 @@
+## [5.0.0-alpha.392](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.391...v5.0.0-alpha.392) (2026-11-09)
+
+### Bug Fixes
+
+* **cli:** 🐛 stage an .npmrc and the required peers in the Sentinel deploy payload ([#1993](https://github.com/theholocron/holocron/issues/1993)) ([1b0708c](https://github.com/theholocron/holocron/commit/1b0708cb84d98c783e507e1a7cee5251a5327440)), closes [#1990](https://github.com/theholocron/holocron/issues/1990) [#1991](https://github.com/theholocron/holocron/issues/1991)
+
 ## [5.0.0-alpha.391](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.390...v5.0.0-alpha.391) (2026-11-09)
 
 ### Bug Fixes
