@@ -45,7 +45,7 @@ for `build`, `lint`, `test` and `typecheck` (#1262).
 2. **Suites with an optional qualifier in the CLI.** `holocron run test` runs the whole suite, `holocron run test unit`
    and `holocron run test:unit` run one leaf. `holocron run ci` keeps running everything that is merge-gating.
 3. **One workflow file per leaf in CI.** A suite is a CLI/registry concept only. Combined files stay rejected (#1236):
-   GitHub evaluates a job's `if:` before it expands a matrix, so a disabled job cannot disappear from a PR's checks
+   GitHub evaluates a job's `if:` before it expands a matrix, so a turned-off job cannot disappear from a PR's checks
    (#394, #1062); only not generating the workflow does.
 4. **Sources in `ci/` are grouped by suite** (`ci/workflows/test/unit.yml`) and generated flat into
    `.github/workflows`, because GitHub reads workflows only from that one folder and a reusable ref must point there.
@@ -194,7 +194,7 @@ becomes `validate:plugin` and joins the suite as a package-scoped leaf.
   npm lifecycle word (next section). `publish-wiki` stays: only the bare `publish`, `prepublish*` and `postpublish`
   are lifecycle names.
 - **`validate` suite**: `repoValidation` was two jobs behind a `Conclusion` check, and `docsPresence` is the job that a
-  repo can switch off (`jobs: { docsEnforcement: false }`), which is exactly the "disabled job still shows" problem of
+  repo can switch off (`jobs: { docsEnforcement: false }`), which is exactly the "turned-off job still shows" problem of
   decision 3. As two leaves, a repo that does not want `validate:docs` does not list it and no check exists. This also
   removes the `jobs:` switch and `retiredJobs` from the registry. It is a behavior change, so it is its own phase.
 - **`deploy-docs`, `deploy-components`, `publish-wiki`** replace the noun-only `knowledge.*`. `docs` and `components`
@@ -208,7 +208,7 @@ becomes `validate:plugin` and joins the suite as a package-scoped leaf.
 - `holocron run <suite>` runs the configured members in registry order and always runs all of them, reporting each (the
   behavior of `runGroup` today, which currently matches a dotted prefix and will match a declared suite instead).
 - A member that is not in the repo's `tasks:` is not run: a suite is "the leaves this repo has".
-- A member with no local runner is reported `skipped (CI only)`, not failed.
+- A member with no local runner is reported `skipped (CI only)`, not an error.
 - **From a package directory** `holocron run <suite>` runs only the package-scoped members for that package (turbo
   `--filter=.`) and reports the repo-scoped ones as `skipped (repo-wide, run from the root)`.
 - `--affected`, `--filter`, `--base` and `-- <args>` apply to every member that is turbo-delegated, as in `runGroup`.
@@ -278,7 +278,7 @@ Tried on a throwaway workspace with the repo's turbo: colon task names work as k
 line; `turbo run test` ran each package's `test:unit` and ran nothing for `test` itself, because no package has a `test`
 script; a package without the leaf's script is skipped, not an error; `turbo run lint` ran `lint:code` in the packages
 that have it and the root's `lint:markdown` through the `//#` key. `--filter` that matches no package prints "No tasks
-were executed" and exits 0. Not tried: the interaction of `--affected` with a suite, and caching of the `//#` root tasks.
+were run" and exits 0. Not tried: the interaction of `--affected` with a suite, and caching of the `//#` root tasks.
 
 ### Root `package.json` (monorepo with turbo)
 
@@ -350,7 +350,7 @@ script. A loop needs a script that sends the chain back into turbo or the CLI. R
 
 1. **A package leaf script holds the real tool command.** It never calls `holocron run` or `turbo run`:
    `"test:unit": "turbo run test:unit"` in a package would run turbo, which would run that same script. The validation
-   rejects a leaf value that starts with either.
+   refuses a leaf value that starts with either.
 2. **Root suite and package-scoped leaf scripts call turbo; a repo-scoped leaf's root script holds its tool.** The
    generator computes both, so a hand edit that makes a root script call itself is caught.
 3. **A suite name is a turbo task with no script.** No package may have a script named like a suite (`test`, `lint`,
@@ -485,7 +485,7 @@ the hand-written ones, generated from the same list `requiredChecks()` reads tod
 workflow file, not from the default branch, which also matters for the rename: a `workflow_run`-triggered aggregate
 would run the default branch's version, which would still expect the old names inside the rename PR and block it.
 
-**Known limitation, accepted:** re-running one failed leaf does not update `ci`, which stays red until `ci` is re-run
+**Known limitation, accepted:** re-running one leaf that errored does not update `ci`, which stays red until `ci` is re-run
 too. The summary says so on a failure.
 
 **Documented later option:** once Sentinel is healthy it can post the same check from its webhooks (no idle runner, no
@@ -495,7 +495,7 @@ changes no ruleset. Not built now.
 ### The failed-run post must name the job
 
 `platform.notifications.yml` posts `❌ <repo>: <workflow> (<file>) failed on <branch>` and today says nothing about
-which job failed. It gains a step that reads the failed run's jobs (`GET /actions/runs/{run_id}/jobs`, needs
+which job errored. It gains a step that reads the errored run's jobs (`GET /actions/runs/{run_id}/jobs`, needs
 `actions: read`) and appends the failing job names and their links (at most five, then "and N more"). The `ci` check
 runs on pull requests only, which that workflow ignores, so the aggregate never causes a second post. This is part of
 the aggregate work, not optional, and does not depend on the rename.
@@ -559,7 +559,7 @@ functions, in one module, are the only place the mapping lives:
 - **`.github/workflows/platform.notifications.yml`** triggers on `workflow_run` with a `workflows:` list of the six group
   names plus `Token Expiry`, `Deploy`, `Preview`, `Sentinel Deploy`, `Spec discussions`, and branches on
   `workflow_run.path` (`platform.repoSync.yml`, `delivery.previewDeploy.yml`, `delivery.previewCheck.yml`). After the
-  rename its list must be the ids that matter and its path tests the flat file names. `workflow_run` fires only from the
+  rename its list must be the ids that matter and its path tests the flat file names. `workflow_run` triggers only from the
   default branch, so this file must change on `alpha` _in the same change_ as the callers or alerts stop silently.
   `doctor notifications` gets a check that every id the file lists exists as a workflow name (and the colon filter
   noted above is tested).
@@ -907,7 +907,7 @@ run <script>` for the pnpm built-ins. `repo sync` fails the `readme` step when t
   `bookkeeping`) only where it is used as a task (`holocron run`, `turbo run`, `pnpm`, `pnpm run`, a `package.json`
   script, a `turbo.json` task), never in prose; a `package.json` script named in `RESERVED_SCRIPT_NAMES` (the root
   `prepare` is allowed). `validate` is a suite now and is not a leftover. A suite-less old leaf (`typeSafety`) was never a
-  valid spelling (`resolveTaskName` rejects it), so it is not looked for. `PNPM_BUILTIN_COMMANDS` is not checked by the
+  valid spelling (`resolveTaskName` refuses it), so it is not looked for. `PNPM_BUILTIN_COMMANDS` is not checked by the
   probe: `deploy` is a valid script name (called with `pnpm run deploy`), and a `pnpm deploy` in text is usually pnpm's own.
 - **Workflow file names** (`delivery.build.yml`, `.yaml`) are not task names and are skipped until the files are renamed;
   `--files` lists them.
@@ -1042,7 +1042,7 @@ Resolved and folded into the decisions: the colon spelling, `format` as a verb, 
 mechanism (a polling job, with Sentinel posting it as a documented later option), `DCO` separate and `codecov/*` inside
 `ci`, hyphen compounds as colon scripts only, no `--coverage` flag, and turbo-direct scripts in turbo repos.
 
-1. **Where prettier's CI check lives.** `format` has no workflow of its own; this spec hosts the existing check and the
+1. **Where prettier's CI check lives.** `format` has no workflow of its own; this spec places the existing check and the
    opt-in auto-commit-fix in an action called by `lint:code`. Confirm that, and confirm (see "not confirmed" above) that
    no repo enables the auto-fix and whether the linters ever write in CI.
 2. **`preview.yml`.** One reusable for `deploy-docs`, `deploy-components` and the workflow-only `preview`. Keep it as the
@@ -1069,5 +1069,5 @@ mechanism (a polling job, with Sentinel posting it as a documented later option)
    both go away with the `validate` split).
 10. **The `notify` workflow filter.** Replace the `workflows:` list with the ids, or generate it from the registry so it
     cannot drift?
-11. **Does the repoint PR need a ruleset bypass actor** on every one of the 8 repos? The one-time swap in each needs the
+11. **Does the repoint PR need a ruleset bypass role** on every one of the 8 repos? The one-time swap in each needs the
     maintainer to be able to merge a PR that posts `ci` and not the old contexts.
