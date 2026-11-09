@@ -81,6 +81,8 @@ export default defineConfig({
 		// files of an open pull request.
 		"sync-specs",
 		"preview-specs",
+		// Sentinel: the manual and stable-channel deploy; alpha releases deploy it from the release job.
+		"deploy-sentinel",
 	],
 	// `holocron` here IS the local build artifact (`node cli/cli/dist/cli.mjs`), not an installed bin, so the synced
 	// `holocron` script runs that. The other root scripts need no CLI: in a workspace `scriptsFor` writes them as

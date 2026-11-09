@@ -74,7 +74,8 @@
     "check-tokens",
     "publish-wiki",
     "sync-specs",
-    "preview-specs"
+    "preview-specs",
+    "deploy-sentinel"
   ],
   "holocronScript": "node cli/cli/dist/cli.mjs",
   "providers": {
