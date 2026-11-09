@@ -1,3 +1,17 @@
+## [5.0.0-alpha.389](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.388...v5.0.0-alpha.389) (2026-11-09)
+
+### Features
+
+* **env:** 🏷️ sync the Lighthouse CI token as HOLOCRON_LIGHTHOUSE_TOKEN ([#1986](https://github.com/theholocron/holocron/issues/1986)) ([06b7e36](https://github.com/theholocron/holocron/commit/06b7e3683a7334455ec28672314a4be21bba5606)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
+### Bug Fixes
+
+* **cli:** 🩹 publish the ./presets subpath so holocron.config.ts can import it from a packed copy ([#1987](https://github.com/theholocron/holocron/issues/1987)) ([9c34af8](https://github.com/theholocron/holocron/commit/9c34af8ea7f122eeeb8442472866a813aa178fe6))
+
+### Chores
+
+* **ci:** 🔥 remove the dead super-linter and Storybook secrets ([#1985](https://github.com/theholocron/holocron/issues/1985)) ([9521564](https://github.com/theholocron/holocron/commit/9521564c1bca3d8af2555c17a812cab0012cacec)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
 ## [5.0.0-alpha.388](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.387...v5.0.0-alpha.388) (2026-11-09)
 
 ### Features
