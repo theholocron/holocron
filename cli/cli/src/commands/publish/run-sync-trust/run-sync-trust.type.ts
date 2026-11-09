@@ -23,6 +23,11 @@ export interface RunSyncTrustInput {
 	repo?: string;
 	/** Skip the actual npm calls; print what would happen. */
 	dryRun?: boolean;
+	/**
+	 * Replace the entry of a package that already matches the target file and repository. npm
+	 * expires an entry that is not used for a publish but still lists it as matching.
+	 */
+	force?: boolean;
 	print?: PublishPrint;
 	logger?: Logger;
 	/** Injectable command runner — same shape as `RunPublishInput['exec']`. */

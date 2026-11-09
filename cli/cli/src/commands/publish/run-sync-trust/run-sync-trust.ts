@@ -37,7 +37,8 @@ import type {
  *
  * A package is skipped only when BOTH its bound file and its bound repository (compared
  * case-insensitively) already match: a package folded in from another repo keeps its
- * filename but is still bound to the old repo (#1221). `--dry-run` does the same read-only
+ * filename but is still bound to the old repo (#1221). `--force` replaces a matching entry too, because npm
+ * expires an entry that is not used for a publish soon after it is made and still lists it as matching. `--dry-run` does the same read-only
  * `trust list` per package and reports what the real run would do, without revoking or creating.
  */
 export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustReport> {
@@ -46,6 +47,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 	const cwd = input.cwd ?? process.cwd();
 	const repo = input.repo ?? HOLOCRON_REPO;
 	const dryRun = input.dryRun ?? false;
+	const force = input.force ?? false;
 	const exec = input.exec ?? defaultExec;
 	const packageNames = input.packages ?? discoverPublicPackages(cwd, scopeOf(input));
 	const npm = "npx";
@@ -92,7 +94,7 @@ export async function runSyncTrust(input: RunSyncTrustInput): Promise<SyncTrustR
 		// keeps the same filename but is still bound to the old repo.
 		const sameFile = entry.file === input.newFile;
 		const sameRepo = entry.repository?.toLowerCase() === repo.toLowerCase();
-		if (sameFile && sameRepo) {
+		if (sameFile && sameRepo && !force) {
 			print(`  already on ${repo} / ${input.newFile}, skipping`);
 			results.push({ name, status: dryRun ? "would-skip" : "skipped" });
 			continue;

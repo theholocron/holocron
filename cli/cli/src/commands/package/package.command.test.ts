@@ -104,10 +104,16 @@ describe("package publish", () => {
 			oldFile: "old.yml",
 			newFile: "new.yml",
 			dryRun: false,
+			force: false,
 			repo: "acme/widgets",
 		});
 		await go(["package", "publish", "--sync-trust", "old.yml", "new.yml"]);
 		expect("repo" in runSyncTrust.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("passes --force on to --sync-trust", async () => {
+		await go(["package", "publish", "--sync-trust", "old.yml", "new.yml", "--force"]);
+		expect(runSyncTrust).toHaveBeenCalledWith(expect.objectContaining({ force: true }));
 	});
 
 	it("needs exactly two files for --sync-trust, and exits 1 when it failed", async () => {

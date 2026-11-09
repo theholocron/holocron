@@ -27,6 +27,7 @@ export const publishCommand: CommandModule<GlobalArgs, PublishArgs> = {
 				oldFile,
 				newFile,
 				dryRun: argv.dryRun,
+				force: argv.force,
 				...(argv.group ? { group: argv.group as string } : {}),
 				...(argv.excludeGroup?.length ? { excludeGroups: argv.excludeGroup as string[] } : {}),
 				...(argv.repo ? { repo: argv.repo as string } : {}),

@@ -44,6 +44,42 @@ describe("runSyncTrust", () => {
 		expect(calls).toHaveLength(1); // only the list call
 	});
 
+	it("with force, revokes and recreates a package that already matches the target file and repository", async () => {
+		const { exec, calls } = makeQueueExec([
+			ok(JSON.stringify({ id: "expired-id", file: "ci.release.yml", repository: "theholocron/holocron" })), // list
+			ok(), // revoke
+			ok(), // create
+		]);
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "delivery.publish.yml",
+			newFile: "ci.release.yml",
+			packages: ["@theholocron/foo"],
+			force: true,
+			exec,
+		});
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "ok" }]);
+		expect(calls[1]?.args).toEqual(expect.arrayContaining(["trust", "revoke", "--id", "expired-id"]));
+		expect(calls[2]?.args).toEqual(expect.arrayContaining(["trust", "github", "--file", "ci.release.yml"]));
+	});
+
+	it("with force and --dry-run, reports a matching package as would-sync without writing", async () => {
+		const { exec, calls } = makeQueueExec([
+			ok(JSON.stringify({ id: "expired-id", file: "ci.release.yml", repository: "theholocron/holocron" })),
+		]);
+		const report = await runSyncTrust({
+			cwd: "/tmp",
+			oldFile: "delivery.publish.yml",
+			newFile: "ci.release.yml",
+			packages: ["@theholocron/foo"],
+			force: true,
+			dryRun: true,
+			exec,
+		});
+		expect(report.packages).toEqual([{ name: "@theholocron/foo", status: "would-sync" }]);
+		expect(calls).toHaveLength(1);
+	});
+
 	it("creates directly (no revoke) when a package has no existing trust config", async () => {
 		const { exec, calls } = makeQueueExec([
 			ok("{}"), // list — no id, no file

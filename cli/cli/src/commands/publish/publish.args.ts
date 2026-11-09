@@ -29,6 +29,14 @@ export const publishArgs = (y: Argv<GlobalArgs>) =>
 				"package: --sync-trust <old-file> <new-file>. See issue #689 — npm requires fresh " +
 				"interactive 2FA per package; re-run after approving the printed authUrl if it stops early.",
 		})
+		.option("force", {
+			type: "boolean",
+			default: false,
+			describe:
+				"--sync-trust only: revoke and recreate every package's Trusted Publisher entry even when its file " +
+				"and repository already match. npm expires an entry that is not used for a publish soon after it is " +
+				"made but still lists it as matching, so a plain run skips it.",
+		})
 		.option("repo", {
 			type: "string",
 			describe: `owner/repo for Trusted Publisher config (--sync-trust). Defaults to ${HOLOCRON_REPO}.`,
