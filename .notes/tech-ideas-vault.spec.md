@@ -1,9 +1,12 @@
 ---
+id: SPEC-0072
 status: draft
 issue: theholocron/holocron#1994
 blocked-by: []
 related:
   - theholocron/holocron#1859
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569247484767772792
 ---
 
 # Ideas vault: an inbox in front of the issue
