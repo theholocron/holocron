@@ -28,7 +28,8 @@ Add a step in front: `idea -> issue -> spec -> epic -> sub-issues -> work`.
 - **The vault lives in iCloud Drive**, in Obsidian's own folder. That is what lets the iOS app capture a note, and it
   is why no git repository sits inside the vault: iCloud syncs file by file and can corrupt a `.git/` folder.
 - **A note's state is a `status:` property** in its frontmatter. Specs already use `status:` and `issue:` this way, and
-  Obsidian shows properties as a dropdown.
+  Obsidian's property editor suggests the values already used in the vault, so a state is quick to set. It does not
+  offer a fixed list; the plugin's **File this idea** command (part 2) does, as a picker of the configured states.
 - **Automation acts on a state change made by a person**, never on a note being added. Acting on a dropped-in note is
   left for later and is not part of this spec.
 
@@ -66,7 +67,8 @@ that line is how an issue is traced to its idea.
 `holocron ideas sync [--dry-run] [--yes]`, a `repo-aware` command with a `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY`
 entry.
 
-- Reads every note in `ideas.dir`.
+- Reads every note in `ideas.dir`, except those in a folder whose name starts with `_` or `.` (`_templates/` for the
+  note template, and Obsidian's own `.obsidian/` and `.trash/`).
 - For each note in the filing state with no `issue:`, creates an issue and writes `issue:` into the note, in the
   tracker's own syntax (`#1234`, `RANDO-7`), which `specs check` already accepts. This is what makes the step run once.
 - Prints one row per note through `printCheckRows`, and a summary.
@@ -80,7 +82,7 @@ entry.
 The `ideas` block:
 
 ```ts
-ideas: { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/holocron", states: { file: "in-progress" } }
+ideas: { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/The Holocron", states: { file: "in-progress" } }
 ```
 
 `dir` can also come from `HOLOCRON_IDEAS_DIR`, since the path differs per machine. A bad shape is a `ConfigError` that
