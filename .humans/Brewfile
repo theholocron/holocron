@@ -3,11 +3,8 @@
 # `brew bundle --file .humans/Brewfile` also works on its own.
 # The 1Password desktop app, `gh auth login` and `op` sign-in cannot be installed or automated: see the README.
 
-# Needed by `holocron dev` and `holocron tunnel up` (the Cloudflare tunnel connector).
-brew "cloudflared"
-
-# The vault and credentials providers read 1Password Environments through `op`.
-cask "1password-cli" # bin: op
+# `holocron new`, `holocron probe` and the GitHub plugin's own checks.
+brew "gh"
 
 # The local `holocron run ci` linters (lint:code, scan:secrets, lint:data, lint:editorconfig).
 brew "actionlint"
@@ -15,5 +12,14 @@ brew "editorconfig-checker"
 brew "gitleaks"
 brew "yamllint"
 
-# `holocron new`, `holocron probe` and the GitHub plugin's own checks.
-brew "gh"
+# Needed by `holocron dev` and `holocron tunnel up` (the Cloudflare tunnel connector).
+brew "cloudflared"
+
+# The vault and credentials providers read 1Password Environments through `op`.
+cask "1password"
+cask "1password-cli" # bin: op
+
+# Providers Apps
+cask "discord" # notifications
+cask "linear" # issues
+cask "obsidian" # ideas
