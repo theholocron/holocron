@@ -8,7 +8,9 @@
  * the step run once. An idea with attachments is reported and skipped, since an issue body cannot carry them. Only
  * ideas to be filed, and ideas that need the person's attention, get a row; the rest are counted. The issue body ends
  * with a hidden `<!-- holocron:idea <key> -->` line, and an issue that carries it is reused instead of making a second
- * one (found with `Issues.search`, the recent issues only). It never deletes anything, and an idea it cannot file is a
+ * one (found with one `Issues.search({ text })` per note about to be filed, confirmed by the exact marker in the body;
+ * GitHub searches its 2000 most recently updated issues, so an older one is still missed, and each search uses rate
+ * limit). It never deletes anything, and an idea it cannot file is a
  * failing row (the run goes on). It writes, so it asks first unless `--dry-run` or `--yes` (without a terminal it refuses instead).
  */
 
@@ -48,8 +50,12 @@ const marker = (key: string): string => `<!-- holocron:idea ${key} -->`;
 const issueBody = (idea: IdeaRecord): string =>
 	`${idea.body.trim()}\n\nFiled from idea: ${idea.title}\n${marker(idea.key)}`;
 
-/** How many recent issues are searched for the marker (the narrowest existing method, `Issues.search`). */
-const SEARCH_LIMIT = 100;
+/**
+ * How many text matches are read back per note; the exact marker is then checked in each body. The search itself is
+ * bounded by the provider: GitHub pages up to 2000 recent issues (20 pages of 100) and filters them client-side, so an
+ * issue older than that is still missed, and each search spends rate limit. Linear filters on the server.
+ */
+const SEARCH_LIMIT = 20;
 
 export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncReport> {
 	/* v8 ignore next -- the console is only used outside tests, which inject `print` */
@@ -151,36 +157,25 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 	assertPluginsResolvable(loader, "ideas sync");
 	const issues = loader.has("issues") ? loader.get("issues") : undefined;
 
-	// One look at the tracker's recent issues for markers an earlier run left; a failed look stops every create.
-	let recent: Issue[] = [];
-	let searchError: unknown;
-	if (issues) {
-		try {
-			recent = await issues.search({ limit: SEARCH_LIMIT });
-		} catch (err) {
-			searchError = err;
-		}
-	}
-	const searchFailed = searchError !== undefined;
-
 	for (const idea of ready) {
 		const path = idea.key;
 		if (!issues) {
 			rows.push(row(path, "fail", "the config has no `issues` provider to file it with"));
 			continue;
 		}
-		if (searchFailed) {
+		// One text search per note about to be filed (never for a note that is not a candidate). A text match may be
+		// loose, so the issue's body must carry the exact marker. A search that throws stops only this note.
+		let existing: Issue | undefined;
+		try {
+			const found = await issues.search({ text: marker(path), limit: SEARCH_LIMIT });
+			existing = found.find((issue) => issue.body?.includes(marker(path)));
+		} catch (err) {
 			rows.push(
-				row(
-					path,
-					"fail",
-					`could not check for an existing issue, so none was created: ${describeError(searchError)}`
-				)
+				row(path, "fail", `could not check for an existing issue, so none was created: ${describeError(err)}`)
 			);
 			continue;
 		}
 		let key: string;
-		const existing = recent.find((issue) => issue.body?.includes(marker(path)));
 		if (existing) {
 			key = existing.key;
 		} else {

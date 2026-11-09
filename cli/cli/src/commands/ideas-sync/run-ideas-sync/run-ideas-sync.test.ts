@@ -44,7 +44,7 @@ function ideasFake(records: IdeaRecord[], over: Partial<Ideas> = {}) {
 function issuesFake(
 	over: Partial<{
 		create: (input: unknown) => Promise<{ key: string }>;
-		search: () => Promise<Array<{ key: string; body?: string }>>;
+		search: (filter: { text?: string; limit?: number }) => Promise<Array<{ key: string; body?: string }>>;
 	}> = {}
 ) {
 	let n = 100;
@@ -148,20 +148,75 @@ describe("runIdeasSync", () => {
 		expect(issues.create).toHaveBeenCalledTimes(1);
 	});
 
-	it("fails each row and creates nothing when the search fails", async () => {
+	it("fails the row of a note whose search throws, creates nothing for it, and goes on with the others", async () => {
 		const { ideas, markFiled } = ideasFake([idea("a.md"), idea("b.md")]);
 		const issues = issuesFake({
-			search: async () => {
-				throw new Error("502 bad gateway");
+			search: async ({ text }) => {
+				if (text?.includes("a.md")) throw new Error("502 bad gateway");
+				return [];
 			},
 		});
 		const { report, text } = await run(ideas, { issues });
-		expect(issues.create).not.toHaveBeenCalled();
-		expect(markFiled).not.toHaveBeenCalled();
+		expect(issues.create).toHaveBeenCalledTimes(1);
+		expect(issues.create).toHaveBeenCalledWith(expect.objectContaining({ body: expect.stringContaining("b.md") }));
+		expect(markFiled).toHaveBeenCalledTimes(1);
+		expect(markFiled).toHaveBeenCalledWith("b.md", "#101");
 		expect(report.status).toBe("fail");
 		expect(text).toContain("could not check for an existing issue, so none was created");
 		expect(text).toContain("502 bad gateway");
-		expect(text).toContain("0 ok, 2 fail, 0 skipped");
+		expect(text).toContain("1 ok, 1 fail, 0 skipped");
+	});
+
+	it("searches by the exact marker text, once per candidate note", async () => {
+		const { ideas } = ideasFake([idea("a.md"), idea("b.md")]);
+		const issues = issuesFake();
+		await run(ideas, { issues });
+		expect(issues.search).toHaveBeenCalledTimes(2);
+		expect(issues.search).toHaveBeenCalledWith(expect.objectContaining({ text: "<!-- holocron:idea a.md -->" }));
+		expect(issues.search).toHaveBeenCalledWith(expect.objectContaining({ text: "<!-- holocron:idea b.md -->" }));
+	});
+
+	it("searches only for candidate notes", async () => {
+		const { ideas } = ideasFake([
+			idea("ready.md"),
+			idea("other.md", { status: "draft" }),
+			idea("filed.md", { issue: "#7" }),
+			idea("files.md", { attachments: ["pic.png"] }),
+			idea("broken.md", { error: "unreadable" }),
+		]);
+		const issues = issuesFake();
+		await run(ideas, { issues });
+		expect(issues.search).toHaveBeenCalledTimes(1);
+		expect(issues.search).toHaveBeenCalledWith(
+			expect.objectContaining({ text: "<!-- holocron:idea ready.md -->" })
+		);
+	});
+
+	it("ignores an issue the text search returns whose body lacks the exact marker", async () => {
+		const { ideas, markFiled } = ideasFake([idea("idea.md")]);
+		const issues = issuesFake({
+			search: async () => [{ key: "#4", body: "mentions holocron:idea idea.md but not the marker" }],
+		});
+		const { text } = await run(ideas, { issues });
+		expect(issues.create).toHaveBeenCalledTimes(1);
+		expect(markFiled).toHaveBeenCalledWith("idea.md", "#101");
+		expect(text).not.toContain("already filed");
+	});
+
+	it("finds an issue older than 100 others, because the search is by text, not by recency", async () => {
+		const tracker = [
+			{ key: "#1", body: "old\n\n<!-- holocron:idea idea.md -->" },
+			...Array.from({ length: 150 }, (_, i) => ({ key: `#${i + 2}`, body: "newer" })),
+		].reverse();
+		const { ideas, markFiled } = ideasFake([idea("idea.md")]);
+		const issues = issuesFake({
+			search: async ({ text, limit }) =>
+				tracker.filter((i) => (text ? i.body.includes(text) : true)).slice(0, limit),
+		});
+		const { text } = await run(ideas, { issues });
+		expect(issues.create).not.toHaveBeenCalled();
+		expect(markFiled).toHaveBeenCalledWith("idea.md", "#1");
+		expect(text).toContain("already filed as #1");
 	});
 
 	it("honours the configured filing state", async () => {
