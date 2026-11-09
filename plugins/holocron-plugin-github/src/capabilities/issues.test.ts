@@ -90,6 +90,57 @@ describe("GitHubIssues.search", () => {
 		expect(calls[0]?.url).toContain("assignee=someone-else");
 	});
 
+	it("with text, pages until it finds a match (HTML comment, any case), skipping pull requests", async () => {
+		const fill = Array.from({ length: 100 }, (_, i) => rawIssue({ id: i + 1, number: i + 1, title: "x" }));
+		const hit = rawIssue({ id: 500, number: 500, body: "hi\n<!-- Holocron:idea notes/foo.md -->" });
+		const pr = rawIssue({ id: 501, number: 501, body: "<!-- holocron:idea notes/foo.md -->", pull_request: {} });
+		const { issues, calls } = makeIssues([
+			{ status: 200, body: fill },
+			{ status: 200, body: [pr, hit] },
+		]);
+		const result = await issues.search({ text: "<!-- holocron:idea notes/foo.md -->" });
+		expect(result.map((i) => i.key)).toEqual(["#500"]);
+		expect(calls).toHaveLength(2);
+		expect(calls[1]?.url).toContain("page=2");
+		expect(calls[1]?.url).toContain("per_page=100");
+	});
+
+	it("with text, matches the title and stops at the limit, with openOnly", async () => {
+		const { issues, calls } = makeIssues([
+			{
+				status: 200,
+				body: [
+					rawIssue({ id: 1, number: 1, title: "Fix FOO" }),
+					rawIssue({ id: 2, number: 2, title: "bar", body: "foo" }),
+					rawIssue({ id: 3, number: 3, title: "foo again" }),
+				],
+			},
+		]);
+		const result = await issues.search({ text: "foo", openOnly: true, limit: 2 });
+		expect(result.map((i) => i.key)).toEqual(["#1", "#2"]);
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.url).toContain("state=open");
+	});
+
+	it("with text and an assignee, passes the assignee; currentUser is resolved first", async () => {
+		const { issues, calls } = makeIssues([
+			{ status: 200, body: { login: "iamnewton" } },
+			{ status: 200, body: [] },
+		]);
+		expect(await issues.search({ text: "foo", assignee: "currentUser" })).toEqual([]);
+		expect(calls[1]?.url).toContain("assignee=iamnewton");
+		const second = makeIssues([{ status: 200, body: [] }]);
+		await second.issues.search({ text: "foo", assignee: "someone" });
+		expect(second.calls[0]?.url).toContain("assignee=someone");
+	});
+
+	it("with text and no match returns an empty list, and stops at the page cap", async () => {
+		const full = Array.from({ length: 100 }, (_, i) => rawIssue({ id: i + 1, number: i + 1, title: "x" }));
+		const { issues, calls } = makeIssues(Array.from({ length: 20 }, () => ({ status: 200, body: full })));
+		expect(await issues.search({ text: "nothing" })).toEqual([]);
+		expect(calls).toHaveLength(20);
+	});
+
 	it("maps open + status:in-progress label to category=in-progress", async () => {
 		const { issues } = makeIssues([
 			{

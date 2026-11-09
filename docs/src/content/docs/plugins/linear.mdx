@@ -75,6 +75,12 @@ Read and Write cover comments and issues, and they were enough for `provider lin
 | board `Priority` field  | Linear's built-in priority (Urgent, High, Medium, Low)                  |
 | board rules             | the team's auto-archive and auto-close settings (read-only)             |
 
+### Searching by text
+
+`search({ text })` is filtered by Linear: `issues(filter: { or: [{ title: { containsIgnoreCase } }, { description: { containsIgnoreCase } }] })`,
+combined with the team, `assignee` and `openOnly` filters, newest update first, up to `limit` (default 50). Each
+returned `Issue` carries the description as `body`, so a caller can confirm a match.
+
 ## Differences from GitHub
 
 Linear does not need to match GitHub feature for feature. Keep this table in mind when moving **back** to GitHub.

@@ -27,6 +27,9 @@ function toFilter(f: LinearIssueFilter): Record<string, unknown> {
 		...(f.teamId ? { team: { id: { eq: f.teamId } } } : {}),
 		...(f.projectId ? { project: { id: { eq: f.projectId } } } : {}),
 		...(f.assigneeId ? { assignee: { id: { eq: f.assigneeId } } } : {}),
+		...(f.text
+			? { or: [{ title: { containsIgnoreCase: f.text } }, { description: { containsIgnoreCase: f.text } }] }
+			: {}),
 		...(f.openOnly ? { state: { type: { nin: ["completed", "canceled"] } } } : {}),
 	};
 }

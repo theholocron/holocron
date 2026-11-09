@@ -59,7 +59,7 @@ export class LinearIssues implements Issues {
 		return toUser((await this.scope.client.teams.viewer()).user);
 	}
 
-	/** The team's issues, newest update first. */
+	/** The team's issues, newest update first; `text` is matched in the title or description on Linear's side. */
 	async search(filter: IssueSearchFilter): Promise<Issue[]> {
 		const team = await this.scope.team();
 		const assigneeId =
@@ -70,6 +70,7 @@ export class LinearIssues implements Issues {
 			teamId: team.id,
 			...(assigneeId ? { assigneeId } : {}),
 			...(filter.openOnly ? { openOnly: true } : {}),
+			...(filter.text ? { text: filter.text } : {}),
 			limit: filter.limit ?? 50,
 		});
 		return raw.map(mapIssue);

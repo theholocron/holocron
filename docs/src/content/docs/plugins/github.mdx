@@ -73,11 +73,22 @@ See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each
 
 ## What `issues` provides
 
-- Search by assignee or open-only filter
+- Search by assignee, open-only filter or `text` (title or body, any case)
 - Create issues with summary, body, labels, milestone
 - Transition issues via label: `inProgress` → sets `labels.inProgress`, `done` → closes
 - Add comments
 - `doctor()` — lists available labels and validates lifecycle slot mapping
+
+### Searching by text
+
+`search({ text })` returns the issues whose title or body contains the text, compared without regard to case, and
+leaves out pull requests. `openOnly`, `assignee` and `limit` (default 50) still apply. It does not use GitHub's
+issue search (`GET /search/issues`): that index matches words, so punctuation and a hidden HTML comment such as
+`<!-- holocron:idea notes/a.md -->` cannot be relied on to match. It is also limited to 30 requests a minute and is
+eventually consistent, so an issue made a moment ago may be missing. Instead the plugin lists the issues, newest
+update first, 100 a page, and compares the text itself until it has `limit` matches or the issues run out. It reads
+at most 20 pages, the 2000 most recently updated issues, so in a repository larger than that an older match is not
+found. Without `text`, `search` makes one request as before.
 
 ### Migrating and syncing
 
