@@ -1,6 +1,6 @@
 # Astro Config
 
-An [Astro configuration](https://docs.astro.build/en/reference/configuration-reference/) factory for theholocron docs sites.
+An [Astro configuration](https://docs.astro.build/en/reference/configuration-reference/) factory for the theholocron docs sites.
 
 ## Installation
 
