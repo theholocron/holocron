@@ -170,6 +170,18 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"sync-repo": { id: "sync", name: "Sync" },
 		},
 	},
+	"sync-specs": {
+		name: "Spec discussions",
+		jobs: {
+			"sync-specs": { id: "sync", name: "Sync" },
+		},
+	},
+	"preview-specs": {
+		name: "Spec discussions (pull request)",
+		jobs: {
+			"preview-specs": { id: "sync", name: "Sync" },
+		},
+	},
 	"sync-templates": {
 		name: "Platform",
 		jobs: {

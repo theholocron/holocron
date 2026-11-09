@@ -56,7 +56,7 @@ on: # yamllint disable-line rule:truthy
       - deploy-components
       - preview
       - Sentinel Deploy
-      - Spec discussions
+      - sync-specs
       - reconcile-projects
       - remind-doctor
       - measure-docs

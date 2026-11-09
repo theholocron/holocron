@@ -142,7 +142,7 @@ The `specs` group is the CLI's own. `specs check` validates the frontmatter of t
 
 The rules are `checkSpecs()` in `@theholocron/astromech/repo-validation`. Sentinel runs the same function on the ADRs and specs a pull request changes, so the CLI and the check run cannot disagree.
 
-`holocron specs sync` (a command, not a probe, since it writes) keeps a forum post per ADR and spec in step with the files; see [`specs sync`](/holocron/commands/specs-sync/). The hand-maintained workflow `.github/workflows/knowledge.specsToIdeas.yml` runs it every hour, when a spec lands on `alpha` and on demand, and opens one pull request for the edits it makes to the files.
+`holocron specs sync` (a command, not a probe, since it writes) keeps a forum post per ADR and spec in step with the files; see [`specs sync`](/holocron/commands/specs-sync/). The `sync-specs` task (`.github/workflows/ci.sync-specs.yml`) runs it every hour, when a spec lands on `alpha` and on demand, and opens one pull request for the edits it makes to the files.
 
 ## Task names
 

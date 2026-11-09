@@ -190,7 +190,9 @@
     "check-notify",
     "sync-templates",
     "check-tokens",
-    "publish-wiki"
+    "publish-wiki",
+    "sync-specs",
+    "preview-specs"
   ],
   "holocronScript": "node cli/cli/dist/cli.mjs",
   "extraRequiredChecks": [

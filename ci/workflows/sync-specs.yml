@@ -1,0 +1,145 @@
+#
+# Keeps a forum post in #ideas for every ADR and spec, in step with the files (#1535, spec
+# `tech-specs-discussion-threads`). It runs `holocron specs sync`, which makes the posts (titled with the document's own title, tagged
+# with the status), writes each post's address into its file as `discussion.url`, and, when a gatekeeper changed a post's
+# tag, changes the file's `status:` line. It also links the id that opens a post to its file once the file is on `alpha` (#1663), which edits the post only. Those are edits to the working tree only: this workflow commits them to the
+# branch `chore/specs-sync` and opens one pull request. The pull request merges itself (auto-merge, once its checks pass)
+# when it only links posts and numbers documents; one that changes a `status:` waits for a review (#1824).
+#
+# Its caller runs it every hour (so a retag becomes a pull request within the hour), when a spec or ADR lands on `alpha`
+# (so its post exists straight away) and on demand, with `dry-run` to see what a run would do. A first run is the
+# backfill: run it as a dry run, then for real.
+#
+# It needs the org secret `HOLOCRON_DISCORD_BOT_TOKEN` (the Holonet bot) and a forum channel in the layout. Without the
+# token the job warns and does nothing. The pull request is opened with `HOLOCRON_SYNC_TOKEN` when there is one, so its
+# checks run; with the default token they do not, and the pull request needs a push to start them.
+#
+# This replaces the webhook post of #1534: a forum rejects a plain webhook post, and a post per document says more than a
+# line per pull request. A spec in a pull request that has not merged gets its post from the `preview-specs` task (#1600).
+
+name: Sync Specs
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    inputs:
+      dry-run:
+        description: Only say what would be made or changed; make and write nothing.
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      HOLOCRON_DISCORD_BOT_TOKEN:
+        description: The Holonet bot token. Without it the job warns and does nothing.
+        required: false
+      HOLOCRON_SYNC_TOKEN:
+        description: Opens the sync pull request, so that its checks run.
+        required: false
+      GH_TOKEN:
+        description: Fallback for HOLOCRON_SYNC_TOKEN.
+        required: false
+
+jobs:
+  sync-specs:
+    name: Sync spec discussions
+    if: github.repository == format('{0}/holocron', github.repository_owner)
+    # One run at a time, however it was started: two runs at once could each make a post for the same document. The
+    # group is shared with `preview-specs`.
+    concurrency:
+      group: spec-discussions
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      HOLOCRON_DISCORD_BOT_TOKEN: ${{ secrets.HOLOCRON_DISCORD_BOT_TOKEN }}
+      GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+      BRANCH: chore/specs-sync
+      DRY_RUN: ${{ inputs.dry-run && 'true' || 'false' }}
+    steps:
+      - name: Warn that there is no Discord token
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN == ''
+        run: |
+          echo "::warning::HOLOCRON_DISCORD_BOT_TOKEN is not set, so no spec discussions were synced. Add it as an Actions secret."
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout the default branch
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+        with:
+          token: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN || github.token }}
+          # The whole history: a spec is numbered by when its file was first committed, and its post links the pull
+          # request that added it, which the first commit's subject names.
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+
+      - name: Build the CLI
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+        run: pnpm turbo run build --filter=@theholocron/cli...
+
+      - name: Sync the discussions
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != ''
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            node cli/cli/dist/cli.mjs specs sync --dry-run
+          else
+            node cli/cli/dist/cli.mjs specs sync
+          fi
+
+      # The command changes the files and never commits. What it changed goes to one branch, force-updated each run, so
+      # there is at most one open pull request for it.
+      - uses: ./ci/actions/git-identity
+        name: Configure git identity
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && env.DRY_RUN != 'true'
+
+      - name: Commit the edits to the sync branch
+        id: commit
+        if: env.HOLOCRON_DISCORD_BOT_TOKEN != '' && env.DRY_RUN != 'true'
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing to commit: every post and file is in step."
+            exit 0
+          fi
+          git switch -c "$BRANCH"
+          git add -A .notes docs/wiki
+          git commit --no-verify -s -m "chore(specs): 🔄 sync spec discussions"
+          git push --force origin "HEAD:refs/heads/$BRANCH"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open the pull request
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          # An open pull request already carries the new commit: the branch was updated in place.
+          if [ "$(gh pr list --head "$BRANCH" --state open --json number --jq length)" != "0" ]; then
+            echo "The sync pull request is open; its branch now has the latest edits."
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/body.md" <<'EOF'
+          Edits `holocron specs sync` made to the working tree: the address of each spec or ADR discussion post as `discussion.url`, and the `status:` of a document whose post a gatekeeper retagged.
+
+          A pull request that only links posts merges itself once its checks pass. One that changes a `status:` waits for a review: the change was asked for by changing the tag on the post in Discord. Merge it to accept the change, or close it and change the tag back. The post is not marked as in step until this merges.
+
+          Opened by the Spec discussions workflow (#1535).
+          EOF
+          gh pr create --base alpha --head "$BRANCH" \
+            --title "chore(specs): 🔄 sync spec discussions" \
+            --body-file "$RUNNER_TEMP/body.md"
+
+      # The branch is rebuilt from `alpha` every run, so its one commit is exactly what the pull request changes. A
+      # `status:` line in it came from a gatekeeper's retag and waits for a review; links and ids merge themselves.
+      # Auto-merge needs the checks to run, which a pull request opened with the default token does not get.
+      - name: Merge by itself unless a status changes
+        if: steps.commit.outputs.changed == 'true' && env.HOLOCRON_SYNC_TOKEN != ''
+        env:
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+        run: |
+          if git diff HEAD~1 HEAD -U0 -- .notes docs/wiki | grep -Eq '^[+-]status:'; then
+            echo "The sync changes a status: it waits for a review."
+            gh pr merge "$BRANCH" --disable-auto || true
+          else
+            gh pr merge "$BRANCH" --auto --squash
+          fi
