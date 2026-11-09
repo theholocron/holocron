@@ -1,3 +1,17 @@
+## [5.0.0-alpha.391](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.390...v5.0.0-alpha.391) (2026-11-09)
+
+### Bug Fixes
+
+* **vercel:** 🐛 send the vercel.json installCommand with a deployment made from files ([#1991](https://github.com/theholocron/holocron/issues/1991)) ([cea7f0d](https://github.com/theholocron/holocron/commit/cea7f0d2f2e09990f51b558b5f0baef63d312af2))
+
+### Documentation
+
+* **ideas:** 💡 spec an ideas vault as an inbox in front of the issue ([#1995](https://github.com/theholocron/holocron/issues/1995)) ([42989ad](https://github.com/theholocron/holocron/commit/42989adfe7ba2619d87b3b95dbde528c1eb95430)), closes [#1994](https://github.com/theholocron/holocron/issues/1994)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#1996](https://github.com/theholocron/holocron/issues/1996)) ([8bdf66a](https://github.com/theholocron/holocron/commit/8bdf66a3ba968f51467aee2e23c9531572e4b252))
+
 ## [5.0.0-alpha.390](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.389...v5.0.0-alpha.390) (2026-11-09)
 
 ### Bug Fixes
