@@ -106,7 +106,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"scan:code": ["scan:code / Analyze (${{ inputs.language }})"],
 	"scan:secrets": ["scan:secrets / Run gitleaks"],
 	"sync-repo": ["sync-repo / Run holocron repo sync", "sync-repo / Notify of a failed sync"],
-	"sync-templates": ["sync-templates / Run holocron sync github"],
+	"sync-templates": ["sync-templates / Discover consumer repos", "sync-templates / Sync templates"],
 	"test:perf": ["test:perf / Run Lighthouse CI"],
 	"test:unit": [
 		"test:unit / Run unit tests and collect coverage",

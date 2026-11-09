@@ -259,9 +259,9 @@ export const TASKS: Record<string, TaskDef> = {
 	"check-notify": { group: "Platform", scope: "repo", local: null },
 	// No local equivalent runner distinct from `sync github` itself —
 	// invokes the CLI subcommand directly, same shape as sync-repo's `sync`.
-	// Holocron-repo-specific: pushes astromech's own generated reusable
-	// workflows/composite actions to theholocron/.github, so only this
-	// repo's thin caller is ever meaningfully triggered (holocron#1013).
+	// Holocron-repo-specific: its workflow finds the org's consumer repos and opens a pull request in
+	// theholocron/.github and in each of them with astromech's generated reusable workflows and composite
+	// actions, so only this repo's thin caller is ever meaningfully triggered (holocron#1013).
 	"sync-templates": { group: "Platform", scope: "repo", local: { command: "sync github" } },
 	// Runs `holocron project reconcile`: sets each item's status on the declared project boards from its issue state and
 	// its "blocked by" links (spec `command-project`, #1744), then its workflow runs `doctor project` for what is left.

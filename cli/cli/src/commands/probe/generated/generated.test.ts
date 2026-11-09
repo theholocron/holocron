@@ -89,7 +89,6 @@ describe("checkGenerated", () => {
 				["plain.yml", "name: x\n"],
 				["mine.yml", "# HAND-MAINTAINED — edit directly.\n"],
 				["app.yml", "# AUTO-GENERATED — do not edit directly.\n# Source package: apps/sentinel\n"],
-				["ci.sync-templates.yml", "# AUTO-GENERATED — do not edit directly.\n"],
 			]),
 		});
 		expect(problems.map((p) => p.split(":")[0])).toEqual([

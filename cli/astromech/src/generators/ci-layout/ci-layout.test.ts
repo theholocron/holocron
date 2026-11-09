@@ -10,7 +10,7 @@ import { LEGACY_NAMES } from "../../vocabulary/index.js";
 import { WORKFLOW_TEMPLATES } from "../github-action-thin-callers/index.js";
 
 /** The workflows that are not a leaf of the registry: no suite, no local task, or not run by a repo's own caller. */
-const OUTSIDE_THE_REGISTRY = ["ci", "preview", "tag", "sync-dispatch", "sync-github", "check-dispatched"];
+const OUTSIDE_THE_REGISTRY = ["ci", "preview", "tag", "sync-dispatch", "check-dispatched"];
 
 const repoRoot = fileURLToPath(new URL("../../../../..", import.meta.url));
 
@@ -65,7 +65,7 @@ describe("the layout of ci/workflows", () => {
 		);
 		const withoutTemplate = sources.map(idFromSource).filter((id) => !templated.has(id));
 		// the workflows no repo calls from a thin caller of its own (Sentinel, the org's own syncs and the aggregate)
-		expect(withoutTemplate.sort()).toEqual(["check-dispatched", "ci", "sync-dispatch", "sync-github", "tag"]);
+		expect(withoutTemplate.sort()).toEqual(["check-dispatched", "ci", "sync-dispatch", "tag"]);
 		expect(Object.keys(WORKFLOW_TEMPLATES).length).toBe(templated.size);
 	});
 });

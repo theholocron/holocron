@@ -1,33 +1,113 @@
 name: Sync Templates
 
+# Builds the holocron CLI from source and pushes updated workflow templates
+# and composite actions to downstream .github repos, by pull request. Its caller
+# runs it whenever the template source files change on main or alpha. The
+# consumer repos are found first: every repo of the org with a holocron.config,
+# except `.github` and the repo this runs in.
+#
+# Secrets required:
+#   HOLOCRON_SYNC_TOKEN — fine-grained PAT (resource owner: org) with:
+#                  Actions:       Read and write  (dispatch workflow runs via gh workflow run)
+#                  Contents:      Read and write  (git trees, blobs, refs)
+#                  Pull requests: Read and write  (open sync PR)
+#                  Workflows:     Read and write  (write .github/workflows/*.yml)
+
 on: # yamllint disable-line rule:truthy
   workflow_call:
+    inputs:
+      primary-repo:
+        description: >
+          Primary .github repo — receives composite actions, reusable workflows,
+          and thin-caller templates. Requires a PR (branch protection assumed).
+          Empty means the `.github` repo of the owner the workflow runs in.
+        type: string
+        required: false
+        default: ""
+      secondary-repos:
+        description: >
+          Space-separated list of secondary repos (reusable workflows + thin
+          callers only, no composite actions). Changes are delivered via pull
+          request, same as the primary repo. Empty means every repo of the
+          owner that has a holocron.config, found by code search.
+        type: string
+        required: false
+        default: ""
+      sync-branch:
+        description: Branch name used for the primary and secondary repo PRs
+        type: string
+        required: false
+        default: chore/sync-templates
     secrets:
       HOLOCRON_SYNC_TOKEN:
+        required: true
+      HOLOCRON_READ_TOKEN:
         description: >
-          Fine-grained PAT (resource owner org) with BOTH contents:write and
-          workflows:write on theholocron/.github — contents:write alone is
-          rejected for anything under .github/workflows/, a GitHub
-          fine-grained-PAT restriction independent of repo permissions.
+          Fine-grained PAT for read-only GitHub API calls (e.g. resolving git
+          committer identity via `gh api user`). Falls back to HOLOCRON_SYNC_TOKEN.
         required: false
       GH_TOKEN:
         description: >
-          Fallback PAT with the same two permissions, used only when
-          HOLOCRON_SYNC_TOKEN is not set. The default GITHUB_TOKEN is never
-          an acceptable fallback here — it cannot write to a different repo
-          no matter what this job's own `permissions:` block grants, so it
-          is deliberately not offered as a third fallback; the CLI's own
-          token resolver already fails with a clear, actionable message
-          when both secrets above are unset.
+          Generic GitHub token fallback for `gh` CLI calls. Used when neither
+          HOLOCRON_READ_TOKEN nor HOLOCRON_SYNC_TOKEN is set.
+        required: false
+      HOLOCRON_AXIOM_TOKEN:
+        description: >
+          Axiom API token. When set alongside the HOLOCRON_AXIOM_DATASET
+          repo/org variable, the CLI ships this run's structured logs to Axiom.
+          Falls back to the vendor-native AXIOM_TOKEN secret.
+        required: false
+      AXIOM_TOKEN:
+        description: Vendor-native fallback for HOLOCRON_AXIOM_TOKEN.
+        required: false
+      TURBO_TOKEN:
         required: false
 
 jobs:
-  sync-templates:
-    name: Run holocron sync github
+  discover-repos:
+    name: Discover consumer repos
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      secondary-repos: ${{ steps.find.outputs.secondary-repos }}
+    steps:
+      - name: Find repos with holocron.config
+        id: find
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          GIVEN: ${{ inputs.secondary-repos }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ -n "$GIVEN" ]; then
+            echo "secondary-repos=$GIVEN" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # $ENV.OWNER and $ENV.THIS_REPO are jq's, read from the environment; the single quotes are meant.
+          # shellcheck disable=SC2016
+          repos=$(gh api "search/code?q=filename:holocron.config+org:${OWNER}&per_page=100" \
+            --jq '[.items[].repository.full_name]
+                  | unique
+                  | map(select(. != ($ENV.OWNER + "/.github") and . != $ENV.THIS_REPO))
+                  | join(" ")')
+          echo "secondary-repos=$repos" >> "$GITHUB_OUTPUT"
+
+  sync:
+    name: Sync templates
+    needs: discover-repos
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
+      HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
+      HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}
+      # The org variable is HOLOCRON_POSTHOG_PROJECT_TOKEN (bare POSTHOG_PROJECT_TOKEN until it is renamed).
+      HOLOCRON_POSTHOG_PROJECT_TOKEN: ${{ vars.HOLOCRON_POSTHOG_PROJECT_TOKEN || vars.POSTHOG_PROJECT_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         name: Checkout repository
@@ -35,18 +115,81 @@ jobs:
       - uses: theholocron/.github/.github/actions/setup@main
         name: Setup
 
-      - name: Run holocron sync github
-        # No local commit, no branch, no PR — pushes directly to
-        # theholocron/.github's own default branch.
-        #
-        # HOLOCRON_SYNC_TOKEN is scoped to ONLY this step, not the job —
-        # "Setup" (above) runs this ref's own pnpm install, and the
-        # "Build the workspace" step this composite action may run (an
-        # unbuilt workspace checkout — the holocron repo itself) runs this
-        # ref's own build, including any postinstall/build-time script a
-        # malicious push could carry. Neither sees a write credential.
-        uses: theholocron/.github/.github/actions/holocron@main
-        env:
-          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
+      - run: pnpm build
+        name: Build CLI
+
+      # Resolve the built CLI from node_modules instead of hard-coding where it
+      # lives in this repo (the same lookup the `holocron` composite action does).
+      - name: Resolve CLI
+        run: echo "HOLOCRON_CLI=$(dirname "$(node -e 'process.stdout.write(require.resolve("@theholocron/cli"))')")/cli.mjs" >> "$GITHUB_ENV"
+
+      - name: Cache actionlint
+        id: cache-actionlint
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          command: sync github
+          path: /tmp/actionlint
+          key: actionlint-v1.7.7-linux-amd64
+
+      - name: Download actionlint
+        if: steps.cache-actionlint.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz \
+            | tar -xz -C /tmp actionlint
+
+      - name: Validate generated workflows
+        run: |
+          node "$HOLOCRON_CLI" sync github \
+            --repo "$PRIMARY_REPO" \
+            --output-dir /tmp/sync-validate
+          /tmp/actionlint /tmp/sync-validate/.github/workflows/*.yml
+        env:
+          PRIMARY_REPO: ${{ inputs.primary-repo || format('{0}/.github', github.repository_owner) }}
+
+      # By path: the action is new and `theholocron/.github` is frozen (see the `format` action in lint/code.yml).
+      # `scope: none` leaves git's own config alone: the identity only goes into the Signed-off-by trailer below.
+      - uses: ./ci/actions/git-identity
+        name: Resolve git identity
+        id: identity
+        with:
+          scope: none
+          resolve: "true"
+          token: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
+
+      - name: Sync primary repo (PR)
+        run: |
+          COMMIT_MSG="chore: sync from $GITHUB_REPOSITORY"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
+          node "$HOLOCRON_CLI" sync github \
+            --repo "$PRIMARY_REPO" \
+            --branch "$SYNC_BRANCH" \
+            --pr \
+            --message "$COMMIT_MSG"
+          GH_TOKEN="$HOLOCRON_SYNC_TOKEN" gh pr merge --auto --squash \
+            --repo "$PRIMARY_REPO" "$SYNC_BRANCH" 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          PRIMARY_REPO: ${{ inputs.primary-repo || format('{0}/.github', github.repository_owner) }}
+          SYNC_BRANCH: ${{ inputs.sync-branch }}
+          GIT_NAME: ${{ steps.identity.outputs.name }}
+          GIT_EMAIL: ${{ steps.identity.outputs.email }}
+
+      - name: Sync secondary repos (PR)
+        if: ${{ needs.discover-repos.outputs.secondary-repos != '' }}
+        run: |
+          COMMIT_MSG="chore: sync from $GITHUB_REPOSITORY"$'\n\n'"Signed-off-by: $GIT_NAME <$GIT_EMAIL>"
+          for repo in $SECONDARY_REPOS; do
+            node "$HOLOCRON_CLI" sync github \
+              --repo "$repo" \
+              --branch "$SYNC_BRANCH" \
+              --pr \
+              --message "$COMMIT_MSG"
+            GH_TOKEN="$HOLOCRON_SYNC_TOKEN" gh pr merge --auto --squash \
+              --repo "$repo" "$SYNC_BRANCH" 2>/dev/null || true
+          done
+        env:
+          GH_TOKEN: ${{ secrets.HOLOCRON_READ_TOKEN || secrets.HOLOCRON_SYNC_TOKEN || secrets.GH_TOKEN }}
+          HOLOCRON_SYNC_TOKEN: ${{ secrets.HOLOCRON_SYNC_TOKEN }}
+          SECONDARY_REPOS: ${{ needs.discover-repos.outputs.secondary-repos }}
+          SYNC_BRANCH: ${{ inputs.sync-branch }}
+          GIT_NAME: ${{ steps.identity.outputs.name }}
+          GIT_EMAIL: ${{ steps.identity.outputs.email }}
