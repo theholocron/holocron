@@ -44,8 +44,10 @@
  * here. They stay in `dependencies` because a repo's own `holocron.config.ts`
  * imports `@theholocron/cli` / `astromech/config` at runtime (only
  * `defineConfig`, an identity function, so a version skew there is harmless).
- * Pinned versions still have to exist on npm: deploy from a synced `alpha`
- * checkout, not an unreleased local branch.
+ * Pinned versions still have to exist on npm. A workspace package's `package.json` is not updated when it is
+ * released (the plugins sit at 5.0.0-alpha.132 on disk and 5.0.0-alpha.393 on npm, and each peers on exactly one CLI
+ * version), so an `@theholocron/*` dependency installed at an `alpha` prerelease is pinned to npm's `alpha` tag
+ * instead (`pinAlphaReleases()`); the lookup fails when npm cannot be reached, rather than staging the stale version.
  */
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -54,8 +56,10 @@ import { join } from "node:path";
 import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
+import { alphaRelease } from "./alpha-release/index.js";
 import type { StageDeployInput, StageDeployReport } from "./deploy-stage.type.js";
 import { installedPeers } from "./installed-peers.js";
+import { pinAlphaReleases } from "./pin-alpha-releases/index.js";
 import { undeclaredExternals } from "./undeclared-externals.js";
 import { vercelEngines } from "./vercel-engines.js";
 
@@ -111,9 +115,14 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 				.flatMap((name) => Object.entries(resolvePeers(packageDir, name)))
 				.filter(([name]) => !(name in direct))
 		);
-		const dependencies = Object.fromEntries(
+		const installed = Object.fromEntries(
 			Object.entries({ ...direct, ...peers }).sort(([a], [b]) => a.localeCompare(b))
 		);
+		// A workspace package keeps the version it was last committed at, which a release does not update, so what is
+		// installed can be far behind what npm serves; pin the `alpha` tag instead.
+		const { dependencies, changes, mismatches } = pinAlphaReleases(installed, input.alphaRelease ?? alphaRelease);
+		for (const change of changes) print(`  pinned to npm's alpha tag: ${change}`);
+		for (const mismatch of mismatches) print(`  warning: ${mismatch}`);
 
 		rmSync(outDir, { recursive: true, force: true });
 		mkdirSync(join(outDir, "api"), { recursive: true });

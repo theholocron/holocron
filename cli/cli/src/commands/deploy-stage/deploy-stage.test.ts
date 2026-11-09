@@ -64,6 +64,46 @@ describe("stageDeploy", () => {
 		expect(staged.dependencies).toEqual({ "peer-a": "1.0.0", "peer-b": "2.0.0", yaml: "9.9.9-yaml" });
 	});
 
+	it("pins an own-scope alpha dependency and its peers to npm's alpha tag, and says what moved", () => {
+		makePackage("export {};", { "@theholocron/plugin": "workspace:^" });
+		const lines: string[] = [];
+		const report = stageDeploy({
+			packageDir: dir,
+			resolveVersion: () => "5.0.0-alpha.132",
+			resolvePeers: () => ({ "@theholocron/cli": "5.0.0-alpha.394" }),
+			alphaRelease: (name) =>
+				name === "@theholocron/plugin"
+					? { version: "5.0.0-alpha.393", peerDependencies: { "@theholocron/cli": "5.0.0-alpha.392" } }
+					: { version: "5.0.0-alpha.393" },
+			print: (l) => lines.push(l),
+		});
+		expect(report.dependencies).toEqual({
+			"@theholocron/cli": "5.0.0-alpha.393",
+			"@theholocron/plugin": "5.0.0-alpha.393",
+		});
+		const staged = JSON.parse(readFileSync(join(dir, ".vercel-deploy", "package.json"), "utf8"));
+		expect(staged.dependencies).toEqual(report.dependencies);
+		expect(lines).toContain("  pinned to npm's alpha tag: @theholocron/plugin 5.0.0-alpha.132 → 5.0.0-alpha.393");
+		expect(lines).toContain("  pinned to npm's alpha tag: @theholocron/cli 5.0.0-alpha.394 → 5.0.0-alpha.393");
+		expect(lines.some((l) => l.startsWith("  warning: @theholocron/plugin@5.0.0-alpha.393 peers"))).toBe(true);
+	});
+
+	it("fails, writing nothing, when npm's alpha tag cannot be looked up", () => {
+		makePackage("export {};", { "@theholocron/plugin": "workspace:^" });
+		const report = stageDeploy({
+			packageDir: dir,
+			resolveVersion: () => "5.0.0-alpha.132",
+			alphaRelease: () => {
+				throw new Error(
+					"cannot look up @theholocron/plugin@alpha on npm (is the registry reachable?): ENOTFOUND"
+				);
+			},
+		});
+		expect(report.status).toBe("fail");
+		expect(report.message).toContain("ENOTFOUND");
+		expect(existsSync(join(dir, ".vercel-deploy"))).toBe(false);
+	});
+
 	it("keeps a dependency's own pinned version over a peer of the same name", () => {
 		makePackage('import YAML from "yaml";');
 		const report = stageDeploy({
