@@ -16,7 +16,7 @@ coverage:
           - observability
           - skills
           - comlink
-          - obsidian-ideas
+          - council
           - sentinel
           - astromech
           - dagobah
@@ -94,7 +94,7 @@ coverage:
           - string-utils
           - uri-utils
           - ci
-          - obsidian-ideas
+          - council
         target: auto
         if_not_found: success
         threshold: 2%
@@ -112,7 +112,7 @@ coverage:
           - observability
           - skills
           - comlink
-          - obsidian-ideas
+          - council
           - sentinel
           - astromech
           - dagobah
@@ -212,7 +212,7 @@ flag_management:
     - name: observability
     - name: skills
     - name: comlink
-    - name: obsidian-ideas
+    - name: council
     - name: sentinel
     - name: astromech
     - name: dagobah
@@ -306,10 +306,10 @@ component_management:
       paths:
         - apps/comlink/**
 
-    - component_id: obsidian-ideas
-      name: "obsidian-ideas"
+    - component_id: council
+      name: "council"
       paths:
-        - apps/obsidian-ideas/**
+        - apps/council/**
 
     - component_id: sentinel
       name: "sentinel"

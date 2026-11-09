@@ -1,5 +1,5 @@
 {
-  "name": "@theholocron/obsidian-ideas",
+  "name": "@theholocron/council",
   "version": "0.0.0",
   "private": true,
   "description": "An Obsidian plugin for the ideas vault: File this idea sets the filing state, runs holocron ideas sync on desktop and trashes the note once it carries an issue; Set idea status picks from a fixed list.",
@@ -10,12 +10,12 @@
     "obsidian-plugin",
     "theholocron"
   ],
-  "homepage": "https://docs.theholocron.dev/holocron/obsidian-ideas/",
+  "homepage": "https://docs.theholocron.dev/holocron/council/",
   "bugs": "https://github.com/theholocron/holocron/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theholocron/holocron.git",
-    "directory": "apps/obsidian-ideas"
+    "directory": "apps/council"
   },
   "license": "MIT",
   "author": "Newton Koumantzelis",

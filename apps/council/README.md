@@ -1,4 +1,4 @@
-# Holocron Ideas (Obsidian plugin)
+# Holocron Council (Obsidian plugin)
 
 An Obsidian plugin for the ideas vault ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). It adds two commands:
 
@@ -11,14 +11,14 @@ This is a private app: it is not published to npm and has no release of its own.
 
 ```sh
 pnpm install
-pnpm --filter @theholocron/obsidian-ideas build
+pnpm --filter @theholocron/council build
 ```
 
 The build writes `dist/main.js` and `dist/manifest.json`. `main.js` is one CommonJS file; `obsidian` and the Node builtins are left for the app to supply.
 
 ## Install
 
-Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/holocron-ideas/`, then turn the plugin on under Settings, Community plugins. Install it on each device that should run the commands. A plugin folder inside an iCloud vault syncs to the other devices by itself, so one copy is enough, but only a Mac can file.
+Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/holocron-council/`, then turn the plugin on under Settings, Community plugins. Install it on each device that should run the commands. A plugin folder inside an iCloud vault syncs to the other devices by itself, so one copy is enough, but only a Mac can file.
 
 ## Settings
 
@@ -46,4 +46,4 @@ Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/
 - **No token field, ever.** The plugin's `data.json` is a file in the vault, and iCloud syncs it to every device. The CLI reads its tokens through its own chain on the Mac.
 - It has not been run inside Obsidian by the tests: they cover the decisions and the order with a mock of the Obsidian API.
 
-See [the docs page](https://docs.theholocron.dev/holocron/obsidian-ideas/) and [`ideas sync`](https://docs.theholocron.dev/holocron/commands/ideas-sync/).
+See [the docs page](https://docs.theholocron.dev/holocron/council/) and [`ideas sync`](https://docs.theholocron.dev/holocron/commands/ideas-sync/).

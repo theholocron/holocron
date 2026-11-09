@@ -29,6 +29,7 @@ describe("readProperty", () => {
 		expect(readProperty("---\ntitle: x\n---\nstatus: seed\n", "status")).toBeUndefined();
 		expect(readProperty("---\ntitle: x\n...\nstatus: seed\n", "status")).toBeUndefined();
 		expect(readProperty("", "status")).toBeUndefined();
+		expect(readProperty("---\ntitle: x\n", "status")).toBeUndefined();
 	});
 
 	it("does not match a key that only starts the same, or an indented line", () => {

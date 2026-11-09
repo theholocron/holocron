@@ -9,7 +9,7 @@ import { IdeasSettingTab } from "./settings/settings-tab.js";
 import { StatusModal } from "./status-modal.js";
 
 /**
- * The Holocron Ideas plugin: **File this idea** and **Set idea status**. It is a thin layer over Obsidian's API; the
+ * The Holocron Council plugin: **File this idea** and **Set idea status**. It is a thin layer over Obsidian's API; the
  * decisions are in `filing/` and `frontmatter/`.
  */
 export default class HolocronIdeasPlugin extends Plugin {

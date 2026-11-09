@@ -153,7 +153,7 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts", "holocron.config.ts"],
 			project: ["src/**/*.ts"],
 		},
-		"apps/obsidian-ideas": {
+		"apps/council": {
 			// The plugin (src/main.ts) is found through the tsdown config.
 			entry: ["src/**/*.test.ts"],
 			project: ["src/**/*.ts"],

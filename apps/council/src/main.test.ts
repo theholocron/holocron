@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { notices, Platform, settingRows } from "./__tests__/obsidian-mock.js";
 
 vi.mock("obsidian", async () => await import("./__tests__/obsidian-mock.js"));
+const { runCommand } = vi.hoisted(() => ({ runCommand: vi.fn() }));
+vi.mock("./node/run-command.js", () => ({ runCommand }));
 
 const { default: HolocronIdeasPlugin } = await import("./main.js");
 const { IdeasSettingTab } = await import("./settings/settings-tab.js");
@@ -119,6 +121,25 @@ describe("HolocronIdeasPlugin", () => {
 		await vi.waitFor(() => expect(notices).toHaveLength(1));
 		expect(reads).toHaveBeenCalled();
 		expect(notices[0]?.message).toContain("repo path");
+	});
+
+	it("File this idea on desktop runs the sync with the vault and trashes the filed note", async () => {
+		const { plugin, trashed } = harness({ basePath: "/vault" });
+		await plugin.onload();
+		plugin.settings.repoPath = "/repo";
+		const reads = ["---\nstatus: seed\n---\n", FILED];
+		vi.spyOn(plugin.app.vault, "read").mockImplementation(() => Promise.resolve(reads.shift() ?? FILED));
+		runCommand.mockResolvedValue({ code: 0, output: "1 filed" });
+		const savedPath = process.env.PATH;
+		delete process.env.PATH;
+		(plugin as unknown as Registered).commands[0]?.callback();
+		await vi.waitFor(() => expect(notices).toHaveLength(1));
+		expect(runCommand).toHaveBeenCalledWith(
+			expect.objectContaining({ cwd: "/repo", env: expect.objectContaining({ HOLOCRON_IDEAS_DIR: "/vault" }) })
+		);
+		process.env.PATH = savedPath;
+		expect(trashed).toHaveLength(1);
+		expect(notices[0]?.message).toContain("Filed as #7");
 	});
 
 	it("shows an error as a notice and keeps the note", async () => {
