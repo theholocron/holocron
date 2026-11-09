@@ -1,0 +1,13 @@
+name: validate:deps
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-deps:
+    name: validate:deps
+    uses: theholocron/.github/.github/workflows/validate-deps.yml@main
+    secrets: inherit

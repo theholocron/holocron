@@ -1,0 +1,22 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: measure-docs
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  measure-docs:
+    name: measure-docs
+    uses: ./.github/workflows/measure-docs.yml
+    secrets: inherit

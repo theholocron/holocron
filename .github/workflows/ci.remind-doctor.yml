@@ -1,0 +1,20 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: remind-doctor
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  remind-doctor:
+    name: remind-doctor
+    uses: ./.github/workflows/remind-doctor.yml
+    secrets: inherit

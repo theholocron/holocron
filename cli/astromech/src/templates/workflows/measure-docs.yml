@@ -1,0 +1,16 @@
+name: measure-docs
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main, alpha]
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  measure-docs:
+    name: measure-docs
+    uses: theholocron/.github/.github/workflows/measure-docs.yml@main
+    secrets: inherit

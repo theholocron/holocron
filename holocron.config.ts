@@ -54,16 +54,17 @@ export default defineConfig({
 	// for every package (one per workspace, hundreds once the org's repos are
 	// folded in) nor be relied on to appear. Codecov still posts the
 	// per-component statuses; they are informational, not required (#1223).
-	// "Dependency catalogs / Check" is the hand-maintained
-	// `.github/workflows/sourceQuality.dependencyCatalogs.yml` (`holocron probe deps check`, #1380).
+	// "validate:deps / ..." and "validate:generated / ..." are the checks of the `validate:deps` (`holocron probe deps
+	// check`, #1380) and `validate:generated` (`holocron probe generated check`, #1405) tasks. They are listed here, not
+	// `required: true`, so the aggregate waits on them without the tasks joining `holocron run ci`.
 	// "codecov/patch/documentation" is the doc-comment gate (#1368): the `documentation` flag's patch status, which
 	// fails a PR that adds or changes an exported symbol without a comment. Its project status is not required.
 	extraRequiredChecks: [
 		"codecov/patch",
 		"codecov/project",
 		"codecov/patch/documentation",
-		"Dependency catalogs / Check",
-		"Generated files / Check",
+		"validate:deps / Check dependency catalogs",
+		"validate:generated / Check generated files",
 	],
 	// Doc-comment coverage of the public API (#1368): the `documentation` Codecov flag fails a PR that adds or
 	// changes an export without a comment, and posts its statuses without marking them informational. `codecov/patch/documentation` is a required check (`extraRequiredChecks` above); the value
@@ -100,6 +101,10 @@ export default defineConfig({
 		"update-deps",
 		"label",
 		"reconcile-projects",
+		"remind-doctor",
+		"measure-docs",
+		"validate:deps",
+		"validate:generated",
 		{ name: "typecheck", required: true, with: { affected: true } },
 		// deploy-docs implies docs: true — this repo has no Storybook, so
 		// the dedicated task is more idiomatic than deploy + with:

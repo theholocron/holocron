@@ -1,0 +1,52 @@
+name: Measure Documentation Coverage
+
+# Doc-comment coverage of the public API (#1368), measured with the repo's TypeDoc by `holocron probe docs coverage`
+# and uploaded to Codecov as the `documentation` flag (`--lcov`). The patch and project percentages show on every PR
+# next to the test coverage as `codecov/patch/documentation` and `codecov/project/documentation`, and Codecov fails
+# the patch status when a PR adds or changes an exported function, class, interface, type, constant or member of one
+# without a doc comment; old undocumented exports do not count against a PR. Pushes to the default branch upload it
+# too, so a PR has a base report to compare against.
+#
+# The gate is Codecov's `codecov/patch/documentation` (`extraRequiredChecks` in holocron.config.ts), not this job's own
+# check, which only measures and uploads. `holocron probe docs patch` stays in the CLI to run before pushing.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  measure-docs:
+    name: Measure documentation coverage
+    permissions:
+      contents: read
+      # The Codecov upload authenticates with the job's OIDC token.
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      # One TypeDoc pass over every package writes the report for the upload below. It does not fail on an
+      # undocumented export: the Codecov status does.
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Measure the documentation coverage
+        with:
+          command: probe docs coverage
+          args: --lcov coverage/docs.lcov
+
+      # A pull request from a fork has no OIDC token to upload with, so Codecov has nothing to gate it on.
+      - name: Upload the documentation coverage to Codecov
+        if: >-
+          ${{ !cancelled() && hashFiles('coverage/docs.lcov') != '' &&
+          (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: theholocron/.github/.github/actions/codecov-upload@main
+        with:
+          uploads: '[{"flag":"documentation","files":"coverage/docs.lcov"}]'

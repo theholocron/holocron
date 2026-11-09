@@ -72,6 +72,8 @@ describe("TASKS registry", () => {
 		expect(commands).toEqual([
 			["validate:specs", "probe specs check"],
 			["validate:docs", "probe docs validate"],
+			["validate:deps", "probe deps check"],
+			["validate:generated", "probe generated check"],
 		]);
 	});
 
