@@ -15,6 +15,7 @@ import type {
 	DevConfig,
 	GitHubAppConfig,
 	HolocronConfig,
+	IdeasConfig,
 	ProviderOptions,
 	RawProviderEntry,
 	ResolvedHolocronConfig,
@@ -126,6 +127,21 @@ function validateGitHubApps(apps: GitHubAppConfig[]): void {
 	});
 }
 
+/** Throws a {@link ConfigError} naming the first thing wrong with the `ideas` block. */
+function validateIdeas(ideas: IdeasConfig): void {
+	const nonEmpty = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
+	const isObject = (value: unknown): boolean => typeof value === "object" && value !== null && !Array.isArray(value);
+	if (!isObject(ideas)) throw new ConfigError("`ideas` must be an object: { dir, states? }");
+	if (!nonEmpty(ideas.dir))
+		throw new ConfigError("`ideas.dir` must be the path of the notes folder, got an empty value");
+	if (ideas.states !== undefined) {
+		if (!isObject(ideas.states)) throw new ConfigError("`ideas.states` must be an object: { file? }");
+		if (ideas.states.file !== undefined && !nonEmpty(ideas.states.file)) {
+			throw new ConfigError("`ideas.states.file` must be a state name, got an empty value");
+		}
+	}
+}
+
 /** Throws a {@link ConfigError} naming the first thing wrong with the `dev` block. */
 function validateDev(dev: DevConfig): void {
 	const nonEmpty = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
@@ -227,6 +243,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	}
 	if (raw.dev !== undefined) validateDev(raw.dev);
 	if (raw.githubApps !== undefined) validateGitHubApps(raw.githubApps);
+	if (raw.ideas !== undefined) validateIdeas(raw.ideas);
 	validateVariablesSync(raw.repo?.variables);
 	const credentialsEntry = providers.credentials;
 	if (credentialsEntry?.cardinality === "many") {
@@ -271,6 +288,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 		credentials: raw.credentials,
 		dev: raw.dev,
 		githubApps: raw.githubApps,
+		ideas: raw.ideas,
 		log: raw.log,
 		telemetry: raw.telemetry,
 		eslint: raw.eslint,

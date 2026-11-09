@@ -261,6 +261,25 @@ describe("resolveConfig", () => {
 		expect(() => resolveConfig({ ...minimal, githubApps: githubApps as never })).toThrow(message);
 	});
 
+	it("passes the ideas block through, and leaves it unset by default", () => {
+		const ideas = { dir: "~/vault", states: { file: "queued" } };
+		expect(resolveConfig({ ...minimal, ideas }).ideas).toEqual(ideas);
+		expect(resolveConfig({ ...minimal, ideas: { dir: "/v" } }).ideas).toEqual({ dir: "/v" });
+		expect(resolveConfig(minimal).ideas).toBeUndefined();
+	});
+
+	it.each([
+		["a value that is not an object", "~/vault", /`ideas` must be an object/],
+		["a list", [], /`ideas` must be an object/],
+		["no dir", {}, /ideas\.dir/],
+		["an empty dir", { dir: " " }, /ideas\.dir/],
+		["a non-string dir", { dir: 3 }, /ideas\.dir/],
+		["states that are not an object", { dir: "/v", states: "x" }, /ideas\.states. must be an object/],
+		["an empty filing state", { dir: "/v", states: { file: "" } }, /ideas\.states\.file/],
+	])("rejects ideas with %s", (_label, ideas, message) => {
+		expect(() => resolveConfig({ ...minimal, ideas: ideas as never })).toThrow(message);
+	});
+
 	it.each([
 		["an empty environment", { environment: " " }, /dev\.environment/],
 		["an empty tunnel name", { tunnel: { name: "", hostname: "a.example.dev" } }, /dev\.tunnel\.name/],

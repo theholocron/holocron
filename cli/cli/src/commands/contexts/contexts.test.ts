@@ -81,6 +81,7 @@ const EVERY_COMMAND = [
 	"repo cleanup branches",
 	"sync github",
 	"sync issues",
+	"ideas sync",
 ];
 
 describe("COMMAND_CONTEXTS", () => {

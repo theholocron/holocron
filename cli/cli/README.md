@@ -111,7 +111,7 @@ Every command is tagged with how much of a repo it needs:
 | ------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `global`     | the CLI binary alone                                     | `version`, `clone`, `new repo` / `plugin`, `repo upgrade …`, `auth set` / `check`, `package …`, `run lint commit-msg`, `skills …` |
 | `repo-aware` | `./holocron.config`, walking up from cwd, no plugins     | `run`, `run ci`, `config show`, `repo sync readme`, `deploy on-release`                                                           |
-| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `repo setup`, `repo sync`, `repo cleanup branches`, `secrets …`, `deploy`, `sync github`, `sync issues`                 |
+| `workspace`  | the `@theholocron/holocron-plugin-*` packages resolvable | `doctor`, `repo setup`, `repo sync`, `repo cleanup branches`, `secrets …`, `deploy`, `sync github`, `sync issues`, `ideas sync`   |
 
 A `workspace` command run from a bare global install (no plugins next to the
 CLI) fails with one actionable line — install the plugins as devDependencies or
@@ -690,6 +690,14 @@ Provider credentials for Discord: `discord.holonet` is the **bot token** (Bot �
 **OAuth client secret** (OAuth2 → Reset Secret). They are different values; the API can create or read neither.
 
 See the [command pages](https://theholocron.dev/holocron/commands/notifications-setup/) for each command's options.
+
+## Ideas
+
+- **`holocron ideas sync [--dry-run] [--yes]`** — files the idea notes in `ideas.dir` (an Obsidian vault; the `ideas`
+  block of `holocron.config`, or `HOLOCRON_IDEAS_DIR`) whose `status:` is the filing state (`ideas.states.file`, default
+  `in-progress`) and that have no `issue:`: it creates an issue through the `issues` provider (title the first `#`
+  heading, body the note plus `Filed from idea: <title>`) and writes `issue:` into the note. Notes with embedded files
+  are skipped. It never deletes, asks first unless `--dry-run` or `--yes`, and a second run changes nothing.
 
 ## Syncing issues
 

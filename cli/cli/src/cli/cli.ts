@@ -18,6 +18,7 @@ import { deployCommand } from "../commands/deploy/deploy.command.js";
 import { devCommand } from "../commands/dev/index.js";
 import { doctorCommand } from "../commands/doctor/index.js";
 import { githubAppCommand } from "../commands/github-app/index.js";
+import { ideasCommand } from "../commands/ideas/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
 import { migrateCommand } from "../commands/migrate/index.js";
 import { monitoringCommand } from "../commands/monitoring/monitoring.command.js";
@@ -159,6 +160,7 @@ try {
 		.command(migrateCommand as never)
 		.command(devCommand as never)
 		.command(syncCommand as never)
+		.command(ideasCommand as never)
 		.command(packageCommand as never)
 		.command(deployCommand as never)
 		.command(monitoringCommand as never)
