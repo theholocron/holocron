@@ -58,6 +58,9 @@ const fnDeployment = await vercel.deployments.create({
   projectName: "my-fn",
   files: [{ file: "api/webhook.js", content: "export default () => new Response('ok');" }],
   framework: null, // no framework preset — a bare function, not an app
+  // A deployment made from files takes its install command from the project's settings, not from an
+  // uploaded vercel.json, so send it here when the install needs to differ from the project's.
+  installCommand: "npm install --legacy-peer-deps",
   target: "production",
 });
 
