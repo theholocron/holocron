@@ -7,6 +7,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { loadConfig } from "./config-system.js";
 
+/** Secrets removed on purpose after the move (#1864 follow-up): nothing reads them any more (super-linter, Storybook sandbox). */
+const DEAD_SECRETS = [
+	"STORYBOOK_CODE_SANDBOX_API_TOKEN",
+	"SUPER_LINTER_APP_ID",
+	"SUPER_LINTER_GPG_PASSPHRASE",
+	"SUPER_LINTER_GPG_PRIVATE_KEY",
+	"SUPER_LINTER_PRIVATE_KEY",
+];
+
 /** The `repo` keys exactly as `holocron.config.ts` had them inline before #1787 (a verbatim copy of the old text). */
 const INLINE_REPO = new URL("./repo-block.inline.fixture.txt", import.meta.url);
 /** The file those keys moved to: this repo's own `.holocron/repo.ts`. */
@@ -78,7 +87,10 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 			VERCEL_TOKEN: "HOLOCRON_VERCEL_TOKEN",
 		};
 		for (const entry of beforeRest.secrets?.sync ?? []) {
-			entry.keys = entry.keys?.map((key) => renamed[key] ?? key).sort();
+			entry.keys = entry.keys
+				?.filter((key) => !DEAD_SECRETS.includes(key))
+				.map((key) => renamed[key] ?? key)
+				.sort();
 		}
 		expect(afterRest).toEqual(beforeRest);
 		// Guard against a vacuous pass: the moved keys are really there on both sides, and the kept ones too.

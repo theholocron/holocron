@@ -124,6 +124,10 @@ super-linter specifically. Lands as part of `sourceQuality.staticAnalysis`'s
 and `sourceQuality.formatting`'s own reusable workflows, not a separate
 mechanism.
 
+> **Dropped later.** The auto-commit-fix was never switched on in any repo, so the App-token step, the
+> `enable-auto-commit` input and the `SUPER_LINTER_APP_ID` / `SUPER_LINTER_PRIVATE_KEY` secrets were removed from
+> `lint:code`; the workflow only checks. The statement above is kept as history.
+
 ## Scope
 
 - Rewrite `registry.ts` (`TASKS`, `KNOWN_TASKS`, `CI_ORDER`) against the

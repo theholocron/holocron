@@ -17,6 +17,14 @@ const CONFIG_URL = new URL("../../../../holocron.config.ts", import.meta.url);
  * task's `with.uploads` (one Codecov upload per workspace package, so it changes whenever a package is added).
  */
 const SNAPSHOT = new URL("./holocron-self-adoption.pre-move.snapshot.json", import.meta.url);
+/** Secrets removed on purpose after the move (#1864 follow-up): nothing reads them any more (super-linter, Storybook sandbox). */
+const DEAD_SECRETS = [
+	"STORYBOOK_CODE_SANDBOX_API_TOKEN",
+	"SUPER_LINTER_APP_ID",
+	"SUPER_LINTER_GPG_PASSPHRASE",
+	"SUPER_LINTER_GPG_PRIVATE_KEY",
+	"SUPER_LINTER_PRIVATE_KEY",
+];
 const UPLOADS = "<workspace-derived: one codecov upload per package>";
 
 /** The keys that moved into `.holocron/repo.ts` (#1787); `defaultBranch`, `protection` and `properties` stay inline. */
@@ -155,7 +163,10 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		const secretEntries = (expected as unknown as { repo: { secrets: { sync: { keys: string[] }[] } } }).repo
 			.secrets.sync;
 		for (const entry of secretEntries) {
-			entry.keys = entry.keys.map((key) => secretRenames[key] ?? key).sort();
+			entry.keys = entry.keys
+				.filter((key) => !DEAD_SECRETS.includes(key))
+				.map((key) => secretRenames[key] ?? key)
+				.sort();
 		}
 		// And (#1727): `SENTRY_ORG` is a synced variable too (the release workflow reads it); the Sentry `errors` entry
 		// is unchanged, its `org` now filled from `.holocron/org.ts` instead of written inline.
