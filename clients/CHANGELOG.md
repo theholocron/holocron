@@ -1,3 +1,9 @@
+## [1.58.0-alpha.25](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.24...clients-v1.58.0-alpha.25) (2026-11-09)
+
+### Bug Fixes
+
+* **vercel:** 🐛 send the vercel.json installCommand with a deployment made from files ([#1991](https://github.com/theholocron/holocron/issues/1991)) ([cea7f0d](https://github.com/theholocron/holocron/commit/cea7f0d2f2e09990f51b558b5f0baef63d312af2))
+
 ## [1.58.0-alpha.24](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.23...clients-v1.58.0-alpha.24) (2026-11-08)
 
 ### Features
