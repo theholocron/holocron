@@ -52,6 +52,17 @@ describe("installedPeers", () => {
 		expect(installedPeers(app, "plugin")).toEqual({ present: "3.0.0" });
 	});
 
+	it("leaves out a peer whose package.json names no version, since there is nothing to pin", () => {
+		const app = installPnpm(
+			"plugin",
+			{ peerDependencies: { versionless: "*", present: "*" } },
+			{ present: "1.0.0" }
+		);
+		const store = join(root, "node_modules", ".pnpm", "plugin@1.0.0", "node_modules");
+		write(join(store, "versionless", "package.json"), { name: "versionless" });
+		expect(installedPeers(app, "plugin")).toEqual({ present: "1.0.0" });
+	});
+
 	it("finds a peer in a node_modules above the dependency when it is not a sibling", () => {
 		const app = join(root, "app");
 		write(join(app, "node_modules", "plugin", "package.json"), {
