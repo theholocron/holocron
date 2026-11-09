@@ -6,7 +6,7 @@
 # Tells Discord about the runs nobody is watching (#1159, epic #1160):
 #
 # - A workflow that fails on `alpha` or `main` (not a pull request) posts to #alerts and pings the gatekeepers. A failed
-#   deploy, deploy-docs, deploy-components, preview, deploy-preview, check-preview or Sentinel Deploy goes to #deploys
+#   deploy, deploy-docs, deploy-components, preview, deploy-preview, check-preview or deploy-sentinel goes to #deploys
 #   instead. The daily check-tokens run is in the list, so a token close to expiring reaches #alerts the day it is found.
 #   The post names the failing jobs of that run with links (five at most, then "and N more"), read with `actions: read`
 #   (#1614); when they cannot be read the post is just the run's line.
@@ -55,7 +55,7 @@ on: # yamllint disable-line rule:truthy
       - deploy
       - deploy-components
       - preview
-      - Sentinel Deploy
+      - deploy-sentinel
       - sync-specs
       - reconcile-projects
       - remind-doctor
@@ -112,14 +112,14 @@ jobs:
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: "Notify #deploys"
-        if: ${{ contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') || endsWith(github.event.workflow_run.path, 'ci.check-preview.yml') }}
+        if: ${{ contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","deploy-sentinel"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') || endsWith(github.event.workflow_run.path, 'ci.check-preview.yml') }}
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_DEPLOYS }}
           message: ${{ steps.message.outputs.text }}
 
       - uses: theholocron/.github/.github/actions/notify@main
         name: "Notify #alerts"
-        if: ${{ !(contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","Sentinel Deploy"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') || endsWith(github.event.workflow_run.path, 'ci.check-preview.yml')) }}
+        if: ${{ !(contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","deploy-sentinel"]'), github.event.workflow_run.name) || endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') || endsWith(github.event.workflow_run.path, 'ci.check-preview.yml')) }}
         with:
           webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
           mention: ${{ secrets.HOLOCRON_NOTIFY_ALERT_ROLE }}
@@ -129,7 +129,7 @@ jobs:
     name: Notify of a deploy
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      (contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","Sentinel Deploy"]'), github.event.workflow_run.name) ||
+      (contains(fromJSON('["deploy","deploy-docs","deploy-components","preview","deploy-sentinel"]'), github.event.workflow_run.name) ||
       endsWith(github.event.workflow_run.path, 'ci.deploy-preview.yml') ||
       endsWith(github.event.workflow_run.path, 'ci.check-preview.yml'))
     runs-on: ubuntu-latest

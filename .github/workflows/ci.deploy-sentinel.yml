@@ -1,0 +1,23 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: deploy-sentinel
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    paths:
+      - "apps/sentinel/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-sentinel:
+    name: deploy-sentinel
+    uses: ./.github/workflows/deploy-sentinel.yml
+    secrets: inherit

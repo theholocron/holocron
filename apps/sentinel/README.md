@@ -312,13 +312,12 @@ Environment `Sentinel`) providers.
 pnpm run deploy
 ```
 
-**CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.deploy.yml`
-runs this same command on every merge to `main` (not `alpha` — this repo's
-stable channel only, matching the release-branch split in the repo root's
-`CLAUDE.md`), scoped to `apps/sentinel/**` changes, or on demand via
-`gh workflow run sentinel.deploy.yml`. Hand-maintained directly in this
-repo, not astromech-templated — Sentinel is owned here, not synced to
-`theholocron/.github` for other repos to use. See `docs/tokens.md` (repo
+**CI-triggered, too** (holocron#800) — the `deploy-sentinel` task
+(`.github/workflows/ci.deploy-sentinel.yml`, generated) runs this same command
+on every merge to `main` (not `alpha` — this repo's stable channel only,
+matching the release-branch split in the repo root's `CLAUDE.md`), scoped to
+`apps/sentinel/**` changes, or on demand via
+`gh workflow run ci.deploy-sentinel.yml`. See `docs/tokens.md` (repo
 root) for the `VERCEL_TOKEN` repo secret it needs.
 
 **After every alpha release that touches it** (holocron#928, #930) — Sentinel

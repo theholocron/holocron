@@ -219,6 +219,9 @@ export const TASKS: Record<string, TaskDef> = {
 	// file-uploaded (deployFunction) deploy, so there is nothing to synthesize
 	// this from on Vercel's side.
 	"deploy-preview": { group: "Delivery", scope: "package", local: null },
+	// Sentinel's own deploy from CI (#800): `pnpm run deploy` in `apps/sentinel`, on a push to `main` that touches it and
+	// on demand. It needs the Vercel token and has no local runner (a person runs `pnpm run deploy` from a checkout).
+	"deploy-sentinel": { group: "Delivery", scope: "repo", local: null },
 
 	// ── Platform — operating the repo itself ──────────────────────────────
 	// Process/governance checks that rode inside the old monolithic `lint` task with no linter connection at all.

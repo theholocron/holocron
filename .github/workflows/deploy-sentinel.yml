@@ -1,0 +1,44 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/deploy-sentinel.yml
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Deploy Sentinel
+
+# Sentinel's own CI-based deploy (holocron#800): `pnpm run deploy` in `apps/sentinel` (build, stage, `holocron deploy`),
+# the command a person runs from a checkout. The caller runs it on demand and on a push to `main` that touches
+# `apps/sentinel/**`; alpha releases deploy Sentinel themselves through the release job's `holocron deploy on-release`.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_VERCEL_TOKEN:
+        description: The Vercel token the deploy uses. `VERCEL_TOKEN` is the fallback.
+        required: false
+      VERCEL_TOKEN:
+        required: false
+
+jobs:
+  deploy-sentinel:
+    name: Build, stage and deploy Sentinel
+    # One deploy at a time, and a running one is never cancelled halfway.
+    concurrency:
+      group: sentinel-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - name: Build, stage, and deploy
+        working-directory: apps/sentinel
+        run: pnpm run deploy
