@@ -56,6 +56,12 @@ export interface VercelCreateDeploymentInput {
 	 * later deployments inherit it unless overridden here again.
 	 */
 	framework?: string | null;
+	/**
+	 * `projectSettings.installCommand`. Sent explicitly because a deployment made from uploaded
+	 * files takes its install command from the project's settings, not from an uploaded
+	 * `vercel.json`; omitted, the project's own setting applies.
+	 */
+	installCommand?: string;
 	/** The environment to deploy to; omitted, Vercel decides. */
 	target?: VercelDeploymentTarget;
 }
@@ -92,7 +98,10 @@ export function deployments(rest: RestClient) {
 						data: Buffer.from(f.content, "utf8").toString("base64"),
 						encoding: "base64",
 					})),
-					projectSettings: { framework: input.framework ?? null },
+					projectSettings: {
+						framework: input.framework ?? null,
+						...(input.installCommand ? { installCommand: input.installCommand } : {}),
+					},
 					...(input.target ? { target: input.target } : {}),
 				},
 			}),

@@ -151,6 +151,7 @@ export class VercelDeployment implements Deployment {
 			// never an app; this.defaultFramework only applies to
 			// ensureProject()'s Git-linked-project path.
 			framework: null,
+			...installCommandOf(config.files),
 			target: config.target as "production" | "staging" | undefined,
 		});
 		return { deploymentId: raw.id, url: raw.url };
@@ -225,6 +226,23 @@ export class VercelDeployment implements Deployment {
 }
 
 // ── mappers ──────────────────────────────────────────────────────────
+
+/**
+ * The `installCommand` of an uploaded `vercel.json`, as the field `deployments.create()` takes.
+ * A deployment made from uploaded files ignores the file's `installCommand` in favour of the
+ * project's setting, so it is sent in the request too. Empty when there is no such file, it is
+ * not JSON, or it sets none.
+ */
+function installCommandOf(files: Record<string, string>): { installCommand?: string } {
+	const raw = files["vercel.json"];
+	if (raw === undefined) return {};
+	try {
+		const { installCommand } = JSON.parse(raw) as { installCommand?: unknown };
+		return typeof installCommand === "string" && installCommand ? { installCommand } : {};
+	} catch {
+		return {};
+	}
+}
 
 function mapProject(raw: VercelProject): DeploymentProject {
 	const project: DeploymentProject = {
