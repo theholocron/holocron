@@ -1,3 +1,9 @@
+## [8.9.0-alpha.15](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.14...configs-v8.9.0-alpha.15) (2026-11-09)
+
+### Bug Fixes
+
+* **configs:** 📝 name the docs sites in the astro-config README, to cut a configs release ([#1989](https://github.com/theholocron/holocron/issues/1989)) ([5719964](https://github.com/theholocron/holocron/commit/5719964a6c0a8fd22f57507150d96d1009e7fca4))
+
 ## [8.9.0-alpha.14](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.13...configs-v8.9.0-alpha.14) (2026-11-08)
 
 ### Features
