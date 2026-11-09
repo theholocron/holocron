@@ -1,3 +1,17 @@
+## [5.0.0-alpha.393](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.392...v5.0.0-alpha.393) (2026-11-09)
+
+### Features
+
+* **cli:** 🔑 add --force to publish --sync-trust, to replace a Trusted Publisher entry npm expired ([#1988](https://github.com/theholocron/holocron/issues/1988)) ([64219f9](https://github.com/theholocron/holocron/commit/64219f91db059401b97cfced551a62be34ab3609)), closes [#689](https://github.com/theholocron/holocron/issues/689)
+
+### Bug Fixes
+
+* **astromech:** 🐛 run the deploy script on release, not the renamed delivery.deploy ([#1998](https://github.com/theholocron/holocron/issues/1998)) ([62060dd](https://github.com/theholocron/holocron/commit/62060dd3c8dd435188908f4edebd1461c958ad79))
+
+### Chores
+
+* remove media dir ([#1999](https://github.com/theholocron/holocron/issues/1999)) ([1331c85](https://github.com/theholocron/holocron/commit/1331c85581231a4b7df62629a5f6fe886cfa932d))
+
 ## [5.0.0-alpha.392](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.391...v5.0.0-alpha.392) (2026-11-09)
 
 ### Bug Fixes
