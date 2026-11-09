@@ -117,6 +117,8 @@ export const COMMAND_CONTEXTS = {
 	"sync github": "workspace",
 	// Loads the source and target `issues` providers, so their packages must be resolvable.
 	"sync issues": "workspace",
+	// Reads `ideas.dir` and files each ready note through the `issues` provider, so its package must be resolvable.
+	"ideas sync": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**

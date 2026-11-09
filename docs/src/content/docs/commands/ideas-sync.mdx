@@ -1,0 +1,57 @@
+---
+title: "ideas sync"
+description: File the idea notes that are ready as issues, and record the issue in each note.
+---
+
+```bash
+holocron ideas sync [--dry-run] [--yes]
+```
+
+An idea starts as a note in a folder of Markdown files (an Obsidian vault). `ideas sync` is the step that turns a note into an issue: it reads the notes, creates an issue through the repo's `issues` provider for each one that is ready, and writes the issue's key into the note, so the note is never filed twice. The design is [SPEC-0072](https://github.com/theholocron/holocron/issues/1994).
+
+## Configuration
+
+An `ideas` block in `holocron.config`:
+
+```ts
+ideas: {
+	dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/holocron",
+	states: { file: "in-progress" },
+},
+```
+
+| Key           | Default       | Meaning                                                                                     |
+| ------------- | ------------- | ------------------------------------------------------------------------------------------- |
+| `dir`         | required      | The folder of notes. A leading `~` is the home folder.                                      |
+| `states.file` | `in-progress` | The `status:` that means "file this idea". Another repo can use its own word for the state. |
+
+`HOLOCRON_IDEAS_DIR` overrides `dir`, because the path differs per machine (see [environment variables](/holocron/environment-variables/)). A wrong shape is a `ConfigError` that names the path, such as `ideas.dir` or `ideas.states.file`.
+
+## What it files
+
+It reads every `.md` file under `dir`, except in folders whose name starts with `_` or `.` (`.obsidian`, `.trash`, `_archive`). A note is filed when its `status:` property equals the filing state and it has no `issue:` property (or an empty one).
+
+- **Title** is the first `#` heading, else the file name without `.md`.
+- **Body** is the note's text without its frontmatter, then a blank line and `Filed from idea: <title>`. With no note left to hold `issue:`, that line is how an issue is traced to its idea.
+- **`issue:`** is then added to the note's frontmatter in the tracker's own syntax (`#1234` for GitHub, `ENG-42` for Linear). Everything else in the file, including line endings, is left as it was.
+- **Embedded files** (`![[photo.png]]`, `![](assets/a.png)`) cannot go into an issue body, so a note that has one is reported and skipped. An image with a web address is plain text and does not count.
+
+## Behavior
+
+- **One row per note**, printed like every [`doctor <capability>`](/holocron/commands/doctor/): `ok` (filed), `fail`, or `skipped` (not in the filing state, already filed, embedded files), then `N ok, N fail, N skipped`. Exit code 1 if any row fails.
+- **Asks first** unless `--dry-run` or `--yes`. Without a terminal it refuses to run without one of them.
+- **`--dry-run`** reads the notes and prints `would file "<title>"`. It writes nothing and does not load the provider.
+- **Never deletes.** A filed note stays in the folder with `issue:` set; moving it out of the vault belongs to the Obsidian plugin (a later part of the design).
+- **A second run changes nothing**, because `issue:` is now set.
+- **A note that cannot be filed is a failing row, not the end of the run.** If the issue was created but the note could not be written, the row says so and gives the key to add by hand; the next run would otherwise file that note again.
+
+## Options
+
+| Option      | Default | Description                                                    |
+| ----------- | ------- | -------------------------------------------------------------- |
+| `--dry-run` | `false` | Show what would be filed, without creating or writing anything |
+| `--yes`     | `false` | File without asking (required without a terminal)              |
+
+## Tokens
+
+The `issues` provider reads its token through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring). The command needs the provider's plugin package to resolve, as every command that calls a provider does.

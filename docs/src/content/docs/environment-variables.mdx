@@ -30,6 +30,7 @@ Read as `HOLOCRON_<NAME>`, then `<NAME>`.
 | `AXIOM_ORG`                                                          | Sentinel (`constants.ts`), `check-dispatched.yml`                       | `HOLOCRON_AXIOM_ORG`, then `AXIOM_ORG`. The org variable is `HOLOCRON_AXIOM_ORG` (bare `AXIOM_ORG` until renamed), read by `check-dispatched`                                           |
 | `BASE_SHA`, `PR_TITLE`, `PR_BODY`                                    | `docs presence`, `docs patch`                                           | `validate/docs.yml` sets both spellings until every caller's CLI reads the prefixed one                                                                                                 |
 | `GOOGLE_*` (`CLIENT_ID`, `CLIENT_SECRET`, `SERVICE_ACCOUNT_JSON`, …) | `@theholocron/google-client`                                            | Holocron's own names; no Google tool reads them                                                                                                                                         |
+| `IDEAS_DIR`                                                          | `holocron ideas sync` (`resolveIdeasDir`)                               | `HOLOCRON_IDEAS_DIR`, then `IDEAS_DIR`, over `ideas.dir` of `holocron.config`. The path of the idea notes folder differs per machine; a leading `~` is the home folder                  |
 
 Group 1 names not migrated yet, and why (the only one left):
 
