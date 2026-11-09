@@ -57,27 +57,32 @@ defaults.
 4. **The normal process.** From the issue on, it is the existing flow. The idea is no longer a separate file.
 5. **Spec time.** The issue text is the starting point for the spec's Problem section.
 
-The issue body is the note's text, then a line `Filed from idea: <title>`. With no note left to write `issue:` into,
-that line is how an issue is traced to its idea.
+The issue body is the note's text, then a line `Filed from idea: <title>`, then a hidden marker on its own last line,
+`<!-- holocron:idea <path of the note in the vault> -->`. With no note left to write `issue:` into, the visible line is
+how an issue is traced to its idea. The marker is how `ideas sync` knows a note was already filed: it looks for an issue
+carrying it before it creates one, so a note whose `issue:` could not be written back is never filed twice.
 
 ## Parts
 
 ### 1. `holocron ideas sync`
 
-`holocron ideas sync [--dry-run] [--yes]`, a `repo-aware` command with a `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY`
-entry.
+`holocron ideas sync [--dry-run] [--yes]`, a `workspace` command (it loads the `issues` provider, which the execution
+contexts rule makes `workspace`) with a `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY` entry.
 
 - Reads every note in `ideas.dir`, except those in a folder whose name starts with `_` or `.` (`_templates/` for the
   note template, and Obsidian's own `.obsidian/` and `.trash/`).
 - For each note in the filing state with no `issue:`, creates an issue and writes `issue:` into the note, in the
   tracker's own syntax (`#1234`, `RANDO-7`), which `specs check` already accepts. This is what makes the step run once.
-- Prints one row per note through `printCheckRows`, and a summary.
+- Prints a row through `printCheckRows` only for a note it files or one it skips for a reason the user can act on
+  (an attachment, an unreadable file), and a summary that counts the rest (`3 filed, 1 skipped, 41 not ready`). A vault
+  of hundreds of `seed` notes would otherwise bury the few that matter.
 - Follows the other writers: asks first unless `--dry-run` or `--yes`, never deletes, is a no-op the second time, and a
   note it cannot file is a row, not the end of the run.
 - **The CLI never deletes a note.** Without the plugin, a filed note stays in the vault with `issue:` set. Deleting from
   a command line is the riskier half, so it belongs to the plugin, which can use Obsidian's trash.
 - A note with embedded attachments (an image or a file) is reported and skipped, because an issue body cannot carry
-  them.
+  them. An embedded note (`![[other note]]`) counts as one, since Obsidian uses the same syntax for both and the issue
+  would show only the link.
 
 The `ideas` block:
 
