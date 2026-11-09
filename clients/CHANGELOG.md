@@ -1,3 +1,9 @@
+## [1.58.0-alpha.26](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.25...clients-v1.58.0-alpha.26) (2026-11-09)
+
+### Bug Fixes
+
+* **github-client:** 🐛 read every page of a pull request's files ([#2011](https://github.com/theholocron/holocron/issues/2011)) ([2a75ec5](https://github.com/theholocron/holocron/commit/2a75ec5056c1cba9949b95055d2b062b26b646ac)), closes [#2009](https://github.com/theholocron/holocron/issues/2009)
+
 ## [1.58.0-alpha.25](https://github.com/theholocron/holocron/compare/clients-v1.58.0-alpha.24...clients-v1.58.0-alpha.25) (2026-11-09)
 
 ### Bug Fixes
