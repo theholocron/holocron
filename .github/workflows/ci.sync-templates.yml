@@ -1,24 +1,27 @@
 # AUTO-GENERATED — do not edit directly.
-# Source:  theholocron/holocron · cli/astromech/src/thin-callers.ts
+# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts
 # Tool:    holocron repo sync
 # Changes: edit source in theholocron/holocron
+# Source package: .
+
 name: sync-templates
 
-# Calls the reusable in this repo (./.github/workflows/sync-templates.yml), generated from ci/workflows/, so a PR
-# that edits it runs the edit. What it pushes to theholocron/.github is built from the same sources.
+# Bootstrap note: this `uses:` a reusable workflow that must already exist
+# on theholocron/.github's main branch to resolve at all — a brand-new
+# reusable workflow here needs ONE manual `holocron sync github` run
+# (pushing directly to theholocron/.github) before this thin caller can
+# ever successfully trigger it, since GitHub resolves `uses:` at run time,
+# not at merge time. Same deadlock every reusable workflow added here hits
+# on its first introduction.
 on: # yamllint disable-line rule:truthy
   push:
-    # main only — this publishes to theholocron/.github, consumed by every
-    # other repo's CI. alpha is the prerelease channel; publishing from it
-    # would let unreleased/unstable template changes overwrite what main
-    # just published, the same stable-vs-prerelease split this org already
-    # enforces for npm's dist-tags and Sentinel's own deploy trigger.
-    branches: [main]
+    branches: [main, alpha]
     paths:
       - ci/**
       - cli/astromech/src/templates/**
       - cli/astromech/src/generators/**
       - cli/astromech/src/registry/**
+      - cli/cli/src/commands/sync/**
   workflow_dispatch: {}
 
 concurrency:
@@ -31,11 +34,11 @@ permissions:
 jobs:
   sync-templates:
     name: sync-templates
-    # workflow_dispatch can target ANY ref, not only main — without this,
+    # workflow_dispatch can target ANY ref, not only the release branches — without this,
     # anyone able to dispatch this workflow (a broader group than who can
-    # push to main) could run it against an arbitrary branch, checking out
+    # push to them) could run it against an arbitrary branch, checking out
     # and building that ref's own code with the sync token present, then
     # publishing that ref's templates to theholocron/.github.
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/alpha'
     uses: ./.github/workflows/sync-templates.yml
     secrets: inherit

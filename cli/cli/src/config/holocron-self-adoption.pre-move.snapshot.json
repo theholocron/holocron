@@ -188,6 +188,7 @@
     },
     "sync-repo",
     "check-notify",
+    "sync-templates",
     "check-tokens",
     "publish-wiki"
   ],

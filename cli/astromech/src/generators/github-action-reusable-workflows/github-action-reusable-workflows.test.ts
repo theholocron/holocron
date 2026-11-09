@@ -618,18 +618,18 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(REUSABLE_ACTIONS["git-identity/action"]).toContain(
 			"41898282+github-actions[bot]@users.noreply.github.com"
 		);
-		for (const id of ["release", "sync-github"]) {
+		for (const id of ["release", "sync-templates"]) {
 			expect(REUSABLE_WORKFLOWS[id]).toContain("uses: ./ci/actions/git-identity");
 			expect(REUSABLE_WORKFLOWS[id]).not.toContain("41898282");
 		}
 	});
 
 	it("the sync workflows take the org from the run, not from a literal", () => {
-		for (const id of ["release", "sync-github", "sync-repo", "sync-dispatch"]) {
+		for (const id of ["release", "sync-templates", "sync-repo", "sync-dispatch"]) {
 			const code = REUSABLE_WORKFLOWS[id]!.replace(/^\s*#.*$/gm, "");
 			expect(code).not.toMatch(/(?<![\w@/-])theholocron\/(?!\.github\/\.github\/)/);
 		}
-		expect(REUSABLE_WORKFLOWS["sync-github"]).toContain("format('{0}/.github', github.repository_owner)");
+		expect(REUSABLE_WORKFLOWS["sync-templates"]).toContain("format('{0}/.github', github.repository_owner)");
 	});
 
 	it("the lint-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
@@ -1046,7 +1046,7 @@ describe("organization variables are read by their HOLOCRON_ name first (#1864)"
 	});
 
 	it("reads the PostHog key from vars.HOLOCRON_POSTHOG_PROJECT_TOKEN, then the bare variable", () => {
-		for (const id of ["sync-github", "sync-repo"]) {
+		for (const id of ["sync-templates", "sync-repo"]) {
 			expect(REUSABLE_WORKFLOWS[id]).toContain(
 				"HOLOCRON_POSTHOG_PROJECT_TOKEN: ${{ vars.HOLOCRON_POSTHOG_PROJECT_TOKEN || vars.POSTHOG_PROJECT_TOKEN }}"
 			);
