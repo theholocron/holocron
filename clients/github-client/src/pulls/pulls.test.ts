@@ -144,6 +144,28 @@ describe("pulls.listFiles", () => {
 		// Binary files and very large diffs come back with no patch at all.
 		expect(result[1]?.patch).toBeUndefined();
 	});
+
+	it("reads every page until one comes back short", async () => {
+		const page = (start: number, count: number) =>
+			Array.from({ length: count }, (_, i) => ({ filename: `f${start + i}.ts`, status: "modified" as const }));
+		const { fetch, calls } = stubFetch([{ body: page(0, 100) }, { body: page(100, 100) }, { body: page(200, 7) }]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listFiles(REPO, 42);
+		expect(calls).toHaveLength(3);
+		expect(calls[1]?.url).toContain("page=2");
+		expect(calls[2]?.url).toContain("page=3");
+		expect(result).toHaveLength(207);
+		expect(result[206]?.filename).toBe("f206.ts");
+	});
+
+	it("stops at the 3000 files GitHub serves", async () => {
+		const full = Array.from({ length: 100 }, (_, i) => ({ filename: `f${i}.ts`, status: "modified" as const }));
+		const { fetch, calls } = stubFetch(Array.from({ length: 31 }, () => ({ body: full })));
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.pulls.listFiles(REPO, 42);
+		expect(calls).toHaveLength(30);
+		expect(result).toHaveLength(3000);
+	});
 });
 
 describe("pulls.createReview", () => {

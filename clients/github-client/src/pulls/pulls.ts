@@ -219,6 +219,10 @@ const RESOLVE_REVIEW_THREAD_MUTATION = `
 const PULL_REQUEST_PAGE_SIZE = 100;
 const PULL_REQUEST_MAX_PAGES = 100;
 
+/** Page size and the most pages {@link pulls}`.listFiles` reads: 100 a page over 30 pages, the 3000 files GitHub serves. */
+const FILE_PAGE_SIZE = 100;
+const FILE_MAX_PAGES = 30;
+
 export function pulls(rest: RestClient, graphql: GraphQLClient) {
 	return {
 		getPullRequest: (repo: string, number: number): Promise<GitHubPullRequest> =>
@@ -250,13 +254,20 @@ export function pulls(rest: RestClient, graphql: GraphQLClient) {
 			rest.request<GitHubPullRequestCommit[]>(`${repoBase(repo)}/pulls/${number}/commits?per_page=100`),
 
 		/**
-		 * A PR's own changed files. `per_page=100` — GitHub's max — covers
-		 * every real PR in this org; a PR genuinely exceeding 100 changed
-		 * files (GitHub caps this endpoint at 3000 regardless of pagination)
-		 * is an edge case no consumer here needs to paginate for today.
+		 * A PR's own changed files, read a page at a time until a page comes back short. GitHub serves at most
+		 * 3000 files from this endpoint, so a larger PR is cut at that cap.
 		 */
-		listFiles: (repo: string, number: number): Promise<GitHubPullRequestFile[]> =>
-			rest.request<GitHubPullRequestFile[]>(`${repoBase(repo)}/pulls/${number}/files?per_page=100`),
+		listFiles: async (repo: string, number: number): Promise<GitHubPullRequestFile[]> => {
+			const all: GitHubPullRequestFile[] = [];
+			for (let page = 1; page <= FILE_MAX_PAGES; page++) {
+				const batch = await rest.request<GitHubPullRequestFile[]>(
+					`${repoBase(repo)}/pulls/${number}/files?per_page=${FILE_PAGE_SIZE}&page=${page}`
+				);
+				all.push(...batch);
+				if (batch.length < FILE_PAGE_SIZE) break;
+			}
+			return all;
+		},
 
 		/** A PR's reviews, oldest first. `per_page=100` covers every real PR in this org. */
 		listReviews: (repo: string, number: number): Promise<GitHubPullRequestReview[]> =>
