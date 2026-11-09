@@ -1,3 +1,15 @@
+## [5.0.0-alpha.395](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.394...v5.0.0-alpha.395) (2026-11-09)
+
+### Features
+
+* **ideas:** 💡 add holocron ideas sync (part 1 of the ideas vault) ([#2004](https://github.com/theholocron/holocron/issues/2004)) ([99e4cd0](https://github.com/theholocron/holocron/commit/99e4cd0e3c12571451bfd34eb8071255ce6b71e5)), closes [#1994](https://github.com/theholocron/holocron/issues/1994)
+* **issues:** 🔎 let Issues.search filter by text ([#2006](https://github.com/theholocron/holocron/issues/2006)) ([ba0c983](https://github.com/theholocron/holocron/commit/ba0c983f68ebff04649b81b093f38ce2def2e84e)), closes [#2005](https://github.com/theholocron/holocron/issues/2005)
+
+### Bug Fixes
+
+* **cli:** 🐛 pin deploy stage's [@theholocron](https://github.com/theholocron) alpha deps to npm's alpha tag ([#2012](https://github.com/theholocron/holocron/issues/2012)) ([f7c3f3e](https://github.com/theholocron/holocron/commit/f7c3f3e36683136d2ada7a880b10d6a120060f16)), closes [#2010](https://github.com/theholocron/holocron/issues/2010)
+* **cli:** 🐛 run the CLI from source with a text-import preload (start:source) ([#2013](https://github.com/theholocron/holocron/issues/2013)) ([784627a](https://github.com/theholocron/holocron/commit/784627a4caecf546be42a2e9da1cb4aa507315b5)), closes [#2007](https://github.com/theholocron/holocron/issues/2007)
+
 ## [5.0.0-alpha.394](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.393...v5.0.0-alpha.394) (2026-11-09)
 
 ### Refactoring
