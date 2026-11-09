@@ -7,6 +7,8 @@ export interface StageDeployInput {
 	print?: (line: string) => void;
 	/** Injectable for testing. */
 	resolveVersion?: (packageDir: string, name: string) => string;
+	/** The required peers of an installed dependency with their installed versions. Injectable for testing. */
+	resolvePeers?: (packageDir: string, dependency: string) => Record<string, string>;
 }
 
 /** What {@link stageDeploy} wrote. */

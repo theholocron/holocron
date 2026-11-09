@@ -23,9 +23,14 @@
  *                         function's node_modules is already fully controlled by the
  *                         trimmed `package.json` below (nothing extra to prune), so
  *                         there is no upside to nft's pruning here, only risk.
- *                         It also sets `installCommand` to `npm install --legacy-peer-deps`:
- *                         the plugins peer on one exact CLI version and on `^` ranges that
- *                         a prerelease never satisfies, so a strict install fails ERESOLVE.
+ *     .npmrc            — `legacy-peer-deps=true`: the plugins peer on one exact CLI version
+ *                         and on `^` ranges that a prerelease never satisfies, so a strict
+ *                         install fails ERESOLVE. That setting also stops npm installing peers,
+ *                         so `package.json` lists the required peers of each dependency too, at
+ *                         the version installed beside it. An `installCommand` in vercel.json or in the
+ *                         request did not reach the install Vercel runs for the function (the
+ *                         deployment still ran a plain `npm install`); an `.npmrc` in the
+ *                         payload applies to whichever `npm install` runs there.
  *     package.json      — trimmed: name/version/type/engines + dependencies only,
  *                         each pinned to the exact version actually resolved in
  *                         node_modules right now (not the "workspace:" / "catalog:"
@@ -50,6 +55,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import type { StageDeployInput, StageDeployReport } from "./deploy-stage.type.js";
+import { installedPeers } from "./installed-peers.js";
 import { undeclaredExternals } from "./undeclared-externals.js";
 import { vercelEngines } from "./vercel-engines.js";
 
@@ -75,6 +81,7 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 	const outDir = input.outDir ?? join(packageDir, ".vercel-deploy");
 	const print = input.print ?? (() => {});
 	const resolveVersion = input.resolveVersion ?? installedVersion;
+	const resolvePeers = input.resolvePeers ?? installedPeers;
 	try {
 		const distIndex = join(packageDir, "dist", "index.mjs");
 		if (!existsSync(distIndex)) {
@@ -94,8 +101,18 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 			);
 		}
 
-		const dependencies = Object.fromEntries(
+		const direct = Object.fromEntries(
 			Object.keys(pkg.dependencies ?? {}).map((name) => [name, resolveVersion(packageDir, name)])
+		);
+		// `.npmrc` turns off npm's own peer installation, so a peer a dependency needs at runtime is pinned here.
+		// A package's own dependency wins over a peer of the same name.
+		const peers = Object.fromEntries(
+			Object.keys(direct)
+				.flatMap((name) => Object.entries(resolvePeers(packageDir, name)))
+				.filter(([name]) => !(name in direct))
+		);
+		const dependencies = Object.fromEntries(
+			Object.entries({ ...direct, ...peers }).sort(([a], [b]) => a.localeCompare(b))
 		);
 
 		rmSync(outDir, { recursive: true, force: true });
@@ -116,6 +133,7 @@ export function stageDeploy(input: StageDeployInput): StageDeployReport {
 			dependencies,
 		};
 		writeFileSync(join(outDir, "package.json"), stringifyJson(deployPkg));
+		writeFileSync(join(outDir, ".npmrc"), "legacy-peer-deps=true\n");
 
 		print(`Staged deploy payload at ${outDir}`);
 		print(

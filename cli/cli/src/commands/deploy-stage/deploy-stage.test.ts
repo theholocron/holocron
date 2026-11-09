@@ -50,6 +50,36 @@ describe("stageDeploy", () => {
 		expect(lines.join("\n")).toContain("yaml@9.9.9-yaml");
 	});
 
+	it("also pins the required peers of each dependency, which legacy-peer-deps would not install", () => {
+		makePackage('import YAML from "yaml";');
+		const report = stageDeploy({
+			packageDir: dir,
+			resolveVersion,
+			resolvePeers: (_, dependency): Record<string, string> =>
+				dependency === "yaml" ? { "peer-b": "2.0.0", "peer-a": "1.0.0" } : {},
+		});
+		expect(report.dependencies).toEqual({ "peer-a": "1.0.0", "peer-b": "2.0.0", yaml: "9.9.9-yaml" });
+		expect(Object.keys(report.dependencies ?? {})).toEqual(["peer-a", "peer-b", "yaml"]);
+		const staged = JSON.parse(readFileSync(join(dir, ".vercel-deploy", "package.json"), "utf8"));
+		expect(staged.dependencies).toEqual({ "peer-a": "1.0.0", "peer-b": "2.0.0", yaml: "9.9.9-yaml" });
+	});
+
+	it("keeps a dependency's own pinned version over a peer of the same name", () => {
+		makePackage('import YAML from "yaml";');
+		const report = stageDeploy({
+			packageDir: dir,
+			resolveVersion,
+			resolvePeers: () => ({ yaml: "0.0.1" }),
+		});
+		expect(report.dependencies).toEqual({ yaml: "9.9.9-yaml" });
+	});
+
+	it("writes an .npmrc that skips peer resolution, so a strict install cannot fail ERESOLVE", () => {
+		makePackage("export {};");
+		stageDeploy({ packageDir: dir, resolveVersion });
+		expect(readFileSync(join(dir, ".vercel-deploy", ".npmrc"), "utf8")).toBe("legacy-peer-deps=true\n");
+	});
+
 	it("writes to --out when given, replacing what was there", () => {
 		makePackage("export {};");
 		const out = join(dir, "elsewhere");
