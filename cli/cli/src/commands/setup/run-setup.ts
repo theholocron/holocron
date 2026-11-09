@@ -29,7 +29,7 @@ import { stringifyJson } from "@theholocron/json-utils";
 import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { AuthError, createFeatureResolver } from "../../auth.js";
+import { AuthError, createFeatureResolver } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import {
 	assertPluginsResolvable,

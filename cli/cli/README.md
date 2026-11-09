@@ -898,7 +898,7 @@ the local override exists to exempt.
   (`@theholocron/kyber/plugins`: dynamic-imports plugins, resolves capability config packages,
   builds the capability registry); Holocron's prefix, plugin options and the credentials / `.env`
   step are passed in
-- `src/cli.ts` — yargs entry, dispatches subcommands. `holocron run` / `ci` are
+- `src/cli/cli.ts` — yargs entry, dispatches subcommands. `holocron run` / `ci` are
   delegated to [`@theholocron/astromech`](../astromech) (`createAstromech`).
   `holocron repo sync` / `holocron repo setup` write each repo's `.github/workflows/*.yml`
   thin callers from `astromech.thinCallers()`; `holocron sync github` pushes the
@@ -921,7 +921,7 @@ the local override exists to exempt.
   The engine itself (the picker, argv and secret env, the dry-run preview, the spawn)
   and the prompting pieces — `promptForPositionals`, `promptForOptions` — live in
   `@theholocron/kyber` (`/menu`, `/prompts`), which has no knowledge of commands.
-- `src/plugin/connection-probe/` — the `connectionProbe` a plugin offers, kyber's `connectionProbe` (`@theholocron/kyber/checks`)
+- `src/plugin/probes/connection-probe/` — the `connectionProbe` a plugin offers, kyber's `connectionProbe` (`@theholocron/kyber/checks`)
   typed as the plugin system's `Probe` with `verify` returning `VerifyTokenResult`; `monitoring check` runs its checks
   with kyber's `runCheckAgainstUrl`.
 - `src/commands/move-tag/` — the `package move-tag` yargs command, the registry entry and `runMoveTag`, which adds the

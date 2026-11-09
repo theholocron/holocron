@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ConfigError } from "./config/index.js";
-import { loadConfig } from "./config-system.js";
+import { ConfigError } from "../config/index.js";
+import { loadConfig } from "../config-system.js";
 
 /** The org area is shared with configs in subdirectories (#1829); the other areas are not. */
 describe("loadConfig with the repository root's .holocron/ shared (#1829)", () => {

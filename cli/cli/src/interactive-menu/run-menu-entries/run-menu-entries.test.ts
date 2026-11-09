@@ -11,7 +11,7 @@ vi.mock("@theholocron/astromech", () => ({
 	createAstromech: (...args: unknown[]) => createAstromechMock(...args),
 }));
 
-const { buildRunMenuEntries, listRunnableTasks } = await import("../run-menu-entries/index.js");
+const { buildRunMenuEntries, listRunnableTasks } = await import("./index.js");
 
 describe("listRunnableTasks", () => {
 	beforeEach(() => {

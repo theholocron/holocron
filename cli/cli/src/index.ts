@@ -1,5 +1,4 @@
-export * from "./auth.js";
-export type * from "./auth.type.js";
+export * from "./auth/index.js";
 export type { PluginToken, VerifyTokenFailure, VerifyTokenResult, VerifyTokenSuccess } from "./commands/auth/index.js";
 export * from "./commands/notifications-sync-roles/public.js";
 export * from "./commands/setup/derived-properties/index.js";
@@ -11,13 +10,9 @@ export * from "./config/config-system.js";
 export * from "./config/load-config/holocron-areas/index.js";
 export * from "./config/load-config/place-areas/index.js";
 export * from "./plugin/capabilities/index.js";
-export * from "./plugin/connection-probe/index.js";
-export * from "./plugin/order-keys/index.js";
-export * from "./plugin/pick-by-creation/index.js";
-export type * from "./plugin/probe/index.js";
+export * from "./plugin/issues-provider/index.js";
+export * from "./plugin/probes/index.js";
 export type * from "./plugin/provider-actions/index.js";
-export * from "./plugin/read-keys-limited/index.js";
-export * from "./plugin/report-progress/index.js";
 // Plugins build their REST clients with the shared HTTP primitives; `plugin-create` scaffolds import them from here.
 export {
 	createRestClient,

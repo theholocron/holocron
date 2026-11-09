@@ -16,7 +16,7 @@ import { findCredential } from "@theholocron/kyber/secrets";
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { keyring } from "../../auth.js";
+import { keyring } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader } from "../../plugin/index.js";
 import { type AuthPluginModule, defaultImporter, type PluginToken } from "../auth/index.js";

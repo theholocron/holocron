@@ -1,4 +1,4 @@
-import type { IssueOrder } from "../capabilities/index.js";
+import type { IssueOrder } from "../../capabilities/index.js";
 
 /**
  * Puts issue keys in creation order without asking the tracker: issue numbers (`#12`, `ENG-12`) rise with creation inside

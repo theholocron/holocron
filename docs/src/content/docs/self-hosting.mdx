@@ -31,7 +31,7 @@ pnpm build
 # If your npm account requires 2FA for writes, grab a one-time password
 # from your authenticator and pass it via --otp. The same code is reused
 # across all sequential publishes — they happen within seconds.
-pnpm exec tsx cli/cli/src/cli.ts package publish --initial --otp 123456
+pnpm exec tsx cli/cli/src/cli/cli.ts package publish --initial --otp 123456
 ```
 
 Add `--dry-run` to print what would happen without publishing. If you forget `--otp` and your account needs it, the command detects the `EOTP` error and prints the corrected command.

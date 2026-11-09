@@ -1,4 +1,4 @@
-import type { IssueOrder } from "../capabilities/index.js";
+import type { IssueOrder } from "../../capabilities/index.js";
 
 /**
  * Keeps the first or last `limit` of a listing by creation time, returned oldest first. `createdAt` reads an item's

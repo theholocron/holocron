@@ -50,7 +50,7 @@ pnpm build
 # one-time password from your authenticator and pass it via --otp. The
 # same code is reused across all sequential publishes — they happen in
 # seconds, comfortably inside the TOTP window.
-pnpm exec tsx cli/cli/src/cli.ts package publish --initial --otp 123456
+pnpm exec tsx cli/cli/src/cli/cli.ts package publish --initial --otp 123456
 
 ```
 

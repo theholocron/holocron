@@ -13,8 +13,8 @@ vi.mock("@theholocron/kyber/secrets", async (importActual) => ({
 	...(await importActual<typeof import("@theholocron/kyber/secrets")>()),
 	copyToClipboard: write,
 }));
-vi.mock("../../auth.js", async (importActual) => {
-	const actual = await importActual<typeof import("../../auth.js")>();
+vi.mock("../../auth/index.js", async (importActual) => {
+	const actual = await importActual<typeof import("../../auth/index.js")>();
 	return { ...actual, keyring: { ...actual.keyring, get: () => null, isAvailable: () => true } };
 });
 

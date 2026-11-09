@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 /** Runs the built CLI (`dist/cli.mjs`) in a fresh directory with no tokens, no telemetry and no update check. */
 const runCli = createCliRunner({
-	bin: join(dirname(fileURLToPath(import.meta.url)), "..", "dist", "cli.mjs"),
+	bin: join(dirname(fileURLToPath(import.meta.url)), "..", "..", "dist", "cli.mjs"),
 	configFile: "holocron.config.json",
 	env: { HOLOCRON_TELEMETRY: "false" },
 	prefix: "holocron-cli-",

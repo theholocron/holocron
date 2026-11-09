@@ -314,7 +314,7 @@ here, and why the caps and the "only what is imported is evaluated" rule exist.
 7. **Where the avatar goes.** Resolved (#1788, #1801): `.holocron/media/webhook-avatar.png`. `media/` is shared (the
    `--sound` MP3s and its README live there), so only the avatar moved.
 8. **How is the move proved, and what keeps the config short?** Resolved (#1806, #1807).
-   `cli/cli/src/config/load-config-self-adoption.test.ts` loads this repo's own `holocron.config.ts` through the real
+   `cli/cli/src/config/load-config/load-config-self-adoption.test.ts` loads this repo's own `holocron.config.ts` through the real
    loader: the raw export has no `layout` and none of `teams`/`topics`/`variables`/`secrets` (so it fails if one is put
    back inline), the loaded config takes them from `.holocron/`, and the whole resolved config equals
    `holocron-self-adoption.pre-move.snapshot.json`, the resolution of the config before #1786. `holocron-config-size.test.ts`

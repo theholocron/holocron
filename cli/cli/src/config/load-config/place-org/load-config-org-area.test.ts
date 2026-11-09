@@ -3,11 +3,11 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { loadConfig } from "./config-system.js";
+import { loadConfig } from "../../config-system.js";
 
-const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
-const SENTINEL = fileURLToPath(new URL("../../../../apps/sentinel/", import.meta.url));
-const SENTINEL_CONFIG = new URL("../../../../apps/sentinel/holocron.config.ts", import.meta.url);
+const REPO_ROOT = fileURLToPath(new URL("../../../../../../", import.meta.url));
+const SENTINEL = fileURLToPath(new URL("../../../../../../apps/sentinel/", import.meta.url));
+const SENTINEL_CONFIG = new URL("../../../../../../apps/sentinel/holocron.config.ts", import.meta.url);
 
 /**
  * Sentinel's fully resolved config as it was before #1820 moved the Vercel `teamId` and the Checkly `accountId` out of
@@ -29,10 +29,13 @@ describe("the org area in this repo (#1820)", () => {
 
 	it("holds the Checkly accountId once, in the root area, and Sentinel still gets it (#1829)", async () => {
 		const own = (
-			await import(/* @vite-ignore */ new URL("../../../../apps/sentinel/.holocron/org.ts", import.meta.url).href)
+			await import(
+				/* @vite-ignore */ new URL("../../../../../../apps/sentinel/.holocron/org.ts", import.meta.url).href
+			)
 		).default as Record<string, unknown>;
-		const shared = (await import(/* @vite-ignore */ new URL("../../../../.holocron/org.ts", import.meta.url).href))
-			.default as Record<string, unknown>;
+		const shared = (
+			await import(/* @vite-ignore */ new URL("../../../../../../.holocron/org.ts", import.meta.url).href)
+		).default as Record<string, unknown>;
 		expect(Object.keys(own)).toEqual(["vercel"]);
 		expect(shared).toHaveProperty("checkly");
 		const { resolved } = await loadConfig(SENTINEL);
@@ -83,10 +86,13 @@ describe("the org area in this repo (#1820)", () => {
 	});
 
 	it("spells the zone once, in the root area, and every config and area file gets it from there (#1727)", async () => {
-		const shared = (await import(/* @vite-ignore */ new URL("../../../../.holocron/org.ts", import.meta.url).href))
-			.default as { domain: string };
+		const shared = (
+			await import(/* @vite-ignore */ new URL("../../../../../../.holocron/org.ts", import.meta.url).href)
+		).default as { domain: string };
 		const own = (
-			await import(/* @vite-ignore */ new URL("../../../../apps/sentinel/.holocron/org.ts", import.meta.url).href)
+			await import(
+				/* @vite-ignore */ new URL("../../../../../../apps/sentinel/.holocron/org.ts", import.meta.url).href
+			)
 		).default as Record<string, unknown>;
 		expect(shared.domain).toBe("theholocron.dev");
 		expect(own).not.toHaveProperty("domain");
@@ -94,8 +100,9 @@ describe("the org area in this repo (#1820)", () => {
 		expect(root.resolved.domain).toBe(shared.domain);
 		const wiki = root.resolved.providers.wiki as unknown as { tuple: { options: { domain: string } } };
 		expect(wiki.tuple.options.domain).toBe(`wiki.${shared.domain}`);
-		const raw = (await import(/* @vite-ignore */ new URL("../../../../holocron.config.ts", import.meta.url).href))
-			.default as Record<string, unknown>;
+		const raw = (
+			await import(/* @vite-ignore */ new URL("../../../../../../holocron.config.ts", import.meta.url).href)
+		).default as Record<string, unknown>;
 		expect(raw).not.toHaveProperty("domain");
 		const sentinel = await loadConfig(SENTINEL);
 		expect(sentinel.resolved.domain).toBe(shared.domain);
@@ -122,8 +129,9 @@ describe("the org area in this repo (#1820)", () => {
 	});
 
 	it("fills the Sentry org slug into the root config's errors entry from the area, not inline (#1727)", async () => {
-		const raw = (await import(/* @vite-ignore */ new URL("../../../../holocron.config.ts", import.meta.url).href))
-			.default as { providers: { errors: unknown } };
+		const raw = (
+			await import(/* @vite-ignore */ new URL("../../../../../../holocron.config.ts", import.meta.url).href)
+		).default as { providers: { errors: unknown } };
 		expect(raw.providers.errors).toBe("sentry");
 		const { resolved } = await loadConfig(REPO_ROOT);
 		expect(resolved.providers.errors).toEqual({

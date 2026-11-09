@@ -580,7 +580,7 @@ check` (`pnpm exec holocron probe generated check`, the required check `validate
   (chicken-and-egg: trusted publishing needs the package to exist
   first). The command runs `npm login --auth-type=web` itself when
   `npm whoami` shows no session. Workflow: `pnpm install && pnpm build`
-  → `pnpm exec tsx cli/cli/src/cli.ts package publish --initial --otp <code>`.
+  → `pnpm exec tsx cli/cli/src/cli/cli.ts package publish --initial --otp <code>`.
   Self-narrowing: it checks every publicly publishable package against the
   npm registry (existence, not version) and only targets the ones that
   don't exist on npm yet — re-running it after adding one new package to an

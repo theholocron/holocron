@@ -7,8 +7,8 @@ const resolveToken = vi.hoisted(() => vi.fn());
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../sync-github/index.js", () => ({ runSyncGithub }));
 vi.mock("../../observability/logger/index.js", () => ({ reportError: report }));
-vi.mock("../../auth.js", async (importActual) => ({
-	...(await importActual<typeof import("../../auth.js")>()),
+vi.mock("../../auth/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../auth/index.js")>()),
 	createFeatureResolver: () => resolveToken,
 }));
 vi.mock("../token-context/index.js", () => ({
@@ -19,7 +19,7 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
-import { AuthError } from "../../auth.js";
+import { AuthError } from "../../auth/index.js";
 import { runCommand } from "../run-command.testing.js";
 import { syncGithubCommand } from "../sync-github/sync-github.command.js";
 import { syncCommand } from "./sync.command.js";

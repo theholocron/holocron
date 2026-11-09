@@ -17,7 +17,7 @@ import {
 	summariseChecks,
 } from "@theholocron/kyber/ui";
 
-import { resolveValue } from "../../auth.js";
+import { resolveValue } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Logs, PluginLoader } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";

@@ -3,7 +3,7 @@ import {
 	type ConnectionProbeInput as KyberConnectionProbeInput,
 } from "@theholocron/kyber/checks";
 
-import type { VerifyTokenResult } from "../../commands/auth/auth.type.js";
+import type { VerifyTokenResult } from "../../../commands/auth/auth.type.js";
 import type { Probe } from "../probe/index.js";
 
 /** What a connection probe needs to check a provider's host and token: kyber's input, with the plugin's `verifyToken` as `verify`. */

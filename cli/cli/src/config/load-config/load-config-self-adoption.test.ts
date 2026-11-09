@@ -3,12 +3,12 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import type { NotificationsLayout } from "../plugin/index.js";
-import { loadConfig } from "./config-system.js";
+import type { NotificationsLayout } from "../../plugin/index.js";
+import { loadConfig } from "../config-system.js";
 
 /** This repository's root: its own real `holocron.config.ts` and `.holocron/` are loaded, not a copy. */
-const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
-const CONFIG_URL = new URL("../../../../holocron.config.ts", import.meta.url);
+const REPO_ROOT = fileURLToPath(new URL("../../../../../", import.meta.url));
+const CONFIG_URL = new URL("../../../../../holocron.config.ts", import.meta.url);
 
 /**
  * The fully resolved config as it was before #1747 moved anything (commit `e7fca267c`), produced by running the loader

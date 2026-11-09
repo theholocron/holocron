@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { loadConfig } from "./config-system.js";
+import { loadConfig } from "../config-system.js";
 
 /** Secrets removed on purpose after the move (#1864 follow-up): nothing reads them any more (super-linter, Storybook sandbox). */
 const DEAD_SECRETS = [
@@ -19,7 +19,7 @@ const DEAD_SECRETS = [
 /** The `repo` keys exactly as `holocron.config.ts` had them inline before #1787 (a verbatim copy of the old text). */
 const INLINE_REPO = new URL("./repo-block.inline.fixture.txt", import.meta.url);
 /** The file those keys moved to: this repo's own `.holocron/repo.ts`. */
-const MOVED_REPO = fileURLToPath(new URL("../../../../.holocron/repo.ts", import.meta.url));
+const MOVED_REPO = fileURLToPath(new URL("../../../../../.holocron/repo.ts", import.meta.url));
 
 /** What stays in the config: `defaultBranch` (and, here standing in for the preset, `protection`). */
 const STAYS = `defaultBranch: "alpha", protection: "strict"`;

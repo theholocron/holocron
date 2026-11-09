@@ -1,6 +1,6 @@
 import { type MenuEntry } from "@theholocron/kyber/menu";
 
-import { keyring } from "../../auth.js";
+import { keyring } from "../../auth/index.js";
 
 export const authCheckEntry: MenuEntry = {
 	name: "auth check",

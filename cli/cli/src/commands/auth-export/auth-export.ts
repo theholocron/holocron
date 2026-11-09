@@ -26,7 +26,7 @@ import {
 import { style } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { keyring } from "../../auth.js";
+import { keyring } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";

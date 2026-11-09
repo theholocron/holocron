@@ -26,7 +26,7 @@ import {
 	type ResolvedHolocronConfig,
 } from "../../config/config/index.js";
 import { type CapabilityKey, CARDINALITY, type CardinalityFor, type Credentials } from "../capabilities/index.js";
-import type { PluginProbes } from "../probe/index.js";
+import type { PluginProbes } from "../probes/probe/index.js";
 import type { ProviderActions } from "../provider-actions/index.js";
 import { WorkspaceContextError } from "../workspace/index.js";
 import type { HolocronCapabilities, PluginExtras, PluginLoaderOptions, RuntimeContext } from "./loader.type.js";

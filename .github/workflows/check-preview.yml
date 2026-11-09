@@ -178,7 +178,7 @@ jobs:
       - name: Verify project and run monitoring checks
         env:
           # Read directly by `monitoring run-resolved`
-          # (cli/cli/src/cli.ts) -- not part of the CLI's own
+          # (cli/cli/src/cli/cli.ts) -- not part of the CLI's own
           # `--token`-resolution chain, since neither is a vendor API
           # credential this command calls anything with: VERCEL_TOKEN
           # only verifies, read-only, that the preview URL resolves to

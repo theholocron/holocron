@@ -10,7 +10,7 @@ import { syncPropertiesFromConfig } from "./sync-properties.js";
 
 /** `teams: ..., topics: ..., variables: ..., secrets: ...` as `holocron.config.ts` had it inline (a verbatim copy). */
 const INLINE_REPO = fileURLToPath(
-	new URL("../../../../../../cli/cli/src/config/repo-block.inline.fixture.txt", import.meta.url)
+	new URL("../../../../../../cli/cli/src/config/load-config/repo-block.inline.fixture.txt", import.meta.url)
 );
 /** The file those keys moved to: this repo's own `.holocron/repo.ts`. */
 const MOVED_REPO = fileURLToPath(new URL("../../../../../../.holocron/repo.ts", import.meta.url));

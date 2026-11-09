@@ -23,8 +23,9 @@ export default defineConfig([
 		plugins: sharedPlugins,
 	},
 	{
-		// CLI binary: compiled to plain JS — shebang must use node, not tsx.
-		entry: ["src/cli.ts"],
+		// CLI binary: compiled to plain JS — shebang must use node, not tsx. The object form pins the output name,
+		// dist/cli.mjs (the package's `bin`), whatever folder the entry sits in.
+		entry: { cli: "src/cli/cli.ts" },
 		format: "esm",
 		dts: false,
 		clean: false,
