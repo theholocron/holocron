@@ -1,0 +1,34 @@
+name: sync-specs
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    - cron: "17 * * * *"
+  push:
+    branches: [main, alpha]
+    paths:
+      - ".notes/*.spec.md"
+      - "docs/wiki/specifications/*.spec.md"
+      - "docs/wiki/decisions/*.md"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only say what would be made or changed; make and write nothing"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync-specs:
+    name: sync-specs
+    # The sync opens its pull request against `alpha`, so only a run on `alpha` is wanted: a push to `main` (a release
+    # merge) and a manual run on another branch would build a pull request from the wrong tree.
+    if: github.ref == 'refs/heads/alpha'
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: theholocron/.github/.github/workflows/sync-specs.yml@main
+    with:
+      dry-run: ${{ inputs.dry_run || false }}
+    secrets: inherit

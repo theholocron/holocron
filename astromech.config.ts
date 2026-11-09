@@ -77,6 +77,10 @@ export default defineConfig({
 		"check-tokens",
 		// Wiki: publish the engineering wiki to wiki.theholocron.dev/holocron.
 		"publish-wiki",
+		// Spec discussions: a forum post in #ideas for every ADR and spec, hourly and on a push to alpha, and for the
+		// files of an open pull request.
+		"sync-specs",
+		"preview-specs",
 	],
 	// `holocron` here IS the local build artifact (`node cli/cli/dist/cli.mjs`), not an installed bin, so the synced
 	// `holocron` script runs that. The other root scripts need no CLI: in a workspace `scriptsFor` writes them as
