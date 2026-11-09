@@ -2,20 +2,19 @@ import type { CheckRow } from "@theholocron/kyber/ui";
 
 import type { LoadedConfig } from "../../../config/index.js";
 import type { PluginLoader, RuntimeContext } from "../../../plugin/index.js";
-import type { IdeasIo } from "../ideas-sync.type.js";
 
 /** What {@link runIdeasSync} needs. */
 export interface RunIdeasSyncInput {
-	/** The repo's config: its `ideas` block and its `issues` provider. */
+	/** The repo's config: its `ideas` and `issues` providers (or the legacy `ideas` block) and its `ideas.states`. */
 	loaded: LoadedConfig;
 	/** The runtime context; `dryRun` reads the notes and changes nothing. */
 	context: RuntimeContext;
 	/** File without asking. */
 	yes?: boolean;
-	/** The disk. Defaults to the real one. */
-	io?: IdeasIo;
-	/** Variables for `HOLOCRON_IDEAS_DIR`. Defaults to `process.env`. */
+	/** Variables for `HOLOCRON_IDEAS_DIR`, when the config names no provider. Defaults to `process.env`. */
 	env?: Record<string, string | undefined>;
+	/** Loads the `ideas` provider alone, to read. Defaults to a loader over the config's `ideas` entry. */
+	ideasLoader?: PluginLoader;
 	/** Defaults to a loader over the config; it is built only when there is something to file. */
 	loader?: PluginLoader;
 	/** Whether a terminal can be asked. Defaults to whether stdin is one. */
@@ -30,6 +29,6 @@ export interface RunIdeasSyncInput {
 export interface IdeasSyncReport {
 	/** `fail` if a row failed, `cancelled` when the person said no, otherwise `ok`. */
 	status: "ok" | "fail" | "cancelled";
-	/** One row per note (or one row for the run when it could not start). */
+	/** One row per idea (or one row for the run when it could not start). */
 	rows: CheckRow[];
 }

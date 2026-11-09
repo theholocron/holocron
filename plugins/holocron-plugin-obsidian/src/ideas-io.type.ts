@@ -6,7 +6,7 @@ export interface IdeasDirEntry {
 	directory: boolean;
 }
 
-/** What `ideas sync` reads and writes on disk, so a test can supply it without a disk. */
+/** What the Obsidian provider reads and writes on disk, so a test can supply it without a disk. */
 export interface IdeasIo {
 	/** The entries of a folder, or `undefined` when it does not exist or cannot be read. */
 	readDir(path: string): IdeasDirEntry[] | undefined;

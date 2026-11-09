@@ -33,7 +33,8 @@ export type CapabilityKey =
 	| "workers"
 	| "tunnels"
 	| "credentials"
-	| "projects";
+	| "projects"
+	| "ideas";
 
 /** How many providers a capability resolves to: one (`"single"`) or several at once (`"many"`). */
 export type Cardinality = "single" | "many";
@@ -3023,6 +3024,53 @@ export interface Projects extends ProviderIdentity {
 }
 
 // ───────────────────────────────────────────────────────────────────────
+// ideas — the inbox in front of the issue (spec SPEC-0072, #2022)
+// ───────────────────────────────────────────────────────────────────────
+
+/** One idea as a provider holds it, in a shape no provider owns. */
+export interface IdeaRecord {
+	/** The provider's address for the idea (a path, for Obsidian). Opaque to the CLI; the hidden issue marker carries it. */
+	key: string;
+	/** The idea's title. */
+	title: string;
+	/** The idea's text, which becomes the body of the issue. */
+	body: string;
+	/** The idea's state, in the repo's own words (`seed`, `in-progress`, ...); empty when it has none. */
+	status: string;
+	/** The issue the idea was filed as, in the tracker's own syntax; absent when it is not filed. */
+	issue?: string;
+	/**
+	 * What the provider cannot put in an issue body (an embedded image or file, another note). The command reports an
+	 * idea that has any and does not file it.
+	 */
+	attachments: string[];
+	/**
+	 * Set when the provider could not read the idea; the other fields are then empty. The command reports it as a
+	 * failing row and goes on with the rest.
+	 */
+	error?: string;
+}
+
+/**
+ * Where ideas are kept before they are issues: an inbox the process starts from (`idea -> issue -> spec -> ...`). A
+ * folder of notes, a forum or a database is one provider, so `holocron ideas sync` reads through this and files through
+ * `issues`, and a change of place is a provider entry and a plugin and nothing else. Optional: a repo with no `ideas`
+ * provider is not affected.
+ */
+export interface Ideas extends ProviderIdentity {
+	/** Identifies this provider as the `ideas` capability. */
+	readonly key: "ideas";
+	/** Every idea the provider holds, in a provider-neutral shape. Throws when the provider cannot reach its store. */
+	list(): Promise<IdeaRecord[]>;
+	/** Moves an idea to a state. */
+	setStatus(key: string, status: string): Promise<void>;
+	/** Records the issue an idea was filed as, so the step runs once. */
+	markFiled(key: string, issue: string): Promise<void>;
+	/** Takes a filed idea out of the inbox. Optional: the CLI never deletes, so a provider may leave it to an app. */
+	retire?(key: string): Promise<void>;
+}
+
+// ───────────────────────────────────────────────────────────────────────
 // Capability map (key → implementation type) + cardinality helpers
 // ───────────────────────────────────────────────────────────────────────
 
@@ -3070,6 +3118,8 @@ export interface CapabilityImpls {
 	credentials: Credentials;
 	/** The `projects` provider. */
 	projects: Projects;
+	/** The `ideas` provider. */
+	ideas: Ideas;
 }
 
 /** The cardinality (`"single"` or `"many"`) of the capability `K`. */

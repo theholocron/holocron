@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { IdeasIo } from "../ideas-sync.type.js";
+import type { IdeasIo } from "./ideas-io.type.js";
 import { listNotes } from "./list-notes.js";
 
 /** A tree of folders: a string value is a file, an object a folder. */

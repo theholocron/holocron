@@ -1,0 +1,54 @@
+---
+title: Obsidian Plugin
+description: Implements the ideas capability over an Obsidian vault of Markdown notes.
+---
+
+`@theholocron/holocron-plugin-obsidian` · [npm](https://www.npmjs.com/package/@theholocron/holocron-plugin-obsidian) · [GitHub](https://github.com/theholocron/holocron)
+
+Implements the `ideas` capability using an [Obsidian](https://obsidian.md) vault: a folder of Markdown notes. [`holocron ideas sync`](/holocron/commands/ideas-sync/) reads the ideas through it and files them through the repo's `issues` provider. The design is [SPEC-0072](https://github.com/theholocron/holocron/issues/1994).
+
+## Install
+
+```bash
+pnpm add -D @theholocron/holocron-plugin-obsidian
+```
+
+| Capability | Token                                         |
+| ---------- | --------------------------------------------- |
+| `ideas`    | None. It reads and writes files, nothing else |
+
+The plugin has no token and makes no network call, so it has no `auth.ts` and nothing for `holocron auth` or `holocron doctor tokens` to check.
+
+## Config
+
+```ts
+providers: {
+  ideas: ["obsidian", { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/The Holocron" }],
+},
+ideas: { states: { file: "in-progress" } },
+```
+
+### Options
+
+| Option | Required | Description                                                                                                                                   |
+| ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dir`  | No       | The folder of notes. A leading `~` is the home folder. `HOLOCRON_IDEAS_DIR` (then `IDEAS_DIR`) overrides it, as the path differs per machine. |
+
+Without `dir` and without the variable, the provider cannot list and the command reports a failing row that says so.
+
+A config that still has the older `ideas.dir` keeps working: when `providers.ideas` is absent, the command reads it as `["obsidian", { dir }]`. `providers.ideas` wins when both are set. `ideas.dir` is deprecated and will be removed.
+
+## What it does
+
+- **`list()`** returns every `.md` file under `dir` as an idea, except in folders whose name starts with `_` or `.` (`_templates`, `.obsidian`, `.trash`). The key is the note's path relative to `dir`, with `/` separators.
+- **Status** is the `status:` property of the note's frontmatter, and the **issue** is its `issue:` property. A note with neither has an empty status and no issue.
+- **Title** is the first `#` heading, else the file name without `.md`. The body is the text without its frontmatter.
+- **Attachments** are the embedded files an issue body cannot carry: `![[photo.png]]`, a local `![](assets/a.png)` and an embedded note (`![[other note]]`, since Obsidian uses the same syntax for both). An image with a web address, or an embed inside a code fence, is text and does not count.
+- **`setStatus(key, status)`** and **`markFiled(key, issue)`** write `status:` and `issue:`. An existing line is replaced in place, else a line is added at the end of the frontmatter. Everything else in the file, including line endings (CRLF too) and the body, is left byte for byte. A note with no frontmatter cannot hold the property and is an error, not a silent no-op.
+- **`retire()`** is not implemented. The CLI never deletes a note, and Obsidian's trash is reachable only through the app.
+
+A note that cannot be read comes back with an `error`, so the command reports it and goes on with the rest.
+
+## Where the vault lives
+
+Each repo has its own vault, and it holds ideas that are not filed yet, nothing else. The vault is meant to sit in iCloud Drive, in Obsidian's own folder, so the iOS app can capture a note. No git repository belongs inside it, because iCloud syncs file by file and can corrupt a `.git/` folder.

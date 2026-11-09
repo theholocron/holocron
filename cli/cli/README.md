@@ -693,11 +693,13 @@ See the [command pages](https://theholocron.dev/holocron/commands/notifications-
 
 ## Ideas
 
-- **`holocron ideas sync [--dry-run] [--yes]`** — files the idea notes in `ideas.dir` (an Obsidian vault; the `ideas`
-  block of `holocron.config`, or `HOLOCRON_IDEAS_DIR`) whose `status:` is the filing state (`ideas.states.file`, default
-  `in-progress`) and that have no `issue:`: it creates an issue through the `issues` provider (title the first `#`
-  heading, body the note plus `Filed from idea: <title>`) and writes `issue:` into the note. Notes with embedded files
-  are skipped. It never deletes, asks first unless `--dry-run` or `--yes`, and a second run changes nothing.
+- **`holocron ideas sync [--dry-run] [--yes]`** — files the ideas that are ready: it reads them through the `ideas`
+  provider (`providers.ideas: ["obsidian", { dir }]`, an Obsidian vault; `HOLOCRON_IDEAS_DIR` overrides `dir`; the older
+  `ideas.dir` is deprecated and read as that entry when `providers.ideas` is absent) and, for each one whose status is
+  the filing state (`ideas.states.file`, default `in-progress`) with no issue, creates an issue through the `issues`
+  provider (title the first `#` heading, body the note plus `Filed from idea: <title>`) and records it with
+  `Ideas.markFiled` (an `issue:` property, for Obsidian). Ideas with attachments are skipped. It never deletes, asks first
+  unless `--dry-run` or `--yes`, and a second run changes nothing.
 
 ## Syncing issues
 
@@ -892,7 +894,7 @@ the local override exists to exempt.
 
 ## What's in here
 
-- `src/plugin/capabilities.ts` — the 21 capability interfaces that
+- `src/plugin/capabilities.ts` — the 22 capability interfaces that
   providers implement
 - `src/config.ts` — config schema, `defineConfig`, `resolveConfig`,
   `CapabilityConfigPackage`

@@ -78,6 +78,7 @@ const PLUGINS = [
 	["linear", "Linear"],
 	["netlify", "Netlify"],
 	["neon", "Neon"],
+	["obsidian", "Obsidian"],
 	["posthog", "PostHog"],
 	["postman", "Postman"],
 	["sentry", "Sentry"],

@@ -131,8 +131,8 @@ function validateGitHubApps(apps: GitHubAppConfig[]): void {
 function validateIdeas(ideas: IdeasConfig): void {
 	const nonEmpty = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
 	const isObject = (value: unknown): boolean => typeof value === "object" && value !== null && !Array.isArray(value);
-	if (!isObject(ideas)) throw new ConfigError("`ideas` must be an object: { dir, states? }");
-	if (!nonEmpty(ideas.dir))
+	if (!isObject(ideas)) throw new ConfigError("`ideas` must be an object: { states?, dir? (deprecated) }");
+	if (ideas.dir !== undefined && !nonEmpty(ideas.dir))
 		throw new ConfigError("`ideas.dir` must be the path of the notes folder, got an empty value");
 	if (ideas.states !== undefined) {
 		if (!isObject(ideas.states)) throw new ConfigError("`ideas.states` must be an object: { file? }");

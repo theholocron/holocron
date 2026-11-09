@@ -64,6 +64,7 @@
     "@theholocron/holocron-plugin-infisical": "workspace:*",
     "@theholocron/holocron-plugin-linear": "workspace:*",
     "@theholocron/holocron-plugin-neon": "workspace:*",
+    "@theholocron/holocron-plugin-obsidian": "workspace:*",
     "@theholocron/holocron-plugin-posthog": "workspace:*",
     "@theholocron/holocron-plugin-postman": "workspace:*",
     "@theholocron/holocron-plugin-sentry": "workspace:*",

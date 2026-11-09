@@ -42,6 +42,8 @@ export const CARDINALITY = {
 	tunnels: "single",
 	/** `projects` has exactly one provider. */
 	projects: "single",
+	/** `ideas` has exactly one provider. Optional: no repo has to declare it. */
+	ideas: "single",
 	/** `credentials` can have several providers, tried in order. */
 	credentials: "many",
 } as const satisfies Record<CapabilityKey, Cardinality>;

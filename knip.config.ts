@@ -198,6 +198,7 @@ const config: KnipConfig = {
 		"@theholocron/holocron-plugin-infisical",
 		"@theholocron/holocron-plugin-linear",
 		"@theholocron/holocron-plugin-neon",
+		"@theholocron/holocron-plugin-obsidian",
 		"@theholocron/holocron-plugin-posthog",
 		"@theholocron/holocron-plugin-postman",
 		"@theholocron/holocron-plugin-sentry",

@@ -190,6 +190,7 @@ plugins/                             — vendor capability providers            
   holocron-plugin-infisical/         — @theholocron/holocron-plugin-infisical         (vault — REST)
   holocron-plugin-discord/           — @theholocron/holocron-plugin-discord           (notifications)
   holocron-plugin-fern/              — @theholocron/holocron-plugin-fern              (wiki)
+  holocron-plugin-obsidian/          — @theholocron/holocron-plugin-obsidian          (ideas — files only)
   holocron-plugin-axiom/             — @theholocron/holocron-plugin-axiom             (logs — REST)
   holocron-plugin-slack/             — @theholocron/holocron-plugin-slack             (notifications)
   holocron-plugin-postman/           — @theholocron/holocron-plugin-postman           (tooling)

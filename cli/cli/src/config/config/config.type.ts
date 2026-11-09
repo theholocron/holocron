@@ -332,13 +332,19 @@ export interface GitHubAppConfig {
 	environment: string;
 }
 
-/** The `ideas` block: where the repo's idea notes are and which state files an issue. */
+/**
+ * The `ideas` block: the state that files an idea as an issue. Where the ideas are kept is the `ideas` provider's
+ * (`providers.ideas: ["obsidian", { dir }]`), not this block's.
+ */
 export interface IdeasConfig {
 	/**
 	 * The folder of Markdown notes (an Obsidian vault). May start with `~` for the home folder. `HOLOCRON_IDEAS_DIR`
 	 * overrides it, since the path differs per machine.
+	 *
+	 * @deprecated Set `dir` on the provider instead: `providers: { ideas: ["obsidian", { dir }] }`. Read only when
+	 * `providers.ideas` is absent, as if it were `["obsidian", { dir }]`; `providers.ideas` wins when both are set.
 	 */
-	dir: string;
+	dir?: string;
 	/** The names of the note states, so a repo can use its own words. */
 	states?: {
 		/** The `status:` that means "file this idea" (default `in-progress`). */
@@ -747,10 +753,11 @@ export interface HolocronConfig {
 	 */
 	githubApps?: GitHubAppConfig[];
 	/**
-	 * Where the repo's idea notes are, for `holocron ideas sync`: the folder and the state that files an issue.
+	 * The state that files an idea as an issue, for `holocron ideas sync`. Where the ideas are kept is
+	 * `providers.ideas`; the older `ideas.dir` is deprecated and still read when `providers.ideas` is absent.
 	 *
 	 * @example
-	 * { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/holocron", states: { file: "in-progress" } }
+	 * { states: { file: "in-progress" } }
 	 */
 	ideas?: IdeasConfig;
 	/**

@@ -321,6 +321,9 @@ importers:
       '@theholocron/holocron-plugin-neon':
         specifier: workspace:*
         version: link:plugins/holocron-plugin-neon
+      '@theholocron/holocron-plugin-obsidian':
+        specifier: workspace:*
+        version: link:plugins/holocron-plugin-obsidian
       '@theholocron/holocron-plugin-posthog':
         specifier: workspace:*
         version: link:plugins/holocron-plugin-posthog
@@ -3393,6 +3396,61 @@ importers:
       eslint:
         specifier: 'catalog:'
         version: 10.14.0(jiti@2.7.0)
+      globals:
+        specifier: 'catalog:'
+        version: 17.14.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.23.5(oxc-resolver@11.24.2)(tsx@4.23.15)(typescript@5.9.3)
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@opentelemetry/api@1.9.1)(@types/node@26.4.1)(@vitest/coverage-v8@5.1.0)(happy-dom@21.0.4)(jsdom@26.1.0)(msw@3.0.3(@types/node@26.4.1)(typescript@5.9.3)(vite@8.3.6(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))(vite@8.3.6(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+
+  plugins/holocron-plugin-obsidian:
+    dependencies:
+      '@theholocron/astromech':
+        specifier: workspace:^
+        version: link:../../cli/astromech
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
+    devDependencies:
+      '@theholocron/cli':
+        specifier: workspace:*
+        version: link:../../cli/cli
+      '@theholocron/eslint-config':
+        specifier: workspace:^
+        version: link:../../configs/eslint-config
+      '@theholocron/tsconfig':
+        specifier: workspace:^
+        version: link:../../configs/tsconfig
+      '@theholocron/tsdown-config':
+        specifier: workspace:^
+        version: link:../../configs/tsdown-config
+      '@theholocron/vitest-config':
+        specifier: workspace:^
+        version: link:../../configs/vitest-config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.4.1
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 5.1.0(vitest@5.1.0)
+      '@vitest/eslint-plugin':
+        specifier: 'catalog:'
+        version: 1.6.28(@typescript-eslint/eslint-plugin@8.72.1(@typescript-eslint/parser@8.72.1(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3))(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)(vitest@5.1.0)
+      eslint:
+        specifier: 'catalog:'
+        version: 10.14.0(jiti@2.7.0)
+      eslint-plugin-n:
+        specifier: 'catalog:'
+        version: 18.5.0(eslint@10.14.0(jiti@2.7.0))(typescript@5.9.3)
       globals:
         specifier: 'catalog:'
         version: 17.14.0
