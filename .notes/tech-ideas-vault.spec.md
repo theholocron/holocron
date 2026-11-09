@@ -5,6 +5,7 @@ issue: theholocron/holocron#1994
 blocked-by: []
 related:
   - theholocron/holocron#1859
+  - theholocron/holocron#2022
 discussion:
   url: https://discord.com/channels/1303969001822486568/1569247484767772792
 ---
@@ -30,6 +31,9 @@ Add a step in front: `idea -> issue -> spec -> epic -> sub-issues -> work`.
 - **A note's state is a `status:` property** in its frontmatter. Specs already use `status:` and `issue:` this way, and
   Obsidian's property editor suggests the values already used in the vault, so a state is quick to set. It does not
   offer a fixed list; the plugin's **File this idea** command (part 2) does, as a picker of the configured states.
+- **Where ideas are kept is a provider.** Obsidian is the first, not a built-in: `holocron ideas sync` reads ideas
+  through an `ideas` capability and files them through `issues`, so the notes could live somewhere else later (see
+  [The `ideas` capability](#the-ideas-capability)).
 - **Automation acts on a state change made by a person**, never on a note being added. Acting on a dropped-in note is
   left for later and is not part of this spec.
 
@@ -62,6 +66,76 @@ The issue body is the note's text, then a line `Filed from idea: <title>`, then 
 how an issue is traced to its idea. The marker is how `ideas sync` knows a note was already filed: it looks for an issue
 carrying it before it creates one, so a note whose `issue:` could not be written back is never filed twice.
 
+## The `ideas` capability
+
+Everything else a vendor owns in Holocron is a capability with a provider, and the notes are no different. Today
+`holocron ideas sync` (#2004) reads the Obsidian vault straight from the filesystem, so the vault's conventions
+(frontmatter, `![[ ]]` embeds, an iCloud path) sit in the CLI and a second place to keep ideas would mean changing the
+command and its config. The fix is a capability, `ideas` (single cardinality).
+
+The name is the noun, like `issues`, `projects` and `wiki`. "Whiteboarding" would mean a visual canvas (Miro, FigJam,
+Excalidraw), which is a different capability and stays free for it; "brainstorming" names the activity, not the thing
+kept.
+
+```ts
+interface Ideas {
+  /** Every idea the provider holds, in a provider-neutral shape. */
+  list(): Promise<IdeaRecord[]>;
+  /** Moves an idea to a state. */
+  setStatus(key: string, status: string): Promise<void>;
+  /** Records the issue an idea was filed as, so the step runs once. */
+  markFiled(key: string, issue: string): Promise<void>;
+  /** Optional: takes a filed idea out of the inbox. */
+  retire?(key: string): Promise<void>;
+}
+
+interface IdeaRecord {
+  key: string; // opaque to the CLI (a path, for Obsidian); also what the hidden marker carries
+  title: string;
+  body: string;
+  status: string;
+  issue?: string;
+  attachments: string[]; // what the provider cannot put in an issue body
+}
+```
+
+- **`attachments` is the provider's call.** Obsidian embeds a file and another note with the same `![[ ]]` syntax, so
+  the Obsidian provider reports both; the command only skips a record that has any.
+- **`retire()` is optional and the Obsidian provider does not implement it at first.** The CLI never deletes, and
+  Obsidian's trash is reachable only through the app, so the in-app plugin keeps that step.
+- **Other providers are possible, not planned**: a GitHub Discussions "Ideas" category, the Discord `#ideas` forum,
+  Notion. The interface is shaped so that none of them needs a change to `ideas sync`.
+
+### Config
+
+The workflow is the same whichever provider holds the notes, and where they are kept belongs to the provider:
+
+```ts
+providers: { ideas: ["obsidian", { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/The Holocron" }] },
+ideas: { states: { file: "in-progress" } },
+```
+
+`HOLOCRON_IDEAS_DIR` stays as an override, read by the Obsidian provider. #2004 has already shipped `ideas.dir`, so the
+provider reads `providers.ideas` first and falls back to `ideas.dir`, the way the `HOLOCRON_` variables fall back to the
+bare names. The fallback is removed in a later change.
+
+### What moves where
+
+- **`plugins/holocron-plugin-obsidian`** (`@theholocron/holocron-plugin-obsidian`) implements `ideas`: listing the
+  notes, parsing and patching frontmatter, finding attachments and embeds, skipping `_` and `.` folders, resolving the
+  vault directory. It reads and writes files, so it has no token and no network. It follows the plugin template where it
+  applies and needs no `auth.ts`.
+- **The CLI** keeps `runIdeasSync`: read through `ideas`, file through `issues`, write the result back through
+  `markFiled`. The files the vault code occupies in `commands/ideas-sync/` move out.
+- **Nothing goes in `clients/`.** Obsidian has no API to wrap, and `clients/` holds API wrappers. A client would only
+  be added if the plugin one day calls Obsidian's own CLI, and then as a shell wrapper like the 1Password plugin's.
+
+### Steps for the maintainer
+
+- The organization property `holocron_capabilities` must allow `ideas` before any repo can declare it
+  (`holocron repo properties apply`, #1862); `doctor repo` reports it until then.
+- The capability count in the docs, and the `CARDINALITY` table, change with it.
+
 ## Parts
 
 ### 1. `holocron ideas sync`
@@ -69,8 +143,9 @@ carrying it before it creates one, so a note whose `issue:` could not be written
 `holocron ideas sync [--dry-run] [--yes]`, a `workspace` command (it loads the `issues` provider, which the execution
 contexts rule makes `workspace`) with a `COMMAND_CONTEXTS` and a `COMMAND_REGISTRY` entry.
 
-- Reads every note in `ideas.dir`, except those in a folder whose name starts with `_` or `.` (`_templates/` for the
-  note template, and Obsidian's own `.obsidian/` and `.trash/`).
+- Reads every idea through the `ideas` provider. For the Obsidian provider that is every note in `dir`, except those in a
+  folder whose name starts with `_` or `.` (`_templates/` for the note template, and Obsidian's own `.obsidian/` and
+  `.trash/`).
 - For each note in the filing state with no `issue:`, creates an issue and writes `issue:` into the note, in the
   tracker's own syntax (`#1234`, `RANDO-7`), which `specs check` already accepts. This is what makes the step run once.
 - Prints a row through `printCheckRows` only for a note it files or one it skips for a reason the user can act on
@@ -84,16 +159,15 @@ contexts rule makes `workspace`) with a `COMMAND_CONTEXTS` and a `COMMAND_REGIST
   them. An embedded note (`![[other note]]`) counts as one, since Obsidian uses the same syntax for both and the issue
   would show only the link.
 
-The `ideas` block:
+The config is described under [Config](#config). `dir` can also come from `HOLOCRON_IDEAS_DIR`, since the path differs
+per machine, and a bad shape is a `ConfigError` that names the path.
 
-```ts
-ideas: { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/The Holocron", states: { file: "in-progress" } }
-```
+### 2. The Obsidian plugin: Council
 
-`dir` can also come from `HOLOCRON_IDEAS_DIR`, since the path differs per machine. A bad shape is a `ConfigError` that
-names the path.
-
-### 2. The Obsidian plugin
+This is an Obsidian plugin, not a Holocron plugin: Obsidian loads it (a single `main.js` built against the `obsidian`
+API), not `PluginLoader`, so it does not belong in `plugins/`. It is named **Council**, after the Jedi Council where an
+idea is argued out, in the repo's Star Wars naming for apps: `apps/council`, package `@theholocron/council`, plugin id
+`holocron-council`. It is not deployed. The vault logic stays in `holocron-plugin-obsidian`; Council only calls the CLI.
 
 A small plugin with a **File this idea** command (and a button for it). It sets the state, runs `holocron ideas sync`
 on desktop, and on success moves the note to the Obsidian trash (the system trash or the vault's `.trash`, whichever
@@ -121,7 +195,7 @@ low-sensitivity by choice. A repo that wants them private files them in a privat
 1. Does the vault get its own git history, for every draft and not only what is filed? It would be a separate small
    repository committed on a schedule, with its git directory outside iCloud. It is independent of the filing flow, so it
    can be decided after part 1.
-2. Where the plugin lives and how it is installed: a package in this repo, installed by hand or through BRAT, or a
-   community plugin. Only part 2 depends on it.
+2. Whether Council bundles the pure helpers of `holocron-plugin-obsidian` (it must stay one file Obsidian can load) or
+   keeps its own small copy of the frontmatter patch. How it is installed (by hand, or through BRAT) is unchanged.
 3. Whether a `dropped` note stays in the vault, or moves to an `_archive/` folder.
 4. Whether `ideas sync` stays a command run by hand, or also runs on a schedule on a Mac.
