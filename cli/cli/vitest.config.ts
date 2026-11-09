@@ -12,7 +12,7 @@ export default defineConfig({
 		// Override any FORCE_COLOR set by the outer environment (e.g. CI sets
 		// FORCE_COLOR=1). Tests assert on plain-text strings without ANSI codes.
 		env: { ...base.test?.env, FORCE_COLOR: "0" },
-		// Builds dist/cli.mjs when it is missing or stale, for the tests that run the built CLI (src/cli-binary.test.ts).
+		// Builds dist/cli.mjs when it is missing or stale, for the tests that run the built CLI (src/cli/cli-binary.test.ts).
 		globalSetup: ["./vitest.global-setup.ts"],
 		setupFiles: [...(base.test?.setupFiles ?? []), "./vitest.setup.ts"],
 		coverage: {
@@ -21,9 +21,9 @@ export default defineConfig({
 				...(base.test?.coverage?.exclude ?? []),
 				// CLI entry point: only wiring now (the global options, the middleware, the error handling and one
 				// `.command(...)` per module), and it runs on import, so no unit test can load it. What it does at the
-				// top level is checked by running the built CLI (src/cli-binary.test.ts); each command is tested in its
+				// top level is checked by running the built CLI (src/cli/cli-binary.test.ts); each command is tested in its
 				// own module. See issues #117 and #1190.
-				"src/cli.ts",
+				"src/cli/cli.ts",
 				// Test-only helpers: the command runner and the publish fixtures.
 				"src/**/*.testing.ts",
 				"src/**/*.fixtures.ts",

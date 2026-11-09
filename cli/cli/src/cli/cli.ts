@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -11,41 +10,37 @@ import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { authCommand } from "./commands/auth/auth.command.js";
-import { cloneCommand } from "./commands/clone/clone.command.js";
-import { configShowCommand } from "./commands/config-show/index.js";
-import { commandsInContext } from "./commands/contexts/index.js";
-import { deployCommand } from "./commands/deploy/deploy.command.js";
-import { devCommand } from "./commands/dev/index.js";
-import { doctorCommand } from "./commands/doctor/index.js";
-import { githubAppCommand } from "./commands/github-app/index.js";
-import { menuCommand } from "./commands/menu/menu.command.js";
-import { migrateCommand } from "./commands/migrate/index.js";
-import { monitoringCommand } from "./commands/monitoring/monitoring.command.js";
-import { newCommand } from "./commands/new/new.command.js";
-import { notificationsCommand } from "./commands/notifications/notifications.command.js";
-import { packageCommand } from "./commands/package/package.command.js";
-import { probeCommand } from "./commands/probe/index.js";
-import { projectCommand } from "./commands/project/index.js";
-import { providerCommand } from "./commands/provider/index.js";
-import { repoCommand } from "./commands/repo/repo.command.js";
-import { runCommand } from "./commands/run/run.command.js";
-import { secretsCommand } from "./commands/secrets/secrets.command.js";
-import { skillsCommand } from "./commands/skills/index.js";
-import { specsCommand } from "./commands/specs/specs.command.js";
-import { syncCommand } from "./commands/sync/sync.command.js";
-import { tunnelCommand } from "./commands/tunnel/index.js";
-import { buildCliLogger, getRunId, reportError } from "./observability/logger/index.js";
-import { captureException, endSession, flush, init, startCommand } from "./observability/telemetry/index.js";
+import { authCommand } from "../commands/auth/auth.command.js";
+import { cloneCommand } from "../commands/clone/clone.command.js";
+import { configShowCommand } from "../commands/config-show/index.js";
+import { commandsInContext } from "../commands/contexts/index.js";
+import { deployCommand } from "../commands/deploy/deploy.command.js";
+import { devCommand } from "../commands/dev/index.js";
+import { doctorCommand } from "../commands/doctor/index.js";
+import { githubAppCommand } from "../commands/github-app/index.js";
+import { menuCommand } from "../commands/menu/menu.command.js";
+import { migrateCommand } from "../commands/migrate/index.js";
+import { monitoringCommand } from "../commands/monitoring/monitoring.command.js";
+import { newCommand } from "../commands/new/new.command.js";
+import { notificationsCommand } from "../commands/notifications/notifications.command.js";
+import { packageCommand } from "../commands/package/package.command.js";
+import { probeCommand } from "../commands/probe/index.js";
+import { projectCommand } from "../commands/project/index.js";
+import { providerCommand } from "../commands/provider/index.js";
+import { repoCommand } from "../commands/repo/repo.command.js";
+import { runCommand } from "../commands/run/run.command.js";
+import { secretsCommand } from "../commands/secrets/secrets.command.js";
+import { skillsCommand } from "../commands/skills/index.js";
+import { specsCommand } from "../commands/specs/specs.command.js";
+import { syncCommand } from "../commands/sync/sync.command.js";
+import { tunnelCommand } from "../commands/tunnel/index.js";
+import { buildCliLogger, getRunId, reportError } from "../observability/logger/index.js";
+import { captureException, endSession, flush, init, startCommand } from "../observability/telemetry/index.js";
+import { ownPackageJson } from "./own-package-json.js";
 
 const env = createEnvLookup();
 
-const { name: CLI_PACKAGE_NAME, version: CLI_VERSION } = JSON.parse(
-	readFileSync(new URL("../package.json", import.meta.url), "utf-8")
-) as {
-	name: string;
-	version: string;
-};
+const { name: CLI_PACKAGE_NAME, version: CLI_VERSION } = ownPackageJson(import.meta.url);
 
 /**
  * Error class names whose `.message` is a complete, actionable sentence: printed on its own, with no usage dump and no

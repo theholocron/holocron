@@ -1,4 +1,4 @@
-import type { IssueOrder } from "../capabilities/index.js";
+import type { IssueOrder } from "../../capabilities/index.js";
 
 /** What {@link readKeysLimited} needs. */
 export interface ReadKeysLimitedInput<T> {

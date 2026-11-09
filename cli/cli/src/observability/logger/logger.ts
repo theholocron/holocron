@@ -10,7 +10,7 @@ import { createEnvLookup, holocronEnv, PREFIX } from "@theholocron/env-utils/loo
 import { type BuildCliLoggerOpts, type CliLoggerContext, createCliLogger } from "@theholocron/kyber/observability";
 import { type AxiomTransportConfig, resolveAxiomFromEnv } from "@theholocron/observability/logger";
 
-import { keyring, resolveValue } from "../../auth.js";
+import { keyring, resolveValue } from "../../auth/index.js";
 import { contextForCommand } from "../../commands/contexts/index.js";
 
 const env = createEnvLookup();

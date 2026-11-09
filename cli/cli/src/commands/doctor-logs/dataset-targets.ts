@@ -1,6 +1,6 @@
 import { PREFIX } from "@theholocron/env-utils/lookup";
 
-import { resolveValue } from "../../auth.js";
+import { resolveValue } from "../../auth/index.js";
 import type { ResolvedHolocronConfig } from "../../config/index.js";
 import { resolveCliDataset } from "../../observability/logger/index.js";
 import type { LogsDatasetTarget } from "./doctor-logs.type.js";

@@ -12,7 +12,7 @@ vi.mock("@inquirer/prompts", () => ({
 }));
 
 const listStoredProvidersMock = vi.fn();
-vi.mock("../../auth.js", () => ({ keyring: { list: () => listStoredProvidersMock() } }));
+vi.mock("../../auth/index.js", () => ({ keyring: { list: () => listStoredProvidersMock() } }));
 
 const { COMMAND_REGISTRY, getEntry } = await import("./index.js");
 const { menuItems } = await import("@theholocron/kyber/menu");

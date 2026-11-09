@@ -13,7 +13,7 @@
  *
  *   $ pnpm install --frozen-lockfile
  *   $ pnpm build
- *   $ pnpm exec tsx cli/cli/src/cli.ts package publish --initial
+ *   $ pnpm exec tsx cli/cli/src/cli/cli.ts package publish --initial
  *
  * `npm login --auth-type=web` runs automatically the first time — no
  * separate manual step. `pnpm install` + `pnpm build` stay outside the
@@ -227,7 +227,7 @@ export async function runPublish(input: RunPublishInput = {}): Promise<PublishRe
 		if (publish.stdout.includes("EOTP") || publish.stderr.includes("EOTP")) {
 			print("");
 			print("  → hint: your npm account requires 2FA for writes. Re-run with `--otp <code>`:");
-			print(`    pnpm exec tsx cli/cli/src/cli.ts package publish --initial --otp <6-digit-code>`);
+			print(`    pnpm exec tsx cli/cli/src/cli/cli.ts package publish --initial --otp <6-digit-code>`);
 		}
 		// Atomic bulk publish: every targeted entry failed together, never partially.
 		for (const entry of newEntries) {

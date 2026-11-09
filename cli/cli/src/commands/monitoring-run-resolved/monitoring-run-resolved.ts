@@ -14,10 +14,10 @@
  * is never attached, regardless of whether one is configured.
  */
 
-import { verifyVercelDeploymentProject } from "../../plugin/index.js";
 import type { MonitoringCheckReport } from "../monitoring-check/index.js";
 import { reportChecks } from "../monitoring-check/index.js";
 import type { ResolveVercelBypassHeadersInput, RunMonitoringRunResolvedInput } from "./monitoring-run-resolved.type.js";
+import { verifyVercelDeploymentProject } from "./verify-vercel-project/index.js";
 
 /**
  * The shared gate every caller that might attach the Deployment

@@ -1,6 +1,6 @@
 import type { ResolveTokenConfig as KyberResolveTokenConfig, ResolveTokenInput } from "@theholocron/kyber/secrets";
 
-import type { PluginToken } from "./commands/auth/index.js";
+import type { PluginToken } from "../commands/auth/index.js";
 
 /** Options for a token resolver, without the keyring lookup, which the CLI supplies itself. */
 export type ResolveTokenConfig = Omit<KyberResolveTokenConfig, "keyring" | "orgEnvName">;

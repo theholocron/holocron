@@ -1,6 +1,6 @@
 /**
  * Vitest global setup: make sure `dist/cli.mjs` exists and is newer than the source, so the tests that run the built CLI
- * (`src/cli-binary.test.ts`) test what is checked out. The check and the build are `ensureBuilt` in `@theholocron/kyber/testing`.
+ * (`src/cli/cli-binary.test.ts`) test what is checked out. The check and the build are `ensureBuilt` in `@theholocron/kyber/testing`.
  */
 
 import { dirname, join } from "node:path";

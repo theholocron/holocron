@@ -19,8 +19,8 @@ vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
 	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
 	promptForPositionals: async (_entry: unknown, argv: Record<string, unknown>) => [argv["target"]],
 }));
-vi.mock("../../auth.js", async (importActual) => ({
-	...(await importActual<typeof import("../../auth.js")>()),
+vi.mock("../../auth/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../../auth/index.js")>()),
 	createFeatureResolver: () => resolveToken,
 }));
 vi.mock("../../observability/logger/index.js", async (importActual) => ({
@@ -33,7 +33,7 @@ vi.mock("../token-context/index.js", () => ({
 
 import { NonInteractiveError } from "@theholocron/kyber/ui";
 
-import { AuthError } from "../../auth.js";
+import { AuthError } from "../../auth/index.js";
 import { DRY_RUN_NOOP_EXIT_CODE, DRY_RUN_PREVIEW_ENV_VAR } from "../../interactive-menu/index.js";
 import { runCommand } from "../run-command.testing.js";
 import { cloneCommand } from "./clone.command.js";

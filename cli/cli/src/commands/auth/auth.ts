@@ -24,7 +24,7 @@ import { holocronEnv } from "@theholocron/env-utils/lookup";
 import { style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import { keyring } from "../../auth.js";
+import { keyring } from "../../auth/index.js";
 import { resolvePluginPackage } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { isModuleNotFound } from "../../plugin/index.js";

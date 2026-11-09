@@ -1,7 +1,7 @@
 import type { PluginImporter as KyberPluginImporter } from "@theholocron/kyber/plugins";
 
 import type { CapabilityImpls, CapabilityKey, CardinalityFor } from "../capabilities/index.js";
-import type { PluginProbes } from "../probe/index.js";
+import type { PluginProbes } from "../probes/probe/index.js";
 import type { ProviderAction } from "../provider-actions/index.js";
 
 /**

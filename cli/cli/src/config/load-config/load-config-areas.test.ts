@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { ConfigError } from "./config/index.js";
-import { ConfigFileError, loadConfig } from "./config-system.js";
+import { ConfigError } from "../config/index.js";
+import { ConfigFileError, loadConfig } from "../config-system.js";
 
 const layout = { relay: { host: "relay.example.dev" } };
 

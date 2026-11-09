@@ -5,12 +5,12 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { resolvePinnedFiles } from "../commands/resolve-pinned-files/index.js";
-import type { NotificationsLayout } from "../plugin/index.js";
-import { loadConfig } from "./config-system.js";
+import { resolvePinnedFiles } from "../../commands/resolve-pinned-files/index.js";
+import type { NotificationsLayout } from "../../plugin/index.js";
+import { loadConfig } from "../config-system.js";
 
 /** This repository's root: the real `holocron.config.ts` and `.holocron/` are loaded, not a copy. */
-const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
+const REPO_ROOT = fileURLToPath(new URL("../../../../../", import.meta.url));
 
 /** SHA-256 of the root `RULES.md` and of `media/webhook-avatar.png` as they were before #1788 moved them. */
 const RULES_SHA256 = "f25183e947a9ed1839fb72f01f7692d185cfe2b1ebb592cd158c03def623ade6";
