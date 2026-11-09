@@ -491,6 +491,8 @@ describe("runPublish", () => {
 		const joined = lines.join("\n");
 		expect(joined).toContain("--otp <code>");
 		expect(joined).toContain("--otp <6-digit-code>");
+		expect(joined).toContain("pnpm exec holocron package publish --initial");
+		expect(joined).not.toContain("tsx");
 	});
 
 	it("does not print the --otp hint on non-EOTP failures", async () => {
