@@ -48,6 +48,7 @@
     "build": "tsdown",
     "lint:code": "eslint .",
     "start": "node ./dist/cli.mjs",
+    "start:source": "tsx --import ./src/source-run/register.ts ./src/cli/cli.ts",
     "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
