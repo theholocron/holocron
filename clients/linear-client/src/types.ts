@@ -250,6 +250,8 @@ export interface LinearIssueFilter {
 	assigneeId?: string;
 	/** Leave out issues that are completed or canceled. */
 	openOnly?: boolean;
+	/** Only issues whose title or description contains this text, without regard to case. */
+	text?: string;
 	/** Stop after this many issues. */
 	limit?: number;
 }

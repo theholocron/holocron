@@ -197,6 +197,15 @@ describe("issues", () => {
 		expect(Object.keys(vars.filter).sort()).toEqual(["assignee", "project", "state", "team"]);
 	});
 
+	it("filters by text in the title or description", async () => {
+		const { fetch, calls } = stubFetch([data({ issues: page([issue]) })]);
+		await createLinearClient({ token: "t", fetch }).issues.list({ text: "foo" });
+		const vars = (calls[0]?.body as { variables: { filter: Record<string, unknown> } }).variables;
+		expect(vars.filter).toEqual({
+			or: [{ title: { containsIgnoreCase: "foo" } }, { description: { containsIgnoreCase: "foo" } }],
+		});
+	});
+
 	it("honours the limit", async () => {
 		const { fetch } = stubFetch([data({ issues: page([issue, issue, issue], "c1") })]);
 		expect(await createLinearClient({ token: "t", fetch }).issues.list({ limit: 2 })).toHaveLength(2);

@@ -43,6 +43,11 @@ export interface IssuesOptions {
 	labels?: { inProgress: string; inReview: string };
 }
 
+/** Issues read per request when `search` has a `text`; GitHub's largest page. */
+const TEXT_PAGE_SIZE = 100;
+/** Pages `search` reads for a `text` before it stops (the 2000 most recently updated issues). */
+const TEXT_MAX_PAGES = 20;
+
 /** The GitHub implementation of the `issues` capability, backed by GitHub Issues and status labels. */
 export class GitHubIssues implements Issues {
 	/** Capability key, always `"issues"`. */
@@ -75,8 +80,18 @@ export class GitHubIssues implements Issues {
 
 	// ── search / get ─────────────────────────────────────────────────────
 
-	/** Searches the repo's issues, newest update first, leaving out pull requests. */
+	/**
+	 * Searches the repo's issues, newest update first, leaving out pull requests.
+	 *
+	 * With `filter.text`, the issues are paged (newest update first, 100 a page, at most 20 pages) and compared
+	 * client-side, without regard to case, until `limit` matches are found or the issues run out. GitHub's issue
+	 * search (`GET /search/issues`) is deliberately not used: it indexes the words of a body, so punctuation and an
+	 * HTML comment such as `<!-- holocron:idea notes/a.md -->` cannot be relied on to match, it is limited to 30
+	 * requests a minute and it is eventually consistent (an issue made a moment ago may be missing). Paging has none
+	 * of those limits, at the cost of reading up to 20 pages of a very large repository.
+	 */
 	async search(filter: IssueSearchFilter): Promise<Issue[]> {
+		if (filter.text) return this.searchText(filter, filter.text);
 		const params: Record<string, string | number> = {
 			state: filter.openOnly ? "open" : "all",
 			sort: "updated",
@@ -99,6 +114,33 @@ export class GitHubIssues implements Issues {
 			assignee: params.assignee as string | undefined,
 		});
 		return raw.filter((i) => !i.pull_request).map((i) => this.mapIssue(i));
+	}
+
+	private async searchText(filter: IssueSearchFilter, text: string): Promise<Issue[]> {
+		const needle = text.toLowerCase();
+		const limit = filter.limit ?? 50;
+		const assignee = filter.assignee === "currentUser" ? (await this.getMyself()).id : filter.assignee || undefined;
+		const found: Issue[] = [];
+		for (let page = 1; page <= TEXT_MAX_PAGES; page++) {
+			const raw = await this.client.issues.listIssues(this.repo, {
+				state: filter.openOnly ? "open" : "all",
+				sort: "updated",
+				direction: "desc",
+				per_page: TEXT_PAGE_SIZE,
+				page,
+				filter: "all",
+				...(assignee ? { assignee } : {}),
+			});
+			for (const issue of raw) {
+				if (issue.pull_request) continue;
+				if (`${issue.title}\n${issue.body ?? ""}`.toLowerCase().includes(needle)) {
+					found.push(this.mapIssue(issue));
+					if (found.length >= limit) return found;
+				}
+			}
+			if (raw.length < TEXT_PAGE_SIZE) break;
+		}
+		return found;
 	}
 
 	/** Fetches one issue by its key. */

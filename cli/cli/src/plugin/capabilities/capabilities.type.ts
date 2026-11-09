@@ -658,6 +658,11 @@ export interface IssueSearchFilter {
 	openOnly?: boolean;
 	/** Max number of issues to return. Adapters apply a sensible default. */
 	limit?: number;
+	/**
+	 * Only issues whose title or body contains this text, compared without regard to case. The text is matched
+	 * literally, markup such as an HTML comment included. Left out, nothing is filtered by text.
+	 */
+	text?: string;
 }
 
 /** What {@link Issues.transition} did. */

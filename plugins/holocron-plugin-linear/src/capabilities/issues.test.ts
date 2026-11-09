@@ -33,6 +33,31 @@ describe("LinearIssues", () => {
 		expect(Object.keys(vars.filter).sort()).toEqual(["assignee", "state", "team"]);
 	});
 
+	it("search with text filters title or description server-side with the other filters, and keeps the body", async () => {
+		const { issues, called } = make([
+			[/viewer/, VIEWER],
+			[/issues\(first/, { issues: nodes([issue({ description: "x <!-- holocron:idea a.md -->" })]) }],
+		]);
+		const found = await issues.search({
+			text: "holocron:idea a.md",
+			assignee: "currentUser",
+			openOnly: true,
+			limit: 3,
+		});
+		expect(found[0]?.body).toContain("holocron:idea");
+		const vars = called(/issues\(first/)[0]!.variables as { filter: Record<string, unknown> };
+		expect(Object.keys(vars.filter).sort()).toEqual(["assignee", "or", "state", "team"]);
+		expect(vars.filter.or).toEqual([
+			{ title: { containsIgnoreCase: "holocron:idea a.md" } },
+			{ description: { containsIgnoreCase: "holocron:idea a.md" } },
+		]);
+	});
+
+	it("search with text and no match returns an empty list", async () => {
+		const { issues } = make([[/issues\(first/, { issues: nodes([]) }]]);
+		expect(await issues.search({ text: "zzz" })).toEqual([]);
+	});
+
 	it("search takes a given assignee id and none", async () => {
 		const { issues, called } = make([[/issues\(first/, { issues: nodes([]) }]]);
 		await issues.search({ assignee: "u9" });
