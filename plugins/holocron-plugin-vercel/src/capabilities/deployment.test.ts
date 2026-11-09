@@ -357,6 +357,32 @@ describe("VercelDeployment.deployFunction", () => {
 		await deployment.deployFunction("sentinel", { files: { "index.js": "x" } });
 		expect((calls[0]?.body as { projectSettings: { framework: unknown } }).projectSettings.framework).toBeNull();
 	});
+
+	it("sends the installCommand of an uploaded vercel.json as a project setting", async () => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_4", url: "x", readyState: "QUEUED" } },
+		]);
+		await deployment.deployFunction("sentinel", {
+			files: { "vercel.json": JSON.stringify({ installCommand: "npm install --legacy-peer-deps" }) },
+		});
+		expect((calls[0]?.body as { projectSettings: unknown }).projectSettings).toEqual({
+			framework: null,
+			installCommand: "npm install --legacy-peer-deps",
+		});
+	});
+
+	it.each([
+		["has no vercel.json", { "index.js": "x" }],
+		["has a vercel.json that sets no installCommand", { "vercel.json": "{}" }],
+		["has a vercel.json that is not JSON", { "vercel.json": "not json" }],
+		["has a vercel.json whose installCommand is not a string", { "vercel.json": '{"installCommand":1}' }],
+	])("sends no installCommand when the deployment %s", async (_, files) => {
+		const { deployment, calls } = makeDeployment([
+			{ status: 201, body: { id: "dpl_5", url: "x", readyState: "QUEUED" } },
+		]);
+		await deployment.deployFunction("sentinel", { files });
+		expect((calls[0]?.body as { projectSettings: unknown }).projectSettings).toEqual({ framework: null });
+	});
 });
 
 describe("VercelDeployment.ensureCustomDomain", () => {

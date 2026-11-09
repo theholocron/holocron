@@ -64,7 +64,10 @@ Capability covers:
   webhook receiver shipped as an npm package, for instance. Always
   deploys with `projectSettings.framework: null` (a bare function, not
   an app) — `defaultFramework` only applies to `ensureProject()`'s
-  Git-linked path.
+  Git-linked path. If the files include a `vercel.json` with an
+  `installCommand`, it is sent as `projectSettings.installCommand` too,
+  because a deployment made from uploaded files takes that setting from
+  the project, not from the uploaded file.
 - `getDeployment()` — fetch a deployment by id
 - `ensureCustomDomain()` — idempotent add (list → add-if-missing →
   check DNS routing). Ownership (`verified`) and DNS routing are
