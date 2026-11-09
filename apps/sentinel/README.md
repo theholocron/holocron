@@ -609,8 +609,9 @@ holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --targe
   --org theholocron --token github=$(gh auth token)
 ```
 
-**CI-triggered, too** (holocron#800) — `.github/workflows/sentinel.secretsSync.yml`
-runs the same invocation via `gh workflow run sentinel.secretsSync.yml`
+**CI-triggered, too** (holocron#800) — the `sync-secrets` task
+(`.github/workflows/ci.sync-secrets.yml`, generated) runs the same invocation
+via `gh workflow run ci.sync-secrets.yml`
 (`workflow_dispatch` only, never automatic — matches "run once after
 registration, again only when a secret rotates" below). Uses a dedicated
 `HOLOCRON_SECRETS_TOKEN` repo secret in place of `gh auth token`, since CI

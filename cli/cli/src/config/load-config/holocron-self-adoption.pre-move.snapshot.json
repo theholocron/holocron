@@ -193,7 +193,8 @@
     "publish-wiki",
     "sync-specs",
     "preview-specs",
-    "deploy-sentinel"
+    "deploy-sentinel",
+    "sync-secrets"
   ],
   "holocronScript": "node cli/cli/dist/cli.mjs",
   "extraRequiredChecks": [
