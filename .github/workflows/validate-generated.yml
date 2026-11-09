@@ -1,0 +1,40 @@
+# AUTO-GENERATED — do not edit directly.
+# Source:  theholocron/holocron · ci/workflows/validate/generated.yml
+# Tool:    holocron repo sync
+# Changes: edit source in theholocron/holocron
+# Source package: .
+
+name: Validate Generated Files
+
+# Generated files (#1405): fails when a file `holocron repo setup` / `holocron repo sync` writes from the config
+# differs from the committed copy, differs the second time it is generated, or when a workflow in .github/workflows is
+# neither generated nor marked "# HAND-MAINTAINED". Checked by `holocron probe generated check`, which needs no token.
+#
+# There is deliberately no `paths:` filter in a caller: a required check that is skipped blocks the merge.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      TURBO_TOKEN:
+        required: false
+
+jobs:
+  validate-generated:
+    name: Check generated files
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout repository
+        with:
+          fetch-depth: 0
+
+      - uses: theholocron/.github/.github/actions/setup@main
+        name: Setup
+
+      - uses: theholocron/.github/.github/actions/holocron@main
+        name: Check the generated files
+        with:
+          task: validate:generated

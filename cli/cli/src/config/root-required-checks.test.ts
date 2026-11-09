@@ -19,12 +19,11 @@ const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
  * Every context the per-task required list (no `ci` aggregate) holds, taken from origin/alpha before this guard
  * was added (#1727, audit B6). A change to this list changes branch protection, so it is an explicit edit here, never
  * a side effect of adding a package. The per-package `codecov/patch/<slug>` statuses are deliberately absent: they are
- * informational, and a package a PR does not touch posts no status.
+ * informational, and a package a PR does not touch posts no status. The two hand-written checks (`Dependency catalogs /
+ * Check`, `Generated files / Check`) became the `validate:deps` and `validate:generated` tasks, which post new contexts.
  */
 const PINNED_CONTEXTS = [
 	"DCO",
-	"Dependency catalogs / Check",
-	"Generated files / Check",
 	"build / Build every workspace",
 	"codecov/patch",
 	"codecov/patch/documentation",
@@ -39,7 +38,9 @@ const PINNED_CONTEXTS = [
 	"scan:secrets / Run gitleaks",
 	"test:unit / Conclusion",
 	"typecheck / Run tsc --noEmit",
+	"validate:deps / Check dependency catalogs",
 	"validate:docs / Validate docs presence",
+	"validate:generated / Check generated files",
 	"validate:specs / Validate ADRs and specs",
 ];
 

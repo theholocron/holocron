@@ -120,11 +120,23 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			preview: { id: "preview", name: "Preview" },
 		},
 	},
+	"measure-docs": {
+		name: "Source Quality",
+		jobs: {
+			"measure-docs": { id: "docs-coverage", name: "Docs coverage" },
+		},
+	},
 	"publish-wiki": {
 		name: "Knowledge",
 		jobs: {
 			"publish-wiki": { id: "publish", name: "Publish" },
 			"publish-wiki-preview": { id: "preview", name: "Preview" },
+		},
+	},
+	"remind-doctor": {
+		name: "Platform",
+		jobs: {
+			"remind-doctor": { id: "doctor-reminder", name: "Doctor reminder" },
 		},
 	},
 	"reconcile-projects": {
@@ -207,6 +219,18 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 		name: "Platform",
 		jobs: {
 			"validate-docs": { id: "repo-validation", name: "Repo Validation" },
+		},
+	},
+	"validate:deps": {
+		name: "Source Quality",
+		jobs: {
+			"validate-deps": { id: "dependency-catalogs", name: "Dependency catalogs" },
+		},
+	},
+	"validate:generated": {
+		name: "Source Quality",
+		jobs: {
+			"validate-generated": { id: "generated-files", name: "Generated files" },
 		},
 	},
 	"deploy-docs": {

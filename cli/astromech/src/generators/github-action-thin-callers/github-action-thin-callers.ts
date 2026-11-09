@@ -58,6 +58,8 @@ export const WORKFLOW_CHECK_CONTEXTS: Partial<Record<string, string>> = {
 	"lint:commits": "lint:commits / Run commitlint",
 	"validate:specs": "validate:specs / Validate ADRs and specs",
 	"validate:docs": "validate:docs / Validate docs presence",
+	"validate:deps": "validate:deps / Check dependency catalogs",
+	"validate:generated": "validate:generated / Check generated files",
 	"measure-bundle": "measure-bundle / Upload bundle stats to Codecov",
 };
 

@@ -1,0 +1,26 @@
+name: Remind Doctor
+
+# A weekly nudge to run the drift check by hand (#1585). `holocron doctor notifications` compares the layout with the
+# live server and reads the Worker, the tracker and the secrets with provider tokens, which stay on a maintainer's
+# machine rather than in CI. This posts one line to #alerts, no ping, naming the command that checks and shares the
+# result. A missing webhook secret skips the post and never fails the run.
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+    secrets:
+      HOLOCRON_NOTIFY_WEBHOOK_ALERTS:
+        description: The #alerts webhook the reminder posts to. Without it the post is skipped.
+        required: false
+
+jobs:
+  remind-doctor:
+    name: Remind to run the drift check
+    permissions: {}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: theholocron/.github/.github/actions/notify@main
+        name: "Remind #alerts"
+        with:
+          webhook: ${{ secrets.HOLOCRON_NOTIFY_WEBHOOK_ALERTS }}
+          message: "🩺 ${{ github.repository }}: time for the weekly drift check. Run `holocron doctor notifications --built-only --post` to compare the server with the layout and post the result here."

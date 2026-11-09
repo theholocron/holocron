@@ -58,6 +58,10 @@ on: # yamllint disable-line rule:truthy
       - Sentinel Deploy
       - Spec discussions
       - reconcile-projects
+      - remind-doctor
+      - measure-docs
+      - validate:deps
+      - validate:generated
     types: [completed]
 
 permissions: {}

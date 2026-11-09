@@ -86,7 +86,7 @@ The `deps` group is the CLI's own, like `core` and `comlink`. It reads every wor
 | `holocron probe deps who <name>` | no             | Lists the packages that use the dependencies whose name contains `<name>`, by group, with how (`prod`, `dev`, `peer`)                         |
 | `holocron probe deps check`      | no             | Fails for each hard-coded version, workspace package pinned to a version, dependency in the wrong catalog or unused catalog entry. CI runs it |
 
-CI runs `holocron probe deps check` on every pull request (the `Dependency catalogs / Check` required check).
+CI runs `holocron probe deps check` on every pull request (the `validate:deps / Check dependency catalogs` required check, the `validate:deps` task).
 
 ## Documentation
 
@@ -107,7 +107,7 @@ The public API of a package is every entry in its `exports`, not only the root: 
 
 `--lcov <path>` adds that report to `docs coverage` and `docs patch` from the same measurement, without the prompt `docs lcov` needs: `docs patch --lcov coverage/docs.lcov` gates a PR and writes the file in one pass, and `docs patch` without it measures only the packages the PR touched. On `--dry-run` nothing is written.
 
-CI runs the `Docs coverage` workflow on every pull request and on pushes to `alpha`. It runs `docs coverage --lcov`, which measures every package and writes the report without failing, and uploads the file to Codecov as the `documentation` flag, so `codecov/patch/documentation` and `codecov/project/documentation` show next to the test coverage. They are separate from `codecov/patch` and `codecov/project`, which count only the tests. In this repo `codecov/patch/documentation` is a required check (it is listed in `extraRequiredChecks`, and `holocron repo setup` writes it into the ruleset); `codecov/project/documentation` is not. The probe no longer gates in CI: the Codecov status does, and `docs patch` stays in the CLI for a person to run before pushing (#1511).
+CI runs the `measure-docs` workflow on every pull request and on pushes to `alpha`. It runs `docs coverage --lcov`, which measures every package and writes the report without failing, and uploads the file to Codecov as the `documentation` flag, so `codecov/patch/documentation` and `codecov/project/documentation` show next to the test coverage. They are separate from `codecov/patch` and `codecov/project`, which count only the tests. In this repo `codecov/patch/documentation` is a required check (it is listed in `extraRequiredChecks`, and `holocron repo setup` writes it into the ruleset); `codecov/project/documentation` is not. The probe no longer gates in CI: the Codecov status does, and `docs patch` stays in the CLI for a person to run before pushing (#1511).
 
 ## CI references
 
@@ -130,7 +130,7 @@ The `generated` group is the CLI's own too. `holocron repo setup` writes a set o
 
 A workflow that another package's config generates (its `# Source package:` marker is not `.`) is left to that package. `platform.syncTemplates.yml`, which is committed ahead of its task on purpose, is the one named exception (`UNMANAGED_WORKFLOWS`). Not covered: `.github/CODEOWNERS` (it needs the organization from the provider), the installed skills, the agent prompts and the engineering structure.
 
-CI runs `holocron probe generated check` on every pull request (the `Generated files / Check` required check, `.github/workflows/sourceQuality.generatedFiles.yml`).
+CI runs `holocron probe generated check` on every pull request (the `validate:generated / Check generated files` required check, the `validate:generated` task).
 
 ## ADRs and specs
 

@@ -122,6 +122,10 @@
     "update-deps",
     "label",
     "reconcile-projects",
+    "remind-doctor",
+    "measure-docs",
+    "validate:deps",
+    "validate:generated",
     {
       "name": "typecheck",
       "required": true,
@@ -192,8 +196,8 @@
     "codecov/patch",
     "codecov/project",
     "codecov/patch/documentation",
-    "Dependency catalogs / Check",
-    "Generated files / Check"
+    "validate:deps / Check dependency catalogs",
+    "validate:generated / Check generated files"
   ],
   "providers": {
     "source": {

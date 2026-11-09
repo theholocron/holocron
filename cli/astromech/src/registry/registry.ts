@@ -231,10 +231,27 @@ export const TASKS: Record<string, TaskDef> = {
 	// (just "was something documented"), so it belongs here with its process/governance sibling, not behind the docs
 	// deploy. The doc-comment gate (`docs patch`, `repoValidation.docsCoverage`) is its own workflow, not this task.
 	"validate:docs": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe docs validate" } },
+	// Dependency catalogs (#1380): `holocron probe deps check` fails on a hard-coded version, a workspace package pinned to
+	// a version, a dependency in the wrong catalog or an unused catalog entry.
+	"validate:deps": { group: "Platform", scope: "repo", suite: "validate", local: { command: "probe deps check" } },
+	// Generated files (#1405): `holocron probe generated check` fails when a file the CLI writes differs from the committed
+	// copy, or a workflow is neither generated nor marked `# HAND-MAINTAINED`.
+	"validate:generated": {
+		group: "Platform",
+		scope: "repo",
+		suite: "validate",
+		local: { command: "probe generated check" },
+	},
 	// A plugin package's live check against its provider (its own `scripts/validate.mjs`, run by hand with the provider's
 	// credentials): the package's script is the whole task, so there is no built-in runner and no workflow, and it is not
 	// part of `holocron run ci`. It is a leaf so that the 16 plugins' script has a name in the suite and no collision.
 	"validate:plugin": { group: "Platform", scope: "package", suite: "validate", workflow: false, local: null },
+	// Doc-comment coverage of the public API (#1368): `holocron probe docs coverage` measures it with TypeDoc; its workflow
+	// uploads the report to Codecov as the `documentation` flag, whose patch status is the gate. Not part of `holocron run ci`.
+	"measure-docs": { group: "Platform", scope: "repo", local: { command: "probe docs coverage" } },
+	// A weekly post to #alerts that reminds a maintainer to run `holocron doctor notifications --post` (#1585). It only
+	// posts through a webhook secret, so there is nothing to run locally.
+	"remind-doctor": { group: "Platform", scope: "repo", local: null },
 	"sync-repo": { group: "Platform", scope: "repo", local: { command: "sync" } },
 	// No local runner -- it posts real messages through org secrets that only a
 	// workflow can read. Manual (workflow_dispatch) only: the end-to-end check for
@@ -274,6 +291,8 @@ export const CI_ORDER: string[] = [
 	"lint:commits",
 	"validate:specs",
 	"validate:docs",
+	"validate:deps",
+	"validate:generated",
 	"test:unit",
 	"build",
 	"lint:unused",

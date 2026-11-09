@@ -51,7 +51,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `ctx.cleanup` is undone on success, failure and Ctrl-C. `doctor` compares the config with reality; a probe has no layout.
   The `docs` probes measure doc-comment coverage of the public API (`docs coverage`, `docs patch`, `docs lcov`), which is every
   entry in a package's `exports`, subpaths included (`subpath-entries.ts` maps each to its source); `--lcov <path>`
-  on the first two also writes the lcov report, which the Docs coverage workflow uploads to Codecov as the `documentation`
+  on the first two also writes the lcov report, which the `measure-docs` workflow uploads to Codecov as the `documentation`
   flag (spec `tech-api-docs`, epic #1368). `repoValidation.docsCoverage` (`off` default, `warn`, `required`) in
   `holocron.config.ts` decides what `docs patch` does about a miss and whether `repo setup` writes the flag's statuses.
   `docs tokens` (#1727) fails for each token name a plugin resolver declares (`envName`, `vendorEnvName`, `keyringService`,
@@ -334,7 +334,7 @@ to a version, a dependency in the wrong catalog or an unused catalog entry.
 They read the manifests and `pnpm-workspace.yaml` live on each run (nothing is
 cached), from the built CLI (`pnpm build` first). Run the check after adding or
 moving a dependency; CI runs it on every pull request as the required check
-`Dependency catalogs / Check` (`.github/workflows/sourceQuality.dependencyCatalogs.yml`).
+`validate:deps / Check dependency catalogs` (the `validate:deps` task, `.github/workflows/ci.validate-deps.yml`).
 
 ## Consuming packages from `clients/`
 
@@ -449,7 +449,7 @@ apps/` must return **nothing** (source). The CLI's
   The files `repo setup` writes from the config alone come from `generateRepoFiles()`
   (`cli/cli/src/commands/repo-files/`), which needs no provider: `repo setup` writes what it returns through the
   source, `repo sync` takes its workflows and `turbo.json` from the same functions, and `holocron probe generated
-check` (`pnpm exec holocron probe generated check`, the required check `Generated files / Check`) generates them
+check` (`pnpm exec holocron probe generated check`, the required check `validate:generated / Check generated files`) generates them
   twice and fails on a file that differs from the committed copy. A new file `repo setup` writes belongs in that
   function, not in `run-setup.ts`; one that needs the provider (CODEOWNERS) stays in `run-setup.ts`. A workflow
   that is not generated carries `# HAND-MAINTAINED` on its first line. The check also generates the thin callers of
