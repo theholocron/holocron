@@ -1,3 +1,14 @@
+## [5.0.0-alpha.388](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.387...v5.0.0-alpha.388) (2026-11-09)
+
+### Features
+
+* **env:** 🏷️ read the synced organization secrets by their HOLOCRON_ name first ([#1983](https://github.com/theholocron/holocron/issues/1983)) ([404e648](https://github.com/theholocron/holocron/commit/404e64864bd93cb8aa432852f8c893e8debdf7bc)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+* **env:** 🏷️ sync the AXIOM_ORG organization variable as HOLOCRON_AXIOM_ORG ([#1984](https://github.com/theholocron/holocron/issues/1984)) ([f972caa](https://github.com/theholocron/holocron/commit/f972caa826bda1e40ddce7bed4ec8ac68b4efe17)), closes [#1864](https://github.com/theholocron/holocron/issues/1864)
+
+### Chores
+
+* **env:** 🏷️ list only RELEASE_GROUP as deferred ([#1980](https://github.com/theholocron/holocron/issues/1980)) ([f2f1249](https://github.com/theholocron/holocron/commit/f2f12494bd7015865ccbf5f37c053eb156e4678f)), closes [#1864](https://github.com/theholocron/holocron/issues/1864) [#1979](https://github.com/theholocron/holocron/issues/1979)
+
 ## [5.0.0-alpha.387](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.386...v5.0.0-alpha.387) (2026-11-08)
 
 ### Features
