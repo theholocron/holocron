@@ -229,6 +229,24 @@ describe("deployments.create", () => {
 		});
 	});
 
+	it("sends installCommand as a project setting when given, and leaves it out otherwise", async () => {
+		const { client, calls } = makeClient([
+			{ body: { id: "d1", url: "my-app.vercel.app", readyState: "QUEUED" } },
+			{ body: { id: "d2", url: "my-app.vercel.app", readyState: "QUEUED" } },
+		]);
+		await client.deployments.create({
+			projectName: "my-app",
+			files: [{ file: "index.js", content: "x" }],
+			installCommand: "npm install --legacy-peer-deps",
+		});
+		await client.deployments.create({ projectName: "my-app", files: [{ file: "index.js", content: "x" }] });
+		expect((calls[0]?.body as { projectSettings: unknown }).projectSettings).toEqual({
+			framework: null,
+			installCommand: "npm install --legacy-peer-deps",
+		});
+		expect((calls[1]?.body as { projectSettings: unknown }).projectSettings).toEqual({ framework: null });
+	});
+
 	it("omits target for a preview deployment", async () => {
 		const { client, calls } = makeClient([
 			{
