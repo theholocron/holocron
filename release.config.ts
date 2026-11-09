@@ -49,8 +49,10 @@ export default group && tagOnly.has(group)
 		: ungroupedReleaseConfig({
 				groups,
 				branches,
-				// semantic-release-config's default still names `packages/*/package.json`
-				assets: ["CHANGELOG.md", "package.json", "cli/*/package.json"],
+				// semantic-release-config's default still names `packages/*/package.json`. `bump-versions` rewrites every public
+				// package outside a group (`cli/*` and `plugins/*`; `docs` and `apps/*` are private and skipped), so the commit
+				// stages them all, or the versions on disk stay behind the ones on npm.
+				assets: ["CHANGELOG.md", "package.json", "cli/*/package.json", "plugins/*/package.json"],
 				exec: {
 					prepareCmd: `${holocron} package bump-versions \${nextRelease.version}${exclude}`,
 					publishCmd: `${holocron} package publish --skip-already-published${exclude} --tag ${tag}`,
