@@ -20,7 +20,7 @@
  * `with.paths`. It first waits for npm to serve the release's new versions of
  * those dependencies ({@link waitForPublished}) — the registry can lag a version
  * it has just accepted, and the deploy installs them — then runs
- * `pnpm --filter <package> delivery.deploy`.
+ * `pnpm --filter <package> run deploy` (its old `delivery.deploy` script when that is the one it has).
  *
  * The release is already published by then, so a failed deploy can't undo it;
  * it fails this job instead, loudly and re-runnable on its own. A task is
@@ -32,7 +32,7 @@
 import { loadTasksConfig } from "../../config/load/index.js";
 import type { TasksConfig } from "../../config/schema/index.js";
 import { defaultListDirs, defaultReadJson, defaultRun, defaultSleep } from "../../utils/index.js";
-import { DEPLOY_SCRIPT, MAIN_CHANNEL, WAIT_TIMEOUT_MS } from "./constants.js";
+import { MAIN_CHANNEL, WAIT_TIMEOUT_MS } from "./constants.js";
 import { defaultPaths } from "./default-paths/index.js";
 import type {
 	DeployOnReleaseDeps,
@@ -40,6 +40,7 @@ import type {
 	DeployOnReleaseReport,
 	DeployOnReleaseResult,
 } from "./deploy-on-release.type.js";
+import { deployScript } from "./deploy-script/index.js";
 import { deployTargets } from "./deploy-targets/index.js";
 import { shouldDeploy } from "./should-deploy/index.js";
 import { waitForPublished } from "./wait-for-published/index.js";
@@ -139,7 +140,12 @@ export async function deployOnRelease(
 		}
 
 		print(`${name}: deploying because ${decision.reason}.`);
-		const result = run("pnpm", ["--filter", name, DEPLOY_SCRIPT], { cwd, env: process.env, stdio: "inherit" });
+		// `run` spells the script out: `deploy` is also a pnpm built-in, which `pnpm --filter <pkg> deploy` would run instead.
+		const result = run("pnpm", ["--filter", name, "run", deployScript(readJson, target.pkg.dir)], {
+			cwd,
+			env: process.env,
+			stdio: "inherit",
+		});
 		if (result.status === 0) record(name, "ok", "deployed.");
 		else record(name, "fail", `the deploy failed (exit ${result.status}).`);
 	}

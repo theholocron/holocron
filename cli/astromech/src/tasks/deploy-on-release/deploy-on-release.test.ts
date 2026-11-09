@@ -43,11 +43,38 @@ describe("deployOnRelease", () => {
 		});
 		expect(run.mock.calls.map(([command]) => command)).toEqual(["git", "npm", "npm", "pnpm"]);
 		expect(run).toHaveBeenNthCalledWith(1, "git", ["diff", "--name-only", "old", "new"], { cwd: "/repo" });
-		expect(run).toHaveBeenCalledWith("pnpm", ["--filter", "@theholocron/app", "delivery.deploy"], {
+		expect(run).toHaveBeenCalledWith("pnpm", ["--filter", "@theholocron/app", "run", "deploy"], {
 			cwd: "/repo",
 			env: process.env,
 			stdio: "inherit",
 		});
+	});
+
+	it("runs a package's old delivery.deploy script when that is the one it has", async () => {
+		const run = fakeRun();
+		const files: Record<string, unknown> = {
+			...FILES,
+			"/repo/packages/app/package.json": {
+				...(FILES["/repo/packages/app/package.json"] as object),
+				scripts: { "delivery.deploy": "x" },
+			},
+		};
+		const report = await deployOnRelease(
+			{ ...OPTIONS, print: () => {} },
+			{
+				run,
+				...TREE,
+				readJson: (path) => (path in files ? files[path] : TREE.readJson(path)),
+				...fakeClock(),
+				loadTasks: () => Promise.resolve(APP_DEPLOY),
+			}
+		);
+		expect(report.status).toBe("ok");
+		expect(run).toHaveBeenCalledWith(
+			"pnpm",
+			["--filter", "@theholocron/app", "run", "delivery.deploy"],
+			expect.anything()
+		);
 	});
 
 	it("skips, without failing, when no package declares a release-time deploy", async () => {
@@ -143,11 +170,7 @@ describe("deployOnRelease", () => {
 		const { report } = await deploy(run, { channel: "" }, manifests);
 
 		expect(report.status).toBe("ok");
-		expect(run).toHaveBeenCalledWith(
-			"pnpm",
-			["--filter", "@theholocron/app", "delivery.deploy"],
-			expect.anything()
-		);
+		expect(run).toHaveBeenCalledWith("pnpm", ["--filter", "@theholocron/app", "run", "deploy"], expect.anything());
 	});
 
 	it("deploys when there's no previous release to diff against, without running git", async () => {
