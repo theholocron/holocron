@@ -1,3 +1,17 @@
+## [5.0.0-alpha.396](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.395...v5.0.0-alpha.396) (2026-11-09)
+
+### Features
+
+* **ideas:** 🧠 add the ideas capability and an Obsidian provider ([#2024](https://github.com/theholocron/holocron/issues/2024)) ([400ad2d](https://github.com/theholocron/holocron/commit/400ad2d2f8fa3721cd2d13326a1cae4ec133f103)), closes [#2022](https://github.com/theholocron/holocron/issues/2022) [#1994](https://github.com/theholocron/holocron/issues/1994)
+
+### Documentation
+
+* **ideas:** 💡 spec the ideas capability, an Obsidian provider and the Council plugin ([#2023](https://github.com/theholocron/holocron/issues/2023)) ([b0ef860](https://github.com/theholocron/holocron/commit/b0ef8601b20076960268ffaec0deded6369144bf)), closes [#1994](https://github.com/theholocron/holocron/issues/1994) [#2022](https://github.com/theholocron/holocron/issues/2022)
+
+### Chores
+
+* 🔧 add more apps ([#2025](https://github.com/theholocron/holocron/issues/2025)) ([aeadab7](https://github.com/theholocron/holocron/commit/aeadab7cc58c73c9d53b63f18dc52ae38e88028e))
+
 ## [5.0.0-alpha.395](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.394...v5.0.0-alpha.395) (2026-11-09)
 
 ### Features
