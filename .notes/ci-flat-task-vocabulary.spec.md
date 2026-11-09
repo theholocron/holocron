@@ -436,6 +436,10 @@ So `format` gets **no workflow file, no caller, no check name and no required co
 - `lint:editorconfig` and `lint:markdown` are split out of the old formatting workflow and are ordinary leaf workflows
   with their own checks, because they are linters and fit decision 3.
 - Nothing about whether the auto-fix is enabled in any repo changes.
+- **Later change:** no repo ever turned the auto-fix on, so it was removed. `lint:code` no longer has the
+  `enable-auto-commit` input, the App-token step, the `SUPER_LINTER_APP_ID` / `SUPER_LINTER_PRIVATE_KEY` secrets or the
+  fix commit, and `ci/actions/format` only checks (no `token` or `branch` input). The paragraphs here and in "Phase I as
+  built" describe the design as first built.
 
 **Not confirmed from the repo**, to be settled before the phase that does it: (a) that no repo sets
 `enable-auto-commit: true` for formatting (holocron's own does not; the 7 others' callers were not read); (b) whether

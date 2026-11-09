@@ -88,9 +88,9 @@ describe("generateThinCallerContent", () => {
 	});
 
 	it("replaces an existing key when the override matches it", () => {
-		const content = generateThinCallerContent("lint:code", { "enable-auto-commit": false });
-		expect(content.match(/enable-auto-commit:/g)).toHaveLength(1);
-		expect(content).toContain("enable-auto-commit: false");
+		const content = generateThinCallerContent("lint:code", { "yaml-config": "custom.yml" });
+		expect(content.match(/yaml-config:/g)).toHaveLength(1);
+		expect(content).toContain("yaml-config: custom.yml");
 	});
 
 	it("single-quotes an override value that looks like a YAML mapping node", () => {

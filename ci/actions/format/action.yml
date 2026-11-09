@@ -1,23 +1,8 @@
 name: Format
 description: >
-  Check the formatting with prettier (`holocron run format --check`) and, when a
-  GitHub App token is given, commit and push any fixes as a verified commit.
-  `format` is not a workflow of its own: a lint workflow that has already run the
-  setup action and checked the repository out calls this (`lint:code` does).
-
-inputs:
-  token:
-    description: >
-      GitHub App token with push access to the pull request branch. Leave empty to
-      only check: the caller generates it, and only on a same-repository pull
-      request that is not on the default branch, so an empty token is also what
-      keeps the fix commit off every other run.
-    required: false
-    default: ""
-  branch:
-    description: Branch the fix commit is pushed to.
-    required: false
-    default: ""
+  Check the formatting with prettier (`holocron run format --check`). `format` is
+  not a workflow of its own: a lint workflow that has already run the setup action
+  and checked the repository out calls this (`lint:code` does).
 
 runs:
   using: composite
@@ -27,12 +12,3 @@ runs:
       with:
         task: format
         args: --check
-
-    - uses: theholocron/.github/.github/actions/auto-commit@main
-      name: Commit and push formatting fixes
-      if: ${{ inputs.token != '' }}
-      with:
-        token: ${{ inputs.token }}
-        branch: ${{ inputs.branch }}
-        commit-message: "chore: fix formatting issues"
-        commit-options: "--no-verify"
