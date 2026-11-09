@@ -700,6 +700,11 @@ See the [command pages](https://theholocron.dev/holocron/commands/notifications-
   provider (title the first `#` heading, body the note plus `Filed from idea: <title>`) and records it with
   `Ideas.markFiled` (an `issue:` property, for Obsidian). Ideas with attachments are skipped. It never deletes, asks first
   unless `--dry-run` or `--yes`, and a second run changes nothing.
+- **`holocron ideas promote <issue> [--name <topic>] [--dry-run] [--yes]`** — the spec-time step: reads the issue through the
+  `issues` provider (`#1234`, `1234` or a Linear key) and writes `.notes/<name>.spec.md` (`tech-` and the title in
+  kebab-case, or `--name` as the whole name) with `status: draft`, `issue:`, `blocked-by: []`, no `id`, and the issue's text
+  under `## Problem` less the `Filed from idea:` line and the marker. It never overwrites a file, never edits the issue or
+  touches the vault, and asks first unless `--dry-run` or `--yes`.
 
 ## Syncing issues
 

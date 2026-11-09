@@ -119,6 +119,8 @@ export const COMMAND_CONTEXTS = {
 	"sync issues": "workspace",
 	// Reads ideas through the `ideas` provider and files each ready one through `issues`, so both packages must be resolvable.
 	"ideas sync": "workspace",
+	// Reads the issue through the `issues` provider, so its package must be resolvable.
+	"ideas promote": "workspace",
 } as const satisfies Record<string, ExecutionContext>;
 
 /**
