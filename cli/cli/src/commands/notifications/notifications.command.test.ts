@@ -7,6 +7,7 @@ const runSetup = vi.hoisted(() => vi.fn());
 const runCreateServer = vi.hoisted(() => vi.fn());
 const runLink = vi.hoisted(() => vi.fn());
 const runSyncRoles = vi.hoisted(() => vi.fn());
+const runDedupe = vi.hoisted(() => vi.fn());
 const launchMenu = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../../config/index.js", () => ({ loadConfig }));
 vi.mock("../notifications-channel-add/index.js", () => ({ runNotificationsChannelAdd: runChannelAdd }));
@@ -14,6 +15,7 @@ vi.mock("../notifications-setup/index.js", () => ({ runNotificationsSetup: runSe
 vi.mock("../notifications-create-server/index.js", () => ({ runNotificationsCreateServer: runCreateServer }));
 vi.mock("../notifications-link/index.js", () => ({ runNotificationsLink: runLink }));
 vi.mock("../notifications-sync-roles/index.js", () => ({ runNotificationsSyncRoles: runSyncRoles }));
+vi.mock("../notifications-dedupe/index.js", () => ({ runNotificationsDedupe: runDedupe }));
 vi.mock("@theholocron/kyber/prompts", async (importActual) => ({
 	...(await importActual<typeof import("@theholocron/kyber/prompts")>()),
 	promptForPositionals: async (_e: unknown, argv: Record<string, unknown>) => [argv["name"]],
@@ -42,7 +44,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	loadConfig.mockResolvedValue({ resolved: { org: "acme" }, filepath: "/x" });
 	tokenContext.mockReturnValue({ cliToken: "t" });
-	for (const run of [runChannelAdd, runSetup, runCreateServer, runLink, runSyncRoles]) {
+	for (const run of [runChannelAdd, runSetup, runCreateServer, runLink, runSyncRoles, runDedupe]) {
 		run.mockResolvedValue({ status: "ok" });
 	}
 });
@@ -54,6 +56,7 @@ describe.each([
 	["create-server", runCreateServer, ["create-server", "--owner", "someone"]],
 	["link", runLink, ["link"]],
 	["sync-roles", runSyncRoles, ["sync-roles"]],
+	["dedupe", runDedupe, ["dedupe"]],
 	["channel add", runChannelAdd, ["channel", "add", "alerts"]],
 ] as const)("notifications %s", (_name, run, args) => {
 	it("runs with the context from the tokens and the org", async () => {
@@ -122,6 +125,14 @@ describe("notifications options", () => {
 		expect(runSyncRoles.mock.calls[0]![0]).toMatchObject({ keep: true, provider: "discord" });
 		await go(["sync-roles"]);
 		expect("provider" in runSyncRoles.mock.calls[1]![0]).toBe(false);
+	});
+
+	it("dedupe passes the channel, --provider and --yes only when given", async () => {
+		await go(["dedupe"]);
+		const bare = runDedupe.mock.calls[0]![0];
+		expect(["channel", "provider", "yes"].some((k) => k in bare)).toBe(false);
+		await go(["dedupe", "prs", "--provider", "discord", "--yes"]);
+		expect(runDedupe.mock.calls[1]![0]).toMatchObject({ channel: "prs", provider: "discord", yes: true });
 	});
 
 	it("channel add passes the name, and every option it was given", async () => {

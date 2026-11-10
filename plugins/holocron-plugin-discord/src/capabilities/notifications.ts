@@ -1,6 +1,7 @@
 import {
 	type DiscussionPatch,
 	type DiscussionPost,
+	type DuplicateDiscussion,
 	ElevationRequiredError,
 	type EnsuredDiscussion,
 	type EnsureDiscussionInput,
@@ -1177,6 +1178,11 @@ export class DiscordNotifications implements Notifications {
 	/** Keeps the oldest post for `key` and deletes the others; returns how many it deleted. `refresh` reads the forum again first. */
 	dedupeDiscussion(channel: string, key: string, opts?: { refresh?: boolean }): Promise<number> {
 		return this.discussions().dedupe(channel, key, opts);
+	}
+
+	/** The keys with more than one post in a forum, with how many are beyond the oldest. Deletes nothing. */
+	duplicateDiscussions(channel: string): Promise<DuplicateDiscussion[]> {
+		return this.discussions().duplicates(channel);
 	}
 
 	/**

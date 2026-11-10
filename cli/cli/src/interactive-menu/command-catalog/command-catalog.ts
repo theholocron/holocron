@@ -36,6 +36,7 @@ import { moveTagEntry } from "../../commands/move-tag/move-tag.entry.js";
 import { newRepoEntry } from "../../commands/new/new-repo.entry.js";
 import { notificationsChannelAddEntry } from "../../commands/notifications-channel-add/notifications-channel-add.entry.js";
 import { notificationsCreateServerEntry } from "../../commands/notifications-create-server/notifications-create-server.entry.js";
+import { notificationsDedupeEntry } from "../../commands/notifications-dedupe/notifications-dedupe.entry.js";
 import { notificationsLinkEntry } from "../../commands/notifications-link/notifications-link.entry.js";
 import { notificationsSetupEntry } from "../../commands/notifications-setup/notifications-setup.entry.js";
 import { notificationsSyncRolesEntry } from "../../commands/notifications-sync-roles/notifications-sync-roles.entry.js";
@@ -113,6 +114,7 @@ const registry = createCommandRegistry(
 		notificationsCreateServerEntry,
 		notificationsLinkEntry,
 		notificationsSyncRolesEntry,
+		notificationsDedupeEntry,
 		specsSyncEntry,
 		deployEntry,
 		cleanupPreviewEntry,

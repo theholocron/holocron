@@ -1815,6 +1815,14 @@ export interface EnsuredDiscussion {
 	rekeyed?: boolean;
 }
 
+/** A key with more than one post in a forum, from {@link Notifications.duplicateDiscussions}. */
+export interface DuplicateDiscussion {
+	/** The key every one of the posts carries. */
+	key: string;
+	/** How many posts there are beyond the oldest, which is the one kept. */
+	extra: number;
+}
+
 /** What {@link Notifications.updateDiscussion} changes; a field left out is left alone. */
 export interface DiscussionPatch {
 	/** A new key: the document moved, and the post records its new path. */
@@ -2521,6 +2529,12 @@ export interface Notifications extends ProviderIdentity {
 	 * deliveries that raced each make a post and neither finds the other.
 	 */
 	dedupeDiscussion?(channel: string, key: string, opts?: { refresh?: boolean }): Promise<number>;
+	/**
+	 * The keys that have more than one post in a forum channel, each with how many posts beyond the one
+	 * {@link Notifications.dedupeDiscussion} keeps, in key order. Reads the forum afresh and changes nothing, so a repair
+	 * can say what it would delete before it deletes.
+	 */
+	duplicateDiscussions?(channel: string): Promise<DuplicateDiscussion[]>;
 
 	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */
 	holdsPermission?(permission: string): Promise<boolean>;

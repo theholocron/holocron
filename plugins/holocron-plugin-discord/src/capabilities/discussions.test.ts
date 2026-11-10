@@ -950,4 +950,37 @@ describe("DiscordDiscussions — a pull request's post", () => {
 			expect(await make(listing([])).discussions.dedupe("ideas", KEY)).toBe(0);
 		});
 	});
+
+	describe("duplicates", () => {
+		it("lists each key that has more than one post, with the posts beyond the oldest, and deletes nothing", async () => {
+			const other = "docs/wiki/specifications/other.spec.md";
+			const { discussions, calls } = make([
+				...listing([thread("7"), thread("5")], [thread("9"), thread("3")]),
+				body("7"),
+				body("5"),
+				body("9"),
+				first("3", `Title line\n\n${footer(other, "proposed")}`),
+			]);
+			expect(await discussions.duplicates("ideas")).toEqual([{ key: KEY, extra: 2 }]);
+			expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+		});
+
+		it("is empty when no key has more than one post", async () => {
+			expect(await make([...listing([thread("5")]), body("5")]).discussions.duplicates("ideas")).toEqual([]);
+		});
+
+		it("reads the forum again, so a post made after the first read is counted, and dedupe then removes it", async () => {
+			const { discussions } = make([
+				...listing([thread("5")]),
+				body("5"),
+				...listing([thread("5"), thread("7")]),
+				body("5"),
+				body("7"),
+				ok,
+			]);
+			expect((await discussions.read("ideas", KEY))?.url).toMatch(/\/5$/);
+			expect(await discussions.duplicates("ideas")).toEqual([{ key: KEY, extra: 1 }]);
+			expect(await discussions.dedupe("ideas", KEY)).toBe(1);
+		});
+	});
 });

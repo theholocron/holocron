@@ -1,0 +1,37 @@
+---
+title: "notifications dedupe"
+description: Delete the extra posts of a forum that has more than one post for the same key, keeping the oldest.
+---
+
+```bash
+holocron notifications dedupe [channel] [--provider <name>] [--yes] [--dry-run]
+```
+
+A forum keeps one post per key: a pull request (`owner/repo#123`), a spec or an ADR (its path). Two deliveries that race can each make the post for the same key, and the next one then finds two. This reads the forum afresh, lists every key that has more than one post, and for each keeps the oldest post and deletes the rest.
+
+```
+  o/r#1: 2 extra posts
+  o/r#7: 1 extra post
+
+  ✓ o/r#1: deleted 2 posts
+  ✓ o/r#7: deleted 1 post
+
+2 ok, 0 fail, 0 skipped
+```
+
+Without a `channel` it repairs the layout's one forum with [`feeds.prs`](/holocron/commands/notifications-setup/), the [pull-request feed](/holocron/sentinel/). It stops with a message when the layout has none, or has more than one, so name the forum then.
+
+The posts are threads, and a deleted thread cannot be brought back, so it asks first. `--dry-run` lists what it would delete and deletes nothing; `--yes` skips the question, and is required without a terminal. Running it again finds nothing to do. A key it cannot repair is reported, the rest are still done, and the command exits 1.
+
+The pull-request feed already removes a duplicate it causes, so this is for the ones that were already there, or a forum a bug or an outage left with a few.
+
+## Options
+
+| Option              | Default                    | Description                                                               |
+| ------------------- | -------------------------- | ------------------------------------------------------------------------- |
+| `[channel]`         | the forum with `feeds.prs` | The forum to repair                                                       |
+| `--provider <name>` | —                          | Which `notifications` provider, when more than one can de-duplicate posts |
+| `--yes`             | `false`                    | Delete without asking (required without a terminal)                       |
+| `--dry-run`         | `false`                    | Print what would be deleted without deleting it                           |
+
+A provider that can do this has the optional `Notifications` methods `duplicateDiscussions(channel)` (the keys with more than one post, and how many are beyond the oldest) and `dedupeDiscussion(channel, key)`; Discord has both.

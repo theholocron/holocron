@@ -3,6 +3,7 @@ import type { Argv, CommandModule } from "yargs";
 import { type GlobalArgs } from "../global-args/index.js";
 import { groupMenu } from "../group-menu/index.js";
 import { notificationsCreateServerCommand } from "../notifications-create-server/notifications-create-server.command.js";
+import { notificationsDedupeCommand } from "../notifications-dedupe/notifications-dedupe.command.js";
 import { notificationsLinkCommand } from "../notifications-link/notifications-link.command.js";
 import { notificationsSetupCommand } from "../notifications-setup/notifications-setup.command.js";
 import { notificationsSyncRolesCommand } from "../notifications-sync-roles/notifications-sync-roles.command.js";
@@ -18,6 +19,7 @@ export const notificationsCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 			.command(notificationsCreateServerCommand as never)
 			.command(notificationsLinkCommand as never)
 			.command(notificationsSyncRolesCommand as never)
+			.command(notificationsDedupeCommand as never)
 			.command(groupMenu("notifications") as never),
 	handler: () => {},
 };
