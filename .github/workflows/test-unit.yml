@@ -47,6 +47,9 @@ on: # yamllint disable-line rule:truthy
     secrets:
       CYPRESS_RECORD_KEY:
         required: false
+      HOLOCRON_TURBO_TOKEN:
+        description: The Turbo remote cache token. Read first; the TURBO_TOKEN secret is the fallback.
+        required: false
       TURBO_TOKEN:
         required: false
 
@@ -60,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -138,7 +141,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -181,7 +184,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -208,7 +211,7 @@ jobs:
       matrix:
         containers: [1, 2]
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

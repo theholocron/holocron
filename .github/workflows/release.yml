@@ -104,10 +104,16 @@ on: # yamllint disable-line rule:truthy
           Generic GitHub token fallback for `gh` CLI calls. Used when
           HOLOCRON_READ_TOKEN is not set.
         required: false
+      HOLOCRON_SENTRY_AUTH_TOKEN:
+        description: The Sentry auth token. Read first; the SENTRY_AUTH_TOKEN secret is the fallback.
+        required: false
       SENTRY_AUTH_TOKEN:
         description: >
           Sentry auth token for sourcemap upload and release creation.
           Required when sentry-project is set. Use the org-level secret.
+        required: false
+      HOLOCRON_TURBO_TOKEN:
+        description: The Turbo remote cache token. Read first; the TURBO_TOKEN secret is the fallback.
         required: false
       TURBO_TOKEN:
         required: false
@@ -139,7 +145,7 @@ jobs:
       previous: ${{ steps.release.outputs.previous }}
       channel: ${{ steps.release.outputs.channel }}
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     # Do not cancel in-progress releases — a partial release is worse than a slow one.
     steps:
@@ -271,7 +277,7 @@ jobs:
         if: ${{ inputs.sentry-project != '' && steps.release_version.outputs.release != '' && inputs.dry-run != true }}
         uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.HOLOCRON_SENTRY_AUTH_TOKEN || secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.HOLOCRON_SENTRY_ORG || vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ inputs.sentry-project }}
         with:
@@ -291,7 +297,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
