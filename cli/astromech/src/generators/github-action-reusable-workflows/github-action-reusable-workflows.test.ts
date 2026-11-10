@@ -1093,6 +1093,36 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 		expect(REUSABLE_WORKFLOWS[id]).toContain(`${bare}: \${{ secrets.${prefixed} || secrets.${bare} }}`);
 	});
 
+	it.each([
+		["release", "SENTRY_AUTH_TOKEN", "HOLOCRON_SENTRY_AUTH_TOKEN"],
+		["build", "TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
+		["test:unit", "TURBO_TOKEN", "HOLOCRON_TURBO_TOKEN"],
+	])("%s maps the prefixed secret onto the bare name %s (#1711)", (id, bare, prefixed) => {
+		expect(REUSABLE_WORKFLOWS[id]).toContain(`${bare}: \${{ secrets.${prefixed} || secrets.${bare} }}`);
+	});
+
+	it("no reusable workflow reads a bare TURBO_TOKEN or SENTRY_AUTH_TOKEN secret without its HOLOCRON_ name first, and each declares both", () => {
+		for (const bare of ["TURBO_TOKEN", "SENTRY_AUTH_TOKEN"]) {
+			const prefixed = `HOLOCRON_${bare}`;
+			for (const text of Object.values(REUSABLE_WORKFLOWS)) {
+				for (const m of text.matchAll(new RegExp(`secrets\\.${bare}\\b`, "g"))) {
+					expect(text.slice(Math.max(0, m.index - `secrets.${prefixed} || `.length), m.index)).toBe(
+						`secrets.${prefixed} || `
+					);
+				}
+			}
+			const declaring = Object.values(REUSABLE_WORKFLOWS).filter(
+				(text) =>
+					text.includes("workflow_call:") &&
+					new RegExp(`^ {6}${bare}:\\n {8}(description|required)`, "m").test(text)
+			);
+			expect(declaring.length).toBeGreaterThan(0);
+			for (const text of declaring) {
+				expect(text).toMatch(new RegExp(`^ {6}${prefixed}:\\n {8}description: .+\\n {8}required: false`, "m"));
+			}
+		}
+	});
+
 	it("the thin check-preview caller maps both Vercel secrets onto the names the reusable declares", () => {
 		const caller = WORKFLOW_TEMPLATES["check-preview"] as string;
 		expect(caller).toContain("VERCEL_TOKEN: ${{ secrets.HOLOCRON_VERCEL_TOKEN || secrets.VERCEL_TOKEN }}");

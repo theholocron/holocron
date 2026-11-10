@@ -66,6 +66,9 @@ on: # yamllint disable-line rule:truthy
       AXIOM_TOKEN:
         description: Vendor-native fallback for HOLOCRON_AXIOM_TOKEN.
         required: false
+      HOLOCRON_TURBO_TOKEN:
+        description: The Turbo remote cache token. Read first; the TURBO_TOKEN secret is the fallback.
+        required: false
       TURBO_TOKEN:
         required: false
 
@@ -108,7 +111,7 @@ jobs:
     permissions:
       contents: read
     env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TOKEN: ${{ secrets.HOLOCRON_TURBO_TOKEN || secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ vars.HOLOCRON_TURBO_TEAM || vars.TURBO_TEAM }}
       HOLOCRON_AXIOM_TOKEN: ${{ secrets.HOLOCRON_AXIOM_TOKEN || secrets.AXIOM_TOKEN }}
       HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}
