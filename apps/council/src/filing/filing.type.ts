@@ -14,6 +14,13 @@ export interface SyncCommand {
 	env: Record<string, string>;
 }
 
+/** This Mac's home folder and login shell, read only on desktop. */
+export interface SystemInfo {
+	home: string;
+	/** An absolute path. */
+	shell: string;
+}
+
 /** What the process printed (stdout then stderr) and how it ended; `code` is `null` when it did not start or was stopped. */
 export interface RunResult {
 	code: number | null;
@@ -30,9 +37,13 @@ export interface FileIdeaDeps {
 	isMobile: boolean;
 	/** The caller's `PATH`, which the command's own is built on. */
 	currentPath: string;
+	/** Reads the home folder and login shell; called only on desktop, after the settings are checked. */
+	system: () => SystemInfo;
 	readNote: () => Promise<string>;
 	setStatus: (state: string) => Promise<void>;
 	trashNote: () => Promise<void>;
 	run: (command: SyncCommand) => Promise<RunResult>;
 	notify: (message: string) => void;
+	/** Tells the user a run has started (a shell can take a few seconds to start). */
+	announce: (message: string) => void;
 }

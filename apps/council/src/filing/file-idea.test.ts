@@ -17,6 +17,7 @@ function setup(overrides: Partial<FileIdeaDeps> = {}, reads: string[] = [SEED, F
 		vaultPath: "/vault",
 		isMobile: false,
 		currentPath: "/bin",
+		system: () => ({ home: "/Users/me", shell: "/bin/zsh" }),
 		readNote: () => {
 			log.push("read");
 			return Promise.resolve(queue.shift() ?? "");
@@ -34,6 +35,7 @@ function setup(overrides: Partial<FileIdeaDeps> = {}, reads: string[] = [SEED, F
 			return Promise.resolve(run ?? { code: 0, output: "1 filed" });
 		}),
 		notify: (message) => notices.push(message),
+		announce: () => log.push("announce"),
 		...overrides,
 	};
 	return { deps, log, notices };
@@ -43,10 +45,14 @@ describe("fileIdea", () => {
 	it("sets the state, runs the sync, reads the note again and only then trashes it", async () => {
 		const { deps, log, notices } = setup();
 		await fileIdea(deps);
-		expect(log).toEqual(["read", "status:in-progress", "run", "read", "trash"]);
+		expect(log).toEqual(["read", "status:in-progress", "announce", "run", "read", "trash"]);
 		expect(notices).toEqual(["Filed as #7; the note is in the trash."]);
 		expect(deps.run).toHaveBeenCalledWith(
-			expect.objectContaining({ cwd: "/repo", args: expect.arrayContaining(["ideas", "sync", "--yes"]) })
+			expect.objectContaining({
+				program: "/bin/zsh",
+				cwd: "/repo",
+				args: expect.arrayContaining(["ideas", "sync", "--yes"]),
+			})
 		);
 	});
 
@@ -82,7 +88,7 @@ describe("fileIdea", () => {
 	it("never trashes after a non-zero exit, even if the note has an issue", async () => {
 		const { deps, log, notices } = setup({}, [SEED, FILED], { code: 1, output: "boom\nlast line" });
 		await fileIdea(deps);
-		expect(log).toEqual(["read", "status:in-progress", "run"]);
+		expect(log).toEqual(["read", "status:in-progress", "announce", "run"]);
 		expect(notices[0]).toContain("exited with 1");
 		expect(notices[0]).toContain("last line");
 	});
@@ -97,7 +103,7 @@ describe("fileIdea", () => {
 	it("keeps a note that still has no issue and shows the command's output", async () => {
 		const { deps, log, notices } = setup({}, [SEED, SEED], { code: 0, output: "skipped: attachment" });
 		await fileIdea(deps);
-		expect(log).toEqual(["read", "status:in-progress", "run", "read"]);
+		expect(log).toEqual(["read", "status:in-progress", "announce", "run", "read"]);
 		expect(notices[0]).toContain("skipped: attachment");
 	});
 });

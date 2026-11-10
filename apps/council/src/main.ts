@@ -1,6 +1,7 @@
 import { Notice, Platform, Plugin, type TFile } from "obsidian";
 
 import { fileIdea } from "./filing/file-idea.js";
+import { readSystem } from "./node/read-system.js";
 import { runCommand } from "./node/run-command.js";
 import { DEFAULT_SETTINGS } from "./settings/default-settings.js";
 import { parseStates } from "./settings/parse-states.js";
@@ -67,11 +68,13 @@ export default class HolocronIdeasPlugin extends Plugin {
 				vaultPath: adapter.getBasePath?.(),
 				isMobile: Platform.isMobile,
 				currentPath: Platform.isMobile ? "" : (process.env.PATH ?? ""),
+				system: readSystem,
 				readNote: () => this.app.vault.read(file),
 				setStatus: (state) => this.setStatus(file, state),
 				trashNote: () => this.app.fileManager.trashFile(file),
 				run: runCommand,
 				notify: (message) => new Notice(message, 10_000),
+				announce: (message) => new Notice(message, 6000),
 			});
 		} catch (error) {
 			new Notice(

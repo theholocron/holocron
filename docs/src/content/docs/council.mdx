@@ -62,17 +62,22 @@ The folder is inside the vault, so iCloud copies the plugin to your other device
 
 ### 4. Set the repo path and the command
 
-Open the plugin's settings and fill in the first two rows of the [table below](#settings):
+The plugin's settings live in a file inside the vault, so iCloud syncs them to every Mac. Set them once so they hold on each one. Open the plugin's settings and fill in the first rows of the [table below](#settings):
 
-- **Holocron repo path** is the absolute path of the checkout.
-- **Command** starts the CLI. Obsidian started from the Dock does not read your shell profile, so `pnpm` is usually missing from its `PATH`, most often when Node comes from nvm. Give absolute paths to `node` and to the built CLI:
+- **Holocron repo path** is the checkout, written with `~` for the home folder, for example `~/Code/theholocron/holocron`. Each Mac expands `~` to its own home folder, so one value works on all of them. Both Macs need the checkout at the same place under the home folder.
+- **Run through my login shell** stays on. The plugin then starts your shell the way a terminal does, so `node` and `pnpm` are found whether they come from nvm, `n`, Homebrew or anything else, and each Mac uses its own.
+- **Command** stays at the default, `pnpm exec holocron`. With the shell option on it works on each Mac, because each Mac's own shell finds `node` and `pnpm`.
 
-  ```text
-  /path/to/node /path/to/holocron/cli/cli/dist/cli.mjs
-  ```
+Starting the shell adds about 2 seconds to a run, and the plugin shows a notice while it starts.
+
+If your shell profile is slow or does not set up `node`, turn the shell option off and give full paths in **Command** instead, with `node` and the built CLI:
+
+```text
+/path/to/node /path/to/holocron/cli/cli/dist/cli.mjs
+```
 
 :::tip
-`command -v node` prints the path to `node`. With nvm that path contains the Node version, so update this setting when you change versions.
+`command -v node`, run in a terminal, prints the path to `node`. That path differs between Macs, and with nvm it contains the Node version, so a setting with a full path does not carry over to another Mac. Use the shell option when more than one Mac files notes.
 :::
 
 Leave **States** and **Filing state** at their defaults unless the `ideas` block of your config uses other words.
@@ -92,16 +97,17 @@ The plugin passes the vault's folder to the CLI itself, so the `ideas` provider 
 
 ## Settings
 
-| Setting            | Default                                 | Meaning                                                                     |
-| ------------------ | --------------------------------------- | --------------------------------------------------------------------------- |
-| Holocron repo path | empty                                   | The checkout the command runs in. Required for filing.                      |
-| Command            | `pnpm exec holocron`                    | What starts the CLI. Use full paths if the app cannot find it (see step 4). |
-| States             | `seed, exploring, in-progress, dropped` | The values the picker offers. Match the `ideas` block of the config         |
-| Filing state       | `in-progress`                           | The state that files the idea.                                              |
+| Setting                    | Default                                 | Meaning                                                                                                              |
+| -------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Holocron repo path         | empty                                   | The checkout the command runs in. A leading `~` is the home folder. Required for filing.                             |
+| Run through my login shell | on                                      | Starts the command in your login shell, which finds `node` and `pnpm` as your terminal does. About 2 seconds slower. |
+| Command                    | `pnpm exec holocron`                    | What starts the CLI. With the shell option off, give full paths (see step 4). A leading `~` is the home folder.      |
+| States                     | `seed, exploring, in-progress, dropped` | The values the picker offers. Match the `ideas` block of the config                                                  |
+| Filing state               | `in-progress`                           | The state that files the idea.                                                                                       |
 
 ## Limits
 
 - **Filing is desktop only.** A plugin runs on iOS but has no checkout, shell or git there. On the phone the command only sets the state; the note is filed the next time a Mac runs **File this idea** on it.
-- **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The plugin adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`. That does not cover Node installed through nvm. In that case put full paths in the Command setting, as in step 4 of [Install](#install).
+- **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The login shell option fixes that on every Mac. With it off, the plugin only adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`, which does not cover Node installed through nvm or `n`; put full paths in the Command setting, as in step 4 of [Install](#install).
 - **No token field.** The plugin's `data.json` is a file in the vault, and iCloud syncs it to every device. The CLI reads its tokens through its own chain on the Mac, as described in [tokens](/holocron/tokens/).
 - **`ideas sync` files every ready note**, not only the open one. The others stay in the vault with their `issue:` set until **File this idea** is run on each.

@@ -21,7 +21,7 @@ export class IdeasSettingTab extends PluginSettingTab {
 		super(app, host);
 	}
 
-	/** Draws the four fields. */
+	/** Draws the fields. */
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
@@ -35,14 +35,28 @@ export class IdeasSettingTab extends PluginSettingTab {
 
 		this.text(
 			"Holocron repo path",
-			"The checkout the command runs in, as an absolute path.",
+			"The checkout the command runs in. Start it with ~ for your home folder, so the same setting works on every Mac.",
 			"repoPath",
-			"/Users/you/Code/holocron"
+			"~/Code/theholocron/holocron"
 		);
+		new Setting(this.containerEl)
+			.setName("Run through my login shell")
+			.setDesc(
+				"Finds node and pnpm the way your terminal does, so one setting works on every Mac. It starts your shell, " +
+					"which takes about 2 seconds longer. Turn it off and give full paths in Command if your shell profile " +
+					"is slow or does not set up node."
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(this.host.settings.useLoginShell).onChange(async (value) => {
+					this.host.settings.useLoginShell = value;
+					await this.host.saveSettings();
+				})
+			);
 		this.text(
 			"Command",
-			"What starts the CLI. Obsidian is a GUI app and may not see the PATH from your shell profile, so use the full " +
-				'path to the program if "pnpm" or "node" is not found, for example /opt/homebrew/bin/pnpm exec holocron.',
+			"What starts the CLI. With the login shell option on, the default works as it is. With it off, Obsidian " +
+				"does not see the PATH from your shell profile, so use full paths, for example /opt/homebrew/bin/pnpm exec " +
+				"holocron. A leading ~ is your home folder.",
 			"command",
 			DEFAULT_SETTINGS.command
 		);
@@ -60,7 +74,12 @@ export class IdeasSettingTab extends PluginSettingTab {
 		);
 	}
 
-	private text(name: string, desc: string, key: keyof IdeasSettings, placeholder: string): void {
+	private text(
+		name: string,
+		desc: string,
+		key: "repoPath" | "command" | "states" | "fileState",
+		placeholder: string
+	): void {
 		new Setting(this.containerEl)
 			.setName(name)
 			.setDesc(desc)

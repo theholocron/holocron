@@ -71,7 +71,12 @@ describe("HolocronIdeasPlugin", () => {
 		const { plugin } = harness();
 		(plugin as unknown as { stored: unknown }).stored = { repoPath: "/repo" };
 		await plugin.loadSettings();
-		expect(plugin.settings).toMatchObject({ repoPath: "/repo", command: "pnpm exec holocron" });
+		// a data.json saved before the shell option existed picks up its default
+		expect(plugin.settings).toMatchObject({
+			repoPath: "/repo",
+			command: "pnpm exec holocron",
+			useLoginShell: true,
+		});
 		await plugin.saveSettings();
 		expect((plugin as unknown as { saved: unknown }).saved).toBe(plugin.settings);
 	});
@@ -133,13 +138,15 @@ describe("HolocronIdeasPlugin", () => {
 		const savedPath = process.env.PATH;
 		delete process.env.PATH;
 		(plugin as unknown as Registered).commands[0]?.callback();
-		await vi.waitFor(() => expect(notices).toHaveLength(1));
+		await vi.waitFor(() => expect(notices).toHaveLength(2));
 		expect(runCommand).toHaveBeenCalledWith(
 			expect.objectContaining({ cwd: "/repo", env: expect.objectContaining({ HOLOCRON_IDEAS_DIR: "/vault" }) })
 		);
 		process.env.PATH = savedPath;
 		expect(trashed).toHaveLength(1);
-		expect(notices[0]?.message).toContain("Filed as #7");
+		expect(notices[0]?.message).toContain("starting your shell can take a few seconds");
+		expect(notices[0]?.duration).toBe(6000);
+		expect(notices[1]?.message).toContain("Filed as #7");
 	});
 
 	it("shows an error as a notice and keeps the note", async () => {

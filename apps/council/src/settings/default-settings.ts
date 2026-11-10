@@ -4,6 +4,7 @@ import type { IdeasSettings } from "./settings.type.js";
 export const DEFAULT_SETTINGS: IdeasSettings = {
 	repoPath: "",
 	command: "pnpm exec holocron",
+	useLoginShell: true,
 	states: "seed, exploring, in-progress, dropped",
 	fileState: "in-progress",
 };
