@@ -41,6 +41,7 @@ interface Setup {
 	pull?: Partial<GitHubPullRequest>;
 	runs?: GitHubCheckRun[];
 	created?: boolean;
+	deduped?: number;
 	postClosed?: boolean;
 	existing?: boolean;
 	messages?: string[];
@@ -55,7 +56,7 @@ function setup(o: Setup = {}) {
 			created: o.created ?? false,
 		})),
 		updateDiscussion: vi.fn(async (_c: string, _k: string, _p: { closed?: boolean }): Promise<void> => undefined),
-		dedupeDiscussion: vi.fn(async () => 0),
+		dedupeDiscussion: vi.fn(async (..._a: unknown[]) => o.deduped ?? 0),
 		postDiscussionMessage: vi.fn(async (..._a: unknown[]): Promise<void> => undefined),
 		readDiscussionMessages: vi.fn(async () => o.messages ?? []),
 	};
@@ -101,7 +102,7 @@ describe("syncPullRequest: the post", () => {
 			state: "waiting",
 			quiet: true,
 		});
-		expect(notifications.dedupeDiscussion).toHaveBeenCalledWith("prs", KEY);
+		expect(notifications.dedupeDiscussion).toHaveBeenCalledWith("prs", KEY, { refresh: true });
 		expect(notifications.updateDiscussion).not.toHaveBeenCalled();
 		expect(result).toEqual({ number: 7, outcome: "created", posted: [] });
 	});
@@ -149,6 +150,21 @@ describe("syncPullRequest: opened and reopened", () => {
 			"🆕 Opened by luke into `alpha`: +10 −2 in 3 files\n-# pr: opened",
 			{ quiet: true }
 		);
+		expect(result.posted).toEqual(["opened"]);
+	});
+
+	it("reads the thread when the de-duplication kept an older post, which may have its line already", async () => {
+		const { notifications, sync } = setup({ created: true, deduped: 1, messages: ["x\n-# pr: opened", "summary"] });
+		const result = await sync(pr("opened"));
+		expect(notifications.readDiscussionMessages).toHaveBeenCalled();
+		expect(notifications.postDiscussionMessage).not.toHaveBeenCalled();
+		expect(result.posted).toEqual([]);
+	});
+
+	it("says it opened on the kept post when it has no line yet", async () => {
+		const { notifications, sync } = setup({ created: true, deduped: 1, messages: ["summary"] });
+		const result = await sync(pr("opened"));
+		expect(notifications.postDiscussionMessage).toHaveBeenCalledTimes(1);
 		expect(result.posted).toEqual(["opened"]);
 	});
 

@@ -353,13 +353,20 @@ export class DiscordDiscussions {
 	}
 
 	/** Keep the oldest post that carries `key` and delete the others. Returns how many were deleted. */
-	async dedupe(channel: string, key: string): Promise<number> {
-		const entry = (await this.posts(await this.forum(channel))).get(key);
+	async dedupe(channel: string, key: string, opts: { refresh?: boolean } = {}): Promise<number> {
+		const forum = await this.forum(channel);
+		// The copy is read once per instance, so a post another instance made after that is not in it. A caller that has
+		// just made a post reads again, or two deliveries that raced would each keep their own.
+		if (opts.refresh) this.forums.delete(forum.id);
+		const entry = (await this.posts(forum)).get(key);
 		if (!entry) return 0;
 		const bot = this.deps.bot();
 		let deleted = 0;
 		while (entry.duplicates.length > 0) {
-			await bot.threads.delete(entry.duplicates[0]!.id);
+			// Another instance may have deleted the same duplicate a moment ago: it is gone either way.
+			await bot.threads.delete(entry.duplicates[0]!.id).catch((err: unknown) => {
+				if ((err as { status?: number }).status !== 404) throw err;
+			});
 			entry.duplicates.shift(); // only once it is gone, so a failed run is retried
 			deleted++;
 		}
