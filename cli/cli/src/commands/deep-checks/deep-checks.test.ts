@@ -52,6 +52,12 @@ vi.mock("../doctor-variables/index.js", async (importActual) => ({
 	runDoctorVariables,
 }));
 
+const runDoctorVariableOwners = vi.hoisted(() => vi.fn());
+vi.mock("../doctor-variable-owners/index.js", async (importActual) => ({
+	...(await importActual<typeof import("../doctor-variable-owners/index.js")>()),
+	runDoctorVariableOwners,
+}));
+
 const runDoctorProject = vi.hoisted(() => vi.fn());
 vi.mock("../doctor-project/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../doctor-project/index.js")>()),
@@ -356,6 +362,31 @@ describe("the variables entry", () => {
 			status: "skip",
 			summary: { ok: 0, fail: 0, skip: 1 },
 			reason: "no source provider",
+		});
+	});
+});
+
+describe("the variable-owners entry", () => {
+	const input = { loaded: {} as never, context: {} as never };
+	const owners = DEEP_CHECKS.find((c) => c.name === "variable-owners")!;
+
+	it("compares the credentials capability and reports the run's status and counts", async () => {
+		expect(owners.capability).toBe("credentials");
+		runDoctorVariableOwners.mockResolvedValue({ status: "fail", rows: [], summary: { ok: 0, fail: 2, skip: 1 } });
+		expect(await owners.run(input)).toEqual({ status: "fail", summary: { ok: 0, fail: 2, skip: 1 } });
+	});
+
+	it("carries the reason nothing was compared", async () => {
+		runDoctorVariableOwners.mockResolvedValue({
+			status: "skip",
+			rows: [],
+			summary: { ok: 0, fail: 0, skip: 2 },
+			reason: "no `credentials` provider is configured",
+		});
+		expect(await owners.run(input)).toEqual({
+			status: "skip",
+			summary: { ok: 0, fail: 0, skip: 2 },
+			reason: "no `credentials` provider is configured",
 		});
 	});
 });

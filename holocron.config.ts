@@ -33,7 +33,21 @@ export default defineConfig({
 	org,
 	docs,
 	// The apex carries iCloud Mail's MX and SPF records; `holocron doctor dns` keeps watch on them (#1569).
-	doctor: { mail: "icloud" },
+	// `doctor variable-owners` (#2041) reports a name that lives in two places. These are shared on purpose: the "One owner per
+	// variable" table in `environment-variables.mdx` says why and which copy to change with the other. Names only.
+	doctor: {
+		mail: "icloud",
+		sharedVariables: [
+			"HOLOCRON_AXIOM_ORG",
+			"HOLOCRON_DISCORD_BOT_TOKEN",
+			"HOLOCRON_ENVIRONMENT",
+			"HOLOCRON_USER_SYNC_TOKEN",
+			"SENTINEL_AXIOM_DATASET",
+			"SENTINEL_AXIOM_INGEST_TOKEN",
+			"SENTINEL_GITHUB_APP_ID",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+		],
+	},
 	repo: {
 		...repo,
 		// GitHub's default branch was still main while all v2 alpha work lands

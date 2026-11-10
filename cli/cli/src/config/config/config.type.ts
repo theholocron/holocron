@@ -303,6 +303,12 @@ export interface DoctorConfig {
 	 * records in the zone, so a change that would break mail is caught. Nothing writes them; they are set up by hand.
 	 */
 	mail?: "icloud";
+	/**
+	 * Variable names that live in more than one place on purpose (an Environment's entry and the one a second
+	 * Environment holds), which `holocron doctor variable-owners` does not report. Names only. The copy a
+	 * `repo.secrets.sync` or `repo.variables.sync` entry makes is never reported, so it needs no entry here.
+	 */
+	sharedVariables?: string[];
 }
 
 /** The `credentials` block: which environment the `credentials` providers read this machine's tokens from. */

@@ -98,6 +98,7 @@ export const COMMAND_CONTEXTS = {
 	"doctor tokens": "workspace",
 	"doctor monitoring": "workspace",
 	"doctor variables": "workspace",
+	"doctor variable-owners": "workspace",
 	// Reads `./holocron.config` and `.github/workflows`, no plugins.
 	"doctor ci": "repo-aware",
 	// Loads the configured plugins and runs the probes they offer.
