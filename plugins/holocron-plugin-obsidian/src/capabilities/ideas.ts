@@ -15,6 +15,12 @@ export interface ObsidianIdeasOptions {
 	 * it, since the path differs per machine.
 	 */
 	dir?: string;
+	/**
+	 * The name of an Obsidian vault kept in iCloud Drive, such as `"The Holocron"`: the folder is
+	 * `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<vault>`. A single folder name, not a path. `dir` and
+	 * `HOLOCRON_IDEAS_DIR` win over it when set.
+	 */
+	vault?: string;
 	/** The environment `HOLOCRON_IDEAS_DIR` is read from. Defaults to `process.env`. */
 	env?: Record<string, string | undefined>;
 	/** The disk. Defaults to the real one; a test supplies a fake. */
@@ -72,10 +78,10 @@ export class ObsidianIdeas implements Ideas {
 	}
 
 	private dir(): string {
-		const dir = resolveIdeasDir(this.options.dir, this.io.home(), this.options.env);
+		const dir = resolveIdeasDir(this.options.dir, this.io.home(), this.options.env, this.options.vault);
 		if (!dir) {
 			throw new Error(
-				'no notes folder: set `dir` on the `ideas` provider (`providers.ideas: ["obsidian", { dir }]`) or HOLOCRON_IDEAS_DIR'
+				'no notes folder: set `vault` or `dir` on the `ideas` provider (`providers.ideas: ["obsidian", { vault }]`) or HOLOCRON_IDEAS_DIR'
 			);
 		}
 		return dir;
