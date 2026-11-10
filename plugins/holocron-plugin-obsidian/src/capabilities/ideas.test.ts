@@ -112,6 +112,16 @@ describe("ObsidianIdeas", () => {
 			expect((err as Error).message).toBe("the notes folder does not exist or cannot be read: /nowhere");
 		});
 
+		it("names the iCloud folder it built from `vault` when that folder is missing", async () => {
+			const { io } = memoryIo({});
+			const err = await provider({ ...io, readDir: () => undefined }, { vault: "The Holocron" })
+				.list()
+				.catch((e: unknown) => e);
+			expect((err as Error).message).toBe(
+				"the notes folder does not exist or cannot be read: /home/leia/Library/Mobile Documents/iCloud~md~obsidian/Documents/The Holocron"
+			);
+		});
+
 		it("throws a clear message when no folder is configured", async () => {
 			const err = await provider(memoryIo({}).io, {})
 				.list()

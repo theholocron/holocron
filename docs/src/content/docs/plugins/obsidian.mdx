@@ -23,18 +23,21 @@ The plugin has no token and makes no network call, so it has no `auth.ts` and no
 
 ```ts
 providers: {
-  ideas: ["obsidian", { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/The Holocron" }],
+  ideas: ["obsidian", { vault: "The Holocron" }],
 },
 ideas: { states: { file: "in-progress" } },
 ```
 
 ### Options
 
-| Option | Required | Description                                                                                                                                   |
-| ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dir`  | No       | The folder of notes. A leading `~` is the home folder. `HOLOCRON_IDEAS_DIR` (then `IDEAS_DIR`) overrides it, as the path differs per machine. |
+| Option  | Required | Description                                                                                                                                                                                                              |
+| ------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `vault` | No       | The name of an Obsidian vault kept in iCloud Drive. The folder is `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<vault>`. It is one folder name: a value with `/` or `\`, or `.` or `..`, is a `ConfigError`. |
+| `dir`   | No       | The folder of notes, for a vault kept anywhere else. A leading `~` is the home folder. `HOLOCRON_IDEAS_DIR` (then `IDEAS_DIR`) overrides it, as the path differs per machine.                                            |
 
-Without `dir` and without the variable, the provider cannot list and the command reports a failing row that says so.
+The folder is chosen by the most specific setting first: `HOLOCRON_IDEAS_DIR` (then `IDEAS_DIR`), then `dir`, then `vault`. When both `dir` and `vault` are set, `dir` wins and this is not an error. A `vault` is only meaningful on a Mac with iCloud Drive, and is not checked against the platform; when the folder it builds does not exist, the error names that full path.
+
+Without `vault`, `dir` and the variable, the provider cannot list and the command reports a failing row that says so.
 
 A config that still has the older `ideas.dir` keeps working: when `providers.ideas` is absent, the command reads it as `["obsidian", { dir }]`. `providers.ideas` wins when both are set. `ideas.dir` is deprecated and will be removed.
 

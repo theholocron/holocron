@@ -15,18 +15,18 @@ The provider says where the ideas are, and an `ideas` block holds the workflow s
 
 ```ts
 providers: {
-	ideas: ["obsidian", { dir: "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/holocron" }],
+	ideas: ["obsidian", { vault: "holocron" }],
 },
 ideas: { states: { file: "in-progress" } },
 ```
 
-| Key                 | Default       | Meaning                                                                                                                                            |
-| ------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `providers.ideas`   | none          | The `ideas` provider and its options. For [Obsidian](/holocron/plugins/obsidian/), `dir` is the folder of notes; a leading `~` is the home folder. |
-| `ideas.states.file` | `in-progress` | The `status:` that means "file this idea". Another repo can use its own word for the state.                                                        |
-| `ideas.dir`         | none          | Deprecated: read as `providers.ideas: ["obsidian", { dir }]` when `providers.ideas` is absent.                                                     |
+| Key                 | Default       | Meaning                                                                                                                                                                                    |
+| ------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `providers.ideas`   | none          | The `ideas` provider and its options. For [Obsidian](/holocron/plugins/obsidian/), `vault` names a vault in iCloud Drive and `dir` is a folder of notes; a leading `~` is the home folder. |
+| `ideas.states.file` | `in-progress` | The `status:` that means "file this idea". Another repo can use its own word for the state.                                                                                                |
+| `ideas.dir`         | none          | Deprecated: read as `providers.ideas: ["obsidian", { dir }]` when `providers.ideas` is absent.                                                                                             |
 
-`HOLOCRON_IDEAS_DIR` overrides the Obsidian provider's `dir`, because the path differs per machine (see [environment variables](/holocron/environment-variables/)). A config with only the older `ideas.dir` keeps working, and `providers.ideas` wins when both are set. The `ideas` capability is optional: a repo with no `providers.ideas`, no `ideas.dir` and no variable is unaffected, and the command reports that it has nowhere to read from. A wrong shape is a `ConfigError` that names the path, such as `ideas.states.file`.
+The Obsidian provider's `vault` is the folder `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/<vault>`. `HOLOCRON_IDEAS_DIR` overrides its `dir`, and `dir` overrides `vault`, because the path differs per machine (see [environment variables](/holocron/environment-variables/)). A config with only the older `ideas.dir` keeps working, and `providers.ideas` wins when both are set. The `ideas` capability is optional: a repo with no `providers.ideas`, no `ideas.dir` and no variable is unaffected, and the command reports that it has nowhere to read from. A wrong shape is a `ConfigError` that names the path, such as `ideas.states.file`.
 
 ## What it files
 
