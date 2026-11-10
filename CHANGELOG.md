@@ -1,3 +1,9 @@
+## [5.0.0-alpha.399](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.398...v5.0.0-alpha.399) (2026-11-10)
+
+### Features
+
+* **ideas:** 🔎 find a filed note with Issues.search text, not the last 100 issues ([#2027](https://github.com/theholocron/holocron/issues/2027)) ([75e9ced](https://github.com/theholocron/holocron/commit/75e9ceda249770b75dd2f3d0fb18e651aeb855d4))
+
 ## [5.0.0-alpha.398](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.397...v5.0.0-alpha.398) (2026-11-10)
 
 ### Features
