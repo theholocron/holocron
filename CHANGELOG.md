@@ -1,3 +1,13 @@
+## [5.0.0-alpha.401](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.400...v5.0.0-alpha.401) (2026-11-10)
+
+### Features
+
+* **ideas:** 💡 declare the Obsidian ideas vault in holocron.config ([#2030](https://github.com/theholocron/holocron/issues/2030)) ([b00154e](https://github.com/theholocron/holocron/commit/b00154e3ae19c02a86e7e29157ab60cc77a810f2)), closes [#2022](https://github.com/theholocron/holocron/issues/2022) [#1994](https://github.com/theholocron/holocron/issues/1994)
+
+### Documentation
+
+* **comlink:** 📝 say HOLOCRON_SENTRY_COMLINK_TOKEN is not a Worker secret ([#2029](https://github.com/theholocron/holocron/issues/2029)) ([3e41aa9](https://github.com/theholocron/holocron/commit/3e41aa9f8cef5be4546d9ad123e57f1464e33277))
+
 ## [5.0.0-alpha.400](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.399...v5.0.0-alpha.400) (2026-11-10)
 
 ### Features
