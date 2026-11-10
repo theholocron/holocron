@@ -20,11 +20,16 @@ One published package, `tsdown` multi-entry, subpath exports:
 - **`/logger`**: `createLogger()` (Pino) and a zero-dependency `ConsoleLogger`.
 - **`/errors`**: `SentrySink`, the only `@sentry/node` call site.
 - **`/analytics`**: `PostHogSink`, the only `posthog-node` call site.
+- **`/browser`**: `SentryBrowserSink` (`@sentry/browser`) and `PostHogBrowserSink` (`posthog-js`). No Node built-ins.
+- **`/edge`**: `SentryEdgeSink` (`@sentry/vercel-edge`, WinterCG runtimes) and `PostHogFetchSink` (PostHog's HTTP capture
+  endpoint over `fetch`, no SDK). No Node built-ins. The Sentry sinks share `shared/sentry-compatible-sink.ts`
+  (vendor-free, takes the SDK namespace); every vendor call in `/browser` and `/edge` goes through `safely()`, so a throwing
+  SDK never reaches the app.
 - **`/testing`**: fakes for testing code that takes these interfaces.
 
 Rules:
 
-- Vendor SDKs (`@sentry/node`, `posthog-node`, `pino`, `pino-pretty`, `@axiomhq/pino`) are **optional peer
+- Vendor SDKs (`@sentry/node`, `@sentry/browser`, `@sentry/vercel-edge`, `posthog-node`, `posthog-js`, `pino`, `pino-pretty`, `@axiomhq/pino`) are **optional peer
   dependencies**: a consumer installs only those for the subpaths it imports. Do not make one a dependency, and do not
   import one from `/core`.
 - Adapters read no environment and ship no credentials. The caller resolves the DSN / key and passes it in.

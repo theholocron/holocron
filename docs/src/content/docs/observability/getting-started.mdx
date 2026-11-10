@@ -74,8 +74,67 @@ import { ConsoleLogger } from "@theholocron/observability/logger";
 const logger = new ConsoleLogger({ level: "info" });
 ```
 
-Environment-specific error / analytics adapters (`@sentry/nextjs`,
-`@sentry/react-native`, `posthog-js`, …) plug into the same interfaces.
+### In a browser or React app
+
+`/browser` has `SentryBrowserSink` (over `@sentry/browser`) and
+`PostHogBrowserSink` (over `posthog-js`). Install the SDKs you use, resolve the
+DSN and key yourself, and fall back to the no-ops when they are empty:
+
+```ts
+import { NoopAnalyticsSink, NoopErrorSink } from "@theholocron/observability/core";
+import { PostHogBrowserSink, SentryBrowserSink } from "@theholocron/observability/browser";
+
+const dsn = import.meta.env.VITE_SENTRY_DSN;
+const key = import.meta.env.VITE_POSTHOG_KEY;
+
+const errors = dsn ? new SentryBrowserSink({ tracesSampleRate: 0.1 }) : new NoopErrorSink();
+errors.init({ dsn: dsn ?? "", release: "web@1.0.0", environment: "production", tags: {} });
+
+const analytics = key ? new PostHogBrowserSink({ key, host: "https://us.i.posthog.com" }) : new NoopAnalyticsSink();
+analytics.identify("user-1", { plan: "pro" });
+```
+
+`posthog-js` keeps one current person, so `capture()` records for the person
+last passed to `identify()` and ignores its `distinctId` argument. Neither sink
+throws into your app: an SDK call that throws is ignored.
+
+### In an edge runtime or worker
+
+`/edge` has `SentryEdgeSink` (over `@sentry/vercel-edge`, which runs on
+Cloudflare Workers, Vercel Edge and other WinterCG runtimes) and
+`PostHogFetchSink`, which sends events to PostHog's capture endpoint with
+`fetch` and needs no SDK. Hand pending work to the runtime so it is not cut off
+when the response ends:
+
+```ts
+import { PostHogFetchSink, SentryEdgeSink } from "@theholocron/observability/edge";
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const errors = new SentryEdgeSink();
+    errors.init({ dsn: env.SENTRY_DSN, release: "edge@1.0.0", environment: "production", tags: {} });
+    const analytics = new PostHogFetchSink({
+      key: env.POSTHOG_KEY,
+      host: "https://us.i.posthog.com",
+      waitUntil: (pending) => ctx.waitUntil(pending),
+    });
+    try {
+      analytics.capture("anonymous", "request", { path: new URL(request.url).pathname });
+      return new Response("ok");
+    } catch (err) {
+      errors.captureException(err);
+      ctx.waitUntil(errors.flush());
+      throw err;
+    }
+  },
+};
+```
+
+The edge SDK has no release-health sessions, so `endSession()` does nothing
+there. Both entry points import no Node built-in and are tree-shakable.
+
+React Native adapters (`@sentry/react-native`, `posthog-react-native`) follow in
+their own subpath; until then use `ConsoleLogger` and the no-ops.
 
 ## Testing
 

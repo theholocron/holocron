@@ -30,6 +30,8 @@ Add the peers for the subpaths you use — they are all optional:
 | `@theholocron/observability/logger`    | `pino`, `pino-pretty`, `@axiomhq/pino` |
 | `@theholocron/observability/errors`    | `@sentry/node`                         |
 | `@theholocron/observability/analytics` | `posthog-node`                         |
+| `@theholocron/observability/browser`   | `@sentry/browser`, `posthog-js`        |
+| `@theholocron/observability/edge`      | `@sentry/vercel-edge`                  |
 | `@theholocron/observability/testing`   | `vitest`                               |
 
 ## Examples
@@ -66,9 +68,29 @@ errors.init({
 deploy({ logger, errors });
 ```
 
-For the browser, an edge runtime, or React Native, import
-`@theholocron/observability/core` (zero dependencies) and use `ConsoleLogger`
-from `/logger` in place of Pino.
+### In a browser, edge or React Native app
+
+Import `@theholocron/observability/core` (zero dependencies) and use
+`ConsoleLogger` from `/logger` in place of Pino. Then pick the adapters for the
+runtime. None of these entry points imports a Node built-in.
+
+```typescript
+// Browser or React app
+import { PostHogBrowserSink, SentryBrowserSink } from "@theholocron/observability/browser";
+
+const errors = new SentryBrowserSink();
+errors.init({ dsn, release: "web@1.0.0", environment: "production", tags: {} });
+const analytics = new PostHogBrowserSink({ key, host: "https://us.i.posthog.com" });
+
+// Edge runtime or worker: Sentry's edge SDK, and PostHog over fetch (no SDK)
+import { PostHogFetchSink, SentryEdgeSink } from "@theholocron/observability/edge";
+
+const edgeAnalytics = new PostHogFetchSink({ key, host, waitUntil: (p) => ctx.waitUntil(p) });
+```
+
+Every adapter takes its SDK or `fetch` as an option, so tests pass a fake, and
+none of them throws into the app when the SDK does. An empty DSN or key is the
+caller's signal to install `NoopErrorSink` / `NoopAnalyticsSink` instead.
 
 Testing code that depends on `Logger` / `ErrorSink` / `AnalyticsSink`? Use the
 spy doubles from `/testing` instead of hand-rolling one per repo:

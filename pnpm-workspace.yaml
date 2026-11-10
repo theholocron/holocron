@@ -103,6 +103,12 @@ catalogs:
     react-dom: ^19.3.1
     vite: ^8.3.6
 
+  # observability: dependencies only observability/ uses (the browser and edge adapters' SDKs)
+  observability:
+    "@sentry/browser": ^11.10.0
+    "@sentry/vercel-edge": ^11.10.0
+    posthog-js: ^1.447.7
+
   # plugins: dependencies only plugins/ uses
   plugins:
     libsodium-wrappers: ^0.8.4

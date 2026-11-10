@@ -49,6 +49,16 @@
       "import": "./dist/analytics.mjs",
       "default": "./dist/analytics.mjs"
     },
+    "./browser": {
+      "types": "./dist/browser.d.mts",
+      "import": "./dist/browser.mjs",
+      "default": "./dist/browser.mjs"
+    },
+    "./edge": {
+      "types": "./dist/edge.d.mts",
+      "import": "./dist/edge.mjs",
+      "default": "./dist/edge.mjs"
+    },
     "./testing": {
       "types": "./dist/testing.d.mts",
       "import": "./dist/testing.mjs",
@@ -70,7 +80,9 @@
   },
   "devDependencies": {
     "@axiomhq/pino": "catalog:",
+    "@sentry/browser": "catalog:observability",
     "@sentry/node": "catalog:",
+    "@sentry/vercel-edge": "catalog:observability",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
@@ -83,6 +95,7 @@
     "globals": "catalog:",
     "pino": "catalog:",
     "pino-pretty": "catalog:",
+    "posthog-js": "catalog:observability",
     "posthog-node": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
@@ -90,9 +103,12 @@
   },
   "peerDependencies": {
     "@axiomhq/pino": ">=2",
+    "@sentry/browser": ">=10",
     "@sentry/node": ">=10",
+    "@sentry/vercel-edge": ">=10",
     "pino": ">=10",
     "pino-pretty": ">=13",
+    "posthog-js": ">=1",
     "posthog-node": ">=5",
     "vitest": ">=4"
   },
@@ -100,13 +116,22 @@
     "@axiomhq/pino": {
       "optional": true
     },
+    "@sentry/browser": {
+      "optional": true
+    },
     "@sentry/node": {
+      "optional": true
+    },
+    "@sentry/vercel-edge": {
       "optional": true
     },
     "pino": {
       "optional": true
     },
     "pino-pretty": {
+      "optional": true
+    },
+    "posthog-js": {
       "optional": true
     },
     "posthog-node": {
