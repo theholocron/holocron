@@ -1,3 +1,9 @@
+## [8.9.0-alpha.16](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.15...configs-v8.9.0-alpha.16) (2026-11-10)
+
+### Bug Fixes
+
+* **eslint-config:** 🐛 pin the es-builtins rule to the org node floor ([#2038](https://github.com/theholocron/holocron/issues/2038)) ([ea99638](https://github.com/theholocron/holocron/commit/ea99638db718bf30f2a47568cd465e4dc6732c5d))
+
 ## [8.9.0-alpha.15](https://github.com/theholocron/holocron/compare/configs-v8.9.0-alpha.14...configs-v8.9.0-alpha.15) (2026-11-09)
 
 ### Bug Fixes
