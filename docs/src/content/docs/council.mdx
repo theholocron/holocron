@@ -1,0 +1,52 @@
+---
+title: Council
+description: The Obsidian plugin that files an idea note as an issue and sets its status from a fixed list.
+---
+
+`@theholocron/council` (Holocron Council) is a small Obsidian plugin for the ideas vault ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). It puts a button inside Obsidian on the three steps that otherwise take a terminal: set `status: in-progress`, run [`holocron ideas sync`](/holocron/commands/ideas-sync/), and remove the note.
+
+:::note
+The plugin is a **private app, built and installed by hand**. It is not on npm and not in Obsidian's community list, so there is nothing to `pnpm add`.
+:::
+
+## Commands
+
+- **File this idea** (command palette and a ribbon button) acts on the open note.
+- **Set idea status** shows a picker of the configured states and sets `status` on the open note. Obsidian's property editor suggests values already used in the vault but has no fixed list.
+
+## Order is the safety property
+
+**File this idea** does these steps in order, and stops at the first that does not hold:
+
+1. Refuse when the note is already in the filing state and has an `issue:`.
+2. Set `status` to the filing state.
+3. On desktop, run `holocron ideas sync --yes` in the Holocron checkout, with `HOLOCRON_IDEAS_DIR` set to the vault's folder.
+4. Read the note again. Only if it now has an `issue:`, move it to Obsidian's trash (the system trash or the vault's `.trash`, as set in Obsidian, so it can be undone).
+5. Otherwise leave the note, restore nothing, and show a notice with the end of the command's output, such as a note skipped for an attachment.
+
+A command that exits non-zero never trashes the note, even if the file has an `issue:`. The CLI never deletes a note; this plugin trashes only the open one.
+
+## Install
+
+```sh
+pnpm install
+pnpm --filter @theholocron/council build
+```
+
+Copy `apps/council/dist/main.js` and `manifest.json` into `<vault>/.obsidian/plugins/holocron-council/`, then turn the plugin on under Settings, Community plugins. A plugin folder inside an iCloud vault syncs to the other devices by itself.
+
+## Settings
+
+| Setting            | Default                                 | Meaning                                                             |
+| ------------------ | --------------------------------------- | ------------------------------------------------------------------- |
+| Holocron repo path | empty                                   | The checkout the command runs in. Required for filing.              |
+| Command            | `pnpm exec holocron`                    | What starts the CLI. Use the full path if the app cannot find it.   |
+| States             | `seed, exploring, in-progress, dropped` | The values the picker offers. Match the `ideas` block of the config |
+| Filing state       | `in-progress`                           | The state that files the idea.                                      |
+
+## Limits
+
+- **Filing is desktop only.** A plugin runs on iOS but has no checkout, shell or git there. On the phone the command only sets the state; the note is filed the next time a Mac runs **File this idea** on it.
+- **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The plugin adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`. If that is not enough, put the full path in the Command setting, for example `/opt/homebrew/bin/pnpm exec holocron`.
+- **No token field.** The plugin's `data.json` is a file in the vault, and iCloud syncs it to every device. The CLI reads its tokens through its own chain on the Mac, as described in [tokens](/holocron/tokens/).
+- **`ideas sync` files every ready note**, not only the open one. The others stay in the vault with their `issue:` set until **File this idea** is run on each.

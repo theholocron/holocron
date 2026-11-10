@@ -1,0 +1,49 @@
+{
+  "name": "@theholocron/council",
+  "version": "0.0.0",
+  "private": true,
+  "description": "An Obsidian plugin for the ideas vault: File this idea sets the filing state, runs holocron ideas sync on desktop and trashes the note once it carries an issue; Set idea status picks from a fixed list.",
+  "keywords": [
+    "holocron",
+    "ideas",
+    "obsidian",
+    "obsidian-plugin",
+    "theholocron"
+  ],
+  "homepage": "https://docs.theholocron.dev/holocron/council/",
+  "bugs": "https://github.com/theholocron/holocron/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theholocron/holocron.git",
+    "directory": "apps/council"
+  },
+  "license": "MIT",
+  "author": "Newton Koumantzelis",
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "build": "tsdown",
+    "lint:code": "eslint .",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@theholocron/eslint-config": "workspace:^",
+    "@theholocron/tsconfig": "workspace:^",
+    "@theholocron/vitest-config": "workspace:^",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-n": "catalog:",
+    "globals": "catalog:",
+    "obsidian": "catalog:apps",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

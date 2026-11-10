@@ -16,6 +16,7 @@ coverage:
           - observability
           - skills
           - comlink
+          - council
           - sentinel
           - astromech
           - dagobah
@@ -93,6 +94,7 @@ coverage:
           - string-utils
           - uri-utils
           - ci
+          - council
         target: auto
         if_not_found: success
         threshold: 2%
@@ -110,6 +112,7 @@ coverage:
           - observability
           - skills
           - comlink
+          - council
           - sentinel
           - astromech
           - dagobah
@@ -209,6 +212,7 @@ flag_management:
     - name: observability
     - name: skills
     - name: comlink
+    - name: council
     - name: sentinel
     - name: astromech
     - name: dagobah
@@ -301,6 +305,11 @@ component_management:
       name: "comlink"
       paths:
         - apps/comlink/**
+
+    - component_id: council
+      name: "council"
+      paths:
+        - apps/council/**
 
     - component_id: sentinel
       name: "sentinel"
