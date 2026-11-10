@@ -18,6 +18,8 @@ export const THIRD_PARTY_ENV_NAMES: ReadonlySet<string> = new Set([
 	"NPM_TOKEN",
 	"PATH",
 	"PATHEXT",
+	// The user's login shell, set by the system; the Council plugin reads it as a fallback (apps/council).
+	"SHELL",
 	"TURBO_SCM_BASE",
 ]);
 
