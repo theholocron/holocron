@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type PluginImporter, PluginLoader, ProviderApiError, WorkspaceContextError } from "../../plugin/index.js";
 import { runSetup } from "./run-setup.js";
+import type { RunSetupInput } from "./run-step/index.js";
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -305,7 +306,12 @@ describe("runSetup", () => {
 			await rm(repoRoot, { recursive: true, force: true });
 		});
 
-		async function pushedKeys(described: Described, root = repoRoot, dryRun = false) {
+		async function pushedKeys(
+			described: Described,
+			root = repoRoot,
+			dryRun = false,
+			workspacePackages?: RunSetupInput["workspacePackages"]
+		) {
 			const setSecrets: Array<[string, string]> = [];
 			const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry", secrets: "github" } });
 			const loader = makeLoaderWith(loaded, {
@@ -327,7 +333,13 @@ describe("runSetup", () => {
 					},
 				}),
 			});
-			const report = await runSetup({ loaded, context: { repoRoot: root, dryRun }, loader, print: () => {} });
+			const report = await runSetup({
+				loaded,
+				context: { repoRoot: root, dryRun },
+				loader,
+				print: () => {},
+				workspacePackages,
+			});
 			const rows = report.steps.filter((s) => s.capability === "errors");
 			return { rows, setSecrets };
 		}
@@ -391,10 +403,21 @@ describe("runSetup", () => {
 			expect(warning?.message).toContain("not a known framework name");
 		});
 
+		it("finds a package under a recursive `apps/**` workspace glob", async () => {
+			await writePkg(repoRoot, { name: "root", private: true });
+			await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - apps/**\n", "utf8");
+			await writePkg(join(repoRoot, "apps", "group", "web"), { name: "web", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys(SENTRY);
+			expect(rows.find((r) => r.step === "detect stack")).toBeUndefined();
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
 		it("still pushes SENTRY_DSN, with a note, when the workspace packages cannot be read", async () => {
 			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
-			await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - apps/**\n", "utf8");
-			const { rows, setSecrets } = await pushedKeys(SENTRY);
+			const unreadable = () => {
+				throw new Error("EACCES: permission denied, scandir 'apps'");
+			};
+			const { rows, setSecrets } = await pushedKeys(SENTRY, repoRoot, false, unreadable);
 			const note = rows.find((r) => r.step === "detect stack");
 			expect(note?.status).toBe("skip");
 			expect(note?.message).toContain("using the root package.json only");

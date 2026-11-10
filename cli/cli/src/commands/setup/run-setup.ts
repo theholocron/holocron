@@ -651,7 +651,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				const secrets = loader.get("secrets") as Secrets;
 				// `envKeys` always; a framework's `frameworkEnvKeys` (`NEXT_PUBLIC_SENTRY_DSN` for `next`)
 				// only when the root or a workspace package depends on it. No package.json means no framework.
-				// Reading the workspace packages can throw (an unsupported pnpm glob): the root alone is
+				// Reading the workspace packages can throw (an unreadable directory): the root alone is
 				// used then, said once, so `SENTRY_DSN` is still pushed.
 				const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
 					.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
@@ -660,7 +660,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				try {
 					workspacePackageJsons = await readWorkspacePackageJsons(
 						input.context.repoRoot,
-						readWorkspacePackages(input.context.repoRoot)
+						(input.workspacePackages ?? readWorkspacePackages)(input.context.repoRoot)
 					);
 				} catch (err) {
 					steps.push({
