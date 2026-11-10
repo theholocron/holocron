@@ -1,3 +1,18 @@
+## [5.0.0-alpha.409](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.408...v5.0.0-alpha.409) (2026-11-10)
+
+### Features
+
+* **cli:** 🩺 add doctor variable-owners to flag a variable in two places ([#2051](https://github.com/theholocron/holocron/issues/2051)) ([c8dff7f](https://github.com/theholocron/holocron/commit/c8dff7f0ab3027d4bd8b55b94cea7dd4439bc276)), closes [#2041](https://github.com/theholocron/holocron/issues/2041) [#1672](https://github.com/theholocron/holocron/issues/1672) [#2041](https://github.com/theholocron/holocron/issues/2041)
+
+### Documentation
+
+* **specs:** 📚 move the [#prs](https://github.com/theholocron/holocron/issues/prs) feed spec to the wiki as accepted ([#2053](https://github.com/theholocron/holocron/issues/2053)) ([dde0d92](https://github.com/theholocron/holocron/commit/dde0d926aaa0e4173dfa02ec7e0c7608a7d38060)), closes [#1738](https://github.com/theholocron/holocron/issues/1738) [#1738](https://github.com/theholocron/holocron/issues/1738)
+
+### Chores
+
+* **secrets:** 🔑 read the Turbo and Sentry org tokens by HOLOCRON_ name ([#2054](https://github.com/theholocron/holocron/issues/2054)) ([a86c0a1](https://github.com/theholocron/holocron/commit/a86c0a181ff2f8d3e2e5210b9c28f4704f2abf4b)), closes [#1711](https://github.com/theholocron/holocron/issues/1711)
+* **specs:** 🔧 🔄 sync spec discussions ([#2055](https://github.com/theholocron/holocron/issues/2055)) ([37b2d33](https://github.com/theholocron/holocron/commit/37b2d3371ffee7f094514460defad9c73bafa7a0))
+
 ## [5.0.0-alpha.408](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.407...v5.0.0-alpha.408) (2026-11-10)
 
 ### Bug Fixes
