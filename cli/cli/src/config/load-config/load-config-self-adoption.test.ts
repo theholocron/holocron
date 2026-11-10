@@ -222,14 +222,26 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		const doctorBefore = (expected as unknown as { doctor: { sharedVariables?: string[] } }).doctor;
 		expect(doctorBefore.sharedVariables).toBeUndefined();
 		doctorBefore.sharedVariables = [
+			"HOLOCRON_ADMIN_TOKEN",
 			"HOLOCRON_AXIOM_ORG",
+			"HOLOCRON_AXIOM_TOKEN",
+			"HOLOCRON_CLOUDFLARE_TOKEN",
+			"HOLOCRON_DEPLOY_TOKEN",
 			"HOLOCRON_DISCORD_BOT_TOKEN",
 			"HOLOCRON_ENVIRONMENT",
+			"HOLOCRON_FERN_TOKEN",
+			"HOLOCRON_ISSUES_TOKEN",
+			"HOLOCRON_ORG_TOKEN",
+			"HOLOCRON_READ_TOKEN",
+			"HOLOCRON_RELEASE_TOKEN",
+			"HOLOCRON_SECRETS_TOKEN",
+			"HOLOCRON_SYNC_TOKEN",
 			"HOLOCRON_USER_SYNC_TOKEN",
 			"SENTINEL_AXIOM_DATASET",
 			"SENTINEL_AXIOM_INGEST_TOKEN",
 			"SENTINEL_GITHUB_APP_ID",
 			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+			"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
 		];
 
 		const { resolved } = await loadConfig(REPO_ROOT);
