@@ -132,6 +132,16 @@ describe("eslint-config — individual configs", () => {
 		expect(results.some((m) => m.ruleId === "n/no-unsupported-features/node-builtins")).toBe(false);
 	});
 
+	it("node() pins no-unsupported-features/es-builtins to the same floor, so Object.hasOwn is not flagged by an in-memory run", () => {
+		// No package.json above the file or the working directory, as in the in-memory run: the rule has no `engines.node` to read.
+		const linter = new Linter({ configType: "flat", cwd: "/no-such-dir" });
+		const code = "export const has = (o, k) => Object.hasOwn(o, k);\n";
+		const results = linter.verify(code, node() as Parameters<Linter["verify"]>[1], {
+			filename: "/no-such-dir/has.js",
+		});
+		expect(results.some((m) => m.ruleId === "n/no-unsupported-features/es-builtins")).toBe(false);
+	});
+
 	it("react() returns a non-empty flat config array", () => {
 		const config = react();
 		expect(Array.isArray(config)).toBe(true);
