@@ -69,6 +69,8 @@ export const COMMAND_CONTEXTS = {
 	"notifications link": "workspace",
 	"notifications create-server": "workspace",
 	"notifications sync-roles": "workspace",
+	// Loads the notifications provider to list and delete the extra posts of a forum.
+	"notifications dedupe": "workspace",
 	// Loads the notifications provider to keep a discussion post per ADR and spec.
 	"specs sync": "workspace",
 	// Reads a board's items and sets statuses through the `projects` provider.

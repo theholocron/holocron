@@ -1,4 +1,10 @@
-import type { DiscussionPatch, DiscussionPost, EnsuredDiscussion, EnsureDiscussionInput } from "@theholocron/cli";
+import type {
+	DiscussionPatch,
+	DiscussionPost,
+	DuplicateDiscussion,
+	EnsuredDiscussion,
+	EnsureDiscussionInput,
+} from "@theholocron/cli";
 
 import { ChannelType, type DiscordBotClient, type DiscordChannel, type DiscordThread, MessageFlag } from "../rest.js";
 
@@ -350,6 +356,16 @@ export class DiscordDiscussions {
 		if (!entry) return [];
 		const found = await this.deps.bot().channels.messages(entry.thread.id, Math.min(Math.max(limit, 1), 100));
 		return found.map((m) => m.content);
+	}
+
+	/** The keys with more than one post in the forum, read afresh, with how many are beyond the oldest. Deletes nothing. */
+	async duplicates(channel: string): Promise<DuplicateDiscussion[]> {
+		const forum = await this.forum(channel);
+		this.forums.delete(forum.id);
+		return [...(await this.posts(forum)).values()]
+			.filter((entry) => entry.duplicates.length > 0)
+			.map((entry) => ({ key: entry.key, extra: entry.duplicates.length }))
+			.sort((a, b) => a.key.localeCompare(b.key));
 	}
 
 	/** Keep the oldest post that carries `key` and delete the others. Returns how many were deleted. */

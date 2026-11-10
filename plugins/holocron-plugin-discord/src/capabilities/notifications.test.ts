@@ -617,6 +617,21 @@ describe("DiscordNotifications discussions", () => {
 			["DELETE", "/channels/7"],
 		]);
 	});
+
+	it("lists the keys with more than one post through the provider, deleting none", async () => {
+		const key = "o/r#1";
+		const content = `Title\n\n-# sync: ${key} | proposed`;
+		const { notifs, calls } = makeProvisioner([
+			{ body: [FORUM] },
+			{ body: { threads: [post, { ...post, id: "7" }], members: [] } },
+			{ body: { threads: [], has_more: false } },
+			{ body: { id: "5", channel_id: "5", content } },
+			{ body: { id: "7", channel_id: "7", content } },
+		]);
+
+		expect(await notifs.duplicateDiscussions("ideas")).toEqual([{ key, extra: 1 }]);
+		expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+	});
 });
 
 describe("DiscordNotifications discussions: starter reactions", () => {
