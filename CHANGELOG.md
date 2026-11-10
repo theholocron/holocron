@@ -1,3 +1,9 @@
+## [5.0.0-alpha.408](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.407...v5.0.0-alpha.408) (2026-11-10)
+
+### Bug Fixes
+
+* **pkg-utils:** 🐛 read ** and ! workspace patterns and package.json workspaces ([#2050](https://github.com/theholocron/holocron/issues/2050)) ([df2ae93](https://github.com/theholocron/holocron/commit/df2ae930a8af766a3587a9d86b19147c885699af)), closes [#2049](https://github.com/theholocron/holocron/issues/2049)
+
 ## [5.0.0-alpha.407](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.406...v5.0.0-alpha.407) (2026-11-10)
 
 ### Features
