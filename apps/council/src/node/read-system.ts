@@ -1,3 +1,5 @@
+import { createEnvLookup } from "@theholocron/env-utils/lookup";
+
 import type { SystemInfo } from "../filing/filing.type.js";
 import { pickShell } from "../filing/pick-shell.js";
 
@@ -7,9 +9,9 @@ export interface OsLike {
 	userInfo: () => { shell: string | null };
 }
 
-/** Builds the system facts from an `os` and an environment; separate from `readSystem()` so it can be tested with fakes. */
-export function describeSystem(os: OsLike, env: Record<string, string | undefined>): SystemInfo {
-	return { home: os.homedir(), shell: pickShell(os.userInfo().shell, env.SHELL) };
+/** Builds the system facts from an `os` and the `SHELL` value; separate from `readSystem()` so it can be tested with fakes. */
+export function describeSystem(os: OsLike, envShell: string | undefined): SystemInfo {
+	return { home: os.homedir(), shell: pickShell(os.userInfo().shell, envShell) };
 }
 
 /**
@@ -19,5 +21,5 @@ export function describeSystem(os: OsLike, env: Record<string, string | undefine
 export function readSystem(): SystemInfo {
 	// eslint-disable-next-line @typescript-eslint/no-require-imports -- the lazy load is the point
 	const os = require("os") as typeof import("node:os");
-	return describeSystem(os, process.env);
+	return describeSystem(os, createEnvLookup().get("SHELL"));
 }

@@ -7,10 +7,10 @@ import { describeSystem, readSystem } from "./read-system.js";
 describe("describeSystem", () => {
 	it("takes the home and the account's shell, then SHELL", () => {
 		const os = { homedir: () => "/Users/me", userInfo: () => ({ shell: "/bin/bash" }) };
-		expect(describeSystem(os, { SHELL: "/bin/fish" })).toEqual({ home: "/Users/me", shell: "/bin/bash" });
+		expect(describeSystem(os, "/bin/fish")).toEqual({ home: "/Users/me", shell: "/bin/bash" });
 		const none = { homedir: () => "/h", userInfo: () => ({ shell: null }) };
-		expect(describeSystem(none, { SHELL: "/bin/fish" }).shell).toBe("/bin/fish");
-		expect(describeSystem(none, {}).shell).toBe("/bin/zsh");
+		expect(describeSystem(none, "/bin/fish").shell).toBe("/bin/fish");
+		expect(describeSystem(none, undefined).shell).toBe("/bin/zsh");
 	});
 });
 
