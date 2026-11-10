@@ -49,6 +49,26 @@
       "import": "./dist/analytics.mjs",
       "default": "./dist/analytics.mjs"
     },
+    "./browser/sentry": {
+      "types": "./dist/browser-sentry.d.mts",
+      "import": "./dist/browser-sentry.mjs",
+      "default": "./dist/browser-sentry.mjs"
+    },
+    "./browser/posthog": {
+      "types": "./dist/browser-posthog.d.mts",
+      "import": "./dist/browser-posthog.mjs",
+      "default": "./dist/browser-posthog.mjs"
+    },
+    "./edge/sentry": {
+      "types": "./dist/edge-sentry.d.mts",
+      "import": "./dist/edge-sentry.mjs",
+      "default": "./dist/edge-sentry.mjs"
+    },
+    "./edge/posthog": {
+      "types": "./dist/edge-posthog.d.mts",
+      "import": "./dist/edge-posthog.mjs",
+      "default": "./dist/edge-posthog.mjs"
+    },
     "./testing": {
       "types": "./dist/testing.d.mts",
       "import": "./dist/testing.mjs",
@@ -70,7 +90,9 @@
   },
   "devDependencies": {
     "@axiomhq/pino": "catalog:",
+    "@sentry/browser": "catalog:observability",
     "@sentry/node": "catalog:",
+    "@sentry/vercel-edge": "catalog:observability",
     "@theholocron/eslint-config": "workspace:^",
     "@theholocron/tsconfig": "workspace:^",
     "@theholocron/tsdown-config": "workspace:^",
@@ -83,6 +105,7 @@
     "globals": "catalog:",
     "pino": "catalog:",
     "pino-pretty": "catalog:",
+    "posthog-js": "catalog:observability",
     "posthog-node": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
@@ -90,9 +113,12 @@
   },
   "peerDependencies": {
     "@axiomhq/pino": ">=2",
+    "@sentry/browser": ">=10",
     "@sentry/node": ">=10",
+    "@sentry/vercel-edge": ">=10",
     "pino": ">=10",
     "pino-pretty": ">=13",
+    "posthog-js": ">=1",
     "posthog-node": ">=5",
     "vitest": ">=4"
   },
@@ -100,13 +126,22 @@
     "@axiomhq/pino": {
       "optional": true
     },
+    "@sentry/browser": {
+      "optional": true
+    },
     "@sentry/node": {
+      "optional": true
+    },
+    "@sentry/vercel-edge": {
       "optional": true
     },
     "pino": {
       "optional": true
     },
     "pino-pretty": {
+      "optional": true
+    },
+    "posthog-js": {
       "optional": true
     },
     "posthog-node": {

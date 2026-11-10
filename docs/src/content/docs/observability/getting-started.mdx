@@ -74,8 +74,117 @@ import { ConsoleLogger } from "@theholocron/observability/logger";
 const logger = new ConsoleLogger({ level: "info" });
 ```
 
-Environment-specific error / analytics adapters (`@sentry/nextjs`,
-`@sentry/react-native`, `posthog-js`, …) plug into the same interfaces.
+### Why the adapters have one subpath each
+
+Each adapter is its own entry, so importing one never makes your bundler
+resolve another adapter's SDK:
+
+| Import                                       | Loads                 |
+| -------------------------------------------- | --------------------- |
+| `@theholocron/observability/browser/sentry`  | `@sentry/browser`     |
+| `@theholocron/observability/browser/posthog` | `posthog-js`          |
+| `@theholocron/observability/edge/sentry`     | `@sentry/vercel-edge` |
+| `@theholocron/observability/edge/posthog`    | nothing (`fetch`)     |
+
+A single `/browser` or `/edge` entry that re-exported both adapters would have
+forced an app that wants only Sentry to install `posthog-js` too. The shared,
+vendor-free parts (the Sentry-compatible sink, `scrubEvent`, `OnError`) are
+bundled into each entry and load no SDK.
+
+### In a browser or React app
+
+`SentryBrowserSink` (over `@sentry/browser`) and `PostHogBrowserSink` (over
+`posthog-js`). Install the SDKs you use, resolve the DSN and key yourself, and
+fall back to the no-ops when they are empty. Type the variables as the shared
+interfaces so either branch type-checks:
+
+```ts
+import { type AnalyticsSink, type ErrorSink, NoopAnalyticsSink, NoopErrorSink } from "@theholocron/observability/core";
+import { PostHogBrowserSink } from "@theholocron/observability/browser/posthog";
+import { SentryBrowserSink } from "@theholocron/observability/browser/sentry";
+
+const dsn = import.meta.env.VITE_SENTRY_DSN;
+const key = import.meta.env.VITE_POSTHOG_KEY;
+
+const errors: ErrorSink = dsn ? new SentryBrowserSink({ tracesSampleRate: 0.1 }) : new NoopErrorSink();
+errors.init({ dsn: dsn ?? "", release: "web@1.0.0", environment: "production", tags: {} });
+
+const analytics: AnalyticsSink = key
+  ? new PostHogBrowserSink({ key, host: "https://us.i.posthog.com" })
+  : new NoopAnalyticsSink();
+analytics.identify("user-1", { plan: "pro" });
+analytics.capture("user-1", "checkout_started", { cart: 3 });
+```
+
+The rules the browser sinks follow:
+
+- **Nothing is captured on its own.** `PostHogBrowserSink` starts `posthog-js`
+  with autocapture, automatic pageviews, page-leave events and session
+  recording off, and person profiles only for identified people. Opt in through
+  `options`, for example `options: { capture_pageview: true }`.
+- **An event goes to the person you name.** A browser has one current person.
+  `capture(distinctId, ...)` compares `distinctId` with the client's current id
+  (`get_distinct_id()`) and calls `identify(distinctId)` first when they differ,
+  so an event is never attributed to someone else. To record for an anonymous
+  visitor, pass the client's own id.
+- **Secrets stay out.** Event and person properties, Sentry events, transactions,
+  span names and tags are scrubbed of token-shaped strings before they leave.
+- **No SDK error reaches your app.** A call that throws is ignored. To see
+  those errors, pass `onError: (error, context) => ...` (`context` is such as
+  `"posthog.capture"` or `"sentry.flush"`); a throw inside `onError` is dropped.
+
+### In an edge runtime or worker
+
+`SentryEdgeSink` (over `@sentry/vercel-edge`, which runs on Cloudflare Workers,
+Vercel Edge and other WinterCG runtimes) and `PostHogFetchSink`, which sends
+events to PostHog's capture endpoint with `fetch` and needs no SDK. Hand
+pending work to the runtime so it is not cut off when the response ends:
+
+```ts
+import { PostHogFetchSink } from "@theholocron/observability/edge/posthog";
+import { SentryEdgeSink } from "@theholocron/observability/edge/sentry";
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    const errors = new SentryEdgeSink({ onError: (error, context) => console.warn(context, error) });
+    errors.init({ dsn: env.SENTRY_DSN, release: "edge@1.0.0", environment: "production", tags: {} });
+    const analytics = new PostHogFetchSink({
+      key: env.POSTHOG_KEY,
+      host: "https://us.i.posthog.com",
+      waitUntil: (pending) => ctx.waitUntil(pending),
+      requestTimeoutMs: 3_000,
+    });
+    try {
+      analytics.capture("anonymous", "request", { path: new URL(request.url).pathname });
+      return new Response("ok");
+    } catch (err) {
+      errors.captureException(err);
+      ctx.waitUntil(errors.flush());
+      throw err;
+    }
+  },
+};
+```
+
+What `PostHogFetchSink` does:
+
+- It sends one request per call, with no batching and **no retry**: a request
+  that is rejected, times out (`requestTimeoutMs`, default 5000 ms) or gets a
+  non-2xx answer is dropped and reported to `onError`.
+- `identify(distinctId, props, previousId?)` takes the visitor's earlier
+  anonymous id as an optional third argument and sends it as
+  `$anon_distinct_id`, so PostHog merges the earlier events into the person.
+  The shared `AnalyticsSink.identify(distinctId, props)` stays as it is.
+- `shutdown(timeoutMs = 5000)` stops taking events (a later call is dropped and
+  reported to `onError`), then waits for every accepted request, at most
+  `timeoutMs`.
+- Event and person properties are scrubbed of token-shaped strings.
+
+The edge SDK has no release-health sessions, so `endSession()` does nothing
+there. Neither entry imports a Node built-in, and both are tree-shakable.
+
+React Native adapters (`@sentry/react-native`, `posthog-react-native`) follow in
+their own subpath; until then use `ConsoleLogger` and the no-ops.
 
 ## Testing
 

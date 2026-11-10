@@ -20,11 +20,19 @@ One published package, `tsdown` multi-entry, subpath exports:
 - **`/logger`**: `createLogger()` (Pino) and a zero-dependency `ConsoleLogger`.
 - **`/errors`**: `SentrySink`, the only `@sentry/node` call site.
 - **`/analytics`**: `PostHogSink`, the only `posthog-node` call site.
+- **`/browser/sentry`**, **`/browser/posthog`**, **`/edge/sentry`**, **`/edge/posthog`**: one subpath per adapter, so
+  importing one never makes a bundler resolve another's SDK (`entries.test.ts` checks the import graph of each entry).
+  `SentryBrowserSink` (`@sentry/browser`), `PostHogBrowserSink` (`posthog-js`), `SentryEdgeSink`
+  (`@sentry/vercel-edge`, WinterCG runtimes) and `PostHogFetchSink` (PostHog's HTTP capture endpoint over `fetch`, no
+  SDK). No Node built-ins. The Sentry sinks share `shared/sentry-compatible-sink.ts` (vendor-free, takes the SDK
+  namespace). Every vendor call goes through `safely()`, so a throwing SDK never reaches the app; an optional `onError`
+  sees it. Payloads are scrubbed with `redactObject`. The browser PostHog sink starts `posthog-js` with autocapture and
+  pageviews off and identifies the named person before `capture()`.
 - **`/testing`**: fakes for testing code that takes these interfaces.
 
 Rules:
 
-- Vendor SDKs (`@sentry/node`, `posthog-node`, `pino`, `pino-pretty`, `@axiomhq/pino`) are **optional peer
+- Vendor SDKs (`@sentry/node`, `@sentry/browser`, `@sentry/vercel-edge`, `posthog-node`, `posthog-js`, `pino`, `pino-pretty`, `@axiomhq/pino`) are **optional peer
   dependencies**: a consumer installs only those for the subpaths it imports. Do not make one a dependency, and do not
   import one from `/core`.
 - Adapters read no environment and ship no credentials. The caller resolves the DSN / key and passes it in.

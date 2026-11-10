@@ -24,13 +24,17 @@ See the [documentation](https://docs.theholocron.dev/holocron/observability/) fo
 
 Add the peers for the subpaths you use — they are all optional:
 
-| Subpath                                | Peers                                  |
-| -------------------------------------- | -------------------------------------- |
-| `@theholocron/observability/core`      | none                                   |
-| `@theholocron/observability/logger`    | `pino`, `pino-pretty`, `@axiomhq/pino` |
-| `@theholocron/observability/errors`    | `@sentry/node`                         |
-| `@theholocron/observability/analytics` | `posthog-node`                         |
-| `@theholocron/observability/testing`   | `vitest`                               |
+| Subpath                                      | Peers                                  |
+| -------------------------------------------- | -------------------------------------- |
+| `@theholocron/observability/core`            | none                                   |
+| `@theholocron/observability/logger`          | `pino`, `pino-pretty`, `@axiomhq/pino` |
+| `@theholocron/observability/errors`          | `@sentry/node`                         |
+| `@theholocron/observability/analytics`       | `posthog-node`                         |
+| `@theholocron/observability/browser/sentry`  | `@sentry/browser`                      |
+| `@theholocron/observability/browser/posthog` | `posthog-js`                           |
+| `@theholocron/observability/edge/sentry`     | `@sentry/vercel-edge`                  |
+| `@theholocron/observability/edge/posthog`    | none (`fetch`)                         |
+| `@theholocron/observability/testing`         | `vitest`                               |
 
 ## Examples
 
@@ -66,9 +70,36 @@ errors.init({
 deploy({ logger, errors });
 ```
 
-For the browser, an edge runtime, or React Native, import
-`@theholocron/observability/core` (zero dependencies) and use `ConsoleLogger`
-from `/logger` in place of Pino.
+### In a browser, edge or React Native app
+
+Import `@theholocron/observability/core` (zero dependencies) and use
+`ConsoleLogger` from `/logger` in place of Pino. Then pick the adapters for the
+runtime. None of these entry points imports a Node built-in.
+
+```typescript
+// Browser or React app
+import { PostHogBrowserSink } from "@theholocron/observability/browser/posthog";
+import { SentryBrowserSink } from "@theholocron/observability/browser/sentry";
+
+const errors = new SentryBrowserSink();
+errors.init({ dsn, release: "web@1.0.0", environment: "production", tags: {} });
+const analytics = new PostHogBrowserSink({ key, host: "https://us.i.posthog.com" });
+
+// Edge runtime or worker: Sentry's edge SDK, and PostHog over fetch (no SDK)
+import { PostHogFetchSink } from "@theholocron/observability/edge/posthog";
+import { SentryEdgeSink } from "@theholocron/observability/edge/sentry";
+
+const edgeAnalytics = new PostHogFetchSink({ key, host, waitUntil: (p) => ctx.waitUntil(p) });
+```
+
+Each adapter is its own subpath, so importing one never resolves another's SDK.
+Every adapter takes its SDK, client or `fetch` as an option, so tests pass a
+fake, scrubs token-shaped strings from what it sends, and never throws into the
+app when the SDK does (pass `onError` to see those errors). The browser PostHog
+sink captures nothing by itself (autocapture and pageviews are off) and
+identifies the person you name before it records for them. An empty DSN or key
+is the caller's signal to install `NoopErrorSink` / `NoopAnalyticsSink`
+instead. See the docs site for the full rules.
 
 Testing code that depends on `Logger` / `ErrorSink` / `AnalyticsSink`? Use the
 spy doubles from `/testing` instead of hand-rolling one per repo:

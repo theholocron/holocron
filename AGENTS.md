@@ -399,7 +399,8 @@ not object destructuring.
   `templates/` keeps its one-folder-per-generator layout beside the template
   data files that the build turns into strings.
 - **No third-party observability / telemetry SDK is imported in this repo.**
-  `pino`, `@sentry/node`, `posthog-node` live behind
+  `pino`, `@sentry/node`, `posthog-node` (and, for a browser or edge runtime, `@sentry/browser`, `@sentry/vercel-edge`,
+  `posthog-js`, behind `/browser/*` and `/edge/*`, one subpath per adapter) live behind
   `@theholocron/observability` — the `Logger` / `ErrorSink` / `AnalyticsSink`
   interfaces (with `Noop*` for the opted-out / no-credentials path) come from
   `@theholocron/observability/core`; the `PinoLogger` / `SentrySink` /

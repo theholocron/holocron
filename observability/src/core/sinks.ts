@@ -17,8 +17,11 @@ export interface CommandSpan {
 
 /** Error tracking + performance (Sentry). */
 export interface ErrorSink {
-	/** Initialises the tracker with the resolved DSN, release, environment and tags applied to every event. */
-	init(ctx: { dsn: string; release: string; environment: "ci" | "local"; tags: Record<string, string> }): void;
+	/**
+	 * Initialises the tracker with the resolved DSN, release, environment and tags applied to every event.
+	 * `environment` is a free name: `"ci"` and `"local"` for a CLI, `"development"`, `"staging"` or `"production"` for an app.
+	 */
+	init(ctx: { dsn: string; release: string; environment: string; tags: Record<string, string> }): void;
 	/** Start a command span. Returns `undefined` for a no-op sink. */
 	startSpan(name: string): CommandSpan | undefined;
 	/** Reports an error (or any thrown value) to the tracker. */
@@ -46,12 +49,13 @@ export interface AnalyticsSink {
  */
 export class NoopErrorSink implements ErrorSink {
 	/** Does nothing. */
-	init(): void {}
-	startSpan(): CommandSpan | undefined {
+	init(_ctx: { dsn: string; release: string; environment: string; tags: Record<string, string> }): void {}
+	/** Returns `undefined`: there is no span. */
+	startSpan(_name: string): CommandSpan | undefined {
 		return undefined;
 	}
 	/** Does nothing. */
-	captureException(): void {}
+	captureException(_err: unknown): void {}
 	/** Does nothing. */
 	endSession(): void {}
 	/** Resolves immediately. */
@@ -61,9 +65,9 @@ export class NoopErrorSink implements ErrorSink {
 /** @see NoopErrorSink */
 export class NoopAnalyticsSink implements AnalyticsSink {
 	/** Does nothing. */
-	identify(): void {}
+	identify(_distinctId: string, _props: Record<string, unknown>): void {}
 	/** Does nothing. */
-	capture(): void {}
+	capture(_distinctId: string, _event: string, _props: Record<string, unknown>): void {}
 	/** Resolves immediately. */
 	async shutdown(): Promise<void> {}
 }
