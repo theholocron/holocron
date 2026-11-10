@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { PostHogReactNativeSink } from "./posthog-react-native-sink.js";
 
-const TOKEN = "ghp_abcdefghijklmnopqrstuvwxyz0123456789";
+const TOKEN = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"; // gitleaks:allow — fake fixture, only checked for redaction
 
 function fakeClient(current = "u1", shutdown: () => Promise<void> = () => Promise.resolve()) {
 	return {
