@@ -1,4 +1,5 @@
 ---
+id: SPEC-0073
 status: draft
 issue: theholocron/holocron#2041
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#1672
   - theholocron/holocron#2039
   - theholocron/holocron#2043
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569828364204904590
 ---
 
 # `doctor variable-owners`: flag a variable that lives in two places
