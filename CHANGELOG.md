@@ -1,3 +1,14 @@
+## [5.0.0-alpha.406](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.405...v5.0.0-alpha.406) (2026-11-10)
+
+### Features
+
+* **observability:** ✨ 🌐 add browser and edge adapters for Sentry and PostHog ([#2040](https://github.com/theholocron/holocron/issues/2040)) ([cf46b57](https://github.com/theholocron/holocron/commit/cf46b57d05d82da47d038439cab6ff15a24b49dc)), closes [#637](https://github.com/theholocron/holocron/issues/637) [#633](https://github.com/theholocron/holocron/issues/633)
+* **observability:** ✨ 📱 add React Native adapters for Sentry and PostHog ([#2042](https://github.com/theholocron/holocron/issues/2042)) ([dfe28a6](https://github.com/theholocron/holocron/commit/dfe28a6b88cf3e8dd8d86edcb697e0d520ef3a91)), closes [#637](https://github.com/theholocron/holocron/issues/637) [#633](https://github.com/theholocron/holocron/issues/633) [#637](https://github.com/theholocron/holocron/issues/637)
+
+### Documentation
+
+* **council:** 📚 say overlapping runs converge on one issue, with the limits ([#2047](https://github.com/theholocron/holocron/issues/2047)) ([aedf6e4](https://github.com/theholocron/holocron/commit/aedf6e4d31c1abbb49d7d0a0217ba7690a0352b1)), closes [#2016](https://github.com/theholocron/holocron/issues/2016)
+
 ## [5.0.0-alpha.405](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.404...v5.0.0-alpha.405) (2026-11-10)
 
 ### Features
