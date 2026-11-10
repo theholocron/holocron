@@ -71,7 +71,12 @@ describe("HolocronIdeasPlugin", () => {
 		const { plugin } = harness();
 		(plugin as unknown as { stored: unknown }).stored = { repoPath: "/repo" };
 		await plugin.loadSettings();
-		expect(plugin.settings).toMatchObject({ repoPath: "/repo", command: "pnpm exec holocron" });
+		// a data.json saved before the shell option existed picks up its default
+		expect(plugin.settings).toMatchObject({
+			repoPath: "/repo",
+			command: "pnpm exec holocron",
+			useLoginShell: true,
+		});
 		await plugin.saveSettings();
 		expect((plugin as unknown as { saved: unknown }).saved).toBe(plugin.settings);
 	});
@@ -133,13 +138,48 @@ describe("HolocronIdeasPlugin", () => {
 		const savedPath = process.env.PATH;
 		delete process.env.PATH;
 		(plugin as unknown as Registered).commands[0]?.callback();
-		await vi.waitFor(() => expect(notices).toHaveLength(1));
+		await vi.waitFor(() => expect(notices).toHaveLength(2));
 		expect(runCommand).toHaveBeenCalledWith(
 			expect.objectContaining({ cwd: "/repo", env: expect.objectContaining({ HOLOCRON_IDEAS_DIR: "/vault" }) })
 		);
 		process.env.PATH = savedPath;
 		expect(trashed).toHaveLength(1);
-		expect(notices[0]?.message).toContain("Filed as #7");
+		expect(notices[0]?.message).toContain("starting your shell can take a few seconds");
+		expect(notices[0]?.duration).toBe(6000);
+		expect(notices[1]?.message).toContain("Filed as #7");
+	});
+
+	it("refuses a second File this idea while a run is in progress, and allows one after it ends", async () => {
+		const { plugin } = harness({ basePath: "/vault" });
+		await plugin.onload();
+		plugin.settings.repoPath = "/repo";
+		const reads = ["---\nstatus: seed\n---\n", FILED];
+		vi.spyOn(plugin.app.vault, "read").mockImplementation(() => Promise.resolve(reads.shift() ?? FILED));
+		let finish: (value: { code: number; output: string }) => void = () => undefined;
+		runCommand.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+		const { commands } = plugin as unknown as Registered;
+		commands[0]?.callback();
+		await vi.waitFor(() => expect(runCommand).toHaveBeenCalled());
+		commands[0]?.callback();
+		await vi.waitFor(() => expect(notices.map((n) => n.message)).toContain("A filing run is already in progress."));
+		finish({ code: 0, output: "1 filed" });
+		await vi.waitFor(() => expect(notices.map((n) => n.message).join("|")).toContain("Filed as #7"));
+		// released: the next press runs again (a filed note is refused by the first check, not by the guard)
+		commands[0]?.callback();
+		await vi.waitFor(() => expect(notices.map((n) => n.message).join("|")).toContain("already filed"));
+	});
+
+	it("releases the guard when the run throws", async () => {
+		const { plugin } = harness({ basePath: "/vault" });
+		await plugin.onload();
+		const read = vi.spyOn(plugin.app.vault, "read").mockRejectedValue(new Error("disk gone"));
+		const { commands } = plugin as unknown as Registered;
+		commands[0]?.callback();
+		await vi.waitFor(() => expect(notices).toHaveLength(1));
+		read.mockResolvedValue(FILED);
+		commands[0]?.callback();
+		await vi.waitFor(() => expect(notices).toHaveLength(2));
+		expect(notices[1]?.message).toContain("already filed");
 	});
 
 	it("shows an error as a notice and keeps the note", async () => {

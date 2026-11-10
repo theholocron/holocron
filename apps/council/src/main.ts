@@ -1,6 +1,7 @@
 import { Notice, Platform, Plugin, type TFile } from "obsidian";
 
 import { fileIdea } from "./filing/file-idea.js";
+import { readSystem } from "./node/read-system.js";
 import { runCommand } from "./node/run-command.js";
 import { DEFAULT_SETTINGS } from "./settings/default-settings.js";
 import { parseStates } from "./settings/parse-states.js";
@@ -14,6 +15,12 @@ import { StatusModal } from "./status-modal.js";
  */
 export default class HolocronIdeasPlugin extends Plugin {
 	settings: IdeasSettings = { ...DEFAULT_SETTINGS };
+
+	/**
+	 * True while a filing run is going, for any note. It is in memory, so it covers this Obsidian instance only: two
+	 * Macs filing the same note at the same moment are not prevented (the CLI's marker lookup is not atomic).
+	 */
+	private filing = false;
 
 	/** Loads the settings and registers the commands, the ribbon button and the settings tab. */
 	async onload(): Promise<void> {
@@ -60,6 +67,11 @@ export default class HolocronIdeasPlugin extends Plugin {
 	private async fileActiveNote(): Promise<void> {
 		const file = this.activeNote();
 		if (file === undefined) return;
+		if (this.filing) {
+			new Notice("A filing run is already in progress.");
+			return;
+		}
+		this.filing = true;
 		const adapter = this.app.vault.adapter as { getBasePath?: () => string };
 		try {
 			await fileIdea({
@@ -67,17 +79,21 @@ export default class HolocronIdeasPlugin extends Plugin {
 				vaultPath: adapter.getBasePath?.(),
 				isMobile: Platform.isMobile,
 				currentPath: Platform.isMobile ? "" : (process.env.PATH ?? ""),
+				system: readSystem,
 				readNote: () => this.app.vault.read(file),
 				setStatus: (state) => this.setStatus(file, state),
 				trashNote: () => this.app.fileManager.trashFile(file),
 				run: runCommand,
 				notify: (message) => new Notice(message, 10_000),
+				announce: (message) => new Notice(message, 6000),
 			});
 		} catch (error) {
 			new Notice(
 				`Not filed; the note was kept. ${error instanceof Error ? error.message : String(error)}`,
 				10_000
 			);
+		} finally {
+			this.filing = false;
 		}
 	}
 }

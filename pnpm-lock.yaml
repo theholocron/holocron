@@ -462,6 +462,9 @@ importers:
 
   apps/council:
     devDependencies:
+      '@theholocron/env-utils':
+        specifier: workspace:^
+        version: link:../../utils/env-utils
       '@theholocron/eslint-config':
         specifier: workspace:^
         version: link:../../configs/eslint-config

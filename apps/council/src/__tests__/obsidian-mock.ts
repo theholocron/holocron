@@ -46,7 +46,12 @@ export class PluginSettingTab {
 	) {}
 }
 
-export const settingRows: { name?: string; desc?: string; input?: FakeText }[] = [];
+export interface FakeToggle {
+	value: boolean;
+	onChange?: (value: boolean) => Promise<void>;
+}
+
+export const settingRows: { name?: string; desc?: string; input?: FakeText; toggle?: FakeToggle }[] = [];
 
 export interface FakeText {
 	placeholder?: string;
@@ -55,7 +60,7 @@ export interface FakeText {
 }
 
 export class Setting {
-	row: { name?: string; desc?: string; input?: FakeText } = {};
+	row: { name?: string; desc?: string; input?: FakeText; toggle?: FakeToggle } = {};
 	constructor(_el: unknown) {
 		settingRows.push(this.row);
 	}
@@ -65,6 +70,22 @@ export class Setting {
 	}
 	setDesc(desc: string): this {
 		this.row.desc = desc;
+		return this;
+	}
+	addToggle(build: (toggle: unknown) => void): this {
+		const toggle: FakeToggle = { value: false };
+		const api = {
+			setValue(value: boolean) {
+				toggle.value = value;
+				return api;
+			},
+			onChange(handler: (value: boolean) => Promise<void>) {
+				toggle.onChange = handler;
+				return api;
+			},
+		};
+		build(api);
+		this.row.toggle = toggle;
 		return this;
 	}
 	addText(build: (input: unknown) => void): this {
