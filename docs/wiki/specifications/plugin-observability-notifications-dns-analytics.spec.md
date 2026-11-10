@@ -8,6 +8,7 @@ discussion:
 ---
 
 <!-- alex disable just -->
+<!-- markdownlint-disable MD024 -->
 
 # New plugins — observability, notifications, dns, analytics
 
