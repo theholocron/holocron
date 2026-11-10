@@ -1,4 +1,4 @@
-import { homedir } from "node:os";
+import { homedir, userInfo } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
@@ -15,9 +15,11 @@ describe("describeSystem", () => {
 });
 
 describe("readSystem", () => {
-	it("reads this machine", () => {
+	it("reads this machine: the account's shell when absolute, else SHELL, else zsh", () => {
 		const system = readSystem();
-		expect(system.home).toBe(homedir());
-		expect(system.shell.startsWith("/")).toBe(true);
+		const account = userInfo().shell;
+		const env = process.env.SHELL;
+		const expected = [account, env].find((shell) => shell?.startsWith("/") === true) ?? "/bin/zsh";
+		expect(system).toEqual({ home: homedir(), shell: expected });
 	});
 });

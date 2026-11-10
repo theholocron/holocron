@@ -1,5 +1,6 @@
 /** Lines an interactive shell prints when it has no terminal; they say nothing about the run. */
-const SHELL_NOISE = /cannot set terminal process group|no job control in this shell/i;
+const SHELL_NOISE =
+	/cannot set terminal process group|no job control in this shell|can't access tty|job control turned off/i;
 
 /**
  * The last `lines` non-blank lines of a command's output, for a notice; ANSI colour codes and the shell noise lines

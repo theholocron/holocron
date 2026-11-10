@@ -16,6 +16,12 @@ import { StatusModal } from "./status-modal.js";
 export default class HolocronIdeasPlugin extends Plugin {
 	settings: IdeasSettings = { ...DEFAULT_SETTINGS };
 
+	/**
+	 * True while a filing run is going, for any note. It is in memory, so it covers this Obsidian instance only: two
+	 * Macs filing the same note at the same moment are not prevented (the CLI's marker lookup is not atomic).
+	 */
+	private filing = false;
+
 	/** Loads the settings and registers the commands, the ribbon button and the settings tab. */
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -61,6 +67,11 @@ export default class HolocronIdeasPlugin extends Plugin {
 	private async fileActiveNote(): Promise<void> {
 		const file = this.activeNote();
 		if (file === undefined) return;
+		if (this.filing) {
+			new Notice("A filing run is already in progress.");
+			return;
+		}
+		this.filing = true;
 		const adapter = this.app.vault.adapter as { getBasePath?: () => string };
 		try {
 			await fileIdea({
@@ -81,6 +92,8 @@ export default class HolocronIdeasPlugin extends Plugin {
 				`Not filed; the note was kept. ${error instanceof Error ? error.message : String(error)}`,
 				10_000
 			);
+		} finally {
+			this.filing = false;
 		}
 	}
 }

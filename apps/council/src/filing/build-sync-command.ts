@@ -1,6 +1,7 @@
 import type { IdeasSettings } from "../settings/settings.type.js";
 import { expandHome } from "./expand-home.js";
 import type { SyncCommand, SystemInfo } from "./filing.type.js";
+import { isPosixShell, shellName } from "./posix-shell.js";
 import { splitCommand } from "./split-command.js";
 
 /**
@@ -38,7 +39,11 @@ export function buildSyncCommand(
 	const path = [currentPath, ...FALLBACK_PATH].filter((part) => part !== "").join(":");
 	const cwd = expandHome(settings.repoPath.trim(), system.home);
 	const env = { HOLOCRON_IDEAS_DIR: vaultPath, PATH: path };
-	if (!settings.useLoginShell) return { program, args: [...rest, ...SYNC_ARGS], cwd, env };
-	const script = `${words.map(shellQuote).join(" ")} "$@"`;
+	const direct = { program, args: [...rest, ...SYNC_ARGS], cwd, env };
+	if (!settings.useLoginShell) return direct;
+	// fish, nushell and the like do not read this script; run directly and say so (see `unsupportedShell`).
+	if (!isPosixShell(system.shell)) return { ...direct, unsupportedShell: shellName(system.shell) };
+	// The user's startup files run before the script and may `cd`, so the script moves to the checkout itself.
+	const script = `cd -- ${shellQuote(cwd)} && ${words.map(shellQuote).join(" ")} "$@"`;
 	return { program: system.shell, args: ["-ilc", script, "holocron", ...SYNC_ARGS], cwd, env };
 }

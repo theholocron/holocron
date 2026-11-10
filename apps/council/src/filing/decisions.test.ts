@@ -43,6 +43,8 @@ describe("tailOutput", () => {
 			"zsh: no job control in this shell\nbash: cannot set terminal process group (-1): Inappropriate ioctl for device\n" +
 			"bash: no job control in this shell\nreal one\nreal two\n";
 		expect(tailOutput(output, 2)).toBe("real one\nreal two");
+		expect(tailOutput("zsh: can't access tty; job control turned off\nreal\n", 3)).toBe("real");
+		expect(tailOutput("Job Control Turned Off\nCan't Access TTY\nreal\n", 3)).toBe("real");
 		expect(tailOutput("real\nbash: no job control in this shell\n", 3)).toBe("real");
 	});
 

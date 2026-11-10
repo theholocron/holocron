@@ -54,7 +54,14 @@ describe("buildSyncCommand through the login shell", () => {
 		);
 		expect(command).toEqual({
 			program: "/bin/bash",
-			args: ["-ilc", `'pnpm' 'exec' 'holocron' "$@"`, "holocron", "ideas", "sync", "--yes"],
+			args: [
+				"-ilc",
+				`cd -- '/Users/me/Code/holocron' && 'pnpm' 'exec' 'holocron' "$@"`,
+				"holocron",
+				"ideas",
+				"sync",
+				"--yes",
+			],
 			cwd: "/Users/me/Code/holocron",
 			env: { HOLOCRON_IDEAS_DIR: "/vault", PATH: `/usr/sbin:${FALLBACK_PATH.join(":")}` },
 		});
@@ -67,8 +74,46 @@ describe("buildSyncCommand through the login shell", () => {
 			"",
 			system
 		);
-		expect(command?.args[1]).toBe(`'/Users/me/My Tools/pnpm' 'exec' 'it'\\''s' "$@"`);
+		expect(command?.args[1]).toBe(`cd -- '/r' && '/Users/me/My Tools/pnpm' 'exec' 'it'\\''s' "$@"`);
 	});
+
+	it("moves to the checkout first, quoting a repo path with a space and a quote", () => {
+		const command = buildSyncCommand(
+			{ ...viaShell, command: "holocron", repoPath: "~/My Code/it's" },
+			"/v",
+			"",
+			system
+		);
+		expect(command?.args[1]).toBe(`cd -- '/Users/me/My Code/it'\\''s' && 'holocron' "$@"`);
+		expect(command?.cwd).toBe("/Users/me/My Code/it's");
+	});
+
+	it.each(["sh", "bash", "zsh", "dash", "ksh"])("uses the login shell for %s", (name) => {
+		const command = buildSyncCommand({ ...viaShell, command: "holocron", repoPath: "/r" }, "/v", "", {
+			home: "/h",
+			shell: `/bin/${name}`,
+		});
+		expect(command?.program).toBe(`/bin/${name}`);
+		expect(command?.unsupportedShell).toBeUndefined();
+	});
+
+	it.each(["/opt/homebrew/bin/fish", "/usr/local/bin/nu", "/bin/mystery"])(
+		"runs directly and reports a shell outside the POSIX family: %s",
+		(shell) => {
+			const command = buildSyncCommand(
+				{ ...viaShell, command: "~/bin/pnpm exec holocron", repoPath: "~/r" },
+				"/v",
+				"",
+				{ home: "/h", shell }
+			);
+			expect(command).toMatchObject({
+				program: "/h/bin/pnpm",
+				args: ["exec", "holocron", "ideas", "sync", "--yes"],
+				cwd: "/h/r",
+				unsupportedShell: shell.split("/").pop(),
+			});
+		}
+	);
 
 	it("returns undefined for an empty command", () => {
 		expect(buildSyncCommand({ ...viaShell, command: "", repoPath: "/r" }, "/v", "", system)).toBeUndefined();

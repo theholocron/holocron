@@ -12,6 +12,8 @@ export interface SyncCommand {
 	args: string[];
 	cwd: string;
 	env: Record<string, string>;
+	/** Set when the login shell was asked for but is not a POSIX shell, so the program runs directly: the shell's name. */
+	unsupportedShell?: string;
 }
 
 /** This Mac's home folder and login shell, read only on desktop. */

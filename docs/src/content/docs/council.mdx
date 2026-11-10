@@ -70,6 +70,10 @@ The plugin's settings live in a file inside the vault, so iCloud syncs them to e
 
 Starting the shell adds about 2 seconds to a run, and the plugin shows a notice while it starts.
 
+The shell option supports `sh`, `bash`, `zsh`, `dash` and `ksh`. With another login shell, such as fish or nushell, the plugin runs the command directly and shows a notice, so **Command** may need full paths.
+
+When you change **Run through my login shell**, update and restart Council on every Mac first. An older copy saves its settings without that field, and the default (on) comes back.
+
 If your shell profile is slow or does not set up `node`, turn the shell option off and give full paths in **Command** instead, with `node` and the built CLI:
 
 ```text
@@ -109,5 +113,6 @@ The plugin passes the vault's folder to the CLI itself, so the `ideas` provider 
 
 - **Filing is desktop only.** A plugin runs on iOS but has no checkout, shell or git there. On the phone the command only sets the state; the note is filed the next time a Mac runs **File this idea** on it.
 - **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The login shell option fixes that on every Mac. With it off, the plugin only adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`, which does not cover Node installed through nvm or `n`; put full paths in the Command setting, as in step 4 of [Install](#install).
+- **One filing run at a time.** While a run is going, a second **File this idea** shows a notice and starts nothing. This covers one Obsidian instance only. Two Macs filing the same note at the same moment are not prevented, because the CLI's lookup for an existing issue is not atomic.
 - **No token field.** The plugin's `data.json` is a file in the vault, and iCloud syncs it to every device. The CLI reads its tokens through its own chain on the Mac, as described in [tokens](/holocron/tokens/).
 - **`ideas sync` files every ready note**, not only the open one. The others stay in the vault with their `issue:` set until **File this idea** is run on each.

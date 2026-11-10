@@ -18,7 +18,7 @@ The build writes `dist/main.js` and `dist/manifest.json`. `main.js` is one Commo
 
 ## Install
 
-Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/holocron-council/`, then turn the plugin on under Settings, Community plugins. The [docs page](https://docs.theholocron.dev/holocron/council/) has the full steps: build, copy, turn on, the settings, and a dry run to check it. The settings sync to every Mac with the vault, so write the repo path with `~` and leave the login shell option on. Install it on each device that should run the commands. A plugin folder inside an iCloud vault syncs to the other devices by itself, so one copy is enough, but only a Mac can file.
+Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/holocron-council/`, then turn the plugin on under Settings, Community plugins. The [docs page](https://docs.theholocron.dev/holocron/council/) has the full steps: build, copy, turn on, the settings, and a dry run to check it. The settings sync to every Mac with the vault, so write the repo path with `~` and leave the login shell option on. When you change the login shell setting, update and restart Council on every Mac first: an older copy saves its settings without that field, and the default (on) comes back. Install it on each device that should run the commands. A plugin folder inside an iCloud vault syncs to the other devices by itself, so one copy is enough, but only a Mac can file.
 
 ## Settings
 
@@ -44,6 +44,8 @@ Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/
 
 - **Filing is desktop only.** On iOS there is no checkout, shell or git, so the command only sets the state. The note is filed the next time a Mac runs **File this idea** on it.
 - **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The login shell option fixes that on every Mac. With it off, the plugin only adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`; put full paths in the Command setting, which differ between Macs.
+- **One filing run at a time.** A second **File this idea** during a run shows a notice and starts nothing. This covers one Obsidian instance only; two Macs filing the same note at the same moment are not prevented.
+- **Login shell families.** The option supports `sh`, `bash`, `zsh`, `dash` and `ksh`; another shell, such as fish, runs the command directly with a notice.
 - **No token field, ever.** The plugin's `data.json` is a file in the vault, and iCloud syncs it to every device. The CLI reads its tokens through its own chain on the Mac.
 - It has not been run inside Obsidian by the tests: they cover the decisions and the order with a mock of the Obsidian API.
 

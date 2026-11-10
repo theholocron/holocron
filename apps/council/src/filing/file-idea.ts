@@ -42,6 +42,12 @@ export async function fileIdea(deps: FileIdeaDeps): Promise<void> {
 	}
 
 	await deps.setStatus(fileState);
+	if (command.unsupportedShell !== undefined) {
+		notify(
+			`The login shell (${command.unsupportedShell}) is not supported, so the command ran directly. ` +
+				"The Command setting may need full paths."
+		);
+	}
 	deps.announce("Filing the idea… starting your shell can take a few seconds.");
 	const result = await deps.run(command);
 	const tail = tailOutput(result.output);

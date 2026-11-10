@@ -39,6 +39,18 @@ describe("IdeasSettingTab", () => {
 		expect(host.saveSettings).toHaveBeenCalledOnce();
 	});
 
+	it("shows the toggle off when the saved setting is off, and saves true when it is turned on", async () => {
+		const host = {
+			settings: { ...DEFAULT_SETTINGS, useLoginShell: false },
+			saveSettings: vi.fn(() => Promise.resolve()),
+		};
+		new IdeasSettingTab({} as never, host as never).display();
+		expect(settingRows[1]?.toggle?.value).toBe(false);
+		await settingRows[1]?.toggle?.onChange?.(true);
+		expect(host.settings.useLoginShell).toBe(true);
+		expect(host.saveSettings).toHaveBeenCalledOnce();
+	});
+
 	it("saves the shell toggle", async () => {
 		const host = { settings: { ...DEFAULT_SETTINGS }, saveSettings: vi.fn(() => Promise.resolve()) };
 		new IdeasSettingTab({} as never, host as never).display();

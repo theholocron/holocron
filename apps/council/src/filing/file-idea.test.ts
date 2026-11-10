@@ -56,6 +56,15 @@ describe("fileIdea", () => {
 		);
 	});
 
+	it("says once that an unsupported login shell was skipped and runs the command directly", async () => {
+		const { deps, notices } = setup({ system: () => ({ home: "/Users/me", shell: "/opt/homebrew/bin/fish" }) });
+		await fileIdea(deps);
+		expect(notices).toHaveLength(2);
+		expect(notices[0]).toContain("login shell (fish) is not supported");
+		expect(notices[0]).toContain("full paths");
+		expect(deps.run).toHaveBeenCalledWith(expect.objectContaining({ program: "pnpm" }));
+	});
+
 	it("refuses a note that is already filed and changes nothing", async () => {
 		const { deps, log, notices } = setup({}, [FILED]);
 		await fileIdea(deps);
