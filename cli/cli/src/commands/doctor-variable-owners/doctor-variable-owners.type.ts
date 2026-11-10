@@ -9,8 +9,10 @@ export interface RunDoctorVariableOwnersInput {
 	loaded: LoadedConfig;
 	/** The runtime context; `org` says where the organization's secrets and variables live. */
 	context: RuntimeContext;
-	/** Defaults to a loader that does not read the credentials providers' values. */
+	/** Lists the Environments' names. Defaults to a loader that does not read the credentials providers' values. */
 	loader?: PluginLoader;
+	/** Provides the `secrets` and `source` providers that list GitHub names. Defaults to a loader that reads the credentials. */
+	githubLoader?: PluginLoader;
 	/** Where the rows and the closing count go. Defaults to the console. */
 	print?: (line: string) => void;
 	/** Structured-logging sink. Defaults to the command-bound root. */

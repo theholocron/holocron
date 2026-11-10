@@ -1,26 +1,23 @@
 /**
  * `holocron doctor variable-owners` — does a variable live in more than one place?
  *
- * Read-only, and names only: no value is read, printed, logged or kept. It gathers the variable names of every
+ * Read-only, and names only: no value is printed, logged or kept, and the Environments are listed by a loader that never
+ * reads a value. It gathers the variable names of every
  * 1Password Environment the config names (through `Credentials.inspect`) and of the GitHub Actions secrets and variables
  * (through the `secrets` and `source` providers), then reports a name that two places hold, one row per name (`fail`).
  * Not reported: the copy a `repo.secrets.sync` or `repo.variables.sync` entry makes (the one allowed path), a name
  * listed in `doctor.sharedVariables` (deliberate sharing), and the same name in the instances of one GitHub App
  * (`githubApps`). A bare name next to its prefixed spelling (`X` and `HOLOCRON_X`) is an `info` row, shown as skipped,
- * because the fallback is deliberate during a rename. A place that cannot be read is a skip with the reason.
+ * because the fallback is deliberate during a rename. A place that cannot be read is a skip with the reason. The GitHub
+ * reads use a second loader that does read the `credentials` providers, only so the GitHub plugin finds its token.
  */
 
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 
 import { getLogger } from "../../observability/logger/index.js";
-import {
-	assertPluginsResolvable,
-	type Credentials,
-	PluginLoader,
-	type Secrets,
-	type Source,
-} from "../../plugin/index.js";
+import { assertPluginsResolvable, type Credentials, type Secrets, type Source } from "../../plugin/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
+import { createGitHubLoader, createNamesLoader } from "./create-loaders.js";
 import type { DoctorVariableOwnersReport, RunDoctorVariableOwnersInput } from "./doctor-variable-owners.type.js";
 import { findDuplicates } from "./find-duplicates.js";
 import { findPrefixedPairs } from "./find-prefixed-pairs.js";
@@ -35,10 +32,13 @@ export async function runDoctorVariableOwners(
 ): Promise<DoctorVariableOwnersReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
 	const logger = input.logger ?? getLogger();
-	const loader =
-		input.loader ?? new PluginLoader(input.loaded.resolved, input.context, undefined, { readCredentials: false });
+	// Two loaders: the Environments' names are listed without reading a value, and the GitHub plugin gets the credential
+	// chain (the `credentials` providers' variables) for its token.
+	const loader = input.loader ?? createNamesLoader(input.loaded, input.context);
+	const githubLoader = input.githubLoader ?? createGitHubLoader(input.loaded, input.context);
 	await loader.load();
 	assertPluginsResolvable(loader, "doctor variable-owners");
+	await githubLoader.load();
 
 	const config = input.loaded.resolved;
 	const feeds = syncFeeds(config);
@@ -58,12 +58,12 @@ export async function runDoctorVariableOwners(
 			: "no `credentials` provider is configured"
 	);
 	const github = await readGitHub({
-		secrets: loader.has("secrets")
-			? (loader.get("secrets") as Secrets)
-			: { why: whyMissing(loader, "secrets", "no `secrets` provider to read the secret names with") },
-		source: loader.has("source")
-			? (loader.get("source") as Source)
-			: { why: whyMissing(loader, "source", "no `source` provider to read the variable names with") },
+		secrets: githubLoader.has("secrets")
+			? (githubLoader.get("secrets") as Secrets)
+			: { why: whyMissing(githubLoader, "secrets", "no `secrets` provider to read the secret names with") },
+		source: githubLoader.has("source")
+			? (githubLoader.get("source") as Source)
+			: { why: whyMissing(githubLoader, "source", "no `source` provider to read the variable names with") },
 		org: org || undefined,
 		environments: githubEnvironments(config, feeds),
 	});
