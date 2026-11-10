@@ -1,3 +1,9 @@
+## [5.0.0-alpha.410](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.409...v5.0.0-alpha.410) (2026-11-10)
+
+### Bug Fixes
+
+* **cli:** 🩺 read GitHub names in doctor variable-owners with the credential chain ([#2056](https://github.com/theholocron/holocron/issues/2056)) ([5091242](https://github.com/theholocron/holocron/commit/5091242d1b5ce9bdcacd05c8cc2bc1afa06ac5be)), closes [#2041](https://github.com/theholocron/holocron/issues/2041)
+
 ## [5.0.0-alpha.409](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.408...v5.0.0-alpha.409) (2026-11-10)
 
 ### Features
