@@ -1,3 +1,9 @@
+## [1.17.0-alpha.4](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.3...utils-v1.17.0-alpha.4) (2026-11-10)
+
+### Bug Fixes
+
+* **pkg-utils:** 🐛 read ** and ! workspace patterns and package.json workspaces ([#2050](https://github.com/theholocron/holocron/issues/2050)) ([df2ae93](https://github.com/theholocron/holocron/commit/df2ae930a8af766a3587a9d86b19147c885699af)), closes [#2049](https://github.com/theholocron/holocron/issues/2049)
+
 ## [1.17.0-alpha.3](https://github.com/theholocron/holocron/compare/utils-v1.17.0-alpha.2...utils-v1.17.0-alpha.3) (2026-11-08)
 
 ### Features
