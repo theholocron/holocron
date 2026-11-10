@@ -8,6 +8,7 @@ discussion:
 ---
 
 <!-- alex disable just -->
+<!-- markdownlint-disable MD024 -->
 
 # New plugins — observability, notifications, dns, analytics
 
@@ -156,6 +157,8 @@ async describe() {
 2. Push both `SENTRY_DSN=<dsn>` and `NEXT_PUBLIC_SENTRY_DSN=<dsn>` to GitHub
    Secrets via the `secrets` capability — same value, different names, both
    required by the Sentry Next.js SDK
+   > Update (2026-11-10, #2046): `NEXT_PUBLIC_SENTRY_DSN` is now under
+   > `frameworkEnvKeys.next` and is pushed only when Next.js is detected.
 3. Derive `platform` from `runtime_environment` in `holocron.config` repo
    properties (`"browser"` → `"javascript"`, else `"node"`)
 

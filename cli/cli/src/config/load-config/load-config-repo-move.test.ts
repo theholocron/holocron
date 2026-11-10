@@ -14,6 +14,9 @@ const DEAD_SECRETS = [
 	"SUPER_LINTER_GPG_PASSPHRASE",
 	"SUPER_LINTER_GPG_PRIVATE_KEY",
 	"SUPER_LINTER_PRIVATE_KEY",
+	// The Sentry DSN is a public ingest key: the synced variable `HOLOCRON_SENTRY_DSN` replaced both secrets.
+	"NEXT_PUBLIC_SENTRY_DSN",
+	"SENTRY_DSN",
 ];
 
 /** The `repo` keys exactly as `holocron.config.ts` had them inline before #1787 (a verbatim copy of the old text). */
@@ -67,6 +70,7 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 					"HOLOCRON_CLOUDFLARE_ACCOUNT_ID",
 					"HOLOCRON_CLOUDFLARE_PAGES_PROJECT",
 					"HOLOCRON_POSTHOG_PROJECT_TOKEN",
+					"HOLOCRON_SENTRY_DSN",
 					"HOLOCRON_SENTRY_ORG",
 					"HOLOCRON_TURBO_TEAM",
 					"HOLOCRON_VERCEL_TEAM_ID",

@@ -17,7 +17,8 @@ export default {
 	// HOLOCRON_CLOUDFLARE_PAGES_PROJECT is synced because every caller in this org shares one Pages project (`<org>-preview`, the
 	// name the generated callers pass as `cloudflare-project`); a repo that needs a different project passes the
 	// `cloudflare-project` input, which wins over the variable. HOLOCRON_POSTHOG_PROJECT_TOKEN is a publishable key, not a secret;
-	// the CLI keeps its compiled-in key as the fallback for installed copies.
+	// the CLI keeps its compiled-in key as the fallback for installed copies. HOLOCRON_SENTRY_DSN is a variable, not a secret: a
+	// DSN is a public ingest key built to be embedded in client code; the CLI's telemetry reads it before `SENTRY_DSN`.
 	variables: {
 		sync: [
 			{
@@ -29,6 +30,7 @@ export default {
 					"HOLOCRON_CLOUDFLARE_ACCOUNT_ID",
 					"HOLOCRON_CLOUDFLARE_PAGES_PROJECT",
 					"HOLOCRON_POSTHOG_PROJECT_TOKEN",
+					"HOLOCRON_SENTRY_DSN",
 					"HOLOCRON_SENTRY_ORG",
 					"HOLOCRON_TURBO_TEAM",
 					"HOLOCRON_VERCEL_TEAM_ID",
@@ -73,9 +75,7 @@ export default {
 					"HOLOCRON_SECRETS_TOKEN",
 					"HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET",
 					"HOLOCRON_VERCEL_TOKEN",
-					"NEXT_PUBLIC_SENTRY_DSN",
 					"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
-					"SENTRY_DSN",
 				],
 			},
 		],

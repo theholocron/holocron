@@ -1,5 +1,7 @@
 import { type PackageJson } from "@theholocron/pkg-utils";
 
+import type { KNOWN_STACK_DEPS } from "./derived-properties.js";
+
 /**
  * Derived custom-properties (#677). Unlike the existing 6 GitHub
  * custom-properties fields (`lifecycle`, `open_source`, `runtime_environment`,
@@ -32,3 +34,6 @@ export interface DeriveProfileInput {
 	/** `packages/*` package.json contents, monorepo repos only — used to find the primary published artifact. */
 	workspacePackageJsons: PackageJsonLike[];
 }
+
+/** One of the framework and build-tool names `deriveStack()` detects (`next`, `vite`, ...), derived from `KNOWN_STACK_DEPS`. */
+export type StackName = (typeof KNOWN_STACK_DEPS)[number];

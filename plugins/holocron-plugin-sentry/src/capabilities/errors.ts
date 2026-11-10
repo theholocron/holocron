@@ -37,7 +37,9 @@ export class SentryErrors implements Errors {
 	async describe() {
 		return {
 			provider: "sentry",
-			envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"],
+			envKeys: ["SENTRY_DSN"],
+			// The Sentry Next.js SDK reads the same DSN a second time, for browser code.
+			frameworkEnvKeys: { next: ["NEXT_PUBLIC_SENTRY_DSN"] },
 		};
 	}
 

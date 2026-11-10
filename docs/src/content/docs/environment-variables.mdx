@@ -128,17 +128,18 @@ The other provider tokens (`DOPPLER_TOKEN`, `NETLIFY_AUTH_TOKEN`, …) are vendo
 
 `repo.variables.sync` keeps these names in 1Password and GitHub. Workflows read `vars.HOLOCRON_<NAME> || vars.<NAME>` (the bare name is the fallback until the variable is renamed) and map the value onto the name a tool reads.
 
-| Variable                            | Used as                                                                                         | Decision                                       |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `HOLOCRON_AXIOM_DATASET`            | `HOLOCRON_AXIOM_DATASET` in `sync-github`, `sync-repo`                                          | Already prefixed                               |
-| `HOLOCRON_POSTHOG_PROJECT_TOKEN`    | `HOLOCRON_POSTHOG_PROJECT_TOKEN` in `sync-github`, `sync-repo`                                  | Renamed (was `POSTHOG_PROJECT_TOKEN`)          |
-| `HOLOCRON_VERCEL_TEAM_ID`           | `HOLOCRON_VERCEL_TEAM_ID` and `VERCEL_TEAM_ID` in `check-preview`                               | Renamed (was `VERCEL_TEAM_ID`)                 |
-| `HOLOCRON_CLOUDFLARE_ACCOUNT_ID`    | `accountId` of the wrangler action; `CLOUDFLARE_ACCOUNT_ID` in a shell step                     | Renamed; mapped onto the name wrangler reads   |
-| `HOLOCRON_CLOUDFLARE_PAGES_PROJECT` | the Pages project name in `preview`                                                             | Renamed (was `CLOUDFLARE_PAGES_PROJECT`)       |
-| `HOLOCRON_TURBO_TEAM`               | `TURBO_TEAM` in each job's `env`                                                                | Renamed; mapped onto the name turbo reads      |
-| `HOLOCRON_SENTRY_ORG`               | `SENTRY_ORG` in `release`                                                                       | Renamed; mapped onto the name sentry-cli reads |
-| `HOLOCRON_AXIOM_ORG`                | `HOLOCRON_AXIOM_ORG` in `check-dispatched`; Sentinel reads the prefixed name, then the bare one | Renamed (was `AXIOM_ORG`)                      |
-| `SENTINEL_AXIOM_DATASET`            | Sentinel's dataset in `check-dispatched`                                                        | Stays as it is (Sentinel's convention)         |
+| Variable                            | Used as                                                                                         | Decision                                                               |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `HOLOCRON_AXIOM_DATASET`            | `HOLOCRON_AXIOM_DATASET` in `sync-github`, `sync-repo`                                          | Already prefixed                                                       |
+| `HOLOCRON_POSTHOG_PROJECT_TOKEN`    | `HOLOCRON_POSTHOG_PROJECT_TOKEN` in `sync-github`, `sync-repo`                                  | Renamed (was `POSTHOG_PROJECT_TOKEN`)                                  |
+| `HOLOCRON_VERCEL_TEAM_ID`           | `HOLOCRON_VERCEL_TEAM_ID` and `VERCEL_TEAM_ID` in `check-preview`                               | Renamed (was `VERCEL_TEAM_ID`)                                         |
+| `HOLOCRON_CLOUDFLARE_ACCOUNT_ID`    | `accountId` of the wrangler action; `CLOUDFLARE_ACCOUNT_ID` in a shell step                     | Renamed; mapped onto the name wrangler reads                           |
+| `HOLOCRON_CLOUDFLARE_PAGES_PROJECT` | the Pages project name in `preview`                                                             | Renamed (was `CLOUDFLARE_PAGES_PROJECT`)                               |
+| `HOLOCRON_TURBO_TEAM`               | `TURBO_TEAM` in each job's `env`                                                                | Renamed; mapped onto the name turbo reads                              |
+| `HOLOCRON_SENTRY_DSN`               | The CLI's telemetry reads it first, then `SENTRY_DSN`, then its built-in DSN                    | A variable, not a secret: a DSN is built to be embedded in client code |
+| `HOLOCRON_SENTRY_ORG`               | `SENTRY_ORG` in `release`                                                                       | Renamed; mapped onto the name sentry-cli reads                         |
+| `HOLOCRON_AXIOM_ORG`                | `HOLOCRON_AXIOM_ORG` in `check-dispatched`; Sentinel reads the prefixed name, then the bare one | Renamed (was `AXIOM_ORG`)                                              |
+| `SENTINEL_AXIOM_DATASET`            | Sentinel's dataset in `check-dispatched`                                                        | Stays as it is (Sentinel's convention)                                 |
 
 ## The guard
 

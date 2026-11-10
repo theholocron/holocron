@@ -289,50 +289,134 @@ describe("runSetup", () => {
 		expect(ensuredName).toBe("my-app");
 	});
 
-	it("provisions the errors project and pushes its DSN to repo secrets", async () => {
-		const setSecrets: Array<[string, string]> = [];
-		const loaded = loadedFrom({
-			name: "my-app",
-			providers: { errors: "sentry", secrets: "github" },
+	describe("errors DSN secrets", () => {
+		type Described = { provider: string; envKeys: string[]; frameworkEnvKeys?: Record<string, string[]> };
+		const SENTRY: Described = {
+			provider: "sentry",
+			envKeys: ["SENTRY_DSN"],
+			frameworkEnvKeys: { next: ["NEXT_PUBLIC_SENTRY_DSN"] },
+		};
+		let repoRoot: string;
+
+		beforeEach(async () => {
+			repoRoot = await mkdtemp(join(tmpdir(), "holo-errors-"));
 		});
-		const loader = makeLoaderWith(loaded, {
-			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
-				errors: {
-					describe: async () => ({ provider: "sentry", envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"] }),
-					ensureProject: async (input: { name: string }) => ({
-						dsn: `https://k@o.ingest.sentry.io/${input.name}`,
-						alreadyExists: false,
-					}),
-				},
-			}),
-			"@theholocron/holocron-plugin-github": makePlugin("github", {
-				secrets: {
-					providerName: "github",
-					setSecret: async (_scope: unknown, name: string, value: string) => {
-						setSecrets.push([name, value]);
+		afterEach(async () => {
+			await rm(repoRoot, { recursive: true, force: true });
+		});
+
+		async function pushedKeys(described: Described, root = repoRoot, dryRun = false) {
+			const setSecrets: Array<[string, string]> = [];
+			const loaded = loadedFrom({ name: "my-app", providers: { errors: "sentry", secrets: "github" } });
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+					errors: {
+						describe: async () => described,
+						ensureProject: async (input: { name: string }) => ({
+							dsn: `https://k@o.ingest.sentry.io/${input.name}`,
+							alreadyExists: false,
+						}),
 					},
-				},
-			}),
+				}),
+				"@theholocron/holocron-plugin-github": makePlugin("github", {
+					secrets: {
+						providerName: "github",
+						setSecret: async (_scope: unknown, name: string, value: string) => {
+							setSecrets.push([name, value]);
+						},
+					},
+				}),
+			});
+			const report = await runSetup({ loaded, context: { repoRoot: root, dryRun }, loader, print: () => {} });
+			const rows = report.steps.filter((s) => s.capability === "errors");
+			return { rows, setSecrets };
+		}
+
+		async function writePkg(dir: string, pkg: Record<string, unknown>) {
+			await mkdir(dir, { recursive: true });
+			await writeFile(join(dir, "package.json"), JSON.stringify(pkg), "utf8");
+		}
+
+		it("pushes only SENTRY_DSN when the repo has no package.json", async () => {
+			const { rows, setSecrets } = await pushedKeys(SENTRY, "/tmp/test");
+			expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app", "secrets set SENTRY_DSN"]);
+			expect(rows.every((r) => r.status === "ok")).toBe(true);
+			expect(setSecrets).toEqual([["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"]]);
 		});
 
-		const report = await runSetup({
-			loaded,
-			context: { repoRoot: "/tmp/test" },
-			loader,
-			print: () => {},
+		it("pushes only SENTRY_DSN when next is not in the stack", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { vite: "^7.0.0" } });
+			const { setSecrets } = await pushedKeys(SENTRY);
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN"]);
 		});
 
-		const rows = report.steps.filter((s) => s.capability === "errors");
-		expect(rows.map((r) => r.step)).toEqual([
-			"ensureProject my-app",
-			"secrets set SENTRY_DSN",
-			"secrets set NEXT_PUBLIC_SENTRY_DSN",
-		]);
-		expect(rows.every((r) => r.status === "ok")).toBe(true);
-		expect(setSecrets).toEqual([
-			["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
-			["NEXT_PUBLIC_SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
-		]);
+		it("also pushes NEXT_PUBLIC_SENTRY_DSN when the root depends on next", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys(SENTRY);
+			expect(rows.map((r) => r.step)).toEqual([
+				"ensureProject my-app",
+				"secrets set SENTRY_DSN",
+				"secrets set NEXT_PUBLIC_SENTRY_DSN",
+			]);
+			expect(setSecrets).toEqual([
+				["SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
+				["NEXT_PUBLIC_SENTRY_DSN", "https://k@o.ingest.sentry.io/my-app"],
+			]);
+		});
+
+		it("also pushes it when next is a root devDependency", async () => {
+			await writePkg(repoRoot, { name: "x", devDependencies: { next: "^15.0.0" } });
+			const { setSecrets } = await pushedKeys(SENTRY);
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("also pushes it when only a workspace package depends on next", async () => {
+			await writePkg(repoRoot, { name: "root", private: true });
+			await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - apps/*\n", "utf8");
+			await writePkg(join(repoRoot, "apps", "web"), { name: "web", dependencies: { next: "^15.0.0" } });
+			const { setSecrets } = await pushedKeys(SENTRY);
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("ignores a frameworkEnvKeys entry for a framework it does not know", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys({
+				provider: "sentry",
+				envKeys: ["SENTRY_DSN"],
+				frameworkEnvKeys: { nuxt: ["NUXT_PUBLIC_SENTRY_DSN"] },
+			});
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN"]);
+			const warning = rows.find((r) => r.step === "frameworkEnvKeys nuxt");
+			expect(warning?.status).toBe("skip");
+			expect(warning?.message).toContain("not a known framework name");
+		});
+
+		it("still pushes SENTRY_DSN, with a note, when the workspace packages cannot be read", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - apps/**\n", "utf8");
+			const { rows, setSecrets } = await pushedKeys(SENTRY);
+			const note = rows.find((r) => r.step === "detect stack");
+			expect(note?.status).toBe("skip");
+			expect(note?.message).toContain("using the root package.json only");
+			// The root alone still shows next.
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("leaves a plugin that returns no frameworkEnvKeys (old shape) unchanged", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { setSecrets } = await pushedKeys({
+				provider: "sentry",
+				envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"],
+			});
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		});
+
+		it("on a dry run only reports ensureProject and writes no secret (behaviour unchanged)", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			const { rows, setSecrets } = await pushedKeys(SENTRY, repoRoot, true);
+			expect(rows.map((r) => r.step)).toEqual(["ensureProject my-app"]);
+			expect(setSecrets).toEqual([]);
+		});
 	});
 
 	it("does nothing for an errors provider that has no ensureProject", async () => {

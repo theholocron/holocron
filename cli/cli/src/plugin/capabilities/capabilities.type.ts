@@ -1,3 +1,4 @@
+import type { StackName } from "../../commands/setup/derived-properties/index.js";
 import type { CARDINALITY } from "./capabilities.js";
 /**
  * Capability interfaces — the contracts that providers implement.
@@ -1370,8 +1371,18 @@ export interface Dns extends ProviderIdentity {
 export interface Errors extends ProviderIdentity {
 	/** Identifies this provider as the `errors` capability. */
 	readonly key: "errors";
-	/** Returns the env var names the app reads at runtime for this provider. */
-	describe(): Promise<{ provider: string; envKeys: string[] }>;
+	/**
+	 * Returns the env var names the app reads at runtime for this provider.
+	 * `envKeys` are always pushed; the optional `frameworkEnvKeys` maps a
+	 * framework name, as `deriveStack()` spells it (`next`), to the extra keys
+	 * pushed only when that framework is in the repo's detected stack (the root
+	 * `package.json` and every workspace package's).
+	 */
+	describe(): Promise<{
+		provider: string;
+		envKeys: string[];
+		frameworkEnvKeys?: Partial<Record<StackName, string[]>>;
+	}>;
 	/**
 	 * Reachability probe. `null` means the check genuinely can't run right
 	 * now on an otherwise-valid configuration (e.g. Sentry's optional `org`

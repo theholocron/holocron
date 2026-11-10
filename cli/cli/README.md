@@ -307,6 +307,10 @@ these functions unchanged, gathering the same inputs over the GitHub API
 instead (D8 — one derivation, two input sources, not two
 implementations).
 
+A provider's `Errors.describe()` returns `envKeys` (always pushed to repo secrets by `holocron repo setup`) and an optional
+`frameworkEnvKeys` (`{ next: ["NEXT_PUBLIC_SENTRY_DSN"] }`), keyed by a `StackName` from `deriveStack()` and pushed only when
+the root or a workspace package depends on that framework.
+
 `missingCapabilities(capabilities)` is `deriveCompliance()`'s sibling —
 same `REQUIRED_BASELINE` table, but returns _which_ required capabilities
 are absent rather than whether any are. `@theholocron/sentinel`'s

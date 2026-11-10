@@ -19,10 +19,19 @@ The Sentry plugin activates automatically at runtime when `HOLOCRON_SENTRY_DSN`
 `holocron.config` is required for the CLI to route errors to Sentry.
 
 The `errors` provider entry is used by `holocron repo setup` — it calls
-`ensureProject` and pushes the DSN to every env key the capability declares
-(`SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN`) at repo scope via the `secrets`
-capability — and by `holocron doctor` (connectivity). Once setup has run, the
-env var alone is sufficient.
+`ensureProject` and pushes the DSN at repo scope via the `secrets` capability
+— and by `holocron doctor` (connectivity). Once setup has run, the env var
+alone is sufficient.
+
+`SENTRY_DSN` is pushed for any repo with the `errors` provider.
+`NEXT_PUBLIC_SENTRY_DSN` (the same DSN, which the Sentry Next.js SDK reads for
+browser code) is pushed only when Next.js is detected: the root `package.json`
+or any workspace package's lists `next` in `dependencies` or `devDependencies`.
+A DSN is built to be embedded in client code, so it is not a true secret.
+Setup never removes `NEXT_PUBLIC_SENTRY_DSN`: a repo that drops Next.js deletes that secret by hand.
+In this repo it is synced as the organization Actions variable `HOLOCRON_SENTRY_DSN` (from the 1Password
+Environment `Holocron - GitHub Actions variables`), which the CLI's telemetry reads before `SENTRY_DSN`; `repo setup`
+still pushes `SENTRY_DSN` as a repo secret, the name consumer repos' SDKs read.
 
 ```bash
 # Sentry activates in any environment where this is set
@@ -66,7 +75,7 @@ export SENTRY_AUTH_TOKEN=<TOKEN>
 
 ## What `errors` provides
 
-- `describe()` — returns the provider name and required env var keys (`SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`)
+- `describe()` — returns the provider name, the env var keys always needed (`envKeys`: `SENTRY_DSN`) and, per framework, the extra keys needed only there (`frameworkEnvKeys`: `next` adds `NEXT_PUBLIC_SENTRY_DSN`)
 - `whoami()` — verifies the token by fetching the organization
 - `ensureProject(input)` — create or retrieve a Sentry project, returning its DSN and whether it already existed
 - `ensureRelay(input)` — make the integration and the one alert rule that sends the issues of every project in `input.projects` to the Comlink relay (see [Server as Code](/holocron/server-as-code/) and [Comlink](/holocron/comlink/) for adding a project)

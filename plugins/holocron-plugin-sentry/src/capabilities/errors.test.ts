@@ -49,7 +49,8 @@ describe("SentryErrors.describe", () => {
 		const { errors } = makeErrors([]);
 		const result = await errors.describe();
 		expect(result.provider).toBe("sentry");
-		expect(result.envKeys).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
+		expect(result.envKeys).toEqual(["SENTRY_DSN"]);
+		expect(result.frameworkEnvKeys).toEqual({ next: ["NEXT_PUBLIC_SENTRY_DSN"] });
 	});
 });
 

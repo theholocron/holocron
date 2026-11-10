@@ -794,6 +794,46 @@ describe("runDoctor", () => {
 		expect(row?.message).toContain("userCount=42");
 	});
 
+	it("errors smoke check lists a framework's env keys, named by framework", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { errors: "sentry" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({
+						provider: "sentry",
+						envKeys: ["SENTRY_DSN"],
+						frameworkEnvKeys: { next: ["NEXT_PUBLIC_SENTRY_DSN"] },
+					}),
+				},
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		const row = report.rows.find((r) => r.capability === "errors");
+		expect(row?.status).toBe("ok");
+		expect(row?.message).toContain("SENTRY_DSN, NEXT_PUBLIC_SENTRY_DSN (with next)");
+	});
+
+	it("errors smoke check tolerates a framework entry with no keys", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { errors: "sentry" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-sentry": makePlugin("sentry", {
+				errors: {
+					describe: async () => ({
+						provider: "sentry",
+						envKeys: ["SENTRY_DSN"],
+						frameworkEnvKeys: { next: undefined },
+					}),
+				},
+			}),
+		});
+
+		const report = await runDoctor({ loaded, context: { repoRoot: "/tmp/test" }, loader, print: () => {} });
+
+		expect(report.rows.find((r) => r.capability === "errors")?.message).toMatch(/env keys: SENTRY_DSN$/);
+	});
+
 	it("auth smoke check omits the parenthetical when whoami returns no details", async () => {
 		const loaded = loadedFrom({
 			name: "demo",
