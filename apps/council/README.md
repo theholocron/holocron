@@ -18,7 +18,7 @@ The build writes `dist/main.js` and `dist/manifest.json`. `main.js` is one Commo
 
 ## Install
 
-Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/holocron-council/`, then turn the plugin on under Settings, Community plugins. Install it on each device that should run the commands. A plugin folder inside an iCloud vault syncs to the other devices by itself, so one copy is enough, but only a Mac can file.
+Copy `main.js` and `manifest.json` from `dist/` into `<vault>/.obsidian/plugins/holocron-council/`, then turn the plugin on under Settings, Community plugins. The [docs page](https://docs.theholocron.dev/holocron/council/) has the full steps: build, copy, turn on, the two settings, and a dry run to check it. Install it on each device that should run the commands. A plugin folder inside an iCloud vault syncs to the other devices by itself, so one copy is enough, but only a Mac can file.
 
 ## Settings
 

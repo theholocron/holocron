@@ -28,25 +28,80 @@ A command that exits non-zero never trashes the note, even if the file has an `i
 
 ## Install
 
+Council is built from this repository and copied into the vault by hand. You need a Holocron checkout on the Mac that will do the filing.
+
+### 1. Build the CLI and the plugin
+
+From the checkout:
+
 ```sh
+git pull
 pnpm install
-pnpm --filter @theholocron/council build
+pnpm build
 ```
 
-Copy `apps/council/dist/main.js` and `manifest.json` into `<vault>/.obsidian/plugins/holocron-council/`, then turn the plugin on under Settings, Community plugins. A plugin folder inside an iCloud vault syncs to the other devices by itself.
+`pnpm build` builds the CLI that the button runs (`cli/cli/dist/cli.mjs`) and the plugin (`apps/council/dist/`). Run it again after every update of the checkout, so the CLI the button calls is current.
+
+### 2. Copy the plugin into the vault
+
+Copy `main.js` and `manifest.json` from `apps/council/dist/` into `<vault>/.obsidian/plugins/holocron-council/`. For a vault in iCloud Drive:
+
+```sh
+dest="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/<vault name>/.obsidian/plugins/holocron-council"
+mkdir -p "$dest"
+cp apps/council/dist/main.js apps/council/dist/manifest.json "$dest/"
+```
+
+The folder is inside the vault, so iCloud copies the plugin to your other devices by itself.
+
+### 3. Turn it on
+
+1. Restart Obsidian, or run **Reload app without saving** from the command palette.
+2. Open Settings, then Community plugins, and turn off Restricted mode. Obsidian shows a security notice. This step is yours to take.
+3. Switch on **Holocron Council** in the list of installed plugins.
+
+### 4. Set the repo path and the command
+
+Open the plugin's settings and fill in the first two rows of the [table below](#settings):
+
+- **Holocron repo path** is the absolute path of the checkout.
+- **Command** starts the CLI. Obsidian started from the Dock does not read your shell profile, so `pnpm` is usually missing from its `PATH`, most often when Node comes from nvm. Give absolute paths to `node` and to the built CLI:
+
+  ```text
+  /path/to/node /path/to/holocron/cli/cli/dist/cli.mjs
+  ```
+
+:::tip
+`command -v node` prints the path to `node`. With nvm that path contains the Node version, so update this setting when you change versions.
+:::
+
+Leave **States** and **Filing state** at their defaults unless the `ideas` block of your config uses other words.
+
+### 5. Check it before you rely on it
+
+From the checkout, a dry run prints what the button would file and writes nothing:
+
+```sh
+HOLOCRON_IDEAS_DIR="$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/<vault name>" \
+  node cli/cli/dist/cli.mjs ideas sync --dry-run
+```
+
+Then try the button on a throwaway note: insert the Idea template, pick `in-progress` with **Set idea status**, and run **File this idea**. That creates a real issue, so close it afterwards. The note moves to the trash once the issue exists. If it stays, the notice says why.
+
+The plugin passes the vault's folder to the CLI itself, so the `ideas` provider does not need to be declared in `holocron.config` for the button to work.
 
 ## Settings
 
-| Setting            | Default                                 | Meaning                                                             |
-| ------------------ | --------------------------------------- | ------------------------------------------------------------------- |
-| Holocron repo path | empty                                   | The checkout the command runs in. Required for filing.              |
-| Command            | `pnpm exec holocron`                    | What starts the CLI. Use the full path if the app cannot find it.   |
-| States             | `seed, exploring, in-progress, dropped` | The values the picker offers. Match the `ideas` block of the config |
-| Filing state       | `in-progress`                           | The state that files the idea.                                      |
+| Setting            | Default                                 | Meaning                                                                     |
+| ------------------ | --------------------------------------- | --------------------------------------------------------------------------- |
+| Holocron repo path | empty                                   | The checkout the command runs in. Required for filing.                      |
+| Command            | `pnpm exec holocron`                    | What starts the CLI. Use full paths if the app cannot find it (see step 4). |
+| States             | `seed, exploring, in-progress, dropped` | The values the picker offers. Match the `ideas` block of the config         |
+| Filing state       | `in-progress`                           | The state that files the idea.                                              |
 
 ## Limits
 
 - **Filing is desktop only.** A plugin runs on iOS but has no checkout, shell or git there. On the phone the command only sets the state; the note is filed the next time a Mac runs **File this idea** on it.
-- **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The plugin adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`. If that is not enough, put the full path in the Command setting, for example `/opt/homebrew/bin/pnpm exec holocron`.
+- **A GUI app may not see your shell's PATH.** Obsidian started from the Dock does not read your shell profile, so `pnpm` or `node` can be missing. The plugin adds `/opt/homebrew/bin` and `/usr/local/bin` to `PATH`. That does not cover Node installed through nvm. In that case put full paths in the Command setting, as in step 4 of [Install](#install).
 - **No token field.** The plugin's `data.json` is a file in the vault, and iCloud syncs it to every device. The CLI reads its tokens through its own chain on the Mac, as described in [tokens](/holocron/tokens/).
 - **`ideas sync` files every ready note**, not only the open one. The others stay in the vault with their `issue:` set until **File this idea** is run on each.
