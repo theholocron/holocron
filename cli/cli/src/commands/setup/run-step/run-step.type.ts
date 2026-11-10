@@ -1,3 +1,5 @@
+import type { readWorkspacePackages } from "@theholocron/astromech";
+
 import type { LoadedConfig } from "../../../config/index.js";
 import { PluginLoader, type RuntimeContext } from "../../../plugin/index.js";
 
@@ -35,4 +37,9 @@ export interface RunSetupInput {
 	 * defers to `config.hooks`, then to `protection: "strict"`.
 	 */
 	hooks?: boolean;
+	/**
+	 * Replaces the read of the repo's workspace packages (`readWorkspacePackages()`), which the
+	 * stack detection uses. Tests inject one that throws to cover the fall-back to the root manifest.
+	 */
+	workspacePackages?: (repoRoot: string) => ReturnType<typeof readWorkspacePackages>;
 }

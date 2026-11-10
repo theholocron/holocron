@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 
-import { discoverWorkspacePackages } from "./discover-workspace-packages.ts";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import {
+	discoverWorkspacePackages,
+	type DiscoverWorkspacePackagesOptions,
+	resolveWorkspaceGlobs,
+	resolveWorkspacePatterns,
+	type SkippedWorkspacePattern,
+} from "./discover-workspace-packages.ts";
 
 /** An in-memory repo: `files` maps absolute paths to text; directories are inferred from them. */
 function repo(files: Record<string, string>) {
@@ -151,17 +161,18 @@ describe("discoverWorkspacePackages", () => {
 		).toEqual(expected);
 	});
 
-	it("throws on a glob it cannot expand, rather than skipping its packages", () => {
-		const fs = repo({ "/repo/pnpm-workspace.yaml": workspace("packages/**") });
-		expect(() => discoverWorkspacePackages("/repo", fs)).toThrow(/unsupported workspace pattern "packages\/\*\*"/);
-		expect(() =>
-			discoverWorkspacePackages("/repo", repo({ "/repo/pnpm-workspace.yaml": workspace("a/*/b") }))
-		).toThrow(TypeError);
-	});
-
-	it("throws on a directory that climbs out of the repo", () => {
-		const fs = repo({ "/repo/pnpm-workspace.yaml": workspace("../outside") });
-		expect(() => discoverWorkspacePackages("/repo", fs)).toThrow(/inside the repo/);
+	it("skips a pattern it cannot interpret and reports it, instead of throwing", () => {
+		const fs = repo({
+			"/repo/pnpm-workspace.yaml": workspace("a/{b,c}", "../outside", "docs", "/abs", "x/[ab]", "y/a**b"),
+			"/repo/docs/package.json": pkg("docs"),
+		});
+		const skipped: SkippedWorkspacePattern[] = [];
+		const found = discoverWorkspacePackages("/repo", { ...fs, onSkippedPattern: (s) => skipped.push(s) });
+		expect(found.map((p) => p.name)).toEqual(["docs"]);
+		expect(skipped.map((s) => s.pattern)).toEqual(["a/{b,c}", "../outside", "/abs", "x/[ab]", "y/a**b"]);
+		expect(skipped.every((s) => s.reason.length > 0)).toBe(true);
+		// the channel is optional
+		expect(() => discoverWorkspacePackages("/repo", fs)).not.toThrow();
 	});
 
 	it("keeps a package.json that has no name, for the caller to filter", () => {
@@ -172,5 +183,136 @@ describe("discoverWorkspacePackages", () => {
 		expect(discoverWorkspacePackages("/repo", fs).map((p) => [p.name, p.manifest.private])).toEqual([
 			[undefined, true],
 		]);
+	});
+});
+
+describe("discoverWorkspacePackages on a real directory tree", () => {
+	let root: string;
+	beforeEach(() => {
+		root = mkdtempSync(join(tmpdir(), "pkg-utils-ws-"));
+	});
+	afterEach(() => {
+		rmSync(root, { recursive: true, force: true });
+	});
+
+	const put = (rel: string, content: string) => {
+		mkdirSync(dirname(join(root, rel)), { recursive: true });
+		writeFileSync(join(root, rel), content);
+	};
+	const add = (...dirs: string[]) => dirs.forEach((dir) => put(`${dir}/package.json`, pkg(dir)));
+	const dirsOf = (options: DiscoverWorkspacePackagesOptions = {}) =>
+		discoverWorkspacePackages(root, options).map((p) => p.relativeDir);
+
+	it("matches `*` one level deep only", () => {
+		put("pnpm-workspace.yaml", workspace("apps/*"));
+		add("apps/web", "apps/api", "apps/web/inner");
+		expect(dirsOf()).toEqual(["apps/api", "apps/web"]);
+	});
+
+	it("matches `**` at any depth, the directory itself included, sorted", () => {
+		put("pnpm-workspace.yaml", workspace("apps/**"));
+		add("apps", "apps/web", "apps/web/inner", "apps/z/deep/er");
+		expect(dirsOf()).toEqual(["apps", "apps/web", "apps/web/inner", "apps/z/deep/er"]);
+	});
+
+	it("matches a nested `**` between segments and `*` or `?` inside a segment", () => {
+		put("pnpm-workspace.yaml", workspace("libs/**/pkg-*", "tools/?"));
+		add("libs/a/pkg-one", "libs/a/b/pkg-two", "libs/a/other", "libs/pkg-zero", "tools/x", "tools/xy");
+		expect(dirsOf()).toEqual(["libs/a/b/pkg-two", "libs/a/pkg-one", "libs/pkg-zero", "tools/x"]);
+	});
+
+	it("applies negation in order: it removes what came before and a later entry can add it back", () => {
+		put("pnpm-workspace.yaml", workspace("apps/*", "'!apps/legacy'", "packages/**", "'!packages/**/internal'"));
+		add("apps/web", "apps/legacy", "packages/a", "packages/a/internal", "packages/b");
+		expect(dirsOf()).toEqual(["apps/web", "packages/a", "packages/b"]);
+
+		put("pnpm-workspace.yaml", workspace("'!apps/legacy'", "apps/*"));
+		expect(dirsOf()).toEqual(["apps/legacy", "apps/web"]);
+
+		// a negation deeper than the package, or in another folder, removes nothing
+		put("pnpm-workspace.yaml", workspace("apps/*", "'!apps/legacy/inner'", "'!libs/*'"));
+		expect(dirsOf()).toEqual(["apps/legacy", "apps/web"]);
+	});
+
+	it("never enters node_modules or hidden directories through a wildcard", () => {
+		put("pnpm-workspace.yaml", workspace("**"));
+		add("a", "node_modules/dep", "a/node_modules/dep2", ".hidden/pkg", "a/.cache/pkg");
+		expect(dirsOf()).toEqual(["a"]);
+		put("pnpm-workspace.yaml", workspace("node_modules/dep", "*/dep2"));
+		expect(dirsOf()).toEqual([]);
+	});
+
+	it("reads the `workspaces` array of the root package.json when there is no workspace file", () => {
+		put("package.json", JSON.stringify({ name: "root", workspaces: ["./apps/**", "!apps/legacy", "tools/"] }));
+		add("apps/web", "apps/legacy", "tools");
+		expect(dirsOf()).toEqual(["apps/web", "tools"]);
+	});
+
+	it("reads the `{ packages }` form of `workspaces`, ignoring entries that are not strings", () => {
+		put("package.json", JSON.stringify({ workspaces: { packages: ["libs/*", 3, ""] } }));
+		add("libs/a");
+		expect(dirsOf()).toEqual(["libs/a"]);
+	});
+
+	it("lets pnpm-workspace.yaml win when both files exist", () => {
+		put("package.json", JSON.stringify({ workspaces: ["libs/*"] }));
+		put("pnpm-workspace.yaml", workspace("apps/*"));
+		add("libs/a", "apps/web");
+		expect(dirsOf()).toEqual(["apps/web"]);
+	});
+
+	it("falls back to the default roots for a package.json without workspaces, a broken one, or none", () => {
+		add("packages/a", "apps/b", "plugins/c", "libs/d");
+		const defaults = ["packages/a", "apps/b", "plugins/c"];
+		expect(dirsOf()).toEqual(defaults);
+		put("package.json", JSON.stringify({ name: "root" }));
+		expect(dirsOf()).toEqual(defaults);
+		put("package.json", JSON.stringify({ workspaces: "libs/*" }));
+		expect(dirsOf()).toEqual(defaults);
+		put("package.json", "{ not json");
+		expect(dirsOf()).toEqual(defaults);
+		put("package.json", "null");
+		expect(dirsOf()).toEqual(defaults);
+	});
+
+	it("reports an unsupported pattern, finds the rest, and treats a missing directory as no packages", () => {
+		put("pnpm-workspace.yaml", workspace("apps/{web,api}", "gone/**", "libs/*"));
+		add("libs/a");
+		const skipped: string[] = [];
+		expect(dirsOf({ onSkippedPattern: ({ pattern }) => skipped.push(pattern) })).toEqual(["libs/a"]);
+		expect(skipped).toEqual(["apps/{web,api}"]);
+	});
+
+	it("does not hide a listing error other than a missing directory", () => {
+		put("pnpm-workspace.yaml", workspace("apps/*"));
+		const listDirs = () => {
+			throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+		};
+		expect(() => discoverWorkspacePackages(root, { listDirs })).toThrow(/EACCES/);
+	});
+
+	it("ignores empty and `.` segments in a pattern", () => {
+		put("pnpm-workspace.yaml", workspace("apps//./web"));
+		add("apps/web");
+		expect(dirsOf()).toEqual(["apps/web"]);
+	});
+
+	it("ignores a dangling symlink among the directories", () => {
+		put("pnpm-workspace.yaml", workspace("apps/*"));
+		add("apps/web");
+		symlinkSync(join(root, "nowhere"), join(root, "apps", "broken"));
+		expect(dirsOf()).toEqual(["apps/web"]);
+	});
+
+	it("exposes the ordered patterns and the include and exclude split", () => {
+		put("package.json", JSON.stringify({ workspaces: ["a/*", "!a/x"] }));
+		expect(resolveWorkspacePatterns(root)).toEqual(["a/*", "!a/x"]);
+		expect(resolveWorkspaceGlobs(root)).toEqual({ include: ["a/*"], exclude: ["a/x"] });
+	});
+
+	it("stops following `**` past a depth limit", () => {
+		put("pnpm-workspace.yaml", workspace("**"));
+		add(Array.from({ length: 40 }, () => "d").join("/"), "d/d/d");
+		expect(dirsOf()).toEqual(["d/d/d"]);
 	});
 });

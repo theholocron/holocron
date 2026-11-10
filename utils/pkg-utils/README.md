@@ -64,7 +64,11 @@ const publishable = listWorkspacePackagesSync(repoRoot).filter((p) => !p.manifes
 
 ### `discoverWorkspacePackages(repoRoot, options?)`
 
-Every package the repo's `pnpm-workspace.yaml` declares, as `listWorkspacePackagesSync()` entries — in glob order, packages within a `<dir>/*` glob sorted by name. Two glob forms are understood: `<dir>/*` (each child of `<dir>` with a `package.json`) and a literal directory (that directory is the package). `!pattern` entries drop matching packages, the repo root (`.`) is skipped, and any other glob throws. Without a `pnpm-workspace.yaml`, or one with no `packages:`, `DEFAULT_WORKSPACE_ROOTS` (`packages`, `apps`, `plugins`) are scanned. `options.group` keeps one version group's folder, `options.excludeGroups` leaves some out, and `options.readText`, `options.readFile` and `options.listDirs` replace the disk access.
+Every package the repo's workspace declares, as `listWorkspacePackagesSync()` entries. The patterns come from the `packages:` list of `pnpm-workspace.yaml`, or, when there is no such file, from the `workspaces` field of the root `package.json` (an array, or `{ "packages": [...] }`); `pnpm-workspace.yaml` wins when both exist. With neither, or when they list none, `DEFAULT_WORKSPACE_ROOTS` (`packages`, `apps`, `plugins`) are scanned.
+
+The patterns are applied in order, as pnpm applies `packages:`: an entry adds the packages it matches and a `!pattern` entry removes the ones collected so far. `*` matches within one path segment (`apps/*`, `pkg-*`), `**` matches any number of directories (`apps/**`), and a literal directory is that package. A wildcard never enters `node_modules` or a hidden directory. A directory is a package only if it has a `package.json`; the repo root (`.`) is skipped. The result has no duplicates, in pattern order with the packages one pattern finds sorted by path.
+
+A pattern it cannot interpret (braces, character classes, `..`, an absolute path) never throws: it is skipped and passed to the optional `options.onSkippedPattern({ pattern, reason })`. A missing directory is no packages. `options.group` keeps one version group's folder, `options.excludeGroups` leaves some out, and `options.readText`, `options.readFile` and `options.listDirs` replace the disk access.
 
 ```typescript
 import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
@@ -72,9 +76,9 @@ import { discoverWorkspacePackages } from "@theholocron/pkg-utils";
 const names = discoverWorkspacePackages(repoRoot, { group: "clients" }).map((p) => p.name);
 ```
 
-### `resolveWorkspaceGlobs(repoRoot, options?)` and `readWorkspaceGlobs(yaml)`
+### `resolveWorkspacePatterns`, `resolveWorkspaceGlobs(repoRoot, options?)`, `readWorkspacePatterns(yaml)` and `readWorkspaceGlobs(yaml)`
 
-`readWorkspaceGlobs` reads the `packages:` list of a `pnpm-workspace.yaml` text into `{ include, exclude }` (a line-based read, not a YAML parse; quotes and trailing comments are stripped). `resolveWorkspaceGlobs` reads the file in `repoRoot` and falls back to the default roots as `<root>/*` when it lists none.
+`readWorkspaceGlobs` reads the `packages:` list of a `pnpm-workspace.yaml` text into `{ include, exclude }` (a line-based read, not a YAML parse; quotes and trailing comments are stripped), and `readWorkspacePatterns` returns the same entries in file order with `!` kept on a negation. `resolveWorkspacePatterns` and `resolveWorkspaceGlobs` read the workspace file (or the `workspaces` field) in `repoRoot` and fall back to the default roots as `<root>/*` when it lists none.
 
 ### `parseCatalogs(text)`
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readWorkspaceGlobs } from "./workspace-globs.ts";
+import { readWorkspaceGlobs, readWorkspacePatterns } from "./workspace-globs.ts";
 
 describe("readWorkspaceGlobs", () => {
 	it("reads the plain block list, stripping quotes and trailing comments", () => {
@@ -36,5 +36,16 @@ describe("readWorkspaceGlobs", () => {
 	it("reads nothing when `packages:` is absent or inline", () => {
 		expect(readWorkspaceGlobs("catalog:\n  a: ^1\n")).toEqual({ include: [], exclude: [] });
 		expect(readWorkspaceGlobs("packages: [a, b]\n")).toEqual({ include: [], exclude: [] });
+	});
+});
+
+describe("readWorkspacePatterns", () => {
+	it("keeps file order, with a `!` on each negation, so inclusions and exclusions interleave", () => {
+		const yaml = "packages:\n  - 'a/*'\n  - '!./a/x/'\n  - b/**\n";
+		expect(readWorkspacePatterns(yaml)).toEqual(["a/*", "!a/x", "b/**"]);
+	});
+
+	it("reads nothing when `packages:` is absent", () => {
+		expect(readWorkspacePatterns("catalog:\n  a: ^1\n")).toEqual([]);
 	});
 });
