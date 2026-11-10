@@ -69,6 +69,11 @@
       "import": "./dist/edge-posthog.mjs",
       "default": "./dist/edge-posthog.mjs"
     },
+    "./react-native": {
+      "types": "./dist/react-native.d.mts",
+      "import": "./dist/react-native.mjs",
+      "default": "./dist/react-native.mjs"
+    },
     "./testing": {
       "types": "./dist/testing.d.mts",
       "import": "./dist/testing.mjs",
@@ -115,11 +120,13 @@
     "@axiomhq/pino": ">=2",
     "@sentry/browser": ">=10",
     "@sentry/node": ">=10",
+    "@sentry/react-native": ">=7",
     "@sentry/vercel-edge": ">=10",
     "pino": ">=10",
     "pino-pretty": ">=13",
     "posthog-js": ">=1",
     "posthog-node": ">=5",
+    "posthog-react-native": ">=4",
     "vitest": ">=4"
   },
   "peerDependenciesMeta": {
@@ -130,6 +137,9 @@
       "optional": true
     },
     "@sentry/node": {
+      "optional": true
+    },
+    "@sentry/react-native": {
       "optional": true
     },
     "@sentry/vercel-edge": {
@@ -145,6 +155,9 @@
       "optional": true
     },
     "posthog-node": {
+      "optional": true
+    },
+    "posthog-react-native": {
       "optional": true
     },
     "vitest": {

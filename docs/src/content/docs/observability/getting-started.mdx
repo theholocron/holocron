@@ -183,8 +183,40 @@ What `PostHogFetchSink` does:
 The edge SDK has no release-health sessions, so `endSession()` does nothing
 there. Neither entry imports a Node built-in, and both are tree-shakable.
 
-React Native adapters (`@sentry/react-native`, `posthog-react-native`) follow in
-their own subpath; until then use `ConsoleLogger` and the no-ops.
+### In a React Native app
+
+`/react-native` has `SentryReactNativeSink` (over `@sentry/react-native`) and
+`PostHogReactNativeSink` (over `posthog-react-native`). Both SDKs need the
+`react-native` runtime to load, so your app imports them and passes them in;
+the adapters import neither. That keeps the module loadable in a test or a
+Node script, and the SDKs stay optional peers:
+
+```ts
+import * as Sentry from "@sentry/react-native";
+import PostHog from "posthog-react-native";
+import { type AnalyticsSink, type ErrorSink, NoopAnalyticsSink, NoopErrorSink } from "@theholocron/observability/core";
+import { PostHogReactNativeSink, SentryReactNativeSink } from "@theholocron/observability/react-native";
+
+const errors: ErrorSink = dsn ? new SentryReactNativeSink({ sdk: Sentry }) : new NoopErrorSink();
+errors.init({ dsn: dsn ?? "", release: "app@1.0.0", environment: "production", tags: {} });
+
+const analytics: AnalyticsSink = key
+  ? new PostHogReactNativeSink({ client: new PostHog(key, { host: "https://us.i.posthog.com" }) })
+  : new NoopAnalyticsSink();
+analytics.identify("user-1", { plan: "pro" });
+```
+
+The native layer tracks release-health sessions, so `SentryReactNativeSink`
+leaves them alone unless you pass `sessions: true`. Keep `Sentry.wrap(App)` for
+the native crash and navigation integrations; they sit outside the `ErrorSink`
+interface.
+
+The PostHog sink follows the browser rules. The client has one current person,
+so `capture(distinctId, ...)` calls `identify(distinctId)` first when
+`distinctId` is not the client's current id (`getDistinctId()`), and an event is
+never attributed to someone else. Properties are scrubbed of token-shaped
+strings, and `onError` sees any error the SDK threw. The Sentry sink scrubs
+events, transactions, span names and tags the same way.
 
 ## Testing
 

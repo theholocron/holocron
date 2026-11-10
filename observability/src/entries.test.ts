@@ -12,7 +12,7 @@ function bareImports(file: string, seen = new Set<string>()): Set<string> {
 	if (seen.has(file)) return found;
 	seen.add(file);
 	const source = readFileSync(file, "utf8");
-	for (const match of source.matchAll(/(?:import|export)[^"']*?from\s+["']([^"']+)["']/g)) {
+	for (const match of source.matchAll(/^(?:import|export)\s[^"']*?from\s+["']([^"']+)["']/gm)) {
 		const specifier = match[1]!;
 		if (specifier.startsWith(".")) {
 			const target = resolve(dirname(file), specifier.replace(/\.js$/, ".ts"));
@@ -30,6 +30,7 @@ describe("per-adapter entries load only their own SDK", () => {
 		["browser-posthog.ts", ["posthog-js"]],
 		["edge-sentry.ts", ["@sentry/vercel-edge"]],
 		["edge-posthog.ts", []],
+		["react-native.ts", []],
 		["core.ts", []],
 	];
 	it.each(cases)("%s imports exactly %j", (entry, sdks) => {

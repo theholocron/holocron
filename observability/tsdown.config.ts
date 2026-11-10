@@ -10,6 +10,7 @@ export default library({
 		"src/browser-posthog.ts",
 		"src/edge-sentry.ts",
 		"src/edge-posthog.ts",
+		"src/react-native.ts",
 		"src/testing.ts",
 		"src/index.ts",
 	],
