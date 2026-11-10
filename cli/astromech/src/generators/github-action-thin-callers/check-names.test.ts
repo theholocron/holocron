@@ -124,7 +124,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	"update-deps": ["update-deps / Update the dependencies"],
 	"validate:deps": ["validate:deps / Check dependency catalogs"],
 	"validate:generated": ["validate:generated / Check generated files"],
-	"validate:docs": ["validate:docs / Validate docs presence"],
+	"validate:docs": ["validate:docs / Validate docs"],
 	"validate:specs": ["validate:specs / Validate ADRs and specs"],
 };
 

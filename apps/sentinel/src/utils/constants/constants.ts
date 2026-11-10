@@ -111,7 +111,7 @@ export const SENTINEL_DISPATCH_REF = TEMPLATE_HOME.ref;
 export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
 /**
  * The astromech task whose checks the repo-validation pipeline mirrors
- * (holocron#913) — `Validate ADRs and specs` and `Validate docs presence`
+ * (holocron#913) — `Validate ADRs and specs` and `Validate docs`
  * only run for a repo whose valid config declares it, the same gate the
  * Bucket 2 dispatch uses for `SENTINEL_DISPATCHABLE_TASK`.
  */

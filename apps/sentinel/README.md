@@ -245,7 +245,7 @@ the frontmatter rules of `holocron probe specs check` (`checkSpecs()` in
 `@theholocron/astromech/repo-validation`, one implementation for both) to the PR's own changed
 `docs/wiki/decisions/*.md` and `*.spec.md` files — errors fail the check
 and post a review, warnings are annotations on a `neutral` check — and
-`Repo Validation / Validate docs presence` runs the same shared
+`Repo Validation / Validate docs` runs the same shared
 rules as `holocron probe docs presence`
 (`@theholocron/astromech/repo-validation`, holocron#929): it flags an added
 `<dir>/src/index.ts` (any workspace layout) of a non-private package shipped

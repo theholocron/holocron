@@ -81,7 +81,7 @@ Sentinel's checks are named `Group / Action`, two segments joined by one `/`, bu
 | `Platform / Compliance / Run Developer Certificate of Origin`              | `Compliance / Run Developer Certificate of Origin`              |
 | `Platform / Commit Standards / Run commitlint`                             | `Commits / Run commitlint`                                      |
 | `Platform / Repo Validation / Validate ADRs and specs`                     | `Repo Validation / Validate ADRs and specs`                     |
-| `Platform / Repo Validation / Validate docs presence`                      | `Repo Validation / Validate docs presence`                      |
+| `Platform / Repo Validation / Validate docs presence`                      | `Repo Validation / Validate docs`                               |
 | `Source Quality / Formatting / Run prettier`                               | `Formatting / Run prettier`                                     |
 | `Source Quality / Formatting / Run editorconfig`                           | `Formatting / Run editorconfig`                                 |
 | `Source Quality / Documentation / Run markdownlint`                        | `Documentation / Run markdownlint`                              |
@@ -93,6 +93,20 @@ Sentinel's checks are named `Group / Action`, two segments joined by one `/`, bu
 `Commit Standards` becomes `Commits` because a repo on the frozen reusables posts `Commit Standards / Run commitlint` from
 Actions (`LEGACY_CALLERS`); an exact clash with Sentinel's check would be confusing. `Static Analysis` and `Formatting`
 only partly overlap those callers (the called job names differ), so they stay.
+
+### The docs check loses "presence"
+
+`Validate docs presence` becomes `Validate docs`, on both sides: Sentinel's `Repo Validation / Validate docs` and the
+Actions check `validate:docs / Validate docs` (the job and step names in `ci/workflows/validate/docs.yml`, the entry in
+`WORKFLOW_CHECK_CONTEXTS`, the generated `.github/workflows/validate-docs.yml`). The `validate:docs` task runs
+`holocron probe docs validate`, which is `docs presence` (a warning) followed by `docs tokens` (a failure), so "presence"
+no longer describes the check. The probe keeps its name, `docs presence`, and so do the `Docs presence: …` summary titles:
+they name what the probe measures, not the check.
+
+The `ci` aggregate waits for `validate:docs` by the prefix `validate:docs / `, so the part after the slash does not matter
+to it. No ruleset that could be read lists the exact string (`holocron` requires `ci / Required checks` and `DCO`; the
+other readable rulesets, including the template repos', hold no `Validate docs` context). A repo on the frozen reusables
+keeps posting the old job name from its frozen copy until `CI_HOME` moves.
 
 ### Casing
 

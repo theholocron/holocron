@@ -1003,8 +1003,8 @@ markdownlint`, and `lint:code`'s is `lint:code / Run eslint, actionlint and pret
   frozen `theholocron/.github` `platform.repoValidation.yml`, which runs `holocron run platform.repoValidation adrs`,
   therefore runs both probes in each of its jobs (noisy, never wrong).
 - **Reusables and callers.** `ci/workflows/validate/{specs,docs}.yml` (one job each, `Validate ADRs and specs` and
-  `Validate docs presence`) with the templates under `templates/workflows/validate/`; the checks are
-  `validate:specs / Validate ADRs and specs` and `validate:docs / Validate docs presence`, and the `ci` aggregate
+  `Validate docs`) with the templates under `templates/workflows/validate/`; the checks are
+  `validate:specs / Validate ADRs and specs` and `validate:docs / Validate docs`, and the `ci` aggregate
   waits for the two ids. The docs-coverage gate (`docs patch`, `repoValidation.docsCoverage`) stays its own
   hand-maintained workflow; `validate:docs` is only the presence probe.
 - **Aliases.** `LEGACY_NAMES` lists `validate` and `platform.repoValidation`, each standing for both leaves. Since phase I
