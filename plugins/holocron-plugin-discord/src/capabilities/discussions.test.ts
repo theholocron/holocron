@@ -930,6 +930,21 @@ describe("DiscordDiscussions — a pull request's post", () => {
 			expect(await discussions.dedupe("ideas", KEY)).toBe(1);
 		});
 
+		it("reads the forum again when asked, to find a post another instance made after the first read", async () => {
+			const { discussions, calls } = make([
+				...listing([thread("5")]),
+				body("5"),
+				...listing([thread("5"), thread("7")]),
+				body("5"),
+				body("7"),
+				ok,
+			]);
+			expect((await discussions.read("ideas", KEY))?.url).toMatch(/\/5$/);
+			expect(await discussions.dedupe("ideas", KEY)).toBe(0);
+			expect(await discussions.dedupe("ideas", KEY, { refresh: true })).toBe(1);
+			expect(calls.at(-1)).toMatchObject({ method: "DELETE", url: `${BASE}/channels/7` });
+		});
+
 		it("is 0 when there is one post or none", async () => {
 			expect(await make([...listing([thread("5")]), body("5")]).discussions.dedupe("ideas", KEY)).toBe(0);
 			expect(await make(listing([])).discussions.dedupe("ideas", KEY)).toBe(0);

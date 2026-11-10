@@ -45,8 +45,11 @@ export async function syncPullRequest(input: SyncPullRequestInput): Promise<PrFe
 		state: rendered.tag,
 		quiet: true,
 	});
+	// A post this delivery made may have raced another delivery's, on another instance that had not read the forum
+	// since: the forum is read again, the oldest post is kept, and the writes below go to it.
+	let deduped = 0;
 	if (ensured.created) {
-		await notifications.dedupeDiscussion(channel.name, key);
+		deduped = await notifications.dedupeDiscussion(channel.name, key, { refresh: true });
 	} else {
 		await notifications.updateDiscussion(channel.name, key, {
 			title: rendered.title,
@@ -61,8 +64,9 @@ export async function syncPullRequest(input: SyncPullRequestInput): Promise<PrFe
 	const lifecycle: LifecycleKind | undefined =
 		action === "opened" ? "opened" : action === "reopened" ? "reopened" : closing ? "closed" : undefined;
 	if (lifecycle) {
-		// A post made by this very delivery has no line yet; otherwise a redelivery must not repeat the last one.
-		const fresh = ensured.created && lifecycle === "opened";
+		// A post made by this very delivery has no line yet; otherwise a redelivery must not repeat the last one. When
+		// the de-duplication kept an older post, that one may have its line already.
+		const fresh = ensured.created && deduped === 0 && lifecycle === "opened";
 		const repeat =
 			!fresh && lastLifecycleKind(await notifications.readDiscussionMessages(channel.name, key)) === lifecycle;
 		if (!repeat) {

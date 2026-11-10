@@ -2505,9 +2505,11 @@ export interface Notifications extends ProviderIdentity {
 	readDiscussionMessages?(channel: string, key: string, limit?: number): Promise<string[]>;
 	/**
 	 * When more than one post carries `key`, keep the oldest and delete the rest. Returns how many it deleted (0 when there
-	 * is one post or none).
+	 * is one post or none). `refresh` reads the forum again first: a provider that keeps its own copy of the posts (the
+	 * Discord one reads them once per instance) would otherwise not see a post another instance made a moment ago, so two
+	 * deliveries that raced each make a post and neither finds the other.
 	 */
-	dedupeDiscussion?(channel: string, key: string): Promise<number>;
+	dedupeDiscussion?(channel: string, key: string, opts?: { refresh?: boolean }): Promise<number>;
 
 	/** Whether the bot holds the permission right now (the owner holds every one). Used to prove an elevation was taken back. */
 	holdsPermission?(permission: string): Promise<boolean>;
