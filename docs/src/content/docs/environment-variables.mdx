@@ -14,6 +14,25 @@ A variable Holocron owns is `HOLOCRON_<NAME>`. The bare `<NAME>` is kept as a fa
 - The prefixed name is an extra way in for a name a third party reads. The bare name still works there.
 - The organization variables that `repo.variables.sync` writes are `HOLOCRON_`-named too (the table at the end). A workflow reads `vars.HOLOCRON_<NAME> || vars.<NAME>` and, where a tool reads the bare name itself (turbo, wrangler, sentry-cli), maps it onto that name in the step's `env`, so the tool keeps working. The bare variable stays set in GitHub until the maintainer has renamed it and a later change removes the fallback (#1979).
 
+## One owner per variable
+
+A variable has one owner, and the name says which ([#1672](https://github.com/theholocron/holocron/issues/1672)):
+
+- `SENTINEL_<NAME>` (or `COMLINK_<NAME>`) is read by that app alone and lives in the app's own 1Password Environment (`Sentinel`, `Sentinel - dev`, `Comlink`). An app never receives a copy of a CLI credential under the CLI's name: when it needs a capability the CLI has, it gets a credential of its own, named for the app.
+- `HOLOCRON_<NAME>` is a value of the organization that several things read (the CLI, Sentinel, the workflows). It is shared on purpose, because it is specific to the organization, and keeps its name wherever it is read.
+- A bare name stays only where a tool reads it itself (group 2), or as the fallback behind a prefixed name (never removed in the change that adds the prefixed one).
+
+Where the variables that more than one thing reads live today:
+
+| Variable                                                                               | Owner and where it lives                                                                                        | Note                                                                                                                                                          |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HOLOCRON_DISCORD_BOT_TOKEN`, `HOLOCRON_USER_SYNC_TOKEN`                               | Organization-wide. The `Holocron` Environment (CLI) and the `Sentinel` Environment (role sync, the `#prs` feed) | Shared on purpose and prefixed. Sentinel reads them under these names                                                                                         |
+| `HOLOCRON_AXIOM_ORG`, `HOLOCRON_ENVIRONMENT`                                           | Organization-wide                                                                                               | `HOLOCRON_AXIOM_ORG` is the synced organization variable; `HOLOCRON_ENVIRONMENT` is set per deployment                                                        |
+| `SENTINEL_AXIOM_INGEST_TOKEN`                                                          | Sentinel. The `Sentinel` Environment, and the organization Actions secret `check-dispatched` reads              | One value, two consumers, on purpose. It is an ingest-only token, not the CLI's `HOLOCRON_AXIOM_TOKEN`                                                        |
+| `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY`, `SENTINEL_WEBHOOK_SECRET` | Sentinel. The `Sentinel` Environment                                                                            | The App's id and key are also the organization secrets `SENTINEL_APP_ID` and `SENTINEL_APP_PRIVATE_KEY` that `reconcile-projects` and `check-dispatched` read |
+| `COMLINK_SENTRY_SECRET`, `COMLINK_<SOURCE>_WEBHOOK`                                    | Comlink. The `Comlink` Environment and the Worker's bindings                                                    |                                                                                                                                                               |
+| `HOLOCRON_CHECKLY_TOKEN`                                                               | The CLI. The `Holocron` Environment                                                                             | The CLI's own token; Sentinel does not read it                                                                                                                |
+
 ## Group 1: names Holocron chooses
 
 Read as `HOLOCRON_<NAME>`, then `<NAME>`.

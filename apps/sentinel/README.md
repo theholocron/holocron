@@ -283,7 +283,7 @@ A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ SENTINEL_GITHUB_APP_ID, SENTINEL_GITHUB_APP_PRIVATE_KEY,
 SENTINEL_WEBHOOK_SECRET }` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of a deployment set before #1864 are still read), wired via `holocron secrets sync`. Three more
-Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `SENTINEL_AXIOM_DATASET`, `AXIOM_ORG`)
+Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `SENTINEL_AXIOM_DATASET`, `HOLOCRON_AXIOM_ORG`)
 feed the module-level logger and the Axiom links directly, via `@theholocron/env-utils/lookup`
 (never bare `process.env`, this org's own convention) — see
 `src/handler/handler.ts`'s own comment for why. `installation.created`/`installation.deleted` are
@@ -704,7 +704,7 @@ for role sync. A feature that stays quiet is not broken: Sentinel logs why, as
 `runPrFeed: finished … status: skipped, reason …`.
 
 `holocron dev serve` alone runs only the handler on `127.0.0.1`, serving `/api/webhook` (the path Vercel
-serves). Its three required variables, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, come
+serves). Its three required variables, `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, come
 from the process, or else from the Environment `dev.environment` names (`Sentinel - dev`), read with
 `op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
 header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
