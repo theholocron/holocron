@@ -1,3 +1,18 @@
+## [5.0.0-alpha.403](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.402...v5.0.0-alpha.403) (2026-11-10)
+
+### Bug Fixes
+
+* **council:** 🐚 expand ~ and run the CLI through the login shell so one setup works on every Mac ([#2034](https://github.com/theholocron/holocron/issues/2034)) ([9b22e61](https://github.com/theholocron/holocron/commit/9b22e61c97e3094ac620a55fcc927763285b7303)), closes [#2016](https://github.com/theholocron/holocron/issues/2016)
+* **sentinel:** 🐛 read the forum again before de-duplicating the PR feed posts ([#2032](https://github.com/theholocron/holocron/issues/2032)) ([0607922](https://github.com/theholocron/holocron/commit/060792287d4077dbbdb03132f22ea3e981f2e3dd))
+
+### Documentation
+
+* **env:** 📚 write down the one-owner-per-variable rule and fix stale Sentinel names ([#2039](https://github.com/theholocron/holocron/issues/2039)) ([fb0cda8](https://github.com/theholocron/holocron/commit/fb0cda84032d4c5e8c164b356f0146f897a39632)), closes [#1672](https://github.com/theholocron/holocron/issues/1672)
+
+### Chores
+
+* **secrets:** 🔑 rename the Sentinel App org secrets to SENTINEL_GITHUB_APP_* ([#2043](https://github.com/theholocron/holocron/issues/2043)) ([883b925](https://github.com/theholocron/holocron/commit/883b9253c861e2b0d77f7261d1fb7ba1d924ed9e)), closes [#1672](https://github.com/theholocron/holocron/issues/1672)
+
 ## [5.0.0-alpha.402](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.401...v5.0.0-alpha.402) (2026-11-10)
 
 ### Features
