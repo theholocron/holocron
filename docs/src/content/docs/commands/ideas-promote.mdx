@@ -1,0 +1,56 @@
+---
+title: "ideas promote"
+description: Write a draft spec in .notes/ from the issue an idea was filed as.
+---
+
+```bash
+holocron ideas promote <issue> [--name <topic>] [--dry-run] [--yes]
+```
+
+This is the spec-time step of the ideas flow ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). An idea was filed as an issue by [`ideas sync`](/holocron/commands/ideas-sync/), and its note left the vault, so the idea's text now lives in the issue. `ideas promote` reads that issue and writes it as the start of a spec.
+
+`<issue>` is the issue in the tracker's own syntax: `#1234` or `1234` for GitHub, `RANDO-7` for Linear. The repo's `issues` provider reads it (`Issues.get`), so the command knows nothing about a tracker.
+
+## What it writes
+
+`.notes/<name>.spec.md`, where `<name>` is `tech-` and the issue's title in kebab-case, with a conventional-commit prefix and any emoji left out (`feat(ideas): 📝 Add a thing` is `tech-add-a-thing`), cut at a word after 60 characters. `--name` gives the whole name instead, without `.spec.md` (`--name process-release-notes`); it must be lower-case words joined by hyphens.
+
+```md
+---
+status: draft
+issue: theholocron/holocron#2017
+blocked-by: []
+---
+
+# feat(ideas): 📝 Add a thing
+
+## Problem
+
+We should add a thing.
+```
+
+- **No `id`.** [`specs sync`](/holocron/commands/specs-sync/) numbers the spec once it is on the default branch.
+- **`issue:`** is the issue in the form specs use: `owner/repo#1234` for GitHub (from the issue's address, else the config's `org` and `name`), the key itself for Linear.
+- **Problem** is the issue's text without the `Filed from idea: <title>` line and the hidden `<!-- holocron:idea ... -->` marker that `ideas sync` appends, and without a first `#` heading that repeats the title.
+- The file passes `holocron probe specs check` ([`probe`](/holocron/commands/probe/)) (a missing `id` is only a warning) and Prettier leaves it as it is.
+
+## Behavior
+
+- **Any issue can be promoted.** The result row says whether the issue carried the idea marker (`which carries the idea marker`) or not (`which has no Filed from idea marker`); either way the text is used as it is.
+- **Never overwrites.** If the spec already exists, the row fails and the exit code is 1. Choose another name with `--name`.
+- **Asks first** unless `--dry-run` or `--yes`. Without a terminal it refuses to run without one of them.
+- **`--dry-run`** reads the issue, prints the path and the first lines of the spec, and writes nothing.
+- **Never touches the issue or the vault.** The issue is only read, and the idea's note was already moved out of the vault when it was filed.
+- Rows print like every [`doctor <capability>`](/holocron/commands/doctor/), then `N ok, N fail, N skipped`.
+
+## Options
+
+| Option      | Default               | Description                                                       |
+| ----------- | --------------------- | ----------------------------------------------------------------- |
+| `--name`    | `tech-` and the title | The whole spec name, without `.spec.md`                           |
+| `--dry-run` | `false`               | Show the path and the start of the spec, without writing anything |
+| `--yes`     | `false`               | Write without asking (required without a terminal)                |
+
+## Tokens
+
+The `issues` provider reads its token through the usual chain (`--token`, the environment, `.env`, the `credentials` providers, the keyring). The command needs the `issues` provider's plugin package to resolve, as every command that calls a provider does.

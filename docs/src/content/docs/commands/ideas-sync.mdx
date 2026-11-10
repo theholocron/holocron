@@ -47,6 +47,8 @@ The Obsidian provider reads every `.md` file under `dir`, except in folders whos
 - **A second run changes nothing**, because `issue:` is now set.
 - **A note that cannot be filed is a failing row, not the end of the run.** If the issue was created but the note could not be written, the row says so and gives the key to add by hand; a rerun also finds the issue by its marker and writes the key itself.
 
+The next step, once an idea is a spec candidate, is [`ideas promote`](/holocron/commands/ideas-promote/), which turns the filed issue into a draft spec.
+
 ## Options
 
 | Option      | Default | Description                                                    |

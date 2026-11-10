@@ -82,6 +82,7 @@ const EVERY_COMMAND = [
 	"sync github",
 	"sync issues",
 	"ideas sync",
+	"ideas promote",
 ];
 
 describe("COMMAND_CONTEXTS", () => {
