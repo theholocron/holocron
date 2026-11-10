@@ -686,8 +686,10 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 
 	it("mints its own installation token from stored App credentials — never a token passed through an input", () => {
 		expect(wf).toContain("actions/create-github-app-token@");
-		expect(wf).toContain("app-id: ${{ secrets.SENTINEL_APP_ID }}");
-		expect(wf).toContain("private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}");
+		expect(wf).toContain("app-id: ${{ secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}");
+		expect(wf).toContain(
+			"private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}"
+		);
 		expect(wf).not.toMatch(/token:\s*\$\{\{\s*inputs\./);
 	});
 
@@ -960,10 +962,34 @@ describe("delivery.publish.yml version groups", () => {
 describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project board job", () => {
 	const wf = REUSABLE_WORKFLOWS["reconcile-projects"]!;
 
-	it("is a reusable workflow that asks its caller for the GitHub App's id and private key", () => {
+	it("is a reusable workflow that takes the GitHub App's id and private key under the new and the old name, both optional", () => {
 		expect(wf).toContain("workflow_call:");
-		for (const name of ["SENTINEL_APP_ID", "SENTINEL_APP_PRIVATE_KEY"]) {
-			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: true`));
+		for (const name of [
+			"SENTINEL_GITHUB_APP_ID",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+			"SENTINEL_APP_ID",
+			"SENTINEL_APP_PRIVATE_KEY",
+		]) {
+			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: false`));
+		}
+		expect(wf).toContain("app-id: ${{ secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}");
+		expect(wf).toContain(
+			"private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}"
+		);
+	});
+
+	it("never reads the old App secret names without the new one first", () => {
+		for (const [oldName, newName] of [
+			["SENTINEL_APP_ID", "SENTINEL_GITHUB_APP_ID"],
+			["SENTINEL_APP_PRIVATE_KEY", "SENTINEL_GITHUB_APP_PRIVATE_KEY"],
+		] as const) {
+			for (const text of Object.values(REUSABLE_WORKFLOWS)) {
+				for (const m of text.matchAll(new RegExp(`secrets\\.${oldName}\\b`, "g"))) {
+					expect(text.slice(Math.max(0, m.index - `secrets.${newName} || `.length), m.index)).toBe(
+						`secrets.${newName} || `
+					);
+				}
+			}
 		}
 	});
 

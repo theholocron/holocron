@@ -20,12 +20,18 @@ name: Reconcile Projects
 on: # yamllint disable-line rule:truthy
   workflow_call:
     secrets:
-      SENTINEL_APP_ID:
+      SENTINEL_GITHUB_APP_ID:
         description: The id of the GitHub App whose installation token writes the boards.
-        required: true
-      SENTINEL_APP_PRIVATE_KEY:
+        required: false
+      SENTINEL_GITHUB_APP_PRIVATE_KEY:
         description: The private key of that GitHub App.
-        required: true
+        required: false
+      SENTINEL_APP_ID:
+        description: The old name of SENTINEL_GITHUB_APP_ID, read when the new one is not set.
+        required: false
+      SENTINEL_APP_PRIVATE_KEY:
+        description: The old name of SENTINEL_GITHUB_APP_PRIVATE_KEY, read when the new one is not set.
+        required: false
 
 jobs:
   reconcile-projects:
@@ -43,8 +49,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          app-id: ${{ secrets.SENTINEL_APP_ID }}
-          private-key: ${{ secrets.SENTINEL_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}
+          private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           permission-organization-projects: write
           permission-issues: read
