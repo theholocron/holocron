@@ -1,3 +1,9 @@
+## [5.0.0-alpha.400](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.399...v5.0.0-alpha.400) (2026-11-10)
+
+### Features
+
+* **ideas:** 🗂️ add a vault option to the Obsidian provider ([#2028](https://github.com/theholocron/holocron/issues/2028)) ([bb3ec7c](https://github.com/theholocron/holocron/commit/bb3ec7c1f169dae2b854a60331c1ff35e84d5ff9))
+
 ## [5.0.0-alpha.399](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.398...v5.0.0-alpha.399) (2026-11-10)
 
 ### Features
