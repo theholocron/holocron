@@ -58,6 +58,11 @@ organization variables use `HOLOCRON_ORG_TOKEN`. A scope whose token is missing 
 (`missingTokenReason`, or the error text, which carries no value); the other scopes are still compared. Choosing the
 existing providers keeps one place that decides tokens and means a token change needs no change here.
 
+The tokens come from the normal chain (flag, process environment, `.env`, `credentials` providers, keyring), so the GitHub
+reads use a loader that reads the `credentials` providers, as `doctor secrets` does. The Environments' names are listed by
+a second loader built with `readCredentials: false`, so no value is loaded for that part. A token is only used to
+authenticate and is never printed, logged or put in a row.
+
 ### Open question 2: where intended sharing is declared
 
 Two kinds of copy are expected, and only one needs a list.

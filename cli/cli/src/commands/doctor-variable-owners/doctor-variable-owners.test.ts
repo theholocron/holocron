@@ -1,10 +1,12 @@
 import { stripVTControlCharacters } from "node:util";
 
+import { clearCredentials } from "@theholocron/kyber/secrets";
 import { fakeLogger } from "@theholocron/observability/testing";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { MissingTokenError, type PluginImporter, PluginLoader, type SecretScope } from "../../plugin/index.js";
+import { createGitHubLoader, createNamesLoader } from "./create-loaders.js";
 import { runDoctorVariableOwners } from "./doctor-variable-owners.js";
 
 type Raw = Parameters<typeof resolveConfig>[0];
@@ -34,14 +36,18 @@ interface World {
 	noInspect?: boolean;
 	/** The `source` provider cannot list variables. */
 	noListVariables?: boolean;
+	/** Called each time the credentials provider is asked for its values. */
+	onRead?: () => void;
 }
+
+afterEach(clearCredentials);
 
 const scopeKey = (scope: SecretScope): string =>
 	scope.kind === "repo" ? "repo" : scope.kind === "organization" ? "org" : `env:${scope.name}`;
 
 const valued = (names: string[]): Record<string, string> => Object.fromEntries(names.map((n) => [n, VALUE]));
 
-function loaderWith(loaded: LoadedConfig, world: World, withCredentials = true): PluginLoader {
+function loaderWith(loaded: LoadedConfig, world: World, withCredentials = true, readCredentials = false): PluginLoader {
 	const answer = <T>(
 		table: Record<string, string[] | Error> | undefined,
 		key: string,
@@ -61,7 +67,10 @@ function loaderWith(loaded: LoadedConfig, world: World, withCredentials = true):
 						credentials: () => ({
 							key: "credentials",
 							providerName: "1password",
-							read: async () => ({ LEAK: VALUE }),
+							read: async () => {
+								world.onRead?.();
+								return { LEAK: VALUE };
+							},
 							...(world.noInspect
 								? {}
 								: {
@@ -101,11 +110,16 @@ function loaderWith(loaded: LoadedConfig, world: World, withCredentials = true):
 		throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
 	});
 	return new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, importer as unknown as PluginImporter, {
-		readCredentials: false,
+		readCredentials,
 	});
 }
 
-async function run(loaded: LoadedConfig, world: World, opts: { org?: string; credentials?: boolean } = {}) {
+/** `github` is the world the GitHub loader sees; it defaults to `world`. */
+async function run(
+	loaded: LoadedConfig,
+	world: World,
+	opts: { org?: string; credentials?: boolean; github?: World } = {}
+) {
 	const lines: string[] = [];
 	const report = await runDoctorVariableOwners({
 		loaded,
@@ -115,6 +129,7 @@ async function run(loaded: LoadedConfig, world: World, opts: { org?: string; cre
 			...(opts.org ? { org: opts.org } : {}),
 		},
 		loader: loaderWith(loaded, world, opts.credentials ?? true),
+		githubLoader: loaderWith(loaded, opts.github ?? world, opts.credentials ?? true, true),
 		print: (l) => lines.push(stripVTControlCharacters(l)),
 		logger: fakeLogger(),
 	});
@@ -433,11 +448,13 @@ describe("doctor variable-owners — places that cannot be read", () => {
 		const report = await runDoctorVariableOwners({
 			loaded,
 			context: { repoRoot: "/tmp/test", repo: "acme/demo" },
-			loader: loaderWith(loaded, {
-				environments: { Holocron: [] },
-				secrets: { repo: [], org: [] },
-				variables: { repo: [], org: [] },
-			}),
+			loader: loaderWith(loaded, { environments: { Holocron: [] } }),
+			githubLoader: loaderWith(
+				loaded,
+				{ secrets: { repo: [], org: [] }, variables: { repo: [], org: [] } },
+				true,
+				true
+			),
 			print: (l) => lines.push(l),
 			logger: fakeLogger(),
 		});
@@ -498,12 +515,70 @@ describe("doctor variable-owners — places that cannot be read", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test", org: "acme" },
 			loader,
+			githubLoader: loaderWith(
+				loaded,
+				{ secrets: { repo: [], org: [] }, variables: { repo: [], org: [] } },
+				false,
+				true
+			),
 			print: (l) => lines.push(l),
 			logger: fakeLogger(),
 		});
 		expect(report.rows.find((r) => r.id === "skip:env:Holocron")!.detail).toBe(
 			"a `credentials` provider failed to load (1password)"
 		);
+	});
+
+	it("reads GitHub with the second loader, which has the token the first never gets", async () => {
+		const { report } = await run(
+			loadedWith(),
+			{ environments: { Holocron: ["A"] } },
+			{ github: { secrets: { repo: ["A"], org: [] }, variables: { repo: [], org: [] } } }
+		);
+		expect(ids(report.rows.filter((r) => r.status === "skip"))).toEqual([]);
+		expect(ids(report.rows.filter((r) => r.status === "fail"))).toEqual(["owners:A"]);
+	});
+
+	it("skips every GitHub scope, naming the reason, when the second loader has no token", async () => {
+		const missing = new MissingTokenError("no GitHub token found for this operation");
+		const { report } = await run(
+			loadedWith(),
+			{ environments: { Holocron: ["A"] } },
+			{
+				github: {
+					secrets: { repo: missing, org: missing },
+					variables: { repo: missing, org: missing },
+				},
+			}
+		);
+		const skipped = report.rows.filter((r) => r.status === "skip");
+		expect(ids(skipped)).toEqual([
+			"skip:repo-secrets",
+			"skip:org-secrets",
+			"skip:repo-variables",
+			"skip:org-variables",
+		]);
+		expect(skipped.every((r) => r.detail.includes("GitHub token"))).toBe(true);
+		expect(report.status).toBe("ok");
+	});
+
+	it("skips GitHub, naming the reason, when the second loader cannot load the provider", async () => {
+		const loaded = loadedWith();
+		const failing = new PluginLoader(loaded.resolved, { repoRoot: "/tmp/test" }, (async () => {
+			throw new Error("boom");
+		}) as unknown as PluginImporter);
+		const report = await runDoctorVariableOwners({
+			loaded,
+			context: { repoRoot: "/tmp/test", org: "acme" },
+			loader: loaderWith(loaded, { environments: { Holocron: ["A"] } }),
+			githubLoader: failing,
+			print: () => undefined,
+			logger: fakeLogger(),
+		});
+		const detail = report.rows.find((r) => r.id === "skip:repo-secrets")!.detail;
+		expect(detail).toContain("github");
+		expect(detail).toContain("failed to load");
+		expect(report.rows.find((r) => r.id === "skip:env:Holocron")).toBeUndefined();
 	});
 });
 
@@ -514,11 +589,13 @@ describe("doctor variable-owners — defaults", () => {
 		const report = await runDoctorVariableOwners({
 			loaded,
 			context: { repoRoot: "/tmp/test", org: "acme" },
-			loader: loaderWith(loaded, {
-				environments: { Holocron: ["A"] },
-				secrets: { repo: [], org: [] },
-				variables: { repo: [], org: [] },
-			}),
+			loader: loaderWith(loaded, { environments: { Holocron: ["A"] } }),
+			githubLoader: loaderWith(
+				loaded,
+				{ secrets: { repo: [], org: [] }, variables: { repo: [], org: [] } },
+				true,
+				true
+			),
 		});
 		expect(report.status).toBe("ok");
 		expect(log).toHaveBeenCalled();
@@ -530,6 +607,63 @@ describe("doctor variable-owners — default loader", () => {
 	it("builds its own loader, which reads nothing when no provider is configured", async () => {
 		const report = await runDoctorVariableOwners({
 			loaded: loadedWith({ providers: {} }),
+			context: { repoRoot: "/tmp/test", org: "acme" },
+			print: () => undefined,
+			logger: fakeLogger(),
+		});
+		expect(report.status).toBe("skip");
+	});
+});
+
+describe("doctor variable-owners — the two loaders", () => {
+	const importerFor = (reads: { count: number }) =>
+		(async (pkg: string) => {
+			if (pkg !== "@theholocron/holocron-plugin-1password") throw new Error(`MODULE_NOT_FOUND: ${pkg}`);
+			return {
+				createPlugin: () => ({
+					name: "1password",
+					capabilities: {
+						credentials: () => ({
+							key: "credentials",
+							providerName: "1password",
+							read: async () => {
+								reads.count += 1;
+								return { LEAK: VALUE };
+							},
+						}),
+					},
+				}),
+			};
+		}) as unknown as PluginImporter;
+
+	it("builds the names loader so that no credentials provider is asked for a value", async () => {
+		const reads = { count: 0 };
+		const loader = createNamesLoader(loadedWith(), { repoRoot: "/tmp/test" }, importerFor(reads));
+		await loader.load();
+		expect(loader.has("credentials")).toBe(true);
+		expect(reads.count).toBe(0);
+	});
+
+	it("builds the GitHub loader so that the credentials providers are read for the token chain", async () => {
+		const reads = { count: 0 };
+		const loader = createGitHubLoader(loadedWith(), { repoRoot: "/tmp/test" }, importerFor(reads));
+		await loader.load();
+		expect(reads.count).toBe(1);
+	});
+
+	it("never asks the names loader to read, and reads the credentials only through the GitHub loader", async () => {
+		const names = { onRead: vi.fn(), environments: { Holocron: ["A"] } };
+		const github = { onRead: vi.fn(), secrets: { repo: [], org: [] }, variables: { repo: [], org: [] } };
+		const { report } = await run(loadedWith(), names, { github });
+		expect(report.status).toBe("ok");
+		expect(names.onRead).not.toHaveBeenCalled();
+		expect(github.onRead).toHaveBeenCalledTimes(1);
+	});
+
+	it("builds both default loaders when none is given", async () => {
+		const loaded = loadedWith({ providers: {} });
+		const report = await runDoctorVariableOwners({
+			loaded,
 			context: { repoRoot: "/tmp/test", org: "acme" },
 			print: () => undefined,
 			logger: fakeLogger(),
