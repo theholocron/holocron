@@ -26,6 +26,9 @@ export function node(): Linter.FlatConfig[] {
 				// explicitly so this rule never depends on filesystem detection
 				// succeeding, everywhere this config runs.
 				"n/no-unsupported-features/node-builtins": ["error", { version: ">=22.0.0" }],
+				// The same goes for the ES built-ins (`Object.hasOwn`, `Array.prototype.at`, ...): unpinned, an in-memory
+				// run falls back to `>=16.0.0` and flags them.
+				"n/no-unsupported-features/es-builtins": ["error", { version: ">=22.0.0" }],
 			},
 		},
 	];

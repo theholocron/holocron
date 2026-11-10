@@ -132,6 +132,34 @@ describe("eslint-config — individual configs", () => {
 		expect(results.some((m) => m.ruleId === "n/no-unsupported-features/node-builtins")).toBe(false);
 	});
 
+	it("node() pins no-unsupported-features/es-builtins to the same floor, so Object.hasOwn is not flagged by an in-memory run", () => {
+		// No package.json above the file or the working directory, as in the in-memory run: the rule has no `engines.node` to read.
+		const linter = new Linter({ configType: "flat", cwd: "/no-such-dir" });
+		const code = "export const has = (o, k) => Object.hasOwn(o, k);\n";
+		const results = linter.verify(code, node() as Parameters<Linter["verify"]>[1], {
+			filename: "/no-such-dir/has.js",
+		});
+		expect(results.some((m) => m.ruleId === "n/no-unsupported-features/es-builtins")).toBe(false);
+	});
+
+	it("node() keeps es-builtins enabled as an error at the pinned floor, and it reports under the in-memory setup", () => {
+		const rules = node().flatMap((c) => Object.entries(c.rules ?? {}));
+		expect(rules.filter(([k]) => k === "n/no-unsupported-features/es-builtins").at(-1)?.[1]).toEqual([
+			"error",
+			{ version: ">=22.0.0" },
+		]);
+		// The same code is reported once the floor is lowered, so the pass above is not a disabled or absent rule.
+		const lowered = [
+			...node(),
+			{ rules: { "n/no-unsupported-features/es-builtins": ["error", { version: ">=16.0.0" }] } },
+		] as Parameters<Linter["verify"]>[1];
+		const linter = new Linter({ configType: "flat", cwd: "/no-such-dir" });
+		const results = linter.verify("export const has = (o, k) => Object.hasOwn(o, k);\n", lowered, {
+			filename: "/no-such-dir/has.js",
+		});
+		expect(results.some((m) => m.ruleId === "n/no-unsupported-features/es-builtins")).toBe(true);
+	});
+
 	it("react() returns a non-empty flat config array", () => {
 		const config = react();
 		expect(Array.isArray(config)).toBe(true);
@@ -161,6 +189,14 @@ describe("eslint-config — package-json config", () => {
 		const config = packageJson();
 		const rules = config.flatMap((c) => ("rules" in c ? Object.entries(c.rules ?? {}) : []));
 		expect(rules.some(([k, v]) => k === "package-json/dependency-version-range" && v === "off")).toBe(true);
+	});
+
+	it("packageJson() disables the n built-ins rules, which need a global scope the JSON parser lacks", () => {
+		const config = packageJson();
+		const rules = config.flatMap((c) => ("rules" in c ? Object.entries(c.rules ?? {}) : []));
+		for (const rule of ["node-builtins", "es-builtins"]) {
+			expect(rules.some(([k, v]) => k === `n/no-unsupported-features/${rule}` && v === "off")).toBe(true);
+		}
 	});
 
 	it("packageJson() disables no-wildcard-dependencies", () => {
@@ -218,6 +254,7 @@ describe("eslint-config — bundles", () => {
 		expect(browserPackages).toBeDefined();
 		expect(browserPackages?.files).toEqual(["packages/location-utils/src/**", "packages/misc-utils/src/**"]);
 		expect(browserPackages?.rules?.["n/no-unsupported-features/node-builtins"]).toBe("off");
+		expect(browserPackages?.rules?.["n/no-unsupported-features/es-builtins"]).toBe("off");
 	});
 
 	it("library()'s docs/src exemption actually wins in real lint output -- not clobbered by node()'s recommended-module preset", () => {
