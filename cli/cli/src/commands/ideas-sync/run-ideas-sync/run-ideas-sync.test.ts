@@ -44,7 +44,10 @@ function ideasFake(records: IdeaRecord[], over: Partial<Ideas> = {}) {
 function issuesFake(
 	over: Partial<{
 		create: (input: unknown) => Promise<{ key: string }>;
-		search: (filter: { text?: string; limit?: number }) => Promise<Array<{ key: string; body?: string }>>;
+		search: (filter: {
+			text?: string;
+			limit?: number;
+		}) => Promise<Array<{ key: string; body?: string; statusCategory?: string }>>;
 	}> = {}
 ) {
 	let n = 100;
@@ -460,6 +463,42 @@ describe("runIdeasSync", () => {
 		expect(issues.search).toHaveBeenCalledTimes(1);
 	});
 
+	describe("which issue a marker hit records", () => {
+		const mark = "<!-- holocron:idea idea.md -->";
+		const hit = (key: string, statusCategory: "open" | "done") => ({ key, body: `x\n${mark}`, statusCategory });
+
+		it("records the open issue when a closed duplicate is listed before it", async () => {
+			const { ideas, markFiled } = ideasFake([idea("idea.md")]);
+			const issues = issuesFake({ search: async () => [hit("#9", "done"), hit("#4", "open")] });
+			const { text } = await run(ideas, { issues });
+			expect(markFiled).toHaveBeenCalledWith("idea.md", "#4");
+			expect(issues.create).not.toHaveBeenCalled();
+			expect(text).toContain("already filed as #4");
+		});
+
+		it("records the oldest of the closed issues when every hit is closed, and files nothing", async () => {
+			const { ideas, markFiled } = ideasFake([idea("idea.md")]);
+			const issues = issuesFake({ search: async () => [hit("#9", "done"), hit("#3", "done")] });
+			await run(ideas, { issues });
+			expect(markFiled).toHaveBeenCalledWith("idea.md", "#3");
+			expect(issues.create).not.toHaveBeenCalled();
+		});
+
+		it("records the only open hit", async () => {
+			const { ideas, markFiled } = ideasFake([idea("idea.md")]);
+			const issues = issuesFake({ search: async () => [hit("#6", "open")] });
+			await run(ideas, { issues });
+			expect(markFiled).toHaveBeenCalledWith("idea.md", "#6");
+		});
+
+		it("reads back up to 100 matches in both searches", async () => {
+			const { ideas } = ideasFake([idea("idea.md")]);
+			const issues = issuesFake();
+			await run(ideas, { issues });
+			expect(issues.search.mock.calls.map((c) => c[0].limit)).toEqual([100, 100]);
+		});
+	});
+
 	describe("two overlapping runs for one note", () => {
 		/** Resolves every caller once `parties` have arrived, so a test decides which step of each run goes first. */
 		function barrier(parties: number) {
@@ -566,12 +605,15 @@ describe("runIdeasSync", () => {
 			expect(ra.text).toContain("close the extra one by hand");
 		});
 
-		it("keeps its own key and warns, naming both keys, when the duplicate cannot be closed", async () => {
-			const { markFiled, rb } = await race({ failClose: true });
-			expect(markFiled.mock.calls.map((c) => c[1]).sort()).toEqual(["#101", "#102"]);
+		it("links the note to the older issue and warns, naming both keys, when the duplicate cannot be closed", async () => {
+			const { markFiled, store, rb } = await race({ failClose: true });
+			expect(markFiled.mock.calls.map((c) => c[1])).toEqual(["#101", "#101"]);
+			expect(store[0]?.issue).toBe("#101");
 			expect(rb.report.status).toBe("ok");
-			expect(rb.text).toContain("filed as #102, but #101 is an older issue for the same idea");
-			expect(rb.text).toContain("could not be closed (403 forbidden)");
+			expect(rb.text).toContain(
+				"filed as #101, the older issue for the idea, but the duplicate #102 could not be closed"
+			);
+			expect(rb.text).toContain("(403 forbidden); close #102 by hand");
 			expect(rb.text).toContain("close the extra one by hand");
 		});
 	});

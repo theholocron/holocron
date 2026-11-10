@@ -30,7 +30,9 @@ import {
 import { assertPluginsResolvable, type IdeaRecord, type Issue, PluginLoader } from "../../../plugin/index.js";
 import { resolveIdeasProvider } from "../resolve-ideas-provider/index.js";
 import { convergeCreatedIssue } from "./converge-created-issue/index.js";
+import { pickCanonicalIssue } from "./pick-canonical-issue/index.js";
 import type { IdeasSyncReport, RunIdeasSyncInput } from "./run-ideas-sync.type.js";
+import { SEARCH_LIMIT } from "./search-limit/index.js";
 
 /** The state that files a note when the config names none. */
 const DEFAULT_FILING_STATE = "in-progress";
@@ -52,13 +54,6 @@ const marker = (key: string): string => `<!-- holocron:idea ${key} -->`;
 /** The issue's body: the idea's text, the line that traces the issue to its idea, and the hidden marker. */
 const issueBody = (idea: IdeaRecord): string =>
 	`${idea.body.trim()}\n\nFiled from idea: ${idea.title}\n${marker(idea.key)}`;
-
-/**
- * How many text matches are read back per note; the exact marker is then checked in each body. The search itself is
- * bounded by the provider: GitHub pages up to 2000 recent issues (20 pages of 100) and filters them client-side, so an
- * issue older than that is still missed, and each search spends rate limit. Linear filters on the server.
- */
-const SEARCH_LIMIT = 20;
 
 export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncReport> {
 	/* v8 ignore next -- the console is only used outside tests, which inject `print` */
@@ -171,7 +166,8 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 		let existing: Issue | undefined;
 		try {
 			const found = await issues.search({ text: marker(path), limit: SEARCH_LIMIT });
-			existing = found.find((issue) => issue.body?.includes(marker(path)));
+			// Several issues can carry it (a closed duplicate may be listed first): record the canonical one.
+			existing = pickCanonicalIssue(found.filter((issue) => issue.body?.includes(marker(path))));
 		} catch (err) {
 			rows.push(
 				row(path, "fail", `could not check for an existing issue, so none was created: ${describeError(err)}`)

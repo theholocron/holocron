@@ -4,7 +4,10 @@ import { convergeCreatedIssue } from "./converge-created-issue.js";
 
 const MARKER = "<!-- holocron:idea idea.md -->";
 
-function tracker(found: Array<{ key: string; body?: string }>, over: { comment?: () => Promise<void> } = {}) {
+function tracker(
+	found: Array<{ key: string; body?: string; statusCategory?: string }>,
+	over: { comment?: () => Promise<void> } = {}
+) {
 	return {
 		search: vi.fn(async () => found),
 		comment: vi.fn(over.comment ?? (async () => undefined)),
@@ -58,17 +61,42 @@ describe("convergeCreatedIssue", () => {
 		expect(issues.transition).toHaveBeenCalledWith("#7", "done");
 	});
 
-	it("warns and keeps its key when the comment cannot be added", async () => {
+	it("links the older issue and warns, naming both keys, when the comment cannot be added", async () => {
 		const issues = tracker([{ key: "#5", body: MARKER }], {
 			comment: async () => {
 				throw new Error("nope");
 			},
 		});
 		const result = await convergeCreatedIssue(issues as never, MARKER, "#7");
-		expect(result.key).toBe("#7");
+		expect(result.key).toBe("#5");
 		expect(result.warning).toBe(true);
 		expect(result.detail).toContain("#5");
-		expect(result.detail).toContain("#7");
+		expect(result.detail).toContain("close #7 by hand");
+		expect(issues.transition).not.toHaveBeenCalled();
+	});
+
+	it("links the older issue and warns when the close throws, or its response is lost after the tracker closed it", async () => {
+		const issues = tracker([{ key: "#5", body: MARKER }]);
+		issues.transition.mockRejectedValueOnce(new Error("timeout"));
+		const result = await convergeCreatedIssue(issues as never, MARKER, "#7");
+		expect(result.key).toBe("#5");
+		expect(result.warning).toBe(true);
+		expect(result.detail).toContain("(timeout); close #7 by hand");
+	});
+
+	it("keeps its own issue and warns when the search throws, since no winner is known", async () => {
+		const issues = tracker([]);
+		issues.search.mockRejectedValueOnce(new Error("rate limited"));
+		const result = await convergeCreatedIssue(issues as never, MARKER, "#7");
+		expect(result.key).toBe("#7");
+		expect(result.warning).toBe(true);
+		expect(result.detail).toContain("rate limited");
+	});
+
+	it("does not let a closed older issue win over our open one", async () => {
+		const issues = tracker([{ key: "#5", body: MARKER, statusCategory: "done" }]);
+		const result = await convergeCreatedIssue(issues as never, MARKER, "#7");
+		expect(result.key).toBe("#7");
 		expect(issues.transition).not.toHaveBeenCalled();
 	});
 });
