@@ -10,7 +10,7 @@ import { vitest } from "../configs/vitest.js";
 export interface LibraryOptions {
 	/**
 	 * Package (or path) globs whose code runs in the browser, not Node —
-	 * `n/no-unsupported-features/node-builtins` false-positives on browser
+	 * `n/no-unsupported-features/node-builtins` and `es-builtins` (both pinned to the Node floor) false-positive on browser
 	 * APIs (`navigator`, `sessionStorage`, `KeyboardEvent`, …) it doesn't
 	 * recognize. Each entry gets a `<glob>/**` files match with the rule
 	 * turned off. Rare — most repos need nothing here (`utils/` in
@@ -70,6 +70,8 @@ export function library(options: LibraryOptions = {}): Linter.Config[] {
 						files: options.browserPackages.map((pkg) => `${pkg}/**`),
 						rules: {
 							"n/no-unsupported-features/node-builtins": "off",
+							// The Node floor is the wrong yardstick for an ES built-in a browser supports.
+							"n/no-unsupported-features/es-builtins": "off",
 						},
 					} satisfies Linter.Config,
 				]
