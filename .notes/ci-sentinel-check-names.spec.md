@@ -103,7 +103,7 @@ Actions check `validate:docs / Validate docs` (the job and step names in `ci/wor
 no longer describes the check. The probe keeps its name, `docs presence`, and so do the `Docs presence: …` summary titles:
 they name what the probe measures, not the check.
 
-The `ci` aggregate waits for `validate:docs` by the prefix `validate:docs / `, so the part after the slash does not matter
+The `ci` aggregate waits for `validate:docs` by the prefix `validate:docs /`, so the part after the slash does not matter
 to it. No ruleset that could be read lists the exact string (`holocron` requires `ci / Required checks` and `DCO`; the
 other readable rulesets, including the template repos', hold no `Validate docs` context). A repo on the frozen reusables
 keeps posting the old job name from its frozen copy until `CI_HOME` moves.
