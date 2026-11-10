@@ -49,15 +49,25 @@
       "import": "./dist/analytics.mjs",
       "default": "./dist/analytics.mjs"
     },
-    "./browser": {
-      "types": "./dist/browser.d.mts",
-      "import": "./dist/browser.mjs",
-      "default": "./dist/browser.mjs"
+    "./browser/sentry": {
+      "types": "./dist/browser-sentry.d.mts",
+      "import": "./dist/browser-sentry.mjs",
+      "default": "./dist/browser-sentry.mjs"
     },
-    "./edge": {
-      "types": "./dist/edge.d.mts",
-      "import": "./dist/edge.mjs",
-      "default": "./dist/edge.mjs"
+    "./browser/posthog": {
+      "types": "./dist/browser-posthog.d.mts",
+      "import": "./dist/browser-posthog.mjs",
+      "default": "./dist/browser-posthog.mjs"
+    },
+    "./edge/sentry": {
+      "types": "./dist/edge-sentry.d.mts",
+      "import": "./dist/edge-sentry.mjs",
+      "default": "./dist/edge-sentry.mjs"
+    },
+    "./edge/posthog": {
+      "types": "./dist/edge-posthog.d.mts",
+      "import": "./dist/edge-posthog.mjs",
+      "default": "./dist/edge-posthog.mjs"
     },
     "./testing": {
       "types": "./dist/testing.d.mts",

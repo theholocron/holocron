@@ -20,11 +20,14 @@ One published package, `tsdown` multi-entry, subpath exports:
 - **`/logger`**: `createLogger()` (Pino) and a zero-dependency `ConsoleLogger`.
 - **`/errors`**: `SentrySink`, the only `@sentry/node` call site.
 - **`/analytics`**: `PostHogSink`, the only `posthog-node` call site.
-- **`/browser`**: `SentryBrowserSink` (`@sentry/browser`) and `PostHogBrowserSink` (`posthog-js`). No Node built-ins.
-- **`/edge`**: `SentryEdgeSink` (`@sentry/vercel-edge`, WinterCG runtimes) and `PostHogFetchSink` (PostHog's HTTP capture
-  endpoint over `fetch`, no SDK). No Node built-ins. The Sentry sinks share `shared/sentry-compatible-sink.ts`
-  (vendor-free, takes the SDK namespace); every vendor call in `/browser` and `/edge` goes through `safely()`, so a throwing
-  SDK never reaches the app.
+- **`/browser/sentry`**, **`/browser/posthog`**, **`/edge/sentry`**, **`/edge/posthog`**: one subpath per adapter, so
+  importing one never makes a bundler resolve another's SDK (`entries.test.ts` checks the import graph of each entry).
+  `SentryBrowserSink` (`@sentry/browser`), `PostHogBrowserSink` (`posthog-js`), `SentryEdgeSink`
+  (`@sentry/vercel-edge`, WinterCG runtimes) and `PostHogFetchSink` (PostHog's HTTP capture endpoint over `fetch`, no
+  SDK). No Node built-ins. The Sentry sinks share `shared/sentry-compatible-sink.ts` (vendor-free, takes the SDK
+  namespace). Every vendor call goes through `safely()`, so a throwing SDK never reaches the app; an optional `onError`
+  sees it. Payloads are scrubbed with `redactObject`. The browser PostHog sink starts `posthog-js` with autocapture and
+  pageviews off and identifies the named person before `capture()`.
 - **`/testing`**: fakes for testing code that takes these interfaces.
 
 Rules:
