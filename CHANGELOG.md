@@ -1,3 +1,9 @@
+## [5.0.0-alpha.397](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.396...v5.0.0-alpha.397) (2026-11-10)
+
+### Features
+
+* **ideas:** 🧩 add Council, the Obsidian plugin that files an idea and sets its status ([#2019](https://github.com/theholocron/holocron/issues/2019)) ([50adb16](https://github.com/theholocron/holocron/commit/50adb1695ce2bfb41edb7dda1ecd198bfe9cb429)), closes [#2016](https://github.com/theholocron/holocron/issues/2016)
+
 ## [5.0.0-alpha.396](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.395...v5.0.0-alpha.396) (2026-11-09)
 
 ### Features

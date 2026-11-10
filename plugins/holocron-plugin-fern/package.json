@@ -1,6 +1,6 @@
 {
   "name": "@theholocron/holocron-plugin-fern",
-  "version": "5.0.0-alpha.396",
+  "version": "5.0.0-alpha.397",
   "description": "Holocron plugin for Fern. Implements the wiki capability for engineering knowledge publishing.",
   "keywords": [
     "fern",
