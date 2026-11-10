@@ -216,6 +216,20 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			},
 		];
 
+		// And (#2041): the names `doctor variable-owners` does not report because two places hold them on purpose.
+		const doctorBefore = (expected as unknown as { doctor: { sharedVariables?: string[] } }).doctor;
+		expect(doctorBefore.sharedVariables).toBeUndefined();
+		doctorBefore.sharedVariables = [
+			"HOLOCRON_AXIOM_ORG",
+			"HOLOCRON_DISCORD_BOT_TOKEN",
+			"HOLOCRON_ENVIRONMENT",
+			"HOLOCRON_USER_SYNC_TOKEN",
+			"SENTINEL_AXIOM_DATASET",
+			"SENTINEL_AXIOM_INGEST_TOKEN",
+			"SENTINEL_GITHUB_APP_ID",
+			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+		];
+
 		const { resolved } = await loadConfig(REPO_ROOT);
 		expect(normalise(resolved)).toEqual(expected);
 	});
