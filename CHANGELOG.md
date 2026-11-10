@@ -1,3 +1,9 @@
+## [5.0.0-alpha.404](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.403...v5.0.0-alpha.404) (2026-11-10)
+
+### Bug Fixes
+
+* **ideas:** 🔀 make overlapping ideas sync runs converge on one issue ([#2045](https://github.com/theholocron/holocron/issues/2045)) ([6db8069](https://github.com/theholocron/holocron/commit/6db806921bcd42eb903bbc0d90252396f0e903ee)), closes [#1994](https://github.com/theholocron/holocron/issues/1994)
+
 ## [5.0.0-alpha.403](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.402...v5.0.0-alpha.403) (2026-11-10)
 
 ### Bug Fixes
