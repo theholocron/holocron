@@ -10,7 +10,9 @@
  * with a hidden `<!-- holocron:idea <key> -->` line, and an issue that carries it is reused instead of making a second
  * one (found with one `Issues.search({ text })` per note about to be filed, confirmed by the exact marker in the body;
  * GitHub searches its 2000 most recently updated issues, so an older one is still missed, and each search uses rate
- * limit). It never deletes anything, and an idea it cannot file is a
+ * limit). Two runs that overlap can both miss the marker and both create; each then searches once more after its
+ * create (`convergeCreatedIssue()`), the older issue wins and the other run closes its own with a comment, so both
+ * notes end with one key. It never deletes anything, and an idea it cannot file is a
  * failing row (the run goes on). It writes, so it asks first unless `--dry-run` or `--yes` (without a terminal it refuses instead).
  */
 
@@ -27,6 +29,7 @@ import {
 
 import { assertPluginsResolvable, type IdeaRecord, type Issue, PluginLoader } from "../../../plugin/index.js";
 import { resolveIdeasProvider } from "../resolve-ideas-provider/index.js";
+import { convergeCreatedIssue } from "./converge-created-issue/index.js";
 import type { IdeasSyncReport, RunIdeasSyncInput } from "./run-ideas-sync.type.js";
 
 /** The state that files a note when the config names none. */
@@ -176,20 +179,29 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 			continue;
 		}
 		let key: string;
+		let detail = `already filed as ${existing?.key}`;
+		let warning = false;
 		if (existing) {
 			key = existing.key;
 		} else {
+			let created: string;
 			try {
-				({ key } = await issues.create({ summary: idea.title, body: issueBody(idea) }));
+				({ key: created } = await issues.create({ summary: idea.title, body: issueBody(idea) }));
 			} catch (err) {
 				rows.push(row(path, "fail", `could not create the issue: ${describeError(err)}`));
 				continue;
 			}
+			// Another run may have created an issue for this note between our search and our create; settle on the
+			// oldest one. This is the only extra search, and only for a note that was just created.
+			({ key, detail, warning } = await convergeCreatedIssue(issues, marker(path), created));
 		}
 		try {
 			// The provider reads the idea again first: a sync client may have changed it while the issue was being made.
 			await ideas.markFiled(path, key);
-			rows.push(row(path, "ok", `${existing ? "already filed" : "filed"} as ${key}`));
+			rows.push({
+				...row(path, "ok", detail),
+				problems: warning ? ["a duplicate issue for this idea may be open: close the extra one by hand"] : [],
+			});
 		} catch (err) {
 			rows.push({
 				...row(path, "fail", `issue ${key} was created but \`issue:\` was not written: ${describeError(err)}`),
