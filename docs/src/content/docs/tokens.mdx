@@ -193,6 +193,8 @@ Two tokens. The general one above (`HOLOCRON_SENTRY_TOKEN`, keyring `sentry`) pr
 
 It needs no delete or admin permission: setup creates and updates, and never removes. When `sentry.comlink` is not set the relay falls back to the general `sentry` token as the very last resort, which only works if that token happens to carry these scopes.
 
+This token is for the machine that runs `notifications setup`; it is not a Worker secret. Keep it in the keyring (`holocron auth set sentry.comlink`) or in your own Holocron environment, never in the `Comlink` 1Password Environment: `secrets sync Comlink --worker comlink` pushes every key of that environment to the Worker, and the Worker only needs `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
+
 ```bash
 holocron auth set sentry.comlink sntryu_xxx
 ```
