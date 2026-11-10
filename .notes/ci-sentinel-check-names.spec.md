@@ -32,7 +32,7 @@ left to name.
 | Current name                                                  | Does                                                     |
 | ------------------------------------------------------------- | -------------------------------------------------------- |
 | `Platform / Compliance / Run Holocron config compatibility`   | declared capabilities against the required baseline      |
-| the same, with `(pull_request)`                              | the same check on the pull request branch's config       |
+| the same, with `(pull_request)`                               | the same check on the pull request branch's config       |
 | `Platform / Compliance / Run Developer Certificate of Origin` | sign-off on every commit                                 |
 | `Platform / Commit Standards / Run commitlint`                | commitlint over the pull request's commits               |
 | `Platform / Repo Validation / Validate ADRs and specs`        | frontmatter rules for ADRs and specs                     |
