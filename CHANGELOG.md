@@ -1,3 +1,9 @@
+## [5.0.0-alpha.405](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.404...v5.0.0-alpha.405) (2026-11-10)
+
+### Features
+
+* **sentry:** ✨ push NEXT_PUBLIC_SENTRY_DSN only in a Next.js repo ([#2046](https://github.com/theholocron/holocron/issues/2046)) ([8f4ee8d](https://github.com/theholocron/holocron/commit/8f4ee8dd90d7d964936ee9f8c26653d4d5764ef0)), closes [#1711](https://github.com/theholocron/holocron/issues/1711)
+
 ## [5.0.0-alpha.404](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.403...v5.0.0-alpha.404) (2026-11-10)
 
 ### Bug Fixes
