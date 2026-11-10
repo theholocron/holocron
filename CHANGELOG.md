@@ -1,3 +1,9 @@
+## [5.0.0-alpha.407](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.406...v5.0.0-alpha.407) (2026-11-10)
+
+### Features
+
+* **cli:** ✨ add notifications dedupe to clear a forum's duplicate posts ([#2048](https://github.com/theholocron/holocron/issues/2048)) ([9598d53](https://github.com/theholocron/holocron/commit/9598d53830d39c232c7d50d16ecdd13ab8258c15)), closes [#2032](https://github.com/theholocron/holocron/issues/2032)
+
 ## [5.0.0-alpha.406](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.405...v5.0.0-alpha.406) (2026-11-10)
 
 ### Features
