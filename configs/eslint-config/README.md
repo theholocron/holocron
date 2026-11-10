@@ -51,6 +51,11 @@ import { base, typescript } from "@theholocron/eslint-config";
 export default [...base(), ...typescript()];
 ```
 
+`node()` pins `n/no-unsupported-features/node-builtins` and `es-builtins` to the org-wide Node floor (`>=22.0.0`)
+instead of reading `engines.node`, so a run with no `package.json` to read (Sentinel's in-memory check) does not fall
+back to `>=16.0.0` and flag `Object.hasOwn` or `Response`. `packageJson()` turns both off (a JSON file has no global
+scope), and so does `library({ browserPackages })` for the packages it names.
+
 All other presets use subpath imports:
 
 ```javascript

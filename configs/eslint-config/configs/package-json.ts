@@ -26,6 +26,8 @@ export function packageJson(): Linter.Config[] {
 				// tries to resolve tsconfig (irrelevant for JSON). Disabling here
 				// is safe — these rules are meaningless for package.json files.
 				"n/no-unsupported-features/node-builtins": "off",
+				// `es-builtins` reads the same global scope, which the JSON parser does not provide.
+				"n/no-unsupported-features/es-builtins": "off",
 				"n/no-extraneous-require": "off",
 				// In a pnpm workspace, packages/* dirs are each the root of an
 				// independently published package, not nested package.json files.
