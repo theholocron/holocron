@@ -75,6 +75,19 @@ export function deriveStack(pkg: PackageJsonLike | null): string[] {
 	return KNOWN_STACK_DEPS.filter((name) => name in deps);
 }
 
+/**
+ * The stack of a whole repo: `deriveStack()` of the root `package.json` and of
+ * every workspace package's, unioned (in `KNOWN_STACK_DEPS` order, no repeats).
+ * A repo with no readable `package.json` has no stack.
+ */
+export function deriveRepoStack(
+	rootPackageJson: PackageJsonLike | null,
+	workspacePackageJsons: readonly PackageJsonLike[]
+): string[] {
+	const found = new Set([rootPackageJson, ...workspacePackageJsons].flatMap((pkg) => deriveStack(pkg)));
+	return KNOWN_STACK_DEPS.filter((name) => found.has(name));
+}
+
 /** The provider capability keys actually wired in `providers: {}` — zero heuristics. */
 export function deriveCapabilities(providers: ResolvedProvidersConfig | undefined): string[] {
 	return Object.keys(providers ?? {}).sort();

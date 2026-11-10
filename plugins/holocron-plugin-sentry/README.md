@@ -47,12 +47,14 @@ user-owned and org-owned tokens are accepted.
 
 | Method          | What it does                                                                                                                                                 |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `describe`      | Returns `{ provider: "sentry", envKeys: ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"] }` — the env vars the app reads at runtime.                                 |
+| `describe`      | Returns `{ provider: "sentry", envKeys: ["SENTRY_DSN"], frameworkEnvKeys: { next: ["NEXT_PUBLIC_SENTRY_DSN"] } }` — the env vars the app reads at runtime.   |
 | `whoami`        | Fetches the org by slug to verify the token and confirm the org exists.                                                                                      |
 | `ensureProject` | Looks up the project by slug (derived from `name`); creates it under the configured team if absent. Returns the DSN and an `alreadyExists` flag. Idempotent. |
 
 A provider entry in `holocron.config` is only needed to enable `holocron
-setup` provisioning (`ensureProject` + pushing `SENTRY_DSN` /
-`NEXT_PUBLIC_SENTRY_DSN` to Secrets) and `holocron doctor` connectivity
+setup` provisioning (`ensureProject` + pushing `SENTRY_DSN` to Secrets, and
+`NEXT_PUBLIC_SENTRY_DSN` too when Next.js is detected: the root `package.json`
+or any workspace package's lists `next`) and `holocron doctor` connectivity
 checks — not for runtime error reporting, which the CLI activates directly
-from `HOLOCRON_SENTRY_DSN` (fallback `SENTRY_DSN`).
+from `HOLOCRON_SENTRY_DSN` (fallback `SENTRY_DSN`). A DSN is built to be embedded in
+client code, so it is not a true secret.

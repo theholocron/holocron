@@ -58,10 +58,12 @@ import {
 	deriveCapabilities,
 	deriveCompliance,
 	deriveProfile,
+	deriveRepoStack,
 	deriveStack,
 	readWorkspacePackageJsons,
 } from "./derived-properties/index.js";
 import { installEngineeringStructure } from "./engineering.js";
+import { errorsEnvKeys } from "./errors-env-keys/index.js";
 import { CANONICAL_LABELS, STALE_LABELS } from "./labels.js";
 import { previewConfigOf } from "./preview-config-of.js";
 import { BALANCED_REPO_SETTINGS } from "./repo-settings.js";
@@ -646,8 +648,17 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 
 			if (dsn && loader.has("secrets")) {
 				const secrets = loader.get("secrets") as Secrets;
-				const { envKeys } = await errors.describe();
-				for (const key of envKeys) {
+				// `envKeys` always; a framework's `frameworkEnvKeys` (`NEXT_PUBLIC_SENTRY_DSN` for `next`)
+				// only when the root or a workspace package depends on it. No package.json means no framework.
+				const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
+					.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
+					.catch(() => null);
+				const workspacePackageJsons = await readWorkspacePackageJsons(
+					input.context.repoRoot,
+					readWorkspacePackages(input.context.repoRoot)
+				);
+				const stack = deriveRepoStack(rootPackageJson, workspacePackageJsons);
+				for (const key of errorsEnvKeys(await errors.describe(), stack)) {
 					steps.push(
 						await runStep("errors", `secrets set ${key}`, dryRun, async () => {
 							await secrets.setSecret({ kind: "repo" }, key, dsn!);
