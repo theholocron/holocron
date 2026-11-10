@@ -380,12 +380,26 @@ describe("runSetup", () => {
 
 		it("ignores a frameworkEnvKeys entry for a framework it does not know", async () => {
 			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
-			const { setSecrets } = await pushedKeys({
+			const { rows, setSecrets } = await pushedKeys({
 				provider: "sentry",
 				envKeys: ["SENTRY_DSN"],
 				frameworkEnvKeys: { nuxt: ["NUXT_PUBLIC_SENTRY_DSN"] },
 			});
 			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN"]);
+			const warning = rows.find((r) => r.step === "frameworkEnvKeys nuxt");
+			expect(warning?.status).toBe("skip");
+			expect(warning?.message).toContain("not a known framework name");
+		});
+
+		it("still pushes SENTRY_DSN, with a note, when the workspace packages cannot be read", async () => {
+			await writePkg(repoRoot, { name: "x", dependencies: { next: "^15.0.0" } });
+			await writeFile(join(repoRoot, "pnpm-workspace.yaml"), "packages:\n  - apps/**\n", "utf8");
+			const { rows, setSecrets } = await pushedKeys(SENTRY);
+			const note = rows.find((r) => r.step === "detect stack");
+			expect(note?.status).toBe("skip");
+			expect(note?.message).toContain("using the root package.json only");
+			// The root alone still shows next.
+			expect(setSecrets.map(([k]) => k)).toEqual(["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"]);
 		});
 
 		it("leaves a plugin that returns no frameworkEnvKeys (old shape) unchanged", async () => {

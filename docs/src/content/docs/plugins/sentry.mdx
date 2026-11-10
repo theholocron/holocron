@@ -28,6 +28,7 @@ alone is sufficient.
 browser code) is pushed only when Next.js is detected: the root `package.json`
 or any workspace package's lists `next` in `dependencies` or `devDependencies`.
 A DSN is built to be embedded in client code, so it is not a true secret.
+Setup never removes `NEXT_PUBLIC_SENTRY_DSN`: a repo that drops Next.js deletes that secret by hand.
 In this repo it is synced as the organization Actions variable `HOLOCRON_SENTRY_DSN` (from the 1Password
 Environment `Holocron - GitHub Actions variables`), which the CLI's telemetry reads before `SENTRY_DSN`; `repo setup`
 still pushes `SENTRY_DSN` as a repo secret, the name consumer repos' SDKs read.

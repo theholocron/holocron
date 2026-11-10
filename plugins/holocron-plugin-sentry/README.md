@@ -58,3 +58,4 @@ or any workspace package's lists `next`) and `holocron doctor` connectivity
 checks — not for runtime error reporting, which the CLI activates directly
 from `HOLOCRON_SENTRY_DSN` (fallback `SENTRY_DSN`). A DSN is built to be embedded in
 client code, so it is not a true secret.
+Setup never removes `NEXT_PUBLIC_SENTRY_DSN`: a repo that drops Next.js deletes that secret by hand.

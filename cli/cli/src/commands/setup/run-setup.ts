@@ -54,12 +54,13 @@ import { generateRepoFiles } from "../repo-files/index.js";
 import { assertNoPackageCollision, resolvePkgRelPath } from "../workflow-source-marker/index.js";
 import { installAgentPrompts } from "./agent-prompts.js";
 import { upsertBranchProtection } from "./branch-protection.js";
+import { deriveRepoStack } from "./derive-repo-stack/index.js";
 import {
 	deriveCapabilities,
 	deriveCompliance,
 	deriveProfile,
-	deriveRepoStack,
 	deriveStack,
+	KNOWN_STACK_DEPS,
 	readWorkspacePackageJsons,
 } from "./derived-properties/index.js";
 import { installEngineeringStructure } from "./engineering.js";
@@ -650,15 +651,38 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				const secrets = loader.get("secrets") as Secrets;
 				// `envKeys` always; a framework's `frameworkEnvKeys` (`NEXT_PUBLIC_SENTRY_DSN` for `next`)
 				// only when the root or a workspace package depends on it. No package.json means no framework.
+				// Reading the workspace packages can throw (an unsupported pnpm glob): the root alone is
+				// used then, said once, so `SENTRY_DSN` is still pushed.
 				const rootPackageJson = await readFile(join(input.context.repoRoot, "package.json"), "utf8")
 					.then((raw) => JSON.parse(raw) as Parameters<typeof deriveStack>[0])
 					.catch(() => null);
-				const workspacePackageJsons = await readWorkspacePackageJsons(
-					input.context.repoRoot,
-					readWorkspacePackages(input.context.repoRoot)
-				);
+				let workspacePackageJsons: Awaited<ReturnType<typeof readWorkspacePackageJsons>> = [];
+				try {
+					workspacePackageJsons = await readWorkspacePackageJsons(
+						input.context.repoRoot,
+						readWorkspacePackages(input.context.repoRoot)
+					);
+				} catch (err) {
+					steps.push({
+						capability: "errors",
+						step: "detect stack",
+						status: "skip",
+						message: `workspace packages not read (${errorMessage(err)}); using the root package.json only`,
+					});
+					print(formatStep(steps[steps.length - 1]!));
+				}
 				const stack = deriveRepoStack(rootPackageJson, workspacePackageJsons);
-				for (const key of errorsEnvKeys(await errors.describe(), stack)) {
+				const { keys, unknown } = errorsEnvKeys(await errors.describe(), stack);
+				for (const name of unknown) {
+					steps.push({
+						capability: "errors",
+						step: `frameworkEnvKeys ${name}`,
+						status: "skip",
+						message: `"${name}" is not a known framework name (${KNOWN_STACK_DEPS.join(", ")}); its keys are not pushed`,
+					});
+					print(formatStep(steps[steps.length - 1]!));
+				}
+				for (const key of keys) {
 					steps.push(
 						await runStep("errors", `secrets set ${key}`, dryRun, async () => {
 							await secrets.setSecret({ kind: "repo" }, key, dsn!);

@@ -4,7 +4,7 @@ import type { WorkspacePackage } from "@theholocron/astromech";
 import { readPackageJson } from "@theholocron/pkg-utils";
 
 import type { ResolvedProvidersConfig } from "../../../config/index.js";
-import type { DeriveProfileInput, HolocronProfile, PackageJsonLike } from "./derived-properties.type.js";
+import type { DeriveProfileInput, HolocronProfile, PackageJsonLike, StackName } from "./derived-properties.type.js";
 
 /**
  * Repo archetype, in priority order:
@@ -50,7 +50,8 @@ export function deriveProfile(input: DeriveProfileInput): HolocronProfile {
 	return "library";
 }
 
-const KNOWN_STACK_DEPS = [
+/** The framework and build-tool names `deriveStack()` can detect, in the order it lists them; `StackName` is derived from it. */
+export const KNOWN_STACK_DEPS = [
 	"next",
 	"vite",
 	"astro",
@@ -70,22 +71,9 @@ const KNOWN_STACK_DEPS = [
  * Curated table, not exhaustive by design — add to `KNOWN_STACK_DEPS` as new
  * frameworks show up rather than trying to detect anything on npm.
  */
-export function deriveStack(pkg: PackageJsonLike | null): string[] {
+export function deriveStack(pkg: PackageJsonLike | null): StackName[] {
 	const deps = { ...pkg?.dependencies, ...pkg?.devDependencies };
 	return KNOWN_STACK_DEPS.filter((name) => name in deps);
-}
-
-/**
- * The stack of a whole repo: `deriveStack()` of the root `package.json` and of
- * every workspace package's, unioned (in `KNOWN_STACK_DEPS` order, no repeats).
- * A repo with no readable `package.json` has no stack.
- */
-export function deriveRepoStack(
-	rootPackageJson: PackageJsonLike | null,
-	workspacePackageJsons: readonly PackageJsonLike[]
-): string[] {
-	const found = new Set([rootPackageJson, ...workspacePackageJsons].flatMap((pkg) => deriveStack(pkg)));
-	return KNOWN_STACK_DEPS.filter((name) => found.has(name));
 }
 
 /** The provider capability keys actually wired in `providers: {}` — zero heuristics. */
