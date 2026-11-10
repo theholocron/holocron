@@ -50,7 +50,7 @@ The GitHub App also needs the organization permission Members: read and the `mem
 - **Org-portable.** The repo and installation id come from the webhook payload, so one registration handles any number of orgs and accounts.
 - **Quiet on a bad config.** A missing or broken config is acknowledged without a check run.
 - **Out of scope for v1.** Autonomous fix PRs or comments triggered by an event, and dashboards, are tracked in issue 674.
-- **Environment.** `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET` (a deployment that still has the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` keeps working: the `SENTINEL_` name is read first, then the bare one), plus two log-shipping values (`SENTINEL_AXIOM_INGEST_TOKEN`, `AXIOM_DATASET`), and the three optional role-sync settings above. They live in the 1Password Environment `Sentinel` and are fanned out with [`holocron secrets sync`](/holocron/commands/secrets-sync/).
+- **Environment.** `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET` (a deployment that still has the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` keeps working: the `SENTINEL_` name is read first, then the bare one), plus two log-shipping values (`SENTINEL_AXIOM_INGEST_TOKEN`, `SENTINEL_AXIOM_DATASET`), and the three optional role-sync settings above. They live in the 1Password Environment `Sentinel` and are fanned out with [`holocron secrets sync`](/holocron/commands/secrets-sync/).
 
 ## Deployment
 
