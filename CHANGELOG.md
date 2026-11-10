@@ -1,3 +1,9 @@
+## [5.0.0-alpha.398](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.397...v5.0.0-alpha.398) (2026-11-10)
+
+### Features
+
+* **ideas:** 📝 add ideas promote to write a draft spec from a filed idea ([#2026](https://github.com/theholocron/holocron/issues/2026)) ([95cd096](https://github.com/theholocron/holocron/commit/95cd096b9471922a97d373a71bd7d0ecdd25135c)), closes [#2017](https://github.com/theholocron/holocron/issues/2017) [#1994](https://github.com/theholocron/holocron/issues/1994)
+
 ## [5.0.0-alpha.397](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.396...v5.0.0-alpha.397) (2026-11-10)
 
 ### Features
