@@ -129,6 +129,8 @@
 						{ name: "merged", emoji: "🟣", moderated: true },
 						{ name: "closed", emoji: "🚫", moderated: true },
 					],
+					defaultReaction: "🔀",
+					starterReactions: ["👍", "👎", "❓"],
 					feeds: { prs: true },
 				},
 				// The test channel: the doctor's own test post is left here, never in a real channel.

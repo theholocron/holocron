@@ -107,7 +107,8 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		expect(ideas?.defaultReaction).toBeUndefined();
 		Object.assign(ideas!, { defaultReaction: "👍", starterReactions: ["👍", "👎", "❓"] });
 		// And (#1834): the `prs` forum, the pull-request feed's, sits after `ideas` in BUILD. Its eight tags are the ones
-		// `forumLayoutProblem` demands; anything else about it showing up here would be a diff.
+		// `forumLayoutProblem` demands, and it has the same starter reactions as `ideas` with 🔀 as its default; anything
+		// else about it showing up here would be a diff.
 		const build = options.layout?.categories?.find((c) => c.name === "BUILD");
 		const ideasAt = build!.channels!.findIndex((c) => c.name === "ideas");
 		expect(build!.channels!.some((c) => c.name === "prs")).toBe(false);
@@ -125,6 +126,8 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				{ name: "merged", emoji: "🟣", moderated: true },
 				{ name: "closed", emoji: "🚫", moderated: true },
 			],
+			defaultReaction: "🔀",
+			starterReactions: ["👍", "👎", "❓"],
 			feeds: { prs: true },
 		});
 		// And (#1817): the three organization variables are no longer literals but come from a 1Password Environment.
