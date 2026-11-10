@@ -20,5 +20,6 @@ export type {
 export { PostHogReactNativeSink } from "./react-native/posthog-react-native-sink.js";
 export type { SentryReactNativeSinkOptions } from "./react-native/sentry-react-native-sink.js";
 export { SentryReactNativeSink } from "./react-native/sentry-react-native-sink.js";
+export type { OnError } from "./shared/safe.js";
 export type { SentrySdkLike } from "./shared/sentry-compatible-sink.js";
 export { scrubEvent } from "./shared/sentry-compatible-sink.js";

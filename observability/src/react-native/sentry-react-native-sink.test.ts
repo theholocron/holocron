@@ -45,8 +45,18 @@ describe("SentryReactNativeSink", () => {
 		const sink = new SentryReactNativeSink({ sdk });
 		const err = new Error("x");
 		sink.captureException(err);
-		sink.startSpan("screen").end();
+		const span = sink.startSpan("screen");
+		span.setStatus(true);
+		span.end();
 		await sink.flush();
+		expect(sdk.startInactiveSpan).toHaveBeenCalledWith({
+			name: "screen",
+			op: "holocron.command",
+			forceTransaction: true,
+		});
+		const started = sdk.startInactiveSpan.mock.results[0]!.value as { setStatus: unknown; end: unknown };
+		expect(started.setStatus).toHaveBeenCalledWith({ code: 1 });
+		expect(started.end).toHaveBeenCalledTimes(1);
 		expect(sdk.captureException).toHaveBeenCalledWith(err);
 		expect(sdk.flush).toHaveBeenCalledWith(2_000);
 

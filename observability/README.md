@@ -24,17 +24,18 @@ See the [documentation](https://docs.theholocron.dev/holocron/observability/) fo
 
 Add the peers for the subpaths you use — they are all optional:
 
-| Subpath                                      | Peers                                  |
-| -------------------------------------------- | -------------------------------------- |
-| `@theholocron/observability/core`            | none                                   |
-| `@theholocron/observability/logger`          | `pino`, `pino-pretty`, `@axiomhq/pino` |
-| `@theholocron/observability/errors`          | `@sentry/node`                         |
-| `@theholocron/observability/analytics`       | `posthog-node`                         |
-| `@theholocron/observability/browser/sentry`  | `@sentry/browser`                      |
-| `@theholocron/observability/browser/posthog` | `posthog-js`                           |
-| `@theholocron/observability/edge/sentry`     | `@sentry/vercel-edge`                  |
-| `@theholocron/observability/edge/posthog`    | none (`fetch`)                         |
-| `@theholocron/observability/testing`         | `vitest`                               |
+| Subpath                                      | Peers                                                                |
+| -------------------------------------------- | -------------------------------------------------------------------- |
+| `@theholocron/observability/core`            | none                                                                 |
+| `@theholocron/observability/logger`          | `pino`, `pino-pretty`, `@axiomhq/pino`                               |
+| `@theholocron/observability/errors`          | `@sentry/node`                                                       |
+| `@theholocron/observability/analytics`       | `posthog-node`                                                       |
+| `@theholocron/observability/browser/sentry`  | `@sentry/browser`                                                    |
+| `@theholocron/observability/browser/posthog` | `posthog-js`                                                         |
+| `@theholocron/observability/edge/sentry`     | `@sentry/vercel-edge`                                                |
+| `@theholocron/observability/edge/posthog`    | none (`fetch`)                                                       |
+| `@theholocron/observability/react-native`    | `@sentry/react-native`, `posthog-react-native` (injected by the app) |
+| `@theholocron/observability/testing`         | `vitest`                                                             |
 
 ## Examples
 
@@ -90,6 +91,14 @@ import { PostHogFetchSink } from "@theholocron/observability/edge/posthog";
 import { SentryEdgeSink } from "@theholocron/observability/edge/sentry";
 
 const edgeAnalytics = new PostHogFetchSink({ key, host, waitUntil: (p) => ctx.waitUntil(p) });
+
+// React Native: the app imports the SDKs (they need the react-native runtime) and passes them in
+import * as Sentry from "@sentry/react-native";
+import PostHog from "posthog-react-native";
+import { PostHogReactNativeSink, SentryReactNativeSink } from "@theholocron/observability/react-native";
+
+const rnErrors = new SentryReactNativeSink({ sdk: Sentry });
+const rnAnalytics = new PostHogReactNativeSink({ client: new PostHog(key, { host }) });
 ```
 
 Each adapter is its own subpath, so importing one never resolves another's SDK.

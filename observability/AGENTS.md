@@ -28,6 +28,11 @@ One published package, `tsdown` multi-entry, subpath exports:
   namespace). Every vendor call goes through `safely()`, so a throwing SDK never reaches the app; an optional `onError`
   sees it. Payloads are scrubbed with `redactObject`. The browser PostHog sink starts `posthog-js` with autocapture and
   pageviews off and identifies the named person before `capture()`.
+- **`/react-native`**: `SentryReactNativeSink` and `PostHogReactNativeSink`. Unlike the other adapters these take the
+  vendor SDK as an **injected dependency and import none**: `@sentry/react-native` and `posthog-react-native` need the
+  `react-native` runtime to load, and as devDependencies they bring a whole React Native and Metro tree into the
+  lockfile. The app imports the SDK and passes it in (`sdk`, `client`). They are still declared as optional peers, and,
+  since they import no SDK, they add no vendor call site to the repo.
 - **`/testing`**: fakes for testing code that takes these interfaces.
 
 Rules:
