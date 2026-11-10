@@ -112,9 +112,11 @@ keeps posting the old job name from its frozen copy until `CI_HOME` moves.
 
 - The **group** is Title Case: every word starts with a capital and the rest are lower case (`Static Analysis`,
   `Repo Validation`, `Inclusive Language`).
-- The **action** is a sentence-case verb phrase that starts with a capitalised verb (`Run`, `Validate`). A tool, an
-  acronym or a proper noun keeps its own casing: `Run eslint`, `Run tsc --noEmit`, `Validate ADRs and specs`, `Run
-Developer Certificate of Origin`.
+- The **action** starts with one verb from a closed list, `CHECK_ACTION_VERBS` (`Run`, `Validate`), followed by what it
+  acts on. A tool, an acronym or a proper noun keeps its own casing: `Run eslint`, `Run tsc --noEmit`,
+  `Validate ADRs and specs`, `Run Developer Certificate of Origin`. A capitalised word that is not on the list (`Eslint
+results`, `Static Analysis`) is rejected, so a new verb is a deliberate edit of the list. All 13 current actions start with
+  `Run` (11) or `Validate` (2).
 - An event suffix is the event's name, in parentheses: `(pull_request)`.
 
 Every current name already follows the rule, so the casing needs no rename beyond the dropped tier. `checkNameProblem()`
@@ -197,8 +199,11 @@ Not posted by Actions or Sentinel: `DCO` (the probot app, required) and the `cod
 - **No required name found.** `holocron` requires `ci / Required checks` and `DCO`; `.github` requires `DCO`; the template
   repos require Actions names plus `codecov/*` and `DCO`. No Sentinel-posted name is required in a ruleset that could be
   read, so a rename cannot block a merge there, and no dual posting is needed.
-- **Unverified.** The rulesets of the private repos (`.github-private` and the group repos) could not be read and were not
-  checked. If one requires a Sentinel name, Sentinel posts both names for one release first, then the ruleset moves.
+- **Accepted risk: the private repos' rulesets were not checked.** `.github-private` and the group repos return 403 for
+  rulesets, and the decision is to go ahead without reading them. If one of them requires an old Sentinel name (or the old
+  `validate:docs / Validate docs presence`), its required check stays pending, because nothing posts the old name any more.
+  The remedy, if one is found, is to update that repo's ruleset to the new name, or to have Sentinel post both names for
+  one release first. The code does not change for it.
 - **A Sentinel instance run from a local build** posts the new names only after a rebuild (the Platform checks come from the
   build the operator runs).
 - **Open pull requests** keep the old names on their old commits and post the new ones on the next commit.
@@ -208,8 +213,8 @@ Not posted by Actions or Sentinel: `DCO` (the probot app, required) and the `cod
 
 ## Risks
 
-- A repo that requires an old Sentinel name blocks until its ruleset moves. Mitigated by the finding above; unverified for
-  the private repos.
+- A repo that requires an old Sentinel name blocks until its ruleset moves. None was found in the rulesets that could be
+  read; for the private repos this is an accepted risk (see Migration), with the same remedy.
 - A new Sentinel name equal to an Actions name would make two checks indistinguishable. `Commits` avoids the known one; the
   casing test does not guard this, so a future check is compared against `WORKFLOW_CHECK_CONTEXTS` by hand.
 - The names are free text, so the rule holds only for names built through `sentinelCheckName()`. A check posted another way

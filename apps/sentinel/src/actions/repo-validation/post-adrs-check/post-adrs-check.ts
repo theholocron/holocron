@@ -21,7 +21,7 @@ import {
 import type { AdrMessage } from "../validate-adrs/index.js";
 import type { PostAdrsCheckInput, PostAdrsCheckResult } from "./post-adrs-check.type.js";
 
-/** Mirrors the CI job's own name (`Repo Validation / Validate ADRs and specs`) under the `platform` namespace its task lives in. */
+/** Mirrors the CI job's own name (`validate:specs / Validate ADRs and specs`) in Sentinel's `Group / Action` form. */
 export const SENTINEL_ADRS_CHECK_RUN_NAME = sentinelCheckName("Repo Validation", "Validate ADRs and specs");
 
 function formatMessage(m: AdrMessage): string {

@@ -7,16 +7,14 @@
  * Sentinel isn't a plugin, and this is a single REST call with nothing
  * else to wrap.
  *
- * D5: `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` carries the intent
- * vocabulary through — `<namespace, humanized> / <the existing CI check's
- * own name, unchanged>` — rather than inventing a new ad-hoc label.
- * `platform.commitStandards`'s own reusable workflow job is named "Commit
- * Standards / Run commitlint" (`platform.commitStandards.yml`); this is
- * that same name with `Platform /` carried in front of it, so it's
- * visually obvious in a PR's checks list which CI check this one
- * centralizes. No "Sentinel /" prefix — GitHub's own check-run detail page
- * already shows the posting App's display name ahead of whatever name is
- * set here, so a hand-added prefix just duplicated it.
+ * `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` is `Group / Action`
+ * (`sentinelCheckName()`, `.notes/ci-sentinel-check-names.spec.md`). The
+ * group is "Commits", not "Commit Standards": a repo still on the frozen
+ * reusables posts "Commit Standards / Run commitlint" from Actions, and an
+ * exact clash with this check would be confusing. No "Sentinel /" prefix —
+ * GitHub's own check-run detail page already shows the posting App's
+ * display name ahead of whatever name is set here, so a hand-added prefix
+ * just duplicated it.
  */
 
 import type { CheckRunConclusion } from "@theholocron/github-client";

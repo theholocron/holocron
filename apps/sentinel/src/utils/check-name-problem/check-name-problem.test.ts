@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import * as actions from "../../actions/index.js";
 import { SENTINEL_DISPATCHED_CHECK_NAME } from "../constants/index.js";
-import { checkNameProblem } from "./check-name-problem.js";
+import { CHECK_ACTION_VERBS, checkNameProblem } from "./check-name-problem.js";
 
 describe("checkNameProblem", () => {
 	it.each([
@@ -37,12 +37,30 @@ describe("checkNameProblem", () => {
 		);
 	});
 
-	it("rejects an action that does not start with a capitalised verb", () => {
-		expect(checkNameProblem("Static Analysis / run eslint")).toBe(
-			'action "run eslint" must start with a capitalised verb'
+	it("rejects an action that does not start with an allowed verb", () => {
+		const problem = (action: string) =>
+			`action "${action}" must start with one of Run, Validate followed by what it acts on`;
+		expect(checkNameProblem("Static Analysis / run eslint")).toBe(problem("run eslint"));
+		expect(checkNameProblem("Static Analysis / eslint")).toBe(problem("eslint"));
+		expect(checkNameProblem("Static Analysis / Run")).toBe(problem("Run"));
+	});
+
+	it("rejects a capitalised word that is not an allowed verb", () => {
+		const problem = (action: string) =>
+			`action "${action}" must start with one of Run, Validate followed by what it acts on`;
+		expect(checkNameProblem("Static Analysis / Eslint results")).toBe(problem("Eslint results"));
+		expect(checkNameProblem("Static Analysis / Static Analysis")).toBe(problem("Static Analysis"));
+		expect(checkNameProblem("Static Analysis / Lint the code")).toBe(problem("Lint the code"));
+	});
+
+	it("keeps the event suffix out of the verb check but in the message", () => {
+		expect(checkNameProblem("Compliance / Check config (pull_request)")).toBe(
+			'action "Check config (pull_request)" must start with one of Run, Validate followed by what it acts on'
 		);
-		expect(checkNameProblem("Static Analysis / eslint")).toBe('action "eslint" must start with a capitalised verb');
-		expect(checkNameProblem("Static Analysis / Run")).toBe('action "Run" must start with a capitalised verb');
+	});
+
+	it("lists the allowed verbs, so a new verb is a deliberate edit", () => {
+		expect(CHECK_ACTION_VERBS).toEqual(["Run", "Validate"]);
 	});
 });
 

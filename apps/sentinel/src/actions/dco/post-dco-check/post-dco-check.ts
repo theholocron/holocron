@@ -14,9 +14,9 @@
  * config compatibility") — both are provenance/baseline-type checks
  * with no astromech task or CI-job name of their own to carry forward,
  * so "Compliance" names the shared concept and "Run Developer
- * Certificate of Origin" names this one, same `<namespace> / <label> /
- * <command>` shape every other Sentinel check uses, just with a
- * hand-authored "command" instead of a real CI job name.
+ * Certificate of Origin" names this one, same `Group / Action` shape
+ * every other Sentinel check uses (`sentinelCheckName()`), just with a
+ * hand-authored action instead of a real CI job name.
  *
  * `buildRemediationGuidance()` deliberately offers only the rebase
  * path, not dcoapp's own "DCO Remediation Commit" recipe (a commit

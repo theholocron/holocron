@@ -26,9 +26,9 @@ import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post
  * scoping), and `prettier`'s real Node API (`check()`/`format()`/
  * `getFileInfo()`) works directly on fetched file content — no checkout.
  *
- * Same `sourceQuality` namespace as Inclusive Language — the spec's own
- * forecast ("the next namespace... once eslint/prettier move to Sentinel
- * too") named this exact tool.
+ * Named `Formatting / Run prettier` (`sentinelCheckName()`,
+ * `.notes/ci-sentinel-check-names.spec.md`); `Formatting` is shared with the
+ * editorconfig check.
  */
 export const SENTINEL_FORMATTING_CHECK_RUN_NAME = sentinelCheckName("Formatting", "Run prettier");
 

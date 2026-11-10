@@ -30,9 +30,9 @@ import type {
  * `alex` does, confirmed directly (`markdown(value, config)` /
  * `mdx(value, config)`, both returning a `VFile` with real `.messages`).
  *
- * Folds under a new `sourceQuality` namespace — the spec's own forecast for
- * "the next namespace... once eslint/prettier move to Sentinel too" fits an
- * inclusive-language content check just as well as those.
+ * Named `Inclusive Language / Run alex` (`sentinelCheckName()`,
+ * `.notes/ci-sentinel-check-names.spec.md`): the group is the concern, the
+ * action is the tool.
  */
 export const SENTINEL_INCLUSIVE_LANGUAGE_CHECK_RUN_NAME = sentinelCheckName("Inclusive Language", "Run alex");
 

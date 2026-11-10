@@ -29,9 +29,9 @@ import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from
  * bundle works directly against fetched file content via eslint's real
  * `Linter.verify()` API — no checkout, no type-aware rules to require one.
  *
- * Same `sourceQuality` namespace as Inclusive Language, Formatting, and
- * Documentation — the spec's own forecast ("the next namespace... once
- * eslint/prettier move to Sentinel too") named exactly this kind of tool.
+ * Named `Static Analysis / Run eslint` (`sentinelCheckName()`,
+ * `.notes/ci-sentinel-check-names.spec.md`); `Static Analysis` is shared with
+ * the actionlint check.
  *
  * **Not purely advisory** (same treatment inclusive language got in
  * holocron#865): `conclusion: "failure"` the moment any message is

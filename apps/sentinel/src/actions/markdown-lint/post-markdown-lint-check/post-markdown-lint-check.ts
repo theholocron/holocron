@@ -30,9 +30,8 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * `markdownlint`'s real Node API (`lint()` from `markdownlint/promise`)
  * works directly on fetched file content — no checkout.
  *
- * Same `sourceQuality` namespace as Inclusive Language and Formatting — the
- * spec's own forecast ("the next namespace... once eslint/prettier move to
- * Sentinel too") named exactly this kind of tool.
+ * Named `Documentation / Run markdownlint` (`sentinelCheckName()`,
+ * `.notes/ci-sentinel-check-names.spec.md`).
  *
  * **Not purely advisory** (same treatment inclusive language got in
  * holocron#865, and static analysis in holocron#873): `conclusion:
