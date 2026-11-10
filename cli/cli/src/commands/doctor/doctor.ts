@@ -257,8 +257,8 @@ async function runSmokeCheck(key: string, provider: string, impl: unknown): Prom
 			// A framework's extra keys, named by framework: `NEXT_PUBLIC_SENTRY_DSN (with next)`.
 			const keys = [
 				...desc.envKeys,
-				...Object.entries(desc.frameworkEnvKeys ?? {}).map(
-					([framework, extra]) => `${(extra ?? []).join(", ")} (with ${framework})`
+				...Object.entries(desc.frameworkEnvKeys ?? {}).flatMap(([framework, extra]) =>
+					extra?.length ? [`${extra.join(", ")} (with ${framework})`] : []
 				),
 			];
 			return mk(key, provider, "ok", `provider: ${desc.provider}; env keys: ${keys.join(", ")}`);
