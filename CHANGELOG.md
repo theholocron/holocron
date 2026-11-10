@@ -1,3 +1,13 @@
+## [5.0.0-alpha.402](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.401...v5.0.0-alpha.402) (2026-11-10)
+
+### Features
+
+* **notifications:** ✨ 🔀 give the prs forum a default reaction and starter reactions ([#2033](https://github.com/theholocron/holocron/issues/2033)) ([d0b11a0](https://github.com/theholocron/holocron/commit/d0b11a0d74b94dfd4461a8d1ebeced1d043711c9))
+
+### Documentation
+
+* 📚️ 📝 say sync-templates opens pull requests, as it has since [#2000](https://github.com/theholocron/holocron/issues/2000) ([#2031](https://github.com/theholocron/holocron/issues/2031)) ([c176c66](https://github.com/theholocron/holocron/commit/c176c668809d4d42eb8e60b276109f1709ab2814))
+
 ## [5.0.0-alpha.401](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.400...v5.0.0-alpha.401) (2026-11-10)
 
 ### Features
