@@ -1,3 +1,10 @@
+## [0.7.0-alpha.4](https://github.com/theholocron/holocron/compare/observability-v0.7.0-alpha.3...observability-v0.7.0-alpha.4) (2026-11-10)
+
+### Features
+
+* **observability:** ✨ 🌐 add browser and edge adapters for Sentry and PostHog ([#2040](https://github.com/theholocron/holocron/issues/2040)) ([cf46b57](https://github.com/theholocron/holocron/commit/cf46b57d05d82da47d038439cab6ff15a24b49dc)), closes [#637](https://github.com/theholocron/holocron/issues/637) [#633](https://github.com/theholocron/holocron/issues/633)
+* **observability:** ✨ 📱 add React Native adapters for Sentry and PostHog ([#2042](https://github.com/theholocron/holocron/issues/2042)) ([dfe28a6](https://github.com/theholocron/holocron/commit/dfe28a6b88cf3e8dd8d86edcb697e0d520ef3a91)), closes [#637](https://github.com/theholocron/holocron/issues/637) [#633](https://github.com/theholocron/holocron/issues/633) [#637](https://github.com/theholocron/holocron/issues/637)
+
 ## [0.7.0-alpha.3](https://github.com/theholocron/holocron/compare/observability-v0.7.0-alpha.2...observability-v0.7.0-alpha.3) (2026-11-08)
 
 ### Features
