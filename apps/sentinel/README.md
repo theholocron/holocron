@@ -581,27 +581,24 @@ It needs no secret of its own. It reads the layout from the repository role sync
 ### Private key
 
 Generate one from the App's settings page after creation — that's
-`GITHUB_APP_PRIVATE_KEY`, also destined for the 1Password Environment
+`SENTINEL_GITHUB_APP_PRIVATE_KEY`, also destined for the 1Password Environment
 `Sentinel`. Generating a new key at any point invalidates the previous
 one, so only do this once and store the result immediately.
 
 ### After registration
 
-Both secrets (`SENTINEL_WEBHOOK_SECRET`, `GITHUB_APP_PRIVATE_KEY`) plus
-the App id (`GITHUB_APP_ID`, shown on the App's settings page) go into
+Both secrets (`SENTINEL_WEBHOOK_SECRET`, `SENTINEL_GITHUB_APP_PRIVATE_KEY`) plus
+the App id (`SENTINEL_GITHUB_APP_ID`, shown on the App's settings page) go into
 the 1Password Environment `Sentinel` first (made by hand: `op` cannot create
 one) — see `holocron.config.ts` in this directory for the `vault` provider
 wiring — then out to Vercel's env vars. Axiom is one dataset per service (the CLI, Sentinel and Comlink each
 have their own) and one shared org slug. Sentinel's Environment holds the Axiom log-shipping and link values
 (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
-and `AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
-source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (was `AXIOM_ORG`; from the 1Password Environment
-`Holocron - GitHub Actions variables`) carry the same values for the dispatched check workflow. The logger
-and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET` first, else the
-bare `AXIOM_DATASET` an Environment synced before the rename still holds, `sentinelAxiomDataset()`; the org is
-`HOLOCRON_AXIOM_ORG` first, else the bare `AXIOM_ORG`, and the `check-dispatched` workflow reads the org variable `HOLOCRON_AXIOM_ORG` (else `AXIOM_ORG`) onto the
-prefixed name); with either unset the check run has no details link.
+and `HOLOCRON_AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
+source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the 1Password Environment
+`Holocron - GitHub Actions variables`) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `Sentinel` Environment by the `secrets sync` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
+and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above; the `check-dispatched` workflow reads the org variable `HOLOCRON_AXIOM_ORG`); with either unset the check run has no details link.
 
 ```sh
 holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \
@@ -633,7 +630,7 @@ community report says otherwise), run the same command locally instead.
   not-yet-reviewed code. `secrets sync`'s `deployment` destination has
   no per-key allowlist (unlike `secrets`/GH-Actions below, which does)
   — passing `--target preview` would sync **all 5** runtime keys to
-  Vercel's preview environment, `GITHUB_APP_PRIVATE_KEY` included. A PR
+  Vercel's preview environment, `SENTINEL_GITHUB_APP_PRIVATE_KEY` included. A PR
   that adds one line reading and exfiltrating that env var would hand
   an attacker the ability to fully impersonate this GitHub App across
   every org/repo it's installed on — sourcery review caught this on
