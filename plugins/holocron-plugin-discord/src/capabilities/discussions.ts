@@ -363,10 +363,8 @@ export class DiscordDiscussions {
 		const bot = this.deps.bot();
 		let deleted = 0;
 		while (entry.duplicates.length > 0) {
-			// Another instance may have deleted the same duplicate a moment ago: it is gone either way.
-			await bot.threads.delete(entry.duplicates[0]!.id).catch((err: unknown) => {
-				if ((err as { status?: number }).status !== 404) throw err;
-			});
+			// A duplicate another instance deleted a moment ago is a 404, which `threads.delete` counts as done.
+			await bot.threads.delete(entry.duplicates[0]!.id);
 			entry.duplicates.shift(); // only once it is gone, so a failed run is retried
 			deleted++;
 		}

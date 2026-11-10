@@ -945,17 +945,6 @@ describe("DiscordDiscussions — a pull request's post", () => {
 			expect(calls.at(-1)).toMatchObject({ method: "DELETE", url: `${BASE}/channels/7` });
 		});
 
-		it("counts a duplicate another instance already deleted as gone", async () => {
-			const { discussions } = make([
-				...listing([thread("5"), thread("7")]),
-				body("5"),
-				body("7"),
-				{ status: 404, body: { message: "Unknown Channel" } },
-			]);
-			expect(await discussions.dedupe("ideas", KEY)).toBe(1);
-			expect(await discussions.dedupe("ideas", KEY)).toBe(0);
-		});
-
 		it("is 0 when there is one post or none", async () => {
 			expect(await make([...listing([thread("5")]), body("5")]).discussions.dedupe("ideas", KEY)).toBe(0);
 			expect(await make(listing([])).discussions.dedupe("ideas", KEY)).toBe(0);

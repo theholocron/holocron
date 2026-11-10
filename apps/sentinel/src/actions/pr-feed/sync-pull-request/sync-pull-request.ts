@@ -49,7 +49,7 @@ export async function syncPullRequest(input: SyncPullRequestInput): Promise<PrFe
 	// since: the forum is read again, the oldest post is kept, and the writes below go to it.
 	let deduped = 0;
 	if (ensured.created) {
-		deduped = (await notifications.dedupeDiscussion(channel.name, key, { refresh: true })) ?? 0;
+		deduped = await notifications.dedupeDiscussion(channel.name, key, { refresh: true });
 	} else {
 		await notifications.updateDiscussion(channel.name, key, {
 			title: rendered.title,
