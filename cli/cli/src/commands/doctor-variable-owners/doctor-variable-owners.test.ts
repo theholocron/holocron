@@ -526,6 +526,18 @@ describe("doctor variable-owners — defaults", () => {
 	});
 });
 
+describe("doctor variable-owners — default loader", () => {
+	it("builds its own loader, which reads nothing when no provider is configured", async () => {
+		const report = await runDoctorVariableOwners({
+			loaded: loadedWith({ providers: {} }),
+			context: { repoRoot: "/tmp/test", org: "acme" },
+			print: () => undefined,
+			logger: fakeLogger(),
+		});
+		expect(report.status).toBe("skip");
+	});
+});
+
 describe("doctor variable-owners — no findings", () => {
 	it("is all ok, with the counts, and never prints a value", async () => {
 		const { report, lines } = await run(loadedWith(), {
