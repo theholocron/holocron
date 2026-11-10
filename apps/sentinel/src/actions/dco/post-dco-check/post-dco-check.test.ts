@@ -15,8 +15,8 @@ beforeAll(() => {
 });
 
 describe("postDcoCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Platform / Compliance / Run Developer Certificate of Origin", () => {
-		expect(SENTINEL_DCO_CHECK_RUN_NAME).toBe("Platform / Compliance / Run Developer Certificate of Origin");
+	it("names the check run Compliance / Run Developer Certificate of Origin", () => {
+		expect(SENTINEL_DCO_CHECK_RUN_NAME).toBe("Compliance / Run Developer Certificate of Origin");
 	});
 });
 

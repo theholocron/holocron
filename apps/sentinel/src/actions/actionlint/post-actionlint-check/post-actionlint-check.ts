@@ -16,8 +16,8 @@ import {
 import {
 	postErrorReview,
 	SENTINEL_ACTIONLINT_LOG_MSG,
-	SENTINEL_NAMESPACES,
 	sentinelAxiomLogUrl,
+	sentinelCheckName,
 } from "../../../utils/index.js";
 import type { ActionlintMessage } from "../lint-actionlint/index.js";
 import type { PostActionlintCheckInput, PostActionlintCheckResult } from "./post-actionlint-check.type.js";
@@ -32,7 +32,7 @@ import type { PostActionlintCheckInput, PostActionlintCheckResult } from "./post
  * finding, and ShellCheck's own `error`/`warning` levels. ShellCheck
  * `info`/`style`-only findings resolve to `"neutral"`.
  */
-export const SENTINEL_ACTIONLINT_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Static Analysis / Run actionlint`;
+export const SENTINEL_ACTIONLINT_CHECK_RUN_NAME = sentinelCheckName("Static Analysis", "Run actionlint");
 
 /** One message as one summary line: `.github/workflows/ci.yml:12:3: reason [rule]`. */
 function formatMessage(m: ActionlintMessage): string {

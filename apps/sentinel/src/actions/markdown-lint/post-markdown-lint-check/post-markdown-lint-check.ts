@@ -16,8 +16,8 @@ import {
 import {
 	postErrorReview,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
-	SENTINEL_NAMESPACES,
 	sentinelAxiomLogUrl,
+	sentinelCheckName,
 } from "../../../utils/index.js";
 import type { MarkdownLintMessage } from "../lint-markdown/index.js";
 import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./post-markdown-lint-check.type.js";
@@ -42,7 +42,7 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * only a PR-review comment (holocron#860). Warning-severity-only findings
  * still resolve to `"neutral"` — advisory, same as before.
  */
-export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Documentation / Run markdownlint`;
+export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = sentinelCheckName("Documentation", "Run markdownlint");
 
 /** One message as one summary line: `README.md:12: reason [rule-name]`. */
 function formatMessage(m: MarkdownLintMessage): string {

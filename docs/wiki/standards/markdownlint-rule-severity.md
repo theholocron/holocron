@@ -2,7 +2,7 @@
 
 `@theholocron/markdownlint-config` assigns each active rule one of two
 severities. Severity decides how Sentinel's markdownlint check
-(`Source Quality / Documentation / Run markdownlint`) surfaces a finding:
+(`Documentation / Run markdownlint`) surfaces a finding:
 
 | Severity  | Where it surfaces                                             | Blocks merge |
 | --------- | ------------------------------------------------------------- | ------------ |

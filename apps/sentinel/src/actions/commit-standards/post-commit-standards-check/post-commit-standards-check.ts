@@ -21,14 +21,14 @@
 
 import type { CheckRunConclusion } from "@theholocron/github-client";
 
-import { SENTINEL_COMMIT_STANDARDS_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_COMMIT_STANDARDS_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { CommitViolation } from "../lint-commits/index.js";
 import type {
 	PostCommitStandardsCheckInput,
 	PostCommitStandardsCheckResult,
 } from "./post-commit-standards-check.type.js";
 
-export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Commit Standards / Run commitlint`;
+export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = sentinelCheckName("Commits", "Run commitlint");
 
 /** One violation as one summary line: `abc1234: subject may not be empty [subject-empty]`. */
 function formatViolation(v: CommitViolation): string {

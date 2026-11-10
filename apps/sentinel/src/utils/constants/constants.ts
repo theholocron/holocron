@@ -2,6 +2,7 @@ import { DOT_GITHUB_REPO, legacyFile, TEMPLATE_HOME } from "@theholocron/astrome
 import { createEnvLookup, type EnvLookup, PREFIX, withEnvPrefix } from "@theholocron/env-utils/lookup";
 
 import { sentinelAxiomDataset } from "../sentinel-axiom-dataset/index.js";
+import { sentinelCheckName } from "../sentinel-check-name/index.js";
 
 /**
  * This App's brand name. No longer prefixed onto check-run names — GitHub's
@@ -12,21 +13,6 @@ import { sentinelAxiomDataset } from "../sentinel-axiom-dataset/index.js";
  * that isn't rendered next to GitHub's own App-name UI (log messages, etc).
  */
 export const SENTINEL_APP_NAME = "Sentinel";
-
-/**
- * Humanized display form of each `astromech` task namespace prefix Sentinel
- * carries through a check-run name (D5, `tech-sentinel-enforcement.spec.md`:
- * `<namespace, humanized> / <the existing CI check's own name>` — no
- * "Sentinel /" prefix, per the constant above). Keyed by the same prefix
- * the task itself uses (`platform.commitStandards` → `platform`), so a
- * future check adds one entry here instead of a second hand-typed copy of
- * the string.
- */
-export const SENTINEL_NAMESPACES = {
-	platform: "Platform",
-	verification: "Verification",
-	sourceQuality: "Source Quality",
-} as const satisfies Record<string, string>;
 
 /**
  * `details_url` target for a check run Sentinel posts directly (no workflow
@@ -117,10 +103,10 @@ export const SENTINEL_DISPATCH_REF = TEMPLATE_HOME.ref;
  * *alongside* the existing GitHub Actions thin-caller for the same task,
  * not instead of it, until this mechanism is trusted enough to replace it.
  *
- * Check name matches the same `<Namespace> / <label> / <command>` shape
- * every other Sentinel-posted check uses (see `SENTINEL_NAMESPACES`), and
- * mirrors the native thin-caller check's own command name ("Run tsc
- * --noEmit") for a task that only ever has one dispatchable command today.
+ * Check name matches the same `Group / Action` shape every other
+ * Sentinel-posted check uses (`sentinelCheckName()`), and mirrors the native
+ * thin-caller check's own command name ("Run tsc --noEmit") for a task that
+ * only ever has one dispatchable command today.
  */
 export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
 /**
@@ -130,4 +116,4 @@ export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
  * Bucket 2 dispatch uses for `SENTINEL_DISPATCHABLE_TASK`.
  */
 export const SENTINEL_REPO_VALIDATION_TASK = "platform.repoValidation";
-export const SENTINEL_DISPATCHED_CHECK_NAME = `${SENTINEL_NAMESPACES.verification} / Type Safety / Run tsc --noEmit`;
+export const SENTINEL_DISPATCHED_CHECK_NAME = sentinelCheckName("Type Safety", "Run tsc --noEmit");

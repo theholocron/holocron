@@ -77,7 +77,7 @@ ever reaching `monorepo-nextjs-template`):
    all, independent of finding 1.
 3. **The rule type only gates on GitHub Actions workflow runs — it cannot
    reference a GitHub App's custom Check Run.** Every one of Sentinel's 12
-   posted checks (`Platform / Compliance / …`, `Source Quality / Static
+   posted checks (`Compliance / …`, `Static
 Analysis / Run eslint`, etc.) and every Codecov flag
    (`codecov/patch/<pkg>`, 20 and growing with the package count) would
    have to stay on `required_status_checks`/exact-string matching

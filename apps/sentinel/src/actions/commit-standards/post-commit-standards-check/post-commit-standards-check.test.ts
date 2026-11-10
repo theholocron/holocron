@@ -15,8 +15,8 @@ beforeAll(() => {
 });
 
 describe("postCommitStandardsCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Platform / Commit Standards / Run commitlint", () => {
-		expect(SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME).toBe("Platform / Commit Standards / Run commitlint");
+	it("names the check run Commits / Run commitlint", () => {
+		expect(SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME).toBe("Commits / Run commitlint");
 	});
 });
 

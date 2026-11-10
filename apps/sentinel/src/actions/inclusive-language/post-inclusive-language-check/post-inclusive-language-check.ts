@@ -13,7 +13,7 @@ import {
 	MAX_CHECK_RUN_ANNOTATIONS,
 } from "@theholocron/github-client";
 
-import { SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_INCLUSIVE_LANGUAGE_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { InclusiveLanguageMessage } from "../lint-inclusive-language/index.js";
 import type {
 	PostInclusiveLanguageCheckInput,
@@ -34,7 +34,7 @@ import type {
  * "the next namespace... once eslint/prettier move to Sentinel too" fits an
  * inclusive-language content check just as well as those.
  */
-export const SENTINEL_INCLUSIVE_LANGUAGE_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Inclusive Language / Run alex`;
+export const SENTINEL_INCLUSIVE_LANGUAGE_CHECK_RUN_NAME = sentinelCheckName("Inclusive Language", "Run alex");
 
 /** One message as one summary line: `README.md:3:5: reason [ruleId]`. */
 function formatMessage(m: InclusiveLanguageMessage): string {

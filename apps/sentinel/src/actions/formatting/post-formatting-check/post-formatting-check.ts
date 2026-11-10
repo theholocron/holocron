@@ -13,7 +13,7 @@ import {
 	MAX_CHECK_RUN_ANNOTATIONS,
 } from "@theholocron/github-client";
 
-import { SENTINEL_FORMATTING_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_FORMATTING_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { FormattingMessage } from "../lint-formatting/index.js";
 import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post-formatting-check.type.js";
 
@@ -30,7 +30,7 @@ import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post
  * forecast ("the next namespace... once eslint/prettier move to Sentinel
  * too") named this exact tool.
  */
-export const SENTINEL_FORMATTING_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Formatting / Run prettier`;
+export const SENTINEL_FORMATTING_CHECK_RUN_NAME = sentinelCheckName("Formatting", "Run prettier");
 
 /** One message as one summary line: `README.md:12: reason`. */
 function formatMessage(m: FormattingMessage): string {

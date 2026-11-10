@@ -28,8 +28,8 @@ beforeAll(() => {
 });
 
 describe("postMarkdownLintCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Source Quality / Documentation / Run markdownlint", () => {
-		expect(SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME).toBe("Source Quality / Documentation / Run markdownlint");
+	it("names the check run Documentation / Run markdownlint", () => {
+		expect(SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME).toBe("Documentation / Run markdownlint");
 	});
 });
 
@@ -393,7 +393,7 @@ describe("postMarkdownLintCheck — PR review for error-severity findings (holoc
 			event: "COMMENT",
 			body:
 				"1 error(s) found by markdown lint — see inline comments below.\n" +
-				"1 warning(s) also found; see the Source Quality / Documentation / Run markdownlint check run for the full list.",
+				"1 warning(s) also found; see the Documentation / Run markdownlint check run for the full list.",
 			comments: [
 				{
 					path: "README.md",

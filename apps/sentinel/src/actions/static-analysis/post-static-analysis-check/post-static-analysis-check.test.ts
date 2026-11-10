@@ -28,8 +28,8 @@ beforeAll(() => {
 });
 
 describe("postStaticAnalysisCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Source Quality / Static Analysis / Run eslint", () => {
-		expect(SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME).toBe("Source Quality / Static Analysis / Run eslint");
+	it("names the check run Static Analysis / Run eslint", () => {
+		expect(SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME).toBe("Static Analysis / Run eslint");
 	});
 });
 
@@ -414,7 +414,7 @@ describe("postStaticAnalysisCheck — PR review for error-severity findings (hol
 			event: "COMMENT",
 			body:
 				"1 error(s) found by static analysis — see inline comments below.\n" +
-				"1 warning(s) also found; see the Source Quality / Static Analysis / Run eslint check run for the full list.",
+				"1 warning(s) also found; see the Static Analysis / Run eslint check run for the full list.",
 			comments: [
 				{
 					path: "src/index.ts",

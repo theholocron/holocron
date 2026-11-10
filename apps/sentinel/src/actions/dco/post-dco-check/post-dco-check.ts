@@ -32,11 +32,11 @@
 
 import type { CheckRunConclusion } from "@theholocron/github-client";
 
-import { SENTINEL_DCO_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_DCO_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { DcoViolation } from "../lint-dco/index.js";
 import type { PostDcoCheckInput, PostDcoCheckResult } from "./post-dco-check.type.js";
 
-export const SENTINEL_DCO_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Compliance / Run Developer Certificate of Origin`;
+export const SENTINEL_DCO_CHECK_RUN_NAME = sentinelCheckName("Compliance", "Run Developer Certificate of Origin");
 
 /** One violation as one summary line: `abc1234: Ada Lovelace <ada@example.com>`. */
 function formatViolation(v: DcoViolation): string {

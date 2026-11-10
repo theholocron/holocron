@@ -18,8 +18,8 @@ beforeAll(() => {
 });
 
 describe("postInclusiveLanguageCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Source Quality / Inclusive Language / Run alex", () => {
-		expect(SENTINEL_INCLUSIVE_LANGUAGE_CHECK_RUN_NAME).toBe("Source Quality / Inclusive Language / Run alex");
+	it("names the check run Inclusive Language / Run alex", () => {
+		expect(SENTINEL_INCLUSIVE_LANGUAGE_CHECK_RUN_NAME).toBe("Inclusive Language / Run alex");
 	});
 });
 

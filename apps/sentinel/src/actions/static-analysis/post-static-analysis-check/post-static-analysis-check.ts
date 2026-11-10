@@ -15,9 +15,9 @@ import {
 
 import {
 	postErrorReview,
-	SENTINEL_NAMESPACES,
 	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
 	sentinelAxiomLogUrl,
+	sentinelCheckName,
 } from "../../../utils/index.js";
 import type { StaticAnalysisMessage } from "../lint-static-analysis/index.js";
 import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from "./post-static-analysis-check.type.js";
@@ -39,7 +39,7 @@ import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from
  * only a PR-review comment (holocron#860). Warning-severity-only findings
  * still resolve to `"neutral"` — advisory, same as before.
  */
-export const SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Static Analysis / Run eslint`;
+export const SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME = sentinelCheckName("Static Analysis", "Run eslint");
 
 /** One message as one summary line: `src/index.ts:12:3: reason [rule-id]`. */
 function formatMessage(m: StaticAnalysisMessage): string {

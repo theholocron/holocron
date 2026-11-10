@@ -1,6 +1,6 @@
 ---
 id: SPEC-0041
-status: draft
+status: superseded
 issue: theholocron/holocron#989
 blocked-by: []
 related:
@@ -10,6 +10,11 @@ discussion:
 ---
 
 # CI / Sentinel check-name taxonomy rename
+
+> **Superseded** by `ci-sentinel-check-names` (#2036). The Actions side was settled by `ci-flat-task-vocabulary` (flat
+> task ids, two-segment check contexts), which left the seven new categories below with nothing to name. Sentinel's checks
+> move to two tiers, `Group / Action`, with one casing rule, and not to the three-tier `Category / Group / Action` this
+> draft proposed. The mapping below is kept for the reasoning.
 
 Target mapping proposed in review (table reproduced in full below under
 [Target mapping](#target-mapping-as-proposed)). Current taxonomy — `Delivery`,
