@@ -144,6 +144,10 @@ export default defineConfig({
 		// ones. `holocron project setup` brings it in line, `doctor project` checks it, and the hourly
 		// `reconcile-projects` task (see `tasks`) keeps statuses true to the blocked-by links.
 		projects: ["github", { boards: [{ template: "roadmap", name: "v5" }] }],
+		// Ideas: the Obsidian vault "The Holocron" in iCloud Drive, the inbox in front of the issue (SPEC-0072, #1994).
+		// `holocron ideas sync` files the notes whose status is `in-progress` as issues. A machine whose vault is
+		// elsewhere sets HOLOCRON_IDEAS_DIR, which wins.
+		ideas: ["obsidian", { vault: "The Holocron" }],
 		// Notifications: the Holocron Discord server. `holocron notifications setup`
 		// applies the layout below (idempotent; --dry-run previews it). This block
 		// lives in ONE repo on purpose -- a server layout is org-level, so it must

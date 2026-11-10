@@ -187,6 +187,18 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			options: { environment: "Holocron - GitHub Actions variables" },
 		});
 
+		// And (#2022): the `ideas` provider, the Obsidian vault the inbox of ideas lives in (SPEC-0072). It is the one
+		// provider added after the snapshot was taken.
+		expect(expectedProviders.ideas).toBeUndefined();
+		expectedProviders.ideas = {
+			cardinality: "single",
+			tuple: {
+				provider: "obsidian",
+				packageName: "@theholocron/holocron-plugin-obsidian",
+				options: { vault: "The Holocron" },
+			},
+		};
+
 		// And (#1851): the registered GitHub App instances `doctor github-app` checks.
 		(expected as unknown as { githubApps: unknown }).githubApps = [
 			{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" },
