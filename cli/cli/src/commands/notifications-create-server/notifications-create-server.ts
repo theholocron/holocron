@@ -86,7 +86,7 @@ export async function runNotificationsCreateServer(
 		});
 		if (preview.status === "fail") {
 			return refuse(
-				`no server was created: the layout cannot be applied (${preview.message ?? preview.failures[0]?.message ?? "see `holocron notifications setup --dry-run`"})`
+				`no server was created: the layout cannot be applied (${preview.message ?? preview.failures[0]?.message ?? "see `holocron setup notifications --dry-run`"})`
 			);
 		}
 	}
@@ -177,7 +177,7 @@ export async function runNotificationsCreateServer(
 		});
 		if (setup.status === "fail") {
 			return refuse(
-				`applying the layout to ${serverId} failed; fix it and run \`holocron notifications setup\`, then \`create-server --resume\` (the bot still owns the server)`
+				`applying the layout to ${serverId} failed; fix it and run \`holocron setup notifications\`, then \`create-server --resume\` (the bot still owns the server)`
 			);
 		}
 		ok++;

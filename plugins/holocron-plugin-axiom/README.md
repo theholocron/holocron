@@ -9,7 +9,7 @@ plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 > This plugin does **not** ship log lines. `@theholocron/observability/logger`'s
 > Axiom transport reads `HOLOCRON_AXIOM_TOKEN` / `HOLOCRON_AXIOM_DATASET`
 > directly at startup. The `logs` capability exists only for the
-> management surface — `holocron repo setup` provisions the aggregation
+> management surface — `holocron setup` provisions the aggregation
 > datasets and `holocron doctor` checks connectivity.
 
 ## Install
@@ -49,7 +49,7 @@ token as `HOLOCRON_AXIOM_TOKEN` (or `AXIOM_TOKEN`) in the workflow env.
 }
 ```
 
-No options are required. `holocron repo setup` provisions the CLI's dataset (`holocron`)
+No options are required. `holocron setup` provisions the CLI's dataset (`holocron`)
 named by `HOLOCRON_AXIOM_DATASET` / `AXIOM_DATASET`; every environment of the CLI ships to
 it and is told apart by the `env` field on each line. `holocron doctor` checks
 the same dataset. An explicit `logs: ["axiom", { "dataset": "my-dataset" }]`

@@ -23,6 +23,7 @@ vi.mock("../resolve-org/index.js", () => ({
 import { listCommand } from "../list/list.command.js";
 import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
+import { setupCommand } from "../setup/setup.command.js";
 import { projectCommand } from "./index.js";
 
 const go = (...args: string[]) => runCommand(projectCommand, ["project", ...args]);
@@ -30,9 +31,11 @@ const go = (...args: string[]) => runCommand(projectCommand, ["project", ...args
 const goSub = (sub: string, ...rest: string[]) =>
 	sub === "create"
 		? runCommand(newCommand, ["new", "project", ...rest])
-		: sub === "list"
-			? runCommand(listCommand, ["list", "projects", ...rest])
-			: go(sub, ...rest);
+		: sub === "setup"
+			? runCommand(setupCommand, ["setup", "project", ...rest])
+			: sub === "list"
+				? runCommand(listCommand, ["list", "projects", ...rest])
+				: go(sub, ...rest);
 const ok = { status: "ok", summary: { ok: 1, fail: 0, skip: 0 } };
 
 beforeEach(() => {
@@ -77,7 +80,7 @@ describe("project commands", () => {
 	});
 
 	it("setup passes --dry-run", async () => {
-		await runCommand(projectCommand, ["project", "setup", "--dry-run"]);
+		await runCommand(setupCommand, ["setup", "project", "--dry-run"]);
 		expect(runProjectSetup).toHaveBeenCalledWith(
 			expect.objectContaining({ context: expect.objectContaining({ dryRun: true }) })
 		);
@@ -85,7 +88,7 @@ describe("project commands", () => {
 
 	it("exits non-zero when a run fails", async () => {
 		runProjectSetup.mockResolvedValue({ status: "fail", summary: { ok: 0, fail: 1, skip: 0 } });
-		await go("setup");
+		await goSub("setup");
 		expect(process.exitCode).toBe(1);
 	});
 

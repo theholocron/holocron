@@ -5,7 +5,7 @@ export type WorkflowHeaderFormat = "yaml" | "cjs" | "shebang";
 export interface CreateHeaderOptions {
 	/** Path within theholocron/holocron that owns the file being generated. */
 	source: string;
-	/** CLI command that produces the file. Defaults to "holocron repo setup". */
+	/** CLI command that produces the file. Defaults to "holocron setup". */
 	tool?: string;
 	/** Set true only when writing to theholocron/.github itself. */
 	forPrimary?: boolean;

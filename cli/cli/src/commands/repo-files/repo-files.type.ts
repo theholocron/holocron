@@ -2,7 +2,7 @@ import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 
-/** What decides the files `repo setup` and `sync` write to disk: the config and the checkout, and nothing remote. */
+/** What decides the files `setup` and `sync` write to disk: the config and the checkout, and nothing remote. */
 export interface RepoFilesInput {
 	loaded: LoadedConfig;
 	/** The directory the config was loaded for (`--cwd`); the git root is found from it. */
@@ -18,7 +18,7 @@ export interface GeneratedRepoFile {
 	/** Relative to the checkout (`repoRoot`), `/`-separated. */
 	path: string;
 	content: string;
-	/** The step name `repo setup` reports. */
+	/** The step name `setup` reports. */
 	step: string;
 	/** The step name `sync` reports. */
 	syncStep: string;

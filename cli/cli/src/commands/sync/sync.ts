@@ -410,7 +410,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		}
 
 		if (stepName === "workflows") {
-			// The same files `repo setup` writes, from the same function (`generateWorkflowFiles`).
+			// The same files `setup` writes, from the same function (`generateWorkflowFiles`).
 			const entries = generateWorkflowFiles({ loaded: input.loaded, repoRoot: input.context.repoRoot, logger });
 			if ((config.tasks ?? []).length === 0) {
 				steps.push({
@@ -500,7 +500,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 			}
 
 			// turbo.json and the two edits that go with it (pnpm-workspace.yaml, the root package.json) come from the
-			// same function `repo setup` uses (`generateTurboFiles`), see there for why the edits exist.
+			// same function `setup` uses (`generateTurboFiles`), see there for why the edits exist.
 			for (const entry of await generateTurboFiles({
 				loaded: input.loaded,
 				repoRoot: input.context.repoRoot,

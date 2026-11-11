@@ -183,7 +183,7 @@ export function layoutSecretProblem(layout: NotificationsLayout): string | undef
 	return undefined;
 }
 
-/** Ensure one channel and, if asked, its webhook + secret. Shared with `notifications setup`. */
+/** Ensure one channel and, if asked, its webhook + secret. Shared with `setup notifications`. */
 export async function provisionChannel(deps: ProvisionDeps, spec: ChannelSpec): Promise<ChannelOutcome> {
 	const { notifications, secrets, scope, dryRun, print, tally } = deps;
 	const webhookCfg = spec.webhook || undefined;

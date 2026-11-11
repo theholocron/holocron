@@ -16,7 +16,7 @@ export interface ChecklyProbeDeps {
 	timeoutMs?: number;
 }
 
-/** The alert channel the probes use: `HOLOCRON_CHECKLY_PROBE_CHANNEL`, else the one `notifications setup` makes for #uptime. */
+/** The alert channel the probes use: `HOLOCRON_CHECKLY_PROBE_CHANNEL`, else the one `setup notifications` makes for #uptime. */
 export const DEFAULT_CHANNEL = "Message to #uptime";
 export const channelName = (deps: ChecklyProbeDeps): string =>
 	createEnvLookup(deps.env).get("HOLOCRON_CHECKLY_PROBE_CHANNEL") ?? DEFAULT_CHANNEL;

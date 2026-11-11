@@ -10,7 +10,9 @@ import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
+import { applyCommand } from "../commands/apply/index.js";
 import { checkCommand } from "../commands/check/index.js";
+import { cleanupCommand } from "../commands/cleanup/index.js";
 import { cloneCommand } from "../commands/clone/clone.command.js";
 import { configShowCommand } from "../commands/config-show/index.js";
 import { commandsInContext } from "../commands/contexts/index.js";
@@ -28,11 +30,12 @@ import { probeCommand } from "../commands/probe/index.js";
 import { projectCommand } from "../commands/project/index.js";
 import { providerCommand } from "../commands/provider/index.js";
 import { removeCommand } from "../commands/remove/index.js";
-import { repoCommand } from "../commands/repo/repo.command.js";
 import { resolveCommand } from "../commands/resolve/index.js";
 import { runCommand } from "../commands/run/run.command.js";
+import { setupCommand } from "../commands/setup/setup.command.js";
 import { skillsCommand } from "../commands/skills/index.js";
 import { syncCommand } from "../commands/sync/sync.command.js";
+import { upgradeCommand } from "../commands/upgrade/index.js";
 import { buildCliLogger, getRunId, reportError } from "../observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "../observability/telemetry/index.js";
 import { ownPackageJson } from "./own-package-json.js";
@@ -146,7 +149,10 @@ try {
 		.command(checkCommand as never)
 		.command(exportCommand as never)
 		.command(menuCommand(CLI_VERSION) as never)
-		.command(repoCommand as never)
+		.command(setupCommand as never)
+		.command(upgradeCommand as never)
+		.command(cleanupCommand as never)
+		.command(applyCommand as never)
 		.command(newCommand as never)
 		.command(listCommand as never)
 		.command(removeCommand as never)

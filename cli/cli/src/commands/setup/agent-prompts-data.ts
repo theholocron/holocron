@@ -1,7 +1,7 @@
 /**
  * Canonical AI engineering workflow role prompts.
  *
- * Written to `.agents/prompts/<role>.md` by `holocron repo setup` when `agent` is
+ * Written to `.agents/prompts/<role>.md` by `holocron setup` when `agent` is
  * configured. Paths are gitignored and regenerated on every setup run so the
  * content always reflects the current CLI version.
  *
@@ -141,7 +141,7 @@ confidently, identify the missing information instead of inventing it.
 
 Use MADR format. Start from the \`adr\` skill's template,
 \`.agents/skills/adr/assets/template.md\`, and number the record sequentially.
-\`holocron repo setup\` installs that skill when \`adr\` is listed under
+\`holocron setup\` installs that skill when \`adr\` is listed under
 \`skills\` in \`holocron.config\` — if the file is missing, add it there and
 re-run setup.
 
@@ -360,7 +360,7 @@ decision, the options that were considered, and the rationale for the choice mad
 ## Creating a new decision
 
 Start from the template that ships with the \`adr\` skill,
-\`.agents/skills/adr/assets/template.md\` (installed by \`holocron repo setup\`
+\`.agents/skills/adr/assets/template.md\` (installed by \`holocron setup\`
 when \`adr\` is listed under \`skills\` in \`holocron.config\`), and number the
 record sequentially:
 

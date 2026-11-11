@@ -2,6 +2,6 @@
 
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · cli/astromech/src/templates/configs/commit-msg/create-config.ts
-# Tool:    holocron repo setup
+# Tool:    holocron setup
 # Changes: edit source in theholocron/holocron
 node cli/cli/dist/cli.mjs run lint commit-msg "$1"

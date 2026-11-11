@@ -1,6 +1,6 @@
 import type { OrgProperty } from "@theholocron/github-client";
 
-/** The values `repo setup` sends for `true_false` properties; anything else is rejected. */
+/** The values `setup` sends for `true_false` properties; anything else is rejected. */
 const BOOLEANS = new Set(["true", "false"]);
 
 /**

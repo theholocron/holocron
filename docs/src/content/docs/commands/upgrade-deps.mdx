@@ -1,10 +1,10 @@
 ---
-title: "repo upgrade deps"
+title: "upgrade deps"
 description: Bump every @theholocron/* pin to its latest version and migrate holocron.config.ts.
 ---
 
 ```bash
-holocron repo upgrade deps [--pins-only] [--dry-run]
+holocron upgrade deps [--pins-only] [--dry-run]
 ```
 
 Bumps every `@theholocron/*` pin in `pnpm-workspace.yaml` (the default `catalog:` and every named `catalogs.*`) to its latest published version. It then migrates `holocron.config.ts` from the 7.x preset shape (`const { repo, workflows } = node()`, `repo.requiredChecks` and `workflows:`) to the current composed-preset API (`const preset = node()`, `...preset`, `tasks:` and `extraRequiredChecks:`).
@@ -22,13 +22,13 @@ The migration is mechanical transforms only. Review the result, then run `pnpm i
 
 ```bash
 # Bump the pins and migrate the config
-holocron repo upgrade deps
+holocron upgrade deps
 
 # Pins only
-holocron repo upgrade deps --pins-only
+holocron upgrade deps --pins-only
 
 # Preview
-holocron repo upgrade deps --dry-run
+holocron upgrade deps --dry-run
 ```
 
-Related: [`repo upgrade node`](/holocron/commands/repo-upgrade-node/).
+Related: [`upgrade node`](/holocron/commands/upgrade-node/).

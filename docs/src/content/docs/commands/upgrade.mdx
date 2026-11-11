@@ -1,0 +1,11 @@
+---
+title: "upgrade"
+description: Upgrade toolchain version pins across the repo.
+---
+
+The `upgrade` subcommand group contains commands for updating version pins across a repo.
+
+| Command                                            | What it does                                                                           |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| [`upgrade node`](/holocron/commands/upgrade-node/) | Update every Node.js version pin to a new major                                        |
+| [`upgrade deps`](/holocron/commands/upgrade-deps/) | Bump every `@theholocron/*` pin to its latest version and migrate `holocron.config.ts` |

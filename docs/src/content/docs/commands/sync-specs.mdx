@@ -107,7 +107,7 @@ A post is made while its pull request is open, so a pull request that closes wit
 - **Only a post this pull request made.** The command runs on the base branch, so a file the base branch already has keeps its post (the pull request only proposed a change to it).
 - **Merging changes nothing here.** A merged pull request lands the file with the status its author wrote; accepted stays the gatekeepers' retag.
 
-Because the checkout is the base branch (nothing from a closed pull request's head runs with the bot token), the command reads nothing from the files: it needs only their paths. The forum needs a `withdrawn` tag, which `holocron notifications setup` creates from the layout and `holocron doctor notifications` checks.
+Because the checkout is the base branch (nothing from a closed pull request's head runs with the bot token), the command reads nothing from the files: it needs only their paths. The forum needs a `withdrawn` tag, which `holocron setup notifications` creates from the layout and `holocron doctor notifications` checks.
 
 ## Another service
 

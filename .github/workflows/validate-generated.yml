@@ -6,7 +6,7 @@
 
 name: Validate Generated Files
 
-# Generated files (#1405): fails when a file `holocron repo setup` / `holocron sync` writes from the config
+# Generated files (#1405): fails when a file `holocron setup` / `holocron sync` writes from the config
 # differs from the committed copy, differs the second time it is generated, or when a workflow in .github/workflows is
 # neither generated nor marked "# HAND-MAINTAINED". Checked by `holocron probe generated check`, which needs no token.
 #

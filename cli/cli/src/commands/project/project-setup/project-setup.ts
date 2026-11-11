@@ -1,5 +1,5 @@
 /**
- * `holocron project setup` — make each board `providers.projects.boards` declares match its template: find it by name
+ * `holocron setup project` — make each board `providers.projects.boards` declares match its template: find it by name
  * among the open boards, make it from its template when it is missing, then `ensure()` it. What the provider cannot do
  * itself comes back as a `todo`, and every todo fails the run until a person has done it. A board that fails does not
  * stop the next one.
@@ -15,7 +15,7 @@ import { loadTemplates } from "../load-templates/index.js";
 import { openProjects, type ProjectReport, type ProjectRunInput } from "../open-projects/index.js";
 import { createProjectRows } from "../project-rows/index.js";
 
-const COMMAND = "project setup";
+const COMMAND = "setup project";
 
 export async function runProjectSetup(input: ProjectRunInput): Promise<ProjectReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -23,7 +23,7 @@ export async function runProjectSetup(input: ProjectRunInput): Promise<ProjectRe
 	const dryRun = input.context.dryRun ?? false;
 
 	const { projects, options } = await openProjects(input, COMMAND);
-	print(style.header(`Holocron project setup — ${options.owner}${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron setup project — ${options.owner}${dryRun ? " (dry-run)" : ""}`));
 	print("");
 
 	if (options.boards.length === 0) {

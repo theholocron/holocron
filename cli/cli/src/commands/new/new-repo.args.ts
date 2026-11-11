@@ -72,7 +72,7 @@ export const newRepoArgs = (y: Argv<GlobalArgs>) =>
 		.option("verify", {
 			type: "boolean",
 			default: true,
-			describe: "Run pnpm install + holocron repo setup after bootstrapping (--no-verify skips)",
+			describe: "Run pnpm install + holocron setup after bootstrapping (--no-verify skips)",
 		});
 
 export type NewRepoArgs = InferArgs<typeof newRepoArgs>;

@@ -113,10 +113,10 @@ export function comlinkProbes(deps: ComlinkProbeDeps): PluginProbes {
 				if (!workers?.secretNames) throw new Error("the `workers` provider cannot list a Worker's secrets");
 				const have = new Set(await workers.secretNames(script));
 				const need: Array<[string, string]> = [
-					[relayWebhookBinding(source), "run `holocron notifications setup`"],
+					[relayWebhookBinding(source), "run `holocron setup notifications`"],
 					[
 						relaySecretBinding(source),
-						"add it to the vault and run `holocron sync secrets`, or `notifications setup`",
+						"add it to the vault and run `holocron sync secrets`, or `setup notifications`",
 					],
 				];
 				for (const [name, fix] of need) {

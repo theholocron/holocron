@@ -15,7 +15,7 @@ export const upgradeNodeCommand: CommandModule<GlobalArgs, UpgradeNodeArgs> = {
 	describe: "Scan the repo and update every Node.js version pin to a new major",
 	builder: upgradeNodeArgs,
 	handler: async (argv) => {
-		const [to] = await promptForPositionals(getEntry("repo upgrade node"), argv as Record<string, unknown>);
+		const [to] = await promptForPositionals(getEntry("upgrade node"), argv as Record<string, unknown>);
 		// Read upgrade.node.extra from holocron.config.json if present.
 		// We read the raw file directly rather than through loadConfig because
 		// the upgrade config is not part of the plugin schema.

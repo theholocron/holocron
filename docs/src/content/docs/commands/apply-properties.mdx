@@ -1,18 +1,18 @@
 ---
-title: "repo properties apply"
+title: "apply properties"
 description: Add the capabilities the organization's holocron_capabilities property does not allow yet.
 ---
 
 ```bash
-holocron repo properties apply            # asks first
-holocron repo properties apply --yes      # no question
-holocron repo properties apply --dry-run  # print what would be added, change nothing
+holocron apply properties            # asks first
+holocron apply properties --yes      # no question
+holocron apply properties --dry-run  # print what would be added, change nothing
 ```
 
-`holocron_capabilities` is an organization custom property whose allowed values are an organization setting. Every capability the CLI defines has to be one of them before a repo can declare it, or `repo setup` is refused with a `422` when it syncs properties. [`doctor repo`](/holocron/commands/doctor-repo/) checks that and names this command; this is the separate step that fixes it.
+`holocron_capabilities` is an organization custom property whose allowed values are an organization setting. Every capability the CLI defines has to be one of them before a repo can declare it, or `setup` is refused with a `422` when it syncs properties. [`doctor repo`](/holocron/commands/doctor-repo/) checks that and names this command; this is the separate step that fixes it.
 
 ```text
-  · repo properties apply  dry run: would add tunnels
+  · apply properties  dry run: would add tunnels
 ```
 
 ## It writes, so it asks

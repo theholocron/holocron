@@ -114,8 +114,8 @@ async function checkBoards(input: RunDoctorProjectInput, loader: PluginLoader): 
 						closed ? "the board is closed" : "no open board has this name",
 						[
 							closed
-								? "reopen it, or run `holocron project setup` to make a new one"
-								: "run `holocron project setup`",
+								? "reopen it, or run `holocron setup project` to make a new one"
+								: "run `holocron setup project`",
 						]
 					)
 				);

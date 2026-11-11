@@ -9,7 +9,7 @@ import { runNotificationsDedupe } from "./index.js";
 import { type NotificationsDedupeArgs, notificationsDedupeArgs } from "./notifications-dedupe.args.js";
 
 export const notificationsDedupeCommand: CommandModule<GlobalArgs, NotificationsDedupeArgs> = {
-	command: "dedupe [channel]",
+	command: "posts [channel]",
 	describe: "Delete the extra posts of a forum that has more than one post for the same key",
 	builder: notificationsDedupeArgs,
 	handler: async (argv) => {

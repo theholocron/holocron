@@ -66,7 +66,7 @@ that need to split the URL into its parts.
 
 ## Provisioning
 
-`holocron notifications setup` and `holocron new channel` create
+`holocron setup notifications` and `holocron new channel` create
 channels, roles and webhooks through the `notifications` capability's `ensure*`
 methods. They use the **Holonet bot**, not a webhook URL:
 

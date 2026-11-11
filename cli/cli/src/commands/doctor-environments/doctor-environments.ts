@@ -1,7 +1,7 @@
 /**
  * `holocron doctor environments` — do the deployment environments the config relies on exist?
  *
- * Read-only. The environments that must exist are the ones `repo setup` creates (when an `environments`
+ * Read-only. The environments that must exist are the ones `setup` creates (when an `environments`
  * provider is configured) and every environment `repo.secrets.environments` names, since a secret can only be
  * set on one that exists. An environment that exists but is not expected is never a problem. With no provider and
  * nothing named, nothing is declared; with no provider but some named, the row is a skip with the reason.
@@ -64,7 +64,7 @@ async function checkEnvironments(loader: PluginLoader, named: string[]): Promise
 			? make("ok", "none declared")
 			: make("skip", whyMissing(loader, "environments", "no `environments` provider to check them with"));
 	}
-	// The provider creates these on `repo setup`, so they must be there, along with any a secret is set on.
+	// The provider creates these on `setup`, so they must be there, along with any a secret is set on.
 	const names = [...new Set([...SETUP_ENVIRONMENTS, ...named].map((n) => n.toLowerCase()))];
 	try {
 		const have = await (loader.get("environments") as Environments).listEnvironments();

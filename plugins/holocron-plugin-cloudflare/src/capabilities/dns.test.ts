@@ -119,7 +119,7 @@ describe("CloudflareDns.upsertRecord — a transient Cloudflare failure (#1398)"
 	it("creates the record after the list of existing records answered 500 once", async () => {
 		const { dns, calls } = makeDns([
 			cfOk([zone]), // zone lookup
-			unavailable(), // list — the failure repo setup hit
+			unavailable(), // list — the failure setup hit
 			cfOk([]), // list again — no match
 			cfOk(record), // create
 		]);

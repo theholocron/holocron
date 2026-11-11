@@ -9,7 +9,7 @@
  * Three separate invocations, different frequency:
  *   - `pnpm run deploy` (recurring, every real deploy):
  *     build → stage → `holocron deploy --target production`.
- *   - `holocron repo setup --cwd apps/sentinel` (one-time, manual):
+ *   - `holocron setup --cwd apps/sentinel` (one-time, manual):
  *     attaches the custom domain to the Vercel project and hands any
  *     verification CNAME to the `dns` provider — `source` being
  *     unconfigured means every repo-settings step is skipped
@@ -50,7 +50,7 @@
  * otherwise get pushed as pointless repo secrets on `holocron` (nothing
  * in this repo's own CI reads them).
  *
- * `dns`: Cloudflare — receives the CNAME challenge `holocron repo setup`
+ * `dns`: Cloudflare — receives the CNAME challenge `holocron setup`
  * gets back from `Deployment.ensureCustomDomain()` when it adds
  * `sentinel.theholocron.dev` to the Vercel project, via
  * `Dns.upsertRecord()`.

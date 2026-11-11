@@ -8,7 +8,7 @@ import { tokenContext } from "../token-context/index.js";
 import { runPropertiesApply } from "./run-properties-apply/index.js";
 
 export const repoPropertiesApplyCommand: CommandModule<GlobalArgs, GlobalArgs & { yes?: boolean }> = {
-	command: "apply",
+	command: "properties",
 	describe: "Add the capabilities the organization's holocron_capabilities property does not allow yet",
 	builder: (y: Argv<GlobalArgs>) => y.option("yes", { type: "boolean", describe: "Add without asking" }) as never,
 	handler: async (argv) => {

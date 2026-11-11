@@ -89,7 +89,7 @@ A deployed service needs `HOLOCRON_ENVIRONMENT` (or `ENVIRONMENT`) set where it 
 
 ## What the commands emit
 
-`repo setup`, `doctor`, `sync`, `sync secrets`, `deploy`, and `deploy cleanup-preview`
+`setup`, `doctor`, `sync`, `sync secrets`, `deploy`, and `deploy cleanup-preview`
 emit a structured line per unit of work — a `<command>: start`, one line
 per step / row / file (with `capability`, `step`, `status`, `detail`), and
 a `<command>: done` carrying the `ok` / `fail` / `skip` counts. Pull a
@@ -173,7 +173,7 @@ Store the token in the OS keyring once:
 holocron new token axiom.theholocron <TOKEN>
 ```
 
-That token backs both `holocron repo setup` / `holocron doctor` (the `logs`
+That token backs both `holocron setup` / `holocron doctor` (the `logs`
 capability, which provisions and checks the dataset) **and** the logger's
 Axiom transport. With `HOLOCRON_AXIOM_DATASET` in your environment, or reachable through
 the credential chain, local runs then ship too, as `env: "local"`.

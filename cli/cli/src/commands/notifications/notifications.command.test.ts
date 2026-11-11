@@ -34,13 +34,17 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { cleanupCommand } from "../cleanup/cleanup.command.js";
 import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
+import { setupCommand } from "../setup/setup.command.js";
 import { syncCommand } from "../sync/sync.command.js";
 import { notificationsCommand } from "./notifications.command.js";
 
 const go = (args: string[]) => runCommand(notificationsCommand, ["notifications", ...args]);
 const goNew = (args: string[]) => runCommand(newCommand, ["new", ...args]);
+const goSetup = (args: string[]) => runCommand(setupCommand, ["setup", ...args]);
+const goCleanup = (args: string[]) => runCommand(cleanupCommand, ["cleanup", ...args]);
 const goSync = (args: string[]) => runCommand(syncCommand, ["sync", ...args]);
 const context = { repoRoot: "/repo", dryRun: false, cliToken: "t", org: "acme" };
 
@@ -56,14 +60,20 @@ afterEach(() => void (process.exitCode = undefined));
 
 /** Every command that provisions notifications loads the config with the tokens and the org, and exits 1 when its run failed. */
 describe.each([
-	["notifications setup", runSetup, "notifications", ["setup"]],
+	["setup notifications", runSetup, "setup", ["notifications"]],
 	["new server", runCreateServer, "new", ["server", "--owner", "someone"]],
 	["notifications link", runLink, "notifications", ["link"]],
 	["sync roles", runSyncRoles, "sync", ["roles"]],
-	["notifications dedupe", runDedupe, "notifications", ["dedupe"]],
+	["cleanup posts", runDedupe, "cleanup", ["posts"]],
 	["new channel", runChannelAdd, "new", ["channel", "alerts"]],
 ] as const)("%s", (_name, run, parent, args) => {
-	const goParent = (rest: string[]) => (parent === "new" ? goNew(rest) : parent === "sync" ? goSync(rest) : go(rest));
+	const goParent = (rest: string[]) => {
+		if (parent === "new") return goNew(rest);
+		if (parent === "sync") return goSync(rest);
+		if (parent === "setup") return goSetup(rest);
+		if (parent === "cleanup") return goCleanup(rest);
+		return go(rest);
+	};
 
 	it("runs with the context from the tokens and the org", async () => {
 		await goParent([...args]);
@@ -85,10 +95,10 @@ describe.each([
 });
 
 describe("notifications options", () => {
-	it("setup passes --scope and --provider only when given", async () => {
-		await go(["setup"]);
+	it("setup notifications passes --scope and --provider only when given", async () => {
+		await goSetup(["notifications"]);
 		expect("scope" in runSetup.mock.calls[0]![0] || "provider" in runSetup.mock.calls[0]![0]).toBe(false);
-		await go(["setup", "--scope", "env=stg", "--provider", "discord"]);
+		await goSetup(["notifications", "--scope", "env=stg", "--provider", "discord"]);
 		expect(runSetup.mock.calls[1]![0]).toMatchObject({
 			scope: { kind: "environment", name: "stg" },
 			provider: "discord",
@@ -123,11 +133,11 @@ describe("notifications options", () => {
 		expect("provider" in runSyncRoles.mock.calls[1]![0]).toBe(false);
 	});
 
-	it("dedupe passes the channel, --provider and --yes only when given", async () => {
-		await go(["dedupe"]);
+	it("cleanup posts passes the channel, --provider and --yes only when given", async () => {
+		await goCleanup(["posts"]);
 		const bare = runDedupe.mock.calls[0]![0];
 		expect(["channel", "provider", "yes"].some((k) => k in bare)).toBe(false);
-		await go(["dedupe", "prs", "--provider", "discord", "--yes"]);
+		await goCleanup(["posts", "prs", "--provider", "discord", "--yes"]);
 		expect(runDedupe.mock.calls[1]![0]).toMatchObject({ channel: "prs", provider: "discord", yes: true });
 	});
 

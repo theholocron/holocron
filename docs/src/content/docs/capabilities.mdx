@@ -167,7 +167,7 @@ DNS record management. Implemented by: [Cloudflare](./plugins/cloudflare).
 
 Error tracking — project provisioning and DSN retrieval. Implemented by: [Sentry](./plugins/sentry).
 
-**Self-contained:** activates automatically when `HOLOCRON_SENTRY_DSN` (fallback: `SENTRY_DSN`) is present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron repo setup` provisioning and `holocron doctor` checks — not for runtime activation.
+**Self-contained:** activates automatically when `HOLOCRON_SENTRY_DSN` (fallback: `SENTRY_DSN`) is present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
 
 | Method                 | Description                                        |
 | ---------------------- | -------------------------------------------------- |
@@ -179,7 +179,7 @@ Error tracking — project provisioning and DSN retrieval. Implemented by: [Sent
 
 Log aggregation — ships structured log output to an external service. Implemented by: [Axiom](./plugins/axiom).
 
-**Self-contained:** activates automatically when `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` (fallbacks: `AXIOM_TOKEN` + `AXIOM_DATASET`) are present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron repo setup` provisioning and `holocron doctor` checks — not for runtime activation.
+**Self-contained:** activates automatically when `HOLOCRON_AXIOM_TOKEN` + `HOLOCRON_AXIOM_DATASET` (fallbacks: `AXIOM_TOKEN` + `AXIOM_DATASET`) are present in the environment. A provider entry in `holocron.config` is only needed to enable `holocron setup` provisioning and `holocron doctor` checks — not for runtime activation.
 
 | Method            | Description                                        |
 | ----------------- | -------------------------------------------------- |
@@ -227,14 +227,14 @@ Send messages. Implemented by: [Discord](./plugins/discord), [Slack](./plugins/s
 
 | Group                        | Methods                                                                                                                                                                                                     | Used by                                                                                                                                                              |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server as code               | `ensureCategory`, `ensureChannel`, `ensureWebhook`, `ensureRole`, `ensureServer`, `ensureWelcome`, `ensureOnboarding`, `ensureApplication`, `ensureEveryone`, `ensurePinned`, `preflight`, `validateLayout` | [`notifications setup`](/holocron/commands/notifications-setup/) and `channel add`. All are idempotent: they look a resource up by name and change only what differs |
+| Server as code               | `ensureCategory`, `ensureChannel`, `ensureWebhook`, `ensureRole`, `ensureServer`, `ensureWelcome`, `ensureOnboarding`, `ensureApplication`, `ensureEveryone`, `ensurePinned`, `preflight`, `validateLayout` | [`setup notifications`](/holocron/commands/setup-notifications/) and `channel add`. All are idempotent: they look a resource up by name and change only what differs |
 | Server lifecycle and members | `createServer`, `inviteLink`, `hasMember`, `transferServer`, `serverOwner`, `roleMembers`, `addRoleMember`, `removeRoleMember`, `signIn`                                                                    | `new server`, `sync roles` and `link`                                                                                                                                |
 | Checks                       | `whoami`, `checkDelivery`, `holdsPermission`, `postMessage`                                                                                                                                                 | [`doctor notifications`](/holocron/commands/doctor-notifications/), including `--post`                                                                               |
 | Discussion posts             | `ensureDiscussion`, `readDiscussion`, `updateDiscussion`                                                                                                                                                    | [`sync specs`](/holocron/commands/sync-specs/)                                                                                                                       |
 
 The provisioning methods use the provider's **bot** credential, and `send` uses a **webhook URL**: for Discord they are `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_DISCORD_WEBHOOK`.
 
-Workflows do not call the capability at all. They post with the `notify` action and the `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` secrets that `notifications setup` stores. Which workflow writes to which channel, the `notify` action's inputs, `check-notify` and the `workflow_run` Notifications workflow are on the [Discord plugin page](/holocron/plugins/discord/#posting-from-github-actions).
+Workflows do not call the capability at all. They post with the `notify` action and the `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` secrets that `setup notifications` stores. Which workflow writes to which channel, the `notify` action's inputs, `check-notify` and the `workflow_run` Notifications workflow are on the [Discord plugin page](/holocron/plugins/discord/#posting-from-github-actions).
 
 ### `analytics`
 

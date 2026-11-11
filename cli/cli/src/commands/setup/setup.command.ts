@@ -1,8 +1,10 @@
-import type { CommandModule } from "yargs";
+import type { Argv, CommandModule } from "yargs";
 
 import { loadConfig } from "../../config/index.js";
 import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import { type GlobalArgs } from "../global-args/index.js";
+import { notificationsSetupCommand } from "../notifications-setup/notifications-setup.command.js";
+import { projectSetupCommand } from "../project/project-setup/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
 import { runSetup } from "./index.js";
@@ -11,7 +13,10 @@ import { type SetupArgs, setupArgs } from "./setup.args.js";
 export const setupCommand: CommandModule<GlobalArgs, SetupArgs> = {
 	command: "setup",
 	describe: "Apply infra setup actions across every configured capability",
-	builder: setupArgs,
+	builder: (y: Argv<GlobalArgs>) =>
+		setupArgs(y)
+			.command(notificationsSetupCommand as never)
+			.command(projectSetupCommand as never),
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;

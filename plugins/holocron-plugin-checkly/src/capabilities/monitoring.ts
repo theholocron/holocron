@@ -6,7 +6,7 @@
  * partial match) narrows to candidates, then an exact-name match picks
  * the one to update. `checks` carries whatever this provider was
  * constructed with (from the provider config tuple's second argument —
- * same place `Deployment.domain` comes from) for `holocron repo setup`
+ * same place `Deployment.domain` comes from) for `holocron setup`
  * to loop over generically.
  */
 

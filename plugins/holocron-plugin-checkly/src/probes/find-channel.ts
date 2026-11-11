@@ -11,7 +11,7 @@ export async function findChannel(client: ChecklyClient, deps: ChecklyProbeDeps)
 	);
 	if (!channel) {
 		throw new Error(
-			`no alert channel named "${name}" (run \`holocron notifications setup\`, or set HOLOCRON_CHECKLY_PROBE_CHANNEL)`
+			`no alert channel named "${name}" (run \`holocron setup notifications\`, or set HOLOCRON_CHECKLY_PROBE_CHANNEL)`
 		);
 	}
 	return channel;
