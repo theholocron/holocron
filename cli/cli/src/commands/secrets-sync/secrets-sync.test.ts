@@ -65,6 +65,7 @@ describe("runSecretsSync", () => {
 				loaded,
 				context: { repoRoot: "/tmp/test" },
 				environmentId: "env_1",
+				githubSecretScope: { kind: "repo" },
 				loader,
 				print: () => {},
 			})
@@ -100,6 +101,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: () => {},
 			logger: fakeLogger(),
@@ -141,6 +143,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: (l: string) => lines.push(l),
 			logger: fakeLogger(),
@@ -175,6 +178,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: () => {},
 			logger: fakeLogger(),
@@ -214,6 +218,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: () => {},
 			logger: log,
@@ -260,6 +265,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: () => {},
 		});
@@ -340,6 +346,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test", dryRun: true },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: () => {},
 		});
@@ -375,6 +382,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: () => {},
 		});
@@ -526,6 +534,7 @@ describe("runSecretsSync", () => {
 			loaded,
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
+			githubSecretScope: { kind: "repo" },
 			loader,
 			print: () => {},
 		});
@@ -730,6 +739,7 @@ describe("runSecretsSync", () => {
 					loaded: t.loaded,
 					context: { repoRoot: "/tmp/test", dryRun },
 					environmentId: "env_1",
+					githubSecretScope: { kind: "repo" },
 					projectId: "prj_1",
 					deployFilter: everyKey,
 					targets: ["production"],
@@ -1074,6 +1084,7 @@ describe("runSecretsSync", () => {
 					loaded: t.loaded,
 					context: { repoRoot: "/tmp/test" },
 					environmentId: "prod",
+					githubSecretScope: { kind: "repo" },
 					...extra,
 					loader: t.loader,
 					print: () => {},
@@ -1091,6 +1102,7 @@ describe("runSecretsSync", () => {
 				loaded: t.loaded,
 				context: { repoRoot: "/tmp/test" },
 				environmentId: "prod",
+				githubSecretScope: { kind: "repo" },
 				loader: t.loader,
 				print: () => {},
 			});
@@ -1241,5 +1253,99 @@ describe("runSecretsSync — who can read an organization secret (#2062)", () =>
 			secretRoutes: [{ scope: { kind: "organization", name: "theholocron", repos: [] }, keys: ["OLD"] }],
 		}).catch((e: unknown) => e);
 		expect((emptyList as Error).name).toBe("ConfigError");
+	});
+});
+
+describe("runSecretsSync — an environment with no repo.secrets.sync entry (#2104)", () => {
+	function build(entries: Array<{ environment: string; keys: string[] }> = []) {
+		const loaded = loadedFrom({
+			name: "demo",
+			providers: { vault: "1password", secrets: "github", deployment: "vercel" },
+			repo: { secrets: { sync: entries } },
+		});
+		const reads: string[] = [];
+		const secretCalls: string[] = [];
+		const envCalls: string[] = [];
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async (id: string) => {
+						reads.push(id);
+						return { SENTINEL_A: "v", OTHER: "v" };
+					},
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async (_scope: unknown, name: string) => void secretCalls.push(name),
+				},
+			}),
+			"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+				deployment: {
+					providerName: "vercel",
+					setEnvVar: async (_project: string, _target: string, name: string) => void envCalls.push(name),
+				},
+			}),
+		});
+		return { loaded, loader, reads, secretCalls, envCalls };
+	}
+
+	it.each([false, true])("throws a ConfigError before the vault is read (dryRun %s)", async (dryRun) => {
+		const t = build([{ environment: "theholocron/holocron - ci", keys: ["A"] }]);
+		const err = await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test", dryRun },
+			environmentId: "theholocron/holocron - dev",
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ConfigError");
+		expect((err as Error).message).toContain('"theholocron/holocron - dev"');
+		expect((err as Error).message).toContain('"theholocron/holocron - ci"');
+		expect(t.reads).toEqual([]);
+		expect(t.secretCalls).toEqual([]);
+	});
+
+	it("says none when the config has no entries at all", async () => {
+		const t = build();
+		const err = await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "dev",
+			loader: t.loader,
+			print: () => {},
+		}).catch((e: unknown) => e);
+		expect((err as Error).message).toContain("Environments with an entry: none");
+	});
+
+	it("still runs when --github-secret-scope alone names the destination", async () => {
+		const t = build();
+		await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "dev",
+			githubSecretScope: { kind: "repo" },
+			loader: t.loader,
+			print: () => {},
+		});
+		expect(t.secretCalls.sort()).toEqual(["OTHER", "SENTINEL_A"]);
+	});
+
+	it("sends a deployment only what repo.secrets.deploy names, and nothing to secrets", async () => {
+		const t = build();
+		await runSecretsSync({
+			loaded: t.loaded,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "prod",
+			projectId: "prj_1",
+			targets: ["production"],
+			deployFilter: { keys: [], prefixes: ["SENTINEL_"] },
+			loader: t.loader,
+			print: () => {},
+		});
+		expect(t.envCalls).toEqual(["SENTINEL_A"]);
+		expect(t.secretCalls).toEqual([]);
 	});
 });
