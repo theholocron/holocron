@@ -53,7 +53,7 @@ holocron repo setup [--repo owner/name] [--hooks | --no-hooks] [--dry-run]
 
 Fix it in the organization's property definitions, not in the repo: a new capability (the ones a `holocron.config` wires are listed in `holocron_capabilities`) is a value to add there once, and every repo can then use it. [`holocron doctor repo`](/holocron/commands/doctor-repo/) checks the values against the definitions before you run setup.
 
-**Required checks** (`protection: "strict"`) are derived from the task manifest. In a repo that hosts the `ci`
+**Required checks** (`protection: "strict"`) are derived from the task manifest. In a repo that contains the `ci`
 aggregate (holocron itself) the ruleset is `ci / Required checks` and `DCO`: `DCO` stays its own context because the DCO app posts it, and
 `ci` waits on every `{ required: true }` task, the hand-written checks and the `codecov/*` statuses of the top-level
 `extraRequiredChecks`, so a rename or a new workflow never touches the ruleset. In any other repo, which has no `ci`
@@ -61,11 +61,11 @@ caller yet, it is `DCO`, then every `{ required: true }` task's workflow check c
 order, then `extraRequiredChecks`. No hand-maintained list.
 
 **The `ci` aggregate.** `repo setup` and `repo sync` write `.github/workflows/ci.ci.yml` (and the reusable `ci.yml`
-beside it) in the repo that hosts the reusables. Its job `ci` calls the reusable's `Required checks` job (so the context is `ci / Required checks`), which polls the Checks API for the pull request's head
+beside it) in the repo that contains the reusables. Its job `ci` calls the reusable's `Required checks` job (so the context is `ci / Required checks`), which polls the Checks API for the pull request's head
 commit until every expected id has a check run named `<id> / ...` and all of them completed, and every `codecov/*`
 status reached `success`, or 30 minutes pass. An id that never posted fails as "never posted"; `success`, `skipped` and
 `neutral` pass and anything else fails. The job summary is a table of every expected check with a link, failing ones
-first, and each failure is also an `::error title=<id>::` annotation. Re-running one failed check does not update `ci`:
+first, and each failure is also an `::error title=<id>::` annotation. Re-running one check that did not succeed does not update `ci`:
 re-run `ci` too. To adopt it, add `ci / Required checks`, watch it pass on a few pull requests, then remove the per-task contexts and
 `codecov/*` from the ruleset (`holocron doctor repo` names the stale and the missing contexts).
 
