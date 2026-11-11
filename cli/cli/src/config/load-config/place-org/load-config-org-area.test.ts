@@ -79,6 +79,15 @@ describe("the org area in this repo (#1820)", () => {
 		expect(required).toEqual(["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"]);
 		required.splice(0, 2, "SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY");
 		const { resolved } = await loadConfig(SENTINEL);
+		// And the deployment key filter (#2061): `repo.secrets.deploy` says which keys the Vercel sync may send.
+		expect(resolved.repo?.secrets?.deploy).toEqual([
+			{
+				environment: "Sentinel",
+				prefix: "SENTINEL_",
+				keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
+			},
+		]);
+		delete resolved.repo;
 		// The other deliberate difference (#1727): the loader sets `domain` from the shared root org area, so Sentinel's
 		// resolved config now carries the org's zone, which it did not before.
 		expect(resolved.domain).toBe("theholocron.dev");

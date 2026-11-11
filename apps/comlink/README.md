@@ -54,6 +54,8 @@ Deploying it is `holocron notifications setup`'s job, through the `workers` capa
 holocron secrets sync Comlink --cwd apps/comlink --worker comlink
 ```
 
+Only the `COMLINK_` names of the Environment reach the Worker: `repo.secrets.deploy` in this config says so, and `--worker` with no entry stops with a `ConfigError` (#2061). Any other key stays in the Environment.
+
 With `relay.errors` in the root `holocron.config.ts`, `holocron notifications setup` creates the Sentry integration and alert rule itself and deploys the Worker with the integration's client secret, so the Environment above is only needed to keep the secret somewhere else too (or for a source `setup` does not create).
 
 `holocron probe comlink deliver` reads the signing secret from this config's vault (so from the `Comlink` Environment above, signed in with `op`), unless `COMLINK_SENTRY_SECRET` is set in the environment.

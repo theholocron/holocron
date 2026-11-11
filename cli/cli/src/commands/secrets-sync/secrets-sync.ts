@@ -12,8 +12,10 @@
  *
  * Per-secret routing rules:
  *
- *  - All keys go to `deployment` for each target the caller asks for
- *    (defaults: production + preview)
+ *  - `deployment` (for each target the caller asks for, defaults: production + preview) and a Worker's secrets fail
+ *    closed (#2061): they receive only the keys `repo.secrets.deploy` names for this environment (an exact `keys`
+ *    list and/or a `prefix`), passed in as `deployFilter`. With none, the run throws a `ConfigError` before it reads
+ *    the vault. A name outside the filter is reported by name only and never reaches the provider.
  *  - `secrets` (GH Actions) defaults to every key, repo-scoped — but a
  *    caller can pass `githubSecretKeys` (an allowlist, from repeatable
  *    `--github-secret KEY` CLI values) to restrict `secrets` to only
@@ -40,6 +42,7 @@
  * individually via `holocron secrets set` (also planned for v5.1).
  */
 
+import { ConfigError } from "@theholocron/kyber/config";
 import { describeError, logReason, style, withSpinner } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 import type { Logger } from "@theholocron/observability/core";
@@ -56,9 +59,11 @@ import {
 	type Vault,
 	type Workers,
 } from "../../plugin/index.js";
+import type { DeployFilter } from "./deploy-filter/index.js";
 import { githubNameProblem } from "./github-name/index.js";
 import { restorePem } from "./restore-pem/index.js";
 import type { RunSecretsSyncInput, SyncPrintLine, SyncReport, SyncRow, VariableRoute } from "./secrets-sync.type.js";
+import { splitDeployKeys } from "./split-deploy-keys/index.js";
 
 /** Why there is no `workers` provider: the plugin's own load error when it failed to load (e.g. a missing account id). */
 function workersMissing(loader: PluginLoader): string {
@@ -80,6 +85,17 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	);
 
 	const dryRun = input.context.dryRun ?? false;
+
+	// An environment declared only for variables is not a deployment's: it would otherwise print a "projectId" skip.
+	const variablesOnly =
+		(input.variableRoutes?.length ?? 0) > 0 && input.secretRoutes?.length === 0 && !input.projectId;
+	const wantsDeployment = loader.has("deployment") && !variablesOnly && Boolean(input.projectId);
+	if ((wantsDeployment || input.workerScript) && !input.deployFilter) {
+		// Fail closed, before anything is read: a deployment never gets every key (#2061).
+		throw new ConfigError(
+			`no \`repo.secrets.deploy\` entry for environment ${JSON.stringify(input.environmentId)}: a deployment or a Worker receives only the keys named by \`keys\` or \`prefix\`, never every key. Add { environment: ${JSON.stringify(input.environmentId)}, prefix: "<PREFIX>_" } (or keys: [...]) to repo.secrets.deploy`
+		);
+	}
 	const targets = input.targets ?? (["production", "preview"] as DeploymentTarget[]);
 
 	print(style.header(`Holocron secrets sync — environment ${input.environmentId}${dryRun ? " (dry-run)" : ""}`));
@@ -121,6 +137,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	const keys = Object.keys(envVars).sort();
 	print(style.step(`read ${keys.length} keys from vault`));
 	print("");
+	const deploySplit = input.deployFilter ? splitDeployKeys(keys, input.deployFilter) : undefined;
 
 	const rows: SyncRow[] = [];
 
@@ -210,8 +227,6 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	}
 
 	// ── Push to `deployment` (Vercel env vars) ─────────────────────────
-	// An environment declared only for variables is not a deployment's: it would otherwise print a "projectId" skip.
-	const variablesOnly = variableRoutes.length > 0 && input.secretRoutes?.length === 0 && !input.projectId;
 	if (loader.has("deployment") && !variablesOnly) {
 		const deploy = loader.get("deployment") as Deployment;
 		if (!input.projectId) {
@@ -228,18 +243,20 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		} else {
 			for (const target of targets) {
 				print(style.step(`deployment (target=${target})`));
-				for (const key of keys) {
+				const destination = `deployment:${deploy.providerName}`;
+				reportFiltered(
+					destination,
+					`target=${target}`,
+					deploySplit!.filtered,
+					input.deployFilter!,
+					rows,
+					print
+				);
+				for (const key of deploySplit!.send) {
 					rows.push(
-						await pushRow(
-							`deployment:${deploy.providerName}`,
-							`target=${target}`,
-							key,
-							envVars,
-							dryRun,
-							async (value) => {
-								await deploy.setEnvVar(input.projectId!, target, key, value);
-							}
-						)
+						await pushRow(destination, `target=${target}`, key, envVars, dryRun, async (value) => {
+							await deploy.setEnvVar(input.projectId!, target, key, value);
+						})
 					);
 					print(formatRow(rows[rows.length - 1]!));
 				}
@@ -265,7 +282,15 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 			rows.push(row);
 			print(formatRow(row));
 		} else {
-			for (const key of keys) {
+			reportFiltered(
+				`workers:${workers.providerName}`,
+				`script=${script}`,
+				deploySplit!.filtered,
+				input.deployFilter!,
+				rows,
+				print
+			);
+			for (const key of deploySplit!.send) {
 				rows.push(
 					await pushRow(
 						`workers:${workers.providerName}`,
@@ -287,6 +312,32 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 }
 
 // ── helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Record the vault keys a deployment or Worker filter left out: one skipped row each (names only; the value is never
+ * read for them) and one line naming them all, so the dry run and the real run show what stayed behind.
+ */
+function reportFiltered(
+	destination: string,
+	scope: string,
+	filtered: string[],
+	filter: DeployFilter,
+	rows: SyncRow[],
+	print: SyncPrintLine
+): void {
+	const allowed = [...filter.prefixes.map((p) => `${p}*`), ...filter.keys].join(", ");
+	for (const key of filtered) {
+		rows.push({
+			destination,
+			scope,
+			key,
+			status: "skip",
+			message: `filtered: not in repo.secrets.deploy (${allowed})`,
+		});
+	}
+	if (filtered.length > 0)
+		print(style.dim(`    · not sent (${filtered.length}, outside ${allowed}): ${filtered.join(", ")}`));
+}
 
 /** Log every row, then print and log the summary. Shared by a finished run and one that stopped at the vault. */
 function summarise(rows: SyncRow[], logger: Logger, print: SyncPrintLine, dryRun: boolean): SyncReport {

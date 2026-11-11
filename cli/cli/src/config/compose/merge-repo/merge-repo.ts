@@ -44,6 +44,10 @@ export function mergeRepo(prev: RepoFragment, next: RepoFragment): RepoFragment 
 				: {}),
 			...(Object.keys(environments).length > 0 ? { environments } : {}),
 			...(repo.secrets?.sync || secrets.sync ? { sync: mergeSync(repo.secrets?.sync, secrets.sync) } : {}),
+			// Entries for one environment are unioned where they are read (`deployFilter()`), so they only add up here.
+			...(repo.secrets?.deploy || secrets.deploy
+				? { deploy: [...(repo.secrets?.deploy ?? []), ...(secrets.deploy ?? [])] }
+				: {}),
 		};
 	}
 	if (topics) repo.topics = names.merge(repo.topics ?? [], topics);

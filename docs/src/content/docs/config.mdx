@@ -83,7 +83,13 @@ export default defineConfig({
     },
     // Secrets that must exist; `holocron doctor secrets` reports the missing ones. Names only.
     // `sync` names the vault environments `holocron secrets sync` fills secrets from, and where (no `keys` = every key).
-    secrets: { repo: ["TURBO_TOKEN"], org: ["NPM_TOKEN"], sync: [{ environment: "prd" }] },
+    // `deploy` names what a deployment or Worker may receive from `secrets sync` (a `prefix` and/or `keys`; required).
+    secrets: {
+      repo: ["TURBO_TOKEN"],
+      org: ["NPM_TOKEN"],
+      sync: [{ environment: "prd" }],
+      deploy: [{ environment: "prd", prefix: "MYAPP_" }],
+    },
 
     // GitHub org-level custom properties synced by `holocron repo setup`.
     properties: {

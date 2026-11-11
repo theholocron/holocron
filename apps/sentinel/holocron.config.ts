@@ -170,6 +170,20 @@ export default defineConfig({
 			logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "SENTINEL_AXIOM_DATASET" },
 		},
 	},
+	repo: {
+		secrets: {
+			// What the Vercel deployment may receive from a `secrets sync` (#2061): the `SENTINEL_` names, and the three
+			// `HOLOCRON_` names the app reads for role sync and log shipping (apps/sentinel/src reads no others).
+			// Anything else the Environment holds stays in it. With no entry the sync stops with a ConfigError.
+			deploy: [
+				{
+					environment: "Sentinel",
+					prefix: "SENTINEL_",
+					keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
+				},
+			],
+		},
+	},
 	providers: {
 		deployment: ["vercel", { domain: sentinelHost }],
 		dns: "cloudflare",
