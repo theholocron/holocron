@@ -43,13 +43,13 @@ describe("auth commands", () => {
 		loadConfig.mockResolvedValueOnce({
 			resolved: {
 				providers: { credentials: { cardinality: "many", tuples: [{ provider: "1password", options: {} }] } },
-				credentials: { environment: "Holocron" },
+				credentials: { environment: "Demo" },
 			},
 		});
 		await runCommand(authCommand, ["auth", "set", "github"]);
 		expect(runAuthSet).toHaveBeenCalledWith({
 			provider: "github",
-			credentials: { provider: "1password", environment: "Holocron" },
+			credentials: { provider: "1password", environment: "Demo" },
 		});
 	});
 

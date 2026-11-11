@@ -11,7 +11,7 @@ export interface RunDevInput {
 	loaded: LoadedConfig;
 	/** The runtime context (dry run, tokens, org). */
 	context: RuntimeContext;
-	/** The vault environment whose variables the application runs with, e.g. `Sentinel - dev`. */
+	/** The vault environment whose variables the application runs with, e.g. `acme/app - dev`. */
 	environment: string;
 	/** The tunnel's name. */
 	name: string;

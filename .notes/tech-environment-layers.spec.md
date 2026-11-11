@@ -75,7 +75,7 @@ merges (see the pull request).
 
 ## Out of scope
 
-Deleting `credentials-environments/legacy-environments/` (after the rename), the concealed-flag reader, the
+Deleting `credentials-environments/legacy-environments/` (done in #2080), the concealed-flag reader, the
 shared-value `doctor` row, org secret visibility (#2062), splitting the shared tokens (#2059) and the redesign of
 `doctor variable-owners`, which here only keeps working and lists the derived names.
 

@@ -4,6 +4,4 @@ export interface EnvironmentCandidate {
 	name: string;
 	/** Absent is normal and says nothing (the `- local` overrides). Otherwise a miss is reported by name. */
 	optional: boolean;
-	/** From the migration fallback (`legacy-environments/`), not from the layers. Delete with that folder. */
-	legacy: boolean;
 }

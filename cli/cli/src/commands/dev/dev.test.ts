@@ -63,7 +63,7 @@ function setup(over: { vault?: Record<string, unknown> | null; tunnels?: Record<
 	const base = {
 		loaded,
 		context: { repoRoot: "/tmp/test" },
-		environment: "Sentinel - dev",
+		environment: "acme/app - dev",
 		name: "sentinel-dev",
 		hostname: "sentinel-dev.example.dev",
 		port: 3000,
@@ -104,7 +104,7 @@ describe("runDev", () => {
 				hint: false,
 			})
 		);
-		expect(vault.readEnvironment).toHaveBeenCalledWith("Sentinel - dev");
+		expect(vault.readEnvironment).toHaveBeenCalledWith("acme/app - dev");
 		expect(runProcesses).toHaveBeenCalledWith({
 			primary: {
 				command: "pnpm",
@@ -216,7 +216,7 @@ describe("runDev", () => {
 			},
 		});
 		expect((await runDev(base)).status).toBe("fail");
-		expect(said()).toContain("vault Sentinel - dev");
+		expect(said()).toContain("vault acme/app - dev");
 		expect(said()).toContain("environment not found");
 		expect(runProcesses).not.toHaveBeenCalled();
 	});

@@ -279,7 +279,7 @@ describe("runAuthSet", () => {
 	});
 
 	describe("when the config names a credentials provider", () => {
-		const credentials = { provider: "1password", environment: "Holocron" };
+		const credentials = { provider: "1password", environment: "Demo" };
 
 		it("says which variable to add, named by the plugin's own token", async () => {
 			const { print, lines } = collect();
@@ -295,7 +295,7 @@ describe("runAuthSet", () => {
 			});
 			const out = lines.join("\n");
 			expect(out).toMatch(
-				/1password cannot be written to from the CLI: add HOLOCRON_CLOUDFLARE_TOKEN to its "Holocron"/
+				/1password cannot be written to from the CLI: add HOLOCRON_CLOUDFLARE_TOKEN to its "Demo"/
 			);
 			expect(out).not.toContain("cf-secret");
 		});

@@ -60,15 +60,13 @@ Derivation lives in the CLI, in `cli/cli/src/credentials-environments/`, so the 
    Only a 404-status error counts as "missing"; any other error (not signed in, timeout) is thrown as before.
 5. **Order and the store.** Candidates are read in order into the credential store as `<provider>:<name>`; the store
    already makes the first source win, so `local` overrides `dev` per variable.
-6. **Migration fallback (temporary).** `legacy-environments/` lists the old names (`Holocron`,
-   `Holocron - GitHub Actions variables`; exactly what the config's `credentials` entries read, so no new exposure).
-   They are tried only after a required new name is missing, are never reported when absent, and a found one forgives
-   the miss. It is not a layer. Removal is one commit: delete `legacy-environments/` and the one call in
-   `resolve-environments.ts`.
+6. **Migration fallback (done, #2080).** `legacy-environments/` listed the old names (`Holocron`,
+   `Holocron - GitHub Actions variables`) and tried them only after a required new name was missing. The Environments
+   are renamed in 1Password, so the folder, its one call in `resolve-environments.ts` and the `skip` row were deleted in
+   one commit. The only fallback between layers is `local` over `dev`.
 7. **`doctor credentials`** inspects the same candidates with `Credentials.inspect` (names only): a variable is `ok`
    when any found Environment has it (the row says which), `fail` when none does, a required Environment that does not
-   exist is its own failing row, an old name in use is a `skip` row asking for the rename, and the `test` layer is a
-   skip. `RunDoctorCredentialsInput` gains injectable `env` and `gitExec`, as does `PluginLoaderOptions`.
+   exist is its own failing row, and the `test` layer is a skip. `RunDoctorCredentialsInput` gains injectable `env` and `gitExec`, as does `PluginLoaderOptions`.
 8. **Config.** The two literal `credentials` entries in `holocron.config.ts` become `credentials: ["1password"]`
    (the file gets shorter). The vault entry keeps its literal Environment (see open questions).
 

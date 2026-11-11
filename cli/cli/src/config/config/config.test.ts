@@ -220,15 +220,15 @@ describe("resolveConfig", () => {
 	});
 
 	it("passes the credentials environment through, and leaves it unset by default", () => {
-		expect(resolveConfig({ ...minimal, credentials: { environment: "Holocron" } }).credentials).toEqual({
-			environment: "Holocron",
+		expect(resolveConfig({ ...minimal, credentials: { environment: "Demo" } }).credentials).toEqual({
+			environment: "Demo",
 		});
 		expect(resolveConfig(minimal).credentials).toBeUndefined();
 	});
 
 	it("passes the dev block through, and leaves it unset by default", () => {
 		const dev = {
-			environment: "Sentinel - dev",
+			environment: "acme/app - dev",
 			tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
 			port: 3000,
 			command: ["pnpm", "run", "serve"],
@@ -372,7 +372,7 @@ describe("resolveConfig", () => {
 		const resolved = resolveConfig({
 			...minimal,
 			providers: { ...minimal.providers, credentials: ["1password"] },
-			credentials: { environment: "Holocron" },
+			credentials: { environment: "Demo" },
 		});
 		expect(resolved.providers.credentials).toMatchObject({ cardinality: "many" });
 	});
@@ -392,10 +392,10 @@ describe("resolveConfig", () => {
 	it("accepts a credentials provider that names its own environment, with no shared one", () => {
 		const resolved = resolveConfig({
 			...minimal,
-			providers: { ...minimal.providers, credentials: [["1password", { environment: "Holocron" }]] },
+			providers: { ...minimal.providers, credentials: [["1password", { environment: "Demo" }]] },
 		});
 		const entry = resolved.providers.credentials;
-		expect(entry?.cardinality === "many" && credentialsEnvironment(entry.tuples[0]!, resolved)).toBe("Holocron");
+		expect(entry?.cardinality === "many" && credentialsEnvironment(entry.tuples[0]!, resolved)).toBe("Demo");
 	});
 
 	it("rejects an empty environment option on a credentials provider", () => {
@@ -404,7 +404,7 @@ describe("resolveConfig", () => {
 				resolveConfig({
 					...minimal,
 					providers: { ...minimal.providers, credentials: [["1password", { environment: " " }]] },
-					credentials: { environment: "Holocron" },
+					credentials: { environment: "Demo" },
 				});
 			} catch (e) {
 				return e;

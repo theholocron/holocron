@@ -101,7 +101,7 @@ async function checkCredentials(input: RunDoctorCredentialsInput, loader: Plugin
 /**
  * One row per expected variable, against the Environments the layer reads. A variable counts as present when any
  * Environment found holds it (the first found wins, as in the credential store). A required Environment that does not
- * exist is a failing row of its own, by name; a missing `- local` is not mentioned; an old name in use is a skipped row.
+ * exist is a failing row of its own, by name; a missing `- local` is not mentioned.
  */
 async function checkProvider(
 	impl: Credentials,
@@ -128,9 +128,6 @@ async function checkProvider(
 			result.environment === name ? `"${name}"` : `"${result.environment}" (the config writes "${name}")`
 		);
 		const where = labels.join(", ");
-		for (const { name, legacy } of found) {
-			if (legacy) rows.push(row(provider, "skip", `read from the old Environment name "${name}"; rename it`));
-		}
 		if (found.length === 0) return rows;
 		for (const { name, optional } of expected) {
 			const at = found.findIndex((f) => f.result.names.includes(name));

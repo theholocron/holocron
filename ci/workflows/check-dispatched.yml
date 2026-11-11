@@ -137,7 +137,7 @@ jobs:
           JOB_ID: ${{ steps.job-info.outputs.job_id }}
           CHECK_RUN_ID: ${{ inputs.check-run-id }}
           CONCLUSION: ${{ steps.run-task.outcome == 'success' && 'success' || 'failure' }}
-          # Org variables (1Password Environment "Holocron - GitHub Actions variables", synced by
+          # Org variables (1Password Environment `theholocron/holocron - ci`, synced by
           # `repo.variables.sync`); no literal fallback. The variable keeps its bare name in GitHub and
           # 1Password; the workflow maps it onto the prefixed one (#1864).
           HOLOCRON_AXIOM_ORG: ${{ vars.HOLOCRON_AXIOM_ORG || vars.AXIOM_ORG }}

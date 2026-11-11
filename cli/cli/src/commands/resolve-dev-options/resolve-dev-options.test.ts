@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { resolveDevOptions } from "./resolve-dev-options.js";
 
 const config = {
-	environment: "Sentinel - dev",
+	environment: "acme/app - dev",
 	tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.example.dev" },
 	port: 4000,
 	command: ["pnpm", "run", "serve"],
@@ -12,7 +12,7 @@ const config = {
 describe("resolveDevOptions", () => {
 	it("takes everything from the dev block when nothing is passed", () => {
 		expect(resolveDevOptions({}, config)).toEqual({
-			environment: "Sentinel - dev",
+			environment: "acme/app - dev",
 			name: "sentinel-dev",
 			hostname: "sentinel-dev.example.dev",
 			port: 4000,

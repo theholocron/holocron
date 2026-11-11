@@ -170,11 +170,11 @@ export default defineConfig({
 
   // The default environment for the `credentials` providers (`providers.credentials`).
   // A name, not a secret, so it is committed. A provider can name its own instead,
-  // `credentials: ["1password", { environment: "Holocron" }]`, which wins; a 1Password entry with
+  // `credentials: ["1password", { environment: "Demo" }]`, which wins; a 1Password entry with
   // neither derives `<org>/<repo> - <layer>` from the git remote (see /tokens); each
   // provider needs one or the other. List an entry per Environment to read several
   // (the same provider twice is fine); a name is found in the first one that has it.
-  credentials: { environment: "Holocron" },
+  credentials: { environment: "Demo" },
 
   // Every entry that names a vault Environment (`repo.secrets.sync`, `repo.variables.sync`,
   // `repo.secrets.deploy`, `githubApps`, `dev` and the `vault` provider's options) can name a

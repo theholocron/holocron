@@ -18,7 +18,7 @@ const loadedWith = (extra: Record<string, unknown> = {}): LoadedConfig => ({
 	resolved: resolveConfig({
 		name: "demo",
 		providers: { credentials: ["1password"], secrets: "github", source: "github" },
-		credentials: { environment: "Holocron" },
+		credentials: { environment: "Demo" },
 		...extra,
 	} as Raw),
 	filepath: "/tmp/test/holocron.config.json",
@@ -143,14 +143,14 @@ describe("doctor variable-owners — findings", () => {
 		const { report, lines } = await run(
 			loadedWith({ repo: { variables: { sync: [{ environment: "Other", keys: ["X"] }] } } }),
 			{
-				environments: { Holocron: ["SHARED", "ONLY_HERE"], Other: ["SHARED"] },
+				environments: { Demo: ["SHARED", "ONLY_HERE"], Other: ["SHARED"] },
 				secrets: { repo: [], org: [] },
 				variables: { repo: [], org: [] },
 			}
 		);
 		const row = report.rows.find((r) => r.id === "owners:SHARED")!;
 		expect(row.status).toBe("fail");
-		expect(row.problems).toEqual(['held by Environment "Holocron"', 'held by Environment "Other"']);
+		expect(row.problems).toEqual(['held by Environment "Demo"', 'held by Environment "Other"']);
 		expect(report.status).toBe("fail");
 		expect(ids(report.rows)).not.toContain("owners");
 		expect(lines.join("\n")).not.toContain(VALUE);
@@ -158,22 +158,22 @@ describe("doctor variable-owners — findings", () => {
 
 	it("fails for a name in an Environment and a GitHub secret that no sync entry fills", async () => {
 		const { report } = await run(loadedWith(), {
-			environments: { Holocron: ["A"] },
+			environments: { Demo: ["A"] },
 			secrets: { repo: ["a"], org: [] },
 			variables: { repo: [], org: [] },
 		});
 		const row = report.rows.find((r) => r.id === "owners:A")!;
-		expect(row.problems).toEqual(['held by Environment "Holocron"', "held by repository secrets"]);
+		expect(row.problems).toEqual(['held by Environment "Demo"', "held by repository secrets"]);
 	});
 
 	it("compares a name and a repository variable of the same name", async () => {
 		const { report } = await run(loadedWith(), {
-			environments: { Holocron: ["V"] },
+			environments: { Demo: ["V"] },
 			secrets: { repo: [], org: [] },
 			variables: { repo: ["V"], org: ["V"] },
 		});
 		expect(report.rows.find((r) => r.id === "owners:V")!.problems).toEqual([
-			'held by Environment "Holocron"',
+			'held by Environment "Demo"',
 			"held by repository variables",
 			"held by organization variables",
 		]);
@@ -185,18 +185,18 @@ describe("doctor variable-owners — findings", () => {
 				repo: {
 					secrets: {
 						environments: { prod: [] },
-						sync: [{ environment: "Holocron - GitHub Actions", keys: ["K"], scope: "env=staging" }],
+						sync: [{ environment: "Demo secrets", keys: ["K"], scope: "env=staging" }],
 					},
 				},
 			}),
 			{
-				environments: { Holocron: ["P"], "Holocron - GitHub Actions": ["K"] },
+				environments: { Demo: ["P"], "Demo secrets": ["K"] },
 				secrets: { repo: [], org: [], "env:prod": ["P"], "env:staging": ["K"] },
 				variables: { repo: [], org: [] },
 			}
 		);
 		expect(report.rows.find((r) => r.id === "owners:P")!.problems).toEqual([
-			'held by Environment "Holocron"',
+			'held by Environment "Demo"',
 			"held by prod environment secrets",
 		]);
 		expect(ids(report.rows)).not.toContain("owners:K");
@@ -222,7 +222,7 @@ describe("doctor variable-owners — what is not a finding", () => {
 
 	it("does not report the copy a sync entry makes", async () => {
 		const { report } = await run(fanned(), {
-			environments: { Holocron: [], Gha: ["ORG_ONE", "REPO_ONE", "ENV_ONE"], Vars: ["VAR_ONE"] },
+			environments: { Demo: [], Gha: ["ORG_ONE", "REPO_ONE", "ENV_ONE"], Vars: ["VAR_ONE"] },
 			secrets: { repo: ["REPO_ONE"], org: ["ORG_ONE"], "env:prod": ["ENV_ONE"] },
 			variables: { repo: [], org: ["VAR_ONE"] },
 		});
@@ -232,7 +232,7 @@ describe("doctor variable-owners — what is not a finding", () => {
 
 	it("reports a name the sync entry does not list", async () => {
 		const { report } = await run(fanned(), {
-			environments: { Holocron: [], Gha: ["ORG_ONE", "OTHER"], Vars: [] },
+			environments: { Demo: [], Gha: ["ORG_ONE", "OTHER"], Vars: [] },
 			secrets: { repo: ["OTHER"], org: ["ORG_ONE"], "env:prod": [] },
 			variables: { repo: [], org: [] },
 		});
@@ -241,19 +241,19 @@ describe("doctor variable-owners — what is not a finding", () => {
 
 	it("reports a second Environment holding a name a sync entry fills", async () => {
 		const { report } = await run(fanned(), {
-			environments: { Holocron: ["ORG_ONE"], Gha: ["ORG_ONE"], Vars: [] },
+			environments: { Demo: ["ORG_ONE"], Gha: ["ORG_ONE"], Vars: [] },
 			secrets: { repo: [], org: ["ORG_ONE"], "env:prod": [] },
 			variables: { repo: [], org: [] },
 		});
 		expect(report.rows.find((r) => r.id === "owners:ORG_ONE")!.problems).toEqual([
-			'held by Environment "Holocron"',
+			'held by Environment "Demo"',
 			'held by Environment "Gha"',
 		]);
 	});
 
 	it("does not report a name listed in doctor.sharedVariables, in any letter case", async () => {
 		const { report } = await run(loadedWith({ doctor: { sharedVariables: ["shared_one"] } }), {
-			environments: { Holocron: ["SHARED_ONE"] },
+			environments: { Demo: ["SHARED_ONE"] },
 			secrets: { repo: ["SHARED_ONE"], org: [] },
 			variables: { repo: [], org: [] },
 		});
@@ -266,14 +266,14 @@ describe("doctor variable-owners — what is not a finding", () => {
 			loadedWith({
 				githubApps: [
 					{ name: "Sentinel", manifest: "m.json", environment: "Sentinel" },
-					{ name: "Sentinel - dev", manifest: "m.json", environment: "Sentinel - dev" },
+					{ name: "Sentinel - dev", manifest: "m.json", environment: "acme/app - dev" },
 				],
 			}),
 			{
 				environments: {
-					Holocron: [],
+					Demo: [],
 					Sentinel: ["SENTINEL_WEBHOOK_SECRET"],
-					"Sentinel - dev": ["SENTINEL_WEBHOOK_SECRET"],
+					"acme/app - dev": ["SENTINEL_WEBHOOK_SECRET"],
 				},
 				secrets: { repo: [], org: [] },
 				variables: { repo: [], org: [] },
@@ -286,7 +286,7 @@ describe("doctor variable-owners — what is not a finding", () => {
 		const { report } = await run(
 			loadedWith({ githubApps: [{ name: "Sentinel", manifest: "m.json", environment: "Sentinel" }] }),
 			{
-				environments: { Holocron: ["APP_ID"], Sentinel: ["APP_ID"] },
+				environments: { Demo: ["APP_ID"], Sentinel: ["APP_ID"] },
 				secrets: { repo: [], org: [] },
 				variables: { repo: [], org: [] },
 			}
@@ -305,7 +305,7 @@ describe("doctor variable-owners — what is not a finding", () => {
 				dev: { environment: "Dev", command: ["x"] },
 			}),
 			{
-				environments: { Holocron: [], Own: ["N"], Dev: ["N"] },
+				environments: { Demo: [], Own: ["N"], Dev: ["N"] },
 				secrets: { repo: [], org: [] },
 				variables: { repo: [], org: [] },
 			}
@@ -320,7 +320,7 @@ describe("doctor variable-owners — what is not a finding", () => {
 describe("doctor variable-owners — ordering and spelling", () => {
 	it("lists the findings in name order, and counts a name once per place whatever its letter case", async () => {
 		const { report } = await run(loadedWith(), {
-			environments: { Holocron: ["ZED", "alpha", "ALPHA", "MID"] },
+			environments: { Demo: ["ZED", "alpha", "ALPHA", "MID"] },
 			secrets: { repo: ["MID", "ALPHA", "ZED"], org: [] },
 			variables: { repo: [], org: [] },
 		});
@@ -330,7 +330,7 @@ describe("doctor variable-owners — ordering and spelling", () => {
 			"owners:ZED",
 		]);
 		expect(report.rows.find((r) => r.id === "owners:alpha")!.problems).toEqual([
-			'held by Environment "Holocron"',
+			'held by Environment "Demo"',
 			"held by repository secrets",
 		]);
 	});
@@ -340,7 +340,7 @@ describe("doctor variable-owners — prefixed pairs", () => {
 	it("reports a bare name beside its prefixed one as info, not a failure", async () => {
 		const { report, lines } = await run(loadedWith(), {
 			environments: {
-				Holocron: ["TURBO_TEAM", "HOLOCRON_TURBO_TEAM", "APP_ID", "SENTINEL_APP_ID", "X", "COMLINK_X"],
+				Demo: ["TURBO_TEAM", "HOLOCRON_TURBO_TEAM", "APP_ID", "SENTINEL_APP_ID", "X", "COMLINK_X"],
 			},
 			secrets: { repo: [], org: [] },
 			variables: { repo: [], org: [] },
@@ -358,12 +358,12 @@ describe("doctor variable-owners — prefixed pairs", () => {
 
 	it("finds a pair across two places", async () => {
 		const { report } = await run(loadedWith(), {
-			environments: { Holocron: ["Y"] },
+			environments: { Demo: ["Y"] },
 			secrets: { repo: ["HOLOCRON_Y"], org: [] },
 			variables: { repo: [], org: [] },
 		});
 		expect(report.rows.find((r) => r.id === "pair:Y")!.detail).toContain(
-			'Y in Environment "Holocron"; HOLOCRON_Y in repository secrets'
+			'Y in Environment "Demo"; HOLOCRON_Y in repository secrets'
 		);
 	});
 });
@@ -371,7 +371,7 @@ describe("doctor variable-owners — prefixed pairs", () => {
 describe("doctor variable-owners — places that cannot be read", () => {
 	it("skips an Environment the provider cannot find, with the reason", async () => {
 		const { report } = await run(loadedWith({ dev: { environment: "Gone", command: ["x"] } }), {
-			environments: { Holocron: ["A"], Gone: new Error("Environment not found") },
+			environments: { Demo: ["A"], Gone: new Error("Environment not found") },
 			secrets: { repo: [], org: [] },
 			variables: { repo: [], org: [] },
 		});
@@ -403,14 +403,14 @@ describe("doctor variable-owners — places that cannot be read", () => {
 			secrets: { repo: [], org: [] },
 			variables: { repo: [], org: [] },
 		});
-		expect(report.rows.find((r) => r.id === "skip:env:Holocron")!.detail).toBe(
+		expect(report.rows.find((r) => r.id === "skip:env:Demo")!.detail).toBe(
 			"no `credentials` provider can list names without reading values"
 		);
 	});
 
 	it("skips a GitHub scope whose token is missing, and still compares the rest", async () => {
 		const { report } = await run(loadedWith(), {
-			environments: { Holocron: ["A"] },
+			environments: { Demo: ["A"] },
 			secrets: { repo: ["A"], org: new MissingTokenError("no HOLOCRON_SECRETS_TOKEN") },
 			variables: { repo: [], org: [] },
 		});
@@ -423,7 +423,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 
 	it("skips a scope that fails for another reason, never failing the check", async () => {
 		const { report } = await run(loadedWith(), {
-			environments: { Holocron: ["A"] },
+			environments: { Demo: ["A"] },
 			secrets: { repo: new Error("HTTP 403"), org: [] },
 			variables: { repo: new Error("HTTP 500"), org: [] },
 		});
@@ -435,7 +435,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 	it("skips the organization rows when there is no organization", async () => {
 		const { report } = await run(
 			loadedWith(),
-			{ environments: { Holocron: [] }, secrets: { repo: [] }, variables: { repo: [] } },
+			{ environments: { Demo: [] }, secrets: { repo: [] }, variables: { repo: [] } },
 			{ org: "" }
 		);
 		expect(report.rows.find((r) => r.id === "skip:org-secrets")!.detail).toContain("no organization");
@@ -448,7 +448,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 		const report = await runDoctorVariableOwners({
 			loaded,
 			context: { repoRoot: "/tmp/test", repo: "acme/demo" },
-			loader: loaderWith(loaded, { environments: { Holocron: [] } }),
+			loader: loaderWith(loaded, { environments: { Demo: [] } }),
 			githubLoader: loaderWith(
 				loaded,
 				{ secrets: { repo: [], org: [] }, variables: { repo: [], org: [] } },
@@ -463,7 +463,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 
 	it("skips variables when the source provider cannot list them", async () => {
 		const { report } = await run(loadedWith(), {
-			environments: { Holocron: [] },
+			environments: { Demo: [] },
 			noListVariables: true,
 			secrets: { repo: [], org: [] },
 		});
@@ -477,7 +477,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 
 	it("skips GitHub when there is no secrets or source provider", async () => {
 		const { report } = await run(loadedWith({ providers: { credentials: ["1password"] } }), {
-			environments: { Holocron: ["A"] },
+			environments: { Demo: ["A"] },
 		});
 		expect(report.rows.find((r) => r.id === "skip:repo-secrets")!.detail).toContain("no `secrets` provider");
 		expect(report.rows.find((r) => r.id === "skip:repo-variables")!.detail).toContain("no `source` provider");
@@ -524,7 +524,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 			print: (l) => lines.push(l),
 			logger: fakeLogger(),
 		});
-		expect(report.rows.find((r) => r.id === "skip:env:Holocron")!.detail).toBe(
+		expect(report.rows.find((r) => r.id === "skip:env:Demo")!.detail).toBe(
 			"a `credentials` provider failed to load (1password)"
 		);
 	});
@@ -532,7 +532,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 	it("reads GitHub with the second loader, which has the token the first never gets", async () => {
 		const { report } = await run(
 			loadedWith(),
-			{ environments: { Holocron: ["A"] } },
+			{ environments: { Demo: ["A"] } },
 			{ github: { secrets: { repo: ["A"], org: [] }, variables: { repo: [], org: [] } } }
 		);
 		expect(ids(report.rows.filter((r) => r.status === "skip"))).toEqual([]);
@@ -543,7 +543,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 		const missing = new MissingTokenError("no GitHub token found for this operation");
 		const { report } = await run(
 			loadedWith(),
-			{ environments: { Holocron: ["A"] } },
+			{ environments: { Demo: ["A"] } },
 			{
 				github: {
 					secrets: { repo: missing, org: missing },
@@ -570,7 +570,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 		const report = await runDoctorVariableOwners({
 			loaded,
 			context: { repoRoot: "/tmp/test", org: "acme" },
-			loader: loaderWith(loaded, { environments: { Holocron: ["A"] } }),
+			loader: loaderWith(loaded, { environments: { Demo: ["A"] } }),
 			githubLoader: failing,
 			print: () => undefined,
 			logger: fakeLogger(),
@@ -578,7 +578,7 @@ describe("doctor variable-owners — places that cannot be read", () => {
 		const detail = report.rows.find((r) => r.id === "skip:repo-secrets")!.detail;
 		expect(detail).toContain("github");
 		expect(detail).toContain("failed to load");
-		expect(report.rows.find((r) => r.id === "skip:env:Holocron")).toBeUndefined();
+		expect(report.rows.find((r) => r.id === "skip:env:Demo")).toBeUndefined();
 	});
 });
 
@@ -589,7 +589,7 @@ describe("doctor variable-owners — defaults", () => {
 		const report = await runDoctorVariableOwners({
 			loaded,
 			context: { repoRoot: "/tmp/test", org: "acme" },
-			loader: loaderWith(loaded, { environments: { Holocron: ["A"] } }),
+			loader: loaderWith(loaded, { environments: { Demo: ["A"] } }),
 			githubLoader: loaderWith(
 				loaded,
 				{ secrets: { repo: [], org: [] }, variables: { repo: [], org: [] } },
@@ -652,7 +652,7 @@ describe("doctor variable-owners — the two loaders", () => {
 	});
 
 	it("never asks the names loader to read, and reads the credentials only through the GitHub loader", async () => {
-		const names = { onRead: vi.fn(), environments: { Holocron: ["A"] } };
+		const names = { onRead: vi.fn(), environments: { Demo: ["A"] } };
 		const github = { onRead: vi.fn(), secrets: { repo: [], org: [] }, variables: { repo: [], org: [] } };
 		const { report } = await run(loadedWith(), names, { github });
 		expect(report.status).toBe("ok");
@@ -675,7 +675,7 @@ describe("doctor variable-owners — the two loaders", () => {
 describe("doctor variable-owners — no findings", () => {
 	it("is all ok, with the counts, and never prints a value", async () => {
 		const { report, lines } = await run(loadedWith(), {
-			environments: { Holocron: ["A", "B"] },
+			environments: { Demo: ["A", "B"] },
 			secrets: { repo: ["C"], org: [] },
 			variables: { repo: ["D"], org: ["E"] },
 		});
@@ -696,7 +696,7 @@ describe("doctor variable-owners — no findings", () => {
 
 	it("never prints a value when a finding is reported either", async () => {
 		const { report, lines } = await run(loadedWith(), {
-			environments: { Holocron: ["D"] },
+			environments: { Demo: ["D"] },
 			secrets: { repo: [], org: [] },
 			variables: { repo: ["D"], org: [] },
 		});

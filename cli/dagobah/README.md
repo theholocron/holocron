@@ -15,7 +15,7 @@ Published for any project with a web-standard handler to run locally. `holocron 
 import { serveHandler } from "@theholocron/dagobah";
 
 await serveHandler({
-  environment: "Sentinel - dev", // the 1Password Environment
+  environment: "acme/app - dev", // the 1Password Environment
   required: ["SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"],
   logging: { tokenVar: "SENTINEL_AXIOM_INGEST_TOKEN", datasetVar: "AXIOM_DATASET" },
   port: Number(process.env.PORT ?? 3000),

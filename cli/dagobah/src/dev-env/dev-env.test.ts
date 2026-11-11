@@ -20,7 +20,7 @@ describe("loadDevEnv", () => {
 		const spawn = op(0);
 		const env = loadDevEnv({
 			required: REQUIRED,
-			environment: "Sentinel - dev",
+			environment: "acme/app - dev",
 			env: { ...ALL, OTHER: "x" },
 			spawn,
 		});
@@ -32,7 +32,7 @@ describe("loadDevEnv", () => {
 		const label = ["RSA", "PRIVATE", "KEY"].join(" ");
 		const pem = [`-----BEGIN ${label}-----`, "AAAA", "BBBB", `-----END ${label}-----`].join("\n");
 		const spawn = op(0, `GITHUB_APP_ID=2\nGITHUB_APP_PRIVATE_KEY=${pem}\nSENTINEL_WEBHOOK_SECRET=ws2\n`);
-		const env = loadDevEnv({ required: REQUIRED, environment: "Sentinel - dev", env: {}, spawn });
+		const env = loadDevEnv({ required: REQUIRED, environment: "acme/app - dev", env: {}, spawn });
 		expect(env.GITHUB_APP_PRIVATE_KEY).toBe(pem);
 		expect(env.SENTINEL_WEBHOOK_SECRET).toBe("ws2");
 	});
@@ -42,13 +42,13 @@ describe("loadDevEnv", () => {
 			0,
 			'GITHUB_APP_ID=2\nGITHUB_APP_PRIVATE_KEY="-----BEGIN-----\\nAAAA\\n-----END-----"\nSENTINEL_WEBHOOK_SECRET=ws2\n'
 		);
-		const env = loadDevEnv({ required: REQUIRED, environment: "Sentinel - dev", env: {}, spawn });
+		const env = loadDevEnv({ required: REQUIRED, environment: "acme/app - dev", env: {}, spawn });
 		expect(env.GITHUB_APP_ID).toBe("2");
 		expect(env.GITHUB_APP_PRIVATE_KEY).toContain("AAAA");
 		expect(env.SENTINEL_WEBHOOK_SECRET).toBe("ws2");
 		expect(spawn).toHaveBeenCalledWith(
 			"op",
-			["environment", "secret", "list", "Sentinel - dev", "--reveal", "--format=dotenv"],
+			["environment", "secret", "list", "acme/app - dev", "--reveal", "--format=dotenv"],
 			expect.objectContaining({ encoding: "utf8" })
 		);
 	});
@@ -69,13 +69,13 @@ describe("loadDevEnv", () => {
 		const spawn = op(0, "GITHUB_APP_ID=2\n");
 		const err = (() => {
 			try {
-				loadDevEnv({ required: REQUIRED, environment: "Sentinel - dev", env: {}, spawn });
+				loadDevEnv({ required: REQUIRED, environment: "acme/app - dev", env: {}, spawn });
 			} catch (e) {
 				return e as Error;
 			}
 		})();
 		expect(err?.message).toBe(
-			'missing from the environment and from "Sentinel - dev": GITHUB_APP_PRIVATE_KEY, SENTINEL_WEBHOOK_SECRET'
+			'missing from the environment and from "acme/app - dev": GITHUB_APP_PRIVATE_KEY, SENTINEL_WEBHOOK_SECRET'
 		);
 	});
 

@@ -748,7 +748,7 @@ describe("PluginLoader — credentials", () => {
 	const config = (extra: Record<string, unknown> = {}) => ({
 		name: "demo",
 		providers: { credentials: ["1password" as const], source: "github" as const },
-		credentials: { environment: "Holocron" },
+		credentials: { environment: "Demo" },
 		...extra,
 	});
 	const creds = (read: (environment: string) => Promise<Record<string, string>>) => ({
@@ -772,7 +772,7 @@ describe("PluginLoader — credentials", () => {
 
 		await loader.load();
 
-		expect(impl.read).toHaveBeenCalledExactlyOnceWith("Holocron");
+		expect(impl.read).toHaveBeenCalledExactlyOnceWith("Demo");
 		expect(seenWhenSourceCreated).toBe("from-op");
 		expect(loader.has("credentials")).toBe(true);
 		expect(loader.get("credentials")).toEqual([impl]);
@@ -810,7 +810,7 @@ describe("PluginLoader — credentials", () => {
 		const cfg = {
 			name: "demo",
 			providers: { credentials: ["1password" as const] },
-			credentials: { environment: "Holocron" },
+			credentials: { environment: "Demo" },
 		};
 		await loaderWith(cfg, modules).loader.load();
 		await loaderWith(cfg, modules).loader.load();
@@ -858,25 +858,22 @@ describe("PluginLoader — credentials", () => {
 
 	it("reads two entries of the same provider, each its own environment, and finds a name in either (#1827)", async () => {
 		const impl = creds(async (environment): Promise<Record<string, string>> => {
-			if (environment === "Holocron") return { TOKEN: "t" };
+			if (environment === "Demo") return { TOKEN: "t" };
 			return { CLOUDFLARE_ACCOUNT_ID: "acct", TOKEN: "ignored" };
 		});
 		const { loader } = loaderWith(
 			config({
 				providers: {
 					credentials: [
-						["1password", { environment: "Holocron" }],
-						["1password", { environment: "Holocron - GitHub Actions variables" }],
+						["1password", { environment: "Demo" }],
+						["1password", { environment: "Demo variables" }],
 					],
 				},
 			}),
 			{ "@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }) }
 		);
 		await loader.load();
-		expect(impl.read.mock.calls.map(([environment]) => environment)).toEqual([
-			"Holocron",
-			"Holocron - GitHub Actions variables",
-		]);
+		expect(impl.read.mock.calls.map(([environment]) => environment)).toEqual(["Demo", "Demo variables"]);
 		expect(getCredential("CLOUDFLARE_ACCOUNT_ID")).toBe("acct");
 		// The first entry wins for a name both have.
 		expect(getCredential("TOKEN")).toBe("t");
@@ -969,7 +966,7 @@ describe("PluginLoader — the repo's .env", () => {
 		};
 		await load(
 			dir,
-			{ name: "demo", providers: { credentials: ["1password"] }, credentials: { environment: "Holocron" } },
+			{ name: "demo", providers: { credentials: ["1password"] }, credentials: { environment: "Demo" } },
 			{
 				"@theholocron/holocron-plugin-1password": makePlugin("1password", { credentials: impl }),
 			}

@@ -352,7 +352,7 @@ export interface CredentialsConfig {
 	/**
 	 * The name of the environment the `credentials` providers read (a 1Password Environment, for 1Password), for
 	 * every provider that does not give its own with an `environment` option
-	 * (`credentials: ["1password", { environment: "Holocron" }]`). It is a name, not a secret, so it is committed. A provider that matches names exactly may be tried with other
+	 * (`credentials: ["1password", { environment: "Demo" }]`). It is a name, not a secret, so it is committed. A provider that matches names exactly may be tried with other
 	 * letter cases of it; see the provider's page.
 	 */
 	environment: string;
@@ -360,7 +360,7 @@ export interface CredentialsConfig {
 
 /** One entry of `githubApps`: a registered GitHub App instance `holocron doctor github-app` compares with its manifest. */
 export interface GitHubAppConfig {
-	/** The instance's name in the report, e.g. `"Sentinel - dev"`. */
+	/** The instance's name in the report, e.g. `"acme/app - dev"`. */
 	name: string;
 	/**
 	 * The App manifest file, relative to the directory: `default_permissions` (name to `read`, `write` or
@@ -402,7 +402,7 @@ export interface IdeasConfig {
 /** The `dev` block: how `holocron dev` runs this directory's application locally behind a development tunnel. */
 export interface DevConfig {
 	/**
-	 * The vault environment whose variables the application runs with, e.g. `"Sentinel - dev"`. A name, not a
+	 * The vault environment whose variables the application runs with, e.g. `"acme/app - dev"`. A name, not a
 	 * secret, so it is committed.
 	 */
 	environment?: string;
@@ -784,7 +784,7 @@ export interface HolocronConfig {
 	 * Each provider needs one or the other when `providers.credentials` is set.
 	 *
 	 * @example
-	 * { environment: "Holocron" }
+	 * { environment: "Demo" }
 	 */
 	credentials?: CredentialsConfig;
 	/**
@@ -793,7 +793,7 @@ export interface HolocronConfig {
 	 * optional here and can be given as a flag instead (a flag wins); `holocron dev` says which one is missing.
 	 *
 	 * @example
-	 * { environment: "Sentinel - dev", tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" } }
+	 * { environment: "acme/app - dev", tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" } }
 	 */
 	dev?: DevConfig;
 	/**
