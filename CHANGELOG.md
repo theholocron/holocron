@@ -1,3 +1,20 @@
+## [5.0.0-alpha.417](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.416...v5.0.0-alpha.417) (2026-11-11)
+
+### Features
+
+* **secrets:** 🔒 a git-ignored .holocron/.private directory for secrets ([#2081](https://github.com/theholocron/holocron/issues/2081)) ([90eae69](https://github.com/theholocron/holocron/commit/90eae69cf276b5c97ec50272784c5083a006c091)), closes [#2078](https://github.com/theholocron/holocron/issues/2078) [#2078](https://github.com/theholocron/holocron/issues/2078)
+
+### Documentation
+
+* **cli:** 📝 spec the verb-first command grammar ([#2083](https://github.com/theholocron/holocron/issues/2083)) ([47ef513](https://github.com/theholocron/holocron/commit/47ef513034bdb654242e6da6fb6054e04a88c26d)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+
+### Chores
+
+* **credentials:** remove the old-name fallback now the Environments are renamed ([#2085](https://github.com/theholocron/holocron/issues/2085)) ([b0044e3](https://github.com/theholocron/holocron/commit/b0044e37000897896cc6c412d36c51396848fa76)), closes [#2080](https://github.com/theholocron/holocron/issues/2080)
+* **secrets:** stop syncing the Lighthouse token ([#2084](https://github.com/theholocron/holocron/issues/2084)) ([01059b9](https://github.com/theholocron/holocron/commit/01059b953af374eab03a0e8ddbb656056c57a8c3)), closes [#2058](https://github.com/theholocron/holocron/issues/2058)
+* **specs:** 🔧 🔄 sync spec discussions ([#2086](https://github.com/theholocron/holocron/issues/2086)) ([2909e95](https://github.com/theholocron/holocron/commit/2909e95ff63ff3c8f2d3a3c8426c6c88bc0b37c3))
+* **specs:** 🔧 🔄 sync spec discussions ([#2087](https://github.com/theholocron/holocron/issues/2087)) ([cd246d5](https://github.com/theholocron/holocron/commit/cd246d5e5a65c80f5639baba24469c889075e70d))
+
 ## [5.0.0-alpha.416](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.415...v5.0.0-alpha.416) (2026-11-11)
 
 ### Features
