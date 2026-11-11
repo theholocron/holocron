@@ -1,3 +1,13 @@
+## [5.0.0-alpha.413](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.412...v5.0.0-alpha.413) (2026-11-11)
+
+### Refactoring
+
+* **sentinel:** ♻️ name checks sentinel:<task id> / <Action> with a removable prefix ([#2037](https://github.com/theholocron/holocron/issues/2037)) ([f3e8251](https://github.com/theholocron/holocron/commit/f3e82513fe08c99bb15cb4b0df08a4043ac329e7)), closes [#2036](https://github.com/theholocron/holocron/issues/2036) [#2036](https://github.com/theholocron/holocron/issues/2036) [#2036](https://github.com/theholocron/holocron/issues/2036)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2073](https://github.com/theholocron/holocron/issues/2073)) ([e3ed27d](https://github.com/theholocron/holocron/commit/e3ed27dac2e5a0e0a8ee40428826367a768529fe))
+
 ## [5.0.0-alpha.412](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.411...v5.0.0-alpha.412) (2026-11-11)
 
 ### Features
