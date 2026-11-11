@@ -1,10 +1,13 @@
 ---
+id: SPEC-0077
 status: draft
 issue: theholocron/holocron#2069
 blocked-by: []
 related:
   - theholocron/holocron#2058
   - theholocron/holocron#2061
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569942262719316159
 ---
 
 # Name a layer, not a 1Password Environment, in the config
