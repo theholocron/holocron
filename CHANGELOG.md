@@ -1,3 +1,9 @@
+## [5.0.0-alpha.419](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.418...v5.0.0-alpha.419) (2026-11-11)
+
+### Features
+
+* **secrets:** name who can read an org secret when the sync writes it ([#2095](https://github.com/theholocron/holocron/issues/2095)) ([abe8825](https://github.com/theholocron/holocron/commit/abe88255ac61fd3edc41b47b9b9e4c97cfcacca2)), closes [#2062](https://github.com/theholocron/holocron/issues/2062)
+
 ## [5.0.0-alpha.418](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.417...v5.0.0-alpha.418) (2026-11-11)
 
 ### Bug Fixes
