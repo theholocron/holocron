@@ -1,3 +1,9 @@
+## [5.0.0-alpha.414](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.413...v5.0.0-alpha.414) (2026-11-11)
+
+### Refactoring
+
+* **ci:** make measure a suite: measure:docs and measure:bundle ([#2071](https://github.com/theholocron/holocron/issues/2071)) ([89d7323](https://github.com/theholocron/holocron/commit/89d732320d7b84cce48096f98820e0a4a5a11581)), closes [#2070](https://github.com/theholocron/holocron/issues/2070) [#2070](https://github.com/theholocron/holocron/issues/2070)
+
 ## [5.0.0-alpha.413](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.412...v5.0.0-alpha.413) (2026-11-11)
 
 ### Refactoring
