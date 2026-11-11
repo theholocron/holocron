@@ -1,6 +1,6 @@
 #
 # Makes the forum post for a spec or ADR while its pull request is still open (#1600, spec
-# `tech-specs-discussion-threads`), instead of waiting for the file to land on `alpha`. It runs `holocron specs sync` with
+# `tech-specs-discussion-threads`), instead of waiting for the file to land on `alpha`. It runs `holocron sync specs` with
 # `--files` (only the spec and ADR files this pull request changes, so a stale branch cannot retag the posts of files it
 # does not touch) and `--pr` (the post names this pull request). Everything the command edits stays in this checkout and
 # is thrown away: the post's address reaches the file after the merge, when the `sync-specs` task finds the post
@@ -9,7 +9,7 @@
 # - Only for a pull request from this repository: a post carries text the author wrote, and a fork gets no secrets.
 # - Only when the pull request changes a spec or an ADR.
 # - When the pull request is CLOSED WITHOUT MERGING, its posts are tagged `withdrawn` and closed (#1653,
-#   `specs sync --withdraw`); reopening it, or the same file coming back in a new pull request, puts the file's own status
+#   `sync specs --withdraw`); reopening it, or the same file coming back in a new pull request, puts the file's own status
 #   back on the post and reopens it. A merged pull request does nothing here. Nothing from a closed pull request's head
 #   runs with the bot token: that event checks out and builds the BASE branch, and takes only the list of paths from the
 #   pull request through the API.
@@ -98,7 +98,7 @@ jobs:
           # The list is file names from this repository's own pull request; word splitting is what turns it into arguments.
           # shellcheck disable=SC2086
           if [ "$WITHDRAW" = "true" ]; then
-            node cli/cli/dist/cli.mjs specs sync --withdraw --files $FILES
+            node cli/cli/dist/cli.mjs sync specs --withdraw --files $FILES
           else
-            node cli/cli/dist/cli.mjs specs sync --pr "$PR_NUMBER" --files $FILES
+            node cli/cli/dist/cli.mjs sync specs --pr "$PR_NUMBER" --files $FILES
           fi

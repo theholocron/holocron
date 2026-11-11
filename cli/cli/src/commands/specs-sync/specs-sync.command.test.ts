@@ -21,9 +21,9 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 }));
 
 import { runCommand } from "../run-command.testing.js";
-import { specsCommand } from "./specs.command.js";
+import { syncCommand } from "../sync/sync.command.js";
 
-const go = (args: string[]) => runCommand(specsCommand, ["specs", ...args]);
+const go = (args: string[]) => runCommand(syncCommand, ["sync", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -33,9 +33,9 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("specs sync", () => {
+describe("sync specs", () => {
 	it("runs with the context from the tokens and the org, reading and writing the working tree", async () => {
-		await go(["sync"]);
+		await go(["specs"]);
 
 		const input = runSpecsSync.mock.calls[0]![0];
 		expect(input).toMatchObject({
@@ -56,29 +56,29 @@ describe("specs sync", () => {
 	});
 
 	it("passes --provider, --channel and --notify when given", async () => {
-		await go(["sync", "--provider", "discord", "--channel", "ideas", "--notify"]);
+		await go(["specs", "--provider", "discord", "--channel", "ideas", "--notify"]);
 
 		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({ provider: "discord", channel: "ideas", notify: true });
 	});
 
 	it("passes --refresh-origin only when given", async () => {
-		await go(["sync", "--refresh-origin"]);
-		await go(["sync"]);
+		await go(["specs", "--refresh-origin"]);
+		await go(["specs"]);
 
 		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({ refreshOrigin: true });
 		expect(runSpecsSync.mock.calls[1]![0]).toMatchObject({ refreshOrigin: false });
 	});
 
 	it("passes --refresh-titles only when given", async () => {
-		await go(["sync", "--refresh-titles"]);
-		await go(["sync"]);
+		await go(["specs", "--refresh-titles"]);
+		await go(["specs"]);
 
 		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({ refreshTitles: true });
 		expect(runSpecsSync.mock.calls[1]![0]).toMatchObject({ refreshTitles: false });
 	});
 
 	it("passes --files and --pr for a pull request that is still open", async () => {
-		await go(["sync", "--files", ".notes/a.spec.md", ".notes/b.spec.md", "--pr", "1700"]);
+		await go(["specs", "--files", ".notes/a.spec.md", ".notes/b.spec.md", "--pr", "1700"]);
 
 		expect(runSpecsSync.mock.calls[0]![0]).toMatchObject({
 			files: [".notes/a.spec.md", ".notes/b.spec.md"],
@@ -88,25 +88,13 @@ describe("specs sync", () => {
 
 	it("exits 1 when the sync failed", async () => {
 		runSpecsSync.mockResolvedValue({ status: "fail", files: [] });
-		await go(["sync"]);
+		await go(["specs"]);
 		expect(process.exitCode).toBe(1);
 	});
 
 	it("stops when --token cannot be parsed", async () => {
 		tokenContext.mockReturnValue(null);
-		await go(["sync"]);
+		await go(["specs"]);
 		expect(runSpecsSync).not.toHaveBeenCalled();
-	});
-});
-
-describe("specs menu", () => {
-	it("a bare `specs` opens the menu at that group", async () => {
-		await go([]);
-
-		expect(launchMenu).toHaveBeenLastCalledWith(
-			expect.anything(),
-			expect.anything(),
-			expect.objectContaining({ pickMessage: "specs — choose a subcommand:", startPath: ["specs"] })
-		);
 	});
 });

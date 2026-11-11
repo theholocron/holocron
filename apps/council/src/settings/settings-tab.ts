@@ -28,7 +28,7 @@ export class IdeasSettingTab extends PluginSettingTab {
 
 		containerEl.createEl("p", {
 			text:
-				"Filing runs holocron ideas sync on a Mac. There is no token field: the CLI reads its tokens through its own " +
+				"Filing runs holocron sync ideas on a Mac. There is no token field: the CLI reads its tokens through its own " +
 				"chain (flag, environment, .env, credential providers, keyring), and a token here would be synced to every " +
 				"device with the vault.",
 		});
@@ -68,7 +68,7 @@ export class IdeasSettingTab extends PluginSettingTab {
 		);
 		this.text(
 			"Filing state",
-			"The state that files the idea. File this idea sets it, and holocron ideas sync acts on it.",
+			"The state that files the idea. File this idea sets it, and holocron sync ideas acts on it.",
 			"fileState",
 			DEFAULT_SETTINGS.fileState
 		);

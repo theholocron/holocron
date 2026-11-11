@@ -6,7 +6,7 @@ import { PRIVATE_CREDENTIALS_FILE } from "../private-dir.js";
 /** Where a credentials file goes: its absolute path, and whether it is the default one in the private directory. */
 export interface CredentialsFileTarget {
 	path: string;
-	/** True when no `--file` was given, so the file is in `.holocron/.private/` and a missing ignore rule is fixed by `repo sync`. */
+	/** True when no `--file` was given, so the file is in `.holocron/.private/` and a missing ignore rule is fixed by `sync`. */
 	isDefault: boolean;
 }
 

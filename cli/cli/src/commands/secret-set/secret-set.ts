@@ -1,7 +1,7 @@
 /**
  * `holocron new secret` — one-shot single-secret push.
  *
- * Complements `holocron secrets sync` (bulk vault → destinations) for
+ * Complements `holocron sync secrets` (bulk vault → destinations) for
  * ad-hoc scenarios:
  *   - Bootstrap secrets (e.g., NPM_TOKEN on theholocron/holocron itself
  *     before the rest of the setup exists)

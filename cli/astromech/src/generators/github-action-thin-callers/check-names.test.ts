@@ -105,7 +105,7 @@ const EXPECTED_CHECK_NAMES: Record<string, string[]> = {
 	release: ["release / Semantic release", "release / Deploy", "release / Post-release readme sync"],
 	"scan:code": ["scan:code / Analyze (${{ inputs.language }})"],
 	"scan:secrets": ["scan:secrets / Run gitleaks"],
-	"sync-repo": ["sync-repo / Run holocron repo sync", "sync-repo / Notify of a failed sync"],
+	"sync-repo": ["sync-repo / Run holocron sync", "sync-repo / Notify of a failed sync"],
 	"deploy-sentinel": ["deploy-sentinel / Build, stage and deploy Sentinel"],
 	"sync-secrets": ["sync-secrets / Sync 1Password to Vercel to GH org secret"],
 	"sync-specs": ["sync-specs / Sync spec discussions"],

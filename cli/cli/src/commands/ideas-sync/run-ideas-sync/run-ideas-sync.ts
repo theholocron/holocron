@@ -1,5 +1,5 @@
 /**
- * `holocron ideas sync` — files the idea notes that are ready.
+ * `holocron sync ideas` — files the idea notes that are ready.
  *
  * It reads every idea through the `ideas` provider (`providers.ideas`, or `ideas.dir` read as an Obsidian vault; the
  * Obsidian plugin skips folders whose name starts with `_` or `.`). An idea whose status is the filing state (default
@@ -67,7 +67,7 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 		if (notReady > 0) print(`  ${notReady} note(s) not ready (another status, or already filed), shown in no row`);
 		return { status: status ?? (summary.fail > 0 ? "fail" : "ok"), rows };
 	};
-	print(style.header(`Holocron ideas sync${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron sync ideas${dryRun ? " (dry-run)" : ""}`));
 	print("");
 
 	const entry = resolveIdeasProvider(input.loaded.resolved, input.env);
@@ -87,7 +87,7 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 		input.ideasLoader ?? new PluginLoader({ ...input.loaded.resolved, providers: { ideas: entry } }, input.context);
 	/* v8 ignore stop */
 	await reader.load();
-	assertPluginsResolvable(reader, "ideas sync");
+	assertPluginsResolvable(reader, "sync ideas");
 	if (!reader.has("ideas")) {
 		const failure = reader.loadFailures().find((f) => f.key === "ideas");
 		return finish([
@@ -137,7 +137,7 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 		const interactive = input.interactive ?? Boolean(process.stdin.isTTY);
 		if (!interactive) {
 			throw new NonInteractiveError(
-				`\`ideas sync\` creates ${ready.length} issue(s) and edits the notes; pass --yes to run it without asking, or --dry-run to preview`
+				`\`sync ideas\` creates ${ready.length} issue(s) and edits the notes; pass --yes to run it without asking, or --dry-run to preview`
 			);
 		}
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(
@@ -152,7 +152,7 @@ export async function runIdeasSync(input: RunIdeasSyncInput): Promise<IdeasSyncR
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "ideas sync");
+	assertPluginsResolvable(loader, "sync ideas");
 	const issues = loader.has("issues") ? loader.get("issues") : undefined;
 
 	for (const idea of ready) {

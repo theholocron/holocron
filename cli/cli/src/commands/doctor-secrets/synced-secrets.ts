@@ -9,7 +9,7 @@ import { repoName } from "../secrets-sync/repo-name/index.js";
 import type { SyncedSecrets } from "./doctor-secrets.type.js";
 
 /**
- * The secrets `holocron secrets sync` fills from a vault, as `repo.secrets.sync` declares them: which names land at
+ * The secrets `holocron sync secrets` fills from a vault, as `repo.secrets.sync` declares them: which names land at
  * which scope. An entry that lists `keys` needs no vault. One that does not asks the vault which keys the environment
  * holds, and only the names are kept: the values the provider returns are dropped at once and never logged or printed.
  * An entry that cannot be resolved (no vault, no token, an environment the vault cannot list) is a skipped row with

@@ -7,7 +7,7 @@ description: Write a draft spec in .notes/ from the issue an idea was filed as.
 holocron new spec <issue> [--name <topic>] [--dry-run] [--yes]
 ```
 
-This is the spec-time step of the ideas flow ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). An idea was filed as an issue by [`ideas sync`](/holocron/commands/ideas-sync/), and its note left the vault, so the idea's text now lives in the issue. `new spec` reads that issue and writes it as the start of a spec.
+This is the spec-time step of the ideas flow ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). An idea was filed as an issue by [`sync ideas`](/holocron/commands/sync-ideas/), and its note left the vault, so the idea's text now lives in the issue. `new spec` reads that issue and writes it as the start of a spec.
 
 `<issue>` is the issue in the tracker's own syntax: `#1234` or `1234` for GitHub, `RANDO-7` for Linear. The repo's `issues` provider reads it (`Issues.get`), so the command knows nothing about a tracker.
 
@@ -29,9 +29,9 @@ blocked-by: []
 We should add a thing.
 ```
 
-- **No `id`.** [`specs sync`](/holocron/commands/specs-sync/) numbers the spec once it is on the default branch.
+- **No `id`.** [`sync specs`](/holocron/commands/sync-specs/) numbers the spec once it is on the default branch.
 - **`issue:`** is the issue in the form specs use: `owner/repo#1234` for GitHub (from the issue's address, else the config's `org` and `name`), the key itself for Linear.
-- **Problem** is the issue's text without the `Filed from idea: <title>` line and the hidden `<!-- holocron:idea ... -->` marker that `ideas sync` appends, and without a first `#` heading that repeats the title.
+- **Problem** is the issue's text without the `Filed from idea: <title>` line and the hidden `<!-- holocron:idea ... -->` marker that `sync ideas` appends, and without a first `#` heading that repeats the title.
 - The file passes `holocron probe specs check` ([`probe`](/holocron/commands/probe/)) (a missing `id` is only a warning) and Prettier leaves it as it is.
 
 ## Behavior

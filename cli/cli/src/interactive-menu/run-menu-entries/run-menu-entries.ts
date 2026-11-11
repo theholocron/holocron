@@ -68,7 +68,7 @@ function groupByNamespace(taskNames: string[]): Map<string, string[]> {
  * (`holocron run <namespace>` — every task in it, via
  * `Astromech.runGroup()`) alongside each of its individual tasks, the exact
  * same "a group that's also runnable" shape `menuItems` already renders for
- * `repo sync` / `deploy` — reached here for free by using a space, not the
+ * `sync` / `deploy` — reached here for free by using a space, not the
  * task's own `.`, between namespace and leaf in `name` (`spawnArgs` carries
  * the real dotted invocation `buildChildArgv` actually spawns).
  */

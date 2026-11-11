@@ -281,10 +281,10 @@ export const TASKS: Record<string, TaskDef> = {
 	"reconcile-projects": { group: "Platform", scope: "repo", local: { command: "project reconcile" } },
 
 	// ── Knowledge — published content, not software ───────────────────────
-	// `holocron specs sync`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull
+	// `holocron sync specs`: keeps a forum post in #ideas per ADR and spec in step with the files and opens one pull
 	// request with the edits it made (#1535). Hourly, on a push to `alpha` that changes a spec or ADR, and on demand.
 	// It writes posts with the bot token, so it is never part of `holocron run ci`.
-	"sync-specs": { group: "Knowledge", scope: "repo", local: { command: "specs sync" } },
+	"sync-specs": { group: "Knowledge", scope: "repo", local: { command: "sync specs" } },
 	// The same sync for the files one pull request changes (`--files`, `--pr`), or the withdrawal of their posts when it
 	// closes unmerged (#1600, #1653). It needs the pull request's number and paths, so it has no local runner.
 	"preview-specs": { group: "Knowledge", scope: "repo", local: null },

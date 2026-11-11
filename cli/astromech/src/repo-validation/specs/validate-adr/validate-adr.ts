@@ -6,7 +6,7 @@ import type { SpecFinding } from "../specs.type.js";
 /**
  * The findings for one ADR's text. Errors: no frontmatter; a missing `id`, or one that is not `ADR-<the filename's
  * four-digit prefix>`; a missing or empty `title`; a missing or unknown `status`; a missing or malformed `date`. A
- * warning: an `accepted` ADR with no `discussion.url`, the address of its discussion post, which `holocron specs sync`
+ * warning: an `accepted` ADR with no `discussion.url`, the address of its discussion post, which `holocron sync specs`
  * writes. A GitHub Discussion link does not count.
  */
 export function validateAdr(file: string, content: string): SpecFinding[] {

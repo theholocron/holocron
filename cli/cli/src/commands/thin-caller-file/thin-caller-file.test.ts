@@ -8,7 +8,7 @@ describe("thinCallerFile", () => {
 			[
 				"# AUTO-GENERATED — do not edit directly.",
 				"# Source:  theholocron/holocron · cli/astromech/src/generators/github-action-thin-callers/github-action-thin-callers.ts",
-				"# Tool:    holocron repo sync",
+				"# Tool:    holocron sync",
 				"# Changes: edit source in theholocron/holocron",
 				"# Source package: apps/web",
 				"",
@@ -19,8 +19,8 @@ describe("thinCallerFile", () => {
 		);
 	});
 
-	it("names `repo sync` as the tool whichever command writes the file, so both write the same bytes", () => {
-		expect(thinCallerFile(".", "x")).toContain("# Tool:    holocron repo sync");
+	it("names `sync` as the tool whichever command writes the file, so both write the same bytes", () => {
+		expect(thinCallerFile(".", "x")).toContain("# Tool:    holocron sync");
 		expect(thinCallerFile(".", "x")).not.toContain("holocron repo setup");
 	});
 });

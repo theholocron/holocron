@@ -137,10 +137,10 @@ describe("exportEnvironmentProbe", () => {
 			expect(r.madeDirs).toEqual([]);
 		});
 
-		it("tells a repo without the ignore rule to run repo sync", async () => {
+		it("tells a repo without the ignore rule to run sync", async () => {
 			for (const state of ["tracked", "unknown"] as const) {
 				const r = await run(["x"], { isIgnored: () => state });
-				expect((r.error as Error).message).toContain("run `holocron repo sync`");
+				expect((r.error as Error).message).toContain("run `holocron sync`");
 			}
 		});
 

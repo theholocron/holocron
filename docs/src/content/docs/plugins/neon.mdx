@@ -58,6 +58,6 @@ NEON_URL=$(holocron storage get-connection-string preview)
 holocron storage reset-branch --branch preview --from main
 ```
 
-These operations are run programmatically via the `storage` capability — commands like `secrets sync` can use the storage plugin to set `DATABASE_URL` env vars on deployment platforms.
+These operations are run programmatically via the `storage` capability — commands like `sync secrets` can use the storage plugin to set `DATABASE_URL` env vars on deployment platforms.
 
 The full [API reference](/holocron/plugins/holocron-plugin-neon/api/readme/) is generated from the package's TSDoc comments.

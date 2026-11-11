@@ -1,12 +1,12 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · ci/workflows/validate/generated.yml
-# Tool:    holocron repo sync
+# Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
 name: Validate Generated Files
 
-# Generated files (#1405): fails when a file `holocron repo setup` / `holocron repo sync` writes from the config
+# Generated files (#1405): fails when a file `holocron repo setup` / `holocron sync` writes from the config
 # differs from the committed copy, differs the second time it is generated, or when a workflow in .github/workflows is
 # neither generated nor marked "# HAND-MAINTAINED". Checked by `holocron probe generated check`, which needs no token.
 #

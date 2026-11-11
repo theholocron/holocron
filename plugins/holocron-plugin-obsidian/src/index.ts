@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-obsidian` — entrypoint.
  *
  * Implements the `ideas` capability over an Obsidian vault: a folder of Markdown notes whose `status:` property is the
- * idea's state and whose `issue:` property records the issue it was filed as. `holocron ideas sync` loads this plugin
+ * idea's state and whose `issue:` property records the issue it was filed as. `holocron sync ideas` loads this plugin
  * when `providers.ideas: ["obsidian", { dir }]` is declared in `holocron.config.ts` (or, for a config that still has
  * only `ideas.dir`, as if it were).
  *

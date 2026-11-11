@@ -29,7 +29,7 @@ export async function planForRole(args: {
 /**
  * Makes each role's holders equal its team, one role after another. This is the sync itself, with no setup in
  * front of it: the caller has already picked the providers, read the links and checked the layout. `holocron
- * notifications sync-roles` and Sentinel's role sync are two callers of it. A step that fails is recorded and the
+ * sync roles` and Sentinel's role sync are two callers of it. A step that fails is recorded and the
  * run goes on; nothing here throws for a provider error. Idempotent: a role that already matches changes nothing.
  * Lines go to `input.print` when it is given, and nowhere otherwise.
  */

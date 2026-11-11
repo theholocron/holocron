@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { originFromCommit } from "./origin-from-commit.js";
 import type { SpecsSyncIo } from "./specs-sync.type.js";
 
-/** The `specs sync` command's files, read and written under `repoRoot`. */
+/** The `sync specs` command's files, read and written under `repoRoot`. */
 export function realSpecsSyncIo(repoRoot: string): SpecsSyncIo {
 	/* v8 ignore start -- reads and writes the real filesystem; the command is tested with an injected io */
 	return {

@@ -1,6 +1,6 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · ci/workflows/check-notify.yml
-# Tool:    holocron repo sync
+# Tool:    holocron sync
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
@@ -23,7 +23,7 @@ name: Notify Check
 # The default list is every channel a workflow or the bot writes to through a
 # webhook: alerts, errors, uptime, releases, deploys and sync, plus rules and
 # welcome, the two read-only START HERE channels. Three channels are left out on
-# purpose. `ideas` is a forum: `holocron specs sync` writes its posts
+# purpose. `ideas` is a forum: `holocron sync specs` writes its posts
 # through the bot token (HOLOCRON_DISCORD_BOT_TOKEN), and a forum has no webhook
 # post to prove. `holonet` is the doctor's own test channel, written by
 # `holocron doctor notifications`, never by a workflow. `dev` is for people

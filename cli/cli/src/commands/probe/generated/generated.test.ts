@@ -130,10 +130,10 @@ describe("checkGenerated for a workspace package", () => {
 				workflows: NONE,
 			});
 		expect(run("paths: old\n")).toEqual([
-			'.github/workflows/ci.deploy-preview.yml: differs from what holocron generates for package apps/sentinel (first difference at line 1: committed "paths: old", generated "paths: new"); run `holocron repo sync --cwd apps/sentinel` and commit the result',
+			'.github/workflows/ci.deploy-preview.yml: differs from what holocron generates for package apps/sentinel (first difference at line 1: committed "paths: old", generated "paths: new"); run `holocron sync --cwd apps/sentinel` and commit the result',
 		]);
 		expect(run(null)).toEqual([
-			".github/workflows/ci.deploy-preview.yml: missing for package apps/sentinel; run `holocron repo sync --cwd apps/sentinel` and commit it",
+			".github/workflows/ci.deploy-preview.yml: missing for package apps/sentinel; run `holocron sync --cwd apps/sentinel` and commit it",
 		]);
 	});
 

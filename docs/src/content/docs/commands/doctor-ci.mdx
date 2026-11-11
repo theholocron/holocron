@@ -33,10 +33,10 @@ A job name may carry a suffix after the id (`release ${{ matrix.group }}`). Only
 
 `callers`, `aggregate` and `home` are skips, not failures, when there is nothing to look at: no generated caller, or no `ci` aggregate caller (only the repository that hosts the reusables writes one today). The `tasks` row always runs.
 
-While `CI_HOME.ref` is `main`, `holocron repo sync` still writes the legacy caller names in a repository that does not host the reusables, so such a repository fails `callers` until its callers are repointed at `ci-v1`. The `home` row says which side it is on.
+While `CI_HOME.ref` is `main`, `holocron sync` still writes the legacy caller names in a repository that does not host the reusables, so such a repository fails `callers` until its callers are repointed at `ci-v1`. The `home` row says which side it is on.
 
 ## Related checks
 
 The ruleset's required status checks are compared by [`doctor repo`](/holocron/commands/doctor-repo/), not here. [`holocron probe tasks names`](/holocron/commands/probe/) finds old task names in hand-written files; [`doctor notifications`](/holocron/commands/doctor-notifications/) checks the workflow names `platform.notifications.yml` lists.
 
-Related: [`doctor`](/holocron/commands/doctor/), [`repo sync`](/holocron/commands/repo-sync/).
+Related: [`doctor`](/holocron/commands/doctor/), [`sync`](/holocron/commands/sync/).

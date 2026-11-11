@@ -18,7 +18,6 @@ import { deployCommand } from "../commands/deploy/deploy.command.js";
 import { devCommand } from "../commands/dev/index.js";
 import { doctorCommand } from "../commands/doctor/index.js";
 import { exportCommand } from "../commands/export/index.js";
-import { ideasCommand } from "../commands/ideas/index.js";
 import { listCommand } from "../commands/list/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
 import { migrateCommand } from "../commands/migrate/index.js";
@@ -32,9 +31,7 @@ import { removeCommand } from "../commands/remove/index.js";
 import { repoCommand } from "../commands/repo/repo.command.js";
 import { resolveCommand } from "../commands/resolve/index.js";
 import { runCommand } from "../commands/run/run.command.js";
-import { secretsCommand } from "../commands/secrets/secrets.command.js";
 import { skillsCommand } from "../commands/skills/index.js";
-import { specsCommand } from "../commands/specs/specs.command.js";
 import { syncCommand } from "../commands/sync/sync.command.js";
 import { buildCliLogger, getRunId, reportError } from "../observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "../observability/telemetry/index.js";
@@ -155,14 +152,11 @@ try {
 		.command(removeCommand as never)
 		.command(probeCommand as never)
 		.command(providerCommand as never)
-		.command(secretsCommand as never)
 		.command(notificationsCommand as never)
-		.command(specsCommand as never)
 		.command(projectCommand as never)
 		.command(migrateCommand as never)
 		.command(devCommand as never)
 		.command(syncCommand as never)
-		.command(ideasCommand as never)
 		.command(packageCommand as never)
 		.command(deployCommand as never)
 		.command(resolveCommand as never)

@@ -4,7 +4,7 @@ import type { SpecFinding } from "../specs.type.js";
 
 /**
  * The findings for one spec's text. Errors: no frontmatter; a missing or unknown `status`; an `id` that is not
- * `SPEC-` and four digits. Warnings: a missing `id` (`holocron specs sync` numbers it, so a new spec needs none); a missing
+ * `SPEC-` and four digits. Warnings: a missing `id` (`holocron sync specs` numbers it, so a new spec needs none); a missing
  * `issue` (every spec has a companion GitHub issue), except on an `archived` or `superseded` spec, many of which
  * predate the issue-first process.
  */
@@ -38,7 +38,7 @@ export function validateSpec(file: string, content: string): SpecFinding[] {
 			file,
 			line: 1,
 			rule: "id",
-			reason: "missing `id` — `holocron specs sync` numbers a spec once it is on the default branch",
+			reason: "missing `id` — `holocron sync specs` numbers a spec once it is on the default branch",
 			severity: "warning",
 		});
 	} else if (!/^SPEC-\d{4,}$/.test(id.value)) {

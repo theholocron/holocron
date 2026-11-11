@@ -10,7 +10,7 @@ import { defineConfig } from "@theholocron/astromech/config";
  * preset), this file adds the repo-specific ones. astromech's
  * `loadTasksConfig` merges them — task arrays concatenate, this file wins
  * on scalars — and `holocron run` / `holocron run ci` / `holocron repo setup` /
- * `holocron repo sync` all read the merged manifest.
+ * `holocron sync` all read the merged manifest.
  */
 export default defineConfig({
 	tasks: [

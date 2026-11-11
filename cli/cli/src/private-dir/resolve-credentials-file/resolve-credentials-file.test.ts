@@ -42,8 +42,8 @@ describe("resolveCredentialsFile", () => {
 });
 
 describe("ignoreAdvice", () => {
-	it("tells a repo missing the rule to run repo sync", () => {
-		expect(ignoreAdvice(true, "choose another path with --file")).toMatch(/holocron repo sync/);
+	it("tells a repo missing the rule to run sync", () => {
+		expect(ignoreAdvice(true, "choose another path with --file")).toMatch(/holocron sync/);
 	});
 
 	it("keeps the old advice for a path given with --file", () => {

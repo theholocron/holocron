@@ -145,7 +145,7 @@ of orgs/accounts unchanged.
 ## `syncPropertiesFromConfig({ client, repo, defaultBranch, config })`
 
 Resolves and syncs GitHub custom properties for a repo — the same 10
-fields `holocron repo sync`'s `properties` step computes (6 manual, straight
+fields `holocron sync`'s `properties` step computes (6 manual, straight
 from `holocron.config.ts`'s `repo.properties` / `repo.protection`; 4
 derived — #677) — from data fetched over the GitHub API instead of a
 local checkout, so it can run from a webhook delivery. Pass
@@ -155,7 +155,7 @@ re-fetching the same file.
 The derivation logic itself —
 `deriveProfile()`/`deriveStack()`/`deriveCapabilities()`/`deriveCompliance()`
 — is imported from `@theholocron/cli` unchanged (D8): the same functions
-`holocron repo sync` calls locally. Only the _inputs_ differ: workspace-package
+`holocron sync` calls locally. Only the _inputs_ differ: workspace-package
 discovery walks the default branch's tree via `client.git.getTree()`
 (recursive) instead of a local `readdir`, filtering for
 `packages/*/package.json` and `apps/*/package.json`. Every read goes
@@ -281,7 +281,7 @@ since this section had already drifted out of sync with it once.
 A plain `(Request, Env) => Response` function — deliberately
 deploy-target-agnostic, no framework, no platform-specific `{ fetch }`
 wrapper. `Env` is `{ SENTINEL_GITHUB_APP_ID, SENTINEL_GITHUB_APP_PRIVATE_KEY,
-SENTINEL_WEBHOOK_SECRET }` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of a deployment set before #1864 are still read), wired via `holocron secrets sync`. Three more
+SENTINEL_WEBHOOK_SECRET }` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of a deployment set before #1864 are still read), wired via `holocron sync secrets`. Three more
 Vault-sourced values (`SENTINEL_AXIOM_INGEST_TOKEN`, `SENTINEL_AXIOM_DATASET`, `HOLOCRON_AXIOM_ORG`)
 feed the module-level logger and the Axiom links directly, via `@theholocron/env-utils/lookup`
 (never bare `process.env`, this org's own convention) — see
@@ -569,7 +569,7 @@ checks' verdicts are unchanged) and is left for its author to fix. A file GitHub
 
 ### Role sync settings (optional)
 
-Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron secrets sync Sentinel`.
+Role sync keeps Discord roles equal to GitHub teams (`.notes/tech-sentinel-role-sync.spec.md`). It is off unless all three are in the deploy env: `SENTINEL_ROLE_SYNC_REPO` (`owner/repo` whose default-branch config declares the Discord layout), `HOLOCRON_DISCORD_BOT_TOKEN` and `HOLOCRON_USER_SYNC_TOKEN` (the `github.user-sync` token). Put them in the 1Password Environment `Sentinel` and run `holocron sync secrets Sentinel`.
 
 ### `#prs` forum feed settings (optional)
 
@@ -595,11 +595,11 @@ have their own) and one shared org slug. Sentinel's Environment holds the Axiom 
 (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
 and `HOLOCRON_AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
-source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `secrets sync` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
+source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `sync secrets` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
 and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above; the `check-dispatched` workflow reads the org variable `HOLOCRON_AXIOM_ORG`); with either unset the check run has no details link.
 
 ```sh
-holocron secrets sync Sentinel --cwd apps/sentinel --project-id sentinel --target production \
+holocron sync secrets Sentinel --cwd apps/sentinel --project-id sentinel --target production \
   --github-secret SENTINEL_AXIOM_INGEST_TOKEN --github-secret-scope org=theholocron \
   --org theholocron --token github=$(gh auth token)
 ```
@@ -625,7 +625,7 @@ community report says otherwise), run the same command locally instead.
   every PR to this whole repo — not only ones touching Sentinel, since
   the thin caller's `pull_request: {}` trigger carries no path filter
   — its own Vercel preview deployment, built from that PR's own,
-  not-yet-reviewed code. `secrets sync`'s `deployment` destination now
+  not-yet-reviewed code. `sync secrets`'s `deployment` destination now
   sends only the keys `repo.secrets.deploy` names in this config (the
   `SENTINEL_` prefix and `HOLOCRON_AXIOM_ORG`, `HOLOCRON_DISCORD_BOT_TOKEN`,
   `HOLOCRON_USER_SYNC_TOKEN`, #2061), but that is still every runtime key —

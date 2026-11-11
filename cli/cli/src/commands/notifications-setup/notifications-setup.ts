@@ -762,7 +762,7 @@ export async function runNotificationsSetup(input: RunNotificationsSetupInput): 
 				}
 				if (!signingSecret) {
 					print(
-						`  ${style.warn(`${errors!.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to Doppler as COMLINK_${errors!.providerName.toUpperCase()}_SECRET and run holocron secrets sync`)}`
+						`  ${style.warn(`${errors!.providerName} did not give the integration's signing secret (it may only show it once, when the integration is made), so the Worker keeps the one it has. To set it: copy it from the integration's page, add it to Doppler as COMLINK_${errors!.providerName.toUpperCase()}_SECRET and run holocron sync secrets`)}`
 					);
 				}
 			});

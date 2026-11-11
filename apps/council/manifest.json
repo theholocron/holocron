@@ -3,7 +3,7 @@
   "name": "Holocron Council",
   "version": "0.0.0",
   "minAppVersion": "1.5.0",
-  "description": "File an idea note as an issue with holocron ideas sync, then move it to the trash. Set an idea's status from a fixed list.",
+  "description": "File an idea note as an issue with holocron sync ideas, then move it to the trash. Set an idea's status from a fixed list.",
   "author": "Newton Koumantzelis",
   "authorUrl": "https://github.com/theholocron",
   "isDesktopOnly": false

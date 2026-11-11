@@ -12,6 +12,6 @@ export interface BuildSpecInput {
 export interface BuiltSpec {
 	/** The whole file, ending in one newline. */
 	content: string;
-	/** Whether the body carried the `Filed from idea:` line or the hidden marker `ideas sync` writes. */
+	/** Whether the body carried the `Filed from idea:` line or the hidden marker `sync ideas` writes. */
 	fromIdea: boolean;
 }

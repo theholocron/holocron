@@ -9,7 +9,7 @@ import { realSpecsSyncIo, runSpecsSync } from "./index.js";
 import { type SpecsSyncArgs, specsSyncArgs } from "./specs-sync.args.js";
 
 export const specsSyncCommand: CommandModule<GlobalArgs, SpecsSyncArgs> = {
-	command: "sync",
+	command: "specs",
 	describe: "Keep each ADR and spec in step with a post in a forum channel",
 	builder: specsSyncArgs,
 	handler: async (argv) => {

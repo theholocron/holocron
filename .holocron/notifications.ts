@@ -102,7 +102,7 @@ export default {
 			name: "BUILD",
 			channels: [
 				{ name: "dev", topic: "Day-to-day building talk" },
-				// A forum: one post for each ADR and spec, made from the file by `holocron specs sync`
+				// A forum: one post for each ADR and spec, made from the file by `holocron sync specs`
 				// (tech-specs-discussion-threads, #1535), titled with the document's own title. A post's tag is the file's status; only the
 				// bot and members who can manage threads (gatekeepers) can change a tag, and the sync turns a change into a
 				// pull request. Half-formed ideas belong here too, as posts of their own.
@@ -111,7 +111,7 @@ export default {
 					kind: "forum",
 					topic: "One post for each ADR and spec, tagged with its status. Gatekeepers change a tag to change the status. Half-formed ideas and things to spec later start here too.",
 					// Discord takes one default reaction per forum; the rest are added by the bot to the first message of each
-					// post `specs sync` makes, so every ADR and spec opens with approve, disapprove and question to hand.
+					// post `sync specs` makes, so every ADR and spec opens with approve, disapprove and question to hand.
 					defaultReaction: "👍",
 					starterReactions: ["👍", "👎", "❓"],
 					tags: [
@@ -239,7 +239,7 @@ export default {
 			mentionable: true,
 			color: "#f0b232",
 			hoist: true,
-			// Kept equal to the GitHub team of the same name by `holocron notifications sync-roles`.
+			// Kept equal to the GitHub team of the same name by `holocron sync roles`.
 			team: "gatekeepers",
 			// Everything a member can do, and nothing more: the bot can only grant what it holds itself.
 			// Manage Threads is what lets a gatekeeper change the status tag of a spec's post in #ideas.

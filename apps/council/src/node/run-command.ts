@@ -1,6 +1,6 @@
 import type { RunResult, SyncCommand } from "../filing/filing.type.js";
 
-/** How long `ideas sync` may run before it is stopped; it makes one request per note it files. */
+/** How long `sync ideas` may run before it is stopped; it makes one request per note it files. */
 export const RUN_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
