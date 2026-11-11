@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { sentinelCheckName } from "./sentinel-check-name.js";
+import { SENTINEL_CHECK_PREFIX, sentinelCheckName } from "./sentinel-check-name.js";
 
 describe("sentinelCheckName", () => {
-	it("joins the group and the action with one ' / '", () => {
-		expect(sentinelCheckName("Static Analysis", "Run eslint")).toBe("Static Analysis / Run eslint");
+	it("puts the prefix and the task id before the action, joined by one ' / '", () => {
+		expect(sentinelCheckName("lint:code", "Run eslint")).toBe("sentinel:lint:code / Run eslint");
+	});
+
+	it("builds the name from the one prefix constant", () => {
+		expect(sentinelCheckName("typecheck", "Run tsc --noEmit")).toBe(
+			`${SENTINEL_CHECK_PREFIX}typecheck / Run tsc --noEmit`
+		);
 	});
 });

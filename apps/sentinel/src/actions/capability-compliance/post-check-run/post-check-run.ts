@@ -13,8 +13,8 @@
  * non-compliant can never drift from *whether* it is.
  *
  * Posted directly via the Checks API from a webhook, with no workflow
- * behind it. The name is `Group / Action` (`sentinelCheckName()`,
- * `ci-sentinel-check-names.spec.md`): no "Sentinel /" prefix, because
+ * behind it. The name is `sentinel:<task id> / <Action>` (`sentinelCheckName()`,
+ * `ci-sentinel-check-names.spec.md`): the `sentinel:` is temporary, and there is no "Sentinel /" prefix, because
  * GitHub's own check-run detail page already shows the posting App's
  * display name ahead of whatever name is set here. Exported so a caller
  * checking for this check run by name (a future re-run guard, a test, a
@@ -41,7 +41,7 @@ import {
 } from "../../../utils/index.js";
 import type { PostCheckRunInput, PostCheckRunResult } from "./post-check-run.type.js";
 
-export const SENTINEL_CHECK_RUN_NAME = sentinelCheckName("Compliance", "Run Holocron config compatibility");
+export const SENTINEL_CHECK_RUN_NAME = sentinelCheckName("validate:config", "Run Holocron config compatibility");
 
 export async function postCheckRun(input: PostCheckRunInput): Promise<PostCheckRunResult> {
 	const { client, repo, headSha, capabilities, runId } = input;

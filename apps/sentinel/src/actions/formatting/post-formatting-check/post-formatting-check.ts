@@ -26,11 +26,11 @@ import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post
  * scoping), and `prettier`'s real Node API (`check()`/`format()`/
  * `getFileInfo()`) works directly on fetched file content — no checkout.
  *
- * Named `Formatting / Run prettier` (`sentinelCheckName()`,
+ * Named `sentinel:format / Run prettier` (`sentinelCheckName()`,
  * `.notes/ci-sentinel-check-names.spec.md`); `Formatting` is shared with the
  * editorconfig check.
  */
-export const SENTINEL_FORMATTING_CHECK_RUN_NAME = sentinelCheckName("Formatting", "Run prettier");
+export const SENTINEL_FORMATTING_CHECK_RUN_NAME = sentinelCheckName("format", "Run prettier");
 
 /** One message as one summary line: `README.md:12: reason`. */
 function formatMessage(m: FormattingMessage): string {

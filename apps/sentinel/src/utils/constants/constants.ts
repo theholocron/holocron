@@ -103,7 +103,7 @@ export const SENTINEL_DISPATCH_REF = TEMPLATE_HOME.ref;
  * *alongside* the existing GitHub Actions thin-caller for the same task,
  * not instead of it, until this mechanism is trusted enough to replace it.
  *
- * Check name matches the same `Group / Action` shape every other
+ * Check name matches the same `sentinel:<task id> / <Action>` shape every other
  * Sentinel-posted check uses (`sentinelCheckName()`), and mirrors the native
  * thin-caller check's own command name ("Run tsc --noEmit") for a task that
  * only ever has one dispatchable command today.
@@ -116,4 +116,4 @@ export const SENTINEL_DISPATCHABLE_TASK = "verification.typeSafety";
  * Bucket 2 dispatch uses for `SENTINEL_DISPATCHABLE_TASK`.
  */
 export const SENTINEL_REPO_VALIDATION_TASK = "platform.repoValidation";
-export const SENTINEL_DISPATCHED_CHECK_NAME = sentinelCheckName("Type Safety", "Run tsc --noEmit");
+export const SENTINEL_DISPATCHED_CHECK_NAME = sentinelCheckName("typecheck", "Run tsc --noEmit");

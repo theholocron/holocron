@@ -235,8 +235,8 @@ shipped, in what order.
       which entries are absent rather than only whether any are, so _why_
       can never drift from _whether_. _(Historical design note: the name
       below is the one chosen then. The check is now
-      `Compliance / Run Holocron config compatibility`, and Sentinel's checks
-      are named `Group / Action`; see `ci-sentinel-check-names`, #2036.)_ The
+      `sentinel:validate:config / Run Holocron config compatibility`, and Sentinel's checks
+      are named `sentinel:<task id> / <Action>`; see `ci-sentinel-check-names`, #2036.)_ The
       check's display name stays
       `"Sentinel / Capability Compliance"` (human-readable "App / Report",
       matching `CodeQL`/`Devin Review` — externally-posted checks with no

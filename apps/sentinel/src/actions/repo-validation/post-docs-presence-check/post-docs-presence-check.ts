@@ -12,8 +12,8 @@ import type { CheckRunConclusion } from "@theholocron/github-client";
 import { SENTINEL_DOCS_PRESENCE_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { PostDocsPresenceCheckInput, PostDocsPresenceCheckResult } from "./post-docs-presence-check.type.js";
 
-/** Mirrors the CI job's own name (`validate:docs / Validate docs`) in Sentinel's `Group / Action` form. */
-export const SENTINEL_DOCS_PRESENCE_CHECK_RUN_NAME = sentinelCheckName("Repo Validation", "Validate docs");
+/** Mirrors the CI job's own name (`validate:docs / Validate docs`) with Sentinel's `sentinel:` prefix. */
+export const SENTINEL_DOCS_PRESENCE_CHECK_RUN_NAME = sentinelCheckName("validate:docs", "Validate docs");
 
 const GUIDANCE =
 	"Add a docs page under docs/ in this PR, or open a scoped follow-up PR immediately after — docs should ship with the feature.";

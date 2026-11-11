@@ -38,7 +38,7 @@ import type {
 // docstring for why that's a separate check rather than a change to
 // the existing one).
 export const SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME = sentinelCheckName(
-	"Compliance",
+	"validate:config",
 	"Run Holocron config compatibility (pull_request)"
 );
 

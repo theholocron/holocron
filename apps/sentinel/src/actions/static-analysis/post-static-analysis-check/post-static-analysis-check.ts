@@ -29,7 +29,7 @@ import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from
  * bundle works directly against fetched file content via eslint's real
  * `Linter.verify()` API — no checkout, no type-aware rules to require one.
  *
- * Named `Static Analysis / Run eslint` (`sentinelCheckName()`,
+ * Named `sentinel:lint:code / Run eslint` (`sentinelCheckName()`,
  * `.notes/ci-sentinel-check-names.spec.md`); `Static Analysis` is shared with
  * the actionlint check.
  *
@@ -39,7 +39,7 @@ import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from
  * only a PR-review comment (holocron#860). Warning-severity-only findings
  * still resolve to `"neutral"` — advisory, same as before.
  */
-export const SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME = sentinelCheckName("Static Analysis", "Run eslint");
+export const SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME = sentinelCheckName("lint:code", "Run eslint");
 
 /** One message as one summary line: `src/index.ts:12:3: reason [rule-id]`. */
 function formatMessage(m: StaticAnalysisMessage): string {

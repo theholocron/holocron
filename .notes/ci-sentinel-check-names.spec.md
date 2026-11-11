@@ -7,10 +7,11 @@ related:
   - theholocron/holocron#989
 ---
 
-# Sentinel check names: two tiers, one casing rule
+# Sentinel check names: `sentinel:<task id> / <Action>`
 
 Supersedes `ci-check-taxonomy-rename` (SPEC-0041, #989). Sentinel's check runs move from three tiers, `Category / Group /
-Action`, to two, `Group / Action`, and the shape is enforced by a test so it cannot drift.
+Action`, to two, `<task id> / <Action>`, with a temporary `sentinel:` in front of the task id. The shape is enforced by a
+test so it cannot drift.
 
 ## Context
 
@@ -24,8 +25,11 @@ The checks that a pull request shows come from two places that name things diffe
 
 The first segment is the old astromech task namespace (`platform.commitStandards`, `sourceQuality.staticAnalysis`). That
 vocabulary is retired on the Actions side, nothing reads the segment, and GitHub already shows the posting App's name next
-to a check run. SPEC-0041 proposed replacing it with seven new categories; with the Actions side settled it has nothing
-left to name.
+to a check run.
+
+Sentinel is being built out to be the whole CI experience. The Actions checks stay for about a month, to see what Vercel
+costs, and are then removed from this repo. Until then both sets of checks exist for the same tasks. The end state is
+Sentinel using the plain task ids; the question is how to name its checks during the overlap.
 
 ## What Sentinel posts
 
@@ -47,56 +51,59 @@ left to name.
 
 Most of them repeat an Actions check of the same concern (`lint:commits`, `lint:markdown`, `lint:editorconfig`,
 `validate:specs`, `validate:docs`, `typecheck`). They exist so Sentinel can post and auto-fix in a repo with no Actions CI.
-Only config compatibility and alex have no Actions twin.
-
-## What each tier encoded
-
-| Tier | Values                                                             | Meaning                                                                     | Lost if dropped                           |
-| ---- | ------------------------------------------------------------------ | --------------------------------------------------------------------------- | ----------------------------------------- |
-| 1    | `Platform`, `Source Quality`, `Verification`                       | the retired astromech task namespace                                        | grouping in the checks list, nothing else |
-| 2    | `Compliance`, `Commit Standards`, `Repo Validation`, `Formatting`… | the old Actions caller job name, kept so the names matched the Actions ones | the concern: this is the useful tier      |
-| 3    | `Run eslint`, `Validate docs presence`…                            | the command or the verb                                                     | which tool ran                            |
+Only config compatibility, DCO and alex have no Actions twin (the required `DCO` check is the probot app's, not Sentinel's).
 
 ## Options
 
-- **A. `Group / Action`.** Drop tier 1 and keep the other two. Chosen.
-- **B. `<task id> / <tool>`** (`lint:code / eslint`). One vocabulary with Actions, but the `ci` aggregate takes every check
-  run whose name starts with `"<task id> / "`, treats a running one as pending and a failed one as a failure. A Sentinel
-  check named that way would join the aggregate and become gating by accident. It would also need invented ids for the
-  Sentinel-only checks. Rejected.
-- **C. `sentinel / <check>`.** A clear rule, but GitHub already shows the App's name, and a hand-added prefix was removed
-  once for duplicating it ("The Holocron Sentinel / Sentinel / Platform / …"). It also loses the concern. Rejected.
+- **A. `Group / Action`** (`Static Analysis / Run eslint`). Drop the first tier and keep a Title Case concern. Proposed
+  first. Dropped: it is a third vocabulary beside the task ids, and the end state is Sentinel on the task ids.
+- **B. `<task id> / <Action>`, no prefix** (`lint:code / Run eslint`). The end state. During the overlap it clashes: five
+  Sentinel names would equal an Actions check exactly (`lint:commits`, `validate:specs`, `validate:docs`, `lint:markdown`,
+  `typecheck`), and the `ci` aggregate takes every check run whose name starts with `"<task id> / "`, treats a running one
+  as pending and a failed one as a failure, so a Sentinel check would join the aggregate and become gating by accident.
+  Rejected for now.
+- **C. `gh:` on the Actions checks.** Frees the plain ids for Sentinel. Rejected: each thin caller's workflow `name:` is its
+  task id, so every caller here and in the repos that use them is regenerated; the aggregate would learn the prefix;
+  `ci / Required checks` is the ruleset's required context and would be renamed twice (now, and when the prefix goes);
+  `platform.notifications.yml` and `doctor notifications` read workflow names as task ids; the frozen reusables in
+  `theholocron/.github` keep posting the old names. All of it undone in a month.
+- **D. `sentinel:` on Sentinel's checks** (`sentinel:lint:code / Run eslint`). Chosen. No ruleset that could be read requires
+  a Sentinel name, and the names come from one builder. The names differ from the Actions ones, and the aggregate's
+  `<task id> / ` prefix does not match `sentinel:<task id> / `, so Sentinel's checks stay advisory.
+- **E. `sentinel / <check>`.** GitHub already shows the App's name, and a hand-added prefix was removed once for duplicating
+  it ("The Holocron Sentinel / Sentinel / Platform / …"). Rejected.
 
 ## Decision
 
-Sentinel's checks are named `Group / Action`, two segments joined by one `/`, built by one function,
-`sentinelCheckName(group, action)`. The first segment of today's name goes; `SENTINEL_NAMESPACES` goes with it.
+Sentinel's checks are named `<prefix><task id> / <Action>`, two segments joined by one `/`, built by one function,
+`sentinelCheckName(taskId, action)`. The prefix is one constant, `SENTINEL_CHECK_PREFIX` (`"sentinel:"`). The first
+segment of today's name goes; `SENTINEL_NAMESPACES` goes with it.
 
 ### Names
 
-| Old                                                                        | New                                                             |
-| -------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `Platform / Compliance / Run Holocron config compatibility`                | `Compliance / Run Holocron config compatibility`                |
-| `Platform / Compliance / Run Holocron config compatibility (pull_request)` | `Compliance / Run Holocron config compatibility (pull_request)` |
-| `Platform / Compliance / Run Developer Certificate of Origin`              | `Compliance / Run Developer Certificate of Origin`              |
-| `Platform / Commit Standards / Run commitlint`                             | `Commits / Run commitlint`                                      |
-| `Platform / Repo Validation / Validate ADRs and specs`                     | `Repo Validation / Validate ADRs and specs`                     |
-| `Platform / Repo Validation / Validate docs presence`                      | `Repo Validation / Validate docs`                               |
-| `Source Quality / Formatting / Run prettier`                               | `Formatting / Run prettier`                                     |
-| `Source Quality / Formatting / Run editorconfig`                           | `Formatting / Run editorconfig`                                 |
-| `Source Quality / Documentation / Run markdownlint`                        | `Documentation / Run markdownlint`                              |
-| `Source Quality / Inclusive Language / Run alex`                           | `Inclusive Language / Run alex`                                 |
-| `Source Quality / Static Analysis / Run eslint`                            | `Static Analysis / Run eslint`                                  |
-| `Source Quality / Static Analysis / Run actionlint`                        | `Static Analysis / Run actionlint`                              |
-| `Verification / Type Safety / Run tsc --noEmit`                            | `Type Safety / Run tsc --noEmit`                                |
+The task id is the id of the task whose job the check does. `validate:config`, `validate:dco` and `lint:language` are not
+registry tasks (nothing on the Actions side has them); they are names, chosen to follow the registry's `<suite>:<leaf>`
+shape, and nothing reads them. If the registry gains a task for one, the name already matches.
 
-`Commit Standards` becomes `Commits` because a repo on the frozen reusables posts `Commit Standards / Run commitlint` from
-Actions (`LEGACY_CALLERS`); an exact clash with Sentinel's check would be confusing. `Static Analysis` and `Formatting`
-only partly overlap those callers (the called job names differ), so they stay.
+| Old                                                                        | New                                                                           |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `Platform / Compliance / Run Holocron config compatibility`                | `sentinel:validate:config / Run Holocron config compatibility`                |
+| `Platform / Compliance / Run Holocron config compatibility (pull_request)` | `sentinel:validate:config / Run Holocron config compatibility (pull_request)` |
+| `Platform / Compliance / Run Developer Certificate of Origin`              | `sentinel:validate:dco / Run Developer Certificate of Origin`                 |
+| `Platform / Commit Standards / Run commitlint`                             | `sentinel:lint:commits / Run commitlint`                                      |
+| `Platform / Repo Validation / Validate ADRs and specs`                     | `sentinel:validate:specs / Validate ADRs and specs`                           |
+| `Platform / Repo Validation / Validate docs presence`                      | `sentinel:validate:docs / Validate docs`                                      |
+| `Source Quality / Formatting / Run prettier`                               | `sentinel:format / Run prettier`                                              |
+| `Source Quality / Formatting / Run editorconfig`                           | `sentinel:lint:editorconfig / Run editorconfig`                               |
+| `Source Quality / Documentation / Run markdownlint`                        | `sentinel:lint:markdown / Run markdownlint`                                   |
+| `Source Quality / Inclusive Language / Run alex`                           | `sentinel:lint:language / Run alex`                                           |
+| `Source Quality / Static Analysis / Run eslint`                            | `sentinel:lint:code / Run eslint`                                             |
+| `Source Quality / Static Analysis / Run actionlint`                        | `sentinel:lint:code / Run actionlint`                                         |
+| `Verification / Type Safety / Run tsc --noEmit`                            | `sentinel:typecheck / Run tsc --noEmit`                                       |
 
 ### The docs check loses "presence"
 
-`Validate docs presence` becomes `Validate docs`, on both sides: Sentinel's `Repo Validation / Validate docs` and the
+`Validate docs presence` becomes `Validate docs`, on both sides: Sentinel's `sentinel:validate:docs / Validate docs` and the
 Actions check `validate:docs / Validate docs` (the job and step names in `ci/workflows/validate/docs.yml`, the entry in
 `WORKFLOW_CHECK_CONTEXTS`, the generated `.github/workflows/validate-docs.yml`). The `validate:docs` task runs
 `holocron probe docs validate`, which is `docs presence` (a warning) followed by `docs tokens` (a failure), so "presence"
@@ -110,8 +117,9 @@ keeps posting the old job name from its frozen copy until `CI_HOME` moves.
 
 ### Casing
 
-- The **group** is Title Case: every word starts with a capital and the rest are lower case (`Static Analysis`,
-  `Repo Validation`, `Inclusive Language`).
+- The **prefix** is `SENTINEL_CHECK_PREFIX`, written once.
+- The **task id** is lowercase words joined by `:` or `-` (`lint:code`, `validate:specs`, `deploy-preview`), as in the
+  registry.
 - The **action** starts with one verb from a closed list, `CHECK_ACTION_VERBS` (`Run`, `Validate`), followed by what it
   acts on. A tool, an acronym or a proper noun keeps its own casing: `Run eslint`, `Run tsc --noEmit`,
   `Validate ADRs and specs`, `Run Developer Certificate of Origin`. A capitalised word that is not on the list (`Eslint
@@ -119,8 +127,21 @@ results`, `Static Analysis`) is rejected, so a new verb is a deliberate edit of 
   `Run` (11) or `Validate` (2).
 - An event suffix is the event's name, in parentheses: `(pull_request)`.
 
-Every current name already follows the rule, so the casing needs no rename beyond the dropped tier. `checkNameProblem()`
-returns what is wrong with a name (or `undefined`), and a test runs it over every `SENTINEL_*_CHECK_RUN_NAME`.
+`checkNameProblem()` returns what is wrong with a name (or `undefined`), and a test runs it over every
+`SENTINEL_*_CHECK_RUN_NAME` and the dispatched check.
+
+### Removing the prefix
+
+When the Actions checks for these tasks are removed from the repo:
+
+1. Delete the callers and reusables of the tasks Sentinel now runs.
+2. Set `SENTINEL_CHECK_PREFIX` to `""`. Names, tests and the rule follow from the constant; the docs that quote names
+   need the same edit.
+3. In the same change, point the rulesets (and the `ci` aggregate's `expected` list, if it is kept) at the new names. A
+   ruleset that lists a prefixed name is the only external thing that breaks.
+
+Step 1 comes first or together with step 2. Without it, two checks of one name exist, and the aggregate, which matches
+`<task id> / ` by prefix, would count Sentinel's.
 
 ## Every check, after this change
 
@@ -128,21 +149,21 @@ returns what is wrong with a name (or `undefined`), and a test runs it over ever
 
 Sentinel handles a push to the default branch, a pull request opening or getting new commits, and a pull request's title or description being edited (only the docs check runs on an edit). "Pull request" below means opened or updated.
 
-| #   | Check                                                           | Posted when                                                                                                                                                  | Was                                                                        |
-| --- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| 1   | `Compliance / Run Holocron config compatibility`                | On a push to the default branch and on a pull request, once the default branch's `holocron.config` loads; nothing is posted for an invalid or missing config | `Platform / Compliance / Run Holocron config compatibility`                |
-| 2   | `Compliance / Run Holocron config compatibility (pull_request)` | On a pull request, whatever the default branch's config; it reads the config at the pull request's head, so it reports a bad config in the branch            | `Platform / Compliance / Run Holocron config compatibility (pull_request)` |
-| 3   | `Compliance / Run Developer Certificate of Origin`              | On every pull request; needs no config                                                                                                                       | `Platform / Compliance / Run Developer Certificate of Origin`              |
-| 4   | `Commits / Run commitlint`                                      | On every pull request; needs no config                                                                                                                       | `Platform / Commit Standards / Run commitlint`                             |
-| 5   | `Repo Validation / Validate ADRs and specs`                     | On a pull request, only for a repo whose valid config declares the `platform.repoValidation` task                                                            | `Platform / Repo Validation / Validate ADRs and specs`                     |
-| 6   | `Repo Validation / Validate docs`                               | The same gate as 5, and again when the pull request's title or description is edited                                                                         | `Platform / Repo Validation / Validate docs presence`                      |
-| 7   | `Formatting / Run prettier`                                     | On every pull request; needs no config                                                                                                                       | `Source Quality / Formatting / Run prettier`                               |
-| 8   | `Formatting / Run editorconfig`                                 | On every pull request; needs no config                                                                                                                       | `Source Quality / Formatting / Run editorconfig`                           |
-| 9   | `Documentation / Run markdownlint`                              | On every pull request; needs no config                                                                                                                       | `Source Quality / Documentation / Run markdownlint`                        |
-| 10  | `Inclusive Language / Run alex`                                 | On every pull request; needs no config                                                                                                                       | `Source Quality / Inclusive Language / Run alex`                           |
-| 11  | `Static Analysis / Run eslint`                                  | On a pull request, once the default branch's config loads, and not when the repo's `runtime_environment` property is `none`                                  | `Source Quality / Static Analysis / Run eslint`                            |
-| 12  | `Static Analysis / Run actionlint`                              | On a pull request, once the default branch's config loads                                                                                                    | `Source Quality / Static Analysis / Run actionlint`                        |
-| 13  | `Type Safety / Run tsc --noEmit`                                | On a push or a pull request, once the config loads, and only for a repo whose config declares `verification.typeSafety`; Sentinel dispatches it              | `Verification / Type Safety / Run tsc --noEmit`                            |
+| #   | Check                                                                         | Posted when                                                                                                                                                  | Was                                                                        |
+| --- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| 1   | `sentinel:validate:config / Run Holocron config compatibility`                | On a push to the default branch and on a pull request, once the default branch's `holocron.config` loads; nothing is posted for an invalid or missing config | `Platform / Compliance / Run Holocron config compatibility`                |
+| 2   | `sentinel:validate:config / Run Holocron config compatibility (pull_request)` | On a pull request, whatever the default branch's config; it reads the config at the pull request's head, so it reports a bad config in the branch            | `Platform / Compliance / Run Holocron config compatibility (pull_request)` |
+| 3   | `sentinel:validate:dco / Run Developer Certificate of Origin`                 | On every pull request; needs no config                                                                                                                       | `Platform / Compliance / Run Developer Certificate of Origin`              |
+| 4   | `sentinel:lint:commits / Run commitlint`                                      | On every pull request; needs no config                                                                                                                       | `Platform / Commit Standards / Run commitlint`                             |
+| 5   | `sentinel:validate:specs / Validate ADRs and specs`                           | On a pull request, only for a repo whose valid config declares the `platform.repoValidation` task                                                            | `Platform / Repo Validation / Validate ADRs and specs`                     |
+| 6   | `sentinel:validate:docs / Validate docs`                                      | The same gate as 5, and again when the pull request's title or description is edited                                                                         | `Platform / Repo Validation / Validate docs presence`                      |
+| 7   | `sentinel:format / Run prettier`                                              | On every pull request; needs no config                                                                                                                       | `Source Quality / Formatting / Run prettier`                               |
+| 8   | `sentinel:lint:editorconfig / Run editorconfig`                               | On every pull request; needs no config                                                                                                                       | `Source Quality / Formatting / Run editorconfig`                           |
+| 9   | `sentinel:lint:markdown / Run markdownlint`                                   | On every pull request; needs no config                                                                                                                       | `Source Quality / Documentation / Run markdownlint`                        |
+| 10  | `sentinel:lint:language / Run alex`                                           | On every pull request; needs no config                                                                                                                       | `Source Quality / Inclusive Language / Run alex`                           |
+| 11  | `sentinel:lint:code / Run eslint`                                             | On a pull request, once the default branch's config loads, and not when the repo's `runtime_environment` property is `none`                                  | `Source Quality / Static Analysis / Run eslint`                            |
+| 12  | `sentinel:lint:code / Run actionlint`                                         | On a pull request, once the default branch's config loads                                                                                                    | `Source Quality / Static Analysis / Run actionlint`                        |
+| 13  | `sentinel:typecheck / Run tsc --noEmit`                                       | On a push or a pull request, once the config loads, and only for a repo whose config declares `verification.typeSafety`; Sentinel dispatches it              | `Verification / Type Safety / Run tsc --noEmit`                            |
 
 ### The Actions side (`<task id> / <step>`)
 
@@ -215,7 +236,9 @@ Not posted by Actions or Sentinel: `DCO` (the probot app, required) and the `cod
 
 - A repo that requires an old Sentinel name blocks until its ruleset moves. None was found in the rulesets that could be
   read; for the private repos this is an accepted risk (see Migration), with the same remedy.
-- A new Sentinel name equal to an Actions name would make two checks indistinguishable. `Commits` avoids the known one; the
-  casing test does not guard this, so a future check is compared against `WORKFLOW_CHECK_CONTEXTS` by hand.
+- While the prefix exists, no Sentinel name equals an Actions name. If the prefix were set to `""` before the Actions
+  checks are gone, five names would clash and the aggregate would count Sentinel's checks. Removing the prefix is step 2 of
+  "Removing the prefix", after step 1.
+- A ruleset that requires a prefixed name breaks when the prefix goes. Update it in the same change.
 - The names are free text, so the rule holds only for names built through `sentinelCheckName()`. A check posted another way
   (the dispatched check takes its name from the dispatching code) is covered by listing it in the test.

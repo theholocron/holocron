@@ -30,7 +30,7 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * `markdownlint`'s real Node API (`lint()` from `markdownlint/promise`)
  * works directly on fetched file content — no checkout.
  *
- * Named `Documentation / Run markdownlint` (`sentinelCheckName()`,
+ * Named `sentinel:lint:markdown / Run markdownlint` (`sentinelCheckName()`,
  * `.notes/ci-sentinel-check-names.spec.md`).
  *
  * **Not purely advisory** (same treatment inclusive language got in
@@ -41,7 +41,7 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * only a PR-review comment (holocron#860). Warning-severity-only findings
  * still resolve to `"neutral"` — advisory, same as before.
  */
-export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = sentinelCheckName("Documentation", "Run markdownlint");
+export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = sentinelCheckName("lint:markdown", "Run markdownlint");
 
 /** One message as one summary line: `README.md:12: reason [rule-name]`. */
 function formatMessage(m: MarkdownLintMessage): string {

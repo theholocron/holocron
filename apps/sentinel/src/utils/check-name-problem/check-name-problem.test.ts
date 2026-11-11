@@ -2,21 +2,23 @@ import { describe, expect, it } from "vitest";
 
 import * as actions from "../../actions/index.js";
 import { SENTINEL_DISPATCHED_CHECK_NAME } from "../constants/index.js";
+import { SENTINEL_CHECK_PREFIX } from "../sentinel-check-name/index.js";
 import { CHECK_ACTION_VERBS, checkNameProblem } from "./check-name-problem.js";
 
 describe("checkNameProblem", () => {
 	it.each([
-		"Static Analysis / Run eslint",
-		"Compliance / Run Holocron config compatibility (pull_request)",
-		"Repo Validation / Validate ADRs and specs",
-		"Type Safety / Run tsc --noEmit",
-		"Compliance / Run Developer Certificate of Origin",
+		"sentinel:lint:code / Run eslint",
+		"sentinel:validate:config / Run Holocron config compatibility (pull_request)",
+		"sentinel:validate:specs / Validate ADRs and specs",
+		"sentinel:typecheck / Run tsc --noEmit",
+		"sentinel:validate:dco / Run Developer Certificate of Origin",
+		"sentinel:deploy-preview / Run vercel",
 	])("accepts %s", (name) => {
 		expect(checkNameProblem(name)).toBeUndefined();
 	});
 
 	it("rejects three tiers", () => {
-		expect(checkNameProblem("Source Quality / Static Analysis / Run eslint")).toBe(
+		expect(checkNameProblem("sentinel:lint / code / Run eslint")).toBe(
 			"must have two tiers joined by one ' / ', found 3"
 		);
 	});
@@ -25,36 +27,41 @@ describe("checkNameProblem", () => {
 		expect(checkNameProblem("Run eslint")).toBe("must have two tiers joined by one ' / ', found 1");
 	});
 
-	it("rejects a group that is not Title Case", () => {
-		expect(checkNameProblem("static analysis / Run eslint")).toBe(
-			'group "static analysis" must be Title Case words'
+	it("rejects a name without the prefix", () => {
+		expect(checkNameProblem("lint:code / Run eslint")).toBe(
+			`"lint:code" must start with "${SENTINEL_CHECK_PREFIX}"`
 		);
-		expect(checkNameProblem("Static analysis / Run eslint")).toBe(
-			'group "Static analysis" must be Title Case words'
+		expect(checkNameProblem("Static Analysis / Run eslint")).toBe(
+			`"Static Analysis" must start with "${SENTINEL_CHECK_PREFIX}"`
 		);
-		expect(checkNameProblem("STATIC ANALYSIS / Run eslint")).toBe(
-			'group "STATIC ANALYSIS" must be Title Case words'
-		);
+	});
+
+	it("rejects a task id that is not lowercase words joined by ':' or '-'", () => {
+		const problem = (id: string) => `task id "${id}" must be lowercase words joined by ':' or '-'`;
+		expect(checkNameProblem("sentinel:Lint:code / Run eslint")).toBe(problem("Lint:code"));
+		expect(checkNameProblem("sentinel:lint code / Run eslint")).toBe(problem("lint code"));
+		expect(checkNameProblem("sentinel:lint: / Run eslint")).toBe(problem("lint:"));
+		expect(checkNameProblem("sentinel: / Run eslint")).toBe(problem(""));
 	});
 
 	it("rejects an action that does not start with an allowed verb", () => {
 		const problem = (action: string) =>
 			`action "${action}" must start with one of Run, Validate followed by what it acts on`;
-		expect(checkNameProblem("Static Analysis / run eslint")).toBe(problem("run eslint"));
-		expect(checkNameProblem("Static Analysis / eslint")).toBe(problem("eslint"));
-		expect(checkNameProblem("Static Analysis / Run")).toBe(problem("Run"));
+		expect(checkNameProblem("sentinel:lint:code / run eslint")).toBe(problem("run eslint"));
+		expect(checkNameProblem("sentinel:lint:code / eslint")).toBe(problem("eslint"));
+		expect(checkNameProblem("sentinel:lint:code / Run")).toBe(problem("Run"));
 	});
 
 	it("rejects a capitalised word that is not an allowed verb", () => {
 		const problem = (action: string) =>
 			`action "${action}" must start with one of Run, Validate followed by what it acts on`;
-		expect(checkNameProblem("Static Analysis / Eslint results")).toBe(problem("Eslint results"));
-		expect(checkNameProblem("Static Analysis / Static Analysis")).toBe(problem("Static Analysis"));
-		expect(checkNameProblem("Static Analysis / Lint the code")).toBe(problem("Lint the code"));
+		expect(checkNameProblem("sentinel:lint:code / Eslint results")).toBe(problem("Eslint results"));
+		expect(checkNameProblem("sentinel:lint:code / Static Analysis")).toBe(problem("Static Analysis"));
+		expect(checkNameProblem("sentinel:lint:code / Lint the code")).toBe(problem("Lint the code"));
 	});
 
 	it("keeps the event suffix out of the verb check but in the message", () => {
-		expect(checkNameProblem("Compliance / Check config (pull_request)")).toBe(
+		expect(checkNameProblem("sentinel:validate:config / Check config (pull_request)")).toBe(
 			'action "Check config (pull_request)" must start with one of Run, Validate followed by what it acts on'
 		);
 	});
@@ -76,7 +83,11 @@ describe("every check Sentinel posts", () => {
 		expect(names).toHaveLength(13);
 	});
 
-	it.each(names)("%s has two tiers and the casing rule", (_key, name) => {
+	it.each(names)("%s has the prefix, a task id and the action rule", (_key, name) => {
 		expect(checkNameProblem(name)).toBeUndefined();
+	});
+
+	it("keeps every name off the Actions checks' own names, so the ci aggregate never counts one", () => {
+		for (const [, name] of names) expect(name.startsWith(SENTINEL_CHECK_PREFIX)).toBe(true);
 	});
 });

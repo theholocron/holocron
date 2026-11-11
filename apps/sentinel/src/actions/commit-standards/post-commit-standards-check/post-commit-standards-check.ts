@@ -7,9 +7,9 @@
  * Sentinel isn't a plugin, and this is a single REST call with nothing
  * else to wrap.
  *
- * `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` is `Group / Action`
+ * `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` is `sentinel:lint:commits / Run commitlint`
  * (`sentinelCheckName()`, `.notes/ci-sentinel-check-names.spec.md`). The
- * group is "Commits", not "Commit Standards": a repo still on the frozen
+ * task id is `lint:commits`, as on the Actions side: a repo still on the frozen
  * reusables posts "Commit Standards / Run commitlint" from Actions, and an
  * exact clash with this check would be confusing. No "Sentinel /" prefix —
  * GitHub's own check-run detail page already shows the posting App's
@@ -26,7 +26,7 @@ import type {
 	PostCommitStandardsCheckResult,
 } from "./post-commit-standards-check.type.js";
 
-export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = sentinelCheckName("Commits", "Run commitlint");
+export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = sentinelCheckName("lint:commits", "Run commitlint");
 
 /** One violation as one summary line: `abc1234: subject may not be empty [subject-empty]`. */
 function formatViolation(v: CommitViolation): string {

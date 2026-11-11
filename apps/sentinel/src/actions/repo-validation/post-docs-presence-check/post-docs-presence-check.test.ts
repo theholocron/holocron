@@ -39,7 +39,7 @@ beforeAll(() => {
 
 describe("postDocsPresenceCheck", () => {
 	it("names the check after the CI job, under the platform namespace", () => {
-		expect(SENTINEL_DOCS_PRESENCE_CHECK_RUN_NAME).toBe("Repo Validation / Validate docs");
+		expect(SENTINEL_DOCS_PRESENCE_CHECK_RUN_NAME).toBe("sentinel:validate:docs / Validate docs");
 	});
 
 	it("posts success when the PR adds no public package", async () => {
