@@ -26,6 +26,7 @@ import {
 } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
+import { accessRow, type OrgReaders, shadowRow } from "./access-rows.js";
 import { deployKeyRows } from "./deploy-key-rows.js";
 import type { DoctorSecretsReport, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
 import { expectedSecrets } from "./expected-secrets.js";
@@ -127,6 +128,16 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	} else {
 		const secrets = loader.get("secrets") as Secrets;
 		for (const check of checks) rows.push(await checkScope(secrets, check));
+		// Who can read the organization secrets the sync fills, and a name that a repository secret overrides (#2062).
+		const readers = new Map<string, OrgReaders>();
+		for (const { scope, names, repos } of synced.scopes) {
+			if (scope.kind !== "organization" || !repos) continue;
+			const entry = readers.get(scope.name) ?? { org: scope.name, declared: new Map<string, string[]>() };
+			for (const name of names) entry.declared.set(name, [...new Set(repos)].sort());
+			readers.set(scope.name, entry);
+		}
+		for (const entry of readers.values()) rows.push(await accessRow(secrets, entry, entry.org === org));
+		if (expected.org.length > 0) rows.push(await shadowRow(secrets, expected.org));
 	}
 
 	rows.push(...synced.rows, ...deployRows);

@@ -1,12 +1,22 @@
+import { stripVTControlCharacters } from "node:util";
+
 import { fakeLogger } from "@theholocron/observability/testing";
 import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
-import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
+import { type PluginImporter, PluginLoader, type SecretScope } from "../../plugin/index.js";
 import type { DeployFilter } from "./deploy-filter/index.js";
 import { runSecretsSync } from "./secrets-sync.js";
 
 /** A filter that passes every name. Config validation refuses an empty prefix; these tests are about other behaviour. */
+/** An organization scope with its readers, which a secret needs (#2062). */
+const ORG_SCOPE: SecretScope = {
+	kind: "organization",
+	name: "theholocron",
+	visibility: "selected",
+	repos: ["holocron", ".github"],
+};
+
 const everyKey: DeployFilter = { keys: [], prefixes: [""] };
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
@@ -438,12 +448,19 @@ describe("runSecretsSync", () => {
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
 			githubSecretKeys: ["ORG_TOKEN"],
-			githubSecretScope: { kind: "organization", name: "theholocron" },
+			githubSecretScope: {
+				kind: "organization",
+				name: "theholocron",
+				visibility: "selected",
+				repos: ["holocron"],
+			},
 			loader,
 			print: () => {},
 		});
 
-		expect(scopesSeen).toEqual([{ kind: "organization", name: "theholocron" }]);
+		expect(scopesSeen).toEqual([
+			{ kind: "organization", name: "theholocron", visibility: "selected", repos: ["holocron"] },
+		]);
 		expect(report.summary.ok).toBe(1);
 	});
 
@@ -779,14 +796,14 @@ describe("runSecretsSync", () => {
 				context: { repoRoot: "/tmp/test" },
 				environmentId: "CI",
 				secretRoutes: [
-					{ scope: { kind: "organization", name: "theholocron" }, keys: ["ORG_ONE"] },
+					{ scope: ORG_SCOPE, keys: ["ORG_ONE"] },
 					{ scope: { kind: "repo" }, keys: ["REPO_ONE"] },
 				],
 				loader,
 				print: (l) => lines.push(l),
 			});
 			expect(calls).toEqual([
-				[{ kind: "organization", name: "theholocron" }, "ORG_ONE"],
+				[ORG_SCOPE, "ORG_ONE"],
 				[{ kind: "repo" }, "REPO_ONE"],
 			]);
 			expect(report.summary.ok).toBe(2);
@@ -1080,5 +1097,149 @@ describe("runSecretsSync", () => {
 			expect(t.sent).toEqual([]);
 			expect(report.summary.fail).toBe(0);
 		});
+	});
+});
+
+describe("runSecretsSync — who can read an organization secret (#2062)", () => {
+	function setup(options: { access?: unknown; accessThrows?: boolean; values?: Record<string, string> } = {}) {
+		const written: Array<[unknown, string]> = [];
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const secrets: Record<string, unknown> = {
+			providerName: "github",
+			setSecret: async (scope: unknown, name: string) => void written.push([scope, name]),
+		};
+		if (options.access !== undefined || options.accessThrows) {
+			secrets.listSecretAccess = async () => {
+				if (options.accessThrows) throw new Error("no scope");
+				return options.access;
+			};
+		}
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: {
+					providerName: "1password",
+					readEnvironment: async () => options.values ?? { OLD: "1", SAME: "2", FRESH: "3", BLANK: " " },
+				},
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", { secrets }),
+		});
+		const lines: string[] = [];
+		const run = (dryRun: boolean, extra: Partial<Parameters<typeof runSecretsSync>[0]> = {}) =>
+			runSecretsSync({
+				loaded,
+				loader,
+				context: { repoRoot: "/tmp/test", dryRun },
+				environmentId: "CI",
+				secretRoutes: [{ scope: ORG_SCOPE, keys: ["OLD", "SAME", "FRESH", "BLANK"] }],
+				print: (l) => lines.push(stripVTControlCharacters(l)),
+				...extra,
+			});
+		return { written, lines, run };
+	}
+
+	const current = {
+		OLD: { visibility: "all" },
+		SAME: { visibility: "selected", repos: [".github", "holocron"] },
+	};
+
+	it("shows the change by name in a dry run, and writes nothing", async () => {
+		const { written, lines, run } = setup({ access: current });
+		const report = await run(true);
+		expect(written).toEqual([]);
+		const out = lines.join("\n");
+		expect(out).toContain("OLD  (readers all -> selected [.github, holocron])");
+		expect(out).toContain("SAME  (readers unchanged (selected [.github, holocron]))");
+		expect(out).toContain("FRESH  (new, readers selected [.github, holocron])");
+		expect(report.summary).toMatchObject({ dryRun: 3, skip: 1 });
+	});
+
+	it("writes with the readers and says the same thing in the real run; a skipped row has no readers note", async () => {
+		const { written, lines, run } = setup({ access: current });
+		const report = await run(false);
+		expect(written.map(([scope, name]) => [name, (scope as { repos: string[] }).repos])).toEqual([
+			["OLD", ["holocron", ".github"]],
+			["SAME", ["holocron", ".github"]],
+			["FRESH", ["holocron", ".github"]],
+		]);
+		const out = lines.join("\n");
+		expect(out).toContain("OLD  (readers all -> selected");
+		expect(out).toContain("BLANK  (blank in the vault environment)");
+		expect(report.summary.ok).toBe(3);
+	});
+
+	it("matches names without regard to case, because GitHub does", async () => {
+		const { lines, run } = setup({ access: { old: { visibility: "private" } } });
+		await run(true);
+		expect(lines.join("\n")).toContain("OLD  (readers private -> selected");
+	});
+
+	it("names only the new readers when the provider cannot report who reads now", async () => {
+		const { lines, run } = setup();
+		await run(true);
+		expect(lines.join("\n")).toContain("OLD  (readers -> selected [.github, holocron])");
+	});
+
+	it("says once that the listing could not be read, and goes on writing", async () => {
+		const { written, lines, run } = setup({ accessThrows: true });
+		const report = await run(false);
+		const out = lines.join("\n");
+		expect(out).toContain("could not read who can read the organization's secrets (no scope)");
+		expect(out).toContain("OLD  (readers -> selected");
+		expect(written).toHaveLength(3);
+		expect(report.summary.ok).toBe(3);
+	});
+
+	it("is a failing row, with no readers note, when the write fails (for example a repository that does not resolve)", async () => {
+		const loaded = loadedFrom({ name: "demo", providers: { vault: "1password", secrets: "github" } });
+		const loader = makeLoaderWith(loaded, {
+			"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+				vault: { providerName: "1password", readEnvironment: async () => ({ OLD: "1" }) },
+			}),
+			"@theholocron/holocron-plugin-github": makePlugin("gh", {
+				secrets: {
+					providerName: "github",
+					setSecret: async () => {
+						throw new Error("could not resolve repository theholocron/nope");
+					},
+				},
+			}),
+		});
+		const report = await runSecretsSync({
+			loaded,
+			loader,
+			context: { repoRoot: "/tmp/test" },
+			environmentId: "CI",
+			secretRoutes: [{ scope: ORG_SCOPE, keys: ["OLD"] }],
+			print: () => {},
+		});
+		expect(report.rows[0]).toMatchObject({
+			status: "fail",
+			message: "could not resolve repository theholocron/nope",
+		});
+		expect(report.rows[0]).not.toHaveProperty("readers");
+	});
+
+	it("never says anything about readers for a repository scope", async () => {
+		const { lines, run } = setup({ access: current });
+		await run(true, { secretRoutes: [{ scope: { kind: "repo" }, keys: ["OLD"] }] });
+		expect(lines.join("\n")).not.toContain("readers");
+	});
+
+	it("fails closed before reading the vault when an organization route names no readers", async () => {
+		const { run } = setup({ access: current });
+		const err = await run(true, {
+			secretRoutes: [{ scope: { kind: "organization", name: "theholocron" }, keys: ["OLD"] }],
+		}).catch((e: unknown) => e);
+		expect((err as Error).name).toBe("ConfigError");
+		expect((err as Error).message).toMatch(/need an explicit reader list/);
+		const manual = await run(true, {
+			secretRoutes: undefined,
+			githubSecretScope: { kind: "organization", name: "theholocron" },
+		}).catch((e: unknown) => e);
+		expect((manual as Error).name).toBe("ConfigError");
+		const emptyList = await run(true, {
+			secretRoutes: [{ scope: { kind: "organization", name: "theholocron", repos: [] }, keys: ["OLD"] }],
+		}).catch((e: unknown) => e);
+		expect((emptyList as Error).name).toBe("ConfigError");
 	});
 });

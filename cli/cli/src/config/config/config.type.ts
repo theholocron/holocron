@@ -228,6 +228,17 @@ export interface RepoSecretsSync {
 	keys?: string[];
 	/** Where the secrets land, as `--github-secret-scope` words it: `"repo"` (the default), `"env=<name>"` or `"org=<name>"`. */
 	scope?: string;
+	/**
+	 * Organization scope only: who can read the secrets. Only `"selected"` is accepted for a secret (`"all"` and
+	 * `"private"` are a `ConfigError`); it may be left out when `repos` is given.
+	 */
+	visibility?: "all" | "private" | "selected";
+	/**
+	 * Organization scope only, and required there: the repositories that can read the secrets, by name in the
+	 * organization (`"holocron"`, or `"theholocron/holocron"`). A secret is never readable by every repository (spec
+	 * `tech-org-secret-visibility`, #2062).
+	 */
+	repos?: string[];
 }
 
 /** Per-repo switches for the repo-validation checks (spec `tech-api-docs`, #1368). */

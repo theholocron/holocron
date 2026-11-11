@@ -83,11 +83,15 @@ export default defineConfig({
     },
     // Secrets that must exist; `holocron doctor secrets` reports the missing ones. Names only.
     // `sync` names the vault environments `holocron secrets sync` fills secrets from, and where (no `keys` = every key).
+    // An `org=` scope must name its readers: `repos` (visibility "selected"), never every repository.
     // `deploy` names what a deployment or Worker may receive from `secrets sync` (a `prefix` and/or `keys`; required).
     secrets: {
       repo: ["TURBO_TOKEN"],
       org: ["NPM_TOKEN"],
-      sync: [{ environment: "prd" }],
+      sync: [
+        { environment: "prd" },
+        { environment: "prd", scope: "org=my-org", repos: ["my-repo"], keys: ["NPM_TOKEN"] },
+      ],
       deploy: [{ environment: "prd", prefix: "MYAPP_" }],
     },
 

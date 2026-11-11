@@ -3,6 +3,8 @@ import { repoBase } from "../utils.js";
 
 /** A repository as GitHub returns it, with only the fields this client reads. */
 export interface GitHubRepo {
+	/** The repository's numeric id, which organization secrets and variables name their readers by. */
+	id: number;
 	/** The name of the repository's default branch. */
 	default_branch: string;
 	/** The repository's `owner/name`. */

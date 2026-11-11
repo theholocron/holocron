@@ -5,6 +5,7 @@ import { type RepoSecretsSync, resolvedEnvironment } from "../../config/index.js
 import { type SecretScope, type Vault } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { parseScope } from "../secrets-sync/parse-scope/index.js";
+import { repoName } from "../secrets-sync/repo-name/index.js";
 import type { SyncedSecrets } from "./doctor-secrets.type.js";
 
 /**
@@ -34,8 +35,10 @@ export async function syncedSecrets(
 			rows.push({ id, title, status: "fail", detail: "1 problem(s)", problems: [describeError(err)] });
 			continue;
 		}
+		// The readers an organization entry declares, as names, so the doctor can compare them with GitHub's.
+		const repos = entry.repos ? { repos: entry.repos.map(repoName) } : {};
 		if (entry.keys) {
-			scopes.push({ scope, names: entry.keys });
+			scopes.push({ scope, names: entry.keys, ...repos });
 			continue;
 		}
 		const skip = (detail: string) => rows.push({ id, title, status: "skip", detail, problems: [] });
@@ -45,7 +48,7 @@ export async function syncedSecrets(
 			skip(`vault provider (${vault.providerName}) cannot list an environment's keys`);
 		} else {
 			try {
-				scopes.push({ scope, names: Object.keys(await vault.readEnvironment(environment)) });
+				scopes.push({ scope, names: Object.keys(await vault.readEnvironment(environment)), ...repos });
 			} catch (err) {
 				skip(
 					missingTokenReason(err) ?? `could not read vault environment ${environment}: ${describeError(err)}`
