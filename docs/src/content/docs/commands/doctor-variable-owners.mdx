@@ -40,7 +40,7 @@ The Environments are listed by a loader that never reads a value from a `credent
 Not reported:
 
 - **The sync fan-out.** An Environment that `repo.secrets.sync` or `repo.variables.sync` copies to a GitHub place is the one allowed copy. The GitHub copy of a name an Environment fills is left out; a second Environment holding the same name is still reported.
-- **Deliberate sharing.** A name listed in `doctor.sharedVariables` in `holocron.config.ts` (names only). Use it for a value two Environments hold on purpose, such as `HOLOCRON_DISCORD_BOT_TOKEN`.
+- **Deliberate sharing.** A name listed in `doctor.sharedVariables` in `holocron.config.ts` (names only). Use it for a value two Environments hold on purpose, such as `HOLOCRON_DISCORD_BOT_TOKEN`. The same goes for a token the CLI reads locally and the CI reads from the `Holocron - GitHub Actions` Environment (`HOLOCRON_ADMIN_TOKEN`, `HOLOCRON_SYNC_TOKEN` and the rest of the org tokens): each is listed by name, and the value is rotated in both places.
 - **The instances of one GitHub App.** The Environments in `githubApps` (`Sentinel` and `Sentinel - dev`) hold the same names by design and count as one place.
 
 ```ts
