@@ -38,11 +38,13 @@ A `credentials` provider is a second place to keep these tokens, ahead of the ke
 
 ```ts title="holocron.config.ts"
 export default defineConfig({
-  providers: { credentials: ["1password", { environment: "Holocron" }] },
+  providers: { credentials: ["1password"] },
 });
 ```
 
-Each provider names the environment it reads in its own `environment` option, because several providers may be listed and a 1Password Environment and an AWS secret are not called the same thing. A provider with no option falls back to the shared `credentials: { environment }` block, so one name can serve them all. Either way the CLI passes the name to the plugin when it reads; the plugin does not store it.
+A 1Password entry with no `environment` option derives its Environment names: `<org>/<repo>` from the repository's `origin` remote, plus a layer from `detectEnvironment()`. A machine reads `<org/repo> - local` and then `<org/repo> - dev` (the only fallback; a missing `- local` is skipped silently). `holocron dev` reads `- dev`, CI reads `- ci`, a deployed app reads `- prod`, and the `test` layer reads none. A missing `- dev`, `- ci` or `- prod` is an error that names the Environment, and a layer never reads another's. While the Environments still have their old names (`Holocron`, `Holocron - GitHub Actions variables`), those are tried when a new name is missing; that fallback is temporary. A remote the CLI cannot parse is an error that asks for an explicit `environment`.
+
+An explicit name wins and is the only Environment read: a provider's own `environment` option, else the shared `credentials: { environment }` block. Use it for a checkout whose remote does not match the repo, or for a provider that does not derive (only 1Password does). Either way the CLI passes the name to the plugin when it reads; the plugin does not store it.
 
 Each variable in the Environment is named for the env var the command already reads (`HOLOCRON_ORG_TOKEN`, `HOLOCRON_DISCORD_BOT_TOKEN`, `CLOUDFLARE_API_TOKEN`, ...), so there is no mapping to keep. The Environment is read once per command, so Touch ID asks once for all of them. If `op` is missing, locked or gives no answer within 60 seconds, the provider is skipped and the keyring is tried.
 
@@ -51,14 +53,14 @@ Each variable in the Environment is named for the env var the command already re
 `op` cannot create an Environment or set a variable (checked on `op` 2.43.0-beta.02: `op environment` only has `read` and `secret list`), so this part is by hand:
 
 1. Install the CLI and turn on the desktop-app integration: `brew install 1password-cli`, then in the 1Password app, Settings, Developer, "Integrate with the 1Password CLI". `op environment secret list` needs a recent `op`: it is in 2.43.0-beta.02, and 2.35.0-beta.01 did not have it.
-2. In the 1Password app: Developer, View Environments, then create an Environment. Name it as the provider's `environment` option says (`Holocron`).
+2. In the 1Password app: Developer, View Environments, then create an Environment. Name it `<org/repo> - <layer>` (`theholocron/holocron - dev`), or as the provider's `environment` option says.
 3. Add one variable per token, named for the env var, for example `HOLOCRON_ORG_TOKEN`. The names each command reads are in the [provider table](#provider-tokens) and the GitHub feature-token table above.
-4. Put `providers.credentials` with its `environment` option in `holocron.config.ts` as shown.
-5. Check it prints only the variable names: `op environment secret list Holocron` (add `--reveal` only when you want the values).
+4. Put `providers.credentials` in `holocron.config.ts` as shown; add an `environment` option only to name the Environment yourself.
+5. Check it prints only the variable names: `op environment secret list "theholocron/holocron - dev"` (add `--reveal` only when you want the values).
 
 ### Checking it
 
-`holocron doctor credentials` reads names only, never a value, and compares them with the tokens the configured plugins take: it prints one row per variable, fails when the Environment cannot be found (listing the spellings tried) or lacks a variable, and says which spelling of the name matched. See [`doctor credentials`](/holocron/commands/doctor-credentials/).
+`holocron doctor credentials` reads names only, never a value, and compares them with the tokens the configured plugins take: it prints one row per variable, fails when a required Environment cannot be found (by name) or lacks a variable, and says which Environment and spelling matched. See [`doctor credentials`](/holocron/commands/doctor-credentials/).
 
 ### Moving the tokens you already have
 
@@ -69,7 +71,7 @@ holocron auth export             # the keyring, to .credentials
 holocron auth export --from-env  # also what is set in this shell
 ```
 
-In the app: Developer, View Environments, `Holocron`, **Import .env file**, and choose `.credentials`. Back in the terminal, press Enter and the file is overwritten and deleted. It is created readable by you alone, refused unless git ignores it, never overwrites a file, and is deleted on Ctrl-C too, so the plain text exists only for the minutes the import takes. Then run `holocron doctor credentials` to see what is still missing. Piped, the command writes the lines to stdout instead; `--copy` puts them on the clipboard.
+In the app: Developer, View Environments, the Environment (`theholocron/holocron - dev`), **Import .env file**, and choose `.credentials`. Back in the terminal, press Enter and the file is overwritten and deleted. It is created readable by you alone, refused unless git ignores it, never overwrites a file, and is deleted on Ctrl-C too, so the plain text exists only for the minutes the import takes. Then run `holocron doctor credentials` to see what is still missing. Piped, the command writes the lines to stdout instead; `--copy` puts them on the clipboard.
 
 ### Adding a token later
 

@@ -1,6 +1,7 @@
 import { ConfigError } from "@theholocron/kyber/config";
 import { resolvePluginPackage as resolvePackage } from "@theholocron/kyber/plugins";
 
+import { derivesEnvironment } from "../../credentials-environments/derives-environment/index.js";
 import {
 	type CapabilityKey,
 	CARDINALITY,
@@ -256,7 +257,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 					`the \`environment\` option of the \`${tuple.provider}\` credentials provider must be the name of an environment, got an empty value`
 				);
 			}
-			if (credentialsEnvironment(tuple, raw) === undefined) {
+			if (credentialsEnvironment(tuple, raw) === undefined && !derivesEnvironment(tuple.provider)) {
 				throw new ConfigError(
 					`the \`${tuple.provider}\` credentials provider has no environment to read: give it an \`environment\` option or set \`credentials.environment\``
 				);

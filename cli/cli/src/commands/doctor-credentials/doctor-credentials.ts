@@ -16,6 +16,12 @@ import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } fro
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { credentialsEnvironment, type ResolvedProviderEntry } from "../../config/index.js";
+import {
+	derivesEnvironment,
+	type EnvironmentCandidate,
+	resolveEnvironments,
+	tryEnvironments,
+} from "../../credentials-environments/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, type Credentials, PluginLoader } from "../../plugin/index.js";
 import { defaultImporter } from "../auth/index.js";
@@ -71,17 +77,37 @@ async function checkCredentials(input: RunDoctorCredentialsInput, loader: Plugin
 	const { tuples } = resolved.providers.credentials as Extract<ResolvedProviderEntry, { cardinality: "many" }>;
 	for (const impl of loader.get("credentials") as Credentials[]) {
 		const tuple = tuples.find((t) => t.provider === impl.providerName);
-		const environment = tuple && credentialsEnvironment(tuple, resolved);
-		rows.push(
-			...(environment
-				? await checkProvider(impl, environment, expected)
-				: [row(impl.providerName, "skip", "no `environment` option and `credentials.environment` is not set")])
-		);
+		const explicit = tuple && credentialsEnvironment(tuple, resolved);
+		if (!explicit && !derivesEnvironment(impl.providerName)) {
+			rows.push(
+				row(impl.providerName, "skip", "no `environment` option and `credentials.environment` is not set")
+			);
+			continue;
+		}
+		try {
+			const candidates = await resolveEnvironments(impl.providerName, explicit, {
+				repoRoot: input.context.repoRoot,
+				...(input.env ? { env: input.env } : {}),
+				...(input.gitExec ? { gitExec: input.gitExec } : {}),
+			});
+			rows.push(...(await checkProvider(impl, candidates, expected)));
+		} catch (err) {
+			rows.push(row(impl.providerName, "fail", errorMessage(err)));
+		}
 	}
 	return rows;
 }
 
-async function checkProvider(impl: Credentials, environment: string, expected: ExpectedToken[]): Promise<CheckRow[]> {
+/**
+ * One row per expected variable, against the Environments the layer reads. A variable counts as present when any
+ * Environment found holds it (the first found wins, as in the credential store). A required Environment that does not
+ * exist is a failing row of its own, by name; a missing `- local` is not mentioned; an old name in use is a skipped row.
+ */
+async function checkProvider(
+	impl: Credentials,
+	candidates: EnvironmentCandidate[],
+	expected: ExpectedToken[]
+): Promise<CheckRow[]> {
 	const provider = impl.providerName;
 	if (!impl.inspect) {
 		return [row(provider, "skip", "cannot list the variables without reading their values")];
@@ -89,19 +115,30 @@ async function checkProvider(impl: Credentials, environment: string, expected: E
 	if (expected.length === 0) {
 		return [row(provider, "skip", "no configured plugin lists the tokens it takes")];
 	}
+	if (candidates.length === 0) {
+		return [row(provider, "skip", "the `test` layer reads no Environment")];
+	}
+	const inspect = impl.inspect.bind(impl);
 	try {
-		const found = await impl.inspect(environment);
-		const held = new Set(found.names);
-		const where =
-			found.environment === environment
-				? `"${found.environment}"`
-				: `"${found.environment}" (the config writes "${environment}")`;
-		return expected.map(({ name, optional }) => {
-			if (held.has(name)) return row(provider, "ok", `present in ${where}`, name);
-			return optional
-				? row(provider, "skip", `optional, not set in ${where}`, name)
-				: row(provider, "fail", `missing from ${where}`, name);
-		});
+		const { found, missing } = await tryEnvironments(candidates, inspect);
+		const rows: CheckRow[] = missing.map((name) =>
+			row(provider, "fail", `${provider} has no Environment named "${name}"`)
+		);
+		const labels = found.map(({ name, result }) =>
+			result.environment === name ? `"${name}"` : `"${result.environment}" (the config writes "${name}")`
+		);
+		const where = labels.join(", ");
+		for (const { name, legacy } of found) {
+			if (legacy) rows.push(row(provider, "skip", `read from the old Environment name "${name}"; rename it`));
+		}
+		if (found.length === 0) return rows;
+		for (const { name, optional } of expected) {
+			const at = found.findIndex((f) => f.result.names.includes(name));
+			if (at >= 0) rows.push(row(provider, "ok", `present in ${labels[at]}`, name));
+			else if (optional) rows.push(row(provider, "skip", `optional, not set in ${where}`, name));
+			else rows.push(row(provider, "fail", `missing from ${where}`, name));
+		}
+		return rows;
 	} catch (err) {
 		return [row(provider, "fail", errorMessage(err))];
 	}

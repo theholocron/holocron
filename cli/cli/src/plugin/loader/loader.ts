@@ -25,6 +25,7 @@ import {
 	type ProviderOptions,
 	type ResolvedHolocronConfig,
 } from "../../config/config/index.js";
+import { derivesEnvironment, resolveEnvironments, tryEnvironments } from "../../credentials-environments/index.js";
 import { type CapabilityKey, CARDINALITY, type CardinalityFor, type Credentials } from "../capabilities/index.js";
 import type { PluginProbes } from "../probes/probe/index.js";
 import type { ProviderActions } from "../provider-actions/index.js";
@@ -79,18 +80,30 @@ const system = createPluginSystem<
 			const impls: Credentials[] = [];
 			for (const tuple of entry.tuples) {
 				try {
-					const environment = credentialsEnvironment(tuple, config);
-					if (!environment) {
+					const explicit = credentialsEnvironment(tuple, config);
+					if (explicit === undefined && !derivesEnvironment(tuple.provider)) {
 						throw new LoaderError(
 							`the ${tuple.provider} credentials provider has no \`environment\` option and \`credentials.environment\` is not set`
 						);
 					}
 					const impl = (await api.loadOne("credentials", tuple)) as Credentials;
 					impls.push(impl);
-					const sourceName = `${tuple.provider}:${environment}`;
 					// `readCredentials: false` loads the providers without asking them for a single value (`doctor credentials`).
-					if (options?.readCredentials !== false && !hasCredentials(sourceName)) {
-						setCredentials(sourceName, await impl.read(environment));
+					if (options?.readCredentials === false) continue;
+					// An explicit name is the one Environment; otherwise the layer's names, local over dev on a machine (#2063).
+					const candidates = await resolveEnvironments(tuple.provider, explicit, {
+						repoRoot: context.repoRoot,
+						...(options?.env ? { env: options.env } : {}),
+						...(options?.gitExec ? { gitExec: options.gitExec } : {}),
+					});
+					const { missing } = await tryEnvironments(candidates, async (name) => {
+						const sourceName = `${tuple.provider}:${name}`;
+						if (!hasCredentials(sourceName)) setCredentials(sourceName, await impl.read(name));
+					});
+					if (missing.length > 0) {
+						throw new LoaderError(
+							`${tuple.provider} has no Environment named ${missing.map((n) => `"${n}"`).join(", ")}`
+						);
 					}
 				} catch (err) {
 					api.fail("credentials", tuple, err);
