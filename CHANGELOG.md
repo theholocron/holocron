@@ -1,3 +1,13 @@
+## [5.0.0-alpha.412](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.411...v5.0.0-alpha.412) (2026-11-11)
+
+### Features
+
+* **credentials:** derive the 1Password Environment name from repo and layer ([#2064](https://github.com/theholocron/holocron/issues/2064)) ([fd80507](https://github.com/theholocron/holocron/commit/fd805074f12f6e409cac3675781170858b23613c)), closes [#2063](https://github.com/theholocron/holocron/issues/2063)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2068](https://github.com/theholocron/holocron/issues/2068)) ([b6a7ff5](https://github.com/theholocron/holocron/commit/b6a7ff5c082b2a867b6634955a7235c80022b0cd))
+
 ## [5.0.0-alpha.411](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.410...v5.0.0-alpha.411) (2026-11-11)
 
 ### Features
