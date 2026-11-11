@@ -1,3 +1,13 @@
+## [5.0.0-alpha.416](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.415...v5.0.0-alpha.416) (2026-11-11)
+
+### Features
+
+* **1password:** 🔑 a probe that exports one Environment to a .credentials file ([#2077](https://github.com/theholocron/holocron/issues/2077)) ([29cb8ea](https://github.com/theholocron/holocron/commit/29cb8ea74499b94eca52b70af437cb15223f1944)), closes [#2076](https://github.com/theholocron/holocron/issues/2076)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2079](https://github.com/theholocron/holocron/issues/2079)) ([1acd9e7](https://github.com/theholocron/holocron/commit/1acd9e7a01c82378ca5f06baae4aaff4e9f12037))
+
 ## [5.0.0-alpha.415](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.414...v5.0.0-alpha.415) (2026-11-11)
 
 ### Features
