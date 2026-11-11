@@ -39,9 +39,9 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 import { listCommand } from "../list/list.command.js";
 import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
-import { secretsCommand } from "./secrets.command.js";
+import { syncCommand } from "../sync/sync.command.js";
 
-const go = (args: string[]) => runCommand(secretsCommand, ["secrets", ...args]);
+const go = (args: string[]) => runCommand(syncCommand, ["sync", ...args]);
 const goNew = (args: string[]) => runCommand(newCommand, ["new", ...args]);
 const goList = (args: string[]) => runCommand(listCommand, ["list", ...args]);
 
@@ -90,10 +90,10 @@ describe("new secret", () => {
 	});
 });
 
-describe("secrets sync", () => {
+describe("sync secrets", () => {
 	it("syncs the vault environment to the targets, with the project, worker and GitHub secrets as given", async () => {
 		await go([
-			"sync",
+			"secrets",
 			"prd",
 			"--project-id",
 			"p1",
@@ -120,7 +120,7 @@ describe("secrets sync", () => {
 	});
 
 	it("leaves out the project, worker and GitHub secrets it was not given", async () => {
-		await go(["sync", "prd"]);
+		await go(["secrets", "prd"]);
 		const input = runSecretsSync.mock.calls[0]![0];
 		expect(["projectId", "workerScript", "githubSecretKeys", "secretRoutes"].some((k) => k in input)).toBe(false);
 		expect(input.githubSecretScope).toEqual({ kind: "repo" });
@@ -142,7 +142,7 @@ describe("secrets sync", () => {
 			},
 			filepath: "/x",
 		});
-		await go(["sync", "ci"]);
+		await go(["secrets", "ci"]);
 		expect(runSecretsSync.mock.calls[0]![0].secretRoutes).toEqual([
 			{ scope: { kind: "organization", name: "acme" }, keys: ["A"] },
 			{ scope: { kind: "repo" }, keys: ["B"] },
@@ -162,23 +162,23 @@ describe("secrets sync", () => {
 			},
 			filepath: "/x",
 		});
-		await go(["sync", "vars"]);
+		await go(["secrets", "vars"]);
 		const input = runSecretsSync.mock.calls[0]![0];
 		expect(input.variableRoutes).toEqual([{ scope: { kind: "organization", name: "acme" }, keys: ["A"] }]);
 		expect(input.secretRoutes).toEqual([]);
 
 		runSecretsSync.mockClear();
-		await go(["sync", "ci"]);
+		await go(["secrets", "ci"]);
 		const secretsOnly = runSecretsSync.mock.calls[0]![0];
 		expect("variableRoutes" in secretsOnly).toBe(false);
 		expect(secretsOnly.secretRoutes).toHaveLength(1);
 	});
 
 	it("reads the Environment of a layer word, and a literal name as it is", async () => {
-		await go(["sync", "prod"]);
+		await go(["secrets", "prod"]);
 		expect(runSecretsSync.mock.calls[0]![0].environmentId).toBe("org/repo - prod");
 		runSecretsSync.mockClear();
-		await go(["sync", "Sentinel"]);
+		await go(["secrets", "Sentinel"]);
 		expect(runSecretsSync.mock.calls[0]![0].environmentId).toBe("Sentinel");
 	});
 
@@ -187,7 +187,7 @@ describe("secrets sync", () => {
 			resolved: { org: "acme", repo: { secrets: { sync: [{ environment: "org/repo - ci", keys: ["A"] }] } } },
 			filepath: "/x",
 		});
-		await go(["sync", "ci", "--github-secret", "Z"]);
+		await go(["secrets", "ci", "--github-secret", "Z"]);
 		const input = runSecretsSync.mock.calls[0]![0];
 		expect("secretRoutes" in input).toBe(false);
 		expect(input.githubSecretKeys).toEqual(["Z"]);
@@ -195,11 +195,11 @@ describe("secrets sync", () => {
 
 	it("exits 1 when a secret failed, and stops when --token cannot be parsed", async () => {
 		runSecretsSync.mockResolvedValue({ summary: { ok: 0, fail: 1, skip: 0 } });
-		await go(["sync", "prd"]);
+		await go(["secrets", "prd"]);
 		expect(process.exitCode).toBe(1);
 		tokenContext.mockReturnValue(null);
 		runSecretsSync.mockClear();
-		await go(["sync", "prd"]);
+		await go(["secrets", "prd"]);
 		expect(runSecretsSync).not.toHaveBeenCalled();
 	});
 });
@@ -236,16 +236,5 @@ describe("list secrets", () => {
 		runSecretsList.mockClear();
 		await goList(["secrets"]);
 		expect(runSecretsList).not.toHaveBeenCalled();
-	});
-});
-
-describe("secrets", () => {
-	it("a bare `secrets` opens the menu of its subcommands", async () => {
-		await go([]);
-		expect(launchMenu).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.anything(),
-			expect.objectContaining({ pickMessage: "secrets — choose a subcommand:", startPath: ["secrets"] })
-		);
 	});
 });

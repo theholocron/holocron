@@ -44,7 +44,7 @@ export default defineConfig({
 
 A 1Password entry with no `environment` option derives its Environment names: `<org>/<repo>` from the repository's `origin` remote, plus a layer from `detectEnvironment()`. A machine reads `<org/repo> - local` and then `<org/repo> - dev` (the only fallback; a missing `- local` is skipped silently). `holocron dev` reads `- dev`, CI reads `- ci`, a deployed app reads `- prod`, and the `test` layer reads none. A missing `- dev`, `- ci` or `- prod` is an error that names the Environment, and a layer never reads another's. A remote the CLI cannot parse is an error that asks for an explicit `environment`.
 
-The rest of the config names a layer the same way (`layer: "ci"` on a sync entry, `vault: ["1password", { layer: "prod" }]`, `holocron secrets sync prod`; see [secrets sync](/holocron/commands/secrets-sync/)), through the same derivation.
+The rest of the config names a layer the same way (`layer: "ci"` on a sync entry, `vault: ["1password", { layer: "prod" }]`, `holocron sync secrets prod`; see [sync secrets](/holocron/commands/sync-secrets/)), through the same derivation.
 
 An explicit name wins and is the only Environment read: a provider's own `environment` option, else the shared `credentials: { environment }` block. Use it for a checkout whose remote does not match the repo, or for a provider that does not derive (only 1Password does). Either way the CLI passes the name to the plugin when it reads; the plugin does not store it.
 
@@ -138,12 +138,12 @@ holocron repo setup --org client-co
 | `HOLOCRON_ADMIN_TOKEN`     | `github.admin`     | Fine-grained       | `setup` — repo settings, topics, branch protection, rulesets, security toggles, labels, custom property values, environments, repo and environment secrets | `administration: read/write`, `secrets: read/write`, `environments: read/write`, `issues: read/write` (labels), `custom_properties: write` (property values), `actions_variables: read/write` (Actions variables), `pull_requests: read` (only `cleanup-preview`, on a private repo) |
 | `HOLOCRON_SECRETS_TOKEN`   | `github.secrets`   | Fine-grained (org) | the `secrets` capability — **organization**-scoped secret writes (repo and environment scopes prefer `github.admin`)                                       | Resource owner: org · Organization `secrets: read/write`                                                                                                                                                                                                                             |
 | `HOLOCRON_DEPLOY_TOKEN`    | `github.deploy`    | Fine-grained       | `setup` — GitHub Pages (build type, custom domain, HTTPS)                                                                                                  | `pages: read/write`, `administration: read/write` (GitHub refuses the Pages settings calls without it), `metadata: read`                                                                                                                                                             |
-| `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync, organization Actions variables; `sync-roles` — read a team's members                                                                  | Resource owner: org · `administration: write` · `members: read` · organization `variables: read/write`                                                                                                                                                                               |
-| `HOLOCRON_USER_SYNC_TOKEN` | `github.user-sync` | Fine-grained       | `notifications link` and `sync-roles` — read and write the files that link GitHub accounts to members of other services                                    | Resource owner: org · Repository: **only** `.github-private` · `contents: read/write`                                                                                                                                                                                                |
+| `HOLOCRON_ORG_TOKEN`       | `github.org`       | Fine-grained (org) | `setup` — team sync, organization Actions variables; `sync roles` — read a team's members                                                                  | Resource owner: org · `administration: write` · `members: read` · organization `variables: read/write`                                                                                                                                                                               |
+| `HOLOCRON_USER_SYNC_TOKEN` | `github.user-sync` | Fine-grained       | `notifications link` and `sync roles` — read and write the files that link GitHub accounts to members of other services                                    | Resource owner: org · Repository: **only** `.github-private` · `contents: read/write`                                                                                                                                                                                                |
 
 A fine-grained token expires on the date you chose when you created it. [`holocron doctor tokens`](/holocron/commands/doctor-tokens/) reads that date from GitHub and fails a token with 7 days or fewer left, and the `check-tokens` task runs it daily in CI with these tokens (as the organization secrets of the same names) so the errored run reaches you before an operation breaks.
 
-Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, the links files are read and written with `HOLOCRON_ORG_TOKEN`, then `HOLOCRON_ADMIN_TOKEN`; and `sync-roles` reads a team with `HOLOCRON_ORG_TOKEN`, falling back to `HOLOCRON_ADMIN_TOKEN`. The separate tokens exist so that neither has to be that broad. A fallback token needs the same access the dedicated one would: **Contents: read/write** on `.github-private` for the links files, and the org or admin token as documented above will not have it unless you add it, so `notifications link` and `sync-roles` fail with a 403 or 404 until you either set `HOLOCRON_USER_SYNC_TOKEN` or grant that permission.
+Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, the links files are read and written with `HOLOCRON_ORG_TOKEN`, then `HOLOCRON_ADMIN_TOKEN`; and `sync roles` reads a team with `HOLOCRON_ORG_TOKEN`, falling back to `HOLOCRON_ADMIN_TOKEN`. The separate tokens exist so that neither has to be that broad. A fallback token needs the same access the dedicated one would: **Contents: read/write** on `.github-private` for the links files, and the org or admin token as documented above will not have it unless you add it, so `notifications link` and `sync roles` fail with a 403 or 404 until you either set `HOLOCRON_USER_SYNC_TOKEN` or grant that permission.
 
 ### Why a separate org token?
 
@@ -197,7 +197,7 @@ Two tokens. The general one above (`HOLOCRON_SENTRY_TOKEN`, keyring `sentry`) pr
 
 It needs no delete or admin permission: setup creates and updates, and never removes. When `sentry.comlink` is not set the relay falls back to the general `sentry` token as the very last resort, which only works if that token happens to carry these scopes.
 
-This token is for the machine that runs `notifications setup`; it is not a Worker secret. Keep it in the keyring (`holocron new token sentry.comlink`) or in your own Holocron environment, never in the `Comlink` 1Password Environment: `secrets sync Comlink --worker comlink` pushes every key of that environment to the Worker, and the Worker only needs `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
+This token is for the machine that runs `notifications setup`; it is not a Worker secret. Keep it in the keyring (`holocron new token sentry.comlink`) or in your own Holocron environment, never in the `Comlink` 1Password Environment: `sync secrets Comlink --worker comlink` pushes every key of that environment to the Worker, and the Worker only needs `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
 
 ```bash
 holocron new token sentry.comlink sntryu_xxx
@@ -211,7 +211,7 @@ Discord has three separate credentials, each used by a different step, so a leak
 
 | Env var                                                         | Keyring key             | What it is                                             | Used by                                                                      | Get it from                                  |
 | --------------------------------------------------------------- | ----------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------- |
-| `HOLOCRON_DISCORD_BOT_TOKEN` (also `DISCORD_BOT_TOKEN`)         | `discord.holonet`       | The bot's token                                        | `notifications setup`, `create-server`, `sync-roles`, `doctor notifications` | Developer portal → Bot → **Reset Token**     |
+| `HOLOCRON_DISCORD_BOT_TOKEN` (also `DISCORD_BOT_TOKEN`)         | `discord.holonet`       | The bot's token                                        | `notifications setup`, `create-server`, `sync roles`, `doctor notifications` | Developer portal → Bot → **Reset Token**     |
 | `HOLOCRON_DISCORD_CLIENT_SECRET` (also `DISCORD_CLIENT_SECRET`) | `discord.holonet.oauth` | The application's OAuth2 client secret                 | `notifications link` (signing people in)                                     | Developer portal → OAuth2 → **Reset Secret** |
 | `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` (a GitHub secret)           | _(none)_                | A channel's webhook URL; anyone with it can post there | Workflows posting to a channel; the delivery check in `doctor notifications` | Created and stored by `notifications setup`  |
 
@@ -219,15 +219,15 @@ The bot token and the client secret look alike and are not interchangeable.
 
 **What the bot needs in the server.** `setup` and `create-server` need View Channels, Send Messages, Read Message History, Manage Channels, Manage Roles, Manage Webhooks, Manage Server, Create Public Threads, Create Private Threads and Send Messages in Threads, plus Pin Messages when the layout pins messages. When one is missing, the command prints an invite link that asks for exactly these and updates the bot's role in place. A server the bot creates itself needs none of this while it owns the server.
 
-**What the application needs in the developer portal.** The **Server Members Intent** (switched on by `application.intents.members` in the layout) for `sync-roles`, and the redirect `http://localhost:53682/callback` under OAuth2 → Redirects for `notifications link`. Making the bot public, and the verification review, stay manual.
+**What the application needs in the developer portal.** The **Server Members Intent** (switched on by `application.intents.members` in the layout) for `sync roles`, and the redirect `http://localhost:53682/callback` under OAuth2 → Redirects for `notifications link`. Making the bot public, and the verification review, stay manual.
 
 **GitHub tokens the Discord steps also use**
 
 | Step                                                   | Token                  | Why                                                                                       |
 | ------------------------------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------- |
 | `setup` storing webhook URLs and role ids              | `github.secrets` (org) | Writes organization secrets (`HOLOCRON_NOTIFY_*`)                                         |
-| `sync-roles` reading a team                            | `github.org` (org)     | `members: read` on the organization                                                       |
-| `link` and `sync-roles` reading/writing the links file | `github.user-sync`     | `contents: read/write` on `.github-private` only; separate so it cannot touch other repos |
+| `sync roles` reading a team                            | `github.org` (org)     | `members: read` on the organization                                                       |
+| `link` and `sync roles` reading/writing the links file | `github.user-sync`     | `contents: read/write` on `.github-private` only; separate so it cannot touch other repos |
 
 Setup order for a new machine is in [Server as Code](/holocron/server-as-code/).
 
@@ -307,11 +307,11 @@ security find-generic-password -s "com.theholocron.cli" -a "vercel" -w | gh secr
 
 macOS asks once to allow the keychain access. A separate CI-only token from `vercel.com/account/tokens` works too.
 
-For `SENTINEL_OP_SERVICE_ACCOUNT_TOKEN`: in the 1Password developer tools create a service account named for CI, give it **Read** access to the `<org>/<repo> - prod` Environment and nothing else, then `gh secret set SENTINEL_OP_SERVICE_ACCOUNT_TOKEN --repo theholocron/holocron`. 1Password documents service accounts reading Environments, but a Feb 2026 community report says `op environment` returned "not found" for one; if it does, run `holocron secrets sync prod --cwd apps/sentinel` locally instead.
+For `SENTINEL_OP_SERVICE_ACCOUNT_TOKEN`: in the 1Password developer tools create a service account named for CI, give it **Read** access to the `<org>/<repo> - prod` Environment and nothing else, then `gh secret set SENTINEL_OP_SERVICE_ACCOUNT_TOKEN --repo theholocron/holocron`. 1Password documents service accounts reading Environments, but a Feb 2026 community report says `op environment` returned "not found" for one; if it does, run `holocron sync secrets prod --cwd apps/sentinel` locally instead.
 
 ### Organization secrets
 
-The `secrets` capability (what `secrets sync`, `secret-set` and `notifications setup` write through) picks its token by the scope it writes:
+The `secrets` capability (what `sync secrets`, `secret-set` and `notifications setup` write through) picks its token by the scope it writes:
 
 | Scope written                   | Token tried first                                   | Falls back to                                   |
 | ------------------------------- | --------------------------------------------------- | ----------------------------------------------- |

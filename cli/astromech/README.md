@@ -78,7 +78,7 @@ documents, not a naming convention repos need to follow.
 | `measure:bundle`                     | bundle-size upload to Codecov                                                                                                                                    | no local equivalent — CI only                                                                                |
 | `check-preview`                      | `holocron check monitor <url>` against the PR's own Vercel preview URL                                                                                           | no local equivalent — CI only; triggered by `deployment_status`, not `push`/`pull_request`                   |
 | `check-notify`                       | _(none — manual workflow)_                                                                                                                                       | posts a labelled test message to every notification channel; fails per channel that does not work            |
-| `sync-repo`                          | `holocron repo sync`                                                                                                                                             | keeps generated files current                                                                                |
+| `sync-repo`                          | `holocron sync`                                                                                                                                                  | keeps generated files current                                                                                |
 | `lint:commits`                       | commitlint                                                                                                                                                       | no local equivalent — enforced by the `commit-msg` hook locally, over the PR's commit range in CI            |
 | `validate:specs`                     | `holocron probe specs check`                                                                                                                                     | spec/ADR frontmatter — a leaf of the `validate` suite, not a linter                                          |
 | `validate:docs`                      | `holocron probe docs validate`                                                                                                                                   | docs presence (warns) and token docs (fails) — a leaf of the `validate` suite, not a linter                  |
@@ -177,7 +177,7 @@ neither has a plain-production-only fallback template.
 `packageScripts()` emits the `holocron` entry (`holocronScript ?? "holocron"`)
 plus the scripts `scriptsFor(config, registry, { monorepo })` computes; it skips
 `local: false` entries and tasks with no local runner at all, and returns
-`{}` when `syncScripts: false` or there is no config. The same function backs `repo sync`, which merges the result with
+`{}` when `syncScripts: false` or there is no config. The same function backs `sync`, which merges the result with
 `mergeScripts()`, and `probe generated check`, which fails on a root script that differs and on a script that breaks the
 rules of `checkPackageScripts()`.
 
@@ -220,7 +220,7 @@ applies the list for `protection: "strict"` repos. Policy-free — manifest only
 `expected` ids are the part before `/` of each required task's context and of each `extraRequiredChecks` entry that
 is not a `codecov/` status (the hand-written `Generated files / Check` becomes `Generated files`), and `statuses` are
 the `codecov/` entries. `aggregateCaller()` renders the `pull_request` caller, whose job `ci` calls the reusable's `Required checks` job.
-`holocron repo sync` writes it only in the repo that contains the reusables. The ids are today's check names; the later
+`holocron sync` writes it only in the repo that contains the reusables. The ids are today's check names; the later
 rename changes them here and costs no ruleset edit.
 
 ### `codecov.yml`

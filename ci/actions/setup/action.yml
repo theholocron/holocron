@@ -55,12 +55,12 @@ runs:
         fi
 
     # A Turbo token with no team turns the remote cache off without a word: every task just runs cold. `TURBO_TEAM` is
-    # an organization variable that `holocron secrets sync` writes from the 1Password Environment named by
+    # an organization variable that `holocron sync secrets` writes from the 1Password Environment named by
     # `repo.variables.sync` in .holocron/repo.ts. Quiet when there is no token, because then the cache is meant to be off.
     - name: Warn when the Turbo remote cache is off
       if: ${{ hashFiles('turbo.json') != '' }}
       shell: bash
       run: |
         if [ -n "$TURBO_TOKEN" ] && [ -z "$TURBO_TEAM" ]; then
-          echo "::warning title=Turbo remote cache is off::TURBO_TOKEN is set but TURBO_TEAM is not. Add it to the 1Password Environment behind repo.variables.sync and run holocron secrets sync."
+          echo "::warning title=Turbo remote cache is off::TURBO_TOKEN is set but TURBO_TEAM is not. Add it to the 1Password Environment behind repo.variables.sync and run holocron sync secrets."
         fi

@@ -36,10 +36,12 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 
 import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
+import { syncCommand } from "../sync/sync.command.js";
 import { notificationsCommand } from "./notifications.command.js";
 
 const go = (args: string[]) => runCommand(notificationsCommand, ["notifications", ...args]);
 const goNew = (args: string[]) => runCommand(newCommand, ["new", ...args]);
+const goSync = (args: string[]) => runCommand(syncCommand, ["sync", ...args]);
 const context = { repoRoot: "/repo", dryRun: false, cliToken: "t", org: "acme" };
 
 beforeEach(() => {
@@ -57,11 +59,11 @@ describe.each([
 	["notifications setup", runSetup, "notifications", ["setup"]],
 	["new server", runCreateServer, "new", ["server", "--owner", "someone"]],
 	["notifications link", runLink, "notifications", ["link"]],
-	["notifications sync-roles", runSyncRoles, "notifications", ["sync-roles"]],
+	["sync roles", runSyncRoles, "sync", ["roles"]],
 	["notifications dedupe", runDedupe, "notifications", ["dedupe"]],
 	["new channel", runChannelAdd, "new", ["channel", "alerts"]],
 ] as const)("%s", (_name, run, parent, args) => {
-	const goParent = (rest: string[]) => (parent === "new" ? goNew(rest) : go(rest));
+	const goParent = (rest: string[]) => (parent === "new" ? goNew(rest) : parent === "sync" ? goSync(rest) : go(rest));
 
 	it("runs with the context from the tokens and the org", async () => {
 		await goParent([...args]);
@@ -114,10 +116,10 @@ describe("notifications options", () => {
 		expect("provider" in runLink.mock.calls[1]![0]).toBe(false);
 	});
 
-	it("sync-roles passes --keep, and --provider when given", async () => {
-		await go(["sync-roles", "--keep", "--provider", "discord"]);
+	it("sync roles passes --keep, and --provider when given", async () => {
+		await goSync(["roles", "--keep", "--provider", "discord"]);
 		expect(runSyncRoles.mock.calls[0]![0]).toMatchObject({ keep: true, provider: "discord" });
-		await go(["sync-roles"]);
+		await goSync(["roles"]);
 		expect("provider" in runSyncRoles.mock.calls[1]![0]).toBe(false);
 	});
 

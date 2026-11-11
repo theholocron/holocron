@@ -49,13 +49,13 @@ export function checkGenerated({ files, again, packages = [], read, workflows }:
 	const scopes = [
 		{
 			from: "",
-			fix: "`holocron repo setup` or `holocron repo sync`",
+			fix: "`holocron repo setup` or `holocron sync`",
 			files,
 			again,
 		},
 		...packages.map((pkg) => ({
 			from: ` for package ${pkg.path}`,
-			fix: `\`holocron repo sync --cwd ${pkg.path}\``,
+			fix: `\`holocron sync --cwd ${pkg.path}\``,
 			files: pkg.files,
 			again: pkg.again,
 		})),
@@ -64,7 +64,7 @@ export function checkGenerated({ files, again, packages = [], read, workflows }:
 		const second = new Map(scope.again.map((f) => [f.path, f.content]));
 		for (const file of scope.files) {
 			// Two configs write it (a package's preset adds the root's tasks): the first, the root's, is the one checked,
-			// as `repo sync --cwd <package>` refuses to overwrite it (holocron#1026). `sharedWorkflows` reports it.
+			// as `sync --cwd <package>` refuses to overwrite it (holocron#1026). `sharedWorkflows` reports it.
 			if (written.has(file.path)) continue;
 			written.add(file.path);
 			const committed = read(file.path);

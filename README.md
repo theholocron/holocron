@@ -126,10 +126,10 @@ Then:
 <!-- prettier-ignore -->
 ```bash
 holocron repo setup      # apply the whole config, top to bottom
-holocron repo sync       # sync README, labels, topics, keywords from config
+holocron sync       # sync README, labels, topics, keywords from config
 holocron sync readme     # readme marker blocks only
 holocron doctor          # check everything's wired right
-holocron secrets sync    # vault → secrets + deployment env vars + .env
+holocron sync secrets    # vault → secrets + deployment env vars + .env
 holocron deploy          # ship to your `deployment` provider
 ```
 

@@ -1,6 +1,6 @@
 import type { RepoConfig } from "@theholocron/cli";
 
-// The repository settings `holocron repo setup` and `holocron secrets sync` apply: teams, topics, Actions variables and
+// The repository settings `holocron repo setup` and `holocron sync secrets` apply: teams, topics, Actions variables and
 // the secrets to sync. `holocron.config.ts` keeps `repo.defaultBranch` (Sentinel needs it before it can know which
 // branch to read `.holocron/` from) and the keys the preset gives (`protection`, `properties`): a key set there and
 // here is an error. NAMES ONLY in this file: the directory is public, so no secret value goes here, ever.
@@ -9,7 +9,7 @@ export default {
 	teams: [{ slug: "gatekeepers", permission: "maintain" }],
 	topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 	// Organization Actions variables the reusable workflows read as `vars.NAME`. Their values are edited in the
-	// `ci` layer of the 1Password Environments (`theholocron/holocron - ci`) and written by `holocron secrets sync ci`. Names only; a key blank or
+	// `ci` layer of the 1Password Environments (`theholocron/holocron - ci`) and written by `holocron sync secrets ci`. Names only; a key blank or
 	// missing in the Environment is skipped, so GitHub keeps its value.
 	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
 	// (no `prune`). `doctor variables` expects every key listed here at its scope.
@@ -40,7 +40,7 @@ export default {
 			},
 		],
 	},
-	// The GitHub secrets the `ci` layer of the 1Password Environments fills (`holocron secrets sync ci`,
+	// The GitHub secrets the `ci` layer of the 1Password Environments fills (`holocron sync secrets ci`,
 	// `theholocron/holocron - ci`, #1702, #2069): change one in 1Password, run the sync, and both scopes are updated. Names
 	// only. A key that is blank in the Environment is skipped, so a placeholder never overwrites a working secret.
 	// `doctor secrets` expects every key listed here at its scope.

@@ -221,7 +221,7 @@ describe("runSecretsSync", () => {
 		);
 		const logged = JSON.stringify(log.info.mock.calls);
 		expect(logged).not.toContain("sk_test_xxx");
-		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ keys: 2 }), "secrets sync: done");
+		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ keys: 2 }), "sync secrets: done");
 	});
 
 	it("skips deployment sync when projectId is missing", async () => {

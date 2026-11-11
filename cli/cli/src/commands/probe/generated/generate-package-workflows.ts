@@ -24,7 +24,7 @@ function files(entries: ReturnType<typeof generateWorkflowFiles>): GeneratedWork
 
 /**
  * The thin-caller workflows of every workspace package that has a `holocron.config.*` of its own (`apps/sentinel`),
- * each generated twice by the function `holocron repo sync --cwd <package>` writes them with. The root's own config
+ * each generated twice by the function `holocron sync --cwd <package>` writes them with. The root's own config
  * is not here. A package whose config cannot be loaded is reported in `errors`, not skipped.
  */
 export async function generatePackageWorkflows(repoRoot: string): Promise<PackageWorkflows> {

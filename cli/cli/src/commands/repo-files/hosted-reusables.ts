@@ -31,7 +31,7 @@ export function hostsReusables(gitRoot: string): boolean {
 export function hostedReusableFile(id: string, content: string): string {
 	const { workflowHeader } = createHeader({
 		source: `ci/workflows/${id.replaceAll(":", "/")}.yml`,
-		tool: "holocron repo sync",
+		tool: "holocron sync",
 	});
 	return `${workflowHeader()}# Source package: .\n\n${content}`;
 }

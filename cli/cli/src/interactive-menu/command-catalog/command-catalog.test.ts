@@ -111,16 +111,25 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 	it("does not collapse a one-command group: `config show` is config › then show", () => {
 		expect(names()).toContain("config ›");
 		expect(names(["config"])).toEqual(["show"]);
-		expect(names(["sync"])).toEqual(["github", "issues"]);
+		expect(names(["sync"])).toEqual([
+			"sync (run it)",
+			"secrets",
+			"roles",
+			"specs",
+			"github",
+			"issues",
+			"ideas",
+			"readme",
+		]);
 		expect(valueOf("ci", ["run"])).toBe("run ci");
 	});
 
 	it("nests as deep as the names go, and gives a runnable group a leading `(run it)` item", () => {
-		expect(names(["repo"])).toEqual(["setup", "properties ›", "sync ›", "cleanup ›", "upgrade ›"]);
+		expect(names(["repo"])).toEqual(["setup", "properties ›", "cleanup ›", "upgrade ›"]);
 		expect(names(["repo", "upgrade"])).toEqual(["node", "deps"]);
-		expect(menuItems(COMMAND_REGISTRY, ["repo", "sync"])[0]).toMatchObject({
+		expect(menuItems(COMMAND_REGISTRY, ["sync"])[0]).toMatchObject({
 			name: "sync (run it)",
-			value: "repo sync",
+			value: "sync",
 		});
 		expect(menuItems(COMMAND_REGISTRY, ["deploy"]).map((i) => i.value)).toEqual([
 			"deploy",

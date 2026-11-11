@@ -38,7 +38,7 @@ const report = astromech.run("test:unit", { passthrough: ["--watch"] });
 - **Resolution.** `holocron run <task>` (a flat id such as `test:unit` or `build`, or a suite such as `test` that runs the leaves the repo lists; the old dotted names still work and print a deprecation notice) uses `turbo.json` if it defines the task, then a `package.json` script, then the registry's local runner. A task made of jobs runs each job in order. A known task with nothing to run exits 0 (1 with `--required`), and an unknown task is an error.
 - **Task entries.** Each manifest entry can set `ci`, `local`, `required` and `with` (per-repo overrides on the reusable workflow). `local: false` makes a task CI-only.
 - **Config.** `defineConfig` comes from the zero-runtime-dependency `@theholocron/astromech/config` subpath. The manifest is the `tasks` key of `holocron.config.*`, with an optional dedicated `astromech.config.*` merged on top, loaded through [`@theholocron/datapad`](/holocron/datapad/).
-- **Generated surfaces.** `thinCallers()` returns the workflow files, `packageScripts()` the `package.json` scripts, `requiredChecks()` the branch-protection contexts (`ci` and `DCO` where the `ci` aggregate check is hosted), `aggregateCaller()` the caller of that aggregate, and `codecovConfig()` the `codecov.yml`. `holocron repo sync` and `holocron repo setup` write them.
+- **Generated surfaces.** `thinCallers()` returns the workflow files, `packageScripts()` the `package.json` scripts, `requiredChecks()` the branch-protection contexts (`ci` and `DCO` where the `ci` aggregate check is hosted), `aggregateCaller()` the caller of that aggregate, and `codecovConfig()` the `codecov.yml`. `holocron sync` and `holocron repo setup` write them.
 - **Running CI locally.** `ci()` runs every required task in CI order and sets the exit code of `holocron run ci`.
 - **Release-time deploys.** A package can declare a `deploy` task with `on: "release"`, and `holocron deploy on-release` deploys it when a release changes it or one of its `workspace:*` dependencies.
 - **Lint subpath.** `@theholocron/astromech/lint` holds the commit-message linter and the ignore lists, shared with [Sentinel](/holocron/sentinel/) so its central checks skip exactly what each repo's own CI skips.
@@ -48,7 +48,7 @@ const report = astromech.run("test:unit", { passthrough: ["--watch"] });
 ## Related
 
 - [`holocron run`](/holocron/commands/run/) and [`holocron run ci`](/holocron/commands/run-ci/)
-- [`holocron repo sync`](/holocron/commands/repo-sync/) and [`holocron deploy`](/holocron/commands/deploy/)
+- [`holocron sync`](/holocron/commands/sync/) and [`holocron deploy`](/holocron/commands/deploy/)
 - [Configuration](/holocron/config/)
 - Source and the full task table: [`cli/astromech`](https://github.com/theholocron/holocron/tree/alpha/cli/astromech) on GitHub
 

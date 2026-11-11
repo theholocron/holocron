@@ -1,5 +1,5 @@
 /**
- * `holocron notifications sync-roles` — make who holds a server role match a team.
+ * `holocron sync roles` — make who holds a server role match a team.
  *
  * A role that declares `team` in the layout is kept equal to that team of the `source` provider (for GitHub,
  * a team in the org). A team member is matched to a server member through the links file, so only people who
@@ -78,7 +78,7 @@ export async function runNotificationsSyncRoles(
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "notifications sync-roles");
+	assertPluginsResolvable(loader, "sync roles");
 
 	const dryRun = input.context.dryRun ?? false;
 	const report: NotificationsSyncRolesReport = { status: "ok", roles: [], failures: [] };
@@ -86,7 +86,7 @@ export async function runNotificationsSyncRoles(
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason }, "notifications sync-roles");
+		logger.warn({ reason }, "sync roles");
 		return { ...report, status: "fail", message };
 	};
 
@@ -142,7 +142,7 @@ export async function runNotificationsSyncRoles(
 			failures: report.failures.length,
 			status: report.status,
 		},
-		"notifications sync-roles"
+		"sync roles"
 	);
 	return report;
 }

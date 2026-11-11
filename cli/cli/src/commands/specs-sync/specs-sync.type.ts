@@ -4,7 +4,7 @@ import type { Logger } from "@theholocron/observability/core";
 import type { LoadedConfig } from "../../config/index.js";
 import type { Notifications, PluginLoader, RuntimeContext } from "../../plugin/index.js";
 
-/** What `specs sync` reads and writes in the working tree, so a test can supply it without a disk. */
+/** What `sync specs` reads and writes in the working tree, so a test can supply it without a disk. */
 export interface SpecsSyncIo {
 	/** The names of the files in a repo-relative folder; empty when the folder is missing. */
 	list(dir: string): string[];
@@ -70,7 +70,7 @@ export interface RunSpecsSyncInput {
 	logger?: Logger;
 }
 
-/** An ADR or a spec, as `specs sync` reads it. */
+/** An ADR or a spec, as `sync specs` reads it. */
 export interface SpecDocument {
 	/** The repo-relative path; it is also the key of the document's discussion post. */
 	path: string;
@@ -80,7 +80,7 @@ export interface SpecDocument {
 	text: string;
 }
 
-/** What `specs sync` did, or would do, for one document. */
+/** What `sync specs` did, or would do, for one document. */
 export interface SpecSyncOutcome {
 	/** The document's repo-relative path. */
 	path: string;

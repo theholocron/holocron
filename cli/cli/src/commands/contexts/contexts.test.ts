@@ -43,19 +43,19 @@ const EVERY_COMMAND = [
 	"deploy on-release",
 	"deploy stage",
 	"config show",
-	"repo sync readme",
+	"sync readme",
 	"doctor",
 	"repo setup",
 	"list secrets",
 	"new secret",
-	"secrets sync",
+	"sync secrets",
 	"new channel",
 	"notifications setup",
 	"notifications link",
 	"new server",
-	"notifications sync-roles",
+	"sync roles",
 	"notifications dedupe",
-	"specs sync",
+	"sync specs",
 	"doctor all",
 	"doctor notifications",
 	"doctor environments",
@@ -80,11 +80,11 @@ const EVERY_COMMAND = [
 	"check monitor",
 	"resolve checks",
 	"check resolved",
-	"repo sync",
+	"sync",
 	"repo cleanup branches",
 	"sync github",
 	"sync issues",
-	"ideas sync",
+	"sync ideas",
 	"new spec",
 ];
 
@@ -111,10 +111,10 @@ describe("COMMAND_CONTEXTS", () => {
 
 	it("keeps the plugin-dependent commands in `workspace`", () => {
 		for (const cmd of [
-			"repo sync",
+			"sync",
 			"repo setup",
 			"doctor",
-			"secrets sync",
+			"sync secrets",
 			"deploy",
 			"deploy cleanup-preview",
 			"new secret",
@@ -124,9 +124,9 @@ describe("COMMAND_CONTEXTS", () => {
 			"notifications setup",
 			"notifications link",
 			"new server",
-			"notifications sync-roles",
+			"sync roles",
 			"notifications dedupe",
-			"specs sync",
+			"sync specs",
 			"list projects",
 			"new project",
 			"project close",
@@ -173,7 +173,7 @@ describe("COMMAND_CONTEXTS", () => {
 describe("contextForCommand", () => {
 	it("resolves an exact multi-token key", () => {
 		expect(contextForCommand("repo upgrade node")).toBe("global");
-		expect(contextForCommand("secrets sync")).toBe("workspace");
+		expect(contextForCommand("sync secrets")).toBe("workspace");
 	});
 
 	it("keeps a more specific key over its parent (deploy vs deploy on-release, run vs run ci)", () => {
@@ -184,8 +184,8 @@ describe("contextForCommand", () => {
 	});
 
 	it("falls back to the longest known prefix for an unlisted sub-command or step", () => {
-		expect(contextForCommand("repo sync labels")).toBe("workspace");
-		expect(contextForCommand("repo sync readme extra")).toBe("repo-aware");
+		expect(contextForCommand("sync labels")).toBe("workspace");
+		expect(contextForCommand("sync readme extra")).toBe("repo-aware");
 		expect(contextForCommand("run audit performance")).toBe("repo-aware");
 	});
 

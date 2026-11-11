@@ -5,8 +5,8 @@ const MARKER = /^<!-- holocron:idea [^>]*-->$/;
 
 /**
  * A draft spec from an issue: frontmatter (`status: draft`, the `issue`, no `blocked-by`, and no `id`, which
- * `specs sync` assigns), the title as the heading, and a `Problem` section holding the issue's text. The `Filed from
- * idea:` line and the hidden marker `ideas sync` appends are dropped, and so is a first `#` heading that repeats the
+ * `sync specs` assigns), the title as the heading, and a `Problem` section holding the issue's text. The `Filed from
+ * idea:` line and the hidden marker `sync ideas` appends are dropped, and so is a first `#` heading that repeats the
  * title. The text is laid out the way Prettier does (LF endings, one blank line between blocks, one final newline).
  */
 export function buildSpec(input: BuildSpecInput): BuiltSpec {

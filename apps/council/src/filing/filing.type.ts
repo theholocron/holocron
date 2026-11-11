@@ -3,7 +3,7 @@ import type { IdeasSettings } from "../settings/settings.type.js";
 /** The outcome of checking a note before it is filed. */
 export type FileableDecision = { ok: true } | { ok: false; reason: string };
 
-/** The outcome of checking a note after `ideas sync` ran. */
+/** The outcome of checking a note after `sync ideas` ran. */
 export type TrashDecision = { trash: true; issue: string } | { trash: false; reason: string };
 
 /** A process to start: the program, its arguments, where to run it and the environment it gets on top of the app's. */

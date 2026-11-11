@@ -5,7 +5,7 @@ import type { SecretRoute } from "./secrets-sync.type.js";
 /**
  * The routes into `secrets` that `repo.secrets.sync` declares for one vault environment: every entry naming it gives
  * its keys (all of them when omitted) and the scope they land at (`repo` when omitted). An environment no entry names
- * has no routes, which leaves `secrets sync` to its own flags.
+ * has no routes, which leaves `sync secrets` to its own flags.
  *
  * @param entries - `repo.secrets.sync`, if the config has it.
  * @param environmentId - The vault environment being synced.

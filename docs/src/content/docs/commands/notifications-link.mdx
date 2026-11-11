@@ -7,7 +7,7 @@ description: Link your server account to your GitHub account by signing in with 
 holocron notifications link [--provider <name>] [--dry-run]
 ```
 
-Records which server member is which GitHub account, in the links file that [`notifications sync-roles`](/holocron/commands/notifications-sync-roles/) reads. You sign in with the provider; it reports the GitHub account it has **verified** you own, so a link cannot be claimed for someone else's account. Nothing is stored but your two public ids: the token the provider hands over is revoked as soon as it has been read.
+Records which server member is which GitHub account, in the links file that [`sync roles`](/holocron/commands/sync-roles/) reads. You sign in with the provider; it reports the GitHub account it has **verified** you own, so a link cannot be claimed for someone else's account. Nothing is stored but your two public ids: the token the provider hands over is revoked as soon as it has been read.
 
 ```
   sign-in runs on this machine: https://sentinel.theholocron.dev answered 402 (the plan's quota is used up)
@@ -48,7 +48,7 @@ The local listener binds the loopback address only, accepts only a `/callback` c
 
 ## The GitHub token for the links file
 
-The links file lives in the org's private config repo, so it has its own token, `HOLOCRON_USER_SYNC_TOKEN` (`holocron new token github.user-sync <PAT>`): a fine-grained PAT for the org, with **only** `.github-private` selected and `Contents: read and write`. `notifications sync-roles` reads the same file with it. Nothing else uses it, so `github.org` and `github.admin` never need Contents on other repositories. The file is per provider (`notifications/<provider>-links.json`), so the same token serves any other service whose members are matched to GitHub accounts. Without it the org token is tried, then the admin token; a 403 names the missing permission.
+The links file lives in the org's private config repo, so it has its own token, `HOLOCRON_USER_SYNC_TOKEN` (`holocron new token github.user-sync <PAT>`): a fine-grained PAT for the org, with **only** `.github-private` selected and `Contents: read and write`. `sync roles` reads the same file with it. Nothing else uses it, so `github.org` and `github.admin` never need Contents on other repositories. The file is per provider (`notifications/<provider>-links.json`), so the same token serves any other service whose members are matched to GitHub accounts. Without it the org token is tried, then the admin token; a 403 names the missing permission.
 
 ## Options
 

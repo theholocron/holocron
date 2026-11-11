@@ -12,14 +12,14 @@ import { parseScope } from "./parse-scope/index.js";
 import { type SecretsSyncArgs, secretsSyncArgs } from "./secrets-sync.args.js";
 
 export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
-	command: "sync [environmentId]",
+	command: "secrets [environmentId]",
 	describe: "Read a vault environment + fan KEY=VALUEs out to secrets + deployment env vars",
 	builder: secretsSyncArgs,
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
 		const githubSecretScope = parseScope(argv.githubSecretScope as string);
-		const [environmentId] = await promptForPositionals(getEntry("secrets sync"), argv as Record<string, unknown>);
+		const [environmentId] = await promptForPositionals(getEntry("sync secrets"), argv as Record<string, unknown>);
 		const loaded = await loadConfig(argv.cwd);
 		// A layer word (`prod`) names this repository's Environment of that layer; any other text is a literal name.
 		const environment = await resolveEnvironmentId(environmentId!, { repoRoot: argv.cwd });

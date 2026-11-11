@@ -3,7 +3,7 @@ import type { PackageGenerated } from "./check-generated.js";
 
 /**
  * One line for each package whose config generates a workflow that the root config (or an earlier package) already
- * does: only the first is checked, because `holocron repo sync --cwd <package>` refuses to overwrite a file another
+ * does: only the first is checked, because `holocron sync --cwd <package>` refuses to overwrite a file another
  * package wrote (holocron#1026). It is worth knowing, not a failure; the usual cause is a preset that gives a package
  * the root's tasks.
  */

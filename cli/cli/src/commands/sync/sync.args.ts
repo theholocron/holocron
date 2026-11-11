@@ -3,7 +3,7 @@ import type { Argv } from "yargs";
 
 import type { GlobalArgs } from "../global-args/index.js";
 
-export const repoSyncArgs = (y: Argv<GlobalArgs>) =>
+export const syncArgs = (y: Argv<GlobalArgs>) =>
 	y
 		.positional("steps", {
 			type: "string",
@@ -13,7 +13,8 @@ export const repoSyncArgs = (y: Argv<GlobalArgs>) =>
 		})
 		.option("repo", {
 			type: "string",
+			global: false,
 			describe: 'Repo coords ("owner/name"). Defaults to plugin-specific resolution.',
 		});
 
-export type RepoSyncArgs = InferArgs<typeof repoSyncArgs>;
+export type SyncArgs = InferArgs<typeof syncArgs>;

@@ -1,7 +1,7 @@
 /**
  * Builds the two providers Sentinel's role sync drives, or says why it cannot (holocron#1595).
  *
- * The same providers `holocron notifications sync-roles` loads, made from what Sentinel has instead of a keyring:
+ * The same providers `holocron sync roles` loads, made from what Sentinel has instead of a keyring:
  * the layout (which roles follow which team) is read from the default branch of one configured repo, the Discord
  * bot token and the `github.user-sync` token come from Sentinel's environment, and teams are listed with the
  * installation's own token. Nothing here throws for "not set up": a missing setting, an org that is not the

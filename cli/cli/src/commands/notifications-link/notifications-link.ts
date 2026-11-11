@@ -1,7 +1,7 @@
 /**
  * `holocron notifications link` — record which server member is which GitHub account, by having the member
  * sign in with the provider. The provider reports the GitHub account it has verified they own, so a link
- * cannot be claimed for someone else's account. Writes the links file `sync-roles` reads.
+ * cannot be claimed for someone else's account. Writes the links file `sync roles` reads.
  *
  * Signs in on this machine (a one-shot listener on localhost) unless the hosted service (Sentinel) answers
  * its health route, in which case it points you there. Nothing but the two public ids is stored; the token

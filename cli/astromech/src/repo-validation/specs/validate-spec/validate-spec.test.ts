@@ -13,7 +13,7 @@ describe("validateSpec", () => {
 		).toEqual([]);
 	});
 
-	it("warns on a missing id, which `specs sync` numbers, and errors on one that is not SPEC- and digits", () => {
+	it("warns on a missing id, which `sync specs` numbers, and errors on one that is not SPEC- and digits", () => {
 		const bare = validateSpec(file, md("---", "status: draft", "issue: x#1", "---"));
 		const bad = validateSpec(file, md("---", "id: ADR-0007", "status: draft", "issue: x#1", "---"));
 
@@ -22,7 +22,7 @@ describe("validateSpec", () => {
 				file,
 				line: 1,
 				rule: "id",
-				reason: "missing `id` — `holocron specs sync` numbers a spec once it is on the default branch",
+				reason: "missing `id` — `holocron sync specs` numbers a spec once it is on the default branch",
 				severity: "warning",
 			},
 		]);

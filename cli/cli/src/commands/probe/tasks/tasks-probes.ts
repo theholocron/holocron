@@ -14,7 +14,7 @@ export const TASKS_PROVIDER = "tasks";
  * with file, line and the id to use instead. Each is a failure (exit code 1); `--warn` reports them as `info` rows
  * instead. A dotted name that is part of a workflow file name (`delivery.build.yml`) is skipped until the files are
  * renamed; `--files` lists those too. An intentional mention carries the `holocron-allow-old-name` marker on its line or the line above.
- * Files `repo sync` generates are left to `generated check`; specs, ADRs and the changelog name the old tasks on purpose.
+ * Files `sync` generates are left to `generated check`; specs, ADRs and the changelog name the old tasks on purpose.
  */
 export function tasksProbes(io: TasksIo, names: Readonly<Record<string, string>> = legacyReplacements()): PluginProbes {
 	return {

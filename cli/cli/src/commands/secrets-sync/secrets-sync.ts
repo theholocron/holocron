@@ -1,5 +1,5 @@
 /**
- * `holocron secrets sync` — vault → destinations.
+ * `holocron sync secrets` — vault → destinations.
  *
  * Reads a named environment from the configured `vault` (1P
  * Environment / similar) as KEY=VALUE pairs, then fans those values
@@ -77,11 +77,11 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await withSpinner("Loading plugins…", () => loader.load());
-	assertPluginsResolvable(loader, "secrets sync");
+	assertPluginsResolvable(loader, "sync secrets");
 
 	logger.info(
 		{ environment: input.environmentId, dryRun: (input.context.dryRun ?? false) || undefined },
-		"secrets sync: start"
+		"sync secrets: start"
 	);
 
 	const dryRun = input.context.dryRun ?? false;
@@ -98,7 +98,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 	}
 	const targets = input.targets ?? (["production", "preview"] as DeploymentTarget[]);
 
-	print(style.header(`Holocron secrets sync — environment ${input.environmentId}${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron sync secrets — environment ${input.environmentId}${dryRun ? " (dry-run)" : ""}`));
 	print(style.dim(`  vault: ${vaultProviderName(loader)}`));
 	print("");
 
@@ -118,7 +118,7 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		// Printed, not just thrown: the CLI's global handler swallows a plain Error, so a bare throw exits 1 with no message.
 		const message = describeError(err);
 		print(`  ${style.fail(`could not read vault environment ${input.environmentId}: ${message}`)}`);
-		logger.warn({ environment: input.environmentId, reason: logReason(err) }, "secrets sync: vault read failed");
+		logger.warn({ environment: input.environmentId, reason: logReason(err) }, "sync secrets: vault read failed");
 		return summarise(
 			[
 				{
@@ -352,7 +352,7 @@ function summarise(rows: SyncRow[], logger: Logger, print: SyncPrintLine, dryRun
 				status: r.status,
 				...(r.message ? { detail: r.message } : {}),
 			},
-			`secrets sync: ${r.key} → ${r.destination}`
+			`sync secrets: ${r.key} → ${r.destination}`
 		);
 	}
 
@@ -367,7 +367,7 @@ function summarise(rows: SyncRow[], logger: Logger, print: SyncPrintLine, dryRun
 		{ ok: 0, fail: 0, skip: 0, dryRun: 0 }
 	);
 
-	logger[summary.fail > 0 ? "warn" : "info"]({ ...summary, keys: rows.length }, "secrets sync: done");
+	logger[summary.fail > 0 ? "warn" : "info"]({ ...summary, keys: rows.length }, "sync secrets: done");
 
 	print("");
 	const summaryLine = `${summary.ok} ok, ${summary.fail} fail, ${summary.skip} skipped${

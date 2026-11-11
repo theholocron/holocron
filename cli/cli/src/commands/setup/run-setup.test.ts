@@ -2166,8 +2166,8 @@ describe("runSetup", () => {
 			});
 			const firstContent = written["delivery.previewDeploy.yml"];
 			expect(firstContent).toContain("# Source package: apps/sentinel");
-			// the same `Tool:` line `repo sync` writes (not `repo setup`), so neither command rewrites the other's file
-			expect(firstContent).toContain("# Tool:    holocron repo sync\n");
+			// the same `Tool:` line `sync` writes (not `repo setup`), so neither command rewrites the other's file
+			expect(firstContent).toContain("# Tool:    holocron sync\n");
 			expect(firstContent).not.toContain("holocron repo setup");
 
 			const second = loaderFor(other);

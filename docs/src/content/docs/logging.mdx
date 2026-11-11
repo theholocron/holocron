@@ -89,7 +89,7 @@ A deployed service needs `HOLOCRON_ENVIRONMENT` (or `ENVIRONMENT`) set where it 
 
 ## What the commands emit
 
-`repo setup`, `doctor`, `repo sync`, `secrets sync`, `deploy`, and `deploy cleanup-preview`
+`repo setup`, `doctor`, `sync`, `sync secrets`, `deploy`, and `deploy cleanup-preview`
 emit a structured line per unit of work — a `<command>: start`, one line
 per step / row / file (with `capability`, `step`, `status`, `detail`), and
 a `<command>: done` carrying the `ok` / `fail` / `skip` counts. Pull a

@@ -552,14 +552,14 @@ export interface Ci extends ProviderIdentity {
 }
 
 // ───────────────────────────────────────────────────────────────────────
-// secrets — CI/platform secrets sync destination (multi-scope)
+// secrets — CI/platform sync secrets destination (multi-scope)
 // ───────────────────────────────────────────────────────────────────────
 
 /** Where a secret lives: the repository, one of its environments, or the organization. */
 export type SecretScope =
 	{ kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; name: string };
 
-/** A destination for secrets (CI or platform secrets) that `holocron secrets sync` writes into. */
+/** A destination for secrets (CI or platform secrets) that `holocron sync secrets` writes into. */
 export interface Secrets extends ProviderIdentity {
 	/** Identifies this provider as the `secrets` capability. */
 	readonly key: "secrets";
@@ -1246,7 +1246,7 @@ export interface EnsureResult {
 	alreadyExists: boolean;
 }
 
-/** A secret store, the source of truth that `holocron secrets sync` reads from. */
+/** A secret store, the source of truth that `holocron sync secrets` reads from. */
 export interface Vault extends ProviderIdentity {
 	/** Identifies this provider as the `vault` capability. */
 	readonly key: "vault";
@@ -1279,7 +1279,7 @@ export interface Vault extends ProviderIdentity {
 
 	/**
 	 * Optional bulk read of an environment's KEY=VALUE pairs. Powers
-	 * the `holocron secrets sync` flow where the orchestrator pulls a
+	 * the `holocron sync secrets` flow where the orchestrator pulls a
 	 * whole environment from the vault then fans the values out to
 	 * destinations (CI secrets, deployment env vars, local .env).
 	 */
@@ -2103,7 +2103,7 @@ export interface NotificationsApplicationLayout {
 	/** `https://` link the provider calls to verify linked roles. */
 	roleConnectionsUrl?: string;
 	/**
-	 * Privileged intents the bot needs. `members` lets it list who is in the server, which `sync-roles` needs to
+	 * Privileged intents the bot needs. `members` lets it list who is in the server, which `sync roles` needs to
 	 * find who holds a role. `true` switches it on from code; `false` switches it off.
 	 */
 	intents?: {
@@ -2128,7 +2128,7 @@ export interface NotificationsEveryoneLayout {
 	deny?: string[];
 }
 
-/** Where the person-to-member links live: one file in a repo, written by the sign-in flow and read by `sync-roles`. */
+/** Where the person-to-member links live: one file in a repo, written by the sign-in flow and read by `sync roles`. */
 export interface NotificationsLinksLayout {
 	/**
 	 * The base URL of the hosted sign-in service (Sentinel), for example `https://sentinel.theholocron.dev`.
@@ -2152,7 +2152,7 @@ export interface NotificationsLayout {
 	 * person to look at; the real channels are never given one unless `--deliver` posts and removes it.
 	 */
 	testChannel?: string;
-	/** Where `sync-roles` finds which server member is which GitHub account. Only used by roles with a `team`. */
+	/** Where `sync roles` finds which server member is which GitHub account. Only used by roles with a `team`. */
 	links?: NotificationsLinksLayout;
 	/** The bot's own application settings, applied with the server's. */
 	application?: NotificationsApplicationLayout;
@@ -2223,7 +2223,7 @@ export interface NotificationsLayout {
 		permissions?: string[];
 		/**
 		 * Keep this role's members equal to a team of the `source` provider (for GitHub, a team slug in
-		 * the org): `holocron notifications sync-roles` gives the role to every team member who has linked
+		 * the org): `holocron sync roles` gives the role to every team member who has linked
 		 * their account, and takes it from linked people who have left the team.
 		 */
 		team?: string;
@@ -2703,7 +2703,7 @@ export interface Workers extends ProviderIdentity {
 	deployScript(name: string, config: DeployScriptConfig): Promise<DeployScriptResult>;
 	/**
 	 * Set one secret binding on a script that is already deployed, leaving its code and every other binding alone.
-	 * The value is write-only. `holocron secrets sync --worker` uses it to fan a vault out to a Worker.
+	 * The value is write-only. `holocron sync secrets --worker` uses it to fan a vault out to a Worker.
 	 */
 	setSecret?(script: string, name: string, value: string): Promise<void>;
 	/** The names (never the values) of the secrets bound to a deployed script. `holocron probe` uses it to see what a Worker has. */
@@ -2776,7 +2776,7 @@ export interface Tunnels extends ProviderIdentity {
 /**
  * A place this machine reads its own tokens from, as named variables (`HOLOCRON_ORG_TOKEN`, ...).
  *
- * Not the same job as {@link Vault}, the source of truth `holocron secrets sync` fans out to other services. A
+ * Not the same job as {@link Vault}, the source of truth `holocron sync secrets` fans out to other services. A
  * credentials provider answers a plugin asking "where do I get my token?" before it can talk to anything, so it must
  * authenticate without a token of its own: 1Password does (the desktop app and Touch ID on a laptop, a service
  * account in CI). A provider that needs a stored token to be read cannot be one.
@@ -3080,7 +3080,7 @@ export interface IdeaRecord {
 
 /**
  * Where ideas are kept before they are issues: an inbox the process starts from (`idea -> issue -> spec -> ...`). A
- * folder of notes, a forum or a database is one provider, so `holocron ideas sync` reads through this and files through
+ * folder of notes, a forum or a database is one provider, so `holocron sync ideas` reads through this and files through
  * `issues`, and a change of place is a provider entry and a plugin and nothing else. Optional: a repo with no `ideas`
  * provider is not affected.
  */

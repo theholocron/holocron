@@ -22,15 +22,15 @@ Install the App on the repositories it should see afterwards (the command prints
 
 The code works once and GitHub shows the key once, so the file is checked before the browser opens: git must ignore it and it must not exist. If the credentials still cannot be written, the command says where to delete the App and run it again.
 
-| Option                 | Default                           | What it does                                                                                                                           |
-| ---------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `--name`               | _(required)_                      | The App's name. Unique across all of GitHub.                                                                                           |
-| `--webhook-url`        | _(required)_                      | The `https` address GitHub delivers webhooks to (your tunnel and `/api/webhook`).                                                      |
-| `--manifest`           | _(required)_                      | The manifest file, relative to `--cwd`.                                                                                                |
-| `--org`                | the signed-in account             | Create the App under this organization.                                                                                                |
-| `--webhook-secret-var` | `SENTINEL_WEBHOOK_SECRET`         | The variable the webhook secret is written as.                                                                                         |
-| `--file`               | `.holocron/.private/.credentials` | The private file, relative to `--cwd`. The default directory is made when missing and its ignore rule comes from `holocron repo sync`. |
-| `--keep`               | off                               | Leave the file in place instead of deleting it once the import is done.                                                                |
-| `--force`              | off                               | Replace the file if it is there.                                                                                                       |
+| Option                 | Default                           | What it does                                                                                                                      |
+| ---------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `--name`               | _(required)_                      | The App's name. Unique across all of GitHub.                                                                                      |
+| `--webhook-url`        | _(required)_                      | The `https` address GitHub delivers webhooks to (your tunnel and `/api/webhook`).                                                 |
+| `--manifest`           | _(required)_                      | The manifest file, relative to `--cwd`.                                                                                           |
+| `--org`                | the signed-in account             | Create the App under this organization.                                                                                           |
+| `--webhook-secret-var` | `SENTINEL_WEBHOOK_SECRET`         | The variable the webhook secret is written as.                                                                                    |
+| `--file`               | `.holocron/.private/.credentials` | The private file, relative to `--cwd`. The default directory is made when missing and its ignore rule comes from `holocron sync`. |
+| `--keep`               | off                               | Leave the file in place instead of deleting it once the import is done.                                                           |
+| `--force`              | off                               | Replace the file if it is there.                                                                                                  |
 
 Sentinel's manifest is `apps/sentinel/github-app.manifest.json`. It lists the permissions of the README's registration tables; the `installation` event is not in it, because GitHub always sends that one to an App. The command is not available on Windows, where the file's mode means nothing.

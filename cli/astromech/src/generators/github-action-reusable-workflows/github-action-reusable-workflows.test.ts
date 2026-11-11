@@ -184,10 +184,10 @@ describe("reusableTemplates()", () => {
 		expect(action).toContain('exit "$exit_code"');
 	});
 
-	it("platform.repoSync.yml runs `holocron repo sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
+	it("platform.repoSync.yml runs `holocron sync` through the holocron action — not a hard-coded packages/cli path (holocron#655)", () => {
 		const wf = REUSABLE_WORKFLOWS["sync-repo"]!;
 		expect(wf).toContain("uses: theholocron/.github/.github/actions/holocron@main");
-		expect(wf).toMatch(/command: repo sync/);
+		expect(wf).toMatch(/command: sync/);
 		expect(wf).not.toContain("node cli/cli/dist/cli.mjs");
 		// the standalone `pnpm build` step is gone — the action handles it
 		expect(wf).not.toMatch(/^\s+- run: pnpm build\n\s+name: Build CLI/m);

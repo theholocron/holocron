@@ -7,7 +7,7 @@ import {
 } from "../../../config/index.js";
 
 /**
- * The `ideas` provider `ideas sync` reads through: `providers.ideas` when the config names one. A config written
+ * The `ideas` provider `sync ideas` reads through: `providers.ideas` when the config names one. A config written
  * before the capability has only `ideas.dir` (#2004), so that, or `HOLOCRON_IDEAS_DIR` alone, reads as
  * `["obsidian", { dir }]`, the way a `HOLOCRON_` variable falls back to the bare name. `providers.ideas` wins over
  * `ideas.dir`. `undefined` when the config names no place for ideas at all.

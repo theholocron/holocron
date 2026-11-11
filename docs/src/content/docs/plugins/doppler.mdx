@@ -48,7 +48,7 @@ export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 - `write(key, value)` — sets or updates a secret
 - `list()` — lists all secret names in the config
 - `environments?()` — lists all configs in the project (`"dev"`, `"stg"`, `"prd"`)
-- `readEnvironment?(config)` — reads all KEY=VALUE pairs from a config (powers `holocron secrets sync`)
+- `readEnvironment?(config)` — reads all KEY=VALUE pairs from a config (powers `holocron sync secrets`)
 - `ensureProject?(name)` — creates a Doppler project if missing
 - `ensureEnvironment?(project, name)` — creates a config (branch) inside a project
 
@@ -58,7 +58,7 @@ export HOLOCRON_DOPPLER_TOKEN=dp.st.xxx
 # Pull all secrets from the "production" config →
 # → set as GitHub Actions secrets
 # → set as Vercel env vars (production + preview)
-holocron secrets sync production --project-id prj_vercel_xxx
+holocron sync secrets production --project-id prj_vercel_xxx
 ```
 
 The full [API reference](/holocron/plugins/holocron-plugin-doppler/api/readme/) is generated from the package's TSDoc comments.

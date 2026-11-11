@@ -15,7 +15,7 @@ function runWords(id: string): string {
 }
 
 /**
- * The `package.json` scripts a manifest asks for, by name: the one rule that `repo sync` writes, `probe generated
+ * The `package.json` scripts a manifest asks for, by name: the one rule that `sync` writes, `probe generated
  * check` compares against, and the `turbo.json` generator agrees with (spec `ci-flat-task-vocabulary`, "Scripts").
  * `holocron` and `prepare` are not tasks and are added by the caller.
  *

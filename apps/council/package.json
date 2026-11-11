@@ -2,7 +2,7 @@
   "name": "@theholocron/council",
   "version": "0.0.0",
   "private": true,
-  "description": "An Obsidian plugin for the ideas vault: File this idea sets the filing state, runs holocron ideas sync on desktop and trashes the note once it carries an issue; Set idea status picks from a fixed list.",
+  "description": "An Obsidian plugin for the ideas vault: File this idea sets the filing state, runs holocron sync ideas on desktop and trashes the note once it carries an issue; Set idea status picks from a fixed list.",
   "keywords": [
     "holocron",
     "ideas",
