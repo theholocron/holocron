@@ -1,10 +1,10 @@
 ---
-title: "auth unset"
+title: "remove token"
 description: Remove a stored provider token from the OS keyring.
 ---
 
 ```bash
-holocron auth unset <provider>
+holocron remove token <provider>
 ```
 
 Removes the token stored for `<provider>` from the OS credential store. Nothing else is changed: a token in an environment variable is untouched.
@@ -18,8 +18,8 @@ Removes the token stored for `<provider>` from the OS credential store. Nothing 
 ## Examples
 
 ```bash
-holocron auth unset github.read
-holocron auth unset vercel
+holocron remove token github.read
+holocron remove token vercel
 ```
 
-Related: [`new token`](/holocron/commands/new-token/), [`auth list`](/holocron/commands/auth-list/).
+Related: [`new token`](/holocron/commands/new-token/), [`list tokens`](/holocron/commands/list-tokens/).

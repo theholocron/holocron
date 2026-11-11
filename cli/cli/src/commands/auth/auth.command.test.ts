@@ -20,7 +20,9 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { listCommand } from "../list/list.command.js";
 import { newCommand } from "../new/new.command.js";
+import { removeCommand } from "../remove/remove.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { authCommand } from "./auth.command.js";
 import { authCheckCommand } from "./auth-check.command.js";
@@ -69,8 +71,8 @@ describe("auth commands", () => {
 		expect(process.exitCode).toBe(1);
 	});
 
-	it("`auth unset` removes the provider's token", async () => {
-		await runCommand(authCommand, ["auth", "unset", "github"]);
+	it("`remove token` removes the provider's token", async () => {
+		await runCommand(removeCommand, ["remove", "token", "github"]);
 		expect(runAuthUnset).toHaveBeenCalledWith({ provider: "github" });
 	});
 
@@ -83,8 +85,8 @@ describe("auth commands", () => {
 		expect(process.exitCode).toBe(1);
 	});
 
-	it("`auth list` lists the stored tokens", async () => {
-		await runCommand(authCommand, ["auth", "list"]);
+	it("`list tokens` lists the stored tokens", async () => {
+		await runCommand(listCommand, ["list", "tokens"]);
 		expect(runAuthList).toHaveBeenCalled();
 	});
 
@@ -100,9 +102,9 @@ describe("auth commands", () => {
 	it("names each subcommand the way it is typed", () => {
 		expect([authSetCommand, authUnsetCommand, authCheckCommand, authListCommand].map((c) => c.command)).toEqual([
 			"token [provider] [value]",
-			"unset [provider]",
+			"token [provider]",
 			"check [provider]",
-			"list",
+			"tokens",
 		]);
 	});
 });

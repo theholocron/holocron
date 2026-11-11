@@ -18,8 +18,8 @@ export const COMMAND_CONTEXTS = {
 	"repo upgrade node": "global",
 	"repo upgrade deps": "global",
 	"new token": "global",
-	"auth unset": "global",
-	"auth list": "global",
+	"remove token": "global",
+	"list tokens": "global",
 	// `auth export` asks the configured plugins for the tokens they take, so their packages must be resolvable.
 	"auth export": "workspace",
 	// `new github-app` talks to GitHub through the browser and a one-shot local server: no plugin is involved.
@@ -32,8 +32,9 @@ export const COMMAND_CONTEXTS = {
 	"package move-tag": "global",
 	"package publish": "global",
 	"skills install": "global",
-	"skills remove": "global",
+	"remove skill": "global",
 	"skills update": "global",
+	"list skills": "global",
 	// The `.husky/commit-msg` hook: works from a bare install, no holocron.config.
 	"run lint commit-msg": "global",
 
@@ -50,13 +51,13 @@ export const COMMAND_CONTEXTS = {
 
 	doctor: "workspace",
 	"repo setup": "workspace",
-	"secrets list": "workspace",
+	"list secrets": "workspace",
 	"new secret": "workspace",
 	"secrets sync": "workspace",
 	// `new tunnel` calls the `tunnels` and `dns` providers, so their packages must be resolvable.
 	"new tunnel": "workspace",
 	// `project` subcommands call the `projects` provider, so its package must be resolvable.
-	"project list": "workspace",
+	"list projects": "workspace",
 	"new project": "workspace",
 	"project close": "workspace",
 	"project setup": "workspace",

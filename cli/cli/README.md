@@ -656,7 +656,7 @@ Channels fed by the error tracker add `feeds: { errors: true }` and a layout `re
 
 `holocron secrets sync <env>` also writes GitHub Actions **variables** when `repo.variables.sync` has an entry for that environment: each key goes through the `source` provider's `syncVariables` (repo scope) or `syncOrgVariables` (`org=<name>`), one call per key and never pruning, so a name the vault lacks or holds blank is skipped and GitHub keeps its value. Keep these in a vault environment of their own (a vault does not tell a visible value from a secret one, and a variable is readable afterwards). An environment declared only by variable entries pushes nothing to `secrets` or `deployment`. Values are never printed. `doctor variables` checks that the names exist at their scope.
 
-`holocron secrets list [--scope repo|environment|organization] [--env <name>] [--json]` prints the names (never the values; GitHub does not return them) of the secrets at each scope, sorted, under a heading per scope. With no `--scope` it lists the repository, plus the organization (`--org`, `HOLOCRON_ORG` or the config's `org`) and the `--env` environment when they are known; `--scope` lists one. A scope that cannot be listed is reported under its heading and the rest are still listed; the exit code is 1 if any failed. `--json` prints `[{ scope, names, error? }]`. It is read-only, so `--dry-run` does not apply. Comparing the names with what the config expects is `doctor secrets`, which also covers the keys of the vault environments declared in `repo.secrets.sync`.
+`holocron list secrets [--scope repo|environment|organization] [--env <name>] [--json]` prints the names (never the values; GitHub does not return them) of the secrets at each scope, sorted, under a heading per scope. With no `--scope` it lists the repository, plus the organization (`--org`, `HOLOCRON_ORG` or the config's `org`) and the `--env` environment when they are known; `--scope` lists one. A scope that cannot be listed is reported under its heading and the rest are still listed; the exit code is 1 if any failed. `--json` prints `[{ scope, names, error? }]`. It is read-only, so `--dry-run` does not apply. Comparing the names with what the config expects is `doctor secrets`, which also covers the keys of the vault environments declared in `repo.secrets.sync`.
 
 A channel with `kind: "forum"` is a forum, with `tags` (each a `name`, an `emoji` and whether it is `moderated`); `setup` adds and corrects the tags but never removes one, and a text channel of the same name must be deleted first, since neither kind can become the other. A forum takes no `webhook` and none of the webhook feeds (`monitoring`, `errors`); its one feed is `feeds: { prs: true }`, the pull-request feed, where Sentinel keeps one post per pull request tagged with its state. The object form `feeds: { prs: { exclude: { repos?: ["owner/name"], authors?: ["login"] } } }` leaves some pull requests out. `feeds.prs` belongs to a forum (a text channel with it is refused) and the forum's `tags` must hold all eight states, `draft`, `conflicts`, `failing`, `changes requested`, `ready`, `waiting`, `merged` and `closed`, or `setup` refuses the layout. `setup` does nothing more for it; `doctor notifications` checks that the forum exists, has those tags and that the bot can start posts and manage threads in it (`ServerInspection` `botThreads`, filled in by the Discord provider after the forum's own permission overwrites). `defaultReaction` is the emoji Discord offers on every post (its Get Started step "Set a default reaction for posts"); Discord allows only one, so `starterReactions` lists more (`["👍", "👎", "❓"]` for approve, disapprove, question) that the bot adds to the first message of each post `specs sync` makes. Existing posts are left alone, a reaction the bot cannot add is skipped, and `doctor notifications` checks `defaultReaction`. Unicode emoji only.
 
@@ -789,14 +789,16 @@ Additional `auth` subcommands:
 
 ```sh
 holocron auth check github.read   # re-verify a stored token
-holocron auth unset github.read   # remove a stored token
-holocron auth list                # show all stored providers
+holocron remove token github.read   # remove a stored token
+holocron list tokens                # show all stored providers
+holocron list skills                # the skills installed in .agents/skills/
+holocron remove skill --all         # remove every installed skill (or name some; a bare call asks on a terminal)
 holocron auth export             # tokens as NAME=value lines in a private .credentials, to import into a credentials environment
 holocron auth export --only HOLOCRON_SENTRY_TOKEN  # one token, to the clipboard
 holocron auth export --blank --vendor-names --file --only VERCEL_TOKEN --only HOLOCRON_RELEASE_TOKEN  # the stored ones filled, the rest empty
 holocron new github-app --name "My App - dev" --webhook-url https://<tunnel>/api/webhook --manifest apps/sentinel/github-app.manifest.json  # a GitHub App from a manifest (the flow is in @theholocron/dagobah); its id, key and webhook secret to a private .credentials
 holocron new tunnel --name sentinel-dev --hostname sentinel-dev.example.dev --port 3000 --run  # a named tunnel with a stable hostname to a local port
-holocron project list           # the org's project boards (also: create [template], close <number-or-name>, setup)
+holocron list projects           # the org's project boards (also: create [template], close <number-or-name>, setup)
 holocron migrate project v5 --from github --to github:repo=acme/new --dry-run  # preview putting a board's issues on a board of the same name in the target (GitHub; --template picks the template a missing board is made from, default roadmap); a target without boards (Linear) gets a project of that name instead
 holocron migrate issues --all --from github --to linear:team=ENG --limit 20 --order newest --dry-run  # a trial run: read only the 20 last-created issues (--order oldest, the default, reads the first created); prints `limited to 20 of M`, and a second run with the same limit selects the same issues (`migrate issues` and `migrate project`, and `sync issues`; not `migrate issue`)
 holocron project move v4 v5 --dry-run  # preview carrying the open items of one project board to another; without --dry-run it asks first (--yes skips)
@@ -926,7 +928,7 @@ the local override exists to exempt.
   `astromech.reusableTemplates()` (written in `ci/`) to `theholocron/.github` (a pure sync target —
   never hand-edit its `.github/workflows/*`).
 - `src/commands/` — `repo setup`, `repo sync`, `doctor`, `deploy`,
-  `monitoring check`, `secrets list`, `new secret`, `secrets sync`, `package publish`,
+  `monitoring check`, `list secrets`, `new secret`, `secrets sync`, `package publish`,
   `package bump-versions`, `package move-tag`, `sync github`, `repo upgrade node`,
   `repo upgrade deps`, `new plugin`, `auth`, `notifications setup`,
   `new channel`, `notifications link`,

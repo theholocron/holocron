@@ -1,5 +1,5 @@
 /**
- * `holocron secrets list` — which secrets exist, by name, at each scope.
+ * `holocron list secrets` — which secrets exist, by name, at each scope.
  *
  * Read-only: GitHub never returns a value, so only names are printed. A scope
  * that cannot be listed (a token without the scope, a missing environment) is
@@ -18,7 +18,7 @@ export async function runSecretsList(input: RunSecretsListInput): Promise<Secret
 	const logger = input.logger ?? getLogger();
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "secrets list");
+	assertPluginsResolvable(loader, "list secrets");
 
 	if (!loader.has("secrets")) {
 		throw new Error("`secrets` capability is not configured — add a `secrets` provider to holocron.config.json");
@@ -33,12 +33,12 @@ export async function runSecretsList(input: RunSecretsListInput): Promise<Secret
 			groups.push({ scope, label, names });
 			logger.info(
 				{ scope: label, count: names.length, provider: secrets.providerName },
-				`secrets list: ${label}`
+				`list secrets: ${label}`
 			);
 		} catch (err) {
 			const error = errorMessage(err);
 			groups.push({ scope, label, names: [], error });
-			logger.warn({ scope: label, reason: error }, `secrets list: ${label}`);
+			logger.warn({ scope: label, reason: error }, `list secrets: ${label}`);
 		}
 	}
 	const report: SecretsListReport = { groups, failed: groups.filter((g) => g.error !== undefined).length };

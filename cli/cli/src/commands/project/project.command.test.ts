@@ -20,6 +20,7 @@ vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 
+import { listCommand } from "../list/list.command.js";
 import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { projectCommand } from "./index.js";
@@ -27,7 +28,11 @@ import { projectCommand } from "./index.js";
 const go = (...args: string[]) => runCommand(projectCommand, ["project", ...args]);
 // `create` moved to `new project`; the table tests below still name it `create`.
 const goSub = (sub: string, ...rest: string[]) =>
-	sub === "create" ? runCommand(newCommand, ["new", "project", ...rest]) : go(sub, ...rest);
+	sub === "create"
+		? runCommand(newCommand, ["new", "project", ...rest])
+		: sub === "list"
+			? runCommand(listCommand, ["list", "projects", ...rest])
+			: go(sub, ...rest);
 const ok = { status: "ok", summary: { ok: 1, fail: 0, skip: 0 } };
 
 beforeEach(() => {
@@ -39,8 +44,8 @@ beforeEach(() => {
 afterEach(() => void (process.exitCode = undefined));
 
 describe("project commands", () => {
-	it("list passes the context and the --org flag", async () => {
-		await go("list", "--org", "other");
+	it("list projects passes the context and the --org flag", async () => {
+		await goSub("list", "--org", "other");
 		expect(runProjectList).toHaveBeenCalledWith(
 			expect.objectContaining({
 				owner: "other",
@@ -86,7 +91,7 @@ describe("project commands", () => {
 
 	it("does nothing when the token flags are unusable", async () => {
 		tokenContext.mockReturnValue(undefined);
-		await go("list");
+		await goSub("list");
 		expect(runProjectList).not.toHaveBeenCalled();
 	});
 

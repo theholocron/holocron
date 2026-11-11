@@ -182,19 +182,19 @@ describe("COMMAND_REGISTRY positionals (prompted through promptForPositionals)",
 		expect(call.validate("   ")).toMatch(/required/);
 	});
 
-	it("resolves auth unset's thunk choices from the stored providers (no fixed provider set)", async () => {
+	it("resolves remove token's thunk choices from the stored providers (no fixed provider set)", async () => {
 		listStoredProvidersMock.mockReturnValue(["cloudflare", "github"]);
 		selectMock.mockResolvedValue("cloudflare");
-		const values = await promptForPositionals(getEntry("auth unset"), {});
+		const values = await promptForPositionals(getEntry("remove token"), {});
 		expect(values).toEqual(["cloudflare"]);
 		expect(selectMock).toHaveBeenCalledWith(
 			expect.objectContaining({ choices: [{ value: "cloudflare" }, { value: "github" }] })
 		);
 	});
 
-	it("throws NonInteractiveError for auth unset when there are no stored providers to choose from", async () => {
+	it("throws NonInteractiveError for remove token when there are no stored providers to choose from", async () => {
 		listStoredProvidersMock.mockReturnValue([]);
-		const err = await promptForPositionals(getEntry("auth unset"), {}).catch((e: unknown) => e);
+		const err = await promptForPositionals(getEntry("remove token"), {}).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(NonInteractiveError);
 		expect((err as Error).message).toMatch(/nothing stored yet/);
 		expect(selectMock).not.toHaveBeenCalled();

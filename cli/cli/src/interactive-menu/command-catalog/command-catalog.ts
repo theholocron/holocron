@@ -61,6 +61,7 @@ import { secretsListEntry } from "../../commands/secrets-list/secrets-list.entry
 import { secretsSyncEntry } from "../../commands/secrets-sync/secrets-sync.entry.js";
 import { setupEntry } from "../../commands/setup/setup.entry.js";
 import { skillsInstallEntry } from "../../commands/skills/skills-install.entry.js";
+import { skillsListEntry } from "../../commands/skills/skills-list.entry.js";
 import { skillsRemoveEntry } from "../../commands/skills/skills-remove.entry.js";
 import { skillsUpdateEntry } from "../../commands/skills/skills-update.entry.js";
 import { specsSyncEntry } from "../../commands/specs-sync/specs-sync.entry.js";
@@ -138,6 +139,7 @@ const registry = createCommandRegistry(
 		pluginCreateEntry,
 		skillsInstallEntry,
 		skillsRemoveEntry,
+		skillsListEntry,
 		skillsUpdateEntry,
 		upgradeNodeEntry,
 		upgradeDepsEntry,

@@ -15,7 +15,7 @@ the provider plugins resolvable too.
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **`global`**     | nothing but the CLI binary                                                                                                 | `version`, `clone`, `new repo`, `new plugin`, `repo upgrade node` / `deps`, `run lint commit-msg`, `new token` / `unset` / `list` / `check`, `package bump-versions`, `package publish`, `skills install` / `remove` / `update` |
 | **`repo-aware`** | `./holocron.config` + `./package.json` in the working directory — but no plugins                                           | `run`, `run ci`, `config show`, `repo sync readme`, `deploy on-release`                                                                                                                                                         |
-| **`workspace`**  | the configured providers' `@theholocron/holocron-plugin-*` packages resolvable (devDependencies in a repo, or `pnpm exec`) | `doctor`, `repo setup`, `repo sync`, `secrets list`, `new secret`, `secrets sync`, `deploy`, `deploy cleanup-preview`, `sync github`                                                                                            |
+| **`workspace`**  | the configured providers' `@theholocron/holocron-plugin-*` packages resolvable (devDependencies in a repo, or `pnpm exec`) | `doctor`, `repo setup`, `repo sync`, `list secrets`, `new secret`, `secrets sync`, `deploy`, `deploy cleanup-preview`, `sync github`                                                                                            |
 
 `holocron --help` prints this same grouping in its epilogue.
 
@@ -46,7 +46,7 @@ failing clearly.
 
 `auth check <provider>` normally loads the provider plugin to verify the stored
 token. From a global install the plugin isn't there, so it degrades to a
-report rather than an error — the same way `new token` / `auth list` already
+report rather than an error — the same way `new token` / `list tokens` already
 work plugin-free:
 
 ```

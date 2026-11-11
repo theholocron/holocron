@@ -149,7 +149,7 @@ Two tokens have a quiet fallback: when `HOLOCRON_USER_SYNC_TOKEN` is not set, th
 
 Fine-grained PATs have two resource owner modes: **personal** (your repos) and **organization** (org repos). Team management and reading a team's members require a PAT whose resource owner is the org. `HOLOCRON_ORG_TOKEN` covers these; `HOLOCRON_ADMIN_TOKEN` covers the repo-scoped operations, including a repo's custom property values.
 
-The `projects` capability (`holocron project ...`, `doctor project`) also uses `HOLOCRON_ORG_TOKEN`. Give it the organization permission **Projects: Read and write** (Read is enough for `project list` and `doctor project`), and **Issues: Read** and **Pull requests: Read** on the repositories whose issues sit on the board. The hourly `reconcile-projects` task does not use this token: it mints one from the GitHub App, which needs the same organization Projects permission.
+The `projects` capability (`holocron project ...`, `doctor project`) also uses `HOLOCRON_ORG_TOKEN`. Give it the organization permission **Projects: Read and write** (Read is enough for `list projects` and `doctor project`), and **Issues: Read** and **Pull requests: Read** on the repositories whose issues sit on the board. The hourly `reconcile-projects` task does not use this token: it mints one from the GitHub App, which needs the same organization Projects permission.
 
 ## Provider tokens
 
@@ -259,8 +259,8 @@ Verify, remove, or list stored tokens:
 
 ```bash
 holocron auth check github.admin
-holocron auth unset github.read
-holocron auth list
+holocron remove token github.read
+holocron list tokens
 ```
 
 ## CI secrets
