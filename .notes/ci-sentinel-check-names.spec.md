@@ -1,10 +1,13 @@
 ---
+id: SPEC-0076
 status: proposed
 issue: theholocron/holocron#2036
 blocked-by: []
 related:
   - theholocron/holocron#1547
   - theholocron/holocron#989
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569582792445268088
 ---
 
 # Sentinel check names: `sentinel:<task id> / <Action>`
