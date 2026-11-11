@@ -9,6 +9,7 @@ import { doctorNotificationsCommand, runDoctorNotifications } from "../doctor-no
 import { doctorProjectCommand, runDoctorProject } from "../doctor-project/index.js";
 import { doctorRepoCommand, runDoctorRepo } from "../doctor-repo/index.js";
 import { doctorSecretsCommand, runDoctorSecrets } from "../doctor-secrets/index.js";
+import { doctorSharedValuesCommand, runDoctorSharedValues } from "../doctor-shared-values/index.js";
 import { doctorTokensCommand, runDoctorTokens } from "../doctor-tokens/index.js";
 import { doctorVariableOwnersCommand, runDoctorVariableOwners } from "../doctor-variable-owners/index.js";
 import { doctorVariablesCommand, runDoctorVariables } from "../doctor-variables/index.js";
@@ -148,6 +149,20 @@ export const DEEP_CHECKS: readonly DeepCheck[] = [
 		command: doctorVariableOwnersCommand as never,
 		async run(input) {
 			const report = await runDoctorVariableOwners(input);
+			return {
+				status: report.status,
+				summary: report.summary,
+				...(report.reason ? { reason: report.reason } : {}),
+			};
+		},
+	},
+	{
+		name: "shared-values",
+		// It reads each layer's Environment in memory through the `vault` provider.
+		capability: "vault",
+		command: doctorSharedValuesCommand as never,
+		async run(input) {
+			const report = await runDoctorSharedValues(input);
 			return {
 				status: report.status,
 				summary: report.summary,

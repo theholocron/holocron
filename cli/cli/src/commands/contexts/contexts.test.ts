@@ -70,6 +70,7 @@ const EVERY_COMMAND = [
 	"doctor monitoring",
 	"doctor variables",
 	"doctor variable-owners",
+	"doctor shared-values",
 	"doctor ci",
 	"probe",
 	"provider",
@@ -145,6 +146,7 @@ describe("COMMAND_CONTEXTS", () => {
 			"doctor monitoring",
 			"doctor variables",
 			"doctor variable-owners",
+			"doctor shared-values",
 		]) {
 			expect(contextForCommand(cmd)).toBe("workspace");
 		}

@@ -1278,6 +1278,16 @@ export interface EnsureResult {
 	alreadyExists: boolean;
 }
 
+/** One variable of a vault environment, as `Vault.readEnvironmentEntries` returns it. */
+export interface EnvironmentEntry {
+	/** The variable's name. */
+	name: string;
+	/** Its value. Never print or log it. */
+	value: string;
+	/** Whether the vault holds it concealed (a secret), as against visible. */
+	concealed: boolean;
+}
+
 /** A secret store, the source of truth that `holocron secrets sync` reads from. */
 export interface Vault extends ProviderIdentity {
 	/** Identifies this provider as the `vault` capability. */
@@ -1316,6 +1326,13 @@ export interface Vault extends ProviderIdentity {
 	 * destinations (CI secrets, deployment env vars, local .env).
 	 */
 	readEnvironment?(environmentId: string): Promise<Record<string, string>>;
+
+	/**
+	 * Optional — like `readEnvironment`, but each entry says whether the vault holds it concealed (a secret) or
+	 * visible (a plain value). `holocron doctor shared-values` compares only the concealed ones. The values are for
+	 * in-memory comparison and are never printed. A provider that cannot tell omits this.
+	 */
+	readEnvironmentEntries?(environmentId: string): Promise<EnvironmentEntry[]>;
 
 	/**
 	 * Optional — create the top-level project container in the vault

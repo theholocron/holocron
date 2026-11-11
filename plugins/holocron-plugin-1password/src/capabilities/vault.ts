@@ -11,10 +11,11 @@
  * parsing edit's stderr to detect "not found".
  */
 
-import type { Vault } from "@theholocron/cli";
+import type { EnvironmentEntry, Vault } from "@theholocron/cli";
 import { ProviderApiError } from "@theholocron/cli";
 
 import { parseDotenv } from "../parse-dotenv.js";
+import { parseEnvironmentJson } from "../parse-environment-json.js";
 import type { OpShell } from "../shell.js";
 
 export interface OpVaultOptions {
@@ -123,6 +124,18 @@ export class OpVault implements Vault {
 			`environment secret list ${environment}`
 		);
 		return parseDotenv(stdout);
+	}
+
+	/**
+	 * Every variable of an Environment with its `concealed` flag, from `--format=json`. The values are returned for an
+	 * in-memory comparison and nothing here prints or logs them.
+	 */
+	async readEnvironmentEntries(environment: string): Promise<EnvironmentEntry[]> {
+		const stdout = this.shell.runOrThrow(
+			["environment", "secret", "list", environment, "--reveal", "--format=json"],
+			`environment secret list ${environment}`
+		);
+		return parseEnvironmentJson(stdout);
 	}
 
 	/** One variable of the Environment this vault was set up with, by its bare name. */
