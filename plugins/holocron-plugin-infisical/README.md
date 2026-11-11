@@ -4,7 +4,7 @@
 
 Infisical plugin for [Holocron](../cli). Implements the `vault`
 capability against [Infisical's REST API](https://infisical.com/docs/api-reference/overview/introduction),
-plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## One of several vault providers
 
@@ -73,7 +73,7 @@ tracked as a follow-up; for now, use one of the two above.
 # 2. Hand it off to holocron's keyring (one-shot):
 holocron new token infisical <TOKEN>
 # 3. Verify (calls GET /v1/workspace and reports accessible workspaces):
-holocron auth check infisical
+holocron check token infisical
 
 ```
 

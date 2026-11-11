@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-doppler` — entrypoint.
  *
  * Implements the `vault` capability against Doppler's REST API. Also
- * exports `verifyToken` + `AUTH_HINT` for `holocron auth`. See README
+ * exports `verifyToken` + `AUTH_HINT` for `holocron check token`. See README
  * for auth + config docs.
  */
 

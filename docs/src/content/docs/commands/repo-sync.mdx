@@ -38,7 +38,7 @@ Local steps (everything except `labels`, `properties`, `teams`, `topics`) write 
 
 ### `private`
 
-`.holocron/.private/` is the one place for files that hold secrets, such as the `.credentials` file [`auth export`](/holocron/commands/auth-export/) and [`new github-app`](/holocron/commands/new-github-app/) write. The step writes an empty, tracked `.gitkeep` there and a managed block in `.gitignore`:
+`.holocron/.private/` is the one place for files that hold secrets, such as the `.credentials` file [`export tokens`](/holocron/commands/export-tokens/) and [`new github-app`](/holocron/commands/new-github-app/) write. The step writes an empty, tracked `.gitkeep` there and a managed block in `.gitignore`:
 
 ```text
 # managed by holocron setup — private directory

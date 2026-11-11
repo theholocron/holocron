@@ -71,7 +71,7 @@ function run(extra: Partial<Parameters<typeof runAuthExport>[0]> = {}) {
 	return { result, out, err };
 }
 
-describe("auth export — what it writes", () => {
+describe("export tokens — what it writes", () => {
 	it("writes NAME=value for each token the keyring has, once each, and says what it did not find", async () => {
 		const { result, out, err } = run();
 		expect(await result).toEqual({
@@ -109,7 +109,7 @@ describe("auth export — what it writes", () => {
 				status: "ok",
 				destination: "out",
 			},
-			"auth export"
+			"export tokens"
 		);
 	});
 
@@ -256,7 +256,7 @@ describe("auth export — what it writes", () => {
 	});
 });
 
-describe("auth export — only", () => {
+describe("export tokens — only", () => {
 	it("exports just the token asked for, by its variable name, and copies it on a terminal", async () => {
 		const copy = vi.fn(async (_text: string) => {});
 		const { result, out, err } = run({ outKind: "terminal", only: ["HOLOCRON_SENTRY_TOKEN"], copy });
@@ -344,7 +344,7 @@ describe("auth export — only", () => {
 	});
 });
 
-describe("auth export — blank, literals and vendor names", () => {
+describe("export tokens — blank, literals and vendor names", () => {
 	it("writes a token with no stored value as an empty placeholder, and counts it apart", async () => {
 		const { result, out, err } = run({ only: ["HOLOCRON_READ_TOKEN", "HOLOCRON_ORG_TOKEN"], blank: true });
 		const report = await result;
@@ -442,7 +442,7 @@ describe("auth export — blank, literals and vendor names", () => {
 	});
 });
 
-describe("auth export — where it writes", () => {
+describe("export tokens — where it writes", () => {
 	it("puts the lines on the clipboard, and prints none, when asked for it", async () => {
 		const copy = vi.fn(async (_text: string) => {});
 		const { result, out, err } = run({ outKind: "terminal", to: "clipboard", copy });
@@ -477,8 +477,8 @@ describe("auth export — where it writes", () => {
 		expect(report.exported).toEqual([]);
 		expect(out).toEqual([]);
 		expect(err[0]).toBe("could not copy to the clipboard: no clipboard tool");
-		expect(err[1]).toMatch(/auth export --file/);
-		expect(logger.warn).toHaveBeenCalledWith({ status: "fail", reason: "clipboard" }, "auth export");
+		expect(err[1]).toMatch(/export tokens --file/);
+		expect(logger.warn).toHaveBeenCalledWith({ status: "fail", reason: "clipboard" }, "export tokens");
 	});
 
 	it("refuses a redirect to a regular file, without reading the keyring or writing anything", async () => {
@@ -491,7 +491,7 @@ describe("auth export — where it writes", () => {
 	});
 });
 
-describe("auth export — what it reports instead of hiding", () => {
+describe("export tokens — what it reports instead of hiding", () => {
 	it("fails, naming the keyring, when the OS keyring cannot be reached, instead of calling every token missing", async () => {
 		const keyring = vi.fn(() => null);
 		const { result, err } = run({ keyringAvailable: () => false, keyring });
@@ -577,11 +577,11 @@ describe("auth export — what it reports instead of hiding", () => {
 		};
 		const err = await run({ importer: gone }).result.catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(WorkspaceContextError);
-		expect((err as WorkspaceContextError).command).toBe("auth export");
+		expect((err as WorkspaceContextError).command).toBe("export tokens");
 	});
 });
 
-describe("auth export — defaults", () => {
+describe("export tokens — defaults", () => {
 	it("writes to stderr, and loads the plugins itself from the config's directory, when it is given none", async () => {
 		const spy = vi.spyOn(console, "error").mockImplementation(() => {});
 		try {
@@ -593,7 +593,7 @@ describe("auth export — defaults", () => {
 	});
 });
 
-describe("auth export — the private file", () => {
+describe("export tokens — the private file", () => {
 	const fresh = () => {
 		const dir = mkdtempSync(join(tmpdir(), "holocron-export-"));
 		const here: LoadedConfig = { ...loaded, filepath: join(dir, "holocron.config.json") };

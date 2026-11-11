@@ -4,7 +4,7 @@
 
 Doppler plugin for [Holocron](../cli). Implements the `vault`
 capability against [Doppler's REST API](https://docs.doppler.com/reference/api),
-plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## Install
 
@@ -45,7 +45,7 @@ doppler login
 holocron new token doppler $(doppler configure get token --plain)
 
 # 4. Verify:
-holocron auth check doppler
+holocron check token doppler
 
 ```
 

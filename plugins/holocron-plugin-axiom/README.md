@@ -4,7 +4,7 @@
 
 Axiom plugin for [Holocron](../cli). Implements the `logs` capability
 against [Axiom's REST API](https://axiom.co/docs/restapi/introduction),
-plus exports `verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+plus exports `verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 > This plugin does **not** ship log lines. `@theholocron/observability/logger`'s
 > Axiom transport reads `HOLOCRON_AXIOM_TOKEN` / `HOLOCRON_AXIOM_DATASET`

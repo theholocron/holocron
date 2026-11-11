@@ -1,10 +1,10 @@
 /**
- * `holocron monitoring run-resolved <url>` — runs an already-resolved
+ * `holocron check resolved <url>` — runs an already-resolved
  * check list (no `holocron.config.ts` loading at all) against `url`
  * (holocron#1030/#1032 review).
  *
  * The trusted half of the `delivery.previewCheck` split, paired with
- * `monitoring resolve-checks` (the untrusted half, which loads config).
+ * `resolve checks` (the untrusted half, which loads config).
  * Safe to run with a credential present, since nothing here executes
  * PR-authored code — but a credential is only ever attached after
  * `verifyVercelDeploymentProject` confirms `url` actually belongs to
@@ -21,7 +21,7 @@ import { verifyVercelDeploymentProject } from "./verify-vercel-project/index.js"
 
 /**
  * The shared gate every caller that might attach the Deployment
- * Protection bypass header goes through — `monitoring check`'s direct
+ * Protection bypass header goes through — `check monitor`'s direct
  * CLI invocation included (sourcery review on holocron#1032 called this
  * out explicitly: verifying only in `delivery.previewCheck`'s own split
  * commands and not here would leave the exact same unverified-host

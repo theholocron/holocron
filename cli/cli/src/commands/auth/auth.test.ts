@@ -397,7 +397,7 @@ describe("runAuthCheck", () => {
 		expect(lines.join("\n")).toMatch(/doppler: ok — workplace: acme/);
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ provider: "doppler", verified: true, status: "ok" }),
-			"auth check: doppler"
+			"check token: doppler"
 		);
 		expect(JSON.stringify(log.info.mock.calls)).not.toContain("dp.pt.abc");
 	});

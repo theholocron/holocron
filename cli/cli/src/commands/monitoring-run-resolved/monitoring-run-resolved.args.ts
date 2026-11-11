@@ -12,7 +12,7 @@ export const monitoringRunResolvedArgs = (y: Argv<GlobalArgs>) =>
 		.option("checks-file", {
 			type: "string",
 			demandOption: true,
-			describe: "File path to read the resolved checks from (written by `monitoring resolve-checks`)",
+			describe: "File path to read the resolved checks from (written by `resolve checks`)",
 		})
 		.option("vercel-project", {
 			type: "string",

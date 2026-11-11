@@ -7,7 +7,7 @@ description: Check the monitoring checks declared for the monitoring provider ag
 holocron doctor monitoring
 ```
 
-Compares the checks the `monitoring` provider declares in `holocron.config.ts` (the `checks` in its provider options, the same list [`monitoring check`](/holocron/commands/monitoring-check/) runs) with the checks that exist in the provider's account, and prints one row. It changes nothing, and it exits non-zero while the row fails.
+Compares the checks the `monitoring` provider declares in `holocron.config.ts` (the `checks` in its provider options, the same list [`check monitor`](/holocron/commands/check-monitor/) runs) with the checks that exist in the provider's account, and prints one row. It changes nothing, and it exits non-zero while the row fails.
 
 It is the check for [`repo setup`](/holocron/commands/repo-setup/), which creates and updates the checks. Run it after `repo setup`, or when an alert you expected never came.
 
@@ -49,4 +49,4 @@ The alert channel, its alert settings (`feeds.monitoring.alerts`) and its subscr
 
 Uses the same token as `repo setup` for the provider (for Checkly, `CHECKLY_API_KEY` or `holocron new token checkly`), read-only.
 
-Related: [`doctor`](/holocron/commands/doctor/), [`monitoring check`](/holocron/commands/monitoring-check/), [`doctor variables`](/holocron/commands/doctor-variables/).
+Related: [`doctor`](/holocron/commands/doctor/), [`check monitor`](/holocron/commands/check-monitor/), [`doctor variables`](/holocron/commands/doctor-variables/).

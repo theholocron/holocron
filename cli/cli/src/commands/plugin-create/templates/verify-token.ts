@@ -4,7 +4,7 @@ export function render(inputs: TemplateInputs): string {
 	const factoryName = `create${inputs.vendorName}RestClient`;
 	return `/**
  * \`verifyToken\` — plugin-level export used by \`holocron new token\` +
- * \`holocron auth check\`. Hits a lightweight whoami-style endpoint
+ * \`holocron check token\`. Hits a lightweight whoami-style endpoint
  * and translates the response into the normalized \`VerifyTokenResult\`
  * shape.
  *

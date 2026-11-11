@@ -45,10 +45,10 @@ Create a Personal Access Token under **User settings → Applications → Person
 
 ```bash
 holocron new token netlify <TOKEN>
-holocron auth check netlify
+holocron check token netlify
 ```
 
-`auth check` verifies the token with Netlify's `GET /user`.
+`check token` verifies the token with Netlify's `GET /user`.
 
 Or via env var:
 

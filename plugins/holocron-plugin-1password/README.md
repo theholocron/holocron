@@ -7,7 +7,7 @@
 1Password plugin for [Holocron](../cli). Implements the `vault`
 capability via shell-out to the `op` CLI
 (<https://developer.1password.com/docs/cli>). Also exports
-`verifyToken` + `AUTH_HINT` for use by `holocron auth`.
+`verifyToken` + `AUTH_HINT` for use by `holocron check token`.
 
 ## One of several vault providers
 
@@ -94,9 +94,9 @@ its own auth via the 1Password desktop app (biometric unlock on
 laptops) or `OP_SERVICE_ACCOUNT_TOKEN` on CI. `holocron new token
 1password` will accept a token, but since the plugin doesn't read
 the keyring, storing one has no runtime effect. The `AUTH_HINT`
-export makes this explicit in `holocron auth` output.
+export makes this explicit in `holocron check token` output.
 
-`holocron auth check 1password` runs `op whoami --format=json` to
+`holocron check token 1password` runs `op whoami --format=json` to
 confirm you're signed in — a useful validation independent of
 holocron.
 

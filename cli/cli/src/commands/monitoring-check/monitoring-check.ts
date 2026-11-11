@@ -1,5 +1,5 @@
 /**
- * `holocron monitoring check <url>` — runs every configured `monitoring`
+ * `holocron check monitor <url>` — runs every configured `monitoring`
  * check against an arbitrary URL instead of each check's own configured
  * one (holocron#1010).
  *
@@ -43,7 +43,7 @@ import type { MonitoringCheckReport, MonitoringCheckSummary } from "./monitoring
 
 /**
  * Loads config/plugins and returns the configured `monitoring` checks —
- * the untrusted half of `monitoring check`. Executes a PR's own
+ * the untrusted half of `check monitor`. Executes a PR's own
  * `holocron.config.ts` (and whatever it imports); never run this with a
  * credential in the process environment that a malicious config could
  * read and exfiltrate.
@@ -51,7 +51,7 @@ import type { MonitoringCheckReport, MonitoringCheckSummary } from "./monitoring
 export async function resolveMonitoringChecks(input: ResolveMonitoringChecksInput): Promise<MonitoringCheckInput[]> {
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "monitoring check");
+	assertPluginsResolvable(loader, "check monitor");
 
 	// `get()` re-surfaces the monitoring provider's own load error (a bad
 	// token, a constructor throw, …) when it was configured but failed to
@@ -63,7 +63,7 @@ export async function resolveMonitoringChecks(input: ResolveMonitoringChecksInpu
 
 /**
  * Runs an already-resolved check list against `url` and reports
- * pass/fail — the trusted half of `monitoring check`. Takes plain data,
+ * pass/fail — the trusted half of `check monitor`. Takes plain data,
  * never touches `holocron.config.ts` or any plugin: safe to run with a
  * credential (in `headers` or elsewhere in the process env) present.
  */
@@ -72,12 +72,12 @@ export async function reportChecks(input: ReportChecksInput): Promise<Monitoring
 	const logger = input.logger ?? getLogger();
 	const run = input.runCheck ?? runCheckAgainstUrl;
 
-	print(`Holocron monitoring check — against ${input.url}`);
+	print(`Holocron check monitor — against ${input.url}`);
 
 	if (input.checks.length === 0) {
 		const message = "no monitoring checks configured — nothing to validate";
 		print(`✗ ${message}`);
-		logger.warn({ url: input.url }, "monitoring check: no checks configured");
+		logger.warn({ url: input.url }, "check monitor: no checks configured");
 		return { status: "fail", checks: [] };
 	}
 
@@ -100,7 +100,7 @@ export async function reportChecks(input: ReportChecksInput): Promise<Monitoring
 	const failCount = checks.filter((c) => !c.passed).length;
 	const status = failCount === 0 ? "ok" : "fail";
 	print(`${status === "ok" ? "✓" : "✗"} ${checks.length - failCount} passed, ${failCount} failed`);
-	logger.info({ url: input.url, total: checks.length, failed: failCount, status }, "monitoring check: done");
+	logger.info({ url: input.url, total: checks.length, failed: failCount, status }, "check monitor: done");
 	return { status, checks };
 }
 

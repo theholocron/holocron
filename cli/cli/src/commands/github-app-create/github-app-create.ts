@@ -1,6 +1,6 @@
 /**
  * `holocron new github-app` — create a GitHub App from a manifest (GitHub's manifest flow), and keep its
- * credentials in the private `.holocron/.private/.credentials` file `auth export` uses, to import into a credentials environment.
+ * credentials in the private `.holocron/.private/.credentials` file `export tokens` uses, to import into a credentials environment.
  *
  * The flow has one click in it that cannot be done for you: a local page posts the manifest to GitHub, you press
  * "Create GitHub App", GitHub redirects back to a one-shot server on the loopback address with a code, and the code is

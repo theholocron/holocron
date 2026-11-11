@@ -15,7 +15,7 @@ export function render(inputs: TemplateInputs): string {
  *
  * Implements the \`${inputs.capability}\` capability against ${inputs.vendorName}'s
  * REST API. Also exports \`verifyToken\` + \`AUTH_HINT\` for
- * \`holocron auth\`. See README for auth + config docs.
+ * \`holocron check token\`. See README for auth + config docs.
  *
  * TODO: once you fill in the ${inputs.capabilityClass} methods and add
  * \`implements ${capabilityInterface}\` to the class, add the type import:

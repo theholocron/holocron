@@ -3,7 +3,7 @@
  *
  * Implements the `deployment` capability against Netlify's REST API via
  * `@theholocron/netlify-client`. Also exports `verifyToken` + `AUTH_HINT`
- * for `holocron auth`. See README for auth + config docs.
+ * for `holocron check token`. See README for auth + config docs.
  */
 
 import type { Deployment } from "@theholocron/cli";

@@ -10,18 +10,18 @@ import { LOG_LEVELS } from "@theholocron/observability/core";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { authCommand } from "../commands/auth/auth.command.js";
+import { checkCommand } from "../commands/check/index.js";
 import { cloneCommand } from "../commands/clone/clone.command.js";
 import { configShowCommand } from "../commands/config-show/index.js";
 import { commandsInContext } from "../commands/contexts/index.js";
 import { deployCommand } from "../commands/deploy/deploy.command.js";
 import { devCommand } from "../commands/dev/index.js";
 import { doctorCommand } from "../commands/doctor/index.js";
+import { exportCommand } from "../commands/export/index.js";
 import { ideasCommand } from "../commands/ideas/index.js";
 import { listCommand } from "../commands/list/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
 import { migrateCommand } from "../commands/migrate/index.js";
-import { monitoringCommand } from "../commands/monitoring/monitoring.command.js";
 import { newCommand } from "../commands/new/new.command.js";
 import { notificationsCommand } from "../commands/notifications/notifications.command.js";
 import { packageCommand } from "../commands/package/package.command.js";
@@ -30,6 +30,7 @@ import { projectCommand } from "../commands/project/index.js";
 import { providerCommand } from "../commands/provider/index.js";
 import { removeCommand } from "../commands/remove/index.js";
 import { repoCommand } from "../commands/repo/repo.command.js";
+import { resolveCommand } from "../commands/resolve/index.js";
 import { runCommand } from "../commands/run/run.command.js";
 import { secretsCommand } from "../commands/secrets/secrets.command.js";
 import { skillsCommand } from "../commands/skills/index.js";
@@ -145,7 +146,8 @@ try {
 		.command(skillsCommand as never)
 		.command(runCommand as never)
 		.command(configShowCommand as never)
-		.command(authCommand as never)
+		.command(checkCommand as never)
+		.command(exportCommand as never)
 		.command(menuCommand(CLI_VERSION) as never)
 		.command(repoCommand as never)
 		.command(newCommand as never)
@@ -163,7 +165,7 @@ try {
 		.command(ideasCommand as never)
 		.command(packageCommand as never)
 		.command(deployCommand as never)
-		.command(monitoringCommand as never)
+		.command(resolveCommand as never)
 		.command(projectCommand as never)
 		.strict()
 		.help()

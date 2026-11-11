@@ -20,14 +20,14 @@ export const COMMAND_CONTEXTS = {
 	"new token": "global",
 	"remove token": "global",
 	"list tokens": "global",
-	// `auth export` asks the configured plugins for the tokens they take, so their packages must be resolvable.
-	"auth export": "workspace",
+	// `export tokens` asks the configured plugins for the tokens they take, so their packages must be resolvable.
+	"export tokens": "workspace",
 	// `new github-app` talks to GitHub through the browser and a one-shot local server: no plugin is involved.
 	"new github-app": "global",
-	// `auth check` loads a plugin to verify, but degrades to "token present,
+	// `check token` loads a plugin to verify, but degrades to "token present,
 	// verification skipped" when the plugin isn't resolvable — so it's usable
 	// from a global install. See `runAuthCheck`.
-	"auth check": "global",
+	"check token": "global",
 	"package bump-versions": "global",
 	"package move-tag": "global",
 	"package publish": "global",
@@ -108,12 +108,12 @@ export const COMMAND_CONTEXTS = {
 	provider: "workspace",
 	deploy: "workspace",
 	"deploy cleanup-preview": "workspace",
-	"monitoring check": "workspace",
-	"monitoring resolve-checks": "workspace",
+	"check monitor": "workspace",
+	"resolve checks": "workspace",
 	// Reads an already-resolved checks file + a plain URL — no
 	// holocron.config.ts, no plugins at all (holocron#1030/#1032's
 	// delivery.previewCheck split).
-	"monitoring run-resolved": "global",
+	"check resolved": "global",
 	"repo sync": "workspace",
 	"repo cleanup branches": "workspace",
 	// Pushes generated templates to theholocron/.github — needs the holocron

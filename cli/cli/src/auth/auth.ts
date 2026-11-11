@@ -3,7 +3,7 @@
  * it. Both are public, so a plugin's `src/auth.ts` is a one-line call.
  *
  * The keyring itself, with its best-effort failure model and its per-process cache, is `createKeyring` in
- * `@theholocron/kyber/secrets`; this file only names the service. Managed via `holocron auth` subcommands and consulted
+ * `@theholocron/kyber/secrets`; this file only names the service. Managed via `holocron check token` subcommands and consulted
  * last in every plugin's precedence chain (after --token / HOLOCRON_<X>_TOKEN / <native>_TOKEN). See
  * `docs/wiki/specifications/tech-auth-bootstrap.spec.md`.
  */

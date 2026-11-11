@@ -24,7 +24,7 @@ function configuredTeamId(resolved: Pick<ResolvedHolocronConfig, "providers"> | 
  * plugin's own `HOLOCRON_VERCEL_TOKEN` / `VERCEL_TOKEN` pair already uses. A value that
  * is not set is left out, so the result spreads straight into the input of `resolveVercelBypassHeaders`.
  *
- * @param resolved - The loaded config, when the command has one. `monitoring run-resolved` loads none.
+ * @param resolved - The loaded config, when the command has one. `check resolved` loads none.
  * @param env - The environment to read. Default `process.env`; a test passes its own.
  */
 export function resolveVercelCredentials(
