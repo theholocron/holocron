@@ -1,3 +1,17 @@
+## [5.0.0-alpha.415](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.414...v5.0.0-alpha.415) (2026-11-11)
+
+### Features
+
+* **config:** 🔑 name a layer, not a 1Password Environment, in the config ([#2072](https://github.com/theholocron/holocron/issues/2072)) ([78614d7](https://github.com/theholocron/holocron/commit/78614d7edf7bf95ac1781f124623174aca144397)), closes [#2069](https://github.com/theholocron/holocron/issues/2069)
+
+### Documentation
+
+* **sentinel:** 📝 use measure:docs and measure:bundle in the check-names spec ([#2074](https://github.com/theholocron/holocron/issues/2074)) ([f063ae9](https://github.com/theholocron/holocron/commit/f063ae93f9d43487e46bad76a5b89a2d12843662)), closes [#2036](https://github.com/theholocron/holocron/issues/2036) [#2070](https://github.com/theholocron/holocron/issues/2070)
+
+### Chores
+
+* **specs:** 🔧 🔄 sync spec discussions ([#2075](https://github.com/theholocron/holocron/issues/2075)) ([08cf20b](https://github.com/theholocron/holocron/commit/08cf20b7d352433878a9d0b1a9112f144717dab3))
+
 ## [5.0.0-alpha.414](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.413...v5.0.0-alpha.414) (2026-11-11)
 
 ### Refactoring
