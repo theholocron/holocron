@@ -557,7 +557,9 @@ export interface Ci extends ProviderIdentity {
 
 /** An organization scope, with who can read what is written there. */
 export interface OrganizationSecretScope {
+	/** Always `organization`. */
 	kind: "organization";
+	/** The organization's login. */
 	name: string;
 	/**
 	 * Who can read the secret. `selected` needs `repos`. Left out, the provider keeps its older default (every
