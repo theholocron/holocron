@@ -1,6 +1,6 @@
 /**
  * `verifyToken` — plugin-level export used by `holocron new token` +
- * `holocron auth check`. Hits `GET /v2/user` and translates the
+ * `holocron check token`. Hits `GET /v2/user` and translates the
  * response into the normalized `VerifyTokenResult` shape.
  */
 

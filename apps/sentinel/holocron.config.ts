@@ -23,7 +23,7 @@
  *     `deployFunction()`, a bare file upload — so this creates the
  *     GitHub Deployment + `deployment_status` itself, same move
  *     `theholocron/.github`'s Cloudflare-Pages preview workflow already
- *     makes), then runs `holocron monitoring check` against that PR's
+ *     makes), then runs `holocron check monitor` against that PR's
  *     own preview URL instead of production — see the `monitoring`
  *     provider comment below for why this exists. Both tasks flow
  *     through the normal `holocron repo sync`-generated workflow path

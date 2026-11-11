@@ -7,7 +7,7 @@ export function render(inputs: TemplateInputs): string {
 			{
 				name: `@theholocron/holocron-plugin-${inputs.slug}`,
 				version: "2.0.0-alpha.1",
-				description: `Holocron plugin for ${inputs.vendorName}. Implements the ${inputs.capability} capability against ${inputs.vendorName}'s REST API, plus exports verifyToken + AUTH_HINT for \`holocron auth\`.`,
+				description: `Holocron plugin for ${inputs.vendorName}. Implements the ${inputs.capability} capability against ${inputs.vendorName}'s REST API, plus exports verifyToken + AUTH_HINT for \`holocron check token\`.`,
 				keywords,
 				homepage: `https://github.com/theholocron/holocron/tree/main/plugins/holocron-plugin-${inputs.slug}#readme`,
 				bugs: "https://github.com/theholocron/holocron/issues",

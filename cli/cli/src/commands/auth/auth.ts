@@ -1,11 +1,10 @@
 /**
- * `holocron auth <subcommand>` — manage bootstrap credentials in the
- * OS keyring.
+ * The token commands — manage bootstrap credentials in the OS keyring.
  *
- * Subcommands:
+ * Commands:
  *   new token <provider> [token]   verify + store
  *   remove token <provider>         remove
- *   auth check <provider>         re-verify a stored token
+ *   check token <provider>         re-verify a stored token
  *   list tokens                     every provider with a stored entry
  *
  * See `docs/wiki/specifications/tech-auth-bootstrap.spec.md`.
@@ -143,7 +142,9 @@ export async function runAuthSet(input: RunAuthSetInput): Promise<AuthCommandSta
 			const msg = errorMessage(err);
 			print(style.warn(`cannot verify token — failed to load ${packageName}: ${msg}`));
 			print(
-				style.hint(`  storing token anyway; run 'holocron auth check ${provider}' once the plugin is installed`)
+				style.hint(
+					`  storing token anyway; run 'holocron check token ${provider}' once the plugin is installed`
+				)
 			);
 		}
 	}
@@ -196,7 +197,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	const token = keyring.get(keyringKey);
 	if (!token) {
 		print(style.dim(`no stored token for ${keyringKey}`));
-		logger.info({ provider, keyringKey, status: "skip", reason: "no stored token" }, `auth check: ${keyringKey}`);
+		logger.info({ provider, keyringKey, status: "skip", reason: "no stored token" }, `check token: ${keyringKey}`);
 		return { status: "skip", message: "no stored token" };
 	}
 
@@ -220,7 +221,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 			print(style.success(`${keyringKey}: ok — ${verified.subject}`));
 			logger.info(
 				{ provider, keyringKey, verified: true, subject: verified.subject, status: "ok" },
-				`auth check: ${keyringKey}`
+				`check token: ${keyringKey}`
 			);
 			return { status: "ok", message: verified.subject };
 		}
@@ -228,25 +229,25 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 		if (module.AUTH_HINT) print(style.hint(`  hint: ${module.AUTH_HINT}`));
 		logger.warn(
 			{ provider, keyringKey, verified: false, reason: verified.message, status: "fail" },
-			`auth check: ${keyringKey}`
+			`check token: ${keyringKey}`
 		);
 		return { status: "fail", message: verified.message };
 	} catch (err) {
 		const msg = errorMessage(err);
 		// Global install: the plugin package isn't resolvable here. `new token` /
-		// `list tokens` already work plugin-free — `auth check` degrades to the
+		// `list tokens` already work plugin-free — `check token` degrades to the
 		// same "we have a token, we just can't confirm it" report rather than
 		// failing outright (theholocron/holocron#576).
 		if (isModuleNotFound(err)) {
 			print(style.warn(`${keyringKey}: token present — verification skipped (plugin not available here)`));
 			logger.info(
 				{ provider, keyringKey, status: "ok", reason: "plugin not resolvable" },
-				`auth check: ${keyringKey}`
+				`check token: ${keyringKey}`
 			);
 			return { status: "ok", message: "stored, unverified (plugin not available)" };
 		}
 		print(style.fail(`${keyringKey}: cannot verify — ${msg}`));
-		logger.warn({ provider, keyringKey, reason: msg, status: "fail" }, `auth check: ${keyringKey}`);
+		logger.warn({ provider, keyringKey, reason: msg, status: "fail" }, `check token: ${keyringKey}`);
 		return { status: "fail", message: msg };
 	}
 }

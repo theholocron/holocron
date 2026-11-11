@@ -417,12 +417,12 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		expect(releaseJob.split("\n  deploy:")[0]).not.toContain("VERCEL_TOKEN: ${{");
 	});
 
-	it("delivery.previewCheck runs `holocron monitoring resolve-checks` then `monitoring run-resolved` with the preview URL input", () => {
+	it("delivery.previewCheck runs `holocron resolve checks` then `check resolved` with the preview URL input", () => {
 		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		expect(previewCheck).toContain("workflow_call:");
 		expect(previewCheck).toMatch(/preview-url:\s*\n\s*description:/);
-		expect(previewCheck).toContain("command: monitoring resolve-checks");
-		expect(previewCheck).toContain("command: monitoring run-resolved");
+		expect(previewCheck).toContain("command: resolve checks");
+		expect(previewCheck).toContain("command: check resolved");
 		expect(previewCheck).toContain(
 			"args: --checks-file=${{ runner.temp }}/monitoring-checks.json --vercel-project=${{ inputs.vercel-project }} ${{ steps.validate.outputs.url }}"
 		);
@@ -439,9 +439,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// before the monitoring-resolve-checks/run-resolved steps (which
 		// forward steps.validate.outputs.url, never the raw input) ever run.
 		expect(previewCheck).toMatch(/id: validate[\s\S]*hostname[\s\S]*\.vercel\.app/);
-		expect(previewCheck.indexOf("id: validate")).toBeLessThan(
-			previewCheck.indexOf("command: monitoring resolve-checks")
-		);
+		expect(previewCheck.indexOf("id: validate")).toBeLessThan(previewCheck.indexOf("command: resolve checks"));
 		expect(previewCheck).not.toContain("args: --cwd=${{ inputs.cwd }} ${{ inputs.preview-url }}");
 	});
 
@@ -463,10 +461,10 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// untrusted. It must come first and must never see either secret,
 		// or a malicious config could read and exfiltrate them before the
 		// credentialed step ever runs.
-		expect(previewCheck).toContain("command: monitoring resolve-checks");
-		expect(previewCheck).toContain("command: monitoring run-resolved");
-		const resolveIndex = previewCheck.indexOf("command: monitoring resolve-checks");
-		const runResolvedIndex = previewCheck.indexOf("command: monitoring run-resolved");
+		expect(previewCheck).toContain("command: resolve checks");
+		expect(previewCheck).toContain("command: check resolved");
+		const resolveIndex = previewCheck.indexOf("command: resolve checks");
+		const runResolvedIndex = previewCheck.indexOf("command: check resolved");
 		expect(resolveIndex).toBeGreaterThan(-1);
 		expect(resolveIndex).toBeLessThan(runResolvedIndex);
 
@@ -475,8 +473,8 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// `resolveIndex`'s containing step happens not to mention the
 		// secrets anywhere textually after it.
 		const steps = previewCheck.split(/\n(?= {6}- )/);
-		const resolveStep = steps.find((s) => s.includes("command: monitoring resolve-checks"));
-		const runResolvedStep = steps.find((s) => s.includes("command: monitoring run-resolved"));
+		const resolveStep = steps.find((s) => s.includes("command: resolve checks"));
+		const runResolvedStep = steps.find((s) => s.includes("command: check resolved"));
 		expect(resolveStep).toBeDefined();
 		expect(runResolvedStep).toBeDefined();
 
@@ -509,7 +507,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		const previewCheck = REUSABLE_WORKFLOWS["check-preview"]!;
 		// Review on #1032: a bare *.vercel.app hostname proves nothing on its
 		// own -- anyone can register their own Vercel project. --vercel-project
-		// is what `monitoring run-resolved` gates the bypass header on (see
+		// is what `check resolved` gates the bypass header on (see
 		// packages/cli/src/commands/monitoring-run-resolved.ts); forwarding
 		// it is what makes that gate reachable at all from this workflow.
 		expect(previewCheck).toMatch(/vercel-project:\s*\n\s*description:/);
@@ -579,9 +577,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 		// monitoring-run-resolved.test.ts's "no Vercel token is
 		// available" case) -- rather than a trust-gated project id that
 		// would skip verification outright for an untrusted deployment.
-		const runResolvedStep = previewCheck
-			.split(/\n(?= {6}- )/)
-			.find((s) => s.includes("command: monitoring run-resolved"))!;
+		const runResolvedStep = previewCheck.split(/\n(?= {6}- )/).find((s) => s.includes("command: check resolved"))!;
 		expect(runResolvedStep).not.toMatch(/vercel-project=\$\{\{[^}]*trust[^}]*\}\}/);
 	});
 

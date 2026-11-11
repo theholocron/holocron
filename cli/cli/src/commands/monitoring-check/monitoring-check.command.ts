@@ -13,13 +13,13 @@ import { runMonitoringCheck } from "./index.js";
 import { type MonitoringCheckArgs, monitoringCheckArgs } from "./monitoring-check.args.js";
 
 export const monitoringCheckCommand: CommandModule<GlobalArgs, MonitoringCheckArgs> = {
-	command: "check <url>",
+	command: "monitor <url>",
 	describe: "Run every configured `monitoring` check against a given URL instead of its own configured url",
 	builder: monitoringCheckArgs,
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const [url] = await promptForPositionals(getEntry("monitoring check"), argv as Record<string, unknown>);
+		const [url] = await promptForPositionals(getEntry("check monitor"), argv as Record<string, unknown>);
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
 		// Deployment Protection (on by default for Vercel Preview
@@ -35,7 +35,7 @@ export const monitoringCheckCommand: CommandModule<GlobalArgs, MonitoringCheckAr
 		// on holocron#1032: a bare *.vercel.app hostname check proves
 		// nothing, since anyone can register their own Vercel
 		// project. This is the exact same gate `monitoring
-		// run-resolved` uses for the CI split.
+		// check resolved` uses for the CI split.
 		const { headers } = await resolveVercelBypassHeaders({
 			url: url!,
 			...(argv.vercelProject ? { vercelProject: argv.vercelProject as string } : {}),

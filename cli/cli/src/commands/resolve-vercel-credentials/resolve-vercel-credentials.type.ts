@@ -1,4 +1,4 @@
-/** The Vercel values `monitoring check` and `monitoring run-resolved` hand to `resolveVercelBypassHeaders`. */
+/** The Vercel values `check monitor` and `check resolved` hand to `resolveVercelBypassHeaders`. */
 export interface VercelCredentials {
 	/** Read-only token that verifies the deployment belongs to the expected project. */
 	vercelToken?: string;

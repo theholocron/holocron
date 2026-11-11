@@ -3,7 +3,7 @@ title: Plugin Overview
 description: How Holocron plugins work, how to configure them, and how to write your own.
 ---
 
-Plugins are the adapters between the Holocron CLI's capability interfaces and real provider APIs. Each plugin is an npm package that exports a `createPlugin` factory function along with optional `verifyToken` and `AUTH_HINT` exports used by `holocron auth`.
+Plugins are the adapters between the Holocron CLI's capability interfaces and real provider APIs. Each plugin is an npm package that exports a `createPlugin` factory function along with optional `verifyToken` and `AUTH_HINT` exports used by `holocron check token`.
 
 ## How plugins are loaded
 

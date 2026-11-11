@@ -1,10 +1,10 @@
 ---
-title: "monitoring check"
+title: "check monitor"
 description: Run every configured monitoring check against a URL, such as a PR's preview deployment.
 ---
 
 ```bash
-holocron monitoring check <url> [--vercel-project <id|name>]
+holocron check monitor <url> [--vercel-project <id|name>]
 ```
 
 Runs every configured `monitoring` check against `<url>` instead of each check's own configured `url`. It makes no vendor API call: it is a plain HTTP request evaluated locally against the same `assertions` already in `holocron.config.ts`.
@@ -31,4 +31,4 @@ export default defineConfig({
 });
 ```
 
-This command loads the config and plugins in one process. A workflow that runs a pull request's own `holocron.config.ts` should use the two-step form instead: [`monitoring resolve-checks`](/holocron/commands/monitoring-resolve-checks/), then [`monitoring run-resolved`](/holocron/commands/monitoring-run-resolved/).
+This command loads the config and plugins in one process. A workflow that runs a pull request's own `holocron.config.ts` should use the two-step form instead: [`resolve checks`](/holocron/commands/resolve-checks/), then [`check resolved`](/holocron/commands/check-resolved/).

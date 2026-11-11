@@ -2,7 +2,7 @@
  * `@theholocron/holocron-plugin-axiom` — entrypoint.
  *
  * Implements the `logs` capability against Axiom's REST API. Also
- * exports `verifyToken` + `AUTH_HINT` for `holocron auth`. See README
+ * exports `verifyToken` + `AUTH_HINT` for `holocron check token`. See README
  * for auth + config docs.
  */
 

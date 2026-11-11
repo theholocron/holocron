@@ -7,11 +7,11 @@ import { type AuthCheckArgs, authCheckArgs } from "./auth-check.args.js";
 import { runAuthCheck } from "./index.js";
 
 export const authCheckCommand: CommandModule<GlobalArgs, AuthCheckArgs> = {
-	command: "check [provider]",
+	command: "token [provider]",
 	describe: "Re-verify a stored bootstrap token",
 	builder: authCheckArgs,
 	handler: async (argv) => {
-		const [provider] = await promptForPositionals(getEntry("auth check"), argv as Record<string, unknown>);
+		const [provider] = await promptForPositionals(getEntry("check token"), argv as Record<string, unknown>);
 		const result = await runAuthCheck({
 			provider: provider!,
 			...(argv.org ? { org: argv.org as string } : {}),

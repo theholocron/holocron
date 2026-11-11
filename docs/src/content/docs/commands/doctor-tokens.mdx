@@ -50,4 +50,4 @@ The `check-tokens` task runs this check daily from CI (a generated `.github/work
 - **What a token may do.** GitHub does not return a fine-grained token's permissions, so "has the permissions the token reference lists" cannot be read back. A token can be accepted here and still be refused by an operation it lacks a permission for.
 - **1Password.** It uses the `op` CLI's own sign-in and lists no token. A plugin without a `verifyToken` (Fern) shows its token as set, not as accepted.
 
-Related: [`auth check`](/holocron/commands/auth-check/), [`list tokens`](/holocron/commands/list-tokens/), [`doctor variables`](/holocron/commands/doctor-variables/).
+Related: [`check token`](/holocron/commands/check-token/), [`list tokens`](/holocron/commands/list-tokens/), [`doctor variables`](/holocron/commands/doctor-variables/).

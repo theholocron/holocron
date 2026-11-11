@@ -66,11 +66,11 @@ Each variable in the Environment is named for the env var the command already re
 
 ### Moving the tokens you already have
 
-`op` cannot set a variable, so the Environment is filled in the 1Password app. To get tokens that are already in the keyring there without copying each by hand, [`holocron auth export`](/holocron/commands/auth-export/) writes them as `NAME=value` lines, named for the env vars the plugins read, to a private file the app can import:
+`op` cannot set a variable, so the Environment is filled in the 1Password app. To get tokens that are already in the keyring there without copying each by hand, [`holocron export tokens`](/holocron/commands/export-tokens/) writes them as `NAME=value` lines, named for the env vars the plugins read, to a private file the app can import:
 
 ```sh
-holocron auth export             # the keyring, to .credentials
-holocron auth export --from-env  # also what is set in this shell
+holocron export tokens             # the keyring, to .credentials
+holocron export tokens --from-env  # also what is set in this shell
 ```
 
 In the app: Developer, View Environments, the Environment (`theholocron/holocron - dev`), **Import .env file**, and choose `.credentials`. Back in the terminal, press Enter and the file is overwritten and deleted. It is created readable by you alone, refused unless git ignores it, never overwrites a file, and is deleted on Ctrl-C too, so the plain text exists only for the minutes the import takes. Then run `holocron doctor credentials` to see what is still missing. Piped, the command writes the lines to stdout instead; `--copy` puts them on the clipboard.
@@ -258,7 +258,7 @@ security find-generic-password -s "com.theholocron.cli" -a "github.admin" -w
 Verify, remove, or list stored tokens:
 
 ```bash
-holocron auth check github.admin
+holocron check token github.admin
 holocron remove token github.read
 holocron list tokens
 ```

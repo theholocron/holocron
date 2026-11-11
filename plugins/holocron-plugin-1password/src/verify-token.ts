@@ -1,5 +1,5 @@
 /**
- * `verifyToken` — plugin-level export used by `holocron auth check`.
+ * `verifyToken` — plugin-level export used by `holocron check token`.
  *
  * 1Password doesn't use a bearer token like the REST-transport plugins
  * do — the `op` CLI manages its own auth via desktop-app biometric on

@@ -42,15 +42,15 @@ workspace/local-install model (plugins as devDependencies, `overrides:`
 collapsing `@theholocron/http-client` to one version) stays. This is only about
 failing clearly.
 
-## `auth check` degrades
+## `check token` degrades
 
-`auth check <provider>` normally loads the provider plugin to verify the stored
+`check token <provider>` normally loads the provider plugin to verify the stored
 token. From a global install the plugin isn't there, so it degrades to a
 report rather than an error — the same way `new token` / `list tokens` already
 work plugin-free:
 
 ```
-$ holocron auth check vercel
+$ holocron check token vercel
 vercel: token present — verification skipped (plugin not available here)
 ```
 

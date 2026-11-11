@@ -31,10 +31,11 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { resolveCommand } from "../resolve/resolve.command.js";
 import { runCommand } from "../run-command.testing.js";
-import { monitoringCommand } from "./monitoring.command.js";
+import { checkCommand } from "./check.command.js";
 
-const go = (args: string[]) => runCommand(monitoringCommand, args);
+const go = (args: string[]) => runCommand(args[0] === "resolve" ? resolveCommand : checkCommand, args);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -49,12 +50,12 @@ afterEach(() => {
 	vi.unstubAllEnvs();
 });
 
-describe("monitoring check", () => {
+describe("check monitor", () => {
 	it("checks the url with the tokens, the org and the bypass headers", async () => {
 		vi.stubEnv("VERCEL_TOKEN", "vt");
 		vi.stubEnv("VERCEL_TEAM_ID", "team");
 		vi.stubEnv("VERCEL_PROTECTION_BYPASS_SECRET", "secret");
-		await go(["monitoring", "check", "https://x.test", "--vercel-project", "web"]);
+		await go(["check", "monitor", "https://x.test", "--vercel-project", "web"]);
 		expect(resolveVercelBypassHeaders).toHaveBeenCalledWith({
 			url: "https://x.test",
 			vercelProject: "web",
@@ -73,7 +74,7 @@ describe("monitoring check", () => {
 		for (const k of ["VERCEL_TOKEN", "VERCEL_TEAM_ID", "VERCEL_PROTECTION_BYPASS_SECRET"]) vi.stubEnv(k, "");
 		resolveVercelBypassHeaders.mockResolvedValue({});
 		runMonitoringCheck.mockResolvedValue({ status: "fail" });
-		await go(["monitoring", "check", "https://x.test"]);
+		await go(["check", "monitor", "https://x.test"]);
 		expect(resolveVercelBypassHeaders).toHaveBeenCalledWith({ url: "https://x.test" });
 		expect("headers" in runMonitoringCheck.mock.calls[0]![0]).toBe(false);
 		expect(process.exitCode).toBe(1);
@@ -81,14 +82,14 @@ describe("monitoring check", () => {
 
 	it("stops when --token cannot be parsed", async () => {
 		tokenContext.mockReturnValue(null);
-		await go(["monitoring", "check", "https://x.test"]);
+		await go(["check", "monitor", "https://x.test"]);
 		expect(runMonitoringCheck).not.toHaveBeenCalled();
 	});
 });
 
-describe("monitoring resolve-checks", () => {
+describe("resolve checks", () => {
 	it("writes the resolved checks to --out", async () => {
-		await go(["monitoring", "resolve-checks", "--out", "/tmp/checks.json"]);
+		await go(["resolve", "checks", "--out", "/tmp/checks.json"]);
 		expect(runMonitoringResolveChecks.mock.calls[0]![0]).toMatchObject({
 			outFile: "/tmp/checks.json",
 			context: { cliToken: "t", org: "acme" },
@@ -97,26 +98,18 @@ describe("monitoring resolve-checks", () => {
 
 	it("stops when --token cannot be parsed", async () => {
 		tokenContext.mockReturnValue(null);
-		await go(["monitoring", "resolve-checks", "--out", "/tmp/checks.json"]);
+		await go(["resolve", "checks", "--out", "/tmp/checks.json"]);
 		expect(runMonitoringResolveChecks).not.toHaveBeenCalled();
 	});
 });
 
-describe("monitoring run-resolved", () => {
+describe("check resolved", () => {
 	it("runs the resolved checks from a file against the url, with the Vercel details from the environment", async () => {
 		readFileSync.mockReturnValue(JSON.stringify([{ name: "home" }]));
 		vi.stubEnv("VERCEL_TOKEN", "vt");
 		vi.stubEnv("VERCEL_TEAM_ID", "team");
 		vi.stubEnv("VERCEL_PROTECTION_BYPASS_SECRET", "secret");
-		await go([
-			"monitoring",
-			"run-resolved",
-			"https://x.test",
-			"--checks-file",
-			"c.json",
-			"--vercel-project",
-			"web",
-		]);
+		await go(["check", "resolved", "https://x.test", "--checks-file", "c.json", "--vercel-project", "web"]);
 		expect(runMonitoringRunResolved).toHaveBeenCalledWith({
 			checks: [{ name: "home" }],
 			url: "https://x.test",
@@ -131,19 +124,19 @@ describe("monitoring run-resolved", () => {
 		readFileSync.mockReturnValue("[]");
 		for (const k of ["VERCEL_TOKEN", "VERCEL_TEAM_ID", "VERCEL_PROTECTION_BYPASS_SECRET"]) vi.stubEnv(k, "");
 		runMonitoringRunResolved.mockResolvedValue({ status: "fail" });
-		await go(["monitoring", "run-resolved", "https://x.test", "--checks-file", "c.json"]);
+		await go(["check", "resolved", "https://x.test", "--checks-file", "c.json"]);
 		expect(runMonitoringRunResolved).toHaveBeenCalledWith({ checks: [], url: "https://x.test" });
 		expect(process.exitCode).toBe(1);
 	});
 });
 
-describe("monitoring", () => {
-	it("a bare `monitoring` opens the menu of its subcommands", async () => {
-		await go(["monitoring"]);
+describe("check", () => {
+	it("a bare `check` opens the menu of its subcommands", async () => {
+		await go(["check"]);
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			expect.objectContaining({ pickMessage: "monitoring — choose a subcommand:", startPath: ["monitoring"] })
+			expect.objectContaining({ pickMessage: "check — choose a subcommand:", startPath: ["check"] })
 		);
 	});
 });

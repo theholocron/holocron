@@ -1,27 +1,28 @@
 ---
-title: "auth export"
+title: "export tokens"
 description: Write the tokens in the keyring as NAME=value lines to a private, short-lived file, to import them into a credentials environment.
 ---
 
 ```bash
-holocron auth export
-holocron auth export --from-env
-holocron auth export --only HOLOCRON_SENTRY_TOKEN
+holocron export tokens
+holocron export tokens --from-env
+holocron export tokens --only HOLOCRON_SENTRY_TOKEN
+holocron export tokens HOLOCRON_SENTRY_TOKEN sentry.comlink
 ```
 
 Writes each token a configured plugin takes as a `NAME=value` line, to import them into a [credentials environment](/holocron/tokens/#credentials-providers). The CLI cannot write to a 1Password Environment (`op` has no command that sets a variable), so the last step is the app: open the Environment, **Import .env file**, and choose the file this command wrote. The import reads the file line by line, so every token lands as its own variable (pasting the same text into one field does not).
 
-`--only <name>` exports only that token (repeat it for more). A token is named by its variable name (`HOLOCRON_SENTRY_TOKEN`), the vendor's own name (`SENTRY_AUTH_TOKEN`) or its keyring entry (`sentry.comlink`); a name that matches nothing is refused, with the names there are. On a terminal it goes to the clipboard instead of the file, since a value is for pasting: for one token the clipboard holds the value alone, with no name and no line break (the name is printed in the list), and for several it holds `NAME=value` lines. Clear the clipboard afterwards; `--file` and a pipe still work as they do for the whole set. This is how to get one token out of the keyring without `security find-generic-password`.
+Names after `tokens` (or `--only <name>`, repeated) export only those tokens; both together are one list. A token is named by its variable name (`HOLOCRON_SENTRY_TOKEN`), the vendor's own name (`SENTRY_AUTH_TOKEN`) or its keyring entry (`sentry.comlink`); a name that matches nothing is refused, with the names there are. On a terminal it goes to the clipboard instead of the file, since a value is for pasting: for one token the clipboard holds the value alone, with no name and no line break (the name is printed in the list), and for several it holds `NAME=value` lines. Clear the clipboard afterwards; `--file` and a pipe still work as they do for the whole set. This is how to get one token out of the keyring without `security find-generic-password`.
 
 ## An environment with variables you have not got yet
 
 `--blank` writes a name with no stored value as `NAME=""` instead of leaving it out, and lets `--only` name a variable that is no token at all (also written empty). `NAME=value` writes a setting as given (it is read from nowhere, so use it for a name or a flag, never a secret). `--vendor-names` writes a token under the vendor's own name (`SENTRY_AUTH_TOKEN`, `VERCEL_TOKEN`, `CLOUDFLARE_API_TOKEN`) instead of the Holocron one, which is what a workflow reads. Import the file and every variable the environment needs exists: the ones the keyring had are filled, the rest are empty, ready to be filled in.
 
 ```bash
-holocron auth export --blank --vendor-names --file \
+holocron export tokens --blank --vendor-names --file \
   --only HOLOCRON_ADMIN_TOKEN --only HOLOCRON_ORG_TOKEN --only HOLOCRON_READ_TOKEN --only VERCEL_TOKEN \
   --only HOLOCRON_RELEASE_TOKEN --only SENTINEL_OP_SERVICE_ACCOUNT_TOKEN   # and so on
-holocron auth export --file --only ENVIRONMENT=prod                        # a setting for the Sentinel environment
+holocron export tokens --file --only ENVIRONMENT=prod                        # a setting for the Sentinel environment
 ```
 
 A name that no plugin configured in this directory lists is written empty with `--blank`, even when the keyring has a value under it: run it from a directory whose `holocron.config` has the plugins (the repo root has most).
@@ -65,11 +66,11 @@ There is no encrypted form that would help. The point of the file is for 1Passwo
 
 ## Other destinations
 
-| Where stdout is | What happens                                                                                                                      |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| a terminal      | the lines go to the private file above, and nothing is printed                                                                    |
-| a pipe          | the lines are written to stdout: `holocron auth export \| some-tool`                                                              |
-| a regular file  | refused (`holocron auth export > tokens.env`): it would leave the tokens on disk with none of the protections above. Use `--file` |
+| Where stdout is | What happens                                                                                                                        |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| a terminal      | the lines go to the private file above, and nothing is printed                                                                      |
+| a pipe          | the lines are written to stdout: `holocron export tokens \| some-tool`                                                              |
+| a regular file  | refused (`holocron export tokens > tokens.env`): it would leave the tokens on disk with none of the protections above. Use `--file` |
 
 `--copy` puts the lines on the clipboard instead, with [`clipboardy`](https://github.com/sindresorhus/clipboardy) (`pbcopy`, `xclip` or `wl-copy`, `clip`). Clear the clipboard after pasting. A multi-line paste lands in one field in some apps, which is why the file is the default.
 

@@ -36,7 +36,7 @@ describe("COMMAND_REGISTRY", () => {
 	});
 
 	it("covers every command on the documented surface, except run (dynamically merged in), the hook-only one, and the CI-only ones", () => {
-		// `monitoring resolve-checks`/`monitoring run-resolved`
+		// `resolve checks`/`check resolved`
 		// (holocron#1030/#1032) are the two halves of the
 		// delivery.previewCheck split -- meant for CI, not a human
 		// navigating `holocron monitoring` interactively. Neither calls
@@ -49,8 +49,8 @@ describe("COMMAND_REGISTRY", () => {
 			"dev",
 			"dev serve",
 			"run lint commit-msg",
-			"monitoring resolve-checks",
-			"monitoring run-resolved",
+			"resolve checks",
+			"check resolved",
 			"deploy stage",
 		]);
 		const missing = Object.keys(COMMAND_CONTEXTS)
@@ -76,7 +76,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 
 	it("the top level shows one row per first word, with groups opening a submenu", () => {
 		expect(valueOf("repo ›")).toBe("group:repo");
-		expect(valueOf("auth ›")).toBe("group:auth");
+		expect(valueOf("check ›")).toBe("group:check");
 		expect(valueOf("doctor ›")).toBe("group:doctor");
 		expect(names()).not.toContain("doctor");
 	});

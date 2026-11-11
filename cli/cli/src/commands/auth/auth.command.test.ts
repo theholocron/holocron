@@ -20,11 +20,11 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { checkCommand } from "../check/check.command.js";
 import { listCommand } from "../list/list.command.js";
 import { newCommand } from "../new/new.command.js";
 import { removeCommand } from "../remove/remove.command.js";
 import { runCommand } from "../run-command.testing.js";
-import { authCommand } from "./auth.command.js";
 import { authCheckCommand } from "./auth-check.command.js";
 import { authListCommand } from "./auth-list.command.js";
 import { authSetCommand } from "./auth-set.command.js";
@@ -76,11 +76,11 @@ describe("auth commands", () => {
 		expect(runAuthUnset).toHaveBeenCalledWith({ provider: "github" });
 	});
 
-	it("`auth check` re-verifies, passing the org, and exits 1 on failure", async () => {
-		await runCommand(authCommand, ["auth", "check", "github", "--org", "acme"]);
+	it("`check token` re-verifies, passing the org, and exits 1 on failure", async () => {
+		await runCommand(checkCommand, ["check", "token", "github", "--org", "acme"]);
 		expect(runAuthCheck).toHaveBeenCalledWith({ provider: "github", org: "acme" });
 		runAuthCheck.mockResolvedValueOnce({ status: "fail" });
-		await runCommand(authCommand, ["auth", "check", "github"]);
+		await runCommand(checkCommand, ["check", "token", "github"]);
 		expect(runAuthCheck).toHaveBeenLastCalledWith({ provider: "github" });
 		expect(process.exitCode).toBe(1);
 	});
@@ -90,12 +90,12 @@ describe("auth commands", () => {
 		expect(runAuthList).toHaveBeenCalled();
 	});
 
-	it("a bare `auth` opens the menu of its subcommands", async () => {
-		await runCommand(authCommand, ["auth"]);
+	it("a bare `check` opens the menu of its subcommands", async () => {
+		await runCommand(checkCommand, ["check"]);
 		expect(launchMenu).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.anything(),
-			expect.objectContaining({ pickMessage: "auth — choose a subcommand:", startPath: ["auth"] })
+			expect.objectContaining({ pickMessage: "check — choose a subcommand:", startPath: ["check"] })
 		);
 	});
 
@@ -103,7 +103,7 @@ describe("auth commands", () => {
 		expect([authSetCommand, authUnsetCommand, authCheckCommand, authListCommand].map((c) => c.command)).toEqual([
 			"token [provider] [value]",
 			"token [provider]",
-			"check [provider]",
+			"token [provider]",
 			"tokens",
 		]);
 	});
