@@ -686,12 +686,8 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 
 	it("mints its own installation token from stored App credentials — never a token passed through an input", () => {
 		expect(wf).toContain("actions/create-github-app-token@");
-		expect(wf).toContain(
-			"app-id: ${{ vars.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}"
-		);
-		expect(wf).toContain(
-			"private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}"
-		);
+		expect(wf).toContain("app-id: ${{ vars.SENTINEL_GITHUB_APP_ID }}");
+		expect(wf).toContain("private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY }}");
 		expect(wf).not.toMatch(/token:\s*\$\{\{\s*inputs\./);
 	});
 
@@ -964,22 +960,11 @@ describe("delivery.publish.yml version groups", () => {
 describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project board job", () => {
 	const wf = REUSABLE_WORKFLOWS["reconcile-projects"]!;
 
-	it("is a reusable workflow that takes the GitHub App's id and private key under the new and the old name, both optional", () => {
+	it("is a reusable workflow that takes the GitHub App's private key as an optional secret", () => {
 		expect(wf).toContain("workflow_call:");
-		for (const name of [
-			"SENTINEL_GITHUB_APP_ID",
-			"SENTINEL_GITHUB_APP_PRIVATE_KEY",
-			"SENTINEL_APP_ID",
-			"SENTINEL_APP_PRIVATE_KEY",
-		]) {
-			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: false`));
-		}
-		expect(wf).toContain(
-			"app-id: ${{ vars.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}"
-		);
-		expect(wf).toContain(
-			"private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}"
-		);
+		expect(wf).toMatch(/SENTINEL_GITHUB_APP_PRIVATE_KEY:\n\s+description: .+\n\s+required: false/);
+		expect(wf).toContain("app-id: ${{ vars.SENTINEL_GITHUB_APP_ID }}");
+		expect(wf).toContain("private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY }}");
 	});
 
 	it("never reads the old App secret names without the new one first", () => {
