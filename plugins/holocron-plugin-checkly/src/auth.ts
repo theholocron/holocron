@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "checkly",
 	errorMessage:
 		"no Checkly token found. Pass --token <TOKEN>, set HOLOCRON_CHECKLY_TOKEN / CHECKLY_API_KEY, " +
-		"or run: holocron auth set checkly <TOKEN>",
+		"or run: holocron new token checkly <TOKEN>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

@@ -45,7 +45,7 @@ describe("resolveToken", () => {
 		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/${inputs.tokenEnv}/);
-		expect((err as Error).message).toMatch(/holocron auth set ${inputs.slug}/);
+		expect((err as Error).message).toMatch(/holocron new token ${inputs.slug}/);
 	});
 });
 `;

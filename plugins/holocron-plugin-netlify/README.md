@@ -27,7 +27,7 @@ Token resolution order (matches the standard 4-step precedence set by
 
 ```bash
 # Generate a Netlify API token (see vendor docs), then:
-holocron auth set netlify <TOKEN>
+holocron new token netlify <TOKEN>
 holocron auth check netlify    # verify
 ```
 

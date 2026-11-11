@@ -1,5 +1,5 @@
 /**
- * `holocron github-app create` — create a GitHub App from a manifest (GitHub's manifest flow), and keep its
+ * `holocron new github-app` — create a GitHub App from a manifest (GitHub's manifest flow), and keep its
  * credentials in the private `.holocron/.private/.credentials` file `auth export` uses, to import into a credentials environment.
  *
  * The flow has one click in it that cannot be done for you: a local page posts the manifest to GitHub, you press
@@ -22,7 +22,7 @@ import { getLogger } from "../../observability/logger/index.js";
 import { ignoreAdvice, resolveCredentialsFile } from "../../private-dir/index.js";
 import type { GithubAppCreateReport, RunGithubAppCreateInput } from "./github-app-create.type.js";
 
-const COMMAND = "github-app create";
+const COMMAND = "new github-app";
 const DEFAULT_WEBHOOK_SECRET_VAR = "SENTINEL_WEBHOOK_SECRET";
 
 export async function runGithubAppCreate(input: RunGithubAppCreateInput): Promise<GithubAppCreateReport> {

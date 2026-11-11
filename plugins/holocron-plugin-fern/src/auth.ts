@@ -9,7 +9,7 @@ export const resolveToken = createResolveToken({
 	vendorEnvName: "FERN_TOKEN",
 	keyringService: "fern",
 	errorMessage:
-		"no Fern token found. Set HOLOCRON_FERN_TOKEN / FERN_TOKEN, " + "or run: holocron auth set fern <token>",
+		"no Fern token found. Set HOLOCRON_FERN_TOKEN / FERN_TOKEN, " + "or run: holocron new token fern <token>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

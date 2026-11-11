@@ -1,7 +1,7 @@
 import { type MenuEntry } from "@theholocron/kyber/menu";
 
 export const notificationsCreateServerEntry: MenuEntry = {
-	name: "notifications create-server",
+	name: "new server",
 	description: "Create the server the layout describes, apply it, invite its owner and hand it over",
 	positionals: [],
 	options: [

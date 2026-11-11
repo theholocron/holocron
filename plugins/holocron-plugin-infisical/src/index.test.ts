@@ -20,8 +20,8 @@ describe("createPlugin", () => {
 });
 
 describe("AUTH_HINT", () => {
-	it("mentions the holocron auth set command + Universal Auth guidance", () => {
-		expect(AUTH_HINT).toMatch(/holocron auth set infisical/);
+	it("mentions the holocron new token command + Universal Auth guidance", () => {
+		expect(AUTH_HINT).toMatch(/holocron new token infisical/);
 		expect(AUTH_HINT).toMatch(/Universal Auth/);
 	});
 });

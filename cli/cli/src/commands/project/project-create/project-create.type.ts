@@ -11,7 +11,7 @@ export interface RunProjectCreateInput extends ProjectRunInput {
 	yes?: boolean | undefined;
 }
 
-/** What `holocron project create` did. */
+/** What `holocron new project` did. */
 export interface ProjectCreateReport extends ProjectReport {
 	/** The board made, or the one that already had the title. */
 	board?: BoardSummary;

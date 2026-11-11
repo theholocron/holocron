@@ -20,6 +20,7 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { authCommand } from "./auth.command.js";
 import { authCheckCommand } from "./auth-check.command.js";
@@ -31,40 +32,40 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(() => void (process.exitCode = undefined));
 
 describe("auth commands", () => {
-	it("`auth set` stores a token for the provider, with the positional value and the org", async () => {
-		await runCommand(authCommand, ["auth", "set", "github", "tok", "--org", "acme"]);
+	it("`new token` stores a token for the provider, with the positional value and the org", async () => {
+		await runCommand(newCommand, ["new", "token", "github", "tok", "--org", "acme"]);
 		expect(runAuthSet).toHaveBeenCalledWith({ provider: "github", positional: "tok", org: "acme" });
 		runAuthSet.mockClear();
-		await runCommand(authCommand, ["auth", "set", "github"]);
+		await runCommand(newCommand, ["new", "token", "github"]);
 		expect(runAuthSet).toHaveBeenCalledWith({ provider: "github" });
 	});
 
-	it("`auth set` passes the credentials provider and environment the config names", async () => {
+	it("`new token` passes the credentials provider and environment the config names", async () => {
 		loadConfig.mockResolvedValueOnce({
 			resolved: {
 				providers: { credentials: { cardinality: "many", tuples: [{ provider: "1password", options: {} }] } },
 				credentials: { environment: "Demo" },
 			},
 		});
-		await runCommand(authCommand, ["auth", "set", "github"]);
+		await runCommand(newCommand, ["new", "token", "github"]);
 		expect(runAuthSet).toHaveBeenCalledWith({
 			provider: "github",
 			credentials: { provider: "1password", environment: "Demo" },
 		});
 	});
 
-	it("`auth set` passes no credentials when the config has none or there is no config", async () => {
+	it("`new token` passes no credentials when the config has none or there is no config", async () => {
 		loadConfig.mockResolvedValueOnce({ resolved: { providers: {} } });
-		await runCommand(authCommand, ["auth", "set", "github"]);
+		await runCommand(newCommand, ["new", "token", "github"]);
 		expect(runAuthSet).toHaveBeenLastCalledWith({ provider: "github" });
 		loadConfig.mockRejectedValueOnce(new Error("no holocron.config found"));
-		await runCommand(authCommand, ["auth", "set", "github"]);
+		await runCommand(newCommand, ["new", "token", "github"]);
 		expect(runAuthSet).toHaveBeenLastCalledWith({ provider: "github" });
 	});
 
-	it("`auth set` exits 1 when storing failed", async () => {
+	it("`new token` exits 1 when storing failed", async () => {
 		runAuthSet.mockResolvedValueOnce({ status: "fail" });
-		await runCommand(authCommand, ["auth", "set", "github"]);
+		await runCommand(newCommand, ["new", "token", "github"]);
 		expect(process.exitCode).toBe(1);
 	});
 
@@ -98,7 +99,7 @@ describe("auth commands", () => {
 
 	it("names each subcommand the way it is typed", () => {
 		expect([authSetCommand, authUnsetCommand, authCheckCommand, authListCommand].map((c) => c.command)).toEqual([
-			"set [provider] [value]",
+			"token [provider] [value]",
 			"unset [provider]",
 			"check [provider]",
 			"list",

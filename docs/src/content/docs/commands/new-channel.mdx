@@ -1,10 +1,10 @@
 ---
-title: "notifications channel add"
+title: "new channel"
 description: Create a notification channel, optionally with a webhook whose URL is stored as a secret.
 ---
 
 ```bash
-holocron notifications channel add <name> [--category <name>] [--topic <text>] [--with-webhook] [--webhook-name <name>] [--secret <NAME>] [--scope <scope>] [--provider <name>] [--dry-run]
+holocron new channel <name> [--category <name>] [--topic <text>] [--with-webhook] [--webhook-name <name>] [--secret <NAME>] [--scope <scope>] [--provider <name>] [--dry-run]
 ```
 
 Creates one channel through the `notifications` capability. It is idempotent: a channel that already exists is left alone (and moved under `--category` if it is somewhere else), so it is safe to re-run.
@@ -33,10 +33,10 @@ Discord returns a webhook's URL only to the application that created it, and onl
 
 ```bash
 # A channel under a category
-holocron notifications channel add alerts --category ALERTS
+holocron new channel alerts --category ALERTS
 
 # A channel plus a webhook, stored as HOLOCRON_NOTIFY_WEBHOOK_SYNC in the org's secrets
-holocron notifications channel add sync --category AUTOMATION --with-webhook
+holocron new channel sync --category AUTOMATION --with-webhook
 ```
 
 Provisioning needs a bot token (for Discord, `HOLOCRON_DISCORD_BOT_TOKEN`); see the [Discord plugin](/holocron/plugins/discord/).

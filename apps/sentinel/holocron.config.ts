@@ -55,7 +55,7 @@
  * `sentinel.theholocron.dev` to the Vercel project, via
  * `Dns.upsertRecord()`.
  *
- * `tunnels`: Cloudflare (holocron#1678) — `holocron tunnel up --cwd apps/sentinel` makes the named tunnel for
+ * `tunnels`: Cloudflare (holocron#1678) — `holocron new tunnel --cwd apps/sentinel` makes the named tunnel for
  * a local development instance (a stable `sentinel-dev.theholocron.dev` that reaches a port on this machine),
  * with the `dns` provider above pointing the hostname at it. The account id is not written here: the plugin
  * reads `CLOUDFLARE_ACCOUNT_ID` through the credential chain, from the Environment named in `credentials` below

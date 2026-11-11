@@ -689,7 +689,7 @@ describe("runSyncWiki", () => {
 			});
 			expect(result.status).toBe("skip");
 			expect(result.message).toContain("no GitHub token");
-			expect(result.message).toContain("holocron auth set github.read");
+			expect(result.message).toContain("holocron new token github.read");
 		} finally {
 			if (origRead !== undefined) process.env.HOLOCRON_READ_TOKEN = origRead;
 			if (origGh !== undefined) process.env.GH_TOKEN = origGh;

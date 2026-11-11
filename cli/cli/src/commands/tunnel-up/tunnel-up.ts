@@ -1,5 +1,5 @@
 /**
- * `holocron tunnel up` — a named tunnel with a stable public hostname that reaches a port on this machine, for a
+ * `holocron new tunnel` — a named tunnel with a stable public hostname that reaches a port on this machine, for a
  * webhook that has to find a development instance (a GitHub App's webhook URL cannot change on every run).
  *
  * The `tunnels` provider finds or makes the tunnel and its route; the `dns` provider points a proxied `CNAME` for the
@@ -20,7 +20,7 @@ import {
 import { runCloudflared } from "../run-cloudflared/index.js";
 import type { RunTunnelUpInput, TunnelUpReport } from "./tunnel-up.type.js";
 
-const COMMAND = "tunnel up";
+const COMMAND = "new tunnel";
 
 /** Why a provider is missing: its own load error when it failed to load, else how to configure it. */
 function missing(loader: PluginLoader, key: "tunnels" | "dns", hint: string): string {
@@ -50,7 +50,7 @@ export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpRepo
 	assertPluginsResolvable(loader, COMMAND);
 
 	const dryRun = input.context.dryRun ?? false;
-	print(style.header(`Holocron tunnel up — ${input.hostname}${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron new tunnel — ${input.hostname}${dryRun ? " (dry-run)" : ""}`));
 	print("");
 	if (!loader.has("tunnels")) {
 		row(
@@ -103,7 +103,7 @@ export async function runTunnelUp(input: RunTunnelUpInput): Promise<TunnelUpRepo
 	if (!input.run) {
 		if (input.hint !== false) {
 			print(
-				`start it with: holocron tunnel up --name ${input.name} --hostname ${input.hostname} --port ${input.port} --run`
+				`start it with: holocron new tunnel --name ${input.name} --hostname ${input.hostname} --port ${input.port} --run`
 			);
 		}
 		return finish("ok", { tunnelId: ensured.id, url });

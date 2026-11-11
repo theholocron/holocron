@@ -44,14 +44,14 @@ export function createResolveToken(config: ResolveTokenConfig): TokenResolver {
 /**
  * Kyber's `createFeatureResolver` for a strict, single-feature token: the flag, the feature's variable, the
  * `credentials` providers' variable of that name, the keyring. No broad-token fallback; if the feature's token is absent
- * the operation fails with a message naming the exact variable to set and `holocron auth set`.
+ * the operation fails with a message naming the exact variable to set and `holocron new token`.
  */
 export function createFeatureResolver(config: FeatureResolverConfig): FeatureResolver {
 	return Object.assign(
 		createKyberFeatureResolver({
 			...config,
 			vendor: config.vendor ?? "GitHub",
-			setCommand: (key) => `holocron auth set ${key} <token>`,
+			setCommand: (key) => `holocron new token ${key} <token>`,
 			keyring: keyring.get,
 		}),
 		{ token: { envName: config.envName, keyringKey: config.keyringKey } }

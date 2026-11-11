@@ -34,10 +34,12 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { notificationsCommand } from "./notifications.command.js";
 
 const go = (args: string[]) => runCommand(notificationsCommand, ["notifications", ...args]);
+const goNew = (args: string[]) => runCommand(newCommand, ["new", ...args]);
 const context = { repoRoot: "/repo", dryRun: false, cliToken: "t", org: "acme" };
 
 beforeEach(() => {
@@ -50,30 +52,32 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-/** Every notifications subcommand loads the config with the tokens and the org, and exits 1 when its run failed. */
+/** Every command that provisions notifications loads the config with the tokens and the org, and exits 1 when its run failed. */
 describe.each([
-	["setup", runSetup, ["setup"]],
-	["create-server", runCreateServer, ["create-server", "--owner", "someone"]],
-	["link", runLink, ["link"]],
-	["sync-roles", runSyncRoles, ["sync-roles"]],
-	["dedupe", runDedupe, ["dedupe"]],
-	["channel add", runChannelAdd, ["channel", "add", "alerts"]],
-] as const)("notifications %s", (_name, run, args) => {
+	["notifications setup", runSetup, "notifications", ["setup"]],
+	["new server", runCreateServer, "new", ["server", "--owner", "someone"]],
+	["notifications link", runLink, "notifications", ["link"]],
+	["notifications sync-roles", runSyncRoles, "notifications", ["sync-roles"]],
+	["notifications dedupe", runDedupe, "notifications", ["dedupe"]],
+	["new channel", runChannelAdd, "new", ["channel", "alerts"]],
+] as const)("%s", (_name, run, parent, args) => {
+	const goParent = (rest: string[]) => (parent === "new" ? goNew(rest) : go(rest));
+
 	it("runs with the context from the tokens and the org", async () => {
-		await go([...args]);
+		await goParent([...args]);
 		expect(run.mock.calls[0]![0]).toMatchObject({ context });
 		expect(process.exitCode).toBeUndefined();
 	});
 
 	it("exits 1 when it failed", async () => {
 		run.mockResolvedValue({ status: "fail" });
-		await go([...args]);
+		await goParent([...args]);
 		expect(process.exitCode).toBe(1);
 	});
 
 	it("stops when --token cannot be parsed", async () => {
 		tokenContext.mockReturnValue(null);
-		await go([...args]);
+		await goParent([...args]);
 		expect(run).not.toHaveBeenCalled();
 	});
 });
@@ -89,22 +93,12 @@ describe("notifications options", () => {
 		});
 	});
 
-	it("create-server passes the owner, and the name, provider, --force and --resume when given", async () => {
-		await go(["create-server", "--owner", "someone"]);
+	it("new server passes the owner, and the name, provider, --force and --resume when given", async () => {
+		await goNew(["server", "--owner", "someone"]);
 		const bare = runCreateServer.mock.calls[0]![0];
 		expect(bare.owner).toBe("someone");
 		expect(["name", "provider", "force", "resume"].some((k) => k in bare)).toBe(false);
-		await go([
-			"create-server",
-			"--owner",
-			"someone",
-			"--name",
-			"Holo",
-			"--provider",
-			"discord",
-			"--force",
-			"--resume",
-		]);
+		await goNew(["server", "--owner", "someone", "--name", "Holo", "--provider", "discord", "--force", "--resume"]);
 		expect(runCreateServer.mock.calls[1]![0]).toMatchObject({
 			name: "Holo",
 			provider: "discord",
@@ -135,16 +129,15 @@ describe("notifications options", () => {
 		expect(runDedupe.mock.calls[1]![0]).toMatchObject({ channel: "prs", provider: "discord", yes: true });
 	});
 
-	it("channel add passes the name, and every option it was given", async () => {
-		await go(["channel", "add", "alerts"]);
+	it("new channel passes the name, and every option it was given", async () => {
+		await goNew(["channel", "alerts"]);
 		const bare = runChannelAdd.mock.calls[0]![0];
 		expect(bare.name).toBe("alerts");
 		expect(
 			["category", "topic", "withWebhook", "webhookName", "secret", "scope", "provider"].some((k) => k in bare)
 		).toBe(false);
-		await go([
+		await goNew([
 			"channel",
-			"add",
 			"alerts",
 			"--category",
 			"Ops",
@@ -173,7 +166,7 @@ describe("notifications options", () => {
 });
 
 describe("notifications menus", () => {
-	it("a bare `notifications` or `notifications channel` opens the menu at that group", async () => {
+	it("a bare `notifications` opens the menu at that group", async () => {
 		await go([]);
 		expect(launchMenu).toHaveBeenLastCalledWith(
 			expect.anything(),
@@ -181,15 +174,6 @@ describe("notifications menus", () => {
 			expect.objectContaining({
 				pickMessage: "notifications — choose a subcommand:",
 				startPath: ["notifications"],
-			})
-		);
-		await go(["channel"]);
-		expect(launchMenu).toHaveBeenLastCalledWith(
-			expect.anything(),
-			expect.anything(),
-			expect.objectContaining({
-				pickMessage: "notifications channel — choose a subcommand:",
-				startPath: ["notifications", "channel"],
 			})
 		);
 	});

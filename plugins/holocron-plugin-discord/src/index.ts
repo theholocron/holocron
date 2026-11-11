@@ -133,10 +133,10 @@ export function createPlugin(options: DiscordPluginOptions = {}) {
 	};
 }
 
-/** One-line hint printed by `holocron auth set discord` when no webhook URL is supplied or the supplied one is rejected. */
+/** One-line hint printed by `holocron new token discord` when no webhook URL is supplied or the supplied one is rejected. */
 export const AUTH_HINT =
 	"create a webhook in Discord: open your server → channel settings → Integrations → Webhooks → New Webhook, " +
-	"copy the webhook URL, then run: holocron auth set discord <https://discord.com/api/webhooks/...>";
+	"copy the webhook URL, then run: holocron new token discord <https://discord.com/api/webhooks/...>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

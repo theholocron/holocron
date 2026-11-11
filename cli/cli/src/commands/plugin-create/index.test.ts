@@ -331,7 +331,7 @@ describe("Rendered content sanity", () => {
 		const content = fs.get(fs.paths().find((p) => p.endsWith("src/index.ts"))!)!;
 		expect(content).toMatch(/export const AUTH_HINT/);
 		expect(content).toMatch(/export \{ verifyToken \}/);
-		expect(content).toMatch(/holocron auth set acme/);
+		expect(content).toMatch(/holocron new token acme/);
 	});
 });
 

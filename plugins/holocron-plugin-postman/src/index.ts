@@ -80,12 +80,12 @@ export function createPlugin(options: PostmanPluginOptions) {
 }
 
 /**
- * One-line hint printed by `holocron auth set postman` when no
+ * One-line hint printed by `holocron new token postman` when no
  * token is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Postman API key at https://postman.co/settings/me/api-keys, " +
-	"then run: holocron auth set postman <KEY>";
+	"then run: holocron new token postman <KEY>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

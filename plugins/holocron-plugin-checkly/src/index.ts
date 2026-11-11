@@ -80,12 +80,12 @@ export function createPlugin(options: ChecklyPluginOptions) {
 }
 
 /**
- * One-line hint printed by `holocron auth set checkly` when no token
+ * One-line hint printed by `holocron new token checkly` when no token
  * is supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Checkly API key at https://app.checklyhq.com/settings/user/api-keys, " +
-	"then run: holocron auth set checkly <KEY>";
+	"then run: holocron new token checkly <KEY>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

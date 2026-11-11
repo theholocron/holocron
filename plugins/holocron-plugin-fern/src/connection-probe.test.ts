@@ -6,7 +6,7 @@ import { createPlugin } from "./index.js";
 afterEach(() => vi.unstubAllEnvs());
 
 describe("connection probe", () => {
-	it("looks the token up under the org, the way `holocron auth set fern` stores it", async () => {
+	it("looks the token up under the org, the way `holocron new token fern` stores it", async () => {
 		const asked: string[] = [];
 		const rows: ProbeRow[] = [];
 		await createPlugin({

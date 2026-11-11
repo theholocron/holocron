@@ -96,7 +96,7 @@ export function createPlugin(options: OpPluginOptions = {}) {
 }
 
 /**
- * One-line hint printed by `holocron auth set 1password` — 1P doesn't
+ * One-line hint printed by `holocron new token 1password` — 1P doesn't
  * store a token in the holocron keyring; the `op` CLI manages its own
  * auth. Directs the operator to the two paths that actually work.
  */

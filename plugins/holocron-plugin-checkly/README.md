@@ -31,7 +31,7 @@ granular roles, but require the Starter tier or above — not available
 on the free Hobby tier. Revisit if/when the account upgrades.
 
 ```bash
-holocron auth set checkly <TOKEN>
+holocron new token checkly <TOKEN>
 holocron auth check checkly    # verify — hits GET /v1/accounts
 ```
 
@@ -105,7 +105,7 @@ subscribed to a channel it is routed away from.
 - `monitoring.checks` — the configured check list, read by
   `holocron repo setup` to loop over `ensureCheck`.
 - `verifyToken` — `GET /v1/accounts` (the one Checkly endpoint that does
-  **not** require `x-checkly-account`), used by `holocron auth set` /
+  **not** require `x-checkly-account`), used by `holocron new token` /
   `holocron auth check` before any `accountId` is in scope.
 
 ## Status

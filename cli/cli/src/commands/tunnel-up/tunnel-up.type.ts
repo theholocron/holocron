@@ -29,7 +29,7 @@ export interface RunTunnelUpInput {
 	runConnector?: ((token: string) => Promise<number>) | undefined;
 }
 
-/** What `holocron tunnel up` did. */
+/** What `holocron new tunnel` did. */
 export interface TunnelUpReport {
 	/** `fail` when a step failed or the connector exited non-zero, otherwise `ok`. */
 	status: "ok" | "fail";

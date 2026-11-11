@@ -10,7 +10,7 @@ holocron dev --hostname other-dev.theholocron.dev -- node app.js
 
 For an application that has to receive webhooks while you work on it. It does, in one terminal:
 
-1. Sets up the named tunnel and its proxied `CNAME` the way [`tunnel up`](/holocron/commands/tunnel-up/) does. It is idempotent, so nothing changes when they are already right. It checks the `vault`, `tunnels` and `dns` providers first and says which is missing.
+1. Sets up the named tunnel and its proxied `CNAME` the way [`new tunnel`](/holocron/commands/new-tunnel/) does. It is idempotent, so nothing changes when they are already right. It checks the `vault`, `tunnels` and `dns` providers first and says which is missing.
 2. Reads the variables of the vault environment `--environment` in memory. Only how many there are is printed.
 3. Runs the command after `--` beside `cloudflared`. The application gets those variables and `PORT` and `HOLOCRON_PORT`, both the same number (from `--port`, which the tunnel also sends requests to, so a `PORT` in the vault does not win). The application also gets `HOLOCRON_ENVIRONMENT=development` and `ENVIRONMENT=development`, the same value (unless the vault sets its own for either name), which its logger reads to tag every line `env: "development"` (see [Logging](/holocron/logging/)). The connector gets the tunnel's token as `TUNNEL_TOKEN`, in its environment only.
 

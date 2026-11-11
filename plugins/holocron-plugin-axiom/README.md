@@ -26,14 +26,14 @@ Token resolution order:
 2. `HOLOCRON_AXIOM_TOKEN` env var (preferred — explicit intent)
 3. `AXIOM_TOKEN` env var (Axiom-native, works in CI)
 4. Keyring `axiom.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `axiom` — unnamespaced fallback; set via `holocron auth set axiom <token>`
+5. Keyring `axiom` — unnamespaced fallback; set via `holocron new token axiom <token>`
 6. `AuthError` naming both env vars + the auth hint
 
 Generate an API token at **app.axiom.co/settings/api-tokens** with
 permission to read and create datasets.
 
 ```bash
-holocron auth set axiom.theholocron <TOKEN>
+holocron new token axiom.theholocron <TOKEN>
 ```
 
 **CI**: the keyring is unavailable in headless containers — expose the
@@ -70,7 +70,7 @@ synced from 1Password. Leave the token unset locally to skip Axiom entirely.
 
 Plugin-level exports (not capability methods, per the auth-bootstrap convention):
 
-| Export        | Purpose                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| `verifyToken` | `GET /v2/user` — returns `{ ok: true, subject: "user @ …" }` or `{ ok: false, message }`.   |
-| `AUTH_HINT`   | One-line hint printed by `holocron auth set` when no token is supplied or the token is bad. |
+| Export        | Purpose                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `verifyToken` | `GET /v2/user` — returns `{ ok: true, subject: "user @ …" }` or `{ ok: false, message }`.    |
+| `AUTH_HINT`   | One-line hint printed by `holocron new token` when no token is supplied or the token is bad. |

@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "posthog",
 	errorMessage:
 		"no PostHog personal API key found. Pass --token <KEY>, set HOLOCRON_POSTHOG_TOKEN / POSTHOG_PERSONAL_API_KEY, " +
-		"or run: holocron auth set posthog <phx_KEY>",
+		"or run: holocron new token posthog <phx_KEY>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

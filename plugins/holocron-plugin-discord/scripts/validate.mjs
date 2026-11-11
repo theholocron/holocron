@@ -50,7 +50,7 @@ function hintFor(message) {
 	if (/404|not found|invalid/i.test(message))
 		return "webhook not found or deleted — regenerate it in Discord → channel settings → Integrations → Webhooks";
 	if (/Invalid Discord webhook URL/i.test(message))
-		return "the stored value is not a webhook URL — re-run: holocron auth set discord <https://discord.com/api/webhooks/...>";
+		return "the stored value is not a webhook URL — re-run: holocron new token discord <https://discord.com/api/webhooks/...>";
 	if (/fetch failed|network/i.test(message)) return "network error — check discord.com reachable";
 	return null;
 }

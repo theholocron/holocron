@@ -976,7 +976,7 @@ export async function runDoctorNotifications(input: RunDoctorNotificationsInput)
 				OWNER_TITLE,
 				owner.isBot
 					? [
-							"the bot owns the server; hand it to a person with `holocron notifications create-server --resume --owner <member id>`",
+							"the bot owns the server; hand it to a person with `holocron new server --resume --owner <member id>`",
 						]
 					: [],
 				`owned by member ${shown(owner.id)}`

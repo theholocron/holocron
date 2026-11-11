@@ -1,10 +1,10 @@
 ---
-title: "auth set"
+title: "new token"
 description: Verify a provider token and store it in the OS keyring.
 ---
 
 ```bash
-holocron auth set <provider> [value]
+holocron new token <provider> [value]
 ```
 
 Verifies a token with its provider's plugin and stores it in the OS credential store (macOS Keychain, Windows Credential Manager, or libsecret on Linux). Every other command picks the stored token up automatically.
@@ -25,16 +25,16 @@ If `value` is omitted, the CLI reads, in order:
 
 The command loads the provider's plugin (`@theholocron/holocron-plugin-<provider>`) and calls its `verifyToken` before storing. A token the provider refuses is not stored, and the reason is printed.
 
-`holocron auth set 1password` stores nothing: the `op` CLI manages its own sign-in, so the command prints the plugin's `AUTH_HINT` instead.
+`holocron new token 1password` stores nothing: the `op` CLI manages its own sign-in, so the command prints the plugin's `AUTH_HINT` instead.
 
 ## Examples
 
 ```bash
-holocron auth set github.admin ghp_xxx
-holocron auth set vercel v_xxx
+holocron new token github.admin ghp_xxx
+holocron new token vercel v_xxx
 
 # Read from the environment
-HOLOCRON_GITHUB_ADMIN_TOKEN=ghp_xxx holocron auth set github.admin
+HOLOCRON_GITHUB_ADMIN_TOKEN=ghp_xxx holocron new token github.admin
 ```
 
 ## Provider names

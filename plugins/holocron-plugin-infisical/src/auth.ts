@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "infisical",
 	errorMessage:
 		"no Infisical token found. Pass --token <TOKEN>, set HOLOCRON_INFISICAL_TOKEN / INFISICAL_TOKEN, " +
-		"or run: holocron auth set infisical <TOKEN>",
+		"or run: holocron new token infisical <TOKEN>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

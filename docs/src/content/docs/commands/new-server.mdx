@@ -1,10 +1,10 @@
 ---
-title: "notifications create-server"
+title: "new server"
 description: Create the server a layout describes, apply it, invite its owner and hand it over.
 ---
 
 ```bash
-holocron notifications create-server --name <name> --owner <member id> [--provider <name>] [--force] [--resume] [--dry-run]
+holocron new server --name <name> --owner <member id> [--provider <name>] [--force] [--resume] [--dry-run]
 ```
 
 Builds the server from nothing. A bot can create a server (Discord allows it while the bot is in fewer than ten), and a server it creates already has the bot in it, so there is no invite step for the bot. The command then:

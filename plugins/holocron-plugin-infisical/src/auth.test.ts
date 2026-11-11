@@ -42,6 +42,6 @@ describe("resolveToken", () => {
 		})();
 		expect(err).toBeInstanceOf(AuthError);
 		expect((err as Error).message).toMatch(/HOLOCRON_INFISICAL_TOKEN/);
-		expect((err as Error).message).toMatch(/holocron auth set infisical/);
+		expect((err as Error).message).toMatch(/holocron new token infisical/);
 	});
 });

@@ -35,7 +35,7 @@ export interface RunIdeasPromoteInput {
 	print?: (line: string) => void;
 }
 
-/** How an `ideas promote` run went. */
+/** How an `new spec` run went. */
 export interface IdeasPromoteReport {
 	/** `fail` if a row failed, `cancelled` when the person said no, otherwise `ok`. */
 	status: "ok" | "fail" | "cancelled";

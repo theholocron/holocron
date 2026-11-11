@@ -65,8 +65,8 @@ See docs/tokens.md for the full list of feature tokens and required scopes.
 
 <!-- prettier-ignore -->
 ```bash
-holocron auth set github.read    ghp_...  # clone + CI
-holocron auth set github.admin   ghp_...  # setup + secrets + environments
+holocron new token github.read    ghp_...  # clone + CI
+holocron new token github.admin   ghp_...  # setup + secrets + environments
 ```
 
 ### 4. Verify the wiring

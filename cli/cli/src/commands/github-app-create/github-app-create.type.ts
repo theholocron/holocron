@@ -54,7 +54,7 @@ export interface RunGithubAppCreateInput {
 	logger?: Logger | undefined;
 }
 
-/** What `holocron github-app create` did. Names and paths only; never a value. */
+/** What `holocron new github-app` did. Names and paths only; never a value. */
 export interface GithubAppCreateReport {
 	/** `fail` when the App was not created or its credentials not kept as asked, otherwise `ok`. */
 	status: "ok" | "fail";

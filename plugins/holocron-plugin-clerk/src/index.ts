@@ -69,14 +69,14 @@ export function createPlugin(options: ClerkPluginOptions = {}) {
 }
 
 /**
- * One-line hint printed by `holocron auth set clerk` when no token
+ * One-line hint printed by `holocron new token clerk` when no token
  * is supplied or the supplied token is rejected. Points operators at
  * the Clerk dashboard's API Keys section — MUST be the SECRET key
  * (sk_test_* / sk_live_*), not the publishable key.
  */
 export const AUTH_HINT =
 	"grab your SECRET key (sk_test_* / sk_live_*) at https://dashboard.clerk.com → API Keys, " +
-	"then run: holocron auth set clerk <KEY>. Do NOT use the publishable key.";
+	"then run: holocron new token clerk <KEY>. Do NOT use the publishable key.";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

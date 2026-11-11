@@ -23,7 +23,7 @@ Token resolution order:
 2. `HOLOCRON_DISCORD_WEBHOOK` env var
 3. `DISCORD_WEBHOOK_URL` env var
 4. Keyring `discord.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `discord` — unnamespaced fallback; set via `holocron auth set discord <webhook-url>`
+5. Keyring `discord` — unnamespaced fallback; set via `holocron new token discord <webhook-url>`
 
 The "token" is the full incoming webhook URL
 (`https://discord.com/api/webhooks/{id}/{token}`). No bot account or
@@ -66,12 +66,12 @@ that need to split the URL into its parts.
 
 ## Provisioning
 
-`holocron notifications setup` and `holocron notifications channel add` create
+`holocron notifications setup` and `holocron new channel` create
 channels, roles and webhooks through the `notifications` capability's `ensure*`
 methods. They use the **Holonet bot**, not a webhook URL:
 
 - `HOLOCRON_DISCORD_BOT_TOKEN` (or `DISCORD_BOT_TOKEN`), or the keyring entry
-  `discord.holonet` (`holocron auth set discord.holonet <token>`) — the bot token
+  `discord.holonet` (`holocron new token discord.holonet <token>`) — the bot token
   from the Developer Portal. Only read when a provisioning command runs, or when
   `holocron doctor` checks a provider that has a `guildId`; posting never needs it.
 - `HOLOCRON_DISCORD_CLIENT_SECRET` (or `DISCORD_CLIENT_SECRET`), or the keyring entry

@@ -237,7 +237,7 @@ describe("doctor tokens", () => {
 			"@theholocron/holocron-plugin-vercel": { tokens: [token] },
 		});
 		expect(report.rows[0]!.detail).toBe(
-			"not set (HOLOCRON_VERCEL_TOKEN / VERCEL_TOKEN, or `holocron auth set vercel`)"
+			"not set (HOLOCRON_VERCEL_TOKEN / VERCEL_TOKEN, or `holocron new token vercel`)"
 		);
 	});
 
@@ -311,9 +311,9 @@ describe("doctor tokens", () => {
 		expect(report.status).toBe("skip");
 		expect(report.rows[0]).toMatchObject({
 			status: "skip",
-			detail: "not set (HOLOCRON_ADMIN_TOKEN, or `holocron auth set github.admin`)",
+			detail: "not set (HOLOCRON_ADMIN_TOKEN, or `holocron new token github.admin`)",
 		});
-		expect(report.reason).toBe("not set (HOLOCRON_ADMIN_TOKEN, or `holocron auth set github.admin`)");
+		expect(report.reason).toBe("not set (HOLOCRON_ADMIN_TOKEN, or `holocron new token github.admin`)");
 	});
 
 	it("skips a token whose plugin cannot verify it, without calling anything", async () => {

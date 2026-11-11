@@ -9,7 +9,7 @@ import { runAuthSet } from "./index.js";
 
 /**
  * The `credentials` provider and environment the repo's config names, or `undefined` when there is no config
- * (`auth set` is a global command and runs anywhere) or it names none.
+ * (`new token` is a global command and runs anywhere) or it names none.
  */
 async function credentialsOf(cwd: string): Promise<{ provider: string; environment: string } | undefined> {
 	try {
@@ -24,11 +24,11 @@ async function credentialsOf(cwd: string): Promise<{ provider: string; environme
 }
 
 export const authSetCommand: CommandModule<GlobalArgs, AuthSetArgs> = {
-	command: "set [provider] [value]",
+	command: "token [provider] [value]",
 	describe: "Verify + store a bootstrap token for a provider",
 	builder: authSetArgs,
 	handler: async (argv) => {
-		const [provider] = await promptForPositionals(getEntry("auth set"), argv as Record<string, unknown>);
+		const [provider] = await promptForPositionals(getEntry("new token"), argv as Record<string, unknown>);
 		const credentials = await credentialsOf(argv.cwd);
 		const result = await runAuthSet({
 			provider: provider!,

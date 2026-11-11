@@ -58,10 +58,10 @@ export default defineConfig({
 Store provider tokens in the OS keyring so every command picks them up automatically:
 
 ```bash
-holocron auth set github.admin  ghp_xxx  # repo setup, secrets
-holocron auth set github.read   ghp_yyy  # clone, CI run listing
-holocron auth set github.issues ghp_zzz  # issue management
-holocron auth set github.sync   ghp_aaa  # sync-github
+holocron new token github.admin  ghp_xxx  # repo setup, secrets
+holocron new token github.read   ghp_yyy  # clone, CI run listing
+holocron new token github.issues ghp_zzz  # issue management
+holocron new token github.sync   ghp_aaa  # sync-github
 ```
 
 See the [Token Reference](./tokens) for the full list of tokens and the scopes each needs.

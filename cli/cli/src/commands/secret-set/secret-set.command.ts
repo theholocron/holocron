@@ -12,13 +12,13 @@ import { runSecretSet } from "./index.js";
 import { type SecretSetArgs, secretSetArgs } from "./secret-set.args.js";
 
 export const secretSetCommand: CommandModule<GlobalArgs, SecretSetArgs> = {
-	command: "set [name] [value]",
+	command: "secret [name] [value]",
 	describe: "Set a single secret via the configured `secrets` capability",
 	builder: secretSetArgs,
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const [name] = await promptForPositionals(getEntry("secrets set"), argv as Record<string, unknown>);
+		const [name] = await promptForPositionals(getEntry("new secret"), argv as Record<string, unknown>);
 		const scopeArg = argv.scope as string;
 		const scope = parseScope(scopeArg);
 		const loaded = await loadConfig(argv.cwd);

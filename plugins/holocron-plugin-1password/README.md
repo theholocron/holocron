@@ -17,7 +17,7 @@ so you can swap by editing one config line. Peer plugins:
 
 - **[`@theholocron/holocron-plugin-doppler`](../holocron-plugin-doppler)**
   — REST-transport, Doppler-CLI-managed auth via the OS keychain
-  (`doppler login` → `holocron auth set doppler …`). This repo's
+  (`doppler login` → `holocron new token doppler …`). This repo's
   own default since `2.0.0-alpha.4`.
 - **`@theholocron/holocron-plugin-infisical`** — planned (see [#97](https://github.com/theholocron/holocron/issues/97)),
   will use the same REST + keyring shape.
@@ -91,7 +91,7 @@ found.
 
 This plugin does NOT store a bearer token — the `op` CLI manages
 its own auth via the 1Password desktop app (biometric unlock on
-laptops) or `OP_SERVICE_ACCOUNT_TOKEN` on CI. `holocron auth set
+laptops) or `OP_SERVICE_ACCOUNT_TOKEN` on CI. `holocron new token
 1password` will accept a token, but since the plugin doesn't read
 the keyring, storing one has no runtime effect. The `AUTH_HINT`
 export makes this explicit in `holocron auth` output.

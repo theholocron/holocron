@@ -17,7 +17,6 @@ import { commandsInContext } from "../commands/contexts/index.js";
 import { deployCommand } from "../commands/deploy/deploy.command.js";
 import { devCommand } from "../commands/dev/index.js";
 import { doctorCommand } from "../commands/doctor/index.js";
-import { githubAppCommand } from "../commands/github-app/index.js";
 import { ideasCommand } from "../commands/ideas/index.js";
 import { menuCommand } from "../commands/menu/menu.command.js";
 import { migrateCommand } from "../commands/migrate/index.js";
@@ -34,7 +33,6 @@ import { secretsCommand } from "../commands/secrets/secrets.command.js";
 import { skillsCommand } from "../commands/skills/index.js";
 import { specsCommand } from "../commands/specs/specs.command.js";
 import { syncCommand } from "../commands/sync/sync.command.js";
-import { tunnelCommand } from "../commands/tunnel/index.js";
 import { buildCliLogger, getRunId, reportError } from "../observability/logger/index.js";
 import { captureException, endSession, flush, init, startCommand } from "../observability/telemetry/index.js";
 import { ownPackageJson } from "./own-package-json.js";
@@ -153,9 +151,7 @@ try {
 		.command(providerCommand as never)
 		.command(secretsCommand as never)
 		.command(notificationsCommand as never)
-		.command(githubAppCommand as never)
 		.command(specsCommand as never)
-		.command(tunnelCommand as never)
 		.command(projectCommand as never)
 		.command(migrateCommand as never)
 		.command(devCommand as never)

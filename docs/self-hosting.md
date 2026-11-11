@@ -108,18 +108,18 @@ that produced it.
 ## Ad-hoc secret setting (still useful)
 
 For one-off secrets that ARE token-based (not covered by OIDC), the
-`secrets set` command still helps:
+`new secret` command still helps:
 
 <!-- prettier-ignore -->
 ```bash
 # Example: set a Vercel deploy hook secret on the holocron repo.
-# The admin token (stored in the keyring via `holocron auth set github.admin`)
+# The admin token (stored in the keyring via `holocron new token github.admin`)
 # is picked up automatically — no env var needed if the keyring is populated.
 DEPLOY_HOOK=https://api.vercel.com/.../v1 \
-  holocron secrets set DEPLOY_HOOK
+  holocron new secret DEPLOY_HOOK
 
 # Org-level secrets use --scope:
-holocron secrets set SOME_ORG_SECRET --scope org=theholocron
+holocron new secret SOME_ORG_SECRET --scope org=theholocron
 
 ```
 
