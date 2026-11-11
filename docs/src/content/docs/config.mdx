@@ -170,16 +170,23 @@ export default defineConfig({
 
   // The default environment for the `credentials` providers (`providers.credentials`).
   // A name, not a secret, so it is committed. A provider can name its own instead,
-  // `credentials: ["1password", { environment: "Holocron" }]`, which wins; each
+  // `credentials: ["1password", { environment: "Holocron" }]`, which wins; a 1Password entry with
+  // neither derives `<org>/<repo> - <layer>` from the git remote (see /tokens); each
   // provider needs one or the other. List an entry per Environment to read several
   // (the same provider twice is fine); a name is found in the first one that has it.
   credentials: { environment: "Holocron" },
+
+  // Every entry that names a vault Environment (`repo.secrets.sync`, `repo.variables.sync`,
+  // `repo.secrets.deploy`, `githubApps`, `dev` and the `vault` provider's options) can name a
+  // `layer` instead: "local", "dev", "ci" or "prod". The Environment is then
+  // `<org>/<repo> - <layer>`, from the git remote. `vault: ["1password", { layer: "ci" }]`.
 
   // How `holocron dev` runs this directory's application locally behind a development
   // tunnel. Every field is optional here and has a flag; a flag wins. Names and a
   // hostname, not secrets, so they are committed.
   dev: {
-    environment: "Sentinel - dev", // the vault environment its variables come from
+    layer: "dev", // the layer whose Environment its variables come from: <org>/<repo> - dev
+    // (or `environment: "Name"` for a literal name; both together are a ConfigError)
     tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.example.dev" },
     port: 3000, // default 3000
     command: ["pnpm", "run", "serve"],

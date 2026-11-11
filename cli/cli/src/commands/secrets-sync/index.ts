@@ -1,4 +1,5 @@
 export * from "./deploy-filter/index.js";
+export * from "./resolve-environment-id/index.js";
 export * from "./secret-routes.js";
 export * from "./secrets-sync.js";
 export type * from "./secrets-sync.type.js";

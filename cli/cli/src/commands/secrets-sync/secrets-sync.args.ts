@@ -7,7 +7,8 @@ export const secretsSyncArgs = (y: Argv<GlobalArgs>) =>
 	y
 		.positional("environmentId", {
 			type: "string",
-			describe: "Vault environment id to read (1P Environment id, etc.)",
+			describe:
+				"Vault environment to read: a layer (local, dev, ci, prod) of this repository, or an Environment name",
 		})
 		.option("project-id", {
 			type: "string",

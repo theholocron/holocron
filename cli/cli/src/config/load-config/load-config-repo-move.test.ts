@@ -19,6 +19,9 @@ const DEAD_SECRETS = [
 	"SENTRY_DSN",
 ];
 
+/** The remote the layers are derived from (#2069); `moved` is a scratch directory with none. */
+const gitExec = async () => "https://github.com/theholocron/holocron.git";
+
 /** The `repo` keys exactly as `holocron.config.ts` had them inline before #1787 (a verbatim copy of the old text). */
 const INLINE_REPO = new URL("./repo-block.inline.fixture.txt", import.meta.url);
 /** The file those keys moved to: this repo's own `.holocron/repo.ts`. */
@@ -56,13 +59,13 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 		await copyFile(MOVED_REPO, join(moved, ".holocron", "repo.ts"));
 
 		const before = (await loadConfig(inline)).resolved.repo;
-		const after = (await loadConfig(moved)).resolved.repo;
+		const after = (await loadConfig(moved, { gitExec })).resolved.repo;
 
 		// `variables` is the one deliberate difference since the move (#1817): the old inline text had literal values,
 		// the file now names the keys of a 1Password Environment. Everything else must match.
 		expect(after?.variables?.sync).toEqual([
 			{
-				environment: "Holocron - GitHub Actions variables",
+				environment: "theholocron/holocron - ci",
 				scope: "org=theholocron",
 				keys: [
 					"HOLOCRON_AXIOM_DATASET",
@@ -95,6 +98,8 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 			TURBO_TOKEN: "HOLOCRON_TURBO_TOKEN",
 		};
 		for (const entry of beforeRest.secrets?.sync ?? []) {
+			// And (#2069): the entries name the `ci` layer, so the Environment is `<org/repo> - ci`.
+			entry.environment = "theholocron/holocron - ci";
 			entry.keys = entry.keys
 				?.filter((key) => !DEAD_SECRETS.includes(key) && key !== "SENTINEL_GITHUB_APP_ID") // a variable now
 				.map((key) => renamed[key] ?? key)
@@ -109,7 +114,7 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 			topics: expect.arrayContaining(["holocron"]),
 			variables: { org: { TURBO_TEAM: "iamnewton" } }, // the old inline text
 			secrets: {
-				sync: expect.arrayContaining([expect.objectContaining({ environment: "Holocron - GitHub Actions" })]),
+				sync: expect.arrayContaining([expect.objectContaining({ environment: "theholocron/holocron - ci" })]),
 			},
 		});
 	});

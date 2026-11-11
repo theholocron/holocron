@@ -160,7 +160,7 @@ export default defineConfig({
 	// `holocron dev` (and `pnpm dev`): the development instance runs locally behind a named tunnel. The hostname is one
 	// level under the zone because Cloudflare's free certificate covers `*.theholocron.dev` and no deeper name.
 	dev: {
-		environment: "Sentinel - dev",
+		layer: "dev",
 		tunnel: { name: "sentinel-dev", hostname: `sentinel-dev.${domain}` },
 		port: 3000,
 		serve: {
@@ -177,7 +177,7 @@ export default defineConfig({
 			// Anything else the Environment holds stays in it. With no entry the sync stops with a ConfigError.
 			deploy: [
 				{
-					environment: "Sentinel",
+					layer: "prod",
 					prefix: "SENTINEL_",
 					keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
 				},
@@ -230,13 +230,10 @@ export default defineConfig({
 			},
 		],
 		secrets: "github",
-		vault: ["1password", { environment: "Sentinel" }],
-		// This machine's own tokens (the Cloudflare one `tunnels` and `dns` use) are in the `Holocron` Environment, ahead of
-		// the keyring, as in the root config; a config that names only the second one leaves them to the keyring when run
-		// from here (`holocron dev`). The org's non-secret values (CLOUDFLARE_ACCOUNT_ID) are in the second (#1827).
-		credentials: [
-			["1password", { environment: "Holocron" }],
-			["1password", { environment: "Holocron - GitHub Actions variables" }],
-		],
+		// The production values of Sentinel, in the `prod` layer (#2069): `holocron secrets sync prod`.
+		vault: ["1password", { layer: "prod" }],
+		// This machine's own tokens (the Cloudflare one `tunnels` and `dns` use, and CLOUDFLARE_ACCOUNT_ID) come from the
+		// Environment of this machine's layer, derived from the repository's remote (#2063), ahead of the keyring.
+		credentials: ["1password"],
 	},
 });

@@ -8,6 +8,7 @@ describe("validateSecretsDeploy", () => {
 		expect(() => validateSecretsDeploy({ deploy: [] })).not.toThrow();
 		expect(() => validateSecretsDeploy({ deploy: [{ environment: "E", keys: ["A"] }] })).not.toThrow();
 		expect(() => validateSecretsDeploy({ deploy: [{ environment: "E", prefix: "SENTINEL_" }] })).not.toThrow();
+		expect(() => validateSecretsDeploy({ deploy: [{ layer: "prod", prefix: "SENTINEL_" }] })).not.toThrow();
 		expect(() =>
 			validateSecretsDeploy({ deploy: [{ environment: "E", keys: ["A"], prefix: "SENTINEL_" }] })
 		).not.toThrow();
@@ -19,10 +20,13 @@ describe("validateSecretsDeploy", () => {
 		["an empty prefix", { environment: "E", keys: ["A"], prefix: "" }],
 		["an empty key name", { environment: "E", keys: [""] }],
 		["no environment", { environment: " ", keys: ["A"] }],
+		["neither an environment nor a layer", { keys: ["A"] }],
+		["a layer and an environment", { layer: "prod", environment: "E", keys: ["A"] }],
+		["a layer that is no layer word", { layer: "production", keys: ["A"] }],
 	])("is a ConfigError for %s", (_label, entry) => {
 		const err = (() => {
 			try {
-				validateSecretsDeploy({ deploy: [entry] });
+				validateSecretsDeploy({ deploy: [entry as never] });
 			} catch (e) {
 				return e;
 			}

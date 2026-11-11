@@ -1,7 +1,7 @@
 import type { CheckRow } from "@theholocron/kyber/ui";
 import { describeError } from "@theholocron/kyber/ui";
 
-import type { RepoSecretsSync } from "../../config/index.js";
+import { type RepoSecretsSync, resolvedEnvironment } from "../../config/index.js";
 import { type SecretScope, type Vault } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { parseScope } from "../secrets-sync/parse-scope/index.js";
@@ -24,8 +24,9 @@ export async function syncedSecrets(
 	const scopes: SyncedSecrets["scopes"] = [];
 	const rows: CheckRow[] = [];
 	for (const entry of entries) {
-		const id = `sync-${entry.environment}`;
-		const title = `${entry.environment} vault environment is synced`;
+		const environment = resolvedEnvironment(entry);
+		const id = `sync-${environment}`;
+		const title = `${environment} vault environment is synced`;
 		let scope: SecretScope;
 		try {
 			scope = parseScope(entry.scope ?? "repo");
@@ -44,11 +45,10 @@ export async function syncedSecrets(
 			skip(`vault provider (${vault.providerName}) cannot list an environment's keys`);
 		} else {
 			try {
-				scopes.push({ scope, names: Object.keys(await vault.readEnvironment(entry.environment)) });
+				scopes.push({ scope, names: Object.keys(await vault.readEnvironment(environment)) });
 			} catch (err) {
 				skip(
-					missingTokenReason(err) ??
-						`could not read vault environment ${entry.environment}: ${describeError(err)}`
+					missingTokenReason(err) ?? `could not read vault environment ${environment}: ${describeError(err)}`
 				);
 			}
 		}

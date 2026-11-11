@@ -1,6 +1,7 @@
 import type { DocsCoverageMode } from "@theholocron/astromech";
 import type { LogLevel } from "@theholocron/observability/core";
 
+import type { EnvironmentLayer } from "../../credentials-environments/layer-environment/index.js";
 import type { CapabilityKey, PagesConfig, TeamEntry } from "../../plugin/capabilities/index.js";
 
 /** Structured-logging config. The Axiom **token** never lives here — only in
@@ -152,7 +153,12 @@ export interface RepoVariables {
  */
 export interface RepoVariablesSync {
 	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
-	environment: string;
+	environment?: string;
+	/**
+	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
+	 * `origin` remote (spec `tech-environment-layers`, #2069). Set one of `layer` and `environment`, never both.
+	 */
+	layer?: EnvironmentLayer;
 	/** The vault keys written as variables, by name. Required: a key the environment gains by mistake is never published. */
 	keys: string[];
 	/** Where the variables land: `"repo"` (the default) or `"org=<name>"`. */
@@ -194,7 +200,12 @@ export interface RepoSecrets {
  */
 export interface RepoSecretsDeploy {
 	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
-	environment: string;
+	environment?: string;
+	/**
+	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
+	 * `origin` remote (spec `tech-environment-layers`, #2069). Set one of `layer` and `environment`, never both.
+	 */
+	layer?: EnvironmentLayer;
 	/** Exact key names to send. */
 	keys?: string[];
 	/** A name prefix to send, such as `SENTINEL_` or `COMLINK_`. Case-sensitive. */
@@ -204,7 +215,12 @@ export interface RepoSecretsDeploy {
 /** One vault environment that `holocron secrets sync` pushes into GitHub secrets, declared so the doctor can check them. */
 export interface RepoSecretsSync {
 	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
-	environment: string;
+	environment?: string;
+	/**
+	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
+	 * `origin` remote (spec `tech-environment-layers`, #2069). Set one of `layer` and `environment`, never both.
+	 */
+	layer?: EnvironmentLayer;
 	/**
 	 * The vault keys pushed to GitHub (the `--github-secret` allowlist). Omit it for every key the vault
 	 * environment holds, which the doctor then asks the `vault` provider to list.
@@ -355,7 +371,12 @@ export interface GitHubAppConfig {
 	 * The vault environment (a 1Password Environment) that holds the instance's `SENTINEL_GITHUB_APP_ID` and
 	 * `SENTINEL_GITHUB_APP_PRIVATE_KEY` (or the older bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY`). A name, not a secret, so it is committed.
 	 */
-	environment: string;
+	environment?: string;
+	/**
+	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
+	 * `origin` remote (spec `tech-environment-layers`, #2069). Set one of `layer` and `environment`, never both.
+	 */
+	layer?: EnvironmentLayer;
 }
 
 /**
@@ -385,6 +406,11 @@ export interface DevConfig {
 	 * secret, so it is committed.
 	 */
 	environment?: string;
+	/**
+	 * The layer to name instead of `environment`: the Environment is `<org/repo> - <layer>`, from the repository's
+	 * `origin` remote (spec `tech-environment-layers`, #2069). Set one of `layer` and `environment`, never both.
+	 */
+	layer?: EnvironmentLayer;
 	/** The named tunnel to the application: its name, and the public hostname it serves (not a secret). */
 	tunnel?: {
 		/** The tunnel's name. A second run finds the first one's tunnel by it. */

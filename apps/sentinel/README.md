@@ -305,8 +305,8 @@ V8-isolate model has. See `docs/wiki/specifications/tech-sentinel-v1.spec.md`'s
 `holocron.config.ts` in this directory — separate from the monorepo
 root's own config, since Sentinel is deployed as its own product, not
 built/released the way the CLI or the plugins are — wires the
-`deployment` (Vercel), `dns` (Cloudflare), and `vault` (the 1Password
-Environment `Sentinel`) providers.
+`deployment` (Vercel), `dns` (Cloudflare), and `vault` (the `prod` layer of
+the 1Password Environments, `<org>/<repo> - prod`) providers.
 
 ```bash
 pnpm run deploy
@@ -458,9 +458,9 @@ registering under the org from the start avoids the detour.
 GitHub has no API that changes an existing App's permissions or events, so a
 changed `github-app.manifest.json` means editing each instance by hand in its
 settings page. `holocron doctor github-app` compares the manifest with every
-instance declared in `githubApps` in `holocron.config.ts` (`Sentinel` and
-`Sentinel - dev`, whose id and key it reads in memory from the 1Password
-Environment of the same name) and, for anything missing, prints the settings
+instance declared in `githubApps` in `holocron.config.ts` (the production App and the
+dev instance, whose id and key it reads in memory from the 1Password
+Environment of the layer: `prod` and `dev`) and, for anything missing, prints the settings
 page to fix it. After changing the manifest, run it and fix both instances
 until it passes; it also fails while an installation has not accepted the new
 permissions.
@@ -562,8 +562,8 @@ checks' verdicts are unchanged) and is left for its author to fix. A file GitHub
   per-deployment `*.vercel.app` URL.
 - **Webhook secret** — generate one (e.g. `openssl rand -hex 32`) and
   set it in the App's "Webhook secret" field. This becomes
-  `SENTINEL_WEBHOOK_SECRET` in the deploy env — save it to the 1Password
-  Environment `Sentinel` right away so it isn't lost.
+  `SENTINEL_WEBHOOK_SECRET` in the deploy env — save it to the `prod` layer
+  Environment (`<org>/<repo> - prod`) right away so it isn't lost.
 - **Where to install it** — this org (`theholocron`) to start;
   D10 (org-portability) means installing it on another org/account
   later needs zero code changes.
@@ -581,23 +581,22 @@ It needs no secret of its own. It reads the layout from the repository role sync
 ### Private key
 
 Generate one from the App's settings page after creation — that's
-`SENTINEL_GITHUB_APP_PRIVATE_KEY`, also destined for the 1Password Environment
-`Sentinel`. Generating a new key at any point invalidates the previous
+`SENTINEL_GITHUB_APP_PRIVATE_KEY`, also destined for the 1Password Environment of the
+`prod` layer. Generating a new key at any point invalidates the previous
 one, so only do this once and store the result immediately.
 
 ### After registration
 
 Both secrets (`SENTINEL_WEBHOOK_SECRET`, `SENTINEL_GITHUB_APP_PRIVATE_KEY`) plus
 the App id (`SENTINEL_GITHUB_APP_ID`, shown on the App's settings page) go into
-the 1Password Environment `Sentinel` first (made by hand: `op` cannot create
+the `prod` layer 1Password Environment first (made by hand: `op` cannot create
 one) — see `holocron.config.ts` in this directory for the `vault` provider
 wiring — then out to Vercel's env vars. Axiom is one dataset per service (the CLI, Sentinel and Comlink each
 have their own) and one shared org slug. Sentinel's Environment holds the Axiom log-shipping and link values
 (holocron#780): `SENTINEL_AXIOM_INGEST_TOKEN` (a narrower-scoped, ingest-only token — deliberately not the same
 credential as any broader `AXIOM_TOKEN` used elsewhere in this org), `SENTINEL_AXIOM_DATASET` (`holocron-sentinel`)
 and `HOLOCRON_AXIOM_ORG` (`the-holocron-7bbe`). The last two are not secrets, but they are synced the same way so there is one
-source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the 1Password Environment
-`Holocron - GitHub Actions variables`) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `Sentinel` Environment by the `secrets sync` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
+source of truth; the org's Actions variables `SENTINEL_AXIOM_DATASET` and `HOLOCRON_AXIOM_ORG` (from the `ci` layer 1Password Environment) carry copies of the same values for the dispatched check workflow, and the org secret `SENTINEL_AXIOM_INGEST_TOKEN` is a copy written from the `prod` layer Environment by the `secrets sync` below. Changing one of these in the Environment alone leaves its Actions copy stale until the matching sync runs. The logger
 and the check runs' Axiom `details_url` read the same two names at request time (`SENTINEL_AXIOM_DATASET`, `sentinelAxiomDataset()`, and `HOLOCRON_AXIOM_ORG`; the bare names of an Environment synced before the rename are covered by the sentence above; the `check-dispatched` workflow reads the org variable `HOLOCRON_AXIOM_ORG`); with either unset the check run has no details link.
 
 ```sh
@@ -616,7 +615,7 @@ has no equivalent of a human's already-authenticated session — see
 the token reference's "Organization secrets" section
 (`docs/src/content/docs/tokens.mdx`) for why a new, narrowly-scoped token rather than widening an existing
 one. The 1Password side is a service account with read access to the
-`Sentinel` Environment, stored as the repo secret
+`prod` layer Environment, stored as the repo secret
 `SENTINEL_OP_SERVICE_ACCOUNT_TOKEN`; the workflow installs the `op` CLI and
 sets `OP_SERVICE_ACCOUNT_TOKEN` from it. If a service account cannot read
 Environments with the CLI you have (1Password documents it; a Feb 2026
@@ -676,11 +675,11 @@ community report says otherwise), run the same command locally instead.
 
 Vercel is not needed to try a change against real GitHub events. A development instance is a second GitHub App
 (`The Holocron Sentinel - dev`) whose webhook reaches this machine through a named tunnel, with its secrets in
-the 1Password Environment `Sentinel - dev`.
+the `dev` layer 1Password Environment (`<org>/<repo> - dev`).
 
 ```bash
 # once: the dev App, from the same manifest as production (one click on GitHub; the id, key and webhook secret
-# go to a private .credentials file to import into the `Sentinel - dev` Environment)
+# go to a private .credentials file to import into the `dev` layer Environment)
 holocron github-app create --cwd apps/sentinel --org theholocron \
   --name "The Holocron Sentinel - dev" \
   --webhook-url https://sentinel-dev.theholocron.dev/api/webhook \
@@ -691,26 +690,25 @@ pnpm --filter @theholocron/sentinel dev
 ```
 
 `pnpm dev` is [`holocron dev`](/holocron/commands/dev/), configured by the `dev` block of this directory's `holocron.config.ts` (the Environment, the tunnel's name and hostname, the port and the command, so the hostname is set in one place): it sets up the named tunnel and its DNS record the way
-`holocron tunnel up` does (nothing changes when they are already right), reads the variables of `Sentinel - dev` in
+`holocron tunnel up` does (nothing changes when they are already right), reads the variables of the `dev` layer in
 memory, and runs the handler (`dev.serve`, served by `holocron dev serve`) beside `cloudflared` with those variables and `PORT` in the application's
 environment. Nothing is written to disk and no value is printed. Needs a Cloudflare token with Cloudflare Tunnel:
 Edit, and `cloudflared` (`brew install cloudflared`).
 
-The application sees only the variables of `Sentinel - dev`, not those of the `Holocron` Environment the CLI reads its own
-tokens from. A feature that is off until a variable is set (role sync, the `#prs` feed) needs that variable in
-`Sentinel - dev`: `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` for the feed, plus `HOLOCRON_USER_SYNC_TOKEN`
+The application sees only the variables of the `dev` layer's Environment (`dev.layer`), not those of another layer. A feature that is off until a variable is set (role sync, the `#prs` feed) needs that variable in
+that Environment: `SENTINEL_ROLE_SYNC_REPO` and `HOLOCRON_DISCORD_BOT_TOKEN` for the feed, plus `HOLOCRON_USER_SYNC_TOKEN`
 for role sync. A feature that stays quiet is not broken: Sentinel logs why, as
 `runPrFeed: finished … status: skipped, reason …`.
 
 `holocron dev serve` alone runs only the handler on `127.0.0.1`, serving `/api/webhook` (the path Vercel
 serves). Its three required variables, `SENTINEL_GITHUB_APP_ID`, `SENTINEL_GITHUB_APP_PRIVATE_KEY` and `SENTINEL_WEBHOOK_SECRET`, come
-from the process, or else from the Environment `dev.environment` names (`Sentinel - dev`), read with
+from the process, or else from the Environment `dev.layer` names (`dev`), read with
 `op` so Touch ID asks once. `PORT` changes the port. Each request is logged as one line (method, path, status), never a
 header or a payload. The handler's own logs ship to Axiom only if that Environment sets `SENTINEL_AXIOM_INGEST_TOKEN`
 and `SENTINEL_AXIOM_DATASET`, or leave both out. It says which it is on start. Use the same dataset as production
 (`holocron-sentinel`) with an ingest token of its own, scoped to that dataset: `holocron dev` sets
 `HOLOCRON_ENVIRONMENT=development` (and `ENVIRONMENT`), so every line carries `env: "development"` and the service's one dataset holds dev and production
-(`where env == "development"`); production sets `HOLOCRON_ENVIRONMENT=production` (or the older `ENVIRONMENT=production`) in the `Sentinel` Environment. Install the dev
+(`where env == "development"`); production sets `HOLOCRON_ENVIRONMENT=production` (or the older `ENVIRONMENT=production`) in the `prod` layer Environment. Install the dev
 App only on the repositories you test with.
 
 ## Development

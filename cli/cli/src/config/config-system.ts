@@ -22,6 +22,7 @@ import type { LoadedConfig } from "./config-system.type.js";
 import { deriveDefaults } from "./load-config/derive-defaults/index.js";
 import { HOLOCRON_AREAS, SHARED_AREAS } from "./load-config/holocron-areas/index.js";
 import { placeAreas } from "./load-config/place-areas/index.js";
+import { resolveLayers, type ResolveLayersInput } from "./resolve-layers/index.js";
 
 export type { LoadedConfig } from "./config-system.type.js";
 export { ConfigFileError } from "@theholocron/kyber/config";
@@ -47,8 +48,14 @@ export const defineConfig: (config: HolocronConfig) => HolocronConfig = system.d
  * `@theholocron/datapad`'s own doc comment for the stop conditions).
  * Throws `ConfigFileError` when nothing is found or a file cannot
  * be loaded, or `ConfigError` when the config fails schema checks.
+ *
+ * Every `layer` an entry names becomes the `environment` it stands for (`resolveLayers()`, spec
+ * `tech-environment-layers`, #2069), read from the `origin` remote at `cwd`; `input` lets a test pass a fake remote.
  */
-export const loadConfig: (cwd: string) => Promise<LoadedConfig> = system.loadConfig;
+export async function loadConfig(cwd: string, input: Omit<ResolveLayersInput, "repoRoot"> = {}): Promise<LoadedConfig> {
+	const loaded = await system.loadConfig(cwd);
+	return { ...loaded, resolved: await resolveLayers(loaded.resolved, { repoRoot: cwd, ...input }) };
+}
 
 /**
  * Merge any number of capability fragments into a single preset object that

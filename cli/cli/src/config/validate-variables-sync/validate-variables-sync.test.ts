@@ -13,7 +13,11 @@ describe("validateVariablesSync", () => {
 		expect(() =>
 			validateVariablesSync({
 				org: { OTHER: "1" },
-				sync: [entry, { environment: "Vars", keys: ["X"], visibility: "private", scope: "org=o" }],
+				sync: [
+					entry,
+					{ environment: "Vars", keys: ["X"], visibility: "private", scope: "org=o" },
+					{ layer: "ci", keys: ["Y"] },
+				],
 			})
 		).not.toThrow();
 	});
@@ -38,6 +42,9 @@ describe("validateVariablesSync", () => {
 	it("rejects an entry without an environment, keys, a usable scope or a visibility", () => {
 		const bad = (e: unknown) => () => validateVariablesSync({ sync: [e] } as RepoVariables);
 		expect(bad({ environment: " ", keys: ["A"] })).toThrow(/vault environment/);
+		expect(bad({ keys: ["A"] })).toThrow(/or a `layer`/);
+		expect(bad({ layer: "ci", environment: "E", keys: ["A"] })).toThrow(/both `layer` and `environment`/);
+		expect(bad({ layer: "x", keys: ["A"] })).toThrow(/"local", "dev", "ci", "prod"/);
 		expect(bad({ environment: "E" })).toThrow(/needs `keys`/);
 		expect(bad({ environment: "E", keys: [] })).toThrow(/needs `keys`/);
 		expect(bad({ environment: "E", keys: [""] })).toThrow(/needs `keys`/);

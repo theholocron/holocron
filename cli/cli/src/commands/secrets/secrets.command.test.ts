@@ -11,6 +11,8 @@ vi.mock("../secret-set/index.js", () => ({ runSecretSet }));
 vi.mock("../secrets-sync/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../secrets-sync/index.js")>()),
 	runSecretsSync,
+	// A layer word names `org/repo - <layer>`; any other text is a literal Environment (the git remote is not read here).
+	resolveEnvironmentId: async (id: string) => (["ci", "prod"].includes(id) ? `org/repo - ${id}` : id),
 }));
 vi.mock("../secrets-list/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../secrets-list/index.js")>()),
@@ -127,8 +129,8 @@ describe("secrets sync", () => {
 				repo: {
 					secrets: {
 						sync: [
-							{ environment: "ci", keys: ["A"], scope: "org=acme" },
-							{ environment: "ci", keys: ["B"] },
+							{ environment: "org/repo - ci", keys: ["A"], scope: "org=acme" },
+							{ environment: "org/repo - ci", keys: ["B"] },
 							{ environment: "other", keys: ["C"] },
 						],
 					},
@@ -151,7 +153,7 @@ describe("secrets sync", () => {
 					variables: {
 						sync: [{ environment: "vars", keys: ["A"], scope: "org=acme" }],
 					},
-					secrets: { sync: [{ environment: "ci", keys: ["S"] }] },
+					secrets: { sync: [{ environment: "org/repo - ci", keys: ["S"] }] },
 				},
 			},
 			filepath: "/x",
@@ -168,9 +170,17 @@ describe("secrets sync", () => {
 		expect(secretsOnly.secretRoutes).toHaveLength(1);
 	});
 
+	it("reads the Environment of a layer word, and a literal name as it is", async () => {
+		await go(["sync", "prod"]);
+		expect(runSecretsSync.mock.calls[0]![0].environmentId).toBe("org/repo - prod");
+		runSecretsSync.mockClear();
+		await go(["sync", "Sentinel"]);
+		expect(runSecretsSync.mock.calls[0]![0].environmentId).toBe("Sentinel");
+	});
+
 	it("lets --github-secret win over the config entries", async () => {
 		loadConfig.mockResolvedValue({
-			resolved: { org: "acme", repo: { secrets: { sync: [{ environment: "ci", keys: ["A"] }] } } },
+			resolved: { org: "acme", repo: { secrets: { sync: [{ environment: "org/repo - ci", keys: ["A"] }] } } },
 			filepath: "/x",
 		});
 		await go(["sync", "ci", "--github-secret", "Z"]);

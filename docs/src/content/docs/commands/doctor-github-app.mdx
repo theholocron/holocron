@@ -7,18 +7,18 @@ description: Compare each registered GitHub App's events, permissions and instal
 holocron doctor github-app
 ```
 
-GitHub has no API that changes an existing App's permissions or event subscriptions, so each instance (production `Sentinel`, `Sentinel - dev`) is changed by hand in its settings page, and a missed one fails quietly. This check compares the App manifest (`default_permissions`, `default_events`) with what each instance has now. It changes nothing and exits non-zero while any row fails.
+GitHub has no API that changes an existing App's permissions or event subscriptions, so each instance (production, and the `dev` instance) is changed by hand in its settings page, and a missed one fails quietly. This check compares the App manifest (`default_permissions`, `default_events`) with what each instance has now. It changes nothing and exits non-zero while any row fails.
 
 ## Declaring the instances
 
 ```ts
 githubApps: [
-	{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" },
-	{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel - dev" },
+	{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", layer: "prod" },
+	{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", layer: "dev" },
 ],
 ```
 
-`manifest` is a file in the directory. `environment` is the 1Password Environment (read through the `vault` provider, in memory, never printed or written) that holds `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of an older Environment are read when the `SENTINEL_` ones are not there).
+`manifest` is a file in the directory. `layer` (`prod` or `dev`) names the layer whose 1Password Environment (`<org>/<repo> - <layer>`; or give an `environment` for a literal name, never both) is read (through the `vault` provider, in memory, never printed or written) that holds `SENTINEL_GITHUB_APP_ID` and `SENTINEL_GITHUB_APP_PRIVATE_KEY` (the bare `GITHUB_APP_ID` and `GITHUB_APP_PRIVATE_KEY` of an older Environment are read when the `SENTINEL_` ones are not there).
 
 ## The rows
 

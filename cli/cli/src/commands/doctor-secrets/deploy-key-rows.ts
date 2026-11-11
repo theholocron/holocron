@@ -1,7 +1,7 @@
 import type { CheckRow } from "@theholocron/kyber/ui";
 import { describeError } from "@theholocron/kyber/ui";
 
-import type { RepoSecretsDeploy } from "../../config/index.js";
+import { type RepoSecretsDeploy, resolvedEnvironment } from "../../config/index.js";
 import type { Vault } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { deployFilter } from "../secrets-sync/deploy-filter/index.js";
@@ -18,7 +18,7 @@ import { splitDeployKeys } from "../secrets-sync/split-deploy-keys/index.js";
  */
 export async function deployKeyRows(entries: RepoSecretsDeploy[], vault: Vault | { why: string }): Promise<CheckRow[]> {
 	const rows: CheckRow[] = [];
-	for (const environment of [...new Set(entries.map((entry) => entry.environment))]) {
+	for (const environment of [...new Set(entries.map(resolvedEnvironment))]) {
 		const id = `deploy-${environment}`;
 		const title = `${environment} deployment receives only its keys`;
 		const skip = (detail: string) => rows.push({ id, title, status: "skip", detail, problems: [] });

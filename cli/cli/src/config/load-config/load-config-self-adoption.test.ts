@@ -8,6 +8,9 @@ import { loadConfig } from "../config-system.js";
 
 /** This repository's root: its own real `holocron.config.ts` and `.holocron/` are loaded, not a copy. */
 const REPO_ROOT = fileURLToPath(new URL("../../../../../", import.meta.url));
+/** The remote the layers are derived from (#2069); the real checkout's `origin` is never read. */
+const SLUG = "theholocron/holocron";
+const gitExec = async () => `https://github.com/${SLUG}.git`;
 const CONFIG_URL = new URL("../../../../../holocron.config.ts", import.meta.url);
 
 /**
@@ -83,7 +86,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 	});
 
 	it("takes the layout and the repo keys from .holocron/ when loaded", async () => {
-		const { resolved } = await loadConfig(REPO_ROOT);
+		const { resolved } = await loadConfig(REPO_ROOT, { gitExec });
 		const { options } = notificationsOf(resolved);
 		expect(options.guildId).toBe("1303969001822486568");
 		expect(options.layout?.pinned).toContainEqual({ channel: "rules", file: ".holocron/pinned/rules.md" });
@@ -141,7 +144,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		repoBefore.variables = {
 			sync: [
 				{
-					environment: "Holocron - GitHub Actions variables",
+					environment: `${SLUG} - ci`,
 					scope: "org=theholocron",
 					keys: [
 						"HOLOCRON_AXIOM_DATASET",
@@ -174,6 +177,8 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 		const secretEntries = (expected as unknown as { repo: { secrets: { sync: { keys: string[] }[] } } }).repo
 			.secrets.sync;
 		for (const entry of secretEntries) {
+			// And (#2069): the entries name the `ci` layer, so the Environment is `<org/repo> - ci`.
+			Object.assign(entry, { environment: `${SLUG} - ci` });
 			entry.keys = entry.keys
 				.filter((key) => !DEAD_SECRETS.includes(key) && key !== "SENTINEL_GITHUB_APP_ID") // a public id: a variable now
 				.map((key) => secretRenames[key] ?? key)
@@ -212,13 +217,17 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 
 		// And (#1851): the registered GitHub App instances `doctor github-app` checks.
 		(expected as unknown as { githubApps: unknown }).githubApps = [
-			{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" },
+			{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: `${SLUG} - prod` },
 			{
 				name: "Sentinel - dev",
 				manifest: "apps/sentinel/github-app.manifest.json",
-				environment: "Sentinel - dev",
+				environment: `${SLUG} - dev`,
 			},
 		];
+		// And (#2069): the vault is the `ci` layer's Environment.
+		const vault = expectedProviders.vault as { tuple: { options: Record<string, unknown> } };
+		expect(vault.tuple.options).toEqual({ environment: "Holocron - GitHub Actions" });
+		vault.tuple.options = { environment: `${SLUG} - ci` };
 
 		// And (#2041): the names `doctor variable-owners` does not report because two places hold them on purpose.
 		const doctorBefore = (expected as unknown as { doctor: { sharedVariables?: string[] } }).doctor;
@@ -246,7 +255,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			"SENTINEL_OP_SERVICE_ACCOUNT_TOKEN",
 		];
 
-		const { resolved } = await loadConfig(REPO_ROOT);
+		const { resolved } = await loadConfig(REPO_ROOT, { gitExec });
 		expect(normalise(resolved)).toEqual(expected);
 	});
 });
