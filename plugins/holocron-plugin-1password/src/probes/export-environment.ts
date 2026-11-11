@@ -1,12 +1,10 @@
-import { resolve } from "node:path";
-
-import type { Probe, ProbeContext } from "@theholocron/cli";
+import { ignoreAdvice, type Probe, type ProbeContext, resolveCredentialsFile } from "@theholocron/cli";
 import { dotenvLine, type FileIdentity, finishCredentialsFile } from "@theholocron/kyber/secrets";
 
 import type { ExportEnvironmentDeps } from "./export-environment.type.js";
 import { parseExportArgs } from "./parse-export-args.js";
 
-/** The file the lines go to, next to the config. */
+/** The name of the file the lines go to (in `.holocron/.private/`), for the messages. */
 const FILE_NAME = ".credentials";
 
 /** Plain code-unit order: the same on every machine, whatever its locale. The names it sorts are all different. */
@@ -42,15 +40,16 @@ function chooseDestination(deps: ExportEnvironmentDeps, copy: boolean): Destinat
 
 /** Writes the lines to the private file, waits for the import and deletes it. Registers the deletion for a failure or Ctrl-C. */
 async function writeToFile(probe: ProbeContext, deps: ExportEnvironmentDeps, text: string): Promise<void> {
-	const path = resolve(deps.repoRoot, FILE_NAME);
+	// `.holocron/.private/.credentials`; its directory is made first so git can be asked about the file.
+	const { path } = resolveCredentialsFile(deps.repoRoot, undefined, deps.makeDir);
 	// Only a positive answer lets the file be written: if git cannot say, it might be committed.
 	const git = deps.isIgnored(path);
 	if (git === "tracked" || git === "unknown") {
-		throw new Error(
+		const why =
 			git === "tracked"
-				? `refusing to write secrets to ${path}: git does not ignore it, so it could be committed. Add it to .gitignore`
-				: `refusing to write secrets to ${path}: git could not say whether it ignores it. Add it to .gitignore`
-		);
+				? "git does not ignore it, so it could be committed"
+				: "git could not say whether it ignores it";
+		throw new Error(`refusing to write secrets to ${path}: ${why}; ${ignoreAdvice(true, "")}`);
 	}
 	let identity: FileIdentity;
 	try {
