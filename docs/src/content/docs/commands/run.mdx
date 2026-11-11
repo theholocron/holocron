@@ -128,14 +128,14 @@ to run the full CI set locally.
 
 ## Options
 
-| Option           | Description                                                     |
-| ---------------- | --------------------------------------------------------------- |
-| `--dry-run`      | Print the resolved command without running it                   |
-| `--required`     | Exit 1 (instead of 0) if this repo has no such task             |
-| `--check`        | With `format`: report what prettier would change, write nothing |
-| `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                   |
-| `--all`          | With `run ci`: run every `ci: true` task, not just required     |
-| `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script |
+| Option           | Description                                                          |
+| ---------------- | -------------------------------------------------------------------- |
+| `--dry-run`      | Print the resolved command without running it                        |
+| `--required`     | Exit 1 (instead of 0) if this repo has no such task                  |
+| `--check`        | With `format`: report what prettier would change, write nothing      |
+| `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                        |
+| `--all`          | With `run ci`: run every `ci: true` task, not only the required ones |
+| `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script      |
 
 ## Unique tasks
 
