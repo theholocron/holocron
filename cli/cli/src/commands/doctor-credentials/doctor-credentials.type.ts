@@ -1,3 +1,4 @@
+import type { GitExec } from "@theholocron/git-utils";
 import type { CheckRow, CheckStatus, CheckSummary } from "@theholocron/kyber/ui";
 import type { Logger } from "@theholocron/observability/core";
 
@@ -14,6 +15,10 @@ export interface RunDoctorCredentialsInput {
 	loader?: PluginLoader;
 	/** Loads a plugin package for its `tokens`. Defaults to resolving from the working directory. */
 	importer?: AuthImporter;
+	/** The process environment that picks the layer of a derived Environment name. Defaults to `process.env`. */
+	env?: Record<string, string | undefined>;
+	/** Replaces the `git` call that reads the repo's `origin`, for tests. */
+	gitExec?: GitExec;
 	/** Where the rows and the closing count go. Defaults to the console. */
 	print?: (line: string) => void;
 	/** Structured-logging sink. Defaults to the command-bound root. */

@@ -67,6 +67,8 @@ Group 1 names not migrated yet, and why (the only one left):
 
 Decided: Holocron owns the name, so it moves like the others. `detectEnvironment()` and `environment.get()` read `HOLOCRON_ENVIRONMENT` first and then `ENVIRONMENT`, and `ENV` and `NODE_ENV` stay what they were (`environment.get()` only; `detectEnvironment()` ignores them). The bare name is not a third-party contract, but it is the one a deployed application, Sentinel and Comlink already have set, so it stays as a fallback and nothing that sets it breaks.
 
+The value also picks the 1Password Environment a `credentials` entry reads when it names none: `local` reads `<org/repo> - local` then `<org/repo> - dev`, `development` reads `- dev`, `ci` reads `- ci`, `production` reads `- prod` and `test` reads none (see [Credentials providers](/holocron/tokens/#credentials-providers)).
+
 `holocron dev` sets both names for the application it runs, to one value, the way it sets `PORT` and `HOLOCRON_PORT`. A vault Environment that sets either one decides for both (`HOLOCRON_ENVIRONMENT` wins when it sets both), so a dev instance still logs `env: "development"` whichever name the application reads. A deployment sets `HOLOCRON_ENVIRONMENT=production`, or keeps `ENVIRONMENT=production`; no change is required.
 
 ## Group 2: names a third party reads itself

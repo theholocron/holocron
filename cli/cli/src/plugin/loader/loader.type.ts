@@ -1,3 +1,4 @@
+import type { GitExec } from "@theholocron/git-utils";
 import type { PluginImporter as KyberPluginImporter } from "@theholocron/kyber/plugins";
 
 import type { CapabilityImpls, CapabilityKey, CardinalityFor } from "../capabilities/index.js";
@@ -66,4 +67,8 @@ export interface PluginLoaderOptions {
 	 * into the process. `holocron doctor credentials` uses it: it only needs the providers' `inspect`. Default `true`.
 	 */
 	readCredentials?: boolean;
+	/** The process environment `detectEnvironment()` reads to pick the layer of a derived Environment name. Defaults to `process.env`. */
+	env?: Record<string, string | undefined>;
+	/** Replaces the `git` call that reads the repo's `origin` for a derived Environment name, for tests. */
+	gitExec?: GitExec;
 }

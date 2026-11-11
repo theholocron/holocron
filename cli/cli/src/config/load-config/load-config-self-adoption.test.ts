@@ -191,10 +191,11 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			tuple.options = {};
 		}
 		const { tuples } = expectedProviders.credentials as { tuples: unknown[] };
-		tuples.push({
+		// And (#2063): the two literal Environments are one entry with none; the names are derived from the remote.
+		tuples.splice(0, tuples.length, {
 			provider: "1password",
 			packageName: "@theholocron/holocron-plugin-1password",
-			options: { environment: "Holocron - GitHub Actions variables" },
+			options: {},
 		});
 
 		// And (#2022): the `ideas` provider, the Obsidian vault the inbox of ideas lives in (SPEC-0072). It is the one

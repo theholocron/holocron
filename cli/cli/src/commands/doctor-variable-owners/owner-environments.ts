@@ -16,8 +16,9 @@ export function ownerEnvironments(config: ResolvedHolocronConfig): OwnerEnvironm
 	const names = new Set<string>();
 	const entry = config.providers.credentials as Extract<ResolvedProviderEntry, { cardinality: "many" }> | undefined;
 	for (const tuple of entry?.tuples ?? []) {
-		// `resolveConfig` rejects a `credentials` provider with no environment, so there is always one.
-		names.add(credentialsEnvironment(tuple, config)!);
+		// A provider that derives its names (#2063) has no literal one here; the redesign of this check covers those.
+		const named = credentialsEnvironment(tuple, config);
+		if (named !== undefined) names.add(named);
 	}
 	const instances = new Set((config.githubApps ?? []).map((app) => app.environment));
 	for (const environment of instances) names.add(environment);

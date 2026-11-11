@@ -336,7 +336,7 @@ describe("resolveConfig", () => {
 	it("rejects a credentials provider with no environment to read", () => {
 		const err = (() => {
 			try {
-				resolveConfig({ ...minimal, providers: { ...minimal.providers, credentials: ["1password"] } });
+				resolveConfig({ ...minimal, providers: { ...minimal.providers, credentials: ["doppler"] } });
 			} catch (e) {
 				return e;
 			}
@@ -373,12 +373,12 @@ describe("resolveConfig", () => {
 	it("names the provider that has no environment to read", () => {
 		const err = (() => {
 			try {
-				resolveConfig({ ...minimal, providers: { ...minimal.providers, credentials: ["1password"] } });
+				resolveConfig({ ...minimal, providers: { ...minimal.providers, credentials: ["doppler"] } });
 			} catch (e) {
 				return e;
 			}
 		})();
-		expect((err as Error).message).toMatch(/`1password` credentials provider has no environment/);
+		expect((err as Error).message).toMatch(/`doppler` credentials provider has no environment/);
 	});
 
 	it("rejects an empty credentials environment", () => {

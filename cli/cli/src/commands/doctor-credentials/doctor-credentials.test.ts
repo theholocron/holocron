@@ -219,14 +219,6 @@ describe("doctor credentials", () => {
 		expect(report.reason).toBe("no `credentials` provider is configured");
 	});
 
-	it("fails a provider that has neither its own environment option nor a shared one", async () => {
-		const loaded = loadedWith();
-		const noEnvironment = { ...loaded, resolved: { ...loaded.resolved, credentials: undefined } };
-		const { report } = await run(noEnvironment, inspecting("Holocron"));
-		expect(report.status).toBe("fail");
-		expect(report.rows[0]?.detail).toContain("no `environment` option and `credentials.environment` is not set");
-	});
-
 	it("skips a loaded provider the config gives no environment", async () => {
 		const loaded = loadedWith();
 		const loader = {
@@ -304,5 +296,89 @@ describe("doctor credentials", () => {
 		await run(loadedWith(), { ...inspecting("Holocron", "HOLOCRON_ORG_TOKEN"), read });
 		expect(read).not.toHaveBeenCalled();
 		expect(getCredential("HOLOCRON_ORG_TOKEN")).toBeUndefined();
+	});
+
+	describe("with the Environment names derived (#2063)", () => {
+		const SLUG = "theholocron/holocron";
+		const gitExec = async () => "git@github.com:theholocron/holocron.git\n";
+		const absent = Object.assign(new Error("not found"), { status: 404 });
+		const derived = () => loadedWith({ credentials: undefined });
+		const holding = (held: Record<string, string[]>) => ({
+			inspect: vi.fn(async (environment: string) => {
+				const names = held[environment];
+				if (!names) throw absent;
+				return { environment, names };
+			}),
+		});
+		async function runDerived(held: Record<string, string[]>, env: Record<string, string> = {}) {
+			const loaded = derived();
+			const lines: string[] = [];
+			const report = await runDoctorCredentials({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader: loaderWith(loaded, holding(held)),
+				importer: tokensImporter,
+				env,
+				gitExec,
+				print: (l) => lines.push(stripVTControlCharacters(l)),
+				logger: fakeLogger(),
+			});
+			return report;
+		}
+		const BOTH = ["HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"];
+
+		it("finds a variable in local over dev and says which", async () => {
+			const report = await runDerived({
+				[`${SLUG} - local`]: ["HOLOCRON_ORG_TOKEN"],
+				[`${SLUG} - dev`]: BOTH,
+			});
+			expect(report.status).toBe("ok");
+			expect(report.rows.map((r) => r.detail)).toEqual([
+				`present in "${SLUG} - dev"`,
+				`present in "${SLUG} - local"`,
+			]);
+		});
+
+		it("says nothing about a missing local", async () => {
+			const report = await runDerived({ [`${SLUG} - dev`]: BOTH });
+			expect(report.status).toBe("ok");
+			expect(report.rows).toHaveLength(2);
+		});
+
+		it("fails by name for a missing dev, ci or prod and does not fall back", async () => {
+			const report = await runDerived({ [`${SLUG} - dev`]: BOTH }, { CI: "true" });
+			expect(report.status).toBe("fail");
+			expect(report.rows).toHaveLength(1);
+			expect(report.rows[0]?.detail).toBe(`1password has no Environment named "${SLUG} - ci"`);
+		});
+
+		it("reports an old name in use as a skipped row", async () => {
+			const report = await runDerived({ Holocron: BOTH });
+			expect(report.status).toBe("ok");
+			expect(report.rows.find((r) => r.status === "skip")?.detail).toBe(
+				'read from the old Environment name "Holocron"; rename it'
+			);
+		});
+
+		it("fails once, naming the option, when the remote cannot be parsed", async () => {
+			const loaded = derived();
+			const report = await runDoctorCredentials({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader: loaderWith(loaded, holding({})),
+				importer: tokensImporter,
+				env: {},
+				gitExec: async () => "/not/a/remote",
+				print: () => {},
+				logger: fakeLogger(),
+			});
+			expect(report.rows[0]).toMatchObject({ status: "fail" });
+			expect(report.rows[0]?.detail).toMatch(/`environment` option/);
+		});
+
+		it("skips in the test layer", async () => {
+			const report = await runDerived({}, { HOLOCRON_ENVIRONMENT: "test" });
+			expect(report.status).toBe("skip");
+		});
 	});
 });

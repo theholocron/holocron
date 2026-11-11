@@ -847,10 +847,10 @@ describe("PluginLoader — credentials", () => {
 
 	it("fails the provider when the config names no environment", async () => {
 		const impl = creds(async () => ({}));
-		const loaded = resolveConfig(config());
+		const loaded = resolveConfig(config({ providers: { credentials: ["doppler"] } }));
 		delete loaded.credentials;
 		const loader = new PluginLoader(loaded, { repoRoot: "/tmp/test-repo" }, (async () =>
-			makePlugin("1password", { credentials: impl })) as PluginImporter);
+			makePlugin("doppler", { credentials: impl })) as PluginImporter);
 		await loader.load();
 		expect(loader.loadFailures()[0]?.error.message).toMatch(/credentials\.environment/);
 		expect(impl.read).not.toHaveBeenCalled();
