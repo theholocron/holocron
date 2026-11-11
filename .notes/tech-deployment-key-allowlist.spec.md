@@ -1,9 +1,12 @@
 ---
+id: SPEC-0074
 status: draft
 issue: theholocron/holocron#2061
 blocked-by: []
 related:
   - theholocron/holocron#2058
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569904342566309899
 ---
 
 # `secrets sync`: a deployment receives only the keys it is told to
