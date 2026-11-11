@@ -75,6 +75,7 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 					"HOLOCRON_TURBO_TEAM",
 					"HOLOCRON_VERCEL_TEAM_ID",
 					"SENTINEL_AXIOM_DATASET",
+					"SENTINEL_GITHUB_APP_ID",
 				],
 			},
 		]);
@@ -95,7 +96,7 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 		};
 		for (const entry of beforeRest.secrets?.sync ?? []) {
 			entry.keys = entry.keys
-				?.filter((key) => !DEAD_SECRETS.includes(key))
+				?.filter((key) => !DEAD_SECRETS.includes(key) && key !== "SENTINEL_GITHUB_APP_ID") // a variable now
 				.map((key) => renamed[key] ?? key)
 				.sort();
 		}

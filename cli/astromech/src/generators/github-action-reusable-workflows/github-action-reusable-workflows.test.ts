@@ -686,7 +686,9 @@ describe("REUSABLE_WORKFLOWS['check-dispatched'] — Sentinel's Bucket 2 dispatc
 
 	it("mints its own installation token from stored App credentials — never a token passed through an input", () => {
 		expect(wf).toContain("actions/create-github-app-token@");
-		expect(wf).toContain("app-id: ${{ secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}");
+		expect(wf).toContain(
+			"app-id: ${{ vars.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}"
+		);
 		expect(wf).toContain(
 			"private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}"
 		);
@@ -972,7 +974,9 @@ describe("REUSABLE_WORKFLOWS['reconcile-projects'] — the scheduled project boa
 		]) {
 			expect(wf).toMatch(new RegExp(`${name}:\\n\\s+description: .+\\n\\s+required: false`));
 		}
-		expect(wf).toContain("app-id: ${{ secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}");
+		expect(wf).toContain(
+			"app-id: ${{ vars.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_GITHUB_APP_ID || secrets.SENTINEL_APP_ID }}"
+		);
 		expect(wf).toContain(
 			"private-key: ${{ secrets.SENTINEL_GITHUB_APP_PRIVATE_KEY || secrets.SENTINEL_APP_PRIVATE_KEY }}"
 		);
