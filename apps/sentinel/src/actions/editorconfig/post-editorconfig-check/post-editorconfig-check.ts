@@ -20,11 +20,11 @@ import {
 	MAX_CHECK_RUN_ANNOTATIONS,
 } from "@theholocron/github-client";
 
-import { SENTINEL_EDITORCONFIG_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_EDITORCONFIG_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { EditorConfigMessage } from "../lint-editorconfig/index.js";
 import type { PostEditorConfigCheckInput, PostEditorConfigCheckResult } from "./post-editorconfig-check.type.js";
 
-export const SENTINEL_EDITORCONFIG_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Formatting / Run editorconfig`;
+export const SENTINEL_EDITORCONFIG_CHECK_RUN_NAME = sentinelCheckName("lint:editorconfig", "Run editorconfig");
 
 /** One message as one summary line: `README.md:12: reason`. */
 function formatMessage(m: EditorConfigMessage): string {

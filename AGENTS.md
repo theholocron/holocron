@@ -210,7 +210,7 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   proves it). Phase A changed no generated file; the later phases moved the thin callers, workflow names and check
   contexts to the flat ids, as described above. `validate` is a suite of two probe tasks, `validate:specs`
   (`probe specs check`) and `validate:docs` (`probe docs validate`), each with its own reusable workflow, caller and
-  check (`validate:specs / Validate ADRs and specs`, `validate:docs / Validate docs presence`), and a third,
+  check (`validate:specs / Validate ADRs and specs`, `validate:docs / Validate docs`), and a third,
   package-scoped leaf with no workflow, `validate:plugin` (the plugins' own script). The sub-job mechanism (`jobs:`,
   `retiredJobs`, the `Conclusion` aggregator) is gone (#1622). `validate` and `platform.repoValidation` in a `tasks:` list <!-- holocron-allow-old-name -->
   are aliases for both leaves (`workflowKeys()` writes one caller each; a repo still on the legacy gate gets the one

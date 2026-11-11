@@ -37,7 +37,7 @@ describe("WORKFLOW_TEMPLATES", () => {
 		// single always-run job, so its own conclusion already is the check.
 		expect(WORKFLOW_CHECK_CONTEXTS["test:unit"]).toBe("test:unit / Conclusion");
 		expect(WORKFLOW_CHECK_CONTEXTS["validate:specs"]).toBe("validate:specs / Validate ADRs and specs");
-		expect(WORKFLOW_CHECK_CONTEXTS["validate:docs"]).toBe("validate:docs / Validate docs presence");
+		expect(WORKFLOW_CHECK_CONTEXTS["validate:docs"]).toBe("validate:docs / Validate docs");
 		expect(WORKFLOW_CHECK_CONTEXTS["validate"]).toBeUndefined();
 		expect(WORKFLOW_CHECK_CONTEXTS["lint:code"]).toBe("lint:code / Run eslint, actionlint and prettier");
 		expect(WORKFLOW_CHECK_CONTEXTS["measure-bundle"]).toBe("measure-bundle / Upload bundle stats to Codecov");

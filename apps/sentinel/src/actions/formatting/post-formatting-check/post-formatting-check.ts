@@ -13,7 +13,7 @@ import {
 	MAX_CHECK_RUN_ANNOTATIONS,
 } from "@theholocron/github-client";
 
-import { SENTINEL_FORMATTING_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_FORMATTING_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { FormattingMessage } from "../lint-formatting/index.js";
 import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post-formatting-check.type.js";
 
@@ -26,11 +26,11 @@ import type { PostFormattingCheckInput, PostFormattingCheckResult } from "./post
  * scoping), and `prettier`'s real Node API (`check()`/`format()`/
  * `getFileInfo()`) works directly on fetched file content — no checkout.
  *
- * Same `sourceQuality` namespace as Inclusive Language — the spec's own
- * forecast ("the next namespace... once eslint/prettier move to Sentinel
- * too") named this exact tool.
+ * Named `sentinel:format / Run prettier` (`sentinelCheckName()`,
+ * `.notes/ci-sentinel-check-names.spec.md`); `Formatting` is shared with the
+ * editorconfig check.
  */
-export const SENTINEL_FORMATTING_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Formatting / Run prettier`;
+export const SENTINEL_FORMATTING_CHECK_RUN_NAME = sentinelCheckName("format", "Run prettier");
 
 /** One message as one summary line: `README.md:12: reason`. */
 function formatMessage(m: FormattingMessage): string {

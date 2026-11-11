@@ -15,8 +15,8 @@ beforeAll(() => {
 });
 
 describe("postEditorConfigCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Source Quality / Formatting / Run editorconfig", () => {
-		expect(SENTINEL_EDITORCONFIG_CHECK_RUN_NAME).toBe("Source Quality / Formatting / Run editorconfig");
+	it("names the check run sentinel:lint:editorconfig / Run editorconfig", () => {
+		expect(SENTINEL_EDITORCONFIG_CHECK_RUN_NAME).toBe("sentinel:lint:editorconfig / Run editorconfig");
 	});
 });
 

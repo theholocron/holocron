@@ -13,10 +13,10 @@
  * alongside the renamed Capability Compliance check (now "Run Holocron
  * config compatibility") — both are provenance/baseline-type checks
  * with no astromech task or CI-job name of their own to carry forward,
- * so "Compliance" names the shared concept and "Run Developer
- * Certificate of Origin" names this one, same `<namespace> / <label> /
- * <command>` shape every other Sentinel check uses, just with a
- * hand-authored "command" instead of a real CI job name.
+ * so `validate:dco` names the shared concept and "Run Developer
+ * Certificate of Origin" names this one, same `sentinel:<task id> / <Action>` shape
+ * every other Sentinel check uses (`sentinelCheckName()`), just with a
+ * hand-authored action instead of a real CI job name.
  *
  * `buildRemediationGuidance()` deliberately offers only the rebase
  * path, not dcoapp's own "DCO Remediation Commit" recipe (a commit
@@ -32,11 +32,11 @@
 
 import type { CheckRunConclusion } from "@theholocron/github-client";
 
-import { SENTINEL_DCO_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_DCO_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { DcoViolation } from "../lint-dco/index.js";
 import type { PostDcoCheckInput, PostDcoCheckResult } from "./post-dco-check.type.js";
 
-export const SENTINEL_DCO_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Compliance / Run Developer Certificate of Origin`;
+export const SENTINEL_DCO_CHECK_RUN_NAME = sentinelCheckName("validate:dco", "Run Developer Certificate of Origin");
 
 /** One violation as one summary line: `abc1234: Ada Lovelace <ada@example.com>`. */
 function formatViolation(v: DcoViolation): string {

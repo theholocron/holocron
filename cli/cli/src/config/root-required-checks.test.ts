@@ -39,7 +39,7 @@ const PINNED_CONTEXTS = [
 	"test:unit / Conclusion",
 	"typecheck / Run tsc --noEmit",
 	"validate:deps / Check dependency catalogs",
-	"validate:docs / Validate docs presence",
+	"validate:docs / Validate docs",
 	"validate:generated / Check generated files",
 	"validate:specs / Validate ADRs and specs",
 ];

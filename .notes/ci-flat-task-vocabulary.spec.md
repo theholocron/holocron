@@ -20,7 +20,7 @@ discussion:
 Part of #1262 (align the task names, npm scripts and README tables). This spec supersedes in part
 `docs/wiki/specifications/tech-vocabulary-rename.spec.md` (#675): its _decomposition_ of the old `lint` and `audit`
 tasks stands, its _naming_ (`<intent>.<task>`) and its "rename in place, no back-compat shim" decision (D3) do not.
-It also settles the target names that `.notes/ci-check-taxonomy-rename.spec.md` (#989) and #1547 left open, and it
+It also settles the target names that `docs/wiki/specifications/ci-check-taxonomy-rename.spec.md` (#989) and #1547 left open, and it
 changes what `.notes/tech-workflows-in-holocron.spec.md` (#1215) has to move. Status is `draft`: the maintainer's
 decisions below are fixed, everything else is a proposal.
 
@@ -1003,8 +1003,8 @@ markdownlint`, and `lint:code`'s is `lint:code / Run eslint, actionlint and pret
   frozen `theholocron/.github` `platform.repoValidation.yml`, which runs `holocron run platform.repoValidation adrs`,
   therefore runs both probes in each of its jobs (noisy, never wrong).
 - **Reusables and callers.** `ci/workflows/validate/{specs,docs}.yml` (one job each, `Validate ADRs and specs` and
-  `Validate docs presence`) with the templates under `templates/workflows/validate/`; the checks are
-  `validate:specs / Validate ADRs and specs` and `validate:docs / Validate docs presence`, and the `ci` aggregate
+  `Validate docs`) with the templates under `templates/workflows/validate/`; the checks are
+  `validate:specs / Validate ADRs and specs` and `validate:docs / Validate docs`, and the `ci` aggregate
   waits for the two ids. The docs-coverage gate (`docs patch`, `repoValidation.docsCoverage`) stays its own
   hand-maintained workflow; `validate:docs` is only the presence probe.
 - **Aliases.** `LEGACY_NAMES` lists `validate` and `platform.repoValidation`, each standing for both leaves. Since phase I
@@ -1047,8 +1047,9 @@ mechanism (a polling job, with Sentinel posting it as a documented later option)
    no repo enables the auto-fix and whether the linters ever write in CI.
 2. **`preview.yml`.** One reusable for `deploy-docs`, `deploy-components` and the workflow-only `preview`. Keep it as the
    one shared exception to "one file per leaf", or give each its own file?
-3. **Sentinel's checks** (`Platform / Compliance / ...`, five lint-split checks) are named by the app. Align them with
-   the ids, or leave them under #989? When Sentinel is healthy (#1100), should it post `ci` itself?
+3. **Sentinel's checks** (`Compliance / ...`, five lint-split checks) are named by the app. Settled by
+   `ci-sentinel-check-names` (#2036): two tiers, `Group / Action`, not the task ids (the `ci` aggregate would take a
+   Sentinel check named `<id> / ...` as gating). When Sentinel is healthy, should it post `ci` itself?
 4. **Where coverage lives.** The spec puts `--coverage` in each package's `test:unit` script (73 packages are edited for
    the rename anyway). The alternative is `coverage.enabled` in the shared `@theholocron/vitest-config`, one place, but
    it ships with the configs group's next natural release. Which?

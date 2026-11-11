@@ -15,9 +15,9 @@ import {
 
 import {
 	postErrorReview,
-	SENTINEL_NAMESPACES,
 	SENTINEL_STATIC_ANALYSIS_LOG_MSG,
 	sentinelAxiomLogUrl,
+	sentinelCheckName,
 } from "../../../utils/index.js";
 import type { StaticAnalysisMessage } from "../lint-static-analysis/index.js";
 import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from "./post-static-analysis-check.type.js";
@@ -29,9 +29,9 @@ import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from
  * bundle works directly against fetched file content via eslint's real
  * `Linter.verify()` API — no checkout, no type-aware rules to require one.
  *
- * Same `sourceQuality` namespace as Inclusive Language, Formatting, and
- * Documentation — the spec's own forecast ("the next namespace... once
- * eslint/prettier move to Sentinel too") named exactly this kind of tool.
+ * Named `sentinel:lint:code / Run eslint` (`sentinelCheckName()`,
+ * `.notes/ci-sentinel-check-names.spec.md`); `Static Analysis` is shared with
+ * the actionlint check.
  *
  * **Not purely advisory** (same treatment inclusive language got in
  * holocron#865): `conclusion: "failure"` the moment any message is
@@ -39,7 +39,7 @@ import type { PostStaticAnalysisCheckInput, PostStaticAnalysisCheckResult } from
  * only a PR-review comment (holocron#860). Warning-severity-only findings
  * still resolve to `"neutral"` — advisory, same as before.
  */
-export const SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Static Analysis / Run eslint`;
+export const SENTINEL_STATIC_ANALYSIS_CHECK_RUN_NAME = sentinelCheckName("lint:code", "Run eslint");
 
 /** One message as one summary line: `src/index.ts:12:3: reason [rule-id]`. */
 function formatMessage(m: StaticAnalysisMessage): string {

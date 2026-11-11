@@ -15,8 +15,8 @@ beforeAll(() => {
 });
 
 describe("postFormattingCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Source Quality / Formatting / Run prettier", () => {
-		expect(SENTINEL_FORMATTING_CHECK_RUN_NAME).toBe("Source Quality / Formatting / Run prettier");
+	it("names the check run sentinel:format / Run prettier", () => {
+		expect(SENTINEL_FORMATTING_CHECK_RUN_NAME).toBe("sentinel:format / Run prettier");
 	});
 });
 

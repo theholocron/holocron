@@ -63,7 +63,7 @@ describe("postErrorReview — no errors", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [],
 			warningCount: 3,
 		});
@@ -97,7 +97,7 @@ describe("postErrorReview — no errors", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [],
 			warningCount: 0,
 		});
@@ -123,7 +123,7 @@ describe("postErrorReview — posting", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [{ file: "src/index.ts", line: 12, body: "`no-unused-vars` (line 12, col 7): unused" }],
 			warningCount: 0,
 		});
@@ -161,7 +161,7 @@ describe("postErrorReview — posting", () => {
 			headSha: "abc123",
 			checkKey: "markdown-lint",
 			checkLabel: "markdown lint",
-			checkRunName: "Source Quality / Documentation / Run markdownlint",
+			checkRunName: "sentinel:lint:markdown / Run markdownlint",
 			errors: [{ file: "README.md", line: 1, body: "`MD041` (line 1): no h1" }],
 			warningCount: 2,
 		});
@@ -169,7 +169,7 @@ describe("postErrorReview — posting", () => {
 		const body = calls[2]?.body as { body: string };
 		expect(body.body).toBe(
 			"1 error(s) found by markdown lint — see inline comments below.\n" +
-				"2 warning(s) also found; see the Source Quality / Documentation / Run markdownlint check run for the full list."
+				"2 warning(s) also found; see the sentinel:lint:markdown / Run markdownlint check run for the full list."
 		);
 	});
 });
@@ -181,7 +181,7 @@ describe("postErrorReview — findings outside the PR's diff (holocron#906)", ()
 		headSha: "abc123",
 		checkKey: "actionlint",
 		checkLabel: "actionlint",
-		checkRunName: "Source Quality / Static Analysis / Run actionlint",
+		checkRunName: "sentinel:lint:code / Run actionlint",
 		warningCount: 0,
 	};
 
@@ -331,7 +331,7 @@ describe("postErrorReview — re-push thread resolution", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [{ file: "src/other.ts", line: 9, body: "`no-unused-vars` (line 9): still broken" }],
 			warningCount: 0,
 		});
@@ -367,7 +367,7 @@ describe("postErrorReview — re-push thread resolution", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [{ file: "src/index.ts", line: 5, body: "`no-unused-vars` (line 5): still broken" }],
 			warningCount: 0,
 		});
@@ -400,7 +400,7 @@ describe("postErrorReview — re-push thread resolution", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [],
 			warningCount: 0,
 		});
@@ -431,7 +431,7 @@ describe("postErrorReview — re-push thread resolution", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [],
 			warningCount: 0,
 		});
@@ -462,7 +462,7 @@ describe("postErrorReview — re-push thread resolution", () => {
 			headSha: "abc123",
 			checkKey: "static-analysis",
 			checkLabel: "static analysis",
-			checkRunName: "Source Quality / Static Analysis / Run eslint",
+			checkRunName: "sentinel:lint:code / Run eslint",
 			errors: [],
 			warningCount: 0,
 		});

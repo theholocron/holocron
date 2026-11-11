@@ -57,7 +57,7 @@ beforeAll(() => {
 
 describe("postAdrsCheck", () => {
 	it("names the check after the CI job, under the platform namespace", () => {
-		expect(SENTINEL_ADRS_CHECK_RUN_NAME).toBe("Platform / Repo Validation / Validate ADRs and specs");
+		expect(SENTINEL_ADRS_CHECK_RUN_NAME).toBe("sentinel:validate:specs / Validate ADRs and specs");
 	});
 
 	it("posts success for a clean result, linked to its own Axiom log line", async () => {

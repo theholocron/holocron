@@ -49,7 +49,7 @@ const input = {
 	headSha: "abc123",
 	checkKey: "static-analysis",
 	checkLabel: "static analysis",
-	checkRunName: "Source Quality / Static Analysis / Run eslint",
+	checkRunName: "sentinel:lint:code / Run eslint",
 	errors: [],
 	warningCount: 0,
 };

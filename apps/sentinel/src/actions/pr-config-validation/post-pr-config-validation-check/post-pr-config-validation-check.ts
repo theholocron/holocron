@@ -21,9 +21,9 @@
 import type { CheckRunConclusion } from "@theholocron/github-client";
 
 import {
-	SENTINEL_NAMESPACES,
 	SENTINEL_PR_CONFIG_VALIDATION_LOG_MSG,
 	sentinelAxiomLogUrl,
+	sentinelCheckName,
 	type ValidateConfigResult,
 } from "../../../utils/index.js";
 import type {
@@ -37,7 +37,10 @@ import type {
 // the PR's own branch instead of the default branch (see the module
 // docstring for why that's a separate check rather than a change to
 // the existing one).
-export const SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Compliance / Run Holocron config compatibility (pull_request)`;
+export const SENTINEL_PR_CONFIG_VALIDATION_CHECK_RUN_NAME = sentinelCheckName(
+	"validate:config",
+	"Run Holocron config compatibility (pull_request)"
+);
 
 /**
  * `"no-config"` is `success`, same as the "no-config is fine" stance

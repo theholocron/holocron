@@ -58,8 +58,8 @@ beforeAll(() => {
 });
 
 describe("postActionlintCheck — carries the intent vocabulary through (D5)", () => {
-	it("names the check run Source Quality / Static Analysis / Run actionlint", () => {
-		expect(SENTINEL_ACTIONLINT_CHECK_RUN_NAME).toBe("Source Quality / Static Analysis / Run actionlint");
+	it("names the check run sentinel:lint:code / Run actionlint", () => {
+		expect(SENTINEL_ACTIONLINT_CHECK_RUN_NAME).toBe("sentinel:lint:code / Run actionlint");
 	});
 });
 
@@ -161,7 +161,7 @@ describe("postActionlintCheck — findings", () => {
 			event: "COMMENT",
 			body:
 				"1 error(s) found by actionlint — see inline comments below.\n" +
-				"1 warning(s) also found; see the Source Quality / Static Analysis / Run actionlint check run for the full list.",
+				"1 warning(s) also found; see the sentinel:lint:code / Run actionlint check run for the full list.",
 			comments: [
 				{
 					path: ".github/workflows/ci.yml",

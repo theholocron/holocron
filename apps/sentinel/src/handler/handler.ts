@@ -110,7 +110,7 @@
  *   GitHub Actions thin-caller for that same task, not instead of it, until
  *   this mechanism is trusted enough to replace it.
  * - **PR Config Validation** (`validateConfig` against the PR's own head
- *   ref, holocron#827): posted as `Platform / Compliance / Run Holocron
+ *   ref, holocron#827): posted as `sentinel:validate:config / Run Holocron
  *   config compatibility (pull_request)` — a "(pull_request)" suffix, not
  *   a distinct name; the same Run Holocron config compatibility concept,
  *   just validated against the PR's own branch. Advisory, never required,

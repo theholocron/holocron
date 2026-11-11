@@ -1,5 +1,6 @@
 export * from "./added-lines/index.js";
 export * from "./axiom-config/index.js";
+export * from "./check-name-problem/index.js";
 export * from "./commit-files/index.js";
 export * from "./constants/index.js";
 export * from "./decode-contents/index.js";
@@ -12,5 +13,6 @@ export * from "./post-error-review/index.js";
 export * from "./read-auto-fix/index.js";
 export * from "./scope-fix/index.js";
 export * from "./sentinel-axiom-dataset/index.js";
+export * from "./sentinel-check-name/index.js";
 export * from "./validate-config/index.js";
 export * from "./webhook/index.js";

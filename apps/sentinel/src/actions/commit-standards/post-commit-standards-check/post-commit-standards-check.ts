@@ -7,28 +7,26 @@
  * Sentinel isn't a plugin, and this is a single REST call with nothing
  * else to wrap.
  *
- * D5: `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` carries the intent
- * vocabulary through — `<namespace, humanized> / <the existing CI check's
- * own name, unchanged>` — rather than inventing a new ad-hoc label.
- * `platform.commitStandards`'s own reusable workflow job is named "Commit
- * Standards / Run commitlint" (`platform.commitStandards.yml`); this is
- * that same name with `Platform /` carried in front of it, so it's
- * visually obvious in a PR's checks list which CI check this one
- * centralizes. No "Sentinel /" prefix — GitHub's own check-run detail page
- * already shows the posting App's display name ahead of whatever name is
- * set here, so a hand-added prefix just duplicated it.
+ * `SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME` is `sentinel:lint:commits / Run commitlint`
+ * (`sentinelCheckName()`, `.notes/ci-sentinel-check-names.spec.md`). The
+ * task id is `lint:commits`, as on the Actions side: a repo still on the frozen
+ * reusables posts "Commit Standards / Run commitlint" from Actions, and an
+ * exact clash with this check would be confusing. No "Sentinel /" prefix —
+ * GitHub's own check-run detail page already shows the posting App's
+ * display name ahead of whatever name is set here, so a hand-added prefix
+ * just duplicated it.
  */
 
 import type { CheckRunConclusion } from "@theholocron/github-client";
 
-import { SENTINEL_COMMIT_STANDARDS_LOG_MSG, SENTINEL_NAMESPACES, sentinelAxiomLogUrl } from "../../../utils/index.js";
+import { SENTINEL_COMMIT_STANDARDS_LOG_MSG, sentinelAxiomLogUrl, sentinelCheckName } from "../../../utils/index.js";
 import type { CommitViolation } from "../lint-commits/index.js";
 import type {
 	PostCommitStandardsCheckInput,
 	PostCommitStandardsCheckResult,
 } from "./post-commit-standards-check.type.js";
 
-export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Commit Standards / Run commitlint`;
+export const SENTINEL_COMMIT_STANDARDS_CHECK_RUN_NAME = sentinelCheckName("lint:commits", "Run commitlint");
 
 /** One violation as one summary line: `abc1234: subject may not be empty [subject-empty]`. */
 function formatViolation(v: CommitViolation): string {

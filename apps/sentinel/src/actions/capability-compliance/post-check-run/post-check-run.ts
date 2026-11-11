@@ -12,31 +12,23 @@
  * checks against, imported rather than duplicated, so *why* a repo is
  * non-compliant can never drift from *whether* it is.
  *
- * `SENTINEL_CHECK_RUN_NAME` folds under the `platform` namespace
- * (`SENTINEL_NAMESPACES`) even though this check has no `platform.*` task or
- * workflow behind it at all — Sentinel posts it directly via the Checks API
- * from a webhook. No "Sentinel /" prefix: GitHub's own check-run detail
- * page already shows the posting App's display name ahead of whatever name
- * is set here, so a hand-added prefix just duplicated it. Exported so a
- * caller checking for this check run by name (a future re-run guard, a
- * test, a dashboard) never hand-copies the string.
+ * Posted directly via the Checks API from a webhook, with no workflow
+ * behind it. The name is `sentinel:<task id> / <Action>` (`sentinelCheckName()`,
+ * `ci-sentinel-check-names.spec.md`): the `sentinel:` is temporary, and there is no "Sentinel /" prefix, because
+ * GitHub's own check-run detail page already shows the posting App's
+ * display name ahead of whatever name is set here. Exported so a caller
+ * checking for this check run by name (a future re-run guard, a test, a
+ * dashboard) never hand-copies the string.
  *
  * Folds under the `Compliance` grouping alongside the DCO check
- * (`post-dco-check.ts`) — no longer the deliberate 2-tier exception
- * `tech-sentinel-enforcement.spec.md`'s D5 originally called out
- * ("Platform / Capability Compliance", no label to carry through).
- * DCO's arrival gave the grouping a second member, so "Compliance"
- * now plays the label role every other check's existing-CI-job name
- * plays, and "Run Holocron config compatibility" plays the command
- * role — renamed from "Capability Compliance" since what this check
- * actually verifies is a repo's declared capabilities against
- * `REQUIRED_BASELINE`, i.e. the repo's `holocron.config` being
- * baseline-compatible. **Renaming this string changes a live required
- * status check** — `holocron.config.ts`'s own `extraRequiredChecks`
- * entry must be updated in the same change, and `holocron repo setup` (or
- * the ruleset-PATCH mechanism it wraps) re-run against this repo
- * before merge, or the old name stays required forever with nothing
- * left posting it.
+ * (`post-dco-check.ts`); "Run Holocron config compatibility" is the
+ * action — what this check verifies is a repo's declared capabilities
+ * against `REQUIRED_BASELINE`, i.e. the repo's `holocron.config` being
+ * baseline-compatible. **Renaming this string changes a check that a
+ * ruleset may require** — none in this repo's ruleset or
+ * `extraRequiredChecks` does today, but a repo whose ruleset lists the old
+ * name needs its ruleset updated in the same change, or the old name stays
+ * required with nothing left posting it.
  */
 
 import { missingCapabilities } from "@theholocron/cli";
@@ -44,12 +36,12 @@ import type { CheckRunConclusion } from "@theholocron/github-client";
 
 import {
 	SENTINEL_CAPABILITY_COMPLIANCE_LOG_MSG,
-	SENTINEL_NAMESPACES,
 	sentinelAxiomLogUrl,
+	sentinelCheckName,
 } from "../../../utils/index.js";
 import type { PostCheckRunInput, PostCheckRunResult } from "./post-check-run.type.js";
 
-export const SENTINEL_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.platform} / Compliance / Run Holocron config compatibility`;
+export const SENTINEL_CHECK_RUN_NAME = sentinelCheckName("validate:config", "Run Holocron config compatibility");
 
 export async function postCheckRun(input: PostCheckRunInput): Promise<PostCheckRunResult> {
 	const { client, repo, headSha, capabilities, runId } = input;

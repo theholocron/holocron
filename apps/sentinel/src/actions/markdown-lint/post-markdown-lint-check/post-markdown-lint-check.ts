@@ -16,8 +16,8 @@ import {
 import {
 	postErrorReview,
 	SENTINEL_MARKDOWN_LINT_LOG_MSG,
-	SENTINEL_NAMESPACES,
 	sentinelAxiomLogUrl,
+	sentinelCheckName,
 } from "../../../utils/index.js";
 import type { MarkdownLintMessage } from "../lint-markdown/index.js";
 import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./post-markdown-lint-check.type.js";
@@ -30,9 +30,8 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * `markdownlint`'s real Node API (`lint()` from `markdownlint/promise`)
  * works directly on fetched file content — no checkout.
  *
- * Same `sourceQuality` namespace as Inclusive Language and Formatting — the
- * spec's own forecast ("the next namespace... once eslint/prettier move to
- * Sentinel too") named exactly this kind of tool.
+ * Named `sentinel:lint:markdown / Run markdownlint` (`sentinelCheckName()`,
+ * `.notes/ci-sentinel-check-names.spec.md`).
  *
  * **Not purely advisory** (same treatment inclusive language got in
  * holocron#865, and static analysis in holocron#873): `conclusion:
@@ -42,7 +41,7 @@ import type { PostMarkdownLintCheckInput, PostMarkdownLintCheckResult } from "./
  * only a PR-review comment (holocron#860). Warning-severity-only findings
  * still resolve to `"neutral"` — advisory, same as before.
  */
-export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = `${SENTINEL_NAMESPACES.sourceQuality} / Documentation / Run markdownlint`;
+export const SENTINEL_MARKDOWN_LINT_CHECK_RUN_NAME = sentinelCheckName("lint:markdown", "Run markdownlint");
 
 /** One message as one summary line: `README.md:12: reason [rule-name]`. */
 function formatMessage(m: MarkdownLintMessage): string {

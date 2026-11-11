@@ -23,7 +23,7 @@ const input = {
 	headSha: "abc123",
 	checkKey: "actionlint",
 	checkLabel: "actionlint",
-	checkRunName: "Source Quality / Static Analysis / Run actionlint",
+	checkRunName: "sentinel:lint:code / Run actionlint",
 	warningCount: 0,
 };
 

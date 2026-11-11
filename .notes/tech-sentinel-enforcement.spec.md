@@ -14,6 +14,10 @@ discussion:
 
 <!-- alex disable failed -->
 
+> **Check names.** The names below, and the D5 convention they follow (`<namespace, humanized> / <the existing CI check's
+own name>`), are the ones this spec designed (`Sentinel / Platform / ...`), kept as a design note. Sentinel's checks are
+> now `Group / Action`, without the `Sentinel /` and category tiers: see `ci-sentinel-check-names` (#2036).
+
 # Sentinel as central enforcer — commit-message linting first
 
 Workstream spec under the [Holocron Platform epic](https://github.com/theholocron/holocron/issues/672).
