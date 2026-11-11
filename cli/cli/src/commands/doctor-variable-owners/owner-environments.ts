@@ -1,4 +1,9 @@
-import { credentialsEnvironment, type ResolvedHolocronConfig, type ResolvedProviderEntry } from "../../config/index.js";
+import {
+	credentialsEnvironment,
+	resolvedEnvironment,
+	type ResolvedHolocronConfig,
+	type ResolvedProviderEntry,
+} from "../../config/index.js";
 
 /** The Environments the check reads, and the ones that are instances of one GitHub App. */
 export interface OwnerEnvironments {
@@ -20,11 +25,11 @@ export function ownerEnvironments(config: ResolvedHolocronConfig): OwnerEnvironm
 		const named = credentialsEnvironment(tuple, config);
 		if (named !== undefined) names.add(named);
 	}
-	const instances = new Set((config.githubApps ?? []).map((app) => app.environment));
+	const instances = new Set((config.githubApps ?? []).map(resolvedEnvironment));
 	for (const environment of instances) names.add(environment);
 	if (config.dev?.environment) names.add(config.dev.environment);
 	for (const sync of [...(config.repo?.secrets?.sync ?? []), ...(config.repo?.variables?.sync ?? [])]) {
-		names.add(sync.environment);
+		names.add(resolvedEnvironment(sync));
 	}
 	return { names: [...names], instances };
 }

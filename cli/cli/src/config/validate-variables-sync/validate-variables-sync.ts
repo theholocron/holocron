@@ -1,6 +1,7 @@
 import { ConfigError } from "@theholocron/kyber/config";
 
 import type { RepoVariables } from "../config/index.js";
+import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
 
 /** GitHub treats variable names as case-insensitive, so every comparison goes through this. */
 const key = (name: string): string => name.toUpperCase();
@@ -22,10 +23,8 @@ export function validateVariablesSync(variables: RepoVariables | undefined): voi
 		);
 	}
 	for (const entry of entries) {
-		if (typeof entry.environment !== "string" || entry.environment.trim() === "") {
-			throw new ConfigError("a `repo.variables.sync` entry needs the name of a vault environment");
-		}
-		const label = `\`repo.variables.sync\` entry for ${JSON.stringify(entry.environment)}`;
+		const named = validateEnvironmentChoice(entry, "a `repo.variables.sync` entry");
+		const label = `\`repo.variables.sync\` entry for ${JSON.stringify(named)}`;
 		if (
 			!Array.isArray(entry.keys) ||
 			entry.keys.length === 0 ||

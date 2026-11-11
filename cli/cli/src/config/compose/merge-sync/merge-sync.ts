@@ -1,6 +1,7 @@
 /** The fields of a `repo.secrets.sync` or `repo.variables.sync` entry that decide whether two are the same sync. */
 interface SyncEntry {
-	environment: string;
+	environment?: string;
+	layer?: string;
 	scope?: string;
 	keys?: string[];
 }
@@ -13,7 +14,7 @@ interface SyncEntry {
 export function mergeSync<T extends SyncEntry>(a: T[] | undefined, b: T[] | undefined): T[] {
 	const merged = new Map<string, T>();
 	for (const entry of [...(a ?? []), ...(b ?? [])]) {
-		const id = `${entry.environment}\0${entry.scope ?? "repo"}`;
+		const id = JSON.stringify([entry.environment, entry.layer, entry.scope ?? "repo"]);
 		const have = merged.get(id);
 		merged.set(
 			id,

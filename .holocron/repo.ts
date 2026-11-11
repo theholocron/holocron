@@ -23,7 +23,7 @@ export default {
 	variables: {
 		sync: [
 			{
-				environment: "Holocron - GitHub Actions variables",
+				layer: "ci",
 				scope: "org=theholocron",
 				keys: [
 					"HOLOCRON_AXIOM_DATASET",
@@ -41,14 +41,14 @@ export default {
 			},
 		],
 	},
-	// The GitHub secrets the 1Password Environment `Holocron - GitHub Actions` fills (`holocron secrets sync
-	// "Holocron - GitHub Actions"`, #1702): change one in 1Password, run the sync, and both scopes are updated. Names
+	// The GitHub secrets the `ci` layer of the 1Password Environments fills (`holocron secrets sync ci`,
+	// `theholocron/holocron - ci`, #1702, #2069): change one in 1Password, run the sync, and both scopes are updated. Names
 	// only. A key that is blank in the Environment is skipped, so a placeholder never overwrites a working secret.
 	// `doctor secrets` expects every key listed here at its scope.
 	secrets: {
 		sync: [
 			{
-				environment: "Holocron - GitHub Actions",
+				layer: "ci",
 				scope: "org=theholocron",
 				keys: [
 					"HOLOCRON_ADMIN_TOKEN",
@@ -69,7 +69,7 @@ export default {
 				],
 			},
 			{
-				environment: "Holocron - GitHub Actions",
+				layer: "ci",
 				keys: [
 					"HOLOCRON_DEPLOYMENTS_TOKEN",
 					"HOLOCRON_DISCORD_BOT_TOKEN",

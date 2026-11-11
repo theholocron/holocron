@@ -11,10 +11,10 @@ A variable that lives in two places drifts: one copy is rotated and the other is
 
 ```text
   ✗ SENTINEL_WEBHOOK_SECRET                    lives in 2 places
-      - held by Environment "Sentinel"
+      - held by Environment "theholocron/holocron - prod"
       - held by organization secrets
   · TURBO_TEAM and HOLOCRON_TURBO_TEAM         info: both exist (TURBO_TEAM in organization variables; HOLOCRON_TURBO_TEAM in organization variables). Fine during a rename; a leftover after it
-  - Environment "Comlink"                      could not read it with 1password: Environment not found
+  - Environment "theholocron/holocron - dev"        could not read it with 1password: Environment not found
 
 0 ok, 1 fail, 2 skipped
 ```
@@ -41,7 +41,7 @@ Not reported:
 
 - **The sync fan-out.** An Environment that `repo.secrets.sync` or `repo.variables.sync` copies to a GitHub place is the one allowed copy. The GitHub copy of a name an Environment fills is left out; a second Environment holding the same name is still reported.
 - **Deliberate sharing.** A name listed in `doctor.sharedVariables` in `holocron.config.ts` (names only). Use it for a value two Environments hold on purpose, such as `HOLOCRON_DISCORD_BOT_TOKEN`. The same goes for a token the CLI reads locally and the CI reads from the `Holocron - GitHub Actions` Environment (`HOLOCRON_ADMIN_TOKEN`, `HOLOCRON_SYNC_TOKEN` and the rest of the org tokens): each is listed by name, and the value is rotated in both places.
-- **The instances of one GitHub App.** The Environments in `githubApps` (`Sentinel` and `Sentinel - dev`) hold the same names by design and count as one place.
+- **The instances of one GitHub App.** The Environments in `githubApps` (the `prod` and `dev` layers of this repository) hold the same names by design and count as one place.
 
 ```ts
 export default defineConfig({

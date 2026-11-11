@@ -13,6 +13,8 @@ const SENTINEL_CONFIG = new URL("../../../../../../apps/sentinel/holocron.config
  * Sentinel's fully resolved config as it was before #1820 moved the Vercel `teamId` and the Checkly `accountId` out of
  * `apps/sentinel/holocron.config.ts` into `apps/sentinel/.holocron/org.ts` (produced by the loader on the unmoved config).
  */
+/** The remote the layers are derived from (#2069); the real checkout's `origin` is never read. */
+const gitExec = async () => "https://github.com/theholocron/holocron.git";
 const SNAPSHOT = new URL("./sentinel-org-area.pre-move.snapshot.json", import.meta.url);
 
 type RawConfig = {
@@ -38,7 +40,7 @@ describe("the org area in this repo (#1820)", () => {
 		).default as Record<string, unknown>;
 		expect(Object.keys(own)).toEqual(["vercel"]);
 		expect(shared).toHaveProperty("checkly");
-		const { resolved } = await loadConfig(SENTINEL);
+		const { resolved } = await loadConfig(SENTINEL, { gitExec });
 		const monitoring = resolved.providers.monitoring as { tuple: { options: { accountId?: string } } };
 		expect(monitoring.tuple.options.accountId).toBe((shared.checkly as { accountId: string }).accountId);
 	});
@@ -52,21 +54,18 @@ describe("the org area in this repo (#1820)", () => {
 		const { tuple } = expected.providers.tunnels as { tuple: { options: Record<string, unknown> } };
 		expect(tuple.options).toEqual({ accountId: expect.any(String) });
 		tuple.options = {};
+		// And (#2063): the two literal Environments are one entry with none; the names are derived from the remote.
 		expected.providers.credentials = {
 			cardinality: "many",
-			tuples: [
-				{
-					provider: "1password",
-					packageName: "@theholocron/holocron-plugin-1password",
-					options: { environment: "Holocron" },
-				},
-				{
-					provider: "1password",
-					packageName: "@theholocron/holocron-plugin-1password",
-					options: { environment: "Holocron - GitHub Actions variables" },
-				},
-			],
+			tuples: [{ provider: "1password", packageName: "@theholocron/holocron-plugin-1password", options: {} }],
 		};
+		// And (#2069): the vault and `dev` name a layer, so their Environment is derived: `prod` and `dev`.
+		const vault = expected.providers.vault as { tuple: { options: Record<string, unknown> } };
+		expect(vault.tuple.options).toEqual({ environment: "Sentinel" });
+		vault.tuple.options = { environment: "theholocron/holocron - prod" };
+		const devBlock = (expected as unknown as { dev: { environment: string } }).dev;
+		expect(devBlock.environment).toBe("Sentinel - dev");
+		devBlock.environment = "theholocron/holocron - dev";
 		// Another (#1874): Sentinel's logger reads its Axiom dataset from `SENTINEL_AXIOM_DATASET`, the per-service name,
 		// instead of the bare `AXIOM_DATASET`.
 		const { logging, required } = (
@@ -78,11 +77,11 @@ describe("the org area in this repo (#1820)", () => {
 		// GitHub reserving the `GITHUB_` prefix for its own secrets.
 		expect(required).toEqual(["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "SENTINEL_WEBHOOK_SECRET"]);
 		required.splice(0, 2, "SENTINEL_GITHUB_APP_ID", "SENTINEL_GITHUB_APP_PRIVATE_KEY");
-		const { resolved } = await loadConfig(SENTINEL);
+		const { resolved } = await loadConfig(SENTINEL, { gitExec });
 		// And the deployment key filter (#2061): `repo.secrets.deploy` says which keys the Vercel sync may send.
 		expect(resolved.repo?.secrets?.deploy).toEqual([
 			{
-				environment: "Sentinel",
+				environment: "theholocron/holocron - prod",
 				prefix: "SENTINEL_",
 				keys: ["HOLOCRON_AXIOM_ORG", "HOLOCRON_DISCORD_BOT_TOKEN", "HOLOCRON_USER_SYNC_TOKEN"],
 			},
@@ -105,7 +104,7 @@ describe("the org area in this repo (#1820)", () => {
 		).default as Record<string, unknown>;
 		expect(shared.domain).toBe("theholocron.dev");
 		expect(own).not.toHaveProperty("domain");
-		const root = await loadConfig(REPO_ROOT);
+		const root = await loadConfig(REPO_ROOT, { gitExec });
 		expect(root.resolved.domain).toBe(shared.domain);
 		const wiki = root.resolved.providers.wiki as unknown as { tuple: { options: { domain: string } } };
 		expect(wiki.tuple.options.domain).toBe(`wiki.${shared.domain}`);
@@ -113,7 +112,7 @@ describe("the org area in this repo (#1820)", () => {
 			await import(/* @vite-ignore */ new URL("../../../../../../holocron.config.ts", import.meta.url).href)
 		).default as Record<string, unknown>;
 		expect(raw).not.toHaveProperty("domain");
-		const sentinel = await loadConfig(SENTINEL);
+		const sentinel = await loadConfig(SENTINEL, { gitExec });
 		expect(sentinel.resolved.domain).toBe(shared.domain);
 		const dev = sentinel.resolved.dev as { tunnel: { hostname: string } };
 		expect(dev.tunnel.hostname).toBe(`sentinel-dev.${shared.domain}`);
@@ -126,7 +125,7 @@ describe("the org area in this repo (#1820)", () => {
 	});
 
 	it("resolves the root config's Checkly entry to what it was before the move", async () => {
-		const { resolved } = await loadConfig(REPO_ROOT);
+		const { resolved } = await loadConfig(REPO_ROOT, { gitExec });
 		expect(resolved.providers.monitoring).toEqual({
 			cardinality: "single",
 			tuple: {
@@ -142,7 +141,7 @@ describe("the org area in this repo (#1820)", () => {
 			await import(/* @vite-ignore */ new URL("../../../../../../holocron.config.ts", import.meta.url).href)
 		).default as { providers: { errors: unknown } };
 		expect(raw.providers.errors).toBe("sentry");
-		const { resolved } = await loadConfig(REPO_ROOT);
+		const { resolved } = await loadConfig(REPO_ROOT, { gitExec });
 		expect(resolved.providers.errors).toEqual({
 			cardinality: "single",
 			tuple: {

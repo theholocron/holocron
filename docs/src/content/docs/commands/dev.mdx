@@ -22,7 +22,7 @@ Everything it needs is the `dev` block of the directory's `holocron.config.ts`, 
 
 ```ts
 dev: {
-  environment: "Sentinel - dev",
+  layer: "dev", // the Environment <org>/<repo> - dev; `environment: "Name"` names one literally
   tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
   port: 3000,
   command: ["pnpm", "run", "serve"],
@@ -37,7 +37,7 @@ For an application that is one web-standard handler (`(Request, env) => Response
 
 ```ts
 dev: {
-  environment: "Sentinel - dev",
+  layer: "dev",
   tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.theholocron.dev" },
   serve: {
     handler: "./src/handler/index.ts",

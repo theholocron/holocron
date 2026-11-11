@@ -10,7 +10,9 @@ import {
 	type TeamEntry,
 	type TeamPermission,
 } from "../../plugin/capabilities/index.js";
+import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
 import { validateSecretsDeploy } from "../validate-secrets-deploy/index.js";
+import { validateSecretsSync } from "../validate-secrets-sync/index.js";
 import { validateVariablesSync } from "../validate-variables-sync/index.js";
 import type {
 	CredentialsConfig,
@@ -120,12 +122,13 @@ const HOSTNAME = /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0
 function validateGitHubApps(apps: GitHubAppConfig[]): void {
 	if (!Array.isArray(apps)) throw new ConfigError("`githubApps` must be a list of { name, manifest, environment }");
 	apps.forEach((app, idx) => {
-		for (const key of ["name", "manifest", "environment"] as const) {
+		for (const key of ["name", "manifest"] as const) {
 			const value: unknown = app?.[key];
 			if (typeof value !== "string" || value.trim() === "") {
 				throw new ConfigError(`\`githubApps[${idx}].${key}\` must be a non-empty string`);
 			}
 		}
+		validateEnvironmentChoice(app, `\`githubApps[${idx}]\``);
 	});
 }
 
@@ -147,9 +150,7 @@ function validateIdeas(ideas: IdeasConfig): void {
 /** Throws a {@link ConfigError} naming the first thing wrong with the `dev` block. */
 function validateDev(dev: DevConfig): void {
 	const nonEmpty = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
-	if (dev.environment !== undefined && !nonEmpty(dev.environment)) {
-		throw new ConfigError("`dev.environment` must be the name of a vault environment, got an empty value");
-	}
+	validateEnvironmentChoice(dev, "`dev`", false);
 	if (dev.tunnel !== undefined) {
 		if (!nonEmpty(dev.tunnel.name)) throw new ConfigError("`dev.tunnel.name` must be a name, got an empty value");
 		if (typeof dev.tunnel.hostname !== "string" || !HOSTNAME.test(dev.tunnel.hostname)) {
@@ -182,6 +183,12 @@ function validateDev(dev: DevConfig): void {
 			throw new ConfigError("`dev.serve.logging` needs a `tokenVar` and a `datasetVar`, both variable names");
 		}
 	}
+}
+
+/** Throws a {@link ConfigError} when the `vault` entry's options name an Environment two ways, or a `layer` that is no layer word. */
+function validateVaultLayer(entry: ResolvedProviderEntry | undefined): void {
+	if (entry?.cardinality !== "single") return;
+	validateEnvironmentChoice(entry.tuple.options, "the `vault` provider's options", false);
 }
 
 /** The values `repoValidation.docsCoverage` accepts. */
@@ -248,6 +255,8 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (raw.ideas !== undefined) validateIdeas(raw.ideas);
 	validateVariablesSync(raw.repo?.variables);
 	validateSecretsDeploy(raw.repo?.secrets);
+	validateSecretsSync(raw.repo?.secrets);
+	validateVaultLayer(providers.vault);
 	const credentialsEntry = providers.credentials;
 	if (credentialsEntry?.cardinality === "many") {
 		for (const tuple of credentialsEntry.tuples) {

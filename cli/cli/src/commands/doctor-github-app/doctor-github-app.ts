@@ -20,7 +20,7 @@ import { getApp, type GitHubAppCredentials, listAppInstallations } from "@thehol
 import { type CheckRow, printCheckRows, printCheckSummary, summariseChecks } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
-import type { GitHubAppConfig } from "../../config/index.js";
+import { type GitHubAppConfig, resolvedEnvironment } from "../../config/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { assertPluginsResolvable, PluginLoader, type Vault } from "../../plugin/index.js";
 import { appRows } from "./app-rows.js";
@@ -99,18 +99,19 @@ async function readCredentials(
 				: "needs a `vault` provider in holocron.config.ts (1password)",
 		};
 	}
+	const environment = resolvedEnvironment(instance);
 	let values: Record<string, string>;
 	try {
-		values = await vault.readEnvironment(instance.environment);
+		values = await vault.readEnvironment(environment);
 	} catch (err) {
-		return { reason: `cannot read the "${instance.environment}" environment: ${errorMessage(err)}` };
+		return { reason: `cannot read the "${environment}" environment: ${errorMessage(err)}` };
 	}
 	const appId = held(values, APP_ID);
 	const key = held(values, PRIVATE_KEY);
 	const missing = [appId ? undefined : APP_ID, key ? undefined : PRIVATE_KEY].filter((names) => names !== undefined);
 	if (missing.length > 0) {
 		const named = missing.map(([preferred, older]) => `${preferred} (or ${older})`).join(" or ");
-		return { reason: `"${instance.environment}" does not hold ${named}` };
+		return { reason: `"${environment}" does not hold ${named}` };
 	}
 	// A key kept on one line in a vault carries its line breaks as a literal `\n`.
 	const privateKey = (key as string).includes("\n") ? (key as string) : (key as string).replace(/\\n/g, "\n");

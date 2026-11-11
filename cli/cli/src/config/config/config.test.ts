@@ -256,9 +256,53 @@ describe("resolveConfig", () => {
 		["an entry that is not an object", [null], /githubApps\[0\]\.name/],
 		["an empty name", [{ name: " ", manifest: "m", environment: "e" }], /githubApps\[0\]\.name/],
 		["no manifest", [{ name: "n", environment: "e" }], /githubApps\[0\]\.manifest/],
-		["no environment", [{ name: "n", manifest: "m", environment: "" }], /githubApps\[0\]\.environment/],
+		["no environment", [{ name: "n", manifest: "m", environment: "" }], /githubApps\[0\]. needs the name/],
 	])("rejects githubApps with %s", (_label, githubApps, message) => {
 		expect(() => resolveConfig({ ...minimal, githubApps: githubApps as never })).toThrow(message);
+	});
+
+	it("accepts a layer in place of an environment on githubApps, dev, repo.secrets.sync and the vault options", () => {
+		const config = resolveConfig({
+			...minimal,
+			providers: { ...minimal.providers, vault: ["1password", { layer: "prod" }] },
+			githubApps: [{ name: "Sentinel", manifest: "m.json", layer: "prod" }],
+			dev: { layer: "dev" },
+			repo: { secrets: { sync: [{ layer: "ci" }] } },
+		});
+		expect(config.githubApps?.[0]?.layer).toBe("prod");
+		expect(config.dev?.layer).toBe("dev");
+		expect(config.repo?.secrets?.sync?.[0]?.layer).toBe("ci");
+	});
+
+	it.each([
+		[
+			"githubApps",
+			{ githubApps: [{ name: "n", manifest: "m", layer: "ci", environment: "E" }] },
+			/githubApps\[0\]. sets both/,
+		],
+		[
+			"githubApps with a bad layer",
+			{ githubApps: [{ name: "n", manifest: "m", layer: "x" }] },
+			/githubApps\[0\].*"prod"/,
+		],
+		["dev", { dev: { layer: "dev", environment: "E" } }, /`dev` sets both/],
+		[
+			"repo.secrets.sync",
+			{ repo: { secrets: { sync: [{ layer: "ci", environment: "E" }] } } },
+			/repo\.secrets\.sync. entry sets both/,
+		],
+		[
+			"repo.secrets.sync with neither",
+			{ repo: { secrets: { sync: [{ keys: ["A"] }] } } },
+			/repo\.secrets\.sync. entry needs/,
+		],
+		[
+			"the vault options",
+			{ providers: { ...minimal.providers, vault: ["1password", { layer: "prod", environment: "E" }] } },
+			/vault. provider's options sets both/,
+		],
+	])("rejects a layer and an environment together on %s", (_label, extra, message) => {
+		expect(() => resolveConfig({ ...minimal, ...extra } as never)).toThrow(message);
 	});
 
 	it("passes the ideas block through, and leaves it unset by default", () => {
@@ -284,7 +328,7 @@ describe("resolveConfig", () => {
 	});
 
 	it.each([
-		["an empty environment", { environment: " " }, /dev\.environment/],
+		["an empty environment", { environment: " " }, /`dev` needs the name/],
 		["an empty tunnel name", { tunnel: { name: "", hostname: "a.example.dev" } }, /dev\.tunnel\.name/],
 		[
 			"a hostname with a scheme",

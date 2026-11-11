@@ -1,9 +1,10 @@
 import type { Environment } from "@theholocron/env-utils/lookup";
 
+import { type EnvironmentLayer, layerEnvironment } from "../layer-environment/index.js";
 import type { EnvironmentCandidate } from "./environment-layers.type.js";
 
 /** The suffix each layer's Environment carries: `<org/repo> - <suffix>`. `test` has none. */
-const SUFFIX: Record<Exclude<Environment, "test">, string> = {
+const SUFFIX: Record<Exclude<Environment, "test">, EnvironmentLayer> = {
 	local: "local",
 	development: "dev",
 	ci: "ci",
@@ -18,8 +19,8 @@ const SUFFIX: Record<Exclude<Environment, "test">, string> = {
  */
 export function environmentLayers(slug: string, layer: Environment): EnvironmentCandidate[] {
 	if (layer === "test") return [];
-	const candidate = (suffix: string, optional: boolean): EnvironmentCandidate => ({
-		name: `${slug} - ${suffix}`,
+	const candidate = (suffix: EnvironmentLayer, optional: boolean): EnvironmentCandidate => ({
+		name: layerEnvironment(slug, suffix),
 		optional,
 		legacy: false,
 	});

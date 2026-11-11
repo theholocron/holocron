@@ -142,10 +142,10 @@ export default defineConfig({
 		// and the layer (#2063, see docs: tokens), ahead of the keyring (#1606). The old names are still tried while
 		// the new ones are absent. A token in the process environment or a repo-root `.env` still wins.
 		credentials: ["1password"],
-		// Vault: the source `holocron secrets sync` reads. Sentinel and Comlink declare their own Environments in their
-		// configs; this one is for the GitHub Actions secrets, so the vault is the same 1Password and the Environment is
-		// named on the command line (`repo.secrets.sync` above says where each key goes).
-		vault: ["1password", { environment: "Holocron - GitHub Actions" }],
+		// Vault: the source `holocron secrets sync` reads. Sentinel and Comlink name their own layer (`prod`) in their
+		// configs; this one is for the GitHub Actions secrets, so it is the `ci` layer, `<org/repo> - ci` (#2069).
+		// `holocron secrets sync ci` reads it (`repo.secrets.sync` says where each key goes).
+		vault: ["1password", { layer: "ci" }],
 		// Environments: manage GitHub deployment environments for staging/production
 		environments: "github",
 		// Errors: Sentry — `holocron repo setup` provisions the project and pushes the
@@ -185,10 +185,10 @@ export default defineConfig({
 	},
 	// Registered GitHub Apps: `holocron doctor github-app` compares each with its manifest (GitHub cannot change an
 	// existing App's permissions or events, so each instance is changed by hand). The id and key come from the
-	// 1Password Environment of the same name.
+	// 1Password Environment of the layer: `prod` for Sentinel, `dev` for the development instance (#2069).
 	githubApps: [
-		{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel" },
-		{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", environment: "Sentinel - dev" },
+		{ name: "Sentinel", manifest: "apps/sentinel/github-app.manifest.json", layer: "prod" },
+		{ name: "Sentinel - dev", manifest: "apps/sentinel/github-app.manifest.json", layer: "dev" },
 	],
 	agent: "claude",
 	skills: ["git-safety", "pr-workflow", "commit-standards", "security-review", "holocron-skill-plugin", "turborepo"],

@@ -1,9 +1,10 @@
 import { ConfigError } from "@theholocron/kyber/config";
 
 import type { RepoSecrets } from "../config/index.js";
+import { validateEnvironmentChoice } from "../validate-environment-choice/index.js";
 
 /**
- * Check `repo.secrets.deploy`: each entry names a vault environment and at least one of a non-empty `keys` list and a
+ * Check `repo.secrets.deploy`: each entry names a vault environment (or a `layer`) and at least one of a non-empty `keys` list and a
  * non-empty `prefix`. An entry with neither would mean "all keys", which a deployment never gets (spec
  * `tech-deployment-key-allowlist`, #2061), so it is an error here and not a silent skip.
  *
@@ -12,10 +13,8 @@ import type { RepoSecrets } from "../config/index.js";
  */
 export function validateSecretsDeploy(secrets: RepoSecrets | undefined): void {
 	for (const entry of secrets?.deploy ?? []) {
-		if (typeof entry.environment !== "string" || entry.environment.trim() === "") {
-			throw new ConfigError("a `repo.secrets.deploy` entry needs the name of a vault environment");
-		}
-		const label = `\`repo.secrets.deploy\` entry for ${JSON.stringify(entry.environment)}`;
+		const named = validateEnvironmentChoice(entry, "a `repo.secrets.deploy` entry");
+		const label = `\`repo.secrets.deploy\` entry for ${JSON.stringify(named)}`;
 		const { keys, prefix } = entry;
 		if (keys !== undefined && (!Array.isArray(keys) || keys.some((k) => typeof k !== "string" || k === ""))) {
 			throw new ConfigError(`${label} has \`keys\` that is not a list of key names`);
