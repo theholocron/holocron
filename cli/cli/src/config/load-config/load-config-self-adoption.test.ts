@@ -30,6 +30,8 @@ const DEAD_SECRETS = [
 	// The Sentry DSN is a public ingest key: the synced variable `HOLOCRON_SENTRY_DSN` replaced both secrets.
 	"NEXT_PUBLIC_SENTRY_DSN",
 	"SENTRY_DSN",
+	// The Lighthouse token is no longer synced to an org secret; a repo that runs Lighthouse holds it at repo scope.
+	"LHCI_GITHUB_APP_TOKEN",
 ];
 const UPLOADS = "<workspace-derived: one codecov upload per package>";
 
@@ -162,7 +164,7 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 				},
 			],
 		};
-		// And (#1864): nine synced secrets are named `HOLOCRON_<NAME>` now; the files hold the same values and tokens.
+		// And (#1864): eight synced secrets are named `HOLOCRON_<NAME>` now; the files hold the same values and tokens.
 		const secretRenames: Record<string, string> = {
 			AXIOM_TOKEN: "HOLOCRON_AXIOM_TOKEN",
 			CLOUDFLARE_API_TOKEN: "HOLOCRON_CLOUDFLARE_TOKEN",
@@ -170,7 +172,6 @@ describe("holocron's own config adopts .holocron/ (#1806)", () => {
 			FERN_TOKEN: "HOLOCRON_FERN_TOKEN",
 			VERCEL_PROTECTION_BYPASS_SECRET: "HOLOCRON_VERCEL_PROTECTION_BYPASS_SECRET",
 			VERCEL_TOKEN: "HOLOCRON_VERCEL_TOKEN",
-			LHCI_GITHUB_APP_TOKEN: "HOLOCRON_LIGHTHOUSE_TOKEN",
 			SENTRY_AUTH_TOKEN: "HOLOCRON_SENTRY_AUTH_TOKEN",
 			TURBO_TOKEN: "HOLOCRON_TURBO_TOKEN",
 		};
