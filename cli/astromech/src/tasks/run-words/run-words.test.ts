@@ -101,6 +101,18 @@ describe("runWords — a suite", () => {
 		expect(exec.mock.calls.map((c) => c[1])).toEqual([[process.argv[1], "probe", "docs", "validate"]]);
 	});
 
+	it("runs the measure suite's configured leaves, and the old hyphen ids run the same one", () => {
+		const docs = [process.argv[1], "probe", "docs", "coverage"];
+		for (const name of ["measure:docs", "measure-docs"]) {
+			const { run, exec } = setup({ "package.json": PKG });
+			run(["measure"], { config: { tasks: [name] } });
+			expect(exec.mock.calls.map((c) => c[1])).toEqual([docs]);
+		}
+		const { run, exec } = setup({ "package.json": PKG });
+		run(["measure", "docs"], { config: { tasks: ["measure:docs", "measure:bundle"] } });
+		expect(exec.mock.calls.map((c) => c[1])).toEqual([docs]);
+	});
+
 	it("from a package directory runs only the package-scoped leaves, for that package, and reports the rest", () => {
 		const files = { "package.json": PKG, "../turbo.json": "{}" };
 		const { run, exec } = setup(files, {

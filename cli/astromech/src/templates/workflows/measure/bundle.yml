@@ -1,4 +1,4 @@
-name: measure-docs
+name: measure:bundle
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -7,10 +7,9 @@ on: # yamllint disable-line rule:truthy
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
-  measure-docs:
-    name: measure-docs
-    uses: theholocron/.github/.github/workflows/measure-docs.yml@main
+  measure-bundle:
+    name: measure:bundle
+    uses: theholocron/.github/.github/workflows/measure-bundle.yml@main
     secrets: inherit

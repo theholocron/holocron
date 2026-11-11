@@ -4,7 +4,7 @@
 # Changes: edit source in theholocron/holocron
 # Source package: .
 
-name: measure-docs
+name: measure:docs
 
 on: # yamllint disable-line rule:truthy
   push:
@@ -17,6 +17,6 @@ permissions:
 
 jobs:
   measure-docs:
-    name: measure-docs
+    name: measure:docs
     uses: ./.github/workflows/measure-docs.yml
     secrets: inherit

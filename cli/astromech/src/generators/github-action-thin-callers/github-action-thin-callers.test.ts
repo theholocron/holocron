@@ -40,7 +40,7 @@ describe("WORKFLOW_TEMPLATES", () => {
 		expect(WORKFLOW_CHECK_CONTEXTS["validate:docs"]).toBe("validate:docs / Validate docs");
 		expect(WORKFLOW_CHECK_CONTEXTS["validate"]).toBeUndefined();
 		expect(WORKFLOW_CHECK_CONTEXTS["lint:code"]).toBe("lint:code / Run eslint, actionlint and prettier");
-		expect(WORKFLOW_CHECK_CONTEXTS["measure-bundle"]).toBe("measure-bundle / Upload bundle stats to Codecov");
+		expect(WORKFLOW_CHECK_CONTEXTS["measure:bundle"]).toBe("measure:bundle / Upload bundle stats to Codecov");
 	});
 });
 

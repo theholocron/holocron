@@ -21,8 +21,14 @@ describe("TASKS registry", () => {
 		expect(SUITES.filter((suite) => TASKS[suite] !== undefined)).toEqual([]);
 	});
 
-	it("declares the four suites that have leaves, in registry order", () => {
-		expect(SUITES).toEqual(["test", "lint", "scan", "validate"]);
+	it("declares the five suites that have leaves, in registry order", () => {
+		expect(SUITES).toEqual(["test", "lint", "scan", "measure", "validate"]);
+	});
+
+	it("measure is a suite of two upload leaves (#2070)", () => {
+		expect(TASKS["measure"]).toBeUndefined();
+		expect(TASKS["measure:docs"]).toMatchObject({ suite: "measure", local: { command: "probe docs coverage" } });
+		expect(TASKS["measure:bundle"]).toMatchObject({ suite: "measure", local: null });
 	});
 
 	it("a colon id and a hyphen id never flatten to the same file name", () => {
@@ -135,7 +141,7 @@ describe("TASKS registry", () => {
 
 	it("the audit-decomposed tasks are standalone", () => {
 		expect(TASKS["lint:unused"]!.local).toEqual({ tool: "knip" });
-		expect(TASKS["measure-bundle"]!.local).toBeNull();
+		expect(TASKS["measure:bundle"]!.local).toBeNull();
 		expect(TASKS["test:perf"]!.local!.detect!.map((d) => d.tool)).toEqual(["lhci", "lhci"]);
 		expect(TASKS["test:perf"]!.local!.detect![0]!.when.test("lighthouse.config.cjs")).toBe(true);
 	});

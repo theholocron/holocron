@@ -126,7 +126,7 @@ export default defineConfig({
 		"label",
 		"reconcile-projects",
 		"remind-doctor",
-		"measure-docs",
+		"measure:docs",
 		"validate:deps",
 		"validate:generated",
 		{ name: "typecheck", required: true, with: { affected: true } },

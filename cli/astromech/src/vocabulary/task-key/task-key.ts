@@ -2,9 +2,15 @@ import { ownLegacyName } from "../legacy-name/index.js";
 import { LEGACY_NAMES } from "../legacy-names/index.js";
 import { scriptName } from "../script-name/index.js";
 
-/** `true` when a manifest entry is spelled with an old dotted name (`verification.unitTests`). */
+/**
+ * `true` when a manifest entry is spelled with an old name (`verification.unitTests`). An old hyphen id that is only the
+ * hyphen spelling of the id's script (`measure-docs` for `measure:docs`) has no old script or turbo key to keep, so it is
+ * keyed like the flat id.
+ */
 export function isLegacySpelling(name: string): boolean {
-	return LEGACY_NAMES[name] !== undefined;
+	const targets = LEGACY_NAMES[name];
+	if (targets === undefined) return false;
+	return !(targets.length === 1 && scriptName(targets[0]!.id) === scriptName(name));
 }
 
 /**

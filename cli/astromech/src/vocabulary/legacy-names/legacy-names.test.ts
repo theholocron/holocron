@@ -26,12 +26,21 @@ describe("LEGACY_NAMES", () => {
 		expect(ids.filter((id) => TASKS[id] === undefined && !workflowOnly.has(id))).toEqual([]);
 	});
 
-	it("lists no flat id under two old names, except the interim `validate` that names what platform.repoValidation did", () => {
+	it("lists no flat id under two old names, except the interim `validate` and the two hyphen ids that became leaves of `measure`", () => {
+		const interim = new Set(["validate", "measure-docs", "measure-bundle"]);
 		const ids = Object.entries(LEGACY_NAMES).flatMap(([legacy, targets]) =>
-			legacy === "validate" ? [] : targets.map((t) => t.id)
+			interim.has(legacy) ? [] : targets.map((t) => t.id)
 		);
 		expect(new Set(ids).size).toBe(ids.length);
 		expect(LEGACY_NAMES["validate"]).toEqual(LEGACY_NAMES["platform.repoValidation"]);
+	});
+
+	it("keeps the hyphen ids measure-docs and measure-bundle as aliases of the measure leaves (#2070)", () => {
+		expect(LEGACY_NAMES["measure-docs"]).toEqual([{ id: "measure:docs" }]);
+		expect(LEGACY_NAMES["measure-bundle"]).toEqual([{ id: "measure:bundle" }]);
+		// The dotted name stays the old name of the bundle task; the hyphen id is the only old name of the docs one.
+		expect(legacyName("measure:bundle")).toBe("delivery.bundleSize");
+		expect(legacyName("measure:docs")).toBe("measure-docs");
 	});
 
 	it("never lists a flat id as an old name (an old name is dotted or a workflow key)", () => {

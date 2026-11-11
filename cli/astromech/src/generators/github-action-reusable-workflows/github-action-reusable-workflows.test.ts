@@ -601,7 +601,7 @@ describe("REUSABLE_WORKFLOWS — the CI suite runs `holocron run`", () => {
 	});
 
 	it("the audit-derived tasks each run through the holocron action, decomposed into separate workflows", () => {
-		const build = REUSABLE_WORKFLOWS["measure-bundle"]!;
+		const build = REUSABLE_WORKFLOWS["measure:bundle"]!;
 		expect(build).toMatch(/task: build/);
 
 		const knip = REUSABLE_WORKFLOWS["lint:unused"]!;
@@ -1088,7 +1088,7 @@ describe("organization secrets are read by their HOLOCRON_ name first (#1864)", 
 	const cases: [string, string, string][] = [
 		["release", "VERCEL_TOKEN", "HOLOCRON_VERCEL_TOKEN"],
 		["deploy-preview", "VERCEL_TOKEN", "HOLOCRON_VERCEL_TOKEN"],
-		["measure-bundle", "CODECOV_TOKEN", "HOLOCRON_CODECOV_TOKEN"],
+		["measure:bundle", "CODECOV_TOKEN", "HOLOCRON_CODECOV_TOKEN"],
 		["preview", "CLOUDFLARE_API_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"],
 		["test:perf", "LHCI_GITHUB_APP_TOKEN", "HOLOCRON_LIGHTHOUSE_TOKEN"],
 	];

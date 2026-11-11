@@ -23,5 +23,5 @@ jobs:
     name: ci
     uses: ./.github/workflows/ci.yml
     with:
-      expected: '["typecheck","lint:code","lint:editorconfig","lint:markdown","lint:data","scan:secrets","lint:commits","validate:specs","validate:docs","test:unit","build","lint:unused","measure-bundle","validate:deps","validate:generated"]'
+      expected: '["typecheck","lint:code","lint:editorconfig","lint:markdown","lint:data","scan:secrets","lint:commits","validate:specs","validate:docs","test:unit","build","lint:unused","measure:bundle","validate:deps","validate:generated"]'
       statuses: '["codecov/patch","codecov/project","codecov/patch/documentation"]'

@@ -32,7 +32,7 @@ export default defineConfig({
 		// so test:perf isn't included (matches the old
 		// `run-performance` never being enabled here).
 		{ name: "lint:unused", required: true },
-		{ name: "measure-bundle", required: true },
+		{ name: "measure:bundle", required: true },
 		// Repo/spec validation (`holocron probe specs check`, `holocron probe docs presence`) —
 		// used to ride inside the old `lint` job with no linter connection at
 		// all; now its own task (#675).

@@ -34,7 +34,7 @@ const PINNED_CONTEXTS = [
 	"lint:editorconfig / Run editorconfig-checker",
 	"lint:markdown / Run markdownlint",
 	"lint:unused / Run knip",
-	"measure-bundle / Upload bundle stats to Codecov",
+	"measure:bundle / Upload bundle stats to Codecov",
 	"scan:secrets / Run gitleaks",
 	"test:unit / Conclusion",
 	"typecheck / Run tsc --noEmit",

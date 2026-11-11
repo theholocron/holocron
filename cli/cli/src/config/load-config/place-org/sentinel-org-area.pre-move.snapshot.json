@@ -36,7 +36,7 @@
       "required": true
     },
     {
-      "name": "measure-bundle",
+      "name": "measure:bundle",
       "required": true
     },
     {

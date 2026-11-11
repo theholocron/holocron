@@ -19,7 +19,7 @@ Tasks are named by **intent**, not by tool, in a flat, verb-first vocabulary: `t
 name and what it actually runs — this page covers how resolution works,
 not the list itself. `holocron run --help` lists them grouped under the six intent groups.
 
-Three suites exist, declared in the registry by their leaves: `test`, `lint` and `scan`.
+Five suites exist, declared in the registry by their leaves: `test`, `lint`, `scan`, `measure` and `validate`.
 
 - `holocron run test` runs every `test:*` leaf the repo lists in its `tasks:`, in registry order, and always runs all of
   them. A leaf the repo does not list is not run, and one with no local runner is reported `skipped (CI only)`.
@@ -80,6 +80,19 @@ script for a task wins over the built-in runner.
 `platform.repoValidation` stand for both leaves. A third leaf, `validate:plugin`, is the plugin packages' own live check {/* holocron-allow-old-name */}
 (`tsx scripts/validate.mjs`); it has no workflow and is not part of `holocron run ci`.
 
+## The `measure` suite
+
+`measure` is a suite of two measurements that upload to Codecov. `holocron run measure` runs the leaves the repo lists.
+
+| `holocron run …` | Runs                                    |
+| ---------------- | --------------------------------------- |
+| `measure:docs`   | `holocron probe docs coverage`          |
+| `measure:bundle` | nothing locally (the upload is CI only) |
+| `measure`        | the leaves the repo lists               |
+
+The hyphen ids `measure-docs` and `measure-bundle` are deprecated aliases: they still work in `tasks:` and in {/* holocron-allow-old-name */}
+`holocron run`, with the deprecation notice on stderr, and generate the same files and checks as the colon ids. {/* holocron-allow-old-name */}
+
 ## `linterGroup` tasks
 
 `lint:code` bundles more than one tool under a single required check — it doesn't map to a single
@@ -115,14 +128,14 @@ to run the full CI set locally.
 
 ## Options
 
-| Option           | Description                                                     |
-| ---------------- | --------------------------------------------------------------- |
-| `--dry-run`      | Print the resolved command without running it                   |
-| `--required`     | Exit 1 (instead of 0) if this repo has no such task             |
-| `--check`        | With `format`: report what prettier would change, write nothing |
-| `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                   |
-| `--all`          | With `run ci`: run every `ci: true` task, not just required     |
-| `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script |
+| Option           | Description                                                          |
+| ---------------- | -------------------------------------------------------------------- |
+| `--dry-run`      | Print the resolved command without running it                        |
+| `--required`     | Exit 1 (instead of 0) if this repo has no such task                  |
+| `--check`        | With `format`: report what prettier would change, write nothing      |
+| `--filter <pkg>` | `turbo --filter=<pkg>` passthrough (monorepo)                        |
+| `--all`          | With `run ci`: run every `ci: true` task, not only the required ones |
+| `-- <args>`      | Everything after `--` is forwarded to the tool / turbo / script      |
 
 ## Unique tasks
 

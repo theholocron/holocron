@@ -20,9 +20,12 @@ export function callerProblems(callers: readonly ParsedCaller[]): string[] {
 		const base = file.replace(/\.yml$/, "");
 		const prefix = base.startsWith(PREFIX) ? PREFIX : "";
 		const stem = base.slice(prefix.length);
-		if (Object.hasOwn(LEGACY_NAMES, stem)) {
-			const files = workflowKeys(stem).map((id) => `${prefix}${workflowFile(id)}`);
-			return [`${file}: an old caller name; the flat name is ${files.join(", ")}`];
+		const oldFiles = Object.hasOwn(LEGACY_NAMES, stem)
+			? workflowKeys(stem).map((id) => `${prefix}${workflowFile(id)}`)
+			: [];
+		// An old hyphen id whose flat file is the same (`measure-docs` is also the file of `measure:docs`) is not an old name.
+		if (oldFiles.length > 0 && !(oldFiles.length === 1 && oldFiles[0] === file)) {
+			return [`${file}: an old caller name; the flat name is ${oldFiles.join(", ")}`];
 		}
 		const id = CALLER_IDS.find((candidate) => workflowFile(candidate).replace(/\.yml$/, "") === stem);
 		if (id === undefined) return [];
