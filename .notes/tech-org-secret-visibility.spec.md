@@ -1,4 +1,5 @@
 ---
+id: SPEC-0081
 status: draft
 issue: theholocron/holocron#2062
 blocked-by: []
@@ -7,6 +8,8 @@ related:
   - theholocron/holocron#2061
   - theholocron/holocron#2065
   - theholocron/holocron#2072
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569978306252644392
 ---
 
 # An organization secret names who can read it
