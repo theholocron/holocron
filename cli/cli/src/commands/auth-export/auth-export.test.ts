@@ -1,6 +1,6 @@
-import { existsSync, mkdtempSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { stripVTControlCharacters } from "node:util";
 
 import { fakeLogger } from "@theholocron/observability/testing";
@@ -315,6 +315,7 @@ describe("auth export — only", () => {
 			outKind: "terminal",
 			only: ["HOLOCRON_ORG_TOKEN"],
 			to: "file",
+			makeDir: () => {},
 			isIgnored: () => "ignored",
 			writeFile: () => ({ fd: openSync("/dev/null", "r"), dev: 1, ino: 1 }) as never,
 			keep: true,
@@ -596,7 +597,7 @@ describe("auth export — the private file", () => {
 	const fresh = () => {
 		const dir = mkdtempSync(join(tmpdir(), "holocron-export-"));
 		const here: LoadedConfig = { ...loaded, filepath: join(dir, "holocron.config.json") };
-		return { dir, here, file: join(dir, ".credentials") };
+		return { dir, here, file: join(dir, ".holocron", ".private", ".credentials") };
 	};
 	const CONTENT = "HOLOCRON_ORG_TOKEN=ghp_org\nHOLOCRON_SENTRY_TOKEN=sntry_1\n";
 	const gone = (): "deleted" => "deleted";
@@ -761,6 +762,7 @@ describe("auth export — the private file", () => {
 
 	it("never overwrites a file that is there, and says how to replace it", async () => {
 		const { here, file } = fresh();
+		mkdirSync(dirname(file), { recursive: true });
 		writeFileSync(file, "keep me");
 		const { result, err } = run({ ...base, loaded: here });
 		expect((await result).status).toBe("fail");
@@ -771,10 +773,44 @@ describe("auth export — the private file", () => {
 
 	it("replaces it with --force", async () => {
 		const { here, file } = fresh();
+		mkdirSync(dirname(file), { recursive: true });
 		writeFileSync(file, "old");
 		const { result } = run({ ...base, loaded: here, force: true, keep: true });
 		expect((await result).status).toBe("ok");
 		expect(readFileSync(file, "utf8")).toBe(CONTENT);
+	});
+
+	it("makes .holocron/.private when it is missing, before it asks git about the file", async () => {
+		const { dir, here, file } = fresh();
+		const asked: boolean[] = [];
+		const { result } = run({
+			...base,
+			loaded: here,
+			keep: true,
+			isIgnored: (path) => {
+				asked.push(existsSync(dirname(path)));
+				return "ignored";
+			},
+		});
+		expect((await result).file).toBe(file);
+		expect(asked).toEqual([true]);
+		expect(readFileSync(file, "utf8")).toBe(CONTENT);
+		expect(statSync(join(dir, ".holocron", ".private")).mode & 0o777).toBe(0o700);
+	});
+
+	it("tells a repo without the ignore rule to run repo sync, and writes nothing", async () => {
+		const { here, file } = fresh();
+		const { result, err } = run({ ...base, loaded: here, isIgnored: () => "tracked" });
+		expect((await result).status).toBe("fail");
+		expect(existsSync(file)).toBe(false);
+		expect(err.join("\n")).toContain("run `holocron repo sync`");
+	});
+
+	it("keeps the old advice for a --file that git does not ignore", async () => {
+		const { here } = fresh();
+		const { result, err } = run({ ...base, loaded: here, file: "x.env", isIgnored: () => "tracked" });
+		expect((await result).status).toBe("fail");
+		expect(err.join("\n")).not.toContain("repo sync");
 	});
 
 	it("writes the file when asked even if stdout is a pipe, at a path given relative to the config", async () => {

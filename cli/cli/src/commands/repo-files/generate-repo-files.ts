@@ -1,12 +1,14 @@
 import { generateAgentFiles } from "./generate-agent-files.js";
 import { generateConfigFiles } from "./generate-config-files.js";
+import { generatePrivateDirFiles } from "./generate-private-dir-files.js";
 import { generateTurboFiles } from "./generate-turbo-files.js";
 import { generateWorkflowFiles } from "./generate-workflow-files.js";
 import type { RepoFileEntry, RepoFilesInput } from "./repo-files.type.js";
 
 /**
  * Every file `holocron repo setup` writes to disk from the config alone, in the order it writes them: the thin-caller
- * workflows, the config files, then `turbo.json` and its follow-up edits. No provider and no network, so a job without
+ * workflows, the config files, the agent instructions block, the private directory (`.holocron/.private/.gitkeep` and its `.gitignore` block), then
+ * `turbo.json` and its follow-up edits. No provider and no network, so a job without
  * a token can produce them, and `repo sync` takes the files it shares from here too. What setup reads from a provider
  * (CODEOWNERS, which needs the org, the installed skills, the agent prompts) is not here.
  */
@@ -15,6 +17,7 @@ export async function generateRepoFiles(input: RepoFilesInput): Promise<RepoFile
 		...generateWorkflowFiles(input),
 		...(await generateConfigFiles(input)),
 		...(await generateAgentFiles(input)),
+		...(await generatePrivateDirFiles(input)),
 		...(await generateTurboFiles(input)),
 	];
 }

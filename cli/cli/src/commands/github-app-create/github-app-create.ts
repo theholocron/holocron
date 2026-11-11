@@ -1,6 +1,6 @@
 /**
  * `holocron github-app create` — create a GitHub App from a manifest (GitHub's manifest flow), and keep its
- * credentials in the private `.credentials` file `auth export` uses, to import into a credentials environment.
+ * credentials in the private `.holocron/.private/.credentials` file `auth export` uses, to import into a credentials environment.
  *
  * The flow has one click in it that cannot be done for you: a local page posts the manifest to GitHub, you press
  * "Create GitHub App", GitHub redirects back to a one-shot server on the loopback address with a code, and the code is
@@ -19,10 +19,10 @@ import { openPath } from "@theholocron/kyber/ui";
 import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
+import { ignoreAdvice, resolveCredentialsFile } from "../../private-dir/index.js";
 import type { GithubAppCreateReport, RunGithubAppCreateInput } from "./github-app-create.type.js";
 
 const COMMAND = "github-app create";
-const DEFAULT_FILE = ".credentials";
 const DEFAULT_WEBHOOK_SECRET_VAR = "SENTINEL_WEBHOOK_SECRET";
 
 export async function runGithubAppCreate(input: RunGithubAppCreateInput): Promise<GithubAppCreateReport> {
@@ -57,7 +57,9 @@ export async function runGithubAppCreate(input: RunGithubAppCreateInput): Promis
 	} catch (err) {
 		return refuse("manifest", errorMessage(err));
 	}
-	const file = resolve(input.dir, input.file || DEFAULT_FILE);
+	// The default is `.holocron/.private/.credentials`, whose directory is made first so git can be asked about it.
+	const target = resolveCredentialsFile(input.dir, input.file, input.makeDir);
+	const file = target.path;
 	const git = (input.isIgnored ?? isGitIgnored)(file);
 	if (git === "tracked" || git === "unknown") {
 		return refuse(
@@ -65,7 +67,7 @@ export async function runGithubAppCreate(input: RunGithubAppCreateInput): Promis
 			git === "tracked"
 				? `refusing to write credentials to ${file}: git does not ignore it, so it could be committed`
 				: `refusing to write credentials to ${file}: git could not say whether it ignores it`,
-			"add it to .gitignore, or choose another path with --file"
+			ignoreAdvice(target.isDefault, "choose another path with --file")
 		);
 	}
 	if (!input.force && (input.exists ?? existsSync)(file)) {

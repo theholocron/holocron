@@ -138,12 +138,12 @@ describe("runSync", () => {
 			"sync: sync labels"
 		);
 		expect(log.info).toHaveBeenCalledWith(expect.objectContaining({ ok: expect.any(Number) }), "sync: done");
-		expect(report.steps).toHaveLength(13);
-		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(7);
+		expect(report.steps).toHaveLength(15);
+		expect(report.steps.filter((s) => s.status === "ok")).toHaveLength(9);
 		expect(report.steps.find((s) => s.step === "sync teams")?.status).toBe("skip");
 		expect(report.steps.find((s) => s.step === "sync scripts")?.status).toBe("ok");
 		expect(report.steps.find((s) => s.step === "sync turbo.json")?.status).toBe("skip");
-		expect(report.summary).toMatchObject({ ok: 7, fail: 0, skip: 6 });
+		expect(report.summary).toMatchObject({ ok: 9, fail: 0, skip: 6 });
 	});
 
 	it("runs only the requested step when a single step filter is given", async () => {
@@ -287,7 +287,7 @@ describe("runSync", () => {
 
 		expect(called).toBe(false);
 		expect(report.steps.every((s) => s.status === "dry-run" || s.status === "skip")).toBe(true);
-		expect(report.summary.dryRun).toBe(7);
+		expect(report.summary.dryRun).toBe(9);
 	});
 
 	it("reports skip when provider does not implement syncLabels", async () => {
@@ -984,6 +984,56 @@ describe("runSync", () => {
 			expect(step?.status).toBe("skip");
 			expect(step?.message).toMatch(/monorepo subpackage/);
 			expect(await readFile(join(tmpDir, "AGENTS.md"), "utf8")).toBe("# Demo\n");
+		});
+	});
+
+	describe("sync private directory", () => {
+		let tmpDir: string;
+		beforeEach(async () => {
+			tmpDir = await mkdtemp(join(tmpdir(), "holocron-test-"));
+		});
+		afterEach(async () => {
+			await rm(tmpDir, { recursive: true });
+		});
+
+		async function runPrivateStep(repoRoot: string, dryRun = false) {
+			const loaded = loadedFrom({ name: "demo", providers: {} });
+			const loader = makeLoaderWith(loaded, {});
+			return runSync({ loaded, context: { repoRoot, dryRun }, loader, steps: ["private"], print: () => {} });
+		}
+
+		it("writes the .gitkeep and the ignore block, keeping the rest of .gitignore", async () => {
+			await writeFile(join(tmpDir, ".gitignore"), "node_modules\n");
+			const report = await runPrivateStep(tmpDir);
+			expect(report.steps.map((s) => [s.step, s.status])).toEqual([
+				["write .holocron/.private/.gitkeep", "ok"],
+				["write .gitignore", "ok"],
+			]);
+			expect(await readFile(join(tmpDir, ".holocron/.private/.gitkeep"), "utf8")).toBe("");
+			const text = await readFile(join(tmpDir, ".gitignore"), "utf8");
+			expect(text).toMatch(/^node_modules\n/);
+			expect(text).toContain(".holocron/.private/*\n!.holocron/.private/.gitkeep");
+		});
+
+		it("is idempotent: a second run leaves the same bytes", async () => {
+			await runPrivateStep(tmpDir);
+			const first = await readFile(join(tmpDir, ".gitignore"), "utf8");
+			await runPrivateStep(tmpDir);
+			expect(await readFile(join(tmpDir, ".gitignore"), "utf8")).toBe(first);
+		});
+
+		it("writes nothing on a dry run", async () => {
+			await runPrivateStep(tmpDir, true);
+			await expect(readFile(join(tmpDir, ".gitignore"), "utf8")).rejects.toThrow();
+		});
+
+		it("skips when --cwd is a monorepo subpackage, not the checkout root", async () => {
+			await mkdir(join(tmpDir, ".git"));
+			const subpackage = join(tmpDir, "packages", "sentinel");
+			await mkdir(subpackage, { recursive: true });
+			const step = (await runPrivateStep(subpackage)).steps.find((s) => s.step === "sync private directory");
+			expect(step?.status).toBe("skip");
+			expect(step?.message).toMatch(/monorepo subpackage/);
 		});
 	});
 

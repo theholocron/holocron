@@ -138,3 +138,8 @@ lcov.info
 /docs/src/content/docs/cli/*/api/
 /docs/src/content/docs/observability/api/
 /docs/src/content/docs/themes/*/api/
+
+# managed by holocron setup — private directory
+.holocron/.private/*
+!.holocron/.private/.gitkeep
+# end managed by holocron setup — private directory

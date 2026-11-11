@@ -20,7 +20,7 @@ const authExportArgs = (yy: Argv<GlobalArgs>) =>
 		.option("file", {
 			type: "string",
 			describe:
-				"Write the tokens to this private file (mode 0600; default .credentials, next to holocron.config) instead of stdout; on a terminal this is the default",
+				"Write the tokens to this private file (mode 0600; default .holocron/.private/.credentials) instead of stdout; on a terminal this is the default",
 		})
 		.option("only", {
 			type: "string",

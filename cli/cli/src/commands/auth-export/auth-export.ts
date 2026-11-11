@@ -12,7 +12,7 @@
  * refused, because it would leave plaintext tokens on disk without any of those protections.
  */
 
-import { dirname, resolve } from "node:path";
+import { dirname } from "node:path";
 
 import { createEnvLookup } from "@theholocron/env-utils/lookup";
 import {
@@ -29,6 +29,7 @@ import { errorMessage } from "@theholocron/misc-utils";
 import { keyring } from "../../auth/index.js";
 import { getLogger } from "../../observability/logger/index.js";
 import { WorkspaceContextError } from "../../plugin/index.js";
+import { ignoreAdvice, resolveCredentialsFile } from "../../private-dir/index.js";
 import { createDefaultImporter, type PluginToken } from "../auth/index.js";
 import { configuredPackages } from "../doctor-tokens/index.js";
 import type { AuthExportReport, RunAuthExportInput } from "./auth-export.type.js";
@@ -37,9 +38,6 @@ const COMMAND = "auth export";
 
 /** Plain code-unit order: the same on every machine, whatever its locale. The names it sorts are all different. */
 const compare = (a: string, b: string): number => (a < b ? -1 : 1);
-
-/** The file the lines go to on a terminal when none is named. */
-const DEFAULT_FILE = ".credentials";
 
 /** What a variable can be called in a dotenv file and in a shell. */
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -249,7 +247,9 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 					"use `holocron auth export --copy`, or pipe the output to a tool"
 				);
 			}
-			file = resolve(dirname(input.loaded.filepath), input.file || DEFAULT_FILE);
+			// The default is `.holocron/.private/.credentials`, whose directory is made first so git can be asked about it.
+			const target = resolveCredentialsFile(dirname(input.loaded.filepath), input.file, input.makeDir);
+			file = target.path;
 			// Only a positive answer lets the file be written: if git cannot say, it might be committed.
 			const git = (input.isIgnored ?? isGitIgnored)(file);
 			if (git === "tracked" || git === "unknown") {
@@ -258,7 +258,7 @@ export async function runAuthExport(input: RunAuthExportInput): Promise<AuthExpo
 					git === "tracked"
 						? `refusing to write tokens to ${file}: git does not ignore it, so it could be committed`
 						: `refusing to write tokens to ${file}: git could not say whether it ignores it`,
-					"add it to .gitignore, or choose a path outside the repository with --file"
+					ignoreAdvice(target.isDefault, "choose a path outside the repository with --file")
 				);
 			}
 			try {

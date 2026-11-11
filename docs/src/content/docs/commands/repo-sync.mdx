@@ -29,11 +29,25 @@ holocron repo sync labels properties             # run only labels and propertie
 | `homepage`    | `package.json#homepage` and GitHub repo website field                                                                                                                                    | No (local) / Yes (GitHub)    |
 | `readme`      | Regenerates the README Installation/Usage block and the scripts table; fails when the README tells the reader to run a task script the package lacks (`pnpm test` with no `test` script) | No                           |
 | `workflows`   | `.github/workflows/*.yml` thin callers from `tasks`                                                                                                                                      | No                           |
+| `private`     | `.holocron/.private/.gitkeep` and the `.gitignore` block that ignores everything else in that directory                                                                                  | No                           |
 | `scripts`     | `package.json#scripts` — the `holocron` entry + one script per runnable task in `tasks`                                                                                                  | No                           |
 | `turbo`       | `turbo.json` — generated from the fan-out-eligible tasks in `tasks`                                                                                                                      | No                           |
 | `wiki`        | Publishes engineering docs to the wiki                                                                                                                                                   | No                           |
 
 Local steps (everything except `labels`, `properties`, `teams`, `topics`) write to the local filesystem. `description` and `homepage` also push to GitHub when a `source` plugin is configured; running without a token skips the GitHub push but still updates local files.
+
+### `private`
+
+`.holocron/.private/` is the one place for files that hold secrets, such as the `.credentials` file [`auth export`](/holocron/commands/auth-export/) and [`github-app create`](/holocron/commands/github-app-create/) write. The step writes an empty, tracked `.gitkeep` there and a managed block in `.gitignore`:
+
+```text
+# managed by holocron setup — private directory
+.holocron/.private/*
+!.holocron/.private/.gitkeep
+# end managed by holocron setup — private directory
+```
+
+The block is merged into the `.gitignore` already there; the rest of the file is kept. `repo setup` writes the same bytes, and `holocron probe generated check` fails when either differs. A command that writes to the directory refuses when git does not ignore the path and tells you to run `holocron repo sync`.
 
 ### `scripts`
 

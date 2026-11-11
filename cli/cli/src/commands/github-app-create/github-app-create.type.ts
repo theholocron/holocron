@@ -16,8 +16,10 @@ export interface RunGithubAppCreateInput {
 	org?: string | undefined;
 	/** The variable the webhook secret is written as. Defaults to `SENTINEL_WEBHOOK_SECRET`. */
 	webhookSecretVar?: string | undefined;
-	/** The private file for the credentials, relative to `dir`. Defaults to `.credentials`. */
+	/** The private file for the credentials, relative to `dir`. Defaults to `.holocron/.private/.credentials`. */
 	file?: string | undefined;
+	/** Makes the default file's directory when it is missing. Defaults to `mkdir -p` with mode 0700. */
+	makeDir?: ((dir: string) => void) | undefined;
 	/** Replace the file if it is already there. Without it an existing file is never overwritten. */
 	force?: boolean | undefined;
 	/** Leave the file in place instead of deleting it once the import is done. */
