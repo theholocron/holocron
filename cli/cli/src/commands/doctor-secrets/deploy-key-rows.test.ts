@@ -24,6 +24,19 @@ describe("deployKeyRows", () => {
 		expect(JSON.stringify(rows)).not.toMatch(/s3cr3t|hunter2/);
 	});
 
+	it("says (none) when nothing is sent, and does not mention a key kept back when none is", async () => {
+		const [none] = await deployKeyRows(
+			[{ environment: "prod", keys: ["MISSING"] }],
+			vaultWith(async () => ({ OTHER: "x" }))
+		);
+		expect(none!.detail).toBe("sends 0 of 1: (none); keeps back 1: OTHER");
+		const [all] = await deployKeyRows(
+			[{ environment: "prod", prefix: "S_" }],
+			vaultWith(async () => ({ S_A: "x" }))
+		);
+		expect(all!.detail).toBe("sends 1 of 1: S_A");
+	});
+
 	it("skips with the reason when there is no vault or it cannot list", async () => {
 		const entries = [{ environment: "prod", keys: ["A"] }];
 		expect((await deployKeyRows(entries, { why: "no vault" }))[0]).toMatchObject({
