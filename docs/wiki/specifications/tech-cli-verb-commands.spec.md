@@ -1,6 +1,6 @@
 ---
 id: SPEC-0080
-status: draft
+status: accepted
 issue: theholocron/holocron#2082
 blocked-by: []
 related:
@@ -168,14 +168,21 @@ No `!` and no `BREAKING CHANGE:` footer, as in SPEC-0040: the project is on `alp
 
 ## Rollout
 
-1. Issue (#2082) and this spec. SPEC-0040 is marked superseded when this spec is accepted, in the first
-   implementation PR, since only its regrouping is replaced (`deploy [branch]`, `run ci` and the menu completeness test
-   stay).
-2. Stacked PRs by verb, each with its reference sweep, tests and docs: `new` and `list`/`remove`/`check`/`export`
-   first (they absorb commands from several groups), then `sync`, `setup`, `upgrade`/`cleanup`/`apply`, then
-   `publish`, `close`/`move`/`reconcile`, `link`/`resolve`/`show`, then the last group removals.
-3. A final check that `holocron probe tasks names` and a grep for every old command name come back clean.
-4. Manual: run `holocron sync github` to push the regenerated reusable templates (needs the sync token).
+One stack of pull requests, each on the one before it, each with its reference sweep, tests and docs (no docs-only or
+test-only follow-ups):
+
+1. Accept this spec and mark SPEC-0040 superseded (only its regrouping is replaced; `deploy [branch]`, `run ci` and the
+   menu completeness test stay).
+2. `new`: `channel`, `github-app`, `project`, `secret`, `server`, `spec`, `token`, `tunnel`.
+3. `list` and `remove`: `projects`, `secrets`, `skills` (new), `tokens`; `skill`, `token`.
+4. `check` and `export`: `monitor`, `resolved`, `token`; `tokens`.
+5. `sync`: the default, `readme`, `ideas`, `roles`, `secrets`, `specs`.
+6. `setup`, `upgrade`, `cleanup`, `apply`: `setup`, `setup notifications`, `setup project`, `upgrade node | deps`,
+   `cleanup branches | posts`, `apply properties`.
+7. `publish`: `bump-versions`, `package`, `tag`.
+8. `close`, `move`, `reconcile`, `link`, `resolve`, `show`, and the last empty groups.
+9. A final check that `holocron probe tasks names` and a grep for every old command name come back clean.
+10. Manual: run `holocron sync github` to push the regenerated reusable templates (needs the sync token).
 
 ## Out of scope
 
