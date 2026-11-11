@@ -1,3 +1,13 @@
+## [5.0.0-alpha.418](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.417...v5.0.0-alpha.418) (2026-11-11)
+
+### Bug Fixes
+
+* **1password:** 🔒 export-environment writes to .holocron/.private ([#2090](https://github.com/theholocron/holocron/issues/2090)) ([3e81cef](https://github.com/theholocron/holocron/commit/3e81cef88cf2dc382ddb74b8b6396da4d237e0d6)), closes [#2076](https://github.com/theholocron/holocron/issues/2076)
+
+### Documentation
+
+* **cli:** 📝 accept the verb-first command spec, supersede SPEC-0040 ([#2088](https://github.com/theholocron/holocron/issues/2088)) ([aba55b9](https://github.com/theholocron/holocron/commit/aba55b9fb0779dd49a69d025ebec2de921163df4)), closes [#2082](https://github.com/theholocron/holocron/issues/2082)
+
 ## [5.0.0-alpha.417](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.416...v5.0.0-alpha.417) (2026-11-11)
 
 ### Features
