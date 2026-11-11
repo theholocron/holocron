@@ -1,9 +1,12 @@
 ---
+id: SPEC-0078
 status: draft
 issue: theholocron/holocron#2076
 blocked-by: []
 related:
   - theholocron/holocron#2058
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569951673059774594
 ---
 
 # 1Password: export one Environment to a `.credentials` file
