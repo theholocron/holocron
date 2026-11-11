@@ -11,6 +11,8 @@ import { connectionProbe } from "@theholocron/cli";
 import { type VerifyInput, verifyOpInstalled } from "./auth.js";
 import { OpCredentials } from "./capabilities/credentials.js";
 import { OpVault } from "./capabilities/vault.js";
+import { exportEnvironmentProbe } from "./probes/export-environment.js";
+import { exportEnvironmentDeps } from "./probes/export-environment-deps.js";
 import { OpShell } from "./shell.js";
 import { verifyToken } from "./verify-token.js";
 
@@ -25,6 +27,8 @@ export interface OpPluginOptions extends VerifyInput {
 	environment?: string;
 	/** Optional 1P account UUID; passed as `--account` on every op call. Useful when several accounts are signed in. */
 	account?: string;
+	/** The repository root, handed in by the CLI: where `export-environment` writes `.credentials` and finds a layer word's remote. */
+	repoRoot?: string;
 }
 
 /** Shared state for one 1Password plugin instance: its options and the `op` shell wrapper. */
@@ -67,7 +71,7 @@ export function credentials(ctx: PluginContext): Credentials {
 	return new OpCredentials(ctx.shell);
 }
 
-/** Creates the 1Password plugin: its `connection` probe and the `vault` and `credentials` capabilities. */
+/** Creates the 1Password plugin: its `connection` and `export-environment` probes and the `vault` and `credentials` capabilities. */
 export function createPlugin(options: OpPluginOptions = {}) {
 	const ctx = createContext(options);
 	return {
@@ -79,6 +83,10 @@ export function createPlugin(options: OpPluginOptions = {}) {
 				token: () => "",
 				verify: (token) => verifyToken(token, { spawn: options.spawn }),
 			}),
+			// Moves one Environment's variables into another through a private file, a pipe or the clipboard.
+			"export-environment": exportEnvironmentProbe(
+				exportEnvironmentDeps(new OpCredentials(ctx.shell), options.repoRoot ?? process.cwd())
+			),
 		},
 		capabilities: {
 			vault: () => vault(ctx),

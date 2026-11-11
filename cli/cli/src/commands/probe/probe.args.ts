@@ -9,6 +9,8 @@ export interface ProbeArgs extends GlobalArgs {
 	lcov?: string;
 	warn?: boolean;
 	files?: boolean;
+	only?: string[];
+	copy?: boolean;
 	yes: boolean;
 }
 
@@ -39,6 +41,16 @@ export const probeArgs = (y: Argv<GlobalArgs>): Argv<ProbeArgs> =>
 			type: "boolean",
 			describe:
 				"`tasks names`: also report old names that are part of a workflow file name (`delivery.build.yml`)",
+		})
+		.option("only", {
+			type: "string",
+			array: true,
+			nargs: 1,
+			describe: "`1password export-environment`: export only this variable; repeat for more",
+		})
+		.option("copy", {
+			type: "boolean",
+			describe: "`1password export-environment`: put the variables on the clipboard instead of a file",
 		})
 		.option("yes", {
 			type: "boolean",

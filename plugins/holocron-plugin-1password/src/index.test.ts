@@ -15,6 +15,18 @@ describe("createPlugin", () => {
 		expect(() => createPlugin({ vault: "rando", spawn })).toThrow(AuthError);
 	});
 
+	it("offers the connection and export-environment probes, the latter a writer", () => {
+		const { spawn } = stubSpawn([{ status: 0, stdout: "2.30.0" }]);
+		const plugin = createPlugin({ spawn, repoRoot: "/repo" });
+		expect(Object.keys(plugin.probes).sort()).toEqual(["connection", "export-environment"]);
+		expect(plugin.probes["export-environment"].writes).toBe(true);
+	});
+
+	it("falls back to the working directory when the CLI hands no repo root", () => {
+		const { spawn } = stubSpawn([{ status: 0, stdout: "2.30.0" }]);
+		expect(createPlugin({ spawn }).probes["export-environment"].summary).toMatch(/Environment/);
+	});
+
 	it("wires the credentials capability", () => {
 		const { spawn } = stubSpawn([{ status: 0, stdout: "2.30.0" }]);
 		const plugin = createPlugin({ spawn });

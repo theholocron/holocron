@@ -23,6 +23,8 @@ export const probeCommand: CommandModule<GlobalArgs, ProbeArgs> = {
 			...(argv.args ?? []).map(String),
 			...(argv.warn ? ["--warn"] : []),
 			...(argv.files ? ["--files"] : []),
+			...(argv.only ?? []).flatMap((name) => ["--only", String(name)]),
+			...(argv.copy ? ["--copy"] : []),
 		];
 		const report = await runProbeCommand({
 			loaded,
