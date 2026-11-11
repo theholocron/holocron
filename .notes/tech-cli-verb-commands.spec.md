@@ -1,4 +1,5 @@
 ---
+id: SPEC-0080
 status: draft
 issue: theholocron/holocron#2082
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#975
   - theholocron/holocron#576
   - theholocron/holocron#438
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569960888146862122
 ---
 
 # CLI commands are verbs: the object follows the verb
