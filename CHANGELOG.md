@@ -1,3 +1,15 @@
+## [5.0.0-alpha.411](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.410...v5.0.0-alpha.411) (2026-11-11)
+
+### Features
+
+* **secrets:** 🔒 send only an explicit list of keys to a deployment ([#2065](https://github.com/theholocron/holocron/issues/2065)) ([aaa8e9f](https://github.com/theholocron/holocron/commit/aaa8e9f4f4efafebc81b9bb673f7840494015866)), closes [#2061](https://github.com/theholocron/holocron/issues/2061)
+
+### Chores
+
+* **ci:** 🔑 read the Sentinel App id from an organization variable ([#2060](https://github.com/theholocron/holocron/issues/2060)) ([cbc8d36](https://github.com/theholocron/holocron/commit/cbc8d369b3ed25b8ef74a850cb67da67d7f54965)), closes [#2058](https://github.com/theholocron/holocron/issues/2058)
+* **config:** 🔑 list the local and CI copies of org tokens as shared variables ([#2057](https://github.com/theholocron/holocron/issues/2057)) ([047e342](https://github.com/theholocron/holocron/commit/047e3429967f7ac4f4ae8e3521aadad43993c333)), closes [#2041](https://github.com/theholocron/holocron/issues/2041)
+* **specs:** 🔧 🔄 sync spec discussions ([#2066](https://github.com/theholocron/holocron/issues/2066)) ([38d257e](https://github.com/theholocron/holocron/commit/38d257eb27a32aff40b429cccd82e1f4d642f162))
+
 ## [5.0.0-alpha.410](https://github.com/theholocron/holocron/compare/v5.0.0-alpha.409...v5.0.0-alpha.410) (2026-11-10)
 
 ### Bug Fixes
