@@ -8,13 +8,13 @@ import { groupMenu, launchGroupMenu } from "./group-menu.js";
 describe("launchGroupMenu", () => {
 	it("opens the menu at that group, with a message and a fallback that name it", async () => {
 		const argv = { cwd: "/x" };
-		await launchGroupMenu("repo upgrade", argv);
+		await launchGroupMenu("upgrade", argv);
 		expect(launch).toHaveBeenCalledWith(
 			["registry"],
 			argv,
 			expect.objectContaining({
-				pickMessage: "repo upgrade — choose a subcommand:",
-				startPath: ["repo", "upgrade"],
+				pickMessage: "upgrade — choose a subcommand:",
+				startPath: ["upgrade"],
 			})
 		);
 	});

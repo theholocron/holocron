@@ -7,15 +7,15 @@ vi.mock("../../config/index.js", async (importActual) => ({
 	...(await importActual<typeof import("../../config/index.js")>()),
 	loadConfig,
 }));
-vi.mock("./run-properties-apply/run-properties-apply.js", () => ({ runPropertiesApply }));
+vi.mock("../repo-properties/run-properties-apply/run-properties-apply.js", () => ({ runPropertiesApply }));
 vi.mock("../token-context/index.js", () => ({ tokenContext }));
 vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
 vi.mock("../resolve-org/index.js", () => ({ resolveOrg: (_a: unknown, c: { org?: string }) => c.org }));
 
 import { runCommand } from "../run-command.testing.js";
-import { repoPropertiesCommand } from "./index.js";
+import { applyCommand } from "./apply.command.js";
 
-const go = (...args: string[]) => runCommand(repoPropertiesCommand, ["properties", ...args]);
+const go = (...args: string[]) => runCommand(applyCommand, ["apply", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -25,9 +25,9 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("repo properties apply", () => {
+describe("apply properties", () => {
 	it("passes the context and --yes", async () => {
-		await go("apply", "--yes");
+		await go("properties", "--yes");
 		expect(runPropertiesApply).toHaveBeenCalledWith(
 			expect.objectContaining({
 				yes: true,
@@ -37,13 +37,13 @@ describe("repo properties apply", () => {
 	});
 
 	it("asks by default, does nothing without tokens, and sets a failing exit code", async () => {
-		await go("apply");
+		await go("properties");
 		expect(runPropertiesApply).toHaveBeenLastCalledWith(expect.not.objectContaining({ yes: true }));
 		tokenContext.mockReturnValueOnce(undefined);
-		await go("apply");
+		await go("properties");
 		expect(runPropertiesApply).toHaveBeenCalledTimes(1);
 		runPropertiesApply.mockResolvedValueOnce({ status: "fail" });
-		await go("apply");
+		await go("properties");
 		expect(process.exitCode).toBe(1);
 	});
 });

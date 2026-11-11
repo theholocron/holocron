@@ -47,7 +47,7 @@ describe("generatePrivateDirFiles", () => {
 		expect((await generatePrivateDirFiles(input))[1]!.content).toBe(ignore!.content);
 	});
 
-	it("is part of generateRepoFiles, so repo setup, sync and the generated check share it", async () => {
+	it("is part of generateRepoFiles, so setup, sync and the generated check share it", async () => {
 		const entries = await generateRepoFiles({ loaded: loadedFrom(), repoRoot: root });
 		const paths = entries.flatMap((e) => (e.kind === "file" ? [e.path] : []));
 		expect(paths).toContain(".holocron/.private/.gitkeep");

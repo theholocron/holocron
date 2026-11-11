@@ -47,11 +47,11 @@ Things to know before you run it:
 Edit `layout` (or `server`, `welcome`, `pinned`, `onboarding`, `application`, `everyone`) in `holocron.config.ts`, then:
 
 ```bash
-holocron notifications setup --dry-run   # what would change
-holocron notifications setup             # change it
+holocron setup notifications --dry-run   # what would change
+holocron setup notifications             # change it
 ```
 
-`setup` looks everything up by name and changes only what differs, so running it again is safe. It never deletes a channel, category or role that the layout no longer mentions. The fields are described in [`notifications setup`](/holocron/commands/notifications-setup/).
+`setup` looks everything up by name and changes only what differs, so running it again is safe. It never deletes a channel, category or role that the layout no longer mentions. The fields are described in [`setup notifications`](/holocron/commands/setup-notifications/).
 
 Turning community features on is the one step that needs more than the bot keeps (Administrator). Run `setup` in a terminal and it walks you through it: a link to give Administrator, Enter to retry, a link to take it away, and a check that it is gone. A server the bot created is not affected, because the bot owns it until you take it over.
 

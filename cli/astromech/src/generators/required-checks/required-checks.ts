@@ -7,7 +7,7 @@
  * contexts, then `extraRequiredChecks` ({@link taskCheckContexts}); a repo that has no `ci` caller yet must not be told
  * to require a check nobody posts.
  *
- * `@theholocron/cli`'s `holocron repo setup` calls this. Policy-free — it only knows the manifest.
+ * `@theholocron/cli`'s `holocron setup` calls this. Policy-free — it only knows the manifest.
  */
 
 import type { TasksConfig } from "../../config/schema/index.js";

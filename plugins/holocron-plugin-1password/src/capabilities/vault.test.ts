@@ -231,7 +231,7 @@ describe("OpVault construction", () => {
 		expect(() => new OpVault(new OpShell({ spawn }), { vault: "" })).not.toThrow();
 	});
 
-	it("lists an Environment's variable names when only `environment` is set (repo setup, #1863)", async () => {
+	it("lists an Environment's variable names when only `environment` is set (setup, #1863)", async () => {
 		const { spawn, calls } = stubSpawn([{ status: 0, stdout: "A=1\nB=2" }]);
 		const vault = new OpVault(new OpShell({ spawn }), { environment: "Holocron - GitHub Actions" });
 		expect(await vault.list()).toEqual(["A", "B"]);

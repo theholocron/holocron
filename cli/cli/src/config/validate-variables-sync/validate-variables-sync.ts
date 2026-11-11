@@ -9,7 +9,7 @@ const key = (name: string): string => name.toUpperCase();
 /**
  * Check `repo.variables.sync`: each entry names a vault environment, one or more keys and a scope that is `repo` or
  * `org=<name>`; a name may not also be a literal value of the same scope (one source per name); and `prune` cannot
- * be combined with `sync`, because `repo setup` would delete the variables the sync wrote.
+ * be combined with `sync`, because `setup` would delete the variables the sync wrote.
  *
  * @param variables - `repo.variables`, if the config has it.
  * @throws {ConfigError} Naming the first problem found.

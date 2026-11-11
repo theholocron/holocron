@@ -1,6 +1,6 @@
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · cli/astromech/src/templates/configs/yamllint/create-config.ts
-# Tool:    holocron repo setup
+# Tool:    holocron setup
 # Changes: edit source in theholocron/holocron
 ---
 extends: default

@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("repo cleanup branches", () => {
+describe("cleanup branches", () => {
 	it("does nothing when there is no token", async () => {
 		tokenContext.mockReturnValue(undefined);
 		await go([]);

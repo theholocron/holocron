@@ -58,7 +58,7 @@ export default defineConfig({
 Store provider tokens in the OS keyring so every command picks them up automatically:
 
 ```bash
-holocron new token github.admin  ghp_xxx  # repo setup, secrets
+holocron new token github.admin  ghp_xxx  # setup, secrets
 holocron new token github.read   ghp_yyy  # clone, CI run listing
 holocron new token github.issues ghp_zzz  # issue management
 holocron new token github.sync   ghp_aaa  # sync-github
@@ -77,7 +77,7 @@ This loads every configured plugin and runs a smoke check against each provider.
 ## Run setup
 
 ```bash
-holocron repo setup
+holocron setup
 ```
 
 `setup` applies all infrastructure actions for the configured capabilities:

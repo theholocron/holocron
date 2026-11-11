@@ -4,7 +4,7 @@ export interface PreviewConfig {
 	project: string;
 	/**
 	 * Base domain for preview URLs (e.g. `"preview.theholocron.dev"`).
-	 * When set, `holocron repo setup` automatically provisions:
+	 * When set, `holocron setup` automatically provisions:
 	 * - Cloudflare Pages custom domain `*.<domain>` on the project
 	 * - DNS wildcard CNAME `*.<domain>` → `<project>.pages.dev`
 	 *

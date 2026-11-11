@@ -63,7 +63,7 @@ export function resolvePkgRelPath(gitRoot: string, configFilepath: string): stri
  * signal that the other's was silently dropped (holocron#1026).
  *
  * Shared by both `holocron sync` (reads the file straight off local
- * disk) and `holocron repo setup` (reads it through the loaded `Source`
+ * disk) and `holocron setup` (reads it through the loaded `Source`
  * capability, which happens to be local disk too for the github plugin
  * today, but the interface doesn't promise that for every provider —
  * holocron#1068). The marker-parsing and error message are identical

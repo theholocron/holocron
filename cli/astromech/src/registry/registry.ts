@@ -263,7 +263,7 @@ export const TASKS: Record<string, TaskDef> = {
 	"sync-repo": { group: "Platform", scope: "repo", local: { command: "sync" } },
 	// No local runner -- it posts real messages through org secrets that only a
 	// workflow can read. Manual (workflow_dispatch) only: the end-to-end check for
-	// `holocron notifications setup`, never part of `holocron run ci`.
+	// `holocron setup notifications`, never part of `holocron run ci`.
 	"check-notify": { group: "Platform", scope: "repo", local: null },
 	// No local equivalent runner distinct from `sync github` itself —
 	// invokes the CLI subcommand directly, same shape as sync-repo's `sync`.

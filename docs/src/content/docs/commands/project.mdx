@@ -7,7 +7,7 @@ description: List, create, close and set up the project boards that plan work, f
 holocron list projects
 holocron new project roadmap --title "v5"
 holocron project close 7
-holocron project setup
+holocron setup project
 ```
 
 `project` manages boards through the `projects` provider (GitHub Projects v2 today). A board is found by its name among the owner's open boards; no project number is stored anywhere.
@@ -51,7 +51,7 @@ It is idempotent on the title, among open boards only (a closed board never bloc
 
 Closes an open board, found by number (`7`) or by name. Closing is reversible from the provider. It asks first in a terminal; without one it needs `--yes`.
 
-## `project setup`
+## `setup project`
 
 Makes each board in `providers.projects.boards` match its template. For each: find it by name among the open boards, create it from its template if it is missing, then bring it in line (`ensure`) and print what changed. Nothing is deleted and no item's value is cleared.
 

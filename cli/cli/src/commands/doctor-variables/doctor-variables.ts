@@ -4,7 +4,7 @@
  * Read-only. One row for the repository's variables and one for the organization's, each only when the config
  * declares that scope, and one per `repo.variables.sync` entry that checks its names exist (the values are in the
  * vault, so none is compared or shown). A variable that exists but is not declared is a problem only with `repo.variables.prune`,
- * since without it `repo setup` leaves it alone. A scope that cannot be read because there is no provider, the
+ * since without it `setup` leaves it alone. A scope that cannot be read because there is no provider, the
  * provider cannot list variables, or the token is missing is a skip with the reason, not a failure.
  */
 
@@ -158,7 +158,7 @@ function compareOrg(
 	have: Record<string, OrgVariable>,
 	prune: boolean
 ): string[] {
-	// A bare string is visible to every repository, as `repo setup` writes it.
+	// A bare string is visible to every repository, as `setup` writes it.
 	const wanted = new Map<string, OrgVariable>(
 		Object.entries(declared).map(([name, v]) => [
 			name,

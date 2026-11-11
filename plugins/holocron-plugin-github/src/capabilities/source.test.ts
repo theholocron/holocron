@@ -615,7 +615,7 @@ describe("GitHubSource — workflow files (local fs)", () => {
 	});
 
 	it("resolves workflow/repo files against the real git root, not a --cwd subpackage directory (holocron#1072)", async () => {
-		// Simulates `holocron repo setup --cwd apps/sentinel` -- the
+		// Simulates `holocron setup --cwd apps/sentinel` -- the
 		// constructor's own opts.repoRoot is the subpackage directory, not
 		// the repo root .github/ actually lives at.
 		await mkdir(join(repoRoot, ".git"));

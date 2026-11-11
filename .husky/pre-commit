@@ -2,7 +2,7 @@
 
 # AUTO-GENERATED — do not edit directly.
 # Source:  theholocron/holocron · cli/astromech/src/templates/configs/pre-commit/create-config.ts
-# Tool:    holocron repo setup
+# Tool:    holocron setup
 # Changes: edit source in theholocron/holocron
 # Run GitLeaks against staged changes only — a full `gitleaks git` history
 # scan re-flags every pre-existing (already-merged) finding on every commit,

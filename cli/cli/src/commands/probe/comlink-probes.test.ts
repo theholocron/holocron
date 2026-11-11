@@ -134,7 +134,7 @@ describe("probe comlink bindings", () => {
 		}).bindings!.run(ctx);
 		expect(w.secretNames).toHaveBeenCalledWith("relay-worker");
 		expect(rows).toHaveLength(2);
-		expect(rows[0]).toMatchObject({ status: "fail", detail: expect.stringContaining("notifications setup") });
+		expect(rows[0]).toMatchObject({ status: "fail", detail: expect.stringContaining("setup notifications") });
 		expect(rows[1]).toMatchObject({ status: "fail", detail: expect.stringContaining("sync secrets") });
 	});
 

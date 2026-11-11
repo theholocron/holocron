@@ -11,7 +11,7 @@ describe("createHeader", () => {
 			const result = workflowHeader();
 			expect(result).toContain("# AUTO-GENERATED — do not edit directly.");
 			expect(result).toContain(`# Source:  theholocron/holocron · ${SOURCE}`);
-			expect(result).toContain("# Tool:    holocron repo setup");
+			expect(result).toContain("# Tool:    holocron setup");
 			expect(result).toMatch(/\n$/);
 		});
 
@@ -45,7 +45,7 @@ describe("createHeader", () => {
 		it("produces an editable file header", () => {
 			const { scaffoldHeader } = createHeader({ source: SOURCE });
 			const result = scaffoldHeader();
-			expect(result).toContain("# Scaffolded by holocron repo setup — edit this file freely.");
+			expect(result).toContain("# Scaffolded by holocron setup — edit this file freely.");
 			expect(result).toContain(`# Source:  theholocron/holocron · ${SOURCE}`);
 			expect(result).toMatch(/\n$/);
 		});

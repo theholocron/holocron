@@ -211,7 +211,7 @@ single always-run jobs now, so their context
 names that job directly (`"typecheck / Run tsc --noEmit"`) — the `… /
 Conclusion` fan-in job inside a workflow is only used where a task genuinely has
 several conditionally-run jobs feeding one check
-(`test:unit`). `holocron repo setup`
+(`test:unit`). `holocron setup`
 applies the list for `protection: "strict"` repos. Policy-free — manifest only.
 
 ### The `ci` aggregate
@@ -233,7 +233,7 @@ came from), same manifest-derived category as `thinCallers()`. Pass the
 current file's content (or `null`) and it either merges the
 `individual_components` list in (preserving everything else in the file —
 thresholds, flags, custom rules) or scaffolds a fresh file from the base
-template. `holocron repo setup` writes the result via the `source` capability;
+template. `holocron setup` writes the result via the `source` capability;
 this method never touches the filesystem beyond reading `packages/*` and
 `apps/*` under `cwd`.
 
@@ -284,10 +284,10 @@ config surface don't pull `@commitlint/*` in:
   what `holocron run lint commit-msg <file>` (the `commit-msg` hook) runs.
 - `ALEX_CONFIG`, `ALEX_IGNORE_PATTERNS`, `PRETTIER_IGNORE_PATTERNS`,
   `EDITORCONFIG_CHECKER_EXCLUDE` and `isEditorConfigExcluded(path)` — read
-  from the same templates `holocron repo setup` writes, so Sentinel's central
+  from the same templates `holocron setup` writes, so Sentinel's central
   checks skip exactly what each repo's own CI skips.
 
-The root entry also exports the config-file generators `holocron repo setup`
+The root entry also exports the config-file generators `holocron setup`
 writes (`createEditorconfig`, `createAlexrc`, `createPrePush`, …) and
 `createHeader`.
 
@@ -311,7 +311,7 @@ webhook and the GitHub API (#929).
 
 ## Upgrade — `@theholocron/astromech/upgrade`
 
-The repo-agnostic machinery behind `holocron repo upgrade`, in a subpath so the CLI and any other tool can use it.
+The repo-agnostic machinery behind `holocron upgrade`, in a subpath so the CLI and any other tool can use it.
 
 - `runUpgradeNode({ to, from?, cwd?, dryRun?, extra?, logger? })` walks the repo and rewrites every Node.js major pin:
   `engines.node`, an exact `@types/node`, `.nvmrc`, `.node-version`, workflow `node-version:`, Dockerfile

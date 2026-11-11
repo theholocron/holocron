@@ -49,7 +49,7 @@ export function checkGenerated({ files, again, packages = [], read, workflows }:
 	const scopes = [
 		{
 			from: "",
-			fix: "`holocron repo setup` or `holocron sync`",
+			fix: "`holocron setup` or `holocron sync`",
 			files,
 			again,
 		},

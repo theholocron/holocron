@@ -2,7 +2,7 @@ import type { RepoSettings, SourceRepoInfo, SourceRulesetDetail, SourceSecurity 
 import type { GitHubClient, GitHubRepo, GitHubRulesetDetail } from "@theholocron/github-client";
 import { ProviderApiError } from "@theholocron/http-client";
 
-/** The settings `repo setup` writes, which `GET /repos/{repo}` reports under the same names. */
+/** The settings `setup` writes, which `GET /repos/{repo}` reports under the same names. */
 const SETTING_KEYS = [
 	"allow_squash_merge",
 	"allow_merge_commit",
@@ -33,7 +33,7 @@ export async function readRepoInfo(client: GitHubClient, repo: string): Promise<
 	};
 }
 
-/** A ruleset reduced to what `repo setup` writes: its enforcement, rule types and required status checks. */
+/** A ruleset reduced to what `setup` writes: its enforcement, rule types and required status checks. */
 export function toRulesetDetail(data: GitHubRulesetDetail): SourceRulesetDetail {
 	const rules = data.rules ?? [];
 	const checks = rules.find((r) => r.type === "required_status_checks")?.parameters?.required_status_checks;

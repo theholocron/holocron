@@ -6,7 +6,7 @@ name: Notify Check
 # fails the matching job when any step does not work, so a red job names the
 # channel to fix. Manual (workflow_dispatch) only: it posts real messages.
 #
-# Each channel names its own webhook secret, because `notifications setup` lets a
+# Each channel names its own webhook secret, because `setup notifications` lets a
 # layout override the default name (and normalises punctuation), so deriving the
 # name from the channel would miss those. A channel with `"mention": true` also
 # requires the role-id secret and pings it: a webhook accepting the post proves

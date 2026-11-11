@@ -122,7 +122,7 @@ export interface Astromech {
 	/**
 	 * The branch-protection required-status-check contexts for this repo. With `aggregate` (the repo hosts the `ci`
 	 * check, see {@link aggregateCaller}) they are `ci / Required checks` and `DCO`; without it, `DCO`, every `required: true` task's
-	 * check context and `extraRequiredChecks`, ordered and de-duplicated. `holocron repo setup` applies the list; this
+	 * check context and `extraRequiredChecks`, ordered and de-duplicated. `holocron setup` applies the list; this
 	 * method is policy-free (manifest only).
 	 */
 	requiredChecks(aggregate: boolean): string[];
@@ -136,7 +136,7 @@ export interface Astromech {
 	 * This repo's `codecov.yml` — component `paths` derived from the workspace packages.
 	 * Pass the current file's content (`null` if none exists yet) to either
 	 * merge the component list in or scaffold a fresh file. Policy-free same
-	 * as {@link requiredChecks} — `holocron repo setup` owns writing the result.
+	 * as {@link requiredChecks} — `holocron setup` owns writing the result.
 	 * `options.docsCoverage` adds the `documentation` flag and its statuses.
 	 */
 	codecovConfig(existing: string | null, options?: CodecovConfigOptions): string;

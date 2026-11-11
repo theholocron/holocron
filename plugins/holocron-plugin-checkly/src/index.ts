@@ -19,7 +19,7 @@ import { verifyToken } from "./verify-token.js";
 export interface ChecklyPluginOptions extends ResolveTokenInput {
 	/** Checkly account id — required on every request, not a secret (same status as Vercel's teamId). */
 	accountId: string;
-	/** Checks `holocron repo setup` should ensure exist. */
+	/** Checks `holocron setup` should ensure exist. */
 	checks?: MonitoringCheckInput[];
 	/** Override base URL for tests. */
 	baseUrl?: string;

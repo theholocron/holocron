@@ -61,7 +61,7 @@ Local steps (everything except `labels`, `properties`, `teams`, `topics`) write 
 # end managed by holocron setup — private directory
 ```
 
-The block is merged into the `.gitignore` already there; the rest of the file is kept. `repo setup` writes the same bytes, and `holocron probe generated check` fails when either differs. A command that writes to the directory refuses when git does not ignore the path and tells you to run `holocron sync`.
+The block is merged into the `.gitignore` already there; the rest of the file is kept. `setup` writes the same bytes, and `holocron probe generated check` fails when either differs. A command that writes to the directory refuses when git does not ignore the path and tells you to run `holocron sync`.
 
 ### `scripts`
 

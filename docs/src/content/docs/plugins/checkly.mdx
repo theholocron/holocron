@@ -21,7 +21,7 @@ providers: {
   monitoring: ["checkly", {
     // Required: sent as the x-checkly-account header on every request
     accountId: "<your Checkly account id>",
-    // Checks `holocron repo setup` ensures exist, matched and upserted by exact name
+    // Checks `holocron setup` ensures exist, matched and upserted by exact name
     checks: [
       {
         name: "Sentinel webhook uptime",
@@ -40,10 +40,10 @@ providers: {
 
 ### Options
 
-| Option      | Required | Description                                                                                |
-| ----------- | -------- | ------------------------------------------------------------------------------------------ |
-| `accountId` | Yes      | Checkly account id. Not a secret (the same status as Vercel's `teamId`)                    |
-| `checks`    | No       | The API checks `holocron repo setup` ensures exist; each is matched and upserted by `name` |
+| Option      | Required | Description                                                                           |
+| ----------- | -------- | ------------------------------------------------------------------------------------- |
+| `accountId` | Yes      | Checkly account id. Not a secret (the same status as Vercel's `teamId`)               |
+| `checks`    | No       | The API checks `holocron setup` ensures exist; each is matched and upserted by `name` |
 
 ### Check fields
 
@@ -106,10 +106,10 @@ Resolution order: the `--token` flag, `HOLOCRON_CHECKLY_TOKEN`, `CHECKLY_API_KEY
 ## What `monitoring` provides
 
 - `ensureCheck(input)`: finds the check by exact name (Checkly's `search` is a case-insensitive partial match, so results are filtered client-side), then creates or updates it.
-- `ensureAlertChannel(input)`: finds an alert channel by name or creates one, applies the `alerts` settings the config states, and subscribes the checks routed to it (every check unless a check names its `alertChannels`). This is how `holocron notifications setup` feeds a Discord channel from your checks (see [Server as Code](/holocron/server-as-code/)).
+- `ensureAlertChannel(input)`: finds an alert channel by name or creates one, applies the `alerts` settings the config states, and subscribes the checks routed to it (every check unless a check names its `alertChannels`). This is how `holocron setup notifications` feeds a Discord channel from your checks (see [Server as Code](/holocron/server-as-code/)).
 - `inspectAlertChannel(name)`: reads an alert channel without changing it, for `holocron doctor notifications`. It returns whether the channel exists and is formatted for Discord, the id of the webhook it posts through (never the URL or its token), its alert settings, and the names of the checks routed to it that it is not subscribed to or has switched off, and of the checks it is still subscribed to though they are routed elsewhere.
 - `whoami()`: a lightweight auth probe (`GET /checks?limit=1`).
-- `checks`: the configured check list, which `holocron repo setup` loops over.
+- `checks`: the configured check list, which `holocron setup` loops over.
 
 The plugin also contributes probes for `holocron probe` (see the [probe command](/holocron/commands/probe/)).
 

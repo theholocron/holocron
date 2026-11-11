@@ -3,7 +3,7 @@
  * come from workspace packages; the status targets track the `test` task's
  * coverage setup), the same category as the reusable `test.yml` this package
  * also generates. Moved out of `@theholocron/cli` (theholocron/holocron#650)
- * — `holocron repo setup`'s codecov step now calls {@link codecovConfig} instead
+ * — `holocron setup`'s codecov step now calls {@link codecovConfig} instead
  * of importing this logic directly.
  */
 
@@ -16,7 +16,7 @@ export const INDIVIDUAL_COMPONENTS_MARKER = "  individual_components:";
 
 function scaffoldHeader(): string {
 	return [
-		`# Scaffolded by holocron repo setup — edit this file freely.`,
+		`# Scaffolded by holocron setup — edit this file freely.`,
 		`# Source:  theholocron/holocron · cli/astromech/src/generators/codecov/codecov.ts`,
 		``,
 	].join("\n");
@@ -364,7 +364,7 @@ export function createCodecovConfig(packages: WorkspacePackage[], options: Codec
 }
 
 /**
- * The full pipeline `holocron repo setup` needs: read this repo's public
+ * The full pipeline `holocron setup` needs: read this repo's public
  * `packages/*`, then either merge them into an `existing` `codecov.yml` or
  * scaffold a new one.
  */

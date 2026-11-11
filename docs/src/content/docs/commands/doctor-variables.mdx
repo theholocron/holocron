@@ -9,7 +9,7 @@ holocron doctor variables
 
 Compares the Actions variables `repo.variables` declares in `holocron.config.ts` with what the `source` provider holds, and prints one row for the repository's variables and one for the organization's, each only when the config declares that scope. It changes nothing, and it exits non-zero while any row fails.
 
-It is the check for [`repo setup`](/holocron/commands/repo-setup/), which writes the variables. A workflow that reads a variable which is missing or wrong fails quietly, so run it after `repo setup` and whenever a workflow warns that a `vars.*` value is unset.
+It is the check for [`setup`](/holocron/commands/setup/), which writes the variables. A workflow that reads a variable which is missing or wrong fails quietly, so run it after `setup` and whenever a workflow warns that a `vars.*` value is unset.
 
 ```text
   ✓ repository variables match    2 of 2 match
@@ -31,13 +31,13 @@ An entry of `repo.variables.sync` (see [sync secrets](/holocron/commands/sync-se
 
 ## What counts as a problem
 
-| Finding                                                 | A problem when                                                                                          |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| A declared variable is missing                          | always                                                                                                  |
-| A declared variable has another value                   | always                                                                                                  |
-| An organization variable has another visibility         | the declaration states one, or it is a bare string (which means `all`)                                  |
-| A variable exists but is not declared                   | only with `repo.variables.prune: true`. Without it `repo setup` leaves it alone, so the doctor does too |
-| An undeclared variable limited to selected repositories | never: this CLI does not manage those                                                                   |
+| Finding                                                 | A problem when                                                                                     |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| A declared variable is missing                          | always                                                                                             |
+| A declared variable has another value                   | always                                                                                             |
+| An organization variable has another visibility         | the declaration states one, or it is a bare string (which means `all`)                             |
+| A variable exists but is not declared                   | only with `repo.variables.prune: true`. Without it `setup` leaves it alone, so the doctor does too |
+| An undeclared variable limited to selected repositories | never: this CLI does not manage those                                                              |
 
 Names are compared without regard to case, as GitHub does. Values are plain text, so they appear in the problem lines.
 
@@ -53,6 +53,6 @@ When nothing is declared at all, the one row says `none declared`.
 
 ## Authentication
 
-Repository variables use the same token `repo setup` uses (`github.admin`, with variables read access). Organization variables use the org token (`github.org`) with the organization's variables read permission.
+Repository variables use the same token `setup` uses (`github.admin`, with variables read access). Organization variables use the org token (`github.org`) with the organization's variables read permission.
 
-Related: [`doctor`](/holocron/commands/doctor/), [`doctor notifications`](/holocron/commands/doctor-notifications/), [`repo setup`](/holocron/commands/repo-setup/).
+Related: [`doctor`](/holocron/commands/doctor/), [`doctor notifications`](/holocron/commands/doctor-notifications/), [`setup`](/holocron/commands/setup/).

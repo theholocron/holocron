@@ -1,6 +1,6 @@
 import type { RepoConfig } from "@theholocron/cli";
 
-// The repository settings `holocron repo setup` and `holocron sync secrets` apply: teams, topics, Actions variables and
+// The repository settings `holocron setup` and `holocron sync secrets` apply: teams, topics, Actions variables and
 // the secrets to sync. `holocron.config.ts` keeps `repo.defaultBranch` (Sentinel needs it before it can know which
 // branch to read `.holocron/` from) and the keys the preset gives (`protection`, `properties`): a key set there and
 // here is an error. NAMES ONLY in this file: the directory is public, so no secret value goes here, ever.

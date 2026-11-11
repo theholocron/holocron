@@ -10,7 +10,7 @@ import { runNotificationsSetup } from "./index.js";
 import { type NotificationsSetupArgs, notificationsSetupArgs } from "./notifications-setup.args.js";
 
 export const notificationsSetupCommand: CommandModule<GlobalArgs, NotificationsSetupArgs> = {
-	command: "setup",
+	command: "notifications",
 	describe: "Apply the server layout a notifications provider declares in holocron.config.ts",
 	builder: notificationsSetupArgs,
 	handler: async (argv) => {

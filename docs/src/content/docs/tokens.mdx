@@ -118,13 +118,13 @@ holocron new token cloudflare --org theholocron <TOKEN-A>
 holocron new token cloudflare --org client-co   <TOKEN-B>
 
 # theholocron project (org: "theholocron" in config) → picks up TOKEN-A automatically
-cd ~/Code/theholocron/some-project && holocron repo setup
+cd ~/Code/theholocron/some-project && holocron setup
 
 # client-co project (org: "client-co" in config) → picks up TOKEN-B automatically
-cd ~/Code/client-co/some-project && holocron repo setup
+cd ~/Code/client-co/some-project && holocron setup
 
 # One-off override
-holocron repo setup --org client-co
+holocron setup --org client-co
 ```
 
 ## GitHub tokens
@@ -193,11 +193,11 @@ Two tokens. The general one above (`HOLOCRON_SENTRY_TOKEN`, keyring `sentry`) pr
 
 | Env var                         | Keyring key      | Used for                                                        | What to create                                                                                                                                                                                                                              |
 | ------------------------------- | ---------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HOLOCRON_SENTRY_COMLINK_TOKEN` | `sentry.comlink` | `notifications setup` — the Comlink integration, its alert rule | A **personal** auth token with `org:read`, `org:write`, `project:read`, `project:write`, `alerts:read`, `alerts:write` and `event:read` (an integration can only be made with scopes the token itself holds, and Comlink's is `event:read`) |
+| `HOLOCRON_SENTRY_COMLINK_TOKEN` | `sentry.comlink` | `setup notifications` — the Comlink integration, its alert rule | A **personal** auth token with `org:read`, `org:write`, `project:read`, `project:write`, `alerts:read`, `alerts:write` and `event:read` (an integration can only be made with scopes the token itself holds, and Comlink's is `event:read`) |
 
 It needs no delete or admin permission: setup creates and updates, and never removes. When `sentry.comlink` is not set the relay falls back to the general `sentry` token as the very last resort, which only works if that token happens to carry these scopes.
 
-This token is for the machine that runs `notifications setup`; it is not a Worker secret. Keep it in the keyring (`holocron new token sentry.comlink`) or in your own Holocron environment, never in the `Comlink` 1Password Environment: `sync secrets Comlink --worker comlink` pushes every key of that environment to the Worker, and the Worker only needs `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
+This token is for the machine that runs `setup notifications`; it is not a Worker secret. Keep it in the keyring (`holocron new token sentry.comlink`) or in your own Holocron environment, never in the `Comlink` 1Password Environment: `sync secrets Comlink --worker comlink` pushes every key of that environment to the Worker, and the Worker only needs `COMLINK_<SOURCE>_SECRET` and `COMLINK_<SOURCE>_WEBHOOK`.
 
 ```bash
 holocron new token sentry.comlink sntryu_xxx
@@ -211,9 +211,9 @@ Discord has three separate credentials, each used by a different step, so a leak
 
 | Env var                                                         | Keyring key             | What it is                                             | Used by                                                                      | Get it from                                  |
 | --------------------------------------------------------------- | ----------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------- |
-| `HOLOCRON_DISCORD_BOT_TOKEN` (also `DISCORD_BOT_TOKEN`)         | `discord.holonet`       | The bot's token                                        | `notifications setup`, `create-server`, `sync roles`, `doctor notifications` | Developer portal → Bot → **Reset Token**     |
+| `HOLOCRON_DISCORD_BOT_TOKEN` (also `DISCORD_BOT_TOKEN`)         | `discord.holonet`       | The bot's token                                        | `setup notifications`, `create-server`, `sync roles`, `doctor notifications` | Developer portal → Bot → **Reset Token**     |
 | `HOLOCRON_DISCORD_CLIENT_SECRET` (also `DISCORD_CLIENT_SECRET`) | `discord.holonet.oauth` | The application's OAuth2 client secret                 | `notifications link` (signing people in)                                     | Developer portal → OAuth2 → **Reset Secret** |
-| `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` (a GitHub secret)           | _(none)_                | A channel's webhook URL; anyone with it can post there | Workflows posting to a channel; the delivery check in `doctor notifications` | Created and stored by `notifications setup`  |
+| `HOLOCRON_NOTIFY_WEBHOOK_<CHANNEL>` (a GitHub secret)           | _(none)_                | A channel's webhook URL; anyone with it can post there | Workflows posting to a channel; the delivery check in `doctor notifications` | Created and stored by `setup notifications`  |
 
 The bot token and the client secret look alike and are not interchangeable.
 
@@ -311,7 +311,7 @@ For `SENTINEL_OP_SERVICE_ACCOUNT_TOKEN`: in the 1Password developer tools create
 
 ### Organization secrets
 
-The `secrets` capability (what `sync secrets`, `secret-set` and `notifications setup` write through) picks its token by the scope it writes:
+The `secrets` capability (what `sync secrets`, `secret-set` and `setup notifications` write through) picks its token by the scope it writes:
 
 | Scope written                   | Token tried first                                   | Falls back to                                   |
 | ------------------------------- | --------------------------------------------------- | ----------------------------------------------- |
@@ -330,5 +330,5 @@ holocron clone --token ghp_xxx --org theholocron
 holocron sync github --token github=ghp_zzz
 
 # Multiple providers
-holocron repo setup --token github=ghp_xxx --token vercel=v_yyy
+holocron setup --token github=ghp_xxx --token vercel=v_yyy
 ```

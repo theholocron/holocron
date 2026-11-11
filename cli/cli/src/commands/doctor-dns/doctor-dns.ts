@@ -39,7 +39,7 @@ import { expectedDnsRecords } from "./expected-dns-records.js";
 
 type Wanted = ExpectedDnsRecord["record"];
 
-/** The project and hostname `holocron repo setup` hands to `ensureCustomDomain()`, so the ones the doctor reads. */
+/** The project and hostname `holocron setup` hands to `ensureCustomDomain()`, so the ones the doctor reads. */
 function deploymentDomains(
 	config: ResolvedHolocronConfig,
 	deploy: Deployment

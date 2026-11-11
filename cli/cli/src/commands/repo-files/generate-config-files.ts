@@ -34,7 +34,7 @@ function file(path: string, content: string, note?: string): GeneratedRepoFile {
 
 /**
  * The config files that are not workflows: the labeler, Dependabot and DCO configs, the lint and editor configs, the
- * git hooks and `codecov.yml`, in the order `repo setup` writes them. `codecov.yml` is merged into the copy already on
+ * git hooks and `codecov.yml`, in the order `setup` writes them. `codecov.yml` is merged into the copy already on
  * disk, so the file is read here.
  */
 export async function generateConfigFiles(input: RepoFilesInput): Promise<RepoFileEntry[]> {

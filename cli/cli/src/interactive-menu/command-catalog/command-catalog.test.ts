@@ -75,7 +75,7 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 		menuItems(COMMAND_REGISTRY, path).find((i) => i.name === name)?.value;
 
 	it("the top level shows one row per first word, with groups opening a submenu", () => {
-		expect(valueOf("repo ›")).toBe("group:repo");
+		expect(valueOf("upgrade ›")).toBe("group:upgrade");
 		expect(valueOf("check ›")).toBe("group:check");
 		expect(valueOf("doctor ›")).toBe("group:doctor");
 		expect(names()).not.toContain("doctor");
@@ -125,8 +125,9 @@ describe("COMMAND_REGISTRY as a menu (rendered by kyber's menuItems)", () => {
 	});
 
 	it("nests as deep as the names go, and gives a runnable group a leading `(run it)` item", () => {
-		expect(names(["repo"])).toEqual(["setup", "properties ›", "cleanup ›", "upgrade ›"]);
-		expect(names(["repo", "upgrade"])).toEqual(["node", "deps"]);
+		expect(names(["setup"])).toEqual(["setup (run it)", "notifications", "project"]);
+		expect(names(["cleanup"])).toEqual(["posts", "branches"]);
+		expect(names(["upgrade"])).toEqual(["node", "deps"]);
 		expect(menuItems(COMMAND_REGISTRY, ["sync"])[0]).toMatchObject({
 			name: "sync (run it)",
 			value: "sync",

@@ -59,7 +59,7 @@ export default defineConfig({
     // "owner/name" — injected into every plugin's context so --repo isn't needed on every call.
     name: "my-org/my-project",
 
-    // Branch protection preset applied by `holocron repo setup`.
+    // Branch protection preset applied by `holocron setup`.
     // "balanced" — squash merge only, delete branch on merge, no force-push.
     // "strict"   — same + required status checks. In a repo that contains the `ci`
     //              aggregate the list is `ci / Required checks` and `DCO`: the aggregate waits on every
@@ -91,7 +91,7 @@ export default defineConfig({
       deploy: [{ environment: "prd", prefix: "MYAPP_" }],
     },
 
-    // GitHub org-level custom properties synced by `holocron repo setup`.
+    // GitHub org-level custom properties synced by `holocron setup`.
     properties: {
       lifecycle: "active", // "active" | "experimental" | "deprecated"
       open_source: true,
@@ -106,7 +106,7 @@ export default defineConfig({
   // Object form: pass custom `with:` inputs. See "Task vocabulary" below
   // for the full list of task names and what each actually runs.
   // `required: true` marks a task merge-gating: `holocron run ci` runs it by
-  // default and `holocron repo setup` (strict) adds its check context to branch
+  // default and `holocron setup` (strict) adds its check context to branch
   // protection.
   tasks: [
     { name: "lint:code", required: true },
@@ -134,10 +134,10 @@ export default defineConfig({
   // syncScripts: false,
   // holocronScript: "node cli/cli/dist/cli.mjs",
 
-  // Git hooks installed by `holocron repo setup`. `true` / `{ prePush: true }`
+  // Git hooks installed by `holocron setup`. `true` / `{ prePush: true }`
   // writes `.husky/pre-push` (runs `holocron run ci` before every push) and adds
   // `prepare: "husky"` to package.json; `false` / `{ prePush: false }` opts out.
-  // Omitted → on for `protection: "strict"`, off otherwise. `holocron repo setup
+  // Omitted → on for `protection: "strict"`, off otherwise. `holocron setup
   // --hooks` / `--no-hooks` override per-run. Bypass a single push with
   // `git push --no-verify`.
   // hooks: true,
@@ -146,7 +146,7 @@ export default defineConfig({
   // "claude" → .claude/skills/<name>  (symlinks to .agents/skills/<name>)
   agent: "claude",
 
-  // Skill names from @theholocron/skills to install via `holocron repo setup`.
+  // Skill names from @theholocron/skills to install via `holocron setup`.
   // Installed to .agents/skills/<name>/ — gitignored and regenerated each run.
   skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
 
@@ -163,7 +163,7 @@ export default defineConfig({
     auth: "clerk",
     tooling: ["postman"],
     // errors and logs are env-var-activated at runtime (HOLOCRON_SENTRY_DSN / HOLOCRON_AXIOM_TOKEN).
-    // The provider entry is used by `holocron repo setup` and `holocron doctor` only.
+    // The provider entry is used by `holocron setup` and `holocron doctor` only.
     errors: "sentry",
     logs: "axiom",
   },
@@ -310,7 +310,7 @@ export default defineConfig({
 | `"warn"`     | reports each miss, exits 0                                  | `codecov/patch/documentation` and `codecov/project/documentation` are informational |
 | `"required"` | fails for each miss                                         | the statuses are not informational                                                  |
 
-Left out, it is `"off"`, so a repo that does not set it sees no change. `holocron repo setup` adds the `documentation`
+Left out, it is `"off"`, so a repo that does not set it sees no change. `holocron setup` adds the `documentation`
 flag and its two statuses to `codecov.yml` for `"warn"` and `"required"` and moves them between the two; it never removes
 them, and `"off"` leaves what is there alone. The value never puts a check in the branch-protection required checks:
 that is `extraRequiredChecks` and a ruleset change. A value other than the three is a config error. The check itself and
@@ -351,18 +351,18 @@ Short provider names (e.g. `"github"`) are resolved to `@theholocron/holocron-pl
 
 ### `agent` + `skills`
 
-`agent` sets the AI runtime (`"claude"` | `"codex"` | `"gemini"`). When set, `holocron repo setup` installs the listed skills from `@theholocron/skills` into `.agents/skills/<name>/` with an agent-specific symlink (e.g. `.claude/skills/<name>` for Claude Code). The installed paths are gitignored and regenerated on every run.
+`agent` sets the AI runtime (`"claude"` | `"codex"` | `"gemini"`). When set, `holocron setup` installs the listed skills from `@theholocron/skills` into `.agents/skills/<name>/` with an agent-specific symlink (e.g. `.claude/skills/<name>` for Claude Code). The installed paths are gitignored and regenerated on every run.
 
 ```ts
 agent: "claude",
 skills: ["git-safety", "pr-workflow", "commit-standards", "security-review"],
 ```
 
-When `agent` is set, `holocron repo setup` also writes nine AI engineering workflow role prompts to `.agents/prompts/` — one file per agent role (`discovery.md`, `design.md`, `discussion.md`, `adr.md`, `spec.md`, `implementation-plan.md`, `implement.md`, `review.md`, `verify.md`). The prompts directory is gitignored and always regenerated from the current CLI version.
+When `agent` is set, `holocron setup` also writes nine AI engineering workflow role prompts to `.agents/prompts/` — one file per agent role (`discovery.md`, `design.md`, `discussion.md`, `adr.md`, `spec.md`, `implementation-plan.md`, `implement.md`, `review.md`, `verify.md`). The prompts directory is gitignored and always regenerated from the current CLI version.
 
 ### `docs` — decisions structure
 
-When `docs` is configured, `holocron repo setup` also provisions the engineering knowledge structure on first run. Existing files are never overwritten, so existing ADRs are safe.
+When `docs` is configured, `holocron setup` also provisions the engineering knowledge structure on first run. Existing files are never overwritten, so existing ADRs are safe.
 
 | Path                              | Created                                     |
 | --------------------------------- | ------------------------------------------- |
@@ -397,7 +397,7 @@ Any repo with a docs site gets the structure — it costs nothing and is ready w
 
 `errors` and `logs` are self-contained: they activate at runtime when their env
 vars are present, regardless of whether a provider entry exists in config. The
-config entry is for `holocron repo setup` (provisioning the dataset/project) and
+config entry is for `holocron setup` (provisioning the dataset/project) and
 `holocron doctor` (connectivity checks) only.
 
 ## JSON format
@@ -437,11 +437,11 @@ All commands accept these flags:
 
 ```bash
 # Bare: fallback token for single-provider commands
-holocron repo setup --token ghp_xxx
+holocron setup --token ghp_xxx
 
 # Keyed: target a specific provider
-holocron repo setup --token github=ghp_xxx
+holocron setup --token github=ghp_xxx
 
 # Multiple keyed tokens
-holocron repo setup --token github=ghp_xxx --token vercel=v_yyy
+holocron setup --token github=ghp_xxx --token vercel=v_yyy
 ```

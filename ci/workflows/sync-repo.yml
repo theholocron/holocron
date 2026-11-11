@@ -52,7 +52,7 @@ on: # yamllint disable-line rule:truthy
       HOLOCRON_NOTIFY_ALERT_ROLE:
         description: >
           Id of the role to mention on alerts. Written by `holocron
-          notifications setup`; not sensitive, kept as a secret so the same
+          setup notifications`; not sensitive, kept as a secret so the same
           token that writes the webhook secrets can write it. Optional.
         required: false
       GH_TOKEN:

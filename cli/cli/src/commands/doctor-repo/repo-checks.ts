@@ -18,7 +18,7 @@ const quote = (value: unknown): string => JSON.stringify(value);
 const onOff = (value: boolean): string => (value ? "on" : "off");
 
 /**
- * The groups of repository settings `repo setup` writes through the `source` capability, each only when the config
+ * The groups of repository settings `setup` writes through the `source` capability, each only when the config
  * declares it (labels and security toggles are always written, so they are always checked). Variables, secrets and
  * environments are separate checks. Pages, `CODEOWNERS` and the generated files are not compared here.
  */
@@ -58,7 +58,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 			needs: "getRepoInfo",
 			async run(source) {
 				const info = await source.getRepoInfo!();
-				// `repo setup` applies the balanced settings only when a protection preset is set.
+				// `setup` applies the balanced settings only when a protection preset is set.
 				const declared = new Map(
 					Object.entries(preset ? BALANCED_REPO_SETTINGS : {}) as Array<[string, boolean | string]>
 				);
@@ -82,7 +82,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 			needs: "getRepoInfo",
 			async run(source) {
 				const info = await source.getRepoInfo!();
-				// `repo setup` replaces the whole set, so a topic it does not name is one it would remove.
+				// `setup` replaces the whole set, so a topic it does not name is one it would remove.
 				const problems = declaredVsActual(
 					new Map(topics.map((t) => [t, true])),
 					new Map(info.topics.map((t) => [t, true])),
@@ -114,7 +114,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 		});
 	}
 
-	// What `repo setup` would send, checked against the organization's definitions before GitHub refuses it: the
+	// What `setup` would send, checked against the organization's definitions before GitHub refuses it: the
 	// capabilities this config wires (a new capability is a value the organization's property may not allow yet) and the
 	// values the config declares.
 	const sent: Record<string, string | string[]> = {
@@ -141,7 +141,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 
 	// The organization's property has to allow every capability the CLI defines, not only the ones this repo wires:
 	// a capability added to the CLI is a value somebody must add to the organization's property, and the first sign
-	// is otherwise a failed `repo setup` in whichever repo uses it first.
+	// is otherwise a failed `setup` in whichever repo uses it first.
 	checks.push({
 		id: "repo-capabilities-allowed",
 		title: `${CAPABILITIES_PROPERTY} allows every capability`,
@@ -160,7 +160,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 					.filter((v) => !have.has(v))
 					.map(
 						(v) =>
-							`"${v}" is not an allowed value of ${CAPABILITIES_PROPERTY}; run \`holocron repo properties apply\``
+							`"${v}" is not an allowed value of ${CAPABILITIES_PROPERTY}; run \`holocron apply properties\``
 					),
 				checked: wanted.length,
 			};
@@ -180,9 +180,9 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 				equal: (a, b) => a.color === b.color && a.description === b.description,
 				show: (l) => `${l.color} ${quote(l.description)}`,
 			});
-			// Labels outside the canonical set are left alone, except the stale ones `repo setup` deletes.
+			// Labels outside the canonical set are left alone, except the stale ones `setup` deletes.
 			for (const name of STALE_LABELS)
-				if (actual.has(name)) problems.push(`stale label ${name} (repo setup removes it)`);
+				if (actual.has(name)) problems.push(`stale label ${name} (setup removes it)`);
 			return { problems, checked: CANONICAL_LABELS.length };
 		},
 	});
@@ -215,7 +215,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 				try {
 					rulesets = await source.listRulesets();
 				} catch (err) {
-					// Free plans have no rulesets API; `repo setup` then falls back to classic protection, which is not read here.
+					// Free plans have no rulesets API; `setup` then falls back to classic protection, which is not read here.
 					if (err instanceof ProviderApiError && err.status === 403) {
 						return {
 							skip: "rulesets are not available on this plan (classic branch protection is not read)",
@@ -262,7 +262,7 @@ export function repoChecks(config: ResolvedHolocronConfig, repoRoot: string): Re
 		needs: "getSecurity",
 		async run(source) {
 			const found = await source.getSecurity!();
-			// `repo setup` turns every one on, and turns CodeQL default setup off when an advanced workflow replaces it.
+			// `setup` turns every one on, and turns CodeQL default setup off when an advanced workflow replaces it.
 			const advanced = (config.tasks ?? [])
 				.map((e) => (typeof e === "string" ? e : e.name))
 				.some((name) => isTask(name, "scan:code"));
@@ -293,7 +293,7 @@ function teamPermission(entry: TeamEntry): [string, string] {
 	return typeof entry === "string" ? [entry, "push"] : [entry.slug, entry.permission];
 }
 
-/** The custom properties the config declares (and the protection level `repo setup` stamps), as text. */
+/** The custom properties the config declares (and the protection level `setup` stamps), as text. */
 function declaredProperties(config: ResolvedHolocronConfig): Map<string, string> {
 	const repo = config.repo;
 	const out = new Map<string, string>();
@@ -307,7 +307,7 @@ function declaredProperties(config: ResolvedHolocronConfig): Map<string, string>
 	return out;
 }
 
-/** The status checks a `strict` ruleset requires, derived from the task manifest exactly as `repo setup` does. */
+/** The status checks a `strict` ruleset requires, derived from the task manifest exactly as `setup` does. */
 function strictChecks(config: ResolvedHolocronConfig, repoRoot: string): string[] {
 	const tasksConfig: TasksConfig = { tasks: config.tasks as TasksConfig["tasks"] };
 	if (config.extraRequiredChecks) tasksConfig.extraRequiredChecks = config.extraRequiredChecks;

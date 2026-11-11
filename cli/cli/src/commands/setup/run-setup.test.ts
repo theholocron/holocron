@@ -69,7 +69,7 @@ describe("runSetup", () => {
 		}).catch((e: unknown) => e);
 
 		expect(err).toBeInstanceOf(WorkspaceContextError);
-		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron repo setup/);
+		expect((err as WorkspaceContextError).message).toMatch(/pnpm exec holocron setup/);
 	});
 
 	it("runs all six source security steps + reports ok for each", async () => {
@@ -2125,7 +2125,7 @@ describe("runSetup", () => {
 			await mkdir(other, { recursive: true });
 
 			// Shared across both runs -- simulates the same backing store two
-			// separate `holocron repo setup` invocations would actually write
+			// separate `holocron setup` invocations would actually write
 			// to (sync's equivalent #1026 test uses the same real .github/
 			// workflows dir on local disk; setup's Source capability stands
 			// in for that here).
@@ -2166,9 +2166,9 @@ describe("runSetup", () => {
 			});
 			const firstContent = written["delivery.previewDeploy.yml"];
 			expect(firstContent).toContain("# Source package: apps/sentinel");
-			// the same `Tool:` line `sync` writes (not `repo setup`), so neither command rewrites the other's file
+			// the same `Tool:` line `sync` writes (not `setup`), so neither command rewrites the other's file
 			expect(firstContent).toContain("# Tool:    holocron sync\n");
-			expect(firstContent).not.toContain("holocron repo setup");
+			expect(firstContent).not.toContain("holocron setup");
 
 			const second = loaderFor(other);
 			const report = await runSetup({
@@ -4107,7 +4107,7 @@ describe("runSetup — 403 handling", () => {
 		expect(output).toContain("insufficient token permissions");
 		expect(output).toContain("personal-access-tokens/new");
 		// Separate tokens are re-run as stored: --token would override the org token too.
-		expect(output).toContain("Then re-run:      holocron repo setup");
+		expect(output).toContain("Then re-run:      holocron setup");
 		expect(output).not.toContain("<your-admin-pat>");
 		expect(output).toContain("--token <pat> overrides every token");
 		// No Pages failure, so no deploy-token block.
@@ -4475,7 +4475,7 @@ describe("setup: write codecov.yml", () => {
 		const report = await runSetup({ loaded, context: { repoRoot: tmpDir }, loader, print: () => {} });
 
 		expect(written["codecov.yml"]).toBeDefined();
-		expect(written["codecov.yml"]).toContain("Scaffolded by holocron repo setup");
+		expect(written["codecov.yml"]).toContain("Scaffolded by holocron setup");
 		expect(written["codecov.yml"]).not.toContain("AUTO-GENERATED");
 		const step = report.steps.find((s) => s.step === "write codecov.yml");
 		expect(step?.status).toBe("ok");

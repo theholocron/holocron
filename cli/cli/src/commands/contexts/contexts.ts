@@ -2,7 +2,7 @@ import type { ExecutionContext } from "./contexts.type.js";
 
 /**
  * Command → context. Keys are the full command path as it lands in
- * yargs' `argv._` (`"new token"`, `"repo upgrade node"`), the bare verb
+ * yargs' `argv._` (`"new token"`, `"upgrade node"`), the bare verb
  * otherwise; a longer, more specific key wins over its parent.
  *
  * - **`global`** — needs nothing but the CLI binary. Works anywhere.
@@ -15,8 +15,8 @@ export const COMMAND_CONTEXTS = {
 	clone: "global",
 	"new repo": "global",
 	"new plugin": "global",
-	"repo upgrade node": "global",
-	"repo upgrade deps": "global",
+	"upgrade node": "global",
+	"upgrade deps": "global",
 	"new token": "global",
 	"remove token": "global",
 	"list tokens": "global",
@@ -50,7 +50,7 @@ export const COMMAND_CONTEXTS = {
 	"sync readme": "repo-aware",
 
 	doctor: "workspace",
-	"repo setup": "workspace",
+	setup: "workspace",
 	"list secrets": "workspace",
 	"new secret": "workspace",
 	"sync secrets": "workspace",
@@ -60,18 +60,18 @@ export const COMMAND_CONTEXTS = {
 	"list projects": "workspace",
 	"new project": "workspace",
 	"project close": "workspace",
-	"project setup": "workspace",
+	"setup project": "workspace",
 	// `dev` calls the `vault`, `tunnels` and `dns` providers, so their packages must be resolvable.
 	dev: "workspace",
 	// Loads the config and the handler it names; calls no provider (the vault's variables arrive in the environment).
 	"dev serve": "repo-aware",
 	"new channel": "workspace",
-	"notifications setup": "workspace",
+	"setup notifications": "workspace",
 	"notifications link": "workspace",
 	"new server": "workspace",
 	"sync roles": "workspace",
 	// Loads the notifications provider to list and delete the extra posts of a forum.
-	"notifications dedupe": "workspace",
+	"cleanup posts": "workspace",
 	// Loads the notifications provider to keep a discussion post per ADR and spec.
 	"sync specs": "workspace",
 	// Reads a board's items and sets statuses through the `projects` provider.
@@ -88,7 +88,7 @@ export const COMMAND_CONTEXTS = {
 	// `project move` calls the `projects` provider, so its package must be resolvable.
 	"project move": "workspace",
 	// Reads and extends an organization property through the `source` provider.
-	"repo properties apply": "workspace",
+	"apply properties": "workspace",
 	// `migrate` loads the source and target `issues` providers (and `projects` for a board), so their packages must be resolvable.
 	"migrate issue": "workspace",
 	"migrate issues": "workspace",
@@ -115,7 +115,7 @@ export const COMMAND_CONTEXTS = {
 	// delivery.previewCheck split).
 	"check resolved": "global",
 	sync: "workspace",
-	"repo cleanup branches": "workspace",
+	"cleanup branches": "workspace",
 	// Pushes generated templates to theholocron/.github — needs the holocron
 	// monorepo checkout (not plugins), so only ever run with `pnpm exec`.
 	"sync github": "workspace",

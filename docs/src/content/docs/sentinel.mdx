@@ -63,7 +63,7 @@ Sentinel runs as a serverless function: it needs a real filesystem and dynamic `
 pnpm run deploy
 
 # One time: attach the custom domain and hand the DNS challenge to the dns provider
-holocron repo setup --cwd apps/sentinel
+holocron setup --cwd apps/sentinel
 ```
 
 - **A development instance.** `pnpm dev` in `apps/sentinel` ([`holocron dev`](/holocron/commands/dev/)) runs the same handler locally, with a second GitHub App and its own secrets (the `dev` layer, `theholocron/holocron - dev`) behind a named tunnel (`holocron new tunnel`); the Sentinel README has the steps. Production stays the only deployment.

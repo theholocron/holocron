@@ -1,10 +1,10 @@
 /**
- * `holocron doctor repo` — do the repository settings `repo setup` writes match the config?
+ * `holocron doctor repo` — do the repository settings `setup` writes match the config?
  *
- * Read-only. One row per group `repo setup` manages through the `source` capability, each only when the config
+ * Read-only. One row per group `setup` manages through the `source` capability, each only when the config
  * declares it: description and homepage, default branch and merge settings, topics, custom properties, labels, team
  * access, branch protection and security settings (see {@link repoChecks}). Something that exists but is not declared
- * is a problem only where `repo setup` would remove it (topics, stale labels, a ruleset's rules). A group that cannot
+ * is a problem only where `setup` would remove it (topics, stale labels, a ruleset's rules). A group that cannot
  * be read because there is no provider, the provider lacks the read method or the token is missing is a skip with the
  * reason, not a failure. Variables, secrets and environments have their own checks.
  */
