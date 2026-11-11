@@ -1,6 +1,6 @@
 ---
 id: SPEC-0040
-status: archived
+status: superseded
 issue: theholocron/holocron#975
 blocked-by: []
 related:
@@ -11,6 +11,9 @@ discussion:
 ---
 
 # CLI command structure: regroup by noun, full interactive-menu coverage
+
+> **Superseded** by `tech-cli-verb-commands` (#2082). The regrouping by noun is replaced by a verb-first grammar.
+> `deploy [branch]`, `run ci`, `run lint commit-msg` and the menu completeness test are kept.
 
 ## Context
 
