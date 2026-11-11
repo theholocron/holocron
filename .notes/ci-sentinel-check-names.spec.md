@@ -69,7 +69,7 @@ Only config compatibility, DCO and alex have no Actions twin (the required `DCO`
   `theholocron/.github` keep posting the old names. All of it undone in a month.
 - **D. `sentinel:` on Sentinel's checks** (`sentinel:lint:code / Run eslint`). Chosen. No ruleset that could be read requires
   a Sentinel name, and the names come from one builder. The names differ from the Actions ones, and the aggregate's
-  `<task id> / ` prefix does not match `sentinel:<task id> / `, so Sentinel's checks stay advisory.
+  `<task id> /` prefix does not match `sentinel:<task id> /`, so Sentinel's checks stay advisory.
 - **E. `sentinel / <check>`.** GitHub already shows the App's name, and a hand-added prefix was removed once for duplicating
   it ("The Holocron Sentinel / Sentinel / Platform / …"). Rejected.
 
@@ -141,7 +141,7 @@ When the Actions checks for these tasks are removed from the repo:
    ruleset that lists a prefixed name is the only external thing that breaks.
 
 Step 1 comes first or together with step 2. Without it, two checks of one name exist, and the aggregate, which matches
-`<task id> / ` by prefix, would count Sentinel's.
+`<task id> /` by prefix, would count Sentinel's.
 
 ## Every check, after this change
 
