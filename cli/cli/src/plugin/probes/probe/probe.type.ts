@@ -38,6 +38,11 @@ export interface Probe {
 	summary: string;
 	/** Whether it creates or changes anything on the provider. Asked about first, and needs `--yes` without a terminal. */
 	writes: boolean;
+	/**
+	 * Where the probe's rows go. Unset, stdout. A probe whose own output is the data on stdout (a `NAME=value` stream
+	 * for a pipe) sets `stderr`, so the rows never mix with it.
+	 */
+	reportsTo?: "stderr";
 	/** Runs the probe, reporting and changing things only through `ctx`. */
 	run(ctx: ProbeContext): Promise<void>;
 }

@@ -86,6 +86,13 @@ describe("probe command", () => {
 		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["vitest", "2"] });
 	});
 
+	it("passes --only and --copy on among the arguments, one --only per name", async () => {
+		await run({ provider: "1password", probe: "export-environment", args: ["prod"], only: ["A", "B"], copy: true });
+		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({
+			args: ["prod", "--only", "A", "--only", "B", "--copy"],
+		});
+	});
+
 	it("passes --warn and --files on among the arguments", async () => {
 		await run({ provider: "tasks", probe: "names", warn: true, files: true });
 		expect(runProbeCommand.mock.calls[0]![0]).toMatchObject({ args: ["--warn", "--files"] });

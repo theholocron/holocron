@@ -6,7 +6,7 @@ description: Poke a live provider on purpose, to inspect it or to prove somethin
 ```bash
 holocron probe                          # on a terminal: a menu of every provider and probe; otherwise the list
 holocron probe <provider>               # list one provider's probes
-holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes] [--lcov <path>]
+holocron probe <provider> <probe> [<argument>...] [--dry-run] [--yes] [--lcov <path>] [--only <name>...] [--copy]
 ```
 
 A probe is a small, named check that talks to a real provider: _which integrations does Sentry have, and what do they allow?_ or _does a failing check reach #uptime?_ It is for the questions you would otherwise answer with a throwaway script. It is not [`doctor`](/holocron/commands/doctor/), which compares what `holocron.config.ts` declares with what exists; a probe has no layout to compare against.
@@ -30,6 +30,8 @@ Probes come from the plugins your config names (a plugin offers them next to its
 | `--dry-run` | `false` | Show what a probe that changes things would do, without doing it                                               |
 | `--yes`     | `false` | Run a probe that changes things without asking first (required without a terminal)                             |
 | `--lcov`    | none    | Also write the coverage a [`docs`](#documentation) probe measures to this lcov file, relative to the repo root |
+| `--only`    | none    | [`1password export-environment`](#1password): export only this variable; repeat for more                       |
+| `--copy`    | `false` | [`1password export-environment`](#1password): put the variables on the clipboard instead of a file             |
 
 ## Connection, for every provider
 
@@ -43,6 +45,14 @@ Every provider offers `connection` (for example `holocron probe github connectio
 | `accepted`     | The provider accepts the token, and who it belongs to. Not tried when an earlier step did not pass, so one cause is reported once.                                                                                                                               |
 
 1Password has no API hostname of its own (`op` signs in by itself), so it checks that `op` is installed and signed in. Fern has no way to check a token, so it only checks that one is set.
+
+## 1Password
+
+| Probe                                                       | Changes things | What it does                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------------------------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `holocron probe 1password export-environment <environment>` | yes            | Reads one Environment in memory and writes its variables as `NAME=value` to a private `.credentials` file that Git must ignore and that is deleted once you confirm the import (also on failure and Ctrl-C), to a pipe, or to the clipboard with `--copy`. The file holds real secrets until then. [Details](/holocron/plugins/1password/#moving-an-environment-export-environment) |
+
+A probe whose output is data on stdout reports its rows on stderr, so a pipe carries only the data.
 
 ## Sentry
 

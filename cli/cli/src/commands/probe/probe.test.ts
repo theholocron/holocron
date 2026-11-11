@@ -50,6 +50,31 @@ describe("runProbeCommand", () => {
 		expect(listing.text()).toMatch(/deps\n\s+check/);
 	});
 
+	it("sends a probe's rows to stderr when it asks, so they never mix with data on stdout", async () => {
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+		const log = vi.spyOn(console, "log").mockImplementation(() => {});
+		const piped: PluginProbes = {
+			stream: {
+				summary: "Streams.",
+				writes: false,
+				reportsTo: "stderr",
+				run: async (ctx) => ctx.say({ status: "ok", label: "streamed" }),
+			},
+		};
+		await runProbeCommand({
+			loaded: { resolved: {} } as LoadedConfig,
+			context: { repoRoot: "/tmp" },
+			loader: { ...fakeLoader(), probes: () => new Map([["demo", piped]]) } as unknown as PluginLoader,
+			provider: "demo",
+			probe: "stream",
+			onInterrupt: () => () => {},
+		});
+		expect(strip(err.mock.calls.flat().join("\n"))).toMatch(/streamed/);
+		expect(log.mock.calls.flat().join("\n")).not.toMatch(/streamed/);
+		err.mockRestore();
+		log.mockRestore();
+	});
+
 	it("hands --lcov to the probe, and nothing when it was not given", async () => {
 		read.mockClear();
 		await run({ provider: "demo", probe: "look", lcov: "coverage/docs.lcov" }).promise;

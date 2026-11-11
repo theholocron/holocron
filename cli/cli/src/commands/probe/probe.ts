@@ -89,7 +89,7 @@ export async function runProbeCommand(input: RunProbeCommandInput): Promise<Prob
 		dryRun: input.dryRun ?? false,
 		yes: input.yes ?? false,
 		secrets: tokens,
-		print,
+		print: input.print ?? (probe.reportsTo === "stderr" ? (line: string) => console.error(line) : print),
 		...(input.interactive !== undefined ? { interactive: input.interactive } : {}),
 		...(input.confirm ? { confirm: input.confirm } : {}),
 		...(input.onInterrupt ? { onInterrupt: input.onInterrupt } : {}),
