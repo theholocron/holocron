@@ -53,12 +53,14 @@ import {
 	type Deployment,
 	type DeploymentTarget,
 	PluginLoader,
+	type SecretAccess,
 	type Secrets,
 	type SecretScope,
 	type Source,
 	type Vault,
 	type Workers,
 } from "../../plugin/index.js";
+import { accessNote } from "./access-note/index.js";
 import type { DeployFilter } from "./deploy-filter/index.js";
 import { githubNameProblem } from "./github-name/index.js";
 import { restorePem } from "./restore-pem/index.js";
@@ -95,6 +97,14 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		throw new ConfigError(
 			`no \`repo.secrets.deploy\` entry for environment ${JSON.stringify(input.environmentId)}: a deployment or a Worker receives only the keys named by \`keys\` or \`prefix\`, never every key. Add { environment: ${JSON.stringify(input.environmentId)}, prefix: "<PREFIX>_" } (or keys: [...]) to repo.secrets.deploy`
 		);
+	}
+	// Fail closed, before anything is read: an organization secret is never readable by every repository (#2062).
+	for (const route of input.secretRoutes ?? [{ scope: input.githubSecretScope ?? { kind: "repo" } }]) {
+		if (route.scope.kind === "organization" && !route.scope.repos?.length) {
+			throw new ConfigError(
+				`organization secrets (org=${route.scope.name}) need an explicit reader list: declare them in \`repo.secrets.sync\` with \`repos: [...]\` (visibility "selected"), never "all"`
+			);
+		}
 	}
 	const targets = input.targets ?? (["production", "preview"] as DeploymentTarget[]);
 
@@ -152,25 +162,33 @@ export async function runSecretsSync(input: RunSecretsSyncInput): Promise<SyncRe
 		];
 		for (const route of routes) {
 			print(style.step(routes.length > 1 ? `secrets (${scopeLabel(route.scope)})` : "secrets"));
+			const access = await readAccess(secrets, route.scope, print);
 			// No allowlist → every key (original default). With one → only
 			// the listed keys, in the order given; an unlisted vault key is
 			// skipped for `secrets` entirely (still reaches `deployment`
 			// below, if configured).
 			for (const key of route.keys ?? keys) {
-				rows.push(
-					await pushRow(
-						`secrets:${secrets.providerName}`,
-						scopeLabel(route.scope),
-						key,
-						envVars,
-						dryRun,
-						async (value) => {
-							await secrets.setSecret(route.scope, key, value);
-						},
-						nameCheck(secrets.providerName)
-					)
+				const row = await pushRow(
+					`secrets:${secrets.providerName}`,
+					scopeLabel(route.scope),
+					key,
+					envVars,
+					dryRun,
+					async (value) => {
+						await secrets.setSecret(route.scope, key, value);
+					},
+					nameCheck(secrets.providerName)
 				);
-				print(formatRow(rows[rows.length - 1]!));
+				// Who can read an organization secret changes with the write: say how, by name, in the dry run too.
+				if (access && (row.status === "ok" || row.status === "dry-run")) {
+					row.message = accessNote(
+						{ visibility: "selected", repos: access.wanted },
+						access.current?.get(key.toUpperCase()),
+						access.current !== undefined
+					);
+				}
+				rows.push(row);
+				print(formatRow(row));
 			}
 		}
 	}
@@ -337,6 +355,28 @@ function reportFiltered(
 	}
 	if (filtered.length > 0)
 		print(style.dim(`    · not sent (${filtered.length}, outside ${allowed}): ${filtered.join(", ")}`));
+}
+
+/**
+ * For an organization scope: the readers the entry declares and, when the provider can report them, who can read each
+ * secret now (by upper-cased name, since GitHub treats names as case-insensitive). A listing that fails is said once
+ * and the write goes on without the difference. `undefined` for any other scope.
+ */
+async function readAccess(
+	secrets: Secrets,
+	scope: SecretScope,
+	print: SyncPrintLine
+): Promise<{ wanted: string[]; current?: Map<string, SecretAccess> } | undefined> {
+	if (scope.kind !== "organization") return undefined;
+	const wanted = scope.repos!; // checked before the vault is read: an organization route always names its readers
+	if (!secrets.listSecretAccess) return { wanted };
+	try {
+		const found = await secrets.listSecretAccess(scope);
+		return { wanted, current: new Map(Object.entries(found).map(([name, a]) => [name.toUpperCase(), a])) };
+	} catch (err) {
+		print(style.dim(`    · could not read who can read the organization's secrets (${describeError(err)})`));
+		return { wanted };
+	}
 }
 
 /** Log every row, then print and log the summary. Shared by a finished run and one that stopped at the vault. */

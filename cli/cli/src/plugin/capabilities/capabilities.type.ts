@@ -555,9 +555,33 @@ export interface Ci extends ProviderIdentity {
 // secrets — CI/platform secrets sync destination (multi-scope)
 // ───────────────────────────────────────────────────────────────────────
 
+/** An organization scope, with who can read what is written there. */
+export interface OrganizationSecretScope {
+	kind: "organization";
+	name: string;
+	/**
+	 * Who can read the secret. `selected` needs `repos`. Left out, the provider keeps its older default (every
+	 * repository), which `holocron secrets sync` never relies on: it always names the readers (spec
+	 * `tech-org-secret-visibility`, #2062).
+	 */
+	visibility?: SecretVisibility;
+	/** The repositories that can read the secret, by name in the organization, when `visibility` is `selected`. */
+	repos?: string[];
+}
+
 /** Where a secret lives: the repository, one of its environments, or the organization. */
-export type SecretScope =
-	{ kind: "repo" } | { kind: "environment"; name: string } | { kind: "organization"; name: string };
+export type SecretScope = { kind: "repo" } | { kind: "environment"; name: string } | OrganizationSecretScope;
+
+/** Who can read an organization secret: every repository, every private one, or a named list. */
+export type SecretVisibility = "all" | "private" | "selected";
+
+/** Who can read one organization secret now, names only. */
+export interface SecretAccess {
+	/** The secret's visibility. */
+	visibility: SecretVisibility;
+	/** The repository names that can read it, when `visibility` is `selected`. */
+	repos?: string[];
+}
 
 /** A destination for secrets (CI or platform secrets) that `holocron secrets sync` writes into. */
 export interface Secrets extends ProviderIdentity {
@@ -572,6 +596,12 @@ export interface Secrets extends ProviderIdentity {
 
 	/** Remove a secret at the given scope. */
 	deleteSecret(scope: SecretScope, name: string): Promise<void>;
+
+	/**
+	 * Who can read each secret of an organization scope, by secret name (never a value). Optional: a provider whose
+	 * secrets have no visibility leaves it out, and the sync and the doctor skip the comparison.
+	 */
+	listSecretAccess?(scope: SecretScope): Promise<Record<string, SecretAccess>>;
 }
 
 // ───────────────────────────────────────────────────────────────────────

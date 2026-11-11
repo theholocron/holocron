@@ -37,8 +37,8 @@ export interface ExpectedSecrets {
 
 /** What `repo.secrets.sync` adds to the expected secrets. */
 export interface SyncedSecrets {
-	/** The names expected at each scope. */
-	scopes: Array<{ scope: SecretScope; names: string[] }>;
+	/** The names expected at each scope, and for an organization entry the repositories (by name) that may read them. */
+	scopes: Array<{ scope: SecretScope; names: string[]; repos?: string[] }>;
 	/** A row for each entry that could not be resolved. */
 	rows: CheckRow[];
 }

@@ -60,4 +60,35 @@ describe("secrets", () => {
 		expect(calls[0]?.method).toBe("DELETE");
 		expect(calls[0]?.url).toContain("/secrets/OLD_SECRET");
 	});
+
+	it("lists the organization secrets with their visibility and no value", async () => {
+		const { fetch, calls } = stubFetch([
+			{
+				body: {
+					total_count: 2,
+					secrets: [
+						{ name: "A", visibility: "selected", created_at: "x" },
+						{ name: "B", visibility: "all" },
+					],
+				},
+			},
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.secrets.listOrgSecretInfo("theholocron");
+		expect(calls[0]?.url).toContain("/orgs/theholocron/actions/secrets?per_page=100");
+		expect(result).toEqual([
+			{ name: "A", visibility: "selected" },
+			{ name: "B", visibility: "all" },
+		]);
+	});
+
+	it("lists the repositories that can read a selected organization secret", async () => {
+		const { fetch, calls } = stubFetch([
+			{ body: { total_count: 2, repositories: [{ name: "holocron" }, { name: ".github" }] } },
+		]);
+		const client = createGitHubClient({ token: TOKEN, fetch });
+		const result = await client.secrets.listSelectedRepositories("theholocron", "A");
+		expect(calls[0]?.url).toContain("/orgs/theholocron/actions/secrets/A/repositories?per_page=100");
+		expect(result).toEqual(["holocron", ".github"]);
+	});
 });

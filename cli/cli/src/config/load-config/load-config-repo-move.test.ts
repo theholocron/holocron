@@ -21,6 +21,15 @@ const DEAD_SECRETS = [
 	"LHCI_GITHUB_APP_TOKEN",
 ];
 
+/** The organization secrets only holocron's own reusable workflows read (#2062); the rest are read by `.github` too. */
+const ONLY_HOLOCRON = [
+	"HOLOCRON_CLOUDFLARE_TOKEN",
+	"HOLOCRON_CODECOV_TOKEN",
+	"HOLOCRON_SENTRY_AUTH_TOKEN",
+	"HOLOCRON_TURBO_TOKEN",
+	"SENTINEL_GITHUB_APP_PRIVATE_KEY",
+];
+
 /** The remote the layers are derived from (#2069); `moved` is a scratch directory with none. */
 const gitExec = async () => "https://github.com/theholocron/holocron.git";
 
@@ -55,7 +64,12 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 	});
 
 	it("resolves to the same repo settings as the old inline text", async () => {
-		await writeFile(join(inline, "holocron.config.ts"), base(await readFile(INLINE_REPO, "utf8")));
+		// And (#2062): the old text predates reader lists, which an organization secret entry needs to load at all.
+		const oldText = (await readFile(INLINE_REPO, "utf8")).replace(
+			/(secrets: \{[\s\S]*?scope: "org=theholocron",)/,
+			'$1 repos: ["theholocron/holocron"],'
+		);
+		await writeFile(join(inline, "holocron.config.ts"), base(oldText));
 		await writeFile(join(moved, "holocron.config.ts"), base(""));
 		await mkdir(join(moved, ".holocron"));
 		await copyFile(MOVED_REPO, join(moved, ".holocron", "repo.ts"));
@@ -106,6 +120,21 @@ describe("the repo block moved to .holocron/repo.ts (#1787)", () => {
 				.map((key) => renamed[key] ?? key)
 				.sort();
 		}
+		// And (#2062): the organization entry is two, each with its readers. The first is read by `holocron` and the
+		// frozen reusables in `.github`; the second only by holocron's own workflows.
+		const sync = beforeRest.secrets!.sync!;
+		const org = sync.find((entry) => entry.scope === "org=theholocron")!;
+		const readByBoth = org.keys!.filter((key) => !ONLY_HOLOCRON.includes(key));
+		sync.splice(
+			sync.indexOf(org),
+			1,
+			{ ...org, keys: readByBoth, repos: ["theholocron/holocron", "theholocron/.github"] },
+			{
+				...org,
+				keys: org.keys!.filter((key) => ONLY_HOLOCRON.includes(key)),
+				repos: ["theholocron/holocron"],
+			}
+		);
 		expect(afterRest).toEqual(beforeRest);
 		// Guard against a vacuous pass: the moved keys are really there on both sides, and the kept ones too.
 		expect(before).toMatchObject({
