@@ -1,10 +1,13 @@
 ---
+id: SPEC-0079
 status: draft
 issue: theholocron/holocron#2078
 blocked-by: []
 related:
   - theholocron/holocron#2058
   - theholocron/holocron#2076
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569958054844309554
 ---
 
 # A git-ignored `.holocron/.private` directory for secret-bearing files
