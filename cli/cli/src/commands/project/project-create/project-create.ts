@@ -1,5 +1,5 @@
 /**
- * `holocron project create [template] [--title]` — make a board from a template (a built-in, or a file in the repo's
+ * `holocron new project [template] [--title]` — make a board from a template (a built-in, or a file in the repo's
  * templates directory). Idempotent on the title: an open board that has it is not made again; a terminal is asked
  * whether to open the existing one, `--yes` prints its address, and anything else is a {@link NonInteractiveError}.
  */
@@ -15,7 +15,7 @@ import { createProjectRows } from "../project-rows/index.js";
 import { terminalPrompt } from "../terminal-prompt/index.js";
 import type { ProjectCreateReport, RunProjectCreateInput } from "./project-create.type.js";
 
-const COMMAND = "project create";
+const COMMAND = "new project";
 
 export async function runProjectCreate(input: RunProjectCreateInput): Promise<ProjectCreateReport> {
 	const print = input.print ?? ((line: string) => console.log(line));
@@ -30,7 +30,7 @@ export async function runProjectCreate(input: RunProjectCreateInput): Promise<Pr
 
 	const { projects, options } = await openProjects(input, COMMAND);
 	const loaded = await loadTemplates(options.templatesDir, input.io ?? createFsTemplatesIo(input.context.repoRoot));
-	print(style.header(`Holocron project create — ${options.owner}${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron new project — ${options.owner}${dryRun ? " (dry-run)" : ""}`));
 	print("");
 	for (const problem of loaded.problems) rows.fail("template", problem);
 
@@ -39,7 +39,7 @@ export async function runProjectCreate(input: RunProjectCreateInput): Promise<Pr
 	if (name === undefined) {
 		if (!prompt.interactive) {
 			throw new NonInteractiveError(
-				`project create: name a template (${names.join(", ")}); there is no terminal to ask in`
+				`new project: name a template (${names.join(", ")}); there is no terminal to ask in`
 			);
 		}
 		name = await prompt.select("Template:", names);
@@ -61,7 +61,7 @@ export async function runProjectCreate(input: RunProjectCreateInput): Promise<Pr
 			}
 			if (!prompt.interactive) {
 				throw new NonInteractiveError(
-					`project create: ${label} already exists (${existing.url}); pass --yes to keep it, or another --title`
+					`new project: ${label} already exists (${existing.url}); pass --yes to keep it, or another --title`
 				);
 			}
 			const open = await prompt.confirm(`${label} already exists. Open it instead of creating another?`, true);

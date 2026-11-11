@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "linear",
 	errorMessage:
 		"no Linear API key found. Pass --token <KEY>, set HOLOCRON_LINEAR_TOKEN / LINEAR_API_KEY, " +
-		"or run: holocron auth set linear <KEY>",
+		"or run: holocron new token linear <KEY>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

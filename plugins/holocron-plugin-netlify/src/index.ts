@@ -74,12 +74,12 @@ export function createPlugin(options: NetlifyPluginOptions) {
 }
 
 /**
- * One-line hint printed by `holocron auth set netlify` when no token is
+ * One-line hint printed by `holocron new token netlify` when no token is
  * supplied or the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate a Netlify Personal Access Token at https://app.netlify.com/user/applications#personal-access-tokens, " +
-	"then run: holocron auth set netlify <TOKEN>";
+	"then run: holocron new token netlify <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

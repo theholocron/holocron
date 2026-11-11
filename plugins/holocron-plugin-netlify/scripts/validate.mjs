@@ -9,7 +9,7 @@
  * the most likely fix per error shape.
  *
  * Auth: reads the Netlify token from holocron's keyring —
- * you must have run `pnpm holocron auth set netlify <TOKEN>` first.
+ * you must have run `pnpm holocron new token netlify <TOKEN>` first.
  *
  * Usage:
  *   pnpm --filter @theholocron/holocron-plugin-netlify validate:plugin <arg1> [arg2] ...

@@ -423,7 +423,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				step: "configure GitHub Pages",
 				status: "skip",
 				message:
-					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron auth set github.deploy <PAT>",
+					"no deploy token found — set HOLOCRON_DEPLOY_TOKEN or run: holocron new token github.deploy <PAT>",
 			});
 			print(formatStep(steps[steps.length - 1]!));
 		} else if (source.configurePages) {
@@ -684,7 +684,7 @@ export async function runSetup(input: RunSetupInput): Promise<SetupReport> {
 				}
 				for (const key of keys) {
 					steps.push(
-						await runStep("errors", `secrets set ${key}`, dryRun, async () => {
+						await runStep("errors", `new secret ${key}`, dryRun, async () => {
 							await secrets.setSecret({ kind: "repo" }, key, dsn!);
 						})
 					);

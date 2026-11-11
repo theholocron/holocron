@@ -80,12 +80,12 @@ export function createPlugin(options: AxiomPluginOptions) {
 }
 
 /**
- * One-line hint shown by `holocron auth set axiom` when no token is
+ * One-line hint shown by `holocron new token axiom` when no token is
  * supplied or when the supplied token is rejected.
  */
 export const AUTH_HINT =
 	"generate an Axiom API token at https://app.axiom.co/settings/api-tokens " +
-	"with dataset read + create permissions, then run: holocron auth set axiom <TOKEN>";
+	"with dataset read + create permissions, then run: holocron new token axiom <TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

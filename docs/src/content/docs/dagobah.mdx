@@ -62,6 +62,6 @@ Four functions make a GitHub App from a manifest through GitHub's manifest flow.
 - `serveAppManifest({ state, page, timeoutMs })` starts a one-shot server on a random loopback port. `/` shows the page and `/callback` takes the one-time code, only with the `state` it was started with. A request that does not name the server's own address is refused. It resolves `{ url, code, close }`.
 - `convertAppManifest(code)` exchanges the code for the App's id, private key and webhook secret. The code works once and GitHub shows the key once. An error names the status and never the body.
 
-[`holocron github-app create`](/holocron/commands/github-app-create/) is built on them and keeps the credentials file.
+[`holocron new github-app`](/holocron/commands/new-github-app/) is built on them and keeps the credentials file.
 
 Values and tokens are never printed.

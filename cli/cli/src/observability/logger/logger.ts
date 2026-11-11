@@ -22,7 +22,7 @@ const holocron = holocronEnv();
  * same pair of names through `resolveValue`'s `prefix` option.
  *
  * A service's environments ship to the same dataset and are told apart by the `env` field on each line (ADR-0019). The
- * config dataset is only a per-repo override, so a `global`-context command (`clone`, `auth set`, `upgrade node`, ...,
+ * config dataset is only a per-repo override, so a `global`-context command (`clone`, `new token`, `upgrade node`, ...,
  * ADR-0012) leaves it out: it is not about any repo, and the repo it happens to run in must not choose where its
  * lines go.
  */

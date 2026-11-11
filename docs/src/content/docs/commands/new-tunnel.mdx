@@ -1,18 +1,18 @@
 ---
-title: "tunnel up"
+title: "new tunnel"
 description: Make a named tunnel with a stable public hostname that reaches a port on this machine, for a webhook that has to find a development instance.
 ---
 
 ```bash
-holocron tunnel up --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000
-holocron tunnel up --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 --run
+holocron new tunnel --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000
+holocron new tunnel --name sentinel-dev --hostname sentinel-dev.theholocron.dev --port 3000 --run
 ```
 
 A GitHub App's webhook URL has to stay the same for the App's life, and a quick `cloudflared` tunnel changes its address every time it starts. A named tunnel has a stable hostname. This command sets one up in one idempotent run:
 
 1. The `tunnels` provider finds the tunnel by `--name` or makes it, and makes it serve `--hostname` at `http://localhost:<port>`. Routes for other hostnames on the tunnel are kept.
 2. The `dns` provider points a proxied `CNAME` for the hostname at the tunnel.
-3. It prints the address (`https://<hostname>`), which is what to give [`github-app create`](/holocron/commands/github-app-create/) as the webhook URL (plus the app's path, `/api/webhook` for Sentinel).
+3. It prints the address (`https://<hostname>`), which is what to give [`new github-app`](/holocron/commands/new-github-app/) as the webhook URL (plus the app's path, `/api/webhook` for Sentinel).
 
 With `--run` it then starts `cloudflared tunnel run` in the foreground and stops it on Ctrl-C. The tunnel's token reaches `cloudflared` through the `TUNNEL_TOKEN` environment variable, never its arguments (which `ps` shows to every user) and never the output. Without `--run` it only sets things up and prints the command to start it. `cloudflared` must be installed (`brew install cloudflared`).
 

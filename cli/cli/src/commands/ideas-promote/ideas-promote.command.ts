@@ -10,7 +10,7 @@ import { runIdeasPromote } from "./run-ideas-promote/index.js";
 type Args = GlobalArgs & { issue: string; name?: string; yes?: boolean };
 
 export const ideasPromoteCommand: CommandModule<GlobalArgs, Args> = {
-	command: "promote <issue>",
+	command: "spec <issue>",
 	describe: "Write a draft spec in .notes/ from an issue that an idea was filed as",
 	builder: (y: Argv<GlobalArgs>) =>
 		y

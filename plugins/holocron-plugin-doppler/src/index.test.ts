@@ -36,6 +36,6 @@ describe("AUTH_HINT", () => {
 	it("mentions the Doppler CLI bootstrap sequence", () => {
 		expect(AUTH_HINT).toMatch(/brew install/);
 		expect(AUTH_HINT).toMatch(/doppler login/);
-		expect(AUTH_HINT).toMatch(/holocron auth set doppler/);
+		expect(AUTH_HINT).toMatch(/holocron new token doppler/);
 	});
 });

@@ -287,7 +287,7 @@ export class GitHubSource implements Source {
 	): Promise<string> {
 		if (!this.orgClient) {
 			throw new Error(
-				"organization variables need the org token: set HOLOCRON_ORG_TOKEN or run `holocron auth set github.org <token>`"
+				"organization variables need the org token: set HOLOCRON_ORG_TOKEN or run `holocron new token github.org <token>`"
 			);
 		}
 		return syncOrgVariables(this.orgClient, this.repo, org, variables, opts);
@@ -303,7 +303,7 @@ export class GitHubSource implements Source {
 	): Promise<Record<string, { value: string; visibility: "all" | "private" | "selected" }>> {
 		if (!this.orgClient) {
 			throw new MissingTokenError(
-				"organization variables need the org token: set HOLOCRON_ORG_TOKEN or run `holocron auth set github.org <token>`"
+				"organization variables need the org token: set HOLOCRON_ORG_TOKEN or run `holocron new token github.org <token>`"
 			);
 		}
 		const found = await this.orgClient.variables.listVariables(this.repo, { kind: "organization", org });

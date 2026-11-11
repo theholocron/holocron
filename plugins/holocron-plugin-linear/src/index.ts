@@ -128,10 +128,10 @@ export function createPlugin(options: LinearPluginOptions) {
 	};
 }
 
-/** One-line hint shown by `holocron auth set linear` when no token is given or the token is rejected. */
+/** One-line hint shown by `holocron new token linear` when no token is given or the token is rejected. */
 export const AUTH_HINT =
 	"create a personal API key at https://linear.app/settings/account/security (API keys), " +
-	"then run: holocron auth set linear <KEY>";
+	"then run: holocron new token linear <KEY>";
 
 export * from "./auth.js";
 export { LinearIssues } from "./capabilities/issues.js";

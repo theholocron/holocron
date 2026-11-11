@@ -22,7 +22,7 @@ Token resolution order:
 2. `HOLOCRON_DOPPLER_TOKEN` env var (preferred — explicit intent)
 3. `DOPPLER_TOKEN` env var (Doppler-native, works in CI)
 4. Keyring `doppler.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `doppler` — unnamespaced fallback; set via `holocron auth set doppler <token>`
+5. Keyring `doppler` — unnamespaced fallback; set via `holocron new token doppler <token>`
 6. `AuthError` naming all five options + the bootstrap hint
 
 ## Manual setup (one-time, per operator)
@@ -42,7 +42,7 @@ doppler login
 # 3. Hand the token off to holocron's keyring (one-shot). After this,
 #    every plugin call reads the token from the keyring — no env vars
 #    to remember, no dotfiles to sync.
-holocron auth set doppler $(doppler configure get token --plain)
+holocron new token doppler $(doppler configure get token --plain)
 
 # 4. Verify:
 holocron auth check doppler
@@ -98,10 +98,10 @@ reference doesn't make sense.
 Plugin-level exports (not capability methods, per the auth-bootstrap
 convention):
 
-| Export        | Purpose                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| `verifyToken` | `GET /v3/me` — returns `{ok: true, subject: "personal @ acme"}` or `{ok: false, message}`.  |
-| `AUTH_HINT`   | One-line hint printed by `holocron auth set` when no token is supplied or the token is bad. |
+| Export        | Purpose                                                                                      |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `verifyToken` | `GET /v3/me` — returns `{ok: true, subject: "personal @ acme"}` or `{ok: false, message}`.   |
+| `AUTH_HINT`   | One-line hint printed by `holocron new token` when no token is supplied or the token is bad. |
 
 ## Status
 

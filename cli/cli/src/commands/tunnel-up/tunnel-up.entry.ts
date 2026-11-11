@@ -1,7 +1,7 @@
 import { type MenuEntry } from "@theholocron/kyber/menu";
 
 export const tunnelUpEntry: MenuEntry = {
-	name: "tunnel up",
+	name: "new tunnel",
 	description: "Make a named tunnel with a stable public hostname that reaches a local port",
 	positionals: [],
 	options: [

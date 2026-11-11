@@ -61,11 +61,11 @@ export function createPlugin(options: SlackPluginOptions = {}) {
 	};
 }
 
-/** Hint printed by `holocron auth set slack` when no token is supplied or the token is rejected; explains how to create a bot token. */
+/** Hint printed by `holocron new token slack` when no token is supplied or the token is rejected; explains how to create a bot token. */
 export const AUTH_HINT =
 	"create a Slack app at https://api.slack.com/apps, add the chat:write bot scope, " +
 	"install it to your workspace, copy the Bot User OAuth Token (xoxb-...), " +
-	"then run: holocron auth set slack <xoxb-TOKEN>";
+	"then run: holocron new token slack <xoxb-TOKEN>";
 
 // ── Public re-exports ────────────────────────────────────────────────
 

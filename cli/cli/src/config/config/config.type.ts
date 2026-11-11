@@ -18,7 +18,7 @@ export interface LogConfig {
 	 * `HOLOCRON_AXIOM_DATASET` variable (`holocron`, synced from 1Password) with no config at all.
 	 * Set `axiom.dataset` only for a repo that keeps its own dataset: the CLI
 	 * pairs it with the token from `HOLOCRON_AXIOM_TOKEN` / `AXIOM_TOKEN` or the
-	 * OS keyring (`holocron auth set axiom[.<org>] <TOKEN>`). Env vars still
+	 * OS keyring (`holocron new token axiom[.<org>] <TOKEN>`). Env vars still
 	 * win, and a `global`-context command ignores it.
 	 */
 	axiom?: {
@@ -169,7 +169,7 @@ export interface RepoVariablesSync {
 
 /**
  * The names of the secrets that must exist for this repository's workflows to work, so `holocron doctor secrets`
- * can say which are missing. Only names go here, never values; `holocron secrets set` and `secrets sync` write
+ * can say which are missing. Only names go here, never values; `holocron new secret` and `secrets sync` write
  * them. The secrets the config already implies (the notification layout's webhooks and roles, a Chromatic project
  * token) are expected without being listed again. A secret that exists but is not listed is never a problem.
  */

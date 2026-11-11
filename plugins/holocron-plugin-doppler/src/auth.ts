@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "doppler",
 	errorMessage:
 		"no Doppler token found. Pass --token <TOKEN>, set HOLOCRON_DOPPLER_TOKEN / DOPPLER_TOKEN, " +
-		"or run: holocron auth set doppler $(doppler configure get token --plain)",
+		"or run: holocron new token doppler $(doppler configure get token --plain)",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

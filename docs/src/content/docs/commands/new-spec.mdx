@@ -1,13 +1,13 @@
 ---
-title: "ideas promote"
+title: "new spec"
 description: Write a draft spec in .notes/ from the issue an idea was filed as.
 ---
 
 ```bash
-holocron ideas promote <issue> [--name <topic>] [--dry-run] [--yes]
+holocron new spec <issue> [--name <topic>] [--dry-run] [--yes]
 ```
 
-This is the spec-time step of the ideas flow ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). An idea was filed as an issue by [`ideas sync`](/holocron/commands/ideas-sync/), and its note left the vault, so the idea's text now lives in the issue. `ideas promote` reads that issue and writes it as the start of a spec.
+This is the spec-time step of the ideas flow ([SPEC-0072](https://github.com/theholocron/holocron/issues/1994)). An idea was filed as an issue by [`ideas sync`](/holocron/commands/ideas-sync/), and its note left the vault, so the idea's text now lives in the issue. `new spec` reads that issue and writes it as the start of a spec.
 
 `<issue>` is the issue in the tracker's own syntax: `#1234` or `1234` for GitHub, `RANDO-7` for Linear. The repo's `issues` provider reads it (`Issues.get`), so the command knows nothing about a tracker.
 

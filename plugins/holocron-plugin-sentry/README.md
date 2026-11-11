@@ -21,7 +21,7 @@ Token resolution order:
 2. `HOLOCRON_SENTRY_TOKEN` env var
 3. `SENTRY_AUTH_TOKEN` env var (the standard Sentry variable name)
 4. Keyring `sentry.<org>` — tried first when an org is active via `--org`, `HOLOCRON_ORG`, or `org` in `holocron.config.ts`
-5. Keyring `sentry` — unnamespaced fallback; set via `holocron auth set sentry <token>`
+5. Keyring `sentry` — unnamespaced fallback; set via `holocron new token sentry <token>`
 
 Generate an auth token at **sentry.io/settings/account/api/auth-tokens/**
 with `org:read`, `project:read`, and `project:write` scopes. Both

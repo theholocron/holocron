@@ -1,5 +1,5 @@
 /**
- * `holocron ideas promote` — turns a filed idea into a draft spec.
+ * `holocron new spec` — turns a filed idea into a draft spec.
  *
  * It reads the issue through the repo's `issues` provider (`Issues.get`, which parses the key in the tracker's own
  * syntax) and writes `.notes/<name>.spec.md`: draft frontmatter with the `issue:`, the title, and a `Problem` section
@@ -57,7 +57,7 @@ export async function runIdeasPromote(input: RunIdeasPromoteInput): Promise<Idea
 		printCheckSummary(summary, print);
 		return { status: summary.fail > 0 ? "fail" : "ok", rows, ...(path ? { path } : {}) };
 	};
-	print(style.header(`Holocron ideas promote${dryRun ? " (dry-run)" : ""}`));
+	print(style.header(`Holocron new spec${dryRun ? " (dry-run)" : ""}`));
 	print("");
 
 	const entry = input.loaded.resolved.providers.issues;
@@ -72,7 +72,7 @@ export async function runIdeasPromote(input: RunIdeasPromoteInput): Promise<Idea
 		);
 	/* v8 ignore stop */
 	await loader.load();
-	assertPluginsResolvable(loader, "ideas promote");
+	assertPluginsResolvable(loader, "new spec");
 	if (!loader.has("issues")) {
 		const failure = loader.loadFailures().find((f) => f.key === "issues");
 		return finish([
@@ -126,7 +126,7 @@ export async function runIdeasPromote(input: RunIdeasPromoteInput): Promise<Idea
 		const interactive = input.interactive ?? Boolean(process.stdin.isTTY);
 		if (!interactive) {
 			throw new NonInteractiveError(
-				`\`ideas promote\` writes ${relative}; pass --yes to run it without asking, or --dry-run to preview`
+				`\`new spec\` writes ${relative}; pass --yes to run it without asking, or --dry-run to preview`
 			);
 		}
 		const proceed = await (input.confirm ?? ((message) => confirm({ message, default: false })))(

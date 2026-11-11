@@ -7,11 +7,11 @@ The layout of your community server (categories, channels, webhooks, roles, who 
 
 ## What you need first
 
-| Credential                                          | Where it comes from                          | Stored as                                          |
-| --------------------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
-| Bot token                                           | Developer portal → Bot → Reset Token         | `holocron auth set discord.holonet <token>`        |
-| OAuth client secret (only for `notifications link`) | Developer portal → OAuth2 → Reset Secret     | `holocron auth set discord.holonet.oauth <secret>` |
-| GitHub tokens                                       | See the [Token Reference](/holocron/tokens/) | `github.secrets`, `github.org`, `github.user-sync` |
+| Credential                                          | Where it comes from                          | Stored as                                           |
+| --------------------------------------------------- | -------------------------------------------- | --------------------------------------------------- |
+| Bot token                                           | Developer portal → Bot → Reset Token         | `holocron new token discord.holonet <token>`        |
+| OAuth client secret (only for `notifications link`) | Developer portal → OAuth2 → Reset Secret     | `holocron new token discord.holonet.oauth <secret>` |
+| GitHub tokens                                       | See the [Token Reference](/holocron/tokens/) | `github.secrets`, `github.org`, `github.user-sync`  |
 
 The bot token and the client secret are two different values that look alike; the portal shows neither again once you leave the page. The full list, with the exact GitHub scopes, is in the [Token Reference](/holocron/tokens/).
 
@@ -28,13 +28,13 @@ After [`notifications link`](/holocron/commands/notifications-link/) it is also 
 
 ```bash
 # See the plan first; nothing is called
-holocron notifications create-server --dry-run --name "The Holocron" --owner 123456789012345678
+holocron new server --dry-run --name "The Holocron" --owner 123456789012345678
 
 # Then for real (add --force if holocron.config.ts already has a guildId)
-holocron notifications create-server --name "The Holocron" --owner 123456789012345678
+holocron new server --name "The Holocron" --owner 123456789012345678
 ```
 
-`--name` is what the server is called. The command creates the server, writes its id into `holocron.config.ts` as `guildId`, applies the whole layout, sends you a single-use invite, waits for you to join, and then makes you the owner. The steps, the failure states and `--resume` are in [`notifications create-server`](/holocron/commands/notifications-create-server/).
+`--name` is what the server is called. The command creates the server, writes its id into `holocron.config.ts` as `guildId`, applies the whole layout, sends you a single-use invite, waits for you to join, and then makes you the owner. The steps, the failure states and `--resume` are in [`new server`](/holocron/commands/new-server/).
 
 Things to know before you run it:
 

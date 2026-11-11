@@ -12,10 +12,10 @@ vi.mock("../token-context/index.js", () => ({ tokenContext }));
 vi.mock("../apply-resolved-config/index.js", () => ({ applyResolvedConfig: vi.fn() }));
 vi.mock("../resolve-org/index.js", () => ({ resolveOrg: (_a: unknown, c: { org?: string }) => c.org }));
 
-import { ideasCommand } from "../ideas/index.js";
+import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 
-const go = (...args: string[]) => runCommand(ideasCommand, ["ideas", "promote", ...args]);
+const go = (...args: string[]) => runCommand(newCommand, ["new", "spec", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("ideas promote", () => {
+describe("new spec", () => {
 	it("passes the issue as text, the name, --yes and the context", async () => {
 		await go("2017", "--name", "tech-x", "--yes");
 		expect(runIdeasPromote).toHaveBeenCalledWith(

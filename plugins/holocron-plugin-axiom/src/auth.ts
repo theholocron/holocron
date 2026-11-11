@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "axiom",
 	errorMessage:
 		"no Axiom token found. Pass --token <TOKEN>, set HOLOCRON_AXIOM_TOKEN / AXIOM_TOKEN, " +
-		"or run: holocron auth set axiom <TOKEN>",
+		"or run: holocron new token axiom <TOKEN>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

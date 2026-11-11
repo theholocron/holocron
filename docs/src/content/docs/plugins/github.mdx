@@ -53,11 +53,11 @@ providers: {
 Requires up to five separate fine-grained PATs depending on which capabilities you configure:
 
 ```bash
-holocron auth set github.admin   ghp_xxx  # source, secrets, environments
-holocron auth set github.read    ghp_yyy  # ci, clone
-holocron auth set github.issues  ghp_zzz  # issues
-holocron auth set github.sync    ghp_aaa  # sync-github
-holocron auth set github.release ghp_bbb  # semantic-release
+holocron new token github.admin   ghp_xxx  # source, secrets, environments
+holocron new token github.read    ghp_yyy  # ci, clone
+holocron new token github.issues  ghp_zzz  # issues
+holocron new token github.sync    ghp_aaa  # sync-github
+holocron new token github.release ghp_bbb  # semantic-release
 ```
 
 See the [Token Reference](../tokens#github-tokens) for the exact PAT scopes each needs.

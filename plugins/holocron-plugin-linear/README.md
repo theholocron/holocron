@@ -18,7 +18,7 @@ pnpm add -D @theholocron/holocron-plugin-linear
 1. `--token <KEY>` on the holocron invocation
 2. `HOLOCRON_LINEAR_TOKEN`
 3. `LINEAR_API_KEY`
-4. keyring `linear` (set with `holocron auth set linear <KEY>`)
+4. keyring `linear` (set with `holocron new token linear <KEY>`)
 
 Create a personal API key at **Linear → Settings → Account → Security**.
 

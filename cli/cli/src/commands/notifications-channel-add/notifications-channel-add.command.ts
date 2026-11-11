@@ -12,16 +12,13 @@ import { runNotificationsChannelAdd } from "./index.js";
 import { type NotificationsChannelAddArgs, notificationsChannelAddArgs } from "./notifications-channel-add.args.js";
 
 export const notificationsChannelAddCommand: CommandModule<GlobalArgs, NotificationsChannelAddArgs> = {
-	command: "add [name]",
+	command: "channel [name]",
 	describe: "Create a channel, optionally with a webhook whose URL is stored as a secret",
 	builder: notificationsChannelAddArgs,
 	handler: async (argv) => {
 		const tokens = tokenContext(argv.token);
 		if (!tokens) return;
-		const [name] = await promptForPositionals(
-			getEntry("notifications channel add"),
-			argv as Record<string, unknown>
-		);
+		const [name] = await promptForPositionals(getEntry("new channel"), argv as Record<string, unknown>);
 		const loaded = await loadConfig(argv.cwd);
 		applyResolvedConfig(argv, loaded.resolved);
 		const report = await runNotificationsChannelAdd({

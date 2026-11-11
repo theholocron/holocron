@@ -15,11 +15,11 @@ vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 
+import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
-import { tunnelCommand } from "../tunnel/index.js";
 
 const go = (args: string[]) =>
-	runCommand(tunnelCommand, ["tunnel", "up", "--name", "n", "--hostname", "h.example.dev", ...args]);
+	runCommand(newCommand, ["new", "tunnel", "--name", "n", "--hostname", "h.example.dev", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -29,7 +29,7 @@ beforeEach(() => {
 });
 afterEach(() => void (process.exitCode = undefined));
 
-describe("tunnel up command", () => {
+describe("new tunnel command", () => {
 	it("passes the options with the context from the tokens and the org", async () => {
 		await go(["--port", "4000", "--run"]);
 		expect(runTunnelUp).toHaveBeenCalledWith(
@@ -49,7 +49,7 @@ describe("tunnel up command", () => {
 	});
 
 	it("needs a name and a hostname", async () => {
-		await expect(runCommand(tunnelCommand, ["tunnel", "up"])).rejects.toThrow(/Missing required/);
+		await expect(runCommand(newCommand, ["new", "tunnel"])).rejects.toThrow(/Missing required/);
 		expect(runTunnelUp).not.toHaveBeenCalled();
 	});
 

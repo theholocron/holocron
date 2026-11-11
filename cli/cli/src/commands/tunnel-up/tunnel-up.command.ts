@@ -34,7 +34,7 @@ const tunnelUpArgs = (yy: Argv<GlobalArgs>) =>
 type TunnelUpArgs = InferArgs<typeof tunnelUpArgs>;
 
 export const tunnelUpCommand: CommandModule<GlobalArgs, TunnelUpArgs> = {
-	command: "up",
+	command: "tunnel",
 	describe: "Make a named tunnel with a stable public hostname that reaches a local port",
 	builder: tunnelUpArgs,
 	handler: async (argv) => {

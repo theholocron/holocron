@@ -10,7 +10,7 @@ export const resolveToken = createResolveToken({
 	keyringService: "cloudflare",
 	errorMessage:
 		"no Cloudflare API token found. Pass --token <TOKEN>, set HOLOCRON_CLOUDFLARE_TOKEN / CLOUDFLARE_API_TOKEN, " +
-		"or run: holocron auth set cloudflare <TOKEN>",
+		"or run: holocron new token cloudflare <TOKEN>",
 });
 
 /** Every token this plugin takes, for `holocron doctor tokens`. */

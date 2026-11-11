@@ -1,7 +1,7 @@
 import { type MenuEntry } from "@theholocron/kyber/menu";
 
 export const githubAppCreateEntry: MenuEntry = {
-	name: "github-app create",
+	name: "new github-app",
 	description: "Create a GitHub App from a manifest and keep its credentials in a private file to import",
 	positionals: [],
 	options: [

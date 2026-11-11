@@ -108,7 +108,7 @@ describe("runAuthSet", () => {
 		// logs the outcome — provider + keyring key + verified, never the token
 		expect(log.info).toHaveBeenCalledWith(
 			expect.objectContaining({ provider: "doppler", keyringKey: "doppler", verified: true, status: "ok" }),
-			"auth set: doppler"
+			"new token: doppler"
 		);
 		expect(JSON.stringify(log.info.mock.calls)).not.toContain("dp.pt.abc");
 	});

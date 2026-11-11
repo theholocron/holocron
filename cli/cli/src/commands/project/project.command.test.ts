@@ -20,10 +20,14 @@ vi.mock("../resolve-org/index.js", () => ({
 	resolveOrg: (_a: unknown, c: { org?: string }) => c.org,
 }));
 
+import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { projectCommand } from "./index.js";
 
 const go = (...args: string[]) => runCommand(projectCommand, ["project", ...args]);
+// `create` moved to `new project`; the table tests below still name it `create`.
+const goSub = (sub: string, ...rest: string[]) =>
+	sub === "create" ? runCommand(newCommand, ["new", "project", ...rest]) : go(sub, ...rest);
 const ok = { status: "ok", summary: { ok: 1, fail: 0, skip: 0 } };
 
 beforeEach(() => {
@@ -45,15 +49,15 @@ describe("project commands", () => {
 		);
 	});
 
-	it("create passes the template, title and --yes", async () => {
-		await go("create", "roadmap", "--title", "v5", "--yes");
+	it("new project passes the template, title and --yes", async () => {
+		await runCommand(newCommand, ["new", "project", "roadmap", "--title", "v5", "--yes"]);
 		expect(runProjectCreate).toHaveBeenCalledWith(
 			expect.objectContaining({ template: "roadmap", title: "v5", yes: true })
 		);
 	});
 
-	it("create runs without a template", async () => {
-		await go("create");
+	it("new project runs without a template", async () => {
+		await runCommand(newCommand, ["new", "project"]);
 		expect(runProjectCreate).toHaveBeenCalledWith(expect.objectContaining({ template: undefined }));
 	});
 
@@ -93,7 +97,7 @@ describe("project commands", () => {
 		["setup", runProjectSetup, []],
 	])("%s does nothing when the token flags are unusable", async (sub, run, rest) => {
 		tokenContext.mockReturnValue(undefined);
-		await go(sub, ...rest);
+		await goSub(sub, ...rest);
 		expect(loadConfig).not.toHaveBeenCalled();
 		expect(run).not.toHaveBeenCalled();
 	});
@@ -104,10 +108,10 @@ describe("project commands", () => {
 		["close", runProjectClose, ["7"]],
 		["setup", runProjectSetup, []],
 	])("%s exits non-zero when the run fails and zero when it does not", async (sub, run, rest) => {
-		await go(sub, ...rest);
+		await goSub(sub, ...rest);
 		expect(process.exitCode).toBeUndefined();
 		run.mockResolvedValue({ status: "fail", summary: { ok: 0, fail: 1, skip: 0 } });
-		await go(sub, ...rest);
+		await goSub(sub, ...rest);
 		expect(process.exitCode).toBe(1);
 	});
 
@@ -117,7 +121,7 @@ describe("project commands", () => {
 			["close", runProjectClose, ["7"]],
 			["setup", runProjectSetup, []],
 		] as const) {
-			await go(sub, ...rest, "--org", "other");
+			await goSub(sub, ...rest, "--org", "other");
 			expect(run).toHaveBeenCalledWith(
 				expect.objectContaining({ owner: "other", context: expect.objectContaining({ org: "acme" }) })
 			);

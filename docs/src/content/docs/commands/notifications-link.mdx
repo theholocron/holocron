@@ -43,12 +43,12 @@ The local listener binds the loopback address only, accepts only a `/callback` c
 ## One-time setup (the API cannot do these)
 
 1. **Add the redirect.** In the [Discord developer portal](https://discord.com/developers/applications), open the application → **OAuth2 → Redirects** and add the address the command prints (`http://localhost:53682/callback` for the local sign-in; the Sentinel one when it is serving). Discord accepts an API write to this field and silently ignores it, so it has to be done by hand. When you move from one to the other, add the new address; the old one can stay.
-2. **Store the client secret.** Under **OAuth2 → Reset Secret**, copy the secret and store it where the bot token is kept: `holocron auth set discord.holonet.oauth <secret>`, or set `HOLOCRON_DISCORD_CLIENT_SECRET`. The API never returns it.
+2. **Store the client secret.** Under **OAuth2 → Reset Secret**, copy the secret and store it where the bot token is kept: `holocron new token discord.holonet.oauth <secret>`, or set `HOLOCRON_DISCORD_CLIENT_SECRET`. The API never returns it.
 3. **Connect GitHub to Discord.** In Discord, **User Settings → Connections → GitHub**. Without a verified GitHub connection the command stops and tells you so.
 
 ## The GitHub token for the links file
 
-The links file lives in the org's private config repo, so it has its own token, `HOLOCRON_USER_SYNC_TOKEN` (`holocron auth set github.user-sync <PAT>`): a fine-grained PAT for the org, with **only** `.github-private` selected and `Contents: read and write`. `notifications sync-roles` reads the same file with it. Nothing else uses it, so `github.org` and `github.admin` never need Contents on other repositories. The file is per provider (`notifications/<provider>-links.json`), so the same token serves any other service whose members are matched to GitHub accounts. Without it the org token is tried, then the admin token; a 403 names the missing permission.
+The links file lives in the org's private config repo, so it has its own token, `HOLOCRON_USER_SYNC_TOKEN` (`holocron new token github.user-sync <PAT>`): a fine-grained PAT for the org, with **only** `.github-private` selected and `Contents: read and write`. `notifications sync-roles` reads the same file with it. Nothing else uses it, so `github.org` and `github.admin` never need Contents on other repositories. The file is per provider (`notifications/<provider>-links.json`), so the same token serves any other service whose members are matched to GitHub accounts. Without it the org token is tried, then the admin token; a 403 names the missing permission.
 
 ## Options
 

@@ -19,8 +19,8 @@ describe("createPlugin", () => {
 });
 
 describe("AUTH_HINT", () => {
-	it("mentions the holocron auth set command", () => {
-		expect(AUTH_HINT).toMatch(/holocron auth set ${inputs.slug}/);
+	it("mentions the holocron new token command", () => {
+		expect(AUTH_HINT).toMatch(/holocron new token ${inputs.slug}/);
 	});
 });
 `;

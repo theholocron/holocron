@@ -430,7 +430,7 @@ describe("runNotificationsChannelAdd", () => {
 			"@theholocron/holocron-plugin-discord": makePlugin("discord", { notifications: fakeNotifications() }),
 		});
 		await runNotificationsChannelAdd({ loaded, context: { repoRoot: "/tmp/test" }, name: "x", loader });
-		expect(log).toHaveBeenCalledWith(expect.stringContaining("notifications channel add — x"));
+		expect(log).toHaveBeenCalledWith(expect.stringContaining("new channel — x"));
 		log.mockRestore();
 	});
 });

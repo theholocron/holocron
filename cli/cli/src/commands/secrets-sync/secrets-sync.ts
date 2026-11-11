@@ -39,7 +39,7 @@
  *
  * The vault MUST implement `readEnvironment(envId)` (optional method).
  * If it doesn't, the command errors with a hint to populate the keys
- * individually via `holocron secrets set` (also planned for v5.1).
+ * individually via `holocron new secret` (also planned for v5.1).
  */
 
 import { ConfigError } from "@theholocron/kyber/config";

@@ -1,5 +1,5 @@
 /**
- * `holocron notifications create-server` — makes the server a layout describes, from nothing.
+ * `holocron new server` — makes the server a layout describes, from nothing.
  *
  * A bot can create a server (while it is in few of them), and a server it creates already has it as a member,
  * so there is no invite step for the bot. The bot owns it at first, applies the whole layout (it can, as owner),
@@ -32,7 +32,7 @@ export async function runNotificationsCreateServer(
 	/* v8 ignore next -- the real loader is only built outside tests, which always inject one */
 	const loader = input.loader ?? new PluginLoader(input.loaded.resolved, input.context);
 	await loader.load();
-	assertPluginsResolvable(loader, "notifications create-server");
+	assertPluginsResolvable(loader, "new server");
 
 	const dryRun = input.context.dryRun ?? false;
 	const sleep = input.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
@@ -40,7 +40,7 @@ export async function runNotificationsCreateServer(
 		print(`  ${style.fail(message)}`);
 		print("");
 		print(style.header("0 ok, 1 fail, 0 skipped"));
-		logger.warn({ reason }, "notifications create-server");
+		logger.warn({ reason }, "new server");
 		return { status: "fail", message };
 	};
 
@@ -195,7 +195,7 @@ export async function runNotificationsCreateServer(
 		while (!(await notifications.hasMember!(input.owner))) {
 			if (waited >= waitMs) {
 				return refuse(
-					`member ${input.owner} did not join in time; the server is ready and still owned by the bot. Open the invite, then run \`holocron notifications create-server --resume --owner ${input.owner}\``
+					`member ${input.owner} did not join in time; the server is ready and still owned by the bot. Open the invite, then run \`holocron new server --resume --owner ${input.owner}\``
 				);
 			}
 			await sleep(pollMs);
@@ -219,6 +219,6 @@ export async function runNotificationsCreateServer(
 
 	print("");
 	print(style.header(`${ok} ok, 0 fail, 0 skipped`));
-	logger.info({ serverId: report.serverId }, "notifications create-server");
+	logger.info({ serverId: report.serverId }, "new server");
 	return report;
 }
