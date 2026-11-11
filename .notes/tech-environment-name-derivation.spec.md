@@ -1,4 +1,5 @@
 ---
+id: SPEC-0075
 status: draft
 issue: theholocron/holocron#2063
 blocked-by: []
@@ -6,6 +7,8 @@ related:
   - theholocron/holocron#2058
   - theholocron/holocron#2061
   - theholocron/holocron#1606
+discussion:
+  url: https://discord.com/channels/1303969001822486568/1569901616478560391
 ---
 
 # Derive the 1Password Environment name from the repo and the layer
