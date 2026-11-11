@@ -193,6 +193,25 @@ describe("compose()", () => {
 		).toEqual({ org: ["O"], sync: [{ environment: "e" }] });
 	});
 
+	it("concatenates repo.secrets.deploy entries across capabilities and keeps one that stands alone", () => {
+		const a: Capability = { id: "a", repo: { secrets: { deploy: [{ environment: "prod", keys: ["A"] }] } } };
+		const b: Capability = { id: "b", repo: { secrets: { deploy: [{ environment: "prod", prefix: "P_" }] } } };
+		expect(compose(a, b).repo.secrets?.deploy).toEqual([
+			{ environment: "prod", keys: ["A"] },
+			{ environment: "prod", prefix: "P_" },
+		]);
+		expect(compose(a).repo.secrets?.deploy).toEqual([{ environment: "prod", keys: ["A"] }]);
+		expect(compose({ id: "c", repo: { secrets: {} } }, a).repo.secrets?.deploy).toEqual([
+			{ environment: "prod", keys: ["A"] },
+		]);
+		const kept = compose(a, { id: "d", repo: { secrets: { org: ["O"] } } }).repo.secrets;
+		expect(kept?.deploy).toEqual([{ environment: "prod", keys: ["A"] }]);
+		const onlyLater = compose({ id: "e", repo: { secrets: { org: ["O"] } } }, b).repo.secrets;
+		expect(onlyLater?.deploy).toEqual([{ environment: "prod", prefix: "P_" }]);
+		expect(compose(a, { id: "f", repo: { secrets: { org: ["O"] } } }).repo.secrets).toHaveProperty("org");
+		expect(compose({ id: "g", repo: { secrets: { org: ["O"] } } }).repo.secrets).not.toHaveProperty("deploy");
+	});
+
 	it("merges repo.variables.sync by environment and scope", () => {
 		const a: Capability = {
 			id: "a",
