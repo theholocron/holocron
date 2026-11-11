@@ -36,12 +36,14 @@ vi.mock("../../interactive-menu/index.js", async (importActual) => ({
 	launchMenu,
 }));
 
+import { listCommand } from "../list/list.command.js";
 import { newCommand } from "../new/new.command.js";
 import { runCommand } from "../run-command.testing.js";
 import { secretsCommand } from "./secrets.command.js";
 
 const go = (args: string[]) => runCommand(secretsCommand, ["secrets", ...args]);
 const goNew = (args: string[]) => runCommand(newCommand, ["new", ...args]);
+const goList = (args: string[]) => runCommand(listCommand, ["list", ...args]);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -226,9 +228,9 @@ describe("secrets sync", () => {
 	});
 });
 
-describe("secrets list", () => {
+describe("list secrets", () => {
 	it("lists the repository and the configured organization, as text", async () => {
-		await go(["list"]);
+		await goList(["secrets"]);
 		expect(runSecretsList.mock.calls[0]![0]).toMatchObject({
 			scopes: [{ kind: "repo" }, { kind: "organization", name: "acme" }],
 			json: false,
@@ -237,7 +239,7 @@ describe("secrets list", () => {
 	});
 
 	it("passes --scope, --env and --json through", async () => {
-		await go(["list", "--scope", "environment", "--env", "production", "--json"]);
+		await goList(["secrets", "--scope", "environment", "--env", "production", "--json"]);
 		expect(runSecretsList.mock.calls[0]![0]).toMatchObject({
 			scopes: [{ kind: "environment", name: "production" }],
 			json: true,
@@ -246,17 +248,17 @@ describe("secrets list", () => {
 
 	it("lists only the repository when no organization is known", async () => {
 		loadConfig.mockResolvedValue({ resolved: {}, filepath: "/x" });
-		await go(["list"]);
+		await goList(["secrets"]);
 		expect(runSecretsList.mock.calls[0]![0].scopes).toEqual([{ kind: "repo" }]);
 	});
 
 	it("exits 1 when a scope could not be listed, and stops when --token cannot be parsed", async () => {
 		runSecretsList.mockResolvedValue({ groups: [], failed: 1 });
-		await go(["list"]);
+		await goList(["secrets"]);
 		expect(process.exitCode).toBe(1);
 		tokenContext.mockReturnValue(null);
 		runSecretsList.mockClear();
-		await go(["list"]);
+		await goList(["secrets"]);
 		expect(runSecretsList).not.toHaveBeenCalled();
 	});
 });

@@ -36,7 +36,7 @@ describe("openProjects", () => {
 	it("builds its own loader from the resolved config and context when none is given", async () => {
 		const loaded = withOptions();
 		const context = { repoRoot: "/tmp/test", org: "acme" };
-		const opened = await openProjects({ loaded, context }, "project list");
+		const opened = await openProjects({ loaded, context }, "list projects");
 		expect(constructed).toHaveBeenCalledWith(loaded.resolved, context);
 		expect(opened.projects).toBe("the-projects");
 		expect(opened.options.owner).toBe("acme");
@@ -49,7 +49,7 @@ describe("openProjects", () => {
 		});
 		const err = await openProjects(
 			{ loaded: withOptions(), context: { repoRoot: "/x" }, loader },
-			"project list"
+			"list projects"
 		).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigError);
 		expect((err as Error).message).toMatch(/`github` failed to load: .*no token/);
@@ -59,17 +59,17 @@ describe("openProjects", () => {
 		const loader = stubLoader({ has: () => false });
 		const err = await openProjects(
 			{ loaded: withOptions(), context: { repoRoot: "/x" }, loader },
-			"project list"
+			"list projects"
 		).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigError);
-		expect((err as Error).message).toBe("project list: the `projects` provider is not available");
+		expect((err as Error).message).toBe("list projects: the `projects` provider is not available");
 	});
 
 	it("reports wrong provider options", async () => {
 		const loaded = withOptions({ templates: "" });
 		const err = await openProjects(
 			{ loaded, context: { repoRoot: "/x" }, loader: stubLoader() },
-			"project list"
+			"list projects"
 		).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigError);
 		expect((err as Error).message).toMatch(/providers.projects is wrong/);
@@ -79,7 +79,7 @@ describe("openProjects", () => {
 		const loaded = withOptions();
 		const err = await openProjects(
 			{ loaded, context: { repoRoot: "/x" }, loader: stubLoader() },
-			"project list"
+			"list projects"
 		).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(ConfigError);
 		expect((err as Error).message).toMatch(/needs an owner/);
@@ -88,7 +88,7 @@ describe("openProjects", () => {
 	it("prefers the owner flag over the context's org", async () => {
 		const opened = await openProjects(
 			{ loaded: withOptions(), context: { repoRoot: "/x", org: "ctx" }, owner: "flag", loader: stubLoader() },
-			"project list"
+			"list projects"
 		);
 		expect(opened.options.owner).toBe("flag");
 	});

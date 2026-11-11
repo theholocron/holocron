@@ -4,17 +4,13 @@ import { authExportCommand } from "../auth-export/index.js";
 import { type GlobalArgs } from "../global-args/index.js";
 import { groupMenu } from "../group-menu/index.js";
 import { authCheckCommand } from "./auth-check.command.js";
-import { authListCommand } from "./auth-list.command.js";
-import { authUnsetCommand } from "./auth-unset.command.js";
 
 export const authCommand: CommandModule<GlobalArgs, GlobalArgs> = {
 	command: "auth <subcommand>",
 	describe: "Manage bootstrap credentials in the OS keyring",
 	builder: (y: Argv<GlobalArgs>) =>
 		y
-			.command(authUnsetCommand as never)
 			.command(authCheckCommand as never)
-			.command(authListCommand as never)
 			.command(authExportCommand as never)
 			.command(groupMenu("auth") as never),
 	handler: () => {},

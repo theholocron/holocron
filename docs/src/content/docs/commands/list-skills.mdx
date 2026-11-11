@@ -1,0 +1,27 @@
+---
+title: "list skills"
+description: List the agent skills installed in .agents/skills/.
+---
+
+```bash
+holocron list skills
+```
+
+Prints the name of each skill installed in `.agents/skills/` of the working directory (or of `--cwd`), one per line,
+sorted. It reads the folder only: no config, no plugin and no network, so it works from a global install.
+
+## Example
+
+```bash
+holocron list skills
+```
+
+```text
+commit-standards
+git-safety
+pr-workflow
+```
+
+A folder with no skills prints `No skills installed in .agents/skills/`.
+
+Related: [`skills install`](/holocron/commands/skills-install/), [`remove skill`](/holocron/commands/remove-skill/), [`skills update`](/holocron/commands/skills-update/).

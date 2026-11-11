@@ -4,9 +4,9 @@
  *
  * Subcommands:
  *   new token <provider> [token]   verify + store
- *   auth unset <provider>         remove
+ *   remove token <provider>         remove
  *   auth check <provider>         re-verify a stored token
- *   auth list                     every provider with a stored entry
+ *   list tokens                     every provider with a stored entry
  *
  * See `docs/wiki/specifications/tech-auth-bootstrap.spec.md`.
  *
@@ -178,11 +178,11 @@ export function runAuthUnset(input: RunAuthUnsetInput): AuthCommandStatus {
 	const removed = keyring.delete(input.provider);
 	if (removed) {
 		print(style.success(`removed ${input.provider} token`));
-		logger.info({ provider: input.provider, status: "ok" }, `auth unset: ${input.provider}`);
+		logger.info({ provider: input.provider, status: "ok" }, `remove token: ${input.provider}`);
 		return { status: "ok" };
 	}
 	print(style.dim(`no stored token for ${input.provider}`));
-	logger.info({ provider: input.provider, status: "skip" }, `auth unset: ${input.provider}`);
+	logger.info({ provider: input.provider, status: "skip" }, `remove token: ${input.provider}`);
 	return { status: "skip", message: "nothing to remove" };
 }
 
@@ -234,7 +234,7 @@ export async function runAuthCheck(input: RunAuthCheckInput): Promise<AuthComman
 	} catch (err) {
 		const msg = errorMessage(err);
 		// Global install: the plugin package isn't resolvable here. `new token` /
-		// `auth list` already work plugin-free — `auth check` degrades to the
+		// `list tokens` already work plugin-free — `auth check` degrades to the
 		// same "we have a token, we just can't confirm it" report rather than
 		// failing outright (theholocron/holocron#576).
 		if (isModuleNotFound(err)) {
@@ -260,7 +260,7 @@ export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCom
 	if (providers.length === 0) {
 		print(style.dim("no stored tokens."));
 		print(style.hint("run: holocron new token <provider> <token>"));
-		logger.info({ providers: 0 }, "auth list: done");
+		logger.info({ providers: 0 }, "list tokens: done");
 		return { status: "ok", message: "none" };
 	}
 
@@ -277,7 +277,7 @@ export async function runAuthList(input: RunAuthListInput = {}): Promise<AuthCom
 			print(`  ${style.fail(label)}`);
 		} else print(`  ${style.dim(`· ${label}`)}`);
 	}
-	logger.info({ providers: providers.length, ok, fail }, "auth list: done");
+	logger.info({ providers: providers.length, ok, fail }, "list tokens: done");
 	return { status: "ok" };
 }
 

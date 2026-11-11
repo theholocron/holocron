@@ -4,7 +4,7 @@ description: List, create, close and set up the project boards that plan work, f
 ---
 
 ```bash
-holocron project list
+holocron list projects
 holocron new project roadmap --title "v5"
 holocron project close 7
 holocron project setup
@@ -33,7 +33,7 @@ The owner is the `org` option, else `--org`, else the config's `org`. `--org` on
 
 A template says what a board looks like: its statuses (each with a category), its other fields and its views. `roadmap` and `sprint` ship with the CLI. A repo adds its own as `<name>.json` in the templates directory; a file with the name of a built-in replaces it, and `"extends": "roadmap"` starts from one and adds to it. A file with a problem is reported by name and left out; the rest still load.
 
-## `project list`
+## `list projects`
 
 A table of the owner's boards, newest first, with number, name and state (open or closed). Read-only.
 
