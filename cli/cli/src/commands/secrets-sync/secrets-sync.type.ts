@@ -2,6 +2,7 @@ import type { Logger } from "@theholocron/observability/core";
 
 import type { LoadedConfig } from "../../config/index.js";
 import { type DeploymentTarget, PluginLoader, type RuntimeContext, type SecretScope } from "../../plugin/index.js";
+import type { DeployFilter } from "./deploy-filter/index.js";
 
 export type SyncPrintLine = (line: string) => void;
 
@@ -64,6 +65,12 @@ export interface RunSecretsSyncInput {
 	 * reaches `secrets`, and `deployment` is left out unless `projectId` is given.
 	 */
 	variableRoutes?: VariableRoute[];
+	/**
+	 * The names a deployment (`projectId`) or a Worker (`workerScript`) may receive, from `repo.secrets.deploy`
+	 * (`deployFilter()`). Required when either destination is used: without it the run throws a `ConfigError` before
+	 * the vault is read, and never sends every key.
+	 */
+	deployFilter?: DeployFilter;
 	loader?: PluginLoader;
 	print?: SyncPrintLine;
 	/** Structured-logging sink — sibling of `print`. Defaults to the command-bound root. */

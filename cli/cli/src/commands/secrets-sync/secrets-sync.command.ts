@@ -7,7 +7,7 @@ import { applyResolvedConfig } from "../apply-resolved-config/index.js";
 import { type GlobalArgs } from "../global-args/index.js";
 import { resolveOrg } from "../resolve-org/index.js";
 import { tokenContext } from "../token-context/index.js";
-import { runSecretsSync, secretRoutes, variableRoutes } from "./index.js";
+import { deployFilter, runSecretsSync, secretRoutes, variableRoutes } from "./index.js";
 import { parseScope } from "./parse-scope/index.js";
 import { type SecretsSyncArgs, secretsSyncArgs } from "./secrets-sync.args.js";
 
@@ -30,6 +30,7 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 		// fall back to "every key is a repository secret", so it gets an explicit empty list of secret routes.
 		const variables = variableRoutes(loaded.resolved.repo?.variables?.sync, environmentId!);
 		const variablesOnly = variables.length > 0 && routes.length === 0 && !argv.githubSecret?.length;
+		const deploy = deployFilter(loaded.resolved.repo?.secrets?.deploy, environmentId!);
 		const report = await runSecretsSync({
 			loaded,
 			context: {
@@ -41,6 +42,8 @@ export const secretsSyncCommand: CommandModule<GlobalArgs, SecretsSyncArgs> = {
 			environmentId: environmentId!,
 			...(argv.projectId ? { projectId: argv.projectId } : {}),
 			...(argv.worker ? { workerScript: argv.worker } : {}),
+			// A deployment or Worker receives only what `repo.secrets.deploy` names; with no entry the run throws (#2061).
+			...(deploy ? { deployFilter: deploy } : {}),
 			...(argv.githubSecret?.length ? { githubSecretKeys: argv.githubSecret as string[] } : {}),
 			githubSecretScope,
 			...(routes.length ? { secretRoutes: routes } : variablesOnly ? { secretRoutes: [] } : {}),

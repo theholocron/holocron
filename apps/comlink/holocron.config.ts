@@ -4,8 +4,8 @@
  *
  *   - The 1Password Environment `Comlink` (made by hand: `op` cannot create one) holds the signing secret
  *     `COMLINK_SENTRY_SECRET` (the Sentry integration's client secret).
- *   - `holocron secrets sync Comlink --cwd apps/comlink --worker comlink` (when a secret changes): sets every key in
- *     that Environment on the deployed Worker. Nothing is pasted into a shell or stored as a repo secret.
+ *   - `holocron secrets sync Comlink --cwd apps/comlink --worker comlink` (when a secret changes): sets the `COMLINK_` keys of
+ *     that Environment on the deployed Worker (`repo.secrets.deploy` below; any other key stays in the Environment). Nothing is pasted into a shell or stored as a repo secret.
  *
  * The Worker itself, its route and the `COMLINK_<SOURCE>_WEBHOOK` secrets are deployed by `holocron notifications
  * setup` from the root config, which is also what creates each channel's webhook.
@@ -14,6 +14,12 @@
 import { defineConfig } from "@theholocron/cli";
 
 export default defineConfig({
+	repo: {
+		secrets: {
+			// The Worker receives only the `COMLINK_` names (#2061); with no entry the sync stops with a ConfigError.
+			deploy: [{ environment: "Comlink", prefix: "COMLINK_" }],
+		},
+	},
 	providers: {
 		// Only `sync` needs this one: it sets the Worker's secrets. It has no `accountId`: the plugin reads
 		// CLOUDFLARE_ACCOUNT_ID through the credential chain, from the Environment named in `credentials` below.

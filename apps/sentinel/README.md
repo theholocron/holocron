@@ -627,9 +627,11 @@ community report says otherwise), run the same command locally instead.
   every PR to this whole repo — not only ones touching Sentinel, since
   the thin caller's `pull_request: {}` trigger carries no path filter
   — its own Vercel preview deployment, built from that PR's own,
-  not-yet-reviewed code. `secrets sync`'s `deployment` destination has
-  no per-key allowlist (unlike `secrets`/GH-Actions below, which does)
-  — passing `--target preview` would sync **all 5** runtime keys to
+  not-yet-reviewed code. `secrets sync`'s `deployment` destination now
+  sends only the keys `repo.secrets.deploy` names in this config (the
+  `SENTINEL_` prefix and `HOLOCRON_AXIOM_ORG`, `HOLOCRON_DISCORD_BOT_TOKEN`,
+  `HOLOCRON_USER_SYNC_TOKEN`, #2061), but that is still every runtime key —
+  passing `--target preview` would sync **all of them** to
   Vercel's preview environment, `SENTINEL_GITHUB_APP_PRIVATE_KEY` included. A PR
   that adds one line reading and exfiltrating that env var would hand
   an attacker the ability to fully impersonate this GitHub App across

@@ -3,7 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { type LoadedConfig, resolveConfig } from "../../config/index.js";
 import { type PluginImporter, PluginLoader } from "../../plugin/index.js";
+import type { DeployFilter } from "./deploy-filter/index.js";
 import { runSecretsSync } from "./secrets-sync.js";
+
+/** A filter that passes every name. Config validation refuses an empty prefix; these tests are about other behaviour. */
+const everyKey: DeployFilter = { keys: [], prefixes: [""] };
 
 function loadedFrom(rawConfig: Parameters<typeof resolveConfig>[0]): LoadedConfig {
 	return {
@@ -288,6 +292,7 @@ describe("runSecretsSync", () => {
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "env_1",
 			projectId: "prj_123",
+			deployFilter: everyKey,
 			targets: ["production", "preview"],
 			loader,
 			print: () => {},
@@ -544,6 +549,7 @@ describe("runSecretsSync", () => {
 				context: { repoRoot: "/tmp/test" },
 				environmentId: "prd",
 				workerScript: "comlink",
+				deployFilter: everyKey,
 				loader,
 				print: (l) => lines.push(l),
 			});
@@ -566,6 +572,7 @@ describe("runSecretsSync", () => {
 				context: { repoRoot: "/tmp/test", dryRun: true },
 				environmentId: "prd",
 				workerScript: "comlink",
+				deployFilter: everyKey,
 				loader,
 				print: () => {},
 			});
@@ -594,6 +601,7 @@ describe("runSecretsSync", () => {
 					context: { repoRoot: "/tmp/test" },
 					environmentId: "prd",
 					workerScript: "comlink",
+					deployFilter: everyKey,
 					loader,
 					print: () => {},
 				});
@@ -627,6 +635,7 @@ describe("runSecretsSync", () => {
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "prd",
 			workerScript: "comlink",
+			deployFilter: everyKey,
 			loader,
 			print: (l) => lines.push(l),
 		});
@@ -655,6 +664,7 @@ describe("runSecretsSync", () => {
 			context: { repoRoot: "/tmp/test" },
 			environmentId: "prd",
 			workerScript: "comlink",
+			deployFilter: everyKey,
 			loader,
 			print: () => {},
 		});
@@ -704,6 +714,7 @@ describe("runSecretsSync", () => {
 					context: { repoRoot: "/tmp/test", dryRun },
 					environmentId: "env_1",
 					projectId: "prj_1",
+					deployFilter: everyKey,
 					targets: ["production"],
 					workerScript: "w",
 					loader: t.loader,
@@ -931,6 +942,143 @@ describe("runSecretsSync", () => {
 			);
 			const { report } = await run(d);
 			expect(report.rows[0]).toMatchObject({ key: "TURBO_TEAM", status: "fail", message: "403" });
+		});
+	});
+
+	describe("deployment and Worker key filter (#2061)", () => {
+		const vault = {
+			ADMIN_TOKEN: "admin-secret-value",
+			SENTINEL_WEBHOOK_SECRET: "w",
+			SENTINEL_GITHUB_APP_ID: "1",
+			HOLOCRON_RELEASE_TOKEN: "release-secret-value",
+		};
+		function build() {
+			const sent: string[] = [];
+			const workerSent: string[] = [];
+			const loaded = loadedFrom({
+				name: "demo",
+				providers: { vault: "1password", deployment: "vercel", workers: "cloudflare" },
+			});
+			const loader = makeLoaderWith(loaded, {
+				"@theholocron/holocron-plugin-1password": makePlugin("1p", {
+					vault: { providerName: "1password", readEnvironment: async () => vault },
+				}),
+				"@theholocron/holocron-plugin-vercel": makePlugin("vercel", {
+					deployment: {
+						providerName: "vercel",
+						setEnvVar: async (_p: string, _t: string, name: string) => void sent.push(name),
+					},
+				}),
+				"@theholocron/holocron-plugin-cloudflare": makePlugin("cf", {
+					workers: {
+						providerName: "cloudflare",
+						setSecret: async (_s: string, name: string) => void workerSent.push(name),
+					},
+				}),
+			});
+			return { loaded, loader, sent, workerSent };
+		}
+
+		it("sends only the prefixed and listed names, never another name to setEnvVar or the Worker", async () => {
+			const t = build();
+			const lines: string[] = [];
+			const report = await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prod",
+				projectId: "prj_1",
+				workerScript: "w",
+				targets: ["production"],
+				deployFilter: { keys: ["HOLOCRON_RELEASE_TOKEN"], prefixes: ["SENTINEL_"] },
+				loader: t.loader,
+				print: (l) => lines.push(l),
+			});
+			expect(t.sent.sort()).toEqual([
+				"HOLOCRON_RELEASE_TOKEN",
+				"SENTINEL_GITHUB_APP_ID",
+				"SENTINEL_WEBHOOK_SECRET",
+			]);
+			expect(t.workerSent.sort()).toEqual(t.sent.sort());
+			const filtered = report.rows.filter((r) => r.message?.startsWith("filtered"));
+			expect(filtered.map((r) => [r.destination, r.key, r.status])).toEqual([
+				["deployment:vercel", "ADMIN_TOKEN", "skip"],
+				["workers:cloudflare", "ADMIN_TOKEN", "skip"],
+			]);
+			expect(lines.join("\n")).toContain("not sent (1, outside SENTINEL_*, HOLOCRON_RELEASE_TOKEN): ADMIN_TOKEN");
+			expect(lines.join("\n")).not.toContain("admin-secret-value");
+			expect(report.summary.fail).toBe(0);
+		});
+
+		it("takes a prefix alone", async () => {
+			const t = build();
+			await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prod",
+				projectId: "prj_1",
+				targets: ["production", "preview"],
+				deployFilter: { keys: [], prefixes: ["SENTINEL_"] },
+				loader: t.loader,
+				print: () => {},
+			});
+			expect(t.sent).toEqual([
+				"SENTINEL_GITHUB_APP_ID",
+				"SENTINEL_WEBHOOK_SECRET",
+				"SENTINEL_GITHUB_APP_ID",
+				"SENTINEL_WEBHOOK_SECRET",
+			]);
+		});
+
+		it("prints sent and filtered names in a dry run and sets nothing", async () => {
+			const t = build();
+			const lines: string[] = [];
+			const report = await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test", dryRun: true },
+				environmentId: "prod",
+				projectId: "prj_1",
+				targets: ["production"],
+				deployFilter: { keys: [], prefixes: ["SENTINEL_"] },
+				loader: t.loader,
+				print: (l) => lines.push(l),
+			});
+			const out = lines.join("\n");
+			expect(t.sent).toEqual([]);
+			expect(out).toContain("… SENTINEL_GITHUB_APP_ID");
+			expect(out).toContain("… SENTINEL_WEBHOOK_SECRET");
+			expect(out).toContain("ADMIN_TOKEN, HOLOCRON_RELEASE_TOKEN");
+			expect(report.summary.dryRun).toBe(2);
+		});
+
+		it("throws a ConfigError before reading the vault when a deployment or Worker has no filter", async () => {
+			for (const extra of [{ projectId: "prj_1" }, { workerScript: "w" }]) {
+				const t = build();
+				const err = await runSecretsSync({
+					loaded: t.loaded,
+					context: { repoRoot: "/tmp/test" },
+					environmentId: "prod",
+					...extra,
+					loader: t.loader,
+					print: () => {},
+				}).catch((e: unknown) => e);
+				expect((err as Error).name).toBe("ConfigError");
+				expect((err as Error).message).toMatch(/repo\.secrets\.deploy/);
+				expect(t.sent).toEqual([]);
+				expect(t.workerSent).toEqual([]);
+			}
+		});
+
+		it("needs no filter when nothing goes to a deployment or Worker", async () => {
+			const t = build();
+			const report = await runSecretsSync({
+				loaded: t.loaded,
+				context: { repoRoot: "/tmp/test" },
+				environmentId: "prod",
+				loader: t.loader,
+				print: () => {},
+			});
+			expect(t.sent).toEqual([]);
+			expect(report.summary.fail).toBe(0);
 		});
 	});
 });

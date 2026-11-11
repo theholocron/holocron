@@ -26,6 +26,7 @@ import {
 } from "../../plugin/index.js";
 import { missingTokenReason } from "../missing-token/index.js";
 import { whyMissing } from "../notifications-channel-add/index.js";
+import { deployKeyRows } from "./deploy-key-rows.js";
 import type { DoctorSecretsReport, RunDoctorSecretsInput } from "./doctor-secrets.type.js";
 import { expectedSecrets } from "./expected-secrets.js";
 import { syncedSecrets } from "./synced-secrets.js";
@@ -110,7 +111,15 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 	}
 
 	const rows: CheckRow[] = [];
-	if (checks.length === 0 && synced.rows.length === 0) {
+	// What `repo.secrets.deploy` lets a deployment or Worker receive: names only, shown before a sync (#2061).
+	const deployEntries = config.repo?.secrets?.deploy ?? [];
+	const deployRows = await deployKeyRows(
+		deployEntries,
+		loader.has("vault")
+			? (loader.get("vault") as Vault)
+			: { why: whyMissing(loader, "vault", "no `vault` provider to list the environment's keys with") }
+	);
+	if (checks.length === 0 && synced.rows.length === 0 && deployRows.length === 0) {
 		rows.push({ id: "secrets", title: "secrets", status: "ok", detail: "none declared", problems: [] });
 	} else if (!loader.has("secrets")) {
 		const why = whyMissing(loader, "secrets", "no `secrets` provider to check them with");
@@ -120,7 +129,7 @@ export async function runDoctorSecrets(input: RunDoctorSecretsInput): Promise<Do
 		for (const check of checks) rows.push(await checkScope(secrets, check));
 	}
 
-	rows.push(...synced.rows);
+	rows.push(...synced.rows, ...deployRows);
 
 	printCheckRows(rows, print);
 	const summary = summariseChecks(rows);

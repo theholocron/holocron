@@ -9,6 +9,7 @@ import {
 	type TeamEntry,
 	type TeamPermission,
 } from "../../plugin/capabilities/index.js";
+import { validateSecretsDeploy } from "../validate-secrets-deploy/index.js";
 import { validateVariablesSync } from "../validate-variables-sync/index.js";
 import type {
 	CredentialsConfig,
@@ -245,6 +246,7 @@ export function resolveConfig(raw: HolocronConfig): ResolvedHolocronConfig {
 	if (raw.githubApps !== undefined) validateGitHubApps(raw.githubApps);
 	if (raw.ideas !== undefined) validateIdeas(raw.ideas);
 	validateVariablesSync(raw.repo?.variables);
+	validateSecretsDeploy(raw.repo?.secrets);
 	const credentialsEntry = providers.credentials;
 	if (credentialsEntry?.cardinality === "many") {
 		for (const tuple of credentialsEntry.tuples) {

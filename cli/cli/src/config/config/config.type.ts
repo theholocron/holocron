@@ -179,6 +179,26 @@ export interface RepoSecrets {
 	 * keys each one holds (or lists) at its scope. Names only; the doctor never reads or prints a value.
 	 */
 	sync?: RepoSecretsSync[];
+	/**
+	 * The names `holocron secrets sync` may send to a deployment (`--project-id`) or a Worker (`--worker`), per vault
+	 * environment. Required for such a sync: an environment with no entry sends nothing and the command stops with a
+	 * `ConfigError`. Names and prefixes only (spec `tech-deployment-key-allowlist`, #2061).
+	 */
+	deploy?: RepoSecretsDeploy[];
+}
+
+/**
+ * The keys of one vault environment that a deployment or a Worker receives. A key is sent when it is in `keys` or
+ * starts with `prefix`; every other key of the environment stays where it is. An entry with neither is a
+ * `ConfigError`: there is no "all keys".
+ */
+export interface RepoSecretsDeploy {
+	/** The vault environment id, as given to `holocron secrets sync <environmentId>`. */
+	environment: string;
+	/** Exact key names to send. */
+	keys?: string[];
+	/** A name prefix to send, such as `SENTINEL_` or `COMLINK_`. Case-sensitive. */
+	prefix?: string;
 }
 
 /** One vault environment that `holocron secrets sync` pushes into GitHub secrets, declared so the doctor can check them. */
