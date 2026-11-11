@@ -49,6 +49,7 @@ function fakeDeps(over: Partial<ExportEnvironmentDeps> = {}) {
 	const copied: string[] = [];
 	const written: Array<{ path: string; text: string; force: boolean }> = [];
 	const shredded: string[] = [];
+	const madeDirs: string[] = [];
 	const deps: ExportEnvironmentDeps = {
 		read: vi.fn(async () => ({ B_TOKEN: SECRET, A_NAME: OTHER })),
 		repoRoot: "/repo",
@@ -64,13 +65,14 @@ function fakeDeps(over: Partial<ExportEnvironmentDeps> = {}) {
 			shredded.push(path);
 			return "deleted";
 		},
+		makeDir: (dir) => void madeDirs.push(dir),
 		isIgnored: () => "ignored",
 		platform: "darwin",
 		interactive: true,
 		waitForImport: async () => {},
 		...over,
 	};
-	return { deps, out, copied, written, shredded };
+	return { deps, out, copied, written, shredded, madeDirs };
 }
 
 /** Runs the probe the way the runner does: reports a throw as a failing row, then runs the cleanups. */
@@ -100,21 +102,46 @@ describe("exportEnvironmentProbe", () => {
 	});
 
 	describe("to the private file", () => {
-		it("writes sorted NAME=value lines to .credentials next to the config, never forcing, and deletes it after the import", async () => {
+		it("writes sorted NAME=value lines to .holocron/.private/.credentials, never forcing, and deletes it after the import", async () => {
 			const r = await run(["Sentinel - dev"]);
 			expect(r.written).toEqual([
 				{
-					path: "/repo/.credentials",
+					path: "/repo/.holocron/.private/.credentials",
 					text: `A_NAME='${OTHER}'\nB_TOKEN=${SECRET.replace(/^/, "")}\n`.replace(`'${OTHER}'`, `'${OTHER}'`),
 					force: false,
 				},
 			]);
 			expect(r.shredded.length).toBeGreaterThanOrEqual(1);
-			expect(r.shredded[0]).toBe("/repo/.credentials");
+			expect(r.shredded[0]).toBe("/repo/.holocron/.private/.credentials");
 			expect(r.error).toBeUndefined();
 			expect(r.rows.some((row) => /import it in the 1Password app/.test(row.label))).toBe(true);
 			expect(visible(r)).not.toContain(SECRET);
 			expect(visible(r)).not.toContain(OTHER);
+		});
+
+		it("makes the private directory before asking git about the file", async () => {
+			const order: string[] = [];
+			const r = await run(["x"], {
+				makeDir: (dir) => void order.push(`mkdir ${dir}`),
+				isIgnored: () => {
+					order.push("git");
+					return "ignored";
+				},
+			});
+			expect(order).toEqual(["mkdir /repo/.holocron/.private", "git"]);
+			expect(r.written).toHaveLength(1);
+		});
+
+		it("makes no directory for a pipe or the clipboard", async () => {
+			const r = await run(["x"], { outKind: () => "pipe" });
+			expect(r.madeDirs).toEqual([]);
+		});
+
+		it("tells a repo without the ignore rule to run repo sync", async () => {
+			for (const state of ["tracked", "unknown"] as const) {
+				const r = await run(["x"], { isIgnored: () => state });
+				expect((r.error as Error).message).toContain("run `holocron repo sync`");
+			}
 		});
 
 		it("registers every value for scrubbing", async () => {
@@ -134,7 +161,9 @@ describe("exportEnvironmentProbe", () => {
 			for (const state of ["tracked", "unknown"] as const) {
 				const r = await run(["x"], { isIgnored: () => state });
 				expect(r.written).toEqual([]);
-				expect((r.error as Error).message).toMatch(/refusing to write secrets to \/repo\/\.credentials/);
+				expect((r.error as Error).message).toMatch(
+					/refusing to write secrets to \/repo\/\.holocron\/\.private\/\.credentials/
+				);
 				expect(visible(r)).not.toContain(SECRET);
 			}
 		});
@@ -147,10 +176,12 @@ describe("exportEnvironmentProbe", () => {
 		it("never overwrites: a file that exists is an error that names no value", async () => {
 			const r = await run(["x"], {
 				writeFile: () => {
-					throw new Error("EEXIST: file already exists, open '/repo/.credentials'");
+					throw new Error("EEXIST: file already exists, open '/repo/.holocron/.private/.credentials'");
 				},
 			});
-			expect((r.error as Error).message).toMatch(/could not write \/repo\/\.credentials.*never overwritten/);
+			expect((r.error as Error).message).toMatch(
+				/could not write \/repo\/\.holocron\/\.private\/\.credentials.*never overwritten/
+			);
 			expect(r.shredded).toEqual([]);
 			expect(visible(r)).not.toContain(SECRET);
 		});
@@ -171,7 +202,7 @@ describe("exportEnvironmentProbe", () => {
 				},
 			});
 			expect((r.error as Error).message).toBe("input closed");
-			expect(r.shredded).toContain("/repo/.credentials");
+			expect(r.shredded).toContain("/repo/.holocron/.private/.credentials");
 		});
 
 		it("deletes the file on abort: the registered cleanup runs while the wait is still open", async () => {
@@ -183,7 +214,7 @@ describe("exportEnvironmentProbe", () => {
 			await vi.waitFor(() => expect(d.written).toHaveLength(1));
 			expect(d.shredded).toEqual([]);
 			await c.cleanups();
-			expect(d.shredded).toEqual(["/repo/.credentials"]);
+			expect(d.shredded).toEqual(["/repo/.holocron/.private/.credentials"]);
 			release();
 			await pending;
 		});

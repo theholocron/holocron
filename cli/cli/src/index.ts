@@ -8,9 +8,11 @@ export { CANONICAL_LABELS } from "./commands/setup/labels.js";
 export type { AuthExportOutKind } from "./commands/auth-export/auth-export.type.js";
 export { stdoutKind } from "./commands/auth-export/stdout-kind/index.js";
 export { resolveEnvironmentId } from "./commands/secrets-sync/resolve-environment-id/index.js";
+// The private directory every command that writes a secret-bearing file shares (#2078).
 export * from "./config/compose/index.js";
 export * from "./config/config/index.js";
 export * from "./config/config-system.js";
+export { ignoreAdvice, PRIVATE_CREDENTIALS_FILE, resolveCredentialsFile } from "./private-dir/index.js";
 // Sentinel loads a repo's `.holocron/` from the GitHub API and applies it with the same rules `loadConfig` uses.
 export * from "./config/load-config/holocron-areas/index.js";
 export * from "./config/load-config/place-areas/index.js";

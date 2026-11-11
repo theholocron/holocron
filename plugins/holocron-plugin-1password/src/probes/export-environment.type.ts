@@ -5,7 +5,7 @@ import type { FileIdentity, GitIgnoreState, ShredOutcome } from "@theholocron/ky
 export interface ExportEnvironmentDeps {
 	/** The variables of an Environment, with values (the `credentials` capability's reader). */
 	read(environment: string): Promise<Record<string, string>>;
-	/** The repository root: the directory `.credentials` is written in, and where a layer word finds its remote. */
+	/** The repository root: the directory whose `.holocron/.private/` holds the `.credentials` file, and where a layer word finds its remote. */
 	repoRoot: string;
 	/** Turns a layer word (`prod`) into the Environment it names; any other text comes back as written. */
 	resolveId(id: string, repoRoot: string): Promise<string>;
@@ -19,6 +19,8 @@ export interface ExportEnvironmentDeps {
 	writeFile(path: string, text: string, force: boolean): FileIdentity;
 	/** Overwrites and removes the file it was written as. */
 	shred(path: string, identity: FileIdentity): ShredOutcome;
+	/** Makes the private directory when it is missing. Unset, `mkdir -p` with mode 0700. */
+	makeDir?: (dir: string) => void;
 	/** What git says about the path. */
 	isIgnored(path: string): GitIgnoreState;
 	/** The platform, for refusing the file where its mode means nothing. */
