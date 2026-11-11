@@ -45,7 +45,7 @@ describe("taskCheckContexts", () => {
 			"typecheck / Run tsc --noEmit",
 			"lint:code / Run eslint, actionlint and prettier",
 			"test:unit / Conclusion",
-			"measure-bundle / Upload bundle stats to Codecov",
+			"measure:bundle / Upload bundle stats to Codecov",
 		]);
 	});
 

@@ -37,7 +37,7 @@ on: # yamllint disable-line rule:truthy
       - scan:secrets
       - scan:code
       - build
-      - measure-bundle
+      - measure:bundle
       - release
       - deploy-preview
       - check-preview
@@ -59,7 +59,7 @@ on: # yamllint disable-line rule:truthy
       - sync-specs
       - reconcile-projects
       - remind-doctor
-      - measure-docs
+      - measure:docs
       - validate:deps
       - validate:generated
     types: [completed]

@@ -196,6 +196,20 @@ describe("callerProblems", () => {
 		]);
 	});
 
+	it("does not call a caller an old name when the old hyphen id has the same flat file (measure-docs, #2070)", () => {
+		const callers = [
+			caller("ci.measure-docs.yml", flat("measure:docs")),
+			caller("ci.measure-bundle.yml", {
+				name: "measure-bundle",
+				jobs: [{ id: "measure-bundle", name: "measure-bundle", uses: "./x.yml" }],
+			}),
+		];
+		expect(callerProblems(callers)).toEqual([
+			'ci.measure-bundle.yml: workflow name "measure-bundle", expected measure:bundle',
+			'ci.measure-bundle.yml: job measure-bundle is named "measure-bundle", expected measure:bundle',
+		]);
+	});
+
 	it("leaves a caller that is not for a known task alone", () => {
 		expect(callerProblems([caller("ci.custom.yml", flat("custom"))])).toEqual([]);
 	});

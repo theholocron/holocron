@@ -16,7 +16,7 @@ export type DocsSitePreset = ComposedPreset;
  * Includes the "audit / Conclusion" check in `extraRequiredChecks` so branch
  * protection works for repos that add the audit workflow explicitly. The
  * tasks are intentionally left repo-specific — add the ones you want as flat ids:
- *   tasks: [...preset.tasks, { name: "measure-bundle", required: true }, "lint:unused", ...]
+ *   tasks: [...preset.tasks, { name: "measure:bundle", required: true }, "lint:unused", ...]
  *
  * For docs-only sites without TypeScript source, use docsSitePreset() instead.
  *
@@ -27,7 +27,7 @@ export type DocsSitePreset = ComposedPreset;
  *   description: "...",
  *   homepage: "https://docs.theholocron.dev/my-lib/",
  *   repo: { ...preset.repo, name: "theholocron/my-lib", topics: ["typescript"] },
- *   tasks: [...preset.tasks, { name: "measure-bundle", required: true }, { name: "release", with: { "run-build": true } }, "sync-repo"],
+ *   tasks: [...preset.tasks, { name: "measure:bundle", required: true }, { name: "release", with: { "run-build": true } }, "sync-repo"],
  *   providers: { ...preset.providers, secrets: "github" },
  * });
  */

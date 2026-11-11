@@ -28,7 +28,7 @@ export default defineConfig({
 | `reactPreset`    | A single-package React/Vite app: Storybook, interaction tests, and a Knip and Lighthouse audit. |
 | `monorepoPreset` | Wraps another preset for a monorepo root: `monorepoPreset(nextjsPreset())`.                     |
 
-The presets list tasks by their flat ids (see [Task vocabulary](#task-vocabulary)): `lint:code`, `lint:editorconfig`, `lint:markdown`, `format`, `lint:data`, `scan:secrets`, `lint:commits` and `test:unit` (all required), then `scan:code`, `annotate`, `mark-stale`, `greet`, `update-deps` and `label`; `docsPreset` adds `typecheck` and `deploy-docs`, `withAudit` adds `measure-bundle` (plus `lint:unused` and `test:perf` on request) and `withWiki` adds `publish-wiki`. `compose()` merges tasks by flat id, so listing an old dotted name such as `verification.unitTests` in your own config still overrides the preset's `test:unit` entry. The pre-flat names the presets used to carry (`lint`, `test`, `security`, `review`, `stale`, `greetings`, `dependencies`, `bookkeeping`, `audit`, `wiki`) are gone from the preset output. {/* holocron-allow-old-name */}
+The presets list tasks by their flat ids (see [Task vocabulary](#task-vocabulary)): `lint:code`, `lint:editorconfig`, `lint:markdown`, `format`, `lint:data`, `scan:secrets`, `lint:commits` and `test:unit` (all required), then `scan:code`, `annotate`, `mark-stale`, `greet`, `update-deps` and `label`; `docsPreset` adds `typecheck` and `deploy-docs`, `withAudit` adds `measure:bundle` (plus `lint:unused` and `test:perf` on request) and `withWiki` adds `publish-wiki`. `compose()` merges tasks by flat id, so listing an old dotted name such as `verification.unitTests` in your own config still overrides the preset's `test:unit` entry. The pre-flat names the presets used to carry (`lint`, `test`, `security`, `review`, `stale`, `greetings`, `dependencies`, `bookkeeping`, `audit`, `wiki`) are gone from the preset output. {/* holocron-allow-old-name */}
 
 To build your own, `compose()` capabilities. `withCapabilities` holds the factories: `withNode`, `withTypecheck`, `withDocs`, `withAudit`, `withWiki`, `withReact`, `withNextjs` and `withMonorepo`.
 
@@ -211,9 +211,10 @@ name it knows, what it actually runs, and why.
 
 An id is flat and verb-first (spec `ci-flat-task-vocabulary`, epic #1612): `<verb>`, `<verb>-<object>` or
 `<suite>:<leaf>`. A colon means "member of the suite named before it" (`test:unit`, `lint:code`); a hyphen is part of a
-verb phrase and implies no suite (`deploy-preview`). Three **suites** exist, declared by their leaves in the registry:
+verb phrase and implies no suite (`deploy-preview`). Five **suites** exist, declared by their leaves in the registry:
 `test` (`test:unit`, `test:visual`, `test:perf`), `lint` (`lint:code`, `lint:editorconfig`, `lint:markdown`,
-`lint:data`, `lint:unused`, `lint:commits`) and `scan` (`scan:secrets`, `scan:code`). A suite is never a `tasks:` entry:
+`lint:data`, `lint:unused`, `lint:commits`), `scan` (`scan:secrets`, `scan:code`), `measure` (`measure:docs`,
+`measure:bundle`) and `validate` (`validate:specs`, `validate:docs`, `validate:deps`, `validate:generated`). A suite is never a `tasks:` entry:
 list the leaves, and the leaves a repo lists are what `holocron run <suite>` runs. `format` is a verb of its own, not a
 suite: prettier only, it writes by default and `--check` is the read-only form.
 
@@ -242,7 +243,8 @@ until its callers move to the flat reusables (`ci-v1`), because its ruleset list
 | `deploy`                             | Cloudflare Pages / Vercel                                         | no local equivalent — CI only; carries `preview`                                                     |
 | `deploy-preview`                     | a preview deployment                                              | no local equivalent — CI only; runs when a preview deployment exists                                 |
 | `check-preview`                      | checks against a preview deployment's URL                         | no local equivalent — CI only; runs from the preview's `deployment_status` event                     |
-| `measure-bundle`                     | bundle-size upload to Codecov                                     | no local equivalent — CI only                                                                        |
+| `measure:bundle`                     | bundle-size upload to Codecov                                     | no local equivalent — CI only                                                                        |
+| `measure:docs`                       | `holocron probe docs coverage`                                    | upload to Codecov as the `documentation` flag                                                        |
 | `sync-repo`                          | `holocron repo sync`                                              | keeps generated files current                                                                        |
 | `sync-templates`                     | `holocron sync github`                                            | holocron's own repo only: opens sync pull requests in `theholocron/.github` and the consumer repos   |
 | `check-notify`                       | `holocron notifications` end-to-end check                         | no local equivalent — a workflow run by hand; never part of `holocron run ci`                        |

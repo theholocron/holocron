@@ -31,7 +31,13 @@ export const LEGACY_NAMES: Record<string, LegacyTarget[]> = {
 	"security.codeScanning": [{ id: "scan:code" }],
 	"security.tokenExpiry": [{ id: "check-tokens" }],
 	"delivery.build": [{ id: "build" }],
-	"delivery.bundleSize": [{ id: "measure-bundle" }],
+	// `measure-docs` and `measure-bundle` were the hyphen ids before `measure` became a suite (#2070). Like `validate`
+	// below they stay accepted with the deprecation notice and name the same generated files (`measure-docs.yml`).
+	// `measure-bundle` is listed before `delivery.bundleSize` because the reverse lookups keep the last name that lists an
+	// id, and the dotted name is the older spelling a repo may still have.
+	"measure-docs": [{ id: "measure:docs" }],
+	"measure-bundle": [{ id: "measure:bundle" }],
+	"delivery.bundleSize": [{ id: "measure:bundle" }],
 	"delivery.publish": [{ id: "release" }],
 	"delivery.deploy": [{ id: "deploy" }],
 	"delivery.previewDeploy": [{ id: "deploy-preview" }],

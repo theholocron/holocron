@@ -11,7 +11,7 @@ export interface AuditOptions {
 }
 
 /**
- * Adds bundle-size measuring (`measure-bundle`) + optional Knip (`lint:unused`) and
+ * Adds bundle-size measuring (`measure:bundle`) + optional Knip (`lint:unused`) and
  * Lighthouse (`test:perf`) auditing. Each task is marked `required` — `holocron setup`
  * derives the branch-protection checks from the manifest.
  * Requires: node
@@ -21,7 +21,7 @@ export function audit({ knip = false, performance = false, lighthouseConfig }: A
 		id: "audit",
 		requires: ["node"],
 		tasks: [
-			{ name: "measure-bundle", required: true },
+			{ name: "measure:bundle", required: true },
 			...(knip ? [{ name: "lint:unused", required: true }] : []),
 			...(performance
 				? [

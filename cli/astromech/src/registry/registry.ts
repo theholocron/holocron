@@ -7,8 +7,8 @@ import type { TaskDef } from "./registry.type.js";
  * Keyed by the flat, verb-first id (`test:unit`, `lint:code`, `build`,
  * `deploy-preview`), the one spelling of a task in the CLI (spec
  * `ci-flat-task-vocabulary`, SPEC-0064, epic #1612). A colon means "member of
- * the suite named before it": `test`, `lint`, `scan` and
- * `validate` are suites, declared here by the `suite` field of their leaves
+ * the suite named before it": `test`, `lint`, `scan`,
+ * `validate` and `measure` are suites, declared here by the `suite` field of their leaves
  * and never ids of their own. A hyphen is part of a verb phrase and implies no
  * suite. The old dotted names (`verification.unitTests`, …) are accepted for a
  * window through {@link LEGACY_NAMES} and still name the generated workflow
@@ -204,7 +204,7 @@ export const TASKS: Record<string, TaskDef> = {
 	// Renamed from `publish`, which npm and pnpm give a meaning of their own (see `RESERVED_SCRIPT_NAMES`).
 	release: { group: "Delivery", scope: "repo", local: null, preview: true },
 	deploy: { group: "Delivery", scope: "package", local: null, preview: true },
-	"measure-bundle": { group: "Delivery", scope: "repo", local: null },
+	"measure:bundle": { group: "Delivery", scope: "repo", suite: "measure", local: null },
 	// No local runner — needs a live preview deployment URL that only
 	// exists once Vercel has actually deployed it (holocron#1010). Never
 	// part of `holocron run ci`'s push/PR gate; runs only from its own
@@ -251,7 +251,12 @@ export const TASKS: Record<string, TaskDef> = {
 	"validate:plugin": { group: "Platform", scope: "package", suite: "validate", workflow: false, local: null },
 	// Doc-comment coverage of the public API (#1368): `holocron probe docs coverage` measures it with TypeDoc; its workflow
 	// uploads the report to Codecov as the `documentation` flag, whose patch status is the gate. Not part of `holocron run ci`.
-	"measure-docs": { group: "Platform", scope: "repo", local: { command: "probe docs coverage" } },
+	"measure:docs": {
+		group: "Platform",
+		scope: "repo",
+		suite: "measure",
+		local: { command: "probe docs coverage" },
+	},
 	// A weekly post to #alerts that reminds a maintainer to run `holocron doctor notifications --post` (#1585). It only
 	// posts through a webhook secret, so there is nothing to run locally.
 	"remind-doctor": { group: "Platform", scope: "repo", local: null },
@@ -310,7 +315,7 @@ export const CI_ORDER: string[] = [
 	"test:unit",
 	"build",
 	"lint:unused",
-	"measure-bundle",
+	"measure:bundle",
 	"test:perf",
 	"scan:code",
 	"deploy",

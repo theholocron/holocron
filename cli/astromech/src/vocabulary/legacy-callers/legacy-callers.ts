@@ -108,7 +108,7 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			"mark-stale": { id: "stale" },
 		},
 	},
-	"measure-bundle": {
+	"measure:bundle": {
 		name: "Delivery",
 		jobs: {
 			"measure-bundle": { id: "bundle-size", name: "Audit the Bundle Size" },
@@ -120,7 +120,7 @@ export const LEGACY_CALLERS: Record<string, LegacyCaller> = {
 			preview: { id: "preview", name: "Preview" },
 		},
 	},
-	"measure-docs": {
+	"measure:docs": {
 		name: "Source Quality",
 		jobs: {
 			"measure-docs": { id: "docs-coverage", name: "Docs coverage" },

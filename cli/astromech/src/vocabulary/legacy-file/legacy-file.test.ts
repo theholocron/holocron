@@ -23,10 +23,16 @@ describe("legacyFile", () => {
 
 	it("is undone by flatFile for every old name", () => {
 		for (const legacy of Object.keys(LEGACY_NAMES)) {
-			// `validate` is an alias of `platform.repoValidation`, whose file the reusable had
-			if (legacy === "validate") continue;
+			// `validate` is an alias of `platform.repoValidation`, whose file the reusable had, and `measure-bundle` of
+			// `delivery.bundleSize`
+			if (legacy === "validate" || legacy === "measure-bundle") continue;
 			expect(legacyFile(flatFile(`${legacy}.yml`))).toBe(`${legacy}.yml`);
 		}
+	});
+
+	it("gives the measure workflows the file names the frozen reusables have", () => {
+		expect(legacyFile("measure-docs.yml")).toBe("measure-docs.yml");
+		expect(legacyFile("measure-bundle.yml")).toBe("delivery.bundleSize.yml");
 	});
 
 	it("gives the validate workflow's old name to its first leaf, and none to the second", () => {

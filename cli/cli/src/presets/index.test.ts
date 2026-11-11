@@ -249,7 +249,7 @@ describe("reactPreset()", () => {
 describe("withAudit() capability", () => {
 	it("contributes only a required measure-bundle task when no options given", () => {
 		const cap = withAudit();
-		expect(cap.tasks).toEqual([{ name: "measure-bundle", required: true }]);
+		expect(cap.tasks).toEqual([{ name: "measure:bundle", required: true }]);
 	});
 
 	it("adds a required lint:unused task when knip: true", () => {
@@ -275,7 +275,7 @@ describe("withAudit() capability", () => {
 
 	it("ignores lighthouseConfig without performance", () => {
 		const cap = withAudit({ lighthouseConfig: "lighthouse.config.cjs" });
-		expect(cap.tasks).toEqual([{ name: "measure-bundle", required: true }]);
+		expect(cap.tasks).toEqual([{ name: "measure:bundle", required: true }]);
 	});
 });
 

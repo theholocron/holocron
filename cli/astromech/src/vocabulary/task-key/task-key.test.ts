@@ -19,6 +19,18 @@ describe("taskKey", () => {
 	});
 });
 
+describe("an old hyphen id that suite membership renamed", () => {
+	it("is keyed like the flat id, since its script spelling is the same", () => {
+		expect(isLegacySpelling("measure-docs")).toBe(false);
+		expect(taskKey("measure-docs", "measure:docs")).toBe("measure:docs");
+		expect(taskKey("measure-bundle", "measure:bundle")).toBe("measure:bundle");
+	});
+
+	it("leaves the dotted name of the same task as the old key", () => {
+		expect(taskKey("delivery.bundleSize", "measure:bundle")).toBe("delivery.bundleSize");
+	});
+});
+
 describe("isLegacySpelling", () => {
 	it("tells an old dotted name from a flat id", () => {
 		expect(isLegacySpelling("verification.unitTests")).toBe(true);

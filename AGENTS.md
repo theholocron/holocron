@@ -51,7 +51,7 @@ One rule per concern (the shared-code groups are folders in this monorepo, forme
   `ctx.cleanup` is undone on success, failure and Ctrl-C. `doctor` compares the config with reality; a probe has no layout.
   The `docs` probes measure doc-comment coverage of the public API (`docs coverage`, `docs patch`, `docs lcov`), which is every
   entry in a package's `exports`, subpaths included (`subpath-entries.ts` maps each to its source); `--lcov <path>`
-  on the first two also writes the lcov report, which the `measure-docs` workflow uploads to Codecov as the `documentation`
+  on the first two also writes the lcov report, which the `measure:docs` workflow uploads to Codecov as the `documentation`
   flag (spec `tech-api-docs`, epic #1368). `repoValidation.docsCoverage` (`off` default, `warn`, `required`) in
   `holocron.config.ts` decides what `docs patch` does about a miss and whether `repo setup` writes the flag's statuses.
   `docs tokens` (#1727) fails for each token name a plugin resolver declares (`envName`, `vendorEnvName`, `keyringService`,
@@ -216,7 +216,13 @@ deploy-on-release` (`deployOnRelease()` in astromech) after the release job,
   are aliases for both leaves (`workflowKeys()` writes one caller each; a repo still on the legacy gate gets the one
   `platform.repoValidation.yml` caller, which the frozen reusable answers for both). `RESERVED_SCRIPT_NAMES`
   and `PNPM_BUILTIN_COMMANDS` list the npm lifecycle words no task may take and the pnpm built-ins that need
-  `pnpm run <script>`.
+  `pnpm run <script>`. `measure` is the fifth suite (#2070): `measure:docs` (`probe docs coverage`, the `documentation`
+  Codecov flag) and `measure:bundle` (the bundle upload), each with its own reusable (`measure-docs.yml`,
+  `measure-bundle.yml`, sources `ci/workflows/measure/`), caller and check (`measure:docs / Measure documentation
+coverage`, `measure:bundle / Upload bundle stats to Codecov`). The hyphen ids `measure-docs` and `measure-bundle` are <!-- holocron-allow-old-name -->
+  deprecated aliases in `LEGACY_NAMES` (the `tasks:` notice applies; they generate the same files, and `isLegacySpelling()`
+  treats them as the flat ids since their script spelling is the same); the legacy gate keeps the old caller names
+  through `LEGACY_CALLERS`, now keyed by the colon ids.
 - **Standards (codified in `.claude/skills/holocron-skill-plugin/`):**
   - `--dry-run` global flag flows through `RuntimeContext.dryRun`;
     commands branch at the orchestrator layer, not in capabilities.

@@ -93,7 +93,7 @@ for `build`, `lint`, `test` and `typecheck` (#1262).
   id. The generator quotes the colon-bearing `name:` values (`yamlScalar`). **Not confirmed**: the `workflow_run.workflows`
   filter of `platform.notifications.yml` with a colon-bearing name has not been tried; the phase that changes that file
   must test it.
-- **A suite is declared in the registry.** Four exist: `test`, `lint`, `scan`, `validate`. A suite id is never also a
+- **A suite is declared in the registry.** Five exist: `test`, `lint`, `scan`, `measure`, `validate`. A suite id is never also a
   leaf id. `check-*` (things that probe something live) are deliberately not a suite, because `holocron run check` would
   run work that needs secrets or a deployment.
 - **In the CLI the qualifier is a second word.** `holocron run test unit` and `holocron run test:unit` are the same call.
@@ -128,7 +128,7 @@ probe, a workflow).
 | `scan:code`         | `scan`     | repo    | `security.codeScanning`                      | Security       | CodeQL; CI only                                           |
 | `check-tokens`      | none       | repo    | `security.tokenExpiry`                       | Security       | `holocron doctor tokens`; scheduled, never in `ci`        |
 | `build`             | none       | package | `delivery.build`                             | Delivery       | tsdown / vite / rollup / tsc, detected                    |
-| `measure-bundle`    | none       | repo    | `delivery.bundleSize`                        | Delivery       | bundle stats to Codecov; CI only                          |
+| `measure:bundle`    | `measure`  | repo    | `delivery.bundleSize`                        | Delivery       | bundle stats to Codecov; CI only                          |
 | `release`           | none       | repo    | `delivery.publish`                           | Delivery       | semantic-release; CI only                                 |
 | `deploy`            | none       | package | `delivery.deploy`                            | Delivery       | Cloudflare Pages / Vercel; CI only                        |
 | `deploy-preview`    | none       | package | `delivery.previewDeploy`                     | Delivery       | per-PR preview deploy; per-package script                 |
@@ -189,7 +189,7 @@ becomes `validate:plugin` and joins the suite as a package-scoped leaf.
   note (as a CI-only leaf does today); the `commit-msg` hook covers the local case.
 - **`scan` holds the two things that look for something bad in the repo.** `check-tokens` stays outside because a token
   about to expire is an operations signal, needs the org's secrets, and must never run as part of a suite or `ci`.
-- **`measure-bundle`** over `bundle-size`: the second is a noun; the rule is verb first.
+- **`measure:bundle`** (first `measure-bundle`, a suite member since #2070) over `bundle-size`: the second is a noun; the rule is verb first.
 - **`release`, not `publish`.** semantic-release is what runs, "release" is what the repo calls it, and `publish` is an
   npm lifecycle word (next section). `publish-wiki` stays: only the bare `publish`, `prepublish*` and `postpublish`
   are lifecycle names.
@@ -615,7 +615,7 @@ The generated holocron caller is `ci.<flattened id>.yml`; the reusable is `<flat
 | `security.codeScanning`                                                 | `scan:code`         | `security.codeScanning.yml`                              | `scan-code.yml`                               | Security             |
 | `security.tokenExpiry`                                                  | `check-tokens`      | `security.tokenExpiry.yml`                               | `check-tokens.yml`                            | Token Expiry         |
 | `delivery.build`                                                        | `build`             | `delivery.build.yml`                                     | `build.yml`                                   | Delivery             |
-| `delivery.bundleSize`                                                   | `measure-bundle`    | `delivery.bundleSize.yml`                                | `measure-bundle.yml`                          | Delivery             |
+| `delivery.bundleSize`                                                   | `measure:bundle`    | `delivery.bundleSize.yml`                                | `measure-bundle.yml`                          | Delivery             |
 | `delivery.publish`                                                      | `release`           | `delivery.publish.yml`                                   | `release.yml`                                 | Delivery             |
 | `delivery.deploy`                                                       | `deploy`            | `delivery.deploy.yml`                                    | `deploy.yml`                                  | Delivery             |
 | `delivery.previewDeploy`                                                | `deploy-preview`    | `delivery.previewDeploy.yml`                             | `deploy-preview.yml`                          | Delivery             |
@@ -662,7 +662,7 @@ table is what changes in the ruleset **once**, and what a person sees.
 | `Test / Conclusion`                                               | `test:unit / Conclusion`                                                                                                         | replaced by `ci`                |
 | `Build / Build every workspace`                                   | `build / Build every workspace`                                                                                                  | replaced by `ci`                |
 | `Dead Code Analysis / Run knip`                                   | `lint:unused / Run knip`                                                                                                         | replaced by `ci`                |
-| `Audit the Bundle Size / Upload bundle stats to Codecov`          | `measure-bundle / Upload bundle stats to Codecov`                                                                                | replaced by `ci`                |
+| `Audit the Bundle Size / Upload bundle stats to Codecov`          | `measure:bundle / Upload bundle stats to Codecov`                                                                                | replaced by `ci`                |
 | `Dependency catalogs / Check`                                     | `validate:deps / Check`                                                                                                          | replaced by `ci`                |
 | `Generated files / Check`                                         | `validate:generated / Check`                                                                                                     | replaced by `ci`                |
 | (new)                                                             | `ci`                                                                                                                             | the one required context        |
@@ -709,7 +709,7 @@ commits), which is what `pnpm lint` means to a contributor. It is slower; `pnpm 
 | `verification.unitTests` (`with: { affected, uploads }`)                                            | `test:unit` (same `with`)                                           |
 | `verification.typeSafety`                                                                           | `typecheck`                                                         |
 | `delivery.build` (`turbo.passThroughEnv`)                                                           | `build`                                                             |
-| `sourceQuality.deadCodeAnalysis`, `delivery.bundleSize`                                             | `lint:unused`, `measure-bundle`                                     |
+| `sourceQuality.deadCodeAnalysis`, `delivery.bundleSize`                                             | `lint:unused`, `measure:bundle`                                     |
 | `platform.repoValidation` (+ `jobs: { docsEnforcement }`)                                           | `validate:specs`, and `validate:docs` if wanted; `jobs:` is retired |
 | `delivery.publish` (`groups`, ...)                                                                  | `release`                                                           |
 | `knowledge.docs` (`with: { preview: true }`)                                                        | `deploy-docs`                                                       |
@@ -1035,6 +1035,38 @@ markdownlint`, and `lint:code`'s is `lint:code / Run eslint, actionlint and pret
 - **Only generated callers count**: the `AUTO-GENERATED` header and a job with `uses:`. Hand-written workflows and the
   reusables themselves are left alone. Without callers (or without an aggregate caller, which only the hosting repo
   writes) the row is a skip; `tasks` always runs, so the run is never all skips.
+
+### Phase L as built (#2070): `measure` becomes a suite
+
+The rule of the naming section was applied to the one pair that fits it. `measure-docs` and `measure-bundle` share a verb,
+both upload a measurement to Codecov, and `holocron run measure` running both is a meaningful command, so they are
+`measure:docs` and `measure:bundle` with `suite: "measure"`. `deploy`, `check` and `sync` stay hyphen compounds: their
+leaves are unrelated (and `deploy` is already a task of its own).
+
+- **Registry and runner.** `measure:docs` (`probe docs coverage`) and `measure:bundle` (CI only) declare the suite, so
+  `holocron run measure`, `measure docs` and `measure:docs` resolve with the existing `resolveWords()` and `SUITES`. The
+  suite is a script-less aggregator in `turbo.json` and `scriptsFor()` like the others.
+- **Deprecated aliases.** `measure-docs` and `measure-bundle` stay accepted, with the stderr deprecation notice, as
+  `LEGACY_NAMES` entries (`measure-docs` to `measure:docs`, `measure-bundle` to `measure:bundle`). The mechanism fits with
+  two adjustments. (1) A legacy name used to imply an old turbo key and script (`verification.unitTests`); an old hyphen id
+  has the same script spelling as the id (`measure:docs`), so `isLegacySpelling()` is false for it and a repo that still
+  spells it that way keeps the script and turbo key it had. (2) Reverse lookups keep the last name listing an id, so
+  `measure-bundle` is listed before `delivery.bundleSize` and the dotted name stays the old name of the bundle task
+  (`legacyName()`, the starter workflow name). `holocron tasks names` and `doctor ci` report the alias in a `tasks:` list.
+  `doctor ci` does not call the caller file `ci.measure-docs.yml` an old name, because its flat file is the same.
+- **Files and checks.** Sources move to `ci/workflows/measure/docs.yml` and `bundle.yml`; `workflowFile()` still gives
+  `measure-docs.yml` and `measure-bundle.yml`, so the reusable files, the `uses:` lines and the frozen copies in
+  `theholocron/.github` keep their names. The caller files keep their names too (`ci.measure-docs.yml`); the workflow
+  `name:` and the job `name:` become `measure:docs` and `measure:bundle`, so the check contexts change
+  (`measure:bundle / Upload bundle stats to Codecov`) and the `ci` aggregate waits for `measure:bundle /`. `measure:docs`
+  is not in `expected`: its gate is Codecov's `codecov/patch/documentation` (a `statuses` entry), as before.
+- **Codecov flags.** Unchanged: the `documentation` flag and the bundle flag are set by the reusable workflows, which
+  keep their steps. `codecov.yml` only has its comment renamed.
+- **Legacy gate.** A repo on the legacy gate (`CI_HOME.ref` is `main`) keeps its old caller names: `LEGACY_CALLERS` is keyed
+  by id, so its two entries are now `measure:docs` and `measure:bundle` with the same workflow, job and check names
+  (`Source Quality / Docs coverage`, `Delivery / Audit the Bundle Size`). Its `tasks:` may name either spelling.
+- **`platform.notifications.yml`** lists `measure:docs` and `measure:bundle`. Not confirmed, as for the other colon ids:
+  that GitHub's `workflow_run.workflows` filter matches these names; the first run of `measure:docs` on `alpha` shows it.
 
 ## Open questions
 
