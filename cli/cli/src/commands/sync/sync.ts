@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { realpathSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { createAstromech, mergeScripts, readWorkspacePackages } from "@theholocron/astromech";
 import type { TasksConfig } from "@theholocron/astromech/config";
@@ -11,7 +11,12 @@ import { errorMessage } from "@theholocron/misc-utils";
 
 import { getLogger } from "../../observability/logger/index.js";
 import { PluginLoader, type Source } from "../../plugin/index.js";
-import { generateAgentFiles, generateTurboFiles, generateWorkflowFiles } from "../repo-files/index.js";
+import {
+	generateAgentFiles,
+	generatePrivateDirFiles,
+	generateTurboFiles,
+	generateWorkflowFiles,
+} from "../repo-files/index.js";
 import {
 	CANONICAL_LABELS,
 	deriveCapabilities,
@@ -41,6 +46,7 @@ export const SYNC_STEPS = [
 	"scripts",
 	"turbo",
 	"agents",
+	"private",
 	"wiki",
 ] as const;
 
@@ -54,6 +60,7 @@ const LOCAL_STEPS = new Set<SyncStep>([
 	"scripts",
 	"turbo",
 	"agents",
+	"private",
 	"wiki",
 ]);
 
@@ -293,6 +300,7 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 		"scripts",
 		"turbo",
 		"agents",
+		"private",
 		"wiki",
 	] as const) {
 		if (requestedSteps !== undefined && !requestedSteps.includes(stepName)) {
@@ -537,6 +545,33 @@ export async function runSync(input: RunSyncInput): Promise<SetupReport> {
 						})
 					);
 				}
+				print(formatSyncStep(steps[steps.length - 1]!));
+			}
+		}
+
+		if (stepName === "private") {
+			// The private directory's `.gitkeep` and `.gitignore` block: repo-wide files at the checkout root, like AGENTS.md.
+			if (resolvedRepoRoot !== gitRoot) {
+				steps.push({
+					capability: "local",
+					step: "sync private directory",
+					status: "skip",
+					message: "--cwd is a monorepo subpackage, not the git root — run from the root",
+				});
+				print(formatSyncStep(steps[steps.length - 1]!));
+				continue;
+			}
+			for (const entry of await generatePrivateDirFiles({
+				loaded: input.loaded,
+				repoRoot: input.context.repoRoot,
+				logger,
+			})) {
+				steps.push(
+					await runSyncStep("local", entry.syncStep, dryRun, async () => {
+						await mkdir(dirname(join(gitRoot, entry.path)), { recursive: true });
+						await writeFile(join(gitRoot, entry.path), entry.content, "utf8");
+					})
+				);
 				print(formatSyncStep(steps[steps.length - 1]!));
 			}
 		}

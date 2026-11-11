@@ -15,6 +15,7 @@ vi.mock("@theholocron/kyber/ui", async (importActual) => ({
 
 import { type FileIdentity } from "@theholocron/kyber/secrets";
 
+import { PRIVATE_IGNORE_BLOCK } from "../../private-dir/index.js";
 import { runGithubAppCreate } from "./github-app-create.js";
 import type { RunGithubAppCreateInput } from "./github-app-create.type.js";
 
@@ -48,6 +49,7 @@ function setup(over: Partial<RunGithubAppCreateInput> = {}) {
 		readFile: () => MANIFEST,
 		exists: () => false,
 		isIgnored: () => "ignored",
+		makeDir: () => {},
 		platform: "darwin",
 		writeFile: (path, text, force) => {
 			written.push({ path, text, force });
@@ -72,9 +74,14 @@ describe("runGithubAppCreate", () => {
 	it("creates the App and writes its id, key and webhook secret as dotenv lines, never printing a value", async () => {
 		const { input, lines, written, close } = setup();
 		const report = await runGithubAppCreate(input);
-		expect(report).toEqual({ status: "ok", slug: "the-app-dev", appId: 42, file: "/repo/.credentials" });
+		expect(report).toEqual({
+			status: "ok",
+			slug: "the-app-dev",
+			appId: 42,
+			file: "/repo/.holocron/.private/.credentials",
+		});
 		expect(written).toHaveLength(1);
-		expect(written[0]!.path).toBe("/repo/.credentials");
+		expect(written[0]!.path).toBe("/repo/.holocron/.private/.credentials");
 		expect(written[0]!.force).toBe(false);
 		expect(written[0]!.text).toBe(
 			`SENTINEL_GITHUB_APP_ID=42\nSENTINEL_GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\\nAAAA\\nBBBB\\n-----END RSA PRIVATE KEY-----\\n"\nSENTINEL_WEBHOOK_SECRET=WHSECRET\n`
@@ -84,7 +91,7 @@ describe("runGithubAppCreate", () => {
 		expect(said).toContain("created the-app-dev (App id 42)");
 		expect(said).toContain("https://github.com/apps/the-app-dev/installations/new");
 		// Not interactive: the file stays and the command says to delete it.
-		expect(said).toContain("delete it when you are done: /repo/.credentials");
+		expect(said).toContain("delete it when you are done: /repo/.holocron/.private/.credentials");
 		expect(close).toHaveBeenCalledTimes(1);
 		expect(input.openUrl).toHaveBeenCalledWith("http://127.0.0.1:9/");
 	});
@@ -118,7 +125,7 @@ describe("runGithubAppCreate", () => {
 		expect((await runGithubAppCreate(input)).status).toBe("ok");
 		expect(waitForImport).toHaveBeenCalledTimes(1);
 		expect(shred).toHaveBeenCalledTimes(1);
-		expect(lines).toContain("deleted /repo/.credentials");
+		expect(lines).toContain("deleted /repo/.holocron/.private/.credentials");
 	});
 
 	it("fails when the file could not be deleted: secrets are still on disk", async () => {
@@ -159,6 +166,27 @@ describe("runGithubAppCreate", () => {
 		const { input, lines } = setup({ isIgnored: () => git });
 		expect((await runGithubAppCreate(input)).status).toBe("fail");
 		expect(lines.join("\n")).toMatch(message);
+	});
+
+	it("tells a repo without the ignore rule to run repo sync, but keeps the old advice for --file", async () => {
+		const missing = setup({ isIgnored: () => "tracked" });
+		await runGithubAppCreate(missing.input);
+		expect(missing.lines.join("\n")).toContain("run `holocron repo sync`");
+		const chosen = setup({ isIgnored: () => "tracked", file: "x.env" });
+		await runGithubAppCreate(chosen.input);
+		expect(chosen.lines.join("\n")).not.toContain("repo sync");
+		expect(chosen.lines.join("\n")).toContain("--file");
+	});
+
+	it("makes the private directory before asking git, and lets --file win without making it", async () => {
+		const dirs: string[] = [];
+		const made = setup({ makeDir: (d) => void dirs.push(d) });
+		await runGithubAppCreate(made.input);
+		expect(dirs).toEqual(["/repo/.holocron/.private"]);
+		const other = setup({ makeDir: (d) => void dirs.push(d), file: "x.env" });
+		await runGithubAppCreate(other.input);
+		expect(dirs).toHaveLength(1);
+		expect(other.written[0]!.path).toBe("/repo/x.env");
 	});
 
 	it("never overwrites a file that is there, unless told to", async () => {
@@ -238,7 +266,7 @@ describe("runGithubAppCreate end to end", () => {
 	it("runs with the real file, git, server and writer, and only GitHub and the browser stubbed", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "gha-e2e-"));
 		execFileSync("git", ["init", "-q"], { cwd: dir });
-		writeFileSync(join(dir, ".gitignore"), ".credentials\n");
+		writeFileSync(join(dir, ".gitignore"), `${PRIVATE_IGNORE_BLOCK.lines.join("\n")}\n`);
 		writeFileSync(join(dir, "manifest.json"), MANIFEST);
 
 		const real = globalThis.fetch;
@@ -273,10 +301,10 @@ describe("runGithubAppCreate end to end", () => {
 				webhookUrl: "https://t.example/hook",
 			});
 			expect(report).toMatchObject({ status: "ok", slug: "e2e", appId: 7 });
-			const text = readFileSync(join(dir, ".credentials"), "utf8");
+			const text = readFileSync(join(dir, ".holocron", ".private", ".credentials"), "utf8");
 			expect(text).toContain("SENTINEL_GITHUB_APP_ID=7\n");
 			expect(text).toContain("SENTINEL_WEBHOOK_SECRET=W\n");
-			expect(statSync(join(dir, ".credentials")).mode & 0o777).toBe(0o600);
+			expect(statSync(join(dir, ".holocron", ".private", ".credentials")).mode & 0o777).toBe(0o600);
 		} finally {
 			spy.mockRestore();
 			err.mockRestore();

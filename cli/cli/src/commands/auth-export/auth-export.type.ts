@@ -26,7 +26,7 @@ export interface RunAuthExportInput {
 	 * when stdout is a pipe, and `file` writes the file even then.
 	 */
 	to?: AuthExportTarget;
-	/** The file for the file option, relative to the config's directory. Defaults to `.credentials`. */
+	/** The file for the file option, relative to the config's directory. Defaults to `.holocron/.private/.credentials`. */
 	file?: string;
 	/** Replace the file if it is already there. Without it an existing file is never overwritten. */
 	force?: boolean;
@@ -40,6 +40,8 @@ export interface RunAuthExportInput {
 	writeFile?: (path: string, text: string, force: boolean) => FileIdentity;
 	/** Overwrites and removes the file it was written as. Defaults to {@link shredFile}. */
 	shred?: (path: string, identity: FileIdentity) => ShredOutcome;
+	/** Makes the default file's directory when it is missing. Defaults to `mkdir -p` with mode 0700. */
+	makeDir?: (dir: string) => void;
 	/** What git says about the path. Defaults to asking git. */
 	isIgnored?: (path: string) => GitIgnoreState;
 	/** The platform, for refusing the file where its mode means nothing. Defaults to the running one. */

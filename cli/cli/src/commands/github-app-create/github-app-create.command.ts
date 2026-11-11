@@ -28,7 +28,7 @@ const githubAppCreateArgs = (yy: Argv<GlobalArgs>) =>
 		})
 		.option("file", {
 			type: "string",
-			describe: "Write the credentials to this private file (mode 0600; default .credentials)",
+			describe: "Write the credentials to this private file (mode 0600; default .holocron/.private/.credentials)",
 		})
 		.option("keep", {
 			type: "boolean",
