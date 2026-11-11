@@ -22,7 +22,6 @@ export function environmentLayers(slug: string, layer: Environment): Environment
 	const candidate = (suffix: EnvironmentLayer, optional: boolean): EnvironmentCandidate => ({
 		name: layerEnvironment(slug, suffix),
 		optional,
-		legacy: false,
 	});
 	return layer === "local"
 		? [candidate(SUFFIX.local, true), candidate(SUFFIX.development, false)]

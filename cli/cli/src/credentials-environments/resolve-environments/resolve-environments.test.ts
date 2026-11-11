@@ -8,21 +8,16 @@ describe("resolveEnvironments", () => {
 	it("returns the explicit name alone, without reading the remote", async () => {
 		const exec = vi.fn(gitExec);
 		expect(await resolveEnvironments("1password", "Mine", { repoRoot: "/r", gitExec: exec })).toEqual([
-			{ name: "Mine", optional: false, legacy: false },
+			{ name: "Mine", optional: false },
 		]);
 		expect(exec).not.toHaveBeenCalled();
 	});
 
-	it("derives the layer's names, then the migration names", async () => {
+	it("derives the layer's names and no others", async () => {
 		const names = (await resolveEnvironments("1password", undefined, { repoRoot: "/r", env: {}, gitExec })).map(
 			(x) => x.name
 		);
-		expect(names).toEqual([
-			"theholocron/holocron - local",
-			"theholocron/holocron - dev",
-			"Holocron",
-			"Holocron - GitHub Actions variables",
-		]);
+		expect(names).toEqual(["theholocron/holocron - local", "theholocron/holocron - dev"]);
 	});
 
 	it("derives nothing for a provider that does not derive", async () => {

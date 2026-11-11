@@ -32,7 +32,7 @@ describe("openSide", () => {
 		await openSide({
 			loaded: loadedWith({
 				issues: ["github", { repo: "o/r" }],
-				credentials: [["1password", { environment: "Holocron" }]],
+				credentials: [["1password", { environment: "Demo" }]],
 			}),
 			context,
 			endpoint: { provider: "linear", options: { team: "ENG" } },
@@ -45,7 +45,7 @@ describe("openSide", () => {
 		expect(Object.keys(providers)).toEqual(["issues", "credentials"]);
 		expect(providers.credentials).toMatchObject({
 			cardinality: "many",
-			tuples: [{ provider: "1password", options: { environment: "Holocron" } }],
+			tuples: [{ provider: "1password", options: { environment: "Demo" } }],
 		});
 	});
 

@@ -7,8 +7,8 @@ describe("environmentLayers", () => {
 
 	it("reads local, optional, and then dev on a machine", () => {
 		expect(environmentLayers(slug, "local")).toEqual([
-			{ name: `${slug} - local`, optional: true, legacy: false },
-			{ name: `${slug} - dev`, optional: false, legacy: false },
+			{ name: `${slug} - local`, optional: true },
+			{ name: `${slug} - dev`, optional: false },
 		]);
 	});
 
@@ -17,9 +17,7 @@ describe("environmentLayers", () => {
 		["ci", "ci"],
 		["production", "prod"],
 	] as const)("reads only its own Environment in the %s layer", (layer, suffix) => {
-		expect(environmentLayers(slug, layer)).toEqual([
-			{ name: `${slug} - ${suffix}`, optional: false, legacy: false },
-		]);
+		expect(environmentLayers(slug, layer)).toEqual([{ name: `${slug} - ${suffix}`, optional: false }]);
 	});
 
 	it("reads none in the test layer", () => {

@@ -139,8 +139,7 @@ export default defineConfig({
 		...providers,
 		secrets: "github",
 		// Credentials: tokens come from the 1Password Environment `<org/repo> - <layer>`, derived from the git remote
-		// and the layer (#2063, see docs: tokens), ahead of the keyring (#1606). The old names are still tried while
-		// the new ones are absent. A token in the process environment or a repo-root `.env` still wins.
+		// and the layer (#2063, see docs: tokens), ahead of the keyring (#1606). A token in the process environment or a repo-root `.env` still wins.
 		credentials: ["1password"],
 		// Vault: the source `holocron secrets sync` reads. Sentinel and Comlink name their own layer (`prod`) in their
 		// configs; this one is for the GitHub Actions secrets, so it is the `ci` layer, `<org/repo> - ci` (#2069).

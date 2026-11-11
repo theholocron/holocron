@@ -15,7 +15,7 @@ const loadedWith = (extra: Record<string, unknown> = {}): LoadedConfig => ({
 	resolved: resolveConfig({
 		name: "demo",
 		providers: { credentials: ["1password"], source: "github", dns: "cloudflare" },
-		credentials: { environment: "Holocron" },
+		credentials: { environment: "Demo" },
 		...extra,
 	} as Raw),
 	filepath: "/tmp/test/holocron.config.json",
@@ -76,16 +76,16 @@ const inspecting = (environment: string, ...names: string[]) => ({
 
 describe("doctor credentials", () => {
 	it("prints one ok row per variable the plugins take, in code-unit order, and counts the variables", async () => {
-		const impl = inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN", "EXTRA");
+		const impl = inspecting("Demo", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN", "EXTRA");
 		const { report, lines } = await run(loadedWith(), impl);
 		expect(report.status).toBe("ok");
 		expect(report.rows.map((r) => [r.id, r.status, r.detail])).toEqual([
-			["1password:HOLOCRON_CLOUDFLARE_TOKEN", "ok", 'present in "Holocron"'],
-			["1password:HOLOCRON_ORG_TOKEN", "ok", 'present in "Holocron"'],
+			["1password:HOLOCRON_CLOUDFLARE_TOKEN", "ok", 'present in "Demo"'],
+			["1password:HOLOCRON_ORG_TOKEN", "ok", 'present in "Demo"'],
 		]);
 		expect(lines).toEqual([
-			'  ✓ 1password: HOLOCRON_CLOUDFLARE_TOKEN  present in "Holocron"',
-			'  ✓ 1password: HOLOCRON_ORG_TOKEN         present in "Holocron"',
+			'  ✓ 1password: HOLOCRON_CLOUDFLARE_TOKEN  present in "Demo"',
+			'  ✓ 1password: HOLOCRON_ORG_TOKEN         present in "Demo"',
 			"",
 			"2 ok, 0 fail, 0 skipped",
 		]);
@@ -95,7 +95,7 @@ describe("doctor credentials", () => {
 		const tokens: AuthImporter = async () => ({
 			tokens: ["b_TOKEN", "A_TOKEN", "a_TOKEN", "B_TOKEN"].map((envName) => ({ envName, keyringKey: envName })),
 		});
-		const { report } = await run(loadedWith(), inspecting("Holocron"), tokens);
+		const { report } = await run(loadedWith(), inspecting("Demo"), tokens);
 		expect(report.rows.map((r) => r.id)).toEqual([
 			"1password:A_TOKEN",
 			"1password:B_TOKEN",
@@ -118,7 +118,7 @@ describe("doctor credentials", () => {
 		it("is a skipped row that says it is optional and not set", async () => {
 			const { report, lines } = await run(
 				loadedWith(),
-				inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"),
+				inspecting("Demo", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN"),
 				withOptional
 			);
 			expect(report.status).toBe("ok");
@@ -126,7 +126,7 @@ describe("doctor credentials", () => {
 			expect(report.rows[1]).toMatchObject({
 				id: "1password:HOLOCRON_FALLBACK_WEBHOOK",
 				status: "skip",
-				detail: 'optional, not set in "Holocron"',
+				detail: 'optional, not set in "Demo"',
 			});
 			expect(lines.at(-1)).toBe("2 ok, 0 fail, 1 skipped");
 		});
@@ -134,7 +134,7 @@ describe("doctor credentials", () => {
 		it("is an ok row when the environment has it", async () => {
 			const { report } = await run(
 				loadedWith(),
-				inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_FALLBACK_WEBHOOK", "HOLOCRON_CLOUDFLARE_TOKEN"),
+				inspecting("Demo", "HOLOCRON_ORG_TOKEN", "HOLOCRON_FALLBACK_WEBHOOK", "HOLOCRON_CLOUDFLARE_TOKEN"),
 				withOptional
 			);
 			expect(report.summary).toEqual({ ok: 3, fail: 0, skip: 0 });
@@ -147,33 +147,33 @@ describe("doctor credentials", () => {
 					: { tokens: [{ envName: "HOLOCRON_SHARED", keyringKey: "a" }] };
 			const { report } = await run(
 				loadedWith({ providers: { credentials: ["1password"], source: "github", errors: "sentry" } }),
-				inspecting("Holocron", "SOMETHING_ELSE"),
+				inspecting("Demo", "SOMETHING_ELSE"),
 				both
 			);
 			expect(report.status).toBe("fail");
 			expect(report.rows).toHaveLength(1);
-			expect(report.rows[0]).toMatchObject({ status: "fail", detail: 'missing from "Holocron"' });
+			expect(report.rows[0]).toMatchObject({ status: "fail", detail: 'missing from "Demo"' });
 		});
 	});
 
 	it("fails a row for each variable the environment lacks", async () => {
-		const { report, lines } = await run(loadedWith(), inspecting("Holocron", "HOLOCRON_ORG_TOKEN"));
+		const { report, lines } = await run(loadedWith(), inspecting("Demo", "HOLOCRON_ORG_TOKEN"));
 		expect(report.status).toBe("fail");
 		expect(report.summary).toEqual({ ok: 1, fail: 1, skip: 0 });
-		expect(lines[0]).toBe('  ✗ 1password: HOLOCRON_CLOUDFLARE_TOKEN  missing from "Holocron"');
+		expect(lines[0]).toBe('  ✗ 1password: HOLOCRON_CLOUDFLARE_TOKEN  missing from "Demo"');
 	});
 
 	it("says which spelling matched when it is not the one the config writes", async () => {
 		const { report } = await run(
-			loadedWith({ credentials: { environment: "holocron" } }),
-			inspecting("Holocron", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN")
+			loadedWith({ credentials: { environment: "demo" } }),
+			inspecting("Demo", "HOLOCRON_ORG_TOKEN", "HOLOCRON_CLOUDFLARE_TOKEN")
 		);
-		expect(report.rows[0]?.detail).toBe('present in "Holocron" (the config writes "holocron")');
+		expect(report.rows[0]?.detail).toBe('present in "Demo" (the config writes "demo")');
 	});
 
 	it("fails once when the provider cannot find the environment", async () => {
 		const impl = {
-			inspect: vi.fn(async () => Promise.reject(new Error('1Password has no Environment named "Holocron"'))),
+			inspect: vi.fn(async () => Promise.reject(new Error('1Password has no Environment named "Demo"'))),
 		};
 		const { report } = await run(loadedWith(), impl);
 		expect(report.status).toBe("fail");
@@ -189,7 +189,7 @@ describe("doctor credentials", () => {
 	});
 
 	it("skips with one row when no plugin that can be loaded lists a token", async () => {
-		const impl = inspecting("Holocron");
+		const impl = inspecting("Demo");
 		const { report } = await run(loadedWith(), impl, async () => {
 			throw new Error("MODULE_NOT_FOUND");
 		});
@@ -258,7 +258,7 @@ describe("doctor credentials", () => {
 	});
 
 	it("takes a plugin that lists no tokens as expecting none", async () => {
-		const { report } = await run(loadedWith(), inspecting("Holocron", "A"), async () => ({}));
+		const { report } = await run(loadedWith(), inspecting("Demo", "A"), async () => ({}));
 		expect(report.rows[0]?.status).toBe("skip");
 	});
 
@@ -269,7 +269,7 @@ describe("doctor credentials", () => {
 			const report = await runDoctorCredentials({
 				loaded,
 				context: { repoRoot: "/tmp/test" },
-				loader: loaderWith(loaded, inspecting("Holocron")),
+				loader: loaderWith(loaded, inspecting("Demo")),
 			});
 			// The real plugins' tokens are expected here, so a stub environment with none of them fails: only the row matters.
 			expect(report.rows[0]).toMatchObject({ id: "1password:HOLOCRON_ADMIN_TOKEN", status: "fail" });
@@ -293,7 +293,7 @@ describe("doctor credentials", () => {
 	it("never reads a value: the loader it makes asks the provider for none", async () => {
 		clearCredentials();
 		const read = vi.fn(async () => ({ HOLOCRON_ORG_TOKEN: "secret" }));
-		await run(loadedWith(), { ...inspecting("Holocron", "HOLOCRON_ORG_TOKEN"), read });
+		await run(loadedWith(), { ...inspecting("Demo", "HOLOCRON_ORG_TOKEN"), read });
 		expect(read).not.toHaveBeenCalled();
 		expect(getCredential("HOLOCRON_ORG_TOKEN")).toBeUndefined();
 	});
@@ -352,12 +352,22 @@ describe("doctor credentials", () => {
 			expect(report.rows[0]?.detail).toBe(`1password has no Environment named "${SLUG} - ci"`);
 		});
 
-		it("reports an old name in use as a skipped row", async () => {
-			const report = await runDerived({ Holocron: BOTH });
-			expect(report.status).toBe("ok");
-			expect(report.rows.find((r) => r.status === "skip")?.detail).toBe(
-				'read from the old Environment name "Holocron"; rename it'
-			);
+		it("reports a missing dev by name and reads nothing else", async () => {
+			const impl = holding({});
+			const loaded = derived();
+			const report = await runDoctorCredentials({
+				loaded,
+				context: { repoRoot: "/tmp/test" },
+				loader: loaderWith(loaded, impl),
+				importer: tokensImporter,
+				env: {},
+				gitExec,
+				print: () => {},
+				logger: fakeLogger(),
+			});
+			expect(report.status).toBe("fail");
+			expect(report.rows.map((r) => r.detail)).toEqual([`1password has no Environment named "${SLUG} - dev"`]);
+			expect(impl.inspect.mock.calls.map(([name]) => name)).toEqual([`${SLUG} - local`, `${SLUG} - dev`]);
 		});
 
 		it("fails once, naming the option, when the remote cannot be parsed", async () => {

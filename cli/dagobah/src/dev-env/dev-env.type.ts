@@ -2,7 +2,7 @@ import type { spawnSync } from "node:child_process";
 
 /** What {@link loadDevEnv} needs: which 1Password Environment holds the secrets, and which variables must be set. */
 export interface LoadDevEnvInput<K extends string = string> {
-	/** The name of the 1Password Environment, e.g. `Sentinel - dev`. */
+	/** The name of the 1Password Environment, e.g. `acme/app - dev`. */
 	environment: string;
 	/** The variables the app cannot start without. Loading throws, naming any that are in neither place. */
 	required: readonly K[];

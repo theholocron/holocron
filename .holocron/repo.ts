@@ -9,9 +9,8 @@ export default {
 	teams: [{ slug: "gatekeepers", permission: "maintain" }],
 	topics: ["automation", "cli", "developer-tools", "holocron", "nodejs", "typescript"],
 	// Organization Actions variables the reusable workflows read as `vars.NAME`. Their values are edited in the
-	// 1Password Environment `Holocron - GitHub Actions variables` (a separate Environment from the secrets one, because
-	// 1Password does not tell a visible value from a secret) and written by `holocron secrets sync "Holocron - GitHub
-	// Actions variables"`. Names only; a key blank or missing in the Environment is skipped, so GitHub keeps its value.
+	// `ci` layer of the 1Password Environments (`theholocron/holocron - ci`) and written by `holocron secrets sync ci`. Names only; a key blank or
+	// missing in the Environment is skipped, so GitHub keeps its value.
 	// A name here must not also be a literal in `variables.org`. Anything else already set in the org is left alone
 	// (no `prune`). `doctor variables` expects every key listed here at its scope.
 	// HOLOCRON_CLOUDFLARE_PAGES_PROJECT is synced because every caller in this org shares one Pages project (`<org>-preview`, the

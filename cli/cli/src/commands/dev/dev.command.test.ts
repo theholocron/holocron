@@ -19,7 +19,7 @@ import { runCommand } from "../run-command.testing.js";
 import { devCommand } from "./dev.command.js";
 
 const DEV = {
-	environment: "Sentinel - dev",
+	environment: "acme/app - dev",
 	tunnel: { name: "sentinel-dev", hostname: "sentinel-dev.example.dev" },
 	port: 4000,
 	command: ["pnpm", "run", "serve"],
@@ -39,7 +39,7 @@ describe("dev command", () => {
 		await go();
 		expect(runDev).toHaveBeenCalledWith(
 			expect.objectContaining({
-				environment: "Sentinel - dev",
+				environment: "acme/app - dev",
 				name: "sentinel-dev",
 				hostname: "sentinel-dev.example.dev",
 				port: 4000,

@@ -42,7 +42,7 @@ export default defineConfig({
 });
 ```
 
-A 1Password entry with no `environment` option derives its Environment names: `<org>/<repo>` from the repository's `origin` remote, plus a layer from `detectEnvironment()`. A machine reads `<org/repo> - local` and then `<org/repo> - dev` (the only fallback; a missing `- local` is skipped silently). `holocron dev` reads `- dev`, CI reads `- ci`, a deployed app reads `- prod`, and the `test` layer reads none. A missing `- dev`, `- ci` or `- prod` is an error that names the Environment, and a layer never reads another's. While the Environments still have their old names (`Holocron`, `Holocron - GitHub Actions variables`), those are tried when a new name is missing; that fallback is temporary. A remote the CLI cannot parse is an error that asks for an explicit `environment`.
+A 1Password entry with no `environment` option derives its Environment names: `<org>/<repo>` from the repository's `origin` remote, plus a layer from `detectEnvironment()`. A machine reads `<org/repo> - local` and then `<org/repo> - dev` (the only fallback; a missing `- local` is skipped silently). `holocron dev` reads `- dev`, CI reads `- ci`, a deployed app reads `- prod`, and the `test` layer reads none. A missing `- dev`, `- ci` or `- prod` is an error that names the Environment, and a layer never reads another's. A remote the CLI cannot parse is an error that asks for an explicit `environment`.
 
 The rest of the config names a layer the same way (`layer: "ci"` on a sync entry, `vault: ["1password", { layer: "prod" }]`, `holocron secrets sync prod`; see [secrets sync](/holocron/commands/secrets-sync/)), through the same derivation.
 
@@ -81,7 +81,7 @@ In the app: Developer, View Environments, the Environment (`theholocron/holocron
 
 ```text
 stored cloudflare token (account: acme)
-  1password cannot be written to from the CLI: add HOLOCRON_CLOUDFLARE_TOKEN to its "Holocron" environment yourself, so the token follows you to other machines
+  1password cannot be written to from the CLI: add HOLOCRON_CLOUDFLARE_TOKEN to its "Demo" environment yourself, so the token follows you to other machines
 ```
 
 The name is the one the plugin lists for that keyring entry (`holocron doctor tokens` shows them), or `HOLOCRON_<PROVIDER>_TOKEN`, and `HOLOCRON_<FEATURE>_TOKEN` for a key such as `github.read`. Nothing is printed outside a repo, or in a repo whose config names no `credentials` provider, and the token itself is never printed.

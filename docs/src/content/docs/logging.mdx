@@ -159,7 +159,7 @@ never decides where its lines go, and uses the CLI's `holocron` dataset instead.
 The `sync` and `sync-github` reusable workflows read the token from the
 `HOLOCRON_AXIOM_TOKEN` secret and the dataset from the
 `HOLOCRON_AXIOM_DATASET` variable (value `holocron`), which `repo.variables.sync` writes from the
-1Password Environment `Holocron - GitHub Actions variables` and which the workflows pass to the CLI as
+1Password Environment `theholocron/holocron - ci` and which the workflows pass to the CLI as
 `HOLOCRON_AXIOM_DATASET: ${{ vars.HOLOCRON_AXIOM_DATASET }}`. Thin callers forward them via
 `secrets: inherit`; the variable is visible to the reusable workflow
 automatically. `HOLOCRON_TELEMETRY=false` in a workflow disables shipping

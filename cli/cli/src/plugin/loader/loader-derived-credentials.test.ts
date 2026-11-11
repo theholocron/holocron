@@ -111,17 +111,17 @@ describe("PluginLoader: derived credentials Environments (#2063)", () => {
 		expect(gitExec).not.toHaveBeenCalled();
 	});
 
-	it("falls back to the old names while the new ones are absent (migration)", async () => {
-		const loader = await load(holding({ Holocron: { T: "old" } }), {});
-		expect(getCredential("T")).toBe("old");
-		expect(loader.loadFailures()).toEqual([]);
+	it("reports a missing dev by name and reads nothing else", async () => {
+		const impl = holding({});
+		const loader = await load(impl, {});
+		expect(impl.read.mock.calls.map(([n]) => n)).toEqual([`${SLUG} - local`, `${SLUG} - dev`]);
+		expect(loader.loadFailures()[0]?.error.message).toBe(`1password has no Environment named "${SLUG} - dev"`);
 	});
 
-	it("does not try the old names when the new ones are all there", async () => {
-		const impl = holding({ [`${SLUG} - dev`]: { T: "dev" }, Holocron: { T: "old" } });
+	it("reads local over dev when both exist", async () => {
+		const impl = holding({ [`${SLUG} - local`]: { T: "local" }, [`${SLUG} - dev`]: { T: "dev" } });
 		await load(impl, {});
-		expect(impl.read.mock.calls.map(([n]) => n)).not.toContain("Holocron");
-		expect(getCredential("T")).toBe("dev");
+		expect(getCredential("T")).toBe("local");
 	});
 
 	it("names the environment option when the remote cannot be parsed", async () => {

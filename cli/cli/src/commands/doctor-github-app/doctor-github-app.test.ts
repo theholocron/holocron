@@ -296,7 +296,7 @@ describe("runDoctorGitHubApp", () => {
 
 	it("checks every instance and fails the run when one fails", async () => {
 		const { report } = await run({
-			instances: [...INSTANCES, { name: "Sentinel - dev", manifest: "m.json", environment: "Sentinel - dev" }],
+			instances: [...INSTANCES, { name: "Sentinel - dev", manifest: "m.json", environment: "acme/app - dev" }],
 			live: app({ events: [] }),
 		});
 		expect(report.rows.filter((r) => r.id.endsWith(":reachable")).map((r) => r.title)).toEqual([
