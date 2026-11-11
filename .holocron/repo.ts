@@ -19,6 +19,7 @@ export default {
 	// `cloudflare-project` input, which wins over the variable. HOLOCRON_POSTHOG_PROJECT_TOKEN is a publishable key, not a secret;
 	// the CLI keeps its compiled-in key as the fallback for installed copies. HOLOCRON_SENTRY_DSN is a variable, not a secret: a
 	// DSN is a public ingest key built to be embedded in client code; the CLI's telemetry reads it before `SENTRY_DSN`.
+	// SENTINEL_GITHUB_APP_ID is public (shown on the App's settings page); the workflows read `vars.` first, then the old secret.
 	variables: {
 		sync: [
 			{
@@ -35,6 +36,7 @@ export default {
 					"HOLOCRON_TURBO_TEAM",
 					"HOLOCRON_VERCEL_TEAM_ID",
 					"SENTINEL_AXIOM_DATASET",
+					"SENTINEL_GITHUB_APP_ID",
 				],
 			},
 		],
@@ -63,7 +65,6 @@ export default {
 					"HOLOCRON_SENTRY_AUTH_TOKEN",
 					"HOLOCRON_SYNC_TOKEN",
 					"HOLOCRON_TURBO_TOKEN",
-					"SENTINEL_GITHUB_APP_ID",
 					"SENTINEL_GITHUB_APP_PRIVATE_KEY",
 				],
 			},
